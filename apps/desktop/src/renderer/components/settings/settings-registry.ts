@@ -62,6 +62,7 @@ export const settingsEntries: readonly SettingsEntry[] = [
 
   { id: "update-status", page: "updates", title: (c) => c.updates.title, hint: (c) => c.pages.updates.description, keywords: { zh: ["更新", "版本", "升级", "检查更新", "重启", "发布页"], en: ["update", "upgrade", "version", "check for updates", "release", "restart", "about"] } },
   { id: "update-auto", page: "updates", title: (c) => c.updates.autoTitle, hint: (c) => c.updates.autoHint, keywords: { zh: ["自动更新", "自动下载", "后台"], en: ["automatic updates", "auto update", "download", "background"] } },
+  { id: "update-intro", page: "updates", title: (c) => c.updates.replayTitle, hint: (c) => c.updates.replayHint, keywords: { zh: ["介绍", "引导", "新功能", "新到港", "重看"], en: ["intro", "tour", "onboarding", "what's new", "replay"] } },
 
   { id: "shortcuts", page: "shortcuts", title: (c) => c.appearance.shortcuts, hint: (c) => c.appearance.shortcutsHint, keywords: { zh: ["快捷键", "热键", "按键"], en: ["shortcut", "hotkey", "keyboard", "keybinding"] } },
 
@@ -112,6 +113,6 @@ export const settingsEntries: readonly SettingsEntry[] = [
 
   { id: "dev-sync", page: "development", title: (c) => c.development.title, hint: (c) => c.development.hint, keywords: { zh: ["同步", "正式版", "会话", "模型", "技能", "记忆", "预览"], en: ["sync", "production", "conversations", "models", "skills", "mcp", "memory", "preview"] } },
   { id: "dev-sync-history", page: "development", title: (c) => c.development.historyTitle, hint: (c) => c.development.historyHint, keywords: { zh: ["撤销", "回滚", "批次", "同步记录"], en: ["undo", "rollback", "batch", "history"] } },
-  { id: "dev-tools", page: "development", title: (c) => c.development.toolsTitle, hint: (c) => c.development.toolsHint, keywords: { zh: ["DevTools", "开发者工具", "重新加载", "重启", "main process", "主进程"], en: ["devtools", "developer tools", "reload", "restart", "main process"] } },
+  { id: "dev-tools", page: "development", title: (c) => c.development.toolsTitle, hint: (c) => c.development.toolsHint, keywords: { zh: ["DevTools", "开发者工具", "重新加载", "重启", "main process", "主进程", "引导", "OnBoarding", "新手引导"], en: ["devtools", "developer tools", "reload", "restart", "main process", "onboarding", "welcome", "first run"] } },
   { id: "dev-info", page: "development", title: (c) => c.development.infoTitle, hint: (c) => c.development.infoHint, keywords: { zh: ["版本", "提交", "commit", "Electron", "Node", "issue"], en: ["version", "commit", "hash", "electron", "node", "issue"] } },
 ];

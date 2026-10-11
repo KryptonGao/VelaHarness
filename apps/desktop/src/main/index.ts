@@ -22,6 +22,7 @@ import { getApplicationLocale, setApplicationLocale, setDiagnosticsMenuActions, 
 import { LogService } from "./log-service";
 import { installCrashHandlers, LogHost, systemInfo } from "./log-host";
 import { createUpdateService, UpdateHost } from "./update-host";
+import { ReleaseNotesHost } from "./release-notes-host";
 import { allowSubframeNavigation } from "./ui-sandbox-guard";
 import { UiSandboxHost } from "./ui-sandbox-host";
 import { registerOpenTargetIpc } from "./open-targets";
@@ -108,6 +109,7 @@ let prInboxHost: PrInboxHost | null = null;
 let logHost: LogHost | null = null;
 let conversationExportHost: ConversationExportHost | null = null;
 let updateHost: UpdateHost | null = null;
+let releaseNotesHost: ReleaseNotesHost | null = null;
 let uiSandboxHost: UiSandboxHost | null = null;
 
 /*
@@ -330,6 +332,8 @@ async function start(): Promise<void> {
   uiSandboxHost.register();
   updateHost = new UpdateHost(createUpdateService(home));
   updateHost.register();
+  releaseNotesHost = new ReleaseNotesHost(join(rootDir, "release-notes.json"));
+  releaseNotesHost.register();
   setUpdateMenuAction(() => { void updateHost?.checkFromMenu().catch(error => log.error("update check from menu failed", error)); });
   // 开发版只提供手动检查，不在后台联网，也不会替换 Electron 开发二进制。
   if (app.isPackaged) updateHost.service.start();
@@ -673,6 +677,7 @@ app.on("before-quit", (event) => {
   conversationExportHost?.dispose();
   conversationExportHost = null;
   updateHost?.dispose();
+  releaseNotesHost?.dispose();
   uiSandboxHost?.dispose();
   uiSandboxHost = null;
   try { taskRecipes?.stop(); } catch (error) { log.error("recipe shutdown write failed", error); }

@@ -49,6 +49,10 @@ interface SettingsViewProps {
   conversationId?: string | null;
   onUnarchiveConversation: (id: string) => void;
   onClose: () => void;
+  /** 重新播放引导里的介绍（不改动任何设置）。 */
+  onReplayIntro?: () => void;
+  /** 开发版：回到引导的第一页重新走一遍，不清除已保存的设置。 */
+  onRestartOnboarding?: () => void;
 }
 
 export function SettingsView({
@@ -61,6 +65,8 @@ export function SettingsView({
   conversationId,
   onUnarchiveConversation,
   onClose,
+  onReplayIntro,
+  onRestartOnboarding,
 }: SettingsViewProps) {
   const { locale } = preferences;
   const copy = settingsCopy(locale);
@@ -157,7 +163,7 @@ export function SettingsView({
           <div hidden={page !== "shortcuts"}>
             <ShortcutsPage copy={copy} mod={mod} />
           </div>
-          {page === "updates" ? <UpdatesPage copy={copy} locale={locale} /> : null}
+          {page === "updates" ? <UpdatesPage copy={copy} locale={locale} onReplayIntro={onReplayIntro} /> : null}
           <div hidden={page !== "defaults"}>
             <AgentDefaultsPage copy={copy} catalog={models.catalog} project={project} />
           </div>
@@ -184,7 +190,7 @@ export function SettingsView({
           {page === "storage" ? <StoragePage copy={copy} /> : null}
           {page === "logs" ? <LogsPage copy={copy} /> : null}
           {development ? <div hidden={page !== "development"}>
-            <DevelopmentPage copy={copy} development={development} />
+            <DevelopmentPage copy={copy} development={development} onRestartOnboarding={onRestartOnboarding} />
           </div> : null}
         </div>
       </div>

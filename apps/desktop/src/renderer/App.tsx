@@ -3,7 +3,7 @@ import { AgentInboxPage } from "./components/AgentInboxPage";
 import { useAgentInbox } from "./hooks/useAgentInbox";
 import { uiStorage } from "./ui-storage";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { emptyAgentUsage, type AgentInboxNavigation, type AgentInfo, type TaskRecipe } from "@vela/shared";
+import { emptyAgentUsage, type AgentInboxNavigation, type AgentInfo, type ReleaseNotes, type TaskRecipe } from "@vela/shared";
 import { AgentWorkspaceProvider } from "./components/AgentPanel";
 import { SessionChatView } from "./components/SessionChatView";
 import { ContextPanel } from "./components/ContextPanel";
@@ -14,6 +14,8 @@ import { ScreenPresence } from "./components/MotionPresence";
 import { Presence } from "./components/Presence";
 import { SettingsView } from "./components/SettingsView";
 import { UpdateNotice } from "./components/UpdateNotice";
+import { WhatsNewCard } from "./components/WhatsNewCard";
+import { restoreScreen, type OnboardingScreen } from "./components/onboarding-flow";
 import { TaskRecipesPage, type RecipeMessageSeed } from "./components/TaskRecipesPage";
 import { RecipeActionsContext } from "./components/recipe-actions-context";
 import { ComposerSeedContext, type ComposerSeed } from "./components/composer-seed-context";
@@ -54,6 +56,9 @@ const log = createLogger("app");
 
 const onboardingCompleteKey = "vela.onboarding.complete";
 const onboardingStepKey = "vela.onboarding.step";
+const onboardingScreenKey = "vela.onboarding.screen";
+const whatsNewSeenKey = "vela.whatsNew.seen";
+const settingsPageKey = "vela.settingsPage";
 
 function scopedTabId(kind: string, scope: string, id = ""): string {
   return `${kind}:${encodeURIComponent(scope)}${id ? `:${encodeURIComponent(id)}` : ""}`;
@@ -73,12 +78,28 @@ function readOnboardingComplete(): boolean {
   }
 }
 
-function readOnboardingStep(): number {
+/** 上次停在引导的哪一页；旧版本存的是数字步骤，一并兼容。 */
+function readOnboardingScreen(): OnboardingScreen {
   try {
-    const value = Number(uiStorage.getItem(onboardingStepKey));
-    return Number.isInteger(value) && value >= 0 && value <= 6 ? value : 0;
+    return restoreScreen(uiStorage.getItem(onboardingScreenKey), uiStorage.getItem(onboardingStepKey));
   } catch {
-    return 0;
+    return "language";
+  }
+}
+
+function readWhatsNewSeen(): string | null {
+  try {
+    return uiStorage.getItem(whatsNewSeenKey);
+  } catch {
+    return null;
+  }
+}
+
+function writeWhatsNewSeen(version: string): void {
+  try {
+    uiStorage.setItem(whatsNewSeenKey, version);
+  } catch {
+    // 写不进去时，下次启动会再提示一次。
   }
 }
 
@@ -241,7 +262,11 @@ export function App() {
   const tabSeq = useRef(0);
   const lastOpenedPlanFocusNonce = useRef<number | null>(null);
   const [onboardingComplete, setOnboardingComplete] = useState(readOnboardingComplete);
-  const [onboardingStep, setOnboardingStep] = useState(readOnboardingStep);
+  const [onboardingScreen, setOnboardingScreen] = useState(readOnboardingScreen);
+  const [introReplay, setIntroReplay] = useState(false);
+  const [whatsNew, setWhatsNew] = useState<ReleaseNotes | null>(null);
+  // 刚走完引导的这一次不再弹「新到港」：引导里已经看过了。
+  const skipWhatsNew = useRef(false);
   const platform = window.vela?.platform ?? "darwin";
   const toggleLeft = useCallback(() => setLeftCollapsed(value => !value), [setLeftCollapsed]);
   const replyQuestion = useCallback((id: string, answer: string | null) => { void session.replyQuestion(id, answer); }, [session.replyQuestion]);
@@ -640,6 +665,20 @@ export function App() {
     window.vela?.setLocale(preferences.locale);
   }, [preferences.locale]);
 
+  // 更新后第一次打开：安装版读取包内的发布说明，没看过这个版本就盖一张「新到港」。
+  useEffect(() => {
+    if (!onboardingComplete || skipWhatsNew.current) return;
+    const api = window.vela?.releaseNotes;
+    if (!api) return;
+    let active = true;
+    void api.shouldAnnounce().then(async (announce) => {
+      if (!announce || !active) return;
+      const notes = await api.get(preferences.locale);
+      if (active && notes && readWhatsNewSeen() !== notes.version && !skipWhatsNew.current) setWhatsNew(notes);
+    }).catch(() => undefined);
+    return () => { active = false; };
+  }, [onboardingComplete]);
+
   if (!session.available) {
     return (
       <div className="boot-fallback">
@@ -662,21 +701,25 @@ export function App() {
               <OnboardingView
                 preferences={preferences}
                 models={models}
-                initialStep={onboardingStep}
-                onStepChange={(step) => {
-                  setOnboardingStep(step);
+                project={project}
+                initialScreen={onboardingScreen}
+                onScreenChange={(screen) => {
                   try {
-                    uiStorage.setItem(onboardingStepKey, String(step));
+                    uiStorage.setItem(onboardingScreenKey, screen);
                   } catch {
                     // Keep onboarding usable when local storage is unavailable.
                   }
                 }}
-                onComplete={() => {
+                onComplete={(options) => {
+                  skipWhatsNew.current = true;
+                  void window.vela?.releaseNotes?.get(preferences.locale).then((notes) => { if (notes) writeWhatsNewSeen(notes.version); }).catch(() => undefined);
                   setOnboardingComplete(true);
-                  setSettingsOpen(false);
+                  setSettingsOpen(Boolean(options?.settingsPage));
                   try {
+                    if (options?.settingsPage) uiStorage.setItem(settingsPageKey, JSON.stringify(options.settingsPage));
                     uiStorage.setItem(onboardingCompleteKey, "true");
                     uiStorage.removeItem(onboardingStepKey);
+                    uiStorage.removeItem(onboardingScreenKey);
                   } catch {
                     // Completion applies for this run even if storage is unavailable.
                   }
@@ -891,6 +934,20 @@ export function App() {
                     conversationId={session.activeConversationId}
                     onUnarchiveConversation={(id) => void session.unarchive(id)}
                     onClose={() => setSettingsOpen(false)}
+                    onReplayIntro={() => setIntroReplay(true)}
+                    onRestartOnboarding={() => {
+                      // 开发版：回到引导的第一页（语言），不清除任何已保存的设置。
+                      try {
+                        uiStorage.removeItem(onboardingCompleteKey);
+                        uiStorage.removeItem(onboardingStepKey);
+                        uiStorage.setItem(onboardingScreenKey, "language");
+                      } catch {
+                        // 本次运行仍然生效。
+                      }
+                      setOnboardingScreen("language");
+                      setSettingsOpen(false);
+                      setOnboardingComplete(false);
+                    }}
                   />
                 </Presence>
               </div>
@@ -919,6 +976,14 @@ export function App() {
           onClose={() => setHandoff(null)}
         /> : null}
         {onboardingComplete ? <UpdateNotice locale={preferences.locale} /> : null}
+        {introReplay ? (
+          <div className="ob-replay" role="dialog" aria-modal="true">
+            <OnboardingView preferences={preferences} models={models} project={project} mode="intro" onComplete={() => setIntroReplay(false)} />
+          </div>
+        ) : null}
+        {whatsNew && !introReplay ? (
+          <WhatsNewCard notes={whatsNew} locale={preferences.locale} onClose={() => { writeWhatsNewSeen(whatsNew.version); setWhatsNew(null); }} />
+        ) : null}
         </ComposerSeedContext.Provider>
         </RecipeActionsContext.Provider>
       </AppLocaleProvider>

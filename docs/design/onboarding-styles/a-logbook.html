@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vela OnBoarding 風格預覽 A · 航海日誌</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#f4ede0; --paper2:#ece3d1; --desk:#e3d8c2; --ink:#2b2420; --ink2:#5b4f45; --ink3:#8a7c6e;
+  --rule:#d6c9b3; --red:#9c3d2a; --sea:#2f4a52; --blue:#2c4f7c;
+  --serif:Baskerville,"Noto Serif TC","Songti TC","Source Han Serif TC","Hiragino Mincho ProN",Georgia,serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--desk);color:var(--ink);font-family:var(--serif);line-height:1.8;
+  background-image:radial-gradient(rgba(120,90,50,.07) 1px,transparent 1px);background-size:5px 5px}
+a{color:inherit;text-decoration:none}
+.page{max-width:1240px;margin:0 auto;padding:28px 24px 90px}
+
+/* 預覽頁導覽（非設計本體） */
+.switch{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;font-size:14px;color:var(--ink2);letter-spacing:.08em}
+.switch nav{display:flex;gap:6px}
+.switch nav a{padding:5px 14px;border:1px solid var(--rule)}
+.switch nav a.on{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.intro{margin:44px 0 30px;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:40px;align-items:end}
+.intro .no{font-size:14px;letter-spacing:.4em;color:var(--red)}
+.intro h1{font-size:clamp(40px,6vw,68px);font-weight:900;letter-spacing:.08em;line-height:1.25;margin-top:6px}
+.intro p{font-size:17px;color:var(--ink2);line-height:2}
+.tags{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap}
+.tags span{font-size:13px;letter-spacing:.2em;border-bottom:1px solid var(--red);color:var(--red);padding-bottom:1px}
+.cap{margin:38px 0 14px;display:flex;align-items:baseline;gap:14px;font-size:14px;color:var(--ink3);letter-spacing:.14em}
+.cap b{color:var(--ink);font-size:17px;letter-spacing:.2em}
+.cap::after{content:"";flex:1;border-bottom:1px dotted var(--ink3);transform:translateY(-4px)}
+.fit{width:100%}
+.trio{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px}
+.trio figcaption{margin-top:10px;font-size:13.5px;color:var(--ink2);line-height:1.7}
+.trio figcaption b{color:var(--ink);letter-spacing:.1em}
+
+/* ───── 主視覺：1280×800 視窗 ───── */
+.stage{width:1280px;height:800px;position:relative;overflow:hidden;background:var(--paper);
+  background-image:radial-gradient(rgba(120,90,50,.06) 1px,transparent 1px);background-size:5px 5px;
+  box-shadow:0 30px 60px -30px rgba(70,45,20,.55),0 0 0 1px var(--rule)}
+.stage::before{content:"";position:absolute;left:640px;top:0;bottom:0;width:120px;margin-left:-60px;
+  background:linear-gradient(90deg,transparent,rgba(90,60,30,.09) 48%,rgba(90,60,30,.16) 50%,rgba(90,60,30,.05) 53%,transparent)}
+.lights{position:absolute;left:22px;top:22px;display:flex;gap:8px}
+.lights i{width:12px;height:12px;border-radius:50%;border:1px solid var(--ink3)}
+.runhead{position:absolute;left:96px;right:96px;top:58px;display:flex;justify-content:space-between;
+  font-size:13px;letter-spacing:.32em;color:var(--ink3);padding-bottom:10px;border-bottom:1px solid var(--rule)}
+.runhead b{color:var(--ink);font-weight:600}
+.left{position:absolute;left:96px;top:138px;width:468px}
+.eyebrow{font-size:14px;letter-spacing:.42em;color:var(--red)}
+.left h2{font-size:60px;font-weight:900;line-height:1.3;letter-spacing:.05em;margin:16px 0 22px}
+.left .sub{font-size:18px;line-height:2;color:var(--ink2)}
+.left .sub em{font-style:normal;background:linear-gradient(transparent 62%,rgba(156,61,42,.2) 0)}
+.cta{display:flex;align-items:center;gap:26px;margin-top:30px}
+.btn{display:inline-block;padding:10px 30px;border:1px solid var(--ink);font-size:17px;letter-spacing:.24em;transition:.2s;cursor:pointer}
+.btn.fill{background:var(--ink);color:var(--paper)}
+.btn:hover{background:var(--red);border-color:var(--red);color:var(--paper)}
+.textlink{font-size:15px;color:var(--ink2);border-bottom:1px solid var(--rule);letter-spacing:.08em}
+.toc{list-style:none;margin-top:44px;border-top:3px double var(--rule);padding-top:12px}
+.toc li{display:flex;align-items:baseline;gap:12px;font-size:17px;padding:5px 0}
+.toc li b{color:var(--red);width:1.4em;font-weight:900}
+.toc li i{flex:1;border-bottom:1px dotted var(--ink3);transform:translateY(-5px)}
+.toc li em{font-style:normal;font-size:14px;color:var(--ink3);letter-spacing:.14em}
+.folio{position:absolute;bottom:30px;font-size:13px;color:var(--ink3);letter-spacing:.3em}
+.chart{position:absolute;left:684px;top:96px;width:520px;height:660px}
+.chart text{font-family:var(--serif)}
+.draw{stroke-dasharray:1;stroke-dashoffset:1;animation:draw 2.6s .5s cubic-bezier(.6,0,.2,1) forwards}
+.star{opacity:0;animation:fade .6s forwards}
+.seal{transform-box:fill-box;transform-origin:center;opacity:0;animation:stamp .5s 3.1s cubic-bezier(.2,1.6,.4,1) forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+@keyframes fade{to{opacity:1}}
+@keyframes stamp{from{opacity:0;transform:scale(1.7) rotate(-14deg)}to{opacity:1;transform:scale(1) rotate(-5deg)}}
+
+/* ───── 片段：440×340 ───── */
+.frame{width:440px;height:340px;position:relative;overflow:hidden;background:var(--paper);padding:30px 34px;
+  background-image:radial-gradient(rgba(120,90,50,.06) 1px,transparent 1px);background-size:5px 5px;
+  box-shadow:0 18px 36px -22px rgba(70,45,20,.5),0 0 0 1px var(--rule)}
+.chap{font-size:12px;letter-spacing:.36em;color:var(--red)}
+.frame h3{font-size:25px;font-weight:900;line-height:1.45;letter-spacing:.05em;margin:6px 0 10px}
+.frame p{font-size:14px;line-height:1.9;color:var(--ink2)}
+.dropcap::first-letter{float:left;font-size:3.1em;line-height:.95;padding:4px 9px 0 0;color:var(--red);font-weight:900}
+.shot{position:absolute;right:-24px;bottom:-92px;width:340px;background:#fff;padding:7px;border:1px solid var(--rule);
+  transform:rotate(-3deg);box-shadow:0 16px 30px -16px rgba(70,45,20,.5)}
+.shot img{display:block;width:100%;height:200px;object-fit:cover;object-position:0 0}
+.mast{display:flex;justify-content:space-between;align-items:baseline;border-top:3px double var(--ink);border-bottom:1px solid var(--ink);
+  padding:7px 0;font-size:12px;letter-spacing:.24em;color:var(--ink2)}
+.mast b{font-size:22px;letter-spacing:.14em;color:var(--ink);font-weight:900}
+.item{display:grid;grid-template-columns:34px 1fr;gap:6px;padding:13px 0;border-bottom:1px dotted var(--rule)}
+.item i{font-style:normal;font-size:24px;font-weight:900;color:var(--red);line-height:1.2}
+.item h4{font-size:17px;letter-spacing:.08em}
+.item p{font-size:13px;line-height:1.75}
+.more{margin-top:10px;font-size:12.5px !important;letter-spacing:.14em;color:var(--ink3) !important;text-align:right}
+.langs{display:flex;gap:18px;font-size:15px;margin:4px 0 16px;color:var(--ink2)}
+.langs span{padding-bottom:2px;border-bottom:1px solid transparent}
+.langs .on{color:var(--ink);font-weight:600;border-color:var(--red)}
+.papers{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.papers div{border:1px solid var(--rule);padding:8px 8px 6px;font-size:12px;letter-spacing:.1em;color:var(--ink2);background:rgba(255,255,255,.35)}
+.papers div.on{border-color:var(--ink);box-shadow:3px 3px 0 var(--ink)}
+.papers u{display:block;height:34px;margin-bottom:5px;text-decoration:none;border:1px solid rgba(0,0,0,.08)}
+.knots{display:flex;align-items:center;margin:20px 0 14px}
+.knots i{width:9px;height:9px;border-radius:50%;border:1px solid var(--ink3);background:var(--paper)}
+.knots i.on{background:var(--red);border-color:var(--red)}
+.knots s{flex:1;border-top:1px solid var(--ink3)}
+.foot{display:flex;justify-content:space-between;align-items:center}
+.foot small{font-size:12px;letter-spacing:.2em;color:var(--ink3)}
+.foot .btn{padding:6px 20px;font-size:14px}
+
+/* ───── 規格 ───── */
+.spec{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:22px}
+.spec section{border-top:3px double var(--ink3);padding-top:14px}
+.spec h5{font-size:15px;letter-spacing:.3em;color:var(--red);margin-bottom:10px}
+.spec p,.spec li{font-size:14px;color:var(--ink2);line-height:1.85}
+.spec ul{list-style:none}
+.sw{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.sw div{font-family:ui-monospace,Menlo,monospace;font-size:10.5px;color:var(--ink2)}
+.sw u{display:block;height:44px;border:1px solid rgba(0,0,0,.1);margin-bottom:3px}
+.spec p.specimen{font-size:34px;font-weight:900;line-height:1.3;letter-spacing:.05em;color:var(--ink)}
+.verdict{margin-top:34px;display:grid;grid-template-columns:1fr 1fr;gap:22px}
+.verdict div{padding:16px 20px;background:var(--paper);border:1px solid var(--rule);font-size:14.5px;color:var(--ink2);line-height:1.9}
+.verdict b{color:var(--ink);letter-spacing:.2em;display:block;margin-bottom:2px}
+@media (max-width:820px){.intro,.trio,.spec,.verdict{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){.draw,.star,.seal{animation:none;opacity:1;stroke-dashoffset:0}}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="switch">
+    <span>VELA · ONBOARDING 視覺風格預覽</span>
+    <nav><a class="on" href="a-logbook.html">A 航海日誌</a><a href="b-papercut.html">B 剪紙帆影</a><a href="c-indigo.html">C 藍染夜航</a></nav>
+  </div>
+
+  <header class="intro">
+    <div>
+      <p class="no">風格 A</p>
+      <h1>航海日誌</h1>
+      <div class="tags"><span>紙與墨</span><span>銅版星圖</span><span>朱印</span><span>章回</span></div>
+    </div>
+    <p>把第一次開啟做成「翻開一本日誌」。Vela 是船帆座，於是星圖成為主視覺，章回（壹、貳、參）成為流程骨架：先讀故事、再看本期新事、最後整備行囊。與官網現行的紙墨調性一脈相承。</p>
+  </header>
+
+  <div class="cap"><b>主視覺</b>第一眼 · 1280 × 800 視窗（星圖會自行描出，朱印最後落下；點畫面可重播）</div>
+  <div class="fit"><div class="stage" data-w="1280" id="stage">
+    <div class="lights"><i></i><i></i><i></i></div>
+    <div class="runhead"><span><b>VELA</b> 航海日誌</span><span>卷首 · 版本 1.1.2 · 二〇二六年十月</span></div>
+
+    <div class="left">
+      <p class="eyebrow">卷首 · 第一次啟航</p>
+      <h2>寫程式，<br>不必獨自遠行。</h2>
+      <p class="sub">Vela 是住在你電腦裡的 AI 編程夥伴。它在你的倉庫中讀、寫、執行，而<em>每一步，你都看得見</em>。</p>
+      <div class="cta"><a class="btn fill">翻開日誌</a><a class="textlink">略過，直接整備 →</a></div>
+      <ol class="toc">
+        <li><b>壹</b><span>認識 Vela</span><i></i><em>四則</em></li>
+        <li><b>貳</b><span>本期新事 · 1.1.2</span><i></i><em>二則</em></li>
+        <li><b>參</b><span>整備行囊</span><i></i><em>八項 · 約四分鐘</em></li>
+      </ol>
+    </div>
+    <span class="folio" style="left:96px">— 壹 —</span>
+    <span class="folio" style="right:96px">— 貳 —</span>
+
+    <svg class="chart" viewBox="0 0 520 660" fill="none">
+      <!-- 星圖外環與刻度 -->
+      <circle cx="260" cy="290" r="246" stroke="#2b2420" stroke-width="1"/>
+      <circle cx="260" cy="290" r="238" stroke="#8a7c6e" stroke-width="8" stroke-dasharray="1 11.46"/>
+      <circle cx="260" cy="290" r="228" stroke="#2b2420" stroke-width=".6"/>
+      <g stroke="#b9ab94" stroke-width=".7">
+        <ellipse cx="260" cy="290" rx="228" ry="92"/><ellipse cx="260" cy="290" rx="228" ry="170"/>
+        <ellipse cx="260" cy="290" rx="92" ry="228"/><ellipse cx="260" cy="290" rx="170" ry="228"/>
+        <path d="M32 290H488M260 62V518"/>
+      </g>
+      <!-- 帆的淡彩 -->
+      <path d="M262 108C332 196 372 318 380 430H250C262 320 266 210 262 108Z" fill="#2c4f7c" opacity=".2"/>
+      <path d="M240 150C222 250 186 350 138 430H240Z" fill="#2c4f7c" opacity=".11"/>
+      <path d="M262 108C332 196 372 318 380 430H250C262 320 266 210 262 108ZM240 150C222 250 186 350 138 430H240Z" stroke="#2c4f7c" stroke-width=".9" opacity=".7"/>
+      <!-- 船帆座連線 -->
+      <path class="draw" pathLength="1" d="M112 316L170 168L318 112L414 182L438 306L384 428L276 468L176 424Z" stroke="#2b2420" stroke-width="1.3" stroke-linejoin="round"/>
+      <g fill="#2b2420">
+        <path class="star" style="animation-delay:.5s" d="M112 300l4.5 11.5L128 316l-11.5 4.5L112 332l-4.5-11.5L96 316l11.5-4.5Z" fill="#9c3d2a"/>
+        <circle class="star" style="animation-delay:.9s" cx="170" cy="168" r="5"/>
+        <circle class="star" style="animation-delay:1.2s" cx="318" cy="112" r="3.2"/>
+        <circle class="star" style="animation-delay:1.5s" cx="414" cy="182" r="3.6"/>
+        <circle class="star" style="animation-delay:1.8s" cx="438" cy="306" r="4.2"/>
+        <circle class="star" style="animation-delay:2.1s" cx="384" cy="428" r="3.4"/>
+        <circle class="star" style="animation-delay:2.4s" cx="276" cy="468" r="4.6"/>
+        <circle class="star" style="animation-delay:2.7s" cx="176" cy="424" r="4.8"/>
+      </g>
+      <g class="star" style="animation-delay:2.9s" fill="#5b4f45" font-size="14" font-style="italic">
+        <text x="60" y="346">γ Regor</text><text x="120" y="152">λ Suhail</text><text x="328" y="100">ψ</text>
+        <text x="428" y="176">q</text><text x="452" y="312">μ</text><text x="396" y="446">φ</text>
+        <text x="262" y="494">κ Markeb</text><text x="100" y="446">δ Alsephina</text>
+      </g>
+      <!-- 題名 -->
+      <g text-anchor="middle">
+        <path d="M150 572H370" stroke="#2b2420" stroke-width="1"/><path d="M150 576H370" stroke="#2b2420" stroke-width=".5"/>
+        <text x="260" y="606" font-size="22" font-weight="900" fill="#2b2420" letter-spacing="7">VELA · 船帆座</text>
+        <text x="260" y="632" font-size="13" fill="#8a7c6e" letter-spacing="3" font-style="italic">R.A. 9h 30m　Dec. −47°</text>
+      </g>
+      <!-- 羅盤 -->
+      <g transform="translate(58 590)" stroke="#5b4f45" stroke-width=".8">
+        <circle r="26"/><path d="M0-34L6 0L0 34L-6 0Z" fill="#f4ede0"/><path d="M-34 0L0-6L34 0L0 6Z" fill="#f4ede0"/><path d="M0-34L6 0H-6Z" fill="#5b4f45"/>
+        <text y="-40" text-anchor="middle" font-size="12" fill="#5b4f45" stroke="none">N</text>
+      </g>
+      <!-- 朱印 -->
+      <g class="seal" transform="translate(436 566)">
+        <rect width="58" height="58" rx="3" fill="#9c3d2a"/>
+        <rect x="4" y="4" width="50" height="50" rx="1" stroke="#f4ede0" stroke-width="1"/>
+        <text x="29" y="27" text-anchor="middle" font-size="19" font-weight="900" fill="#f4ede0">啟</text>
+        <text x="29" y="48" text-anchor="middle" font-size="19" font-weight="900" fill="#f4ede0">航</text>
+      </g>
+    </svg>
+  </div></div>
+
+  <div class="cap"><b>三個片段</b>同一套語言如何承載「介紹功能、新版內容、設定引導」</div>
+  <div class="trio">
+    <figure>
+      <div class="fit"><div class="frame f1" data-w="440">
+        <p class="chap">壹 · 同行</p>
+        <h3>一個人想不完的事，<br>分給一支小隊</h3>
+        <p class="dropcap">大任務來了，主代理像領隊一樣先拆開：有人查路由，有人修登入，有人挑剔地審邊界。他們各自行走，也互通消息。</p>
+        <div class="shot"><img src="../../../apps/desktop/src/renderer/assets/onboarding/subagents.png" alt=""></div>
+      </div></div>
+      <figcaption><b>功能介紹</b>　每項功能是一則短文：章名、首字下沉、一張微微傾斜的實機截圖。</figcaption>
+    </figure>
+    <figure>
+      <div class="fit"><div class="frame" data-w="440">
+        <div class="mast"><span>本期新事</span><b>第 1.1.2 期</b><span>十月號</span></div>
+        <div class="item"><i>壹</i><div><h4>任務交接包</h4><p>把目標、已定的決策、改過的檔案與未竟之事打包，帶進新對話接著做。</p></div></div>
+        <div class="item"><i>貳</i><div><h4>成果驗收面板</h4><p>逐條需求對照改動與驗證紀錄。說「做完了」不算，證據才算。</p></div></div>
+        <p class="more">另有四項改進 · 翻頁細讀 →</p>
+      </div></div>
+      <figcaption><b>新版本內容</b>　像一份小報的刊頭，每次更新換「期數」，可重複使用於更新後的首次開啟。</figcaption>
+    </figure>
+    <figure>
+      <div class="fit"><div class="frame" data-w="440">
+        <p class="chap">參 · 整備行囊 · 其一</p>
+        <h3>先選語言與紙色</h3>
+        <div class="langs"><span class="on">繁體中文</span><span>简体中文</span><span>English</span><span>日本語</span><span>한국어</span></div>
+        <div class="papers">
+          <div class="on"><u style="background:#fff"></u>淺色</div>
+          <div><u style="background:#1e2128"></u>深色</div>
+          <div><u style="background:linear-gradient(105deg,#fff 50%,#1e2128 50%)"></u>跟隨系統</div>
+        </div>
+        <div class="knots"><i class="on"></i><s></s><i></i><s></s><i></i><s></s><i></i><s></s><i></i><s></s><i></i><s></s><i></i><s></s><i></i></div>
+        <div class="foot"><small>一 ／ 八</small><span><a class="btn">上一頁</a> <a class="btn fill">下一頁</a></span></div>
+      </div></div>
+      <figcaption><b>設定步驟</b>　表單退到最簡：底線選項、紙卡、繩結進度。控制項不搶戲，文字帶路。</figcaption>
+    </figure>
+  </div>
+
+  <div class="cap"><b>風格規格</b></div>
+  <div class="spec">
+    <section><h5>色彩</h5>
+      <div class="sw">
+        <div><u style="background:#f4ede0"></u>紙 #F4EDE0</div><div><u style="background:#ece3d1"></u>舊紙 #ECE3D1</div><div><u style="background:#2b2420"></u>墨 #2B2420</div>
+        <div><u style="background:#9c3d2a"></u>朱 #9C3D2A</div><div><u style="background:#2c4f7c"></u>帆藍 #2C4F7C</div><div><u style="background:#2f4a52"></u>海 #2F4A52</div>
+      </div>
+    </section>
+    <section><h5>字體</h5>
+      <p class="specimen">遠行 Vela 1.1.2</p>
+      <p>標題與內文皆用襯線：思源宋體（Noto Serif TC）配 Baskerville。標籤靠字距而非粗細區分層級。</p>
+    </section>
+    <section><h5>圖像語言</h5>
+      <ul><li>銅版畫式星圖、經緯刻度、羅盤</li><li>朱印作為「完成／確認」的唯一強調</li><li>雙線、點線、首字下沉</li><li>實機截圖以相片方式貼入</li></ul>
+    </section>
+    <section><h5>動效</h5>
+      <ul><li>星座連線自行描出，星點依序亮起</li><li>換頁如翻書：左右頁交替淡入</li><li>完成設定時朱印「蓋章」落下</li><li>整體緩慢、安靜，無彈跳</li></ul>
+    </section>
+  </div>
+  <div class="verdict">
+    <div><b>適合</b>想要沉穩、有文學感與故事性的品牌印象；與官網完全一致，延展成本最低。文字量大的功能介紹在這裡最自然。</div>
+    <div><b>需留意</b>進入主介面（無襯線、藍白）時落差最大，需要一個過場；襯線中文字體要隨 App 打包（約數 MB，可子集化）。深色主題需另調一套「夜讀」紙色。</div>
+  </div>
+</div>
+<script>
+const fit=()=>document.querySelectorAll('[data-w]').forEach(el=>{el.style.zoom=el.parentElement.clientWidth/+el.dataset.w});
+addEventListener('resize',fit);fit();
+const stage=document.getElementById('stage');
+stage.addEventListener('click',e=>{if(e.target.closest('a'))return;stage.querySelectorAll('.draw,.star,.seal').forEach(n=>{n.style.animationName='none';void n.getBoundingClientRect();n.style.animationName=''})});
+</script>
+</body>
+</html>

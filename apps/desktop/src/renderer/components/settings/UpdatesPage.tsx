@@ -10,7 +10,7 @@ function percent(state: UpdateState): number | null {
   return progress && progress.totalBytes > 0 ? Math.min(100, Math.round((progress.receivedBytes / progress.totalBytes) * 100)) : null;
 }
 
-export function UpdatesPage({ copy, locale }: { copy: SettingsCopy; locale: AppLocale }) {
+export function UpdatesPage({ copy, locale, onReplayIntro }: { copy: SettingsCopy; locale: AppLocale; onReplayIntro?: () => void }) {
   const text = copy.updates;
   const { state, api } = useUpdates();
   const [acting, setActing] = useState(false);
@@ -72,5 +72,8 @@ export function UpdatesPage({ copy, locale }: { copy: SettingsCopy; locale: AppL
     <SettingsBlock id="update-auto" title={text.autoTitle} hint={text.autoHint}>
       <SettingsSwitch checked={state.autoUpdate} label={text.autoTitle} onChange={next => void act(() => api.setAutoUpdate(next))} />
     </SettingsBlock>
+    {onReplayIntro ? <SettingsBlock id="update-intro" title={text.replayTitle} hint={text.replayHint}>
+      <button className="settings-secondary" type="button" onClick={onReplayIntro}>{text.replayAction}</button>
+    </SettingsBlock> : null}
   </section>;
 }

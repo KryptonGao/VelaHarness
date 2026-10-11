@@ -37,6 +37,8 @@ pnpm sign:release        # 给更新包生成并签名 SHA256SUMS.txt
 | `apps/desktop/package.json` | `version`、`shortVersion` |
 | `apps/desktop/electron-builder.yml` | `buildVersion`、`mac.bundleShortVersion`、`mac.bundleVersion` |
 
+另外 `apps/desktop/release-notes.json` 的 `version` 也必须等于这个版本（见下一步）。
+
 不要改 `artifactName`（`Vela-${shortVersion}-${arch}.${ext}`），更新器按 `Vela-<版本>-arm64.zip` 查找。
 
 ### 2. 写发布说明
@@ -46,6 +48,15 @@ pnpm sign:release        # 给更新包生成并签名 SHA256SUMS.txt
 - `## Download` 表格列出全部四个文件：`.dmg`、`.zip`、`SHA256SUMS.txt`、`SHA256SUMS.txt.sig`，并写明包版本。
 - `## Validation` 只写实际执行过并通过的检查，不写没跑过的。
 - 这份文件会原样作为 GitHub Release 的正文，更新器会把它显示给用户。
+
+### 2b. 更新应用内发布说明
+
+应用里引导的「新到港」和更新后的提示卡读取 `apps/desktop/release-notes.json`，它随安装包发布（构建时输出到 `out/main/release-notes.json`），**与根目录 `RELEASE_NOTES.md` 互不相关**：后者只是 GitHub Release 的正文，应用不会读取。
+
+- 把 `version` 改成本次版本，并为 `en`、`zh-CN`、`zh-TW`、`ja`、`ko` 五种语言各写一份 `summary`、`highlights`（`title` + `body`，界面最多显示 4 条）和 `improvements`；各语言条数保持一致。
+- `en` 必须存在；其他语言缺失或格式有误时会退回英文。
+- 版本号与安装包不一致时，应用会整页略过「新到港」，不会显示旧版本的内容。
+- `pnpm --filter @vela/desktop test` 里的 `release-notes.test.ts` 会检查五种语言齐全、数量一致、版本等于 `package.json`。
 
 ### 3. 验证
 

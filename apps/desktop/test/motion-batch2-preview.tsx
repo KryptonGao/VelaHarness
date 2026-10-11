@@ -6,7 +6,6 @@ import type { AppState, ConversationSummary, RuntimeInstruction, ToolTrace, Vela
 import { Sidebar } from "../src/renderer/components/Sidebar";
 import { ChatView } from "../src/renderer/components/ChatView";
 import { ContextUsageCard, PanelDisclosure } from "../src/renderer/components/ContextPanel";
-import { OnboardingView } from "../src/renderer/components/OnboardingView";
 import { ToolCard, CompactToolLine } from "../src/renderer/components/ToolCard";
 import { ChangesView } from "../src/renderer/components/ChangesView";
 import { FilePreviewProvider, useFilePreview } from "../src/renderer/components/preview/FilePreviewContext";
@@ -80,7 +79,6 @@ function Fixture() {
   const [status, setStatus] = useState<ToolTrace["status"]>("running");
   const [changePath, setChangePath] = useState("first.txt");
   const [workspace, setWorkspace] = useState("/workspace/Vela");
-  const [showOnboarding, setShowOnboarding] = useState(false);
   const [instructions, setInstructions] = useState<RuntimeInstruction[]>([]);
   const [messages, setMessages] = useState(Array.from({ length: 20 }, (_, i) => ({ id: `${i}`, role: i % 2 ? "assistant" : "user", text: `Message ${i}`, thinking: "", tools: [] })));
   const state = { activeConversationId: active, conversations, session: { id: active, title: `Chat ${active}`, cwd: workspace,
@@ -118,11 +116,6 @@ function Fixture() {
       <ToolCard tool={tool} /><CompactToolLine tool={tool} />
       <div style={{ height: 180, display: "flex" }}><PreviewFixture /></div>
       <div style={{ height: 220 }}><ChangesView project={project} selectedPath={changePath} onSelectedPathChange={setChangePath} onClose={() => {}} /></div>
-    </div>
-    {!automated ? <button style={{ position: "fixed", top: 12, left: 260, zIndex: 30 }}
-      onClick={() => setShowOnboarding((value) => !value)}>{showOnboarding ? "Close onboarding" : "Preview onboarding"}</button> : null}
-    <div id="onboarding-fixture" style={{ position: "fixed", left: 20, top: 20, width: 900, height: 620, zIndex: 20, display: showOnboarding ? "block" : "none" }}>
-      <OnboardingView preferences={preferences} models={models} initialStep={0} onStepChange={() => {}} onComplete={() => {}} />
     </div>
   </div>;
 }

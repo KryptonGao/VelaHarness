@@ -140,6 +140,7 @@ import {
   type UiSandboxIssueResult,
   LogsIpc,
   UpdatesIpc,
+  ReleaseNotesIpc,
   type UpdateState,
   type VelaApi,
   type WorkspaceEvent,
@@ -306,6 +307,11 @@ const api: VelaApi = {
     restart: () => ipcRenderer.invoke(UpdatesIpc.restart),
     setAutoUpdate: enabled => ipcRenderer.invoke(UpdatesIpc.setAutoUpdate, enabled),
     openReleasePage: () => ipcRenderer.invoke(UpdatesIpc.openReleasePage),
+  },
+  releaseNotes: {
+    get: locale => ipcRenderer.invoke(ReleaseNotesIpc.get, locale),
+    openPage: () => ipcRenderer.invoke(ReleaseNotesIpc.openPage),
+    shouldAnnounce: () => ipcRenderer.invoke(ReleaseNotesIpc.shouldAnnounce),
   },
   platform: process.platform,
   development: ipcRenderer.sendSync(IpcChannel.appIsDevelopment) ? {

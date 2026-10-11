@@ -24,6 +24,9 @@ export default defineConfig({
       generateBundle() {
         this.emitFile({ type: "asset", fileName: "skills/browser-use/SKILL.md",
           source: readFileSync(resolve(root, "../../packages/agent/skills/browser-use/SKILL.md"), "utf8") });
+        // 引导里的「新到港」读取这份随包发布的多语言发布说明，与 GitHub Release 正文无关。
+        this.emitFile({ type: "asset", fileName: "release-notes.json",
+          source: readFileSync(resolve(root, "release-notes.json"), "utf8") });
       },
     }],
     resolve: { alias: workspaceAlias },

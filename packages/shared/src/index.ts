@@ -24,6 +24,7 @@ export * from "./redaction";
 export * from "./logging";
 import type { LogsApi } from "./logging";
 export * from "./updates";
+export * from "./release-notes";
 export * from "./intelligent-ui";
 export * from "./intelligent-ui-expression";
 export * from "./intelligent-ui-components";
@@ -34,6 +35,7 @@ export * from "./intelligent-ui-data";
 export * from "./intelligent-ui-sandbox";
 export * from "./intelligent-ui-metrics";
 import type { UpdatesApi } from "./updates";
+import type { ReleaseNotesApi } from "./release-notes";
 import type { TraceSnapshot, TraceDetails, TraceUpdate } from "./trace";
 export const conversationTitleMaxLength = 120;
 
@@ -2753,6 +2755,8 @@ export interface VelaApi extends McpApi, PluginApi {
   logs?: LogsApi;
   /** 应用内更新：从 GitHub Release 检查、下载并校验新版本。 */
   updates?: UpdatesApi;
+  /** 随安装包发布的版本说明（按界面语言），用于引导里的「新到港」。 */
+  releaseNotes?: ReleaseNotesApi;
   browser?: import("./browser").BrowserPanelApi;
   platform: string;
   /** Present in the desktop app; browser-only previews use localStorage. */

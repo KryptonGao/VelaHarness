@@ -23,6 +23,13 @@ export const browserFixtures = [
     timeoutMs: 120_000,
   },
   {
+    id: "ui:onboarding",
+    title: "OnBoarding 引导流程",
+    page: "test/onboarding-preview.html?checks=1",
+    resultSelector: "#onboarding-check-results",
+    timeoutMs: 60_000,
+  },
+  {
     id: "ui:motion",
     title: "动效 · Batch 1",
     page: "test/motion-preview.html?checks=1",

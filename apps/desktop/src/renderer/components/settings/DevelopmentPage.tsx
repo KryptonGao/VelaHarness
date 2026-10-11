@@ -31,9 +31,10 @@ function describeError(error: unknown, fallback: string): string {
   return localizeError(error.message.replace(/^Error invoking remote method '[^']+':\s*(?:Error:\s*)?/i, "") || fallback);
 }
 
-export function DevelopmentPage({ copy, development }: {
+export function DevelopmentPage({ copy, development, onRestartOnboarding }: {
   copy: SettingsCopy;
   development: DevelopmentApi;
+  onRestartOnboarding?: () => void;
 }) {
   const text = copy.development;
   const [selected, setSelected] = useState<ProductionSyncCategory[]>(["conversations"]);
@@ -174,6 +175,12 @@ export function DevelopmentPage({ copy, development }: {
         </button>
       </div>
       <p className="settings-note">{text.restartMainHint}</p>
+      {onRestartOnboarding ? <>
+        <div className="settings-actions">
+          <button className="settings-secondary" type="button" disabled={busy !== null} onClick={onRestartOnboarding}>{text.restartOnboarding}</button>
+        </div>
+        <p className="settings-note">{text.restartOnboardingHint}</p>
+      </> : null}
     </SettingsBlock>
 
     <SettingsBlock id="dev-info" title={text.infoTitle} hint={text.infoHint}>

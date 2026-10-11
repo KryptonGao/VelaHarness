@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vela OnBoarding 風格預覽 C · 藍染夜航</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --deep:#0f1a36; --indigo:#16264b; --mid:#24407c; --pale:#3a5596; --white:#f3efe6; --linen:#d9cfbb; --gold:#e0b057; --red:#d8603a;
+  --serif:"Noto Serif TC","Songti TC","Hiragino Mincho ProN",serif;
+  --label:Optima,"Noto Serif TC","Songti TC",serif;
+  --weave:repeating-linear-gradient(0deg,rgba(255,255,255,.045) 0 1px,transparent 1px 4px),repeating-linear-gradient(90deg,rgba(0,0,0,.12) 0 1px,transparent 1px 4px),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .55 0'/></filter><rect width='220' height='220' filter='url(%23n)' opacity='.3'/></svg>");
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--deep);color:var(--linen);font-family:var(--serif);font-weight:300;line-height:1.8}
+a{color:inherit;text-decoration:none}
+.page{max-width:1240px;margin:0 auto;padding:28px 24px 90px}
+.cloth{position:relative}
+.cloth::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:5;background-image:var(--weave);mix-blend-mode:soft-light;border-radius:inherit}
+
+/* 預覽頁導覽（非設計本體） */
+.switch{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;font-family:var(--label);font-size:14px;letter-spacing:.14em}
+.switch nav{display:flex;gap:8px}
+.switch nav a{padding:5px 14px;border:1.5px dashed rgba(243,239,230,.4)}
+.switch nav a.on{background:var(--linen);color:var(--deep);border:1.5px solid var(--linen);font-weight:500}
+.intro{margin:44px 0 30px;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:40px;align-items:end}
+.intro .no{font-family:var(--label);font-size:14px;letter-spacing:.4em;color:var(--gold)}
+.intro h1{font-size:clamp(40px,6vw,68px);font-weight:300;letter-spacing:.14em;line-height:1.25;margin-top:6px;color:var(--white)}
+.intro p{font-size:17px;line-height:2;opacity:.85}
+.tags{margin-top:14px;display:flex;gap:8px;flex-wrap:wrap}
+.tags span{font-size:13px;letter-spacing:.2em;padding:2px 12px;border:1.5px dashed rgba(224,176,87,.7);color:var(--gold)}
+.cap{margin:40px 0 16px;display:flex;align-items:baseline;gap:14px;font-size:14px;letter-spacing:.1em;opacity:.9}
+.cap b{color:var(--white);font-size:17px;font-weight:500;letter-spacing:.24em}
+.cap::after{content:"";flex:1;border-bottom:1.5px dashed rgba(243,239,230,.3);transform:translateY(-4px)}
+.fit{width:100%}
+.trio{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px}
+.trio figcaption{margin-top:12px;font-size:13.5px;line-height:1.75;opacity:.82}
+.trio figcaption b{color:var(--white);font-weight:500;letter-spacing:.1em}
+
+/* ───── 主視覺：1280×800 視窗 ───── */
+.stage{width:1280px;height:800px;overflow:hidden;color:var(--white);
+  background:radial-gradient(ellipse 70% 80% at 30% 38%,#2c4886 0%,#1c2f5e 46%,#111d3d 100%);
+  box-shadow:0 30px 60px -30px #000,0 0 0 1px rgba(243,239,230,.12)}
+.lights{position:absolute;left:22px;top:22px;display:flex;gap:8px}
+.lights i{width:12px;height:12px;border-radius:50%;border:1.5px dashed rgba(243,239,230,.5)}
+.art{position:absolute;left:84px;top:66px;width:560px;height:600px;overflow:visible}
+.sea{position:absolute;left:0;bottom:0;width:1280px;height:230px}
+.st{fill:none;stroke:#f3efe6;stroke-width:1.7;stroke-linecap:round;stroke-dasharray:6 5}
+.gold{stroke:#e0b057}
+.mark{position:absolute;left:704px;top:104px;display:flex;align-items:center;gap:14px;font-family:var(--label);font-size:15px;letter-spacing:.44em}
+.mark img{width:38px;height:38px;border-radius:9px}
+.mark small{font-size:13px;letter-spacing:.3em;opacity:.65;font-family:var(--serif)}
+.say{position:absolute;left:704px;top:300px;width:262px}
+.say .k{font-size:13px;letter-spacing:.44em;color:var(--gold)}
+.say p{margin-top:12px;font-size:17px;line-height:2.05;opacity:.88}
+.cta{display:flex;align-items:center;gap:22px;margin-top:26px}
+.tagbtn{position:relative;display:inline-block;background:var(--linen);color:var(--deep);font-size:18px;font-weight:500;letter-spacing:.4em;
+  padding:11px 26px 11px 32px;cursor:pointer;transition:.25s}
+.tagbtn::before{content:"";position:absolute;inset:4px;border:1.5px dashed rgba(15,26,54,.55)}
+.tagbtn:hover{background:var(--gold)}
+.textlink{font-size:14px;letter-spacing:.1em;opacity:.75;border-bottom:1.5px dashed rgba(243,239,230,.5);padding-bottom:2px}
+.vert{position:absolute;right:108px;top:84px;writing-mode:vertical-rl;font-size:46px;font-weight:300;letter-spacing:.2em;line-height:1.6;white-space:nowrap}
+.thread{position:absolute;left:704px;top:574px;width:472px;display:flex;justify-content:space-between;font-size:13px;letter-spacing:.2em}
+.thread::before{content:"";position:absolute;left:4px;right:4px;top:5px;border-top:1.7px dashed rgba(243,239,230,.55)}
+.thread span{position:relative;padding-top:20px;opacity:.6}
+.thread span::before{content:"";position:absolute;left:0;top:0;width:11px;height:11px;border-radius:50%;background:#1c2f5e;border:1.7px solid var(--white)}
+.thread span.on{opacity:1}
+.thread span.on::before{background:var(--gold);border-color:var(--gold)}
+.thread span:nth-child(2){text-align:center}.thread span:nth-child(2)::before{left:50%;margin-left:-6px}
+.thread span:nth-child(3){text-align:right}.thread span:nth-child(3)::before{left:auto;right:0}
+.sew{stroke-dasharray:1;stroke-dashoffset:1;animation:sew 2.4s cubic-bezier(.5,0,.3,1) forwards}
+.knot{opacity:0;animation:fade .5s forwards}
+.twinkle{animation:twinkle 4s ease-in-out infinite}
+@keyframes sew{to{stroke-dashoffset:0}}
+@keyframes fade{to{opacity:1}}
+@keyframes twinkle{0%,100%{opacity:1}50%{opacity:.45}}
+
+/* ───── 片段：440×340 ───── */
+.frame{width:440px;height:340px;overflow:hidden;color:var(--white);padding:26px 28px;
+  background:radial-gradient(ellipse at 30% 20%,#27407a,#162650 70%);box-shadow:0 18px 36px -22px #000,0 0 0 1px rgba(243,239,230,.12)}
+.k{font-size:12px;letter-spacing:.4em;color:var(--gold)}
+.frame h3{font-size:23px;font-weight:300;letter-spacing:.12em;line-height:1.4;margin-top:4px}
+.patch{position:absolute;padding:15px 18px;color:var(--white);box-shadow:2px 4px 10px rgba(0,0,0,.35)}
+.patch::before{content:"";position:absolute;inset:6px;border:1.6px dashed rgba(243,239,230,.7);pointer-events:none}
+.patch b{display:block;font-size:17px;font-weight:500;letter-spacing:.14em}
+.patch span{display:block;font-size:12.5px;line-height:1.65;opacity:.85;margin-top:2px}
+.patch.linen{background:var(--linen);color:var(--deep)}
+.patch.linen::before{border-color:rgba(15,26,54,.6)}
+.label{position:absolute;left:52px;top:44px;width:336px;background:var(--linen);color:var(--deep);padding:30px 28px 18px;transform:rotate(-1.6deg);
+  box-shadow:3px 6px 14px rgba(0,0,0,.4)}
+.label::before{content:"";position:absolute;inset:6px;border:1.6px dashed rgba(15,26,54,.55)}
+.label::after{content:"";position:absolute;left:50%;top:12px;width:10px;height:10px;margin-left:-5px;border-radius:50%;background:#1a2c58}
+.label .hd{display:flex;align-items:baseline;justify-content:space-between;border-bottom:1.6px dashed rgba(15,26,54,.5);padding-bottom:6px}
+.label .hd b{font-family:var(--label);font-size:38px;font-weight:400;letter-spacing:.06em;line-height:1.1}
+.label .hd span{font-size:13px;letter-spacing:.3em;font-weight:500}
+.label dl{margin-top:10px}
+.label dt{font-size:16px;font-weight:700;letter-spacing:.12em}
+.label dt::before{content:"✕";color:var(--red);font-size:12px;margin-right:8px;font-weight:700}
+.label dd{font-size:12.5px;line-height:1.7;margin:0 0 8px 20px;font-weight:500;opacity:.8}
+.label small{display:block;text-align:right;font-size:12px;letter-spacing:.18em;opacity:.7;font-weight:500}
+.hang{position:absolute;left:0;top:0;width:440px;height:80px}
+.sws{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:16px 0 16px}
+.swatch{position:relative;background:#22386e;padding:14px 14px 12px;font-size:14px;letter-spacing:.1em;box-shadow:1px 3px 8px rgba(0,0,0,.3)}
+.swatch::before{content:"";position:absolute;inset:5px;border:1.5px dashed rgba(243,239,230,.4)}
+.swatch b{display:block;font-size:24px;font-weight:300;line-height:1.3}
+.swatch.on{background:#2f4f93}
+.swatch.on::before{border-color:var(--gold)}
+.swatch.on::after{content:"";position:absolute;right:11px;top:11px;width:9px;height:9px;border-radius:50%;background:var(--gold)}
+.dyes{display:flex;align-items:center;gap:10px;font-size:13px;letter-spacing:.2em}
+.dyes i{width:30px;height:30px;outline:1.5px dashed rgba(243,239,230,.45);outline-offset:3px}
+.dyes i.on{outline-color:var(--gold)}
+.foot{position:absolute;left:28px;right:28px;bottom:24px;display:flex;justify-content:space-between;align-items:center}
+.foot svg{width:150px;height:14px}
+.sbtn{position:relative;display:inline-block;font-size:14px;letter-spacing:.24em;padding:7px 18px;border:1.5px dashed rgba(243,239,230,.6)}
+.sbtn.fill{background:var(--linen);color:var(--deep);border:1.5px solid var(--linen);font-weight:500}
+
+/* ───── 規格 ───── */
+.spec{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:22px}
+.spec section{border-top:1.6px dashed rgba(243,239,230,.4);padding-top:14px}
+.spec h5{font-size:15px;font-weight:500;letter-spacing:.34em;color:var(--gold);margin-bottom:10px}
+.spec p,.spec li{font-size:14px;line-height:1.9;opacity:.85}
+.spec ul{list-style:none}
+.sw{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.sw div{font-family:ui-monospace,Menlo,monospace;font-size:10px;opacity:.9}
+.sw u{display:block;height:44px;margin-bottom:3px;outline:1px solid rgba(243,239,230,.18)}
+.spec p.specimen{font-size:32px;line-height:1.4;letter-spacing:.14em;color:var(--white);opacity:1;font-family:var(--label)}
+.verdict{margin-top:34px;display:grid;grid-template-columns:1fr 1fr;gap:22px}
+.verdict div{position:relative;padding:18px 22px;background:var(--indigo);font-size:14.5px;line-height:1.95}
+.verdict div::before{content:"";position:absolute;inset:5px;border:1.5px dashed rgba(243,239,230,.28);pointer-events:none}
+.verdict b{color:var(--gold);font-weight:500;letter-spacing:.3em;display:block}
+@media (max-width:820px){.intro,.trio,.spec,.verdict{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){.sew,.knot,.twinkle{animation:none;opacity:1;stroke-dashoffset:0}}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="switch">
+    <span>VELA · ONBOARDING 視覺風格預覽</span>
+    <nav><a href="a-logbook.html">A 航海日誌</a><a href="b-papercut.html">B 剪紙帆影</a><a class="on" href="c-indigo.html">C 藍染夜航</a></nav>
+  </div>
+
+  <header class="intro">
+    <div>
+      <p class="no">風格 C</p>
+      <h1>藍染夜航</h1>
+      <div class="tags"><span>藍染布</span><span>刺子繡</span><span>青海波</span><span>直排</span></div>
+    </div>
+    <p>帆，本來就是一塊布。把第一次開啟做成「一塊藍染布上的刺繡」：白線一針一針縫出帆與海浪，金線連起船帆座的星。深色、安靜、有手作的溫度；虛線不是裝飾，而是整套介面的「筆畫」。</p>
+  </header>
+
+  <div class="cap"><b>主視覺</b>第一眼 · 1280 × 800 視窗（針腳依序縫出，金星微微閃爍；點畫面可重播）</div>
+  <div class="fit"><div class="stage cloth" data-w="1280" id="stage">
+    <div class="lights"><i></i><i></i><i></i></div>
+
+    <!-- 青海波 -->
+    <svg class="sea" viewBox="0 0 1280 230" preserveAspectRatio="none">
+      <defs>
+        <g id="sc"><circle r="48" fill="#111d3e"/><circle r="43" class="st"/><circle r="31" class="st"/><circle r="19" class="st"/><circle r="7" class="st"/></g>
+        <pattern id="sei" width="96" height="48" patternUnits="userSpaceOnUse">
+          <use href="#sc" x="48" y="-24"/><use href="#sc" x="0" y="0"/><use href="#sc" x="96" y="0"/><use href="#sc" x="48" y="24"/><use href="#sc" x="0" y="48"/><use href="#sc" x="96" y="48"/><use href="#sc" x="48" y="72"/>
+        </pattern>
+        <linearGradient id="up" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".55" stop-color="#fff" stop-opacity=".75"/><stop offset="1" stop-color="#fff"/></linearGradient>
+        <mask id="fade"><rect width="1280" height="230" fill="url(#up)"/></mask>
+      </defs>
+      <rect width="1280" height="230" fill="url(#sei)" mask="url(#fade)" opacity=".8"/>
+    </svg>
+
+    <!-- 刺子繡的帆與船帆座 -->
+    <svg class="art" viewBox="0 0 560 600">
+      <defs>
+        <pattern id="rows" width="15" height="11" patternUnits="userSpaceOnUse"><path d="M2 5.5H10" stroke="#f3efe6" stroke-width="1.6" stroke-linecap="round"/></pattern>
+        <pattern id="rows2" width="15" height="11" patternUnits="userSpaceOnUse" patternTransform="translate(7 0)"><path d="M2 5.5H10" stroke="#16264b" stroke-width="1.6" stroke-linecap="round"/></pattern>
+        <path id="s4" d="M0-17C2-6 6-2 17 0C6 2 2 6 0 17C-2 6-6 2-17 0C-6-2-2-6 0-17Z"/>
+        <mask id="m1" maskUnits="userSpaceOnUse" x="0" y="0" width="560" height="600"><path class="sew" pathLength="1" d="M290 70C372 190 420 330 432 456H276C290 330 294 190 290 70Z" stroke="#fff" stroke-width="9" fill="none"/></mask>
+        <mask id="m2" maskUnits="userSpaceOnUse" x="0" y="0" width="560" height="600"><path class="sew" style="animation-delay:.5s" pathLength="1" d="M96 486Q282 562 468 486M112 506Q282 572 452 506" stroke="#fff" stroke-width="9" fill="none"/></mask>
+        <mask id="m3" maskUnits="userSpaceOnUse" x="0" y="0" width="560" height="600"><path class="sew" style="animation-delay:1.2s;animation-duration:3s" pathLength="1" d="M116 309L181 143L347 81L454 159L481 298L421 435L300 479L188 430Z" stroke="#fff" stroke-width="9" fill="none"/></mask>
+      </defs>
+      <!-- 主帆：一排排針腳 -->
+      <path d="M290 70C372 190 420 330 432 456H276C290 330 294 190 290 70Z" fill="url(#rows)" opacity=".5"/>
+      <path class="st" mask="url(#m1)" stroke-width="2" d="M290 70C372 190 420 330 432 456H276C290 330 294 190 290 70Z"/>
+      <!-- 前帆：留白的布 -->
+      <g class="knot" style="animation-delay:.3s">
+        <path d="M262 118C240 240 196 356 140 456H262Z" fill="#f3efe6"/>
+        <path d="M262 118C240 240 196 356 140 456H262Z" fill="url(#rows2)" opacity=".28"/>
+        <path d="M255 168C238 262 204 354 162 444H255Z" fill="none" stroke="#16264b" stroke-width="1.6" stroke-dasharray="6 5" stroke-linecap="round"/>
+      </g>
+      <!-- 船身 -->
+      <path class="st" mask="url(#m2)" stroke-width="2" d="M96 486Q282 562 468 486M112 506Q282 572 452 506"/>
+      <!-- 船帆座：金線 -->
+      <path class="st gold" mask="url(#m3)" stroke-width="1.5" stroke-dasharray="3 6" d="M116 309L181 143L347 81L454 159L481 298L421 435L300 479L188 430Z"/>
+      <g stroke="#f3efe6" stroke-width="1.8" stroke-linecap="round">
+        <path class="knot" style="animation-delay:1.7s" d="M175 137l12 12m0-12l-12 12"/>
+        <path class="knot" style="animation-delay:2.1s" d="M342 76l10 10m0-10l-10 10"/>
+        <path class="knot" style="animation-delay:2.5s" d="M448 153l12 12m0-12l-12 12"/>
+        <path class="knot" style="animation-delay:2.9s" d="M475 292l12 12m0-12l-12 12"/>
+        <path class="knot" style="animation-delay:3.3s" d="M416 430l10 10m0-10l-10 10"/>
+        <path class="knot" style="animation-delay:3.6s" d="M294 473l12 12m0-12l-12 12"/>
+        <path class="knot" style="animation-delay:3.9s" d="M182 424l12 12m0-12l-12 12"/>
+      </g>
+      <g class="knot" style="animation-delay:1.3s"><use class="twinkle" href="#s4" x="116" y="309" fill="#e0b057"/></g>
+      <g fill="#f3efe6" opacity=".7" font-size="12" letter-spacing="2" font-family="Optima,serif" class="knot" style="animation-delay:4.2s">
+        <text x="62" y="342">γ  Regor</text><text x="130" y="124">λ  Suhail</text><text x="320" y="484">κ  Markeb</text>
+      </g>
+      <!-- 散落的小針腳 -->
+      <g class="st" opacity=".5"><path d="M40 60h8M500 40h8M520 400h8M30 470h8M70 200v8M510 230v8M400 30v8"/></g>
+    </svg>
+
+    <div class="mark"><img src="../../../apps/desktop/resources/icon.png" alt=""><span>VELA<br><small>船帆座</small></span></div>
+    <div class="say">
+      <p class="k">初次見面</p>
+      <p>Vela 是住在你電腦裡的 AI 編程夥伴。一針一線，把它縫成你習慣的樣子。</p>
+      <div class="cta"><a class="tagbtn">啟航</a><a class="textlink">略過導覽</a></div>
+    </div>
+    <div class="vert">夜航有帆，<br>寫程式不必獨行。</div>
+    <div class="thread"><span class="on">壹　認識 Vela</span><span>貳　1.1.2 新縫的兩針</span><span>參　整備 · 八項</span></div>
+  </div></div>
+
+  <div class="cap"><b>三個片段</b>同一套語言如何承載「介紹功能、新版內容、設定引導」</div>
+  <div class="trio">
+    <figure>
+      <div class="fit"><div class="frame cloth" data-w="440">
+        <p class="k">壹 · 認識 Vela</p>
+        <h3>縫進帆裡的四塊布</h3>
+        <div class="patch" style="left:24px;top:104px;width:196px;height:104px;background:#27447f;transform:rotate(-2deg)"><b>子代理小隊</b><span>大任務拆開，幾位幫手並行</span></div>
+        <div class="patch linen" style="left:212px;top:92px;width:206px;height:108px;transform:rotate(1.4deg)"><b>軌跡回放</b><span>讀了什麼、改了哪行，都留著</span></div>
+        <div class="patch" style="left:34px;top:204px;width:204px;height:106px;background:#35579e;transform:rotate(1.2deg)"><b>收件匣</b><span>要你拿主意的事，集中一處</span></div>
+        <div class="patch" style="left:230px;top:196px;width:186px;height:112px;background:#0f1a36;transform:rotate(-1.6deg)"><b>檢查點</b><span>改壞了，就回到上一刻</span></div>
+      </div></div>
+      <figcaption><b>功能介紹</b>　每項功能是一塊補丁，深淺不同的藍拼成一面帆。點開後補丁展開成整頁說明。</figcaption>
+    </figure>
+    <figure>
+      <div class="fit"><div class="frame cloth" data-w="440">
+        <svg class="hang" viewBox="0 0 440 80"><path d="M222 -4C232 16 214 34 219 58" fill="none" stroke="#e0b057" stroke-width="1.8" stroke-dasharray="5 4" stroke-linecap="round"/></svg>
+        <div class="label">
+          <div class="hd"><b>1.1.2</b><span>新縫上的兩針</span></div>
+          <dl>
+            <dt>任務交接包</dt><dd>把目標、決策、改動與未竟之事打包，帶進新對話接著做。</dd>
+            <dt>成果驗收面板</dt><dd>逐條需求對照改動與驗證紀錄，證據說話。</dd>
+          </dl>
+          <small>另有四處細修 →</small>
+        </div>
+      </div></div>
+      <figcaption><b>新版本內容</b>　一枚掛在布上的布標：版號、兩三行重點。每次更新只換布標，底布不變。</figcaption>
+    </figure>
+    <figure>
+      <div class="fit"><div class="frame cloth" data-w="440">
+        <p class="k">參 · 整備 · 其一</p>
+        <h3>語言與底色</h3>
+        <div class="sws">
+          <div class="swatch on"><b>繁</b>繁體中文</div>
+          <div class="swatch"><b>简</b>简体中文</div>
+          <div class="swatch"><b>En</b>English</div>
+        </div>
+        <div class="dyes"><span>底色</span><i class="on" style="background:#f3efe6"></i><i style="background:#9fb6de"></i><i style="background:#3a5596"></i><i style="background:#0f1a36"></i></div>
+        <div class="foot">
+          <svg viewBox="0 0 150 14"><path d="M2 7h12" stroke="#e0b057" stroke-width="2.4" stroke-linecap="round"/><path d="M21 7h127" stroke="#f3efe6" stroke-width="2" stroke-linecap="round" stroke-dasharray="12 7" opacity=".45"/></svg>
+          <span><a class="sbtn">上一步</a> <a class="sbtn fill">下一步</a></span>
+        </div>
+      </div></div>
+      <figcaption><b>設定步驟</b>　選項是一塊塊布樣，選中者換上金線與金結。進度是一條線：走過的針腳變成金色。</figcaption>
+    </figure>
+  </div>
+
+  <div class="cap"><b>風格規格</b></div>
+  <div class="spec">
+    <section><h5>色彩</h5>
+      <div class="sw">
+        <div><u style="background:#0f1a36"></u>濃藍 #0F1A36</div><div><u style="background:#24407c"></u>中藍 #24407C</div><div><u style="background:#3a5596"></u>淺藍 #3A5596</div>
+        <div><u style="background:#f3efe6"></u>白線 #F3EFE6</div><div><u style="background:#d9cfbb"></u>生麻 #D9CFBB</div><div><u style="background:#e0b057"></u>金線 #E0B057</div>
+      </div>
+    </section>
+    <section><h5>字體</h5>
+      <p class="specimen">夜航 Vela 1.1.2</p>
+      <p>細宋體（Noto Serif TC Light）配 Optima，大標直排、寬字距。層級靠留白與字重，不靠顏色。</p>
+    </section>
+    <section><h5>圖像語言</h5>
+      <ul><li>虛線＝針腳，是唯一的線條樣式</li><li>青海波紋作為海與底部收邊</li><li>補丁、布標、布樣取代卡片</li><li>織紋與染色不均的細微質感</li></ul>
+    </section>
+    <section><h5>動效</h5>
+      <ul><li>針腳沿路徑一針一針縫出</li><li>金星緩慢明滅，海浪幾乎不動</li><li>換步時新補丁「縫上」舊布</li><li>完成時金線把星座完整連起</li></ul>
+    </section>
+  </div>
+  <div class="verdict">
+    <div><b>適合</b>想要沉靜、精緻、帶工藝感的品牌印象；深色首屏最具沉浸感，又和常見的「科技深色」明確區隔。品牌藍自然延伸為整塊底布。</div>
+    <div><b>需留意</b>首屏固定為深色，選淺色主題的使用者進入主介面時會由暗轉亮，需設計過場。細宋體需隨 App 打包；虛線在小尺寸要控制密度以免顯得瑣碎。</div>
+  </div>
+</div>
+<script>
+const fit=()=>document.querySelectorAll('[data-w]').forEach(el=>{el.style.zoom=el.parentElement.clientWidth/+el.dataset.w});
+addEventListener('resize',fit);fit();
+const stage=document.getElementById('stage');
+stage.addEventListener('click',e=>{if(e.target.closest('a'))return;stage.querySelectorAll('.sew,.knot').forEach(n=>{n.style.animationName='none';void n.getBoundingClientRect();n.style.animationName=''})});
+</script>
+</body>
+</html>

@@ -1,0 +1,140 @@
+{
+  "version": "1.1.3",
+  "locales": {
+    "en": {
+      "summary": "Vela 1.1.3 introduces a new illustrated welcome tour, an eight-step setup flow, and release highlights that are available offline in your language.",
+      "highlights": [
+        {
+          "title": "A new welcome tour",
+          "body": "Meet Vela through an illustrated introduction, then explore parallel agents, execution traces, and compact conversations with screenshots from the app."
+        },
+        {
+          "title": "Eight steps to get ready",
+          "body": "Choose your language, appearance, information layout, skills, model, permissions, memory and instructions, and background behavior. Optional steps can be skipped, and unfinished setup resumes where you left off."
+        },
+        {
+          "title": "What is new, right in the app",
+          "body": "The welcome tour and the first launch after an update show release highlights from the installed app. Notes work offline and only appear when their version matches the app."
+        },
+        {
+          "title": "Replay the introduction",
+          "body": "Open Settings → About & updates to revisit the introduction and current release highlights without changing your saved preferences."
+        }
+      ],
+      "improvements": [
+        "Setup previews light and dark themes while keeping the illustrated guide readable in its own light palette.",
+        "The final setup page can open a project folder or take you directly to the relevant settings page.",
+        "Welcome, setup, and release highlights are available in English, Simplified Chinese, Traditional Chinese, Japanese, and Korean.",
+        "Development settings include a way to restart onboarding without clearing saved preferences."
+      ]
+    },
+    "zh-CN": {
+      "summary": "Vela 1.1.3 带来全新的插画欢迎介绍、八步设置流程，以及离线可读的多语言版本亮点。",
+      "highlights": [
+        {
+          "title": "全新的欢迎介绍",
+          "body": "通过插画认识 Vela，再结合应用截图了解子代理并行、执行轨迹和紧凑对话。"
+        },
+        {
+          "title": "八步完成启航准备",
+          "body": "依次选择语言、外观、信息栏布局、技能、模型、权限、记忆与指令，以及后台行为。可选步骤可以跳过，未完成的设置会从上次停下的页面继续。"
+        },
+        {
+          "title": "在应用里查看新到港",
+          "body": "欢迎介绍和更新后的首次启动会显示安装包内的版本亮点。无需联网，且只显示与当前应用版本一致的说明。"
+        },
+        {
+          "title": "随时重看介绍",
+          "body": "在「设置 → 关于与更新」重新查看介绍和当前版本亮点，不会改变已经保存的偏好。"
+        }
+      ],
+      "improvements": [
+        "设置过程中可以预览浅色和深色主题，插画引导始终使用清晰的浅色配色。",
+        "完成设置后，可以打开项目文件夹，或直接前往对应的设置页面。",
+        "欢迎介绍、设置流程和版本亮点提供英文、简体中文、繁体中文、日文与韩文。",
+        "开发设置新增重新开始引导的入口，无需清除已保存的偏好。"
+      ]
+    },
+    "zh-TW": {
+      "summary": "Vela 1.1.3 帶來全新的插畫歡迎介紹、八步設定流程，以及離線可讀的多語言版本亮點。",
+      "highlights": [
+        {
+          "title": "全新的歡迎介紹",
+          "body": "透過插畫認識 Vela，再搭配應用程式截圖了解子代理並行、執行軌跡與緊湊對話。"
+        },
+        {
+          "title": "八步完成啟航準備",
+          "body": "依序選擇語言、外觀、資訊欄配置、技能、模型、權限、記憶與指令，以及背景行為。可選步驟可以略過，未完成的設定會從上次停下的頁面繼續。"
+        },
+        {
+          "title": "在應用程式裡查看新到港",
+          "body": "歡迎介紹與更新後的首次啟動會顯示安裝包內的版本亮點。無需連網，且只顯示與目前應用程式版本一致的說明。"
+        },
+        {
+          "title": "隨時重看介紹",
+          "body": "在「設定 → 關於與更新」重新查看介紹與目前版本亮點，不會改變已儲存的偏好。"
+        }
+      ],
+      "improvements": [
+        "設定過程中可以預覽淺色與深色主題，插畫引導始終使用清晰的淺色配色。",
+        "完成設定後，可以開啟專案資料夾，或直接前往對應的設定頁面。",
+        "歡迎介紹、設定流程與版本亮點提供英文、簡體中文、繁體中文、日文與韓文。",
+        "開發設定新增重新開始引導的入口，無需清除已儲存的偏好。"
+      ]
+    },
+    "ja": {
+      "summary": "Vela 1.1.3 では、イラスト付きの新しい紹介、8 ステップの初期設定、オフラインで読める多言語のリリース情報を追加しました。",
+      "highlights": [
+        {
+          "title": "新しいウェルカムツアー",
+          "body": "イラストで Vela を紹介し、アプリのスクリーンショットでサブエージェントの並列作業、実行トレース、コンパクトな会話表示を案内します。"
+        },
+        {
+          "title": "8 ステップで準備完了",
+          "body": "言語、外観、情報パネルの配置、スキル、モデル、権限、メモリと指示、バックグラウンド動作を設定できます。任意のステップはスキップでき、未完了の設定は前回の画面から再開します。"
+        },
+        {
+          "title": "アプリ内で新着情報を確認",
+          "body": "紹介画面と更新後の初回起動で、インストール済みアプリに含まれるリリース情報を表示します。オフラインでも読め、アプリのバージョンと一致する情報だけを表示します。"
+        },
+        {
+          "title": "紹介をいつでも再表示",
+          "body": "「設定 → このアプリについて・更新」から、保存済みの設定を変更せずに紹介と現在のリリース情報を見直せます。"
+        }
+      ],
+      "improvements": [
+        "初期設定でライト・ダークテーマをプレビューできます。イラスト付きガイドは読みやすい独自の明るい配色を保ちます。",
+        "設定完了後は、プロジェクトフォルダーを開くか、関連する設定画面へ直接移動できます。",
+        "紹介、初期設定、リリース情報を英語、簡体字中国語、繁体字中国語、日本語、韓国語で提供します。",
+        "開発用設定から、保存済みの設定を消去せずに初期設定をやり直せます。"
+      ]
+    },
+    "ko": {
+      "summary": "Vela 1.1.3에서는 일러스트로 소개하는 새 시작 화면, 8단계 초기 설정, 오프라인에서도 읽을 수 있는 다국어 릴리스 정보를 추가했습니다.",
+      "highlights": [
+        {
+          "title": "새로운 시작 안내",
+          "body": "일러스트로 Vela를 만나고, 앱 스크린샷으로 하위 에이전트의 병렬 작업, 실행 기록, 간결한 대화 표시를 살펴보세요."
+        },
+        {
+          "title": "8단계로 준비 완료",
+          "body": "언어, 모양, 정보 패널 배치, 스킬, 모델, 권한, 메모리와 지침, 백그라운드 동작을 설정하세요. 선택 단계는 건너뛸 수 있으며, 끝내지 않은 설정은 마지막 화면에서 이어집니다."
+        },
+        {
+          "title": "앱에서 새 소식 확인",
+          "body": "시작 안내와 업데이트 후 첫 실행에서 설치된 앱에 포함된 릴리스 정보를 보여 줍니다. 오프라인에서도 읽을 수 있고, 현재 앱 버전과 일치하는 정보만 표시합니다."
+        },
+        {
+          "title": "언제든 소개 다시 보기",
+          "body": "설정 → 정보 및 업데이트에서 저장된 환경설정을 바꾸지 않고 소개와 현재 릴리스 정보를 다시 볼 수 있습니다."
+        }
+      ],
+      "improvements": [
+        "초기 설정에서 밝은 테마와 어두운 테마를 미리 볼 수 있습니다. 일러스트 안내는 읽기 편한 자체 밝은 색상을 유지합니다.",
+        "설정을 마친 뒤 프로젝트 폴더를 열거나 해당 설정 페이지로 바로 이동할 수 있습니다.",
+        "시작 안내, 초기 설정, 릴리스 정보를 영어, 간체 중국어, 번체 중국어, 일본어, 한국어로 제공합니다.",
+        "개발 설정에서 저장된 환경설정을 지우지 않고 시작 안내를 다시 시작할 수 있습니다."
+      ]
+    }
+  }
+}

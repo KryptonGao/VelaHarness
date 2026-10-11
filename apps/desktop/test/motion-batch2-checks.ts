@@ -179,21 +179,6 @@ export async function runBatch2MotionChecks(setReducedMotion: (value: boolean) =
       assert(!document.querySelector(".attachment-chip"), "final chip remained");
       assert(getComputedStyle(node(".attachment-row")).display === "none", "empty attachment row kept spacing");
     });
-    await check("Onboarding has opposite directions and rapid changes retain only one outgoing step", async () => {
-      node("#onboarding-fixture").style.display = "block";
-      const welcome = node(".onboarding-step-swap > .content-swap-current");
-      node<HTMLButtonElement>(".onboarding-start").click(); await wait(20);
-      assert(node(".onboarding-step-swap").style.getPropertyValue("--swap-direction") === "1", "forward direction is wrong");
-      assert(node(".onboarding-step-swap > .content-swap-outgoing").inert, "old step remains interactive");
-      assert(node(".onboarding-step-swap > .content-swap-outgoing") === welcome, "exit remounted the previous step");
-      assert(node(".onboarding-step-swap > .content-swap-current").scrollTop === 0, "new step inherited old scroll");
-      node<HTMLButtonElement>(".onboarding-secondary").click(); await wait(20);
-      assert(node(".onboarding-step-swap").style.getPropertyValue("--swap-direction") === "-1", "backward direction is wrong");
-      assert(document.querySelectorAll(".onboarding-step-swap > .content-swap-outgoing").length === 1, "rapid change accumulated stale screens");
-      await wait(220);
-      assert(!document.querySelector(".onboarding-step-swap > .content-swap-outgoing"), "old step failed to unmount");
-      node("#onboarding-fixture").style.display = "none";
-    });
     await check("reduced-motion preference changes cancel JS animations and skip all exit delays", async () => {
       fixture.conversations(["c"]); fixture.status("running"); fixture.active("c");
       setReducedMotion(true); await wait(25);

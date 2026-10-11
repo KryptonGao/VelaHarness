@@ -64,8 +64,9 @@ export function Presence({
 /**
  * 对话框进出场。进入靠 CSS 动画,退出在动画结束前保持挂载。
  * 子节点需要带 `.sheet-backdrop`,本组件负责挂到 document.body。
+ * `light` 让对话框固定使用浅色主题，不随应用的深色模式变化（引导页用）。
  */
-export function SheetPresence({ present, children }: { present: boolean; children: ReactNode }) {
+export function SheetPresence({ present, light, children }: { present: boolean; light?: boolean; children: ReactNode }) {
   const [mounted, setMounted] = useState(present);
   const [leaving, setLeaving] = useState(false);
   const frozen = useRef(children);
@@ -96,7 +97,8 @@ export function SheetPresence({ present, children }: { present: boolean; childre
   }
 
   return createPortal(
-    <div className={`sheet-presence${leaving && !present ? " is-leaving" : ""}`} onAnimationEnd={onAnimationEnd}>
+    <div className={`sheet-presence${leaving && !present ? " is-leaving" : ""}`} onAnimationEnd={onAnimationEnd}
+      data-scheme={light ? "light" : undefined} data-theme={light ? "daylight" : undefined}>
       {present ? children : frozen.current}
     </div>,
     document.body,
