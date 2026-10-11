@@ -1,6 +1,9 @@
 /** 距离底部不超过这个值时,视为用户已经回到底部。 */
 export const STREAM_FOLLOW_BOTTOM = 16;
 
+/** 离开跟随且距离底部超过这个值时,才显示「回到最新」。 */
+const JUMP_TO_LATEST_DISTANCE = 64;
+
 /** 小于这个位移的回弹忽略,避免贴底时的轻微抖动取消跟随。 */
 const SCROLL_UP_RELEASE_PX = 4;
 
@@ -35,4 +38,9 @@ export function shouldResumeFollowForMessages(input: {
 }): boolean {
   if (input.conversationChanged) return true;
   return input.userMessageId !== null && input.userMessageId !== input.previousUserMessageId;
+}
+
+/** 用户已经离开底部、输出不再被跟随时,提供回到最新内容的入口。 */
+export function shouldShowJumpToLatest(input: { following: boolean; distanceFromBottom: number }): boolean {
+  return !input.following && input.distanceFromBottom > JUMP_TO_LATEST_DISTANCE;
 }

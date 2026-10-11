@@ -16,6 +16,8 @@ import { SettingsView } from "./components/SettingsView";
 import { UpdateNotice } from "./components/UpdateNotice";
 import { TaskRecipesPage, type RecipeMessageSeed } from "./components/TaskRecipesPage";
 import { RecipeActionsContext } from "./components/recipe-actions-context";
+import { ComposerSeedContext, type ComposerSeed } from "./components/composer-seed-context";
+import { HandoffPackDialog } from "./components/HandoffPackDialog";
 import { ScheduledTasksPage } from "./components/ScheduledTasksPage";
 import { Sidebar } from "./components/Sidebar";
 import { RenameConversationDialog } from "./components/RenameConversationDialog";
@@ -35,6 +37,8 @@ import { usePrInboxBackgroundRefresh } from "./hooks/usePrInboxCache";
 import { useSidebarItems } from "./hooks/useSidebarItems";
 import { useSession, type UiMessage } from "./hooks/useSession";
 import { useSidebarResize } from "./hooks/useSidebarResize";
+import { useAcceptance } from "./hooks/useAcceptance";
+import type { AcceptanceRequest } from "./components/acceptance";
 import { useTurnReview } from "./hooks/useTurnReview";
 import type { TurnReviewRequest } from "./components/turn-changes";
 import {
@@ -132,6 +136,16 @@ export function App() {
   }, [session.activeConversationId]);
   const forkCheckpoint = useCallback((turnIndex: number, restoreFiles: boolean) =>
     session.forkCheckpoint(turnIndex, { restoreFiles }), [session.forkCheckpoint]);
+  /** 任务交接包：预览确认后新建对话，并把交接文本填入新对话的输入框。 */
+  const [handoff, setHandoff] = useState<{ conversationId: string } | null>(null);
+  const [composerSeed, setComposerSeed] = useState<ComposerSeed | null>(null);
+  const consumeComposerSeed = useCallback((id: string) => setComposerSeed(current => current?.id === id ? null : current), []);
+  const startHandoff = useCallback(async (conversationId: string, text: string) => {
+    const source = session.conversations.find(item => item.id === conversationId);
+    const newId = await session.newChat(source && source.hasWorkspace !== false ? source.cwd : undefined);
+    if (!newId) throw new Error("新建对话失败");
+    setComposerSeed({ id: crypto.randomUUID(), conversationId: newId, text });
+  }, [session.conversations, session.newChat]);
   const models = useModels(session.setAppState);
   const project = useProject(sounds.notify);
   setActiveLocale(preferences.locale);
@@ -188,6 +202,8 @@ export function App() {
   const workspaceKey = project.workspace?.current ?? "";
   const conversationKey = session.activeConversationId ?? "";
   const { review: turnReview, tabId: turnReviewTabId, open: showTurnReview, close: dismissTurnReview } = useTurnReview(workspaceKey, conversationKey);
+  const { acceptance, tabId: acceptanceTabId, open: showAcceptance, close: dismissAcceptance } = useAcceptance(workspaceKey, conversationKey);
+  const [reviewTargets, setReviewTargets] = useState<Record<string, { path: string; requestKey: number; diffToolId?: string }>>({});
   const [fileTabsByWorkspace, setFileTabsByWorkspace] = useState<Record<string, PreviewFileDescriptor[]>>({});
   const fileWorkspaceRef = useRef<string | null>(null);
   const [changesByWorkspace, setChangesByWorkspace] = useState<Record<string, {
@@ -285,6 +301,17 @@ export function App() {
 
   const onReviewTurn = useCallback((request: TurnReviewRequest) => {
     showTurnReview(request);
+    setReviewTargets(current => { const next = { ...current }; delete next[turnReviewTabId]; return next; });
+    setActiveWorkbenchTabId(turnReviewTabId);
+  }, [showTurnReview, turnReviewTabId]);
+  const onOpenAcceptance = useCallback((request: AcceptanceRequest) => {
+    showAcceptance(request);
+    setActiveWorkbenchTabId(acceptanceTabId);
+  }, [showAcceptance, acceptanceTabId]);
+  const onAcceptanceDiff = useCallback((request: AcceptanceRequest, path: string, diffToolId?: string) => {
+    if (!request.changes?.files.some(file => file.path === path)) return;
+    showTurnReview({ turnId: request.turnId, changes: request.changes });
+    setReviewTargets(current => ({ ...current, [turnReviewTabId]: { path, diffToolId, requestKey: (current[turnReviewTabId]?.requestKey ?? 0) + 1 } }));
     setActiveWorkbenchTabId(turnReviewTabId);
   }, [showTurnReview, turnReviewTabId]);
 
@@ -392,8 +419,11 @@ export function App() {
     ? { id: scopedTabId("plan", conversationKey), kind: "plan", label: tr("计划", "Plan") }
     : null, [planDocument.activePlanId, conversationKey]);
   const reviewTab = useMemo<WorkbenchTab | null>(() => turnReview
-    ? { id: turnReviewTabId, kind: "turn-review", label: tr("变更审查", "Change review"), review: turnReview }
-    : null, [turnReview, turnReviewTabId, preferences.locale]);
+    ? { id: turnReviewTabId, kind: "turn-review", label: tr("变更审查", "Change review"), review: turnReview, target: reviewTargets[turnReviewTabId] }
+    : null, [turnReview, turnReviewTabId, reviewTargets, preferences.locale]);
+  const acceptanceTab = useMemo<WorkbenchTab | null>(() => acceptance
+    ? { id: acceptanceTabId, kind: "acceptance", label: tr("验收", "Acceptance"), acceptance }
+    : null, [acceptance, acceptanceTabId, preferences.locale]);
   const agentTabs = useMemo<WorkbenchTab[]>(() => {
     const dismissedAgentIds = new Set(dismissedAgentsByConversation[conversationKey] ?? []);
     return allAgents.filter((agent) => !dismissedAgentIds.has(agent.id)).map((agent) => ({
@@ -423,12 +453,13 @@ export function App() {
     ...(planTab ? [planTab] : []),
     ...(changeTab ? [changeTab] : []),
     ...(reviewTab ? [reviewTab] : []),
+    ...(acceptanceTab ? [acceptanceTab] : []),
     ...agentTabs,
     ...(filesTab ? [filesTab] : []),
     ...terminalTabs,
     ...browser.tabs.map((tab): WorkbenchTab => ({ ...tab, kind: "browser", label: tr("浏览器", "Browser") })),
     ...startTabItems,
-  ], [fileTabs, planTab, changeTab, reviewTab, agentTabs, filesTab, terminalTabs, browser.tabs, startTabItems]);
+  ], [fileTabs, planTab, changeTab, reviewTab, acceptanceTab, agentTabs, filesTab, terminalTabs, browser.tabs, startTabItems]);
   const workbenchTabs = useMemo(() => {
     const tabIdSet = new Set(unorderedTabs.map((tab) => tab.id));
     return [
@@ -523,6 +554,8 @@ export function App() {
         [workspaceKey]: { ...changesState, open: false },
       }));
       setSelectedChangePaths((current) => ({ ...current, [workspaceKey]: null }));
+    } else if (tab.kind === "acceptance") {
+      dismissAcceptance();
     } else if (tab.kind === "turn-review") {
       dismissTurnReview();
     } else if (tab.kind === "agent") {
@@ -539,7 +572,7 @@ export function App() {
     } else if (tab.kind === "start") {
       setStartTabState((current) => current.filter((candidate) => candidate.id !== tab.id));
     }
-  }, [workbenchTabs, dispatchPlanDocument, workspaceKey, changesState, conversationKey, dismissTurnReview, browser.close]);
+  }, [workbenchTabs, dispatchPlanDocument, workspaceKey, changesState, conversationKey, dismissTurnReview, dismissAcceptance, browser.close]);
 
   const workbenchOpen = workbenchTabs.length > 0;
   const previousWorkbenchOpen = useRef(false);
@@ -618,7 +651,8 @@ export function App() {
   return (
     <FileIconThemeProvider value={preferences.fileIconTheme}>
       <AppLocaleProvider locale={preferences.locale}>
-        <RecipeActionsContext.Provider value={{ conversationId: session.activeConversationId, open: openRecipes, useRecipe: recipe => { setRecipeToUse(recipe); openRecipes(); }, fromMessage: seed => { setRecipeSeed(seed); openRecipes(); } }}>
+        <RecipeActionsContext.Provider value={{ conversationId: session.activeConversationId, open: openRecipes, useRecipe: recipe => { setRecipeToUse(recipe); openRecipes(); }, fromMessage: seed => { setRecipeSeed(seed); openRecipes(); }, createHandoff: conversationId => setHandoff({ conversationId }) }}>
+        <ComposerSeedContext.Provider value={{ seed: composerSeed, consume: consumeComposerSeed }}>
         <div className="app-screens">
           <BrowserViewHost tabs={browser.allTabs}
             activeTabId={browser.tabs.some(tab => tab.id === activeWorkbenchTabId) ? activeWorkbenchTabId : null}
@@ -740,9 +774,9 @@ export function App() {
                           onReplyQuestion={replyQuestion}
                           onBranch={branchTurn}
                           onOpenCheckpoints={openCheckpoints}
-                          // 工作面板自己没开(没有标签页)时,或右侧栏收起时,顶栏补一个新建标签页入口;
-                          // 工作面板和右侧栏都在时它自己标签栏里的 + 已经够用,不再重复。
-                          showNewTab={workbenchTabs.length === 0 || workbenchCollapsed || !contextSidebarOpen}
+                          // 工作面板自己没开(没有标签页)或已折叠时,顶栏补一个新建标签页入口;
+                          // 工作面板展开时它自己标签栏里的 + 已经够用,不再重复。
+                          showNewTab={workbenchTabs.length === 0 || workbenchCollapsed}
                           onExpandWorkbench={workbenchCollapsed && workbenchTabs.length > 0
                             ? () => {
                               setWorkbenchCollapsed(false);
@@ -752,6 +786,7 @@ export function App() {
                           onOpenWebLink={openConversationLink}
                           onOpenChanges={openAllChanges}
                           onReviewTurn={onReviewTurn}
+                          onOpenAcceptance={onOpenAcceptance}
                           planDraft={session.planDraft}
                           onOpenPlan={openPlan}
                         />
@@ -781,6 +816,7 @@ export function App() {
                           [workspaceKey]: path,
                         }))}
                         onShowDiff={openChanges}
+                        onAcceptanceDiff={onAcceptanceDiff}
                         agents={allAgents}
                         messageStore={session.messageStore}
                         conversationId={session.activeConversationId}
@@ -876,7 +912,14 @@ export function App() {
           onSave={session.rename}
           onClose={() => setRenamingConversation(null)}
         /> : null}
+        {handoff ? <HandoffPackDialog
+          key={handoff.conversationId}
+          conversationId={handoff.conversationId}
+          onConfirm={text => startHandoff(handoff.conversationId, text)}
+          onClose={() => setHandoff(null)}
+        /> : null}
         {onboardingComplete ? <UpdateNotice locale={preferences.locale} /> : null}
+        </ComposerSeedContext.Provider>
         </RecipeActionsContext.Provider>
       </AppLocaleProvider>
     </FileIconThemeProvider>

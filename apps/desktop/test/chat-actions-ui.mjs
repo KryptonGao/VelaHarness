@@ -24,14 +24,14 @@ if (!process.versions.electron) {
           import { TaskRecipesPage } from './apps/desktop/src/renderer/components/TaskRecipesPage';
           import { setActiveLocale } from './apps/desktop/src/renderer/locale';
           setActiveLocale('zh-CN');
-          window.fixture = { seeds: [], saved: [], messages: [
+          window.fixture = { seeds: [], handoffs: [], saved: [], messages: [
             { id: 'user', role: 'user', text: 'Earlier selected text', thinking: '', tools: [] },
             { id: 'reply', role: 'assistant', text: 'Latest assistant reply', thinking: '', tools: [] },
             { id: 'tool-only', role: 'assistant', text: '  ', thinking: '', tools: [] }
           ] };
           const root = createRoot(document.getElementById('root'));
           window.renderChat = (id = 'chat-a', messages = fixture.messages, streaming = false) => root.render(
-            <RecipeActionsContext.Provider value={{conversationId: id, open: () => {}, fromMessage: seed => fixture.seeds.push(seed)}}>
+            <RecipeActionsContext.Provider value={{conversationId: id, open: () => {}, fromMessage: seed => fixture.seeds.push(seed), createHandoff: id => fixture.handoffs.push(id)}}>
               <main className="main-chat-view"><header className="main-chat-header">
                 <span className="chat-active-title">Hello</span><div className="chat-header-actions">
                   <ChatActionsMenu key={id ?? 'empty'} messages={messages} streaming={streaming} />
@@ -144,21 +144,36 @@ if (!process.versions.electron) {
     await evaluate("window.renderChat('user-only', fixture.messages.slice(0, 1))"); await open(); await choose(); await closed();
     assert.deepEqual(await evaluate("fixture.seeds.at(-1)"), { text: "Earlier selected text", conversationId: "user-only", messageId: "user" });
 
+    // Handoff pack item: opens the preview for the current chat, and is unavailable while streaming or without text.
+    assert.deepEqual(await evaluate("fixture.handoffs"), []);
+    await evaluate("window.renderChat('chat-handoff')"); await open();
+    assert.equal(await evaluate("document.querySelectorAll('[role=menuitem]')[1].getAttribute('aria-disabled')"), "false");
+    await evaluate("document.querySelectorAll('[role=menuitem]')[1].click()"); await closed();
+    assert.deepEqual(await evaluate("fixture.handoffs"), ["chat-handoff"]);
+    for (const render of ["window.renderChat('empty-handoff', [])", "window.renderChat(null)", "window.renderChat('streaming-handoff', fixture.messages, true)"]) {
+      await evaluate(render); await closed(); await open();
+      assert.equal(await evaluate("document.querySelectorAll('[role=menuitem]')[1].getAttribute('aria-disabled')"), "true");
+      await evaluate("document.querySelectorAll('[role=menuitem]')[1].click()");
+      assert.deepEqual(await evaluate("fixture.handoffs"), ["chat-handoff"]);
+      await evaluate("document.activeElement.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', bubbles: true}))");
+      await closed();
+    }
+
     // Export items: the postmortem defaults go to the API, a failure stays visible in the menu, and an empty chat cannot export.
     await evaluate("fixture.exports = []; fixture.exportFails = false; window.vela.exportConversation = async (id, options) => { fixture.exports.push({ id, options }); if (fixture.exportFails) throw new Error('这个对话还没有消息'); return { path: '/tmp/chat.md' }; }; true");
     await evaluate("window.renderChat('chat-export')"); await open();
-    assert.deepEqual(await evaluate("Array.from(document.querySelectorAll('[role=menuitem]')).map(item => item.textContent)"), ["从对话创建配方", "导出为 Markdown…", "导出为 HTML…"]);
-    await evaluate("document.querySelectorAll('[role=menuitem]')[2].click()"); await closed();
+    assert.deepEqual(await evaluate("Array.from(document.querySelectorAll('[role=menuitem]')).map(item => item.textContent)"), ["从对话创建配方", "生成交接包…", "导出为 Markdown…", "导出为 HTML…"]);
+    await evaluate("document.querySelectorAll('[role=menuitem]')[3].click()"); await closed();
     assert.deepEqual(await evaluate("fixture.exports"), [{ id: "chat-export", options: { format: "html", includeTrace: true, includeDiffs: true, includeThinking: false } }]);
-    await open(); await evaluate("fixture.exportFails = true; document.querySelectorAll('[role=menuitem]')[1].click()");
+    await open(); await evaluate("fixture.exportFails = true; document.querySelectorAll('[role=menuitem]')[2].click()");
     await until("Boolean(document.querySelector('.chat-actions-error'))");
     assert.equal(await evaluate("document.querySelector('.chat-actions-error').textContent"), "这个对话还没有消息");
-    assert.equal(await evaluate("document.querySelectorAll('[role=menuitem]')[1].getAttribute('aria-disabled')"), "false");
+    assert.equal(await evaluate("document.querySelectorAll('[role=menuitem]')[2].getAttribute('aria-disabled')"), "false");
     assert.equal(await evaluate("fixture.exports.at(-1).options.format"), "markdown");
     await evaluate("window.renderChat('chat-after-error')"); await closed();
     await evaluate("window.renderChat('empty-export', [])"); await open();
-    assert.equal(await evaluate("document.querySelectorAll('[role=menuitem]')[1].getAttribute('aria-disabled')"), "true");
-    await evaluate("document.querySelectorAll('[role=menuitem]')[1].click()");
+    assert.equal(await evaluate("document.querySelectorAll('[role=menuitem]')[2].getAttribute('aria-disabled')"), "true");
+    await evaluate("document.querySelectorAll('[role=menuitem]')[2].click()");
     assert.equal(await evaluate("fixture.exports.length"), 2);
     await evaluate("window.renderChat('closing')"); await closed();
 

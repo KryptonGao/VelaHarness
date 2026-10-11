@@ -27,7 +27,7 @@ describe("conversation title requests", () => {
     assert.equal(calls[0]![0], model);
     assert.equal(calls[0]![1].messages.length, 1);
     assert.equal((calls[0]![1].messages[0] as { content: string }).content.length, 4000);
-    assert.match(calls[0]![1].systemPrompt!, /只返回标题/);
+    assert.match(calls[0]![1].systemPrompt!, /return only the title/);
     assert.equal(calls[0]![2]?.maxTokens, 2048);
     assert.equal(calls[0]![2]?.sessionId, "chat-a");
     assert.equal(calls[0]![2]?.headers, undefined);

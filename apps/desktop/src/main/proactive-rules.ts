@@ -306,14 +306,14 @@ export class ProactiveRuleService {
 
 function composePrompt(rule: ProactiveRuleInput, reason: string): string {
   const mode = rule.allowTools
-    ? "你可以运行命令和修改文件，但每一步都会请求用户批准；除非规则明确要求，否则只分析并给出建议，不要直接修改。"
-    : "当前是只读分析：不要修改任何文件，只查阅并给出建议。";
-  return `这是用户订阅的主动规则「${rule.title}」触发的分析，不是用户当面提出的请求。
-触发原因：${reason}
+    ? "You may run commands and modify files, but every step asks the user for approval; unless the rule explicitly requires it, only analyze and give recommendations and do not modify anything directly."
+    : "This is read-only analysis: do not modify any files; only inspect and give recommendations.";
+  return `This analysis was triggered by the proactive rule "${rule.title}" that the user subscribed to; it is not a request the user made in person.
+Trigger reason: ${reason}
 
-规则要求：
+Rule requirements:
 ${rule.prompt}
 
 ${mode}
-用简洁的结论开头，列出具体、可以执行的建议；如果没有发现需要用户处理的问题，直接说明「没有发现需要处理的事项」。`;
+Start with a concise conclusion and list specific, actionable recommendations; if you find nothing that needs the user's attention, say plainly that "nothing needs attention".`;
 }

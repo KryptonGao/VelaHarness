@@ -1,6 +1,12 @@
 export * from "./pr-inbox";
 export * from "./mcp";
 export * from "./memory";
+export * from "./handoff";
+export * from "./outcome";
+import type { OutcomeSubmission } from "./outcome";
+export * from "./tool-diff";
+export * from "./verification";
+import type { HandoffDraftRequest, HandoffPack } from "./handoff";
 export * from "./scheduled-tasks";
 export * from "./agent-inbox";
 export * from "./resident-agent";
@@ -48,6 +54,8 @@ export const IpcChannel = {
   checkpointStorageClean: "storage:clean-checkpoints",
   sessionMessages: "session:messages",
   sessionSummarizeThinking: "session:summarize-thinking",
+  sessionHandoffDraft: "session:handoff-draft",
+  sessionHandoffCancel: "session:handoff-cancel",
   sessionTrace: "session:trace",
   sessionTraceDetails: "session:trace-details",
   sessionExport: "session:export",
@@ -780,6 +788,8 @@ export interface ToolActivity {
   diff?: string;
   /** update_plan 的结构化执行清单 */
   plan?: ToolPlanItem[];
+  /** submit_outcome 的需求归属，事实由本轮工具记录推导。 */
+  outcome?: OutcomeSubmission;
   /** task 子代理类型 */
   agent?: SubagentKind;
   /** 常驻子代理的 id 和路径，供界面把卡片关联到 agent 列表。 */
@@ -2787,6 +2797,9 @@ export interface VelaApi extends McpApi, PluginApi {
   /** 读取某个对话的完整历史(用于应用重启后恢复界面消息)。 */
   getMessages(conversationId: string): Promise<TranscriptMessage[]>;
   summarizeThinking(input: ThinkingSummaryInput): Promise<string>;
+  /** 整理对话的交接包草稿：事实由记录推导，语义部分由模型整理；只读，不修改对话。 */
+  draftHandoff(request: HandoffDraftRequest): Promise<HandoffPack>;
+  cancelHandoff(requestId: string): Promise<void>;
   getTrace(conversationId: string): Promise<TraceSnapshot>;
   getTraceDetails(conversationId: string, nodeId: string): Promise<TraceDetails | null>;
   /** 读取某个常驻子代理自己的消息历史(用于打开右侧 Agent Pane 时回填)。 */

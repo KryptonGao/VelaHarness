@@ -155,10 +155,10 @@ for (const scenario of [
       } }],
       "已保存长期偏好或约定。",
     ], (system) => {
-      assert.match(system, /不需要等待用户说“记住”/);
-      assert.match(system, /没有值得长期保存的新信息时不调用写入工具/);
-      assert.match(system, /不要自动保存/);
-      assert.match(system, /敏感个人信息不自动写入/);
+      assert.match(system, /do not wait for the user to say "remember"/);
+      assert.match(system, /do not call the write tool when there is nothing new worth saving/);
+      assert.match(system, /don't auto-save/);
+      assert.match(system, /never auto-write passwords, keys, tokens, or other sensitive personal information/);
     });
     await f.runtime.prompt(f.id, scenario.input);
     check();

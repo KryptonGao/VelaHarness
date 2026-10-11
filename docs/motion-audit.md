@@ -56,7 +56,7 @@
 | 工具卡片 | 部分 | `.tool-collapse` 有高度过渡、chevron 有旋转、running 有 `tool-spin`/`tool-pulse`；但卡片首次挂载无进场，`ToolCard.tsx` 的 `StatusMark`、`CompactStatus` 在状态切换时直接换 DOM 节点 |
 | 思考块 | 部分 | `.time-spent-body` 有高度过渡、`.thinking-scroll-fade` 有渐隐过渡；总结文本从 pending 到完成只是替换文本，无过渡 |
 | 自动滚动 | 瞬时 | `ChatView.tsx` 直接把 `scrollTop` 设为 `scrollHeight`，任何地方都没有 `scroll-behavior: smooth` |
-| 回到底部按钮 | 不存在 | 整个 renderer 没有该元素的 DOM；属于功能缺口，不是动画缺口 |
+| 回到最新按钮 | 已有 | `.chat-jump-latest`：离开跟随且离底部超过 64px 时淡入，点击瞬时回到底部并恢复跟随；进出场用 opacity/transform 过渡，减少动效下关闭 |
 | 轮次变更卡片 | 部分 | `.turn-changes-more` 的箭头有旋转过渡，统计数字无出现动画 |
 
 ### 2.3 输入区与浮层
@@ -194,7 +194,6 @@
 
 ---
 
-## 6. 附：盘点时的两个非动效发现
+## 6. 附：盘点时的非动效发现
 
-- **「回到底部」按钮不存在**：`Design/README.md` 的原型描述里有浮动滚动按钮，实际 renderer 没有任何相关 DOM。若要补，属功能开发；进出场可复用 `.dock-popover` 的 `@starting-style` 模式。
 - **`.side-panel-swap` 是死代码**：只有 CSS 没有引用，可直接拿来做 M03 的标签内容切换。

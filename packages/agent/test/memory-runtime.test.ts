@@ -164,7 +164,7 @@ describe("AgentRuntime 记忆加载", { timeout: 30_000 }, () => {
     check();
     assert.match(effectiveSystemText(f.requests[0]!), new RegExp(marker("LIVE_SWITCH")));
     assert.doesNotMatch(effectiveSystemText(f.requests[1]!), new RegExp(marker("LIVE_SWITCH")));
-    assert.doesNotMatch(effectiveSystemText(f.requests[1]!), /自动写入：/);
+    assert.doesNotMatch(effectiveSystemText(f.requests[1]!), /Automatic writes:/);
     assert.ok(!f.session().getActiveToolNames().includes("memory_read"));
   });
 
@@ -183,8 +183,8 @@ describe("AgentRuntime 记忆加载", { timeout: 30_000 }, () => {
     await f.prompt(f.id, "第二次");
     const disabled = effectiveSystemText(f.requests[1]!);
     assert.doesNotMatch(disabled, /__MEMORY_SWITCH_/);
-    assert.doesNotMatch(disabled, /自动写入：/);
-    assert.match(disabled, /长期记忆已关闭/);
+    assert.doesNotMatch(disabled, /Automatic writes:/);
+    assert.match(disabled, /Long-term memory is turned off/);
     assert.equal(await readFile(join(f.agentDir, "MEMORY.md"), "utf8"), `${marker("SWITCH_GLOBAL")}\n`);
     assert.equal(await readFile(join(f.workspace, ".vela", "MEMORY.md"), "utf8"), `${marker("SWITCH_PROJECT")}\n`);
 

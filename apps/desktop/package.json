@@ -1,7 +1,7 @@
 {
   "name": "@vela/desktop",
-  "version": "1.1.1",
-  "shortVersion": "1.1.1",
+  "version": "1.1.2",
+  "shortVersion": "1.1.2",
   "private": true,
   "main": "./out/main/index.mjs",
   "scripts": {
@@ -59,7 +59,8 @@
     "test:updates": "node --import ../../packages/agent/test/register-ts.mjs --experimental-transform-types --test test/update-verify.test.ts test/update-service.test.ts test/update-installer.test.ts test/update-bundle.test.ts",
     "test:updates:ui": "node test/updates-ui.mjs",
     "test:pr-inbox:electron": "node test/pr-inbox-electron-smoke.mjs",
-    "test:pr-review-response:electron": "node test/pr-review-response-electron-smoke.mjs"
+    "test:pr-review-response:electron": "node test/pr-review-response-electron-smoke.mjs",
+    "test:outcome": "node --import ../../packages/agent/test/register-ts.mjs --experimental-transform-types --test test/outcome.test.ts test/outcome-stream.test.ts"
   },
   "dependencies": {
     "@earendil-works/pi-ai": "1.0.0",

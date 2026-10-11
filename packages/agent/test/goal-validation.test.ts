@@ -63,7 +63,7 @@ describe("Goal 交付验证", () => {
   it("只在 Goal 模式提供验证工具，并要求先验证再完成", () => {
     assert.equal(toolNamesFor("goal", false).includes("record_goal_validation"), true);
     assert.equal(toolNamesFor("agent", false).includes("record_goal_validation"), false);
-    assert.match(modeSystemPrompt("goal", false), /先调用 record_goal_validation/);
+    assert.match(modeSystemPrompt("goal", false), /must call record_goal_validation/);
   });
 
   it("没有验证记录时不能完成目标", () => {

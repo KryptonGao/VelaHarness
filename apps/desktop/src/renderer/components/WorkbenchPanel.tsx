@@ -11,6 +11,8 @@ import { tr, trf } from "../locale";
 import { AgentPane } from "./AgentPane";
 import { AgentStatusMark } from "./AgentPanel";
 import { ChangesView } from "./ChangesView";
+import { AcceptancePanel } from "./AcceptancePanel";
+import type { AcceptanceRequest } from "./acceptance";
 import { TurnReviewView } from "./TurnReviewView";
 import type { TurnReviewRequest } from "./turn-changes";
 import { FileTypeIcon } from "./FileTypeIcon";
@@ -29,7 +31,8 @@ export type WorkbenchTab =
   | { id: string; kind: "plan"; label: string; title?: string }
   | { id: string; kind: "file"; label: string; title: string; path: string }
   | { id: string; kind: "changes"; label: string; title?: string }
-  | { id: string; kind: "turn-review"; label: string; title?: string; review: TurnReviewRequest }
+  | { id: string; kind: "turn-review"; label: string; title?: string; review: TurnReviewRequest; target?: { path: string; requestKey: number; diffToolId?: string } }
+  | { id: string; kind: "acceptance"; label: string; title?: string; acceptance: AcceptanceRequest }
   | { id: string; kind: "agent"; label: string; title: string; agent: AgentInfo }
   | { id: string; kind: "start"; label: string; title?: string }
   | { id: string; kind: "files"; label: string; title?: string }
@@ -55,6 +58,7 @@ interface WorkbenchPanelProps {
   selectedChangePath: string | null;
   onSelectedChangePath: (path: string | null) => void;
   onShowDiff: (path: string) => void;
+  onAcceptanceDiff?: (request: AcceptanceRequest, path: string, diffToolId?: string) => void;
   agents: readonly AgentInfo[];
   getAgentMessages?: (agentId: string) => UiMessage[];
   messageStore?: MessageStore;
@@ -83,7 +87,7 @@ function safeId(value: string): string {
 function TabIcon({ tab }: { tab: WorkbenchTab }) {
   // 文件标签用对应文件类型的图标(与文件树、变更列表同一套组件与主题)。
   if (tab.kind === "file") return <FileTypeIcon path={tab.path} />;
-  if (tab.kind === "changes" || tab.kind === "turn-review") return <FileIcon size={12} />;
+  if (tab.kind === "changes" || tab.kind === "turn-review" || tab.kind === "acceptance") return <FileIcon size={12} />;
   if (tab.kind === "plan") return <PlanIcon size={12} />;
   if (tab.kind === "start") return <PlusIcon size={12} />;
   if (tab.kind === "files") return <FolderIcon size={12} />;
@@ -133,6 +137,7 @@ function WorkbenchPanelContent({
   selectedChangePath,
   onSelectedChangePath,
   onShowDiff,
+  onAcceptanceDiff,
   agents,
   getAgentMessages,
   messageStore,
@@ -525,8 +530,16 @@ function WorkbenchPanelContent({
             hidden={activeTab?.id !== tab.id}
             key={tab.id}
           >
-            <TurnReviewView key={tab.review.turnId} review={tab.review}
+            <TurnReviewView key={tab.review.turnId} review={tab.review} target={tab.target}
               visible={activeTab?.id === tab.id} onClose={() => closeTab(tab)} />
+          </WorkbenchTabPanel>
+        ))}
+
+        {tabs.filter((tab): tab is Extract<WorkbenchTab, { kind: "acceptance" }> => tab.kind === "acceptance").map(tab => (
+          <WorkbenchTabPanel key={tab.id} id={tabPanelId(tab)} className="workbench-tabpanel" role="tabpanel"
+            aria-labelledby={tabButtonId(tab)} tabIndex={0} hidden={activeTab?.id !== tab.id}>
+            <AcceptancePanel key={tab.acceptance.turnId} request={tab.acceptance}
+              onOpenDiff={(path, diffToolId) => onAcceptanceDiff?.(tab.acceptance, path, diffToolId)} />
           </WorkbenchTabPanel>
         ))}
 

@@ -134,6 +134,7 @@ import {
   type TerminalSessionInfo,
   type ThinkingLevel,
   type TranscriptMessage,
+  type HandoffPack,
   type IntelligentUiState,
   type UiPreference,
   type UiSandboxIssueResult,
@@ -366,6 +367,8 @@ const api: VelaApi = {
   getMessages: (conversationId: string) =>
     ipcRenderer.invoke(IpcChannel.sessionMessages, conversationId) as Promise<TranscriptMessage[]>,
   summarizeThinking: (input) => ipcRenderer.invoke(IpcChannel.sessionSummarizeThinking, input) as Promise<string>,
+  draftHandoff: (request) => ipcRenderer.invoke(IpcChannel.sessionHandoffDraft, request) as Promise<HandoffPack>,
+  cancelHandoff: (requestId: string) => ipcRenderer.invoke(IpcChannel.sessionHandoffCancel, requestId) as Promise<void>,
   getAgentMessages: (conversationId: string, agentId: string) =>
     ipcRenderer.invoke(IpcChannel.sessionAgentMessages, conversationId, agentId) as Promise<TranscriptMessage[]>,
   controlAgent: (conversationId: string, agentId: string, action: AgentControlAction) =>

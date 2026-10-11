@@ -1,4 +1,4 @@
-import type { SubagentKind, ToolActivity, ToolPlanItem, ToolStep } from "@vela/shared";
+import { parseOutcomeSubmission, type SubagentKind, type ToolActivity, type ToolPlanItem, type ToolStep } from "@vela/shared";
 import { followupTaskToolName, sendMessageToolName, spawnAgentToolName } from "./subagent";
 
 const maxChars = 80_000;
@@ -10,6 +10,11 @@ export function activityFromCall(toolName: string, args: unknown): ToolActivity 
     return agentMessageCallActivity(toolName, args);
   }
   if (toolName === "update_plan") return planActivity(args);
+  if (toolName === "submit_outcome") {
+    const outcome = parseOutcomeSubmission(args);
+    const body = modeToolSummary(toolName, args);
+    return { ...(outcome ? { outcome } : {}), ...(body ? { body } : {}) };
+  }
   if (toolName === "browser_repl") return { command: readString(args, "code") };
   const command = readString(args, "command");
   const path = readString(args, "path") ?? readString(args, "file_path");
@@ -47,6 +52,9 @@ export function activityFromExecution(
     return { ...call, mcp: mcpIdentity(toolName, detailsOf(result)), body: clip(text) || (isError ? "执行失败" : undefined) };
   }
   if (toolName === "browser_repl") return { ...call, body: browserResultBody(result, text) };
+  if (toolName === "submit_outcome") {
+    return { ...call, body: clip(text) || (isError ? "成果验收提交失败" : call.body || "已提交成果验收") };
+  }
   if (isError) {
     return { command: call.command, path: call.path, body: clip(text) || "执行失败" };
   }
@@ -266,6 +274,13 @@ function readString(source: unknown, key: string): string | undefined {
 }
 
 function modeToolSummary(toolName: string, args: unknown): string | null {
+  if (toolName === "submit_outcome") {
+    const outcome = parseOutcomeSubmission(args);
+    if (!outcome) return null;
+    const done = outcome.items.filter(item => item.status === "done").length;
+    const toConfirm = outcome.items.reduce((count, item) => count + item.toConfirm.length, 0);
+    return [outcome.summary, `需求 ${outcome.items.length} 项 · 完成 ${done} 项 · 待确认 ${toConfirm} 项`].filter(Boolean).join("\n");
+  }
   if (toolName === "ask_user_question") {
     const question = readString(args, "question")?.trim();
     if (!question) return null;

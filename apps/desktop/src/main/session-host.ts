@@ -188,6 +188,8 @@ export class SessionHost {
     ipcMain.handle(IpcChannel.sessionSummarizeThinking, (_event, raw: unknown) => {
       return this.runtime.summarizeThinking(parseThinkingSummaryInput(raw));
     });
+    ipcMain.handle(IpcChannel.sessionHandoffDraft, (_event, raw: unknown) => this.runtime.generateHandoffPack(raw));
+    ipcMain.handle(IpcChannel.sessionHandoffCancel, (_event, requestId: unknown) => this.runtime.cancelHandoff(requestId));
     ipcMain.handle(IpcChannel.sessionAgentControl, (_event, rawConversation: unknown, rawAgent: unknown, rawAction: unknown) => {
       if (typeof rawAction !== "string" || !(agentControlActions as readonly string[]).includes(rawAction)) {
         throw new Error("不支持这个子代理操作");

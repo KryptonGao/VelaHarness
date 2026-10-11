@@ -59,7 +59,7 @@ it("natural-language chat reaches the real Pi tool registry and creates a persis
   assert.equal(f.scheduler.list().tasks[0].sandboxMode, "ask");
   assert.equal(f.scheduler.list().tasks[0].thinkingLevel, "off");
   assert.deepEqual(f.scheduler.list().tasks[0].model, { provider: "task-fixture", id: "fixture" });
-  assert.match(prompt, /任务时间上下文/); assert.match(prompt, /Scheduled Tasks/);
+  assert.match(prompt, /Task time context/); assert.match(prompt, /Scheduled Tasks/);
   const toolResult = f.session(id).messages.find(message => message.role === "toolResult" && message.toolCallId === "create-task");
   assert.ok(toolResult?.role === "toolResult" && !toolResult.isError);
   await f.runtime.setMode(id, "plan");

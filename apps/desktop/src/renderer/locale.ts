@@ -41,6 +41,15 @@ export function isEnglish(): boolean {
 }
 
 const knownErrors: Record<string, string> = {
+  "交接包参数不正确": "Invalid handoff pack request.",
+  "交接包语言不正确": "Unsupported handoff pack language.",
+  "交接包请求不正确": "Invalid handoff pack request.",
+  "无法生成交接包": "Could not generate the handoff pack.",
+  "交接包生成超时": "Handoff pack generation timed out.",
+  "交接包生成已取消": "Handoff pack generation was cancelled.",
+  "模型未返回可用的交接包": "The model returned no usable handoff pack.",
+  "等当前回复结束后再生成交接包": "Wait for the current reply to finish before creating a handoff pack.",
+  "这个对话还没有内容可以交接": "This chat has nothing to hand off yet.",
   "思考总结参数不正确": "Invalid thinking summary request.",
   "思考总结语言不正确": "Unsupported thinking summary language.",
   "思考总结模型不正确": "Invalid thinking summary model.",

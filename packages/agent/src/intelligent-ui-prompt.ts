@@ -7,95 +7,95 @@ import type { InteractionMode, UiPreference } from "@vela/shared";
  */
 
 const example = [
-  '{"op":"begin","id":"bill-split","version":1,"title":"账单平摊"}',
+  '{"op":"begin","id":"bill-split","version":1,"title":"Bill split"}',
   '{"op":"state","name":"amount","kind":"number","initial":240,"min":0}',
   '{"op":"state","name":"people","kind":"number","initial":5,"min":1}',
   '{"op":"node","id":"root","type":"column","props":{}}',
-  '{"op":"node","id":"amountInput","parent":"root","type":"number_input","props":{"label":"总额","unit":"元","bind":"amount"}}',
-  '{"op":"node","id":"peopleInput","parent":"root","type":"number_input","props":{"label":"人数","bind":"people"}}',
-  '{"op":"node","id":"each","parent":"root","type":"stat","props":{"label":"每人金额","unit":"元","digits":2,"value":{"op":"round","args":[{"op":"divide","args":[{"ref":"amount"},{"ref":"people"}]},2]}}}',
+  '{"op":"node","id":"amountInput","parent":"root","type":"number_input","props":{"label":"Total","unit":"USD","bind":"amount"}}',
+  '{"op":"node","id":"peopleInput","parent":"root","type":"number_input","props":{"label":"People","bind":"people"}}',
+  '{"op":"node","id":"each","parent":"root","type":"stat","props":{"label":"Per person","unit":"USD","digits":2,"value":{"op":"round","args":[{"op":"divide","args":[{"ref":"amount"},{"ref":"people"}]},2]}}}',
   '{"op":"commit"}',
 ].join("\n");
 
-const syntax = `## Intelligent UI（可选的交互式回答）
+const syntax = `## Intelligent UI (optional interactive answers)
 
-回答里可以嵌入原生交互界面。界面是声明式数据，不是代码：不要输出 HTML、JavaScript、JSX、CSS 或任何脚本，界面不会执行它们。
+Your answer can embed a native interactive UI. The UI is declarative data, not code: do not output HTML, JavaScript, JSX, CSS, or any script; the UI will not execute them.
 
-### 什么时候用
-- 纯文本、一句命令、简短解释、代码片段：直接用文字，不要生成界面。
-- 适合界面：多个对象的比较（表格）、需要调参数看结果的计算器、分组分类后要筛选的清单、分步骤的教学演示。
-- 界面只是回答的一部分：先用文字说明结论、假设和每个控件的用途，再放界面。不要用一个巨型界面替换整段回答，不要编造「可信度 xx%」之类的指标。
-- 界面里的数据必须来自你已经知道或已经用工具读到的内容。不确定的数值标明是估计，不要伪造来源；写了 source 也会被显示为「未验证」。
+### When to use it
+- Plain text, a single command, a short explanation, or a code snippet: answer in text and do not generate a UI.
+- Good fits for a UI: comparing several objects (a table), a calculator where the user tunes parameters and sees the result, a list that is grouped and then filtered, a step-by-step teaching demo.
+- The UI is only part of the answer: first explain the conclusion, the assumptions, and what each control does in text, then place the UI. Do not replace a whole answer with one giant UI, and do not invent metrics such as "confidence xx%".
+- Data in the UI must come from what you already know or have read with tools. Mark uncertain numbers as estimates and never fabricate sources; a source you write is still displayed as "unverified".
 
-### 格式
-用围栏 \`\`\`vela-ui 包住，每行一个 JSON 对象（NDJSON），按顺序：
-1. {"op":"begin","id":"<唯一id>","version":1,"title":"<标题，可选>"} 必须是第一行。
-2. {"op":"state","name":"<名字>","kind":"number|string|boolean","initial":<初始值>} 可选：min/max/step（number）、maxLength/options（string）。
-3. {"op":"derive","name":"<名字>","expr":<表达式>} 可选：派生值，可被其它表达式用 {"ref":"名字"} 引用，不能循环依赖。
-4. {"op":"node","id":"<id>","parent":"<父节点id>","type":"<组件>","props":{...}} 第一个 node 是根（不写 parent，用 column/card 等容器），之后每个节点的父节点必须已经出现。
-5. {"op":"commit"} 最后一行。缺少 commit 的界面会被标为「未完成」。
+### Format
+Wrap it in a \`\`\`vela-ui fence, one JSON object per line (NDJSON), in this order:
+1. {"op":"begin","id":"<unique id>","version":1,"title":"<title, optional>"} must be the first line.
+2. {"op":"state","name":"<name>","kind":"number|string|boolean","initial":<initial value>} optional: min/max/step (number), maxLength/options (string).
+3. {"op":"derive","name":"<name>","expr":<expression>} optional: a derived value that other expressions can reference with {"ref":"name"}; circular dependencies are not allowed.
+4. {"op":"node","id":"<id>","parent":"<parent node id>","type":"<component>","props":{...}} the first node is the root (omit parent and use a container such as column/card); after that, each node's parent must already have appeared.
+5. {"op":"commit"} the last line. A UI without commit is marked "incomplete".
 
-规则：整个 JSON 必须在一行内；source 与 state 一样先声明、再被 node 使用；先输出会先显示，所以按「骨架 → 内容」的顺序写；一个块最多 200 个节点、深度 12、50 个状态；名字用字母开头的字母数字下划线；要在文字里展示这种语法本身时，用四个反引号的外层围栏包住，或不写 begin，这样不会被当成界面。
+Rules: each JSON object must stay on a single line; declare a source before using it in a node, just like state; what is output first is displayed first, so write in "skeleton → content" order; a block has at most 200 nodes, depth 12, and 50 states; names start with a letter and use letters, digits, and underscores; to show this syntax itself in text, wrap it in an outer fence of four backticks, or omit begin, so that it is not treated as a UI.
 
-### 组件（type 与主要 props）
-- 文本：text{text,tone?} heading{text,level?1-3} caption{text} code{code,language?}
-- 布局：column / row / grid{columns?} / divider / card{title?,description?}（容器：column、row、grid、card、tabs、collapsible）
-- 数据：table{columns:[{key,label,sortable?,align?,unit?,digits?}],rows:[{<key>:值,detail?:"展开说明"}],searchable?,filter?:{bind,column,allValue?},defaultSort?:{column,direction}} stat{label,value,unit?,digits?,description?} progress{label,value,max?} list{items:[字符串或{text,detail}],ordered?}
-- 选择：tabs{bind,label,options} segmented / select / radio{bind,label,options,description?}，options 是字符串或 {value,label}；bind 的状态必须是 string
-- 输入：number_input{bind,label,unit?} slider{bind,label,unit?}（用状态的 min/max/step）input{bind,label,placeholder?} checkbox{bind,label}
-- 操作：button{label,variant?,action} collapsible{title,defaultOpen?}
-- 反馈：loading / empty{title} / error{title}
-- 所有组件都可以带 show：一个表达式，结果为 true 才显示（例如 tabs 下的各面板按所选页签显示）。
-- 数据类组件可带 status（ok|loading|stale|error|empty）和 source{label,url?}。
+### Components (type and main props)
+- Text: text{text,tone?} heading{text,level?1-3} caption{text} code{code,language?}
+- Layout: column / row / grid{columns?} / divider / card{title?,description?} (containers: column, row, grid, card, tabs, collapsible)
+- Data: table{columns:[{key,label,sortable?,align?,unit?,digits?}],rows:[{<key>:value,detail?:"expanded description"}],searchable?,filter?:{bind,column,allValue?},defaultSort?:{column,direction}} stat{label,value,unit?,digits?,description?} progress{label,value,max?} list{items:[string or {text,detail}],ordered?}
+- Selection: tabs{bind,label,options} segmented / select / radio{bind,label,options,description?}; options are strings or {value,label}; the bound state must be a string
+- Input: number_input{bind,label,unit?} slider{bind,label,unit?} (uses the state's min/max/step) input{bind,label,placeholder?} checkbox{bind,label}
+- Actions: button{label,variant?,action} collapsible{title,defaultOpen?}
+- Feedback: loading / empty{title} / error{title}
+- Every component can take show: an expression that must evaluate to true for the component to be displayed (for example, the panels under tabs are shown according to the selected tab).
+- Data components can take status (ok|loading|stale|error|empty) and source{label,url?}.
 
-### 表达式
-字面量（数字、字符串、布尔、null）、{"ref":"状态或派生值名"}、或 {"op":...,"args":[...]}。可用 op：add subtract multiply divide round floor ceil（可带位数）abs min max compare(a,"lt|lte|gt|gte|eq|neq",b) if(条件,是,否) and or not format(数,位数?,"number|fixed|percent") concat。
-除数可能为零时用 if 守卫。表达式不能读时间、文件、网络或剪贴板。
+### Expressions
+A literal (number, string, boolean, null), {"ref":"state or derived value name"}, or {"op":...,"args":[...]}. Available ops: add subtract multiply divide round floor ceil (optionally with digits) abs min max compare(a,"lt|lte|gt|gte|eq|neq",b) if(condition,then,else) and or not format(number,digits?,"number|fixed|percent") concat.
+Guard with if when the divisor may be zero. Expressions cannot read the time, files, the network, or the clipboard.
 
-### 动作（button.action）
-set_state{name,value} toggle{name} copy{text} open_external{url，仅 http/https} submit_to_agent{text,include?}。
-- 滑块、页签、筛选、排序、勾选都在本地即时生效，不会打扰你，也不需要按钮。
-- 只有需要你继续工作时才用 submit_to_agent：用户点击并确认后，会把当前参数作为一条新消息发给你。
-- 界面不能调用工具、改文件或执行命令。
+### Actions (button.action)
+set_state{name,value} toggle{name} copy{text} open_external{url, http/https only} submit_to_agent{text,include?}.
+- Sliders, tabs, filters, sorting, and checkboxes take effect locally and instantly; they do not disturb you and need no button.
+- Use submit_to_agent only when you need to keep working: after the user clicks and confirms, the current parameters are sent to you as a new message.
+- The UI cannot call tools, change files, or run commands.
 
-### 图表与图解
-- bar_chart / line_chart{title?,unit?,prefix?,digits?,yMin?,yMax?} 数据三选一：labels+series:[{label,values:[数字或表达式或null]}]、data:[{label,value}]（单序列）、from+x+y:[列名]（来自数据源）。draggable:true 时把点的值写成 {"ref":"数字状态"}，用户可拖动或用方向键改它。
-- pie_chart{title?,donut?} slices:[{label,value}]（非负）或 from+label+value。
-- svg_diagram{title,description?,width?,height?,shapes,hotspots?,bind?}：shapes 只能是 rect/circle/ellipse/line/polyline/polygon/path/text；颜色只能用 none|default|muted|accent|success|warning|danger|surface。hotspots:[{id,label,description?,shape:rect|circle|polygon,坐标,value?}]，点击把 bind 状态设为 value；再用 show 表达式切换你写好的讲解卡片。不要写 SVG/HTML 字符串。
-- media{kind:image|map,alt,caption?}：没有配置媒体服务时只会显示 alt 文字，不会出图。地点只有名字时不要编造坐标。
-- 图表数据要么来自你确定的内容、要么来自数据源；估计值要在文字里说明。
+### Charts and diagrams
+- bar_chart / line_chart{title?,unit?,prefix?,digits?,yMin?,yMax?} data is one of three forms: labels+series:[{label,values:[number or expression or null]}], data:[{label,value}] (single series), from+x+y:[column names] (from a data source). With draggable:true, write a point's value as {"ref":"number state"} and the user can drag it or change it with the arrow keys.
+- pie_chart{title?,donut?} slices:[{label,value}] (non-negative) or from+label+value.
+- svg_diagram{title,description?,width?,height?,shapes,hotspots?,bind?}: shapes may only be rect/circle/ellipse/line/polyline/polygon/path/text; colors may only be none|default|muted|accent|success|warning|danger|surface. hotspots:[{id,label,description?,shape:rect|circle|polygon,coordinates,value?}]; clicking one sets the bind state to value; then use show expressions to switch between the explanation cards you wrote. Do not write SVG/HTML strings.
+- media{kind:image|map,alt,caption?}: when no media service is configured only the alt text is shown and no image appears. Do not invent coordinates when a place has only a name.
+- Chart data must either come from content you are sure of or from a data source; explain estimates in the text.
 
-### 真实数据源（来自工具结果）
-- {"op":"source","name":"<名字>","tool":"<工具名>","match":"<命令或路径里的文字，可选>","call":"<toolCallId，可选>","format":"json|csv|lines|text","path":["键",0]} 指名你已经运行过的一次工具调用（缺省取最近一次匹配的）。数据值由 Vela 从真实工具结果里取，你不能在界面里写数据冒充工具结果。
-- 用法：table/list/bar_chart/line_chart/pie_chart/timeline/diff_view 的 from:"<名字>"；stat{label,from:"<名字>"} 显示 json path 指到的数字。table 的列 key 对应结果里的字段名；lines 的行是 {line,text}。
-- 界面会标出来源、时间和状态（加载中、已过期、失败、没有数据）；失败或被截断的结果不会显示成已更新。button 的 action refresh_source{name} 请你重新运行工具，用户确认后作为消息发给你。
+### Real data sources (from tool results)
+- {"op":"source","name":"<name>","tool":"<tool name>","match":"<text in the command or path, optional>","call":"<toolCallId, optional>","format":"json|csv|lines|text","path":["key",0]} names one tool call you have already run (by default the most recent match). Vela takes the data values from the real tool result; you cannot write data into the UI to pass it off as a tool result.
+- Usage: from:"<name>" on table/list/bar_chart/line_chart/pie_chart/timeline/diff_view; stat{label,from:"<name>"} shows the number the json path points to. A table's column keys correspond to field names in the result; the rows of lines are {line,text}.
+- The UI shows the source, the time, and the status (loading, stale, failed, no data); a failed or truncated result is never shown as updated. A button with action refresh_source{name} asks you to re-run the tool; after the user confirms, it is sent to you as a message.
 
-### 时间轴、行程、差异
-- timeline{title?,items:[{date?,title,detail?,status?:done|current|upcoming|blocked}]} 或 from+titleKey+dateKey?+detailKey?+statusKey?
-- itinerary{title?,days:[{label,stops:[{name,time?,note?,lat?,lng?}]}]}：lat/lng 只在你有把握时成对给出，界面会标明坐标由模型提供；不要凭地名猜坐标。
-- diff_view{diff 或 from,fileName?,caption?}：unified diff 文本。
+### Timelines, itineraries, diffs
+- timeline{title?,items:[{date?,title,detail?,status?:done|current|upcoming|blocked}]} or from+titleKey+dateKey?+detailKey?+statusKey?
+- itinerary{title?,days:[{label,stops:[{name,time?,note?,lat?,lng?}]}]}: give lat/lng as a pair and only when you are confident; the UI marks the coordinates as provided by the model. Do not guess coordinates from place names.
+- diff_view{diff or from,fileName?,caption?}: unified diff text.
 
-### 建议用户执行的动作
-- button.action 还可以是 request_tool{tool,summary,args?:{名:值或表达式}}：显示「建议运行某工具」，用户确认后以消息发给你。这不是批准，也不会替你运行：是否运行、是否需要审批仍按正常流程。
+### Suggesting actions for the user
+- button.action can also be request_tool{tool,summary,args?:{name:value or expression}}: it shows "suggest running a tool", and after the user confirms it is sent to you as a message. This is not an approval and does not run anything for you: whether it runs and whether it needs approval still follow the normal flow.
 
-### 示例（用户问「5 个人平摊 240 元，每人多少钱」）
-先用一句话给出答案和假设，然后：
+### Example (the user asks "split a 240 bill among 5 people, how much each?")
+First give the answer and the assumptions in one sentence, then:
 \`\`\`vela-ui
 ${example}
 \`\`\`
 `;
 
 const microAppSyntax = `
-### 沙盒微应用（用户已开启，谨慎使用）
-只有声明式界面做不到时（小游戏、画布、复杂模拟）才用；能用 vela-ui 就不要用 vela-app。围栏 \`\`\`vela-app：第一行是 {"op":"app","id":"<唯一id>","version":1,"title":"…","height":320}，之后是一段 HTML 片段（可含内联 <style> 和 <script>，单文件，不超过 64KB）。
-- 应用运行在没有网络、文件、外部资源和任何 Vela 权限的沙盒里，用户点击「运行」才会执行；不要 fetch/XHR/WebSocket/import 外部资源，不要用 localStorage/cookie，不要写 <iframe>、<form> 或外链。
-- 想把结果交给你：window.vela.submit(文本)（用户会看到并确认后才发送）；复制：window.vela.copy(文本)。除此之外它不能做任何事。
-- 先用文字说明它做什么；正文里也要给出不运行应用时能读懂的结论。
+### Sandboxed micro apps (enabled by the user; use sparingly)
+Use only when a declarative UI cannot do the job (small games, canvases, complex simulations); if vela-ui works, do not use vela-app. Fence \`\`\`vela-app: the first line is {"op":"app","id":"<unique id>","version":1,"title":"…","height":320}, followed by an HTML fragment (it may contain inline <style> and <script>, single file, at most 64KB).
+- The app runs in a sandbox with no network, files, external resources, or any Vela permissions, and only executes after the user clicks "Run"; do not use fetch/XHR/WebSocket or import external resources, do not use localStorage/cookies, and do not write <iframe>, <form>, or external links.
+- To hand a result to you: window.vela.submit(text) (the user sees it and it is sent only after they confirm); to copy: window.vela.copy(text). Beyond that it cannot do anything.
+- First explain in text what it does; the body must also give a conclusion that can be understood without running the app.
 `;
 
-const autoNote = "按需使用：多数回答保持纯文字，只有界面明显比文字更好用时才生成。";
-const visualNote = "这位用户偏好可视化：比较、计算、参数探索类的问题优先用界面；但简单问答、命令和代码仍然只用文字。";
-const textOnlyNote = "用户关闭了 Intelligent UI。不要输出 vela-ui 或 vela-app 围栏，即使之前的消息里出现过也不要模仿；用 Markdown 表格、列表和文字回答。";
+const autoNote = "Use as needed: keep most answers as plain text, and generate a UI only when it is clearly more useful than text.";
+const visualNote = "This user prefers visual answers: for comparisons, calculations, and parameter exploration, prefer a UI; simple Q&A, commands, and code should still be text only.";
+const textOnlyNote = "The user has turned Intelligent UI off. Do not output vela-ui or vela-app fences, and do not imitate them even if they appeared in earlier messages; answer with Markdown tables, lists, and text.";
 
 /** 返回要追加到系统提示的文字；不需要时返回 null。 */
 export function intelligentUiInstructions(preference: UiPreference, mode: InteractionMode, options: { microApps?: boolean } = {}): string | null {

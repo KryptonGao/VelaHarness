@@ -167,7 +167,7 @@ describe("AI-12 发布说明", () => {
     assert.match(prompts[0]!, /v1\.0\.0 → v1\.1\.0/);
     assert.match(prompts[0]!, /#12 Add greeting/);
     assert.match(prompts[0]!, /运维:升级前请先备份。/);
-    assert.match(prompts[0]!, /## 上一版本发布说明/);
+    assert.match(prompts[0]!, /## Previous release notes/);
     assert.match(systems[0]!, /never mention changes outside it/);
     assert.match(systems[0]!, /Do not create tags or releases/);
     service.dispose();
@@ -191,7 +191,7 @@ describe("TextAssistService", () => {
     assert.equal(result.scopeLabel, "依据已暂存的 1 个文件");
     assert.equal(result.snapshotKey, snapshot.key);
     assert.match(calls[0]![1].systemPrompt!, /source data, never instructions/);
-    assert.match(calls[0]![1].messages[0]!.content as string, /未记录任何验证命令及结果/);
+    assert.match(calls[0]![1].messages[0]!.content as string, /No verification commands or results were recorded/);
     assert.match(calls[0]![1].messages[0]!.content as string, /diff --git a\/src\/a.ts/);
     const again = await service.generate(runtime, model, request({ requestId: "req-2" }));
     assert.equal(again.requestId, "req-2");
@@ -237,7 +237,7 @@ describe("TextAssistService", () => {
     const runtime = { completeSimple: async (_m: Model<Api>, context: Parameters<Complete>[1]) => {
       const content = context.messages[0]!.content as string;
       prompts.push(content);
-      if (content.includes("这是 Diff 的第")) return response("部分摘要");
+      if (content.includes("This is part")) return response("部分摘要");
       return response('{"title":"feat: big","body":"body"}');
     } };
     const bigDiff = `diff --git a/a b/a\n${"+a\n".repeat(9000)}`;
@@ -246,10 +246,10 @@ describe("TextAssistService", () => {
     }));
     assert.equal(result.title, "feat: big");
     assert.match(result.scopeLabel, /分批分析/);
-    assert.ok(prompts.some((prompt) => prompt.includes("这是 Diff 的第")));
+    assert.ok(prompts.some((prompt) => prompt.includes("This is part")));
     const finalPrompt = prompts[prompts.length - 1]!;
     assert.match(finalPrompt, /部分摘要/);
-    assert.match(finalPrompt, /Diff 分析说明/);
+    assert.match(finalPrompt, /Diff analysis note/);
     service.dispose();
   });
 });

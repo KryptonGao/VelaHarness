@@ -4,6 +4,7 @@ import {
   nextStreamFollow,
   releasesStreamFollow,
   shouldResumeFollowForMessages,
+  shouldShowJumpToLatest,
 } from "../src/renderer/components/chat-scroll.ts";
 
 describe("nextStreamFollow", () => {
@@ -111,5 +112,16 @@ describe("shouldResumeFollowForMessages", () => {
       }),
       false,
     );
+  });
+});
+
+describe("shouldShowJumpToLatest", () => {
+  it("shows only after the user left the bottom by a meaningful distance", () => {
+    assert.equal(shouldShowJumpToLatest({ following: false, distanceFromBottom: 400 }), true);
+    assert.equal(shouldShowJumpToLatest({ following: false, distanceFromBottom: 20 }), false);
+  });
+
+  it("stays hidden while following the stream", () => {
+    assert.equal(shouldShowJumpToLatest({ following: true, distanceFromBottom: 400 }), false);
   });
 });

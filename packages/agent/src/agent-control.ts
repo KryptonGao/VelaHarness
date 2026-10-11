@@ -219,19 +219,19 @@ export class AgentControl {
       name: spawnAgentToolName,
       label: "派生子代理",
       description:
-        "启动一个常驻子代理，立即返回 agent id 和路径，不等待结果。agent 为 explore（只读）或 general（可改文件）。name 用作路径最后一段（如 backend）；fork 决定继承多少父上下文：none（默认）、all 或最近 N 轮。子代理完成后结论会自动回到你这里，需要等结果时用 followup_task。",
-      promptSnippet: "启动常驻子代理（explore 只读 / general 可改文件），立即返回 agent id",
+        "Start a persistent subagent; it returns the agent id and path immediately without waiting for the result. agent is explore (read-only) or general (can modify files). name is used as the last segment of the path (such as backend); fork decides how much of the parent context is inherited: none (default), all, or the most recent N turns. When the subagent finishes, its conclusion is delivered back to you automatically; use followup_task when you need to wait for the result.",
+      promptSnippet: "Start a persistent subagent (explore = read-only / general = can modify files); returns the agent id immediately",
       parameters: Type.Object({
         agent: Type.Union([Type.Literal("explore"), Type.Literal("general")], {
-          description: "explore 只读查阅，general 可以改文件和运行命令",
+          description: "explore reads only; general can modify files and run commands",
         }),
-        task: Type.String({ description: "交给子代理的任务，包含目标、范围和完成标准" }),
+        task: Type.String({ description: "The task to hand to the subagent, including the goal, scope, and completion criteria" }),
         name: Type.Optional(
-          Type.String({ description: "路径最后一段的短名称，如 backend、database；省略时自动生成" }),
+          Type.String({ description: "Short name for the last path segment, such as backend or database; generated automatically if omitted" }),
         ),
         fork: Type.Optional(
           Type.Union([Type.Literal("none"), Type.Literal("all"), Type.Number()], {
-            description: "继承父上下文：none 不继承（默认），all 全量，数字表示最近 N 轮",
+            description: "Parent context to inherit: none inherits nothing (default), all inherits everything, a number means the most recent N turns",
           }),
         ),
       }),
@@ -258,11 +258,11 @@ export class AgentControl {
       name: sendMessageToolName,
       label: "发消息给子代理",
       description:
-        "给 agent 树里的某个代理发一条消息，不阻塞。agent_id 可以是 spawn_agent 返回的 id，也可以是路径（如 /root/backend）。消息会在对方当前回合结束后处理；它产生的结论仍会回到你这里。",
-      promptSnippet: "给已有子代理发消息，不等待结果",
+        "Send a message to an agent in the agent tree without blocking. agent_id can be the id returned by spawn_agent or a path (such as /root/backend). The message is handled after the recipient's current turn ends; any conclusion it produces still comes back to you.",
+      promptSnippet: "Send a message to an existing subagent without waiting for the result",
       parameters: Type.Object({
-        agent_id: Type.String({ description: "目标 agent 的 id 或路径，如 /root/backend" }),
-        message: Type.String({ description: "要发给对方的消息或补充要求" }),
+        agent_id: Type.String({ description: "The target agent's id or path, such as /root/backend" }),
+        message: Type.String({ description: "The message or additional requirement to send" }),
       }),
       execute: async (_toolCallId, params) => {
         const info = this.send(callerId, params.agent_id, params.message);
@@ -282,11 +282,11 @@ export class AgentControl {
       name: followupTaskToolName,
       label: "追加任务并等待",
       description:
-        "给子代理追加任务并等它完成后返回最终结论。需要子代理结果才能继续时用它；只是补充要求、不等结果就用 send_message。只能发给子代理，不能发给主代理。",
-      promptSnippet: "追加任务给子代理并等它完成，返回最终结论",
+        "Add a task for a subagent and wait for it to finish, then return its final conclusion. Use it when you need the subagent's result to continue; use send_message for extra requirements when you do not need to wait. It can only target subagents, never the main agent.",
+      promptSnippet: "Add a task for a subagent and wait for it to finish; returns the final conclusion",
       parameters: Type.Object({
-        agent_id: Type.String({ description: "目标子代理的 id 或路径，如 /root/backend" }),
-        task: Type.String({ description: "追加的任务，包含目标和完成标准" }),
+        agent_id: Type.String({ description: "The target subagent's id or path, such as /root/backend" }),
+        task: Type.String({ description: "The additional task, including the goal and completion criteria" }),
       }),
       execute: async (_toolCallId, params, signal) => {
         const result = await this.followup(callerId, params.agent_id, params.task, signal);

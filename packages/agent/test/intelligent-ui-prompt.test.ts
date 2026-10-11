@@ -21,7 +21,7 @@ describe("intelligentUiInstructions", () => {
 
   it("tells the model to stay with text when the user turned it off", () => {
     const text = intelligentUiInstructions("text_only", "agent") ?? "";
-    assert.match(text, /不要输出 vela-ui/);
+    assert.match(text, /Do not output vela-ui/);
     assert.doesNotMatch(text, /"op":"begin"/);
   });
 
@@ -29,7 +29,7 @@ describe("intelligentUiInstructions", () => {
     const auto = intelligentUiInstructions("auto", "agent");
     const visual = intelligentUiInstructions("visual_first", "agent");
     assert.notEqual(auto, visual);
-    assert.ok(auto?.includes("### 格式") && visual?.includes("### 格式"));
+    assert.ok(auto?.includes("### Format") && visual?.includes("### Format"));
   });
 
   it("describes micro-apps only when the user turned them on", () => {
@@ -37,11 +37,11 @@ describe("intelligentUiInstructions", () => {
     assert.doesNotMatch(off, /```vela-app/);
     const on = intelligentUiInstructions("auto", "agent", { microApps: true }) ?? "";
     assert.match(on, /vela-app/);
-    assert.match(on, /沙盒/);
+    assert.match(on, /Sandboxed micro apps/);
     // 偏好为仅文字时，即使开关打开也不允许任何界面或微应用。
     const textOnly = intelligentUiInstructions("text_only", "agent", { microApps: true }) ?? "";
     assert.match(textOnly, /vela-app/);
-    assert.match(textOnly, /不要输出/);
+    assert.match(textOnly, /Do not output/);
     assert.doesNotMatch(textOnly, /"op":"begin"/);
   });
 

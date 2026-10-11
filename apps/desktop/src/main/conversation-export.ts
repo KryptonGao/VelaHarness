@@ -1,6 +1,8 @@
 import {
+  diffCounts,
   localizeZh,
   redactSensitive,
+  relativePath,
   type AppLocale,
   type CheckpointTimeline,
   type ConversationExportOptions,
@@ -81,22 +83,6 @@ function duration(ms: number | null | undefined): string {
 
 function clip(text: string, limit: number, label: (omitted: number) => string): string {
   return text.length > limit ? `${text.slice(0, limit)}\n${label(text.length - limit)}` : text;
-}
-
-function diffCounts(diff: string): { added: number; removed: number } {
-  let added = 0;
-  let removed = 0;
-  for (const line of diff.split("\n")) {
-    if (/^\+(?!\+\+)\s*\d+ /.test(line)) added += 1;
-    else if (/^-(?!--)\s*\d+ /.test(line)) removed += 1;
-  }
-  return { added, removed };
-}
-
-function relativePath(path: string, cwd: string): string {
-  const normalized = path.trim().replaceAll("\\", "/").replace(/^\.\//, "");
-  const root = cwd.replaceAll("\\", "/").replace(/\/+$/, "");
-  return root && normalized.startsWith(`${root}/`) ? normalized.slice(root.length + 1) : normalized;
 }
 
 interface FileTotals { path: string; added: number; removed: number; edits: number }

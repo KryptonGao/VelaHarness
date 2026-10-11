@@ -6,6 +6,8 @@ export interface TurnFileChange {
   added: number;
   removed: number;
   diffs: string[];
+  /** 对应 diffs 的真实工具 ID，用于验收定位。 */
+  diffToolIds?: string[];
 }
 
 export interface TurnChanges {

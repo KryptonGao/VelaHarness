@@ -8,7 +8,7 @@ import { isAgentBusy, type AppState, type AskUserQuestionRequest, type Interacti
 import { Fragment, memo, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useAgentWorkspace } from "./AgentPanel";
 import { modKeyLabel } from "../platform";
-import { ArrowLeftIcon, BranchIcon, CheckIcon, CopyIcon, FolderIcon, HistoryIcon, PlusIcon, StackIcon } from "./icons";
+import { ArrowDownIcon, ArrowLeftIcon, BranchIcon, CheckIcon, CopyIcon, FolderIcon, HistoryIcon, PlusIcon, StackIcon } from "./icons";
 import { trackEnteredMessages, type EnterTrack } from "./message-motion";
 import type { useModels } from "../hooks/useModels";
 import type { ProjectApi } from "../hooks/useProject";
@@ -35,7 +35,13 @@ import { collectPlanIds, planReferenceModel } from "../plan-draft";
 import { SkillToken } from "./composer/SkillMenu";
 import { parseSkillPrompt } from "./composer/skill-picker";
 import { useFilePreview } from "./preview/FilePreviewContext";
-import { nextStreamFollow, releasesStreamFollow, shouldResumeFollowForMessages } from "./chat-scroll";
+import {
+  nextStreamFollow,
+  releasesStreamFollow,
+  shouldResumeFollowForMessages,
+  shouldShowJumpToLatest,
+} from "./chat-scroll";
+import { outcomeByFinalMessage, type AcceptanceRequest } from "./acceptance";
 import { summarizeTurnChanges, type TurnChanges, type TurnReviewRequest } from "./turn-changes";
 import { chatLaneDefaultMaxWidth, planChatLane } from "../chat-lane";
 import { ConversationViewTabs, type ConversationViewKey } from "./ConversationViewTabs";
@@ -177,6 +183,7 @@ export interface ChatViewProps {
   onNewTab: () => void;
   onOpenChanges: () => void;
   onReviewTurn?: (request: TurnReviewRequest) => void;
+  onOpenAcceptance?: (request: AcceptanceRequest) => void;
   planDraft?: import("../plan-draft").PlanDraft | null;
   onOpenPlan?: (planId: string) => void;
 }
@@ -217,6 +224,7 @@ export function ChatView({
   onNewTab,
   onOpenChanges,
   onReviewTurn,
+  onOpenAcceptance,
   planDraft = null,
   onOpenPlan,
 }: ChatViewProps) {
@@ -252,6 +260,18 @@ export function ChatView({
     userMessageId: undefined,
   });
 
+  const [showJumpToLatest, setShowJumpToLatest] = useState(false);
+  const syncJumpToLatest = useCallback(() => {
+    const scroller = scrollerRef.current;
+    if (!scroller) return;
+    setShowJumpToLatest(
+      shouldShowJumpToLatest({
+        following: followRef.current.pinned,
+        distanceFromBottom: scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight,
+      }),
+    );
+  }, []);
+
   const scheduleLayout = useFrameTask(() => {
     const scroller = scrollerRef.current;
     const dock = dockRef.current;
@@ -260,7 +280,16 @@ export function ChatView({
     const height = dock.getBoundingClientRect().height;
     if (height > 0) root.style.setProperty("--composer-clearance", `${Math.ceil(height + 36)}px`);
     if (followRef.current.pinned) scrollFollowToEnd(scroller, followRef.current);
+    syncJumpToLatest();
   });
+
+  const jumpToLatest = useCallback(() => {
+    const scroller = scrollerRef.current;
+    if (!scroller) return;
+    followRef.current.pinned = true;
+    scrollFollowToEnd(scroller, followRef.current);
+    setShowJumpToLatest(false);
+  }, []);
 
   useLayoutEffect(() => {
     const scroller = scrollerRef.current;
@@ -296,10 +325,14 @@ export function ChatView({
       });
       if (!wasPinned && follow.pinned) scheduleLayout();
       else follow.lastScrollTop = scrollTop;
+      syncJumpToLatest();
     };
 
     const releaseIfScrollingUp = (towardEarlier: boolean) => {
-      if (releasesStreamFollow(scroller.scrollTop, towardEarlier)) followRef.current.pinned = false;
+      if (releasesStreamFollow(scroller.scrollTop, towardEarlier)) {
+        followRef.current.pinned = false;
+        syncJumpToLatest();
+      }
     };
     const onWheel = (event: WheelEvent) => releaseIfScrollingUp(event.deltaY < 0);
 
@@ -355,7 +388,7 @@ export function ChatView({
       scroller.removeEventListener("touchmove", onTouchMove);
       root.style.removeProperty("--composer-clearance");
     };
-  }, [scheduleLayout]);
+  }, [scheduleLayout, syncJumpToLatest]);
 
   // 流式输出时只有贴着底部才跟随;用户向上滚之后保持当前位置。
   useLayoutEffect(() => {
@@ -472,6 +505,26 @@ export function ChatView({
       if (last && entry.changes) cards.set(last.id, entry.changes);
     });
     changesCache.current = cache;
+    return cards;
+  }, [turns, streaming, project.workspace?.current]);
+  const outcomeCache = useRef(new Map<MessageTurn, { root: string | null; request: AcceptanceRequest | null }>());
+  const turnOutcomes = useMemo(() => {
+    const root = project.workspace?.current ?? null;
+    const cache = new Map<MessageTurn, { root: string | null; request: AcceptanceRequest | null }>();
+    const cards = new Map<string, AcceptanceRequest>();
+    turns.forEach((turn, index) => {
+      if (streaming && index === turns.length - 1) return;
+      const last = turn.assistants.at(-1);
+      if (!last) return;
+      const old = outcomeCache.current.get(turn);
+      const entry = old?.root === root ? old : {
+        root,
+        request: outcomeByFinalMessage([...(turn.user ? [turn.user] : []), ...turn.assistants], false, root).get(last.id) ?? null,
+      };
+      cache.set(turn, entry);
+      if (entry.request) cards.set(last.id, entry.request);
+    });
+    outcomeCache.current = cache;
     return cards;
   }, [turns, streaming, project.workspace?.current]);
   // 分支按轮次定位:数到回复所在轮的用户消息序号,与 runtime 重建的历史一致。
@@ -629,6 +682,7 @@ export function ChatView({
               (lastAssistant?.turnStartedAt === undefined || lastAssistant.turnCompletedAt !== undefined)
             ));
             const changes = lastAssistant ? turnChanges.get(lastAssistant.id) ?? null : null;
+            const acceptance = lastAssistant ? turnOutcomes.get(lastAssistant.id) ?? null : null;
             const branchTurn = turn.user ? userOrdinalById.get(turn.user.id) ?? null : null;
             // 只有正在运行的本轮才计时;历史中未完成的轮次没有起始时间,不显示这一行。
             const liveStartedAt = isCurrentTurn && streaming && lastAssistant?.turnCompletedAt === undefined
@@ -729,6 +783,7 @@ export function ChatView({
                     ) : null}
                   </div>
                 ) : null}
+                {acceptance ? <AcceptanceCard request={acceptance} onOpen={onOpenAcceptance} /> : null}
               </Fragment>
             );
           })
@@ -737,6 +792,17 @@ export function ChatView({
       </div>
 
       </ConversationLinkContext.Provider>
+      <button
+        type="button"
+        className="chat-jump-latest"
+        data-visible={showJumpToLatest && view === "chat" ? "true" : "false"}
+        tabIndex={showJumpToLatest ? 0 : -1}
+        aria-hidden={!showJumpToLatest}
+        onClick={jumpToLatest}
+      >
+        <ArrowDownIcon size={12} />
+        {tr("回到最新", "Jump to latest")}
+      </button>
       <Composer
         sandboxMode={session?.sandboxMode}
         ref={dockRef}
@@ -1416,4 +1482,14 @@ function PanelIcon() {
       <line x1="16" y1="3" x2="16" y2="21" />
     </svg>
   );
+}
+
+/** 完成状态来自 agent，只有没有待确认且证据通过的需求计入通过。 */
+function AcceptanceCard({ request, onOpen }: { request: AcceptanceRequest; onOpen?: (request: AcceptanceRequest) => void }) {
+  const passed = request.outcome.items.filter(item => item.status === "done" && !item.toConfirm.length && item.evidence.length > 0 && item.evidence.every(evidence => evidence.result === "passed" && !evidence.stale)).length;
+  const pending = request.outcome.items.reduce((sum, item) => sum + item.toConfirm.length, 0);
+  return <button type="button" className="acceptance-card" disabled={!onOpen} onClick={() => onOpen?.(request)}>
+    <strong>{tr("验收", "Acceptance")}</strong>
+    <span>{trf("通过 {0} · 待确认 {1}", "Passed {0} · To confirm {1}", passed, pending)}</span>
+  </button>;
 }

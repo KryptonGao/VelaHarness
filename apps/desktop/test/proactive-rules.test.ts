@@ -248,7 +248,7 @@ it("tasks run read-only unless the rule explicitly allows tools", async t => {
   saved(f, input("inbox_error", { allowTools: true }));
   f.service.onInboxItem({ id: "i", type: "error", origin: "turn", workspaceId: "/w", title: "t", summary: "s" });
   assert.equal(f.started[0]?.readOnly, false);
-  assert.match(f.started[0]?.prompt ?? "", /每一步都会请求用户批准/);
+  assert.match(f.started[0]?.prompt ?? "", /every step asks the user for approval/);
 });
 
 it("persists rules and counters, and quarantines a corrupt file", async t => {

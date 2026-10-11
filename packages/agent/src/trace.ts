@@ -1,5 +1,5 @@
 import { isPlanExecutionPrompt } from "./plan";
-import { goalContinuePrompt } from "./interaction";
+import { isGoalContinuePrompt } from "./interaction";
 import type { AgentMessage, StreamFn } from "@earendil-works/pi-agent-core";
 import type {
   AgentSessionEvent,
@@ -463,7 +463,7 @@ export class TraceRecorder {
     if (event.type === "message_start" && event.message.role === "user") {
       const text = outputText(event.message);
       const synthetic =
-        isPlanExecutionPrompt(text) || text === goalContinuePrompt;
+        isPlanExecutionPrompt(text) || isGoalContinuePrompt(text);
       if (!synthetic) this.turn++;
       const s = this.create(
         synthetic ? "state" : "user",
@@ -678,7 +678,7 @@ export class TraceRecorder {
       if (message.role === "user") {
         const text = outputText(message);
         const synthetic =
-          isPlanExecutionPrompt(text) || text === goalContinuePrompt;
+          isPlanExecutionPrompt(text) || isGoalContinuePrompt(text);
         if (!synthetic) this.turn++;
         const s = this.create(
           synthetic ? "state" : "user",

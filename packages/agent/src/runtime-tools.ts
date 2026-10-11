@@ -3,7 +3,7 @@ import { defaultToolNames } from "@vela/tools";
 import { browserToolNames } from "./browser-use";
 import { defaultToolPolicy, modeToolNames, type ToolAuthorizationResult, type ToolPolicyCall } from "./interaction";
 import { isMcpTool } from "./mcp-session";
-import { memoryDisabledInstructions, memoryReadToolName, memoryToolNames, memoryUpdateToolName } from "./memory-tools";
+import { memoryDisabledDenial, memoryReadToolName, memoryToolNames, memoryUpdateToolName } from "./memory-tools";
 import { recipeStageSubagentDenial } from "./recipe-stage";
 import { residentToolNames } from "./resident-tools";
 import { scheduledTaskToolNames } from "./scheduled-task-tools";
@@ -120,7 +120,7 @@ export class ToolLoadout {
   authorize(call: ToolPolicyCall, entry: ToolLoadoutConversation): ToolAuthorizationResult {
     if (this.isResident(entry)) return residentTools.includes(call.toolName) ? { allowed: true } : { allowed: false, reason: residentDenial };
     if ((residentToolNames as readonly string[]).includes(call.toolName)) return { allowed: false, reason: "这个工具只属于常驻 Agent" };
-    if (isMemoryTool(call.toolName) && !this.options.memoryEnabled()) return { allowed: false, reason: memoryDisabledInstructions };
+    if (isMemoryTool(call.toolName) && !this.options.memoryEnabled()) return { allowed: false, reason: memoryDisabledDenial };
     if (entry.recipeStageSideEffect && isAgentTool(call.toolName)) return { allowed: false, reason: recipeStageSubagentDenial };
     if (call.toolName === memoryUpdateToolName && !this.canUpdateMemory(entry)) return { allowed: false, reason: memoryUpdateDenial };
     if (entry.recipeStageSideEffect === "read_only") return defaultToolPolicy.authorizeCall({ ...call, mode: "plan" });

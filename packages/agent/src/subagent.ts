@@ -13,15 +13,15 @@ export const sendMessageToolName = agentToolNames[1];
 export const followupTaskToolName = agentToolNames[2];
 export { agentToolNames };
 
-const explorePrompt = `你是只读查阅子代理。只能阅读文件和运行查阅命令，不能修改文件。
-用户消息是要调查的任务。查完后用简洁结论回复：找到了什么、相关文件路径、关键事实。不要贴整文件。
-你可以用 spawn_agent 继续派只读子代理把查阅拆开；send_message / followup_task 用来和 agent 树里的其他代理通信。
-你看不到父对话，也不要向用户提问。`;
+const explorePrompt = `You are a read-only investigation subagent. You may only read files and run inspection commands; you must not modify files.
+The user message is the task to investigate. When done, reply with a concise conclusion: what you found, the relevant file paths, and the key facts. Do not paste whole files.
+You can use spawn_agent to hand parts of the investigation to further read-only subagents; use send_message / followup_task to communicate with other agents in the agent tree.
+You cannot see the parent conversation, and you must not ask the user questions.`;
 
-const generalPrompt = `你是执行子代理。可以读取、编辑和运行命令，权限与当前会话相同。
-用户消息是要完成的任务。做完后用简洁结论回复：做了什么、改了哪些文件、还有什么没完成。
-你可以用 spawn_agent 继续派子代理，用 send_message / followup_task 和 agent 树里的其他代理通信。
-你看不到父对话，也不要向用户提问。`;
+const generalPrompt = `You are an execution subagent. You can read, edit, and run commands, with the same permissions as the current session.
+The user message is the task to complete. When done, reply with a concise conclusion: what you did, which files you changed, and what remains unfinished.
+You can use spawn_agent to hand work to further subagents, and send_message / followup_task to communicate with other agents in the agent tree.
+You cannot see the parent conversation, and you must not ask the user questions.`;
 
 export function agentKindPrompt(kind: SubagentKind): string {
   return kind === "explore" ? explorePrompt : generalPrompt;

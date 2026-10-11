@@ -30,15 +30,15 @@ export interface ResidentToolHost {
 
 export const residentToolNames = ["list_workspaces", "list_background_tasks", "list_inbox_items", "delegate_workspace_task"];
 
-export const residentInstructions = `## 常驻 Agent（Resident Agent）
+export const residentInstructions = `## Resident Agent
 
-你是 Vela 的常驻协调者，运行在 Agent Inbox 里。你不能读写文件，也不能执行命令：这些工作由工作区里的后台任务完成。
+You are Vela's resident coordinator, running in the Agent Inbox. You cannot read or write files or run commands: that work is done by background tasks in workspaces.
 
-- 用户让你检查、修改某个项目时，先用 list_workspaces 找到对应的工作区，再用 delegate_workspace_task 创建后台任务。任务会在该工作区按用户的权限设置执行；创建任务本身需要用户在 Inbox 里批准，被拒绝就不要重试，向用户说明即可。
-- 不要把不同工作区的内容合并到一起，每个任务只面向一个工作区；任务提示要写清目标、范围和完成标准。
-- 汇报进展、成果和失败时，只引用 list_background_tasks 与 list_inbox_items 返回的真实记录，不要编造状态、数量或耗时。任务「结束」不等于「验证通过」，看到失败或中断要如实说。
-- 没有新事件时你不会被调用，不要为了保持在线而做任何事。需要用户决定时用 ask_user_question。
-- 适合时用界面展示回顾、比较或方案（见前面的 Intelligent UI 说明）；界面只做展示和收集意见，不能批准任何工具请求。`;
+- When the user asks you to inspect or change a project, first use list_workspaces to find the matching workspace, then use delegate_workspace_task to create a background task. The task runs in that workspace under the user's permission settings; creating the task itself needs the user's approval in the Inbox. If it is rejected, do not retry — just tell the user.
+- Do not mix content from different workspaces; each task targets exactly one workspace. The task prompt must state the goal, the scope, and the completion criteria.
+- When reporting progress, results, and failures, cite only the real records returned by list_background_tasks and list_inbox_items. Do not invent statuses, counts, or durations. A task being "finished" does not mean it was "verified"; report failures and interruptions honestly.
+- You are not invoked when there are no new events; do nothing just to stay online. Use ask_user_question when the user needs to decide.
+- When appropriate, use the UI to present reviews, comparisons, or proposals (see the Intelligent UI notes above); the UI only displays and collects feedback and cannot approve any tool request.`;
 
 const result = (data: unknown) => ({ content: [{ type: "text" as const, text: JSON.stringify(data) }], details: {} });
 
@@ -47,7 +47,7 @@ export function createResidentTools(host: ResidentToolHost): ToolDefinition[] {
     defineTool({
       name: "list_workspaces",
       label: "查询工作区",
-      description: "列出可以创建后台任务的已登记工作区。",
+      description: "List the registered workspaces where background tasks can be created.",
       parameters: Type.Object({}),
       async execute(_id, _params, signal) {
         signal?.throwIfAborted();
@@ -57,7 +57,7 @@ export function createResidentTools(host: ResidentToolHost): ToolDefinition[] {
     defineTool({
       name: "list_background_tasks",
       label: "查询后台任务",
-      description: "列出最近的后台任务及其真实状态：queued、running、succeeded、failed、cancelled、interrupted、timed_out。",
+      description: "List recent background tasks with their real status: queued、running、succeeded、failed、cancelled、interrupted、timed_out。",
       parameters: Type.Object({}),
       async execute(_id, _params, signal) {
         signal?.throwIfAborted();
@@ -72,7 +72,7 @@ export function createResidentTools(host: ResidentToolHost): ToolDefinition[] {
     defineTool({
       name: "list_inbox_items",
       label: "查询收件箱",
-      description: "列出 Agent Inbox 里的事项摘要（审批、提问、结果、失败）。pendingOnly 为 true 时只返回等用户处理的事项。",
+      description: "List item summaries in the Agent Inbox (approvals, questions, results, failures). With pendingOnly set to true, only items waiting on the user are returned.",
       parameters: Type.Object({
         pendingOnly: Type.Optional(Type.Boolean()),
         limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 50 })),
@@ -85,7 +85,7 @@ export function createResidentTools(host: ResidentToolHost): ToolDefinition[] {
     defineTool({
       name: "delegate_workspace_task",
       label: "创建后台任务",
-      description: "在一个已登记的工作区里创建后台任务。需要用户批准；返回任务 id 和状态。",
+      description: "Create a background task in one registered workspace. Requires user approval; returns the task id and status.",
       executionMode: "sequential",
       parameters: Type.Object({
         workspace: Type.String({ minLength: 1, maxLength: 1000 }),

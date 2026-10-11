@@ -39,10 +39,17 @@ function ChangeStats({ added, removed }: { added: number; removed: number }) {
   </span>;
 }
 
-export function TurnReviewView({ review, visible, onClose }: {
+export interface TurnReviewTarget {
+  path: string;
+  requestKey: number;
+  diffToolId?: string;
+}
+
+export function TurnReviewView({ review, visible, onClose, target }: {
   review: TurnReviewRequest;
   visible: boolean;
   onClose: () => void;
+  target?: TurnReviewTarget;
 }) {
   const { changes } = review;
   const [filter, setFilter] = useState("");
@@ -55,6 +62,9 @@ export function TurnReviewView({ review, visible, onClose }: {
   const sidebar = useRef<HTMLElement>(null);
   const toggle = useRef<HTMLButtonElement>(null);
   const sections = useRef(new Map<string, HTMLElement>());
+  const edits = useRef(new Map<string, HTMLElement>());
+  const appliedTarget = useRef<string | null>(null);
+  const targetScroll = useRef<{ path: string; top: number } | null>(null);
   const frame = useRef(0);
   const contentRef = useEscapeKey<HTMLDivElement>(visible, () => {
     if (drawerOpen) {
@@ -107,6 +117,11 @@ export function TurnReviewView({ review, visible, onClose }: {
     frame.current = requestAnimationFrame(() => {
       const scroll = scroller.current;
       if (!scroll) return;
+      if (targetScroll.current && Math.abs(scroll.scrollTop - Math.min(targetScroll.current.top, scroll.scrollHeight - scroll.clientHeight)) < 1) {
+        setSelected(targetScroll.current.path);
+        return;
+      }
+      targetScroll.current = null;
       const top = scroll.getBoundingClientRect().top;
       let active: string | null = files[0]?.path ?? null;
       for (const file of files) {
@@ -133,6 +148,23 @@ export function TurnReviewView({ review, visible, onClose }: {
       toggle.current?.focus();
     }
   };
+
+  useEffect(() => {
+    if (!visible || !target) return;
+    const key = JSON.stringify([review.turnId, target.path, target.requestKey, target.diffToolId]);
+    if (appliedTarget.current === key || !changes.files.some(file => file.path === target.path)) return;
+    if (filter) { setFilter(""); return; }
+    const section = (target.diffToolId && edits.current.get(target.diffToolId)) || sections.current.get(target.path);
+    const scroll = scroller.current;
+    if (!section || !scroll) return;
+    appliedTarget.current = key;
+    const top = scroll.scrollTop + section.getBoundingClientRect().top - scroll.getBoundingClientRect().top;
+    targetScroll.current = { path: target.path, top };
+    scroll.scrollTo({ top });
+    setSelected(target.path);
+    setCollapsed(current => new Set([...current].filter(path => !`/${target.path}`.startsWith(`${path}/`))));
+    setDrawerOpen(false);
+  }, [visible, target?.path, target?.requestKey, target?.diffToolId, review.turnId, changes.files, filter]);
 
   const renderDirectory = (directory: Directory) => <ul className="turn-review-tree-list">
     {directory.directories.map(child => {
@@ -181,11 +213,15 @@ export function TurnReviewView({ review, visible, onClose }: {
             <ChangeStats added={file.added} removed={file.removed} />
           </header>
           <div className="turn-review-side-labels"><span>{tr("编辑前", "Before")}</span><span>{tr("编辑后", "After")}</span></div>
-          {file.diffs.length > 0 ? file.diffs.map((diff, index) => <div className="turn-review-edit" key={index}>
+          {file.diffs.length > 0 ? file.diffs.map((diff, index) => {
+            const toolIds = file.diffToolIds;
+            const toolId = toolIds?.[index];
+            return <div className="turn-review-edit" key={index} data-diff-tool-id={toolId}
+              ref={node => { if (!toolId) return; if (node) edits.current.set(toolId, node); else edits.current.delete(toolId); }}>
             {file.diffs.length > 1 ? <div className="turn-review-edit-label">{trf("编辑 {0} / {1}", "Edit {0} / {1}", index + 1, file.diffs.length)}</div> : null}
             {diff ? <DiffPane path={file.path} diff={diff} mode="split" format="tool" showLineNumbers />
               : <div className="turn-review-empty">{tr("这项编辑没有保存可显示的差异", "No saved diff is available for this edit")}</div>}
-          </div>) : <div className="turn-review-empty">{tr("这项编辑没有保存可显示的差异", "No saved diff is available for this edit")}</div>}
+          </div>; }) : <div className="turn-review-empty">{tr("这项编辑没有保存可显示的差异", "No saved diff is available for this edit")}</div>}
         </section>)}
         {files.length === 0 ? <div className="turn-review-empty">{tr("没有匹配的文件", "No matching files")}</div> : null}
       </div>

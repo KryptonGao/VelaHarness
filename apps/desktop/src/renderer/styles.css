@@ -8058,6 +8058,22 @@ button.turn-changes-path:hover { color: var(--accent-blue); }
   --chat-lane-shrink: 0px;
 }
 .chat-conversation-pane[hidden] { display: none; }
+/* 离开底部后浮在输入框上方,点击回到最新输出并恢复跟随。 */
+.chat-jump-latest {
+  position: absolute; left: 50%; bottom: calc(var(--composer-clearance, 120px) - 24px); z-index: 3;
+  display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px;
+  color: var(--text-primary); font-size: 12px; cursor: pointer;
+  background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: 999px;
+  box-shadow: 0 2px 8px var(--overlay);
+  opacity: 0; visibility: hidden; transform: translate(-50%, 6px);
+  transition: opacity var(--transition-enter), transform var(--transition-enter), visibility 0s linear 0.18s;
+}
+.chat-jump-latest[data-visible="true"] {
+  opacity: 1; visibility: visible; transform: translate(-50%, 0);
+  transition: opacity var(--transition-enter), transform var(--transition-enter), visibility 0s;
+}
+.chat-jump-latest:hover { color: var(--accent-blue); }
+@media (prefers-reduced-motion: reduce) { .chat-jump-latest { transition: none; } }
 .conversation-view-tabs { display: flex; flex: 0 0 34px; gap: 16px; padding: 0 20px; border-bottom: 1px solid var(--border-subtle); position: relative; z-index: 2; }
 .conversation-view-tabs button { border: 0; background: none; padding: 0 2px; color: var(--text-muted); font-size: 12px; cursor: pointer; transition: color 140ms var(--motion-ease-enter); }
 .conversation-view-tabs button:not([aria-selected="true"]):hover { color: var(--text-primary); }

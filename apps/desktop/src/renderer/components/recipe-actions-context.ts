@@ -9,4 +9,6 @@ export const RecipeActionsContext = createContext<{
   open: () => void;
   useRecipe?: (recipe: TaskRecipe) => void;
   fromMessage: (seed: RecipeMessageSeed) => void;
+  /** 打开任务交接包预览；对话进行中时菜单项禁用。 */
+  createHandoff?: (conversationId: string) => void;
 } | null>(null);

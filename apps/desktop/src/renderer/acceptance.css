@@ -1,0 +1,64 @@
+/* 成果验收复用工作台颜色、字体和动效变量。 */
+.acceptance-card { width: calc(min(100%, var(--chat-lane-max, 760px)) - var(--chat-lane-shrink, 0px)); margin: 0 0 0; margin-right: calc(var(--chat-lane-shift, 0px) * 2); display: flex; align-items: center; gap: 8px; padding: 10px 14px; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); background: var(--bg-chat); color: var(--text-secondary); font-size: 12px; }
+.acceptance-card:hover { background: var(--bg-surface-subtle); border-color: var(--border-strong); }
+.acceptance-card:focus-visible, .acceptance-panel button:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: -2px; }
+.acceptance-panel { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; color: var(--text-primary); background: var(--bg-chat); container-type: inline-size; font-size: 13px; }
+.acceptance-toolbar { flex: none; display: flex; align-items: center; gap: 8px; min-height: 46px; padding: 8px 14px; border-bottom: 1px solid var(--border-subtle); }
+.acceptance-toolbar strong { font-weight: 600; }
+.acceptance-toolbar > span { margin-left: auto; color: var(--text-muted); font-size: 12px; }
+.acceptance-derived { flex: none; margin: 0; padding: 10px 14px; color: var(--text-muted); background: var(--bg-surface-subtle); font-size: 12px; line-height: 1.5; }
+.acceptance-body { flex: 1; min-height: 0; min-width: 0; display: grid; grid-template-columns: minmax(150px, 30%) minmax(0, 1fr); overflow: hidden; }
+.acceptance-requirements { min-width: 0; overflow: auto; padding: 8px; border-right: 1px solid var(--border-subtle); }
+.acceptance-requirement { width: 100%; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: 12px 10px; margin-bottom: 4px; border-radius: var(--radius-xs); text-align: left; color: var(--text-secondary); }
+.acceptance-requirement:hover { background: var(--bg-hover); }
+.acceptance-requirement.is-selected { background: var(--bg-surface-subtle); color: var(--text-primary); box-shadow: inset 2px 0 var(--accent-blue); }
+.acceptance-requirement-text { line-height: 1.5; overflow-wrap: anywhere; }
+.acceptance-status { display: inline-flex; flex: none; align-items: center; gap: 4px; font-size: 11px; line-height: 1.5; color: var(--text-muted); }
+.acceptance-status.is-done, .acceptance-result.is-passed { color: var(--success); }
+.acceptance-status.is-partial, .acceptance-stale { color: var(--warning-strong); }
+.acceptance-result.is-failed { color: var(--danger); }
+.acceptance-detail { min-width: 0; overflow: auto; overscroll-behavior: contain; padding: 20px; animation: acceptance-detail-in var(--transition-enter) both; }
+.acceptance-detail-heading { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding-bottom: 20px; }
+.acceptance-detail-heading h2 { margin: 0; font-size: 16px; font-weight: 600; line-height: 1.5; overflow-wrap: anywhere; }
+.acceptance-section { margin: 0 0 24px; min-width: 0; }
+.acceptance-section h3 { margin: 0 0 10px; font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+.acceptance-change-list { list-style: none; margin: 0; padding: 0; }
+.acceptance-change { min-width: 0; padding: 3px 0; }
+.acceptance-change-link { width: 100%; display: flex; align-items: center; gap: 8px; text-align: left; padding: 7px 6px; border-radius: var(--radius-xs); color: var(--text-primary); font-size: 12px; }
+.acceptance-change-link:hover:not(:disabled), .acceptance-edits button:hover { background: var(--bg-hover); }
+.acceptance-change-link:disabled { cursor: default; opacity: 1; }
+.acceptance-change-link > svg { flex: none; }
+.acceptance-change-path { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.acceptance-change-stats { display: inline-flex; flex: none; gap: 5px; font-variant-numeric: tabular-nums; font-size: 11px; }
+.acceptance-change-note { margin: 0 6px 6px 28px; color: var(--text-muted); font-size: 11px; }
+.acceptance-edits { display: flex; flex-wrap: wrap; gap: 4px; margin: 0 0 6px 28px; }
+.acceptance-edits button { padding: 4px 6px; border-radius: var(--radius-xs); color: var(--text-muted); font-size: 11px; }
+.acceptance-evidence { min-width: 0; border: 1px solid var(--border-subtle); border-radius: var(--radius-xs); overflow: hidden; margin-bottom: 8px; }
+.acceptance-evidence-toggle { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; width: 100%; padding: 9px 10px; color: var(--text-secondary); text-align: left; }
+.acceptance-evidence-toggle:hover { background: var(--bg-hover); }
+.acceptance-evidence-toggle > svg { flex: none; }
+.acceptance-evidence-toggle > svg:last-child { transition: transform var(--transition-enter); }
+.acceptance-evidence-toggle[aria-expanded="true"] > svg:last-child { transform: rotate(90deg); }
+.acceptance-evidence-toggle code { flex: 1; min-width: 80px; overflow-wrap: anywhere; font: 11px/1.5 var(--font-mono); }
+.acceptance-result, .acceptance-stale { flex: none; font-size: 11px; }
+.acceptance-evidence-output { border-top: 1px solid var(--border-subtle); }
+.acceptance-evidence-output[hidden] { display: none; }
+.acceptance-output-meta { padding: 6px 10px; color: var(--text-muted); font-size: 11px; }
+.acceptance-evidence .tool-terminal { border: 0; margin: 0; border-radius: 0; }
+.acceptance-evidence .tool-terminal-cmd > span:last-child { min-width: 0; overflow-wrap: anywhere; }
+.acceptance-evidence .tool-terminal-out { max-height: 360px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+.acceptance-confirmations { margin: 0; padding-left: 18px; color: var(--text-secondary); line-height: 1.6; overflow-wrap: anywhere; }
+.acceptance-confirmations li + li { margin-top: 6px; }
+.acceptance-empty { margin: 0; color: var(--text-muted); font-size: 12px; line-height: 1.5; }
+.acceptance-unattributed { border-top: 1px solid var(--border-subtle); padding-top: 18px; }
+@keyframes acceptance-detail-in { from { opacity: 0; transform: translateY(2px); } to { opacity: 1; transform: translateY(0); } }
+@container (max-width: 520px) {
+  .acceptance-body { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+  .acceptance-requirements { max-height: 200px; border-right: 0; border-bottom: 1px solid var(--border-subtle); }
+  .acceptance-requirement { padding: 8px 10px; gap: 4px; }
+  .acceptance-detail { padding: 16px 14px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .acceptance-detail { animation: none; }
+  .acceptance-panel button, .acceptance-evidence-toggle > svg:last-child, .acceptance-card { transition: none; }
+}

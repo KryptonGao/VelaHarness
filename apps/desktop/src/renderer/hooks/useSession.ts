@@ -17,7 +17,7 @@ import type {
   ToolTrace,
   TranscriptMessage,
 } from "@vela/shared";
-import { agentStatuses, emptyAgentUsage } from "@vela/shared";
+import { agentStatuses, emptyAgentUsage, parseOutcomeSubmission } from "@vela/shared";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createMessageStore, emptyMessages, messageScope } from "./message-store";
 import { uiStateStore } from "../components/intelligent-ui/ui-state-instance";
@@ -367,15 +367,18 @@ export function useSession(notify: NotifySound = noSound) {
   }, []);
 
   /** 新建一个对话并切换过去;当前对话保留在侧边栏里。 */
-  const newChat = useCallback(async (cwd?: string) => {
+  const newChat = useCallback(async (cwd?: string): Promise<string | null> => {
     const api = window.vela;
-    if (!api) return;
+    if (!api) return null;
     try {
-      setState(await api.createConversation(cwd));
+      const next = await api.createConversation(cwd);
+      setState(next);
+      return next.activeConversationId ?? null;
     } catch (error) {
       const id = activeIdRef.current;
       const message = error instanceof Error ? error.message : "新建对话失败";
       if (id) setErrors((current) => ({ ...current, [id]: message }));
+      return null;
     }
   }, []);
 
@@ -812,6 +815,7 @@ function sanitizeActivity(value: ToolActivity | undefined): ToolActivity {
     body: typeof value?.body === "string" ? value.body : undefined,
     diff: typeof value?.diff === "string" ? value.diff : undefined,
     plan,
+    outcome: parseOutcomeSubmission(value?.outcome) ?? undefined,
     agent: value?.agent === "explore" || value?.agent === "general" ? value.agent : undefined,
     agentId: typeof value?.agentId === "string" ? value.agentId : undefined,
     agentPath: typeof value?.agentPath === "string" ? value.agentPath : undefined,
@@ -951,6 +955,7 @@ function mergeActivity(current: ToolActivity | undefined, patch: ToolActivity): 
     body: patch.body ?? base.body,
     diff: patch.diff ?? base.diff,
     plan: patch.plan ?? base.plan,
+    outcome: patch.outcome ?? base.outcome,
     agent: patch.agent ?? base.agent,
     agentId: patch.agentId ?? base.agentId,
     agentPath: patch.agentPath ?? base.agentPath,

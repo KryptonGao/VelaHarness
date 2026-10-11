@@ -961,7 +961,7 @@ function ToolBody({
   return null;
 }
 
-function BashView({
+export function BashView({
   command,
   output,
   running,

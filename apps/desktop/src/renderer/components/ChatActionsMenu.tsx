@@ -92,6 +92,16 @@ export function ChatActionsMenu({ messages, streaming }: { messages: UiMessage[]
           onClick={() => { if (disabled || !seed) return; setOpen(false); actions?.fromMessage(seed); }}>
           {tr("从对话创建配方", "Create recipe from chat")}
         </button>
+        <button type="button" role="menuitem" aria-disabled={disabled || !actions?.createHandoff} tabIndex={-1}
+          title={streaming ? tr("等待当前回复完成后生成交接包", "Wait for the current reply to finish") : !hasText ? tr("对话中有文字消息后可生成交接包", "Add a text message to create a handoff pack") : tr("整理目标、决策、修改文件、验证和未完成事项,带入新对话", "Summarize goal, decisions, changed files, verification and open items for a new chat")}
+          onClick={() => {
+            const conversationId = actions?.conversationId;
+            if (disabled || !conversationId || !actions?.createHandoff) return;
+            setOpen(false);
+            actions.createHandoff(conversationId);
+          }}>
+          {tr("生成交接包…", "Create handoff pack…")}
+        </button>
         {(["markdown", "html"] as const).map(format => (
           <button key={format} type="button" role="menuitem" aria-disabled={!canExport || exporting} tabIndex={-1}
             title={canExport ? tr("导出对话、轨迹和文件 diff,用于复盘", "Export the chat with its trace and file diffs for a postmortem") : tr("对话中有消息后可导出", "Send a message to enable export")}

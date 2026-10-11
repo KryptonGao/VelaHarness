@@ -46,6 +46,7 @@ import {
   type GoalValidation,
   type ImageAttachment,
   type InteractionMode,
+  type OutcomeSubmission,
   type ModelAuthEvent,
   type ModelCatalog,
   type PlanExecutionContextStrategy,
@@ -65,7 +66,11 @@ import {
   type TranscriptMessage,
   type AiTextResult,
   type AgentControlAction,
+  type HandoffPack,
   isAgentBusy,
+  parseHandoffDraftRequest,
+  parseOutcomeSubmission,
+  validateOutcomeSubmission,
 } from "@vela/shared";
 import { defaultToolNames } from "@vela/tools";
 import { getCurrentTools, clampThinkingLevel, getSupportedThinkingLevels, type Api, type Model } from "@earendil-works/pi-ai";
@@ -104,6 +109,7 @@ import {
   createModeExtension,
   createModeTools,
   goalContinuePrompt,
+  isGoalContinuePrompt,
   goalTurnLimit,
   goalTurnLimitNote,
   type AskUserInput,
@@ -128,6 +134,7 @@ import {
 } from "./plan";
 import { QuestionManager } from "./question-manager";
 import { ThinkingSummaryGenerator } from "./thinking-summary";
+import { buildHandoffFacts, HandoffPackGenerator } from "./handoff-pack";
 import {
   buildSandboxRiskMessage,
   parseSandboxRiskVerdict,
@@ -270,6 +277,8 @@ interface Conversation {
   /** 当前 Goal 中已结束的 bash 工具结果，可供验证记录引用。 */
   goalValidationEvidence: Map<string, GoalValidationEvidence>;
   goalValidationSequence: number;
+  /** 本轮已结束的工具证据；只在实际 user 消息（含 Goal 续跑）开始时重置。 */
+  turnToolEvidence: Map<string, { name: string; path?: string }>;
   /** 输入框统计条用的生成指标：按步累计输出 token 与纯生成耗时（不含首字等待）。 */
   generation: {
     stepStartedAt: number | null;
@@ -302,6 +311,8 @@ export class AgentRuntime {
   private readonly questionListeners = new Set<(event: AskUserQuestionEvent) => void>();
   /** toolCallId -> 已校验参数。结果事件本身不带参数，用来还原命令和路径。 */
   private readonly toolArgs = new Map<string, unknown>();
+  /** 绑定开始执行时的证据表，避免上一轮迟到的结果混入新一轮。 */
+  private readonly toolTurnContexts = new Map<string, Conversation["turnToolEvidence"]>();
   private readonly traces: ConversationTraces;
   /** toolCallId -> Goal id 与执行时工作区修订号。 */
   private readonly toolGoalContexts = new Map<string, { goalId: string; workRevision: number }>();
@@ -310,6 +321,7 @@ export class AgentRuntime {
   private readonly questions = new QuestionManager();
   private readonly thinkingSummaries = new ThinkingSummaryGenerator();
   private readonly textAssist = new TextAssistService();
+  private readonly handoffPacks = new HandoffPackGenerator();
   private readonly recipeGenerator = new RecipeGenerator();
   private readonly initializePromise: Promise<void>;
   private readonly store: ConversationStore;
@@ -958,7 +970,7 @@ export class AgentRuntime {
       entry.snapshot.goal = point.metadata.goal;
       this.syncPlanState(entry);
       const retainedTraceTurns = branch.slice(0, position).filter(item => item.type === "message" && item.message.role === "user" &&
-        isVisibleTranscriptMessage(item.message as AgentMessage) && userMessageText(item.message as AgentMessage) !== goalContinuePrompt).length;
+        isVisibleTranscriptMessage(item.message as AgentMessage) && !isGoalContinuePrompt(userMessageText(item.message as AgentMessage))).length;
       this.trace(entry.id).rewindTo(retainedTraceTurns);
       this.store.update(entry.id, countTranscriptActivity(transcriptSourcesFromProjection(manager.buildSessionProjection())));
       this.persistEntry(entry);
@@ -1566,6 +1578,48 @@ export class AgentRuntime {
     return this.textAssist.generate(directory.runtime, model, request, entry?.id ?? null);
   }
 
+  /**
+   * 整理交接包草稿。文件与验证来自对话记录和文件检查点；目标、决策、未完成事项由对话当前模型整理。
+   * 没有可用模型或模型失败时返回只含事实的版本；只读，不修改对话。
+   */
+  async generateHandoffPack(raw: unknown): Promise<HandoffPack> {
+    const request = parseHandoffDraftRequest(raw);
+    const entry = this.conversations.get(request.conversationId);
+    if (!entry) throw new Error("对话不存在或已结束");
+    if (entry.driving || entry.session?.isStreaming) throw new Error("等当前回复结束后再生成交接包");
+    const messages = this.getMessages(entry.id);
+    if (messages.length === 0) throw new Error("这个对话还没有内容可以交接");
+    const checkpoints = await this.getCheckpoints(entry.id).catch(() => null);
+    const facts = buildHandoffFacts({
+      messages,
+      goal: entry.snapshot.goal,
+      plans: entry.plans,
+      executionPlans: entry.executionPlans,
+      activeExecutionPlanId: entry.activeExecutionPlanId,
+      checkpoints,
+      cwd: entry.snapshot.cwd,
+      locale: request.locale,
+    });
+    const directory = await this.readyDirectory();
+    const chatModel = entry.session?.model;
+    const model = chatModel && directory.isAvailable(chatModel) ? chatModel : null;
+    return this.handoffPacks.generate(model ? directory.runtime : null, model, {
+      requestId: request.requestId,
+      conversationId: entry.id,
+      title: entry.snapshot.title,
+      locale: request.locale,
+      facts,
+      messages,
+      cwd: entry.snapshot.cwd,
+    }, (usage) => this.recordSummaryUsage(entry.id, usage));
+  }
+
+  cancelHandoff(requestId: unknown): void {
+    if (typeof requestId === "string" && requestId.length > 0 && requestId.length <= 100) {
+      this.handoffPacks.cancel(requestId);
+    }
+  }
+
   async generateRecipe(raw: unknown) {
     const input = parseRecipeGenerateInput(raw);
     const directory = await this.readyDirectory();
@@ -1980,6 +2034,7 @@ export class AgentRuntime {
     void Promise.resolve().then(() => this.options.browserRepl?.dispose?.()).catch(() => {});
     this.thinkingSummaries.dispose();
     this.textAssist.dispose();
+    this.handoffPacks.dispose();
     this.recipeGenerator.dispose();
     this.traces.dispose();
     this.directory?.cancelLogin();
@@ -1992,6 +2047,7 @@ export class AgentRuntime {
     this.mcpListeners.clear();
     this.conversations.clear();
     this.toolArgs.clear();
+    this.toolTurnContexts.clear();
     this.toolGoalContexts.clear();
     this.agentToolArgs.clear();
     this.memoryLoads.clear();
@@ -2066,6 +2122,7 @@ export class AgentRuntime {
         planStream: null,
         planStreamPlan: null,
         goalValidationEvidence: new Map(),
+        turnToolEvidence: new Map(),
         goalValidationSequence: Math.max(0, ...(stored.goal?.validation?.checks.map((check) => check.sequence) ?? [0])),
         generation: { stepStartedAt: null, firstTokenAt: null, outputTokens: 0, elapsedMs: 0 },
         archivedAt: stored.archivedAt,
@@ -2174,6 +2231,7 @@ export class AgentRuntime {
       planStream: null,
       planStreamPlan: null,
       goalValidationEvidence: new Map(),
+      turnToolEvidence: new Map(),
       goalValidationSequence: 0,
       generation: { stepStartedAt: null, firstTokenAt: null, outputTokens: 0, elapsedMs: 0 },
       archivedAt: null,
@@ -2247,7 +2305,7 @@ export class AgentRuntime {
           }); }) as ExtensionFactory,
         }, ...(this.options.scheduledTasks ? [{ name: "vela-scheduled-tasks-clock", hidden: true,
           factory: ((pi) => { pi.on("before_agent_start", event => {
-            event.systemPromptOptions.appendSystemPrompt += `\n\n任务时间上下文：${new Date().toISOString()}；本机时区：${Intl.DateTimeFormat().resolvedOptions().timeZone}`;
+            event.systemPromptOptions.appendSystemPrompt += `\n\nTask time context: ${new Date().toISOString()}; local time zone: ${Intl.DateTimeFormat().resolvedOptions().timeZone}`;
           }); }) as ExtensionFactory,
         }] : []), ...mcp.factories()],
         appendSystemPromptOverride: (base) => this.isResident(entry.id)
@@ -2295,6 +2353,7 @@ export class AgentRuntime {
               updateExecutionPlan: (items) => this.updateExecutionPlan(entry, items),
               updateGoal: (status, note) => this.updateGoal(entry, status, note),
               recordGoalValidation: (draft) => this.recordGoalValidation(entry, draft),
+              submitOutcome: (draft) => this.submitOutcome(entry, draft),
               askUser: (input) => this.askUser(entry, input),
             }),
             ...control.createAgentTools(entry.id),
@@ -2419,6 +2478,12 @@ export class AgentRuntime {
   private handlePiEvent(conversationId: string, event: AgentSessionEvent): void {
     const recorder = this.trace(conversationId);
     recorder.capture(() => recorder.handle(event));
+    // Pi 的 turn_start 是一次模型/工具循环；user 消息才是成果验收的回合边界。
+    // custom 子代理通知和 assistant/toolResult 消息仍属于当前用户回合。
+    if (event.type === "message_start" && event.message.role === "user") {
+      const entry = this.conversations.get(conversationId);
+      if (entry) entry.turnToolEvidence = new Map();
+    }
     // Pi 在消费 steering / follow-up 时更新队列;这里同步运行中指令的“已投递”状态。
     if (event.type === "queue_update") {
       this.reconcileInstructions(conversationId, event.steering, event.followUp);
@@ -2490,6 +2555,9 @@ export class AgentRuntime {
         this.toolGoalContexts.set(event.toolCallId, { goalId: goal.id, workRevision: goal.workRevision });
       }
       this.toolArgs.set(event.toolCallId, event.args);
+      if (entry && (event.toolName === "edit" || event.toolName === "write" || event.toolName === "bash")) {
+        this.toolTurnContexts.set(event.toolCallId, entry.turnToolEvidence);
+      }
       this.emit({
         type: "tool_start",
         conversationId,
@@ -2510,10 +2578,21 @@ export class AgentRuntime {
     if (event.type === "tool_execution_end") {
       const args = this.toolArgs.get(event.toolCallId);
       this.toolArgs.delete(event.toolCallId);
+      const turnContext = this.toolTurnContexts.get(event.toolCallId);
+      this.toolTurnContexts.delete(event.toolCallId);
       const goalContext = this.toolGoalContexts.get(event.toolCallId);
       this.toolGoalContexts.delete(event.toolCallId);
       const activity = this.mcpActivity(conversationId, event.toolName, activityFromExecution(event.toolName, args, event.result, toolResultIsError(event.toolName, event.result, event.isError)));
       const entry = this.conversations.get(conversationId);
+      if (entry && turnContext === entry.turnToolEvidence) {
+        // 失败的 bash 也是真实的已完成证据；失败的文件编辑不能声称修改成功。
+        if (event.toolName === "bash" || !toolResultIsError(event.toolName, event.result, event.isError)) {
+          entry.turnToolEvidence.set(event.toolCallId, {
+            name: event.toolName,
+            ...(activity.path ? { path: activity.path } : {}),
+          });
+        }
+      }
       const goal = entry?.snapshot.goal;
       if (entry && goalContext && event.toolName === "bash" && goal?.id === goalContext.goalId) {
         const command = activity.command?.trim();
@@ -3466,6 +3545,20 @@ export class AgentRuntime {
       ok: true,
       text: `${status}。命令 ${checks} 项，跳过 ${skipped} 项，已知失败 ${failures} 项。完成前若再运行可能修改工作区的工具，需要重新记录验证。`,
     };
+  }
+
+  private submitOutcome(entry: Conversation, draft: OutcomeSubmission): ToolOutcome {
+    if (entry.snapshot.mode === "plan") return { ok: false, text: "Plan 模式不能提交成果验收。" };
+    const submission = parseOutcomeSubmission(draft);
+    if (!submission) return { ok: false, text: "成果验收必须包含有效的需求项目。" };
+    const { invalidFiles, invalidVerificationIds } = validateOutcomeSubmission(submission, entry.turnToolEvidence, entry.snapshot.cwd);
+    if (invalidFiles.length || invalidVerificationIds.length) {
+      const lines = ["成果验收引用了本轮未完成或不存在的修改或验证，请修正后重新提交。"];
+      if (invalidFiles.length) lines.push(`无效文件：${invalidFiles.join("、")}`);
+      if (invalidVerificationIds.length) lines.push(`无效 bash 工具调用 id：${invalidVerificationIds.join("、")}`);
+      return { ok: false, text: lines.join("\n") };
+    }
+    return { ok: true, text: `已提交成果验收，共 ${submission.items.length} 项需求。` };
   }
 }
 

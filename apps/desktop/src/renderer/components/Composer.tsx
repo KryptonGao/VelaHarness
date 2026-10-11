@@ -32,6 +32,7 @@ import { applySkillPick, composeSkillPrompt, slashTokenAt } from "./composer/ski
 import { modKeyLabel } from "../platform";
 import { slashMenuItems, type SlashMenuItem } from "./composer/slash-picker";
 import { RecipeActionsContext } from "./recipe-actions-context";
+import { useComposerSeed } from "./composer-seed-context";
 import { localizeError, tr, useAppLocale, trf } from "../locale";
 
 export interface ComposerProps {
@@ -163,6 +164,13 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
     input.focus();
     input.setSelectionRange(caret, caret);
   }, [value]);
+
+  // 任务交接包等外部预填：只在目标对话的输入框里取走，并把光标放到末尾方便补一句指令。
+  useComposerSeed(recipeActions?.conversationId ?? null, text => {
+    pendingCaret.current = text.length;
+    setValue(text);
+    setSlash(null);
+  });
 
   useEffect(() => {
     if (!skill || !skills) return;
