@@ -2,10 +2,14 @@ import {
   mayContainUi,
   parseUiMessage,
   parseUiStateSnapshot,
+  resolveUiSource,
   restoreUiValues,
   summarizeUiArtifact,
   uiSourceFingerprint,
   uiStateStorageKey,
+  type UiArtifact,
+  type UiSourceSnapshot,
+  type UiToolCall,
   type UiValue,
 } from "@vela/shared";
 
@@ -19,6 +23,12 @@ export interface UiExportContext {
   omitted: string;
   /** 界面块的标题行，例如「交互界面（静态文字版）」。 */
   label: string;
+  /** 微应用（vela-app）不会被导出：它是脚本，只留一行说明。 */
+  appOmitted?: string;
+  /** 截至这条回复（含）为止、会话里真实的工具调用；数据源只能从这里取值。 */
+  toolCalls?: readonly UiToolCall[];
+  /** 解析数据源「是否过期」用的当前时间，默认取导出时刻。 */
+  now?: number;
 }
 
 /**
@@ -47,6 +57,13 @@ function readSaved(context: UiExportContext, messageId: string, artifactId: stri
   }
 }
 
+function resolveSnapshots(artifact: UiArtifact, context: UiExportContext): Map<string, UiSourceSnapshot> | undefined {
+  if (artifact.sources.length === 0) return undefined;
+  const calls = context.toolCalls ?? [];
+  const now = context.now ?? Date.now();
+  return new Map(artifact.sources.map(source => [source.name, resolveUiSource(source, calls, { now, receiving: false })] as const));
+}
+
 export function exportAssistantText(text: string, messageId: string | null, context: UiExportContext): string {
   if (messageId === null) return text;
   const parts: string[] = [];
@@ -55,8 +72,12 @@ export function exportAssistantText(text: string, messageId: string | null, cont
       if (segment.text.trim()) parts.push(segment.text.replace(/^\n+|\n+$/g, ""));
       continue;
     }
+    if (segment.type === "app") {
+      parts.push(`*${context.appOmitted ?? context.omitted}*`);
+      continue;
+    }
     const saved = readSaved(context, messageId, segment.artifact.artifactId, segment.raw);
-    const summary = summarizeUiArtifact(segment.artifact, restoreUiValues(segment.artifact, saved ?? undefined));
+    const summary = summarizeUiArtifact(segment.artifact, restoreUiValues(segment.artifact, saved ?? undefined), resolveSnapshots(segment.artifact, context));
     parts.push(summary.trim() ? `**${context.label}**\n\n${summary}` : `*${context.omitted}*`);
   }
   return parts.join("\n\n");

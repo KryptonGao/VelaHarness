@@ -8,9 +8,11 @@ import {
   type TraceSnapshot,
   type TranscriptMessage,
   type TranscriptTool,
+  type UiToolCall,
+  toolCallsFromMessages,
 } from "@vela/shared";
 import { homedir } from "node:os";
-import { exportAssistantText, UiExportNumbering, type UiStateReader } from "./intelligent-ui-export";
+import { exportAssistantText, UiExportNumbering, type UiExportContext, type UiStateReader } from "./intelligent-ui-export";
 
 export interface ConversationExportInput {
   conversation: { id: string; title: string; cwd: string; createdAt: number; updatedAt: number };
@@ -222,12 +224,16 @@ function buildBlocks(input: ConversationExportInput, settings: ConversationExpor
 
   blocks.push({ t: "heading", level: 2, text: t("对话记录", "Conversation") });
   const uiNumbering = new UiExportNumbering();
-  const uiContext = {
+  const uiContext: UiExportContext = {
     conversationId: input.conversation.id,
     readUiState: input.readUiState,
     label: t("交互界面（静态文字版）", "Interactive UI (static text)"),
     omitted: t("[交互界面无法导出]", "[Interactive UI could not be exported]"),
+    appOmitted: t("[沙盒微应用不会被导出]", "[Sandboxed micro-app is not exported]"),
+    now: (input.exportedAt ?? new Date()).getTime(),
   };
+  // 界面数据源只能取自会话里真实的工具调用：按消息顺序累积，和渲染层一致。
+  const uiToolCalls: UiToolCall[] = [];
   for (const turn of turns) {
     blocks.push({ t: "heading", level: 3, text: t("第 {0} 轮", "Turn {0}", turn.index + 1) });
     if (turn.user) {
@@ -240,6 +246,8 @@ function buildBlocks(input: ConversationExportInput, settings: ConversationExpor
     for (const message of turn.assistants) {
       const stamp = message.timestamp === null ? "" : ` · ${exportTimestamp(message.timestamp)}`;
       const uiMessageId = uiNumbering.next(message.text);
+      uiToolCalls.push(...toolCallsFromMessages([message], 0));
+      uiContext.toolCalls = uiToolCalls;
       if (settings.includeThinking && message.thinking.trim()) {
         blocks.push({ t: "details", summary: t("思考过程", "Thinking"), blocks: [{ t: "text", text: message.thinking }] });
       }

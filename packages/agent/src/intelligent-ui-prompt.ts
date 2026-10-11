@@ -35,7 +35,7 @@ const syntax = `## Intelligent UI（可选的交互式回答）
 4. {"op":"node","id":"<id>","parent":"<父节点id>","type":"<组件>","props":{...}} 第一个 node 是根（不写 parent，用 column/card 等容器），之后每个节点的父节点必须已经出现。
 5. {"op":"commit"} 最后一行。缺少 commit 的界面会被标为「未完成」。
 
-规则：整个 JSON 必须在一行内；先输出会先显示，所以按「骨架 → 内容」的顺序写；一个块最多 200 个节点、深度 12、50 个状态；名字用字母开头的字母数字下划线；要在文字里展示这种语法本身时，用四个反引号的外层围栏包住，或不写 begin，这样不会被当成界面。
+规则：整个 JSON 必须在一行内；source 与 state 一样先声明、再被 node 使用；先输出会先显示，所以按「骨架 → 内容」的顺序写；一个块最多 200 个节点、深度 12、50 个状态；名字用字母开头的字母数字下划线；要在文字里展示这种语法本身时，用四个反引号的外层围栏包住，或不写 begin，这样不会被当成界面。
 
 ### 组件（type 与主要 props）
 - 文本：text{text,tone?} heading{text,level?1-3} caption{text} code{code,language?}
@@ -58,6 +58,26 @@ set_state{name,value} toggle{name} copy{text} open_external{url，仅 http/https
 - 只有需要你继续工作时才用 submit_to_agent：用户点击并确认后，会把当前参数作为一条新消息发给你。
 - 界面不能调用工具、改文件或执行命令。
 
+### 图表与图解
+- bar_chart / line_chart{title?,unit?,prefix?,digits?,yMin?,yMax?} 数据三选一：labels+series:[{label,values:[数字或表达式或null]}]、data:[{label,value}]（单序列）、from+x+y:[列名]（来自数据源）。draggable:true 时把点的值写成 {"ref":"数字状态"}，用户可拖动或用方向键改它。
+- pie_chart{title?,donut?} slices:[{label,value}]（非负）或 from+label+value。
+- svg_diagram{title,description?,width?,height?,shapes,hotspots?,bind?}：shapes 只能是 rect/circle/ellipse/line/polyline/polygon/path/text；颜色只能用 none|default|muted|accent|success|warning|danger|surface。hotspots:[{id,label,description?,shape:rect|circle|polygon,坐标,value?}]，点击把 bind 状态设为 value；再用 show 表达式切换你写好的讲解卡片。不要写 SVG/HTML 字符串。
+- media{kind:image|map,alt,caption?}：没有配置媒体服务时只会显示 alt 文字，不会出图。地点只有名字时不要编造坐标。
+- 图表数据要么来自你确定的内容、要么来自数据源；估计值要在文字里说明。
+
+### 真实数据源（来自工具结果）
+- {"op":"source","name":"<名字>","tool":"<工具名>","match":"<命令或路径里的文字，可选>","call":"<toolCallId，可选>","format":"json|csv|lines|text","path":["键",0]} 指名你已经运行过的一次工具调用（缺省取最近一次匹配的）。数据值由 Vela 从真实工具结果里取，你不能在界面里写数据冒充工具结果。
+- 用法：table/list/bar_chart/line_chart/pie_chart/timeline/diff_view 的 from:"<名字>"；stat{label,from:"<名字>"} 显示 json path 指到的数字。table 的列 key 对应结果里的字段名；lines 的行是 {line,text}。
+- 界面会标出来源、时间和状态（加载中、已过期、失败、没有数据）；失败或被截断的结果不会显示成已更新。button 的 action refresh_source{name} 请你重新运行工具，用户确认后作为消息发给你。
+
+### 时间轴、行程、差异
+- timeline{title?,items:[{date?,title,detail?,status?:done|current|upcoming|blocked}]} 或 from+titleKey+dateKey?+detailKey?+statusKey?
+- itinerary{title?,days:[{label,stops:[{name,time?,note?,lat?,lng?}]}]}：lat/lng 只在你有把握时成对给出，界面会标明坐标由模型提供；不要凭地名猜坐标。
+- diff_view{diff 或 from,fileName?,caption?}：unified diff 文本。
+
+### 建议用户执行的动作
+- button.action 还可以是 request_tool{tool,summary,args?:{名:值或表达式}}：显示「建议运行某工具」，用户确认后以消息发给你。这不是批准，也不会替你运行：是否运行、是否需要审批仍按正常流程。
+
 ### 示例（用户问「5 个人平摊 240 元，每人多少钱」）
 先用一句话给出答案和假设，然后：
 \`\`\`vela-ui
@@ -65,16 +85,24 @@ ${example}
 \`\`\`
 `;
 
+const microAppSyntax = `
+### 沙盒微应用（用户已开启，谨慎使用）
+只有声明式界面做不到时（小游戏、画布、复杂模拟）才用；能用 vela-ui 就不要用 vela-app。围栏 \`\`\`vela-app：第一行是 {"op":"app","id":"<唯一id>","version":1,"title":"…","height":320}，之后是一段 HTML 片段（可含内联 <style> 和 <script>，单文件，不超过 64KB）。
+- 应用运行在没有网络、文件、外部资源和任何 Vela 权限的沙盒里，用户点击「运行」才会执行；不要 fetch/XHR/WebSocket/import 外部资源，不要用 localStorage/cookie，不要写 <iframe>、<form> 或外链。
+- 想把结果交给你：window.vela.submit(文本)（用户会看到并确认后才发送）；复制：window.vela.copy(文本)。除此之外它不能做任何事。
+- 先用文字说明它做什么；正文里也要给出不运行应用时能读懂的结论。
+`;
+
 const autoNote = "按需使用：多数回答保持纯文字，只有界面明显比文字更好用时才生成。";
 const visualNote = "这位用户偏好可视化：比较、计算、参数探索类的问题优先用界面；但简单问答、命令和代码仍然只用文字。";
-const textOnlyNote = "用户关闭了 Intelligent UI。不要输出 vela-ui 围栏，即使之前的消息里出现过也不要模仿；用 Markdown 表格、列表和文字回答。";
+const textOnlyNote = "用户关闭了 Intelligent UI。不要输出 vela-ui 或 vela-app 围栏，即使之前的消息里出现过也不要模仿；用 Markdown 表格、列表和文字回答。";
 
 /** 返回要追加到系统提示的文字；不需要时返回 null。 */
-export function intelligentUiInstructions(preference: UiPreference, mode: InteractionMode): string | null {
+export function intelligentUiInstructions(preference: UiPreference, mode: InteractionMode, options: { microApps?: boolean } = {}): string | null {
   // Plan 要产出 <proposed_plan> 文档；Goal 要产出验证报告。两者保持纯 Markdown，互不干扰。
   if (mode !== "agent") return null;
   if (preference === "text_only") return textOnlyNote;
-  return `${syntax}\n${preference === "visual_first" ? visualNote : autoNote}`;
+  return `${syntax}${options.microApps ? microAppSyntax : ""}\n${preference === "visual_first" ? visualNote : autoNote}`;
 }
 
 export const intelligentUiExample = example;

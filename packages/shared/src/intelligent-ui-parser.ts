@@ -1,10 +1,16 @@
 import {
   hasForbiddenStructure,
   isPlainObject,
+  isForbiddenKey,
   isUiId,
   isUiName,
+  uiAppFenceInfo,
+  uiAppHeightRange,
   uiFenceInfo,
   uiLimits,
+  uiSourceFormats,
+  uiToolNameRe,
+  type UiAppBlock,
   uiContainerTypes,
   uiSchemaVersion,
   utf8ByteLength,
@@ -13,6 +19,8 @@ import {
   type UiDiagnostic,
   type UiNode,
   type UiRejectReason,
+  type UiSourceDefinition,
+  type UiSourceFormat,
   type UiStateDefinition,
 } from "./intelligent-ui";
 import { hasComponent, validateNodeProps } from "./intelligent-ui-components";
@@ -43,11 +51,12 @@ export class UiArtifactBuilder {
   private readonly depths = new Map<string, number>();
   private readonly states: UiStateDefinition[] = [];
   private readonly derived: UiDerivedDefinition[] = [];
+  private readonly sources: UiSourceDefinition[] = [];
   private derivedOrder: string[] = [];
   private readonly names = new Set<string>();
   private readonly diagnostics: UiDiagnostic[] = [];
   /** 每个节点校验出的引用与绑定，commit 时统一检查。 */
-  private readonly pending: Array<{ nodeId: string; refs: string[]; bindings: Array<{ name: string; kind: string }> }> = [];
+  private readonly pending: Array<{ nodeId: string; refs: string[]; sourceRefs: string[]; bindings: Array<{ name: string; kind: string }> }> = [];
   private optionCount = 0;
   private revision = 0;
   private cached: UiArtifact | null = null;
@@ -88,6 +97,7 @@ export class UiArtifactBuilder {
     switch (value.op) {
       case "state": return this.applyState(value, line);
       case "derive": return this.applyDerive(value, line);
+      case "source": return this.applySource(value, line);
       case "node": return this.applyNode(value, line);
       case "commit": return this.commit(line);
       case "begin": return this.fail("bad_op", "begin appears twice", line);
@@ -121,6 +131,7 @@ export class UiArtifactBuilder {
       nodes: this.nodes.map(node => ({ ...node, childrenIds: [...node.childrenIds] })),
       stateDefinitions: [...this.states],
       derived: [...this.derived],
+      sources: this.sources.map(source => ({ ...source, path: [...source.path] })),
       derivedOrder: [...this.derivedOrder],
       reason: this.reason,
       diagnostics: [...this.diagnostics],
@@ -212,6 +223,34 @@ export class UiArtifactBuilder {
     this.touch();
   }
 
+  /** 数据源声明：只指名一次工具调用，数据值由渲染层从真实工具结果里取。 */
+  private applySource(op: Record<string, unknown>, line: number): void {
+    if (this.sources.length >= uiLimits.sources) return this.fail("limit_sources", "too many data sources", line);
+    const { name, tool, call, match, format, path } = op;
+    if (!isUiName(name)) return this.fail("bad_source", "source name is not an identifier", line);
+    if (typeof tool !== "string" || !uiToolNameRe.test(tool.toLowerCase()) || tool.length > 64) return this.fail("bad_source", "source tool is not a tool name", line);
+    if (call !== undefined && (typeof call !== "string" || !/^[\w.:|-]{1,128}$/.test(call))) return this.fail("bad_source", "source call is not a tool call id", line);
+    if (match !== undefined && (typeof match !== "string" || match.length === 0 || match.length > 200)) return this.fail("bad_source", "source match must be a short string", line);
+    if (format !== undefined && !(typeof format === "string" && (uiSourceFormats as readonly string[]).includes(format))) return this.fail("bad_source", "source format is not supported", line);
+    let segments: Array<string | number> = [];
+    if (path !== undefined) {
+      if (!Array.isArray(path) || path.length > uiLimits.sourcePath) return this.fail("bad_source", "source path is too long", line);
+      for (const segment of path) {
+        const valid = typeof segment === "string"
+          ? segment.length > 0 && segment.length <= 100 && !isForbiddenKey(segment)
+          : typeof segment === "number" && Number.isInteger(segment) && segment >= 0 && segment <= 100_000;
+        if (!valid) return this.fail("bad_source", "source path has an invalid segment", line);
+      }
+      segments = [...path] as Array<string | number>;
+    }
+    if (!this.claimName(name, line)) return;
+    const definition: UiSourceDefinition = { name, tool, format: (format as UiSourceFormat | undefined) ?? "json", path: segments };
+    if (call !== undefined) definition.call = call as string;
+    if (match !== undefined) definition.match = match as string;
+    this.sources.push(definition);
+    this.touch();
+  }
+
   private applyNode(op: Record<string, unknown>, line: number): void {
     if (this.nodes.length >= uiLimits.nodes) return this.fail("limit_nodes", "too many nodes", line);
     const { id, type } = op;
@@ -241,7 +280,7 @@ export class UiArtifactBuilder {
       if (validated.value.show !== undefined) node.show = validated.value.show;
       this.optionCount += validated.value.optionCount;
       if (this.optionCount > uiLimits.options) return this.fail("limit_options", "too many options", line);
-      this.pending.push({ nodeId: id, refs: validated.value.refs, bindings: validated.value.bindings });
+      this.pending.push({ nodeId: id, refs: validated.value.refs, sourceRefs: validated.value.sourceRefs, bindings: validated.value.bindings });
     }
     if (node.invalid) this.note({ line, code: "node_rejected", message: `${id}: ${node.invalid}` });
     this.nodes.push(node);
@@ -257,12 +296,17 @@ export class UiArtifactBuilder {
     if (this.rootNodeId === null) return this.fail("empty_artifact", "no root node", line);
     const stateKinds = new Map(this.states.map(state => [state.name, state.kind] as const));
     const stateNames = new Set(stateKinds.keys());
-    const sorted = sortDerived(stateNames, this.derived);
+    const sourceNames = new Set(this.sources.map(source => source.name));
+    // 数据源的标量结果和状态一样是表达式的叶子。
+    const sorted = sortDerived(new Set([...stateNames, ...sourceNames]), this.derived);
     if (!sorted.ok) return this.fail(sorted.reason, `reference problem at ${sorted.name}`, line);
-    const known = new Set([...stateNames, ...this.derived.map(item => item.name)]);
-    for (const { nodeId, refs, bindings } of this.pending) {
+    const known = new Set([...stateNames, ...sourceNames, ...this.derived.map(item => item.name)]);
+    for (const { nodeId, refs, sourceRefs, bindings } of this.pending) {
       for (const ref of refs) {
         if (!known.has(ref)) return this.fail("bad_reference", `${nodeId} refers to unknown ${ref}`, line);
+      }
+      for (const ref of sourceRefs) {
+        if (!sourceNames.has(ref)) return this.fail("unknown_source", `${nodeId} refers to undeclared source ${ref}`, line);
       }
       for (const binding of bindings) {
         if (stateKinds.get(binding.name) !== binding.kind) return this.fail("bad_binding", `${nodeId} cannot bind ${binding.name}`, line);
@@ -286,7 +330,8 @@ function optionalFinite(value: unknown): number | undefined | false {
 
 export type UiSegment =
   | { type: "markdown"; key: string; text: string }
-  | { type: "ui"; key: string; artifact: UiArtifact; /** 围栏内的原始 NDJSON，用于「查看原始文本」。 */ raw: string; closed: boolean };
+  | { type: "ui"; key: string; artifact: UiArtifact; /** 围栏内的原始 NDJSON，用于「查看原始文本」。 */ raw: string; closed: boolean }
+  | { type: "app"; key: string; app: UiAppBlock; /** 围栏内的原始文本（头 + HTML）。 */ raw: string; closed: boolean };
 
 interface Fence {
   char: "`" | "~";
@@ -312,7 +357,21 @@ interface UiPart {
   lineNo: number;
 }
 
-type Part = MarkdownPart | UiPart;
+interface AppPart {
+  kind: "app";
+  openLine: string;
+  fence: Fence;
+  rawLines: string[];
+  rawBytes: number;
+  header: { appId: string; title: string | null; height: number } | null;
+  body: string[];
+  status: UiAppBlock["status"];
+  reason: UiAppBlock["reason"];
+  revision: number;
+  closed: boolean;
+}
+
+type Part = MarkdownPart | UiPart | AppPart;
 
 const openRe = /^ {0,3}(`{3,}|~{3,})(.*)$/;
 const holdBackRe = /^ {0,3}(`{1,2}|~{1,2}|`{3,}[^`]*|~{3,}.*)$/;
@@ -376,6 +435,9 @@ export class UiStreamParser {
     if (last?.kind === "ui" && !last.closed) {
       if (last.builder) last.builder.finish();
       else this.demote(last);
+    } else if (last?.kind === "app" && !last.closed) {
+      if (!last.header) this.demote(last);
+      else if (last.status === "receiving") { last.status = "incomplete"; last.revision += 1; }
     }
   }
 
@@ -385,7 +447,10 @@ export class UiStreamParser {
 
   /** 释放全部 UI 块（消息被删除或分支截断）。 */
   dispose(): void {
-    for (const part of this.parts) if (part.kind === "ui") part.builder?.dispose();
+    for (const part of this.parts) {
+      if (part.kind === "ui") part.builder?.dispose();
+      else if (part.kind === "app") { part.status = "disposed"; part.body.length = 0; part.revision += 1; }
+    }
     this.finished = true;
   }
 
@@ -406,6 +471,22 @@ export class UiStreamParser {
           this.viewCache.set(part, { version, segment });
         }
         if (segment.type === "markdown" && segment.text.trim()) output.push(segment);
+        return;
+      }
+      if (part.kind === "app") {
+        if (!part.header) return; // 还没见到合法的头：先不显示，既可能是应用也可能是代码示例。
+        const version = `${part.revision}|${part.closed}`;
+        const cachedApp = this.viewCache.get(part);
+        let appSegment = cachedApp?.version === version ? cachedApp.segment : undefined;
+        if (!appSegment) {
+          const block: UiAppBlock = {
+            appId: part.header.appId, title: part.header.title, height: part.header.height,
+            source: part.body.join("\n"), status: part.status, reason: part.reason, revision: part.revision,
+          };
+          appSegment = { type: "app", key: `app-${part.header.appId}`, app: block, raw: part.rawLines.join("\n"), closed: part.closed };
+          this.viewCache.set(part, { version, segment: appSegment });
+        }
+        output.push(appSegment);
         return;
       }
       if (!part.builder) return; // 还没见到 begin：先不显示，既可能是 UI 也可能是代码示例。
@@ -461,6 +542,7 @@ export class UiStreamParser {
   private processLine(line: string): void {
     const last = this.parts.at(-1);
     if (last?.kind === "ui" && !last.closed) return this.processUiLine(last, line);
+    if (last?.kind === "app" && !last.closed) return this.processAppLine(last, line);
     if (this.otherFence) {
       this.appendMarkdown(line);
       if (closes(line, this.otherFence)) this.otherFence = null;
@@ -473,8 +555,59 @@ export class UiStreamParser {
       this.parts.push({ kind: "ui", openLine: line, fence: open.fence, rawLines: [], rawBytes: 0, builder: null, closed: false, lineNo: 0 });
       return;
     }
+    if (open.info === uiAppFenceInfo) {
+      this.parts.push({
+        kind: "app", openLine: line, fence: open.fence, rawLines: [], rawBytes: 0, header: null, body: [],
+        status: "receiving", reason: null, revision: 0, closed: false,
+      });
+      return;
+    }
     this.otherFence = open.fence;
     this.appendMarkdown(line);
+  }
+
+  private processAppLine(part: AppPart, line: string): void {
+    if (closes(line, part.fence)) {
+      part.closed = true;
+      part.revision += 1;
+      if (!part.header) this.demote(part, line);
+      else if (part.status === "receiving") part.status = "ready";
+      return;
+    }
+    part.rawLines.push(line);
+    part.rawBytes += utf8ByteLength(line) + 1;
+    if (!part.header) {
+      if (!line.trim()) return;
+      return this.beginApp(part, line);
+    }
+    if (part.status !== "receiving") return;
+    if (part.rawBytes > uiLimits.appBytes) {
+      // 超限：不运行，也不再保存正文，避免继续吃内存。
+      part.status = "invalid";
+      part.reason = "limit_bytes";
+      part.body.length = 0;
+      part.rawLines.length = 0;
+    } else part.body.push(line);
+    part.revision += 1;
+  }
+
+  /** 围栏里的第一行必须是合法的 app 头；否则它只是一个提到 vela-app 的代码块。 */
+  private beginApp(part: AppPart, line: string): void {
+    let value: unknown;
+    try { value = JSON.parse(line); } catch { value = null; }
+    if (!isPlainObject(value) || value.op !== "app" || !isUiId(value.id) || hasForbiddenStructure(value)) {
+      return this.demote(part, line, true);
+    }
+    const height = typeof value.height === "number" && Number.isFinite(value.height)
+      ? Math.round(Math.min(Math.max(value.height, uiAppHeightRange.min), uiAppHeightRange.max))
+      : uiAppHeightRange.fallback;
+    part.header = {
+      appId: this.uniqueId(value.id),
+      title: typeof value.title === "string" && value.title.length <= 200 ? value.title : null,
+      height,
+    };
+    if (value.version !== 1) { part.status = "invalid"; part.reason = "unsupported_version"; }
+    part.revision += 1;
   }
 
   private processUiLine(part: UiPart, line: string): void {
@@ -515,7 +648,7 @@ export class UiStreamParser {
   }
 
   /** 把一个没能成为 UI 的块还原为 Markdown 代码块，保证原文可见。 */
-  private demote(part: UiPart, closingOrLine?: string, stillOpen = false): void {
+  private demote(part: UiPart | AppPart, closingOrLine?: string, stillOpen = false): void {
     const index = this.parts.indexOf(part);
     if (index === -1) return;
     const lines = [part.openLine, ...part.rawLines];
@@ -547,10 +680,10 @@ export function parseUiMessage(text: string, options: UiStreamParserOptions & { 
  * 不含 vela-ui 的消息不必走解析；末尾半行像 ```vela-u 时也要走，避免围栏先以代码块闪现。
  */
 export function mayContainUi(text: string): boolean {
-  if (text.includes(uiFenceInfo)) return true;
+  if (text.includes(uiFenceInfo) || text.includes(uiAppFenceInfo)) return true;
   const tail = text.slice(text.lastIndexOf("\n") + 1);
   const match = /^ {0,3}(?:`{3,}|~{3,})\s*(\S*)$/.exec(tail);
-  return Boolean(match && match[1].length > 0 && uiFenceInfo.startsWith(match[1]));
+  return Boolean(match && match[1].length > 0 && (uiFenceInfo.startsWith(match[1]) || uiAppFenceInfo.startsWith(match[1])));
 }
 
 /** FNV-1a 32 位哈希：给 UI 块内容生成短指纹，用来校验保存的本地状态是否仍属于同一份定义。 */

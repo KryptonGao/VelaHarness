@@ -11,7 +11,8 @@ export * from "./plugin";
 import type { PluginApi } from "./plugin";
 import type { McpApi } from "./mcp";
 import type { MemoryApi, MemoryLoadReport } from "./memory";
-import type { UiPreference } from "./intelligent-ui";
+import type { IntelligentUiState, UiPreference } from "./intelligent-ui";
+import type { UiSandboxCapability, UiSandboxIssueResult } from "./intelligent-ui-sandbox";
 export * from "./trace";
 export * from "./redaction";
 export * from "./logging";
@@ -22,6 +23,10 @@ export * from "./intelligent-ui-expression";
 export * from "./intelligent-ui-components";
 export * from "./intelligent-ui-parser";
 export * from "./intelligent-ui-state";
+export * from "./intelligent-ui-source";
+export * from "./intelligent-ui-data";
+export * from "./intelligent-ui-sandbox";
+export * from "./intelligent-ui-metrics";
 import type { UpdatesApi } from "./updates";
 import type { TraceSnapshot, TraceDetails, TraceUpdate } from "./trace";
 export const conversationTitleMaxLength = 120;
@@ -185,6 +190,10 @@ export const IpcChannel = {
   saveAgentSettings: "agent:save-settings",
   getIntelligentUi: "intelligent-ui:get",
   setIntelligentUi: "intelligent-ui:set",
+  setIntelligentUiMicroApps: "intelligent-ui:set-micro-apps",
+  uiSandboxIssue: "intelligent-ui:sandbox-issue",
+  uiSandboxRedeem: "intelligent-ui:sandbox-redeem",
+  uiSandboxRevoke: "intelligent-ui:sandbox-revoke",
   listSkills: "skills:list",
   openSkillsDir: "skills:open-dir",
   scanExternalSkills: "skills:scan-external",
@@ -2795,8 +2804,16 @@ export interface VelaApi extends McpApi, PluginApi {
   getAgentSettings(): Promise<AgentSettings>;
   saveAgentSettings(settings: AgentSettings): Promise<AgentSettings>;
   /** Intelligent UI 偏好：决定模型是否被告知可以生成交互界面。 */
-  getIntelligentUi(): Promise<{ preference: UiPreference }>;
-  setIntelligentUi(preference: UiPreference): Promise<{ preference: UiPreference }>;
+  getIntelligentUi(): Promise<IntelligentUiState>;
+  setIntelligentUi(preference: UiPreference): Promise<IntelligentUiState>;
+  /** 沙盒微应用开关（默认关闭，IUI-14）。 */
+  setIntelligentUiMicroApps(enabled: boolean): Promise<IntelligentUiState>;
+  /** 沙盒应用申请 capability：Main 发放一次性、限定大小的令牌（IUI-14）。 */
+  uiSandboxIssue(appKey: string, capability: UiSandboxCapability, size: number): Promise<UiSandboxIssueResult>;
+  /** 用户确认后兑换令牌；令牌立即作废。 */
+  uiSandboxRedeem(token: string, appKey: string, capability: UiSandboxCapability, size: number): Promise<{ ok: boolean }>;
+  /** 应用停止或卸载时撤销它未使用的令牌。 */
+  uiSandboxRevoke(appKey: string): Promise<void>;
   listSkills(): Promise<SkillCatalog>;
   openSkillsDirectory(): Promise<void>;
   scanExternalSkills(): Promise<ExternalSkillScan>;

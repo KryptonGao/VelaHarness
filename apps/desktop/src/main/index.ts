@@ -22,6 +22,8 @@ import { getApplicationLocale, setApplicationLocale, setDiagnosticsMenuActions, 
 import { LogService } from "./log-service";
 import { installCrashHandlers, LogHost, systemInfo } from "./log-host";
 import { createUpdateService, UpdateHost } from "./update-host";
+import { allowSubframeNavigation } from "./ui-sandbox-guard";
+import { UiSandboxHost } from "./ui-sandbox-host";
 import { registerOpenTargetIpc } from "./open-targets";
 import { ProjectHost } from "./project-host";
 import { SessionHost } from "./session-host";
@@ -106,6 +108,7 @@ let prInboxHost: PrInboxHost | null = null;
 let logHost: LogHost | null = null;
 let conversationExportHost: ConversationExportHost | null = null;
 let updateHost: UpdateHost | null = null;
+let uiSandboxHost: UiSandboxHost | null = null;
 
 /*
  * macOS 上由系统 vibrancy 提供毛玻璃,窗口底色必须是透明的,
@@ -198,6 +201,13 @@ function createWindow(): BrowserWindow {
     if (devUrl && url.startsWith(devUrl)) return;
     if (url.startsWith("file:")) return;
     event.preventDefault();
+  });
+
+  // 微应用 iframe（IUI-14）只能停留在 about:srcdoc；任何跳转到网络或文件的尝试都直接拦截。
+  win.webContents.on("will-frame-navigate", (event) => {
+    if (allowSubframeNavigation(event.url, event.isMainFrame)) return;
+    event.preventDefault();
+    log.warn("blocked subframe navigation");
   });
 
   if (process.env.ELECTRON_RENDERER_URL) {
@@ -316,6 +326,8 @@ async function start(): Promise<void> {
     locale: getApplicationLocale,
   });
   logHost.register();
+  uiSandboxHost = new UiSandboxHost();
+  uiSandboxHost.register();
   updateHost = new UpdateHost(createUpdateService(home));
   updateHost.register();
   setUpdateMenuAction(() => { void updateHost?.checkFromMenu().catch(error => log.error("update check from menu failed", error)); });
@@ -661,6 +673,8 @@ app.on("before-quit", (event) => {
   conversationExportHost?.dispose();
   conversationExportHost = null;
   updateHost?.dispose();
+  uiSandboxHost?.dispose();
+  uiSandboxHost = null;
   try { taskRecipes?.stop(); } catch (error) { log.error("recipe shutdown write failed", error); }
   taskRecipeHost?.dispose(); taskRecipeHost = null;
   scheduledTaskHost?.dispose();

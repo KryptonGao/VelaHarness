@@ -216,6 +216,14 @@ describe("Intelligent UI component registry", () => {
       loading: {},
       empty: { title: "nothing" },
       error: { title: "oops" },
+      bar_chart: { labels: ["a", "b"], series: [{ label: "S", values: [1, 2] }] },
+      line_chart: { data: [{ label: "a", value: 1 }, { label: "b", value: null }] },
+      pie_chart: { slices: [{ label: "a", value: 1 }] },
+      svg_diagram: { title: "d", shapes: [{ type: "circle", cx: 10, cy: 10, r: 5 }] },
+      media: { kind: "map", alt: "a map of Lisbon" },
+      timeline: { items: [{ title: "kickoff", date: "2026-01-01", status: "done" }] },
+      itinerary: { days: [{ label: "Day 1", stops: [{ name: "Museum" }] }] },
+      diff_view: { diff: "@@ -1 +1 @@\n-a\n+b" },
     };
     assert.deepEqual(Object.keys(samples).sort(), [...uiComponentTypes].sort());
     for (const [type, props] of Object.entries(samples)) ok(type, props);
@@ -274,7 +282,10 @@ describe("Intelligent UI component registry", () => {
     throws({ type: "set_state", name: "a", value: { x: 1 } });
     throws({ type: "set_state", name: "a", value: Number.POSITIVE_INFINITY });
     throws({ type: "set_state", name: "a b", value: 1 });
+    // request_tool needs a readable summary and a tool-shaped name; it only ever describes a request.
     throws({ type: "request_tool", tool: "bash" });
+    throws({ type: "request_tool", tool: "rm -rf /", summary: "x" });
+    throws({ type: "request_tool", tool: "Bash", summary: "x" });
     throws({ type: "submit_to_agent", text: "" });
     throws({ type: "submit_to_agent", text: "x".repeat(2_001) });
     throws({ type: "submit_to_agent", text: "go", include: ["__proto__"] });

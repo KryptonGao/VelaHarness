@@ -79,6 +79,8 @@ export const settingsEntries: readonly SettingsEntry[] = [
   { id: "thinking-summary-style", page: "display", title: (c) => c.appearance.thinkingSummaryStyle, hint: (c) => c.appearance.thinkingSummaryStyleHint, keywords: { zh: ["总结显示", "标题", "跟在思考后", "跟随回复"], en: ["summary display", "headline", "inline", "prose"] } },
 
   { id: "intelligent-ui", page: "display", title: () => uiCopy.setting.title(), hint: () => uiCopy.setting.description(), keywords: { zh: ["交互界面", "计算器", "对比表", "原生界面", "动态界面", "生成式界面"], en: ["intelligent ui", "interactive", "generative ui", "calculator", "interface", "visual"] } },
+  { id: "intelligent-ui-apps", page: "display", title: () => uiCopy.setting.microAppsTitle(), hint: () => uiCopy.setting.microAppsDescription(), keywords: { zh: ["微应用", "小游戏", "隔离", "iframe"], en: ["micro-app", "iframe", "mini game", "isolated"] } },
+  { id: "intelligent-ui-metrics", page: "display", title: () => uiCopy.setting.metricsTitle(), hint: () => uiCopy.setting.metricsDescription(), keywords: { zh: ["指标", "统计", "检查器", "观测"], en: ["metrics", "statistics", "inspector", "observability"] } },
 
   { id: "skills", page: "skills", title: (c) => c.agent.skills, hint: (c) => c.agent.skillsHint, keywords: { zh: ["技能", "迁移", "Codex", "Claude Code", "SKILL.md"], en: ["skill", "migrate", "codex", "claude code", "SKILL.md"] } },
 

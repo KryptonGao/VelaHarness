@@ -8,7 +8,7 @@ import { ChatView, type ChatViewProps } from "./ChatView";
 import { uiStorage } from "../ui-storage";
 import { createFoldStore, type ToolFoldStore } from "./tool-fold-state";
 import { ToolProcessProvider } from "./ToolProcessContext";
-import { mayContainUi } from "@vela/shared";
+import { mayContainUi, toolCallsFromMessages, type UiToolCall } from "@vela/shared";
 import { UiHostProvider, uiStateStore, type UiHost } from "./intelligent-ui/UiRuntime";
 import { stableUiMessageId } from "./intelligent-ui/ui-state-store";
 
@@ -80,6 +80,17 @@ export const SessionChatView = memo(function SessionChatView({ messageStore, sum
   useEffect(() => {
     if (sessionId && !streaming && messages.length > 0) uiStateStore.pruneConversation(sessionId, uiOrdinals.size);
   }, [sessionId, streaming, messages.length, uiOrdinals.size]);
+  // 界面数据源只能取自会话里真实的工具调用：按消息顺序累积，取到「这条回复为止」的那一段。
+  const toolIndex = useMemo(() => {
+    const calls: UiToolCall[] = [];
+    const ends = new Map<string, number>();
+    for (const message of messages) {
+      if (message.role !== "assistant") continue;
+      calls.push(...toolCallsFromMessages([message], 0));
+      ends.set(message.id, calls.length);
+    }
+    return { calls, ends };
+  }, [messages]);
   const uiHost = useMemo<UiHost>(() => ({
     conversationId: sessionId,
     stableMessageId: (messageId) => uiOrdinals.get(messageId) ?? null,
@@ -88,7 +99,8 @@ export const SessionChatView = memo(function SessionChatView({ messageStore, sum
     // 与输入框一致：运行中进入队列，不打断当前任务。
     submit: (text) => onSend(text, undefined, streaming ? "queue" : undefined),
     openLink: () => false,
-  }), [sessionId, uiOrdinals, modelReady, streaming, onSend]);
+    toolCalls: (messageId) => toolIndex.calls.slice(0, toolIndex.ends.get(messageId) ?? 0),
+  }), [sessionId, uiOrdinals, toolIndex, modelReady, streaming, onSend]);
   return <ToolProcessProvider sessionId={sessionId} store={foldStore} compact={props.toolDisplay === "compact"} enabled={toolProcessDetails}>
     <UiHostProvider value={uiHost}>
       <ChatView {...props} messages={messages} thinkingSummaries={thinkingSummaries} />

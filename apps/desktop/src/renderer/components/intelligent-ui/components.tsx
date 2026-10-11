@@ -1,12 +1,16 @@
 import { Fragment, useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import {
+  composeToolRequest,
+  composeRefreshRequest,
   composeUiSubmission,
   formatUiNumber,
   formatUiScalar,
   isUiNodeVisible,
   resolveUiValue,
   safeExternalUrl,
+  sourceRows,
   summarizeUiArtifact,
+  toTsv,
   validateStateValue,
   type UiAction,
   type UiDataStatus,
@@ -16,35 +20,21 @@ import {
   type UiStateDefinition,
   type UiValue,
 } from "@vela/shared";
+import { BarChart, LineChart, PieChart } from "./charts";
 import { uiCopy } from "./copy";
-import { tokenizeInline } from "./inline-text";
+import { SvgDiagram } from "./diagrams";
+import { DiffView, Itinerary, MediaPlaceholder, Timeline } from "./rich-views";
+import { ConfirmPanel, copyToClipboard, DataMeta, InlineText, SourceNotice, useFlash, useSource, type PendingAction } from "./shared-views";
 import { formatCell, nextSort, visibleRowIndexes, type TableColumn, type TableRow, type TableView } from "./table-model";
 import { useUiRuntime } from "./UiRuntime";
+
+export { InlineText };
 
 type Props = Record<string, unknown>;
 interface Option { value: string; label: string; description?: string }
 
 function str(value: unknown): string {
   return typeof value === "string" ? value : "";
-}
-
-/** 渲染文字：Markdown 子集 → React 元素，永远不经过 HTML。 */
-export function InlineText({ text }: { text: string }) {
-  const tokens = useMemo(() => tokenizeInline(text), [text]);
-  const { host } = useUiRuntime();
-  return <>{tokens.map((token, index) => {
-    switch (token.type) {
-      case "bold": return <strong key={index}>{token.text}</strong>;
-      case "italic": return <em key={index}>{token.text}</em>;
-      case "code": return <code key={index}>{token.text}</code>;
-      case "link": return <a key={index} href={token.href} target="_blank" rel="noreferrer noopener"
-        onClick={event => {
-          if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-          if (host.openLink(token.href)) event.preventDefault();
-        }}>{token.text}</a>;
-      default: return <Fragment key={index}>{token.text}</Fragment>;
-    }
-  })}</>;
 }
 
 function stateOf(name: unknown, definitions: readonly UiStateDefinition[]): UiStateDefinition | undefined {
@@ -61,23 +51,6 @@ function ResolvedText({ value, digits }: { value: unknown; digits?: number }) {
   const result = useResolved(value);
   if (!result.ok) return <span className="iui-error-text" role="status">{"⚠ "}{uiCopy.evalError(result.error)}</span>;
   return <>{typeof result.value === "number" ? formatUiNumber(result.value, digits) : formatUiScalar(result.value)}</>;
-}
-
-// ---------- 数据状态与来源 ----------
-
-function DataMeta({ status, source }: { status?: UiDataStatus; source?: UiSourceNote }) {
-  const label = status === "loading" ? uiCopy.statusLoading() : status === "stale" ? uiCopy.statusStale()
-    : status === "error" ? uiCopy.statusError() : status === "empty" ? uiCopy.statusEmpty() : null;
-  if (!label && !source) return null;
-  return <div className="iui-meta">
-    {label ? <span className={`iui-badge iui-badge-${status}`}>{label}</span> : null}
-    {/* 来源由模型提供，Vela 无法验证：始终标注「未验证」，链接只允许 http(s)。 */}
-    {source ? <span className="iui-source">
-      {uiCopy.source()}{": "}
-      {source.url && safeExternalUrl(source.url) ? <a href={source.url} target="_blank" rel="noreferrer noopener">{source.label}</a> : source.label}
-      {" · "}<span className="iui-unverified">{uiCopy.unverified()}</span>
-    </span> : null}
-  </div>;
 }
 
 // ---------- 输入类 ----------
@@ -259,7 +232,14 @@ function Segmented({ props, kind, children }: { props: Props; kind: "tabs" | "se
 function Table({ props, id }: { props: Props; id: string }) {
   const { values } = useUiRuntime();
   const columns = props.columns as TableColumn[];
-  const rows = props.rows as TableRow[];
+  const from = typeof props.from === "string" ? props.from : undefined;
+  const { snapshot, blocked } = useSource(from);
+  // 来自数据源的表：行就是真实工具结果里的行。
+  const rows = useMemo<TableRow[]>(
+    () => from ? sourceRows(snapshot).map(row => ({ cells: row as Record<string, UiScalar>, detail: null })) : props.rows as TableRow[],
+    [from, snapshot, props.rows],
+  );
+  const [flash, setFlash] = useFlash();
   const filterSpec = props.filter as { bind: string; column: string; allValue: string } | undefined;
   const defaultSort = props.defaultSort as { column: string; direction: "asc" | "desc" } | undefined;
   const [sort, setSort] = useState<TableView["sort"]>(defaultSort ?? null);
@@ -274,6 +254,15 @@ function Table({ props, id }: { props: Props; id: string }) {
   const expandable = rows.some(row => row.detail);
   const caption = str(props.caption);
   const labels = { yes: uiCopy.yes(), no: uiCopy.no() };
+  if (blocked) return <div className="iui-table-block">
+    {caption ? <div className="iui-label">{caption}</div> : null}
+    <SourceNotice snapshot={snapshot} />
+    <DataMeta status={props.status as UiDataStatus | undefined} source={props.source as UiSourceNote | undefined} from={from} />
+  </div>;
+  const copyTable = () => {
+    const text = toTsv(columns.map(column => column.label), indexes.map(index => columns.map(column => formatCell(rows[index].cells[column.key], column, labels))));
+    void copyToClipboard(text).then(ok => setFlash(ok ? uiCopy.copied() : uiCopy.copyFailed()));
+  };
   return <div className="iui-table-block">
     {props.searchable === true ? <div className="iui-table-tools">
       <label className="iui-label" htmlFor={searchId}>{uiCopy.search()}</label>
@@ -318,24 +307,31 @@ function Table({ props, id }: { props: Props; id: string }) {
         </tbody>
       </table>
     </div>
-    <DataMeta status={props.status as UiDataStatus | undefined} source={props.source as UiSourceNote | undefined} />
+    <div className="iui-chart-tools">
+      <button type="button" className="iui-tool" onClick={copyTable}>{flash ?? uiCopy.copyTable()}</button>
+    </div>
+    <DataMeta status={props.status as UiDataStatus | undefined} source={props.source as UiSourceNote | undefined} from={from} />
   </div>;
 }
 
 function Stat({ props }: { props: Props }) {
-  const status = props.status as UiDataStatus | undefined;
+  const from = typeof props.from === "string" ? props.from : undefined;
+  const { snapshot, blocked } = useSource(from);
+  const status = (from ? (snapshot?.status === "loading" || !snapshot ? "loading" : undefined) : props.status) as UiDataStatus | undefined;
   const result = useResolved(props.value);
   const empty = result.ok && (result.value === null || result.value === "");
   return <div className="iui-stat">
     <div className="iui-stat-label">{str(props.label)}</div>
     <div className="iui-stat-value" aria-live="polite" aria-atomic="true">
       {status === "loading" ? <span className="iui-muted">{uiCopy.statusLoading()}</span>
+        : blocked ? <span className="iui-muted">—</span>
         : empty ? <span className="iui-muted">{str(props.emptyText) || "—"}</span>
         : <>{result.ok ? <>{str(props.prefix)}</> : null}<ResolvedText value={props.value} digits={props.digits as number | undefined} />
           {result.ok && props.unit ? <span className="iui-stat-unit">{" "}{str(props.unit)}</span> : null}</>}
     </div>
     {props.description ? <div className="iui-description">{str(props.description)}</div> : null}
-    <DataMeta status={status === "loading" ? undefined : status} source={props.source as UiSourceNote | undefined} />
+    {blocked && snapshot && snapshot.status !== "loading" ? <SourceNotice snapshot={snapshot} /> : null}
+    <DataMeta status={status === "loading" ? undefined : status} source={props.source as UiSourceNote | undefined} from={from} />
   </div>;
 }
 
@@ -357,35 +353,37 @@ function Progress({ props }: { props: Props }) {
 }
 
 function List({ props }: { props: Props }) {
-  const items = props.items as Array<{ text: string; detail: string | null }>;
+  const from = typeof props.from === "string" ? props.from : undefined;
+  const { snapshot, blocked } = useSource(from);
+  const items = useMemo(() => from
+    ? sourceRows(snapshot).map(row => ({
+      text: formatUiScalar(row[String(props.textKey)] ?? null),
+      detail: typeof props.detailKey === "string" ? formatUiScalar(row[props.detailKey] ?? null) || null : null,
+    }))
+    : props.items as Array<{ text: string; detail: string | null }>, [from, snapshot, props.items, props.textKey, props.detailKey]);
   const Tag = props.ordered === true ? "ol" : "ul";
+  if (blocked) return <div className="iui-list-block">
+    <SourceNotice snapshot={snapshot} />
+    <DataMeta status={props.status as UiDataStatus | undefined} source={props.source as UiSourceNote | undefined} from={from} />
+  </div>;
   return <div className="iui-list-block">
     {items.length === 0 ? <div className="iui-muted">{str(props.emptyText) || uiCopy.noData()}</div> : <Tag className="iui-list">
       {items.map((item, index) => <li key={index}><InlineText text={item.text} />{item.detail ? <div className="iui-description"><InlineText text={item.detail} /></div> : null}</li>)}
     </Tag>}
-    <DataMeta status={props.status as UiDataStatus | undefined} source={props.source as UiSourceNote | undefined} />
+    <DataMeta status={props.status as UiDataStatus | undefined} source={props.source as UiSourceNote | undefined} from={from} />
   </div>;
 }
 
 // ---------- 按钮与受控动作 ----------
 
-type Pending = { kind: "submit"; text: string } | { kind: "link"; url: string };
-
 function Button({ props }: { props: Props }) {
   const runtime = useUiRuntime();
-  const { artifact, values, setValue, host } = runtime;
+  const { artifact, values, setValue, snapshots } = runtime;
   const action = props.action as UiAction;
   const disabledResult = useResolved(props.disabled);
   const disabled = disabledResult.ok ? disabledResult.value === true : true;
-  const [pending, setPending] = useState<Pending | null>(null);
-  const [feedback, setFeedback] = useState<string | null>(null);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
-  const flash = (text: string) => {
-    setFeedback(text);
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => setFeedback(null), 1800);
-  };
+  const [pending, setPending] = useState<PendingAction | null>(null);
+  const [feedback, setFlash] = useFlash();
   const copyResolved = action.type === "copy" ? resolveUiValue(action.text, runtime.env, runtime.receiving) : null;
   const run = () => {
     switch (action.type) {
@@ -398,13 +396,24 @@ function Button({ props }: { props: Props }) {
         if (typeof values[action.name] === "boolean") setValue(action.name, !values[action.name]);
         break;
       case "copy": {
-        if (!copyResolved?.ok) { flash(uiCopy.copyFailed()); break; }
-        const text = formatUiScalar(copyResolved.value);
-        void navigator.clipboard.writeText(text).then(() => flash(uiCopy.copied()), () => flash(uiCopy.copyFailed()));
+        if (!copyResolved?.ok) { setFlash(uiCopy.copyFailed()); break; }
+        void copyToClipboard(formatUiScalar(copyResolved.value)).then(ok => setFlash(ok ? uiCopy.copied() : uiCopy.copyFailed()));
         break;
       }
-      // 这两种有外部效果：先显示将要发生什么，由用户再确认一次。
+      // 这些有外部效果：先显示将要发生什么，由用户再确认一次。
+      // 它们都只是一条发给 Agent 的普通消息：工具是否运行、要不要审批完全由 Agent Runtime 决定。
       case "submit_to_agent": setPending({ kind: "submit", text: composeUiSubmission(artifact, action, values) }); break;
+      case "refresh_source": {
+        const definition = artifact.sources.find(item => item.name === action.name);
+        if (definition) setPending({ kind: "submit", title: uiCopy.willSendRefresh(), text: composeRefreshRequest(artifact, definition, snapshots.get(definition.name)) });
+        break;
+      }
+      case "request_tool": {
+        const request = composeToolRequest(artifact, action, runtime.env);
+        if (request.ok) setPending({ kind: "submit", title: uiCopy.willSendToolRequest(), text: request.text });
+        else setFlash(uiCopy.evalError(request.error));
+        break;
+      }
       case "open_external": {
         const url = safeExternalUrl(action.url);
         if (url) setPending({ kind: "link", url });
@@ -418,26 +427,7 @@ function Button({ props }: { props: Props }) {
       aria-expanded={pending ? true : undefined} aria-controls={pending ? confirmId : undefined} onClick={run}>
       {feedback ?? str(props.label)}
     </button>
-    {pending ? <div className="iui-confirm" id={confirmId} role="group" aria-label={pending.kind === "submit" ? uiCopy.sendToAgent() : uiCopy.open()}>
-      {pending.kind === "submit" ? <>
-        <div className="iui-confirm-title">{uiCopy.willSend()}</div>
-        <pre className="iui-confirm-text">{pending.text}</pre>
-        {host.agentBusy ? <div className="iui-description">{uiCopy.queueNote()}</div> : null}
-        {!host.canSubmit ? <div className="iui-field-error" role="alert">{"⚠ "}{uiCopy.unavailable()}</div> : null}
-        <div className="iui-confirm-actions">
-          <button type="button" className="iui-button iui-button-primary" disabled={!host.canSubmit}
-            onClick={() => { setPending(null); void host.submit(pending.text); }}>{uiCopy.send()}</button>
-          <button type="button" className="iui-button iui-button-secondary" onClick={() => setPending(null)}>{uiCopy.cancel()}</button>
-        </div>
-      </> : <>
-        <div className="iui-confirm-title">{uiCopy.openLink(pending.url)}</div>
-        <div className="iui-confirm-actions">
-          <a className="iui-button iui-button-primary" href={pending.url} target="_blank" rel="noreferrer noopener"
-            onClick={event => { if (host.openLink(pending.url)) event.preventDefault(); setPending(null); }}>{uiCopy.open()}</a>
-          <button type="button" className="iui-button iui-button-secondary" onClick={() => setPending(null)}>{uiCopy.cancel()}</button>
-        </div>
-      </>}
-    </div> : null}
+    {pending ? <ConfirmPanel pending={pending} id={confirmId} onClose={() => setPending(null)} /> : null}
   </div>;
 }
 
@@ -481,6 +471,14 @@ function Body({ node }: { node: UiNode }) {
     case "stat": return <Stat props={props} />;
     case "progress": return <Progress props={props} />;
     case "list": return <List props={props} />;
+    case "bar_chart": return <BarChart props={props} />;
+    case "line_chart": return <LineChart props={props} />;
+    case "pie_chart": return <PieChart props={props} />;
+    case "svg_diagram": return <SvgDiagram props={props} />;
+    case "media": return <MediaPlaceholder props={props} />;
+    case "timeline": return <Timeline props={props} />;
+    case "itinerary": return <Itinerary props={props} />;
+    case "diff_view": return <DiffView props={props} />;
     case "tabs": return <Segmented props={props} kind="tabs"><Children node={node} /></Segmented>;
     case "segmented": return <Segmented props={props} kind="segmented" />;
     case "select": return <Select props={props} />;
@@ -507,8 +505,8 @@ export function NodeView({ node }: { node: UiNode }) {
 }
 
 /** 复制用的纯文字等价物。 */
-export function artifactText(runtime: Pick<ReturnType<typeof useUiRuntime>, "artifact" | "values">): string {
-  return summarizeUiArtifact(runtime.artifact, runtime.values);
+export function artifactText(runtime: Pick<ReturnType<typeof useUiRuntime>, "artifact" | "values" | "snapshots">): string {
+  return summarizeUiArtifact(runtime.artifact, runtime.values, runtime.snapshots);
 }
 
 export type { UiScalar };

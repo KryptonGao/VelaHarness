@@ -1,6 +1,8 @@
-import { memo, useMemo, useRef } from "react";
+import { memo, useEffect, useMemo, useRef } from "react";
 import { mayContainUi, UiStreamParser, type UiSegment } from "@vela/shared";
 import { Markdown } from "../Markdown";
+import { MicroAppView } from "./MicroApp";
+import { uiMetrics } from "./ui-metrics-instance";
 import { UiArtifactView } from "./UiArtifactView";
 
 interface ParserState {
@@ -33,14 +35,27 @@ function WithUi({ messageId, text, streaming }: { messageId: string; text: strin
   return <>
     {segments.map((segment, index) => segment.type === "markdown"
       ? <Markdown key={segment.key} text={segment.text} streaming={streaming && index === lastIndex} />
-      : <UiArtifactView key={segment.key} artifact={segment.artifact} raw={segment.raw} messageId={messageId} streaming={streaming} />)}
+      : segment.type === "app"
+        ? <MicroAppView key={segment.key} app={segment.app} raw={segment.raw} messageId={messageId} streaming={streaming} />
+        : <UiArtifactView key={segment.key} artifact={segment.artifact} raw={segment.raw} messageId={messageId} streaming={streaming} />)}
   </>;
+}
+
+/** 只统计这次运行里流式生成完的回复：历史记录每次打开都会重新渲染，不应抬高「生成比例」。 */
+function useReplyMetrics(messageId: string, hasUi: boolean, streaming: boolean): void {
+  const live = useRef(false);
+  if (streaming) live.current = true;
+  useEffect(() => {
+    if (live.current && !streaming) uiMetrics.assistantMessage(messageId, hasUi);
+  }, [messageId, hasUi, streaming]);
 }
 
 /** 助手回复正文。没有界面围栏的消息走原来的 Markdown，行为与之前完全一致。 */
 export const AssistantMarkdown = memo(function AssistantMarkdown({ messageId, text, streaming = false }: {
   messageId: string; text: string; streaming?: boolean;
 }) {
-  if (!mayContainUi(text)) return <Markdown text={text} streaming={streaming} />;
+  const hasUi = mayContainUi(text);
+  useReplyMetrics(messageId, hasUi, streaming);
+  if (!hasUi) return <Markdown text={text} streaming={streaming} />;
   return <WithUi messageId={messageId} text={text} streaming={streaming} />;
 });

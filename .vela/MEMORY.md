@@ -1,4 +1,5 @@
 ---
+---
 # Vela 项目记忆
 
 ## 项目概况
@@ -23,6 +24,7 @@
 - 测试文件命名与位置：Node 单测 `*.test.ts` 分布在 `packages/{agent,workspace}/test`、`apps/desktop/test`；浏览器 UI 检查为 `*.mjs`（如 `plugins-ui.mjs`、`memory-settings-ui.mjs`）；Electron 冒烟为 `*-electron-smoke.mjs`。
 - 新增定向测试组要接进 `apps/desktop/package.json` 的 `test:*` 脚本；`apps/desktop/test-center/discovery.mjs` 会从这些脚本推导功能分组（纯文件系统扫描，不运行测试）。
 - 渲染层测试偏好纯逻辑模型文件（如 `*-model.ts`）配 Node 单测，UI 检查另跑。
+- 演示/测试 Intelligent UI 时，用户希望直接生成 `vela-ui` 界面（开发版可自由调用），不必先做大量协议源码核对。
 
 ## 文档约定（docs/README.md）
 
@@ -34,7 +36,7 @@
 
 ## 发布与提交约定
 
-- 版本号维护在 `apps/desktop/package.json` 的 `version` 与 `shortVersion`；当前线为 1.0.x。
+- 版本号维护在 `apps/desktop/package.json` 的 `version` 与 `shortVersion`；当前线为 1.1.x（工作区 `version` 为 1.1.0，最新 tag 为 v1.0.8）。
 - `RELEASE_NOTES.md` 记录各版本发布说明（New / Improved / Upgrade / Download / Validation 结构，英文）。
 - 提交信息为 conventional commits（`feat:` / `fix:` / `docs:` / `test:`），发布提交以 `release X.Y.Z` 结尾。
 - macOS 打包：`pnpm package:mac`、`pnpm --filter @vela/desktop dist:mac:signed`；发布包未公证，首次启动需 Open Anyway。

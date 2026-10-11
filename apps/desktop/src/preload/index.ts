@@ -134,7 +134,9 @@ import {
   type TerminalSessionInfo,
   type ThinkingLevel,
   type TranscriptMessage,
+  type IntelligentUiState,
   type UiPreference,
+  type UiSandboxIssueResult,
   LogsIpc,
   UpdatesIpc,
   type UpdateState,
@@ -377,9 +379,16 @@ const api: VelaApi = {
   getAgentSettings: () => ipcRenderer.invoke(IpcChannel.getAgentSettings) as Promise<AgentSettings>,
   saveAgentSettings: (settings: AgentSettings) =>
     ipcRenderer.invoke(IpcChannel.saveAgentSettings, settings) as Promise<AgentSettings>,
-  getIntelligentUi: () => ipcRenderer.invoke(IpcChannel.getIntelligentUi) as Promise<{ preference: UiPreference }>,
+  getIntelligentUi: () => ipcRenderer.invoke(IpcChannel.getIntelligentUi) as Promise<IntelligentUiState>,
   setIntelligentUi: (preference: UiPreference) =>
-    ipcRenderer.invoke(IpcChannel.setIntelligentUi, preference) as Promise<{ preference: UiPreference }>,
+    ipcRenderer.invoke(IpcChannel.setIntelligentUi, preference) as Promise<IntelligentUiState>,
+  setIntelligentUiMicroApps: (enabled: boolean) =>
+    ipcRenderer.invoke(IpcChannel.setIntelligentUiMicroApps, enabled) as Promise<IntelligentUiState>,
+  uiSandboxIssue: (appKey, capability, size) =>
+    ipcRenderer.invoke(IpcChannel.uiSandboxIssue, appKey, capability, size) as Promise<UiSandboxIssueResult>,
+  uiSandboxRedeem: (token, appKey, capability, size) =>
+    ipcRenderer.invoke(IpcChannel.uiSandboxRedeem, token, appKey, capability, size) as Promise<{ ok: boolean }>,
+  uiSandboxRevoke: (appKey) => ipcRenderer.invoke(IpcChannel.uiSandboxRevoke, appKey) as Promise<void>,
   listSkills: () => ipcRenderer.invoke(IpcChannel.listSkills) as Promise<SkillCatalog>,
   openSkillsDirectory: () => ipcRenderer.invoke(IpcChannel.openSkillsDir) as Promise<void>,
   scanExternalSkills: () => ipcRenderer.invoke(IpcChannel.scanExternalSkills) as Promise<ExternalSkillScan>,

@@ -230,6 +230,10 @@ export class SessionHost {
       if (!isUiPreference(raw)) throw new Error("Intelligent UI 偏好不正确");
       return this.runtime.setIntelligentUiPreference(raw);
     });
+    ipcMain.handle(IpcChannel.setIntelligentUiMicroApps, (_event, raw: unknown) => {
+      if (typeof raw !== "boolean") throw new Error("Intelligent UI 微应用设置不正确");
+      return this.runtime.setIntelligentUiMicroApps(raw);
+    });
     ipcMain.handle(IpcChannel.listSkills, () => this.runtime.listSkills(this.hooks.currentCwd()));
     ipcMain.handle(IpcChannel.scanExternalSkills, () => this.runtime.scanExternalSkills(this.hooks.currentCwd()));
     ipcMain.handle(IpcChannel.migrateSkills, (_event, raw: unknown) => {

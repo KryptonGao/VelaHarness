@@ -3,7 +3,7 @@ import { PluginRegistry } from "./mcp/plugin-registry";
 import { OAuthMCPManager } from "./mcp/oauth";
 import { PluginMCPManager } from "./mcp/manager";
 import type { CredentialStore } from "./mcp/credentials";
-import type { BuiltInPlugin, PluginCatalog, PluginTarget, PluginStatusEvent, UiPreference } from "@vela/shared";
+import type { BuiltInPlugin, IntelligentUiState, PluginCatalog, PluginTarget, PluginStatusEvent, UiPreference } from "@vela/shared";
 import { redactMcpDisplay, mcpConfiguredSecrets } from "./mcp-redaction";
 import { McpSessionBridge, isMcpTool, type McpPermission } from "./mcp-session";
 import { createScheduledTaskTools, scheduledTaskInstructions } from "./scheduled-task-tools";
@@ -2240,7 +2240,7 @@ export class AgentRuntime {
           hidden: true,
           factory: ((pi) => { pi.on("before_agent_start", event => {
             // 每轮读取当前偏好，设置切换后下一轮立即生效。
-            const extra = intelligentUiInstructions(this.intelligentUiSettings.preference, entry.snapshot.mode);
+            const extra = intelligentUiInstructions(this.intelligentUiSettings.preference, entry.snapshot.mode, { microApps: this.intelligentUiSettings.microApps });
             if (!extra) return;
             const current = event.systemPromptOptions.appendSystemPrompt.trim();
             event.systemPromptOptions.appendSystemPrompt = current ? `${current}\n\n${extra}` : extra;
@@ -3135,12 +3135,17 @@ export class AgentRuntime {
     return (this.memoryLoads.get(agentId ? `${conversationId}/${agentId}` : conversationId) ?? []).map((source) => ({ ...source }));
   }
 
-  getIntelligentUiSettings(): { preference: UiPreference } {
-    return { preference: this.intelligentUiSettings.preference };
+  getIntelligentUiSettings(): IntelligentUiState {
+    return this.intelligentUiSettings.state;
   }
 
-  setIntelligentUiPreference(preference: UiPreference): { preference: UiPreference } {
+  setIntelligentUiPreference(preference: UiPreference): IntelligentUiState {
     this.intelligentUiSettings.setPreference(preference);
+    return this.getIntelligentUiSettings();
+  }
+
+  setIntelligentUiMicroApps(enabled: boolean): IntelligentUiState {
+    this.intelligentUiSettings.setMicroApps(enabled);
     return this.getIntelligentUiSettings();
   }
 

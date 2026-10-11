@@ -27,7 +27,10 @@ export type UiEvalErrorCode =
   | "invalid_input"
   | "bad_arguments"
   | "too_deep"
-  | "too_large";
+  | "too_large"
+  | "source_pending"
+  | "source_failed"
+  | "source_empty";
 
 export type UiEvalResult =
   | { ok: true; value: UiScalar }
@@ -117,6 +120,14 @@ export function collectRefs(expression: UiExpression | undefined, into: Set<stri
 export function evaluateExpression(expression: UiExpression | undefined, env: UiEvalEnv): UiEvalResult {
   if (expression === undefined) return { ok: false, error: "bad_arguments" };
   return evaluate(expression, env, 0);
+}
+
+/** 字面量原样返回，表达式求值。`receiving` 时找不到的引用先视为「等待数据」。 */
+export function resolveUiValue(value: unknown, env: UiEvalEnv, receiving = false): UiEvalResult {
+  if (value === undefined) return { ok: false, error: "bad_arguments" };
+  if (value === null || typeof value !== "object") return { ok: true, value: value as UiScalar };
+  const result = evaluateExpression(value as UiExpression, env);
+  return receiving && !result.ok && result.error === "unknown_ref" ? { ok: false, error: "pending_ref" } : result;
 }
 
 function fail(error: UiEvalErrorCode): UiEvalResult {

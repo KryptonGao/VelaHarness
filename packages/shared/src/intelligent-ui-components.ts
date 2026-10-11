@@ -3,11 +3,13 @@ import {
   parseExpression,
 } from "./intelligent-ui-expression";
 import {
+  isForbiddenKey,
   isPlainObject,
   isUiName,
   safeExternalUrl,
   uiDataStatuses,
   uiLimits,
+  uiToolNameRe,
   type UiAction,
   type UiDataStatus,
   type UiDynamic,
@@ -36,6 +38,8 @@ export interface UiValidatedProps {
   show?: UiExpression;
   /** 表达式、动作和 bind 引用的名称，commit 时必须都已定义。 */
   refs: string[];
+  /** from / refresh_source 引用的数据源名称，commit 时必须都已声明。 */
+  sourceRefs: string[];
   /** 控件绑定，commit 时检查状态类型。 */
   bindings: UiComponentBinding[];
   /** 计入 options 总上限的条目数（选项、表格行、列表项）。 */
@@ -54,6 +58,7 @@ function reject(message: string): never {
 
 interface Collector {
   refs: Set<string>;
+  sourceRefs: Set<string>;
   bindings: UiComponentBinding[];
   optionCount: number;
 }
@@ -190,7 +195,7 @@ function names(value: unknown, label: string, max: number): string[] {
 }
 
 /** 动作只描述意图；外链协议、名称与长度在这里就被收紧。 */
-export function parseAction(value: unknown, collector: { refs: Set<string> }): UiAction {
+export function parseAction(value: unknown, collector: { refs: Set<string>; sourceRefs?: Set<string> }): UiAction {
   if (!isPlainObject(value)) reject("action must be an object");
   const type = value.type;
   const withCollector = collector as Collector;
@@ -225,9 +230,358 @@ export function parseAction(value: unknown, collector: { refs: Set<string> }): U
       if (!url) reject("action.url must be an http(s) or mailto link");
       return { type, url };
     }
+    case "refresh_source": {
+      if (!isUiName(value.name)) reject("action.name must be a data source name");
+      collector.sourceRefs?.add(value.name);
+      return { type, name: value.name };
+    }
+    case "request_tool": {
+      const tool = value.tool;
+      if (typeof tool !== "string" || !uiToolNameRe.test(tool)) reject("action.tool must be a tool name");
+      const summary = text(value, "summary", { max: 300, required: true })!;
+      if (value.args === undefined || value.args === null) return { type, tool, summary };
+      if (!isPlainObject(value.args)) reject("action.args must be an object");
+      const entries = Object.entries(value.args);
+      if (entries.length > uiLimits.toolArgs) reject("action.args has too many entries");
+      const args: Record<string, UiDynamic> = {};
+      for (const [key, argument] of entries) {
+        if (!isUiName(key)) reject("action.args keys must be identifiers");
+        args[key] = dynScalar({ [key]: argument }, key, withCollector, { required: true })!;
+      }
+      return { type, tool, summary, args };
+    }
     default:
       reject("unknown action type");
   }
+}
+
+
+// ---------- P1/P2 共用的读取工具 ----------
+
+/** 数值属性：有限数字、null，或会算出数字的表达式（图表数据点、扇区）。 */
+function dynNumber(value: unknown, collector: Collector, label: string): UiDynamic {
+  if (value === null) return null;
+  if (typeof value === "number") {
+    if (!Number.isFinite(value)) reject(`${label} must be finite`);
+    return value;
+  }
+  if (!isPlainObject(value)) reject(`${label} must be a number, null or an expression`);
+  return expression(value, collector, label) as UiDynamic;
+}
+
+/** `from`：引用一个已声明的数据源，commit 时检查它真的存在。 */
+function fromSource(raw: Raw, collector: Collector): string | undefined {
+  const value = raw.from;
+  if (value === undefined || value === null) return undefined;
+  if (!isUiName(value)) reject("from must name a data source");
+  collector.sourceRefs.add(value);
+  return value;
+}
+
+/** 数据源里的列名：JSON 键可以不是标识符，只限制长度和原型污染键。 */
+function columnKey(value: unknown, label: string): string {
+  if (typeof value !== "string" || value.length === 0 || value.length > 100 || isForbiddenKey(value)) reject(`${label} must be a column name`);
+  return value;
+}
+
+function optionalColumn(raw: Raw, key: string): string | undefined {
+  const value = raw[key];
+  return value === undefined || value === null ? undefined : columnKey(value, key);
+}
+
+function coordinate(raw: Raw, key: string, options: { min?: number; max?: number } = {}): number {
+  return number(raw, key, { required: true, min: options.min ?? -uiLimits.svgCoordinate, max: options.max ?? uiLimits.svgCoordinate })!;
+}
+
+const digitsOf = (raw: Raw) => number(raw, "digits", { min: 0, max: 6, integer: true });
+
+// ---------- 图表（IUI-10） ----------
+
+interface ChartSeries { key: string; label: string; values: UiDynamic[] }
+
+function chartData(raw: Raw, c: Collector, allowDraggable: boolean): UiProps {
+  const form = [raw.series, raw.data, raw.from].filter(value => value !== undefined && value !== null).length;
+  if (form !== 1) reject("give exactly one of series, data or from");
+  if (raw.from !== undefined && raw.from !== null) {
+    const y = raw.y;
+    if (!Array.isArray(y) || y.length === 0 || y.length > uiLimits.chartSeries) reject("y must list 1-6 column names");
+    return { from: fromSource(raw, c), x: columnKey(raw.x, "x"), y: y.map(item => columnKey(item, "y")) };
+  }
+  let labels: string[];
+  let series: ChartSeries[];
+  if (raw.data !== undefined && raw.data !== null) {
+    const data = raw.data;
+    if (!Array.isArray(data) || data.length === 0) reject("data must be a non-empty array");
+    if (data.length > uiLimits.chartPoints) reject("data has too many points");
+    labels = [];
+    const values: UiDynamic[] = [];
+    for (const item of data) {
+      if (!isPlainObject(item)) reject("data entries must be objects");
+      labels.push(text(item, "label", { max: 100, required: true })!);
+      values.push(dynNumber(item.value === undefined ? null : item.value, c, "value"));
+    }
+    series = [{ key: "s1", label: text(raw, "seriesLabel", { max: 100, fallback: "" }) || "", values }];
+  } else {
+    const rawLabels = raw.labels;
+    if (!Array.isArray(rawLabels) || rawLabels.length === 0) reject("labels must be a non-empty array");
+    if (rawLabels.length > uiLimits.chartPoints) reject("labels has too many points");
+    labels = rawLabels.map(label => {
+      if (typeof label !== "string" || label.length > 100) reject("labels must be short strings");
+      return label;
+    });
+    const rawSeries = raw.series;
+    if (!Array.isArray(rawSeries) || rawSeries.length === 0 || rawSeries.length > uiLimits.chartSeries) reject("series must list 1-6 entries");
+    const keys = new Set<string>();
+    series = rawSeries.map((entry, index) => {
+      if (!isPlainObject(entry)) reject("series entries must be objects");
+      const key = entry.key === undefined || entry.key === null ? `s${index + 1}` : entry.key;
+      if (!isUiName(key) || keys.has(key)) reject("series key must be a unique identifier");
+      keys.add(key);
+      if (!Array.isArray(entry.values) || entry.values.length !== labels.length) reject("series values must match labels");
+      return { key, label: text(entry, "label", { max: 100, required: true })!, values: entry.values.map(value => dynNumber(value, c, "value")) };
+    });
+  }
+  if (allowDraggable && raw.draggable === true) {
+    // 只有直接引用 number 状态的点可以拖动：拖动只改状态，不触发任何别的东西。
+    for (const entry of series) for (const value of entry.values) {
+      if (value !== null && typeof value === "object" && "ref" in value) c.bindings.push({ name: value.ref, kind: "number" });
+    }
+  }
+  return { labels, series };
+}
+
+function chartCommon(raw: Raw, c: Collector, kind: "bar" | "line"): UiProps {
+  const yMin = number(raw, "yMin");
+  const yMax = number(raw, "yMax");
+  if (yMin !== undefined && yMax !== undefined && yMin >= yMax) reject("yMin must be below yMax");
+  const draggable = bool(raw, "draggable", false);
+  const data = chartData(raw, c, draggable);
+  if (draggable && "from" in data) reject("draggable charts need inline values");
+  return {
+    title: text(raw, "title", { max: 200 }),
+    caption: text(raw, "caption", { max: 300 }),
+    unit: text(raw, "unit", { max: 20 }),
+    prefix: text(raw, "prefix", { max: 10 }),
+    digits: digitsOf(raw),
+    yMin,
+    yMax,
+    horizontal: kind === "bar" ? bool(raw, "horizontal", false) : undefined,
+    draggable,
+    ...data,
+    source: source(raw),
+    status: status(raw),
+  };
+}
+
+function pieProps(raw: Raw, c: Collector): UiProps {
+  const common = {
+    title: text(raw, "title", { max: 200 }),
+    caption: text(raw, "caption", { max: 300 }),
+    unit: text(raw, "unit", { max: 20 }),
+    prefix: text(raw, "prefix", { max: 10 }),
+    digits: digitsOf(raw),
+    donut: bool(raw, "donut", false),
+    source: source(raw),
+    status: status(raw),
+  };
+  if (raw.from !== undefined && raw.from !== null) {
+    if (raw.slices !== undefined && raw.slices !== null) reject("give either slices or from");
+    return { ...common, from: fromSource(raw, c), label: columnKey(raw.label, "label"), value: columnKey(raw.value, "value") };
+  }
+  const slices = raw.slices;
+  if (!Array.isArray(slices) || slices.length === 0) reject("slices must be a non-empty array");
+  if (slices.length > uiLimits.pieSlices) reject("too many slices");
+  return {
+    ...common,
+    slices: slices.map(entry => {
+      if (!isPlainObject(entry)) reject("slices must be objects");
+      return { label: text(entry, "label", { max: 100, required: true })!, value: dynNumber(entry.value, c, "value") };
+    }),
+  };
+}
+
+// ---------- 受限 SVG（IUI-10） ----------
+
+export const uiSvgTones = ["none", "default", "muted", "accent", "success", "warning", "danger", "surface"] as const;
+export type UiSvgTone = typeof uiSvgTones[number];
+
+const pathCharacters = /^[MmLlHhVvCcSsQqTtAaZz0-9eE+\-.,\s]+$/;
+
+function svgStyle(raw: Raw, defaults: { fill: UiSvgTone; stroke: UiSvgTone }): UiProps {
+  return {
+    fill: choice(raw, "fill", uiSvgTones, defaults.fill),
+    stroke: choice(raw, "stroke", uiSvgTones, defaults.stroke),
+    strokeWidth: number(raw, "strokeWidth", { min: 0, max: 12, fallback: 1.5 }),
+    opacity: number(raw, "opacity", { min: 0, max: 1, fallback: 1 }),
+    dash: bool(raw, "dash", false),
+  };
+}
+
+function svgPoints(value: unknown, minimum: number): Array<[number, number]> {
+  if (!Array.isArray(value) || value.length < minimum) reject(`points needs at least ${minimum} pairs`);
+  if (value.length > uiLimits.svgPoints) reject("points has too many pairs");
+  return value.map(pair => {
+    if (!Array.isArray(pair) || pair.length !== 2) reject("points must be [x,y] pairs");
+    const [x, y] = pair as unknown[];
+    if (typeof x !== "number" || typeof y !== "number" || !Number.isFinite(x) || !Number.isFinite(y)
+      || Math.abs(x) > uiLimits.svgCoordinate || Math.abs(y) > uiLimits.svgCoordinate) reject("point is out of range");
+    return [x, y] as [number, number];
+  });
+}
+
+function svgPath(value: unknown): string {
+  if (typeof value !== "string" || value.length === 0 || value.length > uiLimits.svgPathLength) reject("path d must be a short string");
+  if (!pathCharacters.test(value) || !/^\s*[Mm]/.test(value)) reject("path d may only hold path commands and numbers");
+  for (const token of value.match(/[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?/g) ?? []) {
+    if (!Number.isFinite(Number(token)) || Math.abs(Number(token)) > 100_000) reject("path number is out of range");
+  }
+  return value;
+}
+
+function svgShape(entry: unknown): UiProps {
+  if (!isPlainObject(entry)) reject("shapes must be objects");
+  switch (entry.type) {
+    case "rect": return {
+      type: "rect", x: coordinate(entry, "x"), y: coordinate(entry, "y"),
+      w: coordinate(entry, "w", { min: 0 }), h: coordinate(entry, "h", { min: 0 }), rx: number(entry, "rx", { min: 0, max: 1000, fallback: 0 }),
+      ...svgStyle(entry, { fill: "surface", stroke: "default" }),
+    };
+    case "circle": return { type: "circle", cx: coordinate(entry, "cx"), cy: coordinate(entry, "cy"), r: coordinate(entry, "r", { min: 0 }), ...svgStyle(entry, { fill: "surface", stroke: "default" }) };
+    case "ellipse": return {
+      type: "ellipse", cx: coordinate(entry, "cx"), cy: coordinate(entry, "cy"),
+      rx: coordinate(entry, "rx", { min: 0 }), ry: coordinate(entry, "ry", { min: 0 }), ...svgStyle(entry, { fill: "surface", stroke: "default" }),
+    };
+    case "line": return {
+      type: "line", x1: coordinate(entry, "x1"), y1: coordinate(entry, "y1"), x2: coordinate(entry, "x2"), y2: coordinate(entry, "y2"),
+      ...svgStyle(entry, { fill: "none", stroke: "default" }),
+    };
+    case "polyline": return { type: "polyline", points: svgPoints(entry.points, 2), ...svgStyle(entry, { fill: "none", stroke: "default" }) };
+    case "polygon": return { type: "polygon", points: svgPoints(entry.points, 3), ...svgStyle(entry, { fill: "surface", stroke: "default" }) };
+    case "path": return { type: "path", d: svgPath(entry.d), ...svgStyle(entry, { fill: "none", stroke: "default" }) };
+    case "text": return {
+      type: "text", x: coordinate(entry, "x"), y: coordinate(entry, "y"), text: text(entry, "text", { max: 200, required: true }),
+      size: number(entry, "size", { min: 8, max: 48, fallback: 14 }), anchor: choice(entry, "anchor", ["start", "middle", "end"] as const, "start"),
+      fill: choice(entry, "fill", uiSvgTones, "default"),
+    };
+    default: reject("unsupported shape type");
+  }
+}
+
+function svgHotspot(entry: unknown, ids: Set<string>): UiProps {
+  if (!isPlainObject(entry)) reject("hotspots must be objects");
+  const id = entry.id;
+  if (!isUiName(id) || ids.has(id)) reject("hotspot id must be a unique identifier");
+  ids.add(id);
+  const base = { id, label: text(entry, "label", { max: 100, required: true })!, description: text(entry, "description", { max: 500 }), value: text(entry, "value", { max: 100, fallback: id })! };
+  switch (entry.shape) {
+    case "rect": return { ...base, shape: "rect", x: coordinate(entry, "x"), y: coordinate(entry, "y"), w: coordinate(entry, "w", { min: 0 }), h: coordinate(entry, "h", { min: 0 }) };
+    case "circle": return { ...base, shape: "circle", cx: coordinate(entry, "cx"), cy: coordinate(entry, "cy"), r: coordinate(entry, "r", { min: 0 }) };
+    case "polygon": return { ...base, shape: "polygon", points: svgPoints(entry.points, 3) };
+    default: reject("hotspot shape must be rect, circle or polygon");
+  }
+}
+
+function svgDiagram(raw: Raw, c: Collector): UiProps {
+  const shapesRaw = raw.shapes === undefined || raw.shapes === null ? [] : raw.shapes;
+  if (!Array.isArray(shapesRaw)) reject("shapes must be an array");
+  if (shapesRaw.length > uiLimits.svgShapes) reject("too many shapes");
+  const hotspotsRaw = raw.hotspots === undefined || raw.hotspots === null ? [] : raw.hotspots;
+  if (!Array.isArray(hotspotsRaw)) reject("hotspots must be an array");
+  if (hotspotsRaw.length > uiLimits.svgHotspots) reject("too many hotspots");
+  if (shapesRaw.length === 0 && hotspotsRaw.length === 0) reject("a diagram needs shapes or hotspots");
+  const ids = new Set<string>();
+  const hotspots = hotspotsRaw.map(entry => svgHotspot(entry, ids));
+  const hasBind = raw.bind !== undefined && raw.bind !== null;
+  if (hotspots.length > 0 && !hasBind) reject("hotspots need bind");
+  c.optionCount += hotspots.length;
+  return {
+    title: text(raw, "title", { max: 200, required: true }),
+    description: text(raw, "description", { max: 500 }),
+    width: number(raw, "width", { min: 100, max: 2000, fallback: 400 }),
+    height: number(raw, "height", { min: 100, max: 2000, fallback: 300 }),
+    shapes: shapesRaw.map(svgShape),
+    hotspots,
+    bind: hasBind ? bind(raw, c, "string") : undefined,
+    caption: text(raw, "caption", { max: 300 }),
+  };
+}
+
+// ---------- 时间轴、行程、差异（IUI-15） ----------
+
+const timelineStatuses = ["done", "current", "upcoming", "blocked"] as const;
+
+function timelineProps(raw: Raw, c: Collector): UiProps {
+  const common = { title: text(raw, "title", { max: 200 }), source: source(raw), status: status(raw) };
+  if (raw.from !== undefined && raw.from !== null) {
+    if (raw.items !== undefined && raw.items !== null) reject("give either items or from");
+    return {
+      ...common, from: fromSource(raw, c), titleKey: columnKey(raw.titleKey, "titleKey"),
+      dateKey: optionalColumn(raw, "dateKey"), detailKey: optionalColumn(raw, "detailKey"), statusKey: optionalColumn(raw, "statusKey"),
+    };
+  }
+  const items = raw.items;
+  if (!Array.isArray(items)) reject("items must be an array");
+  if (items.length > uiLimits.timelineItems) reject("too many items");
+  c.optionCount += items.length;
+  return {
+    ...common,
+    items: items.map(item => {
+      if (!isPlainObject(item)) reject("items must be objects");
+      return {
+        date: text(item, "date", { max: 40 }),
+        title: text(item, "title", { max: 200, required: true })!,
+        detail: text(item, "detail", { max: 1_000 }),
+        status: choice(item, "status", timelineStatuses, "upcoming"),
+      };
+    }),
+  };
+}
+
+function itineraryProps(raw: Raw, c: Collector): UiProps {
+  const days = raw.days;
+  if (!Array.isArray(days) || days.length === 0) reject("days must be a non-empty array");
+  if (days.length > uiLimits.itineraryDays) reject("too many days");
+  let stops = 0;
+  const normalized = days.map(day => {
+    if (!isPlainObject(day)) reject("days must be objects");
+    const list = day.stops;
+    if (!Array.isArray(list)) reject("stops must be an array");
+    stops += list.length;
+    if (stops > uiLimits.itineraryStops) reject("too many stops");
+    return {
+      label: text(day, "label", { max: 100, required: true })!,
+      stops: list.map(stop => {
+        if (!isPlainObject(stop)) reject("stops must be objects");
+        const hasLat = stop.lat !== undefined && stop.lat !== null;
+        const hasLng = stop.lng !== undefined && stop.lng !== null;
+        if (hasLat !== hasLng) reject("lat and lng go together");
+        return {
+          name: text(stop, "name", { max: 200, required: true })!,
+          time: text(stop, "time", { max: 40 }),
+          note: text(stop, "note", { max: 500 }),
+          // 只有模型明确给出坐标才记录；仅有名称的地点永远没有坐标。
+          lat: hasLat ? number(stop, "lat", { min: -90, max: 90 }) : undefined,
+          lng: hasLng ? number(stop, "lng", { min: -180, max: 180 }) : undefined,
+        };
+      }),
+    };
+  });
+  c.optionCount += stops;
+  return { title: text(raw, "title", { max: 200 }), days: normalized, source: source(raw), status: status(raw) };
+}
+
+function diffProps(raw: Raw, c: Collector): UiProps {
+  const hasText = raw.diff !== undefined && raw.diff !== null;
+  const hasFrom = raw.from !== undefined && raw.from !== null;
+  if (hasText === hasFrom) reject("give exactly one of diff or from");
+  return {
+    caption: text(raw, "caption", { max: 300 }),
+    fileName: text(raw, "fileName", { max: 300 }),
+    diff: hasText ? text(raw, "diff", { max: uiLimits.diffChars, required: true }) : undefined,
+    from: fromSource(raw, c),
+    source: source(raw),
+    status: status(raw),
+  };
 }
 
 function children(node: Raw): void {
@@ -287,8 +641,10 @@ const validators: Record<string, Validator> = {
         digits: number(item, "digits", { min: 0, max: 6, integer: true }),
       };
     });
+    const from = fromSource(raw, c);
     const rowsRaw = raw.rows ?? [];
     if (!Array.isArray(rowsRaw)) reject("rows must be an array");
+    if (from && rowsRaw.length > 0) reject("give either rows or from");
     if (rowsRaw.length > uiLimits.tableRows) reject("too many rows");
     const rows = rowsRaw.map(row => {
       if (!isPlainObject(row)) reject("rows must be objects");
@@ -326,6 +682,7 @@ const validators: Record<string, Validator> = {
       caption: text(raw, "caption", { max: 300 }),
       columns,
       rows,
+      from,
       searchable: bool(raw, "searchable", false),
       filter,
       defaultSort,
@@ -336,9 +693,14 @@ const validators: Record<string, Validator> = {
   },
   stat: (raw, c) => {
     const valueKey = raw.derive !== undefined ? "derive" : "value";
+    // from：直接展示数据源的标量结果，并带上它的来源与状态。
+    const from = fromSource(raw, c);
+    const useSource = from !== undefined && raw[valueKey] === undefined;
+    if (useSource) c.refs.add(from);
     return {
       label: text(raw, "label", { max: 200, required: true }),
-      value: dynScalar(raw, valueKey, c, { required: true }),
+      from,
+      value: useSource ? { ref: from } : dynScalar(raw, valueKey, c, { required: true }),
       unit: text(raw, "unit", { max: 20 }),
       prefix: text(raw, "prefix", { max: 10 }),
       digits: number(raw, "digits", { min: 0, max: 10, integer: true }),
@@ -357,8 +719,10 @@ const validators: Record<string, Validator> = {
     status: status(raw),
   }),
   list: (raw, c) => {
-    const items = raw.items;
+    const from = fromSource(raw, c);
+    const items = from && (raw.items === undefined || raw.items === null) ? [] : raw.items;
     if (!Array.isArray(items)) reject("items must be an array");
+    if (from && items.length > 0) reject("give either items or from");
     if (items.length > uiLimits.listItems) reject("too many items");
     const normalized = items.map(item => {
       if (typeof item === "string") {
@@ -371,6 +735,9 @@ const validators: Record<string, Validator> = {
     c.optionCount += normalized.length;
     return {
       items: normalized,
+      from,
+      textKey: from ? columnKey(raw.textKey ?? "text", "textKey") : undefined,
+      detailKey: from ? optionalColumn(raw, "detailKey") : undefined,
       ordered: bool(raw, "ordered", false),
       emptyText: text(raw, "emptyText", { max: 200 }),
       source: source(raw),
@@ -441,6 +808,20 @@ const validators: Record<string, Validator> = {
     title: text(raw, "title", { max: 200, required: true }),
     defaultOpen: bool(raw, "defaultOpen", false),
   }),
+  bar_chart: (raw, c) => chartCommon(raw, c, "bar"),
+  line_chart: (raw, c) => chartCommon(raw, c, "line"),
+  pie_chart: (raw, c) => pieProps(raw, c),
+  svg_diagram: (raw, c) => svgDiagram(raw, c),
+  media: (raw) => ({
+    kind: choice(raw, "kind", ["image", "map"] as const, "image"),
+    // 没有配置媒体 Provider 时只显示这段说明；Vela 不会凭空生成图片或地图。
+    alt: text(raw, "alt", { max: 300, required: true }),
+    caption: text(raw, "caption", { max: 300 }),
+    source: source(raw),
+  }),
+  timeline: (raw, c) => timelineProps(raw, c),
+  itinerary: (raw, c) => itineraryProps(raw, c),
+  diff_view: (raw, c) => diffProps(raw, c),
   loading: (raw) => ({ label: text(raw, "label", { max: 200 }) }),
   empty: (raw) => ({ title: text(raw, "title", { max: 200, required: true }), description: text(raw, "description", { max: 500 }) }),
   error: (raw) => ({ title: text(raw, "title", { max: 200, required: true }), description: text(raw, "description", { max: 500 }) }),
@@ -459,7 +840,7 @@ export function validateNodeProps(type: string, rawProps: unknown): UiPropsResul
   if (!hasComponent(type)) return { ok: false, reason: `unsupported component ${type.slice(0, 40)}` };
   const raw = rawProps === undefined || rawProps === null ? {} : rawProps;
   if (!isPlainObject(raw)) return { ok: false, reason: "props must be an object" };
-  const collector: Collector = { refs: new Set(), bindings: [], optionCount: 0 };
+  const collector: Collector = { refs: new Set(), sourceRefs: new Set(), bindings: [], optionCount: 0 };
   try {
     children(raw);
     const props = validators[type](raw, collector);
@@ -468,7 +849,7 @@ export function validateNodeProps(type: string, rawProps: unknown): UiPropsResul
     const normalized = Object.fromEntries(Object.entries(props).filter(([, value]) => value !== undefined));
     return {
       ok: true,
-      value: { props: normalized, show, refs: [...collector.refs], bindings: collector.bindings, optionCount: collector.optionCount },
+      value: { props: normalized, show, refs: [...collector.refs], sourceRefs: [...collector.sourceRefs], bindings: collector.bindings, optionCount: collector.optionCount },
     };
   } catch (error) {
     if (error instanceof PropError) return { ok: false, reason: error.message };

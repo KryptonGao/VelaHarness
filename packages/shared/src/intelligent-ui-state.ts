@@ -5,15 +5,27 @@ import {
   type UiArtifact,
   type UiNode,
   type UiScalar,
+  type UiSourceDefinition,
+  type UiSourceSnapshot,
   type UiStateDefinition,
   type UiValue,
 } from "./intelligent-ui";
 import { hashUiSource } from "./intelligent-ui-parser";
+import { describeSourceProvenance } from "./intelligent-ui-source";
+import {
+  parseUnifiedDiff,
+  resolveChartData,
+  resolvePieData,
+  resolveTimeline,
+  sourceRows,
+} from "./intelligent-ui-data";
 import {
   evaluateExpression,
   formatNumber,
+  resolveUiValue,
   sortDerived,
   type UiEvalEnv,
+  type UiEvalErrorCode,
   type UiEvalResult,
 } from "./intelligent-ui-expression";
 
@@ -66,19 +78,31 @@ export function restoreUiValues(artifact: Pick<UiArtifact, "stateDefinitions">, 
   return values;
 }
 
-/** 构建求值环境：先放状态（非法输入变成 invalid_input），再按拓扑顺序算派生值。 */
-export function buildUiEnv(artifact: Pick<UiArtifact, "stateDefinitions" | "derived" | "derivedOrder" | "status">, values: UiStateValues): UiEvalEnv {
+/** 数据源的标量结果进入表达式环境；没有可用数据时给出具体的原因而不是静默当作 0。 */
+function sourceEnvResult(snapshot: UiSourceSnapshot | undefined): UiEvalResult {
+  if (!snapshot || snapshot.status === "loading") return { ok: false, error: "source_pending" };
+  if (snapshot.status === "error") return { ok: false, error: "source_failed" };
+  if (snapshot.status === "empty") return { ok: false, error: "source_empty" };
+  if (snapshot.scalar !== undefined) return { ok: true, value: snapshot.scalar };
+  return { ok: false, error: "type_mismatch" };
+}
+
+export type UiEnvArtifact = Pick<UiArtifact, "stateDefinitions" | "derived" | "derivedOrder" | "status"> & { sources?: readonly UiSourceDefinition[] };
+
+/** 构建求值环境：先放状态（非法输入变成 invalid_input）和数据源结果，再按拓扑顺序算派生值。 */
+export function buildUiEnv(artifact: UiEnvArtifact, values: UiStateValues, snapshots?: ReadonlyMap<string, UiSourceSnapshot>): UiEvalEnv {
   const env = new Map<string, UiEvalResult>();
   for (const definition of artifact.stateDefinitions) {
     const value = values[definition.name];
     if (validateStateValue(definition, value) !== null) env.set(definition.name, { ok: false, error: "invalid_input" });
     else env.set(definition.name, { ok: true, value: value as UiScalar });
   }
+  for (const definition of artifact.sources ?? []) env.set(definition.name, sourceEnvResult(snapshots?.get(definition.name)));
   const receiving = artifact.status === "receiving";
   let order = artifact.derivedOrder;
   if (order.length !== artifact.derived.length) {
     // commit 之前依赖可能还没到齐：尽力排序，排不出来就先标记为等待中。
-    const known = new Set(artifact.stateDefinitions.map(definition => definition.name));
+    const known = new Set([...artifact.stateDefinitions.map(definition => definition.name), ...(artifact.sources ?? []).map(definition => definition.name)]);
     const sorted = sortDerived(known, artifact.derived);
     order = sorted.ok ? sorted.order : [];
   }
@@ -91,14 +115,6 @@ export function buildUiEnv(artifact: Pick<UiArtifact, "stateDefinitions" | "deri
     if (!env.has(item.name)) env.set(item.name, { ok: false, error: receiving ? "pending_ref" : "unknown_ref" });
   }
   return env;
-}
-
-/** 字面量原样返回，表达式求值。 */
-export function resolveUiValue(value: unknown, env: UiEvalEnv, receiving = false): UiEvalResult {
-  if (value === undefined) return { ok: false, error: "bad_arguments" };
-  if (value === null || typeof value !== "object") return { ok: true, value: value as UiScalar };
-  const result = evaluateExpression(value as Parameters<typeof evaluateExpression>[0], env);
-  return receiving && !result.ok && result.error === "unknown_ref" ? { ok: false, error: "pending_ref" } : result;
 }
 
 /** show 条件：没有条件即显示；条件必须算出 true，出错一律隐藏。 */
@@ -175,10 +191,35 @@ function plainText(value: unknown, env: UiEvalEnv): string {
   return result.ok ? formatUiScalar(result.value) : "";
 }
 
+export type UiSnapshots = ReadonlyMap<string, UiSourceSnapshot>;
+
+/** 带单位、前缀的数值文字。 */
+function measure(value: number | null, props: Record<string, unknown>): string {
+  if (value === null) return "—";
+  return `${props.prefix ?? ""}${formatUiNumber(value, props.digits as number | undefined)}${props.unit ? ` ${String(props.unit)}` : ""}`;
+}
+
+/** 数据来源行：真实工具来源带 id 和时间；模型自己写的来源永远标注「未验证」。 */
+function provenanceLine(props: Record<string, unknown>, snapshots: UiSnapshots | undefined): string | null {
+  const parts: string[] = [];
+  if (typeof props.from === "string") {
+    const snapshot = snapshots?.get(props.from);
+    parts.push(snapshot ? `Data: ${describeSourceProvenance(snapshot)}` : `Data: ${props.from} (not available)`);
+  }
+  const note = props.source as { label?: string; url?: string } | undefined;
+  if (note?.label) parts.push(`Source (unverified): ${note.label}${note.url ? ` <${note.url}>` : ""}`);
+  if (typeof props.status === "string" && props.status !== "ok") parts.push(`Status: ${props.status}`);
+  return parts.length ? `*${parts.join(" · ")}*` : null;
+}
+
+function mdCell(value: UiScalar): string {
+  return formatUiScalar(value).replace(/\|/g, "\\|").replace(/\n/g, " ");
+}
+
 /** 交互 UI 的纯文字等价物：导出和「查看文字」使用，不含任何可执行内容。 */
-export function summarizeUiArtifact(artifact: UiArtifact, values: UiStateValues = initialUiValues(artifact)): string {
+export function summarizeUiArtifact(artifact: UiArtifact, values: UiStateValues = initialUiValues(artifact), snapshots?: UiSnapshots): string {
   if (artifact.status === "invalid" || artifact.status === "disposed" || !artifact.rootNodeId) return "";
-  const env = buildUiEnv(artifact, values);
+  const env = buildUiEnv(artifact, values, snapshots);
   const byId = new Map(artifact.nodes.map(node => [node.id, node] as const));
   const lines: string[] = [];
   if (artifact.title) lines.push(`**${artifact.title}**`);
@@ -186,6 +227,8 @@ export function summarizeUiArtifact(artifact: UiArtifact, values: UiStateValues 
     if (node.invalid || !isUiNodeVisible(node, env)) return;
     const props = node.props;
     const visit = () => node.childrenIds.forEach(id => { const child = byId.get(id); if (child) walk(child); });
+    const provenance = () => { const line = provenanceLine(props, snapshots); if (line) lines.push(line); };
+    const snapshot = typeof props.from === "string" ? snapshots?.get(props.from) : undefined;
     switch (node.type) {
       case "heading": lines.push(`### ${plainText(props.text, env)}`); break;
       case "text": case "caption": lines.push(plainText(props.text, env)); break;
@@ -196,26 +239,88 @@ export function summarizeUiArtifact(artifact: UiArtifact, values: UiStateValues 
         const result = resolveUiValue(props.value, env);
         const value = result.ok ? formatUiScalar(result.value, props.digits as number | undefined) : "(unavailable)";
         lines.push(`${String(props.label)}: ${props.prefix ?? ""}${value}${props.unit ? ` ${String(props.unit)}` : ""}`);
+        provenance();
         break;
       }
       case "progress": {
         const result = resolveUiValue(props.value, env);
         lines.push(`${String(props.label)}: ${result.ok ? formatUiScalar(result.value) : "(unavailable)"} / ${String(props.max)}${props.unit ? ` ${String(props.unit)}` : ""}`);
+        provenance();
         break;
       }
       case "list": {
-        const items = (props.items as Array<{ text: string; detail: string | null }>) ?? [];
+        const items = typeof props.from === "string"
+          ? sourceRows(snapshot).map(row => ({ text: formatUiScalar(row[String(props.textKey)] ?? null), detail: typeof props.detailKey === "string" ? formatUiScalar(row[props.detailKey] ?? null) || null : null }))
+          : (props.items as Array<{ text: string; detail: string | null }>) ?? [];
         items.forEach((item, index) => lines.push(`${props.ordered ? `${index + 1}.` : "-"} ${item.text}${item.detail ? ` — ${item.detail}` : ""}`));
+        provenance();
         break;
       }
       case "table": {
         const columns = props.columns as Array<{ key: string; label: string }>;
-        const rows = props.rows as Array<{ cells: Record<string, UiScalar> }>;
-        const cell = (value: UiScalar) => formatUiScalar(value).replace(/\|/g, "\\|").replace(/\n/g, " ");
+        const rows = typeof props.from === "string"
+          ? sourceRows(snapshot).map(row => ({ cells: row as Record<string, UiScalar> }))
+          : props.rows as Array<{ cells: Record<string, UiScalar> }>;
         if (props.caption) lines.push(`*${String(props.caption)}*`);
-        lines.push(`| ${columns.map(column => cell(column.label)).join(" | ")} |`);
+        lines.push(`| ${columns.map(column => mdCell(column.label)).join(" | ")} |`);
         lines.push(`| ${columns.map(() => "---").join(" | ")} |`);
-        for (const row of rows) lines.push(`| ${columns.map(column => cell(row.cells[column.key] ?? null)).join(" | ")} |`);
+        for (const row of rows) lines.push(`| ${columns.map(column => mdCell(row.cells[column.key] ?? null)).join(" | ")} |`);
+        provenance();
+        break;
+      }
+      case "bar_chart": case "line_chart": {
+        const data = resolveChartData(props, env, snapshot);
+        if (props.title) lines.push(`**${String(props.title)}**`);
+        if (props.caption) lines.push(`*${String(props.caption)}*`);
+        lines.push(`| | ${data.series.map(entry => mdCell(entry.label || "—")).join(" | ")} |`);
+        lines.push(`| --- | ${data.series.map(() => "---").join(" | ")} |`);
+        data.labels.forEach((label, index) => lines.push(`| ${mdCell(label)} | ${data.series.map(entry => measure(entry.values[index] ?? null, props)).join(" | ")} |`));
+        provenance();
+        break;
+      }
+      case "pie_chart": {
+        const data = resolvePieData(props, env, snapshot);
+        if (props.title) lines.push(`**${String(props.title)}**`);
+        for (const slice of data.slices) lines.push(`- ${slice.label}: ${measure(slice.value, props)} (${(slice.fraction * 100).toFixed(1)}%)`);
+        provenance();
+        break;
+      }
+      case "svg_diagram": {
+        lines.push(`**${String(props.title)}**`);
+        if (props.description) lines.push(String(props.description));
+        const hotspots = (props.hotspots as Array<{ label: string; description?: string; value: string }>) ?? [];
+        const current = typeof props.bind === "string" ? values[props.bind] : undefined;
+        for (const hotspot of hotspots) lines.push(`- ${hotspot.label}${hotspot.description ? `: ${hotspot.description}` : ""}${hotspot.value === current ? " (selected)" : ""}`);
+        const labels = ((props.shapes as Array<{ type: string; text?: string }>) ?? []).filter(shape => shape.type === "text" && shape.text).map(shape => shape.text);
+        if (labels.length) lines.push(`Labels: ${labels.join(", ")}`);
+        break;
+      }
+      case "media": lines.push(`[${String(props.kind)}] ${String(props.alt)}${props.caption ? ` — ${String(props.caption)}` : ""}`); provenance(); break;
+      case "timeline": {
+        if (props.title) lines.push(`**${String(props.title)}**`);
+        for (const entry of resolveTimeline(props, snapshot)) lines.push(`- ${entry.date ? `${entry.date} · ` : ""}${entry.title} [${entry.status}]${entry.detail ? ` — ${entry.detail}` : ""}`);
+        provenance();
+        break;
+      }
+      case "itinerary": {
+        if (props.title) lines.push(`**${String(props.title)}**`);
+        for (const day of props.days as Array<{ label: string; stops: Array<{ name: string; time?: string; note?: string; lat?: number; lng?: number }> }>) {
+          lines.push(`**${day.label}**`);
+          for (const stop of day.stops) {
+            const place = typeof stop.lat === "number" && typeof stop.lng === "number" ? ` (${stop.lat}, ${stop.lng}, coordinates given by the model)` : "";
+            lines.push(`- ${stop.time ? `${stop.time} · ` : ""}${stop.name}${place}${stop.note ? ` — ${stop.note}` : ""}`);
+          }
+        }
+        provenance();
+        break;
+      }
+      case "diff_view": {
+        const text = typeof props.from === "string" ? (snapshot?.text ?? "") : String(props.diff ?? "");
+        const model = parseUnifiedDiff(text, 400);
+        if (props.caption) lines.push(`*${String(props.caption)}*`);
+        lines.push(`${props.fileName ? `${String(props.fileName)}: ` : ""}+${model.added} −${model.removed}`);
+        lines.push("```diff", ...model.lines.map(line => `${line.kind === "add" ? "+" : line.kind === "del" ? "-" : line.kind === "ctx" ? " " : ""}${line.text}`), "```");
+        provenance();
         break;
       }
       case "tabs": case "segmented": case "select": case "radio": case "input": case "number_input": case "slider": case "checkbox": {
@@ -233,6 +338,56 @@ export function summarizeUiArtifact(artifact: UiArtifact, values: UiStateValues 
   if (root) walk(root);
   if (artifact.status !== "ready") lines.push("(incomplete)");
   return lines.join("\n");
+}
+
+// ---------- 提交给 Agent 的两种建议动作（IUI-11 / IUI-16） ----------
+
+export type UiRequestResult = { ok: true; text: string } | { ok: false; error: UiEvalErrorCode };
+
+/**
+ * 「建议运行一个工具」要发送的文字。界面不执行工具：用户确认后这只是一条普通消息，
+ * 是否运行、是否需要审批完全由 Agent Runtime 决定；文字里明确说明它不是预先批准。
+ */
+export function composeToolRequest(
+  artifact: Pick<UiArtifact, "title">,
+  action: Extract<UiAction, { type: "request_tool" }>,
+  env: UiEvalEnv,
+): UiRequestResult {
+  const args: string[] = [];
+  for (const [name, value] of Object.entries(action.args ?? {})) {
+    const result = resolveUiValue(value, env);
+    if (!result.ok) return { ok: false, error: result.error };
+    args.push(`- ${name}: ${formatUiScalar(result.value) || "(empty)"}`);
+  }
+  const header = artifact.title ? `[Interface suggestion: ${artifact.title}]` : "[Interface suggestion]";
+  const body = [
+    `${header} Please consider running the \`${action.tool}\` tool: ${action.summary}`,
+    ...(args.length ? ["Suggested arguments:", ...args] : []),
+    "This came from a button in an interface, not from an approval. Apply the normal tool permissions and ask me if anything needs confirmation.",
+  ].join("\n");
+  return { ok: true, text: body.slice(0, uiLimits.textLength) };
+}
+
+/**
+ * 「按当前设置继续」（IUI-12）：把界面当前的全部参数交还给 Agent。
+ * 和 submit_to_agent 共用同一个排版函数，预览与实际发送一致；用户确认后才会发出。
+ */
+export function composeContinueRequest(artifact: UiArtifact, values: UiStateValues): string {
+  return composeUiSubmission(artifact, { type: "submit_to_agent", text: "Continue with the current settings from the interface." }, values);
+}
+
+/** 刷新数据源：请 Agent 重新运行当时的工具，再更新界面。界面自己不抓取任何数据。 */
+export function composeRefreshRequest(
+  artifact: Pick<UiArtifact, "title">,
+  definition: UiSourceDefinition,
+  snapshot: UiSourceSnapshot | undefined,
+): string {
+  const subject = snapshot?.subject ? ` (${snapshot.subject})` : "";
+  const header = artifact.title ? ` for the interface "${artifact.title}"` : "";
+  return [
+    `Please refresh the data source "${definition.name}"${header}: run the \`${definition.tool}\` tool again${subject} and update the interface with the new result.`,
+    "Use the normal tool permissions.",
+  ].join("\n").slice(0, uiLimits.textLength);
 }
 
 // ---------- 本地状态快照：键与格式（Renderer 写入，导出等 Main 侧功能读取） ----------

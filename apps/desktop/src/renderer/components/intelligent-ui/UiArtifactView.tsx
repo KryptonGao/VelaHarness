@@ -1,15 +1,18 @@
-import { Component, memo, useContext, useId, useMemo, useState, type ErrorInfo, type ReactNode } from "react";
-import type { UiArtifact } from "@vela/shared";
+import { Component, memo, useContext, useEffect, useId, useMemo, useRef, useState, type ErrorInfo, type ReactNode } from "react";
+import { composeContinueRequest, type UiArtifact } from "@vela/shared";
 import { createLogger } from "../../logger";
 import { ConversationLinkContext } from "../ConversationLinkContext";
 import { artifactText, NodeView } from "./components";
 import { uiCopy } from "./copy";
-import { UiRuntimeProvider, useUiArtifactState, useUiHost, type UiArtifactRuntime } from "./UiRuntime";
+import { ConfirmButton, copyToClipboard, useFlash } from "./shared-views";
+import { uiMetrics, useUiInspectorEnabled } from "./ui-metrics-instance";
+import { UiInspector } from "./UiInspector";
+import { UiRuntimeProvider, useUiArtifactState, useUiHost, useUiSnapshots, type UiArtifactRuntime } from "./UiRuntime";
 
 const log = createLogger("intelligent-ui");
 
 /** 单块界面出错只影响自己：显示降级提示，聊天其余部分照常。内容变化时重试。 */
-class UiBoundary extends Component<{ resetKey: number; fallback: (error: Error) => ReactNode; children: ReactNode }, { error: Error | null; key: number }> {
+class UiBoundary extends Component<{ resetKey: number; metricsKey: string; fallback: (error: Error) => ReactNode; children: ReactNode }, { error: Error | null; key: number }> {
   state = { error: null as Error | null, key: this.props.resetKey };
 
   static getDerivedStateFromError(error: Error) {
@@ -22,6 +25,7 @@ class UiBoundary extends Component<{ resetKey: number; fallback: (error: Error) 
 
   componentDidCatch(error: Error, info: ErrorInfo): void {
     log.error("interface render failed", Object.assign(error, { componentStack: info.componentStack ?? undefined }));
+    uiMetrics.renderError(this.props.metricsKey);
   }
 
   render(): ReactNode {
@@ -49,7 +53,7 @@ function Notice({ title, hint, raw }: { title: string; hint?: string; raw: strin
   </div>;
 }
 
-function LiveArtifact({ artifact, raw, messageId, streaming }: { artifact: UiArtifact; raw: string; messageId: string; streaming: boolean }) {
+function LiveArtifact({ artifact, raw, messageId, streaming, metricsKey }: { artifact: UiArtifact; raw: string; messageId: string; streaming: boolean; metricsKey: string }) {
   const baseHost = useUiHost();
   const openConversationLink = useContext(ConversationLinkContext);
   // 外链沿用聊天里已有的链接策略（内嵌浏览器或系统浏览器）。
@@ -59,45 +63,59 @@ function LiveArtifact({ artifact, raw, messageId, streaming }: { artifact: UiArt
     () => host.conversationId && stable ? { conversationId: host.conversationId, messageId: stable, artifactId: artifact.artifactId } : null,
     [host.conversationId, stable, artifact.artifactId],
   );
-  const { values, env, setValue } = useUiArtifactState(artifact, raw, scope);
+  const snapshots = useUiSnapshots(artifact, host, messageId, streaming);
+  const { values, env, setValue } = useUiArtifactState(artifact, raw, scope, snapshots);
   const byId = useMemo(() => new Map(artifact.nodes.map(node => [node.id, node] as const)), [artifact]);
   const runtime: UiArtifactRuntime = useMemo(
-    () => ({ artifact, byId, values, env, receiving: artifact.status === "receiving", setValue, host }),
-    [artifact, byId, values, env, setValue, host],
+    () => ({ artifact, byId, values, env, snapshots, receiving: artifact.status === "receiving", setValue, host }),
+    [artifact, byId, values, env, snapshots, setValue, host],
   );
-  const [copy, setCopy] = useState<string | null>(null);
+  const [copy, setCopy] = useFlash();
   const [open, setOpen] = useState(false);
   const sourceId = useId();
+  const inspector = useUiInspectorEnabled();
   const root = artifact.rootNodeId ? byId.get(artifact.rootNodeId) : undefined;
   const receiving = artifact.status === "receiving";
-  const flash = (text: string) => { setCopy(text); setTimeout(() => setCopy(null), 1800); };
+  const interactive = artifact.stateDefinitions.length > 0 && artifact.status !== "receiving";
   return <div className={`iui-frame${receiving ? " is-receiving" : ""}`} role="group" aria-label={artifact.title || uiCopy.region()} aria-busy={receiving && streaming}>
     {artifact.title ? <div className="iui-title">{artifact.title}</div> : null}
     <UiRuntimeProvider value={runtime}>
       {root ? <NodeView node={root} /> : <div className="iui-skeleton" role="status"><span className="iui-sr-only">{uiCopy.building()}</span></div>}
+      {receiving && streaming ? <div className="iui-progress-note" aria-hidden="true">{uiCopy.building()}</div> : null}
+      {artifact.status === "incomplete" ? <div className="iui-notice iui-notice-warning" role="status">{"⚠ "}{uiCopy.incomplete()}</div> : null}
+      <div className="iui-toolbar">
+        <button type="button" className="iui-tool" onClick={() => {
+          void copyToClipboard(artifactText({ artifact, values, snapshots })).then(ok => setCopy(ok ? uiCopy.copied() : uiCopy.copyFailed()));
+        }}>{copy ?? uiCopy.copyText()}</button>
+        {interactive ? <ConfirmButton label={uiCopy.continueWithSettings()}
+          pending={() => ({ kind: "submit", title: uiCopy.willSendContinue(), text: composeContinueRequest(artifact, values) })} /> : null}
+        <button type="button" className="iui-tool" aria-expanded={open} aria-controls={sourceId} onClick={() => setOpen(value => !value)}>
+          {open ? uiCopy.hideSource() : uiCopy.viewSource()}</button>
+      </div>
     </UiRuntimeProvider>
-    {receiving && streaming ? <div className="iui-progress-note" aria-hidden="true">{uiCopy.building()}</div> : null}
-    {artifact.status === "incomplete" ? <div className="iui-notice iui-notice-warning" role="status">{"⚠ "}{uiCopy.incomplete()}</div> : null}
-    <div className="iui-toolbar">
-      <button type="button" className="iui-tool" onClick={() => {
-        void navigator.clipboard.writeText(artifactText({ artifact, values })).then(() => flash(uiCopy.copied()), () => flash(uiCopy.copyFailed()));
-      }}>{copy ?? uiCopy.copyText()}</button>
-      <button type="button" className="iui-tool" aria-expanded={open} aria-controls={sourceId} onClick={() => setOpen(value => !value)}>
-        {open ? uiCopy.hideSource() : uiCopy.viewSource()}</button>
-    </div>
     {open ? <SourceView raw={raw} id={sourceId} /> : null}
+    {inspector ? <UiInspector artifact={artifact} values={values} snapshots={snapshots} metricsKey={metricsKey} /> : null}
   </div>;
+}
+
+/** 记录这块界面的生命周期：只有流式生成的界面计入结局统计，历史恢复只记事件。 */
+function useArtifactMetrics(artifact: UiArtifact, metricsKey: string, streaming: boolean): void {
+  const live = useRef(streaming);
+  useEffect(() => { uiMetrics.observe(metricsKey, artifact, live.current); }, [metricsKey, artifact, artifact.revision, artifact.status]);
 }
 
 export const UiArtifactView = memo(function UiArtifactView({ artifact, raw, messageId, streaming }: {
   artifact: UiArtifact; raw: string; messageId: string; streaming: boolean;
 }) {
+  const host = useUiHost();
+  const metricsKey = `${host.conversationId ?? "-"}/${host.stableMessageId(messageId) ?? messageId}/${artifact.artifactId}`;
+  useArtifactMetrics(artifact, metricsKey, streaming);
   if (artifact.status === "invalid") {
     return <Notice title={uiCopy.invalidTitle()} hint={`${uiCopy.invalidHint()} (${uiCopy.reason(artifact.reason)})`} raw={raw} />;
   }
   if (artifact.status === "disposed") return null;
-  return <UiBoundary resetKey={artifact.revision}
+  return <UiBoundary resetKey={artifact.revision} metricsKey={metricsKey}
     fallback={() => <Notice title={uiCopy.invalidTitle()} hint={uiCopy.invalidHint()} raw={raw} />}>
-    <LiveArtifact artifact={artifact} raw={raw} messageId={messageId} streaming={streaming} />
+    <LiveArtifact artifact={artifact} raw={raw} messageId={messageId} streaming={streaming} metricsKey={metricsKey} />
   </UiBoundary>;
 });

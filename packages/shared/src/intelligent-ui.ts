@@ -9,6 +9,8 @@
 export const uiSchemaVersion = 1;
 /** 模型输出里的围栏信息串。 */
 export const uiFenceInfo = "vela-ui";
+/** 沙盒微应用的围栏信息串（IUI-14）。与 vela-ui 完全分开：声明式界面永远不会因它执行代码。 */
+export const uiAppFenceInfo = "vela-app";
 
 /** 用户级偏好：auto 由模型按内容决定；visual_first 倾向可视化但不强制；text_only 完全关闭。 */
 export type UiPreference = "auto" | "text_only" | "visual_first";
@@ -17,6 +19,12 @@ export const defaultUiPreference: UiPreference = "auto";
 
 export function isUiPreference(value: unknown): value is UiPreference {
   return value === "auto" || value === "text_only" || value === "visual_first";
+}
+
+/** 设置页与主进程之间传递的 Intelligent UI 设置。microApps 默认关闭（IUI-14）。 */
+export interface IntelligentUiState {
+  preference: UiPreference;
+  microApps: boolean;
 }
 
 /** 单块 UI 的硬上限；超限即停止解析并降级。 */
@@ -43,6 +51,33 @@ export const uiLimits = {
   expressionArgs: 16,
   /** 表达式字符串字面量。 */
   expressionString: 500,
+  // ---- P1/P2 ----
+  /** 单个序列的数据点、饼图扇区、图表序列数。 */
+  chartPoints: 100,
+  chartSeries: 6,
+  pieSlices: 24,
+  /** svg_diagram：图元、热区、坐标范围、path 与 points 长度。 */
+  svgShapes: 150,
+  svgHotspots: 40,
+  svgCoordinate: 10_000,
+  svgPathLength: 4_000,
+  svgPoints: 200,
+  timelineItems: 100,
+  itineraryDays: 14,
+  itineraryStops: 60,
+  /** diff_view：展示的行数与内联文本长度。 */
+  diffLines: 2_000,
+  diffChars: 40_000,
+  /** 数据源：声明数量、解析后保留的行/列、单元格长度、解析前允许的正文长度。 */
+  sources: 8,
+  sourceRows: 500,
+  sourceColumns: 24,
+  sourceCell: 500,
+  sourceChars: 200_000,
+  sourcePath: 8,
+  toolArgs: 8,
+  /** vela-app：HTML 源码字节数。 */
+  appBytes: 64 * 1024,
 } as const;
 
 // ---------- 值与表达式 ----------
@@ -103,9 +138,22 @@ export type UiAction =
   | { type: "toggle"; name: string }
   | { type: "copy"; text: UiDynamic<string> }
   | { type: "submit_to_agent"; text: string; include?: string[] }
-  | { type: "open_external"; url: string };
+  | { type: "open_external"; url: string }
+  /**
+   * 请 Agent 重新运行数据源背后的工具（IUI-11）。界面自己不抓取数据：这只是一条经确认后发给 Agent 的消息，
+   * 工具照常走权限审批。
+   */
+  | { type: "refresh_source"; name: string }
+  /**
+   * 向 Agent 建议运行一个工具并带上填好的参数（IUI-16）。界面不执行工具、不伪造工具记录：
+   * 确认后只是一条消息，是否运行、是否需要审批由 Agent Runtime 决定。
+   */
+  | { type: "request_tool"; tool: string; summary: string; args?: Record<string, UiDynamic> };
 
-export const uiActionTypes = ["set_state", "toggle", "copy", "submit_to_agent", "open_external"] as const;
+export const uiActionTypes = ["set_state", "toggle", "copy", "submit_to_agent", "open_external", "refresh_source", "request_tool"] as const;
+
+/** request_tool 的工具名：只允许看起来像工具标识符的字符串，真正能不能运行由 Agent Runtime 决定。 */
+export const uiToolNameRe = /^[a-z][a-z0-9_.:/-]{0,63}$/;
 
 // ---------- 数据状态标注 ----------
 
@@ -128,6 +176,10 @@ export const uiComponentTypes = [
   "input", "number_input", "slider", "checkbox",
   "button", "collapsible",
   "loading", "empty", "error",
+  // P1：图表、受限 SVG 图解、外部媒体占位
+  "bar_chart", "line_chart", "pie_chart", "svg_diagram", "media",
+  // P2：时间轴、行程、文件差异
+  "timeline", "itinerary", "diff_view",
 ] as const;
 export type UiComponentType = typeof uiComponentTypes[number];
 
@@ -154,6 +206,68 @@ export interface UiNode {
   show?: UiExpression;
 }
 
+// ---------- 数据源（IUI-11） ----------
+
+export type UiSourceFormat = "json" | "csv" | "lines" | "text";
+export const uiSourceFormats: readonly UiSourceFormat[] = ["json", "csv", "lines", "text"];
+
+/**
+ * 模型声明「这块界面要展示哪次工具调用的结果」。数据本身不在 UI 里：渲染层按声明去会话记录里找真实的
+ * 工具结果，生成带 sourceId / fetchedAt / status 的快照。模型不能给出数据值，也不能让界面自己去联网。
+ */
+export interface UiSourceDefinition {
+  name: string;
+  /** 工具名，例如 bash、read。 */
+  tool: string;
+  /** 精确的 toolCallId；缺省时取最近一次匹配的调用。 */
+  call?: string;
+  /** 命令或路径里要包含的文字（不区分大小写），用来在同名工具的多次调用里挑一个。 */
+  match?: string;
+  format: UiSourceFormat;
+  /** json 结果里取哪一段：键名或数组下标。 */
+  path: Array<string | number>;
+}
+
+/** 渲染层从会话里的工具调用提取出来的只读记录。 */
+export interface UiToolCall {
+  id: string;
+  name: string;
+  status: "running" | "done" | "error";
+  command?: string;
+  path?: string;
+  body?: string;
+  /** 这次调用所在回复完成的时间；未知时为 null。 */
+  completedAt: number | null;
+}
+
+export type UiSourceRow = Record<string, UiScalar>;
+
+/** 一次数据源解析的结果。status 不是 ok 时，渲染层不得把它显示成「已更新」。 */
+export interface UiSourceSnapshot {
+  name: string;
+  /** 对应的 toolCallId；没找到调用时为 null。 */
+  sourceId: string | null;
+  tool: string;
+  /** 那次调用的命令或路径（第一行，最长 160 字），让用户知道数据具体是怎么来的。 */
+  subject: string | null;
+  status: UiDataStatus;
+  fetchedAt: number | null;
+  columns: string[];
+  rows: UiSourceRow[];
+  /** format=text 的正文，或 diff 等原样文本。 */
+  text: string | null;
+  /** 标量结果（json 路径落在数字/字符串/布尔上）。 */
+  scalar: UiScalar | undefined;
+  /** 数据超出展示上限被截掉了。 */
+  truncated: boolean;
+  /** 固定的原因代码，由渲染层本地化；status 为 ok 时为 null。 */
+  message: UiSourceMessage | null;
+  /** 工具自己给出的失败正文（前 200 字），只作为文字显示。 */
+  detail: string | null;
+}
+
+export type UiSourceMessage = "not_found" | "tool_error" | "truncated" | "not_json" | "bad_path" | "too_large" | "no_output" | "bad_csv";
+
 export type UiArtifactStatus = "receiving" | "ready" | "incomplete" | "invalid" | "disposed";
 
 export type UiRejectReason =
@@ -171,6 +285,7 @@ export type UiRejectReason =
   | "limit_states"
   | "limit_derived"
   | "limit_options"
+  | "limit_sources"
   | "limit_bytes"
   | "limit_line"
   | "bad_state"
@@ -178,6 +293,8 @@ export type UiRejectReason =
   | "bad_reference"
   | "cyclic_reference"
   | "bad_binding"
+  | "bad_source"
+  | "unknown_source"
   | "not_container"
   | "empty_artifact";
 
@@ -199,6 +316,8 @@ export interface UiArtifact {
   nodes: UiNode[];
   stateDefinitions: UiStateDefinition[];
   derived: UiDerivedDefinition[];
+  /** 数据源声明（IUI-11）。 */
+  sources: UiSourceDefinition[];
   /** 派生值的拓扑顺序；commit 后才有。 */
   derivedOrder: string[];
   /** status 为 invalid 时的原因。 */
@@ -220,6 +339,25 @@ export interface UiArtifactRef {
 export function uiArtifactKey(ref: UiArtifactRef): string {
   return `${ref.conversationId}/${ref.messageId}/${ref.artifactId}`;
 }
+
+// ---------- 沙盒微应用（IUI-14） ----------
+
+export type UiAppStatus = "receiving" | "ready" | "incomplete" | "invalid" | "disposed";
+
+/** 一个 `vela-app` 围栏解析出的微应用：首行是 JSON 头，其余是 HTML 正文。 */
+export interface UiAppBlock {
+  appId: string;
+  title: string | null;
+  /** 容器初始高度（像素）。 */
+  height: number;
+  /** HTML 正文（不含头）。只在用户点击「运行」后才会放进沙盒。 */
+  source: string;
+  status: UiAppStatus;
+  reason: "unsupported_version" | "limit_bytes" | null;
+  revision: number;
+}
+
+export const uiAppHeightRange = { min: 120, max: 640, fallback: 320 } as const;
 
 // ---------- 通用校验 ----------
 

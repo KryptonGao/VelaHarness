@@ -41,6 +41,57 @@ const hostile = [
   '{"op":"commit"}',
 ];
 
+const charts = [
+  '{"op":"begin","id":"charts","version":1,"title":"图表"}',
+  '{"op":"state","name":"budget","kind":"number","initial":40,"min":0,"max":100,"step":1}',
+  '{"op":"state","name":"pick","kind":"string","initial":"a","options":["a","b"]}',
+  '{"op":"node","id":"root","type":"column","props":{}}',
+  '{"op":"node","id":"bar","parent":"root","type":"bar_chart","props":{"title":"季度收入","unit":"万","labels":["Q1","Q2","Q3"],"series":[{"key":"a","label":"产品A","values":[10,20,30]},{"key":"b","label":"产品B","values":[5,{"ref":"budget"},15]}],"draggable":true}}',
+  '{"op":"node","id":"val","parent":"root","type":"number_input","props":{"label":"预算","bind":"budget"}}',
+  '{"op":"node","id":"pie","parent":"root","type":"pie_chart","props":{"title":"占比","donut":true,"slices":[{"label":"甲","value":60},{"label":"乙","value":30},{"label":"丙","value":10}]}}',
+  '{"op":"node","id":"dg","parent":"root","type":"svg_diagram","props":{"title":"结构示意图","description":"两个部件","bind":"pick","width":300,"height":140,"shapes":[{"type":"rect","x":10,"y":20,"w":120,"h":80,"fill":"surface","stroke":"accent"},{"type":"text","x":70,"y":65,"text":"A","anchor":"middle"},{"type":"circle","cx":220,"cy":60,"r":40,"fill":"accent"}],"hotspots":[{"id":"ha","label":"部件A","value":"a","shape":"rect","x":10,"y":20,"w":120,"h":80},{"id":"hb","label":"部件B","description":"右边的圆","value":"b","shape":"circle","cx":220,"cy":60,"r":40}]}}',
+  '{"op":"node","id":"sel","parent":"root","type":"text","props":{"text":{"ref":"pick"}}}',
+  '{"op":"commit"}',
+];
+const sources = [
+  '{"op":"begin","id":"src","version":1,"title":"项目文件"}',
+  '{"op":"source","name":"files","tool":"bash","match":"git ls-files","format":"json","path":["items"]}',
+  '{"op":"source","name":"total","tool":"bash","match":"git ls-files","format":"json","path":["count"]}',
+  '{"op":"node","id":"root","type":"column","props":{}}',
+  '{"op":"node","id":"st","parent":"root","type":"stat","props":{"label":"文件数","from":"total"}}',
+  '{"op":"node","id":"tb","parent":"root","type":"table","props":{"caption":"文件","from":"files","columns":[{"key":"name","label":"名称"},{"key":"size","label":"大小","align":"right"}]}}',
+  '{"op":"node","id":"ch","parent":"root","type":"bar_chart","props":{"title":"大小","from":"files","x":"name","y":["size"]}}',
+  '{"op":"node","id":"rf","parent":"root","type":"button","props":{"label":"刷新数据","action":{"type":"refresh_source","name":"files"}}}',
+  '{"op":"node","id":"rt","parent":"root","type":"button","props":{"label":"建议运行测试","action":{"type":"request_tool","tool":"bash","summary":"运行测试","args":{"command":"pnpm test"}}}}',
+  '{"op":"commit"}',
+];
+const rich = [
+  '{"op":"begin","id":"rich","version":1,"title":"丰富视图"}',
+  '{"op":"node","id":"root","type":"column","props":{}}',
+  '{"op":"node","id":"tl","parent":"root","type":"timeline","props":{"title":"发布计划","items":[{"date":"周一","title":"冻结代码","status":"done"},{"date":"周三","title":"回归测试","detail":"**重点**看更新器","status":"current"},{"title":"发布","status":"upcoming"}]}}',
+  '{"op":"node","id":"df","parent":"root","type":"diff_view","props":{"fileName":"a.ts","diff":"--- a/a.ts\\n+++ b/a.ts\\n@@ -1,3 +1,3 @@\\n keep\\n-old\\n+new\\n tail"}}',
+  '{"op":"node","id":"it","parent":"root","type":"itinerary","props":{"title":"周末行程","days":[{"label":"第一天","stops":[{"name":"咖啡馆","time":"09:00","lat":31.23,"lng":121.47},{"name":"博物馆","time":"11:00","note":"只有名称，没有坐标"},{"name":"公园","lat":31.2,"lng":121.5}]}]}}',
+  '{"op":"node","id":"md","parent":"root","type":"media","props":{"kind":"map","alt":"路线图","caption":"示意"}}',
+  '{"op":"commit"}',
+];
+const appHeader = '{"op":"app","id":"probe","version":1,"title":"探针","height":200}';
+const probeApp = [appHeader, "<div id=o>probe</div>", `<script>
+const r = {};
+try { r.parent = typeof parent.document.title; } catch (e) { r.parent = e.name; }
+try { r.storage = typeof localStorage; } catch (e) { r.storage = e.name; }
+try { r.cookie = typeof document.cookie; } catch (e) { r.cookie = e.name; }
+r.require = typeof require; r.process = typeof process; r.rtc = typeof RTCPeerConnection; r.electron = typeof window.electron;
+r.velaKeys = Object.keys(window.vela).sort().join();
+fetch('https://example.com/x').then(() => { r.fetch = 'ok'; }, () => { r.fetch = 'blocked'; });
+try { const ws = new WebSocket('wss://example.com'); ws.onopen = () => { r.ws = 'open'; }; ws.onerror = () => { r.ws = 'blocked'; }; } catch (e) { r.ws = e.name; }
+const img = new Image(); img.onload = () => { r.img = 'loaded'; }; img.onerror = () => { r.img = 'blocked'; }; img.src = 'https://example.com/x.png';
+try { r.open = String(window.open('https://example.com')); } catch (e) { r.open = e.name; }
+try { top.location = 'https://example.com/'; } catch (e) { r.top = e.name; }
+try { location.href = 'https://example.com/nav'; } catch (e) { r.nav = e.name; }
+setTimeout(() => { window.__r = r; document.getElementById('o').textContent = 'done'; }, 800);
+</script>`];
+const talkApp = [appHeader.replace('"probe"', '"talk"'), "<button id=a>a</button><script>window.__log = []; window.__ask = (kind, text) => { window.vela[kind](text).then(() => window.__log.push(kind + ':ok'), e => window.__log.push(kind + ':' + e.message)); };</script>"];
+
 if (!process.versions.electron) {
   const temporary = mkdtempSync(join(tmpdir(), "vela-intelligent-ui-"));
   try {
@@ -52,13 +103,28 @@ if (!process.versions.electron) {
           import { createRoot } from 'react-dom/client';
           import { AssistantMarkdown } from './apps/desktop/src/renderer/components/intelligent-ui/AssistantMarkdown';
           import { UiHostProvider } from './apps/desktop/src/renderer/components/intelligent-ui/UiRuntime';
+          import { publishIntelligentUiState } from './apps/desktop/src/renderer/components/intelligent-ui/ui-settings-store';
+          import { setUiInspectorEnabled, uiMetrics } from './apps/desktop/src/renderer/components/intelligent-ui/ui-metrics-instance';
+          import { svgToPngBlob } from './apps/desktop/src/renderer/components/intelligent-ui/image-export';
           import { setActiveLocale } from './apps/desktop/src/renderer/locale';
+          import { SandboxCapabilityBroker } from '@vela/shared';
           setActiveLocale('zh-CN');
           window.submitted = [];
+          window.toolCalls = [];
+          window.__broker = new SandboxCapabilityBroker({ token: () => crypto.randomUUID() });
+          window.setMicroApps = enabled => { window.__microApps = enabled; publishIntelligentUiState({ preference: 'auto', microApps: enabled }); };
+          window.setInspector = setUiInspectorEnabled;
+          window.metrics = () => uiMetrics.summary();
+          window.pngOf = async selector => {
+            const blob = await svgToPngBlob(document.querySelector(selector));
+            if (!blob) return null;
+            const bytes = new Uint8Array(await blob.arrayBuffer());
+            return { type: blob.type, size: blob.size, magic: Array.from(bytes.slice(1, 4)).map(b => String.fromCharCode(b)).join('') };
+          };
           const root = createRoot(document.getElementById('root'));
-          window.renderMessage = (text, { streaming = false, conversationId = 'c1', ordinal = 'u0', busy = false } = {}) => root.render(
-            <UiHostProvider value={{ conversationId, stableMessageId: () => ordinal, canSubmit: true, agentBusy: busy,
-              submit: async text => { window.submitted.push(text); }, openLink: () => false }}>
+          window.renderMessage = (text, { streaming = false, conversationId = 'c1', ordinal = 'u0', busy = false, canSubmit = true } = {}) => root.render(
+            <UiHostProvider value={{ conversationId, stableMessageId: () => ordinal, canSubmit, agentBusy: busy,
+              submit: async text => { window.submitted.push(text); }, openLink: () => false, toolCalls: () => window.toolCalls }}>
               <div className="agent-reply-prose" style={{ maxWidth: 640 }}><AssistantMarkdown messageId="m1" text={text} streaming={streaming} /></div>
             </UiHostProvider>);
           window.unmount = () => root.render(null);
@@ -68,10 +134,18 @@ if (!process.versions.electron) {
       bundle: true, platform: "browser", format: "iife", jsx: "automatic",
       outfile: join(temporary, "ui.js"), loader: { ".svg": "dataurl" },
       alias: { "@vela/shared": resolve(here, "../../../packages/shared/src/index.ts") },
-      define: { "process.env.NODE_ENV": '"development"' },
+      define: { "process.env.NODE_ENV": '"development"', "import.meta.env.DEV": "false" },
     });
-    writeFileSync(join(temporary, "fixtures.json"), JSON.stringify({ billSplit, compare, hostile }));
-    writeFileSync(join(temporary, "index.html"), '<!doctype html><html data-scheme="light"><head><meta charset="utf-8"><style>' +
+    await build({
+      entryPoints: [resolve(here, "../src/main/ui-sandbox-guard.ts")], bundle: true, platform: "node", format: "cjs", outfile: join(temporary, "guard.cjs"),
+    });
+    writeFileSync(join(temporary, "fixtures.json"), JSON.stringify({ billSplit, compare, hostile, charts, sources, rich, probeApp, talkApp }));
+    writeFileSync(join(temporary, "index.html"), '<!doctype html><html data-scheme="light"><head><meta charset="utf-8"><script>' +
+      "window.vela = { getIntelligentUi: async () => ({ preference: 'auto', microApps: window.__microApps === true }), " +
+      "uiSandboxIssue: (key, capability, size) => Promise.resolve(window.__broker.issue(key, capability, size)), " +
+      "uiSandboxRedeem: (token, key, capability, size) => Promise.resolve({ ok: window.__broker.redeem(token, key, capability, size).ok }), " +
+      "uiSandboxRevoke: key => Promise.resolve(window.__broker.revoke(key)) };" +
+      '</script><style>' +
       readFileSync(join(here, "../src/renderer/styles.css"), "utf8") + readFileSync(join(here, "../src/renderer/components/intelligent-ui/intelligent-ui.css"), "utf8") +
       '</style></head><body><div id="root" style="padding:16px"></div><script src="ui.js"></script></body></html>');
     const env = { ...process.env, VELA_IUI_TEMP: temporary };
@@ -89,6 +163,17 @@ if (!process.versions.electron) {
   app.setPath("userData", join(temp, "profile"));
   void app.whenReady().then(async () => {
     const win = new BrowserWindow({ show: false, width: 760, height: 900, webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false, backgroundThrottling: false } });
+    // 与 main/index.ts 相同的子框架导航守卫（真实实现，单独打包进来），外加网络「绊线」：任何 http(s)/ws 请求都会被取消并记录。
+    const { allowSubframeNavigation } = createRequire(import.meta.url)(join(temp, "guard.cjs"));
+    const blockedNavigations = [];
+    const networkRequests = [];
+    win.webContents.on("will-frame-navigate", event => {
+      if (allowSubframeNavigation(event.url, event.isMainFrame)) return;
+      event.preventDefault(); blockedNavigations.push(event.url);
+    });
+    win.webContents.session.webRequest.onBeforeRequest({ urls: ["http://*/*", "https://*/*", "ws://*/*", "wss://*/*"] }, (details, callback) => {
+      networkRequests.push(details.url); callback({ cancel: true });
+    });
     try {
       await win.loadFile(join(temp, "index.html"));
       const fixtures = JSON.parse(readFileSync(join(temp, "fixtures.json"), "utf8"));
@@ -238,6 +323,243 @@ if (!process.versions.electron) {
       assert.equal(await evaluate("document.querySelectorAll('.iui-frame').length"), 0);
       assert.equal(await evaluate("document.querySelector('pre code').textContent.includes('not json')"), true);
 
+      // 11. Charts: bars, legend, keyboard tooltip, drag to edit a bound state, accessible data table, PNG export.
+      const key = async name => { win.webContents.sendInputEvent({ type: "keyDown", keyCode: name }); win.webContents.sendInputEvent({ type: "keyUp", keyCode: name }); await frame(); };
+      const input = async (type, x, y) => { win.webContents.sendInputEvent({ type, x: Math.round(x), y: Math.round(y), button: "left", clickCount: 1 }); await frame(); };
+      await render(fence(fixtures.charts));
+      assert.equal(await evaluate("document.querySelectorAll('.iui-bar').length"), 6);
+      assert.equal(await evaluate("document.querySelectorAll('.iui-slice').length"), 3);
+      assert.equal(await evaluate("document.querySelector('.iui-chart-plot').getAttribute('role')"), "group");
+      assert.match(await evaluate("document.querySelector('.iui-chart-plot').getAttribute('aria-label')"), /季度收入.*3 个数据点，2 个系列/);
+      assert.match(await evaluate("document.querySelector('.iui-chart-data table').textContent"), /Q2.*20 万.*40 万/);
+      await clickText(".iui-legend-item", "产品A");
+      assert.equal(await evaluate("document.querySelectorAll('.iui-bar').length"), 3, "legend hides a series");
+      assert.equal(await evaluate("document.querySelector('.iui-legend-item').getAttribute('aria-pressed')"), "false");
+      await clickText(".iui-legend-item", "产品A");
+      await evaluate("document.querySelector('.iui-chart-plot').focus()");
+      await key("Right");
+      assert.match(await evaluate("document.querySelector('.iui-chart-tip').textContent"), /Q1 · 产品A: 10 万/, "the first arrow press selects the first point");
+      await key("Right"); await key("]");
+      assert.match(await evaluate("document.querySelector('.iui-chart-tip').textContent"), /Q2 · 产品B/, "[ and ] switch series in a draggable chart");
+      // 拖动：预算状态绑定在产品B的 Q2 柱子上，拖到约 80。
+      const barBox = JSON.parse(await evaluate("JSON.stringify((() => { const r = document.querySelector('.iui-bar.is-draggable').getBoundingClientRect(); const s = document.querySelector('.iui-chart-svg').getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + 2, top: s.top, scale: s.height / 300 }; })())"));
+      await input("mouseDown", barBox.x, barBox.y);
+      await input("mouseMove", barBox.x, barBox.top + (14 + 240 * 0.2) * barBox.scale);
+      await input("mouseUp", barBox.x, barBox.top + (14 + 240 * 0.2) * barBox.scale);
+      const dragged = Number(await evaluate("document.querySelectorAll('.iui-number')[0].value"));
+      assert.ok(Math.abs(dragged - 80) <= 3, `dragging a bar edits the bound state (got ${dragged})`);
+      assert.equal(await evaluate("window.submitted.length"), 1, "dragging never submits");
+      // 键盘：选中后上下方向键调整数值。
+      await typeInto("预算", "55");
+      await evaluate("document.querySelector('.iui-chart-plot').focus()");
+      await key("Right"); await key("Right"); await key("]");
+      assert.match(await evaluate("document.querySelector('.iui-chart-tip').textContent"), /Q2 · 产品B/);
+      await key("Up");
+      assert.equal(await evaluate("document.querySelectorAll('.iui-number')[0].value"), "56", "arrow keys step the bound value");
+      // 饼图与示意图。
+      assert.match(await evaluate("document.querySelector('.iui-pie-legend').textContent"), /甲.*60 · 60\.0%.*乙.*30 · 30\.0%/);
+      assert.equal(await evaluate("document.querySelector('.iui-diagram-svg').getAttribute('role')"), "img");
+      assert.equal(await evaluate("document.querySelector('.iui-diagram .iui-chip.is-selected').textContent"), "部件A");
+      await clickText(".iui-chip", "部件B");
+      assert.equal(await evaluate("Array.from(document.querySelectorAll('.iui-text')).some(el => el.textContent === 'b')"), true, "choosing a hotspot sets the bound state");
+      assert.match(await evaluate("document.querySelector('.iui-diagram .iui-chart-tip').textContent"), /部件B — 右边的圆/);
+      assert.equal(await evaluate("document.querySelector('.iui-diagram-svg .iui-hotspot.is-selected') !== null"), true);
+      // 保存图片：真实栅格化出 PNG。
+      const png = await evaluate("window.pngOf('.iui-chart-svg')");
+      assert.equal(png.type, "image/png"); assert.equal(png.magic, "PNG"); assert.ok(png.size > 1500, `png size ${png.size}`);
+      assert.equal((await evaluate("window.pngOf('.iui-pie-plot svg')")).magic, "PNG");
+      await capture("charts-light");
+
+      // 12. Data sources: only real tool results fill the UI, with provenance, states and confirm-gated refresh.
+      const toolBody = JSON.stringify({ items: [{ name: "a.ts", size: 120 }, { name: "b.ts", size: 80 }], count: 2 });
+      const completedAt = Date.now();
+      await evaluate(`window.toolCalls = []`);
+      await render(fence(fixtures.sources), { streaming: true });
+      assert.match(await evaluate("document.querySelector('.iui-stat-value').textContent"), /加载中/, "loading while the tool result isn't there yet");
+      await render(fence(fixtures.sources));
+      assert.match(await evaluate("document.querySelector('.iui-table-block .iui-notice-error').textContent"), /获取失败.*没有找到对应的工具结果/);
+      await evaluate(`window.toolCalls = [{ id: 'call_abcdef123456', name: 'bash', status: 'done', command: 'git ls-files --json', body: ${JSON.stringify(toolBody)}, completedAt: ${completedAt} }]`);
+      await render(fence(fixtures.sources));
+      assert.deepEqual(await evaluate("Array.from(document.querySelectorAll('.iui-table-block .iui-table tbody tr')).map(tr => tr.textContent)"), ["a.ts120", "b.ts80"]);
+      assert.equal(await evaluate("document.querySelector('.iui-stat-value').textContent.trim()"), "2");
+      assert.equal(await evaluate("document.querySelectorAll('.iui-bar').length"), 2);
+      assert.match(await evaluate("document.querySelector('.iui-provenance').textContent"), /数据: bash · git ls-files --json/);
+      assert.equal(await evaluate("document.querySelector('.iui-provenance').getAttribute('title')"), "记录: call_abcdef1");
+      assert.equal(await evaluate("document.querySelector('.iui-badge') === null"), true, "fresh data has no warning badge");
+      await clickText(".iui-meta .iui-tool", "刷新");
+      assert.match(await evaluate("document.querySelector('.iui-confirm-text').textContent"), /refresh the data source "(total|files)"[\s\S]*Use the normal tool permissions/);
+      assert.equal(await evaluate("window.submitted.length"), 1, "refresh needs confirmation");
+      await clickText(".iui-confirm .iui-button", "取消");
+      await clickText(".iui-button", "建议运行测试");
+      assert.match(await evaluate("document.querySelector('.iui-confirm-text').textContent"), /consider running the `bash` tool[\s\S]*command: pnpm test[\s\S]*not from an approval|came from a button/);
+      await clickText(".iui-confirm .iui-button", "发送");
+      assert.equal(await evaluate("window.submitted.length"), 2);
+      assert.equal(await evaluate("window.toolCalls.length"), 1, "the UI never created a tool call");
+      // 过期、失败。
+      await evaluate(`window.toolCalls[0].completedAt = ${completedAt - 3600_000}`);
+      await render(fence(fixtures.sources)); await frame();
+      assert.equal(await evaluate("document.querySelector('.iui-badge-stale') !== null"), true);
+      assert.match(await evaluate("document.querySelector('.iui-badge-stale').textContent"), /可能已过期/);
+      await evaluate("window.toolCalls[0].status = 'error'; window.toolCalls[0].body = 'fatal: not a git repository'");
+      await render(fence(fixtures.sources)); await frame();
+      assert.match(await evaluate("document.querySelector('.iui-table-block .iui-notice-error').textContent"), /not a git repository/);
+      await evaluate("window.toolCalls = []");
+
+      // 13. Timeline, diff, itinerary (no invented coordinates) and the media placeholder.
+      await render(fence(fixtures.rich));
+      assert.deepEqual(await evaluate("Array.from(document.querySelectorAll('.iui-timeline-item')).map(li => li.className.split(' ').pop())"), ["is-done", "is-current", "is-upcoming"]);
+      assert.equal(await evaluate("document.querySelector('.iui-timeline-item.is-current').getAttribute('aria-current')"), "step");
+      assert.equal(await evaluate("document.querySelector('.iui-timeline-item.is-current strong').textContent"), "重点");
+      assert.equal(await evaluate("document.querySelectorAll('.iui-diff-line.is-add').length + ':' + document.querySelectorAll('.iui-diff-line.is-del').length"), "1:1");
+      assert.equal(await evaluate("document.querySelector('.iui-diff-add').textContent + document.querySelector('.iui-diff-del').textContent"), "+1−1");
+      assert.equal(await evaluate("document.querySelectorAll('.iui-itinerary-stops li').length"), 3);
+      assert.equal(await evaluate("document.querySelectorAll('.iui-coords').length"), 2, "only stops with model-given coordinates show coordinates");
+      assert.equal(await evaluate("document.querySelector('.iui-plot-svg')"), null, "the sketch is opt-in");
+      await clickText(".iui-itinerary-plot .iui-tool", "显示位置示意图");
+      assert.equal(await evaluate("document.querySelectorAll('.iui-plot-dot').length"), 2, "the stop without coordinates isn't plotted");
+      assert.match(await evaluate("document.querySelector('.iui-itinerary-plot figcaption').textContent"), /不是地图/);
+      assert.match(await evaluate("document.querySelector('.iui-media-box').textContent"), /路线图.*没有连接地图服务/);
+      assert.equal(await evaluate("document.querySelector('.iui-media img, .iui-media iframe')"), null);
+      await capture("rich-light");
+
+      // 14. Observability: local counters, dev inspector, nothing leaves the page.
+      const before = await evaluate("window.metrics()");
+      const historic = fence(fixtures.rich).replace('"id":"rich"', '"id":"rich-history"');
+      const liveText = fence(fixtures.rich).replace('"id":"rich"', '"id":"rich-live"');
+      await render(historic);
+      assert.equal((await evaluate("window.metrics()")).artifacts, before.artifacts, "history renders are not counted as generated interfaces");
+      await render(liveText.slice(0, 60), { streaming: true });
+      await render(liveText, { streaming: true });
+      await render(liveText, { streaming: false });
+      const after = await evaluate("window.metrics()");
+      assert.equal(after.artifacts, before.artifacts + 1, "a streamed interface is counted once");
+      assert.equal(after.ready, before.ready + 1);
+      assert.equal(after.commitRate !== null && after.commitRate <= 1, true);
+      assert.equal(JSON.stringify(after).includes("冻结代码"), false, "metrics hold no interface content");
+      await evaluate("window.setInspector(true)"); await frame();
+      await clickText(".iui-inspector summary", "开发检查器").catch(() => undefined);
+      await evaluate("document.querySelector('.iui-inspector').open = true");
+      assert.match(await evaluate("document.querySelector('.iui-inspector .iui-source-view').textContent"), /"type": "timeline"/);
+      await clickText(".iui-inspector-tabs button", "事件");
+      assert.match(await evaluate("document.querySelector('.iui-inspector .iui-source-view').textContent"), /begin[\s\S]*ready/);
+      await clickText(".iui-inspector-tabs button", "状态");
+      await evaluate("window.setInspector(false)"); await frame();
+      assert.equal(await evaluate("document.querySelector('.iui-inspector')"), null);
+
+      // 15. Sandboxed micro-apps: off by default, isolated when on, every side effect needs the user.
+      const appFence = lines => "```vela-app\n" + lines.join("\n") + "\n```";
+      const frames = () => win.webContents.mainFrame.frames;
+      const inFrame = (index, code) => Promise.race([frames()[index].executeJavaScript(code), new Promise((_, reject) => setTimeout(() => reject(new Error(`frame check timed out: ${code}`)), 8000))]);
+      const waitFrame = async (index, code) => {
+        const deadline = Date.now() + 8000;
+        while (Date.now() < deadline) {
+          const value = await inFrame(index, code).catch(() => undefined);
+          if (value) return value;
+          await new Promise(done => setTimeout(done, 50));
+        }
+        throw new Error(`Timed out in frame: ${code}`);
+      };
+      const mainUrl = win.webContents.getURL();
+      await render(appFence(fixtures.probeApp));
+      assert.equal(await evaluate("document.querySelector('iframe')"), null, "no iframe while micro-apps are off");
+      assert.match(await evaluate("document.querySelector('.iui-app .iui-notice').textContent"), /微应用已关闭/);
+      assert.equal(await evaluate("Array.from(document.querySelectorAll('.iui-app button')).some(b => b.textContent === '运行')"), false);
+      await clickText(".iui-app .iui-tool", "查看原始文本");
+      assert.equal(await evaluate("document.querySelector('.iui-app .iui-source-view').textContent.includes('fetch(')"), true, "the code is viewable as text");
+      await evaluate("window.setMicroApps(true)"); await frame();
+      assert.equal(await evaluate("document.querySelector('iframe')"), null, "turning the switch on never runs anything by itself");
+      assert.match(await evaluate("document.querySelector('.iui-app .iui-description').textContent"), /隔离的沙盒/);
+      await clickText(".iui-app .iui-button", "运行");
+      await until("document.querySelector('iframe.iui-app-frame')");
+      assert.equal(await evaluate("document.querySelector('iframe').getAttribute('sandbox')"), "allow-scripts");
+      assert.equal(await evaluate(`document.querySelector('iframe').srcdoc.includes("default-src 'none'")`), true);
+      const probe = await waitFrame(0, "window.__r && window.__r.img && window.__r.fetch && window.__r.ws && window.__r");
+      assert.equal(probe.parent, "SecurityError", "no access to the parent document");
+      assert.equal(probe.storage, "SecurityError", "opaque origin has no storage");
+      assert.equal(probe.cookie, "SecurityError");
+      assert.deepEqual([probe.require, probe.process, probe.rtc, probe.electron], ["undefined", "undefined", "undefined", "undefined"]);
+      assert.equal(probe.velaKeys, "copy,submit", "the bridge exposes exactly two requests, nothing else");
+      assert.equal(probe.fetch, "blocked", "CSP blocks fetch");
+      assert.equal(probe.img, "blocked", "CSP blocks remote images");
+      assert.equal(probe.ws, "blocked", "CSP blocks WebSocket");
+      assert.equal(probe.open, "null", "no popups");
+      await new Promise(done => setTimeout(done, 400));
+      assert.deepEqual(networkRequests, [], "the micro-app produced no network request at all");
+      assert.deepEqual(blockedNavigations.filter(url => !/^about:/.test(url)), blockedNavigations, "navigation attempts never reached the network");
+      assert.equal(win.webContents.getURL(), mainUrl, "the app window was not navigated");
+      assert.equal(await evaluate("window.__pwned"), undefined);
+      await clickText(".iui-app .iui-tool", "停止");
+      assert.equal(await evaluate("document.querySelector('iframe')"), null, "stopping removes the frame");
+
+      // Capability requests: the user sees the exact text first; denial, rate limits and forged messages do nothing.
+      const submittedBefore = await evaluate("window.submitted.length");
+      await render(appFence(fixtures.talkApp));
+      await clickText(".iui-app .iui-button", "运行");
+      await until("document.querySelector('iframe.iui-app-frame')");
+      await waitFrame(0, "typeof window.__ask === 'function'");
+      await inFrame(0, "window.__ask('submit', 'hello agent')");
+      await until("document.querySelector('.iui-app [role=alertdialog]')");
+      assert.match(await evaluate("document.querySelector('.iui-app [role=alertdialog]').textContent"), /Agent[\s\S]*hello agent/);
+      assert.equal(await evaluate("window.submitted.length"), submittedBefore, "nothing is sent before the user agrees");
+      await clickText(".iui-app [role=alertdialog] .iui-button", "发送");
+      await until(`window.submitted.length === ${submittedBefore + 1}`);
+      assert.equal(await evaluate("window.submitted.at(-1)"), "hello agent");
+      assert.equal(await waitFrame(0, "window.__log.includes('submit:ok') && 'yes'"), "yes");
+      await inFrame(0, "window.__ask('copy', 'secret text')");
+      await until("document.querySelector('.iui-app [role=alertdialog]')");
+      await clickText(".iui-app [role=alertdialog] .iui-button", "拒绝");
+      assert.equal(await waitFrame(0, "window.__log.includes('copy:denied') && 'yes'"), "yes");
+      assert.equal(await evaluate("window.submitted.length"), submittedBefore + 1, "denying sends nothing");
+      // 频率限制：每分钟最多 6 次申请（前面已用 2 次）。
+      for (let index = 0; index < 4; index += 1) {
+        await inFrame(0, "window.__ask('copy', 'again')");
+        await until("document.querySelector('.iui-app [role=alertdialog]')");
+        await clickText(".iui-app [role=alertdialog] .iui-button", "拒绝");
+      }
+      await inFrame(0, "window.__ask('copy', 'one too many')");
+      assert.equal(await waitFrame(0, "window.__log.at(-1) === 'copy:rate_limited' && 'yes'"), "yes");
+      assert.equal(await evaluate("document.querySelector('.iui-app [role=alertdialog]')"), null, "a rate-limited request never reaches the user");
+      // 伪造：父页面自己发的消息、超长文本都不会产生确认。
+      await evaluate("window.postMessage({ vela: 1, type: 'request', id: 99, capability: 'agent.submit', text: 'forged' }, '*')");
+      await inFrame(0, "parent.postMessage({ vela: 1, type: 'request', id: 5, capability: 'agent.submit', text: 'x'.repeat(5000) }, '*')");
+      await new Promise(done => setTimeout(done, 300));
+      assert.equal(await evaluate("document.querySelector('.iui-app [role=alertdialog]')"), null);
+      assert.equal(await evaluate("window.submitted.length"), submittedBefore + 1);
+      // 关掉开关：正在运行的立刻停止，令牌全部收回。
+      await evaluate("window.setMicroApps(false)"); await frame();
+      assert.equal(await evaluate("document.querySelector('iframe')"), null, "switching micro-apps off stops running ones");
+      assert.equal(await evaluate("window.__broker.outstanding"), 0);
+      await evaluate("window.setMicroApps(true)"); await frame();
+
+      // 同时最多运行两个；失去响应的应用会被看门狗停掉，页面本身不受影响。
+      const three = ["a", "b", "c"].map(id => appFence([appHeader.replace('"probe"', `"${id}"`), `<p>app ${id}</p>`])).join("\n\n");
+      await render(three);
+      const runButtons = "Array.from(document.querySelectorAll('.iui-app .iui-button-primary'))";
+      await evaluate(`${runButtons}[0].click()`); await evaluate(`${runButtons}[0].click()`);
+      await until("document.querySelectorAll('iframe').length === 2");
+      await evaluate(`${runButtons}[0].click()`); await frame();
+      assert.equal(await evaluate("document.querySelectorAll('iframe').length"), 2, "a third app can't start");
+      assert.match(await evaluate("document.body.textContent"), /最多同时运行 2 个微应用/);
+      await render("```text\nplain\n```");
+      assert.equal(await evaluate("window.__broker.outstanding"), 0);
+
+      // 16. A micro-app stuck in a busy loop must not freeze Vela, and the watchdog stops it.
+      const busy = appFence([appHeader.replace('"probe"', '"busy"'), "<p>busy</p><script>setTimeout(() => { for (;;) {} }, 400)</script>"]);
+      await render(busy);
+      await clickText(".iui-app .iui-button", "运行");
+      await until("document.querySelector('iframe.iui-app-frame')");
+      const responsive = async () => Promise.race([evaluate("1 + 1"), new Promise(done => setTimeout(() => done("frozen"), 4000))]);
+      await new Promise(done => setTimeout(done, 1200));
+      assert.equal(await responsive(), 2, "the app window stays responsive while a micro-app spins");
+      const started = Date.now();
+      while (Date.now() - started < 15000 && !(await Promise.race([evaluate("document.querySelector('.iui-app .iui-notice-warning')?.textContent ?? ''"), new Promise(done => setTimeout(() => done("frozen"), 4000))])).includes("没有响应")) {
+        await new Promise(done => setTimeout(done, 300));
+      }
+      assert.ok(Date.now() - started < 12000, "the watchdog stops an unresponsive micro-app");
+      assert.match(await evaluate("document.querySelector('.iui-app .iui-notice-warning').textContent"), /没有响应，已停止/);
+      assert.equal(await evaluate("document.querySelector('iframe')"), null);
+      assert.equal(await responsive(), 2);
+
       // 10. Narrow layout and dark theme: nothing overflows the chat column.
       win.setSize(380, 900);
       await render(fence(fixtures.compare)); await frame();
@@ -249,7 +571,7 @@ if (!process.versions.electron) {
       assert.equal(await evaluate("document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1"), true);
       await capture("calculator-dark-narrow");
 
-      console.log("PASS intelligent UI: streaming, local state, calculator errors, explicit submit, persistence, table, XSS, fallbacks and narrow layout");
+      console.log("PASS intelligent UI: streaming, local state, calculator errors, explicit submit, persistence, table, XSS, fallbacks, charts and diagrams, data sources, rich views, metrics, sandboxed micro-apps and narrow layout");
       app.exit(0);
     } catch (error) { console.error(error); app.exit(1); }
   });
