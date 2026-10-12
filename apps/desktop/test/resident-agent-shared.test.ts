@@ -139,3 +139,16 @@ it("locates and revalidates an Intelligent UI reply", () => {
   assert.equal(latestUiReply([...messages, { role: "assistant", text: "后记" }]), null);
   assert.equal(latestUiReply([{ role: "assistant", text: "  " }, { role: "user", text: "x" }]), null);
 });
+
+it("keeps only well-formed model and effort choices", () => {
+  const chosen = normalizeResidentSettings({ model: { provider: " anthropic ", id: "opus" }, thinkingLevel: "xhigh" });
+  assert.deepEqual(chosen.model, { provider: "anthropic", id: "opus" });
+  assert.equal(chosen.thinkingLevel, "xhigh");
+  const bad = normalizeResidentSettings({ model: { provider: "", id: 3 }, thinkingLevel: "ludicrous" }, chosen);
+  assert.deepEqual(bad.model, chosen.model);
+  assert.equal(bad.thinkingLevel, "xhigh");
+  const cleared = mergeResidentSettings(chosen, { model: null, thinkingLevel: null });
+  assert.equal(cleared.model, null);
+  assert.equal(cleared.thinkingLevel, null);
+  assert.equal(mergeResidentSettings(chosen, { mode: "proactive" }).model?.id, "opus");
+});

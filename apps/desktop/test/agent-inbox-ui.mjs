@@ -63,7 +63,7 @@ const mockScript = String.raw`
   resident: (() => {
     const statusListeners = new Set();
     const ruleListeners = new Set();
-    const settings = { mode: "standby", paused: false, showMenuBarIcon: true, launchAtLogin: false, quitWhenWindowsClosed: false,
+    const settings = { mode: "standby", model: null, thinkingLevel: null, paused: false, showMenuBarIcon: true, launchAtLogin: false, quitWhenWindowsClosed: false,
       notifications: { enabled: true, hidePreview: false, notifyResults: false, quietHours: { enabled: false, startMinute: 1320, endMinute: 480 } },
       limits: { maxConcurrentTasks: 2, maxTaskMinutes: 60, dailyProactiveRuns: 10, pauseProactiveOnBattery: true } };
     const status = { state: "ready", mode: "standby", paused: false, conversationId: "res1", model: "test-model", residentBusy: false, runningTasks: 1, queuedTasks: 0,
@@ -84,7 +84,7 @@ const mockScript = String.raw`
       updateSettings: async (patch) => {
         call("updateSettings", { patch });
         for (const key of Object.keys(patch)) {
-          if (patch[key] && typeof patch[key] === "object") {
+          if (patch[key] && typeof patch[key] === "object" && key !== "model") {
             for (const inner of Object.keys(patch[key])) {
               if (patch[key][inner] && typeof patch[key][inner] === "object") Object.assign(settings[key][inner], patch[key][inner]); else settings[key][inner] = patch[key][inner];
             }
@@ -145,7 +145,12 @@ if (!process.versions.electron) {
       const ensureTranscript = (id) => { window.transcripts.push(id); };
       const handled = (value) => { window.handled.push(value); if (navigation?.nonce === value) { navigation = null; window.renderInbox(currentLocale); } };
       window.renderInbox = (locale) => { currentLocale = locale; setActiveLocale(locale); root.render(<AgentInboxPage key={locale} active sidebarCollapsed={false} onToggleSidebar={() => {}} onOpenConversation={(id) => window.opened.push(id)}
-        messageStore={window.messageStore} ensureTranscript={ensureTranscript} navigation={navigation} onNavigationHandled={handled} />); };
+        messageStore={window.messageStore} ensureTranscript={ensureTranscript} navigation={navigation} onNavigationHandled={handled}
+        catalog={{ providers: [], error: null, models: [
+          { provider: 'anthropic', providerName: 'Anthropic', id: 'big', name: 'Big', reasoning: true, contextWindow: 200000, available: true, custom: false, thinkingLevels: ['off', 'low', 'high'] },
+          { provider: 'anthropic', providerName: 'Anthropic', id: 'small', name: 'Small', reasoning: false, contextWindow: 200000, available: true, custom: false, thinkingLevels: ['off'] },
+          { provider: 'other', providerName: 'Other', id: 'locked', name: 'Locked', reasoning: true, contextWindow: 1000, available: false, custom: false, thinkingLevels: ['off', 'low'] },
+        ] }} catalogError={null} />); };
       window.navigate = (target) => { nonce += 1; navigation = { target, nonce }; window.renderInbox(currentLocale); };
       window.renderInbox('en');
     `,
@@ -420,9 +425,9 @@ if (!process.versions.electron) {
         { id: "m1", role: "user", text: "Check the api tests", thinking: "", tools: [] },
         { id: "m2", role: "assistant", text: ${JSON.stringify(uiFence("Start with the api", "Start with the api project"))}, thinking: "", tools: [{ id: "tc1", name: "delegate_workspace_task", status: "done", activity: {} }] },
       ])`);
-      await until("!!document.querySelector('.resident-msg.assistant .iui-button')");
+      await until("!!document.querySelector('.resident-messages .assistant-block .iui-button')");
       assert.equal(await text(".resident-tools li"), "Created a background task");
-      await clickText(".resident-msg .iui-button", "Start with the api");
+      await clickText(".resident-messages .iui-button", "Start with the api");
       await evaluate("document.querySelector('.iui-confirm .iui-button-primary').click()");
       await until("window.residentFixture.calls.some(call => call.method === 'submit')");
       assert.deepEqual(await evaluate("window.residentFixture.calls.find(call => call.method === 'submit').input"), { text: "Start with the api project" }, "UI submit goes to the Resident conversation only");
@@ -430,7 +435,7 @@ if (!process.versions.electron) {
 
       await setField("#resident-input", "Run the api tests");
       await setField(".resident-composer select", "/work/api");
-      await evaluate("document.querySelector('.resident-composer .agent-inbox-primary').click()");
+      await evaluate("document.querySelector('.resident-composer button[type=submit]').click()");
       await until("window.residentFixture.calls.some(call => call.method === 'submit')");
       assert.deepEqual(await evaluate("window.residentFixture.calls.find(call => call.method === 'submit').input"), { text: "Run the api tests", workspace: "/work/api" });
       await until("document.querySelector('#resident-input').value === ''");
@@ -480,6 +485,23 @@ if (!process.versions.electron) {
       await evaluate("document.querySelector('.resident-number input').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))");
       await until("window.residentFixture.calls.some(call => call.method === 'updateSettings' && call.patch.limits?.maxConcurrentTasks === 4)");
       console.log("PASS settings send only the changed field");
+
+      // Model and reasoning effort
+      const pick = (index, value) => evaluate(`(() => { const select = document.querySelectorAll('.resident-settings select')[${index}]; const setter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set; setter.call(select, ${JSON.stringify(value)}); select.dispatchEvent(new Event('change', { bubbles: true })); })()`);
+      const patches = () => evaluate("window.residentFixture.calls.filter(call => call.method === 'updateSettings').map(call => call.patch)");
+      assert.deepEqual(await evaluate("[...document.querySelectorAll('.resident-settings select')[0].options].map(option => option.textContent)"), ["Use app settings", "Anthropic / Big", "Anthropic / Small"], "unavailable models are not offered");
+      assert.deepEqual(await evaluate("[...document.querySelectorAll('.resident-settings select')[1].options].map(option => option.value)"), ["", "off", "minimal", "low", "medium", "high", "xhigh", "max"], "any effort until a model narrows it");
+      await pick(0, JSON.stringify(["anthropic", "big"]));
+      await until("window.residentFixture.calls.some(call => call.method === 'updateSettings' && call.patch.model?.id === 'big')");
+      assert.deepEqual(await evaluate("[...document.querySelectorAll('.resident-settings select')[1].options].map(option => option.value)"), ["", "off", "low", "high"], "effort follows the chosen model");
+      await pick(1, "high");
+      await until("window.residentFixture.calls.some(call => call.method === 'updateSettings' && call.patch.thinkingLevel === 'high')");
+      await pick(0, JSON.stringify(["anthropic", "small"]));
+      await until("window.residentFixture.calls.some(call => call.method === 'updateSettings' && call.patch.model?.id === 'small' && call.patch.thinkingLevel === null)");
+      await pick(0, "");
+      await until("window.residentFixture.calls.some(call => call.method === 'updateSettings' && call.patch.model === null)");
+      assert.equal((await patches()).filter(patch => patch.model?.id === 'big').length, 1);
+      console.log("PASS settings choose the model and reasoning effort");
 
       // Disabled: nothing can be submitted, nothing is interrupted
       await clickText(".resident-modes button", "Disabled");

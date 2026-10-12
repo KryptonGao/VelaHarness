@@ -1,20 +1,20 @@
-# Vela 1.1.3
+# Vela 1.1.4
 
-Vela 1.1.3 introduces a new illustrated welcome tour, an eight-step setup flow, and release highlights that are available offline in your language.
+Vela 1.1.4 adds custom light and dark themes, independent model and reasoning settings for the Resident Agent, and a more capable resident conversation view.
 
 ## New
 
-- **A new welcome tour**: Meet Vela through an illustrated introduction, then explore parallel agents, execution traces, and compact conversations with screenshots from the app.
-- **Eight steps to get ready**: Choose your language, appearance, information layout, skills, model, permissions, memory and instructions, and background behavior. Optional steps can be skipped, and unfinished setup resumes where you left off.
-- **What is new, right in the app**: The welcome tour and the first launch after an update show release highlights from the installed app. Notes work offline and only appear when their version matches the app.
-- **Replay the introduction**: Open Settings → About & updates to revisit the introduction and current release highlights without changing your saved preferences.
+- **Make your own themes**: Create light and dark palettes in Settings → Appearance with four colors: background, cards and panels, text, and accent. Name, edit, save, and delete your themes.
+- **Preview your palette**: Adjust colors with a picker or hex values and see a live conversation preview. A contrast hint helps you spot text that may be hard to read.
+- **Choose a model for Resident Agent**: Set a separate model and reasoning level for the resident conversation and its background tasks, or follow your new-conversation defaults. Your app-wide model settings stay unchanged.
+- **A more useful resident conversation**: Read Markdown, copy messages, and edit a previous user message to send it again. Resending creates a new message and keeps the existing history.
 
 ## Improved
 
-- Setup previews light and dark themes while keeping the illustrated guide readable in its own light palette.
-- The final setup page can open a project folder or take you directly to the relevant settings page.
-- Welcome, setup, and release highlights are available in English, Simplified Chinese, Traditional Chinese, Japanese, and Korean.
-- Development settings include a way to restart onboarding without clearing saved preferences.
+- Idle resident conversations apply model changes immediately; conversations already replying apply them before the next submission.
+- Reasoning levels follow model support, and unavailable selected models report an error instead of silently switching.
+- Custom theme colors are restored at startup; deleting a selected custom theme falls back to the default palette.
+- Resident chat, task recipes, terminal controls, and activity indicators receive more consistent spacing and controls.
 
 ## Upgrade
 
@@ -28,20 +28,21 @@ The macOS build is not notarized and uses an ad-hoc signature. If macOS blocks f
 
 | File | Platform |
 | --- | --- |
-| `Vela-1.1.3-arm64.dmg` | macOS Apple Silicon installer |
-| `Vela-1.1.3-arm64.zip` | macOS Apple Silicon application bundle (`.app`); also the package used by in-app updates |
+| `Vela-1.1.4-arm64.dmg` | macOS Apple Silicon installer |
+| `Vela-1.1.4-arm64.zip` | macOS Apple Silicon application bundle (`.app`); also the package used by in-app updates |
 | `SHA256SUMS.txt` | SHA-256 checksums for both packages |
 | `SHA256SUMS.txt.sig` | Ed25519 signature of `SHA256SUMS.txt`, verified by the in-app updater |
 
-Package version: `1.1.3`. macOS bundle and download version: `1.1.3`.
+Package version: `1.1.4`. macOS bundle and download version: `1.1.4`.
 
 ## Validation
 
-- Type checks and all 1,603 unit tests passed (`pnpm test`): 169 workspace, 573 agent, and 861 desktop tests.
+- Type checks and all 1,618 unit tests passed (`pnpm test`): 169 workspace, 577 agent, and 872 desktop tests.
+- All 42 targeted custom-theme and resident-execution tests passed.
 - All 29 in-app update tests passed (`pnpm --filter @vela/desktop test:updates`).
 - The production build passed (`pnpm build`).
-- All 17 real-Electron onboarding flow checks passed, along with the updates UI suite.
-- Twelve real-Electron smoke suites passed, including Pi SDK compatibility, profile isolation, browser workflows, MCP, scheduled tasks, handoffs, PR review responses, notification sounds, settings, and thinking blur. Browser-use passed on a targeted rerun.
-- The signed, packaged Vela 1.1.3 application launched with isolated data, loaded matching release notes in all five languages, displayed the current release card, and kept it dismissed after reload.
-- Both distribution packages contain a valid ad-hoc signed application bundle with version `1.1.3` and identifier `com.vela.desktop`; the zip contains only `Vela.app`, and the DMG mounted successfully.
-- The application updater verified the release checksum signature against its built-in public key, and both package SHA-256 checksums matched.
+- The Agent Inbox and updates real-Electron UI suites passed, including resident model and reasoning controls and rendering in all five languages.
+- Twelve of fourteen real-Electron smoke suites passed. Task Recipes (missing Edit button) and PR Inbox (idle refresh timeout) failed on both this release and an isolated build of the unchanged 1.1.3 commit; these existing failures remain unresolved.
+- The packaged 1.1.4 app launched with isolated data, loaded release notes in all five languages, and passed custom-theme creation, application, reload persistence, deletion fallback, and release-card dismissal persistence checks.
+- The ad-hoc signed application bundle has version `1.1.4` and identifier `com.vela.desktop`; the ZIP contains only `Vela.app`, and the DMG mounted successfully with a valid application signature.
+- The updater verified the checksum signature against its built-in public key, and both package SHA-256 checksums matched.

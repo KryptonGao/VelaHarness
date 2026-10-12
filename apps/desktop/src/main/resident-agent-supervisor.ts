@@ -29,15 +29,20 @@ const log = createLogger("resident-agent");
 const schemaVersion = 1;
 const residentTitle = "Resident Agent";
 
+/** 设置里为常驻 Agent 选择的模型与推理强度；null 表示沿用新对话的默认。 */
+export type ResidentExecution = Pick<ResidentSettings, "model" | "thinkingLevel">;
+
 /** Supervisor 只依赖运行时的这几个入口，测试里用假对象替换。它是协调层，不是新的模型运行时。 */
 export interface ResidentRuntime {
-  ensureResidentConversation(cwd: string, knownId: string | null): Promise<string>;
-  promptBackground(conversationId: string, text: string): Promise<void>;
+  ensureResidentConversation(cwd: string, knownId: string | null, execution?: ResidentExecution): Promise<string>;
+  promptBackground(conversationId: string, text: string, execution?: ResidentExecution): Promise<void>;
+  /** 设置里改了模型或强度：空闲的会话立即换上，忙碌的留到下一条消息。 */
+  configureBackground(conversationId: string, execution: ResidentExecution): Promise<void>;
   runScheduledTask(
     cwd: string,
     text: string,
     onCreated: (id: string) => void,
-    execution: { sandboxMode?: SandboxMode | null; mode?: "agent" | "plan" },
+    execution: ResidentExecution & { sandboxMode?: SandboxMode | null; mode?: "agent" | "plan" },
   ): Promise<void>;
   abort(conversationId: string): Promise<void>;
   getConversationInfo(conversationId: string): { status: SessionStatus; model: string | null } | null;
@@ -167,6 +172,8 @@ export class ResidentAgentSupervisor implements ResidentToolHost {
   // ---------- 读取 ----------
 
   getSettings(): ResidentSettings { return this.settings; }
+  /** 常驻对话与后台任务使用的模型和推理强度。 */
+  private execution(): ResidentExecution { return { model: this.settings.model, thinkingLevel: this.settings.thinkingLevel }; }
   getResidentConversationId(): string | null { return this.conversationId; }
   isResidentConversation(id: string): boolean { return this.conversationId !== null && id === this.conversationId; }
   getRuntimeFlags(): { suspended: boolean; onBattery: boolean } { return { suspended: this.suspended, onBattery: this.onBattery }; }
@@ -240,8 +247,18 @@ export class ResidentAgentSupervisor implements ResidentToolHost {
   updateSettings(patch: unknown): ResidentSettings {
     const next = mergeResidentSettings(this.settings, patch);
     if (JSON.stringify(next) === JSON.stringify(this.settings)) return this.settings;
+    const previous = this.settings;
     this.settings = next;
     this.persist();
+    // 模型或强度变了：空闲的常驻会话马上换上；换不上（比如模型已不可用）时在状态里提示，选择仍然保存。
+    if (this.conversationId && (!sameModel(previous.model, next.model) || previous.thinkingLevel !== next.thinkingLevel)) {
+      this.error = null;
+      void this.options.runtime.configureBackground(this.conversationId, this.execution()).then(() => this.publish(), error => {
+        log.error("resident model change failed", error);
+        this.error = error instanceof Error ? error.message : String(error);
+        this.publish();
+      });
+    }
     for (const listener of this.settingsListeners) this.safely(() => listener(next));
     this.publish();
     // 并发上限调大后，排队的任务可以立即开始。
@@ -268,7 +285,7 @@ export class ResidentAgentSupervisor implements ResidentToolHost {
     try {
       const id = await this.ensureConversation();
       this.error = null;
-      void this.options.runtime.promptBackground(id, text).catch(error => {
+      void this.options.runtime.promptBackground(id, text, this.execution()).catch(error => {
         log.error("resident prompt failed", error);
         this.error = error instanceof Error ? error.message : String(error);
         this.publish();
@@ -383,7 +400,7 @@ export class ResidentAgentSupervisor implements ResidentToolHost {
   private ensureConversation(): Promise<string> {
     if (this.ensuring) return this.ensuring;
     mkdirSync(this.options.residentDir, { recursive: true });
-    const pending = this.options.runtime.ensureResidentConversation(this.options.residentDir, this.conversationId).then(id => {
+    const pending = this.options.runtime.ensureResidentConversation(this.options.residentDir, this.conversationId, this.execution()).then(id => {
       if (id !== this.conversationId) { this.conversationId = id; this.persist(); }
       return id;
     });
@@ -427,7 +444,7 @@ export class ResidentAgentSupervisor implements ResidentToolHost {
         task.conversationId = id;
         this.persist();
         this.publish();
-      }, { sandboxMode: run.sandboxMode, mode: run.mode });
+      }, { ...this.execution(), sandboxMode: run.sandboxMode, mode: run.mode });
       this.finish(task, run.timedOut ? "timed_out" : run.cancelled ? "cancelled" : "succeeded");
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -523,4 +540,8 @@ function isTask(value: unknown): value is ResidentTask {
   const task = value as ResidentTask | null;
   return Boolean(task && typeof task.id === "string" && typeof task.title === "string" && typeof task.workspace === "string"
     && typeof task.status === "string" && Number.isFinite(task.createdAt));
+}
+
+function sameModel(a: ResidentSettings["model"], b: ResidentSettings["model"]): boolean {
+  return a === b || (a !== null && b !== null && a.provider === b.provider && a.id === b.id);
 }

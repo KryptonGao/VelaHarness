@@ -9,17 +9,18 @@ import {
   type ResidentApprovals,
   type ResidentInboxSource,
   type ResidentPower,
+  type ResidentExecution,
   type ResidentRuntime,
 } from "../src/main/resident-agent-supervisor.ts";
 
-interface Job { cwd: string; text: string; execution: { sandboxMode?: SandboxMode | null; mode?: "agent" | "plan" }; conversationId: string; finish(): void; fail(message: string): void }
+interface Job { cwd: string; text: string; execution: ResidentExecution & { sandboxMode?: SandboxMode | null; mode?: "agent" | "plan" }; conversationId: string; finish(): void; fail(message: string): void }
 
 async function fixture(t: TestContext, options: { workspaces?: string[]; sandbox?: SandboxMode; seed?: string } = {}) {
   const dir = await mkdtemp(join(tmpdir(), "vela-resident-"));
   const file = join(dir, "resident-agent.json");
   if (options.seed !== undefined) await writeFile(file, options.seed);
   let now = Date.UTC(2026, 9, 10, 12);
-  const calls = { ensure: [] as Array<string | null>, prompts: [] as Array<{ id: string; text: string }>, aborted: [] as string[] };
+  const calls = { ensure: [] as Array<string | null>, ensureExecution: [] as Array<ResidentExecution | undefined>, prompts: [] as Array<{ id: string; text: string; execution?: ResidentExecution }>, configured: [] as ResidentExecution[], aborted: [] as string[] };
   const jobs: Job[] = [];
   const conversations = new Map<string, SessionStatus>();
   const runtimeListeners = new Set<(event: { type: string; conversationId?: string }) => void>();
@@ -30,8 +31,9 @@ async function fixture(t: TestContext, options: { workspaces?: string[]; sandbox
   let approve = true;
   const approvals: Array<Parameters<ResidentApprovals["request"]>[0]> = [];
   const runtime: ResidentRuntime = {
-    ensureResidentConversation: async (_cwd, known) => { calls.ensure.push(known); const id = known ?? "resident-1"; conversations.set(id, "ready"); return id; },
-    promptBackground: async (id, text) => { calls.prompts.push({ id, text }); },
+    ensureResidentConversation: async (_cwd, known, execution) => { calls.ensure.push(known); calls.ensureExecution.push(execution); const id = known ?? "resident-1"; conversations.set(id, "ready"); return id; },
+    promptBackground: async (id, text, execution) => { calls.prompts.push({ id, text, ...(execution ? { execution } : {}) }); },
+    configureBackground: async (_id, execution) => { calls.configured.push(execution); },
     runScheduledTask: (cwd, text, onCreated, execution) => new Promise<void>((resolve, reject) => {
       const conversationId = `task-${jobs.length + 1}`;
       conversations.set(conversationId, "streaming");
@@ -270,8 +272,8 @@ it("proactive rule tasks never run with full access and can be read-only", async
   f.supervisor.updateSettings({ mode: "proactive" });
   f.supervisor.startTask({ ...spec("rule"), source: "rule", ruleId: "r1", readOnly: true, reason: "文件变化" });
   f.supervisor.startTask({ ...spec("user", "/work/b") });
-  assert.deepEqual(f.jobs[0]?.execution, { sandboxMode: "smart", mode: "plan" });
-  assert.deepEqual(f.jobs[1]?.execution, { sandboxMode: null, mode: "agent" });
+  assert.deepEqual(f.jobs[0]?.execution, { model: null, thinkingLevel: null, sandboxMode: "smart", mode: "plan" });
+  assert.deepEqual(f.jobs[1]?.execution, { model: null, thinkingLevel: null, sandboxMode: null, mode: "agent" });
   assert.equal(f.supervisor.proactiveRunsToday(), 1);
   assert.equal(f.supervisor.hasActiveRuleTask("r1"), true);
   assert.equal(f.supervisor.taskForConversation("task-1")?.reason, "文件变化");
@@ -337,4 +339,51 @@ it("persists settings and quarantines a corrupt store instead of overwriting it"
   assert.equal(bad.supervisor.getSettings().mode, "standby");
   assert.match(bad.supervisor.getStatus().error ?? "", /已损坏/);
   assert.ok((await readdir(bad.dir)).some(name => name.startsWith("resident-agent.json.corrupt-")));
+});
+
+it("runs the resident chat and its tasks on the model and effort chosen in settings", async t => {
+  const f = await fixture(t);
+  f.supervisor.updateSettings({ model: { provider: "anthropic", id: "claude-opus" }, thinkingLevel: "high" });
+  const expected = { model: { provider: "anthropic", id: "claude-opus" }, thinkingLevel: "high" };
+  assert.deepEqual(await f.supervisor.submit({ text: "你好" }), { ok: true, target: "resident" });
+  await f.settle();
+  assert.deepEqual(f.calls.ensureExecution, [expected]);
+  assert.deepEqual(f.calls.prompts[0]?.execution, expected);
+  f.supervisor.startTask(spec("one"));
+  assert.deepEqual({ model: f.jobs[0]!.execution.model, thinkingLevel: f.jobs[0]!.execution.thinkingLevel }, expected);
+});
+
+it("defaults to the new-chat selection and clears the choice with null", async t => {
+  const f = await fixture(t);
+  assert.deepEqual(f.supervisor.getSettings().model, null);
+  assert.deepEqual(f.supervisor.getSettings().thinkingLevel, null);
+  f.supervisor.updateSettings({ model: { provider: "p", id: "m" }, thinkingLevel: "low" });
+  f.supervisor.updateSettings({ model: null, thinkingLevel: null });
+  assert.equal(f.supervisor.getSettings().model, null);
+  assert.equal(f.supervisor.getSettings().thinkingLevel, null);
+});
+
+it("applies a model change to the live resident conversation only when it changed", async t => {
+  const f = await fixture(t);
+  f.supervisor.updateSettings({ thinkingLevel: "low" });
+  assert.deepEqual(f.calls.configured, [], "no conversation yet, nothing to reconfigure");
+  await f.supervisor.submit({ text: "hi" });
+  await f.settle();
+  f.supervisor.updateSettings({ thinkingLevel: "high" });
+  f.supervisor.updateSettings({ thinkingLevel: "high" });
+  f.supervisor.updateSettings({ limits: { maxTaskMinutes: 30 } });
+  await f.settle();
+  assert.deepEqual(f.calls.configured, [{ model: null, thinkingLevel: "high" }]);
+});
+
+it("keeps the choice but reports it when the live conversation cannot take the new model", async t => {
+  const f = await fixture(t);
+  await f.supervisor.submit({ text: "hi" });
+  await f.settle();
+  const { runtime } = (f.supervisor as unknown as { options: { runtime: ResidentRuntime } }).options;
+  runtime.configureBackground = async () => { throw new Error("这个模型还不能使用，请先登录或填写密钥"); };
+  f.supervisor.updateSettings({ model: { provider: "p", id: "gone" } });
+  await f.settle();
+  assert.deepEqual(f.supervisor.getSettings().model, { provider: "p", id: "gone" });
+  assert.match(f.supervisor.getStatus().error ?? "", /还不能使用/);
 });

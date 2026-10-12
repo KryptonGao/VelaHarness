@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { residentLimits, type ResidentAgentApi, type ResidentSettings, type ResidentSettingsPatch } from "@vela/shared";
+import { residentLimits, thinkingLevels, type ModelCatalog, type ResidentAgentApi, type ResidentSettings, type ResidentSettingsPatch } from "@vela/shared";
 import { tr } from "../locale";
+import { thinkingLabel } from "./ModelControls";
 import { formatMinute, parseMinute } from "./resident-agent-model";
 
 function Toggle({ label, hint, checked, disabled, onChange }: { label: string; hint?: string; checked: boolean; disabled?: boolean; onChange: (value: boolean) => void }) {
@@ -32,8 +33,51 @@ function NumberRow({ label, hint, value, min, max, unit, disabled, onCommit }: {
   </label>;
 }
 
+const modelValue = (model: { provider: string; id: string }) => JSON.stringify([model.provider, model.id]);
+
+/** 常驻对话和它的后台任务用哪个模型、多强的推理。留空表示沿用新对话的默认设置。 */
+function ModelFields({ settings, catalog, catalogError, onChange }: {
+  settings: ResidentSettings; catalog: ModelCatalog | null; catalogError: string | null; onChange: (patch: ResidentSettingsPatch) => void;
+}) {
+  const chosen = settings.model;
+  const selected = chosen ? catalog?.models.find(item => item.provider === chosen.provider && item.id === chosen.id) : undefined;
+  const missing = Boolean(chosen && catalog && !selected?.available);
+  const levels = selected ? selected.thinkingLevels : thinkingLevels;
+  const effort = settings.thinkingLevel;
+  return <>
+    <label className="resident-row">
+      <span className="resident-row-text"><span>{tr("模型", "Model")}</span></span>
+      <select value={chosen ? modelValue(chosen) : ""} onChange={event => {
+        const next = event.target.value;
+        if (!next) { onChange({ model: null }); return; }
+        const [provider, id] = JSON.parse(next) as [string, string];
+        // 新模型不支持当前强度时一并清回默认，避免保存一个无效组合。
+        const supported = catalog?.models.find(item => item.provider === provider && item.id === id)?.thinkingLevels;
+        onChange(effort && supported && !supported.includes(effort) ? { model: { provider, id }, thinkingLevel: null } : { model: { provider, id } });
+      }}>
+        <option value="">{tr("沿用应用设置", "Use app settings")}</option>
+        {chosen && missing ? <option value={modelValue(chosen)}>{chosen.provider} / {chosen.id} · {tr("不可用", "Unavailable")}</option> : null}
+        {catalog?.models.filter(item => item.available || (chosen && item.provider === chosen.provider && item.id === chosen.id)).map(item =>
+          <option key={modelValue(item)} value={modelValue(item)}>{item.providerName} / {item.name}</option>)}
+      </select>
+    </label>
+    <label className="resident-row">
+      <span className="resident-row-text"><span>{tr("推理强度", "Reasoning effort")}</span></span>
+      <select value={effort ?? ""} onChange={event => onChange({ thinkingLevel: (event.target.value || null) as ResidentSettings["thinkingLevel"] })}>
+        <option value="">{tr("沿用应用设置", "Use app settings")}</option>
+        {effort && !levels.includes(effort) ? <option value={effort} disabled>{tr("当前强度不受支持", "Current effort is unsupported")}</option> : null}
+        {levels.map(level => <option key={level} value={level}>{thinkingLabel(level)}</option>)}
+      </select>
+    </label>
+    <p className="agent-inbox-muted">{tr("用于常驻对话和它的后台任务。空闲的常驻对话立即换上；正在回复的从下一条消息开始。", "Used by the resident chat and its background tasks. An idle chat switches right away; one that is replying switches on its next message.")}</p>
+    {catalogError || catalog?.error ? <p className="agent-inbox-notice" role="alert">{catalogError ?? catalog?.error}</p> : null}
+  </>;
+}
+
 /** 设置面板。每次修改都立刻交给主进程规整并保存，界面始终显示主进程返回的结果。 */
-export function ResidentSettingsPanel({ api, settings, onSettings }: { api: ResidentAgentApi; settings: ResidentSettings; onSettings: (settings: ResidentSettings) => void }) {
+export function ResidentSettingsPanel({ api, settings, onSettings, catalog = null, catalogError = null }: {
+  api: ResidentAgentApi; settings: ResidentSettings; onSettings: (settings: ResidentSettings) => void; catalog?: ModelCatalog | null; catalogError?: string | null;
+}) {
   const [error, setError] = useState<string | null>(null);
   const queue = useRef<Promise<unknown>>(Promise.resolve());
   const update = (patch: ResidentSettingsPatch) => {
@@ -48,6 +92,11 @@ export function ResidentSettingsPanel({ api, settings, onSettings }: { api: Resi
   const quiet = notify.quietHours;
   return <div className="resident-settings">
     {error ? <p className="agent-inbox-notice" role="alert">{error}</p> : null}
+
+    <fieldset>
+      <legend>{tr("模型与推理强度", "Model and reasoning effort")}</legend>
+      <ModelFields settings={settings} catalog={catalog} catalogError={catalogError} onChange={update} />
+    </fieldset>
 
     <fieldset>
       <legend>{tr("后台运行", "Running in the background")}</legend>

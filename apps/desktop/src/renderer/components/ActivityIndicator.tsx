@@ -99,7 +99,7 @@ export function ActivityIndicator({ label = tr("运行中", "Running") }: { labe
     const themeObserver = new MutationObserver(() => draw(phase()));
     themeObserver.observe(document.documentElement, {
       attributes: true,
-      attributeFilter: ["data-scheme", "data-theme"],
+      attributeFilter: ["data-scheme", "data-theme", "style"],
     });
     reducedMotion.addEventListener("change", syncMotion);
     syncMotion();

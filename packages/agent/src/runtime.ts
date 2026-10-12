@@ -637,11 +637,7 @@ export class AgentRuntime {
       onCreated(entry.id);
       try {
         const directory = await this.readyDirectory();
-        const defaults = this.conversationSelection(directory);
-        const model = execution.model ? directory.requireAvailable(execution.model.provider, execution.model.id) : defaults.model;
-        const requestedLevel = execution.thinkingLevel ?? defaults.thinkingLevel;
-        const thinkingLevel = model ? clampToModel(model, requestedLevel) : requestedLevel;
-        await this.startInternal(entry, { model, thinkingLevel });
+        await this.startInternal(entry, this.executionSelection(directory, execution));
       } catch (error) {
         this.patchEntry(entry, { status: "error", error: error instanceof Error ? error.message : "无法启动定时任务对话" });
         throw error;
@@ -661,6 +657,32 @@ export class AgentRuntime {
     } finally { unsubscribe(); }
   }
 
+  /** 显式指定的模型与思考强度优先；缺省的部分沿用新对话的选择，强度按所选模型支持的档位收敛。 */
+  private executionSelection(directory: ModelDirectory, execution: BackgroundExecution): { model: Model<Api> | undefined; thinkingLevel: ThinkingLevel } {
+    const defaults = this.conversationSelection(directory);
+    const model = execution.model ? directory.requireAvailable(execution.model.provider, execution.model.id) : defaults.model;
+    const requestedLevel = execution.thinkingLevel ?? defaults.thinkingLevel;
+    return { model, thinkingLevel: model ? clampToModel(model, requestedLevel) : requestedLevel };
+  }
+
+  /** 把模型与思考强度套用到一个已启动的后台会话。正在回复时不动它，下一次发消息前会再套用。 */
+  private async applyBackgroundSelection(entry: Conversation, execution: BackgroundExecution): Promise<void> {
+    const session = entry.session;
+    if (!session || entry.driving || session.isStreaming || entry.recipeWorkflowActive) return;
+    const { model, thinkingLevel } = this.executionSelection(await this.readyDirectory(), execution);
+    const current = session.model;
+    if (model && (!current || current.provider !== model.provider || current.id !== model.id)) await session.setModel(model);
+    if (session.thinkingLevel !== thinkingLevel) session.setThinkingLevel(thinkingLevel);
+    this.syncFromSession(entry);
+  }
+
+  /** 设置里改了模型或强度后调用：空闲的会话立即换上，忙碌的留到下一条消息。 */
+  async configureBackground(conversationId: string, execution: BackgroundExecution): Promise<void> {
+    const entry = this.conversations.get(conversationId);
+    if (!entry?.session) return;
+    await this.exclusive(() => this.applyBackgroundSelection(entry, execution));
+  }
+
   private isResident(id: string | undefined): boolean {
     if (!id || !this.options.resident) return false;
     return this.residentIds.has(id) || this.options.resident.conversationId() === id;
@@ -670,7 +692,7 @@ export class AgentRuntime {
    * 常驻 Agent 的持久会话：不激活、不改变当前工作区，工具集只有协调工具。
    * 已有对话（重启后按会话文件）直接恢复，只在没有时新建；返回会话 id。
    */
-  async ensureResidentConversation(cwd: string, knownId: string | null): Promise<string> {
+  async ensureResidentConversation(cwd: string, knownId: string | null, execution: BackgroundExecution = {}): Promise<string> {
     if (!this.options.resident) throw new Error("常驻 Agent 未启用");
     return this.exclusive(async () => {
       await this.ready();
@@ -684,8 +706,10 @@ export class AgentRuntime {
       this.residentIds.add(entry.id);
       if (!entry.session) {
         const directory = await this.readyDirectory();
-        await this.startInternal(entry, this.conversationSelection(directory));
+        await this.startInternal(entry, this.executionSelection(directory, execution));
         if (!entry.session || entry.snapshot.status === "error") throw new Error(entry.snapshot.error ?? "无法启动常驻 Agent");
+      } else {
+        await this.applyBackgroundSelection(entry, execution);
       }
       return entry.id;
     });
@@ -695,14 +719,16 @@ export class AgentRuntime {
    * 向一个后台对话发消息，不切换当前对话；必要时先启动会话。
    * 对话正在运行时进入队列，不打断当前任务。
    */
-  async promptBackground(conversationId: string, text: string): Promise<void> {
+  async promptBackground(conversationId: string, text: string, execution?: BackgroundExecution): Promise<void> {
     const entry = this.conversations.get(conversationId);
     if (!entry) throw new Error("对话不存在或已结束");
     if (!entry.session) {
       await this.exclusive(async () => {
         await this.ready();
-        if (!entry.session) await this.startInternal(entry);
+        if (!entry.session) await this.startInternal(entry, execution ? this.executionSelection(await this.readyDirectory(), execution) : undefined);
       });
+    } else if (execution) {
+      await this.exclusive(() => this.applyBackgroundSelection(entry, execution));
     }
     const running = Boolean(entry.driving || entry.session?.isStreaming);
     if (!running) this.emit({ type: "user_message", conversationId, text });
@@ -3577,6 +3603,12 @@ function outputSpeed(entry: Conversation | null): number | null {
 
 function modelLabel(model: { name?: string; provider: string; id: string }): string {
   return model.name?.trim() || `${model.provider}/${model.id}`;
+}
+
+/** 后台会话（常驻 Agent 与它的任务）显式指定的模型和思考强度；null 或缺省表示沿用新对话的设置。 */
+export interface BackgroundExecution {
+  model?: { provider: string; id: string } | null;
+  thinkingLevel?: ThinkingLevel | null;
 }
 
 function levelsFor(model: Model<Api>): ThinkingLevel[] {

@@ -185,7 +185,7 @@ export function TerminalView({ sessionId, visible }: { sessionId: string; visibl
     const themeObserver = new MutationObserver(() => {
       term.options.theme = readTerminalTheme();
     });
-    themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["data-scheme", "data-theme"] });
+    themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["data-scheme", "data-theme", "style"] });
 
     return () => {
       disposed = true;

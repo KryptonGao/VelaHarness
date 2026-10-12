@@ -28,7 +28,7 @@ const thinkingLabelsEn: Record<ThinkingLevel, string> = {
   max: "Max",
 };
 
-function thinkingLabel(level: ThinkingLevel): string {
+export function thinkingLabel(level: ThinkingLevel): string {
   return tr(thinkingLevelLabel[level], thinkingLabelsEn[level]);
 }
 

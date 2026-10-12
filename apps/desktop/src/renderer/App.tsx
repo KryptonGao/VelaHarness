@@ -900,6 +900,7 @@ export function App() {
                   <AgentInboxPage active={agentInboxOpen} sidebarCollapsed={leftCollapsed} onToggleSidebar={toggleLeft}
                     messageStore={session.messageStore} ensureTranscript={session.ensureTranscript}
                     navigation={agentInboxNav} onNavigationHandled={handleAgentInboxNavigated}
+                    catalog={models.catalog} catalogError={models.catalogError}
                     onOpenConversation={(id) => { setAgentInboxOpen(false); void session.switchTo(id); }} />
                 </Presence>
                 <Presence present={recipesOpen} className="main-stage-pane scheduled-tasks-stage">

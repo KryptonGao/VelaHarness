@@ -1,4 +1,4 @@
-import type { SandboxMode, TranscriptMessage } from "./index";
+import { thinkingLevels, type SandboxMode, type ThinkingLevel, type TranscriptMessage } from "./index";
 
 /**
  * 常驻 Agent（Resident Agent）与主动规则的共享类型和纯逻辑。
@@ -44,8 +44,18 @@ export interface ResidentNotificationSettings {
   quietHours: ResidentQuietHours;
 }
 
+/** 常驻 Agent 固定使用的模型。 */
+export interface ResidentModelRef {
+  provider: string;
+  id: string;
+}
+
 export interface ResidentSettings {
   mode: ResidentMode;
+  /** 常驻对话和它的后台任务使用的模型；null 表示沿用「新对话」的默认设置。 */
+  model: ResidentModelRef | null;
+  /** 推理强度；null 表示沿用「新对话」的默认设置，选择的模型不支持时会降到最接近的档位。 */
+  thinkingLevel: ThinkingLevel | null;
   /** 用户一键暂停全部后台自动任务；不会中断已经在运行的 Agent。 */
   paused: boolean;
   showMenuBarIcon: boolean;
@@ -69,6 +79,8 @@ export type ResidentSettingsPatch = DeepPartial<ResidentSettings>;
 
 export const defaultResidentSettings: ResidentSettings = {
   mode: "standby",
+  model: null,
+  thinkingLevel: null,
   paused: false,
   showMenuBarIcon: true,
   launchAtLogin: false,
@@ -101,6 +113,20 @@ function minute(value: unknown, fallback: number): number {
   return Math.min(24 * 60 - 1, Math.max(0, Math.round(value)));
 }
 
+function modelRef(value: unknown, fallback: ResidentModelRef | null): ResidentModelRef | null {
+  if (value === null) return null;
+  const input = record(value);
+  const provider = typeof input.provider === "string" ? input.provider.trim() : "";
+  const id = typeof input.id === "string" ? input.id.trim() : "";
+  if (!provider || !id || provider.length > 200 || id.length > 400) return fallback;
+  return { provider, id };
+}
+
+function level(value: unknown, fallback: ResidentSettings["thinkingLevel"]): ResidentSettings["thinkingLevel"] {
+  if (value === null) return null;
+  return typeof value === "string" && (thinkingLevels as readonly string[]).includes(value) ? value as ThinkingLevel : fallback;
+}
+
 function record(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
 }
@@ -113,6 +139,8 @@ export function normalizeResidentSettings(raw: unknown, base: ResidentSettings =
   const limits = record(input.limits);
   return {
     mode: (residentModes as readonly unknown[]).includes(input.mode) ? input.mode as ResidentMode : base.mode,
+    model: modelRef(input.model, base.model),
+    thinkingLevel: level(input.thinkingLevel, base.thinkingLevel),
     paused: bool(input.paused, base.paused),
     showMenuBarIcon: bool(input.showMenuBarIcon, base.showMenuBarIcon),
     launchAtLogin: bool(input.launchAtLogin, base.launchAtLogin),

@@ -1,4 +1,4 @@
-export { AgentRuntime, type AgentRuntimeOptions, type RuntimeEvent } from "./runtime";
+export { AgentRuntime, type AgentRuntimeOptions, type BackgroundExecution, type RuntimeEvent } from "./runtime";
 export {
   MemoryError,
   MemoryService,

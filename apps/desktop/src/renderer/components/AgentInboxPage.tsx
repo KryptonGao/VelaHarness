@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import type { AgentInboxDecideFailure, AgentInboxDecision, AgentInboxItem, AgentInboxItemType, AgentInboxNavigation } from "@vela/shared";
+import type { AgentInboxDecideFailure, AgentInboxDecision, AgentInboxItem, AgentInboxItemType, AgentInboxNavigation, ModelCatalog } from "@vela/shared";
 import { activeIntlLocale, tr, trf } from "../locale";
 import { useAgentInbox } from "../hooks/useAgentInbox";
 import { useResidentAgent } from "../hooks/useResidentAgent";
@@ -195,7 +195,7 @@ function Detail({ item, busy, notice, onDecide, onArchive, onBack, onOpenConvers
   </article>;
 }
 
-export function AgentInboxPage({ active, sidebarCollapsed, onToggleSidebar, onOpenConversation, messageStore, ensureTranscript, navigation, onNavigationHandled }: {
+export function AgentInboxPage({ active, sidebarCollapsed, onToggleSidebar, onOpenConversation, messageStore, ensureTranscript, navigation, onNavigationHandled, catalog = null, catalogError = null }: {
   active: boolean;
   sidebarCollapsed: boolean;
   onToggleSidebar: () => void;
@@ -205,6 +205,9 @@ export function AgentInboxPage({ active, sidebarCollapsed, onToggleSidebar, onOp
   /** 主进程要求跳转到的位置（通知点击、菜单栏入口）；处理后调用 onNavigationHandled。 */
   navigation: { target: AgentInboxNavigation; nonce: number } | null;
   onNavigationHandled: (nonce: number) => void;
+  /** 常驻 Agent 设置里选择模型用。 */
+  catalog?: ModelCatalog | null;
+  catalogError?: string | null;
 }) {
   const { store, snapshot } = useAgentInbox();
   const resident = useResidentAgent(true);
@@ -291,7 +294,8 @@ export function AgentInboxPage({ active, sidebarCollapsed, onToggleSidebar, onOp
       </nav>
       {section === "resident" ? <div className="agent-inbox-resident">
         <ResidentAgentView api={resident.api} status={resident.status} settings={resident.settings} rules={resident.rules} error={resident.error}
-          messageStore={messageStore} ensureTranscript={ensureTranscript} onOpenConversation={onOpenConversation} onSettings={resident.setSettings} />
+          messageStore={messageStore} ensureTranscript={ensureTranscript} onOpenConversation={onOpenConversation} onSettings={resident.setSettings}
+          catalog={catalog} catalogError={catalogError} />
       </div> : <>
       <div className="agent-inbox-feed">
         <div className="agent-inbox-filters">

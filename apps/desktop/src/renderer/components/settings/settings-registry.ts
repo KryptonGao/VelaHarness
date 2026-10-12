@@ -49,7 +49,7 @@ export interface SettingsEntry {
 
 export const settingsEntries: readonly SettingsEntry[] = [
   { id: "theme", page: "appearance", title: (c) => c.appearance.theme, keywords: { zh: ["主题", "明暗", "深色模式", "浅色模式", "暗色", "跟随系统"], en: ["theme", "dark mode", "light mode", "appearance", "system"] } },
-  { id: "palette", page: "appearance", title: (c) => c.appearance.palette, hint: (c) => c.appearance.paletteHint, keywords: { zh: ["配色", "颜色", "主题色", "晴空", "宣纸", "青瓷", "夜航", "石墨", "余烬"], en: ["palette", "color", "colour", "daylight", "paper", "celadon", "midnight", "graphite", "ember"] } },
+  { id: "palette", page: "appearance", title: (c) => c.appearance.palette, hint: (c) => c.appearance.paletteHint, keywords: { zh: ["配色", "颜色", "主题色", "晴空", "宣纸", "青瓷", "夜航", "石墨", "余烬", "自定义主题", "自订主题", "自定义配色"], en: ["palette", "color", "colour", "daylight", "paper", "celadon", "midnight", "graphite", "ember", "custom theme", "custom colors", "create theme"] } },
   { id: "file-icon-theme", page: "appearance", title: (c) => c.appearance.fileIconTheme, hint: (c) => c.appearance.fileIconThemeHint, keywords: { zh: ["文件图标", "图标主题"], en: ["file icon", "icon theme", "devicon", "material"] } },
 
   { id: "language", page: "interface", title: (c) => c.appearance.language, keywords: { zh: ["语言", "中文", "英文"], en: ["language", "locale", "english", "chinese", "i18n"] } },

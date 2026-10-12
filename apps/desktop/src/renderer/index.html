@@ -22,10 +22,22 @@
         var light = readPreference("vela.theme.light");
         var dark = readPreference("vela.theme.dark");
         root.dataset.scheme = scheme;
-        root.dataset.theme =
-          scheme === "dark"
-            ? ["midnight", "graphite", "ember"].indexOf(dark) >= 0 ? dark : "midnight"
-            : ["daylight", "paper", "celadon"].indexOf(light) >= 0 ? light : "daylight";
+        var picked = scheme === "dark" ? dark : light;
+        var builtin = scheme === "dark" ? ["midnight", "graphite", "ember"] : ["daylight", "paper", "celadon"];
+        var customVars = null;
+        if (builtin.indexOf(picked) < 0 && typeof picked === "string" && picked.indexOf("custom-") === 0) {
+          // 自定义主题的变量在设置里保存时缓存过一份,首帧直接套用,避免闪一下默认主题。
+          var cache = JSON.parse(readPreference("vela.theme.customVars") || "{}");
+          if (cache && typeof cache === "object" && cache[picked] && typeof cache[picked] === "object") customVars = cache[picked];
+        }
+        if (customVars) {
+          for (var name in customVars) {
+            if (name.indexOf("--") === 0 && typeof customVars[name] === "string") root.style.setProperty(name, customVars[name]);
+          }
+          root.dataset.theme = picked;
+        } else {
+          root.dataset.theme = builtin.indexOf(picked) >= 0 ? picked : builtin[0];
+        }
         if (readPreference("vela.locale") === "en") root.lang = "en";
         // macOS 的 vibrancy 要求整页底色透明,首帧前就标上平台,避免闪一下不透明底。
         root.className = "platform-" + ((window.vela && window.vela.platform) || "darwin");

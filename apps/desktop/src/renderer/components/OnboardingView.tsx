@@ -18,7 +18,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperti
 import type { useModels } from "../hooks/useModels";
 import type { Appearance, PreferencesApi } from "../hooks/usePreferences";
 import type { ProjectApi } from "../hooks/useProject";
-import { darkThemes, lightThemes, type ColorScheme, type DarkTheme, type LightTheme, type ThemeId } from "../themes";
+import { darkThemes, defaultDarkTheme, defaultLightTheme, isCustomThemeId, lightThemes, type ColorScheme, type DarkTheme, type LightTheme, type SelectedThemeId, type ThemeId } from "../themes";
 import { localizeError } from "../locale";
 import { settingsCopy } from "./settings-copy";
 import { onboardingCopy, type OnboardingCopy } from "./onboarding-copy";
@@ -297,7 +297,7 @@ export function OnboardingView({ preferences, models, project, mode = "full", in
     if (target) navigate(target);
   }
 
-  function pickTheme(scheme: ColorScheme, id: ThemeId): void {
+  function pickTheme(scheme: ColorScheme, id: SelectedThemeId): void {
     if (scheme === "light") preferences.setLightTheme(id as LightTheme);
     else preferences.setDarkTheme(id as DarkTheme);
     if (preferences.appearance !== "system" && preferences.appearance !== scheme) {
@@ -453,7 +453,11 @@ export function OnboardingView({ preferences, models, project, mode = "full", in
     onComplete(settingsPage ? { settingsPage } : undefined);
   }
 
-  const themeSummary = `${appearanceCopy.themes[preferences.lightTheme].name} / ${appearanceCopy.themes[preferences.darkTheme].name}`;
+  // 引导只展示内置主题;之前在设置里选了自定义主题时,这里按该明暗下的默认主题呈现。
+  const builtinLight: ThemeId = isCustomThemeId(preferences.lightTheme) ? defaultLightTheme : preferences.lightTheme;
+  const builtinDark: ThemeId = isCustomThemeId(preferences.darkTheme) ? defaultDarkTheme : preferences.darkTheme;
+  const builtinActive: ThemeId = preferences.scheme === "dark" ? builtinDark : builtinLight;
+  const themeSummary = `${appearanceCopy.themes[builtinLight].name} / ${appearanceCopy.themes[builtinDark].name}`;
   const selectedProviderName = selectedProvider?.name ?? savedAgentSettings?.provider ?? "";
   const levelLabels = copy.thinkingLevels;
   const skillScopes = settingsCopyAgent.migrateScopes;
@@ -522,7 +526,7 @@ export function OnboardingView({ preferences, models, project, mode = "full", in
       case "news":
         return notes ? <NewsScreen copy={copy} notes={notes} mode={mode} nav={nav} onOpenNotes={openNotes} /> : null;
       case "step-1": {
-        const palette = themeMock[preferences.theme];
+        const palette = themeMock[builtinActive];
         const mock = { "--m-side": palette.side, "--m-chat": palette.chat, "--m-bubble": palette.bubble, "--m-line": palette.line, "--m-input": palette.input, "--m-accent": palette.accent, "--m-edge": palette.edge } as CSSProperties;
         return (
           <SetupFrame {...frame(1, copy.preferencesTitle, copy.preferencesHint)}>
@@ -535,11 +539,11 @@ export function OnboardingView({ preferences, models, project, mode = "full", in
                   ))}
                 </div>
                 <Label title={copy.theme} hint={copy.themeHint} />
-                <ThemeDots label={appearanceCopy.light} scheme="light" ids={lightThemes} selected={preferences.lightTheme} copy={appearanceCopy} onPick={pickTheme} />
-                <ThemeDots label={appearanceCopy.dark} scheme="dark" ids={darkThemes} selected={preferences.darkTheme} copy={appearanceCopy} onPick={pickTheme} />
+                <ThemeDots label={appearanceCopy.light} scheme="light" ids={lightThemes} selected={builtinLight} copy={appearanceCopy} onPick={pickTheme} />
+                <ThemeDots label={appearanceCopy.dark} scheme="dark" ids={darkThemes} selected={builtinDark} copy={appearanceCopy} onPick={pickTheme} />
               </div>
               <div className="ob-preview-wrap">
-                <span className="ob-chip live">{fill(copy.livePreview, appearanceCopy.themes[preferences.theme].name)}</span>
+                <span className="ob-chip live">{fill(copy.livePreview, appearanceCopy.themes[builtinActive].name)}</span>
                 <div className="ob-mock" style={mock} aria-hidden="true">
                   <div className="side"><u /><u /><u className="s" /></div>
                   <div className="main"><u className="bubble" /><u className="l1" /><u className="l2" /><u className="l3" /><u className="input"><i /></u></div>
@@ -851,7 +855,7 @@ function ThemeDots({ label, scheme, ids, selected, copy, onPick }: {
   ids: readonly ThemeId[];
   selected: ThemeId;
   copy: ReturnType<typeof settingsCopy>["appearance"];
-  onPick: (scheme: ColorScheme, id: ThemeId) => void;
+  onPick: (scheme: ColorScheme, id: SelectedThemeId) => void;
 }) {
   return (
     <div className="ob-dots" role="radiogroup" aria-label={label}>

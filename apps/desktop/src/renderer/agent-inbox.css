@@ -115,26 +115,34 @@
 .resident-panel { flex:1; min-height:0; display:flex; flex-direction:column; overflow:auto; }
 
 .resident-chat { flex:1; min-height:0; display:flex; flex-direction:column; }
-.resident-messages { flex:1; min-height:0; overflow:auto; padding:16px 24px; display:flex; flex-direction:column; gap:14px; }
-.resident-msg { display:flex; flex-direction:column; gap:6px; max-width:760px; }
-.resident-msg.user { align-self:flex-end; align-items:flex-end; }
-.resident-bubble { padding:8px 12px; border-radius:12px; background:var(--bg-hover); font-size:14px; line-height:1.55; white-space:pre-wrap; overflow-wrap:anywhere; }
-.resident-prose { font-size:14px; line-height:1.65; min-width:0; overflow-wrap:anywhere; }
+.resident-messages { flex:1; min-height:0; overflow:auto; padding:20px 24px 24px; display:flex; flex-direction:column; align-items:center; gap:22px; }
+.resident-messages > .user-msg-container,.resident-messages > .assistant-block { width:min(100%,760px); }
+/* 页面级的 button 重置(padding/圆角)会压扁复用自主对话的按钮,这里还原它们的尺寸。 */
+.agent-inbox-page .reply-action { padding:3px 7px; border-radius:var(--radius-xs); }
+.agent-inbox-page .reply-action.user-message-action { padding:0; width:28px; height:28px; }
+.agent-inbox-page .send-action-blue-btn { background:var(--accent-blue); padding:0; border-radius:50%; width:32px; height:32px; }
+.agent-inbox-page .send-action-blue-btn:hover:not(:disabled) { background:var(--accent-blue-hover); }
 .resident-tools { list-style:none; margin:0; padding:0; display:flex; flex-wrap:wrap; gap:6px; }
 .resident-tools li { font-size:11px; color:var(--text-secondary); border:1px solid var(--border-subtle); border-radius:10px; padding:1px 8px; }
 .resident-tools li[data-status="running"]::after { content:" …"; }
 .resident-tools li[data-status="error"] { color:var(--danger); }
 .resident-typing { width:28px; height:10px; background:radial-gradient(circle,var(--text-muted) 2px,transparent 3px) 0 50%/10px 10px repeat-x; animation:resident-pulse 1.2s ease-in-out infinite; }
 .resident-chat > .agent-inbox-notice,.resident-blocked { margin:0 24px 8px; }
-.resident-composer { flex:none; display:flex; flex-direction:column; gap:8px; padding:10px 24px 16px; border-top:1px solid var(--border-subtle); }
-.resident-composer textarea { width:100%; box-sizing:border-box; resize:vertical; min-height:56px; max-height:200px; border:1px solid var(--border-subtle); border-radius:10px; background:var(--bg-card-surface); padding:9px 12px; font:inherit; font-size:14px; color:inherit; }
-.resident-composer textarea:focus-visible { outline:2px solid var(--accent-blue); outline-offset:1px; }
+.resident-composer-dock { flex:none; display:flex; flex-direction:column; gap:6px; padding:0 24px 16px; position:relative; z-index:1; background:var(--bg-chat); border-radius:0 0 var(--paper-right-radius) 0; }
+/* 与主对话输入区一致:正文在输入框上方渐进模糊,最后融进纸面底色。 */
+.resident-composer-dock::before,.resident-composer-dock::after { content:""; position:absolute; left:0; right:0; bottom:100%; height:52px; pointer-events:none; }
+.resident-composer-dock::before { -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px); -webkit-mask-image:linear-gradient(to bottom,transparent 0%,rgba(0,0,0,.55) 50%,#000 100%); mask-image:linear-gradient(to bottom,transparent 0%,rgba(0,0,0,.55) 50%,#000 100%); }
+.resident-composer-dock::after { background:linear-gradient(to bottom,transparent 50%,var(--bg-chat) 96%); -webkit-backdrop-filter:blur(16px); backdrop-filter:blur(16px); -webkit-mask-image:linear-gradient(to bottom,transparent 0%,transparent 45%,rgba(0,0,0,.55) 74%,#000 100%); mask-image:linear-gradient(to bottom,transparent 0%,transparent 45%,rgba(0,0,0,.55) 74%,#000 100%); }
+.resident-composer { display:flex; flex-direction:column; gap:6px; padding:14px 16px 10px; background:var(--bg-elevated); border:1px solid var(--border-subtle); border-radius:var(--radius-xl); box-shadow:var(--shadow-dock); }
+.resident-composer textarea { width:100%; box-sizing:border-box; resize:none; min-height:44px; max-height:140px; border:0; outline:none; padding:0; line-height:1.5; font-size:15px; field-sizing:content; }
+.resident-composer textarea::placeholder { color:var(--text-muted); }
+.resident-composer textarea:disabled { opacity:.6; }
 .resident-composer-row { display:flex; gap:8px; align-items:center; justify-content:space-between; }
-.resident-composer-row label { min-width:0; flex:1; display:flex; }
-.resident-composer-row select { min-width:0; max-width:100%; height:32px; border:1px solid var(--border-subtle); border-radius:8px; background:var(--bg-card-surface); padding:0 8px; font-size:13px; }
-.agent-inbox-page .resident-composer .agent-inbox-primary { color:var(--accent-contrast); background:var(--accent-blue); padding:6px 18px; }
-.agent-inbox-page .resident-composer .agent-inbox-primary:hover:not(:disabled) { background:var(--accent-blue-hover); }
-.resident-hint { margin:0; font-size:12px; }
+.resident-composer-row label { min-width:0; display:flex; }
+.resident-composer-row select { min-width:0; max-width:100%; height:32px; border:0; border-radius:var(--radius-pill); background:transparent; padding:0 8px; font-size:14px; font-weight:600; color:var(--text-secondary); cursor:pointer; }
+.resident-composer-row select:hover:not(:disabled) { background:var(--bg-hover); }
+.resident-composer-row select:disabled { opacity:.55; cursor:default; }
+.resident-hint { margin:0; padding:0 4px; font-size:12px; }
 
 .resident-tasks { padding:10px 24px 24px; }
 .resident-tasks ul,.resident-rule-list { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px; }
@@ -159,6 +167,7 @@
 .resident-row-text small { font-size:12px; color:var(--text-secondary); line-height:1.5; }
 .resident-row input[type="checkbox"] { flex:none; width:16px; height:16px; accent-color:var(--accent-blue); }
 .resident-number { display:inline-flex; align-items:center; gap:6px; color:var(--text-secondary); }
+.resident-row select { flex:none; width:min(280px,50%); height:30px; box-sizing:border-box; border:1px solid var(--border-subtle); border-radius:8px; background:var(--bg-card-surface); padding:0 8px; font:inherit; font-size:13px; color:inherit; cursor:pointer; }
 .resident-number input,.resident-quiet input,.resident-rule-form input,.resident-rule-form select,.resident-rule-form textarea { height:30px; box-sizing:border-box; border:1px solid var(--border-subtle); border-radius:8px; background:var(--bg-card-surface); padding:0 8px; font:inherit; font-size:13px; color:inherit; }
 .resident-number input { width:72px; text-align:right; }
 .resident-rule-form textarea { height:auto; padding:7px 9px; resize:vertical; }
@@ -186,7 +195,7 @@
   .resident-head { grid-template-columns:minmax(0,1fr); padding:12px 16px 8px; }
   .resident-controls { justify-content:flex-start; }
   .resident-facts { grid-template-columns:auto minmax(0,1fr); }
-  .resident-messages,.resident-composer,.resident-tasks,.resident-settings,.resident-rules { padding-left:16px; padding-right:16px; }
+  .resident-messages,.resident-composer-dock,.resident-tasks,.resident-settings,.resident-rules { padding-left:16px; padding-right:16px; }
   .resident-rule { grid-template-columns:minmax(0,1fr); }
   .resident-rule-buttons { justify-content:flex-start; }
 }

@@ -3,8 +3,11 @@ import { CheckIcon, CopyIcon, PencilIcon } from "./icons";
 import { localizeError, tr } from "../locale";
 
 /** The action row remains outside the bubble, aligned with its right edge. */
-export function UserMessageFrame({ text, timestamp, disabled, className, onEdit, children }: {
+export function UserMessageFrame({ text, timestamp, disabled, className, onEdit, editNote, savingLabel, children }: {
   text: string;
+  /** 覆盖编辑框下方的说明；不会回退对话的场景（如 Resident）用它改成实际行为。 */
+  editNote?: string;
+  savingLabel?: string;
   timestamp?: number | null;
   disabled: boolean;
   className?: string;
@@ -49,11 +52,11 @@ export function UserMessageFrame({ text, timestamp, disabled, className, onEdit,
               if (event.key === "Escape") { event.preventDefault(); cancel(); }
               if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) { event.preventDefault(); void submit(); }
             }} />
-          <p className="user-edit-note">{tr("重新发送会撤回这条消息及之后的内容和文件更改，保留原图片附件。", "Resending discards this message and everything after it, restores file changes, and keeps the original images.")}</p>
+          <p className="user-edit-note">{editNote ?? tr("重新发送会撤回这条消息及之后的内容和文件更改，保留原图片附件。", "Resending discards this message and everything after it, restores file changes, and keeps the original images.")}</p>
           {error ? <p className="user-edit-error" role="alert">{error}</p> : null}
           <div className="user-edit-buttons">
             <button type="button" className="user-edit-cancel" disabled={saving} onClick={cancel}>{tr("取消", "Cancel")}</button>
-            <button type="submit" className="user-edit-submit" disabled={saving || disabled || !draft.trim()}>{saving ? tr("正在回退…", "Rewinding…") : tr("重新发送", "Resend")}</button>
+            <button type="submit" className="user-edit-submit" disabled={saving || disabled || !draft.trim()}>{saving ? savingLabel ?? tr("正在回退…", "Rewinding…") : tr("重新发送", "Resend")}</button>
           </div>
         </form>
       ) : children}

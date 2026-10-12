@@ -1,13 +1,20 @@
 import { uiStorage } from "../ui-storage";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  customThemeVars,
   defaultDarkTheme,
   defaultLightTheme,
+  isCustomThemeId,
   isDarkTheme,
   isLightTheme,
+  maxCustomThemes,
+  parseCustomThemes,
   type ColorScheme,
+  type CustomTheme,
+  type CustomThemeId,
   type DarkTheme,
   type LightTheme,
+  type SelectedThemeId,
 } from "../themes";
 import { isAppLocale, type AppLocale, type ThinkingSummaryModel } from "@vela/shared";
 import { isConversationLinkTarget, type ConversationLinkTarget } from "../browser/conversation-link-policy";
@@ -31,6 +38,9 @@ const conversationLinkTargetKey = "vela.conversationLinkTarget";
 const appearanceKey = "vela.appearance";
 const lightThemeKey = "vela.theme.light";
 const darkThemeKey = "vela.theme.dark";
+const customThemesKey = "vela.theme.custom";
+/** 各自定义主题推导出的变量缓存:index.html 首帧前读它上色,避免先闪一下默认主题。 */
+const customThemeVarsKey = "vela.theme.customVars";
 const localeKey = "vela.locale";
 const toolDisplayKey = "vela.toolDisplay";
 const toolFoldKey = "vela.toolFold";
@@ -134,10 +144,23 @@ export function usePreferences() {
     readStored(infoLayoutKey, (value): value is InfoLayout => value === "sidebar" || value === "floating", "sidebar"),
   );
   const [appearance, setAppearance] = useState<Appearance>(() => readStored(appearanceKey, isAppearance, "system"));
-  const [lightTheme, setLightTheme] = useState<LightTheme>(() =>
-    readStored(lightThemeKey, isLightTheme, defaultLightTheme),
+  const [customThemes, setCustomThemes] = useState<CustomTheme[]>(() =>
+    parseCustomThemes(readStoredJson(customThemesKey, (value): value is unknown[] => Array.isArray(value), [])),
   );
-  const [darkTheme, setDarkTheme] = useState<DarkTheme>(() => readStored(darkThemeKey, isDarkTheme, defaultDarkTheme));
+  const [lightTheme, setLightTheme] = useState<LightTheme | CustomThemeId>(() => {
+    const saved = readStored(lightThemeKey, (value): value is string => typeof value === "string", "");
+    if (isLightTheme(saved)) return saved;
+    return customThemes.some((item) => item.id === saved && item.scheme === "light") && isCustomThemeId(saved)
+      ? saved
+      : defaultLightTheme;
+  });
+  const [darkTheme, setDarkTheme] = useState<DarkTheme | CustomThemeId>(() => {
+    const saved = readStored(darkThemeKey, (value): value is string => typeof value === "string", "");
+    if (isDarkTheme(saved)) return saved;
+    return customThemes.some((item) => item.id === saved && item.scheme === "dark") && isCustomThemeId(saved)
+      ? saved
+      : defaultDarkTheme;
+  });
   const [system, setSystem] = useState<ColorScheme>(systemScheme);
   const [locale, setLocale] = useState<AppLocale>(() => {
     const value = readStored(localeKey, isLocale, "zh-CN");
@@ -200,13 +223,39 @@ export function usePreferences() {
   }, []);
 
   const scheme: ColorScheme = appearance === "system" ? system : appearance;
-  const theme = scheme === "dark" ? darkTheme : lightTheme;
+  const theme: SelectedThemeId = scheme === "dark" ? darkTheme : lightTheme;
+  const activeCustomTheme = customThemes.find((item) => item.id === theme && item.scheme === scheme) ?? null;
 
+  const appliedVars = useRef<string[]>([]);
   useEffect(() => {
     const root = document.documentElement;
+    // 先写内联变量再改 data-*:终端等观察者在 data-* 变化时重新读取变量。
+    for (const name of appliedVars.current) root.style.removeProperty(name);
+    const vars = activeCustomTheme ? customThemeVars(activeCustomTheme) : {};
+    for (const [name, value] of Object.entries(vars)) root.style.setProperty(name, value);
+    appliedVars.current = Object.keys(vars);
     root.dataset.scheme = scheme;
-    root.dataset.theme = theme;
-  }, [scheme, theme]);
+    // 选中的自定义主题已不存在(数据被改动或清理)时退回默认,避免挂着没有样式的 id。
+    root.dataset.theme = activeCustomTheme
+      ? activeCustomTheme.id
+      : isCustomThemeId(theme)
+        ? scheme === "dark" ? defaultDarkTheme : defaultLightTheme
+        : theme;
+  }, [scheme, theme, activeCustomTheme]);
+
+  const saveCustomTheme = useCallback((next: CustomTheme) => {
+    setCustomThemes((current) => {
+      const index = current.findIndex((item) => item.id === next.id);
+      if (index >= 0) return current.map((item, i) => (i === index ? next : item));
+      return current.length >= maxCustomThemes ? current : [...current, next];
+    });
+  }, []);
+
+  const deleteCustomTheme = useCallback((id: CustomThemeId) => {
+    setCustomThemes((current) => current.filter((item) => item.id !== id));
+    setLightTheme((current) => (current === id ? defaultLightTheme : current));
+    setDarkTheme((current) => (current === id ? defaultDarkTheme : current));
+  }, []);
 
   useEffect(() => writeStored(infoLayoutKey, infoLayout), [infoLayout]);
   useEffect(() => writeStored(soundEffectsKey, String(soundEffects)), [soundEffects]);
@@ -214,6 +263,12 @@ export function usePreferences() {
   useEffect(() => writeStored(appearanceKey, appearance), [appearance]);
   useEffect(() => writeStored(lightThemeKey, lightTheme), [lightTheme]);
   useEffect(() => writeStored(darkThemeKey, darkTheme), [darkTheme]);
+  useEffect(() => writeStored(customThemesKey, JSON.stringify(customThemes)), [customThemes]);
+  useEffect(() => {
+    const cache: Record<string, Record<string, string>> = {};
+    for (const item of customThemes) cache[item.id] = customThemeVars(item);
+    writeStored(customThemeVarsKey, JSON.stringify(cache));
+  }, [customThemes]);
 
   useEffect(() => {
     document.documentElement.lang = locale;
@@ -246,6 +301,9 @@ export function usePreferences() {
     theme,
     lightTheme,
     darkTheme,
+    customThemes,
+    saveCustomTheme,
+    deleteCustomTheme,
     locale,
     toolDisplay,
     toolFold,

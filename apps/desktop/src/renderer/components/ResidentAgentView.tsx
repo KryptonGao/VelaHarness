@@ -1,8 +1,9 @@
-import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   mayContainUi,
   residentLimits,
   residentModes,
+  type ModelCatalog,
   type ProactiveRulesState,
   type ResidentAgentApi,
   type ResidentMode,
@@ -17,7 +18,9 @@ import type { UiMessage } from "../hooks/useSession";
 import { AssistantMarkdown } from "./intelligent-ui/AssistantMarkdown";
 import { UiHostProvider, type UiHost } from "./intelligent-ui/UiRuntime";
 import { stableUiMessageId } from "./intelligent-ui/ui-state-store";
-import { PauseIcon, PlayIcon } from "./icons";
+import { ArrowUpIcon, CheckIcon, CopyIcon, PauseIcon, PlayIcon } from "./icons";
+import { Markdown } from "./Markdown";
+import { UserMessageFrame } from "./UserMessageFrame";
 import { ProactiveRulesPanel } from "./ProactiveRulesPanel";
 import { ResidentSettingsPanel } from "./ResidentSettingsPanel";
 import { modeDescription, modeLabel, stateLabel, statusSummary, taskErrorText, taskSourceLabel, taskStatusLabel } from "./resident-agent-model";
@@ -51,16 +54,49 @@ function formatTime(at: number | null): string {
   return at === null ? "" : new Date(at).toLocaleString(activeIntlLocale(), { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
-const ResidentMessage = memo(function ResidentMessage({ message, streaming }: { message: UiMessage; streaming: boolean }) {
-  if (message.role === "user") return <div className="resident-msg user"><div className="resident-bubble">{message.text}</div></div>;
-  if (!message.text && message.tools.length === 0) return streaming ? <div className="resident-msg assistant"><span className="resident-typing" role="status" aria-label={tr("正在回复", "Replying")} /></div> : null;
-  return <div className="resident-msg assistant">
+const ResidentMessage = memo(function ResidentMessage({ message, streaming, editDisabled, onResend }: {
+  message: UiMessage;
+  streaming: boolean;
+  editDisabled: boolean;
+  onResend: (text: string) => Promise<void>;
+}) {
+  if (message.role === "user") {
+    return <UserMessageFrame text={message.text} timestamp={message.timestamp} disabled={editDisabled} onEdit={onResend}
+      editNote={tr("重新发送会把修改后的内容作为一条新消息发给 Resident，不会撤回之前的对话。", "Resending sends the edited text to Resident as a new message. The earlier conversation stays as it is.")}
+      savingLabel={tr("正在发送…", "Sending…")}>
+      {message.text ? <div className="user-bubble"><Markdown text={message.text} /></div> : null}
+    </UserMessageFrame>;
+  }
+  if (!message.text && message.tools.length === 0) return streaming ? <div className="assistant-block"><span className="resident-typing" role="status" aria-label={tr("正在回复", "Replying")} /></div> : null;
+  return <article className="assistant-block">
     {message.tools.length > 0 ? <ul className="resident-tools" aria-label={tr("工具调用", "Tool calls")}>
       {message.tools.map(tool => <li key={tool.id} data-status={tool.status}>{(toolLabels[tool.name] ?? (() => tool.name))()}</li>)}
     </ul> : null}
-    {message.text ? <div className="resident-prose"><AssistantMarkdown messageId={message.id} text={message.text} streaming={streaming} /></div> : null}
-  </div>;
+    {message.text ? <div className="agent-reply-prose"><AssistantMarkdown messageId={message.id} text={message.text} streaming={streaming} /></div> : null}
+    {message.text && !streaming ? <ResidentReplyActions text={message.text} timestamp={message.timestamp ?? null} /> : null}
+  </article>;
 });
+
+/** 与主对话回复下方的操作行一致：左侧复制，右侧时间；Resident 没有分支和检查点。 */
+function ResidentReplyActions({ text, timestamp }: { text: string; timestamp: number | null }) {
+  const [copied, setCopied] = useState(false);
+  useEffect(() => {
+    if (!copied) return;
+    const timer = window.setTimeout(() => setCopied(false), 1400);
+    return () => window.clearTimeout(timer);
+  }, [copied]);
+  const date = timestamp === null ? null : new Date(timestamp);
+  const valid = date && Number.isFinite(date.getTime()) ? date : null;
+  const label = copied ? tr("已复制", "Copied") : tr("复制回复", "Copy reply");
+  return <div className="reply-actions">
+    <button className="reply-action" type="button" title={label} aria-label={label}
+      onClick={() => { void navigator.clipboard.writeText(text).then(() => setCopied(true), () => setCopied(false)); }}>
+      {copied ? <CheckIcon size={13} /> : <CopyIcon size={13} />}
+      <span>{copied ? tr("已复制", "Copied") : tr("复制", "Copy")}</span>
+    </button>
+    {valid ? <time className="reply-time" dateTime={valid.toISOString()} title={valid.toLocaleString(activeIntlLocale())}>{formatTime(valid.getTime())}</time> : null}
+  </div>;
+}
 
 function Chat({ api, status, settings, messageStore, notice, setNotice }: {
   api: ResidentAgentApi;
@@ -111,6 +147,12 @@ function Chat({ api, status, settings, messageStore, notice, setNotice }: {
     if (list && stick.current) list.scrollTop = list.scrollHeight;
   }, [messages]);
 
+  const submitRef = useRef(submit);
+  submitRef.current = submit;
+  const resend = useCallback(async (value: string) => {
+    if (!(await submitRef.current(value))) throw new Error(tr("发送失败，请查看上方提示。", "Couldn't send. See the notice above."));
+  }, []);
+
   const send = async () => {
     const value = text.trim();
     if (!value || sending || blocked) return;
@@ -127,31 +169,34 @@ function Chat({ api, status, settings, messageStore, notice, setNotice }: {
       {messages.length === 0
         ? <p className="agent-inbox-empty">{tr("还没有对话。告诉它你想让后台处理什么，比如「检查一下 api 项目最近的失败测试」。", "No conversation yet. Tell it what to handle in the background, e.g. “check the failing tests in the api project”.")}</p>
         : <UiHostProvider value={uiHost}>
-          {messages.map((message, index) => <ResidentMessage key={message.id} message={message} streaming={status.residentBusy && index === lastIndex} />)}
+          {messages.map((message, index) => <ResidentMessage key={message.id} message={message} streaming={status.residentBusy && index === lastIndex} editDisabled={status.residentBusy || Boolean(blocked)} onResend={resend} />)}
         </UiHostProvider>}
     </div>
     {notice ? <p className="agent-inbox-notice" role="alert">{notice}</p> : null}
     {blocked ? <p className="agent-inbox-muted resident-blocked" role="status">{submitFailure[blocked]()}</p> : null}
-    <form className="resident-composer" onSubmit={event => { event.preventDefault(); void send(); }}>
-      <label className="agent-inbox-sr" htmlFor="resident-input">{tr("给 Resident Agent 的消息", "Message for Resident Agent")}</label>
-      <textarea id="resident-input" rows={2} value={text} maxLength={residentLimits.maxPrompt} disabled={Boolean(blocked)}
-        placeholder={workspace ? tr("描述要在这个工作区里完成的任务", "Describe the task for this workspace") : tr("和 Resident Agent 对话，或交给它一个任务", "Talk to Resident Agent or hand it a task")}
-        onChange={event => setText(event.target.value)}
-        onKeyDown={event => { if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) { event.preventDefault(); void send(); } }} />
-      <div className="resident-composer-row">
-        <label>
-          <span className="agent-inbox-sr">{tr("目标", "Target")}</span>
-          <select value={workspace} onChange={event => setWorkspace(event.target.value)} disabled={Boolean(blocked)}>
-            <option value="">{tr("交给 Resident Agent", "Ask Resident Agent")}</option>
-            {status.workspaces.map(path => <option key={path} value={path} title={path}>{trf("直接在 {0} 创建后台任务", "Run in {0} directly", baseName(path))}</option>)}
-          </select>
-        </label>
-        <button type="submit" className="agent-inbox-primary" disabled={!text.trim() || sending || Boolean(blocked)}>{tr("发送", "Send")}</button>
-      </div>
+    <div className="resident-composer-dock">
+      <form className="resident-composer" onSubmit={event => { event.preventDefault(); void send(); }}>
+        <label className="agent-inbox-sr" htmlFor="resident-input">{tr("给 Resident Agent 的消息", "Message for Resident Agent")}</label>
+        <textarea id="resident-input" rows={1} value={text} maxLength={residentLimits.maxPrompt} disabled={Boolean(blocked)}
+          placeholder={workspace ? tr("描述要在这个工作区里完成的任务", "Describe the task for this workspace") : tr("和 Resident Agent 对话，或交给它一个任务", "Talk to Resident Agent or hand it a task")}
+          onChange={event => setText(event.target.value)}
+          onKeyDown={event => { if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); void send(); } }} />
+        <div className="resident-composer-row">
+          <label>
+            <span className="agent-inbox-sr">{tr("目标", "Target")}</span>
+            <select value={workspace} onChange={event => setWorkspace(event.target.value)} disabled={Boolean(blocked)}>
+              <option value="">{tr("交给 Resident Agent", "Ask Resident Agent")}</option>
+              {status.workspaces.map(path => <option key={path} value={path} title={path}>{trf("直接在 {0} 创建后台任务", "Run in {0} directly", baseName(path))}</option>)}
+            </select>
+          </label>
+          <button type="submit" className="send-action-blue-btn send send-icon-arrow-up" title={tr("发送 (Enter)", "Send (Enter)")} aria-label={tr("发送", "Send")}
+            disabled={!text.trim() || sending || Boolean(blocked)}><ArrowUpIcon size={15} /></button>
+        </div>
+      </form>
       {settings?.mode === "disabled" ? null : <p className="agent-inbox-muted resident-hint">{workspace
         ? tr("直接创建的任务按当前的权限设置运行；需要批准的操作会出现在收件箱里。", "The task runs with your current permission settings. Anything needing approval shows up in the Inbox.")
         : tr("Resident 不能读写文件或运行命令；需要动手时它会请你批准后在工作区里创建后台任务。", "Resident can't read files or run commands. When work is needed it asks you to approve a background task in a workspace.")}</p>}
-    </form>
+    </div>
   </div>;
 }
 
@@ -189,7 +234,7 @@ function Tasks({ api, status, onOpenConversation }: { api: ResidentAgentApi; sta
   </div>;
 }
 
-export function ResidentAgentView({ api, status, settings, rules, messageStore, ensureTranscript, onOpenConversation, onSettings, error, initialTab = "chat" }: {
+export function ResidentAgentView({ api, status, settings, rules, messageStore, ensureTranscript, onOpenConversation, onSettings, error, catalog = null, catalogError = null, initialTab = "chat" }: {
   api: ResidentAgentApi | null;
   status: ResidentStatus | null;
   settings: ResidentSettings | null;
@@ -199,6 +244,8 @@ export function ResidentAgentView({ api, status, settings, rules, messageStore, 
   onOpenConversation: (id: string) => void;
   onSettings: (settings: ResidentSettings) => void;
   error: string | null;
+  catalog?: ModelCatalog | null;
+  catalogError?: string | null;
   initialTab?: Tab;
 }) {
   const [tab, setTab] = useState<Tab>(initialTab);
@@ -270,7 +317,7 @@ export function ResidentAgentView({ api, status, settings, rules, messageStore, 
       {tab === "chat" ? <Chat api={api} status={status} settings={settings} messageStore={messageStore} notice={notice} setNotice={setNotice} /> : null}
       {tab === "tasks" ? <Tasks api={api} status={status} onOpenConversation={onOpenConversation} /> : null}
       {tab === "rules" ? <ProactiveRulesPanel api={api} status={status} settings={settings} rules={rules} /> : null}
-      {tab === "settings" ? <ResidentSettingsPanel api={api} settings={settings} onSettings={onSettings} /> : null}
+      {tab === "settings" ? <ResidentSettingsPanel api={api} settings={settings} onSettings={onSettings} catalog={catalog} catalogError={catalogError} /> : null}
     </div>
   </section>;
 }
