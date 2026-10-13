@@ -1,139 +1,139 @@
 {
-  "version": "1.1.4",
+  "version": "1.1.5",
   "locales": {
     "en": {
-      "summary": "Vela 1.1.4 adds custom light and dark themes, independent model and reasoning settings for the Resident Agent, and a more capable resident conversation view.",
+      "summary": "Vela 1.1.5 adds Racing: try the same task in parallel, compare the results, and adopt one solution. Four new built-in themes give you more light and dark palettes.",
       "highlights": [
         {
-          "title": "Make your own themes",
-          "body": "Create light and dark palettes in Settings → Appearance with four colors: background, cards and panels, text, and accent. Name, edit, save, and delete your themes."
+          "title": "Try multiple approaches at once",
+          "body": "Choose Racing in the composer mode menu. Run the same task in 2–4 independent Git worktrees, each with its own model, reasoning level, and optional instructions."
         },
         {
-          "title": "Preview your palette",
-          "body": "Adjust colors with a picker or hex values and see a live conversation preview. A contrast hint helps you spot text that may be hard to read."
+          "title": "Compare evidence side by side",
+          "body": "The Racing panel shows status, elapsed time, token use, file changes, and acceptance evidence. Add a shared verification command to check every lane; you choose the winner."
         },
         {
-          "title": "Choose a model for Resident Agent",
-          "body": "Set a separate model and reasoning level for the resident conversation and its background tasks, or follow your new-conversation defaults. Your app-wide model settings stay unchanged."
+          "title": "Adopt a solution when you are ready",
+          "body": "After every lane finishes, confirm your choice to stage its changes in the main workspace. Commit them yourself, or discard the whole race and clean up its worktrees."
         },
         {
-          "title": "A more useful resident conversation",
-          "body": "Read Markdown, copy messages, and edit a previous user message to send it again. Resending creates a new message and keeps the existing history."
+          "title": "Four more built-in themes",
+          "body": "Try Lilac and Blossom in light mode, or Forest and Tide in dark mode. Select them in Settings → Appearance or during onboarding."
         }
       ],
       "improvements": [
-        "Idle resident conversations apply model changes immediately; conversations already replying apply them before the next submission.",
-        "Reasoning levels follow model support, and unavailable selected models report an error instead of silently switching.",
-        "Custom theme colors are restored at startup; deleting a selected custom theme falls back to the default palette.",
-        "Resident chat, task recipes, terminal controls, and activity indicators receive more consistent spacing and controls."
+        "Race conversations run in the background without switching your active conversation or workspace.",
+        "Shared verification runs one lane at a time, with a ten-minute timeout and redacted output.",
+        "Unfinished races are marked interrupted after restarting the app; lane conversations remain available for review.",
+        "Racing controls and the new theme names are available in all five interface languages."
       ]
     },
     "zh-CN": {
-      "summary": "Vela 1.1.4 新增自定义浅色与深色主题、常驻 Agent 独立的模型与推理强度设置，并改进常驻对话体验。",
+      "summary": "Vela 1.1.5 新增赛马：同一任务并行尝试、比较结果，再采用一份方案。同时新增四套内置主题，提供更多浅色与深色配色。",
       "highlights": [
         {
-          "title": "调配自己的主题",
-          "body": "在「设置 → 外观」用背景、卡片与面板、文字、强调色四种颜色创建浅色或深色主题，并为主题命名、编辑、保存或删除。"
+          "title": "同时尝试多种方案",
+          "body": "在输入框的模式菜单中选择「赛马」，让同一任务在 2–4 个独立 Git worktree 中并行执行，每条赛道可单独选择模型、推理强度和附加提示。"
         },
         {
-          "title": "实时预览配色",
-          "body": "通过取色器或十六进制色号调整配色，实时查看对话预览。文字对比度偏低时会提示，方便发现不易阅读的组合。"
+          "title": "并排比较客观证据",
+          "body": "赛马面板显示状态、耗时、token 用量、文件改动和验收证据。可设置统一验证指令检查每条赛道，采用哪一条由你决定。"
         },
         {
-          "title": "为常驻 Agent 选择模型",
-          "body": "为常驻对话及其后台任务单独设置模型和推理强度，也可以沿用新对话的默认选择，不会改变应用的默认模型设置。"
+          "title": "确认后采用一份方案",
+          "body": "全部赛道结束后，确认选择即可将该赛道的改动放进主工作区暂存区，再自行提交；也可丢弃整场赛马并清理 worktree。"
         },
         {
-          "title": "更好用的常驻对话",
-          "body": "支持 Markdown 阅读、复制消息，以及编辑先前的用户消息后重新发送。重新发送会新增一条消息，保留已有对话历史。"
+          "title": "四套新内置主题",
+          "body": "浅色新增「丁香」与「海棠」，深色新增「森林」与「潮汐」，可在「设置 → 外观」或首次设置时选择。"
         }
       ],
       "improvements": [
-        "空闲的常驻对话会立即应用模型变更；正在回复的对话会在下一次发送前应用。",
-        "推理强度跟随模型支持的档位，已选模型不可用时明确报错，不会悄悄换成其他模型。",
-        "启动时恢复自定义主题配色；删除正在使用的自定义主题后退回默认配色。",
-        "常驻对话、任务配方、终端控件和活动指示器采用更一致的间距与控件样式。"
+        "赛道对话在后台执行，不会切换当前对话或工作区。",
+        "统一验证逐条执行，每条最多十分钟，输出会脱敏。",
+        "重启后将未完成的赛马标为已中断，保留赛道对话供回看。",
+        "赛马控件与新增主题名称支持全部五种界面语言。"
       ]
     },
     "zh-TW": {
-      "summary": "Vela 1.1.4 新增自訂淺色與深色主題、常駐 Agent 獨立的模型與推理強度設定，並改進常駐對話體驗。",
+      "summary": "Vela 1.1.5 新增賽馬：同一任務平行嘗試、比較結果，再採用一份方案。同時新增四套內建主題，提供更多淺色與深色配色。",
       "highlights": [
         {
-          "title": "調配自己的主題",
-          "body": "在「設定 → 外觀」用背景、卡片與面板、文字、強調色四種顏色建立淺色或深色主題，並為主題命名、編輯、儲存或刪除。"
+          "title": "同時嘗試多種方案",
+          "body": "在輸入框的模式選單中選擇「賽馬」，讓同一任務在 2–4 個獨立 Git worktree 中平行執行，每條賽道可各自選擇模型、推理強度與附加提示。"
         },
         {
-          "title": "即時預覽配色",
-          "body": "透過選色器或十六進位色碼調整配色，即時查看對話預覽。文字對比度偏低時會提示，方便發現不易閱讀的組合。"
+          "title": "並排比較客觀證據",
+          "body": "賽馬面板顯示狀態、耗時、token 用量、檔案變更與驗收證據。可設定統一驗證指令檢查每條賽道，採用哪一條由你決定。"
         },
         {
-          "title": "為常駐 Agent 選擇模型",
-          "body": "為常駐對話及其背景任務單獨設定模型與推理強度，也可以沿用新對話的預設選擇，不會改變應用程式的預設模型設定。"
+          "title": "確認後採用一份方案",
+          "body": "全部賽道結束後，確認選擇即可將該賽道的變更放進主工作區暫存區，再自行提交；也可捨棄整場賽馬並清理 worktree。"
         },
         {
-          "title": "更好用的常駐對話",
-          "body": "支援 Markdown 閱讀、複製訊息，以及編輯先前的使用者訊息後重新傳送。重新傳送會新增一則訊息，保留既有對話歷史。"
+          "title": "四套新內建主題",
+          "body": "淺色新增「丁香」與「海棠」，深色新增「森林」與「潮汐」，可在「設定 → 外觀」或首次設定時選擇。"
         }
       ],
       "improvements": [
-        "閒置的常駐對話會立即套用模型變更；正在回覆的對話會在下一次傳送前套用。",
-        "推理強度依模型支援的等級調整，已選模型無法使用時明確報錯，不會悄悄換成其他模型。",
-        "啟動時還原自訂主題配色；刪除正在使用的自訂主題後回到預設配色。",
-        "常駐對話、任務配方、終端控制項與活動指示器採用更一致的間距與控制項樣式。"
+        "賽道對話在背景執行，不會切換目前對話或工作區。",
+        "統一驗證逐條執行，每條最多十分鐘，輸出會隱去敏感資訊。",
+        "重新啟動後將未完成的賽馬標為已中斷，保留賽道對話供回看。",
+        "賽馬控制項與新增主題名稱支援全部五種介面語言。"
       ]
     },
     "ja": {
-      "summary": "Vela 1.1.4 では、ライト・ダークのカスタムテーマ、常駐 Agent 専用のモデルと推論レベルの設定、常駐チャットの改善を追加しました。",
+      "summary": "Vela 1.1.5 に Racing が加わりました。同じタスクを並列に試し、結果を比較して、ひとつの案を採用できます。ライトとダークの組み込みテーマも4種類追加しました。",
       "highlights": [
         {
-          "title": "自分だけのテーマを作成",
-          "body": "「設定 → 外観」で背景、カードとパネル、文字、アクセントの 4 色からライト・ダークテーマを作成できます。名前の変更、編集、保存、削除にも対応します。"
+          "title": "複数の方法を同時に試す",
+          "body": "入力欄のモードメニューから「レース」を選び、同じタスクを2〜4個の独立した Git worktree で並列実行します。各レーンでモデル、推論レベル、追加指示を設定できます。"
         },
         {
-          "title": "配色をリアルタイムで確認",
-          "body": "カラーピッカーや 16 進数の色コードで調整し、会話のプレビューを確認できます。文字のコントラストが低い場合は、読みづらい組み合わせを知らせます。"
+          "title": "根拠を並べて比較",
+          "body": "レースパネルに状態、所要時間、トークン使用量、ファイルの変更、受け入れ確認の根拠を表示します。共通の検証コマンドで全レーンを確認し、採用する案は自分で選べます。"
         },
         {
-          "title": "常駐 Agent のモデルを選択",
-          "body": "常駐チャットとバックグラウンドタスクに専用のモデルと推論レベルを設定できます。新しい会話の既定値を使うこともでき、アプリ全体のモデル設定は変更しません。"
+          "title": "確認してから案を採用",
+          "body": "全レーンの終了後、選択を確認すると、その変更がメインの作業領域にステージされます。コミットは自分で行います。レース全体を破棄して worktree を片付けることもできます。"
         },
         {
-          "title": "より使いやすい常駐チャット",
-          "body": "Markdown 表示、メッセージのコピー、過去のユーザーメッセージを編集して再送信する操作に対応しました。再送信は新しいメッセージを追加し、既存の履歴を保持します。"
+          "title": "組み込みテーマを4種類追加",
+          "body": "ライトに「ライラック」と「海棠」、ダークに「森」と「潮」を追加。「設定 → 外観」や初期設定で選べます。"
         }
       ],
       "improvements": [
-        "待機中の常駐チャットにはモデル変更をすぐに適用し、返信中は次の送信前に適用します。",
-        "推論レベルはモデルが対応する段階に調整されます。選択したモデルが利用できない場合は、別のモデルに切り替えずエラーを表示します。",
-        "起動時にカスタムテーマの配色を復元し、使用中のテーマを削除すると既定の配色に戻ります。",
-        "常駐チャット、タスクレシピ、ターミナル操作、動作インジケーターの余白と操作部品を統一しました。"
+        "レーンの会話はバックグラウンドで実行され、現在の会話や作業領域は切り替わりません。",
+        "共通の検証はレーンごとに順番に実行し、10分でタイムアウトします。出力の機密情報は伏せます。",
+        "再起動後、未完了のレースは中断済みとして表示します。レーンの会話は振り返りのために残ります。",
+        "レースの操作項目と新しいテーマ名は、5つの表示言語すべてに対応しています。"
       ]
     },
     "ko": {
-      "summary": "Vela 1.1.4에서는 사용자 지정 밝은 테마와 어두운 테마, 상주 Agent 전용 모델 및 추론 수준 설정, 개선된 상주 대화 화면을 제공합니다.",
+      "summary": "Vela 1.1.5에 레이스가 추가되었습니다. 같은 작업을 병렬로 시도하고 결과를 비교한 뒤 한 가지 안을 채택할 수 있습니다. 밝은 모드와 어두운 모드의 기본 테마도 네 가지 추가했습니다.",
       "highlights": [
         {
-          "title": "나만의 테마 만들기",
-          "body": "설정 → 모양에서 배경, 카드와 패널, 텍스트, 강조 색상 네 가지로 밝은 테마와 어두운 테마를 만드세요. 테마 이름 지정, 편집, 저장, 삭제를 지원합니다."
+          "title": "여러 방법을 동시에 시도",
+          "body": "입력창의 모드 메뉴에서 「레이스」를 선택하세요. 같은 작업을 2–4개의 독립된 Git worktree에서 병렬로 실행하며, 레인마다 모델, 추론 수준, 추가 지시를 설정할 수 있습니다."
         },
         {
-          "title": "색상 실시간 미리 보기",
-          "body": "색상 선택기나 16진수 색상 코드로 조정하면서 대화 미리 보기를 확인하세요. 텍스트 대비가 낮으면 읽기 어려운 조합을 알아볼 수 있도록 안내합니다."
+          "title": "근거를 나란히 비교",
+          "body": "레이스 패널에서 상태, 소요 시간, 토큰 사용량, 파일 변경 사항, 인수 확인 근거를 확인하세요. 공통 검증 명령으로 각 레인을 확인하고, 채택할 결과는 직접 선택합니다."
         },
         {
-          "title": "상주 Agent 모델 선택",
-          "body": "상주 대화와 백그라운드 작업에 별도의 모델과 추론 수준을 설정하거나 새 대화의 기본 설정을 따르세요. 앱 전체의 기본 모델 설정은 바뀌지 않습니다."
+          "title": "확인한 뒤 결과 채택",
+          "body": "모든 레인이 끝나면 선택을 확인하여 해당 변경 사항을 기본 작업 공간에 스테이징할 수 있습니다. 커밋은 직접 합니다. 레이스 전체를 버리고 worktree를 정리할 수도 있습니다."
         },
         {
-          "title": "더 편리한 상주 대화",
-          "body": "Markdown 표시, 메시지 복사, 이전 사용자 메시지를 편집해 다시 보내는 기능을 지원합니다. 다시 보내면 새 메시지가 추가되고 기존 대화 기록은 유지됩니다."
+          "title": "새 기본 테마 네 가지",
+          "body": "밝은 모드에 라일락과 해당화, 어두운 모드에 숲과 조수를 추가했습니다. 「설정 → 모양」 또는 초기 설정에서 선택하세요."
         }
       ],
       "improvements": [
-        "대기 중인 상주 대화에는 모델 변경을 즉시 적용하며, 답변 중인 대화에는 다음 전송 전에 적용합니다.",
-        "추론 수준은 모델이 지원하는 단계에 맞춰 조정됩니다. 선택한 모델을 사용할 수 없으면 다른 모델로 바꾸지 않고 오류를 표시합니다.",
-        "시작할 때 사용자 지정 테마 색상을 복원하며, 사용 중인 테마를 삭제하면 기본 색상으로 돌아갑니다.",
-        "상주 대화, 작업 레시피, 터미널 컨트롤, 활동 표시기의 간격과 컨트롤 스타일을 통일했습니다."
+        "레인 대화는 백그라운드에서 실행되며 현재 대화나 작업 공간을 전환하지 않습니다.",
+        "공통 검증은 레인별로 순서대로 실행되며 10분이 지나면 종료합니다. 출력의 민감한 정보는 가립니다.",
+        "앱을 다시 시작하면 끝나지 않은 레이스는 중단됨으로 표시합니다. 레인 대화는 검토할 수 있도록 남겨 둡니다.",
+        "레이스 조작 항목과 새 테마 이름은 다섯 가지 인터페이스 언어를 모두 지원합니다."
       ]
     }
   }

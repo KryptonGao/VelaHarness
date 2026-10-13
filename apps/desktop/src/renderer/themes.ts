@@ -1,7 +1,7 @@
 export type ColorScheme = "light" | "dark";
 
-export const lightThemes = ["daylight", "paper", "celadon"] as const;
-export const darkThemes = ["midnight", "graphite", "ember"] as const;
+export const lightThemes = ["daylight", "paper", "celadon", "lilac", "blossom"] as const;
+export const darkThemes = ["midnight", "graphite", "ember", "forest", "tide"] as const;
 
 export type LightTheme = (typeof lightThemes)[number];
 export type DarkTheme = (typeof darkThemes)[number];
@@ -51,9 +51,13 @@ export const builtinThemeColors: Record<ThemeId, CustomThemeColors> = {
   daylight: { background: "#ffffff", surface: "#ffffff", text: "#202124", accent: "#2563eb" },
   paper: { background: "#faf8f3", surface: "#fffdf8", text: "#29241f", accent: "#c15f3c" },
   celadon: { background: "#f8fbf9", surface: "#ffffff", text: "#17231f", accent: "#0e7c6b" },
+  lilac: { background: "#faf9fd", surface: "#ffffff", text: "#221f2e", accent: "#7c5cd6" },
+  blossom: { background: "#fefaf9", surface: "#ffffff", text: "#2b1f22", accent: "#c0395f" },
   midnight: { background: "#16181d", surface: "#1e2128", text: "#f3f5f8", accent: "#4f8cff" },
   graphite: { background: "#111112", surface: "#19191b", text: "#ececee", accent: "#8e7dff" },
   ember: { background: "#1a1613", surface: "#221d19", text: "#f3eadf", accent: "#eb8a5e" },
+  forest: { background: "#121714", surface: "#19211c", text: "#e9f2ec", accent: "#4cc38a" },
+  tide: { background: "#0f181c", surface: "#152026", text: "#e6f1f5", accent: "#38bdd8" },
 };
 
 export function isCustomThemeId(value: unknown): value is CustomThemeId {

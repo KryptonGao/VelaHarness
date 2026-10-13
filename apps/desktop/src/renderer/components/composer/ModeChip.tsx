@@ -3,7 +3,7 @@ import type { InteractionMode } from "@vela/shared";
 import { useEffect, useState } from "react";
 import { useDismissable } from "../../hooks/useDismissable";
 import { CheckIcon } from "../icons";
-import { tr } from "../../locale";
+import { tr, trf } from "../../locale";
 
 const modes: InteractionMode[] = ["agent", "plan", "goal"];
 
@@ -28,10 +28,13 @@ export function ModeChip({
   mode,
   disabled,
   onChange,
+  race,
 }: {
   mode: InteractionMode;
   disabled: boolean;
   onChange: (mode: InteractionMode) => void;
+  /** 赛马不是对话模式，而是一次性的启动动作，所以单独传入；缺省时菜单里没有这一项。 */
+  race?: { onStart: () => void; onShow: () => void; count: number };
 }) {
   const [open, setOpen] = useState(false);
   const ref = useDismissable<HTMLDivElement>(open, () => setOpen(false));
@@ -74,6 +77,25 @@ export function ModeChip({
               {candidate === mode ? <CheckIcon /> : null}
             </button>
           ))}
+          {race ? (
+            <>
+              <div className="mode-popover-divider" role="separator" />
+              <button type="button" className="mode-option" onClick={() => { race.onStart(); setOpen(false); }}>
+                <span className="mode-option-icon mode-race">R</span>
+                <span className="mode-option-text">
+                  <span className="mode-option-name">{tr("赛马", "Race")}</span>
+                  <span className="mode-option-desc">{tr("同一个任务用不同的模型或提示并行尝试，比较后采用其中一个。", "Try one task with different models or prompts in parallel, compare, and adopt the best.")}</span>
+                </span>
+              </button>
+              {race.count > 0 ? (
+                <button type="button" className="mode-option mode-option-secondary" onClick={() => { race.onShow(); setOpen(false); }}>
+                  <span className="mode-option-text">
+                    <span className="mode-option-desc">{trf("查看赛马记录（{0}）", "View races ({0})", race.count)}</span>
+                  </span>
+                </button>
+              ) : null}
+            </>
+          ) : null}
           <div className="composer-popover-footnote">{tr("模式只影响当前对话。回复进行时不能切换。", "Modes apply only to this chat and cannot be changed while a reply is in progress.")}</div>
         </div>
       </PopoverPresence>

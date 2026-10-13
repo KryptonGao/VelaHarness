@@ -8,7 +8,7 @@ import { redactMcpDisplay, mcpConfiguredSecrets } from "./mcp-redaction";
 import { McpSessionBridge, isMcpTool, type McpPermission } from "./mcp-session";
 import { createScheduledTaskTools, scheduledTaskInstructions } from "./scheduled-task-tools";
 import { RecipeGenerator, parseRecipeGenerateInput } from './recipe-generator';
-import type { RecipeExecution, RecipeRun, RecipeStageSubmission, RecipeSubmitResult, RecipeStageEvidence, RecipeUseDraft, ScheduledTaskInput, SandboxExecutionContext, SandboxMode, ScheduledTaskService } from "@vela/shared";
+import type { RaceTokens, RecipeExecution, RecipeRun, RecipeStageSubmission, RecipeSubmitResult, RecipeStageEvidence, RecipeUseDraft, ScheduledTaskInput, SandboxExecutionContext, SandboxMode, ScheduledTaskService } from "@vela/shared";
 import type { McpCatalog, McpCatalogInput, McpServerInput, McpServerTarget, McpEnabledInput, McpProjectTrustInput, McpToolReadOnlyInput, McpStatusEvent, MemoryLoadReport } from "@vela/shared";
 import { browserUseInstructions, createBrowserTools, type BrowserReplService, type BrowserReplPermission } from "./browser-use";
 import { TurnCheckpoints, changedPaths, sharedDirectory, type TurnCheckpoint } from "./turn-checkpoints";
@@ -655,6 +655,80 @@ export class AgentRuntime {
       if (failure) throw new Error(failure);
       if (entry.stopRequested) throw new Error("任务执行已停止");
     } finally { unsubscribe(); }
+  }
+
+  /**
+   * 赛马赛道：在指定 cwd（独立 worktree）里创建一个不激活的后台对话并跑完一轮。
+   * 不切换当前工作区；无人值守，比照定时任务不写长期记忆。返回时根对话与子代理都已空闲。
+   */
+  async runLane(request: LaneRequest): Promise<LaneResult> {
+    const entry = await this.exclusive(async () => {
+      await this.ready();
+      if (this.conversations.has(request.conversationId)) throw new Error("预留对话 ID 已被占用");
+      const entry = this.addEntry(request.cwd, { activate: false, reservedId: request.conversationId, hasWorkspace: true, title: request.title, mode: "agent" });
+      entry.scheduledSandboxMode = request.execution.sandboxMode;
+      entry.scheduledTaskConversation = true;
+      entry.titleManuallySet = true;
+      entry.titleGenerationStarted = true;
+      try {
+        const directory = await this.readyDirectory();
+        await this.startInternal(entry, this.executionSelection(directory, request.execution));
+      } catch (error) {
+        this.patchEntry(entry, { status: "error", error: error instanceof Error ? error.message : "无法启动赛道对话" });
+        throw error;
+      }
+      if (!entry.session || entry.snapshot.status === "error") throw new Error(entry.snapshot.error ?? "无法启动赛道对话");
+      this.store.flushSync(true);
+      return entry;
+    });
+    let ended: LaneResult | null = null;
+    let failure: string | null = null;
+    const unsubscribe = this.subscribe(event => {
+      if (event.conversationId !== entry.id) return;
+      if (event.type === "prompt_end") ended = { status: event.status, ...(event.error ? { error: event.error } : {}) };
+      else if (event.type === "error") failure = event.message;
+    });
+    try {
+      this.emit({ type: "user_message", conversationId: entry.id, text: request.prompt });
+      await this.prompt(entry.id, request.prompt);
+      await this.waitForLaneIdle(entry);
+    } catch (error) {
+      return { status: entry.stopRequested ? "stopped" : "failed", error: error instanceof Error ? error.message : String(error) };
+    } finally {
+      unsubscribe();
+    }
+    if (this.disposed) return { status: "failed", error: "应用退出导致赛道中断" };
+    if (entry.stopRequested) return { status: "stopped" };
+    const result = ended as LaneResult | null;
+    if (result && result.status !== "responded") return result;
+    if (failure) return { status: "failed", error: failure };
+    return result ?? { status: "responded" };
+  }
+
+  /** 子代理结果会唤醒根对话再跑一轮，所以要连续两次观察到全部空闲才算这条赛道结束。 */
+  private async waitForLaneIdle(entry: Conversation): Promise<void> {
+    const busy = () => entry.driving || Boolean(entry.session?.isStreaming)
+      || Boolean(entry.control?.list().some(agent => agent.kind !== "root" && isAgentBusy(agent.status)));
+    let quiet = 0;
+    while (quiet < 2 && !this.disposed && !entry.stopRequested) {
+      await new Promise(resolve => setTimeout(resolve, 400));
+      quiet = busy() ? 0 : quiet + 1;
+    }
+  }
+
+  /** 一条赛道累计计费 token：根会话加上所有子代理（子代理不计入根会话统计）。 */
+  getLaneStats(conversationId: string): RaceTokens | null {
+    const entry = this.conversations.get(conversationId);
+    if (!entry?.session) return null;
+    let stats;
+    try { stats = entry.session.getSessionStats().tokens; } catch { return null; }
+    const total: RaceTokens = { input: stats.input, output: stats.output, cacheRead: stats.cacheRead, total: stats.total };
+    for (const agent of entry.control?.list() ?? []) {
+      if (agent.kind === "root") continue;
+      total.input += agent.usage.input; total.output += agent.usage.output;
+      total.cacheRead += agent.usage.cacheRead; total.total += agent.usage.total;
+    }
+    return total;
   }
 
   /** 显式指定的模型与思考强度优先；缺省的部分沿用新对话的选择，强度按所选模型支持的档位收敛。 */
@@ -3606,6 +3680,15 @@ function modelLabel(model: { name?: string; provider: string; id: string }): str
 }
 
 /** 后台会话（常驻 Agent 与它的任务）显式指定的模型和思考强度；null 或缺省表示沿用新对话的设置。 */
+export interface LaneRequest {
+  conversationId: string;
+  cwd: string;
+  title: string;
+  execution: BackgroundExecution & { sandboxMode: SandboxMode };
+  prompt: string;
+}
+export interface LaneResult { status: "responded" | "failed" | "stopped"; error?: string }
+
 export interface BackgroundExecution {
   model?: { provider: string; id: string } | null;
   thinkingLevel?: ThinkingLevel | null;

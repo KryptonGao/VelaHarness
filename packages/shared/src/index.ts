@@ -11,6 +11,7 @@ export * from "./scheduled-tasks";
 export * from "./agent-inbox";
 export * from "./resident-agent";
 export * from "./task-recipes";
+export * from "./race";
 export * from "./recipe-validation";
 export * from "./recipe-workflow";
 export * from "./plugin";
@@ -2748,6 +2749,7 @@ export interface VelaApi extends McpApi, PluginApi {
   /** 仅开发版提供。 */
   development?: DevelopmentApi;
   taskRecipes?: import("./task-recipes").TaskRecipesApi;
+  races?: import("./race").RacesApi;
   scheduledTasks?: import("./scheduled-tasks").ScheduledTasksApi;
   agentInbox?: import("./agent-inbox").AgentInboxApi;
   resident?: import("./resident-agent").ResidentAgentApi;

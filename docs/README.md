@@ -22,6 +22,7 @@
 | [conversation-export.md](./conversation-export.md) | 使用者与开发者 | 对话导出为 Markdown / HTML：包含的内容（工具调用、文件 diff、轨迹、检查点改动）、脱敏规则、实现位置与已知限制。 |
 | [handoff-pack.md](./handoff-pack.md) | 使用者与开发者 | 任务交接包：把对话整理成目标、决策、修改文件、实际验证与未完成事项，预览编辑后填入新对话；事实与模型整理的分工、降级、实现位置与限制。 |
 | [outcome-acceptance.md](./outcome-acceptance.md) | 使用者與開發者 | 成果驗收：逐項需求、修改、驗證證據與待確認，agent 歸屬、確定性事實推導、fallback 與限制。 |
+| [race.md](./race.md) | 使用者与开发者 | 赛马：同一任务在 2–4 个独立 worktree 里用不同模型/思考强度/提示并行尝试，按耗时、token、改动、统一验证并排比较，一键 squash 采用其一；存储、恢复、限制与验证。 |
 | [pi-1.0-migration.md](./pi-1.0-migration.md) | 开发者 | Pi 1.0 精确版本迁移、接口适配、依赖与打包检查、验证结果和未验证项。 |
 | [mcp.md](./mcp.md) | 使用者与开发者 | MCP 服务器的配置、项目信任、工具曝光、只读授权、会话生命周期与定向验收。 |
 | [memory.md](./memory.md) | 使用者与开发者 | 项目记忆与全局记忆的目录、作用域、加载与刷新时机、写入权限、设置页管理、worktree 行为与验证。 |

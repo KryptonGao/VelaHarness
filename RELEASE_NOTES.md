@@ -1,20 +1,20 @@
-# Vela 1.1.4
+# Vela 1.1.5
 
-Vela 1.1.4 adds custom light and dark themes, independent model and reasoning settings for the Resident Agent, and a more capable resident conversation view.
+Vela 1.1.5 adds Racing: try the same task in parallel, compare the evidence, and adopt one solution. Four new built-in themes expand the light and dark palettes.
 
 ## New
 
-- **Make your own themes**: Create light and dark palettes in Settings → Appearance with four colors: background, cards and panels, text, and accent. Name, edit, save, and delete your themes.
-- **Preview your palette**: Adjust colors with a picker or hex values and see a live conversation preview. A contrast hint helps you spot text that may be hard to read.
-- **Choose a model for Resident Agent**: Set a separate model and reasoning level for the resident conversation and its background tasks, or follow your new-conversation defaults. Your app-wide model settings stay unchanged.
-- **A more useful resident conversation**: Read Markdown, copy messages, and edit a previous user message to send it again. Resending creates a new message and keeps the existing history.
+- **Try multiple approaches at once**: Choose Racing in the composer mode menu. Run the same task in 2–4 independent Git worktrees, each with its own model, reasoning level, and optional instructions. Racing requires a Git repository with at least one commit; lanes start from the current commit and do not include uncommitted changes.
+- **Compare evidence side by side**: The Racing panel shows status, elapsed time, token use, file changes, and acceptance evidence. Add a shared verification command to check every lane. Badges identify factual best results; Vela does not score solutions or choose a winner for you.
+- **Adopt a solution when you are ready**: After every lane finishes, confirm your choice to squash its changes into the main workspace's staging area. Commit them yourself. Adoption requires a clean tracked working tree; conflicts restore the workspace so you can choose another lane. Discarding a race stops its lanes and cleans up its worktrees and branches.
+- **Four more built-in themes**: Try Lilac and Blossom in light mode, or Forest and Tide in dark mode. Select them in Settings → Appearance or during onboarding.
 
 ## Improved
 
-- Idle resident conversations apply model changes immediately; conversations already replying apply them before the next submission.
-- Reasoning levels follow model support, and unavailable selected models report an error instead of silently switching.
-- Custom theme colors are restored at startup; deleting a selected custom theme falls back to the default palette.
-- Resident chat, task recipes, terminal controls, and activity indicators receive more consistent spacing and controls.
+- Race conversations run in the background without switching your active conversation or workspace; lane token totals include sub-agents.
+- Shared verification runs one lane at a time, with a ten-minute timeout and redacted output. Verification runs after all lanes finish.
+- Unfinished races are marked interrupted after restarting the app. Lane conversations remain available for review, and failed cleanup can be retried.
+- Racing controls and the new theme names are available in all five interface languages. Racing supports up to two concurrent races and uses a separate model session for each lane.
 
 ## Upgrade
 
@@ -28,21 +28,22 @@ The macOS build is not notarized and uses an ad-hoc signature. If macOS blocks f
 
 | File | Platform |
 | --- | --- |
-| `Vela-1.1.4-arm64.dmg` | macOS Apple Silicon installer |
-| `Vela-1.1.4-arm64.zip` | macOS Apple Silicon application bundle (`.app`); also the package used by in-app updates |
+| `Vela-1.1.5-arm64.dmg` | macOS Apple Silicon installer |
+| `Vela-1.1.5-arm64.zip` | macOS Apple Silicon application bundle (`.app`); also the package used by in-app updates |
 | `SHA256SUMS.txt` | SHA-256 checksums for both packages |
 | `SHA256SUMS.txt.sig` | Ed25519 signature of `SHA256SUMS.txt`, verified by the in-app updater |
 
-Package version: `1.1.4`. macOS bundle and download version: `1.1.4`.
+Package version: `1.1.5`. macOS bundle and download version: `1.1.5`.
 
 ## Validation
 
-- Type checks and all 1,618 unit tests passed (`pnpm test`): 169 workspace, 577 agent, and 872 desktop tests.
-- All 42 targeted custom-theme and resident-execution tests passed.
+- Type checks and all 1,650 unit tests passed (`pnpm test`): 178 workspace, 583 agent, and 889 desktop tests.
+- All 32 targeted Racing tests passed (`pnpm --filter @vela/desktop test:race`).
 - All 29 in-app update tests passed (`pnpm --filter @vela/desktop test:updates`).
 - The production build passed (`pnpm build`).
-- The Agent Inbox and updates real-Electron UI suites passed, including resident model and reasoning controls and rendering in all five languages.
-- Twelve of fourteen real-Electron smoke suites passed. Task Recipes (missing Edit button) and PR Inbox (idle refresh timeout) failed on both this release and an isolated build of the unchanged 1.1.3 commit; these existing failures remain unresolved.
-- The packaged 1.1.4 app launched with isolated data, loaded release notes in all five languages, and passed custom-theme creation, application, reload persistence, deletion fallback, and release-card dismissal persistence checks.
-- The ad-hoc signed application bundle has version `1.1.4` and identifier `com.vela.desktop`; the ZIP contains only `Vela.app`, and the DMG mounted successfully with a valid application signature.
+- The Racing and acceptance real-Electron UI suites passed, covering evidence, badges, adoption confirmation, conflicts, discard, dark mode, narrow layouts, and the setup dialog.
+- Twelve of fourteen real-Electron smoke suites passed. Task Recipes (missing Edit button) and PR Inbox (idle refresh timeout) failed with the same symptoms already documented in the 1.1.4 release; these existing failures remain unresolved.
+- The packaged 1.1.5 app launched with isolated data, served release notes in all five languages, and passed Racing IPC, all four new theme selections, theme persistence after reload, and release-card dismissal persistence checks.
+- Pi production session creation and restoration passed using dependencies from the packaged `app.asar`.
+- The ad-hoc signed application bundle has version `1.1.5` and identifier `com.vela.desktop`; the ZIP contains only `Vela.app`, and the DMG mounted successfully with a valid application signature.
 - The updater verified the checksum signature against its built-in public key, and both package SHA-256 checksums matched.

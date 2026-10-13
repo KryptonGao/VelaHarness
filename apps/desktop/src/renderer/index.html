@@ -23,7 +23,7 @@
         var dark = readPreference("vela.theme.dark");
         root.dataset.scheme = scheme;
         var picked = scheme === "dark" ? dark : light;
-        var builtin = scheme === "dark" ? ["midnight", "graphite", "ember"] : ["daylight", "paper", "celadon"];
+        var builtin = scheme === "dark" ? ["midnight", "graphite", "ember", "forest", "tide"] : ["daylight", "paper", "celadon", "lilac", "blossom"];
         var customVars = null;
         if (builtin.indexOf(picked) < 0 && typeof picked === "string" && picked.indexOf("custom-") === 0) {
           // 自定义主题的变量在设置里保存时缓存过一份,首帧直接套用,避免闪一下默认主题。

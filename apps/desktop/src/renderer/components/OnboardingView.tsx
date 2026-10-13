@@ -79,12 +79,16 @@ const themeMock: Record<ThemeId, { side: string; chat: string; bubble: string; l
   daylight: { side: "#e6ecf5", chat: "#f4f7fb", bubble: "#dfe9fb", line: "#c3cde0", input: "#ffffff", accent: "#2563eb", edge: "#d5dded" },
   paper: { side: "#efe7d6", chat: "#faf8f3", bubble: "#f0eadf", line: "#dcd2c1", input: "#fffdf8", accent: "#c15f3c", edge: "#e3dac9" },
   celadon: { side: "#e1ece6", chat: "#f8fbf9", bubble: "#e9f1ed", line: "#cbdcd4", input: "#ffffff", accent: "#0e7c6b", edge: "#d3e2db" },
+  lilac: { side: "#ece8f7", chat: "#faf9fd", bubble: "#ede9f8", line: "#d4cde6", input: "#ffffff", accent: "#7c5cd6", edge: "#ddd7ee" },
+  blossom: { side: "#f7eaea", chat: "#fefaf9", bubble: "#f9ebec", line: "#e6d2d2", input: "#ffffff", accent: "#c0395f", edge: "#eddcdc" },
   midnight: { side: "#1d222b", chat: "#16181d", bubble: "#2a3140", line: "#3a4252", input: "#1e2128", accent: "#4f8cff", edge: "#2d3442" },
   graphite: { side: "#19191b", chat: "#111112", bubble: "#232325", line: "#38383c", input: "#19191b", accent: "#8e7dff", edge: "#2a2a2d" },
   ember: { side: "#211b17", chat: "#1a1613", bubble: "#2d251f", line: "#43382f", input: "#221d19", accent: "#eb8a5e", edge: "#382e26" },
+  forest: { side: "#18201b", chat: "#121714", bubble: "#1f2b24", line: "#33433a", input: "#19211c", accent: "#4cc38a", edge: "#26332b" },
+  tide: { side: "#141f25", chat: "#0f181c", bubble: "#1a2a33", line: "#2e434d", input: "#152026", accent: "#38bdd8", edge: "#213039" },
 };
 const themeSwatch: Record<ThemeId, string> = {
-  daylight: "#f4f7fb", paper: "#f1e6d2", celadon: "#d6ebe4", midnight: "#16233f", graphite: "#1e2128", ember: "#2c211c",
+  daylight: "#f4f7fb", paper: "#f1e6d2", celadon: "#d6ebe4", lilac: "#e4def5", blossom: "#f6dfe3", midnight: "#16233f", graphite: "#1e2128", ember: "#2c211c", forest: "#1b2b22", tide: "#17303a",
 };
 
 export function OnboardingView({ preferences, models, project, mode = "full", initialScreen, onScreenChange, onComplete }: OnboardingViewProps) {

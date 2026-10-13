@@ -32,6 +32,8 @@ import { applySkillPick, composeSkillPrompt, slashTokenAt } from "./composer/ski
 import { modKeyLabel } from "../platform";
 import { slashMenuItems, type SlashMenuItem } from "./composer/slash-picker";
 import { RecipeActionsContext } from "./recipe-actions-context";
+import { RaceActionsContext } from "./race-actions-context";
+import { RaceSetupDialog } from "./RaceSetupDialog";
 import { useComposerSeed } from "./composer-seed-context";
 import { localizeError, tr, useAppLocale, trf } from "../locale";
 
@@ -95,6 +97,8 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
   onMode,
 }, ref) {
   const recipeActions = useContext(RecipeActionsContext);
+  const raceActions = useContext(RaceActionsContext);
+  const [raceOpen, setRaceOpen] = useState(false);
   const locale = useAppLocale();
   const [recipes, setRecipes] = useState<TaskRecipe[] | null>(null);
   const [recipesError, setRecipesError] = useState<string | null>(null);
@@ -517,7 +521,8 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
         <div className="dock-controls-row">
           <div className="dock-controls-left">
             <AttachMenu onAttachments={addAttachments} disabled={disabled} />
-            <ModeChip mode={mode} disabled={disabled || streaming || recipeActive} onChange={onMode} />
+            <ModeChip mode={mode} disabled={disabled || streaming || recipeActive} onChange={onMode}
+              race={raceActions && workspacePath && window.vela?.races && modelReady ? { onStart: () => setRaceOpen(true), onShow: raceActions.open, count: raceActions.count } : undefined} />
             <SandboxPill project={project} conversationMode={sandboxMode} />
           </div>
           <div className="dock-controls-right">
@@ -551,6 +556,11 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
 
         <ComposerStatsRow usage={usage} contextPopover={contextPopover} />
       </form>
+      {raceOpen && raceActions && workspacePath ? (
+        <RaceSetupDialog workspace={workspacePath} initialPrompt={prompt} models={models}
+          onClose={() => setRaceOpen(false)}
+          onStarted={race => { setRaceOpen(false); setValue(""); setSkill(null); raceActions.started(race); }} />
+      ) : null}
     </div>
   );
 });

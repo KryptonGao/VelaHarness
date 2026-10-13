@@ -3,6 +3,7 @@ import {
   IpcChannel,
   PrInboxIpc,
   TaskRecipesIpc,
+  RaceIpc,
   ScheduledTasksIpc,
   AgentInboxIpc,
   ResidentIpc,
@@ -191,6 +192,18 @@ const api: VelaApi = {
     subscribe: listener => {
       const handler = () => listener(); ipcRenderer.on(TaskRecipesIpc.state, handler);
       return () => { ipcRenderer.removeListener(TaskRecipesIpc.state, handler); };
+    },
+  },
+  races: {
+    preflight: workspace => ipcRenderer.invoke(RaceIpc.preflight, workspace),
+    list: () => ipcRenderer.invoke(RaceIpc.list),
+    start: draft => ipcRenderer.invoke(RaceIpc.start, draft),
+    stopLane: (raceId, laneId) => ipcRenderer.invoke(RaceIpc.stopLane, raceId, laneId),
+    adopt: (raceId, laneId) => ipcRenderer.invoke(RaceIpc.adopt, raceId, laneId),
+    discard: raceId => ipcRenderer.invoke(RaceIpc.discard, raceId),
+    subscribe: listener => {
+      const handler = () => listener(); ipcRenderer.on(RaceIpc.state, handler);
+      return () => { ipcRenderer.removeListener(RaceIpc.state, handler); };
     },
   },
   scheduledTasks: {

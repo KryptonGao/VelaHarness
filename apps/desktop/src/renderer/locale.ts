@@ -41,6 +41,22 @@ export function isEnglish(): boolean {
 }
 
 const knownErrors: Record<string, string> = {
+  "赛马需要 git 仓库，且至少有一个提交": "Racing needs a git repository with at least one commit.",
+  "工作区未登记": "This workspace is not registered.",
+  "赛道数量需要在 2 到 4 之间": "A race needs between 2 and 4 lanes.",
+  "最多同时进行 2 场赛马，请先等待或丢弃其中一场": "At most 2 races can run at once. Wait for one to finish or discard it.",
+  "赛马设置不正确": "Invalid race settings.",
+  "赛道设置不正确": "Invalid lane settings.",
+  "赛道 ID 重复": "Duplicate lane ID.",
+  "沙箱模式不正确": "Invalid sandbox mode.",
+  "模型设置不正确": "Invalid model setting.",
+  "思考强度不正确": "Invalid thinking level.",
+  "赛马不存在或已清理": "This race no longer exists.",
+  "赛道不存在": "This lane does not exist.",
+  "赛道不正确": "Invalid lane.",
+  "赛马不正确": "Invalid race.",
+  "正在处理这场赛马": "This race is being processed.",
+  "赛马资料不可用": "Race data is unavailable.",
   "交接包参数不正确": "Invalid handoff pack request.",
   "交接包语言不正确": "Unsupported handoff pack language.",
   "交接包请求不正确": "Invalid handoff pack request.",

@@ -18,6 +18,8 @@ import { WhatsNewCard } from "./components/WhatsNewCard";
 import { restoreScreen, type OnboardingScreen } from "./components/onboarding-flow";
 import { TaskRecipesPage, type RecipeMessageSeed } from "./components/TaskRecipesPage";
 import { RecipeActionsContext } from "./components/recipe-actions-context";
+import { RaceActionsContext } from "./components/race-actions-context";
+import { useRaces } from "./hooks/useRaces";
 import { ComposerSeedContext, type ComposerSeed } from "./components/composer-seed-context";
 import { HandoffPackDialog } from "./components/HandoffPackDialog";
 import { ScheduledTasksPage } from "./components/ScheduledTasksPage";
@@ -69,6 +71,7 @@ function fileTabId(workspaceKey: string, fileId: string): string {
 }
 
 const filesTabId = "files";
+const raceTabId = "races";
 
 function readOnboardingComplete(): boolean {
   try {
@@ -258,6 +261,8 @@ export function App() {
   // 不能因为工作区地址随后确定而消失;真正切换工作区时再统一关闭。
   const [terminalTabState, setTerminalTabState] = useState<{ id: string; sessionId: string; label: string }[]>([]);
   const [filesTabOpen, setFilesTabOpen] = useState(false);
+  const raceState = useRaces();
+  const [raceTabOpen, setRaceTabOpen] = useState(false);
   const lastKnownWorkspace = useRef("");
   const tabSeq = useRef(0);
   const lastOpenedPlanFocusNonce = useRef<number | null>(null);
@@ -401,6 +406,15 @@ export function App() {
     setActiveWorkbenchTabId(filesTabId);
   }, []);
 
+  // 在赛道对话里工作区会变成赛道的 worktree，所以也要按赛道的 worktree 匹配，面板才不会凭空消失。
+  const workspaceRaces = useMemo(() => raceState.state.races
+    .filter(race => race.status !== "discarded" && (race.workspace === workspaceKey || race.lanes.some(lane => lane.worktree === workspaceKey)))
+    .sort((left, right) => right.createdAt - left.createdAt), [raceState.state.races, workspaceKey]);
+  const openRaceTab = useCallback(() => {
+    setRaceTabOpen(true);
+    setActiveWorkbenchTabId(raceTabId);
+  }, []);
+
   const openBrowserTab = useCallback((url?: string) => {
     const id = `browser:${crypto.randomUUID()}`;
     pendingBrowserTab.current = id;
@@ -468,6 +482,9 @@ export function App() {
   const filesTab = useMemo<WorkbenchTab | null>(() => filesTabOpen
     ? { id: filesTabId, kind: "files", label: tr("文件", "Files") }
     : null, [filesTabOpen]);
+  const raceTab = useMemo<WorkbenchTab | null>(() => raceTabOpen
+    ? { id: raceTabId, kind: "race", label: tr("赛马", "Race") }
+    : null, [raceTabOpen, preferences.locale]);
   const startTabItems = useMemo<WorkbenchTab[]>(() => startTabState.map((tab) => ({
     id: tab.id,
     kind: "start",
@@ -479,12 +496,13 @@ export function App() {
     ...(changeTab ? [changeTab] : []),
     ...(reviewTab ? [reviewTab] : []),
     ...(acceptanceTab ? [acceptanceTab] : []),
+    ...(raceTab ? [raceTab] : []),
     ...agentTabs,
     ...(filesTab ? [filesTab] : []),
     ...terminalTabs,
     ...browser.tabs.map((tab): WorkbenchTab => ({ ...tab, kind: "browser", label: tr("浏览器", "Browser") })),
     ...startTabItems,
-  ], [fileTabs, planTab, changeTab, reviewTab, acceptanceTab, agentTabs, filesTab, terminalTabs, browser.tabs, startTabItems]);
+  ], [fileTabs, planTab, changeTab, reviewTab, acceptanceTab, raceTab, agentTabs, filesTab, terminalTabs, browser.tabs, startTabItems]);
   const workbenchTabs = useMemo(() => {
     const tabIdSet = new Set(unorderedTabs.map((tab) => tab.id));
     return [
@@ -581,6 +599,8 @@ export function App() {
       setSelectedChangePaths((current) => ({ ...current, [workspaceKey]: null }));
     } else if (tab.kind === "acceptance") {
       dismissAcceptance();
+    } else if (tab.kind === "race") {
+      setRaceTabOpen(false);
     } else if (tab.kind === "turn-review") {
       dismissTurnReview();
     } else if (tab.kind === "agent") {
@@ -691,6 +711,7 @@ export function App() {
     <FileIconThemeProvider value={preferences.fileIconTheme}>
       <AppLocaleProvider locale={preferences.locale}>
         <RecipeActionsContext.Provider value={{ conversationId: session.activeConversationId, open: openRecipes, useRecipe: recipe => { setRecipeToUse(recipe); openRecipes(); }, fromMessage: seed => { setRecipeSeed(seed); openRecipes(); }, createHandoff: conversationId => setHandoff({ conversationId }) }}>
+        <RaceActionsContext.Provider value={{ started: openRaceTab, open: openRaceTab, count: workspaceRaces.length }}>
         <ComposerSeedContext.Provider value={{ seed: composerSeed, consume: consumeComposerSeed }}>
         <div className="app-screens">
           <BrowserViewHost tabs={browser.allTabs}
@@ -860,6 +881,9 @@ export function App() {
                         }))}
                         onShowDiff={openChanges}
                         onAcceptanceDiff={onAcceptanceDiff}
+                        races={workspaceRaces}
+                        onOpenConversation={id => { void session.switchTo(id); }}
+                        onOpenAcceptance={onOpenAcceptance}
                         agents={allAgents}
                         messageStore={session.messageStore}
                         conversationId={session.activeConversationId}
@@ -986,6 +1010,7 @@ export function App() {
           <WhatsNewCard notes={whatsNew} locale={preferences.locale} onClose={() => { writeWhatsNewSeen(whatsNew.version); setWhatsNew(null); }} />
         ) : null}
         </ComposerSeedContext.Provider>
+        </RaceActionsContext.Provider>
         </RecipeActionsContext.Provider>
       </AppLocaleProvider>
     </FileIconThemeProvider>

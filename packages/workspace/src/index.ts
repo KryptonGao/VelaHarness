@@ -18,6 +18,7 @@ export { SandboxPermissionManager, sandboxApprovalTimeoutMs } from "./sandbox-pe
 export { createSandboxedToolDefinitions, type SandboxToolFactoryInput } from "./sandbox-tools";
 export { ExecutionEnvironmentManager } from "./environment-manager";
 export { createWorktree, removeWorktree } from './git-worktree';
+export { commitWorktreeChanges, currentHead, deleteLocalBranch, hasTrackedChanges, parseNumstat, squashMergeBranch, type SquashResult, type WorktreeCommitResult } from './git-squash';
 export { PullRequestInboxService } from './pull-request-inbox-service';
 export { validateTarget, safeGithubUrl } from './pr-inbox-mapping';
 export { buildResponsePrompt, buildDrafts, parseResponseCommits, pushBlocker, responseLogFormat, maxResponseThreads, threadTrailer } from './pr-review-response';

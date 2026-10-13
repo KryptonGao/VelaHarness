@@ -31,6 +31,8 @@ import { SessionHost } from "./session-host";
 import { ScheduledTaskScheduler } from "./scheduled-task-service";
 import { TaskRecipeService } from "./task-recipe-service";
 import { TaskRecipeHost } from "./task-recipe-host";
+import { RaceService } from "./race-service";
+import { RaceHost } from "./race-host";
 import { executeScheduledRecipe } from './task-recipe-schedule';
 import { ScheduledTaskHost } from "./scheduled-task-host";
 import { AgentInboxService } from "./agent-inbox-service";
@@ -100,6 +102,8 @@ let startHidden = false;
 let taskScheduler: ScheduledTaskScheduler | null = null;
 let taskRecipeHost: TaskRecipeHost | null = null;
 let taskRecipes: TaskRecipeService | null = null;
+let raceHost: RaceHost | null = null;
+let races: RaceService | null = null;
 let host: SessionHost | null = null;
 let browserHost: BrowserHost | null = null;
 let browserRepl: BrowserReplManager | null = null;
@@ -422,6 +426,18 @@ async function start(): Promise<void> {
     else if (event.type === "resolved") recipes.waiting("", event.id, false);
   });
   taskRecipeHost = new TaskRecipeHost(recipes, registeredWorkspaces, runtime); taskRecipeHost.register();
+  // 赛马：同一任务在多个独立 worktree 里并行尝试，比较后一键采用其一。
+  const raceService = new RaceService(join(home, "races.json"), {
+    resolveExecution: (lane, sandboxMode) => runtime.resolveRecipeExecution({ modelOverride: lane.model ?? null, thinkingLevelOverride: lane.thinkingLevel ?? null }, sandboxMode),
+    runLane: request => runtime.runLane(request),
+    stopLane: conversationId => { void runtime.abort(conversationId); },
+    laneStats: conversationId => runtime.getLaneStats(conversationId),
+    workspaces: registeredWorkspaces,
+    sandboxMode: () => sandbox.getMode(),
+    worktreePath: branch => join(home, "worktrees", branch.replace("/", "-")),
+  });
+  raceService.init(); races = raceService;
+  raceHost = new RaceHost(raceService); raceHost.register();
   // 「帮我批准」模式下由当前对话选择的模型判断操作风险。
   sandbox.setRiskEvaluator((input) => runtime.evaluateSandboxRisk(input));
 
@@ -682,6 +698,8 @@ app.on("before-quit", (event) => {
   uiSandboxHost = null;
   try { taskRecipes?.stop(); } catch (error) { log.error("recipe shutdown write failed", error); }
   taskRecipeHost?.dispose(); taskRecipeHost = null;
+  try { races?.stop(); } catch (error) { log.error("race shutdown failed", error); }
+  raceHost?.dispose(); raceHost = null;
   scheduledTaskHost?.dispose();
   scheduledTaskHost = null;
   // 先于 runtime 释放：运行时关闭时会取消所有等待点，那不是用户的决策。

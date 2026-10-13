@@ -47,3 +47,10 @@ export function outcomeByFinalMessage(
   if (!streaming) finish();
   return requests;
 }
+
+/** 入口卡与赛马比较共用：只有没有待确认且证据通过的需求计入通过。 */
+export function acceptanceCounts(outcome: TurnOutcome): { passed: number; pending: number } {
+  const passed = outcome.items.filter(item => item.status === "done" && !item.toConfirm.length && item.evidence.length > 0 && item.evidence.every(evidence => evidence.result === "passed" && !evidence.stale)).length;
+  const pending = outcome.items.reduce((sum, item) => sum + item.toConfirm.length, 0);
+  return { passed, pending };
+}

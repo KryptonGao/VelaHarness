@@ -41,7 +41,7 @@ import {
   shouldResumeFollowForMessages,
   shouldShowJumpToLatest,
 } from "./chat-scroll";
-import { outcomeByFinalMessage, type AcceptanceRequest } from "./acceptance";
+import { acceptanceCounts, outcomeByFinalMessage, type AcceptanceRequest } from "./acceptance";
 import { summarizeTurnChanges, type TurnChanges, type TurnReviewRequest } from "./turn-changes";
 import { chatLaneDefaultMaxWidth, planChatLane } from "../chat-lane";
 import { ConversationViewTabs, type ConversationViewKey } from "./ConversationViewTabs";
@@ -1486,8 +1486,7 @@ function PanelIcon() {
 
 /** 完成状态来自 agent，只有没有待确认且证据通过的需求计入通过。 */
 function AcceptanceCard({ request, onOpen }: { request: AcceptanceRequest; onOpen?: (request: AcceptanceRequest) => void }) {
-  const passed = request.outcome.items.filter(item => item.status === "done" && !item.toConfirm.length && item.evidence.length > 0 && item.evidence.every(evidence => evidence.result === "passed" && !evidence.stale)).length;
-  const pending = request.outcome.items.reduce((sum, item) => sum + item.toConfirm.length, 0);
+  const { passed, pending } = acceptanceCounts(request.outcome);
   return <button type="button" className="acceptance-card" disabled={!onOpen} onClick={() => onOpen?.(request)}>
     <strong>{tr("验收", "Acceptance")}</strong>
     <span>{trf("通过 {0} · 待确认 {1}", "Passed {0} · To confirm {1}", passed, pending)}</span>
