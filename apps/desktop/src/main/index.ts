@@ -360,12 +360,14 @@ async function start(): Promise<void> {
     browserReplPermission: { request: (input) => sandbox.request({ ...input, workspace: input.cwd }) },
     memoryPermission: { request: (input) => sandbox.request({ ...input, workspace: input.workspace ?? input.cwd }) },
     cwd: fallbackCwd,
+    workspaceFolders: cwd => workspaceManager.foldersOf(cwd),
     isWorkspaceCwd: (cwd) => cwd !== fallbackCwd || workspaceManager.getState().recents.some(recent => recent.path === cwd),
     agentDir: home,
     toolFactory: (cwd, context) =>
       createSandboxedToolDefinitions({
         cwd,
         workspace: cwd,
+        extraRoots: () => workspaceManager.foldersOf(cwd),
         permission: sandbox,
         ...context,
       }),

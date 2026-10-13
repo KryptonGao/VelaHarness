@@ -82,6 +82,8 @@ export const IpcChannel = {
   workspaceSelect: "workspace:select",
   workspaceClose: "workspace:close",
   workspaceRemoveRecent: "workspace:remove-recent",
+  workspacePickFolder: "workspace:pick-folder",
+  workspaceUpdate: "workspace:update",
   workspaceEvent: "workspace:event",
   envGet: "env:get",
   envList: "env:list",
@@ -936,13 +938,33 @@ export type AgentRuntimeStreamEvent =
 // ---------- Workspace ----------
 
 export interface WorkspaceRecent {
+  /** 主要文件夹:同时是会话 cwd 与工作区的身份。 */
   path: string;
   name: string;
+  /** 用户自定义的显示名;没有时界面用 name。 */
+  displayName?: string;
   lastUsedAt: number;
+  /** 主要文件夹之外的附加文件夹(按添加顺序)。 */
+  folders?: string[];
+}
+
+/** 一个工作区除主要文件夹外最多可附加的文件夹数。 */
+export const maxWorkspaceFolders = 10;
+
+/** 编辑一个工作区。path 可以是它的主要文件夹或任一附加文件夹。 */
+export interface WorkspaceUpdateInput {
+  path: string;
+  /** 自定义显示名;null 或与主要文件夹同名时恢复默认。 */
+  name: string | null;
+  /** 工作区的全部文件夹,第一个是主要文件夹。 */
+  folders: string[];
 }
 
 export interface WorkspaceState {
+  /** 当前工作区的主要文件夹;agent、git、终端都以它为根。 */
   current: string | null;
+  /** 当前工作区的附加文件夹,不含主要文件夹;未选择工作区时为空。 */
+  folders: string[];
   recents: WorkspaceRecent[];
 }
 
@@ -2851,6 +2873,9 @@ export interface VelaApi extends McpApi, PluginApi {
   selectWorkspace(path: string): Promise<WorkspaceState>;
   closeWorkspace(): Promise<WorkspaceState>;
   removeRecentWorkspace(path: string): Promise<WorkspaceState>;
+  /** 弹出系统对话框选择一个文件夹,不改动任何工作区;取消时返回 null。 */
+  pickWorkspaceFolder(): Promise<string | null>;
+  updateWorkspace(input: WorkspaceUpdateInput): Promise<WorkspaceState>;
   getEnvironment(): Promise<ExecutionEnvironment | null>;
   listEnvironments(): Promise<ExecutionEnvironment[]>;
   setEnvironment(kind: SelectableEnvironmentKind): Promise<ExecutionEnvironment>;

@@ -53,6 +53,7 @@ import {
   type SelectableEnvironmentKind,
   type WorkspaceEvent,
   type WorkspaceState,
+  type WorkspaceUpdateInput,
 } from "@vela/shared";
 import {
   ExecutionEnvironmentManager,
@@ -137,6 +138,22 @@ export class ProjectHost {
     ipcMain.handle(IpcChannel.workspaceClose, () => this.options.workspaceManager.close());
     ipcMain.handle(IpcChannel.workspaceRemoveRecent, (_event, raw: unknown) => {
       return this.options.workspaceManager.removeRecent(parsePath(raw, "工作区路径"));
+    });
+    ipcMain.handle(IpcChannel.workspacePickFolder, async (event) => {
+      const win = BrowserWindow.fromWebContents(event.sender);
+      const locale = getApplicationLocale();
+      const dialogOptions = {
+        title: localizeZh(locale, "选择文件夹", "Choose a folder"),
+        buttonLabel: localizeZh(locale, "选择", "Choose"),
+        properties: ["openDirectory"] as "openDirectory"[],
+      };
+      const result = win
+        ? await dialog.showOpenDialog(win, dialogOptions)
+        : await dialog.showOpenDialog(dialogOptions);
+      return result.canceled || result.filePaths.length === 0 ? null : result.filePaths[0];
+    });
+    ipcMain.handle(IpcChannel.workspaceUpdate, (_event, raw: unknown) => {
+      return this.options.workspaceManager.update(parseWorkspaceUpdate(raw));
     });
     ipcMain.handle(IpcChannel.envGet, () => this.options.env.getActive());
     ipcMain.handle(IpcChannel.envList, () => this.options.env.list());
@@ -1183,9 +1200,10 @@ export class ProjectHost {
   /** 文件预览的路径边界与解析根:仓库根优先,相对路径先按工作区解析。 */
   private workspaceRoots(): WorkspaceRoots {
     const repoRoot = this.options.git.getSnapshot()?.repo?.root ?? null;
-    const workspaceRoot = this.options.workspaceManager.getState().current;
+    const { current: workspaceRoot, folders } = this.options.workspaceManager.getState();
     const baseRoot = repoRoot ?? workspaceRoot ?? this.options.fallbackCwd;
-    const preferRoots = [...new Set([workspaceRoot, repoRoot, baseRoot].filter((root): root is string => Boolean(root)))];
+    // 附加文件夹排在最后:相对路径优先按主要文件夹/仓库根解析,找不到再去其他文件夹找。
+    const preferRoots = [...new Set([workspaceRoot, repoRoot, baseRoot, ...folders].filter((root): root is string => Boolean(root)))];
     return { baseRoot, preferRoots };
   }
 
@@ -1202,6 +1220,18 @@ function parsePath(value: unknown, label: string): string {
     throw new Error(`${label}不正确`);
   }
   return value.trim();
+}
+
+function parseWorkspaceUpdate(raw: unknown): WorkspaceUpdateInput {
+  if (typeof raw !== "object" || raw === null) throw new Error("工作区设置不正确");
+  const input = raw as Record<string, unknown>;
+  if (!Array.isArray(input.folders) || input.folders.length > 64) throw new Error("工作区设置不正确");
+  if (input.name !== null && typeof input.name !== "string") throw new Error("工作区设置不正确");
+  return {
+    path: parsePath(input.path, "工作区路径"),
+    name: input.name,
+    folders: input.folders.map((folder) => parsePath(folder, "文件夹路径")),
+  };
 }
 
 function parseId(value: unknown, label: string): string {

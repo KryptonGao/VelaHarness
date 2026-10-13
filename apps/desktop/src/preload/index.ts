@@ -149,6 +149,7 @@ import {
   type WorkspaceFileList,
   type WorkspaceSearchResult,
   type WorkspaceState,
+  type WorkspaceUpdateInput,
 } from "@vela/shared";
 import { contextBridge, ipcRenderer, webUtils, type IpcRendererEvent } from "electron";
 
@@ -433,6 +434,9 @@ const api: VelaApi = {
   closeWorkspace: () => ipcRenderer.invoke(IpcChannel.workspaceClose) as Promise<WorkspaceState>,
   removeRecentWorkspace: (path: string) =>
     ipcRenderer.invoke(IpcChannel.workspaceRemoveRecent, path) as Promise<WorkspaceState>,
+  pickWorkspaceFolder: () => ipcRenderer.invoke(IpcChannel.workspacePickFolder) as Promise<string | null>,
+  updateWorkspace: (input: WorkspaceUpdateInput) =>
+    ipcRenderer.invoke(IpcChannel.workspaceUpdate, input) as Promise<WorkspaceState>,
   getEnvironment: () => ipcRenderer.invoke(IpcChannel.envGet) as Promise<ExecutionEnvironment | null>,
   listEnvironments: () => ipcRenderer.invoke(IpcChannel.envList) as Promise<ExecutionEnvironment[]>,
   setEnvironment: (kind: SelectableEnvironmentKind) =>
@@ -757,6 +761,7 @@ function isWorkspaceEvent(value: unknown): value is WorkspaceEvent {
   return (
     isObject(workspace) &&
     (workspace.current === null || typeof workspace.current === "string") &&
+    Array.isArray(workspace.folders) &&
     Array.isArray(workspace.recents)
   );
 }

@@ -1044,14 +1044,14 @@ code,
 .activity-row .subchat-priority { right: 31px; }
 .activity-row.has-rename .subchat-priority { right: 57px; }
 .activity-row:hover .subchat-action,
-.activity-row:focus-within .subchat-action { pointer-events: auto; margin: 0; }
+.activity-row:has(:focus-visible) .subchat-action { pointer-events: auto; margin: 0; }
 .activity-row .subchat-action:hover { color: var(--text-primary); background: var(--bg-hover); }
 .activity-row:hover .activity-time,
-.activity-row:focus-within .activity-time { visibility: hidden; }
+.activity-row:has(:focus-visible) .activity-time { visibility: hidden; }
 .activity-row:hover .activity-status,
-.activity-row:focus-within .activity-status { max-width: calc(100% - 54px); }
+.activity-row:has(:focus-visible) .activity-status { max-width: calc(100% - 54px); }
 .activity-row.has-rename:hover .activity-status,
-.activity-row.has-rename:focus-within .activity-status { max-width: calc(100% - 80px); }
+.activity-row.has-rename:has(:focus-visible) .activity-status { max-width: calc(100% - 80px); }
 @media (prefers-reduced-motion: reduce) {
   .sidebar-activity-view .subchat-streaming-dot { animation: none; }
 }
@@ -1260,9 +1260,9 @@ code,
   cursor: pointer;
 }
 .subchat-row:hover .subchat-action,
-.subchat-row:focus-within .subchat-action,
+.subchat-row:has(:focus-visible) .subchat-action,
 .session-group-row:hover .subchat-action,
-.session-group-row:focus-within .subchat-action {
+.session-group-row:has(:focus-visible) .subchat-action {
   width: 24px;
   margin-left: 2px;
   opacity: 1;
@@ -4451,6 +4451,7 @@ button.tool-compact-line:hover .tool-compact-cmd {
 .workspace-action-row.danger { color: var(--danger); }
 .workspace-action-row.danger:hover { background: var(--danger-tint); }
 .workspace-recent-list { overflow: auto; max-height: 208px; }
+.workspace-recent-list > .workspace-recent-main { width: 100%; }
 .workspace-recent-row { display: flex; align-items: center; }
 .workspace-recent-main {
   flex: 1;
@@ -4464,8 +4465,30 @@ button.tool-compact-line:hover .tool-compact-cmd {
   color: var(--text-secondary);
 }
 .workspace-recent-main:hover { background: var(--bg-surface-subtle); color: var(--text-primary); }
+.workspace-recent-main.active,
 .workspace-recent-row.active .workspace-recent-main { background: var(--bg-card-blue); color: var(--text-primary); }
-.workspace-recent-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.workspace-recent-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; }
+.workspace-recent-main > svg:last-child:not(:first-child) { flex-shrink: 0; margin-left: auto; }
+.workspace-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 2px 4px 6px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+}
+.workspace-search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font-size: 15px;
+  color: var(--text-primary);
+}
+.workspace-empty { padding: 8px 10px; font-size: 15px; color: var(--text-muted); }
+.workspace-picker-footer { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--border-subtle); }
 .workspace-recent-remove {
   width: 24px;
   height: 24px;
@@ -4477,8 +4500,117 @@ button.tool-compact-line:hover .tool-compact-cmd {
   opacity: 0;
 }
 .workspace-recent-row:hover .workspace-recent-remove,
-.workspace-recent-row:focus-within .workspace-recent-remove { opacity: 1; }
+.workspace-recent-row:has(:focus-visible) .workspace-recent-remove { opacity: 1; }
 .workspace-recent-remove:hover { background: var(--danger-tint); color: var(--danger); }
+
+/* 工作区设置对话框 */
+.workspace-settings-dialog {
+  width: min(480px, calc(100vw - 40px));
+  max-height: calc(100vh - 40px);
+  margin: auto;
+  /* 内边距放在 form 上:点到 dialog 本身只可能是遮罩,用来点空白处关闭。 */
+  padding: 0;
+  border: 1px solid var(--border-subtle);
+  border-radius: 20px;
+  color: var(--text-primary);
+  background: var(--bg-elevated);
+  box-shadow: 0 16px 60px rgba(0, 0, 0, 0.24);
+  overflow: auto;
+}
+.workspace-settings-dialog::backdrop { background: rgba(0, 0, 0, 0.35); }
+.workspace-settings-dialog form { padding: 24px; }
+.workspace-settings-dialog :focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 2px; }
+.workspace-settings-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+.workspace-settings-head h2 { margin: 0; font-size: 20px; font-weight: 600; }
+.workspace-settings-close {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--text-muted);
+}
+.workspace-settings-close:hover { background: var(--bg-sidebar-hover); color: var(--text-primary); }
+.workspace-settings-name {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--bg-chat);
+  color: var(--text-muted);
+}
+.workspace-settings-name:focus-within { border-color: var(--accent-blue); box-shadow: 0 0 0 1px var(--accent-blue); }
+.workspace-settings-name input {
+  flex: 1;
+  min-width: 0;
+  padding: 11px 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font-size: 15px;
+  color: var(--text-primary);
+}
+.workspace-settings-label { margin: 18px 0 8px; font-size: 14px; font-weight: 600; }
+.workspace-settings-folders {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--bg-chat);
+  overflow: hidden;
+}
+.workspace-settings-row,
+.workspace-settings-add {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 46px;
+  padding: 0 12px;
+  font-size: 15px;
+  text-align: left;
+}
+.workspace-settings-row + .workspace-settings-row,
+.workspace-settings-add { border-top: 1px solid var(--border-subtle); }
+.workspace-settings-row > svg,
+.workspace-settings-add > svg { flex-shrink: 0; color: var(--text-muted); }
+.workspace-settings-folder { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.workspace-settings-primary,
+.workspace-settings-promote {
+  flex-shrink: 0;
+  padding: 3px 12px;
+  border-radius: var(--radius-pill);
+  font-size: 13px;
+  font-weight: 500;
+}
+.workspace-settings-primary { border: 1px solid var(--border-subtle); color: var(--text-secondary); }
+.workspace-settings-promote { background: var(--bg-sidebar-hover); color: var(--text-primary); opacity: 0; }
+.workspace-settings-row:hover .workspace-settings-promote,
+.workspace-settings-row:has(:focus-visible) .workspace-settings-promote { opacity: 1; }
+.workspace-settings-remove {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--text-muted);
+}
+.workspace-settings-remove:hover:not(:disabled) { background: var(--danger-tint); color: var(--danger); }
+.workspace-settings-remove:disabled { opacity: 0.35; cursor: default; }
+.workspace-settings-add:hover:not(:disabled) { background: var(--bg-sidebar-hover); }
+.workspace-settings-add:disabled { opacity: 0.5; cursor: default; }
+.workspace-settings-hint { margin: 10px 2px 0; font-size: 13px; line-height: 1.45; color: var(--text-muted); }
+.workspace-settings-error { margin: 10px 2px 0; font-size: 13px; color: var(--danger); }
+.workspace-settings-actions { display: flex; align-items: center; gap: 8px; margin-top: 24px; }
+.workspace-settings-spacer { flex: 1; }
+.workspace-settings-actions button { padding: 9px 16px; border-radius: var(--radius-lg); font-size: 14px; font-weight: 500; }
+.workspace-settings-actions button:disabled { opacity: 0.5; cursor: default; }
+.workspace-settings-danger { color: var(--danger); background: var(--danger-tint); }
+.workspace-settings-cancel { color: var(--text-muted); }
+.workspace-settings-cancel:hover:not(:disabled) { color: var(--text-primary); }
+.workspace-settings-save { color: #fff; background: var(--accent-blue); }
+.workspace-settings-save:hover:not(:disabled) { filter: brightness(0.95); }
 
 /* 分支选择 */
 .branch-picker { display: flex; flex-direction: column; min-height: 0; }

@@ -103,6 +103,7 @@ import { IntelligentUiSettings } from "./intelligent-ui-settings";
 import { intelligentUiInstructions } from "./intelligent-ui-prompt";
 import { createResidentTools, residentInstructions, type ResidentToolHost } from "./resident-tools";
 import { createMemoryContextExtension } from "./memory-context";
+import { workspaceFoldersInstructions } from "./workspace-folders";
 import { createMemoryTools, memoryDisabledInstructions, memoryInstructions, memoryReadOnlyInstructions, type MemoryWritePermission } from "./memory-tools";
 import { openCodeSessionHeaders } from "./provider-headers";
 import {
@@ -204,6 +205,8 @@ export interface AgentRuntimeOptions {
   builtInPlugins?: readonly BuiltInPlugin[];
   /** 按会话 cwd 构造沙箱化的 bash/edit/write 工具,以同名覆盖 Pi 内置实现。 */
   toolFactory?: (cwd: string, context?: SandboxExecutionContext) => ToolDefinition[];
+  /** 以 cwd 为主要文件夹的工作区所附加的文件夹;每轮对话开始时读取,用于告知模型。 */
+  workspaceFolders?: (cwd: string) => readonly string[];
   /** 仅用于迁移旧会话缺失的工作区归属。 */
   isWorkspaceCwd?: (cwd: string) => boolean;
   /** 激活对话的执行目录或工作区归属变化时通知宿主。 */
@@ -2403,6 +2406,16 @@ export class AgentRuntime {
             const current = event.systemPromptOptions.appendSystemPrompt.trim();
             event.systemPromptOptions.appendSystemPrompt = current ? `${current}\n\n${extra}` : extra;
           }); }) as ExtensionFactory,
+        }, {
+          name: "vela-workspace-folders",
+          hidden: true,
+          factory: ((pi) => { pi.on("before_agent_start", event => {
+            // 附加文件夹随时可改,每轮重新读取,下一轮立即生效。
+            const extra = workspaceFoldersInstructions(cwd, this.options.workspaceFolders?.(cwd) ?? []);
+            if (!extra) return;
+            const current = event.systemPromptOptions.appendSystemPrompt.trim();
+            event.systemPromptOptions.appendSystemPrompt = current ? `${current}\n\n${extra}` : extra;
+          }); }) as ExtensionFactory,
         }, ...(this.options.scheduledTasks ? [{ name: "vela-scheduled-tasks-clock", hidden: true,
           factory: ((pi) => { pi.on("before_agent_start", event => {
             event.systemPromptOptions.appendSystemPrompt += `\n\nTask time context: ${new Date().toISOString()}; local time zone: ${Intl.DateTimeFormat().resolvedOptions().timeZone}`;
@@ -3169,6 +3182,7 @@ export class AgentRuntime {
         ...base,
         ...(instructions ? [instructions] : []),
         agentKindPrompt(input.kind),
+        ...(workspaceFoldersInstructions(cwd, this.options.workspaceFolders?.(cwd) ?? []) ?? []),
         ...(this.options.browserRepl && input.kind === "general" ? [browserUseInstructions] : []),
       ],
     });

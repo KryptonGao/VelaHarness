@@ -236,7 +236,7 @@ const session = {
 } as SessionSnapshot;
 
 const project = {
-  workspace: { current: git.repo!.root, recents: [] },
+  workspace: { current: git.repo!.root, folders: [], recents: [] },
   environment: { kind: "local", label: "本地", path: git.repo!.root, available: true },
   environments: [],
   git,
@@ -246,10 +246,10 @@ const project = {
   approval: null,
   error: null,
   clearError: () => undefined,
-  openWorkspaceDialog: () => Promise.resolve({ current: git.repo!.root, recents: [] }),
-  selectRecentWorkspace: () => Promise.resolve({ current: git.repo!.root, recents: [] }),
-  closeWorkspace: () => Promise.resolve({ current: null, recents: [] }),
-  removeRecentWorkspace: () => Promise.resolve({ current: git.repo!.root, recents: [] }),
+  openWorkspaceDialog: () => Promise.resolve({ current: git.repo!.root, folders: [], recents: [] }),
+  selectRecentWorkspace: () => Promise.resolve({ current: git.repo!.root, folders: [], recents: [] }),
+  closeWorkspace: () => Promise.resolve({ current: null, folders: [], recents: [] }),
+  removeRecentWorkspace: () => Promise.resolve({ current: git.repo!.root, folders: [], recents: [] }),
   switchBranch: () => Promise.resolve(true),
   createBranch: () => Promise.resolve(true),
   stageFiles: () => Promise.resolve(true),

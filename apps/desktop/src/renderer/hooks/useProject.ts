@@ -10,6 +10,7 @@ import type {
   SelectableEnvironmentKind,
   VelaApi,
   WorkspaceState,
+  WorkspaceUpdateInput,
 } from "@vela/shared";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { tr } from "../locale";
@@ -149,6 +150,11 @@ export function useProject(notify: NotifySound = noSound) {
     (path: string) => guarded(() => getApi().removeRecentWorkspace(path)),
     [guarded],
   );
+  const pickWorkspaceFolder = useCallback(() => getApi().pickWorkspaceFolder(), []);
+  const updateWorkspace = useCallback(
+    (input: WorkspaceUpdateInput) => getApi().updateWorkspace(input),
+    [],
+  );
 
   const switchBranch = useCallback(
     (name: string) =>
@@ -249,6 +255,8 @@ export function useProject(notify: NotifySound = noSound) {
     selectRecentWorkspace,
     closeWorkspace,
     removeRecentWorkspace,
+    pickWorkspaceFolder,
+    updateWorkspace,
     switchBranch,
     createBranch,
     stageFiles,

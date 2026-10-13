@@ -1,4 +1,4 @@
-import type { ConversationSummary } from "@vela/shared";
+import type { ConversationSummary, WorkspaceRecent } from "@vela/shared";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { isBooleanRecord, useStoredState } from "../hooks/useStoredState";
 import { modKeyLabel } from "../platform";
@@ -19,6 +19,7 @@ import {
 import { ConversationSearchDialog } from "./ConversationSearchDialog";
 import { ClockIcon, InboxIcon } from "./icons";
 import { useSidebarItems } from "../hooks/useSidebarItems";
+import { workspaceTitle } from "./workspace-names";
 
 interface SidebarProps {
   onOpenPrInbox: () => void;
@@ -42,6 +43,9 @@ interface SidebarProps {
   onToggle: () => void;
   onOpenSettings: () => void;
   onNewChat: (cwd?: string) => void;
+  /** 已登记的工作区,用于显示自定义名称。 */
+  workspaces?: readonly WorkspaceRecent[];
+  onEditWorkspace?: (cwd: string) => void;
   onSwitchConversation: (id: string) => void;
   onArchiveConversation: (id: string) => void;
   onRenameConversation?: (id: string) => void;
@@ -68,6 +72,8 @@ export function Sidebar({
   onToggle,
   onOpenSettings,
   onNewChat,
+  workspaces,
+  onEditWorkspace,
   onSwitchConversation,
   onArchiveConversation,
   onRenameConversation,
@@ -250,6 +256,7 @@ export function Sidebar({
         </div> : <>
           <MotionList className="session-groups" items={groups} keyOf={(group) => group.cwd}>{(group) => {
             const isCollapsed = Boolean(collapsedWorkspaces[group.cwd]);
+            const groupName = workspaceTitle(workspaces, group.cwd);
             return (
               <div className={`session-group${isCollapsed ? " collapsed" : ""}`} key={group.cwd}>
                 <div className="session-group-row">
@@ -265,14 +272,23 @@ export function Sidebar({
                     <span className="session-group-chevron">
                       <ChevronIcon />
                     </span>
-                    <span className="session-group-name">{group.name}</span>
+                    <span className="session-group-name">{groupName}</span>
                     <span className="session-group-count">{group.conversations.length}</span>
                   </button>
+                  {onEditWorkspace ? <button
+                    className="subchat-action session-group-settings"
+                    type="button"
+                    title={tr("工作区设置", "Workspace settings")}
+                    aria-label={`${tr("工作区设置", "Workspace settings")} · ${groupName}`}
+                    onClick={() => onEditWorkspace(group.cwd)}
+                  >
+                    <WorkspaceSettingsIcon />
+                  </button> : null}
                   <button
                     className="subchat-action session-group-new-chat"
                     type="button"
                     title={tr("新建对话", "New chat")}
-                    aria-label={`${tr("新建对话", "New chat")} · ${group.name}`}
+                    aria-label={`${tr("新建对话", "New chat")} · ${groupName}`}
                     onClick={() => onNewChat(group.cwd)}
                   >
                     <ComposeIcon />
@@ -419,6 +435,16 @@ function SidebarIcon() {
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <rect x="3" y="3" width="18" height="18" rx="2" />
       <line x1="9" y1="3" x2="9" y2="21" />
+    </svg>
+  );
+}
+
+function WorkspaceSettingsIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+      <path d="M4 7h10M18 7h2M4 17h2M10 17h10" />
+      <circle cx="16" cy="7" r="2" />
+      <circle cx="8" cy="17" r="2" />
     </svg>
   );
 }

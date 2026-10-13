@@ -1,139 +1,114 @@
 {
-  "version": "1.1.5",
+  "version": "1.1.6",
   "locales": {
     "en": {
-      "summary": "Vela 1.1.5 adds Racing: try the same task in parallel, compare the results, and adopt one solution. Four new built-in themes give you more light and dark palettes.",
+      "summary": "Vela 1.1.6 introduces multi-folder workspaces: one workspace can now span several folders, and you can rename, search, and manage workspaces without leaving the app.",
       "highlights": [
         {
-          "title": "Try multiple approaches at once",
-          "body": "Choose Racing in the composer mode menu. Run the same task in 2–4 independent Git worktrees, each with its own model, reasoning level, and optional instructions."
+          "title": "One workspace, several folders",
+          "body": "Add extra folders to a workspace in its settings. The agent can read and write all of them; commands and relative paths still start from the primary folder."
         },
         {
-          "title": "Compare evidence side by side",
-          "body": "The Racing panel shows status, elapsed time, token use, file changes, and acceptance evidence. Add a shared verification command to check every lane; you choose the winner."
+          "title": "Rename and manage workspaces",
+          "body": "Use the settings button next to a workspace in the sidebar to give it a display name, set a different primary folder, or remove it."
         },
         {
-          "title": "Adopt a solution when you are ready",
-          "body": "After every lane finishes, confirm your choice to stage its changes in the main workspace. Commit them yourself, or discard the whole race and clean up its worktrees."
-        },
-        {
-          "title": "Four more built-in themes",
-          "body": "Try Lilac and Blossom in light mode, or Forest and Tide in dark mode. Select them in Settings → Appearance or during onboarding."
+          "title": "Find workspaces faster",
+          "body": "The workspace picker in the composer now has a search box and shows your custom names, with a check mark on the current workspace."
         }
       ],
       "improvements": [
-        "Race conversations run in the background without switching your active conversation or workspace.",
-        "Shared verification runs one lane at a time, with a ten-minute timeout and redacted output.",
-        "Unfinished races are marked interrupted after restarting the app; lane conversations remain available for review.",
-        "Racing controls and the new theme names are available in all five interface languages."
+        "Sidebar groups and the workspace picker show the display name you chose for each workspace.",
+        "A workspace can hold up to ten additional folders; the primary folder stays the root for the agent, Git, and the terminal.",
+        "Folder and workspace settings messages are available in all five interface languages."
       ]
     },
     "zh-CN": {
-      "summary": "Vela 1.1.5 新增赛马：同一任务并行尝试、比较结果，再采用一份方案。同时新增四套内置主题，提供更多浅色与深色配色。",
+      "summary": "Vela 1.1.6 新增多文件夹工作区：一个工作区可以包含多个文件夹，并能直接在应用内重命名、搜索和管理工作区。",
       "highlights": [
         {
-          "title": "同时尝试多种方案",
-          "body": "在输入框的模式菜单中选择「赛马」，让同一任务在 2–4 个独立 Git worktree 中并行执行，每条赛道可单独选择模型、推理强度和附加提示。"
+          "title": "一个工作区，多个文件夹",
+          "body": "在工作区设置中添加附加文件夹，Agent 可以读写所有文件夹；命令和相对路径仍以主要文件夹为准。"
         },
         {
-          "title": "并排比较客观证据",
-          "body": "赛马面板显示状态、耗时、token 用量、文件改动和验收证据。可设置统一验证指令检查每条赛道，采用哪一条由你决定。"
+          "title": "重命名与管理工作区",
+          "body": "点击侧边栏工作区旁的设置按钮，即可自定义显示名称、更换主要文件夹或移除工作区。"
         },
         {
-          "title": "确认后采用一份方案",
-          "body": "全部赛道结束后，确认选择即可将该赛道的改动放进主工作区暂存区，再自行提交；也可丢弃整场赛马并清理 worktree。"
-        },
-        {
-          "title": "四套新内置主题",
-          "body": "浅色新增「丁香」与「海棠」，深色新增「森林」与「潮汐」，可在「设置 → 外观」或首次设置时选择。"
+          "title": "更快找到工作区",
+          "body": "输入框中的工作区选择器新增搜索框，并显示你自定义的名称，当前工作区会打勾标记。"
         }
       ],
       "improvements": [
-        "赛道对话在后台执行，不会切换当前对话或工作区。",
-        "统一验证逐条执行，每条最多十分钟，输出会脱敏。",
-        "重启后将未完成的赛马标为已中断，保留赛道对话供回看。",
-        "赛马控件与新增主题名称支持全部五种界面语言。"
+        "侧边栏分组与工作区选择器会显示你为每个工作区设置的名称。",
+        "一个工作区最多可附加十个文件夹；主要文件夹仍是 Agent、Git 和终端的根目录。",
+        "文件夹与工作区设置相关提示支持全部五种界面语言。"
       ]
     },
     "zh-TW": {
-      "summary": "Vela 1.1.5 新增賽馬：同一任務平行嘗試、比較結果，再採用一份方案。同時新增四套內建主題，提供更多淺色與深色配色。",
+      "summary": "Vela 1.1.6 新增多資料夾工作區：一個工作區可以包含多個資料夾，並能直接在應用程式內重新命名、搜尋與管理工作區。",
       "highlights": [
         {
-          "title": "同時嘗試多種方案",
-          "body": "在輸入框的模式選單中選擇「賽馬」，讓同一任務在 2–4 個獨立 Git worktree 中平行執行，每條賽道可各自選擇模型、推理強度與附加提示。"
+          "title": "一個工作區，多個資料夾",
+          "body": "在工作區設定中新增附加資料夾，Agent 可以讀寫所有資料夾；指令和相對路徑仍以主要資料夾為準。"
         },
         {
-          "title": "並排比較客觀證據",
-          "body": "賽馬面板顯示狀態、耗時、token 用量、檔案變更與驗收證據。可設定統一驗證指令檢查每條賽道，採用哪一條由你決定。"
+          "title": "重新命名與管理工作區",
+          "body": "點擊側邊欄工作區旁的設定按鈕，即可自訂顯示名稱、更換主要資料夾或移除工作區。"
         },
         {
-          "title": "確認後採用一份方案",
-          "body": "全部賽道結束後，確認選擇即可將該賽道的變更放進主工作區暫存區，再自行提交；也可捨棄整場賽馬並清理 worktree。"
-        },
-        {
-          "title": "四套新內建主題",
-          "body": "淺色新增「丁香」與「海棠」，深色新增「森林」與「潮汐」，可在「設定 → 外觀」或首次設定時選擇。"
+          "title": "更快找到工作區",
+          "body": "輸入框中的工作區選擇器新增搜尋框，並顯示你自訂的名稱，目前工作區會打勾標記。"
         }
       ],
       "improvements": [
-        "賽道對話在背景執行，不會切換目前對話或工作區。",
-        "統一驗證逐條執行，每條最多十分鐘，輸出會隱去敏感資訊。",
-        "重新啟動後將未完成的賽馬標為已中斷，保留賽道對話供回看。",
-        "賽馬控制項與新增主題名稱支援全部五種介面語言。"
+        "側邊欄分組與工作區選擇器會顯示你為每個工作區設定的名稱。",
+        "一個工作區最多可附加十個資料夾；主要資料夾仍是 Agent、Git 與終端機的根目錄。",
+        "資料夾與工作區設定相關提示支援全部五種介面語言。"
       ]
     },
     "ja": {
-      "summary": "Vela 1.1.5 に Racing が加わりました。同じタスクを並列に試し、結果を比較して、ひとつの案を採用できます。ライトとダークの組み込みテーマも4種類追加しました。",
+      "summary": "Vela 1.1.6 で複数フォルダーのワークスペースに対応しました。ひとつのワークスペースに複数のフォルダーを含め、アプリ内で名前の変更、検索、管理ができます。",
       "highlights": [
         {
-          "title": "複数の方法を同時に試す",
-          "body": "入力欄のモードメニューから「レース」を選び、同じタスクを2〜4個の独立した Git worktree で並列実行します。各レーンでモデル、推論レベル、追加指示を設定できます。"
+          "title": "1つのワークスペースに複数のフォルダー",
+          "body": "ワークスペース設定で追加フォルダーを登録できます。エージェントはすべてのフォルダーを読み書きでき、コマンドと相対パスはこれまでどおりメインフォルダーが基準です。"
         },
         {
-          "title": "根拠を並べて比較",
-          "body": "レースパネルに状態、所要時間、トークン使用量、ファイルの変更、受け入れ確認の根拠を表示します。共通の検証コマンドで全レーンを確認し、採用する案は自分で選べます。"
+          "title": "ワークスペースの名前変更と管理",
+          "body": "サイドバーのワークスペース横にある設定ボタンから、表示名の変更、メインフォルダーの切り替え、ワークスペースの削除ができます。"
         },
         {
-          "title": "確認してから案を採用",
-          "body": "全レーンの終了後、選択を確認すると、その変更がメインの作業領域にステージされます。コミットは自分で行います。レース全体を破棄して worktree を片付けることもできます。"
-        },
-        {
-          "title": "組み込みテーマを4種類追加",
-          "body": "ライトに「ライラック」と「海棠」、ダークに「森」と「潮」を追加。「設定 → 外観」や初期設定で選べます。"
+          "title": "ワークスペースをすばやく探す",
+          "body": "入力欄のワークスペース選択に検索ボックスが加わり、付けた表示名で表示されます。現在のワークスペースにはチェックマークが付きます。"
         }
       ],
       "improvements": [
-        "レーンの会話はバックグラウンドで実行され、現在の会話や作業領域は切り替わりません。",
-        "共通の検証はレーンごとに順番に実行し、10分でタイムアウトします。出力の機密情報は伏せます。",
-        "再起動後、未完了のレースは中断済みとして表示します。レーンの会話は振り返りのために残ります。",
-        "レースの操作項目と新しいテーマ名は、5つの表示言語すべてに対応しています。"
+        "サイドバーのグループとワークスペース選択には、設定した表示名が使われます。",
+        "追加フォルダーはワークスペースごとに最大10個です。エージェント、Git、ターミナルの基準は引き続きメインフォルダーです。",
+        "フォルダーとワークスペース設定のメッセージは、5つの表示言語すべてに対応しています。"
       ]
     },
     "ko": {
-      "summary": "Vela 1.1.5에 레이스가 추가되었습니다. 같은 작업을 병렬로 시도하고 결과를 비교한 뒤 한 가지 안을 채택할 수 있습니다. 밝은 모드와 어두운 모드의 기본 테마도 네 가지 추가했습니다.",
+      "summary": "Vela 1.1.6에 다중 폴더 작업 공간이 추가되었습니다. 하나의 작업 공간에 여러 폴더를 담고, 앱 안에서 이름 변경, 검색, 관리를 할 수 있습니다.",
       "highlights": [
         {
-          "title": "여러 방법을 동시에 시도",
-          "body": "입력창의 모드 메뉴에서 「레이스」를 선택하세요. 같은 작업을 2–4개의 독립된 Git worktree에서 병렬로 실행하며, 레인마다 모델, 추론 수준, 추가 지시를 설정할 수 있습니다."
+          "title": "하나의 작업 공간에 여러 폴더",
+          "body": "작업 공간 설정에서 폴더를 추가하세요. 에이전트는 모든 폴더를 읽고 쓸 수 있으며, 명령과 상대 경로는 계속 기본 폴더를 기준으로 합니다."
         },
         {
-          "title": "근거를 나란히 비교",
-          "body": "레이스 패널에서 상태, 소요 시간, 토큰 사용량, 파일 변경 사항, 인수 확인 근거를 확인하세요. 공통 검증 명령으로 각 레인을 확인하고, 채택할 결과는 직접 선택합니다."
+          "title": "작업 공간 이름 변경과 관리",
+          "body": "사이드바에서 작업 공간 옆의 설정 버튼으로 표시 이름을 바꾸고, 기본 폴더를 변경하거나 작업 공간을 제거할 수 있습니다."
         },
         {
-          "title": "확인한 뒤 결과 채택",
-          "body": "모든 레인이 끝나면 선택을 확인하여 해당 변경 사항을 기본 작업 공간에 스테이징할 수 있습니다. 커밋은 직접 합니다. 레이스 전체를 버리고 worktree를 정리할 수도 있습니다."
-        },
-        {
-          "title": "새 기본 테마 네 가지",
-          "body": "밝은 모드에 라일락과 해당화, 어두운 모드에 숲과 조수를 추가했습니다. 「설정 → 모양」 또는 초기 설정에서 선택하세요."
+          "title": "작업 공간을 더 빠르게 찾기",
+          "body": "입력창의 작업 공간 선택기에 검색창이 생겼고 직접 정한 이름이 표시됩니다. 현재 작업 공간에는 체크 표시가 붙습니다."
         }
       ],
       "improvements": [
-        "레인 대화는 백그라운드에서 실행되며 현재 대화나 작업 공간을 전환하지 않습니다.",
-        "공통 검증은 레인별로 순서대로 실행되며 10분이 지나면 종료합니다. 출력의 민감한 정보는 가립니다.",
-        "앱을 다시 시작하면 끝나지 않은 레이스는 중단됨으로 표시합니다. 레인 대화는 검토할 수 있도록 남겨 둡니다.",
-        "레이스 조작 항목과 새 테마 이름은 다섯 가지 인터페이스 언어를 모두 지원합니다."
+        "사이드바 그룹과 작업 공간 선택기에 각 작업 공간에 지정한 표시 이름이 나타납니다.",
+        "작업 공간에는 폴더를 최대 10개까지 추가할 수 있으며, 에이전트·Git·터미널의 기준은 계속 기본 폴더입니다.",
+        "폴더와 작업 공간 설정 메시지는 다섯 가지 인터페이스 언어를 모두 지원합니다."
       ]
     }
   }

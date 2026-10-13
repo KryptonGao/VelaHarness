@@ -25,6 +25,8 @@ import { HandoffPackDialog } from "./components/HandoffPackDialog";
 import { ScheduledTasksPage } from "./components/ScheduledTasksPage";
 import { Sidebar } from "./components/Sidebar";
 import { RenameConversationDialog } from "./components/RenameConversationDialog";
+import { WorkspaceSettingsDialog } from "./components/WorkspaceSettingsDialog";
+import { findWorkspace, folderName } from "./components/workspace-names";
 import { CheckpointTimelineDialog } from "./components/CheckpointTimelineDialog";
 import { FilePreviewProvider, type PreviewFileDescriptor } from "./components/preview/FilePreviewContext";
 import type { StartTabAction } from "./components/StartView";
@@ -173,6 +175,7 @@ export function App() {
   const models = useModels(session.setAppState);
   const project = useProject(sounds.notify);
   setActiveLocale(preferences.locale);
+  const [editingWorkspace, setEditingWorkspace] = useState<string | null>(null);
   const [leftCollapsed, setLeftCollapsed] = useStoredState("vela.leftCollapsed", false, isBoolean);
   // Keep the conversation as the default focus; open the inspector when a tool
   // preview or workspace-change action needs it.
@@ -776,6 +779,8 @@ export function App() {
                 onNewChat={(cwd) => leaveRecipes(() => {
                   setPrInboxOpen(false); setAgentInboxOpen(false); setScheduledTasksOpen(false); setSettingsOpen(false); void session.newChat(cwd);
                 })}
+                workspaces={project.workspace?.recents}
+                onEditWorkspace={setEditingWorkspace}
                 onSwitchConversation={(id) => leaveRecipes(() => {
                   setPrInboxOpen(false); setAgentInboxOpen(false); setScheduledTasksOpen(false); setSettingsOpen(false); void session.switchTo(id);
                 })}
@@ -993,6 +998,15 @@ export function App() {
           conversation={renamingConversation}
           onSave={session.rename}
           onClose={() => setRenamingConversation(null)}
+        /> : null}
+        {editingWorkspace ? <WorkspaceSettingsDialog
+          key={editingWorkspace}
+          workspace={findWorkspace(project.workspace?.recents, editingWorkspace)
+            ?? { path: editingWorkspace, name: folderName(editingWorkspace), lastUsedAt: 0, folders: [] }}
+          onSave={project.updateWorkspace}
+          onRemove={project.removeRecentWorkspace}
+          onPickFolder={project.pickWorkspaceFolder}
+          onClose={() => setEditingWorkspace(null)}
         /> : null}
         {handoff ? <HandoffPackDialog
           key={handoff.conversationId}

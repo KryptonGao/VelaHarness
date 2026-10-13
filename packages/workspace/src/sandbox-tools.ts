@@ -20,6 +20,8 @@ export interface SandboxToolFactoryInput extends SandboxExecutionContext {
   cwd: string;
   /** 工作区边界;null 时退化为会话 cwd */
   workspace: string | null;
+  /** 工作区的附加文件夹,每次文件写入时读取;其中的改动与主要文件夹一样视为工作区内。 */
+  extraRoots?: () => readonly string[];
   permission: SandboxPermissionManager;
 }
 
@@ -47,7 +49,7 @@ export function createSandboxedToolDefinitions(input: SandboxToolFactoryInput): 
       kind,
       path,
       workspace: boundary,
-      insideWorkspace: isPathInside(path, boundary),
+      insideWorkspace: isPathInside(path, boundary) || (input.extraRoots?.() ?? []).some((root) => isPathInside(path, root)),
       signal,
     });
     if (!allowed) throw new Error(`用户拒绝了文件修改:${path}`);
