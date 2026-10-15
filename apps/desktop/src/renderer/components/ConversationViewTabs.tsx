@@ -1,13 +1,14 @@
 import { tr } from "../locale";
 import { useSlidingTabIndicator } from "./useSlidingTabIndicator";
 
-export type ConversationViewKey = "chat" | "trace" | "versionControl" | "usage";
+export type ConversationViewKey = "chat" | "trace" | "versionControl" | "usage" | "budget";
 
 const TABS: ReadonlyArray<readonly [ConversationViewKey, string, string]> = [
   ["chat", "对话", "Conversation"],
   ["trace", "轨迹", "Trace"],
   ["versionControl", "版本控制", "Version Control"],
   ["usage", "使用统计", "Usage"],
+  ["budget", "用量限制", "Usage limit"],
 ];
 
 interface ConversationViewTabsProps {

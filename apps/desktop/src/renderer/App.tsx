@@ -163,7 +163,7 @@ export function App() {
   const forkCheckpoint = useCallback((turnIndex: number, restoreFiles: boolean) =>
     session.forkCheckpoint(turnIndex, { restoreFiles }), [session.forkCheckpoint]);
   /** 任务交接包：预览确认后新建对话，并把交接文本填入新对话的输入框。 */
-  const [handoff, setHandoff] = useState<{ conversationId: string } | null>(null);
+  const [handoff, setHandoff] = useState<{ conversationId: string; factsOnly?: boolean } | null>(null);
   const [composerSeed, setComposerSeed] = useState<ComposerSeed | null>(null);
   const consumeComposerSeed = useCallback((id: string) => setComposerSeed(current => current?.id === id ? null : current), []);
   const startHandoff = useCallback(async (conversationId: string, text: string) => {
@@ -713,7 +713,7 @@ export function App() {
   return (
     <FileIconThemeProvider value={preferences.fileIconTheme}>
       <AppLocaleProvider locale={preferences.locale}>
-        <RecipeActionsContext.Provider value={{ conversationId: session.activeConversationId, open: openRecipes, useRecipe: recipe => { setRecipeToUse(recipe); openRecipes(); }, fromMessage: seed => { setRecipeSeed(seed); openRecipes(); }, createHandoff: conversationId => setHandoff({ conversationId }) }}>
+        <RecipeActionsContext.Provider value={{ conversationId: session.activeConversationId, open: openRecipes, useRecipe: recipe => { setRecipeToUse(recipe); openRecipes(); }, fromMessage: seed => { setRecipeSeed(seed); openRecipes(); }, createHandoff: (conversationId, options) => setHandoff({ conversationId, ...(options?.factsOnly ? { factsOnly: true } : {}) }) }}>
         <RaceActionsContext.Provider value={{ started: openRaceTab, open: openRaceTab, count: workspaceRaces.length }}>
         <ComposerSeedContext.Provider value={{ seed: composerSeed, consume: consumeComposerSeed }}>
         <div className="app-screens">
@@ -1011,6 +1011,7 @@ export function App() {
         {handoff ? <HandoffPackDialog
           key={handoff.conversationId}
           conversationId={handoff.conversationId}
+          factsOnly={handoff.factsOnly}
           onConfirm={text => startHandoff(handoff.conversationId, text)}
           onClose={() => setHandoff(null)}
         /> : null}

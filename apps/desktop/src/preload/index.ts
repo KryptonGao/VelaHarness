@@ -136,6 +136,8 @@ import {
   type ThinkingLevel,
   type TranscriptMessage,
   type HandoffPack,
+  type ConversationTaskBudget,
+  type TaskBudgetSettings,
   type IntelligentUiState,
   type UiPreference,
   type UiSandboxIssueResult,
@@ -407,6 +409,13 @@ const api: VelaApi = {
     ipcRenderer.invoke(IpcChannel.setIntelligentUi, preference) as Promise<IntelligentUiState>,
   setIntelligentUiMicroApps: (enabled: boolean) =>
     ipcRenderer.invoke(IpcChannel.setIntelligentUiMicroApps, enabled) as Promise<IntelligentUiState>,
+  getTaskBudget: () => ipcRenderer.invoke(IpcChannel.getTaskBudget) as Promise<TaskBudgetSettings>,
+  setTaskBudget: (settings: TaskBudgetSettings) =>
+    ipcRenderer.invoke(IpcChannel.setTaskBudget, settings) as Promise<TaskBudgetSettings>,
+  getConversationTaskBudget: (conversationId: string) =>
+    ipcRenderer.invoke(IpcChannel.getConversationTaskBudget, conversationId) as Promise<ConversationTaskBudget>,
+  setConversationTaskBudget: (conversationId: string, settings: TaskBudgetSettings | null) =>
+    ipcRenderer.invoke(IpcChannel.setConversationTaskBudget, conversationId, settings) as Promise<ConversationTaskBudget>,
   uiSandboxIssue: (appKey, capability, size) =>
     ipcRenderer.invoke(IpcChannel.uiSandboxIssue, appKey, capability, size) as Promise<UiSandboxIssueResult>,
   uiSandboxRedeem: (token, appKey, capability, size) =>

@@ -16,6 +16,8 @@ import type { SendButtonIcon, ToolDisplay, ToolFold } from "../hooks/usePreferen
 import type { UiMessage } from "../hooks/useSession";
 import { RepoCard } from "./RepoCard";
 import { Composer } from "./Composer";
+import { TaskBudgetBanner } from "./TaskBudgetBanner";
+import { TaskBudgetTab } from "./TaskBudgetTab";
 import { useContentArrival } from "./BatchMotion";
 import { Markdown } from "./Markdown";
 import { AssistantMarkdown } from "./intelligent-ui/AssistantMarkdown";
@@ -636,6 +638,7 @@ export function ChatView({
       <ConversationViewTabs view={view} showVersionControl={hasWorkspace} onChange={setView} />
       {view === "trace" ? <TraceView key={viewKey} state={state} onConversation={() => setView("chat")} onAbort={onAbort} pendingInteraction={pendingInteraction} /> : null}
       {view === "usage" ? <UsageView key={viewKey} conversationId={state?.activeConversationId ?? null} providers={models.catalog?.providers ?? []} /> : null}
+      {view === "budget" ? <TaskBudgetTab key={viewKey} conversationId={state?.activeConversationId ?? null} budget={session?.taskBudget} /> : null}
       {hasWorkspace && vcMounted ? <VersionControlView
         project={project}
         session={session ?? null}
@@ -803,6 +806,7 @@ export function ChatView({
         <ArrowDownIcon size={12} />
         {tr("回到最新", "Jump to latest")}
       </button>
+      <TaskBudgetBanner budget={session?.taskBudget} conversationId={state?.activeConversationId} />
       <Composer
         sandboxMode={session?.sandboxMode}
         ref={dockRef}

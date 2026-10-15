@@ -2,6 +2,8 @@ export * from "./pr-inbox";
 export * from "./mcp";
 export * from "./memory";
 export * from "./handoff";
+export * from "./task-budget";
+import type { ConversationTaskBudget, TaskBudgetSettings, TaskBudgetState } from "./task-budget";
 export * from "./outcome";
 import type { OutcomeSubmission } from "./outcome";
 export * from "./tool-diff";
@@ -204,6 +206,10 @@ export const IpcChannel = {
   getIntelligentUi: "intelligent-ui:get",
   setIntelligentUi: "intelligent-ui:set",
   setIntelligentUiMicroApps: "intelligent-ui:set-micro-apps",
+  getTaskBudget: "task-budget:get",
+  setTaskBudget: "task-budget:set",
+  getConversationTaskBudget: "task-budget:get-conversation",
+  setConversationTaskBudget: "task-budget:set-conversation",
   uiSandboxIssue: "intelligent-ui:sandbox-issue",
   uiSandboxRedeem: "intelligent-ui:sandbox-redeem",
   uiSandboxRevoke: "intelligent-ui:sandbox-revoke",
@@ -624,6 +630,8 @@ export interface SessionSnapshot {
   pendingInstructions: RuntimeInstruction[];
   turnStartedAt?: number;
   turnCompletedAt?: number;
+  /** 当前任务的用量上限状态（含子代理）；未启用或没有进行中的任务时为 null。 */
+  taskBudget?: TaskBudgetState | null;
 }
 
 /** 侧边栏会话列表里的一条对话,绑定创建时的工作区目录。 */
@@ -2849,6 +2857,12 @@ export interface VelaApi extends McpApi, PluginApi {
   setIntelligentUi(preference: UiPreference): Promise<IntelligentUiState>;
   /** 沙盒微应用开关（默认关闭，IUI-14）。 */
   setIntelligentUiMicroApps(enabled: boolean): Promise<IntelligentUiState>;
+  /** 任务用量上限：时间与 Token，统计包含子代理。 */
+  getTaskBudget(): Promise<TaskBudgetSettings>;
+  setTaskBudget(settings: TaskBudgetSettings): Promise<TaskBudgetSettings>;
+  /** 单个对话的用量上限：只对该对话生效；传 null 恢复沿用全局设置。 */
+  getConversationTaskBudget(conversationId: string): Promise<ConversationTaskBudget>;
+  setConversationTaskBudget(conversationId: string, settings: TaskBudgetSettings | null): Promise<ConversationTaskBudget>;
   /** 沙盒应用申请 capability：Main 发放一次性、限定大小的令牌（IUI-14）。 */
   uiSandboxIssue(appKey: string, capability: UiSandboxCapability, size: number): Promise<UiSandboxIssueResult>;
   /** 用户确认后兑换令牌；令牌立即作废。 */

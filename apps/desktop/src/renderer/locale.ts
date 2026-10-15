@@ -41,6 +41,12 @@ export function isEnglish(): boolean {
 }
 
 const knownErrors: Record<string, string> = {
+  "任务用量上限设置不正确": "Invalid task usage limit settings.",
+  "任务用量上限开关必须是布尔值": "The task usage limit switch must be on or off.",
+  "时间上限超出范围": "The time limit is out of range (1–1440 minutes).",
+  "Token 上限超出范围": "The token limit is out of range (10,000–10,000,000,000).",
+  "启用任务用量上限时至少要设置时间或 Token 其中一项": "Set at least a time or a token limit to enable the task usage limit.",
+  "请输入数字": "Enter a number.",
   "赛马需要 git 仓库，且至少有一个提交": "Racing needs a git repository with at least one commit.",
   "工作区未登记": "This workspace is not registered.",
   "赛道数量需要在 2 到 4 之间": "A race needs between 2 and 4 lanes.",

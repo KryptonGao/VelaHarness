@@ -5,7 +5,7 @@ import { latestPlan, migrateLegacyPlan, sortPlans, type LegacyPlanRecord } from 
 import { readFile } from "node:fs/promises";
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
-import { createLogger } from "@vela/shared";
+import { createLogger, parseTaskBudgetSettings, type TaskBudgetSettings } from "@vela/shared";
 
 const log = createLogger("conversations");
 
@@ -40,6 +40,8 @@ export interface StoredConversation {
   agents?: StoredAgent[];
   recipeExecution?: RecipeExecution;
   recipeRunId?: string;
+  /** 这个对话自己的任务用量上限；没有时沿用全局设置。 */
+  taskBudget?: TaskBudgetSettings;
 }
 
 interface StorePayload {
@@ -263,10 +265,21 @@ function normalize(entry: unknown): StoredConversation | null {
     goal: normalizeStoredGoal(record.goal),
     archivedAt: numberOr(record.archivedAt, 0) > 0 ? (record.archivedAt as number) : null,
     agents: normalizeStoredAgents(record.agents),
+    ...normalizeTaskBudget(record.taskBudget),
     ...(typeof record.recipeRunId === "string" && record.recipeExecution && typeof record.recipeExecution === "object" &&
       ["ask", "smart", "full"].includes((record.recipeExecution as RecipeExecution).sandboxMode)
       ? { recipeRunId: record.recipeRunId, recipeExecution: record.recipeExecution as RecipeExecution } : {}),
   };
+}
+
+function normalizeTaskBudget(value: unknown): { taskBudget?: TaskBudgetSettings } {
+  if (value === undefined || value === null) return {};
+  try {
+    return { taskBudget: parseTaskBudgetSettings(value) };
+  } catch {
+    // 损坏的设置当作没有，让这个对话回到全局设置，而不是悄悄改成别的上限。
+    return {};
+  }
 }
 
 function normalizeMode(value: unknown): InteractionMode {

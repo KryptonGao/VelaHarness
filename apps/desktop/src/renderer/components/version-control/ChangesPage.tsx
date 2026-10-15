@@ -3,7 +3,7 @@ import type { AppLocale, ConversationGoal, GitChangeScope, GitHunkAction, GitSta
 import { tr, trf } from "../../locale";
 import type { ProjectApi } from "../../hooks/useProject";
 import type { VersionControlApi } from "../../hooks/useVersionControl";
-import { AlertIcon, CheckIcon, ExternalIcon, FileIcon, RefreshIcon, SearchIcon, TrashIcon } from "../icons";
+import { AlertIcon, CheckIcon, DiffIcon, ExternalIcon, FileIcon, RefreshIcon, SearchIcon, TrashIcon } from "../icons";
 import { ConflictResolver, operationLabel } from "./ConflictResolver";
 import { groupChanges, matchesChangeFilter, scopeStats, scopeStatus, type ChangeGroupRow } from "./git-change-groups";
 import { HunkedDiff } from "./HunkedDiff";
@@ -257,7 +257,7 @@ export function ChangesPage({
 
         <div className="vc-files-scroll">
           {status.files.length === 0 ? (
-            <div className="vc-state">{tr("工作区是干净的", "The workspace is clean")}</div>
+            <div className="vc-placeholder vc-placeholder-compact"><span className="vc-placeholder-icon"><CheckIcon size={16} /></span>{tr("工作区是干净的", "The workspace is clean")}</div>
           ) : null}
           {conflictedCount > 0 ? (
             <div className="vc-group vc-group-conflict">
@@ -443,7 +443,7 @@ export function ChangesPage({
             </div>
           </>
         ) : (
-          <div className="vc-state">{tr("选择一个文件查看差异", "Select a file to view its diff")}</div>
+          <div className="vc-placeholder"><span className="vc-placeholder-icon"><DiffIcon size={18} /></span>{tr("选择一个文件查看差异", "Select a file to view its diff")}</div>
         )}
 
         <CommitComposer

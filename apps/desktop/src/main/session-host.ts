@@ -236,6 +236,10 @@ export class SessionHost {
       if (typeof raw !== "boolean") throw new Error("Intelligent UI 微应用设置不正确");
       return this.runtime.setIntelligentUiMicroApps(raw);
     });
+    ipcMain.handle(IpcChannel.getTaskBudget, () => this.runtime.getTaskBudgetSettings());
+    ipcMain.handle(IpcChannel.setTaskBudget, (_event, raw: unknown) => this.runtime.setTaskBudgetSettings(raw));
+    ipcMain.handle(IpcChannel.getConversationTaskBudget, (_event, id: unknown) => this.runtime.getConversationTaskBudget(id));
+    ipcMain.handle(IpcChannel.setConversationTaskBudget, (_event, id: unknown, raw: unknown) => this.runtime.setConversationTaskBudget(id, raw));
     ipcMain.handle(IpcChannel.listSkills, () => this.runtime.listSkills(this.hooks.currentCwd()));
     ipcMain.handle(IpcChannel.scanExternalSkills, () => this.runtime.scanExternalSkills(this.hooks.currentCwd()));
     ipcMain.handle(IpcChannel.migrateSkills, (_event, raw: unknown) => {

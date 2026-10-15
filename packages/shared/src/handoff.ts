@@ -67,6 +67,8 @@ export interface HandoffDraftRequest {
   locale: AppLocale;
   /** 渲染层生成的请求 id，用来取消。 */
   requestId: string;
+  /** 只用记录里的事实整理，不向模型发请求；任务用量到达上限后使用。 */
+  factsOnly?: boolean;
 }
 
 export function parseHandoffDraftRequest(raw: unknown): HandoffDraftRequest {
@@ -79,7 +81,7 @@ export function parseHandoffDraftRequest(raw: unknown): HandoffDraftRequest {
   if (typeof input.requestId !== "string" || !input.requestId.trim() || input.requestId.length > 100) {
     throw new Error("交接包请求不正确");
   }
-  return { conversationId: input.conversationId, locale: input.locale, requestId: input.requestId };
+  return { conversationId: input.conversationId, locale: input.locale, requestId: input.requestId, ...(input.factsOnly === true ? { factsOnly: true } : {}) };
 }
 
 function clip(text: string, limit: number): string {

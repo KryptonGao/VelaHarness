@@ -76,7 +76,7 @@ function CommitRow({
         }
       }}
     >
-      <div className="vc-commit-body">
+      <div className="vc-commit-main">
         <div className="vc-commit-subject" title={commit.subject}>{commit.subject}</div>
         <div className="vc-commit-meta">
           <span>{commit.authorName}</span>
@@ -234,14 +234,6 @@ export function HistoryPage({
           >
             {tr("恢复", "Recover")}
           </button>
-          <div className="vc-diff-options" role="group" aria-label={tr("差异显示方式", "Diff display options")}>
-            <button type="button" className={`vc-chip${api.diffMode === "unified" ? " active" : ""}`} aria-pressed={api.diffMode === "unified"} onClick={() => api.setDiffMode("unified")}>{tr("统一", "Unified")}</button>
-            <button type="button" className={`vc-chip${api.diffMode === "split" ? " active" : ""}`} aria-pressed={api.diffMode === "split"} onClick={() => api.setDiffMode("split")}>{tr("并排", "Split")}</button>
-            <label className="vc-chip vc-chip-check">
-              <input type="checkbox" checked={api.ignoreWhitespace} onChange={(event) => api.setIgnoreWhitespace(event.target.checked)} />
-              {tr("忽略空白", "Ignore whitespace")}
-            </label>
-          </div>
           <button
             type="button"
             className="vc-icon-btn vc-mobile-detail-btn"
@@ -319,7 +311,7 @@ export function HistoryPage({
           </div>
         ) : null}
         {!detail && !api.detailLoading && !api.detailError ? (
-          <div className="vc-state">{tr("选择一个提交查看详情", "Select a commit to view details")}</div>
+          <div className="vc-placeholder"><span className="vc-placeholder-icon"><CommitIcon size={18} /></span>{tr("选择一个提交查看详情", "Select a commit to view details")}</div>
         ) : null}
         {detail ? <CommitDetailPane
           detail={detail}
@@ -335,6 +327,9 @@ export function HistoryPage({
           onCompareWith={(sha) => onCompare(sha, "HEAD")}
           onOpenHistoryOps={onOpenHistoryOps}
           diffMode={api.diffMode}
+          onDiffMode={api.setDiffMode}
+          ignoreWhitespace={api.ignoreWhitespace}
+          onIgnoreWhitespace={api.setIgnoreWhitespace}
           locale={locale}
         /> : null}
       </div>
@@ -356,6 +351,9 @@ function CommitDetailPane({
   onCompareWith,
   onOpenHistoryOps,
   diffMode,
+  onDiffMode,
+  ignoreWhitespace,
+  onIgnoreWhitespace,
   locale,
 }: {
   detail: GitCommitDetail;
@@ -371,6 +369,9 @@ function CommitDetailPane({
   onCompareWith(sha: string): void;
   onOpenHistoryOps(commit: GitCommitSummary): void;
   diffMode: "unified" | "split";
+  onDiffMode(mode: "unified" | "split"): void;
+  ignoreWhitespace: boolean;
+  onIgnoreWhitespace(value: boolean): void;
   locale: AppLocale;
 }) {
   const commit = detail.commit;
@@ -471,8 +472,18 @@ function CommitDetailPane({
       </div>
 
       <div className="vc-changed-title vc-diff-title">
-        <span>{selectedFile ?? tr("差异", "Diff")}</span>
-        <span className="vc-detail-note">{tr("相对选定父提交", "Against the selected parent")}</span>
+        <span className="vc-diff-title-path">
+          <span className="vc-diff-title-name">{selectedFile ?? tr("差异", "Diff")}</span>
+          <small>{tr("相对选定父提交", "Against the selected parent")}</small>
+        </span>
+        <div className="vc-diff-options" role="group" aria-label={tr("差异显示方式", "Diff display options")}>
+          <button type="button" className={`vc-chip${diffMode === "unified" ? " active" : ""}`} aria-pressed={diffMode === "unified"} onClick={() => onDiffMode("unified")}>{tr("统一", "Unified")}</button>
+          <button type="button" className={`vc-chip${diffMode === "split" ? " active" : ""}`} aria-pressed={diffMode === "split"} onClick={() => onDiffMode("split")}>{tr("并排", "Split")}</button>
+          <label className="vc-chip vc-chip-check">
+            <input type="checkbox" checked={ignoreWhitespace} onChange={(event) => onIgnoreWhitespace(event.target.checked)} />
+            {tr("忽略空白", "Ignore whitespace")}
+          </label>
+        </div>
       </div>
       <div className="vc-detail-diff">
         {fileDiff ? <DiffPane key={`${commit.sha}:${selectedFile}:${detail.parentSha ?? ""}`} path={selectedFile ?? ""} diff={fileDiff} mode={diffMode} /> : (

@@ -3,6 +3,7 @@ import { PluginRegistry } from "./mcp/plugin-registry";
 import { OAuthMCPManager } from "./mcp/oauth";
 import { PluginMCPManager } from "./mcp/manager";
 import type { CredentialStore } from "./mcp/credentials";
+import { parseTaskBudgetSettings, type ConversationTaskBudget, type TaskBudgetSettings } from "@vela/shared";
 import type { BuiltInPlugin, IntelligentUiState, PluginCatalog, PluginTarget, PluginStatusEvent, UiPreference } from "@vela/shared";
 import { redactMcpDisplay, mcpConfiguredSecrets } from "./mcp-redaction";
 import { McpSessionBridge, isMcpTool, type McpPermission } from "./mcp-session";
@@ -99,6 +100,8 @@ import {
 import { ModelDirectory } from "./model-directory";
 import { MemoryService } from "./memory";
 import { MemorySettings } from "./memory-settings";
+import { TaskBudgetSettingsStore } from "./task-budget-settings";
+import { createTaskBudgetExtension, TaskBudgetTask } from "./task-budget";
 import { IntelligentUiSettings } from "./intelligent-ui-settings";
 import { intelligentUiInstructions } from "./intelligent-ui-prompt";
 import { createResidentTools, residentInstructions, type ResidentToolHost } from "./resident-tools";
@@ -297,6 +300,10 @@ interface Conversation {
   storedAgents: StoredAgent[];
   /** 已经触发过 Goal 工作区修订的子代理 id，避免同一次改动重复计数。 */
   agentMutationsSeen: Set<string>;
+  /** 当前（或刚到上限的）任务的用量账本；没有启用用量上限时为空。 */
+  budget?: TaskBudgetTask;
+  /** 这个对话自己的用量上限；没有时沿用全局设置。 */
+  budgetSettings?: TaskBudgetSettings;
 }
 
 /**
@@ -358,6 +365,7 @@ export class AgentRuntime {
   readonly memory: MemoryService;
   private readonly memorySettings: MemorySettings;
   private readonly intelligentUiSettings: IntelligentUiSettings;
+  private readonly taskBudgetSettings: TaskBudgetSettingsStore;
   /** 本进程里创建或恢复为常驻 Agent 的会话；重启后由 options.resident 重新指认。 */
   private readonly residentIds = new Set<string>();
 
@@ -366,6 +374,7 @@ export class AgentRuntime {
     this.memory = new MemoryService({ agentDir: options.agentDir });
     this.memorySettings = new MemorySettings(options.agentDir);
     this.intelligentUiSettings = new IntelligentUiSettings(options.agentDir);
+    this.taskBudgetSettings = new TaskBudgetSettingsStore(options.agentDir);
     this.skills = new SkillLibrary(options.agentDir);
     this.tools = new ToolLoadout({
       scheduledTasks: Boolean(options.scheduledTasks),
@@ -1705,7 +1714,8 @@ export class AgentRuntime {
     });
     const directory = await this.readyDirectory();
     const chatModel = entry.session?.model;
-    const model = chatModel && directory.isAvailable(chatModel) ? chatModel : null;
+    // factsOnly 不向模型发请求：任务用量到上限后整理交接走这条路径。
+    const model = !request.factsOnly && chatModel && directory.isAvailable(chatModel) ? chatModel : null;
     return this.handoffPacks.generate(model ? directory.runtime : null, model, {
       requestId: request.requestId,
       conversationId: entry.id,
@@ -2232,6 +2242,7 @@ export class AgentRuntime {
         control: null,
         storedAgents,
         agentMutationsSeen: new Set(storedAgents.filter((agent) => agent.mutated).map((agent) => agent.id)),
+        ...(stored.taskBudget ? { budgetSettings: stored.taskBudget } : {}),
       });
     }
   }
@@ -2396,7 +2407,8 @@ export class AgentRuntime {
             availableTools: (mode, plan) => this.tools.native(mode, plan, entry),
             authorizeCall: call => this.tools.authorize(call, entry),
           }),
-        }, { name: "vela-memory", hidden: true, factory: this.memoryExtension(entry, null) }, {
+        }, { name: "vela-task-budget", hidden: true, factory: createTaskBudgetExtension(() => entry.budget?.exhausted === true) },
+        { name: "vela-memory", hidden: true, factory: this.memoryExtension(entry, null) }, {
           name: "vela-intelligent-ui",
           hidden: true,
           factory: ((pi) => { pi.on("before_agent_start", event => {
@@ -2579,6 +2591,7 @@ export class AgentRuntime {
   }
 
   private async detachEntry(entry: Conversation): Promise<void> {
+    this.endTaskBudget(entry);
     entry.unsubscribe?.();
     entry.unsubscribe = null;
     const control = entry.control;
@@ -2618,6 +2631,7 @@ export class AgentRuntime {
     if (event.type === "message_end") {
       if (event.message.role === "assistant") {
         const entry = this.conversations.get(conversationId);
+        if (entry) this.checkTaskBudget(entry);
         const stream = entry?.planStream;
         if (entry && stream) {
           entry.planStream = null;
@@ -2899,6 +2913,7 @@ export class AgentRuntime {
       archivedAt: entry.archivedAt,
       agents: entry.storedAgents,
       ...(entry.recipeRunId ? { recipeRunId: entry.recipeRunId, recipeExecution: entry.recipeExecution } : {}),
+      ...(entry.budgetSettings ? { taskBudget: entry.budgetSettings } : {}),
     });
   }
 
@@ -2995,6 +3010,7 @@ export class AgentRuntime {
   ): Promise<void> {
     entry.stopRequested = false;
     entry.driving = true;
+    this.beginTaskBudget(entry);
     entry.control?.setRootStatus("running");
     let current: { text: string; images?: ImageAttachment[]; hidden?: boolean } | null = {
       text,
@@ -3153,6 +3169,7 @@ export class AgentRuntime {
    * 沙箱工具和指令；explore 追加只读守卫并只保留只读工具。
    */
   private async createChildSession(entry: Conversation, input: AgentSessionRequest): Promise<AgentSession> {
+    if (entry.budget?.exhausted) throw new Error("任务用量已到上限，不能再创建子代理。");
     const directory = await this.readyDirectory();
     const parentSession = input.parentSession;
     const model = parentSession.model;
@@ -3174,6 +3191,7 @@ export class AgentRuntime {
       noExtensions: true,
       extensionFactories: [
         ...(input.kind === "explore" ? [{ name: "vela-explore", hidden: true, factory: createExploreGuardExtension() }] : []),
+        { name: "vela-task-budget", hidden: true, factory: createTaskBudgetExtension(() => entry.budget?.exhausted === true) },
         ...(input.beforeToolCall ? [{ name: "vela-agent-pause", hidden: true, factory: createAgentPauseExtension(input.beforeToolCall) }] : []),
         { name: "vela-memory", hidden: true, factory: this.memoryExtension(entry, input.agentId) },
         ...mcp.factories(),
@@ -3233,6 +3251,7 @@ export class AgentRuntime {
     entry.storedAgents = entry.control?.storedAgents() ?? entry.storedAgents;
     this.persistEntry(entry);
     this.emit({ type: "agents", conversationId: entry.id, agents });
+    this.checkTaskBudget(entry);
     // 子代理改完工作区后，按一次修订推进 Goal 验证的有效性。
     for (const agent of agents) {
       if (agent.kind === "root" || !agent.mutated || isAgentBusy(agent.status)) continue;
@@ -3273,6 +3292,7 @@ export class AgentRuntime {
       return;
     }
     entry.driving = true;
+    this.beginTaskBudget(entry);
     this.patchEntry(entry, { status: "streaming", error: null, updatedAt: Date.now() });
     entry.control?.setRootStatus("running");
     try {
@@ -3340,6 +3360,139 @@ export class AgentRuntime {
   setIntelligentUiMicroApps(enabled: boolean): IntelligentUiState {
     this.intelligentUiSettings.setMicroApps(enabled);
     return this.getIntelligentUiSettings();
+  }
+
+  getTaskBudgetSettings(): TaskBudgetSettings {
+    return this.taskBudgetSettings.settings;
+  }
+
+  setTaskBudgetSettings(raw: unknown): TaskBudgetSettings {
+    const saved = this.taskBudgetSettings.save(raw);
+    // 设置改动立即作用于进行中的任务：关闭时清掉提示，调低时立刻可能到达上限。
+    for (const entry of this.conversations.values()) this.applyTaskBudgetChange(entry);
+    return saved;
+  }
+
+  private effectiveTaskBudget(entry: Conversation): TaskBudgetSettings {
+    return entry.budgetSettings ?? this.taskBudgetSettings.settings;
+  }
+
+  private applyTaskBudgetChange(entry: Conversation): void {
+    if (entry.budget && !entry.budget.ended) this.checkTaskBudget(entry);
+    else if (!this.effectiveTaskBudget(entry).enabled && entry.snapshot.taskBudget) this.patchEntry(entry, { taskBudget: null });
+  }
+
+  private conversationTaskBudget(entry: Conversation): ConversationTaskBudget {
+    return { global: this.taskBudgetSettings.settings, override: entry.budgetSettings ?? null, effective: this.effectiveTaskBudget(entry) };
+  }
+
+  private requireBudgetEntry(conversationId: unknown): Conversation {
+    const entry = typeof conversationId === "string" ? this.conversations.get(conversationId) : undefined;
+    if (!entry) throw new Error("对话不存在或已结束");
+    return entry;
+  }
+
+  getConversationTaskBudget(conversationId: unknown): ConversationTaskBudget {
+    return this.conversationTaskBudget(this.requireBudgetEntry(conversationId));
+  }
+
+  /** 只改这一个对话的上限；传 null 恢复沿用全局设置。随对话一起保存。 */
+  setConversationTaskBudget(conversationId: unknown, raw: unknown): ConversationTaskBudget {
+    const entry = this.requireBudgetEntry(conversationId);
+    if (raw === null) delete entry.budgetSettings;
+    else entry.budgetSettings = parseTaskBudgetSettings(raw);
+    this.persistEntry(entry);
+    this.applyTaskBudgetChange(entry);
+    return this.conversationTaskBudget(entry);
+  }
+
+  /** agent 树当前累计计费 token：根会话加所有子代理，输入 + 输出，不含缓存读取。 */
+  private treeTokens(entry: Conversation): number {
+    let total = 0;
+    try {
+      const stats = entry.session?.getSessionStats().tokens;
+      if (stats) total += stats.input + stats.output;
+    } catch { /* 会话正在关闭 */ }
+    for (const agent of entry.control?.list() ?? []) {
+      if (agent.kind === "root") continue;
+      total += agent.usage.input + agent.usage.output;
+    }
+    return total;
+  }
+
+  private agentTreeBusy(entry: Conversation): boolean {
+    return entry.driving || Boolean(entry.session?.isStreaming)
+      || Boolean(entry.control?.list().some(agent => agent.kind !== "root" && isAgentBusy(agent.status)));
+  }
+
+  /** 用户发出新消息时开始一次新任务；同一任务内的子代理唤醒、Goal 续跑沿用同一份账本。 */
+  private beginTaskBudget(entry: Conversation): void {
+    const current = entry.budget;
+    if (current && !current.ended && !current.exhausted) return;
+    this.endTaskBudget(entry);
+    const task = new TaskBudgetTask(this.treeTokens(entry));
+    entry.budget = task;
+    // 时间上限靠定时器评估：模型长时间没有输出时 token 事件不会来。
+    task.timer = setInterval(() => this.tickTaskBudget(entry, task), 1000);
+    task.timer.unref?.();
+    this.checkTaskBudget(entry);
+  }
+
+  private endTaskBudget(entry: Conversation): void {
+    const task = entry.budget;
+    if (!task) return;
+    if (task.timer) clearInterval(task.timer);
+    task.timer = null;
+    task.ended = true;
+  }
+
+  private tickTaskBudget(entry: Conversation, task: TaskBudgetTask): void {
+    if (entry.budget !== task || task.ended) return;
+    if (this.agentTreeBusy(entry)) {
+      task.idleTicks = 0;
+      this.checkTaskBudget(entry);
+      return;
+    }
+    task.idleTicks += 1;
+    if (task.idleTicks < 2) return;
+    // 任务正常结束：不再计时。没到上限的状态提示随任务一起收起。
+    this.endTaskBudget(entry);
+    if (entry.snapshot.taskBudget && !task.exhausted) this.patchEntry(entry, { taskBudget: null });
+  }
+
+  /** 评估当前任务用量：接近上限时更新提示，到达上限后停止整棵 agent 树。 */
+  private checkTaskBudget(entry: Conversation): void {
+    const task = entry.budget;
+    if (!task || task.ended) return;
+    const settings = this.effectiveTaskBudget(entry);
+    const { state, phaseChanged, changed } = task.update(this.treeTokens(entry), settings);
+    if (!state) {
+      if (entry.snapshot.taskBudget) this.patchEntry(entry, { taskBudget: null });
+      return;
+    }
+    if (state.phase === "exhausted" && !task.exhausted) {
+      task.markExhausted(state.reason);
+      void this.exhaustTaskBudget(entry, task);
+    }
+    if (state.phase === "warning") task.warned = true;
+    // token 数每次都变；只在跨过 1% 或阶段变化时推送，避免刷屏。
+    const previous = entry.snapshot.taskBudget;
+    const coarse = state.maxTokens ? Math.floor(state.tokensUsed / state.maxTokens * 100) : 0;
+    const previousCoarse = previous?.maxTokens ? Math.floor(previous.tokensUsed / previous.maxTokens * 100) : -1;
+    if (!previous || phaseChanged || (changed && coarse !== previousCoarse)) this.patchEntry(entry, { taskBudget: state });
+  }
+
+  /** 到达上限：停掉根会话和全部子代理，之后不再产生新的模型请求；交接由界面用事实整理。 */
+  private async exhaustTaskBudget(entry: Conversation, task: TaskBudgetTask): Promise<void> {
+    if (task.timer) clearInterval(task.timer);
+    task.timer = null;
+    try {
+      await this.abort(entry.id);
+    } catch (error) {
+      log.error("task budget abort failed", error);
+    } finally {
+      task.ended = true;
+    }
   }
 
   getMemorySettings(): { enabled: boolean } {

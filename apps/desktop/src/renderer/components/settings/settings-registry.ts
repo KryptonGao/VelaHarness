@@ -70,6 +70,7 @@ export const settingsEntries: readonly SettingsEntry[] = [
   { id: "default-thinking", page: "defaults", title: (c) => c.agent.thinking, hint: (c) => c.agent.thinkingHint, keywords: { zh: ["思考", "推理", "强度"], en: ["thinking", "reasoning", "effort"] } },
   { id: "new-conversation", page: "defaults", title: (c) => c.agent.newConversation, hint: (c) => c.agent.newConversationHint, keywords: { zh: ["新对话", "上次使用"], en: ["new conversation", "last used", "new chat"] } },
   { id: "instructions", page: "defaults", title: (c) => c.agent.instructions, hint: (c) => c.agent.instructionsHint, keywords: { zh: ["指令", "提示词", "系统提示", "偏好"], en: ["instructions", "prompt", "system prompt", "preferences", "custom instructions"] } },
+  { id: "task-budget", page: "defaults", title: (c) => c.agent.taskBudget, hint: (c) => c.agent.taskBudgetHint, keywords: { zh: ["用量", "上限", "预算", "额度", "时间限制", "子代理"], en: ["budget", "limit", "usage", "quota", "token limit", "time limit", "subagent"] } },
   { id: "permissions", page: "defaults", title: (c) => c.permissions.title, hint: (c) => c.permissions.note, keywords: { zh: ["权限", "沙箱", "批准", "审批", "完全访问", "每次询问", "帮我批准"], en: ["permission", "sandbox", "approval", "approve", "full access", "ask", "smart"] } },
 
   { id: "tool-display", page: "display", title: (c) => c.appearance.toolDisplay, hint: (c) => c.appearance.toolDisplayHint, keywords: { zh: ["工具", "工具调用", "卡片", "紧凑"], en: ["tool", "tool call", "card", "compact"] } },

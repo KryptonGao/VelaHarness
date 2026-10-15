@@ -5,6 +5,8 @@ import "../handoff-pack.css";
 
 export interface HandoffPackDialogProps {
   conversationId: string;
+  /** 不向模型发请求，只用记录里的事实整理；任务用量到上限后使用。 */
+  factsOnly?: boolean;
   /** 用最终文本建立新对话并预填；失败时抛错，对话框保持打开。 */
   onConfirm: (text: string) => Promise<void>;
   onClose: () => void;
@@ -17,7 +19,7 @@ function verificationLabel(result: "passed" | "failed" | "unknown"): string {
 }
 
 /** 预览并编辑任务交接包：事实类内容（文件、验证）只能剔除，不能改写。 */
-export function HandoffPackDialog({ conversationId, onConfirm, onClose }: HandoffPackDialogProps) {
+export function HandoffPackDialog({ conversationId, factsOnly = false, onConfirm, onClose }: HandoffPackDialogProps) {
   const locale = useAppLocale();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const goalRef = useRef<HTMLTextAreaElement>(null);
@@ -56,7 +58,7 @@ export function HandoffPackDialog({ conversationId, onConfirm, onClose }: Handof
     let active = true;
     setPack(null);
     setLoadError(null);
-    api.draftHandoff({ conversationId, locale, requestId }).then(next => {
+    api.draftHandoff({ conversationId, locale, requestId, ...(factsOnly ? { factsOnly: true } : {}) }).then(next => {
       if (!active) return;
       setPack(next);
       setGoal(next.goal);
@@ -73,7 +75,7 @@ export function HandoffPackDialog({ conversationId, onConfirm, onClose }: Handof
       active = false;
       void api.cancelHandoff(requestId).catch(() => undefined);
     };
-  }, [conversationId, locale, attempt]);
+  }, [conversationId, factsOnly, locale, attempt]);
 
   useEffect(() => {
     if (pack) goalRef.current?.focus();
