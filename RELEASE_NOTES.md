@@ -38,4 +38,6 @@ Package version: `1.1.7`. macOS bundle and download version: `1.1.7`.
 - All 29 in-app update tests passed (`pnpm --filter @vela/desktop test:updates`).
 - The production build passed (`pnpm build`).
 - Twelve of fourteen real-Electron smoke suites passed. Task Recipes and PR Inbox failed with the same symptoms already documented in earlier releases; these existing failures remain unresolved.
-PACKAGED_PLACEHOLDER
+- The packaged 1.1.7 app launched with isolated data and stayed running.
+- Both package SHA-256 checksums matched `SHA256SUMS.txt`, and the signed checksum file verified.
+- The ad-hoc signed application bundle has version `1.1.7` and identifier `com.vela.desktop`; the ZIP contains only `Vela.app`, and the DMG mounted successfully with a valid application signature.
