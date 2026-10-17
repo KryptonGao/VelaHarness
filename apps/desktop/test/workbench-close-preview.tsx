@@ -57,7 +57,7 @@ function Panel({ tabs, active, onActivate, addTab, onClose }: {
     <WorkbenchPanel tabs={tabs} activeTabId={active} contextOpen={sidebarOpen} leftOpen={false}
       resize={{ widths: { left: 250, right: 340, workbench: 500 }, startResize() {}, nudge() {}, reset() {} } as SidebarResize}
       project={{} as ProjectApi} busy={false} execution={null} onRevise={() => {}} onExecutePlan={() => {}}
-      initialDiffPath={null} initialDiffPathRequestKey={0} selectedChangePath={null} onSelectedChangePath={() => {}}
+      initialDiffPath={null} initialDiffPathRequestKey={0}
       onShowDiff={() => {}} agents={[]} getAgentMessages={() => []} ensureAgentMessages={() => {}} onOpenAgent={() => {}}
       onNewTab={addTab} onStartAction={() => {}} gitAvailable={false} onActivateTab={(tab) => onActivate(tab.id)}
       onCloseTab={onClose} />

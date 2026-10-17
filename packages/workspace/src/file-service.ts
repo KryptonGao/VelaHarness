@@ -45,6 +45,8 @@ const skipScanExtensions = new Set([
 ]);
 
 const skipDirNames = new Set([".git", "node_modules"]);
+/** 未跟踪文件里按目录名识别的构建产物(如 Xcode 的 DerivedData*),不进入文件列表。 */
+const untrackedArtifactDirPattern = /^DerivedData/;
 
 export interface WorkspaceRoots {
   /** 规范基准根:仓库根 ?? 工作区 ?? 兜底目录,决定文件列表/搜索范围与相对路径表示。 */
@@ -123,16 +125,15 @@ export class WorkspaceFileService {
     const files: string[] = [];
     let truncated = false;
     try {
-      // cached + others(未忽略的未跟踪文件),与 git status 的可见范围一致。
-      const output = await gitListFiles(roots.baseRoot);
-      for (const entry of output.split("\0")) {
-        if (!entry) continue;
-        if (files.length >= maxListEntries) {
-          truncated = true;
-          break;
-        }
-        files.push(entry);
-      }
+      // cached 在前、others(未忽略的未跟踪文件)在后,与 git status 的可见范围一致。
+      // 超出上限时必须先丢弃未跟踪文件,否则排序前截断会让大体积的构建目录挤掉源码目录。
+      const merged = mergeGitFileLists(
+        await gitListFiles(roots.baseRoot, "-c"),
+        await gitListFiles(roots.baseRoot, "-o"),
+        maxListEntries,
+      );
+      files.push(...merged.files);
+      truncated = merged.truncated;
     } catch {
       // 不是 git 仓库(或 git 不可用):退化为有界的本地遍历。
       const state = { truncated: false };
@@ -248,16 +249,40 @@ async function pathExists(path: string): Promise<boolean> {
   }
 }
 
-async function gitListFiles(cwd: string): Promise<string> {
+async function gitListFiles(cwd: string, mode: "-c" | "-o"): Promise<string> {
   const result = await runGit(
     cwd,
-    ["--no-optional-locks", "ls-files", "-z", "-co", "--exclude-standard"],
+    ["--no-optional-locks", "ls-files", "-z", mode, "--exclude-standard"],
     20_000,
   );
   if (result.code !== 0) {
     throw new Error(result.stderr.trim() || "git ls-files 失败");
   }
   return result.stdout;
+}
+
+/** 合并 `git ls-files -z` 的已跟踪/未跟踪输出:已跟踪文件优先占用名额,未跟踪的构建产物目录被忽略。 */
+export function mergeGitFileLists(
+  trackedOutput: string,
+  untrackedOutput: string,
+  limit: number,
+): { files: string[]; truncated: boolean } {
+  const files: string[] = [];
+  let truncated = false;
+  const add = (output: string, skipArtifacts: boolean): void => {
+    for (const entry of output.split("\0")) {
+      if (!entry) continue;
+      if (skipArtifacts && entry.split("/").some((segment) => untrackedArtifactDirPattern.test(segment))) continue;
+      if (files.length >= limit) {
+        truncated = true;
+        return;
+      }
+      files.push(entry);
+    }
+  };
+  add(trackedOutput, false);
+  add(untrackedOutput, true);
+  return { files, truncated };
 }
 
 async function walkFiles(

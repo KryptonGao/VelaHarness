@@ -8829,6 +8829,8 @@ button.turn-changes-path:hover { color: var(--accent-blue); }
 .turn-review-view .diff-split-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 .turn-review-view .diff-split-cell { display: flex; padding: 0; border-right: 1px solid var(--border-subtle); min-width: 0; }
 .turn-review-view .diff-split-cell:last-child { border-right: none; }
+/* 新建文件没有旧内容可对照,整幅铺开而不是留一半空白。 */
+.turn-review-view .diff-split-single .diff-split-row { grid-template-columns: minmax(0, 1fr); }
 .turn-review-view .diff-line-number { width: 5ch; flex: none; padding-right: 6px; text-align: right; color: var(--text-muted); user-select: none; font-variant-numeric: tabular-nums; }
 .turn-review-view .diff-code { flex: 1; min-width: 0; padding-right: 8px; white-space: pre-wrap; overflow-wrap: anywhere; word-break: normal; }
 .turn-review-view .diff-sign { width: 1ch; }

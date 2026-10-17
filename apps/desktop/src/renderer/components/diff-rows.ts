@@ -159,3 +159,13 @@ export function splitDiffRows(rows: DiffRow[]): SplitDiffRow[] {
   flush();
   return result;
 }
+
+/** 新建文件的差异:只有新增行,没有可对照的旧内容,并排显示时整幅铺开。 */
+export function isAddedOnly(rows: DiffRow[]): boolean {
+  let added = false;
+  for (const row of rows) {
+    if (row.kind === "add") added = true;
+    else if (row.kind === "del" || row.kind === "ctx") return false;
+  }
+  return added;
+}

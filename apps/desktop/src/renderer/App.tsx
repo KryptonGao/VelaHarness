@@ -238,7 +238,6 @@ export function App() {
     initialPath: string | null;
     requestKey: number;
   }>>({});
-  const [selectedChangePaths, setSelectedChangePaths] = useState<Record<string, string | null>>({});
   const [dismissedAgentsByConversation, setDismissedAgentsByConversation] = useState<Record<string, string[]>>({});
   const [planDocuments, setPlanDocuments] = useState<Record<string, PlanDocumentState>>({});
   const planDocument = planDocuments[conversationKey] ?? emptyPlanDocumentState;
@@ -572,7 +571,6 @@ export function App() {
     };
     setFileTabsByWorkspace(adopt);
     setChangesByWorkspace(adopt);
-    setSelectedChangePaths(adopt);
   }, [workspaceKey]);
 
   const openAllChanges = useCallback(() => openChanges(), [openChanges]);
@@ -599,7 +597,6 @@ export function App() {
         ...current,
         [workspaceKey]: { ...changesState, open: false },
       }));
-      setSelectedChangePaths((current) => ({ ...current, [workspaceKey]: null }));
     } else if (tab.kind === "acceptance") {
       dismissAcceptance();
     } else if (tab.kind === "race") {
@@ -879,11 +876,6 @@ export function App() {
                         onExecutePlan={(strategy) => void session.executePlan(strategy)}
                         initialDiffPath={changesState.initialPath}
                         initialDiffPathRequestKey={changesState.requestKey}
-                        selectedChangePath={selectedChangePaths[workspaceKey] ?? null}
-                        onSelectedChangePath={(path) => setSelectedChangePaths((current) => ({
-                          ...current,
-                          [workspaceKey]: path,
-                        }))}
                         onShowDiff={openChanges}
                         onAcceptanceDiff={onAcceptanceDiff}
                         races={workspaceRaces}

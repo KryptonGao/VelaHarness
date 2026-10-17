@@ -1,8 +1,8 @@
-/** Deterministic browser fixture for the changes review pane. Not imported by production. */
-import React, { useEffect, useRef } from "react";
+/** Deterministic browser fixture for the workspace changes review page. Not imported by production. */
+import React from "react";
 import { createRoot } from "react-dom/client";
 import type { GitFileChange, GitRepoInfo, GitStatusSnapshot, VelaApi, WorkspaceFileContent } from "@vela/shared";
-import { ChangesView } from "../src/renderer/components/ChangesView";
+import { WorkspaceChangesView } from "../src/renderer/components/WorkspaceChangesView";
 import type { ProjectApi } from "../src/renderer/hooks/useProject";
 import "../src/renderer/styles.css";
 
@@ -74,9 +74,23 @@ const tsDiff = [
   "+export const version = app.getVersion();",
 ].join("\n");
 
+const newFileDiff = [
+  "diff --git a/apps/desktop/test/new.test.ts b/apps/desktop/test/new.test.ts",
+  "new file mode 100644",
+  "index 0000000..3b18e51",
+  "--- /dev/null",
+  "+++ b/apps/desktop/test/new.test.ts",
+  "@@ -0,0 +1,4 @@",
+  "+import assert from \"node:assert/strict\";",
+  "+",
+  "+// 新建文件:整幅显示,不分编辑前后。",
+  "+assert.equal(1 + 1, 2);",
+].join("\n");
+
 const files: GitFileChange[] = [
   { path: "README.md", oldPath: null, status: "modified", indexStatus: null, worktreeStatus: "modified", addedLines: 2, deletedLines: 1, indexAddedLines: 0, indexDeletedLines: 0, worktreeAddedLines: 2, worktreeDeletedLines: 1 },
   { path: "apps/desktop/src/index.ts", oldPath: null, status: "modified", indexStatus: null, worktreeStatus: "modified", addedLines: 3, deletedLines: 2, indexAddedLines: 0, indexDeletedLines: 0, worktreeAddedLines: 3, worktreeDeletedLines: 2 },
+  { path: "apps/desktop/test/new.test.ts", oldPath: null, status: "untracked", indexStatus: null, worktreeStatus: "untracked", addedLines: 4, deletedLines: 0, indexAddedLines: 0, indexDeletedLines: 0, worktreeAddedLines: 4, worktreeDeletedLines: 0 },
 ];
 
 const repo: GitRepoInfo = { root: "/tmp/vela-fixture", name: "VelaHarness", remoteUrl: null, subdir: null, empty: false };
@@ -98,7 +112,7 @@ const git: GitStatusSnapshot = {
 
 const project = {
   git,
-  fileDiff: (path: string) => Promise.resolve(path === "README.md" ? readmeDiff : tsDiff),
+  fileDiff: (path: string) => Promise.resolve(path === "README.md" ? readmeDiff : path.endsWith("new.test.ts") ? newFileDiff : tsDiff),
   stageFiles: () => Promise.resolve(true),
   unstageFiles: () => Promise.resolve(true),
   discardFiles: () => Promise.resolve(true),
@@ -120,32 +134,16 @@ const api = {
 } as unknown as VelaApi;
 (window as unknown as { vela: VelaApi }).vela = api;
 
-function Fixture({ path, autoPreview }: { path: string; autoPreview: boolean }) {
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!autoPreview) return;
-    const timer = window.setTimeout(() => {
-      const buttons = ref.current?.querySelectorAll<HTMLButtonElement>(".preview-view-toggle button");
-      buttons?.[1]?.click();
-    }, 300);
-    return () => window.clearTimeout(timer);
-  }, [autoPreview]);
+function Fixture() {
   return (
-    <div className="fixture" ref={ref}>
-      <ChangesView
-        project={project}
-        initialPath={path}
-        initialPathRequestKey={1}
-        onClose={() => undefined}
-      />
+    <div className="fixture" style={{ height: 640 }}>
+      <WorkspaceChangesView project={project} onClose={() => undefined} />
     </div>
   );
 }
 
-const autoPreview = new URLSearchParams(location.search).get("mode") === "preview";
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <Fixture path="README.md" autoPreview={autoPreview} />
-    <Fixture path="apps/desktop/src/index.ts" autoPreview={autoPreview} />
+    <Fixture />
   </React.StrictMode>,
 );

@@ -78,7 +78,7 @@ function Fixture() {
           <WorkbenchPanel tabs={tabs} activeTabId={active} contextOpen={false} leftOpen={false}
             resize={{ widths: { left: 250, right: 340, workbench: 500 }, startResize() {}, nudge() {}, reset() {} } as SidebarResize}
             project={{} as ProjectApi} busy={false} execution={null} onRevise={() => {}} onExecutePlan={() => {}}
-            initialDiffPath={null} initialDiffPathRequestKey={0} selectedChangePath={null} onSelectedChangePath={() => {}}
+            initialDiffPath={null} initialDiffPathRequestKey={0}
             onShowDiff={() => {}} agents={[]} getAgentMessages={() => []} ensureAgentMessages={() => {}} onOpenAgent={() => {}}
             onNewTab={addTab} onStartAction={() => {}} gitAvailable={false} onActivateTab={(value) => setActive(value.id)}
             onCloseTab={(value) => { setTabs((current) => current.filter((item) => item.id !== value.id)); setActive(null); }} />

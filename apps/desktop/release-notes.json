@@ -1,114 +1,114 @@
 {
-  "version": "1.1.7",
+  "version": "1.1.8",
   "locales": {
     "en": {
-      "summary": "Vela 1.1.7 adds task usage limits: cap how long and how many tokens a single task may use, and get a handoff ready when the cap is reached. The Git panel also gets a visual refresh.",
+      "summary": "Vela 1.1.8 brings the workspace Changes panel onto the same review page as turn changes, and keeps large build folders from crowding source files out of the file list.",
       "highlights": [
         {
-          "title": "Task usage limits",
-          "body": "Set a time and token limit for one task in Settings. Usage is counted across the main agent and all subagents, with a warning at 80%."
+          "title": "Unified Changes review",
+          "body": "The Changes panel now uses the same review page as turn changes: a filterable file tree beside side-by-side diffs."
         },
         {
-          "title": "Limits per conversation",
-          "body": "Give any conversation its own limits, and watch current usage against the limit in a banner at the top of the conversation."
+          "title": "Steadier reading",
+          "body": "Refreshing a diff no longer sends you back to the top while the set of changed files stays the same."
         },
         {
-          "title": "Handoff when a limit is hit",
-          "body": "At the limit Vela stops sending model requests and can prepare a handoff pack from the conversation record alone, so you can continue in a new conversation."
+          "title": "Full-width new files",
+          "body": "A newly created file's diff now fills the whole width instead of leaving half of it empty."
         }
       ],
       "improvements": [
-        "The Git panel's Changes and History pages have a refreshed look, with clearer empty states.",
-        "Task limits are off by default, so existing conversations behave as before.",
-        "Task limit settings and messages are available in all five interface languages."
+        "Git file headers like diff --git and index are hidden in the review page.",
+        "Untracked build folders such as Xcode DerivedData no longer push source folders out of the file list.",
+        "The review page's title and empty state now match the workspace Changes panel."
       ]
     },
     "zh-CN": {
-      "summary": "Vela 1.1.7 新增任务用量上限：可限制单次任务的耗时和 Token，到达上限时自动准备交接。Git 面板也焕然一新。",
+      "summary": "Vela 1.1.8 让工作区「更改」面板改用与本轮变更相同的审查页面，并避免体积庞大的构建目录挤掉文件列表里的源码。",
       "highlights": [
         {
-          "title": "任务用量上限",
-          "body": "在设置中为单次任务设定时间和 Token 上限，统计包含主 Agent 与所有子代理，达到 80% 时会提醒你。"
+          "title": "统一的更改审查",
+          "body": "「更改」面板现在使用与本轮变更相同的审查页面：可筛选的文件树，配合并排差异。"
         },
         {
-          "title": "每个对话单独设置",
-          "body": "任何对话都可以使用自己的上限，并在对话顶部的横幅中查看当前用量。"
+          "title": "阅读更稳定",
+          "body": "只要变更文件的集合不变，刷新差异不会再把你带回顶部。"
         },
         {
-          "title": "到达上限后的交接",
-          "body": "到达上限后 Vela 不再发起模型请求，并能仅根据对话记录整理交接包，方便你在新对话中继续。"
+          "title": "新文件整幅显示",
+          "body": "新建文件的差异现在铺满整个宽度，不再留下一半空白。"
         }
       ],
       "improvements": [
-        "Git 面板的「更改」和「历史」页面换上了新的外观，空状态也更清晰。",
-        "任务用量上限默认关闭，现有对话的行为不变。",
-        "任务用量上限的设置与提示支持全部五种界面语言。"
+        "审查页面不再显示 diff --git、index 等 Git 文件头。",
+        "Xcode DerivedData 等未跟踪的构建目录不再把源码目录挤出文件列表。",
+        "审查页面的标题和空状态已与工作区「更改」面板匹配。"
       ]
     },
     "zh-TW": {
-      "summary": "Vela 1.1.7 新增任務用量上限：可限制單次任務的耗時與 Token，達到上限時自動準備交接。Git 面板也煥然一新。",
+      "summary": "Vela 1.1.8 讓工作區「變更」面板改用與本輪變更相同的審查頁面，並避免體積龐大的建置目錄擠掉檔案列表裡的原始碼。",
       "highlights": [
         {
-          "title": "任務用量上限",
-          "body": "在設定中為單次任務設定時間與 Token 上限，統計包含主 Agent 與所有子代理，達到 80% 時會提醒你。"
+          "title": "統一的變更審查",
+          "body": "「變更」面板現在使用與本輪變更相同的審查頁面：可篩選的檔案樹，搭配並排差異。"
         },
         {
-          "title": "每個對話單獨設定",
-          "body": "任何對話都可以使用自己的上限，並在對話頂部的橫幅中查看目前用量。"
+          "title": "閱讀更穩定",
+          "body": "只要變更檔案的集合不變，重新整理差異就不會再把你帶回頂部。"
         },
         {
-          "title": "達到上限後的交接",
-          "body": "達到上限後 Vela 不再發出模型請求，並能僅根據對話紀錄整理交接包，方便你在新對話中繼續。"
+          "title": "新檔案整幅顯示",
+          "body": "新建檔案的差異現在鋪滿整個寬度，不再留下一半空白。"
         }
       ],
       "improvements": [
-        "Git 面板的「變更」與「歷史」頁面換上新的外觀，空狀態也更清楚。",
-        "任務用量上限預設關閉，現有對話的行為不變。",
-        "任務用量上限的設定與提示支援全部五種介面語言。"
+        "審查頁面不再顯示 diff --git、index 等 Git 檔案標頭。",
+        "Xcode DerivedData 等未追蹤的建置目錄不再把原始碼目錄擠出檔案列表。",
+        "審查頁面的標題與空狀態已與工作區「變更」面板相符。"
       ]
     },
     "ja": {
-      "summary": "Vela 1.1.7 でタスクの使用量上限を追加しました。1回のタスクにかかる時間とトークン数を制限でき、上限に達すると引き継ぎを準備します。Git パネルのデザインも刷新しました。",
+      "summary": "Vela 1.1.8 では、ワークスペースの「変更」パネルがターンの変更と同じレビュー画面になりました。大きなビルドフォルダがファイル一覧のソースを押し出すこともなくなります。",
       "highlights": [
         {
-          "title": "タスクの使用量上限",
-          "body": "設定で1回のタスクの時間とトークンの上限を指定できます。メインのエージェントとすべてのサブエージェントを合算し、80% に達すると通知します。"
+          "title": "統一された変更レビュー",
+          "body": "「変更」パネルがターンの変更と同じレビュー画面になり、絞り込めるファイルツリーと左右比較の差分で確認できます。"
         },
         {
-          "title": "会話ごとの上限",
-          "body": "会話ごとに独自の上限を設定でき、会話上部のバナーで現在の使用量を確認できます。"
+          "title": "読みやすさの向上",
+          "body": "変更ファイルの顔ぶれが同じなら、差分を更新しても先頭に戻されなくなりました。"
         },
         {
-          "title": "上限到達時の引き継ぎ",
-          "body": "上限に達すると Vela はモデルへのリクエストを止め、会話の記録だけから引き継ぎパックを作成できます。新しい会話で作業を続けられます。"
+          "title": "新規ファイルを全幅表示",
+          "body": "新規作成ファイルの差分が、半分空白のままにならず全幅で表示されます。"
         }
       ],
       "improvements": [
-        "Git パネルの「変更」と「履歴」ページのデザインを刷新し、空の状態の表示もわかりやすくしました。",
-        "タスクの使用量上限は初期状態で無効なので、既存の会話の動作は変わりません。",
-        "タスク上限の設定とメッセージは5つの表示言語すべてに対応しています。"
+        "レビュー画面では diff --git や index などの Git ファイルヘッダを表示しません。",
+        "Xcode の DerivedData など未追跡のビルドフォルダが、ファイル一覧からソースフォルダを押し出さなくなりました。",
+        "レビュー画面のタイトルと空の状態を、ワークスペースの「変更」パネル向けに調整しました。"
       ]
     },
     "ko": {
-      "summary": "Vela 1.1.7에 작업 사용량 한도가 추가되었습니다. 한 번의 작업에 쓸 수 있는 시간과 토큰을 제한할 수 있고, 한도에 도달하면 인수인계를 준비합니다. Git 패널 디자인도 새로워졌습니다.",
+      "summary": "Vela 1.1.8에서는 작업 공간의 '변경 사항' 패널이 턴 변경 사항과 같은 검토 화면을 사용합니다. 큰 빌드 폴더가 파일 목록에서 소스를 밀어내는 문제도 해결했습니다.",
       "highlights": [
         {
-          "title": "작업 사용량 한도",
-          "body": "설정에서 한 번의 작업에 대한 시간과 토큰 한도를 정할 수 있습니다. 메인 에이전트와 모든 하위 에이전트를 합산하며, 80%에 도달하면 알려 드립니다."
+          "title": "통합된 변경 사항 검토",
+          "body": "'변경 사항' 패널이 턴 변경 사항과 같은 검토 화면을 사용하며, 필터링되는 파일 트리와 나란히 보는 diff를 제공합니다."
         },
         {
-          "title": "대화별 한도",
-          "body": "대화마다 자체 한도를 지정할 수 있고, 대화 상단 배너에서 현재 사용량을 확인할 수 있습니다."
+          "title": "더 안정적인 읽기",
+          "body": "변경된 파일 구성이 같다면 diff를 새로 고쳐도 맨 위로 되돌아가지 않습니다."
         },
         {
-          "title": "한도 도달 시 인수인계",
-          "body": "한도에 도달하면 Vela는 모델 요청을 멈추고, 대화 기록만으로 인수인계 팩을 정리할 수 있어 새 대화에서 이어서 작업할 수 있습니다."
+          "title": "새 파일 전체 너비 표시",
+          "body": "새로 만든 파일의 diff가 절반이 빈 채로 남지 않고 전체 너비로 표시됩니다."
         }
       ],
       "improvements": [
-        "Git 패널의 '변경 사항'과 '기록' 페이지 디자인이 새로워졌고, 빈 상태 안내도 더 명확해졌습니다.",
-        "작업 사용량 한도는 기본적으로 꺼져 있어 기존 대화의 동작은 그대로입니다.",
-        "작업 한도 설정과 메시지는 다섯 가지 인터페이스 언어를 모두 지원합니다."
+        "검토 화면에서 diff --git, index 같은 Git 파일 헤더를 숨깁니다.",
+        "Xcode DerivedData 같은 추적되지 않는 빌드 폴더가 파일 목록에서 소스 폴더를 밀어내지 않습니다.",
+        "검토 화면의 제목과 빈 상태를 작업 공간 '변경 사항' 패널에 맞췄습니다."
       ]
     }
   }

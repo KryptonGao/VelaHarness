@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { parseUnifiedDiff, splitDiffRows } from "../src/renderer/components/diff-rows.ts";
+import { isAddedOnly, parseUnifiedDiff, splitDiffRows } from "../src/renderer/components/diff-rows.ts";
 
 describe("parseUnifiedDiff", () => {
   it("区分元信息、hunk、上下文、增删行并记录两侧行索引", () => {
@@ -117,5 +117,15 @@ describe("remote PR hunk coordinates", () => {
     assert.deepEqual(rows.filter(r => r.kind === 'add').map(r => [r.text, r.newLineNumber]), [['++ new code', 20], ['new', 110]]);
     const ctx = rows.find(r => r.kind === 'ctx'); assert.equal(ctx.oldLineNumber, 13); assert.equal(ctx.newLineNumber, 21);
     const split = splitDiffRows(rows); assert.equal(split.find(r => r.left?.kind === 'del').right.newLineNumber, 20);
+  });
+});
+
+describe("isAddedOnly", () => {
+  it("只有新增行(新建文件)时为 true,有删除或上下文行时为 false", () => {
+    const created = ["diff --git a/n.ts b/n.ts", "new file mode 100644", "--- /dev/null", "+++ b/n.ts", "@@ -0,0 +1,2 @@", "+a", "+b", ""].join("\n");
+    assert.equal(isAddedOnly(parseUnifiedDiff(created).rows), true);
+    assert.equal(isAddedOnly(parseUnifiedDiff("@@ -1 +1 @@\n-a\n+b\n").rows), false);
+    assert.equal(isAddedOnly(parseUnifiedDiff("@@ -1,2 +1,3 @@\n same\n+b\n").rows), false);
+    assert.equal(isAddedOnly(parseUnifiedDiff("").rows), false);
   });
 });

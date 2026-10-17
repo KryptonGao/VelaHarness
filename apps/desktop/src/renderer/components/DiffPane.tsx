@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { parseUnifiedDiff, splitDiffRows, type DiffRow } from "./diff-rows";
+import { isAddedOnly, parseUnifiedDiff, splitDiffRows, type DiffRow } from "./diff-rows";
 import { tokenStyle, useDiffHighlight, type HighlightedDiff } from "./diff-highlight";
 import type { ThemedToken } from "./preview/highlighter";
 import { parseToolDiff } from "./tool-diff";
@@ -8,29 +8,41 @@ import { tr } from "../locale";
 /** mode 只影响展示:unified 单列,split 并排;不改变任何提交内容。 */
 export type DiffViewMode = "unified" | "split";
 
+/** 与 DiffPane 使用同一套解析,供外部判断某段差异会不会并排显示。 */
+export function isAddedOnlyDiff(diff: string, format: "unified" | "tool" = "unified"): boolean {
+  return isAddedOnly((format === "tool" ? parseToolDiff(diff) : parseUnifiedDiff(diff)).rows);
+}
+
 export function DiffPane({
   path,
   diff,
   mode = "unified",
   format = "unified",
   showLineNumbers = false,
+  hideMeta = false,
 }: {
   path: string;
   diff: string;
   mode?: DiffViewMode;
   format?: "unified" | "tool";
   showLineNumbers?: boolean;
+  /** 隐藏 `diff --git`、`index` 等文件级头部(二进制提示保留)。 */
+  hideMeta?: boolean;
 }) {
   const parsed = useMemo(() => format === "tool" ? parseToolDiff(diff) : parseUnifiedDiff(diff), [diff, format]);
+  const rows = useMemo(
+    () => hideMeta ? parsed.rows.filter(row => row.kind !== "meta" || row.text.startsWith("Binary files")) : parsed.rows,
+    [parsed.rows, hideMeta],
+  );
   const highlight = useDiffHighlight(path, parsed.oldLines, parsed.newLines);
 
   if (mode === "split") {
-    return <SplitDiff rows={parsed.rows} highlight={highlight} showLineNumbers={showLineNumbers} />;
+    return <SplitDiff rows={rows} highlight={highlight} showLineNumbers={showLineNumbers} />;
   }
 
   return (
     <pre className="changes-diff-body diff-content-enter">
-      {parsed.rows.map((row, index) => (
+      {rows.map((row, index) => (
         <DiffLine key={index} row={row} highlight={highlight} showLineNumbers={showLineNumbers} />
       ))}
     </pre>
@@ -39,8 +51,9 @@ export function DiffPane({
 
 function SplitDiff({ rows, highlight, showLineNumbers }: { rows: DiffRow[]; highlight: HighlightedDiff | null; showLineNumbers: boolean }) {
   const split = useMemo(() => splitDiffRows(rows), [rows]);
+  const single = useMemo(() => isAddedOnly(rows), [rows]);
   return (
-    <pre className="changes-diff-body diff-content-enter diff-split">
+    <pre className={`changes-diff-body diff-content-enter diff-split${single ? " diff-split-single" : ""}`}>
       {split.map((row, index) => {
         if (row.full) {
           return (
@@ -51,7 +64,7 @@ function SplitDiff({ rows, highlight, showLineNumbers }: { rows: DiffRow[]; high
         }
         return (
           <div key={index} className="diff-split-row">
-            <SplitCell row={row.left} highlight={highlight} side="old" showLineNumbers={showLineNumbers} />
+            {single ? null : <SplitCell row={row.left} highlight={highlight} side="old" showLineNumbers={showLineNumbers} />}
             <SplitCell row={row.right} highlight={highlight} side="new" showLineNumbers={showLineNumbers} />
           </div>
         );

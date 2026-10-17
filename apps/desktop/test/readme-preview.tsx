@@ -77,7 +77,7 @@ function Fixture() {
       </AgentWorkspaceProvider>
       <WorkbenchPanel tabs={tabs} activeTabId={activeId} contextOpen={false} leftOpen resize={resize} project={project}
         busy={false} execution={null} onRevise={noop} onExecutePlan={noop} initialDiffPath={null} initialDiffPathRequestKey={0}
-        selectedChangePath={null} onSelectedChangePath={noop} onShowDiff={noop} agents={agents} getAgentMessages={id => agentMessages[id] ?? []}
+        onShowDiff={noop} agents={agents} getAgentMessages={id => agentMessages[id] ?? []}
         conversationId="demo-0" toolDisplay="compact" ensureAgentMessages={noop} onOpenAgent={openAgent} onNewTab={noop}
         onStartAction={noop} gitAvailable={false} onActivateTab={tab => setActiveId(tab.id)}
         onCloseTab={tab => { setTabs(items => items.filter(item => item.id !== tab.id)); setActiveId(tabs.find(item => item.id !== tab.id)?.id ?? null); }} />

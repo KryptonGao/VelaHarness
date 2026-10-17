@@ -112,7 +112,7 @@ function Fixture() {
         <WorkbenchPanel tabs={tabs} activeTabId={active ?? tabs[0]?.id ?? null} contextOpen={false} leftOpen={false}
           resize={{ widths: { left: 250, right: 340, workbench: width }, startResize: noop, nudge: noop, reset: noop }}
           project={project} busy={false} execution={null} onRevise={noop} onExecutePlan={noop}
-          initialDiffPath={null} initialDiffPathRequestKey={0} selectedChangePath={null} onSelectedChangePath={noop}
+          initialDiffPath={null} initialDiffPathRequestKey={0}
           onShowDiff={noop} agents={[]} ensureAgentMessages={noop} onControlAgent={noop} onOpenAgent={noop} onNewTab={noop}
           onStartAction={noop} gitAvailable={false} onActivateTab={tab => setActive(tab.id)}
           onAcceptanceDiff={(request, path, diffToolId) => {

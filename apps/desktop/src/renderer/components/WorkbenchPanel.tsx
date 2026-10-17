@@ -10,7 +10,7 @@ import { WorkbenchTabPanel } from "./MotionPresence";
 import { tr, trf } from "../locale";
 import { AgentPane } from "./AgentPane";
 import { AgentStatusMark } from "./AgentPanel";
-import { ChangesView } from "./ChangesView";
+import { WorkspaceChangesView } from "./WorkspaceChangesView";
 import { AcceptancePanel } from "./AcceptancePanel";
 import { RacePanel } from "./RacePanel";
 import type { Race } from "@vela/shared";
@@ -58,8 +58,6 @@ interface WorkbenchPanelProps {
   onExecutePlan: (strategy: PlanExecutionContextStrategy) => void;
   initialDiffPath: string | null;
   initialDiffPathRequestKey: number;
-  selectedChangePath: string | null;
-  onSelectedChangePath: (path: string | null) => void;
   onShowDiff: (path: string) => void;
   onAcceptanceDiff?: (request: AcceptanceRequest, path: string, diffToolId?: string) => void;
   /** 当前工作区的赛马（最新在前），以及赛马面板里的跳转。 */
@@ -142,8 +140,6 @@ function WorkbenchPanelContent({
   onExecutePlan,
   initialDiffPath,
   initialDiffPathRequestKey,
-  selectedChangePath,
-  onSelectedChangePath,
   onShowDiff,
   onAcceptanceDiff,
   races,
@@ -514,19 +510,12 @@ function WorkbenchPanelContent({
             tabIndex={0}
             hidden={activeTab?.kind !== "changes"}
           >
-            <ChangesView
+            <WorkspaceChangesView
               project={project}
               initialPath={initialDiffPath}
               initialPathRequestKey={initialDiffPathRequestKey}
-              selectedPath={selectedChangePath}
-              onSelectedPathChange={onSelectedChangePath}
               visible={activeTab?.kind === "changes"}
               onClose={() => closeTab(changesTab)}
-              onPreviewFile={(path) => {
-                const fileTab = fileTabs.find((tab) => tab.path === path || tab.id === path);
-                if (fileTab) activateTab(fileTab);
-                preview?.openFile(path);
-              }}
             />
           </WorkbenchTabPanel>
         ) : null}
