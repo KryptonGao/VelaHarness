@@ -8,8 +8,9 @@ import type {
   SkillSummary,
   TaskRecipe,
   ThinkingLevel,
+  ThinkingSummaryModel,
 } from "@vela/shared";
-import { forwardRef, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { forwardRef, useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { useModels } from "../hooks/useModels";
 import type { ProjectApi } from "../hooks/useProject";
 import type { SendButtonIcon } from "../hooks/usePreferences";
@@ -36,8 +37,10 @@ import { RaceActionsContext } from "./race-actions-context";
 import { RaceSetupDialog } from "./RaceSetupDialog";
 import { useComposerSeed } from "./composer-seed-context";
 import { localizeError, tr, useAppLocale, trf } from "../locale";
+import { useInputPrediction } from "../hooks/useInputPrediction";
 
 export interface ComposerProps {
+  embedded?: boolean;
   sandboxMode?: import("@vela/shared").SandboxMode;
   disabled: boolean;
   streaming: boolean;
@@ -56,6 +59,13 @@ export interface ComposerProps {
   /** 在输入框模型列表中隐藏的模型，key 为 `provider/id`。 */
   hiddenModels: string[];
   sendButtonIcon?: SendButtonIcon;
+  /** 输入预测开关；关闭时完全不请求模型。 */
+  predictionEnabled?: boolean;
+  /** 预测所用的模型；null 表示跟随当前对话模型。 */
+  predictionModel?: ThinkingSummaryModel | null;
+  /** 当前对话末条已结束助手回复的标识；没有可预测的回复时为 null。 */
+  predictionKey?: string | null;
+  conversationId?: string | null;
   models: ReturnType<typeof useModels>;
   mode: InteractionMode;
   sendError: string | null;
@@ -71,6 +81,7 @@ export interface ComposerProps {
 }
 
 export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Composer({
+  embedded = false,
   sandboxMode,
   disabled,
   streaming,
@@ -85,6 +96,10 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
   thinkingLevels,
   hiddenModels,
   sendButtonIcon = "paper-plane",
+  predictionEnabled = false,
+  predictionModel = null,
+  predictionKey = null,
+  conversationId = null,
   models,
   mode,
   sendError,
@@ -96,6 +111,10 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
   onAbort,
   onMode,
 }, ref) {
+  const instanceId = useId();
+  const promptId = embedded ? `prompt-${instanceId}` : "prompt";
+  const menuId = embedded ? `skill-menu-${instanceId}` : "skill-menu";
+  const optionIdPrefix = embedded ? `skill-option-${instanceId}` : "skill-option";
   const recipeActions = useContext(RecipeActionsContext);
   const raceActions = useContext(RaceActionsContext);
   const [raceOpen, setRaceOpen] = useState(false);
@@ -127,6 +146,16 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
   const filtered = useMemo(() => slashMenuItems(skills ?? [], recipesEnabled ? recipes ?? [] : [], slash?.query ?? ""), [skills, recipes, recipesEnabled, slash?.query]);
   const safeIndex = filtered.length === 0 ? 0 : Math.min(activeIndex, filtered.length - 1);
   const prompt = composeSkillPrompt(skill?.name ?? null, value);
+  const prediction = useInputPrediction({
+    enabled: predictionEnabled && !disabled && !recipeActive,
+    conversationId,
+    predictionKey,
+    streaming,
+    model: predictionModel,
+    locale,
+  });
+  // 只有空输入框（没有文字、技能和附件）才显示预测；一旦开始输入就让位。
+  const suggestion = !value && !skill && attachments.length === 0 && !streaming ? prediction : "";
 
   useLayoutEffect(() => {
     const input = inputRef.current;
@@ -308,7 +337,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
   }
 
   async function submit(steerIntent = false): Promise<void> {
-    const text = composeSkillPrompt(skill?.name ?? null, value);
+    const text = composeSkillPrompt(skill?.name ?? null, value) || suggestion;
     if (!text || disabled || recipeActive || !modelReady) return;
     const images = attachments
       .map((entry) => entry.image)
@@ -330,6 +359,8 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
     ? tr("会话还没有准备好", "Chat is not ready yet")
     : !modelReady
       ? tr("先选择一个可用的模型", "Choose an available model first")
+      : !prompt && suggestion
+        ? tr("发送预测的内容 (Enter)", "Send the predicted message (Enter)")
       : !prompt
         ? tr("输入内容后发送", "Enter a message to send")
         : streaming
@@ -380,6 +411,8 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
         <PopoverPresence present={menuOpen}>
           <div className="skill-menu-anchor" ref={menuRef}>
             <SkillMenu
+              id={menuId}
+              optionIdPrefix={optionIdPrefix}
               items={filtered}
               loadingSkills={skills === null && !skillsError}
               loadingRecipes={recipesEnabled && recipes === null && !recipesError}
@@ -454,18 +487,18 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
             />
           ) : null}
           <textarea
-            id="prompt"
+            id={promptId}
             ref={inputRef}
-            className={`input-textarea${skill ? " with-skill" : ""}`}
-            placeholder={skill ? "" : placeholderFor(mode)}
+            className={`input-textarea${skill ? " with-skill" : ""}${suggestion ? " with-prediction" : ""}`}
+            placeholder={skill ? "" : suggestion || placeholderFor(mode)}
             aria-label={tr("输入消息", "Message")}
             rows={1}
             value={value}
             disabled={recipeActive || disabled && !streaming}
             aria-autocomplete="list"
             aria-expanded={menuOpen}
-            aria-controls={menuOpen ? "skill-menu" : undefined}
-            aria-activedescendant={menuOpen && filtered[safeIndex] ? `skill-option-${safeIndex}` : undefined}
+            aria-controls={menuOpen ? menuId : undefined}
+            aria-activedescendant={menuOpen && filtered[safeIndex] ? `${optionIdPrefix}-${safeIndex}` : undefined}
             onChange={(event) => {
               const next = event.target.value;
               setValue(next);
@@ -510,12 +543,22 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
                 event.preventDefault();
                 return;
               }
+              if (suggestion && event.key === "Tab" && !event.shiftKey && !event.altKey && !event.metaKey && !event.ctrlKey) {
+                // Tab 把预测填进输入框，方便先改再发。
+                event.preventDefault();
+                pendingCaret.current = suggestion.length;
+                setValue(suggestion);
+                return;
+              }
               if (event.key === "Enter" && !event.shiftKey) {
                 event.preventDefault();
                 void submit(event.metaKey || event.ctrlKey);
               }
             }}
           />
+          {suggestion ? (
+            <span className="composer-prediction-hint" aria-hidden="true" title={tr("Tab 填入输入框，Enter 直接发送", "Tab to edit, Enter to send")}>Tab</span>
+          ) : null}
         </div>
 
         <div className="dock-controls-row">
@@ -549,7 +592,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
               onDismissLogin={models.dismissLogin}
             />
             <ComposerActions sendButtonIcon={sendButtonIcon} streaming={streaming} sendHint={sendHint} steerHint={steerHint}
-              canQueue={Boolean(prompt)} disabled={disabled || recipeActive || !modelReady || !prompt}
+              canQueue={Boolean(prompt)} disabled={disabled || recipeActive || !modelReady || (!prompt && !suggestion)}
               onSteer={() => void submit(true)} onAbort={onAbort} />
           </div>
         </div>

@@ -2,6 +2,10 @@ interface IconProps {
   size?: number;
 }
 
+export function ChatIcon({ size = 13 }: IconProps) {
+  return <svg {...base(size)} aria-hidden="true"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l-2 2v-10A8.5 8.5 0 0 1 10.5 3h2a8.5 8.5 0 0 1 8.5 8.5Z" /><path d="M7 9h9M7 14h6" /></svg>;
+}
+
 export function ClockIcon({ size = 13 }: IconProps) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>;
 }

@@ -26,7 +26,7 @@ const idleLogin: LoginState = {
   error: null,
 };
 
-export function useModels(setAppState: (state: AppState) => void) {
+export function useModels(setAppState: (state: AppState) => void, conversationId?: string) {
   const [catalog, setCatalog] = useState<ModelCatalog | null>(null);
   const [catalogError, setCatalogError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -72,20 +72,24 @@ export function useModels(setAppState: (state: AppState) => void) {
   const select = useCallback((provider: string, id: string) => {
     const api = window.vela;
     if (!api) return Promise.resolve();
-    return mutate(() => api.selectModel(provider, id), false);
-  }, [mutate]);
+    return mutate(() => api.selectModel(provider, id, conversationId), false);
+  }, [mutate, conversationId]);
 
   const setThinking = useCallback((level: ThinkingLevel) => {
     const api = window.vela;
     if (!api) return Promise.resolve();
-    return mutate(() => api.setThinkingLevel(level), false);
-  }, [mutate]);
+    return mutate(() => api.setThinkingLevel(level, conversationId), false);
+  }, [mutate, conversationId]);
 
   const add = useCallback((input: CustomModelInput) => {
     const api = window.vela;
     if (!api) return Promise.resolve("应用还没准备好");
-    return mutate(() => api.addModel(input), true);
-  }, [mutate]);
+    return mutate(async () => {
+      if (!conversationId) return api.addModel(input);
+      await api.registerModel(input);
+      return api.selectModel(input.providerId, input.modelId, conversationId);
+    }, true);
+  }, [mutate, conversationId]);
 
   const register = useCallback((input: CustomModelInput) => {
     const api = window.vela;

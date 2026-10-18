@@ -1,17 +1,21 @@
-# Vela 1.1.8
+# Vela 1.1.9
 
-Vela 1.1.8 brings the workspace Changes panel onto the same review page used for turn changes, so uncommitted Git changes are read the same way as the changes from a single turn. Large untracked build folders no longer crowd source files out of the workspace file list.
+Vela 1.1.9 adds input prediction, lets you start independent chats inside the workbench panel, puts file checkpoints under your control, and moves the main conversation and sub-agents onto a new Vela-specific system prompt by default.
 
 ## New
 
-- **Unified Changes review**: The workspace Changes panel now uses the same review page as turn changes: a file tree with filtering on one side and side-by-side diffs on the other. Switching files or refreshing the diff no longer throws you back to the top while the set of changed files is unchanged.
-- **Full-width diffs for new files**: A newly created file has no earlier content to compare against, so its diff now fills the whole width instead of leaving half of it empty, and the Before/After labels are hidden when nothing is being compared.
+- **Input prediction**: After each reply, Vela can predict what you may type next and show it in gray in the empty message box. Press Tab to fill it in, or press Enter (or click Send) on an empty box to send it as is. It is off by default and can be turned on in Settings → Conversation display; each prediction makes one extra model request, and you can follow the current chat's model or pick a separate, faster or cheaper one.
+- **Chats in the workbench**: The workbench start page has a new Chat option that opens an independent conversation in a tab beside your files, terminal, browser and diffs. Each tab has its own session, input and skill menu, and stays mounted while hidden so replies keep arriving.
+- **Checkpoint controls**: A new "Record file checkpoints" switch in Settings → Storage turns file recording off for new turns. "Delete all records" removes every finished checkpoint and frees the disk space, and the checkpoint timeline can delete a conversation's records up to a chosen turn. Conversations that are replying are never touched.
+- **Vela system prompt**: The main conversation and sub-agents now use a Vela-specific system prompt (`v2`) by default instead of the base prompt from the underlying framework. Set `VELA_SYSTEM_PROMPT=v1` to switch back. Model-level evaluation of the new prompt has not been done yet.
 
 ## Improved
 
-- Git file headers such as `diff --git` and `index` are hidden in the review page; the binary-file notice is kept.
-- The workspace file list now fills its limit with tracked files first. Untracked build output folders such as Xcode `DerivedData*` are skipped, so a large build directory can no longer push your source folders out of the list and search.
-- The review page title, file tree label and empty state are specific to the workspace Changes panel.
+- Turns without a checkpoint now explain why: they ran together with the previous turn, checkpoints were off, or the record was deleted.
+- New workbench tabs show a pending state while the session starts and display an error if it fails.
+- The skill menu can be used in more than one message box at a time without its options colliding.
+- New-chat options are validated in the main process, and invalid requests return a clear error.
+- Added Traditional Chinese, Japanese and Korean translations for the new settings.
 
 ## Upgrade
 
@@ -25,19 +29,16 @@ The macOS build is not notarized and uses an ad-hoc signature. If macOS blocks f
 
 | File | Platform |
 | --- | --- |
-| `Vela-1.1.8-arm64.dmg` | macOS Apple Silicon installer |
-| `Vela-1.1.8-arm64.zip` | macOS Apple Silicon application bundle (`.app`); also the package used by in-app updates |
+| `Vela-1.1.9-arm64.dmg` | macOS Apple Silicon installer |
+| `Vela-1.1.9-arm64.zip` | macOS Apple Silicon application bundle (`.app`); also the package used by in-app updates |
 | `SHA256SUMS.txt` | SHA-256 checksums for both packages |
 | `SHA256SUMS.txt.sig` | Ed25519 signature of `SHA256SUMS.txt`, verified by the in-app updater |
 
-Package version: `1.1.8`. macOS bundle and download version: `1.1.8`.
+Package version: `1.1.9`. macOS bundle and download version: `1.1.9`.
 
 ## Validation
 
-- Type checks and all 1,679 unit tests passed (`pnpm test`): 188 workspace, 599 agent, and 892 desktop tests.
+- Type checks and all 1,702 unit tests ran (`pnpm test`): 188 workspace, 620 agent (1 skipped), and 894 desktop tests. The only failure on the first run was a one-second timeout in an unrelated `gh-run` test; it passed on the immediate full rerun.
 - All 29 in-app update tests passed (`pnpm --filter @vela/desktop test:updates`).
 - The production build passed (`pnpm build`).
-- Twelve of fourteen real-Electron smoke suites passed. Task Recipes and PR Inbox failed with the same symptoms already documented in earlier releases; these existing failures remain unresolved.
-- The packaged 1.1.8 app launched with isolated data and stayed running.
-- Both package SHA-256 checksums matched `SHA256SUMS.txt`, and the signed checksum file verified.
-- The ad-hoc signed application bundle has version `1.1.8` and identifier `com.vela.desktop`; the ZIP contains only `Vela.app`, and the DMG mounted successfully with a valid application signature.
+- Twelve of fourteen real-Electron smoke suites passed. Task Recipes and PR Inbox failed with the same symptoms already documented in earlier releases; these existing failures remain unresolved. The Settings suite failed once on a scrollbar-fade timing check and passed on two reruns.

@@ -19,7 +19,7 @@ import type {
 } from "@vela/shared";
 import { agentStatuses, emptyAgentUsage, parseOutcomeSubmission } from "@vela/shared";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { createMessageStore, emptyMessages, messageScope } from "./message-store";
+import { createMessageStore, emptyMessages, messageScope, type MessageStore } from "./message-store";
 import { uiStateStore } from "../components/intelligent-ui/ui-state-instance";
 import { applyPlanDraft, type PlanDraft } from "../plan-draft";
 import { localizeError, tr } from "../locale";
@@ -50,11 +50,31 @@ export type MessageBuckets = Record<string, UiMessage[]>;
 export type AgentMessageBuckets = Record<string, Record<string, UiMessage[]>>;
 
 type StreamUpdate = Exclude<AgentStreamEvent, { type: "state" } | { type: "trace" }>;
+type RewindResult = { state: AppState; messages: TranscriptMessage[] };
+// 主区和 Panel 可以同时查看同一对话；本地发送与回退也须同步，后端流由各视图自行订阅。
+const transcriptListeners = new Set<(source: MessageStore, id: string, messages: UiMessage[], rewind?: RewindResult) => void>();
 
-export function useSession(notify: NotifySound = noSound) {
+/** fixedConversationId 用于始终绑定同一对话的面板；宿主以该 ID 作为组件 key。 */
+export function useSession(notify: NotifySound = noSound, fixedConversationId?: string) {
   const notifyRef = useRef(notify);
   notifyRef.current = notify;
-  const [state, setState] = useState<AppState | null>(null);
+  const [state, setRawState] = useState<AppState | null>(null);
+  const scopeRef = useRef(fixedConversationId);
+  scopeRef.current = fixedConversationId;
+  const stateRequest = useRef(0);
+  const mounted = useRef(true);
+  // 操作仍可能返回主聊天的全局快照；固定面板只接收自己的状态。
+  const setState = useCallback((next: AppState) => {
+    const scope = scopeRef.current;
+    const request = ++stateRequest.current;
+    if (!scope || next.activeConversationId === scope) {
+      if (mounted.current) setRawState(next);
+      return;
+    }
+    void window.vela?.getState(scope).then(scoped => {
+      if (mounted.current && request === stateRequest.current) setRawState(scoped);
+    }).catch(() => {});
+  }, []);
   const [messageStore] = useState(createMessageStore);
   // Only restored history is needed by App to reconstruct legacy agent tabs.
   const [agentHistory, setAgentHistory] = useState<MessageBuckets>({});
@@ -70,6 +90,7 @@ export function useSession(notify: NotifySound = noSound) {
   const activeConversationId = state?.activeConversationId ?? null;
   const activeIdRef = useRef<string | null>(null);
   const bucketsRef = useRef<MessageBuckets>({});
+  const transcriptVersions = useRef<Record<string, number>>({});
   const agentBucketsRef = useRef<AgentMessageBuckets>({});
   const questionsRef = useRef<Record<string, AskUserQuestionRequest>>({});
   const statusesRef = useRef<Record<string, AppState["session"]["status"]>>({});
@@ -85,6 +106,10 @@ export function useSession(notify: NotifySound = noSound) {
     for (const id of Object.keys(next)) {
       if (next[id] !== current[id]) messageStore.publish(messageScope(id), trimEmptyAssistant(next[id]!));
     }
+  }, [messageStore]);
+
+  const shareMessages = useCallback((id: string) => {
+    for (const listener of transcriptListeners) listener(messageStore, id, bucketsRef.current[id] ?? []);
   }, [messageStore]);
 
   const setAgentBuckets = useCallback((update: (current: AgentMessageBuckets) => AgentMessageBuckets) => {
@@ -106,8 +131,10 @@ export function useSession(notify: NotifySound = noSound) {
   const loadTranscript = useCallback(async (id: string) => {
     const api = window.vela;
     if (!api || bucketsRef.current[id]?.length) return;
+    const version = transcriptVersions.current[id];
     try {
       const transcript = await api.getMessages(id);
+      if (version !== transcriptVersions.current[id]) return;
       const restored = transcript.map(toUiMessage);
       if (restored.length && !bucketsRef.current[id]?.length) {
         setAgentHistory(current => ({ ...current, [id]: restored }));
@@ -149,6 +176,7 @@ export function useSession(notify: NotifySound = noSound) {
     if (!api) return;
 
     let active = true;
+    mounted.current = true;
     let receivedStateEvent = false;
     const acceptState = (next: AppState) => {
       const id = next.activeConversationId;
@@ -189,7 +217,7 @@ export function useSession(notify: NotifySound = noSound) {
       setState(next);
     };
 
-    void api.getState().then((next) => {
+    void api.getState(fixedConversationId).then((next) => {
       if (!active) return;
       if (!receivedStateEvent) acceptState(next);
       // 应用重启后界面消息桶是空的,从持久化会话恢复当前对话的历史。
@@ -197,6 +225,7 @@ export function useSession(notify: NotifySound = noSound) {
     });
 
     const unsubscribe = api.onEvent((event) => {
+      if (fixedConversationId && "conversationId" in event && event.conversationId !== fixedConversationId) return;
       const sound = streamNotificationSound(event);
       if (sound) notifyRef.current(sound);
       if (event.type === "trace") return;
@@ -204,7 +233,7 @@ export function useSession(notify: NotifySound = noSound) {
         receivedStateEvent = true;
         acceptState(event.state);
         // 会话可能比界面晚就绪。桶还是空的就再读一次历史，避免启动竞态丢掉工具内容。
-        const id = event.state.activeConversationId;
+        const id = fixedConversationId ?? event.state.activeConversationId;
         if (id) void loadTranscript(id);
         return;
       }
@@ -247,6 +276,7 @@ export function useSession(notify: NotifySound = noSound) {
     const unsubscribeQuestions = api.onQuestionEvent((event) => {
       if (event.type === "request") {
         const request = event.request;
+        if (fixedConversationId && request.conversationId !== fixedConversationId) return;
         notifyRef.current("question");
         setQuestions((current) => ({ ...current, [request.conversationId]: request }));
         return;
@@ -262,11 +292,13 @@ export function useSession(notify: NotifySound = noSound) {
 
     return () => {
       active = false;
+      mounted.current = false;
+      stateRequest.current += 1;
       unsubscribe();
       unsubscribeQuestions();
       messageStore.flush();
     };
-  }, [loadTranscript, messageStore, setAgentBuckets, setBuckets]);
+  }, [fixedConversationId, loadTranscript, messageStore, setAgentBuckets, setBuckets, setState]);
 
   const send = useCallback(async (text: string, images?: ImageAttachment[], deliverAs?: RuntimeInstructionMode) => {
     const api = window.vela;
@@ -294,6 +326,7 @@ export function useSession(notify: NotifySound = noSound) {
         { id: crypto.randomUUID(), role: "assistant", text: "", thinking: "", tools: [] },
       ],
     }));
+    shareMessages(id);
     try {
       const next = await api.prompt(text, images, id);
       setState(next);
@@ -303,7 +336,7 @@ export function useSession(notify: NotifySound = noSound) {
       setErrors((current) => ({ ...current, [id]: message }));
       setBuckets((current) => appendAssistantError(current, id, message));
     }
-  }, []);
+  }, [shareMessages]);
 
   /** 撤销一条尚未被模型消费的排队/调整指令。 */
   const removeInstruction = useCallback(async (instructionId: string) => {
@@ -451,18 +484,39 @@ export function useSession(notify: NotifySound = noSound) {
   }, [forkCheckpoint]);
 
   /** 回退后用主进程返回的历史替换本地消息与子代理状态。 */
-  const applyRewind = useCallback((id: string, result: { state: AppState; messages: TranscriptMessage[] }) => {
+  const acceptRewind = useCallback((id: string, result: RewindResult) => {
+    transcriptVersions.current[id] = (transcriptVersions.current[id] ?? 0) + 1;
     setState(result.state);
     const history = result.messages.map(toUiMessage);
+    setBuckets(current => ({ ...current, [id]: history }));
     setAgentHistory(current => ({ ...current, [id]: history }));
     completionBlockedRef.current[id] = false;
     delete turnStartedAtRef.current[id];
     delete statusesRef.current[id];
     setAgentBuckets(current => ({ ...current, [id]: {} }));
     setPlanDrafts(current => ({ ...current, [id]: null }));
-    setPlanFocus(null);
+    if (activeIdRef.current === id) setPlanFocus(null);
     return history;
-  }, []);
+  }, [setAgentBuckets, setBuckets, setState]);
+
+  useEffect(() => {
+    const listener = (source: MessageStore, id: string, messages: UiMessage[], rewind?: RewindResult) => {
+      if (source === messageStore || (fixedConversationId && fixedConversationId !== id)) return;
+      if (rewind) acceptRewind(id, rewind);
+      else {
+        transcriptVersions.current[id] = (transcriptVersions.current[id] ?? 0) + 1;
+        setBuckets(current => ({ ...current, [id]: messages }));
+      }
+    };
+    transcriptListeners.add(listener);
+    return () => { transcriptListeners.delete(listener); };
+  }, [acceptRewind, fixedConversationId, messageStore, setBuckets]);
+
+  const applyRewind = useCallback((id: string, result: RewindResult) => {
+    const history = acceptRewind(id, result);
+    for (const listener of transcriptListeners) listener(messageStore, id, history, result);
+    return history;
+  }, [acceptRewind, messageStore]);
 
   /** 回到第 turnIndex 轮之后（-1 为对话开始）；失败时抛出，由检查点面板展示。 */
   const restoreCheckpoint = useCallback(async (turnIndex: number) => {
@@ -470,8 +524,7 @@ export function useSession(notify: NotifySound = noSound) {
     const id = activeIdRef.current;
     if (!api || !id) throw new Error(tr("对话不存在或已结束", "Chat not found or already ended."));
     setErrors(current => ({ ...current, [id]: "" }));
-    const history = applyRewind(id, await api.restoreCheckpoint(id, turnIndex));
-    setBuckets(current => ({ ...current, [id]: history }));
+    applyRewind(id, await api.restoreCheckpoint(id, turnIndex));
   }, [applyRewind]);
 
   const edit = useCallback(async (turnIndex: number, text: string, images?: ImageAttachment[]) => {
@@ -487,6 +540,7 @@ export function useSession(notify: NotifySound = noSound) {
       { id: crypto.randomUUID(), role: "user", text, images, thinking: "", tools: [], timestamp: Date.now() },
       { id: crypto.randomUUID(), role: "assistant", text: "", thinking: "", tools: [] },
     ] }));
+    shareMessages(id);
     // The editor closes after the rewind succeeds. Stream events fill the new assistant block.
     void api.prompt(text, images, id).then(setState, error => {
       const message = error instanceof Error ? localizeError(error.message) : tr("发送失败", "Failed to send message");
@@ -494,7 +548,7 @@ export function useSession(notify: NotifySound = noSound) {
       setErrors(current => ({ ...current, [id]: message }));
       setBuckets(current => appendAssistantError(current, id, message));
     });
-  }, [applyRewind]);
+  }, [applyRewind, shareMessages]);
 
   const sendError = activeConversationId ? errors[activeConversationId] || null : null;
   /** 按工具调用 id 找到对应的问题请求,消息流里的提问卡片用它判断是否可交互。 */

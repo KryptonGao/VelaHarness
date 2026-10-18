@@ -27,7 +27,9 @@ export function SkillToken({
   );
 }
 
-export function SkillMenu({ items, loadingSkills, loadingRecipes, error, recipeError, query, activeIndex, onActiveIndex, onSelect }: {
+export function SkillMenu({ id = "skill-menu", optionIdPrefix = "skill-option", items, loadingSkills, loadingRecipes, error, recipeError, query, activeIndex, onActiveIndex, onSelect }: {
+  id?: string;
+  optionIdPrefix?: string;
   items: SlashMenuItem[];
   loadingSkills: boolean;
   loadingRecipes: boolean;
@@ -54,7 +56,7 @@ export function SkillMenu({ items, loadingSkills, loadingRecipes, error, recipeE
     : query ? tr("没有匹配的技能或任务配方", "No matching skills or task recipes")
     : tr("还没有技能或任务配方", "No skills or task recipes yet");
   const originLabel = (origin: string) => origin === 'builtin' ? tr('内置', 'Built-in') : origin === 'project' ? tr('项目', 'Project') : origin === 'team' ? tr('团队', 'Team') : tr('个人', 'Personal');
-  return <div className="skill-menu" id="skill-menu" role="listbox" aria-label={tr("技能与任务配方", "Skills and task recipes")} onMouseDown={event => event.preventDefault()}>
+  return <div className="skill-menu" id={id} role="listbox" aria-label={tr("技能与任务配方", "Skills and task recipes")} onMouseDown={event => event.preventDefault()}>
     <div className="skill-menu-list" ref={listRef}>
       {items.map((item, index) => {
         const selected = index === activeIndex;
@@ -62,7 +64,7 @@ export function SkillMenu({ items, loadingSkills, loadingRecipes, error, recipeE
         const recipe = item.type === 'recipe' ? item.recipe : null;
         return <Fragment key={skill ? `skill:${skill.location}` : `recipe:${recipe!.id}`}>
           {index === 0 || items[index - 1]!.type !== item.type ? <div className="skill-menu-title" aria-hidden="true">{skill ? tr('技能', 'Skills') : tr('任务配方', 'Task recipes')}</div> : null}
-          <button id={`skill-option-${index}`} ref={selected ? activeRef : undefined} type="button" role="option" aria-selected={selected}
+          <button id={`${optionIdPrefix}-${index}`} ref={selected ? activeRef : undefined} type="button" role="option" aria-selected={selected}
             aria-label={skill ? `${skillTitle(skill.name)} · ${tr('技能', 'Skill')} · ${skill.description}` : `${recipe!.name} · ${tr('任务配方', 'Task recipe')} · ${originLabel(recipe!.origin)} · ${recipe!.description}`}
             className={`skill-menu-row${selected ? " active" : ""}`} onMouseEnter={() => onActiveIndex(index)} onClick={() => onSelect(item)}>
             <span className="skill-menu-icon">{skill ? <SkillIcon size={15} /> : <FileIcon size={15} />}</span>

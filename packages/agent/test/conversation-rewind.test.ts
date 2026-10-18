@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { SessionManager } from "@earendil-works/pi-coding-agent";
 import { AgentRuntime } from "../src/runtime.ts";
 import { TurnCheckpoints } from "../src/turn-checkpoints.ts";
+import { CheckpointSettingsStore } from "../src/checkpoint-settings.ts";
 
 const cleanups: (() => Promise<void>)[] = [];
 afterEach(async () => { for (const cleanup of cleanups.splice(0).reverse()) await cleanup(); });
@@ -164,5 +165,31 @@ describe("checkpoint timeline", () => {
     assert.equal(forkTimeline.start?.available, true);
     await runtime.restoreCheckpoint(restored, -1);
     assert.equal(await readFile(file, "utf8"), "start");
+  });
+  it("deletes the records of a turn and the earlier ones, leaving later turns able to rewind", async () => {
+    const { runtime, id, file, turn, checkpoints } = await withReplies();
+    await writeFile(file, "start");
+    await turn("first", "one"); await turn("second", "two"); await turn("third", "three");
+    const result = await runtime.deleteCheckpoints(id, 1);
+    assert.equal(result.removedPoints, 2);
+    assert.equal((await checkpoints.list()).length, 1);
+    const timeline = await runtime.getCheckpoints(id);
+    assert.equal(timeline.start?.available, false);
+    assert.equal(timeline.turns[0]!.restore?.available, false);
+    assert.equal(timeline.turns[1]!.restore?.available, true);
+    await runtime.restoreCheckpoint(id, 1);
+    assert.equal(await readFile(file, "utf8"), "two");
+    assert.deepEqual((await runtime.deleteCheckpoints(id, 1)), { removedPoints: 0, freedBytes: 0 });
+    await assert.rejects(runtime.deleteCheckpoints(id, 9), /找不到/);
+  });
+
+  it("persists the checkpoint switch, defaults to on and ignores a damaged file", async () => {
+    const { runtime, agentDir } = await fixture();
+    assert.deepEqual(runtime.getCheckpointSettings(), { enabled: true });
+    assert.deepEqual(runtime.setCheckpointSettings({ enabled: false }), { enabled: false });
+    assert.deepEqual(new CheckpointSettingsStore(agentDir).settings, { enabled: false });
+    assert.throws(() => runtime.setCheckpointSettings({ enabled: "no" }));
+    await writeFile(join(agentDir, "checkpoint-settings.json"), "{broken");
+    assert.deepEqual(new CheckpointSettingsStore(agentDir).settings, { enabled: true });
   });
 });

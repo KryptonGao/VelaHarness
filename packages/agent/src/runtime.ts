@@ -13,13 +13,14 @@ import type { RaceTokens, RecipeExecution, RecipeRun, RecipeStageSubmission, Rec
 import type { McpCatalog, McpCatalogInput, McpServerInput, McpServerTarget, McpEnabledInput, McpProjectTrustInput, McpToolReadOnlyInput, McpStatusEvent, MemoryLoadReport } from "@vela/shared";
 import { browserUseInstructions, createBrowserTools, type BrowserReplService, type BrowserReplPermission } from "./browser-use";
 import { TurnCheckpoints, changedPaths, sharedDirectory, type TurnCheckpoint } from "./turn-checkpoints";
-import { checkpointUsage, cleanCheckpoints, defaultCheckpointPolicy } from "./checkpoint-storage";
+import { checkpointUsage, cleanCheckpoints, defaultCheckpointPolicy, deleteAllCheckpoints } from "./checkpoint-storage";
+import { CheckpointSettingsStore } from "./checkpoint-settings";
 import type { TraceRecorder } from "./trace";
 import { ConversationTraces, subscribeTracedSession } from "./runtime-tracing";
 import { SkillLibrary } from "./runtime-skills";
 import { ToolLoadout } from "./runtime-tools";
 import { RecipeSubmitOutcome, stageResponseEvidence, suspendAutomaticRecovery } from "./recipe-stage";
-import type { BranchConversationOptions, CheckpointCleanResult, CheckpointRestorePreview, CheckpointStorageUsage, CheckpointTimeline, TraceSummaryRequest, TraceUpdate } from "@vela/shared";
+import type { BranchConversationOptions, CheckpointCleanResult, CheckpointDeleteResult, CheckpointSettings, CheckpointRestorePreview, CheckpointStorageUsage, CheckpointTimeline, TraceSummaryRequest, TraceUpdate } from "@vela/shared";
 import {
   createAgentSession,
   DefaultResourceLoader,
@@ -62,6 +63,7 @@ import {
   type SkillMigrationResult,
   type ExternalSkillScan,
   type ThinkingLevel,
+  type InputPredictionInput,
   type ThinkingSummaryInput,
   type ToolActivity,
   type TranscriptMessage,
@@ -77,7 +79,7 @@ import { defaultToolNames } from "@vela/tools";
 import { getCurrentTools, clampThinkingLevel, getSupportedThinkingLevels, type Api, type Model } from "@earendil-works/pi-ai";
 import { existsSync, readdirSync } from "node:fs";
 import { randomUUID } from "node:crypto";
-import { join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import {
   countConversationActivity,
   emptyContextSegments,
@@ -104,6 +106,7 @@ import { TaskBudgetSettingsStore } from "./task-budget-settings";
 import { createTaskBudgetExtension, TaskBudgetTask } from "./task-budget";
 import { IntelligentUiSettings } from "./intelligent-ui-settings";
 import { intelligentUiInstructions } from "./intelligent-ui-prompt";
+import { browserVisualCheckNote, checksVisualWork, defaultSystemPromptProfile, intelligentUiScopeNote, usesVelaPrompt, velaPreamble, velaRules, type RuleKind, type SystemPromptProfile } from "./system-prompt";
 import { createResidentTools, residentInstructions, type ResidentToolHost } from "./resident-tools";
 import { createMemoryContextExtension } from "./memory-context";
 import { workspaceFoldersInstructions } from "./workspace-folders";
@@ -138,6 +141,7 @@ import {
 } from "./plan";
 import { QuestionManager } from "./question-manager";
 import { ThinkingSummaryGenerator } from "./thinking-summary";
+import { InputPredictionGenerator, predictionContext } from "./input-prediction";
 import { buildHandoffFacts, HandoffPackGenerator } from "./handoff-pack";
 import {
   buildSandboxRiskMessage,
@@ -215,6 +219,8 @@ export interface AgentRuntimeOptions {
   /** 激活对话的执行目录或工作区归属变化时通知宿主。 */
   onActiveCwd?: (cwd: string, hasWorkspace: boolean) => void;
   onRecipeStop?: (conversationId: string) => void;
+  /** 系统提示档位；默认 v2，可用 VELA_SYSTEM_PROMPT=v1 切回 Pi 原有基础段。 */
+  systemPromptProfile?: SystemPromptProfile;
 }
 
 interface RewindMetadata {
@@ -330,6 +336,7 @@ export class AgentRuntime {
   private readonly agentToolArgs = new Map<string, unknown>();
   private readonly questions = new QuestionManager();
   private readonly thinkingSummaries = new ThinkingSummaryGenerator();
+  private readonly inputPredictions = new InputPredictionGenerator();
   private readonly textAssist = new TextAssistService();
   private readonly handoffPacks = new HandoffPackGenerator();
   private readonly recipeGenerator = new RecipeGenerator();
@@ -366,6 +373,7 @@ export class AgentRuntime {
   private readonly memorySettings: MemorySettings;
   private readonly intelligentUiSettings: IntelligentUiSettings;
   private readonly taskBudgetSettings: TaskBudgetSettingsStore;
+  private readonly checkpointSettings: CheckpointSettingsStore;
   /** 本进程里创建或恢复为常驻 Agent 的会话；重启后由 options.resident 重新指认。 */
   private readonly residentIds = new Set<string>();
 
@@ -375,6 +383,7 @@ export class AgentRuntime {
     this.memorySettings = new MemorySettings(options.agentDir);
     this.intelligentUiSettings = new IntelligentUiSettings(options.agentDir);
     this.taskBudgetSettings = new TaskBudgetSettingsStore(options.agentDir);
+    this.checkpointSettings = new CheckpointSettingsStore(options.agentDir);
     this.skills = new SkillLibrary(options.agentDir);
     this.tools = new ToolLoadout({
       scheduledTasks: Boolean(options.scheduledTasks),
@@ -416,8 +425,8 @@ export class AgentRuntime {
     return this.activeId;
   }
 
-  getSnapshot(): SessionSnapshot {
-    const active = this.activeConversation();
+  getSnapshot(conversationId?: string): SessionSnapshot {
+    const active = conversationId ? this.requireConversation(conversationId) : this.activeConversation();
     const snapshot = active ? active.snapshot : this.createSnapshot("starting");
     return {
       ...snapshot,
@@ -521,14 +530,15 @@ export class AgentRuntime {
     return this.questions.reply(id, answer);
   }
 
-  /** 新建一个绑定 cwd 的对话并激活它。 */
-  async createConversation(cwd: string, options: { hasWorkspace?: boolean } = {}): Promise<SessionSnapshot> {
+  /** 新建一个绑定 cwd 的对话；面板可选择保留主聊天。 */
+  async createConversation(cwd: string, options: { hasWorkspace?: boolean; activate?: boolean } = {}): Promise<SessionSnapshot> {
     return this.exclusive(async () => {
       await this.ready();
       // 新对话可能沿用「上次使用」,所以先把当前对话正在用的选择记下来。
       await this.rememberActiveSelection();
       const entry = this.addEntry(cwd, options);
-      return this.startInternal(entry);
+      await this.startInternal(entry);
+      return this.getSnapshot(entry.id);
     });
   }
 
@@ -1000,7 +1010,7 @@ export class AgentRuntime {
     const preview = (index: number): CheckpointRestorePreview => {
       const point = byUser.get(users[index]!.entryId ?? "");
       const removedTurns = users.length - index;
-      if (!point) return { available: false, reason: "这一轮与上一轮在同一次运行中，没有单独的文件检查点", removedTurns, files: [] };
+      if (!point) return { available: false, reason: "这一轮没有单独的文件检查点（与上一轮同一次运行、检查点已关闭或记录已删除）", removedTurns, files: [] };
       const from = ordered.indexOf(point);
       const files = [...new Set(ordered.slice(from).flatMap(changedPaths))].sort();
       const reason = failures[from];
@@ -1108,7 +1118,55 @@ export class AgentRuntime {
     return cleanCheckpoints(join(this.options.agentDir, "checkpoints"));
   }
 
+  getCheckpointSettings(): CheckpointSettings {
+    return this.checkpointSettings.settings;
+  }
+
+  /** Turn file checkpoints on or off for turns that start from now on; existing records stay until deleted. */
+  setCheckpointSettings(raw: unknown): CheckpointSettings {
+    return this.checkpointSettings.save(raw);
+  }
+
+  /** Delete every finished checkpoint record except those of conversations that are replying right now. */
+  deleteCheckpointStorage(): Promise<CheckpointCleanResult> {
+    const busy = new Set<string>();
+    for (const entry of this.conversations.values()) {
+      if (entry.driving || entry.session?.isStreaming || entry.control?.list().some(agent => agent.kind !== "root" && isAgentBusy(agent.status))) busy.add(entry.id);
+    }
+    return deleteAllCheckpoints(join(this.options.agentDir, "checkpoints"), busy);
+  }
+
+  /**
+   * Delete a conversation's checkpoint records from its first turn through `turnIndex`. Only a prefix can go: later turns'
+   * records stay complete, so returning to a turn after `turnIndex` still undoes every file change on the way.
+   */
+  async deleteCheckpoints(conversationId: string, turnIndex: number): Promise<CheckpointDeleteResult> {
+    return this.exclusive(async () => {
+      await this.ready();
+      const entry = this.conversations.get(conversationId);
+      if (!entry) throw new Error("对话不存在或已结束");
+      if (entry.driving || entry.session?.isStreaming || entry.control?.list().some(agent => agent.kind !== "root" && isAgentBusy(agent.status))) {
+        throw new Error("回复进行中，完成后才能删除检查点记录");
+      }
+      const manager = entry.sessionManager ?? (entry.sessionFile ? SessionManager.open(entry.sessionFile, this.sessionDir(), entry.snapshot.cwd) : null);
+      const users = manager ? this.visibleUserSources(manager) : [];
+      const last = users[turnIndex];
+      if (!manager || !last?.entryId) throw new Error("找不到要删除记录的检查点");
+      const branch = manager.getBranch();
+      const end = branch.findIndex(item => item.id === last.entryId);
+      const reachable = new Set(branch.slice(0, end + 1).map(item => item.id));
+      const checkpoints = this.checkpoints(entry);
+      const selected = (await checkpoints.list()).filter(point => point.after && point.userEntryId && reachable.has(point.userEntryId));
+      if (selected.length === 0) return { removedPoints: 0, freedBytes: 0 };
+      const before = await this.getCheckpointStorage();
+      await checkpoints.remove(selected);
+      const after = await this.getCheckpointStorage();
+      return { removedPoints: selected.length, freedBytes: Math.max(0, before.bytes - after.bytes) };
+    });
+  }
+
   private async finishLatestCheckpoint(entry: Conversation) {
+    if (!this.checkpointSettings.settings.enabled) return;
     if (entry.control?.list().some(agent => agent.kind !== "root" && isAgentBusy(agent.status))) return;
     const checkpoints = this.checkpoints(entry);
     const branch = entry.sessionManager?.getBranch() ?? [];
@@ -1440,22 +1498,22 @@ export class AgentRuntime {
     }
   }
 
-  selectModel(provider: string, id: string): Promise<SessionSnapshot> {
+  selectModel(provider: string, id: string, conversationId?: string): Promise<SessionSnapshot> {
     return this.exclusive(async () => {
       const directory = await this.readyDirectory();
       const model = directory.requireAvailable(provider, id);
-      const level = clampToModel(model, this.liveThinking(directory));
-      await this.applyModel(model, level);
+      const level = clampToModel(model, this.liveThinking(directory, conversationId));
+      await this.applyModel(model, level, conversationId);
       await directory.rememberLastUsed(model.provider, model.id, level);
-      return this.getSnapshot();
+      return this.getSnapshot(conversationId);
     });
   }
 
-  setThinkingLevel(level: ThinkingLevel): Promise<SessionSnapshot> {
+  setThinkingLevel(level: ThinkingLevel, conversationId?: string): Promise<SessionSnapshot> {
     return this.exclusive(async () => {
       if (!isThinkingLevel(level)) throw new Error("不支持这个思考强度");
       const directory = await this.readyDirectory();
-      const active = this.activeConversation();
+      const active = conversationId ? this.requireConversation(conversationId) : this.activeConversation();
       if (active?.recipeWorkflowActive) throw new Error("配方执行期间不能更换思考强度");
       const model = active?.session?.model ?? directory.modelForSelection();
       const next = model ? clampToModel(model, level) : level;
@@ -1463,7 +1521,7 @@ export class AgentRuntime {
       if (active?.recipeExecution) active.recipeExecution = { ...active.recipeExecution, thinkingLevel: next };
       if (active) this.syncFromSession(active);
       if (model) await directory.rememberLastUsed(model.provider, model.id, next);
-      return this.getSnapshot();
+      return this.getSnapshot(conversationId);
     });
   }
 
@@ -1674,6 +1732,24 @@ export class AgentRuntime {
     if (!model || !directory.isAvailable(model)) throw new Error("先选择一个已登录或已配置密钥的模型");
     return this.thinkingSummaries.generate(directory.runtime, model, input, (request) => {
       this.recordSummaryUsage(input.conversationId, request);
+    });
+  }
+
+  /**
+   * 预测用户的下一条输入。只读：不修改对话；对话正在运行或末条不是助手回复时返回空串。
+   * 使用指定的预测模型，未指定时用对话当前模型。
+   */
+  async predictInput(input: InputPredictionInput): Promise<string> {
+    const entry = this.conversations.get(input.conversationId);
+    if (!entry) throw new Error("对话不存在或已结束");
+    if (entry.driving || entry.session?.isStreaming) return "";
+    const context = predictionContext(this.getMessages(entry.id));
+    if (!context) return "";
+    const directory = await this.readyDirectory();
+    const model = input.model ? directory.requireAvailable(input.model.provider, input.model.id) : entry.session?.model;
+    if (!model || !directory.isAvailable(model)) throw new Error("先选择一个已登录或已配置密钥的模型");
+    return this.inputPredictions.generate(directory.runtime, model, input, context, (request) => {
+      this.recordSummaryUsage(entry.id, request);
     });
   }
 
@@ -2146,6 +2222,7 @@ export class AgentRuntime {
     closing.push(this.pluginManager.dispose(), this.oauthMcp.dispose());
     void Promise.resolve().then(() => this.options.browserRepl?.dispose?.()).catch(() => {});
     this.thinkingSummaries.dispose();
+    this.inputPredictions.dispose();
     this.textAssist.dispose();
     this.handoffPacks.dispose();
     this.recipeGenerator.dispose();
@@ -2291,6 +2368,12 @@ export class AgentRuntime {
     }
   }
 
+  private requireConversation(id: string): Conversation {
+    const entry = this.conversations.get(id);
+    if (!entry) throw new Error("对话不存在或已结束");
+    return entry;
+  }
+
   private activeConversation(): Conversation | null {
     return this.activeId ? this.conversations.get(this.activeId) ?? null : null;
   }
@@ -2397,7 +2480,9 @@ export class AgentRuntime {
         agentDir: this.options.agentDir,
         settingsManager,
         skillsOverride: (base) => this.skills.withoutDisabled(base),
-        extensionFactories: [{
+        ...this.preambleOverride(),
+        ...this.contextFilesOverride(entry),
+        extensionFactories: [...this.rulesExtension(() => this.isResident(entry.id) ? "resident" : entry.snapshot.mode), {
           name: "vela-mode",
           hidden: true,
           factory: createModeExtension(() => ({
@@ -2413,7 +2498,8 @@ export class AgentRuntime {
           hidden: true,
           factory: ((pi) => { pi.on("before_agent_start", event => {
             // 每轮读取当前偏好，设置切换后下一轮立即生效。
-            const extra = intelligentUiInstructions(this.intelligentUiSettings.preference, entry.snapshot.mode, { microApps: this.intelligentUiSettings.microApps });
+            const extra = intelligentUiInstructions(this.intelligentUiSettings.preference, entry.snapshot.mode, { microApps: this.intelligentUiSettings.microApps,
+              scopeNote: checksVisualWork(this.promptProfile) ? intelligentUiScopeNote : undefined });
             if (!extra) return;
             const current = event.systemPromptOptions.appendSystemPrompt.trim();
             event.systemPromptOptions.appendSystemPrompt = current ? `${current}\n\n${extra}` : extra;
@@ -2439,7 +2525,7 @@ export class AgentRuntime {
             ...base,
             ...(instructions ? [instructions] : []),
             ...(this.options.scheduledTasks ? [scheduledTaskInstructions] : []),
-            ...(this.options.browserRepl ? [browserUseInstructions] : []),
+            ...(this.options.browserRepl ? [this.browserInstructions()] : []),
           ],
       });
       await resourceLoader.reload();
@@ -2565,8 +2651,8 @@ export class AgentRuntime {
     await this.applyModel(chosen, thinkingLevel);
   }
 
-  private async applyModel(model: Model<Api>, thinkingLevel: ThinkingLevel): Promise<void> {
-    const entry = this.activeConversation();
+  private async applyModel(model: Model<Api>, thinkingLevel: ThinkingLevel, conversationId?: string): Promise<void> {
+    const entry = conversationId ? this.requireConversation(conversationId) : this.activeConversation();
     const session = entry?.session;
     if (!entry || !session) return;
     if (entry.recipeWorkflowActive) throw new Error("配方执行期间不能更换模型或思考强度");
@@ -2930,8 +3016,9 @@ export class AgentRuntime {
   }
 
   /** 当前对话自己的思考强度;没有会话时用新建对话的默认值。 */
-  private liveThinking(directory: ModelDirectory): ThinkingLevel {
-    const sessionLevel = this.activeConversation()?.session?.thinkingLevel;
+  private liveThinking(directory: ModelDirectory, conversationId?: string): ThinkingLevel {
+    const entry = conversationId ? this.requireConversation(conversationId) : this.activeConversation();
+    const sessionLevel = entry?.session?.thinkingLevel;
     if (typeof sessionLevel === "string" && isThinkingLevel(sessionLevel)) return sessionLevel;
     return directory.selection.thinkingLevel;
   }
@@ -3100,7 +3187,7 @@ export class AgentRuntime {
       updatedAt: Date.now(),
     });
     try {
-      if (!isPlanExecutionPrompt(text)) {
+      if (!isPlanExecutionPrompt(text) && this.checkpointSettings.settings.enabled) {
         checkpoint = await this.checkpoints(entry).begin(session.sessionManager.getLeafId(), structuredClone({
           plans: entry.plans, latestProposedPlanId: entry.latestProposedPlanId,
           executionPlans: entry.executionPlans, activeExecutionPlanId: entry.activeExecutionPlanId,
@@ -3189,6 +3276,8 @@ export class AgentRuntime {
       noPromptTemplates: true,
       noThemes: true,
       noExtensions: true,
+      ...this.preambleOverride(),
+      ...this.contextFilesOverride(entry),
       extensionFactories: [
         ...(input.kind === "explore" ? [{ name: "vela-explore", hidden: true, factory: createExploreGuardExtension() }] : []),
         { name: "vela-task-budget", hidden: true, factory: createTaskBudgetExtension(() => entry.budget?.exhausted === true) },
@@ -3197,11 +3286,14 @@ export class AgentRuntime {
         ...mcp.factories(),
       ],
       appendSystemPromptOverride: (base) => [
+        ...(usesVelaPrompt(this.promptProfile) ? [velaRules({ kind: input.kind, imageInput: model.input.includes("image"),
+          visualCheck: checksVisualWork(this.promptProfile),
+          tools: [...childNativeTools(), ...(this.options.browserRepl && input.kind === "general" ? ["browser_repl"] : [])] })] : []),
         ...base,
         ...(instructions ? [instructions] : []),
         agentKindPrompt(input.kind),
         ...(workspaceFoldersInstructions(cwd, this.options.workspaceFolders?.(cwd) ?? []) ?? []),
-        ...(this.options.browserRepl && input.kind === "general" ? [browserUseInstructions] : []),
+        ...(this.options.browserRepl && input.kind === "general" ? [this.browserInstructions()] : []),
       ],
     });
     await resourceLoader.reload();
@@ -3324,6 +3416,44 @@ export class AgentRuntime {
     } catch (error) {
       log.debug("subagent message delivery failed", error);
     }
+  }
+
+  private get promptProfile(): SystemPromptProfile {
+    return this.options.systemPromptProfile ?? defaultSystemPromptProfile;
+  }
+
+  /**
+   * 无工作区的对话不读取 cwd 及其上级目录里的 AGENTS.md / CLAUDE.md，
+   * 只保留 Vela 主目录（agentDir）下的全局说明，避免把无关项目的规则带进对话。
+   */
+  private contextFilesOverride(entry: Conversation): Pick<ConstructorParameters<typeof DefaultResourceLoader>[0], "agentsFilesOverride"> {
+    if (entry.hasWorkspace) return {};
+    const agentDir = resolve(this.options.agentDir);
+    return { agentsFilesOverride: base => ({ agentsFiles: base.agentsFiles.filter(file => dirname(resolve(file.path)) === agentDir) }) };
+  }
+
+  /** v2 起用 Vela 的身份句替换 Pi 的基础段；工作区或资料目录的 SYSTEM.md 仍优先。 */
+  private preambleOverride(): { systemPromptOverride?: (base: string | undefined) => string | undefined } {
+    return usesVelaPrompt(this.promptProfile) ? { systemPromptOverride: base => base ?? velaPreamble } : {};
+  }
+
+  /**
+   * 主会话的工作规则按当前模式、工具与模型每轮生成，放在 addendum 最前面。
+   * 模式切换不会重载资源，所以不能写进 appendSystemPromptOverride。
+   */
+  private rulesExtension(kind: () => RuleKind): { name: string; hidden: true; factory: ExtensionFactory }[] {
+    if (!usesVelaPrompt(this.promptProfile)) return [];
+    const visualCheck = checksVisualWork(this.promptProfile);
+    return [{ name: "vela-rules", hidden: true, factory: ((pi) => { pi.on("before_agent_start", (event, ctx) => {
+      const rules = velaRules({ kind: kind(), tools: event.systemPromptOptions.selectedTools,
+        imageInput: ctx.model?.input.includes("image") ?? false, visualCheck });
+      const current = event.systemPromptOptions.appendSystemPrompt.trim();
+      event.systemPromptOptions.appendSystemPrompt = current ? `${rules}\n\n${current}` : rules;
+    }); }) as ExtensionFactory }];
+  }
+
+  private browserInstructions(): string {
+    return checksVisualWork(this.promptProfile) ? `${browserUseInstructions}\n${browserVisualCheckNote}` : browserUseInstructions;
   }
 
   private browserTools(entry: Conversation, agentId: string, kind?: SubagentKind): ToolDefinition[] {

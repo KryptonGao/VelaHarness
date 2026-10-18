@@ -145,6 +145,8 @@ function TurnProgressHeader({ startedAt }: { startedAt: number }) {
 }
 
 export interface ChatViewProps {
+  /** 工作面板内复用消息与输入框，省去窗口级操作。 */
+  embedded?: boolean;
   messages: UiMessage[];
   state: AppState | null;
   sendError: string | null;
@@ -164,6 +166,10 @@ export interface ChatViewProps {
   /** 在输入框模型列表中隐藏的模型，key 为 `provider/id`。 */
   hiddenModels?: string[];
   sendButtonIcon?: SendButtonIcon;
+  /** 输入预测：回复结束后在空输入框里以灰色显示预测内容。 */
+  predictionEnabled?: boolean;
+  /** 预测使用的模型；null 表示跟随当前对话模型。 */
+  predictionModel?: import("@vela/shared").ThinkingSummaryModel | null;
   onSend: (text: string, images?: import("@vela/shared").ImageAttachment[], deliverAs?: import("@vela/shared").RuntimeInstructionMode) => Promise<void>;
   /** 撤销一条还没被模型消费的排队/调整指令。 */
   onRemoveInstruction: (instructionId: string) => Promise<void>;
@@ -191,6 +197,7 @@ export interface ChatViewProps {
 }
 
 export function ChatView({
+  embedded = false,
   messages,
   state,
   sendError,
@@ -209,6 +216,8 @@ export function ChatView({
   thinkingSummaries,
   hiddenModels = [],
   sendButtonIcon = "paper-plane",
+  predictionEnabled = false,
+  predictionModel = null,
   onSend,
   onRemoveInstruction,
   onEdit,
@@ -248,6 +257,9 @@ export function ChatView({
   const pendingInteraction = Boolean(project.approval) || messages.some(message => message.tools.some(tool => getQuestion(tool.id)));
   const session = state?.session;
   const streaming = session?.status === "streaming";
+  // 末条是已结束的助手回复时，它的 id 就是这一轮预测的依据；其余情况不预测。
+  const lastMessage = messages[messages.length - 1];
+  const predictionKey = lastMessage?.role === "assistant" && !streaming && lastMessage.text.trim() ? `${lastMessage.id}:${lastMessage.text.length}` : null;
   const activeAssistantId = streaming
     ? [...messages].reverse().find((message) => message.role === "assistant")?.id
     : undefined;
@@ -544,10 +556,10 @@ export function ChatView({
   return (
     <QuestionContext.Provider value={question}>
     <ThinkingSummaryContext.Provider value={thinkingSummaries ?? null}>
-    <main className="main-chat-view" data-tool-display={toolDisplay} tabIndex={-1}>
+    <main className={`main-chat-view${embedded ? " panel-chat-view" : ""}`} data-tool-display={toolDisplay} tabIndex={-1}>
       <header className="main-chat-header">
         <div className="chat-title-group">
-          {leftCollapsed ? (
+          {!embedded && leftCollapsed ? (
             <button
               className="view-icon-btn"
               type="button"
@@ -569,13 +581,13 @@ export function ChatView({
           ) : <span className="chat-active-title" title={title}>{title}</span>}
         </div>
         <div className="chat-header-actions">
-          {project.workspace?.current ? (
+          {!embedded && project.workspace?.current ? (
             <span className="chat-project-context" title={project.workspace.current}>
               <span className="chat-project-name">{project.workspace.current.split(/[\\/]/).filter(Boolean).pop()}</span>
               {project.git?.branch ? <span className="chat-project-branch">{project.git.branch}</span> : null}
             </span>
           ) : null}
-          <OpenInAppButton path={project.workspace?.current ?? null} />
+          {!embedded ? <OpenInAppButton path={project.workspace?.current ?? null} /> : null}
           {subagents.length > 0 ? (
             <button
               className={`chat-agents-button${activeAgentId ? " active" : ""}`}
@@ -622,7 +634,7 @@ export function ChatView({
             </button>
           ) : null}
           <ChatActionsMenu key={state?.activeConversationId ?? "empty"} messages={messages} streaming={Boolean(streaming)} />
-          <button
+          {!embedded ? <button
             className={`view-icon-btn${rightCollapsed ? "" : " active"}`}
             type="button"
             title={`${rightLabel} (${mod}J)`}
@@ -631,11 +643,11 @@ export function ChatView({
             onClick={onToggleRight}
           >
             {floatingInfo ? <EnvironmentInfoIcon /> : <PanelIcon />}
-          </button>
+          </button> : null}
         </div>
       </header>
 
-      <ConversationViewTabs view={view} showVersionControl={hasWorkspace} onChange={setView} />
+      <ConversationViewTabs view={view} showVersionControl={hasWorkspace && !embedded} onChange={setView} />
       {view === "trace" ? <TraceView key={viewKey} state={state} onConversation={() => setView("chat")} onAbort={onAbort} pendingInteraction={pendingInteraction} /> : null}
       {view === "usage" ? <UsageView key={viewKey} conversationId={state?.activeConversationId ?? null} providers={models.catalog?.providers ?? []} /> : null}
       {view === "budget" ? <TaskBudgetTab key={viewKey} conversationId={state?.activeConversationId ?? null} budget={session?.taskBudget} /> : null}
@@ -808,13 +820,14 @@ export function ChatView({
       </button>
       <TaskBudgetBanner budget={session?.taskBudget} conversationId={state?.activeConversationId} />
       <Composer
+        embedded={embedded}
         sandboxMode={session?.sandboxMode}
         ref={dockRef}
         disabled={session?.status !== "ready" && session?.status !== "streaming"}
         streaming={Boolean(streaming)}
         platform={platform}
         instructions={state?.session.pendingInstructions ?? []}
-        showSetupControls={messages.length === 0 && !streaming && (state?.context.turnCount ?? 0) === 0}
+        showSetupControls={!embedded && messages.length === 0 && !streaming && (state?.context.turnCount ?? 0) === 0}
         model={session?.model}
         modelProvider={session?.modelProvider ?? null}
         modelId={session?.modelId ?? null}
@@ -823,6 +836,10 @@ export function ChatView({
         thinkingLevels={session?.thinkingLevels ?? ["off"]}
         hiddenModels={hiddenModels}
         sendButtonIcon={sendButtonIcon}
+        predictionEnabled={predictionEnabled}
+        predictionModel={predictionModel}
+        predictionKey={predictionKey}
+        conversationId={state?.activeConversationId ?? null}
         models={models}
         mode={session?.mode ?? "agent"}
         sendError={sendError}

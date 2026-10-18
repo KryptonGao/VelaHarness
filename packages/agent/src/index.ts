@@ -41,6 +41,7 @@ export { OAuthMCPManager } from "./mcp/oauth";
 export { PluginMCPManager } from "./mcp/manager";
 export { MemoryCredentialStore, type CredentialStore } from "./mcp/credentials";
 export { parseThinkingSummaryInput } from "./thinking-summary";
+export { parseInputPredictionInput } from "./input-prediction";
 export {
   HandoffPackGenerator,
   buildHandoffFacts,
@@ -54,4 +55,5 @@ export {
 } from "./handoff-pack";
 export { parseAiTextRequest, TextAssistService, parseGeneratedText, splitDiff } from "./text-assist";
 export { createBrowserTools, browserToolNames, browserUseInstructions, type BrowserReplService, type BrowserReplPermission, type BrowserReplContent } from "./browser-use";
+export { systemPromptProfileFrom, systemPromptProfiles, type SystemPromptProfile } from "./system-prompt";
 export { createResidentTools, residentInstructions, residentToolNames, type ResidentToolHost, type ResidentInboxSummary, type ResidentDelegateResult } from "./resident-tools";

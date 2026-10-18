@@ -3592,8 +3592,28 @@ button.tool-compact-line:hover .tool-compact-cmd {
 .input-textarea.with-skill { min-height: 28px; }
 .input-textarea::placeholder { color: var(--text-muted); }
 .input-textarea:disabled { opacity: 0.6; }
+.input-textarea.with-prediction { padding-right: 44px; }
+.composer-prediction-hint {
+  position: absolute;
+  right: 4px;
+  top: 0;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  pointer-events: none;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+.composer-prediction-hint::before {
+  content: "";
+  position: absolute;
+  inset: 13px -5px 13px -5px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 5px;
+}
 
 .composer-entry {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -7098,6 +7118,10 @@ button.settings-radio:hover:not(:disabled) { background: var(--bg-hover); }
   color: var(--text-muted);
 }
 .start-options {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -7140,6 +7164,29 @@ button.settings-radio:hover:not(:disabled) { background: var(--bg-hover); }
 }
 .start-option-title { font-size: 15px; font-weight: 550; }
 .start-option-description { font-size: 13px; color: var(--text-muted); line-height: 1.45; }
+
+.start-error { margin: 0; color: var(--danger); font-size: 13px; line-height: 1.5; }
+.panel-chat-container, .panel-chat-conversation {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+.panel-chat-conversation[hidden] { display: none; }
+.panel-chat-view { min-height: 0; --paper-left-radius: 0px; --paper-right-radius: 0px; }
+.panel-chat-view::before, .panel-chat-view::after { display: none; }
+.panel-chat-view .main-chat-header { height: 42px; min-height: 42px; padding: 0 16px; -webkit-app-region: no-drag; }
+.platform-darwin.left-collapsed .panel-chat-view .main-chat-header { padding-left: 16px; }
+.panel-chat-view .conversation-view-tabs { padding-inline: 12px; }
+.panel-chat-plan-toolbar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; font-size: 13px; }
+@container chat (max-width: 520px) {
+  .panel-chat-view .dock-controls-row { flex-direction: column; align-items: stretch; }
+  .panel-chat-view .dock-controls-left { flex: none; }
+  .panel-chat-view .dock-controls-right { flex: none; width: 100%; }
+  .panel-chat-view .model-controls { flex: 1; }
+  .panel-chat-view .dock-popover { max-width: calc(100cqi - 64px); }
+}
 
 /* ---------- 集成终端 ---------- */
 

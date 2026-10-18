@@ -1,114 +1,139 @@
 {
-  "version": "1.1.8",
+  "version": "1.1.9",
   "locales": {
     "en": {
-      "summary": "Vela 1.1.8 brings the workspace Changes panel onto the same review page as turn changes, and keeps large build folders from crowding source files out of the file list.",
+      "summary": "Vela 1.1.9 adds input prediction, lets you start independent chats inside the workbench panel, gives you control over file checkpoints, and moves the main conversation to a new Vela-specific system prompt.",
       "highlights": [
         {
-          "title": "Unified Changes review",
-          "body": "The Changes panel now uses the same review page as turn changes: a filterable file tree beside side-by-side diffs."
+          "title": "Input prediction",
+          "body": "After each reply, Vela can predict what you may type next and show it in gray in the empty message box. Tab fills it in; Enter on an empty box sends it."
         },
         {
-          "title": "Steadier reading",
-          "body": "Refreshing a diff no longer sends you back to the top while the set of changed files stays the same."
+          "title": "Chats in the workbench",
+          "body": "Start an independent chat in a workbench tab beside your files, terminal and diffs, each with its own session and input."
         },
         {
-          "title": "Full-width new files",
-          "body": "A newly created file's diff now fills the whole width instead of leaving half of it empty."
+          "title": "Checkpoint controls",
+          "body": "Turn file checkpoints off, delete every record from Settings → Storage, or delete a conversation's earlier records from the checkpoint timeline."
+        },
+        {
+          "title": "New system prompt",
+          "body": "The main conversation and sub-agents now use a Vela-specific system prompt by default. Set VELA_SYSTEM_PROMPT=v1 to switch back."
         }
       ],
       "improvements": [
-        "Git file headers like diff --git and index are hidden in the review page.",
-        "Untracked build folders such as Xcode DerivedData no longer push source folders out of the file list.",
-        "The review page's title and empty state now match the workspace Changes panel."
+        "Input prediction can follow the current chat or use a separate, faster model.",
+        "New workbench tabs show a pending state and any error while they start.",
+        "The skill menu works in more than one composer at a time.",
+        "Turns without a checkpoint now say why: shared run, checkpoints off, or record deleted."
       ]
     },
     "zh-CN": {
-      "summary": "Vela 1.1.8 让工作区「更改」面板改用与本轮变更相同的审查页面，并避免体积庞大的构建目录挤掉文件列表里的源码。",
+      "summary": "Vela 1.1.9 新增输入预测，支持在工作面板里开启独立对话，让你掌控文件检查点，并让主对话默认使用 Vela 专属的系统提示词。",
       "highlights": [
         {
-          "title": "统一的更改审查",
-          "body": "「更改」面板现在使用与本轮变更相同的审查页面：可筛选的文件树，配合并排差异。"
+          "title": "输入预测",
+          "body": "每轮回复结束后，Vela 可以预测你接下来可能输入的内容，并以灰色显示在空输入框里。按 Tab 填入，输入框为空时按 Enter 直接发送。"
         },
         {
-          "title": "阅读更稳定",
-          "body": "只要变更文件的集合不变，刷新差异不会再把你带回顶部。"
+          "title": "工作面板里的聊天",
+          "body": "在工作面板的标签页里开启独立对话，与文件、终端、差异并排，每个标签拥有各自的会话和输入。"
         },
         {
-          "title": "新文件整幅显示",
-          "body": "新建文件的差异现在铺满整个宽度，不再留下一半空白。"
+          "title": "检查点可控",
+          "body": "可以关闭文件检查点，在设置 → 存储里删除全部记录，也可以在检查点时间轴里删除某个对话较早的记录。"
+        },
+        {
+          "title": "全新系统提示词",
+          "body": "主对话和子代理现在默认使用 Vela 专属的系统提示词；设置 VELA_SYSTEM_PROMPT=v1 即可切回旧版。"
         }
       ],
       "improvements": [
-        "审查页面不再显示 diff --git、index 等 Git 文件头。",
-        "Xcode DerivedData 等未跟踪的构建目录不再把源码目录挤出文件列表。",
-        "审查页面的标题和空状态已与工作区「更改」面板匹配。"
+        "输入预测可以跟随当前对话，也可以指定一个更快的独立模型。",
+        "新建工作面板标签时会显示等待状态，出错时给出提示。",
+        "技能菜单可以在多个输入框中同时使用。",
+        "没有检查点的轮次现在会说明原因：同一次运行、检查点已关闭或记录已删除。"
       ]
     },
     "zh-TW": {
-      "summary": "Vela 1.1.8 讓工作區「變更」面板改用與本輪變更相同的審查頁面，並避免體積龐大的建置目錄擠掉檔案列表裡的原始碼。",
+      "summary": "Vela 1.1.9 新增輸入預測，支援在工作面板中開啟獨立對話，讓你掌控檔案檢查點，並讓主對話預設使用 Vela 專屬的系統提示詞。",
       "highlights": [
         {
-          "title": "統一的變更審查",
-          "body": "「變更」面板現在使用與本輪變更相同的審查頁面：可篩選的檔案樹，搭配並排差異。"
+          "title": "輸入預測",
+          "body": "每輪回覆結束後，Vela 可以預測你接下來可能輸入的內容，並以灰色顯示在空輸入框裡。按 Tab 填入，輸入框為空時按 Enter 直接送出。"
         },
         {
-          "title": "閱讀更穩定",
-          "body": "只要變更檔案的集合不變，重新整理差異就不會再把你帶回頂部。"
+          "title": "工作面板裡的聊天",
+          "body": "在工作面板的分頁裡開啟獨立對話，與檔案、終端機、差異並排，每個分頁擁有各自的會話與輸入。"
         },
         {
-          "title": "新檔案整幅顯示",
-          "body": "新建檔案的差異現在鋪滿整個寬度，不再留下一半空白。"
+          "title": "檢查點可控",
+          "body": "可以關閉檔案檢查點，在設定 → 儲存裡刪除全部記錄，也可以在檢查點時間軸裡刪除某個對話較早的記錄。"
+        },
+        {
+          "title": "全新系統提示詞",
+          "body": "主對話與子代理現在預設使用 Vela 專屬的系統提示詞；設定 VELA_SYSTEM_PROMPT=v1 即可切回舊版。"
         }
       ],
       "improvements": [
-        "審查頁面不再顯示 diff --git、index 等 Git 檔案標頭。",
-        "Xcode DerivedData 等未追蹤的建置目錄不再把原始碼目錄擠出檔案列表。",
-        "審查頁面的標題與空狀態已與工作區「變更」面板相符。"
+        "輸入預測可以跟隨目前對話，也可以指定一個更快的獨立模型。",
+        "新建工作面板分頁時會顯示等待狀態，出錯時給出提示。",
+        "技能選單可以在多個輸入框中同時使用。",
+        "沒有檢查點的輪次現在會說明原因：同一次執行、檢查點已關閉或記錄已刪除。"
       ]
     },
     "ja": {
-      "summary": "Vela 1.1.8 では、ワークスペースの「変更」パネルがターンの変更と同じレビュー画面になりました。大きなビルドフォルダがファイル一覧のソースを押し出すこともなくなります。",
+      "summary": "Vela 1.1.9 では入力予測を追加し、ワークベンチパネルで独立したチャットを開始できるようになりました。ファイルのチェックポイントを管理でき、メイン会話は Vela 専用のシステムプロンプトを既定で使います。",
       "highlights": [
         {
-          "title": "統一された変更レビュー",
-          "body": "「変更」パネルがターンの変更と同じレビュー画面になり、絞り込めるファイルツリーと左右比較の差分で確認できます。"
+          "title": "入力予測",
+          "body": "返信のたびに、次に入力しそうな内容を予測して空の入力欄にグレーで表示します。Tab で入力欄に反映し、空の状態で Enter を押すとそのまま送信します。"
         },
         {
-          "title": "読みやすさの向上",
-          "body": "変更ファイルの顔ぶれが同じなら、差分を更新しても先頭に戻されなくなりました。"
+          "title": "ワークベンチ内のチャット",
+          "body": "ファイル、ターミナル、差分と並べて、ワークベンチのタブで独立したチャットを開始できます。タブごとにセッションと入力が分かれます。"
         },
         {
-          "title": "新規ファイルを全幅表示",
-          "body": "新規作成ファイルの差分が、半分空白のままにならず全幅で表示されます。"
+          "title": "チェックポイントの管理",
+          "body": "ファイルのチェックポイントをオフにしたり、設定 → ストレージで全記録を削除したり、チェックポイントのタイムラインから会話の古い記録を削除したりできます。"
+        },
+        {
+          "title": "新しいシステムプロンプト",
+          "body": "メイン会話とサブエージェントは、既定で Vela 専用のシステムプロンプトを使います。VELA_SYSTEM_PROMPT=v1 を設定すると元に戻せます。"
         }
       ],
       "improvements": [
-        "レビュー画面では diff --git や index などの Git ファイルヘッダを表示しません。",
-        "Xcode の DerivedData など未追跡のビルドフォルダが、ファイル一覧からソースフォルダを押し出さなくなりました。",
-        "レビュー画面のタイトルと空の状態を、ワークスペースの「変更」パネル向けに調整しました。"
+        "入力予測は現在の会話のモデルに従うほか、より高速な別のモデルも指定できます。",
+        "新しいワークベンチタブは、開始中の状態とエラーを表示します。",
+        "スキルメニューを複数の入力欄で同時に使えるようになりました。",
+        "チェックポイントのないターンには、同じ実行内・チェックポイントがオフ・記録を削除済み、といった理由が表示されます。"
       ]
     },
     "ko": {
-      "summary": "Vela 1.1.8에서는 작업 공간의 '변경 사항' 패널이 턴 변경 사항과 같은 검토 화면을 사용합니다. 큰 빌드 폴더가 파일 목록에서 소스를 밀어내는 문제도 해결했습니다.",
+      "summary": "Vela 1.1.9에서는 입력 예측을 추가하고, 워크벤치 패널에서 독립된 채팅을 시작할 수 있습니다. 파일 체크포인트를 직접 관리할 수 있으며, 메인 대화는 기본으로 Vela 전용 시스템 프롬프트를 사용합니다.",
       "highlights": [
         {
-          "title": "통합된 변경 사항 검토",
-          "body": "'변경 사항' 패널이 턴 변경 사항과 같은 검토 화면을 사용하며, 필터링되는 파일 트리와 나란히 보는 diff를 제공합니다."
+          "title": "입력 예측",
+          "body": "답변이 끝날 때마다 다음에 입력할 내용을 예측해 빈 입력창에 회색으로 보여 줍니다. Tab으로 채우고, 비어 있는 상태에서 Enter를 누르면 그대로 보냅니다."
         },
         {
-          "title": "더 안정적인 읽기",
-          "body": "변경된 파일 구성이 같다면 diff를 새로 고쳐도 맨 위로 되돌아가지 않습니다."
+          "title": "워크벤치 안의 채팅",
+          "body": "파일, 터미널, diff와 나란히 워크벤치 탭에서 독립된 채팅을 시작할 수 있으며, 탭마다 세션과 입력이 따로 유지됩니다."
         },
         {
-          "title": "새 파일 전체 너비 표시",
-          "body": "새로 만든 파일의 diff가 절반이 빈 채로 남지 않고 전체 너비로 표시됩니다."
+          "title": "체크포인트 관리",
+          "body": "파일 체크포인트를 끄거나, 설정 → 저장소에서 모든 기록을 삭제하거나, 체크포인트 타임라인에서 대화의 이전 기록을 삭제할 수 있습니다."
+        },
+        {
+          "title": "새 시스템 프롬프트",
+          "body": "메인 대화와 서브 에이전트가 기본으로 Vela 전용 시스템 프롬프트를 사용합니다. VELA_SYSTEM_PROMPT=v1로 설정하면 이전 방식으로 돌아갑니다."
         }
       ],
       "improvements": [
-        "검토 화면에서 diff --git, index 같은 Git 파일 헤더를 숨깁니다.",
-        "Xcode DerivedData 같은 추적되지 않는 빌드 폴더가 파일 목록에서 소스 폴더를 밀어내지 않습니다.",
-        "검토 화면의 제목과 빈 상태를 작업 공간 '변경 사항' 패널에 맞췄습니다."
+        "입력 예측은 현재 대화의 모델을 따르거나, 더 빠른 별도 모델을 지정할 수 있습니다.",
+        "새 워크벤치 탭이 시작되는 동안 대기 상태와 오류를 표시합니다.",
+        "스킬 메뉴를 여러 입력창에서 동시에 사용할 수 있습니다.",
+        "체크포인트가 없는 턴은 같은 실행 안, 체크포인트 꺼짐, 기록 삭제됨 같은 이유를 알려 줍니다."
       ]
     }
   }

@@ -1,4 +1,4 @@
-import { AgentRuntime, parseThinkingSummaryInput, type RuntimeEvent } from "@vela/agent";
+import { AgentRuntime, parseInputPredictionInput, parseThinkingSummaryInput, type RuntimeEvent } from "@vela/agent";
 import {
   IpcChannel,
   agentControlActions,
@@ -71,7 +71,7 @@ export class SessionHost {
   }
 
   register(): void {
-    ipcMain.handle(IpcChannel.getState, () => this.currentState());
+    ipcMain.handle(IpcChannel.getState, (_event, rawId: unknown) => this.currentState(parseOptionalConversationId(rawId)));
     ipcMain.handle(IpcChannel.prompt, async (_event, raw: unknown) => {
       let conversationId = this.runtime.activeConversationId;
       try {
@@ -129,7 +129,10 @@ export class SessionHost {
       }
       return this.currentState();
     });
-    ipcMain.handle(IpcChannel.sessionCreate, async (_event, rawCwd: unknown) => {
+    ipcMain.handle(IpcChannel.sessionCreate, async (_event, rawCwd: unknown, rawOptions: unknown) => {
+      if (rawOptions !== undefined && (!rawOptions || typeof rawOptions !== "object" ||
+        ("activate" in rawOptions && typeof rawOptions.activate !== "boolean"))) throw new Error("新建对话参数不正确");
+      const activate = (rawOptions as { activate?: boolean } | undefined)?.activate !== false;
       let cwd = this.hooks.currentCwd();
       if (rawCwd !== undefined) {
         if (typeof rawCwd !== "string" ||
@@ -139,8 +142,9 @@ export class SessionHost {
         cwd = rawCwd;
       }
       const hasWorkspace = rawCwd !== undefined || !this.hooks.currentWorkspace || this.hooks.currentWorkspace() !== null;
-      await this.runtime.createConversation(cwd, { hasWorkspace });
-      return this.currentState();
+      const snapshot = await this.runtime.createConversation(cwd, { hasWorkspace, activate });
+      if (!activate && !snapshot.id) throw new Error(snapshot.error || "新建对话失败");
+      return this.currentState(activate ? undefined : snapshot.id ?? undefined);
     });
     ipcMain.handle(IpcChannel.sessionSwitch, async (_event, rawId: unknown) => {
       await this.runtime.switchConversation(parseConversationId(rawId, "对话"));
@@ -167,6 +171,11 @@ export class SessionHost {
     ipcMain.handle(IpcChannel.sessionCheckpoints, (_event, rawId: unknown) => this.runtime.getCheckpoints(parseConversationId(rawId, "对话")));
     ipcMain.handle(IpcChannel.checkpointStorage, () => this.runtime.getCheckpointStorage());
     ipcMain.handle(IpcChannel.checkpointStorageClean, () => this.runtime.cleanCheckpointStorage());
+    ipcMain.handle(IpcChannel.checkpointStorageDelete, () => this.runtime.deleteCheckpointStorage());
+    ipcMain.handle(IpcChannel.checkpointSettingsGet, () => this.runtime.getCheckpointSettings());
+    ipcMain.handle(IpcChannel.checkpointSettingsSet, (_event, raw: unknown) => this.runtime.setCheckpointSettings(raw));
+    ipcMain.handle(IpcChannel.sessionDeleteCheckpoints, (_event, rawId: unknown, rawTurn: unknown) =>
+      this.runtime.deleteCheckpoints(parseConversationId(rawId, "对话"), parseTurnIndex(rawTurn)));
     ipcMain.handle(IpcChannel.sessionRestoreCheckpoint, async (_event, rawId: unknown, rawTurn: unknown) => {
       const id = parseConversationId(rawId, "对话");
       // -1 回到对话开始之前。
@@ -188,6 +197,9 @@ export class SessionHost {
     ipcMain.handle(IpcChannel.sessionSummarizeThinking, (_event, raw: unknown) => {
       return this.runtime.summarizeThinking(parseThinkingSummaryInput(raw));
     });
+    ipcMain.handle(IpcChannel.sessionPredictInput, (_event, raw: unknown) => {
+      return this.runtime.predictInput(parseInputPredictionInput(raw));
+    });
     ipcMain.handle(IpcChannel.sessionHandoffDraft, (_event, raw: unknown) => this.runtime.generateHandoffPack(raw));
     ipcMain.handle(IpcChannel.sessionHandoffCancel, (_event, requestId: unknown) => this.runtime.cancelHandoff(requestId));
     ipcMain.handle(IpcChannel.sessionAgentControl, (_event, rawConversation: unknown, rawAgent: unknown, rawAction: unknown) => {
@@ -207,13 +219,15 @@ export class SessionHost {
       );
     });
     ipcMain.handle(IpcChannel.getCatalog, () => this.runtime.getCatalog());
-    ipcMain.handle(IpcChannel.selectModel, async (_event, provider: unknown, id: unknown) => {
-      await this.runtime.selectModel(parseId(provider, "提供方"), parseId(id, "模型"));
-      return this.currentState();
+    ipcMain.handle(IpcChannel.selectModel, async (_event, provider: unknown, id: unknown, rawConversation: unknown) => {
+      const conversationId = parseOptionalConversationId(rawConversation);
+      await this.runtime.selectModel(parseId(provider, "提供方"), parseId(id, "模型"), conversationId);
+      return this.currentState(conversationId);
     });
-    ipcMain.handle(IpcChannel.setThinkingLevel, async (_event, level: unknown) => {
-      await this.runtime.setThinkingLevel(parseThinkingLevel(level));
-      return this.currentState();
+    ipcMain.handle(IpcChannel.setThinkingLevel, async (_event, level: unknown, rawConversation: unknown) => {
+      const conversationId = parseOptionalConversationId(rawConversation);
+      await this.runtime.setThinkingLevel(parseThinkingLevel(level), conversationId);
+      return this.currentState(conversationId);
     });
     ipcMain.handle(IpcChannel.addModel, async (_event, raw: unknown) => {
       await this.runtime.addModel(parseCustomModel(raw));
@@ -284,10 +298,10 @@ export class SessionHost {
     return this.runtime.dispose();
   }
 
-  currentState(): AppState {
-    const activeId = this.runtime.activeConversationId;
+  currentState(conversationId?: string): AppState {
+    const activeId = conversationId ?? this.runtime.activeConversationId;
     return {
-      session: this.runtime.getSnapshot(),
+      session: this.runtime.getSnapshot(conversationId),
       context: this.runtime.getUsage(activeId),
       conversations: this.hooks.hiddenConversation
         ? this.runtime.listConversations().filter(conversation => !this.hooks.hiddenConversation!(conversation.id))

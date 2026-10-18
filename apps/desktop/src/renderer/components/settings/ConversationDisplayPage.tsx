@@ -22,17 +22,24 @@ export function ConversationDisplayPage({
     thinkingSummary,
     thinkingSummaryStyle,
     thinkingSummaryModel,
+    inputPrediction,
+    inputPredictionModel,
     setToolDisplay,
     setToolFold,
     setToolProcessDetails,
     setThinkingSummary,
     setThinkingSummaryStyle,
     setThinkingSummaryModel,
+    setInputPrediction,
+    setInputPredictionModel,
   } = preferences;
   const text = copy.appearance;
   const summaryModelGroups = useMemo(() => groupAvailable(catalog), [catalog]);
   const summaryModelMissing = Boolean(thinkingSummaryModel && !catalog?.models.some(model =>
     model.provider === thinkingSummaryModel.provider && model.id === thinkingSummaryModel.id && model.available,
+  ));
+  const predictionModelMissing = Boolean(inputPredictionModel && !catalog?.models.some(model =>
+    model.provider === inputPredictionModel.provider && model.id === inputPredictionModel.id && model.available,
   ));
   const toolDisplayOptions: { id: ToolDisplay; label: string }[] = [
     { id: "card", label: text.toolCard },
@@ -116,6 +123,48 @@ export function ConversationDisplayPage({
           options={thinkingSummaryStyleOptions}
           onChange={setThinkingSummaryStyle}
         />
+      </SettingsBlock>
+      <SettingsBlock id="input-prediction" title={text.inputPrediction} hint={text.inputPredictionHint}>
+        <Segmented
+          label={text.inputPrediction}
+          value={inputPrediction ? "on" : "off"}
+          options={[
+            { id: "off", label: text.inputPredictionOff },
+            { id: "on", label: text.inputPredictionOn },
+          ]}
+          onChange={(value) => setInputPrediction(value === "on")}
+        />
+      </SettingsBlock>
+      <SettingsBlock id="input-prediction-model" title={text.inputPredictionModel} hint={text.inputPredictionModelHint}>
+        <select
+          className="settings-select"
+          aria-label={text.inputPredictionModel}
+          aria-describedby="input-prediction-model-hint"
+          value={inputPredictionModel ? modelValue(inputPredictionModel.provider, inputPredictionModel.id) : ""}
+          onChange={(event) => {
+            const { provider, modelId } = parseModelValue(event.target.value);
+            setInputPredictionModel(provider && modelId ? { provider, id: modelId } : null);
+          }}
+        >
+          <option value="">{text.thinkingSummaryModelCurrent}</option>
+          {predictionModelMissing && inputPredictionModel ? (
+            <option value={modelValue(inputPredictionModel.provider, inputPredictionModel.id)} disabled>
+              {inputPredictionModel.provider} / {inputPredictionModel.id} — {text.thinkingSummaryModelUnavailable}
+            </option>
+          ) : null}
+          {summaryModelGroups.map((group) => (
+            <optgroup key={group.provider} label={group.name}>
+              {group.models.map((model) => (
+                <option key={modelValue(model.provider, model.id)} value={modelValue(model.provider, model.id)}>
+                  {model.name}
+                </option>
+              ))}
+            </optgroup>
+          ))}
+        </select>
+        <p className="settings-note" id="input-prediction-model-hint">
+          {predictionModelMissing ? text.thinkingSummaryModelMissing : text.thinkingSummaryModelConfigure}
+        </p>
       </SettingsBlock>
       <IntelligentUiSetting />
     </section>

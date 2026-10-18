@@ -4,7 +4,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { describe, it } from "node:test";
-import { configureVelaProfile, prepareVelaHome, resolveVelaHome } from "../src/main/vela-home.ts";
+import { configureVelaProfile, noWorkspaceCwd, prepareVelaHome, resolveVelaHome } from "../src/main/vela-home.ts";
 
 describe("Vela startup profiles", () => {
   function fixture(t: { after(fn: () => void): void }, override?: string) {
@@ -93,6 +93,15 @@ describe("Vela startup profiles", () => {
     assert.ok(existsSync(join(devHome, "sessions")));
     assert.ok(existsSync(join(devHome, "skills")));
     assert.ok(existsSync(join(devHome, "worktrees")));
+    assert.ok(existsSync(noWorkspaceCwd(devHome)));
+  });
+
+  it("keeps conversations without a workspace inside the data root", t => {
+    const { root } = fixture(t);
+    const home = join(root, "home");
+    const cwd = noWorkspaceCwd(home);
+    assert.equal(resolve(cwd, ".."), home, "no-workspace chats get a dedicated folder directly under the data root");
+    assert.notEqual(cwd, home, "the data root itself holds auth and conversation files");
   });
 
   it("does not migrate legacy accounts or conversations into an explicit data root", async t => {

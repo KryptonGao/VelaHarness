@@ -41,6 +41,7 @@ export function isEnglish(): boolean {
 }
 
 const knownErrors: Record<string, string> = {
+  "新建对话参数不正确": "Invalid new chat options.",
   "任务用量上限设置不正确": "Invalid task usage limit settings.",
   "任务用量上限开关必须是布尔值": "The task usage limit switch must be on or off.",
   "时间上限超出范围": "The time limit is out of range (1–1440 minutes).",
@@ -75,6 +76,11 @@ const knownErrors: Record<string, string> = {
   "思考总结参数不正确": "Invalid thinking summary request.",
   "思考总结语言不正确": "Unsupported thinking summary language.",
   "思考总结模型不正确": "Invalid thinking summary model.",
+  "输入预测参数不正确": "Invalid input prediction request.",
+  "输入预测语言不正确": "Unsupported input prediction language.",
+  "输入预测模型不正确": "Invalid input prediction model.",
+  "无法生成输入预测": "Could not generate an input prediction.",
+  "输入预测生成超时": "Input prediction timed out.",
   "思考内容不能为空": "Thinking content cannot be empty.",
   "思考内容过长": "Thinking content is too long.",
   "无法生成思考总结": "Could not generate a thinking summary.",
@@ -199,7 +205,11 @@ const knownErrors: Record<string, string> = {
   "上下文长度需要是正整数": "Context window must be a positive integer.",
   "用户拒绝了命令执行": "Command execution was denied",
   "用户拒绝了工作区外的文件修改": "File changes outside the workspace were denied",
-  "这一轮与上一轮在同一次运行中，没有单独的文件检查点": "This turn ran together with the previous one and has no checkpoint of its own.",
+  "这一轮没有单独的文件检查点（与上一轮同一次运行、检查点已关闭或记录已删除）": "This turn has no checkpoint of its own (it ran together with the previous one, checkpoints were off, or the record was deleted).",
+  "回复进行中，完成后才能删除检查点记录": "Wait for the reply to finish before deleting checkpoint records.",
+  "找不到要删除记录的检查点": "The checkpoint to delete records for could not be found.",
+  "检查点设置不正确": "The checkpoint settings are invalid.",
+  "检查点开关必须是布尔值": "The checkpoint switch must be true or false.",
   "这轮执行时有其他对话同时更改工作区，无法安全回退": "Another chat changed the workspace during this turn, so it cannot be safely rewound.",
   "这轮消息的文件检查点未完成，无法安全回退": "This turn's file checkpoint is incomplete, so it cannot be safely rewound.",
   "这条历史消息没有文件检查点，无法回退更改": "This message has no file checkpoint, so its changes cannot be rewound.",

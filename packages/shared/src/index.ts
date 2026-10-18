@@ -57,8 +57,13 @@ export const IpcChannel = {
   sessionRestoreCheckpoint: "session:restore-checkpoint",
   checkpointStorage: "storage:checkpoints",
   checkpointStorageClean: "storage:clean-checkpoints",
+  checkpointStorageDelete: "storage:delete-checkpoints",
+  checkpointSettingsGet: "storage:checkpoint-settings-get",
+  checkpointSettingsSet: "storage:checkpoint-settings-set",
+  sessionDeleteCheckpoints: "session:delete-checkpoints",
   sessionMessages: "session:messages",
   sessionSummarizeThinking: "session:summarize-thinking",
+  sessionPredictInput: "session:predict-input",
   sessionHandoffDraft: "session:handoff-draft",
   sessionHandoffCancel: "session:handoff-cancel",
   sessionTrace: "session:trace",
@@ -244,6 +249,14 @@ export interface ThinkingSummaryModel {
 export interface ThinkingSummaryInput {
   conversationId: string;
   text: string;
+  locale: AppLocale;
+  /** 不指定时使用该对话当前选定的模型。 */
+  model?: ThinkingSummaryModel;
+}
+
+/** 根据对话末尾预测用户接下来可能输入的内容；独立调用，不写入聊天上下文。 */
+export interface InputPredictionInput {
+  conversationId: string;
   locale: AppLocale;
   /** 不指定时使用该对话当前选定的模型。 */
   model?: ThinkingSummaryModel;
@@ -904,6 +917,32 @@ export interface CheckpointCleanResult {
   freedBytes: number;
   removedPoints: number;
   usage: CheckpointStorageUsage;
+}
+
+/** 文件检查点的全局开关；关闭后新的轮次不再记录文件，已有记录保留。 */
+export interface CheckpointSettings {
+  enabled: boolean;
+}
+
+export const defaultCheckpointSettings: Readonly<CheckpointSettings> = Object.freeze({ enabled: true });
+
+/** 解析并校验设置；非法输入抛错。 */
+export function parseCheckpointSettings(raw: unknown): CheckpointSettings {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) throw new Error("检查点设置不正确");
+  const { enabled } = raw as Record<string, unknown>;
+  if (typeof enabled !== "boolean") throw new Error("检查点开关必须是布尔值");
+  return { enabled };
+}
+
+/** 读取磁盘上的设置：损坏时回到默认（开启），不会悄悄丢掉回退能力。 */
+export function readCheckpointSettings(raw: unknown): CheckpointSettings {
+  try { return parseCheckpointSettings(raw); } catch { return { ...defaultCheckpointSettings }; }
+}
+
+/** 删除某个对话的检查点记录后的结果。 */
+export interface CheckpointDeleteResult {
+  removedPoints: number;
+  freedBytes: number;
 }
 
 /** 从检查点分叉；restoreFiles 会把工作区文件恢复到这一轮之后，原对话后续轮次的改动随之撤销。 */
@@ -2798,7 +2837,7 @@ export interface VelaApi extends McpApi, PluginApi {
     removeItem(key: string): void;
   };
   setLocale(locale: AppLocale): void;
-  getState(): Promise<AppState>;
+  getState(conversationId?: string): Promise<AppState>;
   prompt(text: string, images?: ImageAttachment[], conversationId?: string, deliverAs?: RuntimeInstructionMode): Promise<AppState>;
   /** 撤销一条尚未被模型消费的运行中指令。 */
   removeInstruction(instructionId: string, conversationId?: string): Promise<AppState>;
@@ -2808,8 +2847,8 @@ export interface VelaApi extends McpApi, PluginApi {
   executePlan(conversationId?: string, strategy?: PlanExecutionContextStrategy): Promise<AppState>;
   /** 把暂停中的目标重新设为进行中，并自动续跑。 */
   resumeGoal(conversationId?: string): Promise<AppState>;
-  /** 新建一个对话并切换过去;原对话保留在侧边栏列表里。 */
-  createConversation(cwd?: string): Promise<AppState>;
+  /** 新建对话；activate 为 false 时返回新对话状态，保留主聊天与工作区。 */
+  createConversation(cwd?: string, options?: { activate?: boolean }): Promise<AppState>;
   switchConversation(id: string): Promise<AppState>;
   /** 手动名称持久化，并优先于自动标题。 */
   renameConversation(id: string, title: string): Promise<AppState>;
@@ -2828,11 +2867,19 @@ export interface VelaApi extends McpApi, PluginApi {
   getCheckpointStorage(): Promise<CheckpointStorageUsage>;
   /** 合并重复文件、删除超出保留策略的旧检查点和无人引用的文件。 */
   cleanCheckpointStorage(): Promise<CheckpointCleanResult>;
+  /** 删除所有已完成的检查点记录（正在运行的对话除外），并回收不再被引用的文件。 */
+  deleteCheckpointStorage(): Promise<CheckpointCleanResult>;
+  getCheckpointSettings(): Promise<CheckpointSettings>;
+  setCheckpointSettings(settings: CheckpointSettings): Promise<CheckpointSettings>;
+  /** 删除某个对话第 turnIndex 轮及更早的检查点记录；之后这些轮次不能再回退。 */
+  deleteCheckpoints(conversationId: string, turnIndex: number): Promise<CheckpointDeleteResult>;
   /** 取消归档,对话回到侧边栏。 */
   unarchiveConversation(id: string): Promise<AppState>;
   /** 读取某个对话的完整历史(用于应用重启后恢复界面消息)。 */
   getMessages(conversationId: string): Promise<TranscriptMessage[]>;
   summarizeThinking(input: ThinkingSummaryInput): Promise<string>;
+  /** 预测用户的下一条输入；没有合适的预测时返回空字符串。 */
+  predictInput(input: InputPredictionInput): Promise<string>;
   /** 整理对话的交接包草稿：事实由记录推导，语义部分由模型整理；只读，不修改对话。 */
   draftHandoff(request: HandoffDraftRequest): Promise<HandoffPack>;
   cancelHandoff(requestId: string): Promise<void>;
@@ -2844,8 +2891,8 @@ export interface VelaApi extends McpApi, PluginApi {
   controlAgent(conversationId: string, agentId: string, action: AgentControlAction): Promise<void>;
   onEvent(listener: (event: AgentStreamEvent) => void): () => void;
   getCatalog(): Promise<ModelCatalog>;
-  selectModel(provider: string, id: string): Promise<AppState>;
-  setThinkingLevel(level: ThinkingLevel): Promise<AppState>;
+  selectModel(provider: string, id: string, conversationId?: string): Promise<AppState>;
+  setThinkingLevel(level: ThinkingLevel, conversationId?: string): Promise<AppState>;
   addModel(input: CustomModelInput): Promise<AppState>;
   /** 测试并登记自定义模型,不切换当前对话,也不改默认模型。 */
   registerModel(input: CustomModelInput): Promise<AppState>;

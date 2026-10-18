@@ -15,6 +15,14 @@ export function resolveVelaHome(isPackaged = true): string {
   return join(homedir(), isPackaged ? ".vela" : ".vela-dev");
 }
 
+/**
+ * 未选择工作区的对话所用的 cwd：资料目录下的专用文件夹。
+ * 不能落在安装包或源码仓库里，否则会读到那里的 AGENTS.md，文件也会写进去。
+ */
+export function noWorkspaceCwd(home: string): string {
+  return join(home, "chats");
+}
+
 interface ProfileApp {
   isPackaged: boolean;
   setName(name: string): void;
@@ -52,6 +60,7 @@ export async function prepareVelaHome(home: string, legacyUserData: string): Pro
   await mkdir(join(home, "skills"), { recursive: true });
   await mkdir(join(home, "sessions"), { recursive: true });
   await mkdir(join(home, "worktrees"), { recursive: true });
+  await mkdir(noWorkspaceCwd(home), { recursive: true });
 }
 
 async function migrateLegacyHome(home: string, legacyUserData: string): Promise<void> {

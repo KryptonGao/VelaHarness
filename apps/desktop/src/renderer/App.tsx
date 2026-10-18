@@ -31,6 +31,7 @@ import { CheckpointTimelineDialog } from "./components/CheckpointTimelineDialog"
 import { FilePreviewProvider, type PreviewFileDescriptor } from "./components/preview/FilePreviewContext";
 import type { StartTabAction } from "./components/StartView";
 import { WorkbenchPanel, type WorkbenchTab } from "./components/WorkbenchPanel";
+import { WorkbenchChatView } from "./components/WorkbenchChatView";
 import { BrowserViewHost } from "./components/browser/BrowserViewHost";
 import { useBrowserTabs } from "./browser/useBrowserTabs";
 import { routeConversationLink } from "./browser/conversation-link-policy";
@@ -53,7 +54,7 @@ import {
   type PlanDocumentAction,
   type PlanDocumentState,
 } from "./plan-draft";
-import { AppLocaleProvider, setActiveLocale, tr, trf } from "./locale";
+import { AppLocaleProvider, localizeError, setActiveLocale, tr, trf } from "./locale";
 import { createLogger } from "./logger";
 
 const log = createLogger("app");
@@ -246,6 +247,15 @@ export function App() {
   const [workbenchCollapsed, setWorkbenchCollapsed] = useState(false);
   useEffect(() => { setWorkbenchCollapsed(false); }, [activeWorkbenchTabId]);
   const [startTabState, setStartTabState] = useState<{ id: string }[]>([]);
+  const [chatTabState, setChatTabState] = useState<{ id: string; conversationId: string }[]>([]);
+  const [pendingChatTabs, setPendingChatTabs] = useState<string[]>([]);
+  const [startErrors, setStartErrors] = useState<Record<string, string>>({});
+  const chatRequests = useRef(new Set<string>());
+  const cancelledChatTabs = useRef(new Set<string>());
+  const startTabsRef = useRef(startTabState);
+  startTabsRef.current = startTabState;
+  const chatWorkspaceRef = useRef(workspaceKey);
+  chatWorkspaceRef.current = workspaceKey;
   const browser = useBrowserTabs(session.activeConversationId);
   const pendingBrowserTab = useRef<string | null>(null);
   const previousBrowserConversation = useRef(session.activeConversationId);
@@ -435,12 +445,34 @@ export function App() {
 
   /** 起始页选好入口后关闭起始标签,换成对应内容。 */
   const handleStartAction = useCallback((tab: WorkbenchTab, action: StartTabAction) => {
+    if (action === "chat") {
+      const api = window.vela;
+      if (!api || chatRequests.current.has(tab.id)) return;
+      chatRequests.current.add(tab.id);
+      setPendingChatTabs(current => [...current, tab.id]);
+      setStartErrors(current => ({ ...current, [tab.id]: "" }));
+      void api.createConversation(workspaceKey || undefined, { activate: false }).then(next => {
+        const id = next.activeConversationId;
+        if (!id) throw new Error(tr("新建对话失败", "Failed to create chat"));
+        // 请求完成前关闭入口或切换目录时，不再把标签带回前台。
+        if (cancelledChatTabs.current.has(tab.id) || chatWorkspaceRef.current !== workspaceKey || !startTabsRef.current.some(item => item.id === tab.id)) return;
+        setChatTabState(current => [...current, { id: tab.id, conversationId: id }]);
+        setStartTabState(current => current.filter(item => item.id !== tab.id));
+      }).catch((error: unknown) => {
+        setStartErrors(current => ({ ...current, [tab.id]: error instanceof Error ? localizeError(error.message) : tr("新建对话失败", "Failed to create chat") }));
+      }).finally(() => {
+        chatRequests.current.delete(tab.id);
+        cancelledChatTabs.current.delete(tab.id);
+        setPendingChatTabs(current => current.filter(id => id !== tab.id));
+      });
+      return;
+    }
     setStartTabState((current) => current.filter((candidate) => candidate.id !== tab.id));
     if (action === "changes") openChanges();
     else if (action === "terminal") openTerminalTab();
     else if (action === "browser") openBrowserTab();
     else openFilesTab();
-  }, [openChanges, openTerminalTab, openFilesTab, openBrowserTab]);
+  }, [openChanges, openTerminalTab, openFilesTab, openBrowserTab, workspaceKey]);
 
   const fileTabs = useMemo<WorkbenchTab[]>(() => (fileTabsByWorkspace[workspaceKey] ?? []).map((file) => ({
     id: fileTabId(workspaceKey, file.id),
@@ -492,6 +524,11 @@ export function App() {
     kind: "start",
     label: tr("新标签页", "New tab"),
   })), [startTabState]);
+  const chatTabs = useMemo<WorkbenchTab[]>(() => chatTabState.map(tab => ({
+    ...tab,
+    kind: "chat",
+    label: session.conversations.find(item => item.id === tab.conversationId)?.title || tr("聊天", "Chat"),
+  })), [chatTabState, session.conversations, preferences.locale]);
   const unorderedTabs = useMemo<WorkbenchTab[]>(() => [
     ...fileTabs,
     ...(planTab ? [planTab] : []),
@@ -502,9 +539,10 @@ export function App() {
     ...agentTabs,
     ...(filesTab ? [filesTab] : []),
     ...terminalTabs,
+    ...chatTabs,
     ...browser.tabs.map((tab): WorkbenchTab => ({ ...tab, kind: "browser", label: tr("浏览器", "Browser") })),
     ...startTabItems,
-  ], [fileTabs, planTab, changeTab, reviewTab, acceptanceTab, raceTab, agentTabs, filesTab, terminalTabs, browser.tabs, startTabItems]);
+  ], [fileTabs, planTab, changeTab, reviewTab, acceptanceTab, raceTab, agentTabs, filesTab, terminalTabs, chatTabs, browser.tabs, startTabItems]);
   const workbenchTabs = useMemo(() => {
     const tabIdSet = new Set(unorderedTabs.map((tab) => tab.id));
     return [
@@ -550,13 +588,14 @@ export function App() {
     setActiveWorkbenchTabId(workbenchTabs.some(tab => tab.id === selected) ? selected : workbenchTabs.at(-1)?.id ?? null);
   }, [activeWorkbenchTabId, workbenchTabs, browser.state.selected, conversationKey]);
 
-  // 真正切换工作区后旧目录的终端已失效,连同文件浏览标签一起关闭;
+  // 真正切换工作区后旧目录的终端已失效,连同文件浏览与聊天标签一起关闭;
   // 启动时 "" → 工作区地址只是状态尚未到位,保留已有标签。
   useEffect(() => {
     const previous = lastKnownWorkspace.current;
     lastKnownWorkspace.current = workspaceKey;
     if (!previous || previous === workspaceKey) return;
     setTerminalTabState([]);
+    setChatTabState([]);
     setFilesTabOpen(false);
   }, [workspaceKey]);
 
@@ -610,6 +649,8 @@ export function App() {
       }));
     } else if (tab.kind === "terminal") {
       setTerminalTabState((current) => current.filter((candidate) => candidate.id !== tab.id));
+    } else if (tab.kind === "chat") {
+      setChatTabState(current => current.filter(candidate => candidate.id !== tab.id));
     } else if (tab.kind === "browser") {
       browser.close(tab.id);
     } else if (tab.kind === "files") {
@@ -826,6 +867,8 @@ export function App() {
                           summaryEnabled={preferences.thinkingSummary}
                           summaryStyle={preferences.thinkingSummaryStyle}
                           summaryModel={preferences.thinkingSummaryModel}
+                          predictionEnabled={preferences.inputPrediction}
+                          predictionModel={preferences.inputPredictionModel}
                           locale={preferences.locale}
                           hiddenModels={preferences.hiddenModels}
                           sendButtonIcon={preferences.sendButtonIcon}
@@ -890,12 +933,20 @@ export function App() {
                         onOpenAgent={openAgentPane}
                         onNewTab={openStartTab}
                         onStartAction={handleStartAction}
+                        pendingStartTabIds={pendingChatTabs}
+                        startErrors={startErrors}
+                        renderChat={tab => <WorkbenchChatView key={tab.conversationId}
+                          conversationId={tab.conversationId} preferences={preferences} project={project}
+                          onRenameConversation={openRenameConversation}
+                          onOpenConversation={id => { void session.switchTo(id); }}
+                          onNewTab={openStartTab} onShowDiff={openChanges} onOpenWebLink={openConversationLink} />}
                         gitAvailable={Boolean(project.git?.repo)}
                         onActivateTab={(tab) => {
                           if (tab.kind === "browser") browser.select(tab.id);
                           setActiveWorkbenchTabId(tab.id);
                         }}
                         onCloseTab={closeWorkbenchTab}
+                        onTabCloseRequested={tab => { if (chatRequests.current.has(tab.id)) cancelledChatTabs.current.add(tab.id); }}
                       />
                       {!floatingInfo ? <ContextPanel
                         collapsed={rightCollapsed}

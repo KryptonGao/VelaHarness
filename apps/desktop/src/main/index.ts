@@ -1,4 +1,4 @@
-import { AgentRuntime } from "@vela/agent";
+import { AgentRuntime, systemPromptProfileFrom } from "@vela/agent";
 import {
   ExecutionEnvironmentManager,
   GitOperationLog,
@@ -50,7 +50,7 @@ import { ensureLoginShellPath } from "./shell-path";
 import { PrInboxHost } from "./pr-inbox-host";
 import { PrReviewResponseService } from "./pr-review-response-service";
 import { TerminalHost } from "./terminal-host";
-import { configureVelaProfile, prepareVelaHome } from "./vela-home";
+import { configureVelaProfile, noWorkspaceCwd, prepareVelaHome } from "./vela-home";
 import { registerDevelopmentIpc } from "./development-host";
 import { UiStorage } from "./ui-storage";
 import { registerUiBrowserSecurity } from "./browser-security";
@@ -268,7 +268,9 @@ async function start(): Promise<void> {
     showMessageBox: (parent, options) => dialog.showMessageBox(parent, options),
   });
   app.once("will-quit", disposeWebAuthn);
-  const fallbackCwd = resolve(app.getAppPath(), "../..");
+  const fallbackCwd = noWorkspaceCwd(home);
+  // 旧版本把无工作区对话放在应用目录的上两级（开发版即源码仓库），迁移旧记录时仍按无工作区识别。
+  const legacyFallbackCwd = resolve(app.getAppPath(), "../..");
   await prepareVelaHome(home, app.getPath("userData"));
 
   const uiStorage = new UiStorage(join(home, "ui-state.json"));
@@ -361,7 +363,7 @@ async function start(): Promise<void> {
     memoryPermission: { request: (input) => sandbox.request({ ...input, workspace: input.workspace ?? input.cwd }) },
     cwd: fallbackCwd,
     workspaceFolders: cwd => workspaceManager.foldersOf(cwd),
-    isWorkspaceCwd: (cwd) => cwd !== fallbackCwd || workspaceManager.getState().recents.some(recent => recent.path === cwd),
+    isWorkspaceCwd: (cwd) => (cwd !== fallbackCwd && cwd !== legacyFallbackCwd) || workspaceManager.getState().recents.some(recent => recent.path === cwd),
     agentDir: home,
     toolFactory: (cwd, context) =>
       createSandboxedToolDefinitions({
@@ -372,6 +374,8 @@ async function start(): Promise<void> {
         ...context,
       }),
     onRecipeStop: id => taskRecipes?.stopConversation(id),
+    // 系统提示档位：v2（默认）、v1（Pi 原有基础段）、v2-visual，见 docs/requirements/system-prompt-optimization.md。
+    systemPromptProfile: systemPromptProfileFrom(process.env.VELA_SYSTEM_PROMPT),
     // 激活会话变化时让工作区跟随,保证输入区与仓库卡片显示的目录即会话目录。
     onActiveCwd: (cwd, hasWorkspace) => void project?.syncConversationWorkspace(cwd, hasWorkspace),
   });

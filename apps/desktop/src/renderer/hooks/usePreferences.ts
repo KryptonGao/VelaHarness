@@ -48,6 +48,8 @@ const toolProcessDetailsKey = "vela.toolProcessDetails";
 const thinkingSummaryKey = "vela.thinkingSummary";
 const thinkingSummaryStyleKey = "vela.thinkingSummaryStyle";
 const thinkingSummaryModelKey = "vela.thinkingSummaryModel";
+const inputPredictionKey = "vela.inputPrediction";
+const inputPredictionModelKey = "vela.inputPredictionModel";
 const fileIconThemeKey = "vela.fileIconTheme";
 const composerCapsulesKey = "vela.composerCapsules";
 const sendButtonIconKey = "vela.sendButtonIcon";
@@ -186,6 +188,13 @@ export function usePreferences() {
   const [thinkingSummaryModel, setThinkingSummaryModel] = useState<ThinkingSummaryModel | null>(() =>
     readStoredJson(thinkingSummaryModelKey, isThinkingSummaryModel, null),
   );
+  /** 输入预测：默认关闭，开启后每轮回复结束会额外请求一次模型。 */
+  const [inputPrediction, setInputPrediction] = useState(() =>
+    readStored(inputPredictionKey, (value): value is string => value === "true", "false") === "true",
+  );
+  const [inputPredictionModel, setInputPredictionModel] = useState<ThinkingSummaryModel | null>(() =>
+    readStoredJson(inputPredictionModelKey, isThinkingSummaryModel, null),
+  );
   const [fileIconTheme, setFileIconTheme] = useState<FileIconTheme>(() =>
     readStored(fileIconThemeKey, isFileIconTheme, "material"),
   );
@@ -281,6 +290,8 @@ export function usePreferences() {
   useEffect(() => writeStored(thinkingSummaryKey, String(thinkingSummary)), [thinkingSummary]);
   useEffect(() => writeStored(thinkingSummaryStyleKey, thinkingSummaryStyle), [thinkingSummaryStyle]);
   useEffect(() => writeStored(thinkingSummaryModelKey, JSON.stringify(thinkingSummaryModel)), [thinkingSummaryModel]);
+  useEffect(() => writeStored(inputPredictionKey, String(inputPrediction)), [inputPrediction]);
+  useEffect(() => writeStored(inputPredictionModelKey, JSON.stringify(inputPredictionModel)), [inputPredictionModel]);
   useEffect(() => writeStored(fileIconThemeKey, fileIconTheme), [fileIconTheme]);
   useEffect(() => writeStored(sendButtonIconKey, sendButtonIcon), [sendButtonIcon]);
   useEffect(() => writeStored(hiddenModelsKey, JSON.stringify(hiddenModels)), [hiddenModels]);
@@ -311,6 +322,8 @@ export function usePreferences() {
     thinkingSummary,
     thinkingSummaryStyle,
     thinkingSummaryModel,
+    inputPrediction,
+    inputPredictionModel,
     fileIconTheme,
     hiddenModels,
     composerCapsules,
@@ -330,6 +343,8 @@ export function usePreferences() {
     setThinkingSummary,
     setThinkingSummaryStyle,
     setThinkingSummaryModel,
+    setInputPrediction,
+    setInputPredictionModel,
     setFileIconTheme,
   };
 }

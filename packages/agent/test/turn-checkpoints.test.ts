@@ -6,7 +6,7 @@ import { execFileSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { TurnCheckpoints, exclusiveAccess, sharedAccess, sharedDirectory } from "../src/turn-checkpoints.ts";
-import { checkpointUsage, cleanCheckpoints } from "../src/checkpoint-storage.ts";
+import { checkpointUsage, cleanCheckpoints, deleteAllCheckpoints } from "../src/checkpoint-storage.ts";
 
 const dirs: string[] = [];
 afterEach(async () => { for (const dir of dirs.splice(0)) await rm(dir, { recursive: true, force: true }); });
@@ -309,5 +309,23 @@ describe("cleaning checkpoint storage", () => {
     await cleanCheckpoints(checkpoints);
     await store.restore(await store.list());
     assert.equal(await readFile(path("a.txt"), "utf8"), "before");
+  });
+  it("deletes every finished record and its blobs, but spares unfinished points and busy conversations", async () => {
+    const { checkpoints, cwd, path } = await layout();
+    const root = join(checkpoints, "..");
+    await writeFile(path("a.txt"), "before");
+    const make = async (id: string) => new TurnCheckpoints<unknown>(join(checkpoints, id), cwd, root, sharedDirectory(checkpoints));
+    const idle = await make("idle"), busy = await make("busy"), running = await make("running");
+    for (const store of [idle, busy]) { const point = await store.begin(null, {}); await writeFile(path("a.txt"), `after-${Math.random()}`); await store.finish(point, "u"); }
+    await running.begin(null, {});
+    const result = await deleteAllCheckpoints(checkpoints, new Set(["busy"]));
+    assert.equal((await idle.list()).length, 0);
+    assert.equal((await busy.list()).length, 1);
+    assert.equal((await running.list()).length, 1);
+    assert.ok(result.removedPoints >= 1);
+    const all = await deleteAllCheckpoints(checkpoints);
+    assert.equal((await busy.list()).length, 0);
+    assert.equal((await running.list()).length, 1);
+    assert.equal(all.usage.points, 1);
   });
 });

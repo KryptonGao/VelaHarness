@@ -133,7 +133,6 @@ import {
   type TerminalCreateOptions,
   type TerminalEvent,
   type TerminalSessionInfo,
-  type ThinkingLevel,
   type TranscriptMessage,
   type HandoffPack,
   type ConversationTaskBudget,
@@ -347,7 +346,7 @@ const api: VelaApi = {
     removeItem: (key) => { storageRequest(IpcChannel.appUiStorageSet, key, null); },
   },
   setLocale: (locale: AppLocale) => ipcRenderer.send(IpcChannel.appSetLocale, locale),
-  getState: () => ipcRenderer.invoke(IpcChannel.getState) as Promise<AppState>,
+  getState: (conversationId) => ipcRenderer.invoke(IpcChannel.getState, conversationId) as Promise<AppState>,
   prompt: (text, images, conversationId, deliverAs) =>
     ipcRenderer.invoke(IpcChannel.prompt, {
       text,
@@ -365,7 +364,7 @@ const api: VelaApi = {
     ipcRenderer.invoke(IpcChannel.sessionExecutePlan, conversationId ?? null, strategy ?? "continue") as Promise<AppState>,
   resumeGoal: (conversationId) =>
     ipcRenderer.invoke(IpcChannel.sessionResumeGoal, conversationId ?? null) as Promise<AppState>,
-  createConversation: (cwd?: string) => ipcRenderer.invoke(IpcChannel.sessionCreate, cwd) as Promise<AppState>,
+  createConversation: (cwd, options) => ipcRenderer.invoke(IpcChannel.sessionCreate, cwd, options) as Promise<AppState>,
   switchConversation: (id: string) =>
     ipcRenderer.invoke(IpcChannel.sessionSwitch, id) as Promise<AppState>,
   renameConversation: (id: string, title: string) =>
@@ -384,11 +383,16 @@ const api: VelaApi = {
     ipcRenderer.invoke(IpcChannel.sessionRestoreCheckpoint, conversationId, turnIndex) as Promise<{ state: AppState; messages: TranscriptMessage[] }>,
   getCheckpointStorage: () => ipcRenderer.invoke(IpcChannel.checkpointStorage),
   cleanCheckpointStorage: () => ipcRenderer.invoke(IpcChannel.checkpointStorageClean),
+  deleteCheckpointStorage: () => ipcRenderer.invoke(IpcChannel.checkpointStorageDelete),
+  getCheckpointSettings: () => ipcRenderer.invoke(IpcChannel.checkpointSettingsGet),
+  setCheckpointSettings: (settings) => ipcRenderer.invoke(IpcChannel.checkpointSettingsSet, settings),
+  deleteCheckpoints: (conversationId, turnIndex) => ipcRenderer.invoke(IpcChannel.sessionDeleteCheckpoints, conversationId, turnIndex),
   getTrace: (conversationId) => ipcRenderer.invoke(IpcChannel.sessionTrace, conversationId),
   getTraceDetails: (conversationId, nodeId) => ipcRenderer.invoke(IpcChannel.sessionTraceDetails, conversationId, nodeId),
   getMessages: (conversationId: string) =>
     ipcRenderer.invoke(IpcChannel.sessionMessages, conversationId) as Promise<TranscriptMessage[]>,
   summarizeThinking: (input) => ipcRenderer.invoke(IpcChannel.sessionSummarizeThinking, input) as Promise<string>,
+  predictInput: (input) => ipcRenderer.invoke(IpcChannel.sessionPredictInput, input) as Promise<string>,
   draftHandoff: (request) => ipcRenderer.invoke(IpcChannel.sessionHandoffDraft, request) as Promise<HandoffPack>,
   cancelHandoff: (requestId: string) => ipcRenderer.invoke(IpcChannel.sessionHandoffCancel, requestId) as Promise<void>,
   getAgentMessages: (conversationId: string, agentId: string) =>
@@ -396,8 +400,8 @@ const api: VelaApi = {
   controlAgent: (conversationId: string, agentId: string, action: AgentControlAction) =>
     ipcRenderer.invoke(IpcChannel.sessionAgentControl, conversationId, agentId, action) as Promise<void>,
   getCatalog: () => ipcRenderer.invoke(IpcChannel.getCatalog) as Promise<ModelCatalog>,
-  selectModel: (provider, id) => ipcRenderer.invoke(IpcChannel.selectModel, provider, id) as Promise<AppState>,
-  setThinkingLevel: (level: ThinkingLevel) => ipcRenderer.invoke(IpcChannel.setThinkingLevel, level) as Promise<AppState>,
+  selectModel: (provider, id, conversationId) => ipcRenderer.invoke(IpcChannel.selectModel, provider, id, conversationId) as Promise<AppState>,
+  setThinkingLevel: (level, conversationId) => ipcRenderer.invoke(IpcChannel.setThinkingLevel, level, conversationId) as Promise<AppState>,
   addModel: (input: CustomModelInput) => ipcRenderer.invoke(IpcChannel.addModel, input) as Promise<AppState>,
   registerModel: (input: CustomModelInput) =>
     ipcRenderer.invoke(IpcChannel.registerModel, input) as Promise<AppState>,

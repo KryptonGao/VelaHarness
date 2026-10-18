@@ -1,7 +1,7 @@
 import type { CheckpointRestorePreview, CheckpointTimeline } from "@vela/shared";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { localizeError, tr, trf, activeIntlLocale } from "../locale";
-import { BranchIcon, HistoryIcon } from "./icons";
+import { BranchIcon, HistoryIcon, TrashIcon } from "./icons";
 import "../checkpoints.css";
 
 interface CheckpointTimelineDialogProps {
@@ -26,7 +26,7 @@ interface Node {
   current: boolean;
 }
 
-type Pending = { kind: "restore" } | { kind: "fork" } | null;
+type Pending = { kind: "restore" } | { kind: "fork" } | { kind: "delete" } | null;
 
 export function CheckpointTimelineDialog({ conversationId, busy, initialTurn, onRestore, onFork, onClose }: CheckpointTimelineDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -38,6 +38,7 @@ export function CheckpointTimelineDialog({ conversationId, busy, initialTurn, on
   const [confirming, setConfirming] = useState<Pending>(null);
   const [working, setWorking] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const headingId = useId();
   const detailId = useId();
 
@@ -69,6 +70,7 @@ export function CheckpointTimelineDialog({ conversationId, busy, initialTurn, on
   useEffect(() => {
     setConfirming(null);
     setRestoreFiles(false);
+    setNotice(null);
   }, [selected]);
 
   // 选中项随加载或键盘移动滚动到可见区域，并把焦点留在列表里。
@@ -112,6 +114,29 @@ export function CheckpointTimelineDialog({ conversationId, busy, initialTurn, on
       setError(reason instanceof Error ? localizeError(reason.message) : tr("操作失败，请重试", "Something went wrong. Try again."));
       setConfirming(null);
       void load();
+    } finally {
+      workingRef.current = false;
+      setWorking(false);
+    }
+  }
+
+  // 删除记录后留在对话框里，刷新时间轴让被删的轮次显示为不可回退。
+  async function removeRecords(turnIndex: number) {
+    if (workingRef.current) return;
+    workingRef.current = true;
+    setWorking(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const result = await window.vela!.deleteCheckpoints(conversationId, turnIndex);
+      setConfirming(null);
+      setNotice(result.removedPoints > 0
+        ? trf("已删除 {0} 条检查点记录。", result.removedPoints === 1 ? "Deleted {0} checkpoint record." : "Deleted {0} checkpoint records.", result.removedPoints)
+        : tr("没有可删除的检查点记录。", "No checkpoint records to delete."));
+      await load();
+    } catch (reason) {
+      setError(reason instanceof Error ? localizeError(reason.message) : tr("操作失败，请重试", "Something went wrong. Try again."));
+      setConfirming(null);
     } finally {
       workingRef.current = false;
       setWorking(false);
@@ -261,7 +286,32 @@ export function CheckpointTimelineDialog({ conversationId, busy, initialTurn, on
                   </div>
                 ) : null}
 
+                {node.turnIndex >= 0 ? (
+                  <div className="checkpoint-action">
+                    <div className="checkpoint-action-copy">
+                      <strong><TrashIcon size={13} /> {tr("删除检查点记录", "Delete checkpoint records")}</strong>
+                      <p>{node.current
+                        ? tr("删除这个对话全部的检查点记录并释放磁盘空间。对话内容不受影响，但这些轮次不能再回退文件。", "Delete all of this chat's checkpoint records and free the disk space. The conversation stays, but these turns can no longer be rewound.")
+                        : tr("删除这一轮及更早各轮的检查点记录并释放磁盘空间。对话内容不受影响，但这些轮次不能再回退文件。", "Delete the checkpoint records of this turn and the earlier ones and free the disk space. The conversation stays, but those turns can no longer be rewound.")}</p>
+                    </div>
+                    {confirming?.kind === "delete" ? (
+                      <div className="checkpoint-confirm" role="group" aria-label={tr("确认删除记录", "Confirm delete")}>
+                        <button type="button" disabled={working} onClick={() => setConfirming(null)}>{tr("取消", "Cancel")}</button>
+                        <button type="button" className="danger" disabled={busy || working} autoFocus
+                          onClick={() => void removeRecords(node.turnIndex)}>
+                          {working ? tr("删除中…", "Deleting…") : tr("确认删除", "Confirm")}
+                        </button>
+                      </div>
+                    ) : (
+                      <button type="button" className="checkpoint-primary" disabled={busy || working} onClick={() => setConfirming({ kind: "delete" })}>
+                        {tr("删除记录", "Delete records")}
+                      </button>
+                    )}
+                  </div>
+                ) : null}
+
                 {busy ? <p className="checkpoint-note">{tr("回复进行中，完成后才能回退或分叉。", "Wait for the reply to finish before restoring or forking.")}</p> : null}
+                {notice ? <p className="checkpoint-note" role="status">{notice}</p> : null}
                 {error ? <p className="checkpoint-error" role="alert">{error}</p> : null}
               </section>
             ) : null}

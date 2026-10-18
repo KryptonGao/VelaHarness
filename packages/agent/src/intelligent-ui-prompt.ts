@@ -98,11 +98,13 @@ const visualNote = "This user prefers visual answers: for comparisons, calculati
 const textOnlyNote = "The user has turned Intelligent UI off. Do not output vela-ui or vela-app fences, and do not imitate them even if they appeared in earlier messages; answer with Markdown tables, lists, and text.";
 
 /** 返回要追加到系统提示的文字；不需要时返回 null。 */
-export function intelligentUiInstructions(preference: UiPreference, mode: InteractionMode, options: { microApps?: boolean } = {}): string | null {
+export function intelligentUiInstructions(preference: UiPreference, mode: InteractionMode, options: { microApps?: boolean; scopeNote?: string } = {}): string | null {
   // Plan 要产出 <proposed_plan> 文档；Goal 要产出验证报告。两者保持纯 Markdown，互不干扰。
   if (mode !== "agent") return null;
   if (preference === "text_only") return textOnlyNote;
-  return `${syntax}${options.microApps ? microAppSyntax : ""}\n${preference === "visual_first" ? visualNote : autoNote}`;
+  // 范围限定紧跟标题，避免「不要输出 HTML」被理解成也不能写 HTML 文件。
+  const body = options.scopeNote ? syntax.replace(/^(## [^\n]*\n\n)/, `$1${options.scopeNote}\n\n`) : syntax;
+  return `${body}${options.microApps ? microAppSyntax : ""}\n${preference === "visual_first" ? visualNote : autoNote}`;
 }
 
 export const intelligentUiExample = example;

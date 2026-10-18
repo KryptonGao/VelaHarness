@@ -7,7 +7,7 @@ import { AgentRuntime } from "../../../packages/agent/src/runtime.ts";
 import { IpcChannel, type AppState } from "@vela/shared";
 import { WorkspaceManager } from "../../../packages/workspace/src/workspace-manager.ts";
 
-type CreateHandler = (event: unknown, cwd?: unknown) => Promise<AppState>;
+type CreateHandler = (event: unknown, ...args: unknown[]) => Promise<AppState>;
 const handlers = new Map<string, CreateHandler>();
 mock.module("electron", {
   namedExports: {
@@ -20,6 +20,62 @@ mock.module("electron", {
 const { SessionHost } = await import("../src/main/session-host.ts");
 mock.module("../src/main/menu.ts", { namedExports: { getApplicationLocale: () => "zh-CN" } });
 const { ProjectHost } = await import("../src/main/project-host.ts");
+
+it("creates and controls a panel chat without changing the active chat or workspace", async t => {
+  const root = await mkdtemp(join(tmpdir(), "vela-panel-chat-"));
+  const activeCwds: string[] = [];
+  const runtime = new AgentRuntime({ cwd: root, agentDir: join(root, "agent"), onActiveCwd: cwd => activeCwds.push(cwd) });
+  t.after(async () => { await runtime.dispose(); await rm(root, { recursive: true, force: true }); });
+  await runtime.createConversation(root);
+  const mainId = runtime.activeConversationId!;
+  await runtime.renameConversation(mainId, "Main chat");
+  await runtime.addModel({ providerId: "panel-fixture", providerName: "Fixture", modelId: "main", modelName: "Main model",
+    api: "openai-completions", baseUrl: "http://127.0.0.1:1/v1", apiKey: "fixture-key", reasoning: true, contextWindow: 32768, maxTokens: 4096 });
+  await runtime.setThinkingLevel("low");
+  await runtime.saveAgentSettings({ ...await runtime.getAgentSettings(), provider: "panel-fixture", modelId: "main" });
+  const host = new SessionHost(runtime, { currentCwd: () => root, currentWorkspace: () => root });
+  host.register();
+  const cwdNotifications = activeCwds.length;
+  const panel = await handlers.get(IpcChannel.sessionCreate)!(null, root, { activate: false });
+  const panelId = panel.activeConversationId!;
+  assert.notEqual(panelId, mainId);
+  assert.equal(panel.session.id, panelId);
+  assert.equal(panel.session.status, "ready");
+  assert.equal(runtime.activeConversationId, mainId);
+  assert.equal(host.currentState().session.title, "Main chat");
+  assert.equal(activeCwds.length, cwdNotifications);
+
+  await runtime.setMode(panelId, "plan");
+  const thinking = await handlers.get(IpcChannel.setThinkingLevel)!(null, "high", panelId);
+  assert.equal(thinking.activeConversationId, panelId);
+  assert.equal(runtime.getSnapshot(panelId).mode, "plan");
+  assert.equal(runtime.getSnapshot(panelId).thinkingLevel, "high");
+  assert.equal(runtime.getSnapshot().mode, "agent");
+  assert.equal(runtime.getSnapshot().thinkingLevel, "low");
+  await runtime.addModel({ providerId: "panel-fixture", providerName: "Fixture", modelId: "other", modelName: "Other model",
+    api: "openai-completions", baseUrl: "http://127.0.0.1:1/v1", apiKey: "fixture-key", reasoning: true, contextWindow: 32768, maxTokens: 4096 });
+  await runtime.selectModel("panel-fixture", "main");
+  const selected = await handlers.get(IpcChannel.selectModel)!(null, "panel-fixture", "other", panelId);
+  assert.equal(selected.activeConversationId, panelId);
+  assert.equal(runtime.getSnapshot().modelId, "main");
+  assert.equal(runtime.getSnapshot(panelId).modelId, "other");
+  assert.equal(runtime.getSnapshot(panelId).thinkingLevel, "high");
+  runtime.addUsage(panelId, 1, 2);
+  const scoped = await handlers.get(IpcChannel.getState)!(null, panelId);
+  assert.equal(scoped.activeConversationId, panelId);
+  assert.equal(scoped.context.toolCallCount, 2);
+  assert.equal(host.currentState().context.toolCallCount, 0);
+  assert.equal(runtime.activeConversationId, mainId);
+  assert.throws(() => runtime.getSnapshot("missing"), /不存在/);
+  for (const options of [null, 1, { activate: "false" }]) {
+    await assert.rejects(handlers.get(IpcChannel.sessionCreate)!(null, root, options), /参数/);
+  }
+  assert.equal(runtime.activeConversationId, mainId);
+  // 关闭标签不执行归档；会话仍可从历史记录打开。
+  await runtime.switchConversation(panelId);
+  assert.equal(runtime.getSnapshot().modelId, "other");
+  assert.equal(runtime.getSnapshot().mode, "plan");
+});
 
 it("creates a fresh chat in the requested workspace while preserving existing chats and the default entry point", async t => {
   const root = await mkdtemp(join(tmpdir(), "vela-session-create-"));

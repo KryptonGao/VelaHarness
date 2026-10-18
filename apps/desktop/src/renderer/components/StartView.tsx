@@ -1,9 +1,9 @@
 import type { ReactNode } from "react";
 import { tr } from "../locale";
-import { DiffIcon, FolderIcon, GlobeIcon, TerminalIcon } from "./icons";
+import { ChatIcon, DiffIcon, FolderIcon, GlobeIcon, TerminalIcon } from "./icons";
 
 /** 起始页入口;宿主据此打开对应标签页。 */
-export type StartTabAction = "changes" | "terminal" | "files" | "browser";
+export type StartTabAction = "chat" | "changes" | "terminal" | "files" | "browser";
 
 function StartOption({
   icon,
@@ -42,9 +42,13 @@ function StartOption({
 export function StartView({
   gitAvailable,
   onAction,
+  pending = false,
+  error = null,
 }: {
   gitAvailable: boolean;
   onAction: (action: StartTabAction) => void;
+  pending?: boolean;
+  error?: string | null;
 }) {
   return (
     <div className="start-view">
@@ -53,7 +57,14 @@ export function StartView({
           <h2>{tr("新标签页", "New tab")}</h2>
           <p>{tr("选择要在这个标签里打开的内容", "Pick what to open in this tab")}</p>
         </div>
-        <div className="start-options">
+        {error ? <p className="start-error" role="alert">{error}</p> : null}
+        <fieldset className="start-options" disabled={pending} aria-busy={pending}>
+          <StartOption
+            icon={<ChatIcon size={16} />}
+            title={tr("聊天", "Chat")}
+            description={tr("在面板中开启独立对话", "Start an independent chat in the panel")}
+            onSelect={() => onAction("chat")}
+          />
           <StartOption
             icon={<GlobeIcon size={16} />}
             title={tr("浏览器", "Browser")}
@@ -83,7 +94,7 @@ export function StartView({
             description={tr("浏览工作区文件并预览内容", "Browse workspace files and preview contents")}
             onSelect={() => onAction("files")}
           />
-        </div>
+        </fieldset>
       </div>
     </div>
   );

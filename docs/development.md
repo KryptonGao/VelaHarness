@@ -23,6 +23,8 @@
 
 正式版用 `VELA_USER_DATA` 改过资料目录时，用 `VELA_PRODUCTION_HOME` 指向它。
 
+`VELA_SYSTEM_PROMPT` 切换主会话与子代理的系统提示档位：`v2`（默认，Vela 身份与工作规则）、`v1`（Pi 原有基础段，旧名 `legacy`）、`v2-visual`（v2 再加视觉成品自检）。例如 `VELA_SYSTEM_PROMPT=v1 pnpm dev` 切回旧提示词，详见 [requirements/system-prompt-optimization.md](./requirements/system-prompt-optimization.md)。
+
 ## 开发工具
 
 「开发工具」还提供打开 Renderer DevTools、重新加载窗口、重启 main process，并显示版本、commit hash、Electron / Chromium / Node / V8 版本，可一键复制后贴进 issue。重启 main process 在 `pnpm dev`（`electron-vite --watch`）下会触发重新构建并重启，不能直接 relaunch，否则开发服务器会随子进程一起退出。正式版复制的历史会独立保存在开发版资料目录，正式版仍可同时运行。

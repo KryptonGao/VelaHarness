@@ -1,5 +1,5 @@
 import type { AgentControlAction, AgentInfo, ExecutionPlan, PlanExecutionContextStrategy } from "@vela/shared";
-import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import type { ProjectApi } from "../hooks/useProject";
 import type { SidebarResize } from "../hooks/useSidebarResize";
 import type { ToolDisplay } from "../hooks/usePreferences";
@@ -27,9 +27,10 @@ import { StartView, type StartTabAction } from "./StartView";
 import { TerminalView } from "./TerminalView";
 import { BrowserPanel, BrowserTabLabel } from "./browser/BrowserPanel";
 import type { BrowserController } from "../browser/browser-controller";
-import { ArrowRightIcon, BranchIcon, CloseIcon, FileIcon, FolderIcon, GlobeIcon, PlanIcon, PlusIcon, TerminalIcon } from "./icons";
+import { ArrowRightIcon, BranchIcon, ChatIcon, CloseIcon, FileIcon, FolderIcon, GlobeIcon, PlanIcon, PlusIcon, TerminalIcon } from "./icons";
 
 export type WorkbenchTab =
+  | { id: string; kind: "chat"; label: string; title?: string; conversationId: string }
   | { id: string; kind: "plan"; label: string; title?: string }
   | { id: string; kind: "file"; label: string; title: string; path: string }
   | { id: string; kind: "changes"; label: string; title?: string }
@@ -76,10 +77,14 @@ interface WorkbenchPanelProps {
   onNewTab: () => void;
   /** 起始页选中某个入口后,把该标签替换成对应内容 */
   onStartAction: (tab: WorkbenchTab, action: StartTabAction) => void;
+  pendingStartTabIds?: readonly string[];
+  startErrors?: Record<string, string>;
+  renderChat?: (tab: Extract<WorkbenchTab, { kind: "chat" }>) => ReactNode;
   /** 当前工作区是否是 Git 仓库,决定「变更」入口是否可选 */
   gitAvailable: boolean;
   onActivateTab: (tab: WorkbenchTab) => void;
   onCloseTab: (tab: WorkbenchTab) => void;
+  onTabCloseRequested?: (tab: WorkbenchTab) => void;
 }
 
 function safeId(value: string): string {
@@ -99,6 +104,7 @@ function TabIcon({ tab }: { tab: WorkbenchTab }) {
   if (tab.kind === "files") return <FolderIcon size={12} />;
   if (tab.kind === "terminal") return <TerminalIcon size={12} />;
   if (tab.kind === "browser") return <GlobeIcon size={12} />;
+  if (tab.kind === "chat") return <ChatIcon size={12} />;
   return <AgentStatusMark status={tab.agent.status} />;
 }
 
@@ -156,9 +162,13 @@ function WorkbenchPanelContent({
   onOpenAgent,
   onNewTab,
   onStartAction,
+  pendingStartTabIds,
+  startErrors,
+  renderChat,
   gitAvailable,
   onActivateTab,
   onCloseTab,
+  onTabCloseRequested,
 }: WorkbenchPanelProps & {
   closing: boolean;
   finishExit: () => void;
@@ -335,6 +345,7 @@ function WorkbenchPanelContent({
 
   const closeTab = (tab: WorkbenchTab): void => {
     if (closing) return;
+    onTabCloseRequested?.(tab);
     const index = tabs.findIndex((candidate) => candidate.id === tab.id);
     const next = activeTabId === tab.id
       ? tabs[index + 1] ?? tabs[index - 1] ?? null
@@ -461,6 +472,12 @@ function WorkbenchPanelContent({
       </div>
 
       <div className="workbench-content" inert={collapsed} aria-hidden={collapsed || undefined}>
+        {tabs.filter((tab): tab is Extract<WorkbenchTab, { kind: "chat" }> => tab.kind === "chat").map(tab => (
+          <WorkbenchTabPanel key={tab.id} id={tabPanelId(tab)} role="tabpanel"
+            aria-labelledby={tabButtonId(tab)} hidden={activeTabId !== tab.id}>
+            {renderChat?.(tab)}
+          </WorkbenchTabPanel>
+        ))}
         {browserTabs.map((tab) => (
           <WorkbenchTabPanel key={tab.id} id={tabPanelId(tab)} role="tabpanel"
             aria-labelledby={tabButtonId(tab)} hidden={activeTabId !== tab.id}>
@@ -573,7 +590,8 @@ function WorkbenchPanelContent({
             hidden={activeTab?.id !== tab.id}
             key={tab.id}
           >
-            <StartView gitAvailable={gitAvailable} onAction={(action) => onStartAction(tab, action)} />
+            <StartView gitAvailable={gitAvailable} onAction={(action) => onStartAction(tab, action)}
+              pending={pendingStartTabIds?.includes(tab.id)} error={startErrors?.[tab.id]} />
           </WorkbenchTabPanel>
         ))}
 

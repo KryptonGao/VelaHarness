@@ -169,3 +169,31 @@ export async function cleanCheckpoints(root: string, policy: CheckpointPolicy = 
   const usage = await checkpointUsage(root);
   return { freedBytes: Math.max(0, before.bytes - usage.bytes), removedPoints, usage };
 }
+
+/**
+ * Delete every finished checkpoint record, then reclaim the files nothing references any more. Unfinished points that may
+ * belong to a running turn survive, and so does everything of a conversation listed in `busy`.
+ */
+export async function deleteAllCheckpoints(root: string, busy: ReadonlySet<string> = new Set()): Promise<CheckpointCleanResult> {
+  const before = await checkpointUsage(root);
+  const removedPoints = await exclusiveAccess(async () => {
+    let removed = 0;
+    for (const id of await conversations(root)) {
+      if (busy.has(id)) continue;
+      for (const file of (await names(join(root, id))).filter(name => name.endsWith(".json"))) {
+        const path = join(root, id, file);
+        try {
+          const point = JSON.parse(await readFile(path, "utf8")) as Pick<TurnCheckpoint<unknown>, "after">;
+          if (!point.after && Date.now() - (await lstat(path)).mtimeMs <= abandonedAfter) continue;
+        } catch { /* A damaged record cannot be rewound to anyway; delete it. */ }
+        await rm(path, { force: true });
+        removed += 1;
+      }
+    }
+    return removed;
+  });
+  // The sweep waits for its own exclusive turn, so a capture that slipped in between keeps its blobs.
+  const cleaned = await cleanCheckpoints(root);
+  const usage = cleaned.usage;
+  return { freedBytes: Math.max(0, before.bytes - usage.bytes), removedPoints: removedPoints + cleaned.removedPoints, usage };
+}
