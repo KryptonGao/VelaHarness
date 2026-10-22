@@ -35,7 +35,7 @@ import { useToolExpanded, useToolProcessDetails, useToolsDuration } from "./Tool
 import { PlanPreviewList } from "./PlanPanel";
 import { collectPlanIds, planReferenceModel } from "../plan-draft";
 import { SkillToken } from "./composer/SkillMenu";
-import { parseSkillPrompt } from "./composer/skill-picker";
+import { parseSkillSegments } from "./composer/skill-picker";
 import { useFilePreview } from "./preview/FilePreviewContext";
 import {
   nextStreamFollow,
@@ -904,12 +904,13 @@ function EmptyState({
 }
 
 function UserText({ text }: { text: string }) {
-  const skill = parseSkillPrompt(text);
-  if (!skill) return <Markdown text={text} />;
+  const segments = parseSkillSegments(text);
+  if (!segments) return <Markdown text={text} />;
   return (
     <div className="user-skill-message">
-      <SkillToken name={skill.name} />
-      {skill.body ? <Markdown text={skill.body} /> : null}
+      {segments.map((segment, index) => segment.type === "skill"
+        ? <SkillToken key={index} name={segment.name} />
+        : <span key={index}>{segment.text}</span>)}
     </div>
   );
 }

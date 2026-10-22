@@ -4,6 +4,7 @@ import type { AppLocale, InfoLayout, PreferencesApi } from "../../hooks/usePrefe
 import type { ConversationLinkTarget } from "../../browser/conversation-link-policy";
 import { notificationSoundKinds, type NotifySound } from "../../notification-sounds";
 import type { SettingsCopy } from "../settings-copy";
+import { composerLayouts, setComposerLayout, useComposerLayout, type ComposerLayout } from "../../hooks/useComposerLayout";
 import { Segmented, SettingsBlock, SettingsSwitch } from "./primitives";
 
 export function InterfacePage({
@@ -28,6 +29,12 @@ export function InterfacePage({
     setSendButtonIcon,
   } = preferences;
   const text = copy.appearance;
+  const composerLayout = useComposerLayout();
+  const composerLayoutLabels: Record<ComposerLayout, string> = {
+    classic: text.composerLayoutClassic,
+    calm: text.composerLayoutCalm,
+    capsule: text.composerLayoutCapsule,
+  };
   const sidebarItems = useSidebarItems();
   const soundLabels = {
     error: text.soundError, complete: text.soundComplete,
@@ -81,6 +88,14 @@ export function InterfacePage({
             />
           </div>
         ))}
+      </SettingsBlock>
+      <SettingsBlock id="composer-layout" title={text.composerLayout} hint={text.composerLayoutHint}>
+        <Segmented
+          label={text.composerLayout}
+          value={composerLayout}
+          options={composerLayouts.map(id => ({ id, label: composerLayoutLabels[id] }))}
+          onChange={setComposerLayout}
+        />
       </SettingsBlock>
       <SettingsBlock id="composer-capsules" title={text.composerCapsules} hint={text.composerCapsulesHint}>
         <Segmented

@@ -48,7 +48,7 @@ if (!process.versions.electron) {
       await until(`document.querySelector(${JSON.stringify(selector)})`);
       return evaluate(`document.querySelector(${JSON.stringify(selector)}).click()`);
     };
-    const input = (selector, value) => evaluate(`(() => { const el = document.querySelector(${JSON.stringify(selector)}); Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set.call(el, ${JSON.stringify(value)}); el.dispatchEvent(new Event('input', {bubbles:true})); })()`);
+    const input = (selector, value) => evaluate(`(() => { const el = document.querySelector(${JSON.stringify(selector)}); if (el.isContentEditable) el.textContent = ${JSON.stringify(value)}; else Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set.call(el, ${JSON.stringify(value)}); el.dispatchEvent(new Event('input', {bubbles:true})); })()`);
     const capture = async name => {
       if (!process.env.VELA_WORKBENCH_CHAT_CAPTURE) return;
       mkdirSync(process.env.VELA_WORKBENCH_CHAT_CAPTURE, { recursive: true });
@@ -66,10 +66,10 @@ if (!process.versions.electron) {
       await until("document.querySelector('.chat-active-title')?.textContent === '主聊天'");
       await newTab(); await capture("start-light");
       await click(chatOption);
-      await until(`document.querySelector(${JSON.stringify(panel + ' textarea')}) && !document.querySelector(${JSON.stringify(panel + ' textarea')}).disabled`);
+      await until(`document.querySelector(${JSON.stringify(panel + ' .rich-input')}) && !document.querySelector(${JSON.stringify(panel + ' .rich-input')}).disabled`);
       assert.equal(await evaluate("chatFixture.active()"), "main-chat");
       assert.deepEqual(await evaluate("chatFixture.calls.find(c => c.name === 'create').options"), { activate: false });
-      await input(panel + " textarea", "第一条独立聊天");
+      await input(panel + " .rich-input", "第一条独立聊天");
       await click(panel + " .send");
       await until("chatFixture.calls.some(c => c.name === 'prompt' && c.id === 'panel-1')");
       await evaluate("chatFixture.emit({type:'text_delta', conversationId:'panel-1', delta:'独立回复只在右侧出现。'})");
@@ -77,14 +77,14 @@ if (!process.versions.electron) {
       assert.equal(await evaluate("document.querySelector('.main-stage-pane > .main-chat-view').textContent.includes('独立回复只在右侧出现。')"), false);
       await click(panel + " .stop");
       await until("chatFixture.calls.some(c => c.name === 'abort' && c.id === 'panel-1')");
-      await input(panel + " textarea", "保留这段草稿");
+      await input(panel + " .rich-input", "保留这段草稿");
       await capture("chat-light");
       await newTab(); await click(chatOption);
       await until("document.querySelectorAll('.panel-chat-view').length === 2");
-      assert.equal(await evaluate("(() => {const ids = [...document.querySelectorAll('textarea.input-textarea')].map(el => el.id); return new Set(ids).size === ids.length;})()"), true);
+      assert.equal(await evaluate("(() => {const ids = [...document.querySelectorAll('div.input-textarea')].map(el => el.id); return new Set(ids).size === ids.length;})()"), true);
       const first = await evaluate("document.querySelectorAll('.workbench-tab')[0].id");
       await click(`#${first}`);
-      await until(`document.querySelector(${JSON.stringify(panel + ' textarea')})?.value === '保留这段草稿'`);
+      await until(`document.querySelector(${JSON.stringify(panel + ' .rich-input')})?.textContent === '保留这段草稿'`);
       // 模式、模型和思考强度都必须使用该标签绑定的 ID。
       await click(panel + " .mode-pill"); await click(panel + " .mode-option:nth-of-type(2)");
       await until("chatFixture.state('panel-1').session.mode === 'plan'");
@@ -102,7 +102,7 @@ if (!process.versions.electron) {
       await click(panel + " .model-choice-pill:not(.model-pill)");
       await evaluate("chatFixture.changeMain()");
       await until("document.querySelector('.main-stage-pane > .main-chat-view .chat-active-title')?.textContent === '另一条主聊天'");
-      assert.equal(await evaluate(`document.querySelector(${JSON.stringify(panel + ' textarea')}).value`), "保留这段草稿");
+      assert.equal(await evaluate(`document.querySelector(${JSON.stringify(panel + ' .rich-input')}).textContent`), "保留这段草稿");
       assert.equal(await evaluate(`document.querySelector(${JSON.stringify(panel + ' .chat-active-title')}).textContent`), "第一条独立聊天");
       await evaluate("document.documentElement.dataset.scheme = 'dark'; document.documentElement.dataset.theme = 'midnight'");
       await capture("chat-dark");
@@ -160,7 +160,7 @@ if (!process.versions.electron) {
       await click(".workbench-tab-close:first-child");
       await until("document.querySelectorAll('.panel-chat-view').length === 1");
       assert.equal(await evaluate("chatFixture.state().conversations.some(c => c.id === 'panel-1')"), true);
-      await input(panel + " textarea", "关闭标签后继续运行"); await click(panel + " .send");
+      await input(panel + " .rich-input", "关闭标签后继续运行"); await click(panel + " .send");
       await until("chatFixture.state('panel-2').session.status === 'streaming'");
       await click(".workbench-tab-close");
       await until("!document.querySelector('.workbench-panel')");

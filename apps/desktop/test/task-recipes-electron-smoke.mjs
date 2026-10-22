@@ -54,6 +54,7 @@ try {
       assert.equal(requests - before, 3, 'Each of the three starts should make only one model call');
     } else if (phase === 'p1') assert.equal(requests - before, 3, 'P1 makes one draft, one scheduled and one worktree model call');
     else if (phase === 'p2') { assert.equal(requests - before, 3, 'P2 makes one failed attempt, one explicit retry, and one approved stage call'); const team = readFileSync(join(temporary, 'workspace/.vela/team-task-recipes.json'), 'utf8'); assert.ok(!team.includes('P2 private assessment')); }
+    else if (phase === 'slash-recipes') assert.equal(requests - before, 2, 'The inline-skill message makes one reply and one title call');
     else assert.equal(requests, before, 'Restart must not replay requests');
   }
 } finally { await new Promise(resolve => server.close(resolve)); rmSync(temporary, { recursive: true, force: true }); }

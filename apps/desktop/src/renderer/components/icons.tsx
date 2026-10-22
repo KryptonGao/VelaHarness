@@ -149,6 +149,24 @@ export function GridIcon({ size = 13 }: IconProps) {
   );
 }
 
+export function ChevronRightIcon({ size = 12 }: IconProps) {
+  return (
+    <svg {...base(size)} aria-hidden="true">
+      <polyline points="9 6 15 12 9 18" />
+    </svg>
+  );
+}
+
+/** 右侧带面板的窗口图标,用来切换右侧文件树。 */
+export function PanelRightIcon({ size = 13 }: IconProps) {
+  return (
+    <svg {...base(size)} aria-hidden="true">
+      <rect x="3" y="4" width="18" height="16" rx="3" />
+      <line x1="15" y1="4" x2="15" y2="20" />
+    </svg>
+  );
+}
+
 export function MoreIcon({ size = 14 }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" stroke="none">

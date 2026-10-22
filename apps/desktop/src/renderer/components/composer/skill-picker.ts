@@ -71,28 +71,43 @@ function matchRank(skill: SkillSummary, query: string): number | null {
   return null;
 }
 
-/**
- * 把选中的技能收成 Pi 能展开的 `/skill:名称`。
- * 名称里如果有空白，展开会在第一个空格处截断，这时只发送正文。
- */
-export function composeSkillPrompt(skillName: string | null, text: string): string {
-  const body = text.trim();
-  if (!skillName || /\s/.test(skillName)) return body;
-  return body ? `/skill:${skillName} ${body}` : `/skill:${skillName}`;
-}
+/** 消息里的一段：普通文字，或夹在文字之间的 Skill。 */
+export type SkillSegment = { type: "text"; text: string } | { type: "skill"; name: string };
 
-const skillCommand = /^\/skill:(\S+)(?:\s+([\s\S]*))?$/;
+/** 发出的形态：`/skill:名称` 在行首或空白之后。 */
+const inlineSkill = /(^|\s)\/skill:(\S+)/g;
 /** Pi 展开后的形态：`<skill>` 包住技能正文，用户原话在闭合标签之后。 */
 const skillBlock = /^<skill name="([^"]+)" location="[^"]*">\n[\s\S]*?\n<\/skill>(?:\n\n([\s\S]+))?$/;
 
 /**
- * 把发出的 `/skill:名称`，以及重新打开对话时读回的展开块，还原成芯片和用户原话。
- * 技能正文只留给模型，不进气泡。
+ * 把发出的消息，以及重新打开对话时读回的展开块，还原成文字和 Skill 芯片交错的片段。
+ * Pi 只展开开头的 `/skill:名称`，技能正文只留给模型，不进气泡。没有 Skill 时返回 null。
  */
-export function parseSkillPrompt(text: string): { name: string; body: string } | null {
-  const command = skillCommand.exec(text);
-  if (command?.[1]) return { name: command[1], body: (command[2] ?? "").trim() };
+export function parseSkillSegments(text: string): SkillSegment[] | null {
+  const segments: SkillSegment[] = [];
+  let rest = text;
   const block = skillBlock.exec(text.trim());
-  if (!block?.[1]) return null;
-  return { name: block[1], body: (block[2] ?? "").trim() };
+  if (block?.[1]) {
+    segments.push({ type: "skill", name: block[1] });
+    rest = block[2] ?? "";
+  }
+  let last = 0;
+  const pushText = (value: string) => {
+    if (value) segments.push({ type: "text", text: value });
+  };
+  for (const match of rest.matchAll(inlineSkill)) {
+    const name = match[2];
+    if (!name) continue;
+    pushText(rest.slice(last, match.index + (match[1]?.length ?? 0)).replace(/ $/, ""));
+    segments.push({ type: "skill", name });
+    last = match.index + match[0].length;
+    if (rest[last] === " ") last += 1;
+  }
+  pushText(rest.slice(last));
+  if (!segments.some((segment) => segment.type === "skill")) return null;
+  const first = segments[0];
+  if (first?.type === "text") first.text = first.text.trimStart();
+  const end = segments[segments.length - 1];
+  if (end?.type === "text") end.text = end.text.trimEnd();
+  return segments.filter((segment) => segment.type === "skill" || segment.text !== "");
 }

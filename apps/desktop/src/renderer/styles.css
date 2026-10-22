@@ -2014,6 +2014,7 @@ code,
 }
 
 .assistant-block {
+  --process-block-gap: 12px;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -2197,10 +2198,17 @@ code,
 .thinking-prose-toggle svg { transition: transform var(--transition-smooth); }
 .thinking-prose-toggle.expanded svg { transform: rotate(90deg); }
 .assistant-turn-process-item {
+  --process-block-gap: 8px;
   margin: 6px 0 8px;
 }
 .assistant-turn-process-item:last-child {
   margin-bottom: 0;
+}
+/* 紧凑模式下,上一条消息以工具行结尾、下一条又以工具行开头时,
+   跨消息的间距收成与同一消息内相同的 1px,避免同类工具行时疏时密。 */
+.assistant-block:has(> .tool-card-list.is-compact:last-child)
+  + .assistant-block:has(> .tool-card-list.is-compact:first-child) {
+  margin-top: calc(1px - var(--process-block-gap));
 }
 /* 折叠用 0fr 网格实现:内容保持挂载,开合时有平滑的高度过渡 */
 .time-spent-body {
@@ -3835,9 +3843,30 @@ button.tool-compact-line:hover .tool-compact-cmd {
   line-height: 1.5;
   font-size: 15px;
 }
-.input-textarea.with-skill { min-height: 28px; }
 .input-textarea::placeholder { color: var(--text-muted); }
-.input-textarea:disabled { opacity: 0.6; }
+.input-textarea:disabled,
+.input-textarea[aria-disabled="true"] { opacity: 0.6; }
+/* 输入框是 contenteditable：Skill 芯片和文字在同一行流里。 */
+.rich-input {
+  overflow-y: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  cursor: text;
+}
+.rich-input[data-empty="true"]::before {
+  content: attr(data-placeholder);
+  color: var(--text-muted);
+  pointer-events: none;
+  float: left;
+  height: 0;
+  white-space: nowrap;
+}
+.rich-input .composer-skill {
+  margin: 0 3px;
+  vertical-align: bottom;
+  user-select: none;
+}
+.rich-input .composer-skill:first-child { margin-left: 0; }
 .input-textarea.with-prediction { padding-right: 44px; }
 .composer-prediction-hint {
   position: absolute;
@@ -3903,10 +3932,11 @@ button.tool-compact-line:hover .tool-compact-cmd {
   background: var(--bg-card-blue);
 }
 .user-skill-message {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
+.user-skill-message .composer-skill { margin: 0 4px; vertical-align: bottom; }
+.user-skill-message .composer-skill:first-child { margin-left: 0; }
 
 .skill-menu-anchor {
   position: absolute;
@@ -7270,50 +7300,42 @@ button.settings-radio:hover:not(:disabled) { background: var(--bg-hover); }
   flex: none;
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--border-subtle);
+  gap: 2px;
+  padding: 6px 10px;
 }
 .browser-nav {
   flex: none;
   display: grid;
   place-items: center;
-  width: 28px;
-  height: 28px;
-  border-radius: var(--radius-sm);
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-pill);
   color: var(--text-secondary);
 }
 .browser-nav:hover:not(:disabled) { background: var(--bg-hover); color: var(--text-primary); }
 .browser-nav:disabled { opacity: 0.4; cursor: default; }
-.browser-address-form { flex: 1; min-width: 0; margin-left: 4px; }
+.browser-address-form { flex: 1; min-width: 0; margin-left: 6px; }
 .browser-address {
   width: 100%;
-  height: 28px;
-  padding: 0 9px;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
-  background: var(--bg-surface-subtle);
+  height: 30px;
+  padding: 0 14px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  background: var(--bg-hover);
   color: var(--text-primary);
-  font-size: 12px;
+  font-size: 13px;
+  text-align: center;
+  text-overflow: ellipsis;
 }
+.browser-address:focus { text-align: left; background: var(--bg-surface-subtle); border-color: var(--border-subtle); }
 .browser-address::placeholder { color: var(--text-muted); }
 .browser-address:focus-visible, .browser-nav:focus-visible, .workbench-collapse:focus-visible {
   outline: 2px solid var(--accent-blue);
   outline-offset: 2px;
 }
 .browser-address[aria-invalid="true"] { border-color: var(--danger); }
-.browser-page-info {
-  flex: none;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-height: 30px;
-  padding: 4px 14px;
-  border-bottom: 1px solid var(--border-subtle);
-  font-size: 12px;
-}
-.browser-page-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-secondary); }
-.browser-load-status { flex: none; color: var(--text-muted); }
+/* Title and load status stay in the DOM for assistive tech; the tab label already shows the title. */
+.browser-page-info { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .browser-error { flex: none; padding: 8px 14px; font-size: 12px; color: var(--danger); background: var(--danger-tint); overflow-wrap: anywhere; }
 .browser-error > span { display: block; margin-top: 4px; }
 .browser-viewport { position: relative; flex: 1; min-height: 0; overflow: hidden; }
@@ -7617,48 +7639,92 @@ button.settings-radio:hover:not(:disabled) { background: var(--bg-hover); }
 
 .preview-subbar {
   flex: none;
-  height: 34px;
-  padding: 0 16px;
+  height: 38px;
+  padding: 0 12px 0 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 12px;
   border-bottom: 1px solid var(--border-subtle);
 }
 .preview-breadcrumbs-text {
   display: flex;
   align-items: center;
-  gap: 4px;
   min-width: 0;
+  flex: 1;
   overflow: hidden;
   white-space: nowrap;
   font-size: 15px;
   color: var(--text-muted);
 }
-.preview-breadcrumbs-text > :not(:first-child)::before {
-  content: "›";
-  margin-right: 4px;
+.preview-crumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  flex: 0 1 auto;
+}
+.preview-crumb > svg {
+  flex: none;
+  margin: 0 2px;
   color: var(--text-dim);
 }
-.preview-breadcrumbs-text strong {
-  color: var(--text-primary);
-  font-weight: 600;
+.preview-crumb-text {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+  padding: 2px 4px;
+  border-radius: var(--radius-xs);
+}
+.preview-crumb.current {
+  flex: 0 0 auto;
+  max-width: 70%;
+}
+.preview-breadcrumbs-text strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 2px 4px;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+.preview-crumb.current .file-type-icon {
+  width: 15px;
+  height: 15px;
+  margin-left: 2px;
 }
 .preview-actions-group {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
   flex: none;
+}
+.preview-actions-group .icon-btn-ghost {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+}
+.preview-actions-sep {
+  flex: none;
+  width: 1px;
+  height: 16px;
+  margin: 0 6px;
+  background: var(--border-subtle);
+}
+.preview-actions-group .preview-view-toggle,
+.preview-actions-group .preview-action-pill {
+  margin-right: 4px;
 }
 .sidebar-right .preview-actions-group .icon-btn-ghost:disabled {
   opacity: 0.4;
   cursor: default;
 }
 .preview-action-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   border: none;
-  padding: 3px 10px;
+  padding: 4px 10px;
   border-radius: var(--radius-pill);
   font-size: 15px;
   color: var(--accent-blue);
@@ -7869,8 +7935,8 @@ button.settings-radio:hover:not(:disabled) { background: var(--bg-hover); }
 }
 
 .preview-explorer-pane {
-  width: 192px;
-  min-width: 192px;
+  width: 224px;
+  min-width: 224px;
   flex: none;
   display: flex;
   flex-direction: column;
@@ -7881,31 +7947,51 @@ button.settings-radio:hover:not(:disabled) { background: var(--bg-hover); }
 .explorer-search-row {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 8px 8px 6px;
+  gap: 8px;
+  padding: 10px 10px 8px;
+}
+.explorer-search-field {
+  position: relative;
+  display: block;
+  color: var(--text-muted);
+}
+.explorer-search-field > svg {
+  position: absolute;
+  left: 9px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
 }
 .explorer-search-input {
   width: 100%;
-  border: none;
-  padding: 5px 9px;
+  border: 1px solid var(--border-subtle);
+  padding: 5px 9px 5px 28px;
   border-radius: 8px;
   background: var(--bg-elevated);
   font-size: 15px;
   color: var(--text-primary);
-  box-shadow: var(--shadow-card);
+  transition: border-color 120ms ease-out, box-shadow 120ms ease-out;
+}
+.explorer-search-input:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-blue) 18%, transparent);
 }
 .explorer-search-input::placeholder {
   color: var(--text-muted);
 }
 .explorer-mode-chips {
   display: flex;
-  gap: 4px;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 8px;
+  background: var(--bg-sidebar-hover);
 }
 .explorer-mode-chip {
   flex: 1;
   border: none;
   padding: 3px 0;
-  border-radius: var(--radius-pill);
+  border-radius: 6px;
   font-size: 15px;
   color: var(--text-muted);
 }
@@ -7920,7 +8006,8 @@ button.settings-radio:hover:not(:disabled) { background: var(--bg-hover); }
   flex: 1;
   min-height: 0;
   overflow: auto;
-  padding: 2px 6px 10px;
+  padding: 4px 6px 10px;
+  border-top: 1px solid var(--border-subtle);
 }
 .explorer-tree-item {
   display: flex;
@@ -7928,8 +8015,8 @@ button.settings-radio:hover:not(:disabled) { background: var(--bg-hover); }
   gap: 5px;
   width: 100%;
   border: none;
-  padding: 4px 6px;
-  border-radius: var(--radius-xs);
+  padding: 5px 6px;
+  border-radius: 6px;
   font-size: 15px;
   color: var(--text-secondary);
   cursor: pointer;
@@ -7948,14 +8035,34 @@ button.settings-radio:hover:not(:disabled) { background: var(--bg-hover); }
 }
 .explorer-tree-item.dir {
   font-weight: 500;
-  color: var(--text-muted);
+  color: var(--text-primary);
 }
 .explorer-caret {
-  width: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
   flex: none;
-  text-align: center;
   color: var(--text-dim);
-  font-size: 15px;
+}
+.explorer-tree-item.dir:hover .explorer-caret { color: var(--text-secondary); }
+.explorer-folder-icon {
+  display: inline-flex;
+  flex: none;
+  color: var(--accent-blue);
+  opacity: 0.75;
+}
+.explorer-folder-icon svg { fill: color-mix(in srgb, currentColor 16%, transparent); }
+.explorer-branch-inner { position: relative; }
+.explorer-branch-inner::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  left: var(--guide-x, 11px);
+  width: 1px;
+  background: var(--border-subtle);
+  pointer-events: none;
 }
 .explorer-name {
   overflow: hidden;
@@ -9790,3 +9897,112 @@ a.mcp-result-title:hover { color: var(--accent-blue); }
 }
 .dp-live-show:hover { background: var(--bg-hover); color: var(--text-primary); }
 .dp-live-show:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 1px; }
+
+/* ---------- 输入框布局(外观设置):classic 为原样,calm / capsule 在其上覆盖 ----------
+ * 三种布局都不为输入框聚焦添加高亮;思考强度滑块的弹窗样式不随布局改变。 */
+.thinking-glyph { display: none; }
+.thinking-bars {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 14px;
+}
+.thinking-bars i {
+  width: 3px;
+  border-radius: 1.5px;
+  background: var(--border-strong);
+  transition: background-color 150ms ease;
+}
+.thinking-bars i.on { background: var(--accent-blue); }
+.thinking-dial {
+  width: 22px;
+  height: 22px;
+  transform: rotate(135deg);
+}
+.thinking-dial circle { fill: none; stroke-width: 3; stroke-linecap: round; }
+.thinking-dial-track { stroke: var(--border-strong); stroke-dasharray: 28.27 100; }
+.thinking-dial-progress { stroke: var(--accent-blue); transition: stroke-dasharray 200ms var(--motion-ease-enter); }
+
+/* calm:结构不变,控制行更紧凑,统计行沉成底部淡色脚注带。 */
+:root[data-composer-layout="calm"] .floating-input-card {
+  padding: 14px 16px 0;
+  border-radius: 22px;
+}
+:root[data-composer-layout="calm"] .dock-controls-row { padding-bottom: 8px; }
+:root[data-composer-layout="calm"] .composer-stats-row {
+  margin: 0 -16px;
+  padding: 8px 18px;
+  border-top: 1px solid var(--border-subtle);
+  background: var(--bg-surface-subtle);
+  border-radius: 0 0 calc(22px - 1px) calc(22px - 1px);
+  font-size: 12.5px;
+}
+:root[data-composer-layout="calm"] .composer-stats-row > .composer-stat-context { margin-left: auto; }
+:root[data-composer-layout="calm"] .thinking-glyph { display: inline-flex; align-items: flex-end; }
+:root[data-composer-layout="calm"] .thinking-dial { display: none; }
+:root[data-composer-layout="calm"] .model-choice-pill:has(.thinking-glyph) { gap: 7px; }
+
+/* capsule:输入收成一条膠囊,模式、权限和统计挪到下方托盘。 */
+.floating-input-card.layout-capsule {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+  gap: 0;
+}
+.composer-capsule {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: 26px;
+  box-shadow: var(--shadow-dock);
+}
+/* 审批槽收起时用 -10px 抵消卡片 6px 的行距,这里行距与卡片相同,只需抵消 gap 本身。 */
+.composer-capsule > .approval-slot:not(.open) { margin-bottom: -6px; }
+.composer-capsule > :is(.composer-status-bar, .instruction-row, .attachment-row) { padding-inline: 8px; }
+.composer-capsule > :first-child:is(.composer-status-bar, .instruction-row, .attachment-row) { padding-top: 4px; }
+.composer-capsule-main {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  min-width: 0;
+}
+.composer-capsule-main .composer-entry { flex: 1 1 auto; align-self: stretch; justify-content: center; }
+.composer-capsule-main .input-textarea { min-height: 36px; padding: 7px 4px; }
+.composer-capsule-main .composer-prediction-hint { height: 36px; }
+.composer-capsule-main .composer-prediction-hint::before { inset: 9px -5px 9px -5px; }
+.composer-capsule-main .attach-btn {
+  width: 32px;
+  height: 32px;
+  margin-bottom: 2.5px;
+  background: var(--bg-surface-subtle);
+}
+.composer-capsule-main .attach-btn:hover:not(:disabled) { background: var(--bg-hover); }
+.composer-capsule-main :is(.model-controls, .composer-action-slot) { margin-bottom: 2.5px; }
+.composer-capsule-main .model-choice-pill.model-pill { max-width: min(200px, 100%); }
+.composer-capsule-main .model-choice-pill:has(.thinking-glyph) { gap: 5px; padding-left: 6px; }
+.composer-capsule-main .thinking-glyph { display: inline-flex; align-items: center; }
+.composer-capsule-main .thinking-bars { display: none; }
+.composer-tray {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  column-gap: 12px;
+  row-gap: 4px;
+  padding: 8px 12px 0;
+}
+.composer-tray-chips {
+  display: flex;
+  align-items: center;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+.composer-tray .composer-stats-row { margin: 0; padding: 0; font-size: 12.5px; }
+.composer-tray .composer-stats-row:empty { display: none; }

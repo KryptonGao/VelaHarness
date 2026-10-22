@@ -56,6 +56,30 @@ interface ModelControlsProps {
   onDismissLogin: () => void;
 }
 
+/** 思考强度胶囊里的小标记：calm 布局显示信号格，capsule 布局显示弧形撥盘，classic 不显示。 */
+function ThinkingGlyph({ choices, level }: { choices: ThinkingLevel[]; level: ThinkingLevel }) {
+  const index = Math.max(0, choices.indexOf(level));
+  const lit = level === "off" ? -1 : index;
+  const fraction = choices.length > 1 && level !== "off" ? index / (choices.length - 1) : 0;
+  return (
+    <span className="thinking-glyph" aria-hidden="true">
+      <span className="thinking-bars">
+        {choices.map((choice, i) => (
+          <i
+            key={choice}
+            className={i <= lit ? "on" : undefined}
+            style={{ height: `${4 + (choices.length > 1 ? (i / (choices.length - 1)) * 10 : 10)}px` }}
+          />
+        ))}
+      </span>
+      <svg className="thinking-dial" viewBox="0 0 24 24">
+        <circle className="thinking-dial-track" cx="12" cy="12" r="6" />
+        <circle className="thinking-dial-progress" cx="12" cy="12" r="6" strokeDasharray={`${(fraction * 28.27).toFixed(2)} 100`} />
+      </svg>
+    </span>
+  );
+}
+
 export function ModelControls(props: ModelControlsProps) {
   const [menu, setMenu] = useState<"model" | "thinking" | null>(null);
   const [accountsOpen, setAccountsOpen] = useState(false);
@@ -115,6 +139,7 @@ export function ModelControls(props: ModelControlsProps) {
             setMenu("thinking");
           }}
         >
+          <ThinkingGlyph choices={thinkingChoices} level={shownThinking} />
           <span>{thinkingLabel(shownThinking)}</span>
           <Chevron />
         </button>

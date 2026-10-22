@@ -1205,9 +1205,10 @@ function collapseDiffContext(rows: DisplayDiffRow[]): DisplayDiffRow[] {
   return output;
 }
 
+/** 只标异常状态:运行中转圈、失败红叉;完成不显示,没有报错即成功。 */
 function StatusMark({ status, compact = false }: { status: ToolTrace["status"]; compact?: boolean }) {
-  return <ContentSwap inline className={`tool-status-swap is-${status}`} motionKey={status}>
-    <StatusMarkContent status={status} compact={compact} />
+  return <ContentSwap inline hideWhenEmpty className={`tool-status-swap is-${status}`} motionKey={status}>
+    {status === "running" || status === "error" ? <StatusMarkContent status={status} compact={compact} /> : null}
   </ContentSwap>;
 }
 
@@ -1225,11 +1226,7 @@ function StatusMarkContent({ status, compact = false }: { status: ToolTrace["sta
       </span>
     );
   }
-  return (
-    <span className="tool-status-mark done" role="img" aria-label={tr("完成", "Complete")}>
-      <CheckIcon size={12} />
-    </span>
-  );
+  return null;
 }
 
 function KindIcon({ kind }: { kind: ToolKind }): ReactNode {

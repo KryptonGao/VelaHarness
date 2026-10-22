@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ProjectApi } from "../../hooks/useProject";
-import { CheckIcon, ExternalIcon, GridIcon } from "../icons";
+import { CheckIcon, ChevronRightIcon, CopyIcon, DiffIcon, ExternalIcon, PanelRightIcon, RefreshIcon } from "../icons";
+import { FileTypeIcon } from "../FileTypeIcon";
 import { CodePane } from "./CodePane";
 import { ExplorerPane } from "./ExplorerPane";
 import { tr } from "../../locale";
@@ -45,30 +46,27 @@ export function FilePreviewView({
   const absoluteTab = isAbsolutePathLike(tab.id);
   const canCopy = content?.kind === "text" && Boolean(content.content);
   const canShowDiff = Boolean(git?.repo) && changedPaths.has(tab.id);
+  const crumbs = [...(absoluteTab ? [] : [rootName]), ...(tab.dir ? tab.dir.split("/") : [])];
   const markdownBody = isMarkdownPath(tab.id) && content?.kind === "text" && Boolean(content.content);
   const showRendered = markdownBody && markdownMode === "preview" && tab.jumpLine == null;
 
   return (
     <div className="panel-file-preview-view">
       <div className="preview-subbar">
-        <div className="preview-breadcrumbs-text" title={tab.id}>
-          {absoluteTab ? null : <span>{rootName}</span>}
-          {tab.dir
-            ? tab.dir.split("/").map((segment) => <span key={segment}>{segment}</span>)
-            : null}
-          <strong>{tab.name}</strong>
-        </div>
+        <nav className="preview-breadcrumbs-text" title={tab.id} aria-label={tr("文件路径", "File path")}>
+          {crumbs.map((segment, index) => (
+            <span className="preview-crumb" key={`${index}:${segment}`}>
+              {index > 0 ? <ChevronRightIcon size={10} /> : null}
+              <span className="preview-crumb-text">{segment}</span>
+            </span>
+          ))}
+          <span className="preview-crumb current">
+            {crumbs.length > 0 ? <ChevronRightIcon size={10} /> : null}
+            <FileTypeIcon path={tab.id} />
+            <strong>{tab.name}</strong>
+          </span>
+        </nav>
         <div className="preview-actions-group">
-          <button
-            type="button"
-            className={`icon-btn-ghost${explorerOpen ? " on" : ""}`}
-            title={explorerOpen ? tr("收起文件树", "Hide file tree") : tr("展开文件树", "Show file tree")}
-            aria-label={tr("文件树", "File tree")}
-            aria-pressed={explorerOpen}
-            onClick={() => setExplorerOpen((value) => !value)}
-          >
-            <GridIcon size={12} />
-          </button>
           {markdownBody ? (
             <div className="preview-view-toggle" role="group" aria-label={tr("Markdown 显示方式", "Markdown view mode")}>
               <button
@@ -96,9 +94,11 @@ export function FilePreviewView({
               title={tr("查看该文件的 Git 差异", "View this file's Git diff")}
               onClick={() => onShowDiff(tab.id)}
             >
+              <DiffIcon size={12} />
               {tr("差异", "Diff")}
             </button>
           ) : null}
+          <span className="preview-actions-sep" aria-hidden="true" />
           <button
             type="button"
             className="icon-btn-ghost"
@@ -106,9 +106,7 @@ export function FilePreviewView({
             aria-label={tr("重新读取", "Reload")}
             onClick={preview.reloadActive}
           >
-            <span className="preview-reload" aria-hidden="true">
-              ↻
-            </span>
+            <RefreshIcon size={13} />
           </button>
           <button
             type="button"
@@ -121,7 +119,7 @@ export function FilePreviewView({
               void navigator.clipboard.writeText(content.content).then(() => setCopied(true));
             }}
           >
-            {copied ? <CheckIcon size={13} /> : <CopyIcon />}
+            {copied ? <CheckIcon size={13} /> : <CopyIcon size={13} />}
           </button>
           <button
             type="button"
@@ -134,6 +132,17 @@ export function FilePreviewView({
             }}
           >
             <ExternalIcon size={13} />
+          </button>
+          <span className="preview-actions-sep" aria-hidden="true" />
+          <button
+            type="button"
+            className={`icon-btn-ghost${explorerOpen ? " on" : ""}`}
+            title={explorerOpen ? tr("收起文件树", "Hide file tree") : tr("展开文件树", "Show file tree")}
+            aria-label={tr("文件树", "File tree")}
+            aria-pressed={explorerOpen}
+            onClick={() => setExplorerOpen((value) => !value)}
+          >
+            <PanelRightIcon size={14} />
           </button>
         </div>
       </div>
@@ -152,15 +161,6 @@ export function FilePreviewView({
         {explorerOpen ? <ExplorerPane /> : null}
       </div>
     </div>
-  );
-}
-
-function CopyIcon() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-    </svg>
   );
 }
 

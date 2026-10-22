@@ -19,8 +19,8 @@ export async function runBatch2MotionChecks(setReducedMotion: (value: boolean) =
     await callback(); ++passed; result.textContent += `PASS ${name}\n`;
   }
   const inputValue = (value: string) => {
-    const textarea = node<HTMLTextAreaElement>(".input-textarea");
-    Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(textarea, value);
+    const textarea = node<HTMLDivElement>(".input-textarea");
+    textarea.textContent = value;
     textarea.dispatchEvent(new Event("input", { bubbles: true }));
   };
   try {
@@ -31,7 +31,7 @@ export async function runBatch2MotionChecks(setReducedMotion: (value: boolean) =
       assert(node(".chat-message-surface") !== old, "message surface did not change");
       assert(node(".chat-message-surface").getAnimations().length > 0, "missing arrival animation");
       assert(node(".chat-dock-wrapper") === composer, "Composer remounted");
-      assert(node<HTMLTextAreaElement>(".input-textarea").value === "draft preserved", "draft was lost");
+      assert(node<HTMLDivElement>(".input-textarea").textContent === "draft preserved", "draft was lost");
       assert(!document.querySelector(".chat-message-surface .message-enter"), "history received individual entrance motion");
       await wait(220);
       const next = node(".chat-message-surface"); fixture.workspace("/workspace/Other");
@@ -85,7 +85,7 @@ export async function runBatch2MotionChecks(setReducedMotion: (value: boolean) =
     });
     await check("Composer height smoothly grows/shrinks and reaches its 140px cap", async () => {
       inputValue("short"); await wait(160);
-      const input = node<HTMLTextAreaElement>(".input-textarea");
+      const input = node<HTMLDivElement>(".input-textarea");
       const small = input.getBoundingClientRect().height;
       inputValue(Array.from({ length: 20 }, () => "a line of text").join("\n")); await wait(25);
       assert(input.getAnimations().length > 0, "textarea has no height transition");
@@ -105,11 +105,11 @@ export async function runBatch2MotionChecks(setReducedMotion: (value: boolean) =
       inputValue("完成后补充使用说明"); await wait(30);
       assert(!send.inert && !send.disabled, "queue send stayed inert while streaming with text");
       assert(send.getAttribute("aria-label") === "排队发送", "queue send is not labelled");
-      const textarea = node<HTMLTextAreaElement>(".input-textarea");
+      const textarea = node<HTMLDivElement>(".input-textarea");
       textarea.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true })); await wait(30);
       assert(node(".instruction-chip.instruction-queue .instruction-badge").textContent === "排队", "queue chip missing");
       assert(node(".instruction-chip.instruction-queue .instruction-text").textContent === "完成后补充使用说明", "queue chip text changed");
-      assert(textarea.value === "", "queue submit kept the draft");
+      assert(textarea.textContent === "", "queue submit kept the draft");
 
       inputValue("只修登录问题"); await wait(20);
       assert(!node<HTMLButtonElement>(".composer-steer-btn").disabled, "steer button disabled while streaming with text");

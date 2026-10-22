@@ -1,139 +1,134 @@
 {
-  "version": "1.1.10",
+  "version": "1.1.11",
   "locales": {
     "en": {
-      "summary": "Vela 1.1.10 adds lightweight side chats with memory, clearer tool and browser activity, live conversation display previews, and manual model catalog refresh with Pi 1.3.0.",
+      "summary": "Vela 1.1.11 lets you place Skills anywhere in a message, adds three composer layouts, and refreshes the file preview and file tree.",
       "highlights": [
         {
-          "title": "Side chats with memory",
-          "body": "Open Side chat from a new workbench tab. Choose its model and reasoning level independently, with global and project memory included when memory is enabled. History lasts for the open tab; side chats have no tools."
+          "title": "Skills anywhere in your message",
+          "body": "Type / to insert a Skill chip at the cursor, even in the middle of a sentence. Chips stay in place in the sent message, and pasting into the composer now keeps plain text only."
         },
         {
-          "title": "Preview conversation display",
-          "body": "Hover or focus display options in Settings to preview tool layout, folding, timing, thinking summaries and input prediction. You can also turn tool grouping off or choose colored tool icons."
+          "title": "Three composer layouts",
+          "body": "Choose Classic, Calm or Capsule in Settings → Interface. Calm moves the stats into a footer band; Capsule shrinks the input into one pill with mode, permissions and stats in a tray below."
         },
         {
-          "title": "Clearer browser activity",
-          "body": "Browser calls show action summaries, script and text output, and screenshots you can enlarge directly in the conversation."
+          "title": "Clearer file preview",
+          "body": "File paths appear as breadcrumbs with file-type icons, the toolbar has new icons and dividers, and the file tree gains folder icons and indent guides."
         },
         {
-          "title": "Refresh available models",
-          "body": "Get the latest model list from Settings → Models & accounts without waiting for the automatic refresh interval. Pi 1.3.0 updates the model catalog and MCP integration."
+          "title": "Reasoning level at a glance",
+          "body": "In the Calm and Capsule layouts, the reasoning-level control shows a small signal or dial that reflects the current level."
         }
       ],
       "improvements": [
-        "Side chats support streaming, stop, retry and clear, with their own remembered model selection.",
-        "Compact tool rows, diff colors and failure timing are easier to read.",
-        "If a provider refresh fails, its cached models remain available; offline mode stays offline.",
-        "New controls and side chat messages are translated into all five interface languages."
+        "Tool rows now mark only running and failed calls; completed calls no longer show a checkmark.",
+        "The file search field in the explorer has a search icon.",
+        "New composer layout options are translated into all five interface languages."
       ]
     },
     "zh-CN": {
-      "summary": "Vela 1.1.10 新增带入记忆的轻量侧边聊天，改进工具与浏览器调用展示，为对话显示设置加入即时预览，并随 Pi 1.3.0 提供模型列表手动刷新。",
+      "summary": "Vela 1.1.11 支持把 Skill 放在消息的任意位置，新增三种输入框布局，并更新了文件预览与文件树。",
       "highlights": [
         {
-          "title": "带入记忆的侧边聊天",
-          "body": "在工作面板的新标签页选择「侧边聊天」，独立选择模型与推理强度，启用记忆时带入全局与项目记忆。历史仅保留在当前标签中，侧边聊天不提供工具。"
+          "title": "Skill 可放在消息任意位置",
+          "body": "输入 / 即可在光标处插入 Skill 芯片，句子中间也可以。发送后芯片保持在原位；向输入框粘贴时只保留纯文本。"
         },
         {
-          "title": "对话显示即时预览",
-          "body": "在设置里悬停或聚焦显示选项，即可预览工具布局、折叠、计时、思考总结与输入预测，也可关闭工具分组或启用彩色工具图标。"
+          "title": "三种输入框布局",
+          "body": "在设置 → 界面中选择「经典」「静谧」或「胶囊」。「静谧」把统计收成底部脚注；「胶囊」把输入收成一条，模式、权限和统计放在下方托盘。"
         },
         {
-          "title": "更清晰的浏览器调用",
-          "body": "浏览器调用显示操作摘要、脚本和文字输出，截图可直接在对话中放大查看。"
+          "title": "更清晰的文件预览",
+          "body": "文件路径以带文件类型图标的面包屑显示，工具栏换用新图标并加入分隔，文件树增加文件夹图标与缩进参考线。"
         },
         {
-          "title": "手动刷新模型列表",
-          "body": "在设置 → 模型与账号获取最新模型列表，无需等待自动刷新间隔。Pi 1.3.0 同时更新模型目录与 MCP 集成。"
+          "title": "思考强度一目了然",
+          "body": "在「静谧」与「胶囊」布局中，思考强度按钮会用小信号格或弧形拨盘反映当前档位。"
         }
       ],
       "improvements": [
-        "侧边聊天支持流式回复、停止、重试与清空，并记住独立的模型选择。",
-        "紧凑工具行、差异配色与失败计时更易阅读。",
-        "提供方刷新失败时保留已缓存模型；离线模式不会联网。",
-        "新控件与侧边聊天文案已补齐五种界面语言。"
+        "工具行只标出运行中和失败的调用，完成的调用不再显示对勾。",
+        "文件树的搜索框增加了搜索图标。",
+        "输入框布局的新选项已补齐五种界面语言。"
       ]
     },
     "zh-TW": {
-      "summary": "Vela 1.1.10 新增帶入記憶的輕量側邊聊天，改善工具與瀏覽器呼叫顯示，為對話顯示設定加入即時預覽，並隨 Pi 1.3.0 提供模型清單手動重新整理。",
+      "summary": "Vela 1.1.11 支援把 Skill 放在訊息的任意位置，新增三種輸入框版面，並更新了檔案預覽與檔案樹。",
       "highlights": [
         {
-          "title": "帶入記憶的側邊聊天",
-          "body": "在工作面板的新分頁選擇「側邊聊天」，獨立選擇模型與推理強度，啟用記憶時帶入全域與專案記憶。歷史僅保留在目前分頁中，側邊聊天不提供工具。"
+          "title": "Skill 可放在訊息任意位置",
+          "body": "輸入 / 即可在游標處插入 Skill 晶片，句子中間也可以。送出後晶片維持在原位；貼上到輸入框時只保留純文字。"
         },
         {
-          "title": "對話顯示即時預覽",
-          "body": "在設定裡將游標移至顯示選項或以鍵盤聚焦，即可預覽工具版面、摺疊、計時、思考摘要與輸入預測，也可關閉工具分組或啟用彩色工具圖示。"
+          "title": "三種輸入框版面",
+          "body": "在設定 → 介面選擇「經典」「靜謐」或「膠囊」。「靜謐」把統計收成底部註腳；「膠囊」把輸入收成一條，模式、權限和統計放在下方托盤。"
         },
         {
-          "title": "更清楚的瀏覽器呼叫",
-          "body": "瀏覽器呼叫顯示操作摘要、腳本與文字輸出，螢幕截圖可直接在對話中放大查看。"
+          "title": "更清楚的檔案預覽",
+          "body": "檔案路徑以帶檔案類型圖示的導覽列顯示，工具列換用新圖示並加入分隔線，檔案樹增加資料夾圖示與縮排參考線。"
         },
         {
-          "title": "手動重新整理模型清單",
-          "body": "在設定 → 模型與帳號取得最新模型清單，無須等待自動重新整理間隔。Pi 1.3.0 同時更新模型目錄與 MCP 整合。"
+          "title": "思考強度一目了然",
+          "body": "在「靜謐」與「膠囊」版面中，思考強度按鈕會用小訊號格或弧形撥盤反映目前檔位。"
         }
       ],
       "improvements": [
-        "側邊聊天支援串流回覆、停止、重試與清空，並記住獨立的模型選擇。",
-        "緊湊工具列、差異配色與失敗計時更易閱讀。",
-        "提供方重新整理失敗時保留快取模型；離線模式不會連線。",
-        "新控制項與側邊聊天文案已補齊五種介面語言。"
+        "工具列只標出執行中與失敗的呼叫，已完成的呼叫不再顯示勾號。",
+        "檔案樹的搜尋框增加了搜尋圖示。",
+        "輸入框版面的新選項已補齊五種介面語言。"
       ]
     },
     "ja": {
-      "summary": "Vela 1.1.10 では、メモリを使う軽量なサイドチャット、ツールとブラウザー操作の見やすい表示、会話表示設定のライブプレビュー、Pi 1.3.0 によるモデル一覧の手動更新を追加しました。",
+      "summary": "Vela 1.1.11 では、メッセージ内の好きな位置にスキルを置けるようになり、入力欄のレイアウトを 3 種類追加し、ファイルプレビューとファイルツリーを刷新しました。",
       "highlights": [
         {
-          "title": "メモリ付きサイドチャット",
-          "body": "ワークベンチの新しいタブでサイドチャットを選び、モデルと推論レベルを個別に設定できます。メモリが有効な場合はグローバルとプロジェクトのメモリを読み込みます。履歴は開いているタブ内だけに残り、ツールは使いません。"
+          "title": "メッセージのどこにでもスキルを",
+          "body": "/ を入力するとカーソル位置にスキルのチップを挿入できます。文の途中でも構いません。送信後もチップは同じ位置に残り、入力欄へのペーストはプレーンテキストのみになります。"
         },
         {
-          "title": "会話表示のプレビュー",
-          "body": "設定の表示オプションにポインターを合わせるかフォーカスすると、ツールの配置、折りたたみ、所要時間、思考の要約、入力予測を確認できます。ツールのグループ化をオフにしたり、アイコンをカラーにしたりできます。"
+          "title": "入力欄の 3 つのレイアウト",
+          "body": "設定 → インターフェースで「クラシック」「穏やか」「カプセル」を選べます。「穏やか」は統計を下部のフッターに移し、「カプセル」は入力を 1 本にまとめてモード・権限・統計を下のトレイに置きます。"
         },
         {
-          "title": "ブラウザー操作を見やすく",
-          "body": "ブラウザー呼び出しに操作の要約、スクリプト、テキスト出力を表示し、会話内でスクリーンショットを拡大できます。"
+          "title": "見やすいファイルプレビュー",
+          "body": "ファイルパスはファイル種別アイコン付きのパンくずリストで表示され、ツールバーのアイコンと区切りも新しくなり、ファイルツリーにはフォルダーアイコンとインデントガイドが付きました。"
         },
         {
-          "title": "モデル一覧の手動更新",
-          "body": "設定 → モデルとアカウントから、自動更新の間隔を待たずに最新のモデル一覧を取得できます。Pi 1.3.0 でモデルカタログと MCP 連携も更新しました。"
+          "title": "思考レベルがひと目で分かる",
+          "body": "「穏やか」と「カプセル」では、思考レベルのボタンに現在のレベルを示す小さなシグナルまたはダイヤルが表示されます。"
         }
       ],
       "improvements": [
-        "サイドチャットはストリーミング、停止、再試行、消去に対応し、独自のモデル選択を記憶します。",
-        "コンパクトなツール行、差分の配色、失敗時の所要時間を見やすくしました。",
-        "プロバイダーの更新に失敗してもキャッシュ済みモデルを維持し、オフラインモードでは通信しません。",
-        "新しい操作項目とサイドチャットの文言を全 5 言語に翻訳しました。"
+        "ツール行には実行中と失敗した呼び出しだけを表示し、完了した呼び出しのチェックマークは表示しなくなりました。",
+        "ファイルツリーの検索欄に検索アイコンを追加しました。",
+        "入力欄レイアウトの新しい項目を全 5 言語に翻訳しました。"
       ]
     },
     "ko": {
-      "summary": "Vela 1.1.10은 메모리를 활용하는 가벼운 사이드 채팅, 더 명확한 도구 및 브라우저 활동 표시, 대화 표시 설정의 실시간 미리보기, Pi 1.3.0 기반 모델 목록 수동 새로고침을 추가합니다.",
+      "summary": "Vela 1.1.11은 메시지 어디에나 스킬을 넣을 수 있게 하고, 입력창 레이아웃 3종을 추가했으며, 파일 미리보기와 파일 트리를 새롭게 다듬었습니다.",
       "highlights": [
         {
-          "title": "메모리를 활용하는 사이드 채팅",
-          "body": "워크벤치의 새 탭에서 사이드 채팅을 선택하고 모델과 추론 수준을 따로 정할 수 있습니다. 메모리가 켜져 있으면 전역 및 프로젝트 메모리를 불러옵니다. 기록은 열린 탭에만 남으며 도구는 제공하지 않습니다."
+          "title": "메시지 어디에나 스킬 삽입",
+          "body": "/ 를 입력하면 커서 위치에 스킬 칩을 넣을 수 있으며, 문장 중간에도 가능합니다. 보낸 뒤에도 칩은 제자리에 남고, 입력창에 붙여넣으면 일반 텍스트만 유지됩니다."
         },
         {
-          "title": "대화 표시 미리보기",
-          "body": "설정의 표시 옵션에 마우스를 올리거나 키보드로 초점을 맞추면 도구 배치, 접기, 소요 시간, 사고 요약, 입력 예측을 미리 볼 수 있습니다. 도구 그룹을 끄거나 컬러 아이콘을 선택할 수도 있습니다."
+          "title": "입력창 레이아웃 3종",
+          "body": "설정 → 인터페이스에서 '클래식', '차분함', '캡슐' 중에서 고를 수 있습니다. '차분함'은 통계를 하단 푸터로 옮기고, '캡슐'은 입력을 한 줄로 줄여 모드, 권한, 통계를 아래 트레이에 둡니다."
         },
         {
-          "title": "더 명확한 브라우저 활동",
-          "body": "브라우저 호출에 작업 요약, 스크립트, 텍스트 출력을 표시하고 대화 안에서 스크린샷을 확대해 볼 수 있습니다."
+          "title": "더 명확한 파일 미리보기",
+          "body": "파일 경로가 파일 형식 아이콘이 있는 이동 경로로 표시되고, 도구 모음에는 새 아이콘과 구분선이 생기며, 파일 트리에는 폴더 아이콘과 들여쓰기 안내선이 추가됩니다."
         },
         {
-          "title": "모델 목록 수동 새로고침",
-          "body": "설정 → 모델 및 계정에서 자동 새로고침 간격을 기다리지 않고 최신 모델 목록을 가져옵니다. Pi 1.3.0으로 모델 카탈로그와 MCP 연동도 업데이트했습니다."
+          "title": "추론 수준을 한눈에",
+          "body": "'차분함'과 '캡슐' 레이아웃에서는 추론 수준 버튼에 현재 수준을 보여 주는 작은 신호 막대 또는 다이얼이 표시됩니다."
         }
       ],
       "improvements": [
-        "사이드 채팅은 스트리밍, 중지, 재시도, 지우기를 지원하고 별도의 모델 선택을 기억합니다.",
-        "간결한 도구 행, diff 색상, 실패 시 소요 시간을 더 읽기 쉽게 개선했습니다.",
-        "제공자 새로고침에 실패해도 캐시된 모델을 유지하며 오프라인 모드에서는 연결하지 않습니다.",
-        "새 컨트롤과 사이드 채팅 문구를 다섯 가지 인터페이스 언어로 번역했습니다."
+        "도구 행에는 실행 중이거나 실패한 호출만 표시하며, 완료된 호출에는 더 이상 체크 표시를 붙이지 않습니다.",
+        "파일 트리의 검색창에 검색 아이콘을 추가했습니다.",
+        "입력창 레이아웃의 새 옵션을 다섯 가지 인터페이스 언어로 번역했습니다."
       ]
     }
   }

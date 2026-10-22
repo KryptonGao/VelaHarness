@@ -14,12 +14,12 @@ app.on('browser-window-created', (_event, win) => {
         const visible = node => !!node && node.getClientRects().length;
         const buttons = scope => [...(scope ?? document).querySelectorAll('button')].filter(visible);
         const click = (text, scope) => { const b = buttons(scope).find(x => x.textContent.trim() === text); assert(b, 'Missing button ' + text); assert(!b.disabled, 'Disabled ' + text); b.click(); };
-        const setValue = (el, text) => { Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set.call(el, text); el.dispatchEvent(new Event('input', { bubbles: true })); };
+        const setValue = (el, text) => { if (el.isContentEditable) el.textContent = text; else Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set.call(el, text); el.dispatchEvent(new Event('input', { bubbles: true })); };
 
         // Send one message and wait for the reply, so the chat has content.
         const first = await window.vela.getState();
         const sourceId = first.activeConversationId;
-        await wait(() => document.querySelector('#prompt') && !document.querySelector('#prompt').disabled, 'Composer not ready');
+        await wait(() => document.querySelector('#prompt') && document.querySelector('#prompt').isContentEditable, 'Composer not ready');
         const prompt = document.querySelector('#prompt');
         prompt.focus(); setValue(prompt, 'Please build the handoff smoke feature');
         await new Promise(resolve => setTimeout(resolve, 50));
@@ -48,10 +48,10 @@ app.on('browser-window-created', (_event, win) => {
         await wait(() => !document.querySelector('.handoff-dialog'), 'Dialog did not close');
         const state = await window.vela.getState();
         assert(state.activeConversationId !== sourceId, 'Still on the source chat');
-        const filled = await wait(() => { const el = document.querySelector('#prompt'); return el && el.value.startsWith('# 任务交接包') && el; }, 'Input not seeded');
-        assert(filled.value.includes('Smoke goal edited by the user'), 'Edited goal missing from the input');
-        assert(filled.value.includes('- Keep it simple') && filled.value.includes('- Write the docs'), 'Decisions or unfinished items missing');
-        assert(filled.selectionStart === filled.value.length && filled.selectionEnd === filled.value.length, 'Caret not at the end');
+        const filled = await wait(() => { const el = document.querySelector('#prompt'); return el && el.textContent.startsWith('# 任务交接包') && el; }, 'Input not seeded');
+        assert(filled.textContent.includes('Smoke goal edited by the user'), 'Edited goal missing from the input');
+        assert(filled.textContent.includes('- Keep it simple') && filled.textContent.includes('- Write the docs'), 'Decisions or unfinished items missing');
+        const caret = getSelection(); assert(caret.isCollapsed && caret.anchorOffset === filled.textContent.length, 'Caret not at the end');
         assert(document.activeElement === filled, 'Input not focused');
         const conversations = (await window.vela.getState()).conversations ?? [];
         const source = conversations.find(c => c.id === sourceId), created = conversations.find(c => c.id === state.activeConversationId);

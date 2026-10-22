@@ -3,9 +3,8 @@ import { describe, it } from "node:test";
 import type { SkillSummary } from "@vela/shared";
 import {
   applySkillPick,
-  composeSkillPrompt,
   filterSkills,
-  parseSkillPrompt,
+  parseSkillSegments,
   skillOriginLabel,
   skillTitle,
   slashTokenAt,
@@ -83,21 +82,38 @@ describe("filterSkills", () => {
 });
 
 describe("prompt formatting", () => {
-  it("turns a kebab-case name into a title and a sendable command", () => {
+  it("turns a kebab-case name into a title", () => {
     assert.equal(skillTitle("apple-design"), "Apple Design");
     assert.equal(skillOriginLabel("user"), "个人");
     assert.equal(skillOriginLabel("project"), "项目");
-    assert.equal(composeSkillPrompt("apple-design", "  改一下登录页 "), "/skill:apple-design 改一下登录页");
-    assert.equal(composeSkillPrompt("apple-design", "  "), "/skill:apple-design");
-    assert.equal(composeSkillPrompt("Apple Design", "你好"), "你好");
   });
 
   it("parses a sent skill command back into a chip and the remaining request", () => {
-    assert.deepEqual(parseSkillPrompt("/skill:apple-design 改一下登录页\n\n[图片 ×1]"), {
-      name: "apple-design",
-      body: "改一下登录页\n\n[图片 ×1]",
-    });
-    assert.equal(parseSkillPrompt("普通消息"), null);
+    assert.deepEqual(parseSkillSegments("/skill:apple-design 改一下登录页\n\n[图片 ×1]"), [
+      { type: "skill", name: "apple-design" },
+      { type: "text", text: "改一下登录页\n\n[图片 ×1]" },
+    ]);
+    assert.equal(parseSkillSegments("普通消息"), null);
+    assert.equal(parseSkillSegments("网址 http://a/skill:b 不算"), null);
+  });
+
+  it("keeps several skills where they sit between the words", () => {
+    assert.deepEqual(parseSkillSegments("先用 /skill:apple-design 调整样式，再 /skill:documents 写说明"), [
+      { type: "text", text: "先用" },
+      { type: "skill", name: "apple-design" },
+      { type: "text", text: "调整样式，再" },
+      { type: "skill", name: "documents" },
+      { type: "text", text: "写说明" },
+    ]);
+    assert.deepEqual(parseSkillSegments("/skill:a /skill:b"), [
+      { type: "skill", name: "a" },
+      { type: "skill", name: "b" },
+    ]);
+    assert.deepEqual(parseSkillSegments("第一行\n/skill:a 第二行"), [
+      { type: "text", text: "第一行\n" },
+      { type: "skill", name: "a" },
+      { type: "text", text: "第二行" },
+    ]);
   });
 
   it("hides the expanded skill body and keeps only the user's request", () => {
@@ -109,18 +125,20 @@ describe("prompt formatting", () => {
       "Turn a repository homepage into a visual story.",
       "</skill>",
       "",
-      "优化这个 README",
+      "优化这个 README，再用 /skill:documents 写说明",
     ].join("\n");
-    assert.deepEqual(parseSkillPrompt(expanded), {
-      name: "beautify-github-readme",
-      body: "优化这个 README",
-    });
+    assert.deepEqual(parseSkillSegments(expanded), [
+      { type: "skill", name: "beautify-github-readme" },
+      { type: "text", text: "优化这个 README，再用" },
+      { type: "skill", name: "documents" },
+      { type: "text", text: "写说明" },
+    ]);
     assert.deepEqual(
-      parseSkillPrompt(
+      parseSkillSegments(
         '<skill name="apple-design" location="/skills/apple-design/SKILL.md">\n# Apple\n</skill>',
       ),
-      { name: "apple-design", body: "" },
+      [{ type: "skill", name: "apple-design" }],
     );
-    assert.equal(parseSkillPrompt("正文里提到 <skill name=\"x\"> 但不是整条消息"), null);
+    assert.equal(parseSkillSegments("正文里提到 <skill name=\"x\"> 但不是整条消息"), null);
   });
 });

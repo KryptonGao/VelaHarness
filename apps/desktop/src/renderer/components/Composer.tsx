@@ -14,7 +14,7 @@ import { forwardRef, useContext, useEffect, useId, useLayoutEffect, useMemo, use
 import type { useModels } from "../hooks/useModels";
 import type { ProjectApi } from "../hooks/useProject";
 import type { SendButtonIcon } from "../hooks/usePreferences";
-import { ArrowUpIcon, CloseIcon, FileIcon, SendIcon, SteerIcon } from "./icons";
+import { ArrowUpIcon, CloseIcon, FileIcon, SendIcon, SkillIcon, SteerIcon } from "./icons";
 import { MotionList } from "./BatchMotion";
 import { useReducedMotion } from "../hooks/useMotionPresence";
 import { PopoverPresence } from "./MotionPresence";
@@ -27,9 +27,19 @@ import { ComposerStatsRow } from "./composer/ComposerStatsRow";
 import { EnvironmentChip } from "./composer/EnvironmentChip";
 import { ModeChip } from "./composer/ModeChip";
 import { SandboxPill } from "./composer/SandboxPill";
-import { SkillMenu, SkillToken } from "./composer/SkillMenu";
+import { SkillMenu } from "./composer/SkillMenu";
 import { WorkspaceChip } from "./composer/WorkspaceChip";
-import { applySkillPick, composeSkillPrompt, slashTokenAt } from "./composer/skill-picker";
+import {
+  createSkillChip,
+  editorSlash,
+  insertSkillChip,
+  pruneChips,
+  removeSlashText,
+  serializeEditor,
+  setEditorText,
+  skillAttr,
+  type EditorSlash,
+} from "./composer/skill-editor";
 import { modKeyLabel } from "../platform";
 import { slashMenuItems, type SlashMenuItem } from "./composer/slash-picker";
 import { RecipeActionsContext } from "./recipe-actions-context";
@@ -38,6 +48,7 @@ import { RaceSetupDialog } from "./RaceSetupDialog";
 import { useComposerSeed } from "./composer-seed-context";
 import { localizeError, tr, useAppLocale, trf } from "../locale";
 import { useInputPrediction } from "../hooks/useInputPrediction";
+import { useComposerLayout } from "../hooks/useComposerLayout";
 
 export interface ComposerProps {
   embedded?: boolean;
@@ -119,24 +130,24 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
   const raceActions = useContext(RaceActionsContext);
   const [raceOpen, setRaceOpen] = useState(false);
   const locale = useAppLocale();
+  const layout = useComposerLayout();
   const [recipes, setRecipes] = useState<TaskRecipe[] | null>(null);
   const [recipesError, setRecipesError] = useState<string | null>(null);
   const recipeRun = useRecipeRun();
   const recipeActive = !!recipeRun?.stages && ["starting", "running", "waiting_for_user"].includes(recipeRun.status);
   const [value, setValue] = useState("");
-  const [skill, setSkill] = useState<SkillSummary | null>(null);
   const [skills, setSkills] = useState<SkillSummary[] | null>(null);
   const [skillsError, setSkillsError] = useState<string | null>(null);
-  const [slash, setSlash] = useState<ReturnType<typeof slashTokenAt>>(null);
+  const [slash, setSlash] = useState<EditorSlash | null>(null);
   const [dismissedKey, setDismissedKey] = useState<string | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [attachments, setAttachments] = useState<FileAttachmentPayload[]>([]);
   const [dragging, setDragging] = useState(false);
   const reducedMotion = useReducedMotion();
   const measuredInput = useRef(false);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const inputRef = useRef<HTMLDivElement>(null);
+  const iconsRef = useRef<HTMLSpanElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-  const pendingCaret = useRef<number | null>(null);
   const skillRequest = useRef(0);
   const dragCounter = useRef(0);
   const workspacePath = project.workspace?.current ?? null;
@@ -145,7 +156,8 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
   const recipesEnabled = !!recipeActions?.useRecipe && !streaming && !recipeActive;
   const filtered = useMemo(() => slashMenuItems(skills ?? [], recipesEnabled ? recipes ?? [] : [], slash?.query ?? ""), [skills, recipes, recipesEnabled, slash?.query]);
   const safeIndex = filtered.length === 0 ? 0 : Math.min(activeIndex, filtered.length - 1);
-  const prompt = composeSkillPrompt(skill?.name ?? null, value);
+  // 输入框里的 Skill 芯片会写成文字中的 `/skill:名称`，所以 value 本身就是要发送的内容。
+  const prompt = value.trim();
   const prediction = useInputPrediction({
     enabled: predictionEnabled && !disabled && !recipeActive,
     conversationId,
@@ -155,7 +167,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
     locale,
   });
   // 只有空输入框（没有文字、技能和附件）才显示预测；一旦开始输入就让位。
-  const suggestion = !value && !skill && attachments.length === 0 && !streaming ? prediction : "";
+  const suggestion = !prompt && attachments.length === 0 && !streaming ? prediction : "";
 
   useLayoutEffect(() => {
     const input = inputRef.current;
@@ -182,33 +194,38 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
     let measuredWidth = input.getBoundingClientRect().width;
     observer.observe(input);
     return () => observer.disconnect();
-  }, [value, skill, reducedMotion]);
+  }, [value, reducedMotion]);
 
   useEffect(() => {
     setActiveIndex(0);
   }, [slash?.start, slash?.query]);
 
   useEffect(() => {
-    const caret = pendingCaret.current;
-    if (caret === null) return;
-    pendingCaret.current = null;
-    const input = inputRef.current;
-    if (!input) return;
-    input.focus();
-    input.setSelectionRange(caret, caret);
-  }, [value]);
+    // 选区移动时重新判断光标是否停在 `/查询` 上；输入框不是 textarea，没有 onSelect 可用。
+    const onSelectionChange = () => {
+      const root = inputRef.current;
+      if (!root || document.activeElement !== root) return;
+      const next = editorSlash(root);
+      setSlash((current) =>
+        current === next || (current && next && current.node === next.node
+          && current.start === next.start && current.end === next.end && current.query === next.query)
+          ? current
+          : next);
+    };
+    document.addEventListener("selectionchange", onSelectionChange);
+    return () => document.removeEventListener("selectionchange", onSelectionChange);
+  }, []);
 
   // 任务交接包等外部预填：只在目标对话的输入框里取走，并把光标放到末尾方便补一句指令。
-  useComposerSeed(recipeActions?.conversationId ?? null, text => {
-    pendingCaret.current = text.length;
-    setValue(text);
-    setSlash(null);
-  });
+  useComposerSeed(recipeActions?.conversationId ?? null, text => setText(text));
 
   useEffect(() => {
-    if (!skill || !skills) return;
-    if (!skills.some((item) => item.location === skill.location && item.enabled)) setSkill(null);
-  }, [skill, skills]);
+    const root = inputRef.current;
+    if (!root || !skills) return;
+    // Skill 被停用或删除后，输入框里已有的芯片一并去掉。
+    const enabled = new Set(skills.filter((item) => item.enabled).map((item) => item.name));
+    if (pruneChips(root, enabled)) setValue(serializeEditor(root));
+  }, [skills]);
 
   useEffect(() => {
     const api = window.vela;
@@ -302,7 +319,15 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
       .map((item) => item.getAsFile())
       .filter((file): file is File => file !== null && file.size > 0)
       .slice(0, maxPastedImages);
-    if (files.length === 0) return;
+    if (files.length === 0) {
+      // 输入框是 contenteditable，默认会带着样式粘贴；这里只收纯文本。
+      const text = event.clipboardData.getData("text/plain");
+      if (text) {
+        event.preventDefault();
+        document.execCommand("insertText", false, text);
+      }
+      return;
+    }
     event.preventDefault();
     const payloads: FileAttachmentPayload[] = [];
     const seen = new Set<string>();
@@ -318,33 +343,59 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
     if (payloads.length > 0) addAttachments(payloads);
   }
 
+  /** 输入框内容有变化时，把它同步成发送用的文字，并重新判断 `/查询`。 */
+  function syncEditor(): void {
+    const root = inputRef.current;
+    if (!root) return;
+    setValue(serializeEditor(root));
+    setSlash(editorSlash(root));
+  }
+
+  function setText(text: string): void {
+    const root = inputRef.current;
+    if (!root) return;
+    root.focus();
+    setEditorText(root, text);
+    setValue(text);
+    setSlash(null);
+  }
+
+  function clearEditor(): void {
+    inputRef.current?.replaceChildren();
+    setValue("");
+    setSlash(null);
+  }
+
   function selectSkill(nextSkill: SkillSummary): void {
-    if (!slash) return;
-    const next = applySkillPick(value, slash);
-    pendingCaret.current = next.caret;
-    setSkill(nextSkill);
-    setValue(next.text);
+    const root = inputRef.current;
+    const skillIcon = iconsRef.current?.firstChild;
+    const closeIcon = iconsRef.current?.lastChild;
+    const token = root ? editorSlash(root) ?? slash : null;
+    if (!root || !skillIcon || !closeIcon || !token) return;
+    insertSkillChip(token, createSkillChip(nextSkill, { skill: skillIcon, close: closeIcon }));
+    setValue(serializeEditor(root));
     setSlash(null);
     setDismissedKey(null);
   }
 
   function selectSlashItem(item: SlashMenuItem): void {
     if (item.type === 'skill') { selectSkill(item.skill); return; }
-    if (!slash || !recipesEnabled) return;
-    const next = applySkillPick(value, slash);
-    setValue(next.text); setSlash(null); setDismissedKey(null);
+    const root = inputRef.current;
+    const token = root ? editorSlash(root) ?? slash : null;
+    if (!root || !token || !recipesEnabled) return;
+    removeSlashText(token);
+    setValue(serializeEditor(root)); setSlash(null); setDismissedKey(null);
     recipeActions?.useRecipe?.(item.recipe);
   }
 
   async function submit(steerIntent = false): Promise<void> {
-    const text = composeSkillPrompt(skill?.name ?? null, value) || suggestion;
+    const root = inputRef.current;
+    const text = (root ? serializeEditor(root).trim() : prompt) || suggestion;
     if (!text || disabled || recipeActive || !modelReady) return;
     const images = attachments
       .map((entry) => entry.image)
       .filter((image): image is ImageAttachment => image !== null);
-    setValue("");
-    setSlash(null);
-    setSkill(null);
+    clearEditor();
     setAttachments([]);
     // 运行中按追加指令投递:Enter 排队,⌘/Ctrl+Enter 调整当前任务。
     const deliverAs: RuntimeInstructionMode | undefined = streaming
@@ -368,10 +419,251 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
           : tr("发送 (Enter)", "Send (Enter)");
   const steerHint = trf("调整当前任务 ({0}Enter)", "Steer current task ({0}Enter)", modifier);
 
+  const approvalSlots = (
+  <>
+    <ApprovalSlot approval={project.approval} onReply={project.replyApproval} />
+    <RecipeStageDock run={recipeRun} />
+  </>
+  );
+
+  const statusBar = (
+    <>
+      {showSetupControls || showError ? (
+        <div className="composer-status-bar">
+          {showSetupControls ? (
+            <>
+              <WorkspaceChip project={project} />
+              <EnvironmentChip project={project} />
+              <BranchChip project={project} />
+            </>
+          ) : null}
+          {showError ? (
+            <span className="composer-status-notice" role="alert" title={showError}>
+              {showError}
+            </span>
+          ) : null}
+        </div>
+      ) : null}
+    </>
+  );
+
+  const skillMenu = (
+    <PopoverPresence present={menuOpen}>
+      <div className="skill-menu-anchor" ref={menuRef}>
+        <SkillMenu
+          id={menuId}
+          optionIdPrefix={optionIdPrefix}
+          items={filtered}
+          loadingSkills={skills === null && !skillsError}
+          loadingRecipes={recipesEnabled && recipes === null && !recipesError}
+          recipeError={recipesEnabled ? recipesError : null}
+          error={skillsError}
+          query={slash?.query ?? ""}
+          activeIndex={safeIndex}
+          onActiveIndex={setActiveIndex}
+          onSelect={selectSlashItem}
+        />
+      </div>
+    </PopoverPresence>
+  );
+
+  const instructionRow = (
+    <MotionList className="instruction-row" items={instructions} keyOf={(entry) => entry.id} horizontal>
+      {(entry) => (
+        <div className={`instruction-chip instruction-${entry.mode}`}>
+          <span className="instruction-badge">
+            {entry.mode === "queue" ? tr("排队", "Queued") : tr("调整", "Steering")}
+          </span>
+          <span className="instruction-text" title={entry.text}>{entry.text}</span>
+          <button
+            type="button"
+            className="instruction-remove"
+            title={tr("撤销这条指令", "Remove this instruction")}
+            aria-label={tr("撤销这条指令", "Remove this instruction")}
+            onClick={() => void onRemoveInstruction(entry.id)}
+          >
+            <CloseIcon size={10} />
+          </button>
+        </div>
+      )}
+    </MotionList>
+  );
+
+  const attachmentRow = (
+    <MotionList className="attachment-row" items={attachments} keyOf={attachmentKey} horizontal>
+        {(entry) => (
+          <div className={`attachment-chip attachment-${entry.kind}`}>
+            {entry.image ? (
+              <img
+                className="attachment-thumb"
+                src={`data:${entry.image.mimeType};base64,${entry.image.data}`}
+                alt={entry.name}
+              />
+            ) : (
+              <span className="attachment-file-icon">
+                <FileIcon size={12} />
+              </span>
+            )}
+            <span className="attachment-name" title={entry.path || entry.name}>
+              {entry.name}
+            </span>
+            <button
+              type="button"
+              className="attachment-remove"
+              title={tr("移除附件", "Remove attachment")}
+              onClick={() => setAttachments((current) => current.filter((item) => item !== entry))}
+            >
+              <CloseIcon size={10} />
+            </button>
+          </div>
+        )}
+    </MotionList>
+  );
+
+  const editable = !(recipeActive || disabled && !streaming);
+  const entry = (
+    <div className="composer-entry">
+      <span hidden ref={iconsRef}>
+        <SkillIcon size={15} />
+        <CloseIcon size={12} />
+      </span>
+      <div
+        id={promptId}
+        ref={inputRef}
+        className={`input-textarea rich-input${suggestion ? " with-prediction" : ""}`}
+        data-placeholder={suggestion || placeholderFor(mode)}
+        data-empty={!prompt}
+        role="textbox"
+        aria-multiline="true"
+        aria-label={tr("输入消息", "Message")}
+        aria-disabled={!editable}
+        contentEditable={editable}
+        suppressContentEditableWarning
+        spellCheck
+        aria-autocomplete="list"
+        aria-expanded={menuOpen}
+        aria-controls={menuOpen ? menuId : undefined}
+        aria-activedescendant={menuOpen && filtered[safeIndex] ? `${optionIdPrefix}-${safeIndex}` : undefined}
+        onInput={syncEditor}
+        onFocus={() => setDismissedKey(null)}
+        onPaste={(event) => void handlePaste(event)}
+        onMouseDown={(event) => {
+          // 点芯片上的移除按钮不应该抢走输入框的焦点。
+          if ((event.target as Element).closest?.("[data-skill-remove]")) event.preventDefault();
+        }}
+        onClick={(event) => {
+          const chip = (event.target as Element).closest?.("[data-skill-remove]")?.closest(`[${skillAttr}]`);
+          if (!chip) return;
+          chip.remove();
+          syncEditor();
+          inputRef.current?.focus();
+        }}
+        onKeyDown={(event) => {
+          if (event.nativeEvent.isComposing || event.key === "Process") return;
+          if (menuOpen && filtered.length > 0 && (event.key === "ArrowDown" || event.key === "ArrowUp")) {
+            event.preventDefault();
+            const last = filtered.length - 1;
+            setActiveIndex(event.key === "ArrowDown"
+              ? (safeIndex >= last ? 0 : safeIndex + 1)
+              : (safeIndex <= 0 ? last : safeIndex - 1));
+            return;
+          }
+          if (menuOpen && event.key === "Escape") {
+            event.preventDefault();
+            setDismissedKey(slashKey);
+            return;
+          }
+          if (menuOpen && filtered.length > 0 && !event.shiftKey && (event.key === "Enter" || event.key === "Tab")) {
+            event.preventDefault();
+            const picked = filtered[safeIndex];
+            if (picked) selectSlashItem(picked);
+            return;
+          }
+          if (menuOpen && (skills === null || recipesEnabled && recipes === null) && event.key === "Enter" && !event.shiftKey) {
+            event.preventDefault();
+            return;
+          }
+          if (suggestion && event.key === "Tab" && !event.shiftKey && !event.altKey && !event.metaKey && !event.ctrlKey) {
+            // Tab 把预测填进输入框，方便先改再发。
+            event.preventDefault();
+            setText(suggestion);
+            return;
+          }
+          if (event.key === "Enter") {
+            event.preventDefault();
+            if (event.shiftKey) document.execCommand("insertLineBreak");
+            else void submit(event.metaKey || event.ctrlKey);
+          }
+        }}
+      />
+      {suggestion ? (
+        <span className="composer-prediction-hint" aria-hidden="true" title={tr("Tab 填入输入框，Enter 直接发送", "Tab to edit, Enter to send")}>Tab</span>
+      ) : null}
+    </div>
+  );
+
+  const attachMenu = (
+    <AttachMenu onAttachments={addAttachments} disabled={disabled} />
+  );
+
+  const modeChip = (
+    <ModeChip mode={mode} disabled={disabled || streaming || recipeActive} onChange={onMode}
+      race={raceActions && workspacePath && window.vela?.races && modelReady ? { onStart: () => setRaceOpen(true), onShow: raceActions.open, count: raceActions.count } : undefined} />
+  );
+
+  const sandboxPill = (
+    <SandboxPill project={project} conversationMode={sandboxMode} />
+  );
+
+  const modelControls = (
+    <ModelControls
+      modelLabel={model ?? null}
+      modelProvider={modelProvider}
+      modelId={modelId}
+      thinkingLevel={thinkingLevel}
+      thinkingLevels={thinkingLevels}
+      disabled={streaming || recipeActive}
+      catalog={models.catalog}
+      catalogError={models.catalogError}
+      actionError={models.actionError}
+      hiddenModels={hiddenModels}
+      login={models.login}
+      onSelect={models.select}
+      onThinking={models.setThinking}
+      onAdd={models.add}
+      onRemove={models.remove}
+      onLogout={models.logout}
+      onLogin={models.loginProvider}
+      onReplyLogin={models.replyLogin}
+      onCancelLogin={models.cancelLogin}
+      onDismissLogin={models.dismissLogin}
+    />
+  );
+
+  const actions = (
+    <ComposerActions sendButtonIcon={sendButtonIcon} streaming={streaming} sendHint={sendHint} steerHint={steerHint}
+      canQueue={Boolean(prompt)} disabled={disabled || recipeActive || !modelReady || (!prompt && !suggestion)}
+      onSteer={() => void submit(true)} onAbort={onAbort} />
+  );
+
+  const stats = (
+    <ComposerStatsRow usage={usage} contextPopover={contextPopover} />
+  );
+
+  const above = (
+    <>
+      {approvalSlots}
+      {statusBar}
+      {skillMenu}
+      {instructionRow}
+      {attachmentRow}
+    </>
+  );
+
   return (
     <div className="chat-dock-wrapper" ref={ref}>
       <form
-        className={`floating-input-card${dragging ? " dragging" : ""}`}
+        className={`floating-input-card${layout === "capsule" ? " layout-capsule" : ""}${dragging ? " dragging" : ""}`}
         onSubmit={(event) => {
           event.preventDefault();
           void submit();
@@ -388,221 +680,48 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
         }}
         onDrop={(event) => void handleDrop(event)}
       >
-        <ApprovalSlot approval={project.approval} onReply={project.replyApproval} />
-        <RecipeStageDock run={recipeRun} />
-
-        {showSetupControls || showError ? (
-          <div className="composer-status-bar">
-            {showSetupControls ? (
-              <>
-                <WorkspaceChip project={project} />
-                <EnvironmentChip project={project} />
-                <BranchChip project={project} />
-              </>
-            ) : null}
-            {showError ? (
-              <span className="composer-status-notice" role="alert" title={showError}>
-                {showError}
-              </span>
-            ) : null}
-          </div>
-        ) : null}
-
-        <PopoverPresence present={menuOpen}>
-          <div className="skill-menu-anchor" ref={menuRef}>
-            <SkillMenu
-              id={menuId}
-              optionIdPrefix={optionIdPrefix}
-              items={filtered}
-              loadingSkills={skills === null && !skillsError}
-              loadingRecipes={recipesEnabled && recipes === null && !recipesError}
-              recipeError={recipesEnabled ? recipesError : null}
-              error={skillsError}
-              query={slash?.query ?? ""}
-              activeIndex={safeIndex}
-              onActiveIndex={setActiveIndex}
-              onSelect={selectSlashItem}
-            />
-          </div>
-        </PopoverPresence>
-
-        <MotionList className="instruction-row" items={instructions} keyOf={(entry) => entry.id} horizontal>
-          {(entry) => (
-            <div className={`instruction-chip instruction-${entry.mode}`}>
-              <span className="instruction-badge">
-                {entry.mode === "queue" ? tr("排队", "Queued") : tr("调整", "Steering")}
-              </span>
-              <span className="instruction-text" title={entry.text}>{entry.text}</span>
-              <button
-                type="button"
-                className="instruction-remove"
-                title={tr("撤销这条指令", "Remove this instruction")}
-                aria-label={tr("撤销这条指令", "Remove this instruction")}
-                onClick={() => void onRemoveInstruction(entry.id)}
-              >
-                <CloseIcon size={10} />
-              </button>
-            </div>
-          )}
-        </MotionList>
-
-        <MotionList className="attachment-row" items={attachments} keyOf={attachmentKey} horizontal>
-            {(entry) => (
-              <div className={`attachment-chip attachment-${entry.kind}`}>
-                {entry.image ? (
-                  <img
-                    className="attachment-thumb"
-                    src={`data:${entry.image.mimeType};base64,${entry.image.data}`}
-                    alt={entry.name}
-                  />
-                ) : (
-                  <span className="attachment-file-icon">
-                    <FileIcon size={12} />
-                  </span>
-                )}
-                <span className="attachment-name" title={entry.path || entry.name}>
-                  {entry.name}
-                </span>
-                <button
-                  type="button"
-                  className="attachment-remove"
-                  title={tr("移除附件", "Remove attachment")}
-                  onClick={() => setAttachments((current) => current.filter((item) => item !== entry))}
-                >
-                  <CloseIcon size={10} />
-                </button>
+        {layout === "capsule" ? (
+          <>
+            <div className="composer-capsule">
+              {above}
+              <div className="composer-capsule-main">
+                {attachMenu}
+                {entry}
+                {modelControls}
+                {actions}
               </div>
-            )}
-        </MotionList>
-
-        <div className="composer-entry">
-          {skill ? (
-            <SkillToken
-              name={skill.name}
-              description={skill.description}
-              onRemove={() => {
-                setSkill(null);
-                inputRef.current?.focus();
-              }}
-            />
-          ) : null}
-          <textarea
-            id={promptId}
-            ref={inputRef}
-            className={`input-textarea${skill ? " with-skill" : ""}${suggestion ? " with-prediction" : ""}`}
-            placeholder={skill ? "" : suggestion || placeholderFor(mode)}
-            aria-label={tr("输入消息", "Message")}
-            rows={1}
-            value={value}
-            disabled={recipeActive || disabled && !streaming}
-            aria-autocomplete="list"
-            aria-expanded={menuOpen}
-            aria-controls={menuOpen ? menuId : undefined}
-            aria-activedescendant={menuOpen && filtered[safeIndex] ? `${optionIdPrefix}-${safeIndex}` : undefined}
-            onChange={(event) => {
-              const next = event.target.value;
-              setValue(next);
-              setSlash(slashTokenAt(next, event.target.selectionStart ?? next.length));
-            }}
-            onSelect={(event) => {
-              const input = event.currentTarget;
-              setSlash(slashTokenAt(input.value, input.selectionStart ?? input.value.length));
-            }}
-            onFocus={() => setDismissedKey(null)}
-            onPaste={(event) => void handlePaste(event)}
-            onKeyDown={(event) => {
-              if (event.nativeEvent.isComposing || event.key === "Process") return;
-              if (menuOpen && filtered.length > 0 && (event.key === "ArrowDown" || event.key === "ArrowUp")) {
-                event.preventDefault();
-                const last = filtered.length - 1;
-                setActiveIndex(event.key === "ArrowDown"
-                  ? (safeIndex >= last ? 0 : safeIndex + 1)
-                  : (safeIndex <= 0 ? last : safeIndex - 1));
-                return;
-              }
-              if (menuOpen && event.key === "Escape") {
-                event.preventDefault();
-                setDismissedKey(slashKey);
-                return;
-              }
-              if (menuOpen && filtered.length > 0 && !event.shiftKey && (event.key === "Enter" || event.key === "Tab")) {
-                event.preventDefault();
-                const picked = filtered[safeIndex];
-                if (picked) selectSlashItem(picked);
-                return;
-              }
-              if (!menuOpen && event.key === "Backspace" && skill) {
-                const input = event.currentTarget;
-                if (input.selectionStart === 0 && input.selectionEnd === 0) {
-                  event.preventDefault();
-                  setSkill(null);
-                  return;
-                }
-              }
-              if (menuOpen && (skills === null || recipesEnabled && recipes === null) && event.key === "Enter" && !event.shiftKey) {
-                event.preventDefault();
-                return;
-              }
-              if (suggestion && event.key === "Tab" && !event.shiftKey && !event.altKey && !event.metaKey && !event.ctrlKey) {
-                // Tab 把预测填进输入框，方便先改再发。
-                event.preventDefault();
-                pendingCaret.current = suggestion.length;
-                setValue(suggestion);
-                return;
-              }
-              if (event.key === "Enter" && !event.shiftKey) {
-                event.preventDefault();
-                void submit(event.metaKey || event.ctrlKey);
-              }
-            }}
-          />
-          {suggestion ? (
-            <span className="composer-prediction-hint" aria-hidden="true" title={tr("Tab 填入输入框，Enter 直接发送", "Tab to edit, Enter to send")}>Tab</span>
-          ) : null}
-        </div>
-
-        <div className="dock-controls-row">
-          <div className="dock-controls-left">
-            <AttachMenu onAttachments={addAttachments} disabled={disabled} />
-            <ModeChip mode={mode} disabled={disabled || streaming || recipeActive} onChange={onMode}
-              race={raceActions && workspacePath && window.vela?.races && modelReady ? { onStart: () => setRaceOpen(true), onShow: raceActions.open, count: raceActions.count } : undefined} />
-            <SandboxPill project={project} conversationMode={sandboxMode} />
-          </div>
-          <div className="dock-controls-right">
-            <ModelControls
-              modelLabel={model ?? null}
-              modelProvider={modelProvider}
-              modelId={modelId}
-              thinkingLevel={thinkingLevel}
-              thinkingLevels={thinkingLevels}
-              disabled={streaming || recipeActive}
-              catalog={models.catalog}
-              catalogError={models.catalogError}
-              actionError={models.actionError}
-              hiddenModels={hiddenModels}
-              login={models.login}
-              onSelect={models.select}
-              onThinking={models.setThinking}
-              onAdd={models.add}
-              onRemove={models.remove}
-              onLogout={models.logout}
-              onLogin={models.loginProvider}
-              onReplyLogin={models.replyLogin}
-              onCancelLogin={models.cancelLogin}
-              onDismissLogin={models.dismissLogin}
-            />
-            <ComposerActions sendButtonIcon={sendButtonIcon} streaming={streaming} sendHint={sendHint} steerHint={steerHint}
-              canQueue={Boolean(prompt)} disabled={disabled || recipeActive || !modelReady || (!prompt && !suggestion)}
-              onSteer={() => void submit(true)} onAbort={onAbort} />
-          </div>
-        </div>
-
-        <ComposerStatsRow usage={usage} contextPopover={contextPopover} />
+            </div>
+            <div className="composer-tray">
+              <div className="composer-tray-chips">
+                {modeChip}
+                {sandboxPill}
+              </div>
+              {stats}
+            </div>
+          </>
+        ) : (
+          <>
+            {above}
+            {entry}
+            <div className="dock-controls-row">
+              <div className="dock-controls-left">
+                {attachMenu}
+                {modeChip}
+                {sandboxPill}
+              </div>
+              <div className="dock-controls-right">
+                {modelControls}
+                {actions}
+              </div>
+            </div>
+            {stats}
+          </>
+        )}
       </form>
       {raceOpen && raceActions && workspacePath ? (
         <RaceSetupDialog workspace={workspacePath} initialPrompt={prompt} models={models}
           onClose={() => setRaceOpen(false)}
-          onStarted={race => { setRaceOpen(false); setValue(""); setSkill(null); raceActions.started(race); }} />
+          onStarted={race => { setRaceOpen(false); clearEditor(); raceActions.started(race); }} />
       ) : null}
     </div>
   );

@@ -57,6 +57,7 @@ export const settingsEntries: readonly SettingsEntry[] = [
   { id: "info-layout", page: "interface", title: (c) => c.appearance.infoLayout, hint: (c) => c.appearance.infoLayoutHint, keywords: { zh: ["信息布局", "边栏", "悬浮", "环境卡片", "上下文圆环"], en: ["layout", "floating", "sidebar", "info", "context ring"] } },
   { id: "conversation-link-target", page: "interface", title: (c) => c.appearance.conversationLinkTarget, hint: (c) => c.appearance.conversationLinkHint, keywords: { zh: ["链接", "浏览器", "内置浏览器", "系统浏览器"], en: ["link", "browser", "url", "external", "embedded"] } },
   { id: "sidebar-items", page: "interface", title: (c) => c.appearance.sidebarItems, hint: (c) => c.appearance.sidebarItemsHint, keywords: { zh: ["侧边栏", "选项卡", "定时任务", "任务配方", "新对话", "Pull Requests", "Agent 收件箱", "收件箱"], en: ["sidebar", "tabs", "pull requests", "scheduled tasks", "recipes", "new chat", "agent inbox", "inbox"] } },
+  { id: "composer-layout", page: "interface", title: (c) => c.appearance.composerLayout, hint: (c) => c.appearance.composerLayoutHint, keywords: { zh: ["输入框", "布局", "胶囊", "静谧", "经典", "样式"], en: ["composer", "layout", "capsule", "calm", "classic", "input", "style"] } },
   { id: "composer-capsules", page: "interface", title: (c) => c.appearance.composerCapsules, hint: (c) => c.appearance.composerCapsulesHint, keywords: { zh: ["输入框", "胶囊", "背景"], en: ["composer", "capsule", "input", "background"] } },
   { id: "send-button-icon", page: "interface", title: (c) => c.appearance.sendButtonIcon, keywords: { zh: ["发送", "纸飞机", "箭头"], en: ["send", "paper plane", "arrow"] } },
 

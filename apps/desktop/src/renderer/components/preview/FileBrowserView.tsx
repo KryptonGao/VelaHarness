@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { tr } from "../../locale";
-import { FileIcon } from "../icons";
+import { ChevronRightIcon, FileIcon } from "../icons";
 import { ExplorerPane } from "./ExplorerPane";
 import { useFilePreview } from "./FilePreviewContext";
 
@@ -18,10 +18,15 @@ export function FileBrowserView() {
   return (
     <div className="panel-file-preview-view">
       <div className="preview-subbar">
-        <div className="preview-breadcrumbs-text">
-          <span>{rootName}</span>
-          <strong>{tr("文件", "Files")}</strong>
-        </div>
+        <nav className="preview-breadcrumbs-text">
+          <span className="preview-crumb">
+            <span className="preview-crumb-text">{rootName}</span>
+          </span>
+          <span className="preview-crumb current">
+            <ChevronRightIcon size={10} />
+            <strong>{tr("文件", "Files")}</strong>
+          </span>
+        </nav>
       </div>
       <div className="preview-main-split">
         <div className="file-browser-empty">
