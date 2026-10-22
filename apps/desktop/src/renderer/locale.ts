@@ -41,6 +41,11 @@ export function isEnglish(): boolean {
 }
 
 const knownErrors: Record<string, string> = {
+  "侧边聊天请求不正确": "Invalid side chat request.",
+  "侧边聊天消息不正确": "Invalid side chat messages.",
+  "侧边聊天模型不正确": "Invalid side chat model.",
+  "侧边聊天推理强度不正确": "Invalid side chat reasoning effort.",
+  "侧边聊天回复失败": "Side chat reply failed.",
   "新建对话参数不正确": "Invalid new chat options.",
   "任务用量上限设置不正确": "Invalid task usage limit settings.",
   "任务用量上限开关必须是布尔值": "The task usage limit switch must be on or off.",

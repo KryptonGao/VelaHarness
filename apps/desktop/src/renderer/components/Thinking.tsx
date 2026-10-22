@@ -1,5 +1,6 @@
 import { useContext, useId, useLayoutEffect, useMemo, useRef, useState, type TouchEvent, type WheelEvent } from "react";
 import { ActivityIndicator } from "./ActivityIndicator";
+import { ThinkingIcon } from "./icons";
 import { Markdown } from "./Markdown";
 import { nextStreamFollow, releasesStreamFollow } from "./chat-scroll";
 import { localizeError, tr, useAppLocale } from "../locale";
@@ -139,8 +140,11 @@ export function Thinking({
       <polyline points="9 18 15 12 9 6" />
     </svg>
   );
+  // 紧凑模式下前缀一个与工具行对齐的图标,其他模式由样式隐藏。
+  const icon = <span className="thinking-icon" aria-hidden="true"><ThinkingIcon size={13} /></span>;
   const label = (
     <>
+      {icon}
       <span>{tr("思考", "Thinking")}</span>
       {arrow}
     </>
@@ -149,6 +153,7 @@ export function Thinking({
   const headline = layout === "headline" && summary?.status === "done" ? (
     <div className="thinking-header">
       <button className="time-spent-trigger thinking-headline-trigger" type="button" aria-expanded={open} aria-controls={bodyId} onClick={toggle} title={summary.text}>
+        {icon}
         <span className="thinking-summary-excerpt summary-arrival">{summary.text}</span>
         {arrow}
       </button>

@@ -75,6 +75,7 @@ export const settingsEntries: readonly SettingsEntry[] = [
 
   { id: "tool-display", page: "display", title: (c) => c.appearance.toolDisplay, hint: (c) => c.appearance.toolDisplayHint, keywords: { zh: ["工具", "工具调用", "卡片", "紧凑"], en: ["tool", "tool call", "card", "compact"] } },
   { id: "tool-fold", page: "display", title: (c) => c.appearance.toolFold, hint: (c) => c.appearance.toolFoldHint, keywords: { zh: ["折叠", "分组", "合并"], en: ["fold", "group", "collapse", "merge"] } },
+  { id: "tool-icon-color", page: "display", title: (c) => c.appearance.toolIconColor, hint: (c) => c.appearance.toolIconColorHint, keywords: { zh: ["图标", "颜色", "配色", "工具"], en: ["icon", "color", "colour", "tool", "palette"] } },
   { id: "tool-process-details", page: "display", title: (c) => c.appearance.toolProcessDetails, hint: (c) => c.appearance.toolProcessDetailsHint, keywords: { zh: ["耗时", "过程", "展开", "收起"], en: ["duration", "process", "timing", "expand", "collapse"] } },
   { id: "thinking-summary", page: "display", title: (c) => c.appearance.thinkingSummary, hint: (c) => c.appearance.thinkingSummaryHint, keywords: { zh: ["思考摘要", "思考总结", "总结"], en: ["thinking summary", "summary", "summarize"] } },
   { id: "thinking-summary-model", page: "display", title: (c) => c.appearance.thinkingSummaryModel, hint: (c) => c.appearance.thinkingSummaryModelHint, keywords: { zh: ["总结模型", "摘要模型"], en: ["summary model"] } },

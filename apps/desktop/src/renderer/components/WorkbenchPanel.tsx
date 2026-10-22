@@ -27,10 +27,11 @@ import { StartView, type StartTabAction } from "./StartView";
 import { TerminalView } from "./TerminalView";
 import { BrowserPanel, BrowserTabLabel } from "./browser/BrowserPanel";
 import type { BrowserController } from "../browser/browser-controller";
-import { ArrowRightIcon, BranchIcon, ChatIcon, CloseIcon, FileIcon, FolderIcon, GlobeIcon, PlanIcon, PlusIcon, TerminalIcon } from "./icons";
+import { ArrowRightIcon, BranchIcon, ChatIcon, CloseIcon, FileIcon, FolderIcon, GlobeIcon, PlanIcon, PlusIcon, SparkIcon, TerminalIcon } from "./icons";
 
 export type WorkbenchTab =
   | { id: string; kind: "chat"; label: string; title?: string; conversationId: string }
+  | { id: string; kind: "side-chat"; label: string; title?: string }
   | { id: string; kind: "plan"; label: string; title?: string }
   | { id: string; kind: "file"; label: string; title: string; path: string }
   | { id: string; kind: "changes"; label: string; title?: string }
@@ -80,6 +81,7 @@ interface WorkbenchPanelProps {
   pendingStartTabIds?: readonly string[];
   startErrors?: Record<string, string>;
   renderChat?: (tab: Extract<WorkbenchTab, { kind: "chat" }>) => ReactNode;
+  renderSideChat?: (tab: Extract<WorkbenchTab, { kind: "side-chat" }>, visible: boolean) => ReactNode;
   /** 当前工作区是否是 Git 仓库,决定「变更」入口是否可选 */
   gitAvailable: boolean;
   onActivateTab: (tab: WorkbenchTab) => void;
@@ -105,6 +107,7 @@ function TabIcon({ tab }: { tab: WorkbenchTab }) {
   if (tab.kind === "terminal") return <TerminalIcon size={12} />;
   if (tab.kind === "browser") return <GlobeIcon size={12} />;
   if (tab.kind === "chat") return <ChatIcon size={12} />;
+  if (tab.kind === "side-chat") return <SparkIcon size={12} />;
   return <AgentStatusMark status={tab.agent.status} />;
 }
 
@@ -165,6 +168,7 @@ function WorkbenchPanelContent({
   pendingStartTabIds,
   startErrors,
   renderChat,
+  renderSideChat,
   gitAvailable,
   onActivateTab,
   onCloseTab,
@@ -476,6 +480,12 @@ function WorkbenchPanelContent({
           <WorkbenchTabPanel key={tab.id} id={tabPanelId(tab)} role="tabpanel"
             aria-labelledby={tabButtonId(tab)} hidden={activeTabId !== tab.id}>
             {renderChat?.(tab)}
+          </WorkbenchTabPanel>
+        ))}
+        {tabs.filter((tab): tab is Extract<WorkbenchTab, { kind: "side-chat" }> => tab.kind === "side-chat").map(tab => (
+          <WorkbenchTabPanel key={tab.id} id={tabPanelId(tab)} className="workbench-tabpanel" role="tabpanel"
+            aria-labelledby={tabButtonId(tab)} hidden={activeTabId !== tab.id}>
+            {renderSideChat?.(tab, activeTabId === tab.id && !collapsed)}
           </WorkbenchTabPanel>
         ))}
         {browserTabs.map((tab) => (

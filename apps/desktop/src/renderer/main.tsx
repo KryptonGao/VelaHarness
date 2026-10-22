@@ -8,6 +8,7 @@ import "./acceptance.css";
 import "./components/intelligent-ui/intelligent-ui.css";
 import "./version-control.css";
 import "./version-control-p2.css";
+import "./side-chat.css";
 
 installRendererLogging();
 

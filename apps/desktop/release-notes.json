@@ -1,139 +1,139 @@
 {
-  "version": "1.1.9",
+  "version": "1.1.10",
   "locales": {
     "en": {
-      "summary": "Vela 1.1.9 adds input prediction, lets you start independent chats inside the workbench panel, gives you control over file checkpoints, and moves the main conversation to a new Vela-specific system prompt.",
+      "summary": "Vela 1.1.10 adds lightweight side chats with memory, clearer tool and browser activity, live conversation display previews, and manual model catalog refresh with Pi 1.3.0.",
       "highlights": [
         {
-          "title": "Input prediction",
-          "body": "After each reply, Vela can predict what you may type next and show it in gray in the empty message box. Tab fills it in; Enter on an empty box sends it."
+          "title": "Side chats with memory",
+          "body": "Open Side chat from a new workbench tab. Choose its model and reasoning level independently, with global and project memory included when memory is enabled. History lasts for the open tab; side chats have no tools."
         },
         {
-          "title": "Chats in the workbench",
-          "body": "Start an independent chat in a workbench tab beside your files, terminal and diffs, each with its own session and input."
+          "title": "Preview conversation display",
+          "body": "Hover or focus display options in Settings to preview tool layout, folding, timing, thinking summaries and input prediction. You can also turn tool grouping off or choose colored tool icons."
         },
         {
-          "title": "Checkpoint controls",
-          "body": "Turn file checkpoints off, delete every record from Settings → Storage, or delete a conversation's earlier records from the checkpoint timeline."
+          "title": "Clearer browser activity",
+          "body": "Browser calls show action summaries, script and text output, and screenshots you can enlarge directly in the conversation."
         },
         {
-          "title": "New system prompt",
-          "body": "The main conversation and sub-agents now use a Vela-specific system prompt by default. Set VELA_SYSTEM_PROMPT=v1 to switch back."
+          "title": "Refresh available models",
+          "body": "Get the latest model list from Settings → Models & accounts without waiting for the automatic refresh interval. Pi 1.3.0 updates the model catalog and MCP integration."
         }
       ],
       "improvements": [
-        "Input prediction can follow the current chat or use a separate, faster model.",
-        "New workbench tabs show a pending state and any error while they start.",
-        "The skill menu works in more than one composer at a time.",
-        "Turns without a checkpoint now say why: shared run, checkpoints off, or record deleted."
+        "Side chats support streaming, stop, retry and clear, with their own remembered model selection.",
+        "Compact tool rows, diff colors and failure timing are easier to read.",
+        "If a provider refresh fails, its cached models remain available; offline mode stays offline.",
+        "New controls and side chat messages are translated into all five interface languages."
       ]
     },
     "zh-CN": {
-      "summary": "Vela 1.1.9 新增输入预测，支持在工作面板里开启独立对话，让你掌控文件检查点，并让主对话默认使用 Vela 专属的系统提示词。",
+      "summary": "Vela 1.1.10 新增带入记忆的轻量侧边聊天，改进工具与浏览器调用展示，为对话显示设置加入即时预览，并随 Pi 1.3.0 提供模型列表手动刷新。",
       "highlights": [
         {
-          "title": "输入预测",
-          "body": "每轮回复结束后，Vela 可以预测你接下来可能输入的内容，并以灰色显示在空输入框里。按 Tab 填入，输入框为空时按 Enter 直接发送。"
+          "title": "带入记忆的侧边聊天",
+          "body": "在工作面板的新标签页选择「侧边聊天」，独立选择模型与推理强度，启用记忆时带入全局与项目记忆。历史仅保留在当前标签中，侧边聊天不提供工具。"
         },
         {
-          "title": "工作面板里的聊天",
-          "body": "在工作面板的标签页里开启独立对话，与文件、终端、差异并排，每个标签拥有各自的会话和输入。"
+          "title": "对话显示即时预览",
+          "body": "在设置里悬停或聚焦显示选项，即可预览工具布局、折叠、计时、思考总结与输入预测，也可关闭工具分组或启用彩色工具图标。"
         },
         {
-          "title": "检查点可控",
-          "body": "可以关闭文件检查点，在设置 → 存储里删除全部记录，也可以在检查点时间轴里删除某个对话较早的记录。"
+          "title": "更清晰的浏览器调用",
+          "body": "浏览器调用显示操作摘要、脚本和文字输出，截图可直接在对话中放大查看。"
         },
         {
-          "title": "全新系统提示词",
-          "body": "主对话和子代理现在默认使用 Vela 专属的系统提示词；设置 VELA_SYSTEM_PROMPT=v1 即可切回旧版。"
+          "title": "手动刷新模型列表",
+          "body": "在设置 → 模型与账号获取最新模型列表，无需等待自动刷新间隔。Pi 1.3.0 同时更新模型目录与 MCP 集成。"
         }
       ],
       "improvements": [
-        "输入预测可以跟随当前对话，也可以指定一个更快的独立模型。",
-        "新建工作面板标签时会显示等待状态，出错时给出提示。",
-        "技能菜单可以在多个输入框中同时使用。",
-        "没有检查点的轮次现在会说明原因：同一次运行、检查点已关闭或记录已删除。"
+        "侧边聊天支持流式回复、停止、重试与清空，并记住独立的模型选择。",
+        "紧凑工具行、差异配色与失败计时更易阅读。",
+        "提供方刷新失败时保留已缓存模型；离线模式不会联网。",
+        "新控件与侧边聊天文案已补齐五种界面语言。"
       ]
     },
     "zh-TW": {
-      "summary": "Vela 1.1.9 新增輸入預測，支援在工作面板中開啟獨立對話，讓你掌控檔案檢查點，並讓主對話預設使用 Vela 專屬的系統提示詞。",
+      "summary": "Vela 1.1.10 新增帶入記憶的輕量側邊聊天，改善工具與瀏覽器呼叫顯示，為對話顯示設定加入即時預覽，並隨 Pi 1.3.0 提供模型清單手動重新整理。",
       "highlights": [
         {
-          "title": "輸入預測",
-          "body": "每輪回覆結束後，Vela 可以預測你接下來可能輸入的內容，並以灰色顯示在空輸入框裡。按 Tab 填入，輸入框為空時按 Enter 直接送出。"
+          "title": "帶入記憶的側邊聊天",
+          "body": "在工作面板的新分頁選擇「側邊聊天」，獨立選擇模型與推理強度，啟用記憶時帶入全域與專案記憶。歷史僅保留在目前分頁中，側邊聊天不提供工具。"
         },
         {
-          "title": "工作面板裡的聊天",
-          "body": "在工作面板的分頁裡開啟獨立對話，與檔案、終端機、差異並排，每個分頁擁有各自的會話與輸入。"
+          "title": "對話顯示即時預覽",
+          "body": "在設定裡將游標移至顯示選項或以鍵盤聚焦，即可預覽工具版面、摺疊、計時、思考摘要與輸入預測，也可關閉工具分組或啟用彩色工具圖示。"
         },
         {
-          "title": "檢查點可控",
-          "body": "可以關閉檔案檢查點，在設定 → 儲存裡刪除全部記錄，也可以在檢查點時間軸裡刪除某個對話較早的記錄。"
+          "title": "更清楚的瀏覽器呼叫",
+          "body": "瀏覽器呼叫顯示操作摘要、腳本與文字輸出，螢幕截圖可直接在對話中放大查看。"
         },
         {
-          "title": "全新系統提示詞",
-          "body": "主對話與子代理現在預設使用 Vela 專屬的系統提示詞；設定 VELA_SYSTEM_PROMPT=v1 即可切回舊版。"
+          "title": "手動重新整理模型清單",
+          "body": "在設定 → 模型與帳號取得最新模型清單，無須等待自動重新整理間隔。Pi 1.3.0 同時更新模型目錄與 MCP 整合。"
         }
       ],
       "improvements": [
-        "輸入預測可以跟隨目前對話，也可以指定一個更快的獨立模型。",
-        "新建工作面板分頁時會顯示等待狀態，出錯時給出提示。",
-        "技能選單可以在多個輸入框中同時使用。",
-        "沒有檢查點的輪次現在會說明原因：同一次執行、檢查點已關閉或記錄已刪除。"
+        "側邊聊天支援串流回覆、停止、重試與清空，並記住獨立的模型選擇。",
+        "緊湊工具列、差異配色與失敗計時更易閱讀。",
+        "提供方重新整理失敗時保留快取模型；離線模式不會連線。",
+        "新控制項與側邊聊天文案已補齊五種介面語言。"
       ]
     },
     "ja": {
-      "summary": "Vela 1.1.9 では入力予測を追加し、ワークベンチパネルで独立したチャットを開始できるようになりました。ファイルのチェックポイントを管理でき、メイン会話は Vela 専用のシステムプロンプトを既定で使います。",
+      "summary": "Vela 1.1.10 では、メモリを使う軽量なサイドチャット、ツールとブラウザー操作の見やすい表示、会話表示設定のライブプレビュー、Pi 1.3.0 によるモデル一覧の手動更新を追加しました。",
       "highlights": [
         {
-          "title": "入力予測",
-          "body": "返信のたびに、次に入力しそうな内容を予測して空の入力欄にグレーで表示します。Tab で入力欄に反映し、空の状態で Enter を押すとそのまま送信します。"
+          "title": "メモリ付きサイドチャット",
+          "body": "ワークベンチの新しいタブでサイドチャットを選び、モデルと推論レベルを個別に設定できます。メモリが有効な場合はグローバルとプロジェクトのメモリを読み込みます。履歴は開いているタブ内だけに残り、ツールは使いません。"
         },
         {
-          "title": "ワークベンチ内のチャット",
-          "body": "ファイル、ターミナル、差分と並べて、ワークベンチのタブで独立したチャットを開始できます。タブごとにセッションと入力が分かれます。"
+          "title": "会話表示のプレビュー",
+          "body": "設定の表示オプションにポインターを合わせるかフォーカスすると、ツールの配置、折りたたみ、所要時間、思考の要約、入力予測を確認できます。ツールのグループ化をオフにしたり、アイコンをカラーにしたりできます。"
         },
         {
-          "title": "チェックポイントの管理",
-          "body": "ファイルのチェックポイントをオフにしたり、設定 → ストレージで全記録を削除したり、チェックポイントのタイムラインから会話の古い記録を削除したりできます。"
+          "title": "ブラウザー操作を見やすく",
+          "body": "ブラウザー呼び出しに操作の要約、スクリプト、テキスト出力を表示し、会話内でスクリーンショットを拡大できます。"
         },
         {
-          "title": "新しいシステムプロンプト",
-          "body": "メイン会話とサブエージェントは、既定で Vela 専用のシステムプロンプトを使います。VELA_SYSTEM_PROMPT=v1 を設定すると元に戻せます。"
+          "title": "モデル一覧の手動更新",
+          "body": "設定 → モデルとアカウントから、自動更新の間隔を待たずに最新のモデル一覧を取得できます。Pi 1.3.0 でモデルカタログと MCP 連携も更新しました。"
         }
       ],
       "improvements": [
-        "入力予測は現在の会話のモデルに従うほか、より高速な別のモデルも指定できます。",
-        "新しいワークベンチタブは、開始中の状態とエラーを表示します。",
-        "スキルメニューを複数の入力欄で同時に使えるようになりました。",
-        "チェックポイントのないターンには、同じ実行内・チェックポイントがオフ・記録を削除済み、といった理由が表示されます。"
+        "サイドチャットはストリーミング、停止、再試行、消去に対応し、独自のモデル選択を記憶します。",
+        "コンパクトなツール行、差分の配色、失敗時の所要時間を見やすくしました。",
+        "プロバイダーの更新に失敗してもキャッシュ済みモデルを維持し、オフラインモードでは通信しません。",
+        "新しい操作項目とサイドチャットの文言を全 5 言語に翻訳しました。"
       ]
     },
     "ko": {
-      "summary": "Vela 1.1.9에서는 입력 예측을 추가하고, 워크벤치 패널에서 독립된 채팅을 시작할 수 있습니다. 파일 체크포인트를 직접 관리할 수 있으며, 메인 대화는 기본으로 Vela 전용 시스템 프롬프트를 사용합니다.",
+      "summary": "Vela 1.1.10은 메모리를 활용하는 가벼운 사이드 채팅, 더 명확한 도구 및 브라우저 활동 표시, 대화 표시 설정의 실시간 미리보기, Pi 1.3.0 기반 모델 목록 수동 새로고침을 추가합니다.",
       "highlights": [
         {
-          "title": "입력 예측",
-          "body": "답변이 끝날 때마다 다음에 입력할 내용을 예측해 빈 입력창에 회색으로 보여 줍니다. Tab으로 채우고, 비어 있는 상태에서 Enter를 누르면 그대로 보냅니다."
+          "title": "메모리를 활용하는 사이드 채팅",
+          "body": "워크벤치의 새 탭에서 사이드 채팅을 선택하고 모델과 추론 수준을 따로 정할 수 있습니다. 메모리가 켜져 있으면 전역 및 프로젝트 메모리를 불러옵니다. 기록은 열린 탭에만 남으며 도구는 제공하지 않습니다."
         },
         {
-          "title": "워크벤치 안의 채팅",
-          "body": "파일, 터미널, diff와 나란히 워크벤치 탭에서 독립된 채팅을 시작할 수 있으며, 탭마다 세션과 입력이 따로 유지됩니다."
+          "title": "대화 표시 미리보기",
+          "body": "설정의 표시 옵션에 마우스를 올리거나 키보드로 초점을 맞추면 도구 배치, 접기, 소요 시간, 사고 요약, 입력 예측을 미리 볼 수 있습니다. 도구 그룹을 끄거나 컬러 아이콘을 선택할 수도 있습니다."
         },
         {
-          "title": "체크포인트 관리",
-          "body": "파일 체크포인트를 끄거나, 설정 → 저장소에서 모든 기록을 삭제하거나, 체크포인트 타임라인에서 대화의 이전 기록을 삭제할 수 있습니다."
+          "title": "더 명확한 브라우저 활동",
+          "body": "브라우저 호출에 작업 요약, 스크립트, 텍스트 출력을 표시하고 대화 안에서 스크린샷을 확대해 볼 수 있습니다."
         },
         {
-          "title": "새 시스템 프롬프트",
-          "body": "메인 대화와 서브 에이전트가 기본으로 Vela 전용 시스템 프롬프트를 사용합니다. VELA_SYSTEM_PROMPT=v1로 설정하면 이전 방식으로 돌아갑니다."
+          "title": "모델 목록 수동 새로고침",
+          "body": "설정 → 모델 및 계정에서 자동 새로고침 간격을 기다리지 않고 최신 모델 목록을 가져옵니다. Pi 1.3.0으로 모델 카탈로그와 MCP 연동도 업데이트했습니다."
         }
       ],
       "improvements": [
-        "입력 예측은 현재 대화의 모델을 따르거나, 더 빠른 별도 모델을 지정할 수 있습니다.",
-        "새 워크벤치 탭이 시작되는 동안 대기 상태와 오류를 표시합니다.",
-        "스킬 메뉴를 여러 입력창에서 동시에 사용할 수 있습니다.",
-        "체크포인트가 없는 턴은 같은 실행 안, 체크포인트 꺼짐, 기록 삭제됨 같은 이유를 알려 줍니다."
+        "사이드 채팅은 스트리밍, 중지, 재시도, 지우기를 지원하고 별도의 모델 선택을 기억합니다.",
+        "간결한 도구 행, diff 색상, 실패 시 소요 시간을 더 읽기 쉽게 개선했습니다.",
+        "제공자 새로고침에 실패해도 캐시된 모델을 유지하며 오프라인 모드에서는 연결하지 않습니다.",
+        "새 컨트롤과 사이드 채팅 문구를 다섯 가지 인터페이스 언어로 번역했습니다."
       ]
     }
   }

@@ -10,7 +10,8 @@ import { McpSessionBridge, isMcpTool, type McpPermission } from "./mcp-session";
 import { createScheduledTaskTools, scheduledTaskInstructions } from "./scheduled-task-tools";
 import { RecipeGenerator, parseRecipeGenerateInput } from './recipe-generator';
 import type { RaceTokens, RecipeExecution, RecipeRun, RecipeStageSubmission, RecipeSubmitResult, RecipeStageEvidence, RecipeUseDraft, ScheduledTaskInput, SandboxExecutionContext, SandboxMode, ScheduledTaskService } from "@vela/shared";
-import type { McpCatalog, McpCatalogInput, McpServerInput, McpServerTarget, McpEnabledInput, McpProjectTrustInput, McpToolReadOnlyInput, McpStatusEvent, MemoryLoadReport } from "@vela/shared";
+import type { McpCatalog, McpCatalogInput, McpServerInput, McpServerTarget, McpEnabledInput, McpProjectTrustInput, McpToolReadOnlyInput, McpStatusEvent, MemoryLoadReport, SideChatEvent, SideChatResult } from "@vela/shared";
+import { memoryLoadReport } from "@vela/shared";
 import { browserUseInstructions, createBrowserTools, type BrowserReplService, type BrowserReplPermission } from "./browser-use";
 import { TurnCheckpoints, changedPaths, sharedDirectory, type TurnCheckpoint } from "./turn-checkpoints";
 import { checkpointUsage, cleanCheckpoints, defaultCheckpointPolicy, deleteAllCheckpoints } from "./checkpoint-storage";
@@ -51,6 +52,7 @@ import {
   type OutcomeSubmission,
   type ModelAuthEvent,
   type ModelCatalog,
+  type ModelRefreshResult,
   type PlanExecutionContextStrategy,
   type ProposedPlanItem,
   type RuntimeInstructionMode,
@@ -108,7 +110,7 @@ import { IntelligentUiSettings } from "./intelligent-ui-settings";
 import { intelligentUiInstructions } from "./intelligent-ui-prompt";
 import { browserVisualCheckNote, checksVisualWork, defaultSystemPromptProfile, intelligentUiScopeNote, usesVelaPrompt, velaPreamble, velaRules, type RuleKind, type SystemPromptProfile } from "./system-prompt";
 import { createResidentTools, residentInstructions, type ResidentToolHost } from "./resident-tools";
-import { createMemoryContextExtension } from "./memory-context";
+import { createMemoryContextExtension, memoryTargetsFor } from "./memory-context";
 import { workspaceFoldersInstructions } from "./workspace-folders";
 import { createMemoryTools, memoryDisabledInstructions, memoryInstructions, memoryReadOnlyInstructions, type MemoryWritePermission } from "./memory-tools";
 import { openCodeSessionHeaders } from "./provider-headers";
@@ -142,6 +144,7 @@ import {
 import { QuestionManager } from "./question-manager";
 import { ThinkingSummaryGenerator } from "./thinking-summary";
 import { InputPredictionGenerator, predictionContext } from "./input-prediction";
+import { parseSideChatRequest, SideChatService } from "./side-chat";
 import { buildHandoffFacts, HandoffPackGenerator } from "./handoff-pack";
 import {
   buildSandboxRiskMessage,
@@ -337,6 +340,7 @@ export class AgentRuntime {
   private readonly questions = new QuestionManager();
   private readonly thinkingSummaries = new ThinkingSummaryGenerator();
   private readonly inputPredictions = new InputPredictionGenerator();
+  private readonly sideChats = new SideChatService();
   private readonly textAssist = new TextAssistService();
   private readonly handoffPacks = new HandoffPackGenerator();
   private readonly recipeGenerator = new RecipeGenerator();
@@ -1450,6 +1454,11 @@ export class AgentRuntime {
     return directory.catalog();
   }
 
+  async refreshCatalog(): Promise<ModelRefreshResult> {
+    const directory = await this.readyDirectory();
+    return directory.refreshCatalogNow();
+  }
+
   /**
    * 用当前对话选择的模型判断一次沙箱操作的风险。
    * 模型不可用、超时或输出无法识别时返回 unknown,由权限管理器按风险处理。
@@ -1751,6 +1760,42 @@ export class AgentRuntime {
     return this.inputPredictions.generate(directory.runtime, model, input, context, (request) => {
       this.recordSummaryUsage(entry.id, request);
     });
+  }
+
+  /**
+   * 侧边聊天：一次不带工具的流式模型调用，不修改任何对话。
+   * 记忆按 conversationId 对应对话自己的工作区加载（与主代理同一套规则），记忆关闭时不加载；
+   * 模型优先用请求指定的，其次是该对话当前的模型，最后是设置里的默认模型。
+   */
+  async sideChat(raw: unknown, onEvent: (event: SideChatEvent) => void): Promise<SideChatResult> {
+    const request = parseSideChatRequest(raw);
+    const entry = request.conversationId ? this.conversations.get(request.conversationId) ?? null : null;
+    const directory = await this.readyDirectory();
+    const intended = entry?.snapshot.modelProvider && entry.snapshot.modelId
+      ? { provider: entry.snapshot.modelProvider, id: entry.snapshot.modelId } : null;
+    const selection = request.model ?? intended;
+    const model = selection ? directory.requireAvailable(selection.provider, selection.id) : directory.modelForSelection();
+    if (!model || !directory.isAvailable(model)) throw new Error("先选择一个已登录或已配置密钥的模型");
+    const memoryEnabled = this.memorySettings.enabled;
+    const memory = memoryEnabled
+      ? await Promise.all(memoryTargetsFor(entry
+        ? { cwd: entry.snapshot.cwd, hasWorkspace: entry.hasWorkspace }
+        : { cwd: this.currentCwd, hasWorkspace: false }).map((target) => this.memory.load(target)))
+      : [];
+    onEvent({ requestId: request.requestId, type: "memory", memory: memory.map(memoryLoadReport), memoryEnabled, model: `${model.provider}/${model.id}` });
+    return this.sideChats.run({
+      runtime: directory.runtime,
+      model,
+      request,
+      memory,
+      memoryEnabled,
+      onDelta: (text) => onEvent({ requestId: request.requestId, type: "delta", text }),
+    });
+  }
+
+  cancelSideChat(requestId: unknown): void {
+    if (typeof requestId !== "string" || !requestId || requestId.length > 100) throw new Error("侧边聊天请求不正确");
+    this.sideChats.cancel(requestId);
   }
 
   /**
@@ -2223,6 +2268,7 @@ export class AgentRuntime {
     void Promise.resolve().then(() => this.options.browserRepl?.dispose?.()).catch(() => {});
     this.thinkingSummaries.dispose();
     this.inputPredictions.dispose();
+    this.sideChats.dispose();
     this.textAssist.dispose();
     this.handoffPacks.dispose();
     this.recipeGenerator.dispose();

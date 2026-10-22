@@ -782,6 +782,7 @@ export function ChatView({
                           getQuestion={getQuestion}
                           onReplyQuestion={onReplyQuestion}
                           toolDisplay={toolDisplay}
+                          toolFold={toolFold}
                         />
                       ))
                     )}
@@ -935,6 +936,7 @@ const Message = memo(function Message({
   editDisabled = true,
   onEdit,
   toolDisplay,
+  toolFold,
 }: {
   message: UiMessage;
   thinkingActive: boolean;
@@ -951,6 +953,7 @@ const Message = memo(function Message({
   editDisabled?: boolean;
   onEdit?: (text: string) => Promise<void>;
   toolDisplay?: ToolDisplay;
+  toolFold?: ToolFold;
 }) {
   const enterClass = entering ? " message-enter" : "";
   if (message.role === "user") {
@@ -1013,6 +1016,7 @@ const Message = memo(function Message({
         getQuestion={getQuestion}
         onReplyQuestion={onReplyQuestion}
         toolDisplay={toolDisplay}
+        toolFold={toolFold}
       />
     </article>
   );
@@ -1032,6 +1036,7 @@ function AssistantMessageContent({
   getQuestion,
   onReplyQuestion,
   toolDisplay,
+  toolFold,
 }: {
   message: UiMessage;
   thinkingActive: boolean;
@@ -1046,6 +1051,7 @@ function AssistantMessageContent({
   getQuestion: QuestionLookup;
   onReplyQuestion: (id: string, answer: string | null) => void;
   toolDisplay?: ToolDisplay;
+  toolFold?: ToolFold;
 }) {
   return (
     <>
@@ -1069,6 +1075,7 @@ function AssistantMessageContent({
           getQuestion={getQuestion}
           onReplyQuestion={onReplyQuestion}
           display={toolDisplay}
+          fold={toolFold}
         />
       ) : null}
       {showText && message.text ? (
@@ -1265,6 +1272,7 @@ const CompletedAssistantTurn = memo(function CompletedAssistantTurn({
                     getQuestion={getQuestion}
                     onReplyQuestion={onReplyQuestion}
                     toolDisplay={toolDisplay}
+                    toolFold={toolFold}
                   />
                 </article>
               ))

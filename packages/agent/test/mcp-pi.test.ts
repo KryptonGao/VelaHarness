@@ -94,8 +94,7 @@ test("direct/deferred tools and resources keep raw metadata and hide denied tool
   assert.match(await readFile(join(f.agentDir, "mcp.log"), "utf8"), /fixture server started/);
   assert.equal(snapshot.oauth, false);
   assert.equal(snapshot.authenticated, false);
-  assert.equal(snapshot.resources, 1);
-  assert.equal(snapshot.resourceTemplates, 1);
+  assert.equal(snapshot.hasResources, true);
   assert.equal(snapshot.tools.find(tool => tool.registeredName === read)?.rawTool, "read-data");
   assert.deepEqual(snapshot.tools.find(tool => tool.registeredName === read)?.inputSchema, { type: "object", properties: {} });
   assert.equal(snapshot.tools.find(tool => tool.registeredName === write)?.exposure, "hidden");

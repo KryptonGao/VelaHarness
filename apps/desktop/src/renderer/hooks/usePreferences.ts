@@ -26,8 +26,8 @@ export type { AppLocale };
 
 /** 对话里工具调用的展示方式:卡片可逐个展开,紧凑每行一个、多次调用折叠成摘要。 */
 export type ToolDisplay = "card" | "compact";
-/** 工具折叠的分组范围:按 Assistant 消息,或按界面上的位置关系跨消息合并。 */
-export type ToolFold = "message" | "position";
+/** 工具折叠的分组范围:按 Assistant 消息、按界面上的位置关系跨消息合并,或完全不折叠。 */
+export type ToolFold = "message" | "position" | "none";
 /** 思考总结的展示方式:跟在“思考”后面、替换“思考”作为标题、或跟随回复正文样式。 */
 export type ThinkingSummaryStyle = "inline" | "headline" | "prose";
 export type FileIconTheme = "devicon" | "material";
@@ -45,6 +45,7 @@ const localeKey = "vela.locale";
 const toolDisplayKey = "vela.toolDisplay";
 const toolFoldKey = "vela.toolFold";
 const toolProcessDetailsKey = "vela.toolProcessDetails";
+const toolIconColorKey = "vela.toolIconColor";
 const thinkingSummaryKey = "vela.thinkingSummary";
 const thinkingSummaryStyleKey = "vela.thinkingSummaryStyle";
 const thinkingSummaryModelKey = "vela.thinkingSummaryModel";
@@ -108,7 +109,7 @@ function isToolDisplay(value: unknown): value is ToolDisplay {
 }
 
 function isToolFold(value: unknown): value is ToolFold {
-  return value === "message" || value === "position";
+  return value === "message" || value === "position" || value === "none";
 }
 
 function isThinkingSummaryStyle(value: unknown): value is ThinkingSummaryStyle {
@@ -200,6 +201,9 @@ export function usePreferences() {
   );
   const [hiddenModels, setHiddenModels] = useState<string[]>(() =>
     readStoredJson(hiddenModelsKey, isHiddenModelList, []),
+  );
+  const [toolIconColor, setToolIconColor] = useState(() =>
+    readStored(toolIconColorKey, (value): value is string => value === "true" || value === "false", "true") === "true",
   );
   const [composerCapsules, setComposerCapsules] = useState(() =>
     readStored(composerCapsulesKey, (value): value is string => value === "true", "false") === "true",
@@ -296,6 +300,10 @@ export function usePreferences() {
   useEffect(() => writeStored(sendButtonIconKey, sendButtonIcon), [sendButtonIcon]);
   useEffect(() => writeStored(hiddenModelsKey, JSON.stringify(hiddenModels)), [hiddenModels]);
   useEffect(() => {
+    document.documentElement.dataset.toolIconColor = String(toolIconColor);
+    writeStored(toolIconColorKey, String(toolIconColor));
+  }, [toolIconColor]);
+  useEffect(() => {
     document.documentElement.dataset.composerCapsules = String(composerCapsules);
     writeStored(composerCapsulesKey, String(composerCapsules));
   }, [composerCapsules]);
@@ -319,6 +327,7 @@ export function usePreferences() {
     toolDisplay,
     toolFold,
     toolProcessDetails,
+    toolIconColor,
     thinkingSummary,
     thinkingSummaryStyle,
     thinkingSummaryModel,
@@ -340,6 +349,7 @@ export function usePreferences() {
     setToolDisplay,
     setToolFold,
     setToolProcessDetails,
+    setToolIconColor,
     setThinkingSummary,
     setThinkingSummaryStyle,
     setThinkingSummaryModel,

@@ -32,6 +32,7 @@ import { FilePreviewProvider, type PreviewFileDescriptor } from "./components/pr
 import type { StartTabAction } from "./components/StartView";
 import { WorkbenchPanel, type WorkbenchTab } from "./components/WorkbenchPanel";
 import { WorkbenchChatView } from "./components/WorkbenchChatView";
+import { SideChatView } from "./components/SideChatView";
 import { BrowserViewHost } from "./components/browser/BrowserViewHost";
 import { useBrowserTabs } from "./browser/useBrowserTabs";
 import { routeConversationLink } from "./browser/conversation-link-policy";
@@ -248,6 +249,8 @@ export function App() {
   useEffect(() => { setWorkbenchCollapsed(false); }, [activeWorkbenchTabId]);
   const [startTabState, setStartTabState] = useState<{ id: string }[]>([]);
   const [chatTabState, setChatTabState] = useState<{ id: string; conversationId: string }[]>([]);
+  /** 侧边聊天不绑定工作区，切换目录或对话都保留；记忆跟随当前主对话。 */
+  const [sideChatTabState, setSideChatTabState] = useState<{ id: string; number: number }[]>([]);
   const [pendingChatTabs, setPendingChatTabs] = useState<string[]>([]);
   const [startErrors, setStartErrors] = useState<Record<string, string>>({});
   const chatRequests = useRef(new Set<string>());
@@ -413,6 +416,13 @@ export function App() {
     setActiveWorkbenchTabId(id);
   }, []);
 
+  const openSideChatTab = useCallback(() => {
+    tabSeq.current += 1;
+    const id = `side-chat:${tabSeq.current}`;
+    setSideChatTabState((current) => [...current, { id, number: Math.max(0, ...current.map((tab) => tab.number)) + 1 }]);
+    setActiveWorkbenchTabId(id);
+  }, []);
+
   const openFilesTab = useCallback(() => {
     setFilesTabOpen(true);
     setActiveWorkbenchTabId(filesTabId);
@@ -469,10 +479,11 @@ export function App() {
     }
     setStartTabState((current) => current.filter((candidate) => candidate.id !== tab.id));
     if (action === "changes") openChanges();
+    else if (action === "side-chat") openSideChatTab();
     else if (action === "terminal") openTerminalTab();
     else if (action === "browser") openBrowserTab();
     else openFilesTab();
-  }, [openChanges, openTerminalTab, openFilesTab, openBrowserTab, workspaceKey]);
+  }, [openChanges, openSideChatTab, openTerminalTab, openFilesTab, openBrowserTab, workspaceKey]);
 
   const fileTabs = useMemo<WorkbenchTab[]>(() => (fileTabsByWorkspace[workspaceKey] ?? []).map((file) => ({
     id: fileTabId(workspaceKey, file.id),
@@ -529,6 +540,11 @@ export function App() {
     kind: "chat",
     label: session.conversations.find(item => item.id === tab.conversationId)?.title || tr("聊天", "Chat"),
   })), [chatTabState, session.conversations, preferences.locale]);
+  const sideChatTabs = useMemo<WorkbenchTab[]>(() => sideChatTabState.map((tab) => ({
+    id: tab.id,
+    kind: "side-chat",
+    label: tab.number > 1 ? trf("侧边聊天 {0}", "Side chat {0}", tab.number) : tr("侧边聊天", "Side chat"),
+  })), [sideChatTabState, preferences.locale]);
   const unorderedTabs = useMemo<WorkbenchTab[]>(() => [
     ...fileTabs,
     ...(planTab ? [planTab] : []),
@@ -540,9 +556,10 @@ export function App() {
     ...(filesTab ? [filesTab] : []),
     ...terminalTabs,
     ...chatTabs,
+    ...sideChatTabs,
     ...browser.tabs.map((tab): WorkbenchTab => ({ ...tab, kind: "browser", label: tr("浏览器", "Browser") })),
     ...startTabItems,
-  ], [fileTabs, planTab, changeTab, reviewTab, acceptanceTab, raceTab, agentTabs, filesTab, terminalTabs, chatTabs, browser.tabs, startTabItems]);
+  ], [fileTabs, planTab, changeTab, reviewTab, acceptanceTab, raceTab, agentTabs, filesTab, terminalTabs, chatTabs, sideChatTabs, browser.tabs, startTabItems]);
   const workbenchTabs = useMemo(() => {
     const tabIdSet = new Set(unorderedTabs.map((tab) => tab.id));
     return [
@@ -651,6 +668,8 @@ export function App() {
       setTerminalTabState((current) => current.filter((candidate) => candidate.id !== tab.id));
     } else if (tab.kind === "chat") {
       setChatTabState(current => current.filter(candidate => candidate.id !== tab.id));
+    } else if (tab.kind === "side-chat") {
+      setSideChatTabState(current => current.filter(candidate => candidate.id !== tab.id));
     } else if (tab.kind === "browser") {
       browser.close(tab.id);
     } else if (tab.kind === "files") {
@@ -940,6 +959,12 @@ export function App() {
                           onRenameConversation={openRenameConversation}
                           onOpenConversation={id => { void session.switchTo(id); }}
                           onNewTab={openStartTab} onShowDiff={openChanges} onOpenWebLink={openConversationLink} />}
+                        renderSideChat={(tab, visible) => <SideChatView key={tab.id}
+                          conversationId={session.activeConversationId} locale={preferences.locale} visible={visible}
+                          models={models} hiddenModels={preferences.hiddenModels}
+                          defaultChoice={session.state?.session.modelProvider && session.state.session.modelId
+                            ? { provider: session.state.session.modelProvider, id: session.state.session.modelId, thinkingLevel: session.state.session.thinkingLevel }
+                            : null} />}
                         gitAvailable={Boolean(project.git?.repo)}
                         onActivateTab={(tab) => {
                           if (tab.kind === "browser") browser.select(tab.id);

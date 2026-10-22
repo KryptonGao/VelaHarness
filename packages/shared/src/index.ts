@@ -28,6 +28,7 @@ export * from "./logging";
 import type { LogsApi } from "./logging";
 export * from "./updates";
 export * from "./release-notes";
+export * from "./side-chat";
 export * from "./intelligent-ui";
 export * from "./intelligent-ui-expression";
 export * from "./intelligent-ui-components";
@@ -64,6 +65,9 @@ export const IpcChannel = {
   sessionMessages: "session:messages",
   sessionSummarizeThinking: "session:summarize-thinking",
   sessionPredictInput: "session:predict-input",
+  sideChatSend: "side-chat:send",
+  sideChatCancel: "side-chat:cancel",
+  sideChatEvent: "side-chat:event",
   sessionHandoffDraft: "session:handoff-draft",
   sessionHandoffCancel: "session:handoff-cancel",
   sessionTrace: "session:trace",
@@ -75,6 +79,7 @@ export const IpcChannel = {
   sessionRemoveInstruction: "session:instruction-remove",
   event: "session:event",
   getCatalog: "models:get-catalog",
+  refreshCatalog: "models:refresh-catalog",
   selectModel: "models:select",
   setThinkingLevel: "models:thinking",
   addModel: "models:add",
@@ -439,6 +444,15 @@ export interface ModelCatalog {
   providers: ProviderSummary[];
   models: ModelSummary[];
   error: string | null;
+}
+
+/** 手动从 Pi 重新获取模型列表的结果。 */
+export interface ModelRefreshResult {
+  catalog: ModelCatalog;
+  /** 设置了 PI_OFFLINE，没有联网。 */
+  offline: boolean;
+  /** 获取失败的提供方，已保留本地缓存的模型。 */
+  errors: { provider: string; message: string }[];
 }
 
 export interface CustomModelInput {
@@ -2815,6 +2829,8 @@ export interface VelaApi extends McpApi, PluginApi {
   prInbox: import("./pr-inbox").PrInboxApi;
   /** 设置页的长期记忆管理入口；Agent 工具由运行时单独提供。 */
   memory: MemoryApi;
+  /** 侧边聊天：不带工具的轻量对话，带入长期记忆。 */
+  sideChat?: import("./side-chat").SideChatApi;
   /** 仅开发版提供。 */
   development?: DevelopmentApi;
   taskRecipes?: import("./task-recipes").TaskRecipesApi;
@@ -2891,6 +2907,8 @@ export interface VelaApi extends McpApi, PluginApi {
   controlAgent(conversationId: string, agentId: string, action: AgentControlAction): Promise<void>;
   onEvent(listener: (event: AgentStreamEvent) => void): () => void;
   getCatalog(): Promise<ModelCatalog>;
+  /** 立即从 Pi 重新获取模型列表，忽略 4 小时的检查间隔。 */
+  refreshCatalog(): Promise<ModelRefreshResult>;
   selectModel(provider: string, id: string, conversationId?: string): Promise<AppState>;
   setThinkingLevel(level: ThinkingLevel, conversationId?: string): Promise<AppState>;
   addModel(input: CustomModelInput): Promise<AppState>;

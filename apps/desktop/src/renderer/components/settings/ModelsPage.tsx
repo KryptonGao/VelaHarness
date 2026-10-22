@@ -17,6 +17,7 @@ export function ModelsPage({ copy, models, preferences }: { copy: SettingsCopy; 
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [added, setAdded] = useState(false);
+  const [refreshNote, setRefreshNote] = useState<{ tone: "ok" | "error"; message: string } | null>(null);
 
   const providers = catalog?.providers ?? [];
   const modelGroups = groupAvailable(catalog);
@@ -30,9 +31,28 @@ export function ModelsPage({ copy, models, preferences }: { copy: SettingsCopy; 
     setPendingRemove(null);
   }
 
+  async function refreshModels(): Promise<void> {
+    setRefreshNote(null);
+    const result = await models.refreshFromPi();
+    if (!result) return;
+    if (result.offline) setRefreshNote({ tone: "error", message: text.refreshOffline });
+    else if (result.errors.length > 0) {
+      setRefreshNote({ tone: "error", message: `${text.refreshPartial}${result.errors.map((item) => `${item.provider}: ${item.message}`).join("; ")}` });
+    } else setRefreshNote({ tone: "ok", message: text.refreshDone });
+  }
+
   return (
     <section className="settings-section">
       <SettingsBlock id="providers" title={text.connected}>
+        <div className="settings-actions">
+          <button className="settings-secondary" type="button" disabled={models.refreshing} onClick={() => void refreshModels()}>
+            {models.refreshing ? text.refreshing : text.refresh}
+          </button>
+        </div>
+        <p className="settings-note">{text.refreshHint}</p>
+        {refreshNote ? (
+          <p className={refreshNote.tone === "error" ? "settings-error" : "settings-note"} role="status">{refreshNote.message}</p>
+        ) : null}
         {models.catalogError ? <p className="settings-error">{localizeError(models.catalogError)}</p> : null}
         {models.actionError ? <p className="settings-error">{localizeError(models.actionError)}</p> : null}
         {catalog?.error ? <p className="settings-error">{catalog.error}</p> : null}

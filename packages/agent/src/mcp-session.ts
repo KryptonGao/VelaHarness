@@ -191,7 +191,6 @@ export class McpSessionBridge {
       server.authStatus = live.loginPending ? "authenticating" : live.state === "needs-auth" ? "required" : live.oauth && live.state === "failed" ? "error" : live.authenticated ? "authenticated" : "none";
       if (live.error) server.error = String(redactMcpDisplay(live.error, secrets));
       server.tools = live.tools.map(tool => this.toolInfo(server.name, server.configDigest!, tool));
-      Object.assign(server, { resourceCount: live.resources, resourceTemplateCount: live.resourceTemplates });
     }
     return catalog;
   }

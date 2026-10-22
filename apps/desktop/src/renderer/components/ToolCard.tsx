@@ -21,7 +21,7 @@ import type { ThemedToken } from "./preview/highlighter";
 import { QuestionCard } from "./QuestionCard";
 import { FileTypeIcon } from "./FileTypeIcon";
 import { tokenStyle, useDiffHighlight, type HighlightedDiff } from "./diff-highlight";
-import { ArrowRightIcon, CheckIcon, CircleIcon, ExternalIcon, EyeIcon, FilePlusIcon, McpIcon, PencilIcon, StackIcon, SubagentIcon, TerminalIcon, ToolIcon } from "./icons";
+import { ArrowRightIcon, CheckIcon, CircleIcon, ExternalIcon, EyeIcon, FilePlusIcon, GlobeIcon, McpIcon, PencilIcon, StackIcon, SubagentIcon, TerminalIcon, ToolIcon } from "./icons";
 import {
   compactSummaryParts,
   diffStat,
@@ -33,9 +33,10 @@ import {
   type DisplayDiffRow,
 } from "./tool-compact";
 import { shouldFoldRun } from "./tool-sequence";
+import { firstCodeLine, lastBrowserUrl, splitBrowserBody, summarizeBrowserCode, type BrowserStep } from "./browser-call";
 import { foldRowId, foldSequenceId } from "./tool-fold-state";
 import { DurationLabel, ToolDurationLabel, useToolExpanded, useToolProcessDetails, useToolsDuration } from "./ToolProcessContext";
-import type { ToolDisplay } from "../hooks/usePreferences";
+import type { ToolDisplay, ToolFold } from "../hooks/usePreferences";
 import { localizeError, tr, trf } from "../locale";
 
 type ToolKind = "browser" | "bash" | "read" | "edit" | "write" | "other";
@@ -53,7 +54,7 @@ const kindLabels: Record<ToolKind, string> = {
 export type QuestionLookup = (toolCallId: string) => AskUserQuestionRequest | null;
 
 /**
- * 消息工具列表入口。连续的可折叠工具达到阈值(卡片 RUN_MIN 个,紧凑 >1 个)时折叠成一组,
+ * 消息工具列表入口。连续的可折叠工具达到阈值(卡片 RUN_MIN 个,紧凑 >1 个)时折叠成一组(fold 为 none 时逐个展示),
  * 其余工具(计划、目标、提问等)照常逐张展示,并打断连续区间。
  */
 export const ToolList = memo(function ToolList({
@@ -61,11 +62,13 @@ export const ToolList = memo(function ToolList({
   getQuestion,
   onReplyQuestion,
   display = "card",
+  fold = "message",
 }: {
   tools: ToolTrace[];
   getQuestion?: QuestionLookup;
   onReplyQuestion?: (id: string, answer: string | null) => void;
   display?: ToolDisplay;
+  fold?: ToolFold;
 }) {
   const segments = useMemo(() => splitToolRuns(tools), [tools]);
   const compact = display === "compact";
@@ -82,10 +85,10 @@ export const ToolList = memo(function ToolList({
               compact={compact}
             />
           ))
-        ) : shouldFoldRun(segment.length, display) ? (
+        ) : shouldFoldRun(segment.length, display, fold) ? (
           compact ? <CompactToolGroup key={segment[0].id} tools={segment} /> : <ToolRunGroup key={segment[0].id} tools={segment} />
         ) : compact ? (
-          <CompactToolLine key={segment[0].id} tool={segment[0]} />
+          segment.map((tool) => <CompactToolLine key={tool.id} tool={tool} />)
         ) : (
           segment.map((tool) => (
             <ToolCard key={tool.id} tool={tool} getQuestion={getQuestion} onReplyQuestion={onReplyQuestion} />
@@ -135,6 +138,7 @@ export const ToolCard = memo(function ToolCard(props: ToolCardProps) {
     );
   }
   if (isAgentToolName(props.tool.name)) return <AgentToolCard tool={props.tool} compact={props.compact} />;
+  if (props.tool.name === "browser_repl") return <BrowserReplCard tool={props.tool} compact={props.compact} />;
   return <GenericToolCard {...props} />;
 });
 
@@ -366,6 +370,7 @@ function taskReport(body: string | undefined): string {
 function GenericToolCard({ tool, compact = false }: ToolCardProps) {
   const [open, setOpen] = useToolExpanded(foldRowId(tool.id), compact);
   const preview = useFilePreview();
+  const showTiming = useToolProcessDetails();
   const activity = tool.activity ?? {};
   const mcp = activity.mcp;
   const kind = mcp ? "other" : toolKind(tool.name);
@@ -377,7 +382,7 @@ function GenericToolCard({ tool, compact = false }: ToolCardProps) {
   const canPreview = Boolean(preview && previewPath);
 
   return (
-    <article className={`tool-card tool-kind-${kind} is-${tool.status}${open ? " open" : ""}`}>
+    <article className={`tool-card tool-kind-${kind}${mcp ? " is-mcp" : ""} is-${tool.status}${open ? " open" : ""}`}>
       <div className="tool-card-top">
         <button
           className="tool-card-head"
@@ -411,7 +416,7 @@ function GenericToolCard({ tool, compact = false }: ToolCardProps) {
             <polyline points="9 18 15 12 9 6" />
           </svg>
           {compact ? <ToolDurationLabel tool={tool} /> : null}
-          {compact ? <StatusMark status={tool.status} compact /> : null}
+          {compact && !(tool.status === "error" && showTiming) ? <StatusMark status={tool.status} compact /> : null}
         </button>
         {canPreview ? (
           <button
@@ -436,6 +441,113 @@ function GenericToolCard({ tool, compact = false }: ToolCardProps) {
           </ScrollFade>}
         </div>
         </>}
+      </ToolCollapse>
+    </article>
+  );
+}
+
+function browserStepLabel(step: BrowserStep): string {
+  switch (step.kind) {
+    case "open": return step.target ? trf("打开 {0}", "Open {0}", step.target) : tr("打开页面", "Open page");
+    case "screenshot": return tr("截图", "Screenshot");
+    case "click": return step.target ? trf("点击「{0}」", "Click “{0}”", step.target) : tr("点击", "Click");
+    case "input": return tr("输入文字", "Type text");
+    case "snapshot": return tr("读取页面", "Read page");
+    case "inspect": return tr("检查页面", "Inspect page");
+    case "connect": return tr("连接浏览器", "Connect browser");
+    default: return tr("运行脚本", "Run script");
+  }
+}
+
+/**
+ * Browser REPL 专属样式:不再显示一行 `browser_repl`,而是把代码归纳成「打开 → 截图」这样的动作芯片,
+ * 展开后是 REPL 代码、文字输出和带地址栏的截图缩略图。
+ */
+function BrowserReplCard({ tool, compact = false }: { tool: ToolTrace; compact?: boolean }) {
+  const [open, setOpen] = useToolExpanded(foldRowId(tool.id), compact);
+  const [zoomed, setZoomed] = useState<number | null>(null);
+  const activity = tool.activity ?? {};
+  const running = tool.status === "running";
+  const failed = tool.status === "error";
+  const steps = useMemo(() => summarizeBrowserCode(activity.command), [activity.command]);
+  const { screenshots, output } = useMemo(() => splitBrowserBody(activity.body), [activity.body]);
+  const url = useMemo(() => lastBrowserUrl(activity.command), [activity.command]);
+  const preview = firstCodeLine(activity.command);
+
+  return (
+    <article className={`browser-call${compact ? " is-compact" : ""} is-${tool.status}${open ? " open" : ""}`}>
+      <button
+        className="browser-call-head"
+        type="button"
+        aria-expanded={open}
+        aria-label={open ? tr("收起浏览器调用", "Hide browser call") : tr("展开浏览器调用", "Show browser call")}
+        title={preview || "Browser REPL"}
+        onClick={() => setOpen((value) => !value)}
+      >
+        <span className="browser-call-badge" aria-hidden="true">
+          <GlobeIcon size={13} />
+        </span>
+        <span className="browser-call-steps">
+          {steps.map((step, index) => (
+            <span className="browser-call-step-wrap" key={index}>
+              {index > 0 ? <ArrowRightIcon size={10} /> : null}
+              <span className={`browser-call-step is-${step.kind}`}>{browserStepLabel(step)}</span>
+            </span>
+          ))}
+        </span>
+        {screenshots.length > 0 ? (
+          <span className="browser-call-shots" aria-label={trf("{0} 张截图", "{0} screenshots", screenshots.length)}>
+            <EyeIcon size={11} />
+            {screenshots.length}
+          </span>
+        ) : null}
+        <svg className="tool-compact-chevron browser-call-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
+        <ToolDurationLabel tool={tool} />
+        {compact ? <CompactStatus running={running} failed={failed} /> : <StatusMark status={tool.status} />}
+      </button>
+      <ToolCollapse open={open}>
+        {() => (
+          <div className="browser-call-body">
+            {activity.command ? (
+              <ScrollFade className="tool-details-scroll" ariaLabel={tr("浏览器脚本，可在区域内滚动", "Browser script, scrollable")}>
+                <pre className="browser-call-code"><span className="browser-call-prompt" aria-hidden="true">›</span>{activity.command}</pre>
+              </ScrollFade>
+            ) : null}
+            {output ? (
+              <div className={`browser-call-output${failed ? " failed" : ""}`}>
+                <ScrollFade className="tool-details-scroll" ariaLabel={tr("浏览器输出，可在区域内滚动", "Browser output, scrollable")}>
+                  <ToolMarkdown text={output} className="browser-call-text" />
+                </ScrollFade>
+              </div>
+            ) : running ? (
+              <div className="browser-call-wait">{tr("正在执行", "Running…")}</div>
+            ) : !screenshots.length ? (
+              <div className="browser-call-wait">{tr("无输出", "No output")}</div>
+            ) : null}
+            {screenshots.length > 0 ? (
+              <div className="browser-call-frames">
+                {screenshots.map((src, index) => (
+                  <figure className={`browser-call-frame${zoomed === index ? " zoomed" : ""}`} key={index}>
+                    <div className="browser-call-chrome" aria-hidden="true">
+                      <span /><span /><span />
+                      <em>{url ? url.replace(/^https?:\/\//, "") : "Browser"}</em>
+                    </div>
+                    <button
+                      className="browser-call-shot"
+                      type="button"
+                      title={zoomed === index ? tr("缩小", "Shrink") : tr("放大", "Enlarge")}
+                      onClick={() => setZoomed((value) => (value === index ? null : index))}
+                    >
+                      <img src={src} alt={tr("浏览器截图", "Browser screenshot")} />
+                    </button>
+                  </figure>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        )}
       </ToolCollapse>
     </article>
   );
@@ -617,6 +729,7 @@ export function CompactToolLine({
   const preview = useFilePreview();
   const [open, setOpen] = useToolExpanded(foldRowId(tool.id));
   const kind = toolKind(tool.name);
+  if (tool.name === "browser_repl") return <BrowserReplCard tool={tool} compact />;
   const activity = tool.activity ?? {};
   const subject = subjectOf(kind, activity, tool.name);
   const stat = diffStat(activity.diff);
@@ -787,7 +900,9 @@ function compactAction(kind: ToolKind): string {
 }
 
 /** 紧凑行只标异常状态:运行中转圈、失败红叉,完成不占位置。 */
-function CompactStatus({ running, failed }: { running: boolean; failed: boolean }) {
+function CompactStatus({ running, failed: rawFailed }: { running: boolean; failed: boolean }) {
+  // 计时开启时,失败红叉改由耗时标签显示在「·」与时间之间。
+  const failed = rawFailed && !useToolProcessDetails();
   const key = running ? "running" : failed ? "error" : "done";
   return <ContentSwap inline hideWhenEmpty className={`tool-status-swap compact is-${key}`} motionKey={key}>
     {running || failed ? <CompactStatusContent running={running} failed={failed} /> : null}
@@ -1066,23 +1181,25 @@ function collapseDiffContext(rows: DisplayDiffRow[]): DisplayDiffRow[] {
   let hasChangeBefore = false;
   while (index < rows.length) {
     const row = rows[index];
-    if (row?.kind !== "ctx") {
+    if (row?.kind !== "ctx" && row?.kind !== "gap") {
       output.push(row!);
       if (row?.kind === "add" || row?.kind === "del") hasChangeBefore = true;
       index += 1;
       continue;
     }
 
+    // 工具自带的「…」省略标记也算这一段上下文,否则两处改动之间会出现孤立的几行夹在两条分隔带中间。
     const start = index;
-    while (index < rows.length && rows[index]?.kind === "ctx") index += 1;
-    const context = rows.slice(start, index);
+    while (index < rows.length && (rows[index]?.kind === "ctx" || rows[index]?.kind === "gap")) index += 1;
+    const run = rows.slice(start, index);
+    const context = run.filter((item) => item.kind === "ctx");
     const hasChangeAfter = changedAfter[index] ?? false;
-    if (context.length > 3 && hasChangeBefore && hasChangeAfter) {
+    if (context.length > 0 && (run.length > 3 || run.length > context.length) && hasChangeBefore && hasChangeAfter) {
       output.push(context[0]!);
       output.push({ kind: "gap", gutter: "", text: "", oldIndex: -1, newIndex: -1 });
-      output.push(context[context.length - 1]!);
+      if (context.length > 1) output.push(context[context.length - 1]!);
     } else {
-      output.push(...context);
+      output.push(...run);
     }
   }
   return output;

@@ -12,6 +12,7 @@ import {
   type CustomModelInput,
   type ModelAuthEvent,
   type ModelCatalog,
+  type ModelRefreshResult,
   type ModelSummary,
   type NewConversationSelection,
   type ProviderSummary,
@@ -127,6 +128,18 @@ export class ModelDirectory {
       .catch(() => {
         // 远程目录不可用时保留内置快照，不影响正常使用。
       });
+  }
+
+  /**
+   * 用户手动触发：忽略 Pi 对每个提供方 4 小时的检查间隔，立即重新拉取。
+   * 单个提供方失败不会抛错，而是随结果返回，已缓存的模型仍可使用。
+   */
+  async refreshCatalogNow(): Promise<ModelRefreshResult> {
+    if (process.env.PI_OFFLINE !== undefined) return { catalog: await this.catalog(), offline: true, errors: [] };
+    const result = await this.runtime.refresh({ allowNetwork: true, force: true });
+    this.emit({ type: "catalog" });
+    const errors = [...result.errors].map(([provider, error]) => ({ provider, message: error.message }));
+    return { catalog: await this.catalog(), offline: false, errors };
   }
 
   subscribeAuth(listener: (event: ModelAuthEvent) => void): () => void {

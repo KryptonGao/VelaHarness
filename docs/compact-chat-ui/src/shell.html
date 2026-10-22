@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="zh-CN" data-scheme="light" data-tool-icon-color="true">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vela 紧凑对话流 · 样式参考</title>
+<!--
+  Vela 紧凑模式(toolDisplay = "compact")对话流样式参考。单文件、无依赖、可离线打开。
+
+  GENERATED FILE — 由 styles.css 的真实规则按片段拼接而成(见 docs/compact-chat-ui/README.md「提取范围」),
+  再加上原生 JS 重写的渲染逻辑。样式以 apps/desktop/src/renderer/styles.css 为准,不要手改 <style id="vela-extracted">。
+-->
+<style id="vela-extracted">
+/*@@VELA_CSS@@*/
+</style>
+<style id="demo-chrome">
+/* ───────── 以下是演示页自己的外壳,移植时不需要 ───────── */
+:root { color-scheme: light; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-surface-subtle);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+.demo-bar {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-chat);
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.demo-bar strong { color: var(--text-primary); font-size: 14px; margin-right: 4px; }
+.demo-bar label { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.demo-bar select {
+  font: inherit; color: var(--text-primary); background: var(--bg-surface-subtle);
+  border: 1px solid var(--border-strong); border-radius: 6px; padding: 2px 6px;
+}
+.demo-bar button {
+  font: inherit; color: var(--text-primary); background: var(--bg-surface-subtle);
+  border: 1px solid var(--border-strong); border-radius: 6px; padding: 3px 10px;
+}
+.demo-bar button:hover { background: var(--bg-hover); }
+.demo-bar button.primary { background: var(--accent-blue); border-color: transparent; color: var(--accent-contrast); }
+.demo-bar button.primary:hover { background: var(--accent-blue-hover); }
+.demo-bar .spacer { flex: 1; }
+.demo-stage { flex: 1; min-height: 0; display: flex; justify-content: center; padding: 12px; }
+.demo-stage .main-chat-view {
+  width: 100%; max-width: 1080px; height: 100%; flex: none;
+  background: var(--bg-chat);
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+.demo-stage.narrow .main-chat-view { max-width: 520px; }
+
+/* 一次性入场动画:重绘时已出现过的节点不再重放(React 里由协调器保证) */
+.no-enter { animation: none !important; }
+
+/* 顶栏:真实应用里是毛玻璃壳 + 拖拽区,这里只保留布局与控件尺寸 */
+.demo-stage .main-chat-header { -webkit-app-region: no-drag; border-bottom: 1px solid var(--border-subtle); }
+.chat-header-actions { display: flex; align-items: center; gap: 4px; }
+.view-icon-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; border-radius: var(--radius-xs); color: var(--text-muted);
+}
+.view-icon-btn:hover { background: var(--bg-sidebar-hover); color: var(--text-primary); }
+.chat-project-context { display: inline-flex; align-items: center; gap: 6px; margin-right: 6px; font-size: 13px; color: var(--text-muted); }
+.chat-project-branch { padding: 1px 7px; border-radius: var(--radius-pill); background: var(--bg-surface-subtle); }
+
+/* 点阵加载动画:6×6,周期 2s,沿对角线错相。真实实现是 canvas 回放 dot-motion-loader.json。 */
+.dot-loader {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  padding: .05em;
+  gap: .016em;
+  font-size: 16px;
+}
+.dot-loader i {
+  position: relative;
+  display: block;
+  border-radius: 22%;
+  background: color-mix(in srgb, currentColor 12%, transparent);
+}
+.dot-loader i::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: currentColor;
+  animation: dot-wave 2s ease-in-out var(--d, 0s) infinite;
+}
+@keyframes dot-wave {
+  0% { opacity: .5; } 25% { opacity: 0; } 50% { opacity: .5; } 75% { opacity: 1; } 100% { opacity: .5; }
+}
+
+.demo-toast {
+  position: fixed; left: 50%; bottom: 28px; z-index: 20;
+  transform: translate(-50%, 8px); opacity: 0; pointer-events: none;
+  padding: 7px 14px; border-radius: var(--radius-pill);
+  background: var(--text-primary); color: var(--bg-chat); font-size: 13px;
+  transition: opacity .18s ease, transform .18s ease;
+}
+.demo-toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+/* 标注模式 */
+body.annotate .main-chat-view * { cursor: crosshair; }
+body.annotate .main-chat-view [class]:hover { outline: 1px dashed var(--accent-blue); outline-offset: 1px; }
+.annotate-tip {
+  position: fixed; z-index: 30; display: none; pointer-events: none; max-width: 320px;
+  padding: 6px 9px; border-radius: 8px; font: 12px/1.45 var(--font-mono);
+  background: var(--text-primary); color: var(--bg-chat); box-shadow: var(--shadow-popover);
+}
+.annotate-tip b { font-weight: 600; word-break: break-all; }
+</style>
+</head>
+<body>
+<header class="demo-bar">
+  <strong data-zh="紧凑对话流" data-en="Compact chat flow">紧凑对话流</strong>
+  <label><span data-zh="折叠方式" data-en="Folding">折叠方式</span>
+    <select id="fold"><option value="message">toolFold = message</option><option value="position">toolFold = position</option></select></label>
+  <label><input type="checkbox" id="details"><span data-zh="步数 / 耗时" data-en="Steps / duration">步数 / 耗时</span></label>
+  <label><input type="checkbox" id="iconColor" checked><span data-zh="工具图标配色" data-en="Tool icon colors">工具图标配色</span></label>
+  <label><input type="checkbox" id="narrow"><span data-zh="窄屏" data-en="Narrow">窄屏</span></label>
+  <label><input type="checkbox" id="annotate"><span data-zh="标注 class" data-en="Inspect classes">标注 class</span></label>
+  <label><span data-zh="语言" data-en="Language">语言</span><select id="lang"><option value="zh">中文</option><option value="en">English</option></select></label>
+  <span class="spacer"></span>
+  <button id="expand" type="button" data-zh="全部展开" data-en="Expand all">全部展开</button>
+  <button id="collapse" type="button" data-zh="全部收起" data-en="Collapse all">全部收起</button>
+  <button id="replay" type="button" class="primary" data-zh="▶ 重播流式输出" data-en="▶ Replay streaming">▶ 重播流式输出</button>
+</header>
+
+<div class="demo-stage" id="stage">
+  <main class="main-chat-view" data-tool-display="compact">
+    <header class="main-chat-header">
+      <div class="chat-title-group">
+        <button class="chat-active-title chat-title-rename" type="button"><span>抽取重试逻辑</span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m16 3 5 5-12 12-6 1 1-6L16 3Z"/><path d="m14 5 5 5"/></svg></button>
+      </div>
+      <div class="chat-header-actions">
+        <span class="chat-project-context"><span class="chat-project-name">VelaHarness</span><span class="chat-project-branch">main</span></span>
+        <button class="view-icon-btn" type="button" aria-label="Checkpoints"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 2.64-6.36L3 8.3"/><path d="M3 3.5v4.8h4.8"/><path d="M12 7.5V12l3 2"/></svg></button>
+        <button class="view-icon-btn" type="button" aria-label="Panel"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="16" y1="3" x2="16" y2="21"/></svg></button>
+      </div>
+    </header>
+
+    <div class="chat-conversation-pane">
+      <div class="chat-scroll-area" id="scroller">
+        <div class="chat-message-surface" id="surface"></div>
+      </div>
+
+      <button type="button" class="chat-jump-latest" id="jump" data-visible="false"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg><span data-zh="回到最新" data-en="Jump to latest">回到最新</span></button>
+
+      <div class="chat-dock-wrapper">
+        <form class="floating-input-card" onsubmit="return false">
+          <div class="composer-entry">
+            <textarea class="input-textarea" rows="1" placeholder="随心输入" aria-label="Message"></textarea>
+          </div>
+          <div class="dock-controls-row">
+            <div class="dock-controls-left">
+              <button class="attach-btn" type="button" aria-label="Attach"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+              <button class="mode-pill mode-agent" type="button">Agent</button>
+            </div>
+            <div class="dock-controls-right">
+              <button class="model-choice-pill model-pill" type="button"><span class="model-pill-label">DeepSeek V4 · high</span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
+              <span class="composer-action-slot">
+                <span class="composer-action-stack">
+                  <button class="send-action-blue-btn send" type="submit" aria-label="Send"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
+                  <button class="send-action-blue-btn stop" type="button" aria-label="Stop" inert><span class="stop-square"></span></button>
+                </span>
+              </span>
+            </div>
+          </div>
+          <div class="composer-stats-row" role="group">
+            <span class="composer-stat"><span class="composer-stat-icon" aria-hidden="true"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span><span class="composer-stat-text">1 轮 · 15 步</span></span>
+            <span class="composer-stat composer-stat-context"><span class="composer-stat-ring" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 14 14"><circle class="composer-stat-ring-track" cx="7" cy="7" r="5.5"/><circle class="composer-stat-ring-progress" cx="7" cy="7" r="5.5" stroke-dasharray="34.56" stroke-dashoffset="27.6"/></svg></span><span class="composer-stat-text">20%</span></span>
+          </div>
+        </form>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+/*@@APP_JS@@*/
+</script>
+</body>
+</html>

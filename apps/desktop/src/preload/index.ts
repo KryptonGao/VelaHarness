@@ -16,6 +16,7 @@ import {
   type AgentSettings,
   type ConversationSyncResult,
   type McpStatusEvent,
+  type SideChatEvent,
   type PluginStatusEvent,
   type AppLocale,
   type AgentStreamEvent,
@@ -102,6 +103,7 @@ import {
   type LoginResult,
   type ModelAuthEvent,
   type ModelCatalog,
+  type ModelRefreshResult,
   type OpenTarget,
   type PrCloseInput,
   type PrCloseResult,
@@ -295,6 +297,15 @@ const api: VelaApi = {
     save: (input) => ipcRenderer.invoke(IpcChannel.memorySave, input),
     remove: (input) => ipcRenderer.invoke(IpcChannel.memoryRemove, input),
   },
+  sideChat: {
+    send: (request) => ipcRenderer.invoke(IpcChannel.sideChatSend, request),
+    cancel: (requestId) => ipcRenderer.invoke(IpcChannel.sideChatCancel, requestId),
+    onEvent: (listener) => {
+      const handler = (_event: IpcRendererEvent, event: SideChatEvent) => listener(event);
+      ipcRenderer.on(IpcChannel.sideChatEvent, handler);
+      return () => { ipcRenderer.removeListener(IpcChannel.sideChatEvent, handler); };
+    },
+  },
   browser: {
     command: (command) => ipcRenderer.invoke(BrowserIpc.command, command),
     subscribe: (listener) => {
@@ -400,6 +411,7 @@ const api: VelaApi = {
   controlAgent: (conversationId: string, agentId: string, action: AgentControlAction) =>
     ipcRenderer.invoke(IpcChannel.sessionAgentControl, conversationId, agentId, action) as Promise<void>,
   getCatalog: () => ipcRenderer.invoke(IpcChannel.getCatalog) as Promise<ModelCatalog>,
+  refreshCatalog: () => ipcRenderer.invoke(IpcChannel.refreshCatalog) as Promise<ModelRefreshResult>,
   selectModel: (provider, id, conversationId) => ipcRenderer.invoke(IpcChannel.selectModel, provider, id, conversationId) as Promise<AppState>,
   setThinkingLevel: (level, conversationId) => ipcRenderer.invoke(IpcChannel.setThinkingLevel, level, conversationId) as Promise<AppState>,
   addModel: (input: CustomModelInput) => ipcRenderer.invoke(IpcChannel.addModel, input) as Promise<AppState>,

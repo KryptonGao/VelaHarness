@@ -42,7 +42,8 @@ Vela 通过 Pi 1.0 的 MCP 扩展接入 Model Context Protocol 服务器，并�
 
 ## 实现与验收
 
-- Pi 适配补丁为 `patches/@earendil-works__pi-coding-agent@1.0.0.patch`，由 `pnpm-workspace.yaml` 的 `patchedDependencies` 绑定精确 `1.0.0`。补丁为 MCP 扩展增加 `agentDir` 参数，以及 controller 的状态快照、订阅、重连、登录、取消登录、退出登录、工具曝光刷新和关闭等结构化接口；升级 Pi 时需要重新验收。
+- Pi 适配补丁为 `patches/@earendil-works__pi-coding-agent@1.3.0.patch`，由 `pnpm-workspace.yaml` 的 `patchedDependencies` 绑定精确 `1.3.0`。补丁为 MCP 扩展增加 `agentDir` 参数、`allowServer` / `allowTool` 策略守卫，以及 controller 的状态快照、订阅、重连、登录、取消登录、退出登录、工具曝光刷新和关闭等结构化接口；升级 Pi 时需要重新验收。
+- 1.3.0 起 Pi 自己支持 OAuth 登录取消，补丁只保留「prompt 不响应也能取消登录」这一层；连接时不再逐个列出资源，快照里用 `hasResources` 取代原来的资源与模板计数。
 - Vela 侧实现位于 `packages/agent` 的 `McpConfigService`、`McpSessionBridge`，以及 `apps/desktop` 的 `McpHost` 与 `McpSettingsSection`。
 - 定向测试：
   - `pnpm --filter @vela/agent test:mcp`：配置、策略、补丁接口与真实运行时（stdio、HTTP、OAuth fixture、发现、资源读取、认证刷新、取消、意外断连与重连、请求超时、关闭）。

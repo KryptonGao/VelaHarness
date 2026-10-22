@@ -1,23 +1,24 @@
-# Vela 1.1.9
+# Vela 1.1.10
 
-Vela 1.1.9 adds input prediction, lets you start independent chats inside the workbench panel, puts file checkpoints under your control, and moves the main conversation and sub-agents onto a new Vela-specific system prompt by default.
+Vela 1.1.10 adds lightweight side chats with memory, clearer tool and browser activity, live previews for conversation display settings, and manual model catalog refresh with Pi 1.3.0.
 
 ## New
 
-- **Input prediction**: After each reply, Vela can predict what you may type next and show it in gray in the empty message box. Press Tab to fill it in, or press Enter (or click Send) on an empty box to send it as is. It is off by default and can be turned on in Settings → Conversation display; each prediction makes one extra model request, and you can follow the current chat's model or pick a separate, faster or cheaper one.
-- **Chats in the workbench**: The workbench start page has a new Chat option that opens an independent conversation in a tab beside your files, terminal, browser and diffs. Each tab has its own session, input and skill menu, and stays mounted while hidden so replies keep arriving.
-- **Checkpoint controls**: A new "Record file checkpoints" switch in Settings → Storage turns file recording off for new turns. "Delete all records" removes every finished checkpoint and frees the disk space, and the checkpoint timeline can delete a conversation's records up to a chosen turn. Conversations that are replying are never touched.
-- **Vela system prompt**: The main conversation and sub-agents now use a Vela-specific system prompt (`v2`) by default instead of the base prompt from the underlying framework. Set `VELA_SYSTEM_PROMPT=v1` to switch back. Model-level evaluation of the new prompt has not been done yet.
+- **Side chats with memory**: Open Side chat from a new workbench tab to ask a quick question beside your main conversation. Choose its model and reasoning level independently; when memory is enabled, global and current-project memory are included. Replies stream with stop, retry and clear controls. Side chats have no tools or access to the main conversation, and their history lasts only for the open tab.
+- **Live display previews**: Hover or focus options in Settings → Conversation display to preview tool layout, grouping, timing, thinking summaries and input prediction before choosing. Tool grouping can now be turned off, and tool icons can use color.
+- **Browser activity cards**: Browser calls show action summaries, script and text output, plus screenshots that can be enlarged directly in the conversation.
+- **Manual model refresh**: Get the latest model list from Settings → Models & accounts without waiting for the automatic refresh interval. Pi 1.3.0 updates the model catalog and MCP integration.
 
 ## Improved
 
-- Turns without a checkpoint now explain why: they ran together with the previous turn, checkpoints were off, or the record was deleted.
-- New workbench tabs show a pending state while the session starts and display an error if it fails.
-- The skill menu can be used in more than one message box at a time without its options colliding.
-- New-chat options are validated in the main process, and invalid requests return a clear error.
-- Added Traditional Chinese, Japanese and Korean translations for the new settings.
+- Side chats remember their own model selection and keep that choice when you switch the main conversation or workspace. Memory is reloaded for each request.
+- Compact tool rows, diff colors and failure timing are easier to read.
+- A failed provider refresh preserves its cached models and reports the error; offline mode does not make network requests.
+- MCP compatibility and OAuth cancellation are maintained with the Pi 1.3.0 patch.
+- New controls and side chat messages are translated into Simplified Chinese, Traditional Chinese, English, Japanese and Korean.
 
 ## Upgrade
+
 
 Installed copies of Vela 1.0.6 and later receive this update automatically: Vela downloads it in the background and prompts you to restart. Versions 1.0.5 and earlier cannot update themselves, so install this version manually once: quit Vela completely, replace the application with this version, and reopen it.
 
@@ -25,23 +26,27 @@ Keep your existing `~/.vela` directory (or the directory specified by `VELA_USER
 
 The macOS build is not notarized and uses an ad-hoc signature. If macOS blocks first launch, use **Open Anyway** in System Settings → Privacy & Security. Because the code signature differs between versions, macOS may ask you to confirm privacy or keychain access again after an update.
 
+Known validation limits: the full Electron smoke run passed 10 of 14 suites. Browser tab closing and Settings scrollbar checks failed on the initial run and recheck; Task Recipes and PR Inbox also failed with the symptoms recorded for 1.1.9. The targeted MCP settings UI check reached its Chinese-language assertion and failed there. These failures remain unresolved.
+
 ## Download
 
 | File | Platform |
 | --- | --- |
-| `Vela-1.1.9-arm64.dmg` | macOS Apple Silicon installer |
-| `Vela-1.1.9-arm64.zip` | macOS Apple Silicon application bundle (`.app`); also the package used by in-app updates |
+| `Vela-1.1.10-arm64.dmg` | macOS Apple Silicon installer |
+| `Vela-1.1.10-arm64.zip` | macOS Apple Silicon application bundle (`.app`); also the package used by in-app updates |
 | `SHA256SUMS.txt` | SHA-256 checksums for both packages |
 | `SHA256SUMS.txt.sig` | Ed25519 signature of `SHA256SUMS.txt`, verified by the in-app updater |
 
-Package version: `1.1.9`. macOS bundle and download version: `1.1.9`.
+Package version: `1.1.10`. macOS bundle and download version: `1.1.10`.
 
 ## Validation
 
-- Type checks and all 1,702 unit tests ran (`pnpm test`): 188 workspace, 620 agent (1 skipped), and 894 desktop tests. The only failure on the first run was a one-second timeout in an unrelated `gh-run` test; it passed on the immediate full rerun.
+- Type checks and unit tests passed (`pnpm test`): 188 workspace, 628 agent and 906 desktop tests passed; one agent test was skipped.
 - All 29 in-app update tests passed (`pnpm --filter @vela/desktop test:updates`).
+- Targeted side chat, manual model refresh and MCP agent tests passed (12, 2 and 72 tests respectively).
 - The production build passed (`pnpm build`).
-- Twelve of fourteen real-Electron smoke suites passed. Task Recipes and PR Inbox failed with the same symptoms already documented in earlier releases; these existing failures remain unresolved. The Settings suite failed once on a scrollbar-fade timing check and passed on two reruns.
-- The packaged 1.1.9 app launched with isolated data and stayed running.
-- Both package SHA-256 checksums match `SHA256SUMS.txt`, and the signed checksum file was generated with the bundled-key check.
-- The ad-hoc signed application bundle has version `1.1.9` and identifier `com.vela.desktop`; the ZIP contains only `Vela.app`, and the DMG mounted successfully with a valid application signature.
+- The real-Electron side chat UI check passed, including independent model selection, streaming, memory status, stop, retry, tab lifecycle, narrow layout and five languages.
+- Chat actions and workbench chat UI checks passed.
+- Ten real-Electron smoke suites passed: Pi SDK, profile isolation, browser authentication, browser use, MCP, scheduled tasks, handoff, PR review response, notification sounds and thinking blur.
+- macOS arm64 packaging completed (`pnpm package:mac`); the application bundle reports version `1.1.10` and identifier `com.vela.desktop`.
+- The signed checksum file was generated for the DMG and ZIP with the bundled-public-key check (`pnpm sign:release`).

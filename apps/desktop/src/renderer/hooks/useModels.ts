@@ -6,6 +6,7 @@ import type {
   CustomModelInput,
   ModelAuthEvent,
   ModelCatalog,
+  ModelRefreshResult,
   ThinkingLevel,
 } from "@vela/shared";
 import { useCallback, useEffect, useState } from "react";
@@ -31,6 +32,7 @@ export function useModels(setAppState: (state: AppState) => void, conversationId
   const [catalogError, setCatalogError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [login, setLogin] = useState<LoginState>(idleLogin);
+  const [refreshing, setRefreshing] = useState(false);
 
   const reload = useCallback(async () => {
     const api = window.vela;
@@ -55,6 +57,25 @@ export function useModels(setAppState: (state: AppState) => void, conversationId
       setLogin((current) => applyLoginEvent(current, event));
     });
   }, [reload]);
+
+  /** 立即从 Pi 重新获取模型列表。出错时返回 null 并写入 actionError。 */
+  const refreshFromPi = useCallback(async (): Promise<ModelRefreshResult | null> => {
+    const api = window.vela;
+    if (!api) return null;
+    setRefreshing(true);
+    setActionError(null);
+    try {
+      const result = await api.refreshCatalog();
+      setCatalog(result.catalog);
+      setCatalogError(null);
+      return result;
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : "无法获取模型列表");
+      return null;
+    } finally {
+      setRefreshing(false);
+    }
+  }, []);
 
   const mutate = useCallback(async (task: () => Promise<AppState>, refreshCatalog: boolean) => {
     setActionError(null);
@@ -148,7 +169,9 @@ export function useModels(setAppState: (state: AppState) => void, conversationId
     catalogError,
     actionError,
     login,
+    refreshing,
     reload,
+    refreshFromPi,
     select,
     setThinking,
     add,

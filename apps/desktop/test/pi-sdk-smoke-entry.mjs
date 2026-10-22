@@ -22,7 +22,7 @@ try {
   for (const name of ['pi-ai', 'pi-agent-core', 'pi-coding-agent']) {
     const file = packageEntry('@earendil-works/' + name);
     const packageFile = join(file, '../../package.json');
-    assert.equal(JSON.parse(readFileSync(packageFile, 'utf8')).version, '1.0.0');
+    assert.equal(JSON.parse(readFileSync(packageFile, 'utf8')).version, '1.3.0');
     await import(pathToFileURL(file).href);
   }
   const sdkRequire = createRequire(packageEntry('@earendil-works/pi-coding-agent'));

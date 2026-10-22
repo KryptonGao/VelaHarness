@@ -1,5 +1,5 @@
 import type { ToolTrace } from "@vela/shared";
-import type { ToolDisplay } from "../hooks/usePreferences";
+import type { ToolDisplay, ToolFold } from "../hooks/usePreferences";
 import type { UiMessage } from "../hooks/useSession";
 
 /** 可折叠的工具种类,与 tool-compact 的 toolCompactKind 保持一致。 */
@@ -8,8 +8,9 @@ const foldableToolNames = new Set(["bash", "read", "edit", "write"]);
 /** 同一段里连续工具达到该数量才折叠成一组。 */
 export const RUN_MIN = 3;
 
-/** 卡片模式至少 RUN_MIN 个才折叠;紧凑模式超过 1 个就折叠成摘要。 */
-export function shouldFoldRun(length: number, display: ToolDisplay): boolean {
+/** 卡片模式至少 RUN_MIN 个才折叠;紧凑模式超过 1 个就折叠成摘要;fold 为 none 时从不折叠。 */
+export function shouldFoldRun(length: number, display: ToolDisplay, fold: ToolFold = "message"): boolean {
+  if (fold === "none") return false;
   return display === "compact" ? length > 1 : length >= RUN_MIN;
 }
 

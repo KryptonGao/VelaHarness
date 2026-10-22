@@ -1,9 +1,9 @@
 import type { ReactNode } from "react";
 import { tr } from "../locale";
-import { ChatIcon, DiffIcon, FolderIcon, GlobeIcon, TerminalIcon } from "./icons";
+import { ChatIcon, DiffIcon, FolderIcon, GlobeIcon, SparkIcon, TerminalIcon } from "./icons";
 
 /** 起始页入口;宿主据此打开对应标签页。 */
-export type StartTabAction = "chat" | "changes" | "terminal" | "files" | "browser";
+export type StartTabAction = "chat" | "side-chat" | "changes" | "terminal" | "files" | "browser";
 
 function StartOption({
   icon,
@@ -64,6 +64,12 @@ export function StartView({
             title={tr("聊天", "Chat")}
             description={tr("在面板中开启独立对话", "Start an independent chat in the panel")}
             onSelect={() => onAction("chat")}
+          />
+          <StartOption
+            icon={<SparkIcon size={16} />}
+            title={tr("侧边聊天", "Side chat")}
+            description={tr("只聊天、不使用工具，带入长期记忆", "Chat only, without tools, with your long-term memory")}
+            onSelect={() => onAction("side-chat")}
           />
           <StartOption
             icon={<GlobeIcon size={16} />}

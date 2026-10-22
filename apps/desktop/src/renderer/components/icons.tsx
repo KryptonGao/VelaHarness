@@ -424,6 +424,15 @@ export function SparkIcon({ size = 13 }: IconProps) {
   );
 }
 
+export function ThinkingIcon({ size = 13 }: IconProps) {
+  return (
+    <svg {...base(size)}>
+      <path d="M9 18h6M10 21.5h4" />
+      <path d="M12 2.5a6.5 6.5 0 0 0-3.7 11.85c.45.32.7.8.7 1.35V16h6v-.3c0-.55.25-1.03.7-1.35A6.5 6.5 0 0 0 12 2.5Z" />
+    </svg>
+  );
+}
+
 export function RefreshIcon({ size = 13 }: IconProps) {
   return (
     <svg {...base(size)}>

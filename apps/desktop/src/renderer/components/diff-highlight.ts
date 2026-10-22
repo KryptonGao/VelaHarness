@@ -34,9 +34,12 @@ export function useDiffHighlight(
     if (!lang) return;
     if (oldText.length + newText.length > maxHighlightChars) return;
     let active = true;
+    const wrap = markupFragmentWrapper(lang, `${oldText}\n${newText}`);
+    const highlightSide = (text: string): Promise<TokenLines | null> =>
+      wrap ? highlightSnippet(lang, wrap + text).then((lines) => lines?.slice(1) ?? null) : highlightSnippet(lang, text);
     void Promise.all([
-      oldLines.length > 0 ? highlightSnippet(lang, oldText) : Promise.resolve(null),
-      newLines.length > 0 ? highlightSnippet(lang, newText) : Promise.resolve(null),
+      oldLines.length > 0 ? highlightSide(oldText) : Promise.resolve(null),
+      newLines.length > 0 ? highlightSide(newText) : Promise.resolve(null),
     ]).then(([old, next]) => {
       if (!active) return;
       const alignedOld = alignTokens(old, oldLines.length);
@@ -49,6 +52,23 @@ export function useDiffHighlight(
   }, [path, oldText, newText, oldLines.length, newLines.length]);
 
   return highlight;
+}
+
+const markupTag = /<\/?[a-zA-Z][\w-]*(?:\s[^<>]*)?\/?>|<!--/;
+const cssLike = /^\s*[\w-]+\s*:[^;{}]*;\s*$/m;
+const cssSelector = /^\s*[^\s{][^{]*\{\s*$/m;
+const jsHint = /[=(]|\b(?:const|let|var|function|return|if|for)\b/;
+
+/**
+ * HTML/Vue/Svelte 的差异常常只是 `<script>` 或 `<style>` 里的几行,片段本身没有标签,
+ * 直接按标记语言分词会整段当成普通文本。无标签时补一个开标签头让内嵌语言生效,
+ * 返回要加在每侧文本前面的头(带换行);调用方分词后丢掉第一行。
+ */
+function markupFragmentWrapper(lang: string, text: string): string | null {
+  if (lang !== "html" && lang !== "vue" && lang !== "svelte") return null;
+  if (markupTag.test(text)) return null;
+  const css = cssSelector.test(text) && cssLike.test(text) && !jsHint.test(text.replace(/[\w-]+\s*:\s*[^;]*;/g, ""));
+  return css ? "<style>\n" : "<script>\n";
 }
 
 /** shiki 对结尾换行可能多算一个空行;行数不匹配时退回纯文本。 */

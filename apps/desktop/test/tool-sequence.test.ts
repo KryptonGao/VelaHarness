@@ -28,6 +28,12 @@ describe("shouldFoldRun", () => {
     assert.equal(shouldFoldRun(1, "compact"), false);
     assert.equal(shouldFoldRun(2, "compact"), true);
   });
+
+  it("fold 为 none 时无论多少个都不折叠", () => {
+    assert.equal(shouldFoldRun(3, "card", "none"), false);
+    assert.equal(shouldFoldRun(10, "compact", "none"), false);
+    assert.equal(shouldFoldRun(2, "compact", "position"), true);
+  });
 });
 
 describe("buildTurnItems", () => {

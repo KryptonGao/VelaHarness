@@ -7,10 +7,12 @@ interface SettingsBlockProps {
   hint?: string;
   /** 给出后渲染成可折叠区块;搜索跳转会自动展开祖先 <details>。 */
   collapsible?: { defaultOpen?: boolean };
+  /** 与文字同行、排在右侧的装饰内容(如选项预览动画);窄屏时落到文字下方。 */
+  aside?: ReactNode;
   children: ReactNode;
 }
 
-export function SettingsBlock({ id, title, hint, collapsible, children }: SettingsBlockProps) {
+export function SettingsBlock({ id, title, hint, collapsible, aside, children }: SettingsBlockProps) {
   if (collapsible) {
     return (
       <details className="settings-block settings-collapsible" data-setting-id={id} open={collapsible.defaultOpen}>
@@ -20,6 +22,18 @@ export function SettingsBlock({ id, title, hint, collapsible, children }: Settin
         {hint ? <p className="settings-hint">{hint}</p> : null}
         {children}
       </details>
+    );
+  }
+  if (aside) {
+    return (
+      <section className="settings-block has-aside" data-setting-id={id}>
+        <div className="settings-block-main">
+          <h3>{title}</h3>
+          {hint ? <p className="settings-hint">{hint}</p> : null}
+          {children}
+        </div>
+        <div className="settings-block-aside">{aside}</div>
+      </section>
     );
   }
   return (
@@ -45,14 +59,23 @@ export function Segmented<T extends string>({
   value,
   options,
   onChange,
+  onPreview,
 }: {
   label: string;
   value: T;
   options: { id: T; label: string }[];
   onChange: (value: T) => void;
+  /** 悬停或聚焦某个选项时回调该选项,离开时回调 null,供调用方展示临时预览。 */
+  onPreview?: (value: T | null) => void;
 }) {
   return (
-    <div className="settings-segment" role="radiogroup" aria-label={label}>
+    <div
+      className="settings-segment"
+      role="radiogroup"
+      aria-label={label}
+      onPointerLeave={onPreview ? () => onPreview(null) : undefined}
+      onBlur={onPreview ? () => onPreview(null) : undefined}
+    >
       {options.map((option) => (
         <button
           key={option.id}
@@ -61,6 +84,8 @@ export function Segmented<T extends string>({
           aria-checked={option.id === value}
           className={`settings-segment-item${option.id === value ? " active" : ""}`}
           onClick={() => onChange(option.id)}
+          onPointerEnter={onPreview ? () => onPreview(option.id) : undefined}
+          onFocus={onPreview ? () => onPreview(option.id) : undefined}
         >
           {option.label}
         </button>

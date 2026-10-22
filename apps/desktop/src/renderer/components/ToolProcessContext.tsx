@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, useSyncExternalStore, type ReactNode, type SetStateAction } from "react";
 import type { ToolTrace } from "@vela/shared";
 import { useTrace } from "../hooks/useTrace";
-import { trf } from "../locale";
+import { tr, trf } from "../locale";
 import { formatDuration, indexToolDurations, readToolDuration, readTurnDuration, type ToolDurationSource } from "./tool-duration";
 import type { ToolFoldStore } from "./tool-fold-state";
 
@@ -54,7 +54,7 @@ export function ToolDurationLabel({ tool }: { tool: ToolTrace }) {
   const context = useContext(ToolProcessContext);
   if (!context) return null;
   const duration = tool.status === "running" ? null : readToolDuration(context.timings.get(tool.id) ?? tool);
-  return <DurationLabel duration={duration} />;
+  return <DurationLabel duration={duration} failed={tool.status === "error"} />;
 }
 
 /** Whether the optional duration labels and fold memory are active for this subtree. */
@@ -62,9 +62,13 @@ export function useToolProcessDetails(): boolean {
   return useContext(ToolProcessContext) !== null;
 }
 
-export function DurationLabel({ duration }: { duration: number | null }) {
+/** 失败时「· 耗时」整段转为淡红色,字体和大小不变;仅计时开启(有 ToolProcessContext)时生效。 */
+export function DurationLabel({ duration, failed = false }: { duration: number | null; failed?: boolean }) {
   const label = duration === null ? null : formatDuration(duration);
-  return <span className="tool-duration" aria-hidden={label === null} aria-label={label ? trf("耗时 {0}", "Duration {0}", label) : undefined}>
-    {label ? `· ${label}` : null}
+  const visible = label !== null || failed;
+  const ariaLabel = [failed ? tr("失败", "Failed") : null, label ? trf("耗时 {0}", "Duration {0}", label) : null].filter(Boolean).join(" · ");
+  return <span className={`tool-duration${failed ? " is-failed" : ""}`} aria-hidden={!visible} aria-label={ariaLabel || undefined}>
+    {visible ? "· " : null}
+    {label}
   </span>;
 }

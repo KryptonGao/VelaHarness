@@ -23,7 +23,7 @@ function packageEntry(name, relative = 'dist/index.js', from = require) {
   if (packaged) assert.ok(packageDir.startsWith(root + '/'), 'dependency escaped app.asar: ' + name);
   const file = join(packageDir, relative);
   assert.ok(existsSync(file), 'missing package entry: ' + file);
-  assert.equal(JSON.parse(readFileSync(join(packageDir, 'package.json'), 'utf8')).version, '1.0.0');
+  assert.equal(JSON.parse(readFileSync(join(packageDir, 'package.json'), 'utf8')).version, '1.3.0');
   return file;
 }
 async function eventually(read, accept, description) {
@@ -132,8 +132,7 @@ try {
   assert.equal(httpCall.isError, false);
   assert.match(JSON.stringify(httpCall.result), /HTTP fixture success/);
   for (const server of ['stdio_direct', 'stdio_deferred', 'http_oauth']) {
-    assert.equal(snapshot().find(item => item.name === server).resources, 1);
-    assert.equal(snapshot().find(item => item.name === server).resourceTemplates, 1);
+    assert.equal(snapshot().find(item => item.name === server).hasResources, true);
     const resources = await call('list_mcp_resources', { server });
     assert.equal(resources.isError, false); assert.match(JSON.stringify(resources.result), /fixture:\/\/data/);
     const read = await call('read_mcp_resource', { server, uri: 'fixture://data' });

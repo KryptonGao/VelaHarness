@@ -23,6 +23,7 @@ const suites = {
     { name: "memory-settings-ui", runner: "node" },
     { name: "chat-actions-ui", runner: "node" },
     { name: "workbench-chat-ui", runner: "node" },
+    { name: "side-chat-ui", runner: "node" },
     { name: "acceptance-ui", runner: "node" },
     { name: "race-ui", runner: "node" },
     { name: "handoff-pack-ui", runner: "node" },

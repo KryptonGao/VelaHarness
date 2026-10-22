@@ -59,8 +59,6 @@ export interface McpServerSnapshot {
   connectionStatus: McpConnectionStatus;
   authStatus: McpAuthStatus;
   tools: McpToolSnapshot[];
-  resourceCount?: number;
-  resourceTemplateCount?: number;
   error?: string;
 }
 

@@ -42,6 +42,7 @@ export { PluginMCPManager } from "./mcp/manager";
 export { MemoryCredentialStore, type CredentialStore } from "./mcp/credentials";
 export { parseThinkingSummaryInput } from "./thinking-summary";
 export { parseInputPredictionInput } from "./input-prediction";
+export { parseSideChatRequest, SideChatService, sideChatHistory, sideChatSystemPrompt } from "./side-chat";
 export {
   HandoffPackGenerator,
   buildHandoffFacts,

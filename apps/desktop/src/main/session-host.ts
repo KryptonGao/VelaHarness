@@ -200,6 +200,14 @@ export class SessionHost {
     ipcMain.handle(IpcChannel.sessionPredictInput, (_event, raw: unknown) => {
       return this.runtime.predictInput(parseInputPredictionInput(raw));
     });
+    ipcMain.handle(IpcChannel.sideChatSend, (event, raw: unknown) => {
+      const sender = event.sender;
+      // 增量只发回发起请求的窗口；窗口关闭后停止推送，请求自然结束。
+      return this.runtime.sideChat(raw, (update) => {
+        if (!sender.isDestroyed()) sender.send(IpcChannel.sideChatEvent, update);
+      });
+    });
+    ipcMain.handle(IpcChannel.sideChatCancel, (_event, requestId: unknown) => this.runtime.cancelSideChat(requestId));
     ipcMain.handle(IpcChannel.sessionHandoffDraft, (_event, raw: unknown) => this.runtime.generateHandoffPack(raw));
     ipcMain.handle(IpcChannel.sessionHandoffCancel, (_event, requestId: unknown) => this.runtime.cancelHandoff(requestId));
     ipcMain.handle(IpcChannel.sessionAgentControl, (_event, rawConversation: unknown, rawAgent: unknown, rawAction: unknown) => {
@@ -219,6 +227,7 @@ export class SessionHost {
       );
     });
     ipcMain.handle(IpcChannel.getCatalog, () => this.runtime.getCatalog());
+    ipcMain.handle(IpcChannel.refreshCatalog, () => this.runtime.refreshCatalog());
     ipcMain.handle(IpcChannel.selectModel, async (_event, provider: unknown, id: unknown, rawConversation: unknown) => {
       const conversationId = parseOptionalConversationId(rawConversation);
       await this.runtime.selectModel(parseId(provider, "提供方"), parseId(id, "模型"), conversationId);
