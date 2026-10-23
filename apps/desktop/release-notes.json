@@ -1,134 +1,139 @@
 {
-  "version": "1.1.11",
+  "version": "1.1.12",
   "locales": {
     "en": {
-      "summary": "Vela 1.1.11 lets you place Skills anywhere in a message, adds three composer layouts, and refreshes the file preview and file tree.",
+      "summary": "Vela 1.1.12 lets you cap how much context a conversation can use, adds a Context tab, and gives new chats a calmer home screen.",
       "highlights": [
         {
-          "title": "Skills anywhere in your message",
-          "body": "Type / to insert a Skill chip at the cursor, even in the middle of a sentence. Chips stay in place in the sent message, and pasting into the composer now keeps plain text only."
+          "title": "Context length limit",
+          "body": "Set a default cap on conversation context in Settings → Defaults & permissions (minimum 32K). Once it is reached, earlier content is compacted sooner. Each conversation can override the cap on its own."
         },
         {
-          "title": "Three composer layouts",
-          "body": "Choose Classic, Calm or Capsule in Settings → Interface. Calm moves the stats into a footer band; Capsule shrinks the input into one pill with mode, permissions and stats in a tray below."
+          "title": "New Context tab",
+          "body": "A new tab in the top bar breaks down what fills the context — system prompt, tools, rules, Skills and conversation — and shows the model window, your limit and where auto-compaction starts."
         },
         {
-          "title": "Clearer file preview",
-          "body": "File paths appear as breadcrumbs with file-type icons, the toolbar has new icons and dividers, and the file tree gains folder icons and indent guides."
+          "title": "A calmer new-chat home",
+          "body": "An empty chat now centers a greeting, the input and a few preset prompts. Pick the project with the workspace chip above the input."
         },
         {
-          "title": "Reasoning level at a glance",
-          "body": "In the Calm and Capsule layouts, the reasoning-level control shows a small signal or dial that reflects the current level."
+          "title": "Replies in your language",
+          "body": "The agent now writes its progress notes between tool calls in your language too, instead of drifting into English."
         }
       ],
       "improvements": [
-        "Tool rows now mark only running and failed calls; completed calls no longer show a checkmark.",
-        "The file search field in the explorer has a search icon.",
-        "New composer layout options are translated into all five interface languages."
+        "Subagent results and step lists are no longer cut short, so long findings reach the main agent in full.",
+        "The Capsule composer layout now places the model picker in its tray.",
+        "Tabs that need messages, such as Trace, Usage and Context, are greyed out until the first message is sent.",
+        "The agent treats instructions found in web pages, files and tool output as data rather than as commands from you."
       ]
     },
     "zh-CN": {
-      "summary": "Vela 1.1.11 支持把 Skill 放在消息的任意位置，新增三种输入框布局，并更新了文件预览与文件树。",
+      "summary": "Vela 1.1.12 可以限制单个对话的上下文长度，新增「上下文」标签页，并为新对话换上更从容的首页。",
       "highlights": [
         {
-          "title": "Skill 可放在消息任意位置",
-          "body": "输入 / 即可在光标处插入 Skill 芯片，句子中间也可以。发送后芯片保持在原位；向输入框粘贴时只保留纯文本。"
+          "title": "对话上下文长度上限",
+          "body": "在设置 → 默认与权限中设定默认上限（最小 32K），达到后会提前自动压缩较早的内容。每个对话也可以单独设置自己的上限。"
         },
         {
-          "title": "三种输入框布局",
-          "body": "在设置 → 界面中选择「经典」「静谧」或「胶囊」。「静谧」把统计收成底部脚注；「胶囊」把输入收成一条，模式、权限和统计放在下方托盘。"
+          "title": "新增「上下文」标签页",
+          "body": "顶栏新标签页按系统提示词、工具定义、规则、Skills 和对话拆解上下文占用，并显示模型窗口、你设的上限以及开始自动压缩的位置。"
         },
         {
-          "title": "更清晰的文件预览",
-          "body": "文件路径以带文件类型图标的面包屑显示，工具栏换用新图标并加入分隔，文件树增加文件夹图标与缩进参考线。"
+          "title": "更从容的新对话首页",
+          "body": "空对话现在把问候语、输入框和几条预设提示居中摆放；项目通过输入框上方的工作区晶片选择。"
         },
         {
-          "title": "思考强度一目了然",
-          "body": "在「静谧」与「胶囊」布局中，思考强度按钮会用小信号格或弧形拨盘反映当前档位。"
+          "title": "过程说明也用你的语言",
+          "body": "Agent 在工具调用之间的进度说明现在也会使用你的语言，不再悄悄切回英文。"
         }
       ],
       "improvements": [
-        "工具行只标出运行中和失败的调用，完成的调用不再显示对勾。",
-        "文件树的搜索框增加了搜索图标。",
-        "输入框布局的新选项已补齐五种界面语言。"
+        "子代理的结论与步骤列表不再被截断，较长的发现也能完整交回主代理。",
+        "「胶囊」布局的下方托盘现在包含模型选择。",
+        "轨迹、使用统计、上下文这类依赖消息的标签页，在发送第一条消息前会置灰。",
+        "Agent 会把网页、文件和工具输出里的指令当作数据，而不是你的命令。"
       ]
     },
     "zh-TW": {
-      "summary": "Vela 1.1.11 支援把 Skill 放在訊息的任意位置，新增三種輸入框版面，並更新了檔案預覽與檔案樹。",
+      "summary": "Vela 1.1.12 可以限制單一對話的上下文長度，新增「上下文」分頁，並為新對話換上更從容的首頁。",
       "highlights": [
         {
-          "title": "Skill 可放在訊息任意位置",
-          "body": "輸入 / 即可在游標處插入 Skill 晶片，句子中間也可以。送出後晶片維持在原位；貼上到輸入框時只保留純文字。"
+          "title": "對話上下文長度上限",
+          "body": "在設定 → 預設與權限中設定預設上限（最小 32K），達到後會提前自動壓縮較早的內容。每個對話也可以單獨設定自己的上限。"
         },
         {
-          "title": "三種輸入框版面",
-          "body": "在設定 → 介面選擇「經典」「靜謐」或「膠囊」。「靜謐」把統計收成底部註腳；「膠囊」把輸入收成一條，模式、權限和統計放在下方托盤。"
+          "title": "新增「上下文」分頁",
+          "body": "頂列新分頁依系統提示詞、工具定義、規則、Skills 與對話拆解上下文佔用，並顯示模型視窗、你設定的上限與開始自動壓縮的位置。"
         },
         {
-          "title": "更清楚的檔案預覽",
-          "body": "檔案路徑以帶檔案類型圖示的導覽列顯示，工具列換用新圖示並加入分隔線，檔案樹增加資料夾圖示與縮排參考線。"
+          "title": "更從容的新對話首頁",
+          "body": "空對話現在把問候語、輸入框與幾則預設提示置中擺放；專案透過輸入框上方的工作區晶片選擇。"
         },
         {
-          "title": "思考強度一目了然",
-          "body": "在「靜謐」與「膠囊」版面中，思考強度按鈕會用小訊號格或弧形撥盤反映目前檔位。"
+          "title": "過程說明也用你的語言",
+          "body": "Agent 在工具呼叫之間的進度說明現在也會使用你的語言，不再悄悄切回英文。"
         }
       ],
       "improvements": [
-        "工具列只標出執行中與失敗的呼叫，已完成的呼叫不再顯示勾號。",
-        "檔案樹的搜尋框增加了搜尋圖示。",
-        "輸入框版面的新選項已補齊五種介面語言。"
+        "子代理的結論與步驟列表不再被截斷，較長的發現也能完整交回主代理。",
+        "「膠囊」版面的下方托盤現在包含模型選擇。",
+        "軌跡、使用統計、上下文這類依賴訊息的分頁，在送出第一則訊息前會呈灰色。",
+        "Agent 會把網頁、檔案與工具輸出裡的指令當作資料，而不是你的命令。"
       ]
     },
     "ja": {
-      "summary": "Vela 1.1.11 では、メッセージ内の好きな位置にスキルを置けるようになり、入力欄のレイアウトを 3 種類追加し、ファイルプレビューとファイルツリーを刷新しました。",
+      "summary": "Vela 1.1.12 では、会話ごとのコンテキスト長に上限を設けられるようになり、「コンテキスト」タブを追加し、新しいチャットのホーム画面を落ち着いたデザインにしました。",
       "highlights": [
         {
-          "title": "メッセージのどこにでもスキルを",
-          "body": "/ を入力するとカーソル位置にスキルのチップを挿入できます。文の途中でも構いません。送信後もチップは同じ位置に残り、入力欄へのペーストはプレーンテキストのみになります。"
+          "title": "コンテキスト長の上限",
+          "body": "設定 → 既定値と権限で、会話のコンテキストの既定上限（最小 32K）を設定できます。上限に達すると、古い内容が早めに自動圧縮されます。会話ごとに個別の上限も設定できます。"
         },
         {
-          "title": "入力欄の 3 つのレイアウト",
-          "body": "設定 → インターフェースで「クラシック」「穏やか」「カプセル」を選べます。「穏やか」は統計を下部のフッターに移し、「カプセル」は入力を 1 本にまとめてモード・権限・統計を下のトレイに置きます。"
+          "title": "新しい「コンテキスト」タブ",
+          "body": "トップバーの新しいタブで、システムプロンプト、ツール、ルール、スキル、会話ごとのコンテキスト使用量を確認でき、モデルのウィンドウ、設定した上限、自動圧縮が始まる位置も表示されます。"
         },
         {
-          "title": "見やすいファイルプレビュー",
-          "body": "ファイルパスはファイル種別アイコン付きのパンくずリストで表示され、ツールバーのアイコンと区切りも新しくなり、ファイルツリーにはフォルダーアイコンとインデントガイドが付きました。"
+          "title": "落ち着いた新規チャットのホーム",
+          "body": "空のチャットでは、あいさつ、入力欄、いくつかのプリセットプロンプトを中央に配置します。プロジェクトは入力欄の上のワークスペースチップで選びます。"
         },
         {
-          "title": "思考レベルがひと目で分かる",
-          "body": "「穏やか」と「カプセル」では、思考レベルのボタンに現在のレベルを示す小さなシグナルまたはダイヤルが表示されます。"
+          "title": "進捗の説明もあなたの言語で",
+          "body": "ツール呼び出しの合間の進捗メモも、英語に切り替わることなくあなたの言語で書かれるようになりました。"
         }
       ],
       "improvements": [
-        "ツール行には実行中と失敗した呼び出しだけを表示し、完了した呼び出しのチェックマークは表示しなくなりました。",
-        "ファイルツリーの検索欄に検索アイコンを追加しました。",
-        "入力欄レイアウトの新しい項目を全 5 言語に翻訳しました。"
+        "サブエージェントの結論とステップ一覧が途中で切られなくなり、長い調査結果もメインのエージェントにそのまま届きます。",
+        "「カプセル」レイアウトの下のトレイにモデル選択が入りました。",
+        "トレース、使用統計、コンテキストなどメッセージが必要なタブは、最初のメッセージを送るまでグレー表示になります。",
+        "エージェントは、Web ページ・ファイル・ツール出力に含まれる指示を、あなたの命令ではなくデータとして扱います。"
       ]
     },
     "ko": {
-      "summary": "Vela 1.1.11은 메시지 어디에나 스킬을 넣을 수 있게 하고, 입력창 레이아웃 3종을 추가했으며, 파일 미리보기와 파일 트리를 새롭게 다듬었습니다.",
+      "summary": "Vela 1.1.12는 대화별 컨텍스트 길이에 상한을 둘 수 있게 하고, '컨텍스트' 탭을 추가했으며, 새 채팅의 홈 화면을 한층 차분하게 다듬었습니다.",
       "highlights": [
         {
-          "title": "메시지 어디에나 스킬 삽입",
-          "body": "/ 를 입력하면 커서 위치에 스킬 칩을 넣을 수 있으며, 문장 중간에도 가능합니다. 보낸 뒤에도 칩은 제자리에 남고, 입력창에 붙여넣으면 일반 텍스트만 유지됩니다."
+          "title": "컨텍스트 길이 상한",
+          "body": "설정 → 기본값 및 권한에서 대화 컨텍스트의 기본 상한(최소 32K)을 정할 수 있습니다. 상한에 도달하면 이전 내용이 더 일찍 자동 압축됩니다. 대화마다 따로 상한을 정할 수도 있습니다."
         },
         {
-          "title": "입력창 레이아웃 3종",
-          "body": "설정 → 인터페이스에서 '클래식', '차분함', '캡슐' 중에서 고를 수 있습니다. '차분함'은 통계를 하단 푸터로 옮기고, '캡슐'은 입력을 한 줄로 줄여 모드, 권한, 통계를 아래 트레이에 둡니다."
+          "title": "새 '컨텍스트' 탭",
+          "body": "상단 바의 새 탭에서 시스템 프롬프트, 도구, 규칙, 스킬, 대화별 컨텍스트 사용량을 확인하고, 모델 창 크기와 설정한 상한, 자동 압축이 시작되는 지점도 볼 수 있습니다."
         },
         {
-          "title": "더 명확한 파일 미리보기",
-          "body": "파일 경로가 파일 형식 아이콘이 있는 이동 경로로 표시되고, 도구 모음에는 새 아이콘과 구분선이 생기며, 파일 트리에는 폴더 아이콘과 들여쓰기 안내선이 추가됩니다."
+          "title": "차분해진 새 채팅 홈",
+          "body": "빈 채팅에서는 인사말, 입력창, 몇 가지 프리셋 프롬프트를 가운데에 배치합니다. 프로젝트는 입력창 위의 작업 공간 칩으로 고릅니다."
         },
         {
-          "title": "추론 수준을 한눈에",
-          "body": "'차분함'과 '캡슐' 레이아웃에서는 추론 수준 버튼에 현재 수준을 보여 주는 작은 신호 막대 또는 다이얼이 표시됩니다."
+          "title": "진행 설명도 내 언어로",
+          "body": "도구 호출 사이의 진행 메모도 이제 영어로 바뀌지 않고 사용자의 언어로 작성됩니다."
         }
       ],
       "improvements": [
-        "도구 행에는 실행 중이거나 실패한 호출만 표시하며, 완료된 호출에는 더 이상 체크 표시를 붙이지 않습니다.",
-        "파일 트리의 검색창에 검색 아이콘을 추가했습니다.",
-        "입력창 레이아웃의 새 옵션을 다섯 가지 인터페이스 언어로 번역했습니다."
+        "하위 에이전트의 결론과 단계 목록이 더 이상 잘리지 않아, 긴 조사 결과도 메인 에이전트에 그대로 전달됩니다.",
+        "'캡슐' 레이아웃의 아래 트레이에 모델 선택이 들어갔습니다.",
+        "추적, 사용 통계, 컨텍스트처럼 메시지가 필요한 탭은 첫 메시지를 보내기 전까지 회색으로 표시됩니다.",
+        "에이전트는 웹 페이지, 파일, 도구 출력 속의 지시를 사용자의 명령이 아니라 데이터로 취급합니다."
       ]
     }
   }

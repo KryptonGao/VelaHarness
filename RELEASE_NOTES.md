@@ -1,18 +1,21 @@
-# Vela 1.1.11
+# Vela 1.1.12
 
-Vela 1.1.11 lets you place Skills anywhere in a message, adds three composer layouts, and refreshes the file preview and file tree.
+Vela 1.1.12 lets you cap how much context a conversation can use, adds a Context tab to the top bar, and gives new chats a calmer home screen.
 
 ## New
 
-- **Skills anywhere in your message**: Type `/` to insert a Skill chip at the cursor, including in the middle of a sentence. Chips keep their position in the sent message and when a conversation is reopened. Pasting into the composer now keeps plain text only.
-- **Composer layouts**: Choose Classic, Calm or Capsule in Settings → Interface. Calm keeps the existing structure and moves the stats into a footer band; Capsule shrinks the input into one pill, with mode, permissions and stats in a tray below. The reasoning-level control shows a small signal or dial in Calm and Capsule.
-- **Refreshed file preview**: File paths appear as breadcrumbs with file-type icons, the toolbar uses new icons and dividers, and the file tree gains folder icons, indent guides and a search icon in its filter field.
+- **Context length limit**: Set a default cap on conversation context in Settings → Defaults & permissions (minimum 32K, empty means no limit). Once the cap is reached, earlier content is compacted sooner. The cap never exceeds the model's own window, and each conversation can override it from its own Context tab.
+- **Context tab**: A new tab in the top bar breaks down what fills the context — system prompt, tool definitions, rules, Skills and the conversation itself — and shows the model window, your limit and the point where auto-compaction starts.
+- **New-chat home**: An empty chat now centers a greeting, the input and a few preset prompts, with a line-art Vela mark behind them. Pick the project with the workspace chip above the input.
+- **Replies in your language**: The agent now writes its progress notes before and between tool calls in the language you use (or your interface language when unclear) instead of drifting into English.
 
 ## Improved
 
-- Tool rows mark only running and failed calls; completed calls no longer show a checkmark.
-- The file tree toggle moves to the right end of the preview toolbar.
-- New composer layout options are translated into Simplified Chinese, Traditional Chinese, English, Japanese and Korean.
+- Subagent results and step lists are no longer truncated, so long findings reach the main agent in full.
+- The Capsule composer layout now places the model picker in its tray.
+- Tabs that need messages (Trace, Usage and Context) are greyed out until the first message is sent.
+- The agent treats instructions found in web pages, files, MCP output and tool results as data rather than as commands from you.
+- The context limit settings are translated into Simplified Chinese, Traditional Chinese, English, Japanese and Korean.
 
 ## Upgrade
 
@@ -22,25 +25,20 @@ Keep your existing `~/.vela` directory (or the directory specified by `VELA_USER
 
 The macOS build is not notarized and uses an ad-hoc signature. If macOS blocks first launch, use **Open Anyway** in System Settings → Privacy & Security. Because the code signature differs between versions, macOS may ask you to confirm privacy or keychain access again after an update.
 
-Known validation limits: the full Electron smoke run passed 12 of 14 suites. Task Recipes and PR Inbox failed with the same symptoms already recorded for earlier releases; these failures remain unresolved.
-
 ## Download
 
 | File | Platform |
 | --- | --- |
-| `Vela-1.1.11-arm64.dmg` | macOS Apple Silicon installer |
-| `Vela-1.1.11-arm64.zip` | macOS Apple Silicon application bundle (`.app`); also the package used by in-app updates |
+| `Vela-1.1.12-arm64.dmg` | macOS Apple Silicon installer |
+| `Vela-1.1.12-arm64.zip` | macOS Apple Silicon application bundle (`.app`); also the package used by in-app updates |
 | `SHA256SUMS.txt` | SHA-256 checksums for both packages |
 | `SHA256SUMS.txt.sig` | Ed25519 signature of `SHA256SUMS.txt`, verified by the in-app updater |
 
-Package version: `1.1.11`. macOS bundle and download version: `1.1.11`.
+Package version: `1.1.12`. macOS bundle and download version: `1.1.12`.
 
 ## Validation
 
-- Type checks and unit tests passed (`pnpm test`): 188 workspace, 628 agent and 907 desktop tests passed; one agent test was skipped. One workspace `gh-run` test failed on the first run under parallel load, passed on its own, and the full run was green on rerun.
+- Type checks and unit tests passed (`pnpm test`): 188 workspace, 639 agent and 908 desktop tests passed; one agent test was skipped.
 - All 29 in-app update tests passed (`pnpm --filter @vela/desktop test:updates`).
 - The production build passed (`pnpm build`).
-- Twelve of fourteen real-Electron smoke suites passed. Task Recipes and PR Inbox failed with the same symptoms already documented in earlier releases.
-- The real-Electron workbench chat UI check passed.
-- macOS arm64 packaging completed (`pnpm package:mac`); the application bundle reports version `1.1.11` and identifier `com.vela.desktop`, the ZIP contains a single `Vela.app`, and the DMG checksum verifies.
-- The signed checksum file was generated for the DMG and ZIP with the bundled-public-key check (`pnpm sign:release`).
+- Twelve of fourteen real-Electron smoke suites passed. Task Recipes and PR Inbox failed with the same symptoms already documented in earlier releases; these failures remain unresolved.

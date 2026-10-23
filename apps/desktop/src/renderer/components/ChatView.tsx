@@ -8,7 +8,7 @@ import { isAgentBusy, type AppState, type AskUserQuestionRequest, type Interacti
 import { Fragment, memo, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useAgentWorkspace } from "./AgentPanel";
 import { modKeyLabel } from "../platform";
-import { ArrowDownIcon, ArrowLeftIcon, BranchIcon, CheckIcon, CopyIcon, FolderIcon, HistoryIcon, PlusIcon, StackIcon } from "./icons";
+import { ArrowDownIcon, ArrowLeftIcon, BranchIcon, CheckIcon, CopyIcon, HistoryIcon, PlusIcon, StackIcon } from "./icons";
 import { trackEnteredMessages, type EnterTrack } from "./message-motion";
 import type { useModels } from "../hooks/useModels";
 import type { ProjectApi } from "../hooks/useProject";
@@ -17,6 +17,8 @@ import type { UiMessage } from "../hooks/useSession";
 import { RepoCard } from "./RepoCard";
 import { Composer } from "./Composer";
 import { TaskBudgetBanner } from "./TaskBudgetBanner";
+import { ContextTab } from "./ContextTab";
+import { NewChatGreeting, NewChatPrompts, VelaMark } from "./NewChatHome";
 import { TaskBudgetTab } from "./TaskBudgetTab";
 import { useContentArrival } from "./BatchMotion";
 import { Markdown } from "./Markdown";
@@ -46,7 +48,7 @@ import {
 import { acceptanceCounts, outcomeByFinalMessage, type AcceptanceRequest } from "./acceptance";
 import { summarizeTurnChanges, type TurnChanges, type TurnReviewRequest } from "./turn-changes";
 import { chatLaneDefaultMaxWidth, planChatLane } from "../chat-lane";
-import { ConversationViewTabs, type ConversationViewKey } from "./ConversationViewTabs";
+import { ConversationViewTabs, isEmptyConversationView, type ConversationViewKey } from "./ConversationViewTabs";
 import { RecipeChatCard } from "./RecipeChatContext";
 import { ChatActionsMenu } from "./ChatActionsMenu";
 import { UserMessageFrame } from "./UserMessageFrame";
@@ -248,7 +250,8 @@ export function ChatView({
   const hasWorkspace = state?.conversations?.find(conversation => conversation.id === state.activeConversationId)?.hasWorkspace
     ?? Boolean(project.workspace?.current);
   const savedView = views[viewKey] ?? "chat";
-  const view = savedView === "versionControl" && !hasWorkspace ? "chat" : savedView;
+  const emptyConversation = messages.length === 0;
+  const view = (savedView === "versionControl" && !hasWorkspace) || isEmptyConversationView(savedView, emptyConversation) ? "chat" : savedView;
   const setView = (next: ConversationViewKey) => {
     if (next === "versionControl" && !hasWorkspace) return;
     if (next === "versionControl") setVcMounted(true);
@@ -264,6 +267,10 @@ export function ChatView({
     ? [...messages].reverse().find((message) => message.role === "assistant")?.id
     : undefined;
   const title = session?.title || tr("新对话", "New chat");
+  // 空对话用「首页」布局:问候、输入框、预设整体居中,而不是输入框贴底。
+  const homeLayout = !embedded && messages.length === 0;
+  const hasProjectWorkspace = Boolean(project.workspace?.current);
+  const modelMissing = session?.status === "ready" && !session.modelReady;
   const scrollerRef = useRef<HTMLDivElement>(null);
   const dockRef = useRef<HTMLDivElement>(null);
   const followRef = useRef<FollowState>({
@@ -647,9 +654,10 @@ export function ChatView({
         </div>
       </header>
 
-      <ConversationViewTabs view={view} showVersionControl={hasWorkspace && !embedded} onChange={setView} />
+      <ConversationViewTabs view={view} showVersionControl={hasWorkspace && !embedded} emptyConversation={emptyConversation} onChange={setView} />
       {view === "trace" ? <TraceView key={viewKey} state={state} onConversation={() => setView("chat")} onAbort={onAbort} pendingInteraction={pendingInteraction} /> : null}
       {view === "usage" ? <UsageView key={viewKey} conversationId={state?.activeConversationId ?? null} providers={models.catalog?.providers ?? []} /> : null}
+      {view === "context" ? <ContextTab key={viewKey} conversationId={state?.activeConversationId ?? null} context={state?.context} /> : null}
       {view === "budget" ? <TaskBudgetTab key={viewKey} conversationId={state?.activeConversationId ?? null} budget={session?.taskBudget} /> : null}
       {hasWorkspace && vcMounted ? <VersionControlView
         project={project}
@@ -660,7 +668,8 @@ export function ChatView({
         onAbort={onAbort}
         onOpenFile={(absolutePath) => void project.openFile(absolutePath)}
       /> : null}
-      <div className="chat-conversation-pane" hidden={view !== "chat"} inert={view !== "chat" ? true : undefined}>
+      <div className="chat-conversation-pane" data-home={homeLayout ? "true" : undefined} data-prompts={homeLayout && hasProjectWorkspace && !modelMissing ? "true" : undefined} hidden={view !== "chat"} inert={view !== "chat" ? true : undefined}>
+      {homeLayout ? <VelaMark /> : null}
       {floatingInfo && !environmentCollapsed ? (
         <div className="floating-environment">
           <RepoCard project={project} onOpenChanges={onOpenChanges} activeChanges={changesActive}
@@ -683,9 +692,8 @@ export function ChatView({
         {messages.length === 0 ? (
           <EmptyState
             workspace={project.workspace?.current ?? null}
-            modelMissing={session?.status === "ready" && !session.modelReady}
+            modelMissing={modelMissing}
             mode={session?.mode ?? "agent"}
-            onChooseWorkspace={() => void project.openWorkspaceDialog()}
           />
         ) : (
           turns.map((turn, index) => {
@@ -852,6 +860,7 @@ export function ChatView({
         onAbort={onAbort}
         onMode={onMode}
       />
+      {homeLayout && hasProjectWorkspace && !modelMissing ? <NewChatPrompts hasGit={Boolean(project.git?.repo)} /> : null}
       </div>
       {imageView ? <ImageViewer request={imageView} onClose={() => setImageView(null)} /> : null}
     </main>
@@ -866,41 +875,22 @@ const modeHints: Record<InteractionMode, [string, string]> = {
   goal: ["Goal 模式会围绕目标连续执行，随时可以停止。", "Goal mode works toward an objective continuously. You can stop at any time."],
 };
 
-/** 空对话的引导文案按缺失的前置条件切换:先选工作区,再准备模型,最后才是开始任务。 */
+/** 空对话的引导文案按缺失的前置条件切换:先准备模型,再提示选工作区,最后才是开始任务。工作区本身由输入框上方的晶片选择。 */
 function EmptyState({
   workspace,
   modelMissing,
   mode,
-  onChooseWorkspace,
 }: {
   workspace: string | null;
   modelMissing: boolean;
   mode: InteractionMode;
-  onChooseWorkspace: () => void;
 }) {
-  if (!workspace) {
-    return (
-      <div className="empty-state">
-        <h1>Vela</h1>
-        <p>{tr("先选择一个工作区。工作区决定了 Agent 的文件范围、Shell 目录与 Git 上下文。", "Choose a workspace to set the agent's file access, shell directory, and Git context.")}</p>
-        <button className="empty-state-action" type="button" onClick={onChooseWorkspace}>
-          <FolderIcon />
-          <span>{tr("选择工作区…", "Choose workspace…")}</span>
-        </button>
-      </div>
-    );
-  }
-  const name = workspace.split(/[\\/]/).filter(Boolean).pop() ?? workspace;
-  return (
-    <div className="empty-state">
-      <h1>{name}</h1>
-      <p>
-        {modelMissing
-          ? tr("还没有可用的模型。点输入框右下角的模型按钮登录提供方，或添加一个兼容接口。", "No models are available yet. Use the model button at the bottom right to sign in to a provider or add a compatible API.")
-          : tr(modeHints[mode][0], modeHints[mode][1])}
-      </p>
-    </div>
-  );
+  const hint = modelMissing
+    ? tr("还没有可用的模型。点输入框右下角的模型按钮登录提供方，或添加一个兼容接口。", "No models are available yet. Use the model button at the bottom right to sign in to a provider or add a compatible API.")
+    : workspace
+      ? tr(modeHints[mode][0], modeHints[mode][1])
+      : tr("点输入框上方的工作区晶片，选择要处理的项目。", "Pick a project with the workspace chip above the input.");
+  return <NewChatGreeting mode={mode} hint={hint} />;
 }
 
 function UserText({ text }: { text: string }) {

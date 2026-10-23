@@ -646,14 +646,16 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
       onSteer={() => void submit(true)} onAbort={onAbort} />
   );
 
-  const stats = (
+  // 新对话没有任何统计可看（0 轮 0 步、占用只有系统提示），整组不显示。
+  const showStats = !showSetupControls;
+  const stats = showStats ? (
     <ComposerStatsRow usage={usage} contextPopover={contextPopover} />
-  );
+  ) : null;
 
   const above = (
     <>
       {approvalSlots}
-      {statusBar}
+      {layout === "capsule" ? null : statusBar}
       {skillMenu}
       {instructionRow}
       {attachmentRow}
@@ -682,21 +684,32 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
       >
         {layout === "capsule" ? (
           <>
+            {statusBar}
             <div className="composer-capsule">
               {above}
               <div className="composer-capsule-main">
                 {attachMenu}
                 {entry}
-                {modelControls}
                 {actions}
               </div>
             </div>
             <div className="composer-tray">
-              <div className="composer-tray-chips">
-                {modeChip}
-                {sandboxPill}
+              <div className="composer-tray-left">
+                <div className="composer-tray-chips">
+                  {modeChip}
+                  {sandboxPill}
+                </div>
+                {showStats ? (
+                  <>
+                    <span className="composer-tray-sep" aria-hidden="true" />
+                    <ComposerStatsRow usage={usage} part="activity" />
+                  </>
+                ) : null}
               </div>
-              {stats}
+              <div className="composer-tray-right">
+                {showStats ? <ComposerStatsRow usage={usage} contextPopover={contextPopover} part="usage" /> : null}
+                {modelControls}
+              </div>
             </div>
           </>
         ) : (

@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { modeSystemPrompt, toolNamesFor } from "../src/interaction.ts";
-import { exploreCommandAllowed, formatAgentReport } from "../src/subagent.ts";
+import type { ToolStep } from "@vela/shared";
+import { exploreCommandAllowed, formatAgentReport, rememberStep } from "../src/subagent.ts";
 import { activityFromCall, activityFromExecution } from "../src/tool-activity.ts";
 
 const agentTools = ["spawn_agent", "send_message", "followup_task"];
@@ -95,7 +96,7 @@ describe("查阅子代理命令守卫", () => {
 });
 
 describe("子代理结论", () => {
-  it("返回结论，并标记过长文本", () => {
+  it("返回结论，过长文本不截断", () => {
     const report = formatAgentReport({
       agent: "explore",
       path: "/root/scan",
@@ -105,16 +106,22 @@ describe("子代理结论", () => {
     });
     assert.match(report.text, /\/root\/scan/);
     assert.match(report.text, /查完了/);
-    assert.equal(report.truncated, false);
 
-    const clipped = formatAgentReport({
+    const long = formatAgentReport({
       agent: "general",
       path: "/root/run",
-      text: "x".repeat(12_001),
+      text: "x".repeat(50_000),
       failure: "",
       stopped: false,
     });
-    assert.match(clipped.text, /结论过长，已截断/);
-    assert.equal(clipped.truncated, true);
+    assert.ok(long.text.includes("x".repeat(50_000)));
+    assert.doesNotMatch(long.text, /已截断/);
+  });
+
+  it("步骤列表不设条数上限", () => {
+    const steps: ToolStep[] = [];
+    for (let index = 0; index < 100; index += 1) rememberStep(steps, { id: `t${index}`, name: "read", summary: "read", status: "done" });
+    assert.equal(steps.length, 100);
+    assert.equal(steps[0]?.id, "t0");
   });
 });

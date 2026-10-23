@@ -344,6 +344,7 @@ async function start(): Promise<void> {
   // 开发版只提供手动检查，不在后台联网，也不会替换 Electron 开发二进制。
   if (app.isPackaged) updateHost.service.start();
   const runtime = new AgentRuntime({
+    locale: getApplicationLocale,
     // 常驻 Agent 的工具只读取 Supervisor 的真实记录；Supervisor 在运行时之后创建，所以这里延迟取用。
     resident: {
       conversationId: () => residentSupervisor?.getResidentConversationId() ?? null,

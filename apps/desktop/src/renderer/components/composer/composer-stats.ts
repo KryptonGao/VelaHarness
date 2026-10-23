@@ -16,7 +16,12 @@ export interface ComposerStats {
   percentLabel: string | null;
 }
 
-export function composerStats(usage: ContextUsage | undefined | null): ComposerStats {
+export interface ComposerStatsOptions {
+  /** 轮数/步数和速度始终展示：还没有数据时轮步显示 0，速度显示 "—"。 */
+  alwaysShowActivity?: boolean;
+}
+
+export function composerStats(usage: ContextUsage | undefined | null, options: ComposerStatsOptions = {}): ComposerStats {
   const turnCount = Math.max(0, usage?.turnCount ?? 0);
   const stepCount = Math.max(0, usage?.stepCount ?? 0);
   const speed = usage?.outputSpeed ?? null;
@@ -25,11 +30,13 @@ export function composerStats(usage: ContextUsage | undefined | null): ComposerS
   const percent = usage?.percent ?? null;
 
   const activityParts: string[] = [];
-  if (turnCount > 0 || stepCount > 0) {
+  if (options.alwaysShowActivity || turnCount > 0 || stepCount > 0) {
     activityParts.push(trf("{0} 轮 {1} 步", "{0} turns · {1} steps", turnCount, stepCount));
   }
   if (speed !== null && speed > 0) {
     activityParts.push(`${formatSpeed(speed)} tok/s`);
+  } else if (options.alwaysShowActivity) {
+    activityParts.push("— tok/s");
   }
 
   const tokenParts: string[] = [];

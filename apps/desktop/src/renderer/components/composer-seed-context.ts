@@ -12,6 +12,8 @@ export interface ComposerSeed {
 export const ComposerSeedContext = createContext<{
   seed: ComposerSeed | null;
   consume: (id: string) => void;
+  /** 把一段文本填入指定对话的输入框,例如新对话页的预设提示词。 */
+  offer?: (conversationId: string, text: string) => void;
 } | null>(null);
 
 /** 输入框用：当前对话有待填入的文本时调用 apply，并把它标记为已取走。 */

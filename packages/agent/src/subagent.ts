@@ -3,10 +3,6 @@ import { isToolCallEventType, type ExtensionFactory } from "@earendil-works/pi-c
 import { agentToolNames, type AgentKind, type SubagentKind, type ToolStep } from "@vela/shared";
 import { isPlanSafeCommand } from "./plan-command";
 
-export const subagentOutputCap = 12_000;
-
-export const subagentStepCap = 40;
-
 /** agent 树工具名；root 与子代理共享同一组 API。 */
 export const spawnAgentToolName = agentToolNames[0];
 export const sendMessageToolName = agentToolNames[1];
@@ -36,8 +32,6 @@ export function agentToolNamesFor(kind: SubagentKind): string[] {
 const emptyNote = "子代理没有留下文字结论。";
 
 const stoppedNote = "子代理已停止。";
-
-const clipNote = "结论过长，已截断。";
 
 /** 查阅子代理的 bash 只放行 Plan 模式同一套只读命令。 */
 export function exploreCommandAllowed(command: string): boolean {
@@ -83,18 +77,17 @@ export function formatAgentReport(input: {
   text: string;
   failure: string;
   stopped: boolean;
-}): { text: string; truncated: boolean } {
-  const clipped = clipText(input.text.trim(), subagentOutputCap);
+}): { text: string } {
+  const text = input.text.trim();
   const parts = [`[${input.path} · ${input.agent}]`];
-  if (clipped.text) parts.push(clipped.text);
+  if (text) parts.push(text);
   else if (!input.stopped && !input.failure) parts.push(emptyNote);
   if (input.failure && !input.stopped) parts.push(`子代理没有完成：${input.failure}`);
   if (input.stopped) parts.push(stoppedNote);
-  if (clipped.truncated) parts.push(clipNote);
-  return { text: parts.join("\n\n"), truncated: clipped.truncated };
+  return { text: parts.join("\n\n") };
 }
 
-/** 把一条工具调用记进展示用步骤列表，并按上限裁剪。 */
+/** 把一条工具调用记进展示用步骤列表。 */
 export function rememberStep(steps: ToolStep[], step: ToolStep): void {
   const index = steps.findIndex((item) => item.id === step.id);
   if (index >= 0) {
@@ -103,7 +96,6 @@ export function rememberStep(steps: ToolStep[], step: ToolStep): void {
   } else {
     steps.push(step);
   }
-  if (steps.length > subagentStepCap) steps.splice(0, steps.length - subagentStepCap);
 }
 
 export function stepSummary(toolName: string, args: unknown): string {

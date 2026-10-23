@@ -32,6 +32,12 @@ export function thinkingLabel(level: ThinkingLevel): string {
   return tr(thinkingLevelLabel[level], thinkingLabelsEn[level]);
 }
 
+/** 当前模型所有档位里最宽的标签宽度（em，西文按 0.6em 估算）：按钮里的标签固定这个宽度，切换强度时图标不会移位。 */
+function thinkingLabelWidth(levels: ThinkingLevel[]): number {
+  const widths = levels.map(level => Array.from(thinkingLabel(level)).reduce((sum, char) => sum + (char.charCodeAt(0) > 0x2e80 ? 1 : 0.6), 0));
+  return Math.max(0, ...widths);
+}
+
 interface ModelControlsProps {
   modelLabel: string | null;
   modelProvider: string | null;
@@ -140,7 +146,7 @@ export function ModelControls(props: ModelControlsProps) {
           }}
         >
           <ThinkingGlyph choices={thinkingChoices} level={shownThinking} />
-          <span>{thinkingLabel(shownThinking)}</span>
+          <span className="thinking-label" style={{ minWidth: `${thinkingLabelWidth(thinkingChoices)}em` }}>{thinkingLabel(shownThinking)}</span>
           <Chevron />
         </button>
         <PopoverPresence present={menu === "thinking"}>

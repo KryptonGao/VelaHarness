@@ -19,7 +19,6 @@ import {
   sendMessageToolName,
   spawnAgentToolName,
   stepSummary,
-  subagentOutputCap,
 } from "./subagent";
 
 /** 子代理最多嵌套几层：/root 之外还能再挂 3 层。 */
@@ -776,7 +775,7 @@ export class AgentControl {
     this.refreshUsage(agent);
     agent.info.status = status;
     agent.info.error = status === "failed" ? errorText || "子代理执行失败" : null;
-    agent.info.finalText = text ? clipText(text, subagentOutputCap).text : null;
+    agent.info.finalText = text || null;
     agent.info.updatedAt = Date.now();
     this.emit();
 

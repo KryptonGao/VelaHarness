@@ -3,6 +3,8 @@ export * from "./mcp";
 export * from "./memory";
 export * from "./handoff";
 export * from "./task-budget";
+export * from "./context-limit";
+import type { ContextLimitSettings, ConversationContextLimit } from "./context-limit";
 import type { ConversationTaskBudget, TaskBudgetSettings, TaskBudgetState } from "./task-budget";
 export * from "./outcome";
 import type { OutcomeSubmission } from "./outcome";
@@ -218,6 +220,10 @@ export const IpcChannel = {
   setIntelligentUiMicroApps: "intelligent-ui:set-micro-apps",
   getTaskBudget: "task-budget:get",
   setTaskBudget: "task-budget:set",
+  getContextLimit: "context-limit:get",
+  setContextLimit: "context-limit:set",
+  getConversationContextLimit: "context-limit:get-conversation",
+  setConversationContextLimit: "context-limit:set-conversation",
   getConversationTaskBudget: "task-budget:get-conversation",
   setConversationTaskBudget: "task-budget:set-conversation",
   uiSandboxIssue: "intelligent-ui:sandbox-issue",
@@ -706,6 +712,12 @@ export interface ContextUsage {
   cacheHitRate: number | null;
   /** 本次运行累计的输出速度（tokens/秒，不含首字等待）；还没测到用量或耗时时为空。 */
   outputSpeed: number | null;
+  /** 模型自身的上下文窗口(不受对话上限影响);未知时为空。 */
+  modelContextWindow?: number | null;
+  /** 这个对话生效的上下文上限(token);没有上限时为空。 */
+  contextLimit?: number | null;
+  /** 占用超过这个 token 数时会自动压缩;压缩关闭或窗口未知时为空。 */
+  compactAt?: number | null;
 }
 
 export interface AppState {
@@ -2925,6 +2937,12 @@ export interface VelaApi extends McpApi, PluginApi {
   /** 任务用量上限：时间与 Token，统计包含子代理。 */
   getTaskBudget(): Promise<TaskBudgetSettings>;
   setTaskBudget(settings: TaskBudgetSettings): Promise<TaskBudgetSettings>;
+  /** 单个对话的上下文长度上限:对所有对话生效,立即作用于已打开的对话。 */
+  getContextLimit(): Promise<ContextLimitSettings>;
+  setContextLimit(settings: ContextLimitSettings): Promise<ContextLimitSettings>;
+  /** 单个对话的上下文上限:只对该对话生效;传 null 恢复沿用全局设置。 */
+  getConversationContextLimit(conversationId: string): Promise<ConversationContextLimit>;
+  setConversationContextLimit(conversationId: string, settings: ContextLimitSettings | null): Promise<ConversationContextLimit>;
   /** 单个对话的用量上限：只对该对话生效；传 null 恢复沿用全局设置。 */
   getConversationTaskBudget(conversationId: string): Promise<ConversationTaskBudget>;
   setConversationTaskBudget(conversationId: string, settings: TaskBudgetSettings | null): Promise<ConversationTaskBudget>;

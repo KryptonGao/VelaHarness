@@ -5,7 +5,7 @@ import { latestPlan, migrateLegacyPlan, sortPlans, type LegacyPlanRecord } from 
 import { readFile } from "node:fs/promises";
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
-import { createLogger, parseTaskBudgetSettings, type TaskBudgetSettings } from "@vela/shared";
+import { createLogger, parseContextLimitSettings, parseTaskBudgetSettings, type ContextLimitSettings, type TaskBudgetSettings } from "@vela/shared";
 
 const log = createLogger("conversations");
 
@@ -42,6 +42,8 @@ export interface StoredConversation {
   recipeRunId?: string;
   /** 这个对话自己的任务用量上限；没有时沿用全局设置。 */
   taskBudget?: TaskBudgetSettings;
+  /** 这个对话自己的上下文上限;没有时沿用全局设置。 */
+  contextLimit?: ContextLimitSettings;
 }
 
 interface StorePayload {
@@ -266,6 +268,7 @@ function normalize(entry: unknown): StoredConversation | null {
     archivedAt: numberOr(record.archivedAt, 0) > 0 ? (record.archivedAt as number) : null,
     agents: normalizeStoredAgents(record.agents),
     ...normalizeTaskBudget(record.taskBudget),
+    ...normalizeContextLimit(record.contextLimit),
     ...(typeof record.recipeRunId === "string" && record.recipeExecution && typeof record.recipeExecution === "object" &&
       ["ask", "smart", "full"].includes((record.recipeExecution as RecipeExecution).sandboxMode)
       ? { recipeRunId: record.recipeRunId, recipeExecution: record.recipeExecution as RecipeExecution } : {}),
@@ -278,6 +281,16 @@ function normalizeTaskBudget(value: unknown): { taskBudget?: TaskBudgetSettings 
     return { taskBudget: parseTaskBudgetSettings(value) };
   } catch {
     // 损坏的设置当作没有，让这个对话回到全局设置，而不是悄悄改成别的上限。
+    return {};
+  }
+}
+
+function normalizeContextLimit(value: unknown): { contextLimit?: ContextLimitSettings } {
+  if (value === undefined || value === null) return {};
+  try {
+    return { contextLimit: parseContextLimitSettings(value) };
+  } catch {
+    // 损坏的设置当作没有，让这个对话回到全局设置。
     return {};
   }
 }

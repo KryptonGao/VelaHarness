@@ -5,6 +5,7 @@ import { localizeError } from "../../locale";
 import type { SettingsCopy } from "../settings-copy";
 import { clampChoice, groupAvailable, levelsFor, modelValue, parseModelValue } from "./model-helpers";
 import { Segmented, SettingsBlock } from "./primitives";
+import { ContextLimitBlock } from "./ContextLimitBlock";
 import { TaskBudgetBlock } from "./TaskBudgetBlock";
 
 /** 停止输入这么久后自动保存额外指令;失焦时立即保存。 */
@@ -240,6 +241,7 @@ export function AgentDefaultsPage({
         {project.error ? <p className="settings-error">{localizeError(project.error)}</p> : null}
       </SettingsBlock>
 
+      <ContextLimitBlock copy={copy} />
       <TaskBudgetBlock copy={copy} />
     </section>
   );

@@ -48,6 +48,13 @@ describe("composer stats", () => {
     assert.equal(stats.tokens, null);
   });
 
+  it("can keep rounds, steps and speed visible before any usage exists", () => {
+    assert.equal(composerStats(usage(), { alwaysShowActivity: true }).activity, "0 轮 0 步 · — tok/s");
+    assert.equal(composerStats(undefined, { alwaysShowActivity: true }).activity, "0 轮 0 步 · — tok/s");
+    assert.equal(composerStats(usage({ turnCount: 1, stepCount: 3 }), { alwaysShowActivity: true }).activity, "1 轮 3 步 · — tok/s");
+    assert.equal(composerStats(usage({ turnCount: 2, stepCount: 11, outputSpeed: 241.4 }), { alwaysShowActivity: true }).activity, "2 轮 11 步 · 241 tok/s");
+  });
+
   it("tolerates a missing usage snapshot", () => {
     const stats = composerStats(undefined);
     assert.equal(stats.activity, null);

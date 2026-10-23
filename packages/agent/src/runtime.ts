@@ -3,7 +3,7 @@ import { PluginRegistry } from "./mcp/plugin-registry";
 import { OAuthMCPManager } from "./mcp/oauth";
 import { PluginMCPManager } from "./mcp/manager";
 import type { CredentialStore } from "./mcp/credentials";
-import { parseTaskBudgetSettings, type ConversationTaskBudget, type TaskBudgetSettings } from "@vela/shared";
+import { compactionTokensForLimit, effectiveContextWindow, parseContextLimitSettings, parseTaskBudgetSettings, type ContextLimitSettings, type ConversationContextLimit, type ConversationTaskBudget, type TaskBudgetSettings } from "@vela/shared";
 import type { BuiltInPlugin, IntelligentUiState, PluginCatalog, PluginTarget, PluginStatusEvent, UiPreference } from "@vela/shared";
 import { redactMcpDisplay, mcpConfiguredSecrets } from "./mcp-redaction";
 import { McpSessionBridge, isMcpTool, type McpPermission } from "./mcp-session";
@@ -11,7 +11,7 @@ import { createScheduledTaskTools, scheduledTaskInstructions } from "./scheduled
 import { RecipeGenerator, parseRecipeGenerateInput } from './recipe-generator';
 import type { RaceTokens, RecipeExecution, RecipeRun, RecipeStageSubmission, RecipeSubmitResult, RecipeStageEvidence, RecipeUseDraft, ScheduledTaskInput, SandboxExecutionContext, SandboxMode, ScheduledTaskService } from "@vela/shared";
 import type { McpCatalog, McpCatalogInput, McpServerInput, McpServerTarget, McpEnabledInput, McpProjectTrustInput, McpToolReadOnlyInput, McpStatusEvent, MemoryLoadReport, SideChatEvent, SideChatResult } from "@vela/shared";
-import { memoryLoadReport } from "@vela/shared";
+import { memoryLoadReport, modelLanguageName, type AppLocale } from "@vela/shared";
 import { browserUseInstructions, createBrowserTools, type BrowserReplService, type BrowserReplPermission } from "./browser-use";
 import { TurnCheckpoints, changedPaths, sharedDirectory, type TurnCheckpoint } from "./turn-checkpoints";
 import { checkpointUsage, cleanCheckpoints, defaultCheckpointPolicy, deleteAllCheckpoints } from "./checkpoint-storage";
@@ -105,6 +105,7 @@ import { ModelDirectory } from "./model-directory";
 import { MemoryService } from "./memory";
 import { MemorySettings } from "./memory-settings";
 import { TaskBudgetSettingsStore } from "./task-budget-settings";
+import { ContextLimitSettingsStore } from "./context-limit-settings";
 import { createTaskBudgetExtension, TaskBudgetTask } from "./task-budget";
 import { IntelligentUiSettings } from "./intelligent-ui-settings";
 import { intelligentUiInstructions } from "./intelligent-ui-prompt";
@@ -224,6 +225,8 @@ export interface AgentRuntimeOptions {
   onRecipeStop?: (conversationId: string) => void;
   /** 系统提示档位；默认 v2，可用 VELA_SYSTEM_PROMPT=v1 切回 Pi 原有基础段。 */
   systemPromptProfile?: SystemPromptProfile;
+  /** 当前界面语言；每轮读取，用作提示里「用户语言不明时」的默认写作语言。 */
+  locale?: () => AppLocale;
 }
 
 interface RewindMetadata {
@@ -313,6 +316,8 @@ interface Conversation {
   budget?: TaskBudgetTask;
   /** 这个对话自己的用量上限；没有时沿用全局设置。 */
   budgetSettings?: TaskBudgetSettings;
+  /** 这个对话自己的上下文上限；没有时沿用全局设置。 */
+  contextLimit?: ContextLimitSettings;
 }
 
 /**
@@ -377,6 +382,9 @@ export class AgentRuntime {
   private readonly memorySettings: MemorySettings;
   private readonly intelligentUiSettings: IntelligentUiSettings;
   private readonly taskBudgetSettings: TaskBudgetSettingsStore;
+  private readonly contextLimitSettings: ContextLimitSettingsStore;
+  /** 每个 Pi 会话的设置对象与压缩默认值,上下文上限改动时据此重新套用。 */
+  private readonly contextLimited = new Map<AgentSession, { entry: Conversation; settings: SettingsManager; defaults: { reserveTokens: number; keepRecentTokens: number } }>();
   private readonly checkpointSettings: CheckpointSettingsStore;
   /** 本进程里创建或恢复为常驻 Agent 的会话；重启后由 options.resident 重新指认。 */
   private readonly residentIds = new Set<string>();
@@ -387,6 +395,7 @@ export class AgentRuntime {
     this.memorySettings = new MemorySettings(options.agentDir);
     this.intelligentUiSettings = new IntelligentUiSettings(options.agentDir);
     this.taskBudgetSettings = new TaskBudgetSettingsStore(options.agentDir);
+    this.contextLimitSettings = new ContextLimitSettingsStore(options.agentDir);
     this.checkpointSettings = new CheckpointSettingsStore(options.agentDir);
     this.skills = new SkillLibrary(options.agentDir);
     this.tools = new ToolLoadout({
@@ -771,7 +780,10 @@ export class AgentRuntime {
     if (!session || entry.driving || session.isStreaming || entry.recipeWorkflowActive) return;
     const { model, thinkingLevel } = this.executionSelection(await this.readyDirectory(), execution);
     const current = session.model;
-    if (model && (!current || current.provider !== model.provider || current.id !== model.id)) await session.setModel(model);
+    if (model && (!current || current.provider !== model.provider || current.id !== model.id)) {
+      await session.setModel(model);
+      this.enforceContextLimit(session);
+    }
     if (session.thinkingLevel !== thinkingLevel) session.setThinkingLevel(thinkingLevel);
     this.syncFromSession(entry);
   }
@@ -1672,6 +1684,20 @@ export class AgentRuntime {
       ...measured,
       ...sessionUsage,
       outputSpeed: session ? outputSpeed(entry) : null,
+      ...this.contextLimitUsage(entry, session, measured.contextWindow),
+    };
+  }
+
+  /** 模型自身窗口、对话上限与自动压缩触发点,供「上下文」标签页展示。 */
+  private contextLimitUsage(entry: Conversation | null, session: AgentSession | null, contextWindow: number | null): Pick<ContextUsage, "modelContextWindow" | "contextLimit" | "compactAt"> {
+    const model = session?.model;
+    if (!entry || !session || !model) return { modelContextWindow: null, contextLimit: null, compactAt: null };
+    const base = this.directory?.runtime.getModel(model.provider, model.id) ?? model;
+    const compaction = this.contextLimited.get(session)?.settings.getCompactionSettings(model);
+    return {
+      modelContextWindow: base.contextWindow > 0 ? base.contextWindow : null,
+      contextLimit: this.contextLimitFor(entry),
+      compactAt: compaction?.enabled && contextWindow ? Math.max(0, contextWindow - compaction.reserveTokens) : null,
     };
   }
 
@@ -2242,6 +2268,7 @@ export class AgentRuntime {
       } finally {
         session.dispose();
         this.mcpBridges.delete(session);
+        this.contextLimited.delete(session);
         this.mcpPending.delete(session);
         this.mcpRevisions.delete(session);
         for (const [cwd, management] of this.mcpManagement) if (management === session) this.mcpManagement.delete(cwd);
@@ -2366,6 +2393,7 @@ export class AgentRuntime {
         storedAgents,
         agentMutationsSeen: new Set(storedAgents.filter((agent) => agent.mutated).map((agent) => agent.id)),
         ...(stored.taskBudget ? { budgetSettings: stored.taskBudget } : {}),
+        ...(stored.contextLimit ? { contextLimit: stored.contextLimit } : {}),
       });
     }
   }
@@ -2631,6 +2659,7 @@ export class AgentRuntime {
       }
       // 没有显式选择时，Pi 会挑第一个带本机环境变量的模型。这里清掉，只保留用户在 Vela 里选的模型。
       if (!chosen) clearSessionModel(session);
+      this.registerContextLimit(session, settingsManager, entry);
       mcp.attach(session);
       this.mcpBridges.set(session, mcp);
       this.attachEntry(entry, session, sessionManager);
@@ -2705,6 +2734,7 @@ export class AgentRuntime {
     const current = session.model;
     if (!current || current.provider !== model.provider || current.id !== model.id) {
       await session.setModel(model);
+      this.enforceContextLimit(session);
     }
     session.setThinkingLevel(thinkingLevel);
     if (entry.recipeExecution) entry.recipeExecution = { ...entry.recipeExecution, model: { provider: model.provider, id: model.id }, thinkingLevel };
@@ -3046,6 +3076,7 @@ export class AgentRuntime {
       agents: entry.storedAgents,
       ...(entry.recipeRunId ? { recipeRunId: entry.recipeRunId, recipeExecution: entry.recipeExecution } : {}),
       ...(entry.budgetSettings ? { taskBudget: entry.budgetSettings } : {}),
+      ...(entry.contextLimit ? { contextLimit: entry.contextLimit } : {}),
     });
   }
 
@@ -3333,7 +3364,7 @@ export class AgentRuntime {
       ],
       appendSystemPromptOverride: (base) => [
         ...(usesVelaPrompt(this.promptProfile) ? [velaRules({ kind: input.kind, imageInput: model.input.includes("image"),
-          visualCheck: checksVisualWork(this.promptProfile),
+          visualCheck: checksVisualWork(this.promptProfile), language: this.writingLanguage(),
           tools: [...childNativeTools(), ...(this.options.browserRepl && input.kind === "general" ? ["browser_repl"] : [])] })] : []),
         ...base,
         ...(instructions ? [instructions] : []),
@@ -3375,6 +3406,7 @@ export class AgentRuntime {
         ...(input.kind === "general" ? this.browserTools(entry, input.agentId, input.kind) : []),
       ],
     });
+    this.registerContextLimit(session, settingsManager, entry);
     mcp.attach(session);
     if (this.disposed) { await mcp.close(); session.dispose(); throw new Error("Vela runtime has closed"); }
     this.mcpBridges.set(session, mcp);
@@ -3478,6 +3510,11 @@ export class AgentRuntime {
     return { agentsFilesOverride: base => ({ agentsFiles: base.agentsFiles.filter(file => dirname(resolve(file.path)) === agentDir) }) };
   }
 
+  private writingLanguage(): string | undefined {
+    const locale = this.options.locale?.();
+    return locale ? modelLanguageName(locale) : undefined;
+  }
+
   /** v2 起用 Vela 的身份句替换 Pi 的基础段；工作区或资料目录的 SYSTEM.md 仍优先。 */
   private preambleOverride(): { systemPromptOverride?: (base: string | undefined) => string | undefined } {
     return usesVelaPrompt(this.promptProfile) ? { systemPromptOverride: base => base ?? velaPreamble } : {};
@@ -3492,7 +3529,7 @@ export class AgentRuntime {
     const visualCheck = checksVisualWork(this.promptProfile);
     return [{ name: "vela-rules", hidden: true, factory: ((pi) => { pi.on("before_agent_start", (event, ctx) => {
       const rules = velaRules({ kind: kind(), tools: event.systemPromptOptions.selectedTools,
-        imageInput: ctx.model?.input.includes("image") ?? false, visualCheck });
+        imageInput: ctx.model?.input.includes("image") ?? false, visualCheck, language: this.writingLanguage() });
       const current = event.systemPromptOptions.appendSystemPrompt.trim();
       event.systemPromptOptions.appendSystemPrompt = current ? `${rules}\n\n${current}` : rules;
     }); }) as ExtensionFactory }];
@@ -3540,6 +3577,64 @@ export class AgentRuntime {
 
   getTaskBudgetSettings(): TaskBudgetSettings {
     return this.taskBudgetSettings.settings;
+  }
+
+  getContextLimit(): ContextLimitSettings {
+    return this.contextLimitSettings.settings;
+  }
+
+  setContextLimit(raw: unknown): ContextLimitSettings {
+    const saved = this.contextLimitSettings.save(raw);
+    // 立即作用于已打开的对话与子代理;下一次估算和压缩判断按新窗口进行。
+    for (const session of this.contextLimited.keys()) this.enforceContextLimit(session);
+    for (const entry of this.conversations.values()) if (entry.session) this.syncFromSession(entry);
+    return saved;
+  }
+
+  private contextLimitFor(entry: Conversation): number | null {
+    return (entry.contextLimit ?? this.contextLimitSettings.settings).limitTokens;
+  }
+
+  private conversationContextLimit(entry: Conversation): ConversationContextLimit {
+    const global = this.contextLimitSettings.settings;
+    return { global, override: entry.contextLimit ?? null, effective: entry.contextLimit ?? global };
+  }
+
+  getConversationContextLimit(conversationId: unknown): ConversationContextLimit {
+    return this.conversationContextLimit(this.requireBudgetEntry(conversationId));
+  }
+
+  /** 只改这一个对话的上下文上限;传 null 恢复沿用全局设置。随对话一起保存,立即作用于它的会话和子代理。 */
+  setConversationContextLimit(conversationId: unknown, raw: unknown): ConversationContextLimit {
+    const entry = this.requireBudgetEntry(conversationId);
+    if (raw === null) delete entry.contextLimit;
+    else entry.contextLimit = parseContextLimitSettings(raw);
+    this.persistEntry(entry);
+    for (const [session, tracked] of this.contextLimited) if (tracked.entry === entry) this.enforceContextLimit(session);
+    if (entry.session) this.syncFromSession(entry);
+    return this.conversationContextLimit(entry);
+  }
+
+  private registerContextLimit(session: AgentSession, settings: SettingsManager, entry: Conversation): void {
+    const compaction = settings.getCompactionSettings(session.model);
+    this.contextLimited.set(session, { entry, settings, defaults: { reserveTokens: compaction.reserveTokens, keepRecentTokens: compaction.keepRecentTokens } });
+    this.enforceContextLimit(session);
+  }
+
+  /**
+   * 把对话的有效窗口收窄到上限:Pi 按 model.contextWindow 判断压缩与占用比例,
+   * 所以换一份窗口更小的模型副本,并按比例缩小压缩预留,避免预留比窗口还大。
+   */
+  private enforceContextLimit(session: AgentSession): void {
+    const tracked = this.contextLimited.get(session);
+    const model = session.model;
+    if (!tracked || !model) return;
+    const limit = this.contextLimitFor(tracked.entry);
+    const base = this.directory?.runtime.getModel(model.provider, model.id) ?? model;
+    const contextWindow = effectiveContextWindow(base.contextWindow, limit);
+    if (model.contextWindow !== contextWindow) session.agent.state.model = { ...base, contextWindow };
+    const scaled = compactionTokensForLimit(base.contextWindow, limit, tracked.defaults) ?? tracked.defaults;
+    tracked.settings.applyOverrides({ compaction: scaled });
   }
 
   setTaskBudgetSettings(raw: unknown): TaskBudgetSettings {

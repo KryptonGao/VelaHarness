@@ -7,26 +7,34 @@ import { tr } from "../../locale";
  * 输入框下方的会话统计条：轮数/步数/速度、累计 token 与缓存命中率、上下文占用环。
  * 没有数据的分组整个不渲染，全部缺失时整条隐藏。
  */
-export function ComposerStatsRow({ usage, contextPopover = false }: { usage: ContextUsage | undefined | null; contextPopover?: boolean }) {
-  const stats = composerStats(usage);
-  const hasGroup = Boolean(stats.activity || stats.tokens || stats.percentLabel || contextPopover);
+export function ComposerStatsRow({ usage, contextPopover = false, part }: {
+  usage: ContextUsage | undefined | null;
+  contextPopover?: boolean;
+  /** 只渲染一部分：activity 为轮步与速度，usage 为累计 token 与上下文占用；不传则全部渲染。 */
+  part?: "activity" | "usage";
+}) {
+  // 轮+步和 tok/s 是常驻信息：新对话也保留位置，不会让整条统计只剩占用环。
+  const stats = composerStats(usage, { alwaysShowActivity: true });
+  const showActivity = part !== "usage";
+  const showUsage = part !== "activity";
+  const hasGroup = Boolean((showActivity && stats.activity) || (showUsage && (stats.tokens || stats.percentLabel || contextPopover)));
   if (!hasGroup) return null;
 
   return (
     <div className="composer-stats-row" role="group" aria-label={tr("会话统计", "Chat stats")}>
-      {stats.activity ? (
+      {showActivity && stats.activity ? (
         <span className="composer-stat" title={stats.activity}>
           <span className="composer-stat-icon" aria-hidden="true"><ActivityIcon /></span>
           <span className="composer-stat-text">{stats.activity}</span>
         </span>
       ) : null}
-      {stats.tokens ? (
+      {showUsage && stats.tokens ? (
         <span className="composer-stat" title={stats.tokens}>
           <span className="composer-stat-icon" aria-hidden="true"><TokenStackIcon /></span>
           <span className="composer-stat-text">{stats.tokens}</span>
         </span>
       ) : null}
-      {contextPopover ? (
+      {!showUsage ? null : contextPopover ? (
         <ContextUsageTrigger usage={usage} high={(stats.percent ?? 0) >= 80}>
           <ContextRing percent={stats.percent ?? 0} />
           <span className="composer-stat-text">{stats.percentLabel ?? (usage?.tokens ? "—" : "0%")}</span>

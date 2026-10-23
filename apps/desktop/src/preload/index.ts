@@ -138,6 +138,8 @@ import {
   type TranscriptMessage,
   type HandoffPack,
   type ConversationTaskBudget,
+  type ContextLimitSettings,
+  type ConversationContextLimit,
   type TaskBudgetSettings,
   type IntelligentUiState,
   type UiPreference,
@@ -425,6 +427,13 @@ const api: VelaApi = {
     ipcRenderer.invoke(IpcChannel.setIntelligentUi, preference) as Promise<IntelligentUiState>,
   setIntelligentUiMicroApps: (enabled: boolean) =>
     ipcRenderer.invoke(IpcChannel.setIntelligentUiMicroApps, enabled) as Promise<IntelligentUiState>,
+  getContextLimit: () => ipcRenderer.invoke(IpcChannel.getContextLimit) as Promise<ContextLimitSettings>,
+  setContextLimit: (settings: ContextLimitSettings) =>
+    ipcRenderer.invoke(IpcChannel.setContextLimit, settings) as Promise<ContextLimitSettings>,
+  getConversationContextLimit: (conversationId: string) =>
+    ipcRenderer.invoke(IpcChannel.getConversationContextLimit, conversationId) as Promise<ConversationContextLimit>,
+  setConversationContextLimit: (conversationId: string, settings: ContextLimitSettings | null) =>
+    ipcRenderer.invoke(IpcChannel.setConversationContextLimit, conversationId, settings) as Promise<ConversationContextLimit>,
   getTaskBudget: () => ipcRenderer.invoke(IpcChannel.getTaskBudget) as Promise<TaskBudgetSettings>,
   setTaskBudget: (settings: TaskBudgetSettings) =>
     ipcRenderer.invoke(IpcChannel.setTaskBudget, settings) as Promise<TaskBudgetSettings>,

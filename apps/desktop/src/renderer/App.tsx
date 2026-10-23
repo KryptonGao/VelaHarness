@@ -168,6 +168,8 @@ export function App() {
   const [handoff, setHandoff] = useState<{ conversationId: string; factsOnly?: boolean } | null>(null);
   const [composerSeed, setComposerSeed] = useState<ComposerSeed | null>(null);
   const consumeComposerSeed = useCallback((id: string) => setComposerSeed(current => current?.id === id ? null : current), []);
+  const offerComposerSeed = useCallback((conversationId: string, text: string) =>
+    setComposerSeed({ id: crypto.randomUUID(), conversationId, text }), []);
   const startHandoff = useCallback(async (conversationId: string, text: string) => {
     const source = session.conversations.find(item => item.id === conversationId);
     const newId = await session.newChat(source && source.hasWorkspace !== false ? source.cwd : undefined);
@@ -772,7 +774,7 @@ export function App() {
       <AppLocaleProvider locale={preferences.locale}>
         <RecipeActionsContext.Provider value={{ conversationId: session.activeConversationId, open: openRecipes, useRecipe: recipe => { setRecipeToUse(recipe); openRecipes(); }, fromMessage: seed => { setRecipeSeed(seed); openRecipes(); }, createHandoff: (conversationId, options) => setHandoff({ conversationId, ...(options?.factsOnly ? { factsOnly: true } : {}) }) }}>
         <RaceActionsContext.Provider value={{ started: openRaceTab, open: openRaceTab, count: workspaceRaces.length }}>
-        <ComposerSeedContext.Provider value={{ seed: composerSeed, consume: consumeComposerSeed }}>
+        <ComposerSeedContext.Provider value={{ seed: composerSeed, consume: consumeComposerSeed, offer: offerComposerSeed }}>
         <div className="app-screens">
           <BrowserViewHost tabs={browser.allTabs}
             activeTabId={browser.tabs.some(tab => tab.id === activeWorkbenchTabId) ? activeWorkbenchTabId : null}
