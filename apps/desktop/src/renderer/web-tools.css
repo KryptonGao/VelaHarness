@@ -1,0 +1,71 @@
+.web-tools-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.web-tools-provider { flex-wrap: wrap; }
+
+.web-tools-badge {
+  margin-left: 8px;
+  padding: 1px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-hover);
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 500;
+  vertical-align: 1px;
+}
+
+.web-tools-key-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.web-tools-key-row input {
+  flex: 1 1 220px;
+  min-width: 0;
+  font: inherit;
+  color: inherit;
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+}
+
+.web-tools-tests { margin-top: 8px; gap: 10px 14px; align-items: center; }
+
+.web-tools-test {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.web-tools-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 10px;
+}
+
+.web-tools-code {
+  min-height: 96px;
+  font-family: var(--font-mono);
+  font-size: 14px;
+}
+
+.web-tools-advanced {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.web-tools-advanced > summary {
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 15px;
+  margin-bottom: 8px;
+}

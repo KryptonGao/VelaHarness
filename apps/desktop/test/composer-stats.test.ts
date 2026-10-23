@@ -21,13 +21,12 @@ function usage(patch: Partial<ContextUsage> = {}): ContextUsage {
 }
 
 describe("composer stats", () => {
-  it("renders rounds, steps and speed in the first group", () => {
-    const stats = composerStats(usage({ turnCount: 2, stepCount: 11, outputSpeed: 241.4 }));
-    assert.equal(stats.activity, "2 轮 11 步 · 241 tok/s");
+  it("renders only the output speed in the activity group", () => {
+    assert.equal(composerStats(usage({ turnCount: 2, stepCount: 11, outputSpeed: 241.4 })).activity, "241 tok/s");
   });
 
-  it("keeps rounds and steps when speed is not measurable yet", () => {
-    assert.equal(composerStats(usage({ turnCount: 1, stepCount: 3 })).activity, "1 轮 3 步");
+  it("omits the activity group when speed is not measurable yet", () => {
+    assert.equal(composerStats(usage({ turnCount: 1, stepCount: 3 })).activity, null);
   });
 
   it("shows tokens and cache hit rate together", () => {
@@ -48,11 +47,11 @@ describe("composer stats", () => {
     assert.equal(stats.tokens, null);
   });
 
-  it("can keep rounds, steps and speed visible before any usage exists", () => {
-    assert.equal(composerStats(usage(), { alwaysShowActivity: true }).activity, "0 轮 0 步 · — tok/s");
-    assert.equal(composerStats(undefined, { alwaysShowActivity: true }).activity, "0 轮 0 步 · — tok/s");
-    assert.equal(composerStats(usage({ turnCount: 1, stepCount: 3 }), { alwaysShowActivity: true }).activity, "1 轮 3 步 · — tok/s");
-    assert.equal(composerStats(usage({ turnCount: 2, stepCount: 11, outputSpeed: 241.4 }), { alwaysShowActivity: true }).activity, "2 轮 11 步 · 241 tok/s");
+  it("can keep the speed visible before any usage exists", () => {
+    assert.equal(composerStats(usage(), { alwaysShowActivity: true }).activity, "— tok/s");
+    assert.equal(composerStats(undefined, { alwaysShowActivity: true }).activity, "— tok/s");
+    assert.equal(composerStats(usage({ turnCount: 1, stepCount: 3 }), { alwaysShowActivity: true }).activity, "— tok/s");
+    assert.equal(composerStats(usage({ turnCount: 2, stepCount: 11, outputSpeed: 241.4 }), { alwaysShowActivity: true }).activity, "241 tok/s");
   });
 
   it("tolerates a missing usage snapshot", () => {

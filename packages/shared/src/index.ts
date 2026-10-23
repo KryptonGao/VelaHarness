@@ -1,6 +1,8 @@
 export * from "./pr-inbox";
 export * from "./mcp";
 export * from "./memory";
+export * from "./web-tools";
+import type { WebToolsApi } from "./web-tools";
 export * from "./handoff";
 export * from "./task-budget";
 export * from "./context-limit";
@@ -246,6 +248,10 @@ export const IpcChannel = {
   memoryRead: "memory:read",
   memorySave: "memory:save",
   memoryRemove: "memory:remove",
+  webToolsGet: "web-tools:get",
+  webToolsSave: "web-tools:save",
+  webToolsSetKey: "web-tools:set-key",
+  webToolsTest: "web-tools:test",
 } as const;
 
 import type { AppLocale } from "./i18n";
@@ -2639,7 +2645,7 @@ export interface SandboxExecutionContext {
 }
 
 /** delegate：常驻 Agent 请求在某个工作区创建后台任务。 */
-export type SandboxApprovalKind = "bash" | "edit" | "write" | "mkdir" | "browser_repl" | "mcp" | "delegate";
+export type SandboxApprovalKind = "bash" | "edit" | "write" | "mkdir" | "browser_repl" | "mcp" | "delegate" | "web";
 
 export interface SandboxMcpContext {
   server: string;
@@ -2841,6 +2847,8 @@ export interface VelaApi extends McpApi, PluginApi {
   prInbox: import("./pr-inbox").PrInboxApi;
   /** 设置页的长期记忆管理入口；Agent 工具由运行时单独提供。 */
   memory: MemoryApi;
+  /** 设置页的网页搜索与抓取提供商；密钥只能写入，不能读回。 */
+  webTools: WebToolsApi;
   /** 侧边聊天：不带工具的轻量对话，带入长期记忆。 */
   sideChat?: import("./side-chat").SideChatApi;
   /** 仅开发版提供。 */

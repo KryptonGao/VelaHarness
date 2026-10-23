@@ -432,3 +432,44 @@ describe("delegate approvals", () => {
     assert.equal(full.events.length, 0);
   });
 });
+
+describe("web fetch approvals", () => {
+  const fetchOf = (url: string) => ({ kind: "web" as const, command: url, cwd: "/repo", workspace: "/repo", insideWorkspace: false as const });
+
+  it("ask 模式每次都询问 URL，拒绝返回 false", async () => {
+    const { manager, events } = await createManager("ask");
+    const pending = manager.request(fetchOf("https://example.com/a"));
+    await tick();
+    const event = events.find((entry) => entry.type === "request");
+    assert.equal(event?.type === "request" && event.request.kind, "web");
+    assert.equal(event?.type === "request" && event.request.command, "https://example.com/a");
+    manager.reply(pendingRequest(events)!, false);
+    assert.equal(await pending, false);
+  });
+
+  it("full 模式直接放行", async () => {
+    const { manager, events } = await createManager("full");
+    assert.equal(await manager.request(fetchOf("https://example.com")), true);
+    assert.equal(events.length, 0);
+  });
+
+  it("smart 模式按完整 URL 判断：不同网址不共用结论，同一网址复用", async () => {
+    const seen: string[] = [];
+    const evaluator: SandboxRiskEvaluator = async (input: SandboxRiskInput) => {
+      seen.push(`${input.kind}:${input.command}`);
+      return input.command?.includes("leak") ? "risky" : "safe";
+    };
+    const { manager, events } = await createManager("smart", evaluator);
+    assert.equal(await manager.request(fetchOf("https://docs.example.com/page")), true);
+    assert.equal(await manager.request(fetchOf("https://docs.example.com/page")), true);
+    assert.deepEqual(seen, ["web:https://docs.example.com/page"], "the verdict is cached per URL");
+    assert.equal(events.length, 0);
+    const pending = manager.request(fetchOf("https://evil.example/?leak=secret"));
+    await tick();
+    assert.deepEqual(seen.at(-1), "web:https://evil.example/?leak=secret");
+    const id = pendingRequest(events);
+    assert.ok(id, "a risky verdict falls back to asking the user");
+    manager.reply(id, false);
+    assert.equal(await pending, false);
+  });
+});

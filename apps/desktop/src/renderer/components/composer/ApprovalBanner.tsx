@@ -11,6 +11,7 @@ const kindLabels: Record<SandboxApprovalRequest["kind"], [string, string]> = {
   write: ["写入文件", "Write file"],
   mkdir: ["创建目录", "Create directory"],
   delegate: ["创建后台任务", "Create background task"],
+  web: ["抓取网页", "Fetch web page"],
 };
 
 /**
@@ -51,7 +52,7 @@ export function ApprovalBanner({
       ].join("\n")
     : approval.kind === "delegate"
       ? `${tr("工作区", "Workspace")}: ${approval.cwd ?? tr("(未知)", "(Unknown)")}\n${tr("任务", "Task")}: ${approval.command ?? tr("(未提供内容)", "(No content provided)")}`
-    : (approval.kind === "bash" || approval.kind === "browser_repl")
+    : (approval.kind === "bash" || approval.kind === "browser_repl" || approval.kind === "web")
       ? approval.command ?? tr("(未提供命令)", "(No command provided)")
       : approval.path ?? tr("(未提供路径)", "(No path provided)");
   const [kindZh, kindEn] = kindLabels[approval.kind];

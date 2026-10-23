@@ -1,15 +1,17 @@
+import type { ReactNode } from "react";
 import { tr } from "../locale";
+import { ViewBranchIcon, ViewChatIcon, ViewContextIcon, ViewGaugeIcon, ViewTraceIcon, ViewUsageIcon } from "./icons";
 import { useSlidingTabIndicator } from "./useSlidingTabIndicator";
 
 export type ConversationViewKey = "chat" | "trace" | "versionControl" | "usage" | "context" | "budget";
 
-const TABS: ReadonlyArray<readonly [ConversationViewKey, string, string]> = [
-  ["chat", "对话", "Conversation"],
-  ["trace", "轨迹", "Trace"],
-  ["versionControl", "版本控制", "Version Control"],
-  ["usage", "使用统计", "Usage"],
-  ["context", "上下文", "Context"],
-  ["budget", "用量限制", "Usage limit"],
+const TABS: ReadonlyArray<readonly [ConversationViewKey, string, string, ReactNode]> = [
+  ["chat", "对话", "Conversation", <ViewChatIcon />],
+  ["trace", "轨迹", "Trace", <ViewTraceIcon />],
+  ["versionControl", "版本控制", "Version Control", <ViewBranchIcon />],
+  ["usage", "使用统计", "Usage", <ViewUsageIcon />],
+  ["context", "上下文", "Context", <ViewContextIcon />],
+  ["budget", "用量限制", "Usage limit", <ViewGaugeIcon />],
 ];
 
 /** 尚无任何消息时没有内容可看的视图;用量限制是设置项,空对话也能用。 */
@@ -40,7 +42,7 @@ export function ConversationViewTabs({ view, showVersionControl, emptyConversati
       onPointerMove={tabs.onPointerMove}
       onPointerLeave={tabs.onPointerLeave}
     >
-      {TABS.filter(([key]) => key !== "versionControl" || showVersionControl).map(([key, chinese, english]) => {
+      {TABS.filter(([key]) => key !== "versionControl" || showVersionControl).map(([key, chinese, english, icon]) => {
         const unavailable = isEmptyConversationView(key, emptyConversation);
         return (
           <button
@@ -54,7 +56,8 @@ export function ConversationViewTabs({ view, showVersionControl, emptyConversati
             ref={tabs.registerTab(key)}
             onClick={() => { if (!unavailable) onChange(key); }}
           >
-            {tr(chinese, english)}
+            {icon}
+            <span>{tr(chinese, english)}</span>
           </button>
         );
       })}

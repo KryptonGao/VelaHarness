@@ -1,7 +1,7 @@
 {
   "name": "@vela/desktop",
-  "version": "1.1.12",
-  "shortVersion": "1.1.12",
+  "version": "1.1.13",
+  "shortVersion": "1.1.13",
   "private": true,
   "main": "./out/main/index.mjs",
   "scripts": {
@@ -49,6 +49,8 @@
     "test:mcp:electron": "node test/mcp-electron-smoke.mjs",
     "test:memory": "node --import ../../packages/agent/test/register-ts.mjs --experimental-transform-types --experimental-test-module-mocks --test ../../packages/agent/test/memory.test.ts ../../packages/agent/test/memory-context.test.ts ../../packages/agent/test/memory-runtime.test.ts ../../packages/agent/test/memory-tools.test.ts ../../packages/agent/test/memory-tools-runtime.test.ts test/memory-host.test.ts test/memory-settings.test.ts",
     "test:memory:ui": "node test/memory-settings-ui.mjs",
+    "test:web-tools": "node --import ../../packages/agent/test/register-ts.mjs --experimental-transform-types --experimental-test-module-mocks --test ../../packages/agent/test/web-tools-service.test.ts ../../packages/agent/test/web-tools.test.ts ../../packages/agent/test/web-tools-runtime.test.ts test/web-tools-host.test.ts test/web-tools-settings-model.test.ts",
+    "test:web-tools:ui": "node test/web-tools-ui.mjs && node test/web-tools-card-ui.mjs",
     "test:side-chat": "node --import ../../packages/agent/test/register-ts.mjs --experimental-transform-types --test ../../packages/agent/test/side-chat.test.ts test/side-chat.test.ts",
     "test:side-chat:ui": "node test/side-chat-ui.mjs",
     "test:scheduled-tasks": "node --import ../../packages/agent/test/register-ts.mjs --experimental-transform-types --test test/scheduled-tasks.test.ts ../../packages/agent/test/scheduled-tasks.test.ts",

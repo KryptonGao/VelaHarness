@@ -7,6 +7,7 @@ import { memoryDisabledDenial, memoryReadToolName, memoryToolNames, memoryUpdate
 import { recipeStageSubagentDenial } from "./recipe-stage";
 import { residentToolNames } from "./resident-tools";
 import { scheduledTaskToolNames } from "./scheduled-task-tools";
+import { webFetchToolName, webSearchToolName, webToolNames, webToolsDisabledDenial } from "./web-tools";
 import { agentToolNames, agentToolNamesFor } from "./subagent";
 
 /** 决定工具组合所需的对话状态。 */
@@ -22,6 +23,8 @@ export interface ToolLoadoutOptions {
   scheduledTasks: boolean;
   browser: boolean;
   memoryEnabled: () => boolean;
+  /** 网页搜索与抓取当前是否可用；开关、提供商和密钥都就绪才为 true。 */
+  web?: () => { search: boolean; fetch: boolean };
   /** 常驻 Agent 的会话：没有文件与命令工具，只有协调工具。 */
   resident?: { isResident(entry: ToolLoadoutConversation): boolean };
 }
@@ -33,6 +36,7 @@ const memoryUpdateDenial = "当前模式或执行环境不允许写入长期记�
 
 const isAgentTool = (name: string) => (agentToolNames as readonly string[]).includes(name);
 const isMemoryTool = (name: string) => (memoryToolNames as readonly string[]).includes(name);
+const isWebTool = (name: string) => (webToolNames as readonly string[]).includes(name);
 
 /**
  * 原生工具（不含 MCP）的注册、激活与执行授权。
@@ -48,6 +52,7 @@ export class ToolLoadout {
       ...modeToolNames,
       ...agentToolNames,
       ...memoryToolNames,
+      ...(this.options.web ? webToolNames : []),
       ...(this.options.scheduledTasks ? scheduledTaskToolNames : []),
       ...(this.options.browser ? browserToolNames : []),
       ...(this.options.resident ? residentToolNames : []),
@@ -63,7 +68,7 @@ export class ToolLoadout {
     if (entry && this.isResident(entry)) return [...residentTools];
     const scheduled = this.options.scheduledTasks ? (mode === "plan" ? ["list_scheduled_tasks"] : scheduledTaskToolNames) : [];
     const tools = [...defaultToolPolicy.availableTools(mode, plan), ...scheduled];
-    if (entry) tools.push(...this.memory(entry));
+    if (entry) tools.push(...this.memory(entry), ...this.web());
     return tools;
   }
 
@@ -89,7 +94,7 @@ export class ToolLoadout {
   }
 
   readOnlyStage(entry: ToolLoadoutConversation): string[] {
-    return ["read", "bash", "ask_user_question", ...this.memory(entry)];
+    return ["read", "bash", "ask_user_question", ...this.memory(entry), ...this.web()];
   }
 
   /** 子代理的原生工具：按类型取 agent 工具，记忆只读，浏览器只给 general。 */
@@ -97,8 +102,16 @@ export class ToolLoadout {
     return [
       ...agentToolNamesFor(kind),
       ...(this.options.memoryEnabled() ? [memoryReadToolName] : []),
+      ...this.web(),
       ...(this.options.browser && kind === "general" ? browserToolNames : []),
     ];
+  }
+
+  /** 网页工具只读：Plan、子代理、配方只读阶段都可用，按能力是否就绪激活。 */
+  web(): string[] {
+    const ready = this.options.web?.();
+    if (!ready) return [];
+    return [...(ready.search ? [webSearchToolName] : []), ...(ready.fetch ? [webFetchToolName] : [])];
   }
 
   /**
@@ -123,6 +136,7 @@ export class ToolLoadout {
     if (isMemoryTool(call.toolName) && !this.options.memoryEnabled()) return { allowed: false, reason: memoryDisabledDenial };
     if (entry.recipeStageSideEffect && isAgentTool(call.toolName)) return { allowed: false, reason: recipeStageSubagentDenial };
     if (call.toolName === memoryUpdateToolName && !this.canUpdateMemory(entry)) return { allowed: false, reason: memoryUpdateDenial };
+    if (isWebTool(call.toolName)) return this.web().includes(call.toolName) ? { allowed: true } : { allowed: false, reason: webToolsDisabledDenial };
     if (entry.recipeStageSideEffect === "read_only") return defaultToolPolicy.authorizeCall({ ...call, mode: "plan" });
     if (isMcpTool(call.toolName)) return { allowed: true };
     if (this.options.scheduledTasks && call.toolName === "list_scheduled_tasks") return { allowed: true };

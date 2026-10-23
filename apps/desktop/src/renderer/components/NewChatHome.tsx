@@ -1,7 +1,7 @@
-import { useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useContext, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import type { InteractionMode } from "@vela/shared";
 import { activeIntlLocale, tr } from "../locale";
-import { AlertIcon, BranchIcon, CheckIcon, CommitIcon, DiffIcon, FileIcon, FolderIcon, RefreshIcon, SparkIcon } from "./icons";
+import { BranchIcon, CommitIcon, RefreshIcon, SparkIcon } from "./icons";
 import { ComposerSeedContext } from "./composer-seed-context";
 import { RecipeActionsContext } from "./recipe-actions-context";
 import { useReducedMotion } from "../hooks/useMotionPresence";
@@ -52,67 +52,108 @@ interface PresetPrompt {
   icon: ReactNode;
   label: [string, string];
   prompt: [string, string];
+  /** 卡片的主题色,图标底、描边和悬停光晕都由它派生。 */
+  tone: string;
   needsGit?: boolean;
   /** 只在非 Git 仓库里出现。 */
   needsNoGit?: boolean;
 }
 
+
+/** 预设卡片专用的双色图标:描边 + 一层淡淡的填充,比通用的单线图标更有分量。 */
+function Glyph({ children }: { children: ReactNode }) {
+  return (
+    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}
+      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+      {children}
+    </svg>
+  );
+}
+
+const CompassGlyph = () => (
+  <Glyph><circle cx="12" cy="12" r="9" /><path d="m15.8 8.2-2 5.6-5.6 2 2-5.6Z" fill="currentColor" fillOpacity={0.22} /></Glyph>
+);
+const BookGlyph = () => (
+  <Glyph><path d="M3 5.5A1.5 1.5 0 0 1 4.5 4H11v15H4.5A1.5 1.5 0 0 0 3 20.5Z" fill="currentColor" fillOpacity={0.22} /><path d="M21 5.5A1.5 1.5 0 0 0 19.5 4H13v15h6.5a1.5 1.5 0 0 1 1.5 1.5Z" /><path d="M3 5.5v15M21 5.5v15" /></Glyph>
+);
+const ReviewGlyph = () => (
+  <Glyph><circle cx="10.5" cy="10.5" r="6.5" fill="currentColor" fillOpacity={0.22} /><path d="m20 20-4.9-4.9M8 10.5l1.8 1.8L13 9" /></Glyph>
+);
+const BugGlyph = () => (
+  <Glyph><path d="M8.5 8.5a3.5 3.5 0 0 1 7 0v1H8.5Z" /><rect x="7" y="9.5" width="10" height="9" rx="5" fill="currentColor" fillOpacity={0.22} /><path d="M12 9.5v9M3.5 11.5H7M17 11.5h3.5M4 18l3.2-1.5M20 18l-3.2-1.5M4.5 6.5 8 8.5M19.5 6.5 16 8.5" /></Glyph>
+);
+const FlaskGlyph = () => (
+  <Glyph><path d="M9.5 3h5M10.5 3v6L5 18.5A2 2 0 0 0 6.7 21.5h10.6a2 2 0 0 0 1.7-3L13.5 9V3" /><path d="M7.6 15h8.8l2 3.5a1 1 0 0 1-.9 1.5H6.5a1 1 0 0 1-.9-1.5Z" fill="currentColor" fillOpacity={0.22} stroke="none" /></Glyph>
+);
+const DocGlyph = () => (
+  <Glyph><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z" fill="currentColor" fillOpacity={0.22} /><path d="M14 3v5h5M9 13h6M9 17h4" /></Glyph>
+);
+
 const presetPrompts: PresetPrompt[] = [
   {
     id: "explore",
-    icon: <FolderIcon size={14} />,
+    icon: <CompassGlyph />,
+    tone: "#3b82f6",
     label: ["了解项目", "Explore the project"],
     prompt: ["梳理这个项目的目录结构和主要模块，说明它是如何运行的。", "Walk me through this project's structure and main modules, and explain how it runs."],
   },
   {
     id: "git-init",
-    icon: <BranchIcon size={14} />,
+    icon: <BranchIcon size={16} />,
+    tone: "#f97316",
     label: ["初始化 Git", "Initialize Git"],
     prompt: ["为这个项目初始化 Git 仓库：先查看目录，补一份合适的 .gitignore，再完成首次提交。", "Initialize a Git repository for this project: inspect the directory, add a suitable .gitignore, then make the first commit."],
     needsNoGit: true,
   },
   {
     id: "readme",
-    icon: <FileIcon size={14} />,
+    icon: <BookGlyph />,
+    tone: "#14b8a6",
     label: ["撰写 README", "Write a README"],
     prompt: ["阅读这个项目，写一份清晰的 README，说明用途、安装和使用方法。", "Read this project and write a clear README covering its purpose, setup, and usage."],
     needsNoGit: true,
   },
   {
     id: "review",
-    icon: <DiffIcon size={14} />,
+    icon: <ReviewGlyph />,
+    tone: "#8b5cf6",
     label: ["审查改动", "Review my changes"],
     prompt: ["审查当前未提交的改动，指出潜在问题和可以改进的地方。", "Review my uncommitted changes and point out potential issues and improvements."],
     needsGit: true,
   },
   {
     id: "bugs",
-    icon: <AlertIcon size={14} />,
+    icon: <BugGlyph />,
+    tone: "#f43f5e",
     label: ["排查 Bug", "Hunt for bugs"],
     prompt: ["检查最近改动的代码，找出潜在的 Bug 并给出修复方案。", "Check the recently changed code for potential bugs and propose fixes."],
   },
   {
     id: "tests",
-    icon: <CheckIcon size={14} />,
+    icon: <FlaskGlyph />,
+    tone: "#22c55e",
     label: ["补充测试", "Add tests"],
     prompt: ["为核心逻辑补充单元测试，并运行它们确认全部通过。", "Add unit tests for the core logic and run them to make sure they pass."],
   },
   {
     id: "commit",
-    icon: <CommitIcon size={14} />,
+    icon: <CommitIcon size={16} />,
+    tone: "#f59e0b",
     label: ["撰写提交信息", "Commit message"],
     prompt: ["查看当前的改动，帮我写一条清晰规范的 commit 信息。", "Look at my current changes and write a clear, conventional commit message."],
     needsGit: true,
   },
   {
     id: "refactor",
-    icon: <RefreshIcon size={14} />,
+    icon: <RefreshIcon size={16} />,
+    tone: "#6366f1",
     label: ["重构代码", "Refactor code"],
     prompt: ["找出这个项目里最值得重构的部分，先给出方案，确认后再动手。", "Find the part of this project most worth refactoring. Propose a plan first and wait for my go-ahead."],
   },
   {
     id: "docs",
-    icon: <FileIcon size={14} />,
+    icon: <DocGlyph />,
+    tone: "#0ea5e9",
     label: ["完善文档", "Improve docs"],
     prompt: ["检查 README 和代码注释，补全缺失或过时的说明。", "Review the README and code comments, and fill in anything missing or out of date."],
   },
@@ -242,15 +283,16 @@ export function NewChatPrompts({ hasGit }: { hasGit: boolean }) {
   if (!conversationId || !seeds?.offer) return null;
   const offer = seeds.offer;
 
+  // 按 Git 状态换 key:切换仓库类型时整组重新挂载,所有卡片都重播入场动画,而不只是新出现的那几张。
   return (
-    <div className="home-prompts" role="list" aria-label={tr("预设提示词", "Suggested prompts")}>
+    <div key={hasGit ? "git" : "no-git"} className="home-prompts" role="list" aria-label={tr("预设提示词", "Suggested prompts")}>
       {prompts.map((item, index) => (
         <button
           key={item.id}
           type="button"
           role="listitem"
           className="home-prompt"
-          style={{ animationDelay: `${index * 40 + 120}ms` }}
+          style={{ animationDelay: `${index * 40 + 120}ms`, "--tone": item.tone } as CSSProperties}
           title={tr(item.prompt[0], item.prompt[1])}
           onClick={() => offer(conversationId, tr(item.prompt[0], item.prompt[1]))}
         >

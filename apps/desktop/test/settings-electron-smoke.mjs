@@ -32,8 +32,8 @@ try {
   const development = await ev("Boolean(window.vela.development)");
   assert.deepEqual(labels, ["General", "Agent", "Models & extensions", "Data & workspace", ...(development ? ["Development"] : [])]);
   const items = await ev("[...document.querySelectorAll('.settings-nav-item')].map(n => n.textContent)");
-  assert.equal(items.length, development ? 17 : 16);
-  console.log("PASS grouped nav keeps all 16 pages (plus developer tools in dev builds)");
+  assert.equal(items.length, development ? 18 : 17);
+  console.log("PASS grouped nav keeps all 17 pages (plus developer tools in dev builds)");
   // the update page talks to the real main-process service over IPC
   await ev("[...document.querySelectorAll('.settings-nav-item')].find(n => n.textContent === 'About & updates').click()");
   await until(() => ev("!!document.querySelector('.update-card')"), "updates page");

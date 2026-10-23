@@ -104,6 +104,9 @@ import {
 import { ModelDirectory } from "./model-directory";
 import { MemoryService } from "./memory";
 import { MemorySettings } from "./memory-settings";
+import { MemoryCredentialStore } from "./mcp/credentials";
+import { WebToolsService } from "./web-tools-service";
+import { createWebTools, webToolsInstructions, type WebToolPermission } from "./web-tools";
 import { TaskBudgetSettingsStore } from "./task-budget-settings";
 import { ContextLimitSettingsStore } from "./context-limit-settings";
 import { createTaskBudgetExtension, TaskBudgetTask } from "./task-budget";
@@ -211,6 +214,12 @@ export interface AgentRuntimeOptions {
   /** 记忆写入的沙箱审批入口；复用现有 ask / smart / full 写权限判断。 */
   memoryPermission?: MemoryWritePermission;
   mcpPermission?: McpPermission;
+  /** web_fetch 的审批入口；ask 逐条询问，smart 交给风险判断，full 直接放行。 */
+  webPermission?: WebToolPermission;
+  /** 网页工具密钥的加密存储；缺省时只存内存。 */
+  webToolsCredentialStore?: CredentialStore;
+  /** 测试可注入 fetch。 */
+  webToolsFetch?: typeof fetch;
   mcpOpenUrl?: (url: string) => void;
   pluginCredentialStore?: CredentialStore;
   builtInPlugins?: readonly BuiltInPlugin[];
@@ -380,6 +389,8 @@ export class AgentRuntime {
   /** 记忆服务入口：模型工具与桌面管理入口共用同一个实例；第一版是文件存储，不维护数据库副本。 */
   readonly memory: MemoryService;
   private readonly memorySettings: MemorySettings;
+  /** 网页搜索与抓取：提供商配置、密钥和 HTTP 调用；与模型提供商无关。 */
+  readonly webTools: WebToolsService;
   private readonly intelligentUiSettings: IntelligentUiSettings;
   private readonly taskBudgetSettings: TaskBudgetSettingsStore;
   private readonly contextLimitSettings: ContextLimitSettingsStore;
@@ -393,6 +404,13 @@ export class AgentRuntime {
     this.currentCwd = options.cwd;
     this.memory = new MemoryService({ agentDir: options.agentDir });
     this.memorySettings = new MemorySettings(options.agentDir);
+    this.webTools = new WebToolsService({
+      agentDir: options.agentDir,
+      credentials: options.webToolsCredentialStore ?? new MemoryCredentialStore(),
+      ...(options.webToolsFetch ? { fetch: options.webToolsFetch } : {}),
+    });
+    // 开关、提供商或密钥变化后，已打开的对话立刻增减工具。
+    this.webTools.onChange(() => { for (const entry of this.conversations.values()) this.applyActiveTools(entry); });
     this.intelligentUiSettings = new IntelligentUiSettings(options.agentDir);
     this.taskBudgetSettings = new TaskBudgetSettingsStore(options.agentDir);
     this.contextLimitSettings = new ContextLimitSettingsStore(options.agentDir);
@@ -402,6 +420,7 @@ export class AgentRuntime {
       scheduledTasks: Boolean(options.scheduledTasks),
       browser: Boolean(options.browserRepl),
       memoryEnabled: () => this.memorySettings.enabled,
+      web: () => this.webTools.ready(),
       ...(options.resident ? { resident: { isResident: entry => this.isResident(entry.id) } } : {}),
     });
     this.traces = new ConversationTraces({
@@ -2579,6 +2598,10 @@ export class AgentRuntime {
             event.systemPromptOptions.appendSystemPrompt = current ? `${current}\n\n${extra}` : extra;
           }); }) as ExtensionFactory,
         }, {
+          name: "vela-web-tools",
+          hidden: true,
+          factory: this.webToolsExtension(() => this.tools.web().length > 0 && !this.isResident(entry.id)),
+        }, {
           name: "vela-workspace-folders",
           hidden: true,
           factory: ((pi) => { pi.on("before_agent_start", event => {
@@ -2634,6 +2657,7 @@ export class AgentRuntime {
             ...this.browserTools(entry, entry.id),
             ...(this.options.scheduledTasks ? createScheduledTaskTools(this.options.scheduledTasks, cwd, () => entry.snapshot.mode !== "plan") : []),
             ...this.memoryTools(entry, entry.id, true),
+            ...this.webToolDefinitions(entry),
             ...createModeTools({
               updateExecutionPlan: (items) => this.updateExecutionPlan(entry, items),
               updateGoal: (status, note) => this.updateGoal(entry, status, note),
@@ -3360,6 +3384,7 @@ export class AgentRuntime {
         { name: "vela-task-budget", hidden: true, factory: createTaskBudgetExtension(() => entry.budget?.exhausted === true) },
         ...(input.beforeToolCall ? [{ name: "vela-agent-pause", hidden: true, factory: createAgentPauseExtension(input.beforeToolCall) }] : []),
         { name: "vela-memory", hidden: true, factory: this.memoryExtension(entry, input.agentId) },
+        { name: "vela-web-tools", hidden: true, factory: this.webToolsExtension(() => this.tools.web().length > 0) },
         ...mcp.factories(),
       ],
       appendSystemPromptOverride: (base) => [
@@ -3403,6 +3428,7 @@ export class AgentRuntime {
         ...childSandboxTools,
         ...input.customTools,
         ...this.memoryTools(entry, input.agentId, false),
+        ...this.webToolDefinitions(entry),
         ...(input.kind === "general" ? this.browserTools(entry, input.agentId, input.kind) : []),
       ],
     });
@@ -3537,6 +3563,27 @@ export class AgentRuntime {
 
   private browserInstructions(): string {
     return checksVisualWork(this.promptProfile) ? `${browserUseInstructions}\n${browserVisualCheckNote}` : browserUseInstructions;
+  }
+
+  /** 网页工具始终注册，是否激活由 ToolLoadout 按开关、提供商和密钥决定。 */
+  private webToolDefinitions(entry: Conversation): ToolDefinition[] {
+    const permission = this.options.webPermission;
+    return createWebTools({
+      service: this.webTools,
+      permission: permission ? { request: input => permission.request({ ...input, conversationId: entry.id, sandboxMode: entry.scheduledSandboxMode }) } : undefined,
+      conversationId: entry.id,
+      cwd: entry.snapshot.cwd,
+      sandboxMode: () => entry.scheduledSandboxMode,
+    });
+  }
+
+  /** 每轮读取当前状态，设置切换后下一轮立即生效。 */
+  private webToolsExtension(active: () => boolean): ExtensionFactory {
+    return ((pi) => { pi.on("before_agent_start", event => {
+      if (!active()) return;
+      const current = event.systemPromptOptions.appendSystemPrompt.trim();
+      event.systemPromptOptions.appendSystemPrompt = current ? `${current}\n\n${webToolsInstructions}` : webToolsInstructions;
+    }); }) as ExtensionFactory;
   }
 
   private browserTools(entry: Conversation, agentId: string, kind?: SubagentKind): ToolDefinition[] {

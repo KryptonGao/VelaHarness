@@ -321,6 +321,28 @@ export function ToolIcon({ size = 13 }: IconProps) {
   );
 }
 
+/** 网页搜索：放大镜里带一个经纬线地球。 */
+export function WebSearchIcon({ size = 13 }: IconProps) {
+  return (
+    <svg {...base(size)} aria-hidden="true">
+      <circle cx="10.5" cy="10.5" r="7" />
+      <path d="M3.5 10.5h14M10.5 3.5a10 10 0 0 1 0 14 10 10 0 0 1 0-14" />
+      <path d="m15.8 15.8 5.2 5.2" />
+    </svg>
+  );
+}
+
+/** 网页抓取：浏览器窗口里一支向下的箭头，表示把页面取回来。 */
+export function WebFetchIcon({ size = 13 }: IconProps) {
+  return (
+    <svg {...base(size)} aria-hidden="true">
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <path d="M3 9h18" />
+      <path d="M12 12v5.5M9.5 15l2.5 2.5 2.5-2.5" />
+    </svg>
+  );
+}
+
 export function EyeIcon({ size = 13 }: IconProps) {
   return (
     <svg {...base(size)}>
@@ -492,6 +514,90 @@ export function TagIcon({ size = 13 }: IconProps) {
     <svg {...base(size)}>
       <path d="M20.6 13.4 12 22l-9-9V4a1 1 0 0 1 1-1h9Z" />
       <circle cx="7.5" cy="7.5" r="1" />
+    </svg>
+  );
+}
+
+/* 会话视图标签专用的一套图标：统一 1.7 描边、圆角端点，主体加 22% 淡色填充。 */
+function viewTabBase(size: number) {
+  return {
+    width: size,
+    height: size,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 1.7,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+    "aria-hidden": true,
+  };
+}
+
+const VIEW_TAB_FILL = { fill: "currentColor", fillOpacity: 0.22 };
+
+/** 对话：带两行文字的气泡。 */
+export function ViewChatIcon({ size = 15 }: IconProps) {
+  return (
+    <svg {...viewTabBase(size)}>
+      <path {...VIEW_TAB_FILL} d="M7.5 4.5h9a4 4 0 0 1 4 4V13a4 4 0 0 1-4 4H11l-3.5 3v-3a4 4 0 0 1-4-4V8.5a4 4 0 0 1 4-4Z" />
+      <path d="M8 9.5h8M8 12.5h4.5" />
+    </svg>
+  );
+}
+
+/** 轨迹：纵向时间线，节点右侧各挂一条步骤。 */
+export function ViewTraceIcon({ size = 15 }: IconProps) {
+  return (
+    <svg {...viewTabBase(size)}>
+      <circle {...VIEW_TAB_FILL} cx="6" cy="5.5" r="1.9" />
+      <circle cx="6" cy="12" r="1.9" />
+      <circle cx="6" cy="18.5" r="1.9" />
+      <path d="M6 7.9v2.2M6 14.1v2.2" />
+      <path d="M11.5 5.5h8M11.5 12h5.5M11.5 18.5h8" />
+    </svg>
+  );
+}
+
+/** 版本控制：分叉再汇合的提交线。 */
+export function ViewBranchIcon({ size = 15 }: IconProps) {
+  return (
+    <svg {...viewTabBase(size)}>
+      <circle {...VIEW_TAB_FILL} cx="6" cy="5.5" r="2.3" />
+      <circle cx="6" cy="18.5" r="2.3" />
+      <circle cx="18" cy="8.5" r="2.3" />
+      <path d="M6 7.8v8.4M18 10.8c0 3.7-2.6 4.7-6 5.2-2.6.4-6 .2-6 0" />
+    </svg>
+  );
+}
+
+/** 使用统计：三根圆角柱。 */
+export function ViewUsageIcon({ size = 15 }: IconProps) {
+  return (
+    <svg {...viewTabBase(size)}>
+      <rect {...VIEW_TAB_FILL} x="4" y="12" width="4.2" height="8" rx="1.4" />
+      <rect x="9.9" y="4" width="4.2" height="16" rx="1.4" />
+      <rect x="15.8" y="8.5" width="4.2" height="11.5" rx="1.4" />
+    </svg>
+  );
+}
+
+/** 上下文：已占用的扇形，和输入框旁的占用环对应。 */
+export function ViewContextIcon({ size = 15 }: IconProps) {
+  return (
+    <svg {...viewTabBase(size)}>
+      <circle cx="12" cy="12" r="8.2" />
+      <path {...VIEW_TAB_FILL} d="M12 12V3.8a8.2 8.2 0 0 1 6.6 13.1Z" />
+    </svg>
+  );
+}
+
+/** 用量限制：半圆仪表盘。 */
+export function ViewGaugeIcon({ size = 15 }: IconProps) {
+  return (
+    <svg {...viewTabBase(size)}>
+      <path d="M5.13 18.5a8.5 8.5 0 1 1 13.74 0" />
+      <path d="M12 14l3.8-4.4" />
+      <circle cx="12" cy="14" r="1.7" fill="currentColor" stroke="none" />
     </svg>
   );
 }

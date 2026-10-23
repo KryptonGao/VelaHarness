@@ -4,16 +4,16 @@ import { composerStats } from "./composer-stats";
 import { tr } from "../../locale";
 
 /**
- * 输入框下方的会话统计条：轮数/步数/速度、累计 token 与缓存命中率、上下文占用环。
+ * 输入框下方的会话统计条：输出速度、累计 token 与缓存命中率、上下文占用环。
  * 没有数据的分组整个不渲染，全部缺失时整条隐藏。
  */
 export function ComposerStatsRow({ usage, contextPopover = false, part }: {
   usage: ContextUsage | undefined | null;
   contextPopover?: boolean;
-  /** 只渲染一部分：activity 为轮步与速度，usage 为累计 token 与上下文占用；不传则全部渲染。 */
+  /** 只渲染一部分：activity 为输出速度，usage 为累计 token 与上下文占用；不传则全部渲染。 */
   part?: "activity" | "usage";
 }) {
-  // 轮+步和 tok/s 是常驻信息：新对话也保留位置，不会让整条统计只剩占用环。
+  // tok/s 是常驻信息：新对话也保留位置，不会让整条统计只剩占用环。
   const stats = composerStats(usage, { alwaysShowActivity: true });
   const showActivity = part !== "usage";
   const showUsage = part !== "activity";
@@ -24,7 +24,6 @@ export function ComposerStatsRow({ usage, contextPopover = false, part }: {
     <div className="composer-stats-row" role="group" aria-label={tr("会话统计", "Chat stats")}>
       {showActivity && stats.activity ? (
         <span className="composer-stat" title={stats.activity}>
-          <span className="composer-stat-icon" aria-hidden="true"><ActivityIcon /></span>
           <span className="composer-stat-text">{stats.activity}</span>
         </span>
       ) : null}
@@ -72,16 +71,6 @@ function ContextRing({ percent }: { percent: number }) {
         />
       </svg>
     </span>
-  );
-}
-
-function ActivityIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 3v5h5" />
-      <path d="M3.05 13A9 9 0 1 0 6 5.3L3 8" />
-      <path d="M12 7v5l3 2" />
-    </svg>
   );
 }
 

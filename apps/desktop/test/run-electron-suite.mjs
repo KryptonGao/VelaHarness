@@ -21,6 +21,8 @@ const suites = {
     { name: "plugins-ui", runner: "node" },
     { name: "mcp-settings-ui", runner: "node" },
     { name: "memory-settings-ui", runner: "node" },
+    { name: "web-tools-ui", runner: "node" },
+    { name: "web-tools-card-ui", runner: "node" },
     { name: "chat-actions-ui", runner: "node" },
     { name: "workbench-chat-ui", runner: "node" },
     { name: "side-chat-ui", runner: "node" },

@@ -4,7 +4,7 @@ import { uiCopy } from "../intelligent-ui/copy";
 export type SettingsPageId =
   | "appearance" | "interface" | "shortcuts" | "updates"
   | "defaults" | "display" | "skills"
-  | "models" | "integrations" | "mcp" | "memory"
+  | "models" | "integrations" | "mcp" | "web" | "memory"
   | "workspace" | "archived" | "usage" | "storage" | "logs"
   | "development";
 
@@ -19,7 +19,7 @@ export interface SettingsGroup {
 export const settingsGroups: readonly SettingsGroup[] = [
   { id: "general", pages: ["appearance", "interface", "shortcuts", "updates"] },
   { id: "agent", pages: ["defaults", "display", "skills"] },
-  { id: "extensions", pages: ["models", "integrations", "mcp", "memory"] },
+  { id: "extensions", pages: ["models", "integrations", "mcp", "web", "memory"] },
   { id: "data", pages: ["workspace", "archived", "usage", "storage", "logs"] },
   { id: "development", pages: ["development"] },
 ];
@@ -101,6 +101,8 @@ export const settingsEntries: readonly SettingsEntry[] = [
   { id: "mcp-trust", page: "mcp", title: (c) => c.mcp.trustTitle, hint: (c) => c.mcp.trustHint, keywords: { zh: ["信任", "项目信任"], en: ["trust", "project trust"] } },
   { id: "mcp-import", page: "mcp", title: (c) => c.mcp.importTitle, hint: (c) => c.mcp.importHint, keywords: { zh: ["导入", "JSON", "mcpServers"], en: ["import", "json", "mcpServers"] } },
 
+  { id: "web-tools-enabled", page: "web", title: (c) => c.webTools.enabledLabel, hint: (c) => c.webTools.hint, keywords: { zh: ["网页", "搜索", "抓取", "联网", "web_search", "web_fetch", "DeepSeek"], en: ["web", "search", "fetch", "browse", "internet", "web_search", "web_fetch", "deepseek"] } },
+  { id: "web-tools-providers", page: "web", title: (c) => c.webTools.providersTitle, hint: (c) => c.webTools.keyHint, keywords: { zh: ["提供商", "密钥", "自定义接口", "API 密钥", "Tavily", "搜索接口"], en: ["provider", "api key", "custom endpoint", "tavily", "search api"] } },
   { id: "memory-enabled", page: "memory", title: (c) => c.memory.enabledLabel, hint: (c) => c.memory.enabledHint, keywords: { zh: ["记忆", "全局记忆", "项目记忆", "MEMORY.md"], en: ["memory", "global memory", "project memory", "MEMORY.md"] } },
 
   { id: "workspace-current", page: "workspace", title: (c) => c.workspace.current, keywords: { zh: ["工作区", "文件夹", "打开文件夹", "关闭工作区"], en: ["workspace", "folder", "project", "open folder"] } },

@@ -26,7 +26,7 @@ type ApprovalListener = (event: SandboxApprovalEvent) => void;
 
 /**
  * Agent 操作的权限门。三种模式:
- * - ask(默认):bash、browser_repl 和 MCP 逐条审批,工作区外文件写入也要审批;
+ * - ask(默认):bash、browser_repl、MCP 和网页抓取(web)逐条审批,工作区外文件写入也要审批;
  * - smart:交给当前对话模型判断,只有风险操作或判断失败时请求批准;
  * - full:在授权范围内直接放行。
  */
@@ -100,7 +100,7 @@ export class SandboxPermissionManager {
     if (mode === "full") return true;
     // 常驻 Agent 创建后台任务不是文件或命令操作，模型无法判断其风险：smart 模式下也交给用户。
     const alwaysAsk = input.kind === "delegate";
-    if (!alwaysAsk && mode === "ask" && input.kind !== "bash" && input.kind !== "browser_repl" && input.kind !== "mcp" && input.insideWorkspace === true) return true;
+    if (!alwaysAsk && mode === "ask" && input.kind !== "bash" && input.kind !== "browser_repl" && input.kind !== "mcp" && input.kind !== "web" && input.insideWorkspace === true) return true;
     if (!alwaysAsk && mode === "smart" && this.riskEvaluator) {
       const verdict = await withApprovalAbort(this.evaluateRisk(input), input.signal);
       if (input.signal?.aborted) return false;
@@ -227,6 +227,8 @@ function riskCacheKey(input: {
   insideWorkspace?: boolean;
 }): string {
   if (input.kind === "bash" || input.kind === "browser_repl") return `${input.kind}\0${input.command ?? ""}\0${input.cwd ?? ""}`;
+  // 网页抓取按完整 URL 缓存，不与文件操作共用「路径」键。
+  if (input.kind === "web") return `web\0${input.command ?? ""}`;
   return `file\0${input.insideWorkspace === true ? "in" : "out"}\0${input.path ?? ""}`;
 }
 

@@ -6,7 +6,7 @@ import { trf } from "../../locale";
  * 不上报缓存时，对应的一段整个不渲染，避免出现 "0 tok/s" 这种没意义的数字。
  */
 export interface ComposerStats {
-  /** 轮数 / 步数 / 速度，例如 "2 轮 11 步 · 241 tok/s"。 */
+  /** 输出速度，例如 "241 tok/s"。 */
   activity: string | null;
   /** 会话累计 token 与缓存命中率，例如 "257K tok · 缓存命中 97%"。 */
   tokens: string | null;
@@ -17,22 +17,17 @@ export interface ComposerStats {
 }
 
 export interface ComposerStatsOptions {
-  /** 轮数/步数和速度始终展示：还没有数据时轮步显示 0，速度显示 "—"。 */
+  /** 速度始终展示：还没有数据时显示 "— tok/s"。 */
   alwaysShowActivity?: boolean;
 }
 
 export function composerStats(usage: ContextUsage | undefined | null, options: ComposerStatsOptions = {}): ComposerStats {
-  const turnCount = Math.max(0, usage?.turnCount ?? 0);
-  const stepCount = Math.max(0, usage?.stepCount ?? 0);
   const speed = usage?.outputSpeed ?? null;
   const sessionTokens = usage?.sessionTokens ?? null;
   const hitRate = usage?.cacheHitRate ?? null;
   const percent = usage?.percent ?? null;
 
   const activityParts: string[] = [];
-  if (options.alwaysShowActivity || turnCount > 0 || stepCount > 0) {
-    activityParts.push(trf("{0} 轮 {1} 步", "{0} turns · {1} steps", turnCount, stepCount));
-  }
   if (speed !== null && speed > 0) {
     activityParts.push(`${formatSpeed(speed)} tok/s`);
   } else if (options.alwaysShowActivity) {

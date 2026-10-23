@@ -39,6 +39,30 @@ export type {
 export { PluginRegistry, builtInPlugins } from "./mcp/plugin-registry";
 export { OAuthMCPManager } from "./mcp/oauth";
 export { PluginMCPManager } from "./mcp/manager";
+export {
+  WebToolsError,
+  WebToolsService,
+  isPrivateHost,
+  parseFetchUrl,
+  parseWebProvider,
+  parseWebToolsConfig,
+  readPath as readWebToolsPath,
+  type WebFetchResponse,
+  type WebSearchHit,
+  type WebSearchResponse,
+  type WebToolsServiceOptions,
+} from "./web-tools-service";
+export {
+  createWebTools,
+  formatFetchResult,
+  formatSearchResults,
+  webFetchToolName,
+  webSearchToolName,
+  webToolNames,
+  webToolsInstructions,
+  type WebToolOptions,
+  type WebToolPermission,
+} from "./web-tools";
 export { MemoryCredentialStore, type CredentialStore } from "./mcp/credentials";
 export { parseThinkingSummaryInput } from "./thinking-summary";
 export { parseInputPredictionInput } from "./input-prediction";

@@ -12,6 +12,7 @@ import { SheetPresence } from "./Presence";
 import { IntegrationsSection } from "./IntegrationsSection";
 import { McpSettingsSection } from "./McpSettingsSection";
 import { MemorySettingsSection } from "./MemorySettingsSection";
+import { WebToolsSettingsSection } from "./WebToolsSettingsSection";
 import { settingsCopy } from "./settings-copy";
 import { SettingsUsageView } from "./usage/SettingsUsageView";
 import { AgentDefaultsPage } from "./settings/AgentDefaultsPage";
@@ -152,6 +153,7 @@ export function SettingsView({
           )}
           {page === "integrations" ? <IntegrationsSection locale={locale} workspacePath={workspacePath} conversationId={conversationDetached ? null : conversationId} /> : null}
           {page === "mcp" ? <McpSettingsSection locale={locale} workspacePath={workspacePath} conversationId={conversationId} detached={conversationDetached} /> : null}
+          {page === "web" ? <WebToolsSettingsSection locale={locale} /> : null}
           {page === "memory" ? <MemorySettingsSection locale={locale} conversationId={conversationId} /> : null}
           {page === "usage" ? <SettingsUsageView conversations={conversations} providers={models.catalog?.providers ?? []} /> : null}
           <div hidden={page !== "appearance"}>

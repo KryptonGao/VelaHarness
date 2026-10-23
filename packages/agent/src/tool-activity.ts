@@ -16,6 +16,9 @@ export function activityFromCall(toolName: string, args: unknown): ToolActivity 
     return { ...(outcome ? { outcome } : {}), ...(body ? { body } : {}) };
   }
   if (toolName === "browser_repl") return { command: readString(args, "code") };
+  // 网页工具：卡片标题直接显示搜索词或网址。
+  if (toolName === "web_search") return { command: readString(args, "query") };
+  if (toolName === "web_fetch") return { command: readString(args, "url") };
   const command = readString(args, "command");
   const path = readString(args, "path") ?? readString(args, "file_path");
   const mcp = mcpIdentity(toolName);

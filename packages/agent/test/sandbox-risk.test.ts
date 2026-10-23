@@ -113,3 +113,15 @@ describe("buildSandboxRiskMessage", () => {
     assert.ok(!message.includes("Current task"));
   });
 });
+
+describe("describeSandboxRiskAction for web fetches", () => {
+  it("shows the URL and how to judge it, without a file path", () => {
+    const text = describeSandboxRiskAction({
+      kind: "web", command: "https://example.com/docs?token=abc", path: null, cwd: "/repo", workspace: "/repo", insideWorkspace: false,
+    });
+    assert.match(text, /Fetch a web page/);
+    assert.match(text, /https:\/\/example\.com\/docs\?token=abc/);
+    assert.match(text, /leak/i);
+    assert.ok(!/Path:/.test(text));
+  });
+});

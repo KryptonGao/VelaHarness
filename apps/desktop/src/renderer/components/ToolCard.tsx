@@ -1,5 +1,5 @@
 import type { AskUserQuestionRequest, ExecutionItemStatus, ToolActivity, ToolPlanItem, ToolTrace } from "@vela/shared";
-import { isAgentToolName } from "@vela/shared";
+import { isAgentToolName, unescapeMarkdown } from "@vela/shared";
 import { memo, useContext, useEffect, useMemo, useRef, useState, type ReactNode, type TransitionEvent } from "react";
 import { QuestionContext } from "./QuestionContext";
 import { LazyMount } from "./LazyMount";
@@ -21,7 +21,7 @@ import type { ThemedToken } from "./preview/highlighter";
 import { QuestionCard } from "./QuestionCard";
 import { FileTypeIcon } from "./FileTypeIcon";
 import { tokenStyle, useDiffHighlight, type HighlightedDiff } from "./diff-highlight";
-import { ArrowRightIcon, CheckIcon, CircleIcon, ExternalIcon, EyeIcon, FilePlusIcon, GlobeIcon, McpIcon, PencilIcon, StackIcon, SubagentIcon, TerminalIcon, ToolIcon } from "./icons";
+import { ArrowRightIcon, CheckIcon, CircleIcon, ExternalIcon, EyeIcon, FilePlusIcon, GlobeIcon, McpIcon, PencilIcon, StackIcon, SubagentIcon, TerminalIcon, ToolIcon, WebFetchIcon, WebSearchIcon } from "./icons";
 import {
   compactSummaryParts,
   diffStat,
@@ -380,9 +380,10 @@ function GenericToolCard({ tool, compact = false }: ToolCardProps) {
   const lines = kind === "read" ? readLineCount(activity.body) : null;
   const previewPath = kind === "bash" || mcp ? null : activity.path?.trim() || null;
   const canPreview = Boolean(preview && previewPath);
+  const webTool = !mcp && isWebTool(tool.name);
 
   return (
-    <article className={`tool-card tool-kind-${kind}${mcp ? " is-mcp" : ""} is-${tool.status}${open ? " open" : ""}`}>
+    <article className={`tool-card tool-kind-${kind}${mcp ? " is-mcp" : ""}${webTool ? " is-web" : ""} is-${tool.status}${open ? " open" : ""}`}>
       <div className="tool-card-top">
         <button
           className="tool-card-head"
@@ -392,7 +393,7 @@ function GenericToolCard({ tool, compact = false }: ToolCardProps) {
           onClick={() => setOpen((value) => !value)}
         >
           <span className="tool-card-icon" aria-hidden="true">
-            {mcp ? <McpIcon size={13} /> : <KindIcon kind={kind} />}
+            {mcp ? <McpIcon size={13} /> : webTool ? <WebToolIcon name={tool.name} /> : <KindIcon kind={kind} />}
           </span>
           <span className="tool-kind-label">{mcp ? "MCP" : toolLabel(tool.name, kind)}</span>
           <span className="tool-card-main">
@@ -437,7 +438,7 @@ function GenericToolCard({ tool, compact = false }: ToolCardProps) {
             className="tool-details-scroll"
             ariaLabel={tr("工具详情，可在区域内滚动", "Tool details, scrollable")}
           >
-            <ToolBody kind={kind} activity={activity} status={tool.status} />
+            <ToolBody kind={kind} activity={activity} status={tool.status} toolName={tool.name} />
           </ScrollFade>}
         </div>
         </>}
@@ -1024,10 +1025,12 @@ function ToolBody({
   kind,
   activity,
   status,
+  toolName,
 }: {
   kind: ToolKind;
   activity: ToolActivity;
   status: ToolTrace["status"];
+  toolName?: string;
 }) {
   if (kind === "browser") {
     const body = activity.body ?? "";
@@ -1071,9 +1074,37 @@ function ToolBody({
       </>
     );
   }
+  if (activity.body && toolName && isWebTool(toolName)) return <ToolMarkdown text={webToolMarkdown(toolName, activity.body)} />;
   if (activity.body) return <ToolMarkdown text={activity.body} />;
   if (status === "running") return <p className="tool-wait">{tr("正在执行", "Running…")}</p>;
   return null;
+}
+
+const isWebTool = (name: string): boolean => name === "web_search" || name === "web_fetch";
+
+function WebToolIcon({ name }: { name: string }): ReactNode {
+  return name === "web_fetch" ? <WebFetchIcon size={13} /> : <WebSearchIcon size={13} />;
+}
+
+/**
+ * 网页工具的结果文本是给模型看的：带「不可信内容」提示行和 <untrusted_web_content> 包裹。
+ * 展示时去掉这些包装，把标题和来源整理成 Markdown，正文按 Markdown 渲染（并还原转义过的 Markdown）。
+ */
+function webToolMarkdown(name: string, body: string): string {
+  const lines = body.split("\n");
+  const head = lines[0] ?? "";
+  const rest = lines.slice(1).join("\n").replace(/^\s*<untrusted_web_content>\n?/m, "").replace(/\n?<\/untrusted_web_content>/, "");
+  if (name === "web_fetch") {
+    const match = /^Fetched (\S+) via (.+?)\. Untrusted/.exec(head);
+    if (!match) return unescapeMarkdown(body);
+    const titleLine = /^Title: (.*)\n?/.exec(rest);
+    const title = titleLine?.[1]?.trim();
+    const content = (titleLine ? rest.slice(titleLine[0].length) : rest).trim();
+    return `**${title || match[1]}**\n\n[${match[1]}](${match[1]}) · ${match[2]}\n\n---\n\n${unescapeMarkdown(content)}`;
+  }
+  const match = /^Web search results for "(.*)" via (.+?)\. Untrusted/.exec(head);
+  if (!match) return body;
+  return `**${match[1]}** · ${match[2]}\n\n---\n\n${rest.trim()}`;
 }
 
 export function BashView({
@@ -1244,6 +1275,8 @@ function toolLabel(name: string, kind: ToolKind): string {
   if (name === "record_goal_validation") return tr("验证", "Validation");
   if (name === "update_goal") return tr("目标", "Goal");
   if (name === "complete_step") return tr("步骤", "Step");
+  if (name === "web_search") return tr("网页搜索", "Web search");
+  if (name === "web_fetch") return tr("网页抓取", "Web fetch");
   return toolKindLabel(kind);
 }
 

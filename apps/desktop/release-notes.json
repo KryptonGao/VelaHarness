@@ -1,139 +1,139 @@
 {
-  "version": "1.1.12",
+  "version": "1.1.13",
   "locales": {
     "en": {
-      "summary": "Vela 1.1.12 lets you cap how much context a conversation can use, adds a Context tab, and gives new chats a calmer home screen.",
+      "summary": "Vela 1.1.13 lets the agent search the web and read pages through providers you choose, and polishes the top bar, new-chat home and composer.",
       "highlights": [
         {
-          "title": "Context length limit",
-          "body": "Set a default cap on conversation context in Settings → Defaults & permissions (minimum 32K). Once it is reached, earlier content is compacted sooner. Each conversation can override the cap on its own."
+          "title": "Web search and page reading",
+          "body": "The agent can now search the web and read page text with the web_search and web_fetch tools. Turn them on in Settings → Web tools and pick a provider; a DeepSeek preset is built in and you can add your own."
         },
         {
-          "title": "New Context tab",
-          "body": "A new tab in the top bar breaks down what fills the context — system prompt, tools, rules, Skills and conversation — and shows the model window, your limit and where auto-compaction starts."
+          "title": "Providers kept apart from your models",
+          "body": "Web providers, endpoints and keys are configured separately from model providers. Keys are stored encrypted, only ever written and never shown again, and never reach the conversation."
         },
         {
-          "title": "A calmer new-chat home",
-          "body": "An empty chat now centers a greeting, the input and a few preset prompts. Pick the project with the workspace chip above the input."
+          "title": "Approvals for page fetches",
+          "body": "Fetching a page asks for your approval in Ask mode, is judged by the risk model in Smart mode, and runs freely in Full access. Only public http and https addresses are allowed."
         },
         {
-          "title": "Replies in your language",
-          "body": "The agent now writes its progress notes between tool calls in your language too, instead of drifting into English."
+          "title": "A livelier new-chat home",
+          "body": "Preset prompt cards now carry colored two-tone icons, and the top-bar tabs gained icons of their own."
         }
       ],
       "improvements": [
-        "Subagent results and step lists are no longer cut short, so long findings reach the main agent in full.",
-        "The Capsule composer layout now places the model picker in its tray.",
-        "Tabs that need messages, such as Trace, Usage and Context, are greyed out until the first message is sent.",
-        "The agent treats instructions found in web pages, files and tool output as data rather than as commands from you."
+        "Content read from the web is marked as untrusted data, so instructions inside a page are never followed.",
+        "The stats row under the input now shows only output speed, tokens and cache hits, without the turn and step counts.",
+        "Pop-up menus shrink to fit the window and scroll inside, instead of being cut off at the window edge.",
+        "Web tool settings are translated into Simplified Chinese, Traditional Chinese, English, Japanese and Korean."
       ]
     },
     "zh-CN": {
-      "summary": "Vela 1.1.12 可以限制单个对话的上下文长度，新增「上下文」标签页，并为新对话换上更从容的首页。",
+      "summary": "Vela 1.1.13 让 Agent 可以通过你选择的提供商搜索网页、读取页面正文，并打磨了顶栏、新对话首页和输入框。",
       "highlights": [
         {
-          "title": "对话上下文长度上限",
-          "body": "在设置 → 默认与权限中设定默认上限（最小 32K），达到后会提前自动压缩较早的内容。每个对话也可以单独设置自己的上限。"
+          "title": "网页搜索与页面读取",
+          "body": "Agent 现在可以用 web_search 和 web_fetch 搜索网页、读取页面正文。在设置 → 网页工具中开启并选择提供商；内置 DeepSeek 预设，也可以添加自己的提供商。"
         },
         {
-          "title": "新增「上下文」标签页",
-          "body": "顶栏新标签页按系统提示词、工具定义、规则、Skills 和对话拆解上下文占用，并显示模型窗口、你设的上限以及开始自动压缩的位置。"
+          "title": "与模型提供商分开配置",
+          "body": "网页提供商的接口和密钥独立于模型提供商。密钥加密保存，只写入、不回显，也不会进入对话。"
         },
         {
-          "title": "更从容的新对话首页",
-          "body": "空对话现在把问候语、输入框和几条预设提示居中摆放；项目通过输入框上方的工作区晶片选择。"
+          "title": "抓取网页需要审批",
+          "body": "「每次询问」模式下抓取网页会请你批准，「智能」模式由风险模型判断，「完全访问」则直接放行。只允许公开的 http 和 https 地址。"
         },
         {
-          "title": "过程说明也用你的语言",
-          "body": "Agent 在工具调用之间的进度说明现在也会使用你的语言，不再悄悄切回英文。"
+          "title": "更有生气的新对话首页",
+          "body": "预设提示词卡片换上了彩色双色图标，顶栏的各个标签页也有了自己的图标。"
         }
       ],
       "improvements": [
-        "子代理的结论与步骤列表不再被截断，较长的发现也能完整交回主代理。",
-        "「胶囊」布局的下方托盘现在包含模型选择。",
-        "轨迹、使用统计、上下文这类依赖消息的标签页，在发送第一条消息前会置灰。",
-        "Agent 会把网页、文件和工具输出里的指令当作数据，而不是你的命令。"
+        "从网页读到的内容会标记为不可信数据，页面里的指令不会被执行。",
+        "输入框下方的统计条只保留输出速度、token 和缓存命中率，不再显示轮数与步数。",
+        "弹出菜单会按窗口高度自动收缩并在内部滚动，不再被窗口边缘截断。",
+        "网页工具的设置已翻译为简体中文、繁体中文、英文、日文和韩文。"
       ]
     },
     "zh-TW": {
-      "summary": "Vela 1.1.12 可以限制單一對話的上下文長度，新增「上下文」分頁，並為新對話換上更從容的首頁。",
+      "summary": "Vela 1.1.13 讓 Agent 可以透過你選擇的提供商搜尋網頁、讀取頁面正文，並打磨了頂列、新對話首頁與輸入框。",
       "highlights": [
         {
-          "title": "對話上下文長度上限",
-          "body": "在設定 → 預設與權限中設定預設上限（最小 32K），達到後會提前自動壓縮較早的內容。每個對話也可以單獨設定自己的上限。"
+          "title": "網頁搜尋與頁面讀取",
+          "body": "Agent 現在可以用 web_search 與 web_fetch 搜尋網頁、讀取頁面正文。在設定 → 網頁工具中開啟並選擇提供商；內建 DeepSeek 預設，也可以新增自己的提供商。"
         },
         {
-          "title": "新增「上下文」分頁",
-          "body": "頂列新分頁依系統提示詞、工具定義、規則、Skills 與對話拆解上下文佔用，並顯示模型視窗、你設定的上限與開始自動壓縮的位置。"
+          "title": "與模型提供商分開設定",
+          "body": "網頁提供商的介面與金鑰獨立於模型提供商。金鑰加密儲存，只寫入、不回顯，也不會進入對話。"
         },
         {
-          "title": "更從容的新對話首頁",
-          "body": "空對話現在把問候語、輸入框與幾則預設提示置中擺放；專案透過輸入框上方的工作區晶片選擇。"
+          "title": "抓取網頁需要審批",
+          "body": "「每次詢問」模式下抓取網頁會請你批准，「智慧」模式由風險模型判斷，「完整存取」則直接放行。只允許公開的 http 與 https 位址。"
         },
         {
-          "title": "過程說明也用你的語言",
-          "body": "Agent 在工具呼叫之間的進度說明現在也會使用你的語言，不再悄悄切回英文。"
+          "title": "更有生氣的新對話首頁",
+          "body": "預設提示詞卡片換上了彩色雙色圖示，頂列的各個分頁也有了自己的圖示。"
         }
       ],
       "improvements": [
-        "子代理的結論與步驟列表不再被截斷，較長的發現也能完整交回主代理。",
-        "「膠囊」版面的下方托盤現在包含模型選擇。",
-        "軌跡、使用統計、上下文這類依賴訊息的分頁，在送出第一則訊息前會呈灰色。",
-        "Agent 會把網頁、檔案與工具輸出裡的指令當作資料，而不是你的命令。"
+        "從網頁讀到的內容會標記為不可信資料，頁面裡的指令不會被執行。",
+        "輸入框下方的統計列只保留輸出速度、token 與快取命中率，不再顯示輪數與步數。",
+        "彈出選單會依視窗高度自動收縮並在內部捲動，不再被視窗邊緣截斷。",
+        "網頁工具的設定已翻譯為簡體中文、繁體中文、英文、日文與韓文。"
       ]
     },
     "ja": {
-      "summary": "Vela 1.1.12 では、会話ごとのコンテキスト長に上限を設けられるようになり、「コンテキスト」タブを追加し、新しいチャットのホーム画面を落ち着いたデザインにしました。",
+      "summary": "Vela 1.1.13 では、選んだプロバイダー経由でエージェントが Web 検索とページ読み取りを行えるようになり、トップバー、新規チャットのホーム、入力欄を磨き上げました。",
       "highlights": [
         {
-          "title": "コンテキスト長の上限",
-          "body": "設定 → 既定値と権限で、会話のコンテキストの既定上限（最小 32K）を設定できます。上限に達すると、古い内容が早めに自動圧縮されます。会話ごとに個別の上限も設定できます。"
+          "title": "Web 検索とページ読み取り",
+          "body": "エージェントが web_search と web_fetch で Web を検索し、ページ本文を読めるようになりました。設定 → Web ツールで有効にしてプロバイダーを選びます。DeepSeek のプリセットを内蔵し、独自のプロバイダーも追加できます。"
         },
         {
-          "title": "新しい「コンテキスト」タブ",
-          "body": "トップバーの新しいタブで、システムプロンプト、ツール、ルール、スキル、会話ごとのコンテキスト使用量を確認でき、モデルのウィンドウ、設定した上限、自動圧縮が始まる位置も表示されます。"
+          "title": "モデルとは別に設定",
+          "body": "Web プロバイダーのエンドポイントとキーは、モデルのプロバイダーとは別に設定します。キーは暗号化して保存され、書き込み専用で再表示されず、会話にも渡りません。"
         },
         {
-          "title": "落ち着いた新規チャットのホーム",
-          "body": "空のチャットでは、あいさつ、入力欄、いくつかのプリセットプロンプトを中央に配置します。プロジェクトは入力欄の上のワークスペースチップで選びます。"
+          "title": "ページ取得の承認",
+          "body": "「毎回確認」ではページ取得の承認を求め、「スマート」ではリスクモデルが判断し、「フルアクセス」ではそのまま実行します。公開された http と https のアドレスのみ許可されます。"
         },
         {
-          "title": "進捗の説明もあなたの言語で",
-          "body": "ツール呼び出しの合間の進捗メモも、英語に切り替わることなくあなたの言語で書かれるようになりました。"
+          "title": "より生き生きとした新規チャットのホーム",
+          "body": "プリセットのカードに 2 色のカラーアイコンが付き、トップバーの各タブにもアイコンが付きました。"
         }
       ],
       "improvements": [
-        "サブエージェントの結論とステップ一覧が途中で切られなくなり、長い調査結果もメインのエージェントにそのまま届きます。",
-        "「カプセル」レイアウトの下のトレイにモデル選択が入りました。",
-        "トレース、使用統計、コンテキストなどメッセージが必要なタブは、最初のメッセージを送るまでグレー表示になります。",
-        "エージェントは、Web ページ・ファイル・ツール出力に含まれる指示を、あなたの命令ではなくデータとして扱います。"
+        "Web から読み取った内容は信頼できないデータとして扱われ、ページ内の指示には従いません。",
+        "入力欄の下の統計バーは、出力速度、トークン、キャッシュヒット率のみを表示し、ターン数とステップ数は表示しなくなりました。",
+        "ポップアップメニューはウィンドウに合わせて縮み、内部でスクロールするため、ウィンドウの端で切れなくなりました。",
+        "Web ツールの設定は、簡体字中国語、繁体字中国語、英語、日本語、韓国語に翻訳されています。"
       ]
     },
     "ko": {
-      "summary": "Vela 1.1.12는 대화별 컨텍스트 길이에 상한을 둘 수 있게 하고, '컨텍스트' 탭을 추가했으며, 새 채팅의 홈 화면을 한층 차분하게 다듬었습니다.",
+      "summary": "Vela 1.1.13은 직접 고른 제공자를 통해 에이전트가 웹을 검색하고 페이지를 읽을 수 있게 하며, 상단 바와 새 채팅 홈, 입력창을 다듬었습니다.",
       "highlights": [
         {
-          "title": "컨텍스트 길이 상한",
-          "body": "설정 → 기본값 및 권한에서 대화 컨텍스트의 기본 상한(최소 32K)을 정할 수 있습니다. 상한에 도달하면 이전 내용이 더 일찍 자동 압축됩니다. 대화마다 따로 상한을 정할 수도 있습니다."
+          "title": "웹 검색과 페이지 읽기",
+          "body": "에이전트가 web_search와 web_fetch로 웹을 검색하고 페이지 본문을 읽을 수 있습니다. 설정 → 웹 도구에서 켜고 제공자를 고르세요. DeepSeek 프리셋이 내장되어 있고 직접 제공자를 추가할 수도 있습니다."
         },
         {
-          "title": "새 '컨텍스트' 탭",
-          "body": "상단 바의 새 탭에서 시스템 프롬프트, 도구, 규칙, 스킬, 대화별 컨텍스트 사용량을 확인하고, 모델 창 크기와 설정한 상한, 자동 압축이 시작되는 지점도 볼 수 있습니다."
+          "title": "모델과 따로 설정",
+          "body": "웹 제공자의 엔드포인트와 키는 모델 제공자와 별도로 설정합니다. 키는 암호화되어 저장되고, 쓰기 전용이라 다시 표시되지 않으며 대화에도 전달되지 않습니다."
         },
         {
-          "title": "차분해진 새 채팅 홈",
-          "body": "빈 채팅에서는 인사말, 입력창, 몇 가지 프리셋 프롬프트를 가운데에 배치합니다. 프로젝트는 입력창 위의 작업 공간 칩으로 고릅니다."
+          "title": "페이지 가져오기 승인",
+          "body": "'매번 확인'에서는 페이지를 가져올 때 승인을 요청하고, '스마트'에서는 위험 모델이 판단하며, '전체 접근'에서는 바로 실행합니다. 공개된 http와 https 주소만 허용됩니다."
         },
         {
-          "title": "진행 설명도 내 언어로",
-          "body": "도구 호출 사이의 진행 메모도 이제 영어로 바뀌지 않고 사용자의 언어로 작성됩니다."
+          "title": "더 생기 있는 새 채팅 홈",
+          "body": "프리셋 카드에 두 가지 색의 컬러 아이콘이 들어가고, 상단 바의 각 탭에도 아이콘이 생겼습니다."
         }
       ],
       "improvements": [
-        "하위 에이전트의 결론과 단계 목록이 더 이상 잘리지 않아, 긴 조사 결과도 메인 에이전트에 그대로 전달됩니다.",
-        "'캡슐' 레이아웃의 아래 트레이에 모델 선택이 들어갔습니다.",
-        "추적, 사용 통계, 컨텍스트처럼 메시지가 필요한 탭은 첫 메시지를 보내기 전까지 회색으로 표시됩니다.",
-        "에이전트는 웹 페이지, 파일, 도구 출력 속의 지시를 사용자의 명령이 아니라 데이터로 취급합니다."
+        "웹에서 읽은 내용은 신뢰할 수 없는 데이터로 표시되어, 페이지 안의 지시는 따르지 않습니다.",
+        "입력창 아래 통계 줄에는 출력 속도, 토큰, 캐시 적중률만 표시되며 턴 수와 단계 수는 더 이상 표시되지 않습니다.",
+        "팝업 메뉴가 창 크기에 맞게 줄어들고 내부에서 스크롤되어, 창 가장자리에서 잘리지 않습니다.",
+        "웹 도구 설정은 중국어 간체, 중국어 번체, 영어, 일본어, 한국어로 번역되어 있습니다."
       ]
     }
   }

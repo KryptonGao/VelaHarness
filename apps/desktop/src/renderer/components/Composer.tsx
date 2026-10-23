@@ -646,7 +646,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
       onSteer={() => void submit(true)} onAbort={onAbort} />
   );
 
-  // 新对话没有任何统计可看（0 轮 0 步、占用只有系统提示），整组不显示。
+  // 新对话没有任何统计可看（占用只有系统提示），整组不显示。
   const showStats = !showSetupControls;
   const stats = showStats ? (
     <ComposerStatsRow usage={usage} contextPopover={contextPopover} />

@@ -15,6 +15,7 @@ import { isPlanSafeCommand } from "./plan-command";
 import { executionPlanItemMax, type ExecutionPlanUpdateItem } from "./plan";
 import { agentToolNames } from "./subagent";
 import { memoryReadToolName } from "./memory-tools";
+import { webToolNames } from "./web-tools";
 import type { GoalValidationDraft } from "./goal-validation";
 
 export const goalContinuePrompt =
@@ -118,7 +119,7 @@ export interface ToolPolicy {
   authorizeCall(call: ToolPolicyCall): ToolAuthorizationResult;
 }
 
-const planAllowedTools = new Set(["read", "bash", "ask_user_question", memoryReadToolName]);
+const planAllowedTools = new Set(["read", "bash", "ask_user_question", memoryReadToolName, ...webToolNames]);
 const planDeniedTools = new Set(["edit", "write", "apply_patch"]);
 
 export class DefaultToolPolicy implements ToolPolicy {

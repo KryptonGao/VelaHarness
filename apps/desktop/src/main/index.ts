@@ -45,6 +45,7 @@ import { ProactiveRuleService } from "./proactive-rules";
 import { ResidentTray, type TrayAction } from "./resident-tray";
 import { McpHost } from "./mcp-host";
 import { MemoryHost } from "./memory-host";
+import { WebToolsHost } from "./web-tools-host";
 import { SecureCredentialStore } from "./plugin-credentials";
 import { ensureLoginShellPath } from "./shell-path";
 import { PrInboxHost } from "./pr-inbox-host";
@@ -88,6 +89,7 @@ const preloadPath = join(rootDir, "../preload/index.js");
 
 let mcpHost: McpHost | null = null;
 let memoryHost: MemoryHost | null = null;
+let webToolsHost: WebToolsHost | null = null;
 let scheduledTaskHost: ScheduledTaskHost | null = null;
 let agentInboxAdapter: AgentInboxAdapter | null = null;
 let agentInboxHost: AgentInboxHost | null = null;
@@ -362,6 +364,8 @@ async function start(): Promise<void> {
     mcpPermission: { request: (input) => sandbox.request({ ...input, workspace: input.cwd }) },
     browserReplPermission: { request: (input) => sandbox.request({ ...input, workspace: input.cwd }) },
     memoryPermission: { request: (input) => sandbox.request({ ...input, workspace: input.workspace ?? input.cwd }) },
+    webPermission: { request: (input) => sandbox.request({ ...input, workspace: input.cwd }) },
+    webToolsCredentialStore: new SecureCredentialStore(join(home, "web-tools-auth.enc.json")),
     cwd: fallbackCwd,
     workspaceFolders: cwd => workspaceManager.foldersOf(cwd),
     isWorkspaceCwd: (cwd) => (cwd !== fallbackCwd && cwd !== legacyFallbackCwd) || workspaceManager.getState().recents.some(recent => recent.path === cwd),
@@ -627,6 +631,8 @@ async function start(): Promise<void> {
   mcpHost.register();
   memoryHost = new MemoryHost(runtime, { workspaces: registeredWorkspaces });
   memoryHost.register();
+  webToolsHost = new WebToolsHost(runtime);
+  webToolsHost.register();
   terminals = new TerminalHost(() => workspaceManager.getState().current ?? fallbackCwd);
   terminals.register();
   registerOpenTargetIpc();
@@ -721,6 +727,8 @@ app.on("before-quit", (event) => {
   mcpHost = null;
   memoryHost?.dispose();
   memoryHost = null;
+  webToolsHost?.dispose();
+  webToolsHost = null;
   const closing = host?.dispose();
   browserRepl?.dispose();
   browserRepl = null;

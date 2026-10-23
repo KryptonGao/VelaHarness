@@ -1779,8 +1779,9 @@ code,
 @keyframes logo-draw { to { stroke-dashoffset: 0; } }
 @keyframes logo-wash { to { fill-opacity: 1; } }
 @keyframes logo-float {
-  from { transform: translateY(-5px); }
-  to { transform: translateY(7px); }
+  /* 起点必须是 0:描边期间浮动层停在原位,延迟结束后若从非 0 起步会向上跳一下。 */
+  from { transform: translateY(0); }
+  to { transform: translateY(10px); }
 }
 @media (prefers-reduced-motion: reduce) {
   .home-logo { transition: none; }
@@ -1879,11 +1880,14 @@ code,
   .home-prompts { --home-prompt-columns: 2; }
 }
 .home-prompt {
+  --tone: var(--accent-blue);
   flex: 0 0 calc((100% - 8px * (var(--home-prompt-columns) - 1)) / var(--home-prompt-columns));
   min-width: 0;
+  position: relative;
+  overflow: hidden;
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 10px;
   padding: 9px 12px 9px 9px;
   border-radius: var(--radius-md);
   border: 1px solid var(--border-subtle);
@@ -1894,32 +1898,34 @@ code,
   text-align: left;
   cursor: pointer;
   animation: home-rise 360ms var(--motion-ease-enter) backwards;
-  transition: background 140ms var(--motion-ease-enter), border-color 140ms var(--motion-ease-enter),
-    color 140ms var(--motion-ease-enter), transform 140ms var(--motion-ease-enter);
+  transition: background 160ms var(--motion-ease-enter), border-color 160ms var(--motion-ease-enter),
+    transform 160ms var(--motion-ease-enter), box-shadow 160ms var(--motion-ease-enter);
 }
 .home-prompt:hover {
-  background: var(--bg-hover);
-  border-color: var(--border-strong);
+  border-color: color-mix(in srgb, var(--tone) 32%, var(--border-strong));
   color: var(--text-primary);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px -8px rgba(20, 30, 50, 0.28);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px -10px rgba(20, 30, 50, 0.32);
 }
-.home-prompt:hover .home-prompt-icon { transform: rotate(-8deg) scale(1.08); }
 .home-prompt:active { transform: scale(0.97); box-shadow: none; }
-.home-prompt:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 2px; }
+.home-prompt:focus-visible { outline: 2px solid var(--tone); outline-offset: 2px; }
 .home-prompt-icon {
   display: inline-flex;
   flex: none;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
-  border-radius: var(--radius-sm);
-  background: var(--bg-surface-subtle);
-  color: var(--accent-blue);
-  transition: background 140ms var(--motion-ease-enter), transform 220ms var(--motion-ease-enter);
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  /* 克制的淡色底,图标取主题色但略向正文色靠拢,和整体的素净风格保持一致。 */
+  background: color-mix(in srgb, var(--tone) 12%, transparent);
+  color: color-mix(in srgb, var(--tone) 78%, var(--text-primary));
+  transition: background 160ms var(--motion-ease-enter), transform 220ms var(--motion-ease-enter);
 }
-.home-prompt:hover .home-prompt-icon { background: var(--bg-card-surface); }
+.home-prompt:hover .home-prompt-icon {
+  background: color-mix(in srgb, var(--tone) 20%, transparent);
+  transform: scale(1.06);
+}
 @keyframes home-rise {
   from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: none; }
@@ -2518,6 +2524,8 @@ code,
 .tool-kind-edit { --tool-accent: var(--tool-edit); --tool-tint: var(--tool-edit-tint); }
 .tool-kind-write { --tool-accent: var(--tool-write); --tool-tint: var(--tool-write-tint); }
 .tool-kind-other { --tool-accent: var(--tool-other); --tool-tint: var(--tool-other-tint); }
+.tool-card.is-web { --tool-accent: var(--tool-icon-web); --tool-tint: color-mix(in srgb, var(--tool-icon-web) 14%, transparent); }
+.tool-card.is-web .tool-kind-label { width: auto; min-width: 44px; white-space: nowrap; }
 .tool-card-head {
   display: flex;
   align-items: center;
@@ -2628,10 +2636,6 @@ code,
   transition: transform var(--transition-smooth);
 }
 .tool-card.open .tool-chevron { transform: rotate(90deg); }
-.tool-card.is-running .tool-card-icon {
-  box-shadow: 0 0 0 0 color-mix(in srgb, var(--tool-accent) 45%, transparent);
-  animation: tool-pulse 1.4s ease-out infinite;
-}
 
 /* 连续多个工具的折叠分组 */
 .tool-run {
@@ -2690,10 +2694,6 @@ code,
   transition: transform var(--transition-smooth);
 }
 .tool-run.open .tool-run-chevron { transform: rotate(90deg); }
-.tool-run.is-running .tool-card-icon {
-  box-shadow: 0 0 0 0 color-mix(in srgb, var(--tool-accent) 45%, transparent);
-  animation: tool-pulse 1.4s ease-out infinite;
-}
 .tool-run-body {
   display: flex;
   flex-direction: column;
@@ -3293,6 +3293,7 @@ button.tool-compact-line:hover .tool-compact-cmd {
   --tool-icon-agent: #b43fc7;
   --tool-icon-ask: #0284c7;
   --tool-icon-other: #e0603c;
+  --tool-icon-web: #2f7fd6;
   --tool-icon-think: #84a10d;
 }
 [data-scheme="dark"] {
@@ -3305,6 +3306,7 @@ button.tool-compact-line:hover .tool-compact-cmd {
   --tool-icon-agent: #e19af0;
   --tool-icon-ask: #7dd3fc;
   --tool-icon-other: #fb9b7e;
+  --tool-icon-web: #7ab8f5;
   --tool-icon-think: #c3e35c;
 }
 :root[data-tool-icon-color="true"] .tool-compact-icon,
@@ -3324,6 +3326,7 @@ button.tool-compact-line:hover .tool-compact-cmd {
 :root[data-tool-icon-color="true"] .tool-card-list.is-compact .tool-card.is-mcp .tool-card-icon { color: var(--tool-icon-mcp); }
 :root[data-tool-icon-color="true"] .tool-card-list.is-compact .tool-card.is-task .tool-card-icon,
 :root[data-tool-icon-color="true"] .tool-compact-item.agent-compact .tool-compact-icon { color: var(--tool-icon-agent); }
+:root[data-tool-icon-color="true"] .tool-card-list.is-compact .tool-card.is-web .tool-card-icon { color: var(--tool-icon-web); }
 :root[data-tool-icon-color="true"] .question-compact-icon { color: var(--tool-icon-ask); }
 .thinking-icon { display: none; }
 .main-chat-view[data-tool-display="compact"] .thinking-icon {
@@ -3883,10 +3886,6 @@ button.tool-compact-line:hover .tool-compact-cmd {
   overflow-wrap: anywhere;
 }
 @keyframes tool-spin { to { transform: rotate(360deg); } }
-@keyframes tool-pulse {
-  70% { box-shadow: 0 0 0 6px transparent; }
-  100% { box-shadow: 0 0 0 0 transparent; }
-}
 
 .chat-dock-wrapper {
   position: absolute;
@@ -8673,6 +8672,9 @@ button.turn-changes-path:hover { color: var(--accent-blue); }
   --chat-lane-shrink: 0px;
 }
 .chat-conversation-pane[hidden] { display: none; }
+/* 对话区自成层叠上下文(z-index 1),低于选项卡(2);首页向上展开的弹层会被选项卡压住,
+   所以弹层打开时把整个对话区抬到选项卡之上。平时不抬,大 Logo 仍压在选项卡下面。 */
+.chat-conversation-pane:has(.dock-popover) { z-index: 3; }
 /* 离开底部后浮在输入框上方,点击回到最新输出并恢复跟随。 */
 .chat-jump-latest {
   position: absolute; left: 50%; bottom: calc(var(--composer-clearance, 120px) - 24px); z-index: 3;
@@ -8695,7 +8697,9 @@ button.turn-changes-path:hover { color: var(--accent-blue); }
 .conversation-view-tabs button[aria-selected="true"] { color: var(--accent-blue); }
 /* 对话视图分页:更大的点击区,间距相应收紧,视觉密度不变。 */
 .conversation-view-tabs.chat-view-tabs { gap: 4px; padding-inline: 14px; }
-.conversation-view-tabs.chat-view-tabs button { padding: 0 8px; font-size: 13px; }
+.conversation-view-tabs.chat-view-tabs button { display: inline-flex; align-items: center; gap: 6px; padding: 0 10px; font-size: 13px; font-weight: 500; }
+.conversation-view-tabs.chat-view-tabs button svg { flex: none; opacity: 0.8; }
+.conversation-view-tabs.chat-view-tabs button[aria-selected="true"] svg { opacity: 1; }
 .conversation-view-tabs.chat-view-tabs button[aria-disabled="true"] { opacity: 0.4; cursor: default; }
 .conversation-view-tabs.chat-view-tabs button[aria-disabled="true"]:hover { color: var(--text-muted); }
 /* 共享滑动下划线:始终跟随激活标签,切换时补间 translateX/width 滑动伸缩,
