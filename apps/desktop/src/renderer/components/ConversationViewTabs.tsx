@@ -1,5 +1,5 @@
-import type { ReactNode } from "react";
-import { tr } from "../locale";
+import { useLayoutEffect, type ReactNode } from "react";
+import { tr, useAppLocale } from "../locale";
 import { ViewBranchIcon, ViewChatIcon, ViewContextIcon, ViewGaugeIcon, ViewTraceIcon, ViewUsageIcon } from "./icons";
 import { useSlidingTabIndicator } from "./useSlidingTabIndicator";
 
@@ -32,6 +32,25 @@ interface ConversationViewTabsProps {
 /** 顶部会话视图选项卡:共享下划线跟随激活项滑动,悬停激活项时向两侧展开。 */
 export function ConversationViewTabs({ view, showVersionControl, emptyConversation = false, onChange }: ConversationViewTabsProps) {
   const tabs = useSlidingTabIndicator({ activeKey: view });
+  const locale = useAppLocale();
+
+  // 逐级收窄:图标+文字 -> 只留文字 -> 只留图标。每级都同步量一次溢出,不会闪烁。
+  useLayoutEffect(() => {
+    const nav = tabs.navRef.current;
+    if (!nav) return;
+    const overflows = () => nav.scrollWidth > nav.clientWidth;
+    const fit = () => {
+      delete nav.dataset.compact;
+      if (!overflows()) return;
+      nav.dataset.compact = "text";
+      if (!overflows()) return;
+      nav.dataset.compact = "icon";
+    };
+    fit();
+    const observer = new ResizeObserver(fit);
+    observer.observe(nav);
+    return () => observer.disconnect();
+  }, [tabs.navRef, showVersionControl, locale]);
 
   return (
     <nav
@@ -52,7 +71,8 @@ export function ConversationViewTabs({ view, showVersionControl, emptyConversati
             data-tab-key={key}
             aria-selected={view === key}
             aria-disabled={unavailable || undefined}
-            title={unavailable ? tr("发送第一条消息后可用", "Available after the first message") : undefined}
+            aria-label={tr(chinese, english)}
+            title={unavailable ? tr("发送第一条消息后可用", "Available after the first message") : tr(chinese, english)}
             ref={tabs.registerTab(key)}
             onClick={() => { if (!unavailable) onChange(key); }}
           >

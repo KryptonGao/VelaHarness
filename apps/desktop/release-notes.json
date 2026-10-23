@@ -1,139 +1,89 @@
 {
-  "version": "1.1.13",
+  "version": "1.1.14",
   "locales": {
     "en": {
-      "summary": "Vela 1.1.13 lets the agent search the web and read pages through providers you choose, and polishes the top bar, new-chat home and composer.",
+      "summary": "Vela 1.1.14 makes the top bar and the composer tray adapt to narrow windows instead of wrapping or getting cut off.",
       "highlights": [
         {
-          "title": "Web search and page reading",
-          "body": "The agent can now search the web and read page text with the web_search and web_fetch tools. Turn them on in Settings → Web tools and pick a provider; a DeepSeek preset is built in and you can add your own."
+          "title": "Top-bar tabs fit narrow panels",
+          "body": "When the tabs no longer fit, they first drop their icons and keep the text, then keep only the icons. Every tab still shows its name on hover."
         },
         {
-          "title": "Providers kept apart from your models",
-          "body": "Web providers, endpoints and keys are configured separately from model providers. Keys are stored encrypted, only ever written and never shown again, and never reach the conversation."
-        },
-        {
-          "title": "Approvals for page fetches",
-          "body": "Fetching a page asks for your approval in Ask mode, is judged by the risk model in Smart mode, and runs freely in Full access. Only public http and https addresses are allowed."
-        },
-        {
-          "title": "A livelier new-chat home",
-          "body": "Preset prompt cards now carry colored two-tone icons, and the top-bar tabs gained icons of their own."
+          "title": "A composer tray that never wraps",
+          "body": "The row under the input stays on one line. When space runs out, the stats are hidden step by step: speed first, then tokens and cache hits, then the usage percentage and ring. Mode, permissions and model always stay."
         }
       ],
       "improvements": [
-        "Content read from the web is marked as untrusted data, so instructions inside a page are never followed.",
-        "The stats row under the input now shows only output speed, tokens and cache hits, without the turn and step counts.",
-        "Pop-up menus shrink to fit the window and scroll inside, instead of being cut off at the window edge.",
-        "Web tool settings are translated into Simplified Chinese, Traditional Chinese, English, Japanese and Korean."
+        "Top-bar tabs no longer wrap their labels and can scroll sideways as a last resort.",
+        "Tabs now carry an accessible label, so screen readers still announce them when only the icon is visible."
       ]
     },
     "zh-CN": {
-      "summary": "Vela 1.1.13 让 Agent 可以通过你选择的提供商搜索网页、读取页面正文，并打磨了顶栏、新对话首页和输入框。",
+      "summary": "Vela 1.1.14 让顶栏和输入框托盘在窄窗口下自动适配，不再换行或被截断。",
       "highlights": [
         {
-          "title": "网页搜索与页面读取",
-          "body": "Agent 现在可以用 web_search 和 web_fetch 搜索网页、读取页面正文。在设置 → 网页工具中开启并选择提供商；内置 DeepSeek 预设，也可以添加自己的提供商。"
+          "title": "顶栏标签适配窄面板",
+          "body": "标签放不下时，先去掉图标只留文字，仍放不下再只留图标。悬停时每个标签仍会显示名称。"
         },
         {
-          "title": "与模型提供商分开配置",
-          "body": "网页提供商的接口和密钥独立于模型提供商。密钥加密保存，只写入、不回显，也不会进入对话。"
-        },
-        {
-          "title": "抓取网页需要审批",
-          "body": "「每次询问」模式下抓取网页会请你批准，「智能」模式由风险模型判断，「完全访问」则直接放行。只允许公开的 http 和 https 地址。"
-        },
-        {
-          "title": "更有生气的新对话首页",
-          "body": "预设提示词卡片换上了彩色双色图标，顶栏的各个标签页也有了自己的图标。"
+          "title": "不再换行的输入框托盘",
+          "body": "输入框下方这一行始终保持单行。空间不足时统计信息逐级隐藏：先隐藏速度，再隐藏 token 与缓存命中，最后隐藏占用百分比和占用环；模式、权限与模型始终保留。"
         }
       ],
       "improvements": [
-        "从网页读到的内容会标记为不可信数据，页面里的指令不会被执行。",
-        "输入框下方的统计条只保留输出速度、token 和缓存命中率，不再显示轮数与步数。",
-        "弹出菜单会按窗口高度自动收缩并在内部滚动，不再被窗口边缘截断。",
-        "网页工具的设置已翻译为简体中文、繁体中文、英文、日文和韩文。"
+        "顶栏标签的文字不再换行，实在放不下时可横向滚动。",
+        "标签增加了无障碍名称，只显示图标时读屏软件仍能读出标签名。"
       ]
     },
     "zh-TW": {
-      "summary": "Vela 1.1.13 讓 Agent 可以透過你選擇的提供商搜尋網頁、讀取頁面正文，並打磨了頂列、新對話首頁與輸入框。",
+      "summary": "Vela 1.1.14 讓頂列與輸入框托盤在窄視窗下自動適配，不再換行或被截斷。",
       "highlights": [
         {
-          "title": "網頁搜尋與頁面讀取",
-          "body": "Agent 現在可以用 web_search 與 web_fetch 搜尋網頁、讀取頁面正文。在設定 → 網頁工具中開啟並選擇提供商；內建 DeepSeek 預設，也可以新增自己的提供商。"
+          "title": "頂列分頁適配窄面板",
+          "body": "分頁放不下時，先去掉圖示只留文字，仍放不下再只留圖示。滑鼠移上去時每個分頁仍會顯示名稱。"
         },
         {
-          "title": "與模型提供商分開設定",
-          "body": "網頁提供商的介面與金鑰獨立於模型提供商。金鑰加密儲存，只寫入、不回顯，也不會進入對話。"
-        },
-        {
-          "title": "抓取網頁需要審批",
-          "body": "「每次詢問」模式下抓取網頁會請你批准，「智慧」模式由風險模型判斷，「完整存取」則直接放行。只允許公開的 http 與 https 位址。"
-        },
-        {
-          "title": "更有生氣的新對話首頁",
-          "body": "預設提示詞卡片換上了彩色雙色圖示，頂列的各個分頁也有了自己的圖示。"
+          "title": "不再換行的輸入框托盤",
+          "body": "輸入框下方這一列始終保持單行。空間不足時統計資訊逐級隱藏：先隱藏速度，再隱藏 token 與快取命中，最後隱藏占用百分比與占用環；模式、權限與模型始終保留。"
         }
       ],
       "improvements": [
-        "從網頁讀到的內容會標記為不可信資料，頁面裡的指令不會被執行。",
-        "輸入框下方的統計列只保留輸出速度、token 與快取命中率，不再顯示輪數與步數。",
-        "彈出選單會依視窗高度自動收縮並在內部捲動，不再被視窗邊緣截斷。",
-        "網頁工具的設定已翻譯為簡體中文、繁體中文、英文、日文與韓文。"
+        "頂列分頁的文字不再換行，實在放不下時可橫向捲動。",
+        "分頁新增了無障礙名稱，只顯示圖示時螢幕閱讀器仍能讀出分頁名稱。"
       ]
     },
     "ja": {
-      "summary": "Vela 1.1.13 では、選んだプロバイダー経由でエージェントが Web 検索とページ読み取りを行えるようになり、トップバー、新規チャットのホーム、入力欄を磨き上げました。",
+      "summary": "Vela 1.1.14 では、トップバーと入力欄の下のトレイが狭いウィンドウに合わせて調整され、折り返しや途切れがなくなりました。",
       "highlights": [
         {
-          "title": "Web 検索とページ読み取り",
-          "body": "エージェントが web_search と web_fetch で Web を検索し、ページ本文を読めるようになりました。設定 → Web ツールで有効にしてプロバイダーを選びます。DeepSeek のプリセットを内蔵し、独自のプロバイダーも追加できます。"
+          "title": "トップバーのタブが狭いパネルに対応",
+          "body": "タブが収まらないときは、まずアイコンを外して文字だけを残し、それでも収まらなければアイコンだけにします。ホバーすると各タブの名前が表示されます。"
         },
         {
-          "title": "モデルとは別に設定",
-          "body": "Web プロバイダーのエンドポイントとキーは、モデルのプロバイダーとは別に設定します。キーは暗号化して保存され、書き込み専用で再表示されず、会話にも渡りません。"
-        },
-        {
-          "title": "ページ取得の承認",
-          "body": "「毎回確認」ではページ取得の承認を求め、「スマート」ではリスクモデルが判断し、「フルアクセス」ではそのまま実行します。公開された http と https のアドレスのみ許可されます。"
-        },
-        {
-          "title": "より生き生きとした新規チャットのホーム",
-          "body": "プリセットのカードに 2 色のカラーアイコンが付き、トップバーの各タブにもアイコンが付きました。"
+          "title": "折り返さない入力欄のトレイ",
+          "body": "入力欄の下の行は常に 1 行のままです。幅が足りないときは統計が段階的に隠れます。まず速度、次にトークンとキャッシュヒット、最後に使用率とリングです。モード、権限、モデルは常に残ります。"
         }
       ],
       "improvements": [
-        "Web から読み取った内容は信頼できないデータとして扱われ、ページ内の指示には従いません。",
-        "入力欄の下の統計バーは、出力速度、トークン、キャッシュヒット率のみを表示し、ターン数とステップ数は表示しなくなりました。",
-        "ポップアップメニューはウィンドウに合わせて縮み、内部でスクロールするため、ウィンドウの端で切れなくなりました。",
-        "Web ツールの設定は、簡体字中国語、繁体字中国語、英語、日本語、韓国語に翻訳されています。"
+        "トップバーのタブのラベルは折り返さなくなり、どうしても収まらない場合は横にスクロールできます。",
+        "タブにアクセシビリティ用のラベルを追加し、アイコンだけの表示でもスクリーンリーダーが名前を読み上げます。"
       ]
     },
     "ko": {
-      "summary": "Vela 1.1.13은 직접 고른 제공자를 통해 에이전트가 웹을 검색하고 페이지를 읽을 수 있게 하며, 상단 바와 새 채팅 홈, 입력창을 다듬었습니다.",
+      "summary": "Vela 1.1.14는 상단 바와 입력창 아래 트레이가 좁은 창에 맞춰 조정되어, 줄바꿈이나 잘림이 생기지 않습니다.",
       "highlights": [
         {
-          "title": "웹 검색과 페이지 읽기",
-          "body": "에이전트가 web_search와 web_fetch로 웹을 검색하고 페이지 본문을 읽을 수 있습니다. 설정 → 웹 도구에서 켜고 제공자를 고르세요. DeepSeek 프리셋이 내장되어 있고 직접 제공자를 추가할 수도 있습니다."
+          "title": "좁은 패널에 맞는 상단 바 탭",
+          "body": "탭이 들어가지 않으면 먼저 아이콘을 빼고 글자만 남기고, 그래도 부족하면 아이콘만 남깁니다. 마우스를 올리면 각 탭의 이름이 표시됩니다."
         },
         {
-          "title": "모델과 따로 설정",
-          "body": "웹 제공자의 엔드포인트와 키는 모델 제공자와 별도로 설정합니다. 키는 암호화되어 저장되고, 쓰기 전용이라 다시 표시되지 않으며 대화에도 전달되지 않습니다."
-        },
-        {
-          "title": "페이지 가져오기 승인",
-          "body": "'매번 확인'에서는 페이지를 가져올 때 승인을 요청하고, '스마트'에서는 위험 모델이 판단하며, '전체 접근'에서는 바로 실행합니다. 공개된 http와 https 주소만 허용됩니다."
-        },
-        {
-          "title": "더 생기 있는 새 채팅 홈",
-          "body": "프리셋 카드에 두 가지 색의 컬러 아이콘이 들어가고, 상단 바의 각 탭에도 아이콘이 생겼습니다."
+          "title": "줄바꿈 없는 입력창 트레이",
+          "body": "입력창 아래 줄은 항상 한 줄로 유지됩니다. 공간이 부족하면 통계가 단계적으로 숨겨집니다. 먼저 속도, 다음으로 토큰과 캐시 적중, 마지막으로 사용률과 링이 숨겨집니다. 모드, 권한, 모델은 항상 남습니다."
         }
       ],
       "improvements": [
-        "웹에서 읽은 내용은 신뢰할 수 없는 데이터로 표시되어, 페이지 안의 지시는 따르지 않습니다.",
-        "입력창 아래 통계 줄에는 출력 속도, 토큰, 캐시 적중률만 표시되며 턴 수와 단계 수는 더 이상 표시되지 않습니다.",
-        "팝업 메뉴가 창 크기에 맞게 줄어들고 내부에서 스크롤되어, 창 가장자리에서 잘리지 않습니다.",
-        "웹 도구 설정은 중국어 간체, 중국어 번체, 영어, 일본어, 한국어로 번역되어 있습니다."
+        "상단 바 탭의 라벨이 줄바꿈되지 않으며, 정말 들어가지 않을 때는 가로로 스크롤할 수 있습니다.",
+        "탭에 접근성 라벨을 추가해, 아이콘만 보일 때도 스크린 리더가 이름을 읽어 줍니다."
       ]
     }
   }

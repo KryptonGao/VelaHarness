@@ -8702,6 +8702,14 @@ button.turn-changes-path:hover { color: var(--accent-blue); }
 .conversation-view-tabs.chat-view-tabs button[aria-selected="true"] svg { opacity: 1; }
 .conversation-view-tabs.chat-view-tabs button[aria-disabled="true"] { opacity: 0.4; cursor: default; }
 .conversation-view-tabs.chat-view-tabs button[aria-disabled="true"]:hover { color: var(--text-muted); }
+/* 窄面板里分页放不下:标签不换行;由 ConversationViewTabs 量出溢出后打上 data-compact:
+   先去掉图标只留文字(text),仍放不下再只留图标(icon)(title 与 aria-label 仍带名称)。 */
+.conversation-view-tabs.chat-view-tabs { overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
+.conversation-view-tabs.chat-view-tabs::-webkit-scrollbar { display: none; }
+.conversation-view-tabs.chat-view-tabs button { flex: none; white-space: nowrap; }
+.conversation-view-tabs.chat-view-tabs[data-compact="text"] button > svg { display: none; }
+.conversation-view-tabs.chat-view-tabs[data-compact="icon"] button > span { display: none; }
+.conversation-view-tabs.chat-view-tabs[data-compact="icon"] button { padding: 0 12px; }
 /* 共享滑动下划线:始终跟随激活标签,切换时补间 translateX/width 滑动伸缩,
    悬停激活标签时向两侧展开、移开后收回。 */
 .tab-indicator {
@@ -10208,6 +10216,27 @@ a.mcp-result-title:hover { color: var(--accent-blue); }
 .composer-tray .composer-stats-row { margin: 0; padding: 0; font-size: 12.5px; }
 .composer-tray .composer-stats-row:empty { display: none; }
 .composer-tray-right .composer-stats-row { column-gap: 10px; }
+/* 托盘不换行:放不下时统计按优先级逐级隐藏(速度 → token 与缓存命中 → 占用百分比 → 占用环),模式、权限与模型始终保留。 */
+.composer-tray { container: composer-tray / inline-size; flex-wrap: nowrap; }
+.composer-tray-left { flex: 0 0 auto; }
+/* 模式与权限芯片也不换行,宽度由模型选择去让。 */
+.composer-tray-chips { flex-wrap: nowrap; }
+.composer-tray-chips > * { flex-shrink: 0; }
+.composer-tray-right { flex: 1 1 auto; min-width: 0; }
+.composer-tray-right .composer-stats-row { flex-wrap: nowrap; flex-shrink: 0; }
+@container composer-tray (max-width: 760px) {
+  .composer-tray-left > .composer-tray-sep,
+  .composer-tray-left > .composer-stats-row { display: none; }
+}
+@container composer-tray (max-width: 620px) {
+  .composer-tray-right .composer-stats-row > .composer-stat:not(.composer-stat-context) { display: none; }
+}
+@container composer-tray (max-width: 500px) {
+  .composer-tray-right .composer-stat-context .composer-stat-text { display: none; }
+}
+@container composer-tray (max-width: 420px) {
+  .composer-tray-right .composer-stats-row { display: none; }
+}
 
 /* 「上下文」标签页 */
 .ctx-summary { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
