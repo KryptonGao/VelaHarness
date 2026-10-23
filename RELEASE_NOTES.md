@@ -42,3 +42,5 @@ Package version: `1.1.12`. macOS bundle and download version: `1.1.12`.
 - All 29 in-app update tests passed (`pnpm --filter @vela/desktop test:updates`).
 - The production build passed (`pnpm build`).
 - Twelve of fourteen real-Electron smoke suites passed. Task Recipes and PR Inbox failed with the same symptoms already documented in earlier releases; these failures remain unresolved.
+- macOS arm64 packaging completed (`pnpm package:mac`); the application bundle reports version `1.1.12` and identifier `com.vela.desktop`, the ZIP contains a single `Vela.app`, and the DMG checksum verifies.
+- The signed checksum file was generated for the DMG and ZIP with the bundled-public-key check (`pnpm sign:release`).
