@@ -226,6 +226,27 @@ function GoalCard({
         <span className="side-panel-heading">{tr("目标", "Goal")}</span>
         <span className={`mode-status mode-${goal.status}`}>{translatedPair(goalStatusLabels[goal.status])}</span>
       </div>
+      <GoalCardBody goal={goal} busy={busy} onResume={onResume} />
+    </section>
+  );
+}
+
+export function goalStatusLabel(status: GoalStatus): string {
+  return translatedPair(goalStatusLabels[status]);
+}
+
+/** 目标正文：描述、交付验证与继续按钮。右栏卡片和信息卡片栈共用，标题行由外层提供。 */
+export function GoalCardBody({
+  goal,
+  busy,
+  onResume,
+}: {
+  goal: ConversationGoal;
+  busy: boolean;
+  onResume: () => void;
+}) {
+  return (
+    <>
       <p className="mode-card-copy">{goal.objective}</p>
       {goal.note ? <p className="mode-card-note">{goal.note}</p> : null}
       <div className="goal-validation">
@@ -271,7 +292,7 @@ function GoalCard({
           {tr("继续", "Resume")}
         </button>
       ) : null}
-    </section>
+    </>
   );
 }
 

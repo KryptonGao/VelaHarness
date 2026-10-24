@@ -143,7 +143,7 @@ function VisibleAgentPane({
             <div className="agent-pane-empty">
               {streaming ? (
                 <>
-                  <ActivityIndicator />
+                  <ActivityIndicator activity="thinking" />
                   <p>{tr("子代理正在启动…", "Subagent is starting…")}</p>
                 </>
               ) : (

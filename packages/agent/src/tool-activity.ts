@@ -9,7 +9,7 @@ export function activityFromCall(toolName: string, args: unknown): ToolActivity 
   if (toolName === sendMessageToolName || toolName === followupTaskToolName) {
     return agentMessageCallActivity(toolName, args);
   }
-  if (toolName === "update_plan") return planActivity(args);
+  if (isChecklistTool(toolName)) return planActivity(args);
   if (toolName === "submit_outcome") {
     const outcome = parseOutcomeSubmission(args);
     const body = modeToolSummary(toolName, args);
@@ -77,7 +77,7 @@ export function activityFromExecution(
   if (toolName === "submit_plan") {
     return { body: planSummary(args) || clip(text) || "已提交计划" };
   }
-  if (toolName === "update_plan") {
+  if (isChecklistTool(toolName)) {
     const activity = planActivity(args);
     return { ...activity, body: activity.body || clip(text) || "已更新执行清单" };
   }
@@ -290,7 +290,7 @@ function modeToolSummary(toolName: string, args: unknown): string | null {
     return [question, ...readOptionLabels(args, "options").map((label) => `· ${label}`)].join("\n");
   }
   if (toolName === "submit_plan") return planSummary(args);
-  if (toolName === "update_plan") return planUpdateSummary(args);
+  if (isChecklistTool(toolName)) return planUpdateSummary(args);
   if (toolName === "record_goal_validation") {
     const risk = readString(args, "risk");
     const counts = (key: string) => {
@@ -326,6 +326,16 @@ function planSummary(args: unknown): string | null {
   return lines.length > 0 ? lines.join("\n") : null;
 }
 
+/** update_plan(已批准方案的执行清单)和 update_todos(运行视图的待办清单)提交的都是「步骤 + 状态」列表。 */
+function isChecklistTool(toolName: string): boolean {
+  return toolName === "update_plan" || toolName === "update_todos";
+}
+
+function checklistOf(args: unknown): unknown {
+  const record = args as Record<string, unknown>;
+  return record.plan ?? record.todos;
+}
+
 /** update_plan 的结构化清单：保留每个执行项的文本和状态，同时给旧路径留一份文本摘要。 */
 function planActivity(args: unknown): ToolActivity {
   const plan = readPlanItems(args);
@@ -335,7 +345,7 @@ function planActivity(args: unknown): ToolActivity {
 
 function readPlanItems(args: unknown): ToolPlanItem[] | undefined {
   if (!args || typeof args !== "object") return undefined;
-  const value = (args as Record<string, unknown>).plan;
+  const value = checklistOf(args);
   if (!Array.isArray(value)) return undefined;
   const items: ToolPlanItem[] = [];
   for (const raw of value) {
@@ -352,7 +362,7 @@ function readPlanItems(args: unknown): ToolPlanItem[] | undefined {
 /** update_plan 的卡片摘要：用符号标出每项状态。 */
 function planUpdateSummary(args: unknown): string | null {
   if (!args || typeof args !== "object") return null;
-  const value = (args as Record<string, unknown>).plan;
+  const value = checklistOf(args);
   if (!Array.isArray(value)) return null;
   const lines: string[] = [];
   for (const item of value) {

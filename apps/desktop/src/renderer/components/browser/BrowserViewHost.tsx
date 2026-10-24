@@ -18,6 +18,8 @@ function PersistentGuest({ tab, visible, hosted, command }: {
   tab: RendererBrowserTab; visible: boolean; hosted: boolean; command: (command: BrowserUiCommand) => void;
 }) {
   const [placement, setPlacement] = useState<Placement>({ left: -10000, top: 0, width: tab.width || 1024, height: tab.height || 768, visible: false });
+  // 拖动面板分隔条期间,网页内部尺寸冻结在起拖时的大小,外框只负责裁切;否则每帧都会让网页重新排版。
+  const [frozen, setFrozen] = useState<{ width: number; height: number } | null>(null);
   const state = useSyncExternalStore(tab.controller.store.subscribe, tab.controller.store.getSnapshot);
   // Keep measuring the selected viewport even while its blank-page placeholder is shown.
   const guestVisible = placement.visible && (state.url !== UI_BROWSER_BLANK_URL || state.loading);
@@ -45,7 +47,9 @@ function PersistentGuest({ tab, visible, hosted, command }: {
   useEffect(() => {
     let frame = 0;
     let lastSize = "";
+    let frozenSize: { width: number; height: number } | null = null;
     const measure = () => {
+      const resizing = document.documentElement.dataset.resizing === "true";
       const target = visible ? Array.from(document.querySelectorAll<HTMLElement>("[data-browser-viewport]"))
         .find(element => element.dataset.browserViewport === tab.id) : undefined;
       const rect = target?.getBoundingClientRect();
@@ -55,7 +59,14 @@ function PersistentGuest({ tab, visible, hosted, command }: {
           : { ...previous, left: -10000, visible: false };
         return Object.keys(next).every(key => next[key as keyof Placement] === previous[key as keyof Placement]) ? previous : next;
       });
-      if (shown && hosted) {
+      if (shown && resizing && !frozenSize) {
+        frozenSize = { width: Math.round(rect!.width), height: Math.round(rect!.height) };
+        setFrozen(frozenSize);
+      } else if (frozenSize && !resizing) {
+        frozenSize = null;
+        setFrozen(null);
+      }
+      if (shown && hosted && !resizing) {
         const width = Math.round(rect!.width), height = Math.round(rect!.height);
         const size = `${width}:${height}`;
         if (size !== lastSize) { lastSize = size; command({ type: "viewport", tabId: tab.id, width, height }); }
@@ -63,12 +74,13 @@ function PersistentGuest({ tab, visible, hosted, command }: {
       if (visible) frame = requestAnimationFrame(measure);
     };
     measure();
-    return () => cancelAnimationFrame(frame);
+    return () => { cancelAnimationFrame(frame); setFrozen(null); };
   }, [visible, hosted, tab.id, command]);
+  const pinned = guestVisible ? frozen : null;
   return <div className="browser-guest-frame" aria-hidden={!guestVisible} inert={!guestVisible}
     style={{ position: "fixed", left: guestVisible ? placement.left : -10000, top: placement.top, width: placement.width, height: placement.height,
       visibility: guestVisible ? "visible" : "hidden", pointerEvents: guestVisible ? "auto" : "none" }}>
-    <webview ref={bind} className="browser-webview" partition={UI_BROWSER_PARTITION}
+    <webview ref={bind} className="browser-webview" style={pinned ? { position: "absolute", top: 0, right: 0, width: pinned.width, height: pinned.height } : undefined} partition={UI_BROWSER_PARTITION}
       webpreferences="contextIsolation=yes,sandbox=yes,nodeIntegration=no" aria-label="Web content" />
     {guestVisible && tab.agentCursor && <BrowserAgentPointer cursor={tab.agentCursor} width={placement.width} height={placement.height} />}
   </div>;

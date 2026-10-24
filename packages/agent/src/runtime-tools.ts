@@ -25,6 +25,8 @@ export interface ToolLoadoutOptions {
   memoryEnabled: () => boolean;
   /** 网页搜索与抓取当前是否可用；开关、提供商和密钥都就绪才为 true。 */
   web?: () => { search: boolean; fetch: boolean };
+  /** 运行视图是否开启:开启后主代理额外提供 update_todos,并要求先提交待办清单。 */
+  runView?: () => boolean;
   /** 常驻 Agent 的会话：没有文件与命令工具，只有协调工具。 */
   resident?: { isResident(entry: ToolLoadoutConversation): boolean };
 }
@@ -63,11 +65,16 @@ export class ToolLoadout {
     return this.options.resident?.isResident(entry) === true;
   }
 
+  /** 定时任务和配方执行没有人盯着界面,不要求待办清单。 */
+  private runViewFor(entry?: ToolLoadoutConversation): boolean {
+    return this.options.runView?.() === true && !(entry?.scheduledTaskConversation || entry?.recipeExecution);
+  }
+
   /** 模式决定的原生工具；传入对话时附带它可用的记忆工具。 */
   native(mode: InteractionMode, plan: boolean, entry?: ToolLoadoutConversation): string[] {
     if (entry && this.isResident(entry)) return [...residentTools];
     const scheduled = this.options.scheduledTasks ? (mode === "plan" ? ["list_scheduled_tasks"] : scheduledTaskToolNames) : [];
-    const tools = [...defaultToolPolicy.availableTools(mode, plan), ...scheduled];
+    const tools = [...defaultToolPolicy.availableTools(mode, plan, this.runViewFor(entry)), ...scheduled];
     if (entry) tools.push(...this.memory(entry), ...this.web());
     return tools;
   }

@@ -431,6 +431,7 @@ const api: VelaApi = {
   getIntelligentUi: () => ipcRenderer.invoke(IpcChannel.getIntelligentUi) as Promise<IntelligentUiState>,
   setIntelligentUi: (preference: UiPreference) =>
     ipcRenderer.invoke(IpcChannel.setIntelligentUi, preference) as Promise<IntelligentUiState>,
+  setRunView: (enabled: boolean) => ipcRenderer.invoke(IpcChannel.setRunView, enabled) as Promise<void>,
   setIntelligentUiMicroApps: (enabled: boolean) =>
     ipcRenderer.invoke(IpcChannel.setIntelligentUiMicroApps, enabled) as Promise<IntelligentUiState>,
   getContextLimit: () => ipcRenderer.invoke(IpcChannel.getContextLimit) as Promise<ContextLimitSettings>,

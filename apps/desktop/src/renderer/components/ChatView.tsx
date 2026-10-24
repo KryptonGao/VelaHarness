@@ -1,6 +1,5 @@
 import { QuestionContext } from "./QuestionContext";
 import { LazyMount } from "./LazyMount";
-import { useFrameTask } from "../hooks/useFrameTask";
 import { VersionControlView } from "./version-control/VersionControlView";
 import { TraceView } from "./trace/TraceView";
 import { UsageView } from "./usage/UsageView";
@@ -8,7 +7,7 @@ import { isAgentBusy, type AppState, type AskUserQuestionRequest, type Interacti
 import { Fragment, memo, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useAgentWorkspace } from "./AgentPanel";
 import { modKeyLabel } from "../platform";
-import { ArrowDownIcon, ArrowLeftIcon, BranchIcon, CheckIcon, CopyIcon, HistoryIcon, PlusIcon, StackIcon } from "./icons";
+import { ArrowLeftIcon, BranchIcon, CheckIcon, CopyIcon, HistoryIcon, PlusIcon, StackIcon } from "./icons";
 import { trackEnteredMessages, type EnterTrack } from "./message-motion";
 import type { useModels } from "../hooks/useModels";
 import type { ProjectApi } from "../hooks/useProject";
@@ -17,6 +16,9 @@ import type { UiMessage } from "../hooks/useSession";
 import { RepoCard } from "./RepoCard";
 import { Composer } from "./Composer";
 import { TaskBudgetBanner } from "./TaskBudgetBanner";
+import { RunViewDock } from "./RunViewDock";
+import { JumpOrb } from "./JumpOrb";
+import type { OrbActivity } from "./jump-orb";
 import { ContextTab } from "./ContextTab";
 import { NewChatGreeting, NewChatPrompts, VelaMark } from "./NewChatHome";
 import { TaskBudgetTab } from "./TaskBudgetTab";
@@ -39,6 +41,7 @@ import { collectPlanIds, planReferenceModel } from "../plan-draft";
 import { SkillToken } from "./composer/SkillMenu";
 import { parseSkillSegments } from "./composer/skill-picker";
 import { useFilePreview } from "./preview/FilePreviewContext";
+import { InfoCardStack } from "./info-cards/InfoCardStack";
 import {
   nextStreamFollow,
   releasesStreamFollow,
@@ -157,6 +160,9 @@ export interface ChatViewProps {
   onToggleLeft: () => void;
   onRenameConversation?: (id: string) => void;
   floatingInfo?: boolean;
+  /** 悬浮信息布局下，用可排序的信息卡片栈代替单张环境卡片。 */
+  infoCards?: boolean;
+  onResumeGoal?: () => void;
   environmentCollapsed?: boolean;
   changesActive?: boolean;
   rightCollapsed: boolean;
@@ -164,6 +170,8 @@ export interface ChatViewProps {
   project: ProjectApi;
   toolDisplay?: ToolDisplay;
   toolFold?: ToolFold;
+  /** 运行视图:运行中在本轮过程末尾显示待办清单与当前步骤状态,随对话滚动。 */
+  runView?: boolean;
   thinkingSummaries?: ThinkingSummariesApi;
   /** 在输入框模型列表中隐藏的模型，key 为 `provider/id`。 */
   hiddenModels?: string[];
@@ -210,11 +218,14 @@ export function ChatView({
   rightCollapsed,
   onToggleRight,
   floatingInfo = false,
+  infoCards = false,
+  onResumeGoal,
   environmentCollapsed = false,
   changesActive = false,
   project,
   toolDisplay = "card",
   toolFold = "message",
+  runView = false,
   thinkingSummaries,
   hiddenModels = [],
   sendButtonIcon = "paper-plane",
@@ -241,6 +252,11 @@ export function ChatView({
   planDraft = null,
   onOpenPlan,
 }: ChatViewProps) {
+  const filePreview = useFilePreview();
+  const openOutputFile = useCallback((path: string) => {
+    if (filePreview) filePreview.openFile(path);
+    else void project.openFile(path);
+  }, [filePreview, project]);
   const [views, setViews] = useState<Record<string, ConversationViewKey>>({});
   const [vcMounted, setVcMounted] = useState(false);
   const [imageView, setImageView] = useState<ImageViewerRequest | null>(null);
@@ -266,6 +282,16 @@ export function ChatView({
   const activeAssistantId = streaming
     ? [...messages].reverse().find((message) => message.role === "assistant")?.id
     : undefined;
+  // 回到最新按钮的圆球状态:有 bash 在跑 = 运行命令;助手还没写出正文 = 思考;其余显示箭头。
+  const activeAssistant = activeAssistantId ? messages.find((message) => message.id === activeAssistantId) : undefined;
+  const runningBash = activeAssistant?.tools.find((tool) => tool.name === "bash" && tool.status === "running");
+  const jumpActivity: OrbActivity | undefined = !activeAssistant
+    ? undefined
+    : runningBash
+      ? "command"
+      : !activeAssistant.text
+        ? "thinking"
+        : undefined;
   const title = session?.title || tr("新对话", "New chat");
   // 空对话用「首页」布局:问候、输入框、预设整体居中,而不是输入框贴底。
   const homeLayout = !embedded && messages.length === 0;
@@ -293,16 +319,23 @@ export function ChatView({
     );
   }, []);
 
-  const scheduleLayout = useFrameTask(() => {
+  // 同步执行而不是排到下一帧:流式追加内容后,新高度和贴底滚动必须在同一次绘制前完成,
+  // 否则会有一帧内容已变长、滚动位置还是旧的,下方的清单和状态条整块错位一下再弹回。
+  const layoutRef = useRef<() => void>(() => {});
+  layoutRef.current = () => {
     const scroller = scrollerRef.current;
     const dock = dockRef.current;
     const root = scroller?.parentElement;
     if (!scroller || !dock || !root || view !== "chat") return;
     const height = dock.getBoundingClientRect().height;
-    if (height > 0) root.style.setProperty("--composer-clearance", `${Math.ceil(height + 36)}px`);
+    if (height > 0) {
+      const clearance = `${Math.ceil(height + 36)}px`;
+      if (root.style.getPropertyValue("--composer-clearance") !== clearance) root.style.setProperty("--composer-clearance", clearance);
+    }
     if (followRef.current.pinned) scrollFollowToEnd(scroller, followRef.current);
     syncJumpToLatest();
-  });
+  };
+  const scheduleLayout = useCallback(() => layoutRef.current(), []);
 
   const jumpToLatest = useCallback(() => {
     const scroller = scrollerRef.current;
@@ -445,7 +478,7 @@ export function ChatView({
     // 消息面会在工作区/会话切换时按 key 重建,每次测量都重新取一遍实时元素。
     const measure = () => {
       const surface = pane.querySelector<HTMLElement>(".chat-message-surface");
-      const card = pane.querySelector<HTMLElement>(".floating-environment");
+      const card = pane.querySelector<HTMLElement>(".floating-environment, .info-card-stack");
       const scroller = scrollerRef.current;
       if (!surface || !card || !scroller) return null;
       const surfaceBox = surface.getBoundingClientRect();
@@ -458,7 +491,10 @@ export function ChatView({
         laneLeft: surfaceBox.left + (surfaceBox.width - laneWidth) / 2,
         laneWidth,
         minGap: Number.parseFloat(getComputedStyle(scroller).paddingLeft),
-        cardLeft: card.getBoundingClientRect().left,
+        // 卡片栈左侧留着装阴影的内边距,让位以卡片本身的左缘为准。
+        cardLeft:
+          card.getBoundingClientRect().left +
+          (card.classList.contains("info-card-stack") ? Number.parseFloat(getComputedStyle(card).paddingLeft) || 0 : 0),
         // 左侧边栏分界即对话区左缘,让位后左右两侧的距离以它为参照。
         laneLimitLeft: pane.getBoundingClientRect().left,
       });
@@ -477,7 +513,7 @@ export function ChatView({
     // 触发条件只有窗口/侧栏和卡片自身的尺寸变化;变量只改对话列宽度,不会反哺这三者。
     const observer = new ResizeObserver(apply);
     observer.observe(pane);
-    const card = pane.querySelector<HTMLElement>(".floating-environment");
+    const card = pane.querySelector<HTMLElement>(".floating-environment, .info-card-stack");
     if (card) observer.observe(card);
     return () => {
       observer.disconnect();
@@ -485,7 +521,7 @@ export function ChatView({
       pane.style.removeProperty("--chat-lane-shift");
       pane.style.removeProperty("--chat-lane-shrink");
     };
-  }, [floatingInfo, environmentCollapsed, messageSurfaceKey]);
+  }, [floatingInfo, infoCards, environmentCollapsed, messageSurfaceKey]);
 
   const enterTrack = useRef<EnterTrack | null>(null);
   enterTrack.current = trackEnteredMessages(
@@ -496,7 +532,9 @@ export function ChatView({
   const entering = enterTrack.current.enter;
   const mod = modKeyLabel(platform);
   const rightLabel = floatingInfo
-    ? (environmentCollapsed ? tr("展开环境卡片", "Expand environment card") : tr("折叠环境卡片", "Collapse environment card"))
+    ? infoCards
+      ? (environmentCollapsed ? tr("展开信息卡片", "Show info cards") : tr("收起信息卡片", "Hide info cards"))
+      : (environmentCollapsed ? tr("展开环境卡片", "Expand environment card") : tr("折叠环境卡片", "Collapse environment card"))
     : rightCollapsed ? tr("展开右侧面板", "Expand right panel") : tr("收起右侧面板", "Collapse right panel");
   const { agents: roster, activeAgentId, openAgent } = useAgentWorkspace();
   const subagents = useMemo(() => roster.filter((agent) => agent.kind !== "root"), [roster]);
@@ -641,7 +679,7 @@ export function ChatView({
             </button>
           ) : null}
           <ChatActionsMenu key={state?.activeConversationId ?? "empty"} messages={messages} streaming={Boolean(streaming)} />
-          {!embedded ? <button
+          {!embedded && !emptyConversation ? <button
             className={`view-icon-btn${rightCollapsed ? "" : " active"}`}
             type="button"
             title={`${rightLabel} (${mod}J)`}
@@ -649,7 +687,7 @@ export function ChatView({
             aria-pressed={!rightCollapsed}
             onClick={onToggleRight}
           >
-            {floatingInfo ? <EnvironmentInfoIcon /> : <PanelIcon />}
+            {floatingInfo ? (infoCards ? <InfoCardsIcon /> : <EnvironmentInfoIcon />) : <PanelIcon />}
           </button> : null}
         </div>
       </header>
@@ -670,7 +708,12 @@ export function ChatView({
       /> : null}
       <div className="chat-conversation-pane" data-home={homeLayout ? "true" : undefined} data-prompts={homeLayout && hasProjectWorkspace && !modelMissing ? "true" : undefined} hidden={view !== "chat"} inert={view !== "chat" ? true : undefined}>
       {homeLayout ? <VelaMark /> : null}
-      {floatingInfo && !environmentCollapsed ? (
+      {floatingInfo && infoCards && !environmentCollapsed && !emptyConversation ? (
+        <InfoCardStack state={state} project={project} messages={messages} planDraft={planDraft}
+          changesActive={changesActive} onOpenChanges={onOpenChanges} onOpenPlan={onOpenPlan}
+          onResumeGoal={onResumeGoal} onOpenFile={openOutputFile} />
+      ) : null}
+      {floatingInfo && !infoCards && !environmentCollapsed && !emptyConversation ? (
         <div className="floating-environment">
           <RepoCard project={project} onOpenChanges={onOpenChanges} activeChanges={changesActive}
             plan={planReferenceModel(session?.proposedPlan ?? null, planDraft, session?.executionPlan ?? null)}
@@ -812,6 +855,8 @@ export function ChatView({
             );
           })
         )}
+        {/* 运行视图:待办清单和状态条是对话内容的一部分,紧跟在本轮过程之后,随对话一起滚动。 */}
+        {runView && streaming && view === "chat" && messages.length > 0 ? <RunViewDock messages={messages} /> : null}
         </div>
       </div>
 
@@ -820,12 +865,14 @@ export function ChatView({
         type="button"
         className="chat-jump-latest"
         data-visible={showJumpToLatest && view === "chat" ? "true" : "false"}
+        data-activity={jumpActivity}
         tabIndex={showJumpToLatest ? 0 : -1}
         aria-hidden={!showJumpToLatest}
         onClick={jumpToLatest}
+        aria-label={tr("回到最新", "Jump to latest")}
+        title={tr("回到最新", "Jump to latest")}
       >
-        <ArrowDownIcon size={12} />
-        {tr("回到最新", "Jump to latest")}
+        <JumpOrb activity={jumpActivity} commandKey={runningBash?.id} running={showJumpToLatest && view === "chat"} />
       </button>
       <TaskBudgetBanner budget={session?.taskBudget} conversationId={state?.activeConversationId} />
       <Composer
@@ -1491,6 +1538,17 @@ function EnvironmentInfoIcon() {
       <circle cx="5.5" cy="6.5" r="2.5" />
       <circle cx="5.5" cy="17.5" r="2.5" />
       <path d="M12 6.5h9M12 17.5h9" />
+    </svg>
+  );
+}
+
+/** 信息卡片模式：圆角卡片里两行「点 + 线」。 */
+function InfoCardsIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="2.5" y="5" width="19" height="14" rx="3.5" />
+      <path d="M7.5 10h.01M7.5 14h.01" strokeWidth="2.4" />
+      <path d="M11.5 10h5M11.5 14h5" />
     </svg>
   );
 }

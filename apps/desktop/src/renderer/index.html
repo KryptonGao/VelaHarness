@@ -39,6 +39,15 @@
           root.dataset.theme = builtin.indexOf(picked) >= 0 ? picked : builtin[0];
         }
         if (readPreference("vela.locale") === "en") root.lang = "en";
+        // 字体风格在首帧前就套上,避免先用无衬线渲染再跳成明体。
+        function fontFace(key, fallback, allowInherit) {
+          var value = readPreference(key);
+          return value === "sans" || value === "serif" || (allowInherit && value === "inherit") ? value : fallback;
+        }
+        root.dataset.uiFontLatin = fontFace("vela.font.ui.latin", "sans", false);
+        root.dataset.uiFontCjk = fontFace("vela.font.ui.cjk", "sans", false);
+        root.dataset.replyFontLatin = fontFace("vela.font.reply.latin", "inherit", true);
+        root.dataset.replyFontCjk = fontFace("vela.font.reply.cjk", "inherit", true);
         // macOS 的 vibrancy 要求整页底色透明,首帧前就标上平台,避免闪一下不透明底。
         root.className = "platform-" + ((window.vela && window.vela.platform) || "darwin");
       } catch (e) {}

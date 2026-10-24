@@ -28,6 +28,7 @@ export function ConversationDisplayPage({
     toolDisplay,
     toolFold,
     toolProcessDetails,
+    runView,
     toolIconColor,
     thinkingSummary,
     thinkingSummaryStyle,
@@ -37,6 +38,7 @@ export function ConversationDisplayPage({
     setToolDisplay,
     setToolFold,
     setToolProcessDetails,
+    setRunView,
     setToolIconColor,
     setThinkingSummary,
     setThinkingSummaryStyle,
@@ -142,6 +144,17 @@ export function ConversationDisplayPage({
           ]}
           onChange={(value) => setToolProcessDetails(value === "on")}
           onPreview={peek("toolProcessDetails")}
+        />
+      </SettingsBlock>
+      <SettingsBlock id="run-view" title={text.runView} hint={text.runViewHint}>
+        <Segmented
+          label={text.runView}
+          value={onOff(runView)}
+          options={[
+            { id: "off", label: text.runViewOff },
+            { id: "on", label: text.runViewOn },
+          ]}
+          onChange={(value) => setRunView(value === "on")}
         />
       </SettingsBlock>
       <SettingsBlock

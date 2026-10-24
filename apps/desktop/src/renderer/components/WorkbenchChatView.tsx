@@ -47,7 +47,7 @@ export function WorkbenchChatView({ conversationId, preferences, project, onRena
                 platform={window.vela?.platform ?? "darwin"} project={scopedProject}
                 leftCollapsed={false} onToggleLeft={() => {}} rightCollapsed onToggleRight={() => {}}
                 onRenameConversation={onRenameConversation}
-                toolDisplay={preferences.toolDisplay} toolFold={preferences.toolFold}
+                toolDisplay={preferences.toolDisplay} toolFold={preferences.toolFold} runView={preferences.runView}
                 toolProcessDetails={preferences.toolProcessDetails}
                 summaryEnabled={preferences.thinkingSummary} summaryStyle={preferences.thinkingSummaryStyle}
                 summaryModel={preferences.thinkingSummaryModel} locale={preferences.locale}

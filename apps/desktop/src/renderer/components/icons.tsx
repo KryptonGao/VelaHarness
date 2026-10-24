@@ -412,6 +412,27 @@ export function PlanIcon({ size = 13 }: IconProps) {
   );
 }
 
+/** Goal 模式：靶心。 */
+export function GoalIcon({ size = 13 }: IconProps) {
+  return (
+    <svg {...base(size)}>
+      <circle cx="12" cy="12" r="9" />
+      <circle cx="12" cy="12" r="5" />
+      <circle cx="12" cy="12" r="1" />
+    </svg>
+  );
+}
+
+/** 赛马：终点旗。 */
+export function RaceIcon({ size = 13 }: IconProps) {
+  return (
+    <svg {...base(size)}>
+      <path d="M5 21V4" />
+      <path d="M5 4h12l-2.5 4L17 12H5" />
+    </svg>
+  );
+}
+
 export function SkillIcon({ size = 14 }: IconProps) {
   return (
     <svg {...base(size)}>

@@ -7,6 +7,7 @@ import { emptyAgentUsage, type AgentInboxNavigation, type AgentInfo, type Releas
 import { AgentWorkspaceProvider } from "./components/AgentPanel";
 import { SessionChatView } from "./components/SessionChatView";
 import { ContextPanel } from "./components/ContextPanel";
+import { useMessages } from "./hooks/useMessages";
 import { FileIconThemeProvider } from "./components/FileTypeIcon";
 import { OnboardingView } from "./components/OnboardingView";
 import { PlanDocumentProvider } from "./components/PlanPanel";
@@ -221,8 +222,11 @@ export function App() {
     void api.takeNavigation().then(target => { if (target) open(target); }, () => {});
     return () => { live = false; off(); };
   }, [leaveRecipes]);
-  const floatingInfo = preferences.infoLayout === "floating";
-  const contextSidebarOpen = !floatingInfo && !rightCollapsed && !scheduledTasksOpen && !recipesOpen && !prInboxOpen && !agentInboxOpen;
+  const floatingInfo = preferences.infoLayout !== "sidebar";
+  const infoCards = preferences.infoLayout === "cards";
+  // 新对话的首页不显示右侧信息卡，发出第一句话后再出现。
+  const conversationEmpty = useMessages(session.messageStore, session.activeConversationId).length === 0;
+  const contextSidebarOpen = !floatingInfo && !rightCollapsed && !conversationEmpty && !scheduledTasksOpen && !recipesOpen && !prInboxOpen && !agentInboxOpen;
   const [environmentCollapsed, setEnvironmentCollapsed] = useStoredState("vela.environmentCollapsed", false, isBoolean);
   const toggleInfo = useCallback(() => {
     if (floatingInfo) setEnvironmentCollapsed(value => !value);
@@ -685,10 +689,11 @@ export function App() {
   const previousWorkbenchOpen = useRef(false);
   useEffect(() => {
     // Only the opening edge folds the card; a manual expansion stays open.
-    const open = floatingInfo && workbenchOpen;
+    // The info cards sit over the chat column beside the workbench, so they stay up.
+    const open = floatingInfo && preferences.infoLayout !== "cards" && workbenchOpen;
     if (open && !previousWorkbenchOpen.current) setEnvironmentCollapsed(true);
     previousWorkbenchOpen.current = open;
-  }, [floatingInfo, workbenchOpen]);
+  }, [floatingInfo, preferences.infoLayout, workbenchOpen]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -879,11 +884,14 @@ export function App() {
                           rightCollapsed={floatingInfo ? environmentCollapsed : rightCollapsed}
                           onToggleRight={toggleInfo}
                           floatingInfo={floatingInfo}
+                          infoCards={infoCards}
+                          onResumeGoal={() => void session.resumeGoal()}
                           environmentCollapsed={environmentCollapsed}
                           changesActive={activeWorkbenchTab?.kind === "changes"}
                           project={project}
                           toolDisplay={preferences.toolDisplay}
                           toolFold={preferences.toolFold}
+                          runView={preferences.runView}
                           toolProcessDetails={preferences.toolProcessDetails}
                           summaryEnabled={preferences.thinkingSummary}
                           summaryStyle={preferences.thinkingSummaryStyle}
@@ -976,7 +984,7 @@ export function App() {
                         onTabCloseRequested={tab => { if (chatRequests.current.has(tab.id)) cancelledChatTabs.current.add(tab.id); }}
                       />
                       {!floatingInfo ? <ContextPanel
-                        collapsed={rightCollapsed}
+                        collapsed={rightCollapsed || conversationEmpty}
                         leftOpen={!leftCollapsed}
                         resize={resize}
                         state={session.state}

@@ -42,6 +42,8 @@
 | [requirements/system-prompt-optimization.md](./requirements/system-prompt-optimization.md) | 产品与开发者 | 系统提示词优化方案（部分实现）：现状分段与问题清单、对照 DeepSeek Harness 的结论、`systemPromptOverride` 接入机制、v2 提示词、`VELA_SYSTEM_PROMPT` 开关与基线数据、分阶段计划、评测与验收、待决策事项；默认 v2，可用 `VELA_SYSTEM_PROMPT=v1` 切回，模型评测未做。 |
 | [agent-inbox.md](./agent-inbox.md) | 使用者与开发者 | Agent Inbox 的已实现能力：事项类型与状态、Host 权威决策与并发保护、重启作废、先落盘后通知、Resident Agent 与委派审批、Intelligent UI 嵌入、后台运行与通知、主动规则、限制、实现位置与验证。 |
 | [requirements/agent-inbox.md](./requirements/agent-inbox.md) | 产品与开发者 | Agent Inbox 与常驻 Agent 需求：定位、阶段状态、关键约束、后续设计决定与验收；第一至第七阶段均已实现。 |
+| [run-view.md](./run-view.md) | 使用者与开发者 | 运行视图：运行中在过程末尾显示待办清单与当前步骤状态条，并要求模型先提交待办清单（`update_todos`、闸门、偏好同步）。 |
+| [info-cards.md](./info-cards.md) | 使用者与开发者 | 信息卡片布局：右侧浮在对话上的可排序卡片、各卡片内容与显示条件、拖动与键盘排序、隐藏与找回、布局存储和实现位置。 |
 | [plan-mode.md](./plan-mode.md) | 使用者 | Plan 模式的工作方式：规划流程、Plan Document、revision、批准与执行、只读限制和常见问题。 |
 | [plan-mode-architecture.md](./plan-mode-architecture.md) | 开发者 | Plan 模式的实现：数据模型、流式解析、运行时编排、持久化与迁移、界面状态和测试。 |
 | [logging.md](./logging.md) | 使用者与开发者 | 日志位置与格式、级别、轮转与脱敏、未捕获错误记录，以及诊断包导出的内容与隐私边界。 |

@@ -4,12 +4,13 @@ import remarkBreaks from "remark-breaks";
 import remarkGfm from "remark-gfm";
 import { memo, useContext, useLayoutEffect, useMemo, useRef, type ReactNode } from "react";
 import { trailingParagraphEnd, partitionMarkdown, wholeMarkdown, type MarkdownPartition } from "./markdown-blocks";
+import { remarkScriptGap } from "./markdown-script-gap";
 import { useReducedMotion } from "../hooks/useMotionPresence";
 import { useFilePreview, type FilePreviewContextValue } from "./preview/FilePreviewContext";
 import { tr, useAppLocale } from "../locale";
 import { ConversationLinkContext } from "./ConversationLinkContext";
 
-const remarkPlugins = [remarkGfm, remarkBreaks];
+const remarkPlugins = [remarkGfm, remarkBreaks, remarkScriptGap];
 
 const baseComponents: Components = {
   a: MarkdownLink,

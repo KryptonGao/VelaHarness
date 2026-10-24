@@ -259,6 +259,10 @@ export class SessionHost {
       if (typeof raw !== "boolean") throw new Error("Intelligent UI 微应用设置不正确");
       return this.runtime.setIntelligentUiMicroApps(raw);
     });
+    ipcMain.handle(IpcChannel.setRunView, (_event, raw: unknown) => {
+      if (typeof raw !== "boolean") throw new Error("运行视图设置不正确");
+      this.runtime.setRunView(raw);
+    });
     ipcMain.handle(IpcChannel.getContextLimit, () => this.runtime.getContextLimit());
     ipcMain.handle(IpcChannel.setContextLimit, (_event, raw: unknown) => this.runtime.setContextLimit(raw));
     ipcMain.handle(IpcChannel.getConversationContextLimit, (_event, id: unknown) => this.runtime.getConversationContextLimit(id));

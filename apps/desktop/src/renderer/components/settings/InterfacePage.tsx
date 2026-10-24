@@ -44,6 +44,7 @@ export function InterfacePage({
   const infoLayoutOptions: { id: InfoLayout; label: string }[] = [
     { id: "sidebar", label: text.infoLayoutSidebar },
     { id: "floating", label: text.infoLayoutFloating },
+    { id: "cards", label: text.infoLayoutCards },
   ];
   const conversationLinkOptions: { id: ConversationLinkTarget; label: string }[] = [
     { id: "embedded", label: text.linkEmbedded },
@@ -72,6 +73,7 @@ export function InterfacePage({
       </SettingsBlock>
       <SettingsBlock id="info-layout" title={text.infoLayout} hint={text.infoLayoutHint}>
         <Segmented label={text.infoLayout} value={infoLayout} options={infoLayoutOptions} onChange={setInfoLayout} />
+        {infoLayout === "cards" ? <p className="settings-hint">{text.infoLayoutCardsHint}</p> : null}
       </SettingsBlock>
       <SettingsBlock id="conversation-link-target" title={text.conversationLinkTarget} hint={text.conversationLinkHint}>
         <Segmented label={text.conversationLinkTarget} value={conversationLinkTarget}

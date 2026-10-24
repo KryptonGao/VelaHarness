@@ -9,6 +9,14 @@
         "dev"
       ],
       "port": 3000
+    },
+    {
+      "name": "fixtures",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "apps/desktop/test/trace-preview-server.mjs"
+      ],
+      "port": 5179
     }
   ]
 }

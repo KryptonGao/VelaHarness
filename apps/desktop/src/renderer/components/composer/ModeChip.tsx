@@ -1,8 +1,8 @@
 import { PopoverPresence } from "../MotionPresence";
 import type { InteractionMode } from "@vela/shared";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useDismissable } from "../../hooks/useDismissable";
-import { CheckIcon } from "../icons";
+import { CheckIcon, GoalIcon, PlanIcon, RaceIcon, TerminalIcon } from "../icons";
 import { tr, trf } from "../../locale";
 
 const modes: InteractionMode[] = ["agent", "plan", "goal"];
@@ -11,6 +11,12 @@ const modeLabels: Record<InteractionMode, string> = {
   agent: "Agent",
   plan: "Plan",
   goal: "Goal",
+};
+
+const modeIcons: Record<InteractionMode, ReactNode> = {
+  agent: <TerminalIcon size={14} />,
+  plan: <PlanIcon size={14} />,
+  goal: <GoalIcon size={14} />,
 };
 
 const modeDescriptions: Record<InteractionMode, [string, string]> = {
@@ -69,10 +75,9 @@ export function ModeChip({
                 setOpen(false);
               }}
             >
-              <span className={`mode-option-icon mode-${candidate}`}>{modeLabels[candidate].slice(0, 1)}</span>
+              <span className={`mode-option-icon mode-${candidate}`}>{modeIcons[candidate]}</span>
               <span className="mode-option-text">
                 <span className="mode-option-name">{modeLabels[candidate]}</span>
-                <span className="mode-option-desc">{modeDescription(candidate)}</span>
               </span>
               {candidate === mode ? <CheckIcon /> : null}
             </button>
@@ -81,10 +86,9 @@ export function ModeChip({
             <>
               <div className="mode-popover-divider" role="separator" />
               <button type="button" className="mode-option" onClick={() => { race.onStart(); setOpen(false); }}>
-                <span className="mode-option-icon mode-race">R</span>
+                <span className="mode-option-icon mode-race"><RaceIcon size={14} /></span>
                 <span className="mode-option-text">
                   <span className="mode-option-name">{tr("赛马", "Race")}</span>
-                  <span className="mode-option-desc">{tr("同一个任务用不同的模型或提示并行尝试，比较后采用其中一个。", "Try one task with different models or prompts in parallel, compare, and adopt the best.")}</span>
                 </span>
               </button>
               {race.count > 0 ? (
@@ -96,7 +100,6 @@ export function ModeChip({
               ) : null}
             </>
           ) : null}
-          <div className="composer-popover-footnote">{tr("模式只影响当前对话。回复进行时不能切换。", "Modes apply only to this chat and cannot be changed while a reply is in progress.")}</div>
         </div>
       </PopoverPresence>
     </div>

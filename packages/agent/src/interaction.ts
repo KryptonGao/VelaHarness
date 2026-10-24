@@ -73,6 +73,16 @@ If this round is not finished, do the next thing you can do; do not stop and wai
 const agentPlanPrompt =
   "There is an approved execution plan. Before starting, break the actual implementation into trackable items and submit them with update_plan, then keep updating them with update_plan during execution: at most one item in_progress, mark items completed when done, and add, adjust, or merge items to match the actual implementation. The execution checklist only records progress; do not use it to rewrite the approved plan. If the design needs to change, stop, explain to the user, and suggest going back to Plan mode. When you hit a decision that needs the user's call during execution, you can ask with ask_user_question.";
 
+/** 运行视图模式要求的待办清单工具名；update_plan 同样算已提交（有已批准执行方案时用它）。 */
+export const updateTodosToolName = "update_todos";
+
+const todoPrompt = `The user is in Run View: the interface shows your todo list live above the input, so you must keep it current.
+At the start of every task, before you run any command or edit any file, call ${updateTodosToolName} with the complete todo list (3-7 concrete items in execution order, at most one in_progress). Reading files to understand the task first is fine, but bash, edit, and write are blocked until the list is submitted.
+After each item finishes, call ${updateTodosToolName} again with the full list: mark it completed and set the next item in_progress. Add, adjust, or merge items when the work changes, and make sure every item is completed (or removed if no longer needed) before your final reply. Even for a small task, submit a short list. Do not repeat the list in your reply text.`;
+
+const todoPromptWithPlan =
+  "The user is in Run View: the interface shows the execution checklist live above the input, so keep it current with update_plan: submit it before you run any command or edit any file, and update it after each item finishes. bash, edit, and write are blocked until it has been submitted this turn.";
+
 const outcomePrompt = `If you modified files or ran verification in this turn, call submit_outcome before writing your final reply. Submit one item per user requirement, with its actual completion status and any risks, assumptions, or decisions still needing confirmation.
 Only cite files changed by completed edit/write calls and bash tool call ids completed in this turn. Leave verificationIds empty if you did not run verification; never invent files, ids, or results. If submission is rejected, correct the invalid references and retry before finishing.
 In Goal mode, call record_goal_validation before submit_outcome, then update_goal to complete when appropriate. Pure questions and answers with no changes or verification do not require an outcome submission.`;
@@ -84,18 +94,21 @@ You can spawn several subagents in parallel, but note that they modify the works
 
 const workTools = ["read", "bash", "edit", "write", ...agentToolNames];
 
-export function toolNamesFor(mode: InteractionMode, hasExecutionPlan: boolean): string[] {
+export function toolNamesFor(mode: InteractionMode, hasExecutionPlan: boolean, runView = false): string[] {
   if (mode === "plan") return ["read", "bash", "ask_user_question"];
-  if (mode === "goal") return [...workTools, "record_goal_validation", "submit_outcome", "update_goal"];
+  // 运行视图要求必须有待办清单；有已批准执行方案时由 update_plan 承担,不再重复提供。
+  const todos = runView && !hasExecutionPlan ? [updateTodosToolName] : [];
+  if (mode === "goal") return [...workTools, ...todos, "record_goal_validation", "submit_outcome", "update_goal"];
   return hasExecutionPlan
     ? [...workTools, "update_plan", "submit_outcome", "ask_user_question"]
-    : [...workTools, "submit_outcome", "ask_user_question"];
+    : [...workTools, ...todos, "submit_outcome", "ask_user_question"];
 }
 
-export function modeSystemPrompt(mode: InteractionMode, hasExecutionPlan: boolean): string {
+export function modeSystemPrompt(mode: InteractionMode, hasExecutionPlan: boolean, runView = false): string {
   if (mode === "plan") return planPrompt;
-  if (mode === "goal") return `${goalPrompt}\n\n${outcomePrompt}\n\n${agentTreePrompt}`;
-  return [hasExecutionPlan ? agentPlanPrompt : "", outcomePrompt, agentTreePrompt].filter(Boolean).join("\n\n");
+  const todo = runView ? (hasExecutionPlan ? todoPromptWithPlan : todoPrompt) : "";
+  if (mode === "goal") return [goalPrompt, todo, outcomePrompt, agentTreePrompt].filter(Boolean).join("\n\n");
+  return [hasExecutionPlan ? agentPlanPrompt : "", todo, outcomePrompt, agentTreePrompt].filter(Boolean).join("\n\n");
 }
 
 // ---------- Tool policy ----------
@@ -115,7 +128,7 @@ export type ToolAuthorizationResult =
   | { allowed: false; reason: string };
 
 export interface ToolPolicy {
-  availableTools(mode: InteractionMode, hasExecutionPlan: boolean): string[];
+  availableTools(mode: InteractionMode, hasExecutionPlan: boolean, runView?: boolean): string[];
   authorizeCall(call: ToolPolicyCall): ToolAuthorizationResult;
 }
 
@@ -123,8 +136,8 @@ const planAllowedTools = new Set(["read", "bash", "ask_user_question", memoryRea
 const planDeniedTools = new Set(["edit", "write", "apply_patch"]);
 
 export class DefaultToolPolicy implements ToolPolicy {
-  availableTools(mode: InteractionMode, hasExecutionPlan: boolean): string[] {
-    return toolNamesFor(mode, hasExecutionPlan);
+  availableTools(mode: InteractionMode, hasExecutionPlan: boolean, runView = false): string[] {
+    return toolNamesFor(mode, hasExecutionPlan, runView);
   }
 
   authorizeCall(call: ToolPolicyCall): ToolAuthorizationResult {
@@ -157,29 +170,45 @@ function bashCommandOf(input: unknown): string | null {
 export interface ModeState {
   mode: InteractionMode;
   hasExecutionPlan: boolean;
+  /** 运行视图开启:要求本轮先提交待办清单,否则不放行改动类工具。 */
+  runView?: boolean;
 }
+
+/** 运行视图下,待办清单提交之前不放行的工具:会改动工作区或执行命令的那几个。 */
+const todoGatedTools = new Set(["bash", "edit", "write", "apply_patch"]);
+export const todoGateReason = `Run View requires a todo list first. Call ${updateTodosToolName} with the complete todo list (or update_plan when an execution plan is approved), then retry this tool call.`;
 
 export function createModeExtension(
   read: () => ModeState,
   policy: ToolPolicy = defaultToolPolicy,
 ): ExtensionFactory {
   return (pi) => {
+    /** 本轮是否已经提交过待办清单;每次用户发起新一轮都重新要求。 */
+    let todosSubmitted = false;
     pi.on("before_agent_start", async (event) => {
+      todosSubmitted = false;
       const state = read();
-      const extra = modeSystemPrompt(state.mode, state.hasExecutionPlan);
+      const extra = modeSystemPrompt(state.mode, state.hasExecutionPlan, state.runView === true);
       if (!extra) return;
       const current = event.systemPromptOptions.appendSystemPrompt.trim();
       event.systemPromptOptions.appendSystemPrompt = current ? `${current}\n\n${extra}` : extra;
     });
 
     pi.on("tool_call", async (event) => {
+      const state = read();
       const result = policy.authorizeCall({
-        mode: read().mode,
+        mode: state.mode,
         toolName: event.toolName,
         input: event.input,
       });
-      if (result.allowed) return;
-      return { block: true, reason: result.reason };
+      if (!result.allowed) return { block: true, reason: result.reason };
+      if (event.toolName === updateTodosToolName || event.toolName === "update_plan") {
+        todosSubmitted = true;
+        return;
+      }
+      if (state.runView === true && state.mode !== "plan" && !todosSubmitted && todoGatedTools.has(event.toolName)) {
+        return { block: true, reason: todoGateReason };
+      }
     });
   };
 }
@@ -191,7 +220,7 @@ export type ToolOutcome = { ok: true; text: string } | { ok: false; text: string
  * Pi 的 createAgentSession 把 tools 参数当作注册表白名单(内置与自定义都过滤),
  * 这些名字必须并入 tools,否则工具进不了注册表,setActiveToolsByName 会静默忽略。
  */
-export const modeToolNames = ["update_plan", "update_goal", "record_goal_validation", "submit_outcome", "ask_user_question"];
+export const modeToolNames = ["update_plan", updateTodosToolName, "update_goal", "record_goal_validation", "submit_outcome", "ask_user_question"];
 
 export interface AskUserInput {
   toolCallId: string;
@@ -266,6 +295,29 @@ export function createModeTools(host: ModeToolHost): ToolDefinition[] {
     }),
     execute: async (_toolCallId, params) =>
       outcome(host.updateExecutionPlan(params.plan as ExecutionPlanUpdateItem[])),
+  });
+
+  const updateTodos = defineTool({
+    name: updateTodosToolName,
+    label: "更新待办清单",
+    description:
+      "Submit or update the todo list shown live in the user's Run View. Always send the complete list in execution order: at most one item in_progress, finished items marked completed. Call it before any command or edit, and again each time an item finishes or the plan changes.",
+    promptSnippet: "Submit/update the todo list (list of step + status) shown in Run View",
+    executionMode: "sequential",
+    parameters: Type.Object({
+      todos: Type.Array(
+        Type.Object({
+          step: Type.String({ description: "One todo item, a short concrete action" }),
+          status: Type.Union([
+            Type.Literal("pending"),
+            Type.Literal("in_progress"),
+            Type.Literal("completed"),
+          ]),
+        }),
+        { description: "The complete todo list in execution order", minItems: 1, maxItems: executionPlanItemMax },
+      ),
+    }),
+    execute: async (_toolCallId, params) => outcome(todoListOutcome(params.todos as ExecutionPlanUpdateItem[])),
   });
 
   const updateGoal = defineTool({
@@ -356,7 +408,17 @@ export function createModeTools(host: ModeToolHost): ToolDefinition[] {
     },
   });
 
-  return [updatePlan, updateGoal, recordGoalValidation, submitOutcome, askUserQuestion];
+  return [updatePlan, updateTodos, updateGoal, recordGoalValidation, submitOutcome, askUserQuestion];
+}
+
+/** update_todos 不改任何对话状态,清单只随工具调用显示在界面上;这里只校验「最多一项进行中」。 */
+export function todoListOutcome(items: readonly ExecutionPlanUpdateItem[]): ToolOutcome {
+  if (items.filter(item => item.status === "in_progress").length > 1) {
+    return { ok: false, text: "待办清单最多只能有一项 in_progress，请调整后重新提交完整清单。" };
+  }
+  const done = items.filter(item => item.status === "completed").length;
+  const active = items.find(item => item.status === "in_progress");
+  return { ok: true, text: `待办清单已更新：${done}/${items.length} 完成${active ? `，进行中：${active.step}` : ""}。` };
 }
 
 function outcome(result: ToolOutcome): AgentToolResult<undefined> {

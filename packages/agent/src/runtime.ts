@@ -392,6 +392,8 @@ export class AgentRuntime {
   /** 网页搜索与抓取：提供商配置、密钥和 HTTP 调用；与模型提供商无关。 */
   readonly webTools: WebToolsService;
   private readonly intelligentUiSettings: IntelligentUiSettings;
+  /** 渲染层「运行视图」偏好的镜像:开启后要求模型提交待办清单。只在内存里,每次启动由渲染层同步。 */
+  private runView = false;
   private readonly taskBudgetSettings: TaskBudgetSettingsStore;
   private readonly contextLimitSettings: ContextLimitSettingsStore;
   /** 每个 Pi 会话的设置对象与压缩默认值,上下文上限改动时据此重新套用。 */
@@ -421,6 +423,7 @@ export class AgentRuntime {
       browser: Boolean(options.browserRepl),
       memoryEnabled: () => this.memorySettings.enabled,
       web: () => this.webTools.ready(),
+      runView: () => this.runView,
       ...(options.resident ? { resident: { isResident: entry => this.isResident(entry.id) } } : {}),
     });
     this.traces = new ConversationTraces({
@@ -2581,6 +2584,7 @@ export class AgentRuntime {
           factory: createModeExtension(() => ({
             mode: entry.snapshot.mode,
             hasExecutionPlan: entry.snapshot.executionPlan !== null,
+            runView: this.runView && !this.isResident(entry.id) && !entry.scheduledTaskConversation && !entry.recipeExecution,
           }), {
             availableTools: (mode, plan) => this.tools.native(mode, plan, entry),
             authorizeCall: call => this.tools.authorize(call, entry),
@@ -3606,6 +3610,14 @@ export class AgentRuntime {
    */
   getMemoryStatus(conversationId: string, agentId?: string): MemoryLoadReport[] {
     return (this.memoryLoads.get(agentId ? `${conversationId}/${agentId}` : conversationId) ?? []).map((source) => ({ ...source }));
+  }
+
+  /** 同步渲染层的运行视图开关;已有会话立刻重算可用工具,提示词和闸门下一轮生效。 */
+  setRunView(enabled: boolean): void {
+    if (this.runView === enabled) return;
+    this.runView = enabled;
+    if (this.disposed) return;
+    for (const entry of this.conversations.values()) this.applyActiveTools(entry);
   }
 
   getIntelligentUiSettings(): IntelligentUiState {

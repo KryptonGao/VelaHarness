@@ -1,89 +1,129 @@
 {
-  "version": "1.1.14",
+  "version": "1.2.0",
   "locales": {
     "en": {
-      "summary": "Vela 1.1.14 makes the top bar and the composer tray adapt to narrow windows instead of wrapping or getting cut off.",
+      "summary": "Vela 1.2.0 adds a Run View with a live todo list and step status, an Info Cards layout, font controls, and a new animated jump-to-latest orb.",
       "highlights": [
         {
-          "title": "Top-bar tabs fit narrow panels",
-          "body": "When the tabs no longer fit, they first drop their icons and keep the text, then keep only the icons. Every tab still shows its name on hover."
+          "title": "Run View",
+          "body": "Turn it on in Settings → Conversation Display. While a task runs, a todo list and a status line with the current step and elapsed time appear at the end of the turn. The model is asked to submit its todo list before it runs commands or edits files."
         },
         {
-          "title": "A composer tray that never wraps",
-          "body": "The row under the input stays on one line. When space runs out, the stats are hidden step by step: speed first, then tokens and cache hits, then the usage percentage and ring. Mode, permissions and model always stay."
+          "title": "Info Cards layout",
+          "body": "A column of cards floats over the conversation: Environment, Goal, Plan, Context, Outputs, Changes and more. Drag to reorder, collapse, hide, and bring them back from the tray."
+        },
+        {
+          "title": "Font settings",
+          "body": "Choose Latin and CJK fonts separately for the interface and for model replies, as sans-serif or serif."
+        },
+        {
+          "title": "Animated orb",
+          "body": "The jump-to-latest button and the activity indicator now use an animated orb with several styles for thinking and running commands."
         }
       ],
       "improvements": [
-        "Top-bar tabs no longer wrap their labels and can scroll sideways as a last resort.",
-        "Tabs now carry an accessible label, so screen readers still announce them when only the icon is visible."
+        "Spacing between CJK text and Latin letters or digits in replies is now controlled by Vela; copied text is unchanged.",
+        "Refinements to the thinking block, plan panel, review view, composer chips and the browser view."
       ]
     },
     "zh-CN": {
-      "summary": "Vela 1.1.14 让顶栏和输入框托盘在窄窗口下自动适配，不再换行或被截断。",
+      "summary": "Vela 1.2.0 新增带实时待办清单与步骤状态的运行视图、信息卡片布局、字体设置，以及全新的「回到最新」动态圆球。",
       "highlights": [
         {
-          "title": "顶栏标签适配窄面板",
-          "body": "标签放不下时，先去掉图标只留文字，仍放不下再只留图标。悬停时每个标签仍会显示名称。"
+          "title": "运行视图",
+          "body": "在设置 → 对话显示中开启。任务运行时，本轮过程末尾会显示待办清单和一条状态条（当前步骤与用时）。模型会被要求先提交待办清单，再运行命令或修改文件。"
         },
         {
-          "title": "不再换行的输入框托盘",
-          "body": "输入框下方这一行始终保持单行。空间不足时统计信息逐级隐藏：先隐藏速度，再隐藏 token 与缓存命中，最后隐藏占用百分比和占用环；模式、权限与模型始终保留。"
+          "title": "信息卡片布局",
+          "body": "右侧一列卡片浮在对话上：环境、目标、计划、上下文、产出、变更等。可拖动排序、折叠、隐藏，并从托盘找回。"
+        },
+        {
+          "title": "字体设置",
+          "body": "界面和模型回复的西文、中日韩文字体可分别选择无衬线或衬线。"
+        },
+        {
+          "title": "动态圆球",
+          "body": "「回到最新」按钮和活动指示器改用动态圆球，思考和运行命令各有多种样式。"
         }
       ],
       "improvements": [
-        "顶栏标签的文字不再换行，实在放不下时可横向滚动。",
-        "标签增加了无障碍名称，只显示图标时读屏软件仍能读出标签名。"
+        "回复中中日韩文字与西文、数字相接处的间距改由 Vela 控制，复制出的文字不变。",
+        "优化了思考块、计划面板、审阅视图、输入框芯片和浏览器视图。"
       ]
     },
     "zh-TW": {
-      "summary": "Vela 1.1.14 讓頂列與輸入框托盤在窄視窗下自動適配，不再換行或被截斷。",
+      "summary": "Vela 1.2.0 新增附即時待辦清單與步驟狀態的執行檢視、資訊卡片版面、字型設定，以及全新的「回到最新」動態圓球。",
       "highlights": [
         {
-          "title": "頂列分頁適配窄面板",
-          "body": "分頁放不下時，先去掉圖示只留文字，仍放不下再只留圖示。滑鼠移上去時每個分頁仍會顯示名稱。"
+          "title": "執行檢視",
+          "body": "在設定 → 對話顯示中開啟。任務執行時，本輪過程末尾會顯示待辦清單與一條狀態列（目前步驟與用時）。模型會被要求先提交待辦清單，再執行指令或修改檔案。"
         },
         {
-          "title": "不再換行的輸入框托盤",
-          "body": "輸入框下方這一列始終保持單行。空間不足時統計資訊逐級隱藏：先隱藏速度，再隱藏 token 與快取命中，最後隱藏占用百分比與占用環；模式、權限與模型始終保留。"
+          "title": "資訊卡片版面",
+          "body": "右側一列卡片浮在對話上：環境、目標、計畫、上下文、產出、變更等。可拖曳排序、摺疊、隱藏，並從托盤找回。"
+        },
+        {
+          "title": "字型設定",
+          "body": "介面與模型回覆的西文、中日韓文字型可分別選擇無襯線或襯線。"
+        },
+        {
+          "title": "動態圓球",
+          "body": "「回到最新」按鈕與活動指示器改用動態圓球，思考與執行指令各有多種樣式。"
         }
       ],
       "improvements": [
-        "頂列分頁的文字不再換行，實在放不下時可橫向捲動。",
-        "分頁新增了無障礙名稱，只顯示圖示時螢幕閱讀器仍能讀出分頁名稱。"
+        "回覆中中日韓文字與西文、數字相接處的間距改由 Vela 控制，複製出的文字不變。",
+        "優化了思考區塊、計畫面板、審閱檢視、輸入框晶片與瀏覽器檢視。"
       ]
     },
     "ja": {
-      "summary": "Vela 1.1.14 では、トップバーと入力欄の下のトレイが狭いウィンドウに合わせて調整され、折り返しや途切れがなくなりました。",
+      "summary": "Vela 1.2.0 では、リアルタイムの ToDo リストとステップ状態を表示するランビュー、情報カードのレイアウト、フォント設定、新しい「最新へ戻る」アニメーションオーブを追加しました。",
       "highlights": [
         {
-          "title": "トップバーのタブが狭いパネルに対応",
-          "body": "タブが収まらないときは、まずアイコンを外して文字だけを残し、それでも収まらなければアイコンだけにします。ホバーすると各タブの名前が表示されます。"
+          "title": "ランビュー",
+          "body": "設定 → 会話表示でオンにします。タスクの実行中、ターンの末尾に ToDo リストと状態バー（現在のステップと経過時間）が表示されます。モデルはコマンドの実行やファイルの編集の前に ToDo リストを提出するよう求められます。"
         },
         {
-          "title": "折り返さない入力欄のトレイ",
-          "body": "入力欄の下の行は常に 1 行のままです。幅が足りないときは統計が段階的に隠れます。まず速度、次にトークンとキャッシュヒット、最後に使用率とリングです。モード、権限、モデルは常に残ります。"
+          "title": "情報カードのレイアウト",
+          "body": "環境、目標、計画、コンテキスト、成果物、変更などのカードが会話の上に並びます。ドラッグで並べ替え、折りたたみ、非表示にでき、トレイから戻せます。"
+        },
+        {
+          "title": "フォント設定",
+          "body": "インターフェースとモデルの返信で、欧文と CJK のフォントをそれぞれゴシック体または明朝体から選べます。"
+        },
+        {
+          "title": "アニメーションオーブ",
+          "body": "「最新へ戻る」ボタンとアクティビティ表示が、思考とコマンド実行それぞれ複数のスタイルを持つオーブになりました。"
         }
       ],
       "improvements": [
-        "トップバーのタブのラベルは折り返さなくなり、どうしても収まらない場合は横にスクロールできます。",
-        "タブにアクセシビリティ用のラベルを追加し、アイコンだけの表示でもスクリーンリーダーが名前を読み上げます。"
+        "返信内の CJK 文字と欧文・数字の間隔を Vela が制御するようになりました。コピーしたテキストは変わりません。",
+        "思考ブロック、プランパネル、レビュー画面、入力欄のチップ、ブラウザビューを改善しました。"
       ]
     },
     "ko": {
-      "summary": "Vela 1.1.14는 상단 바와 입력창 아래 트레이가 좁은 창에 맞춰 조정되어, 줄바꿈이나 잘림이 생기지 않습니다.",
+      "summary": "Vela 1.2.0에는 실시간 할 일 목록과 단계 상태를 보여 주는 실행 보기, 정보 카드 레이아웃, 글꼴 설정, 새로운 '최신으로 이동' 애니메이션 구슬이 추가되었습니다.",
       "highlights": [
         {
-          "title": "좁은 패널에 맞는 상단 바 탭",
-          "body": "탭이 들어가지 않으면 먼저 아이콘을 빼고 글자만 남기고, 그래도 부족하면 아이콘만 남깁니다. 마우스를 올리면 각 탭의 이름이 표시됩니다."
+          "title": "실행 보기",
+          "body": "설정 → 대화 표시에서 켭니다. 작업이 실행되는 동안 턴 끝에 할 일 목록과 상태 표시줄(현재 단계와 경과 시간)이 나타납니다. 모델은 명령을 실행하거나 파일을 수정하기 전에 할 일 목록을 제출해야 합니다."
         },
         {
-          "title": "줄바꿈 없는 입력창 트레이",
-          "body": "입력창 아래 줄은 항상 한 줄로 유지됩니다. 공간이 부족하면 통계가 단계적으로 숨겨집니다. 먼저 속도, 다음으로 토큰과 캐시 적중, 마지막으로 사용률과 링이 숨겨집니다. 모드, 권한, 모델은 항상 남습니다."
+          "title": "정보 카드 레이아웃",
+          "body": "환경, 목표, 계획, 컨텍스트, 산출물, 변경 등의 카드가 대화 위에 떠 있습니다. 드래그로 순서를 바꾸고 접거나 숨길 수 있으며 트레이에서 되돌릴 수 있습니다."
+        },
+        {
+          "title": "글꼴 설정",
+          "body": "인터페이스와 모델 답변의 라틴 문자와 CJK 글꼴을 각각 고딕체 또는 명조체로 고를 수 있습니다."
+        },
+        {
+          "title": "애니메이션 구슬",
+          "body": "'최신으로 이동' 버튼과 활동 표시기가 생각 중과 명령 실행에 맞는 여러 스타일의 구슬로 바뀌었습니다."
         }
       ],
       "improvements": [
-        "상단 바 탭의 라벨이 줄바꿈되지 않으며, 정말 들어가지 않을 때는 가로로 스크롤할 수 있습니다.",
-        "탭에 접근성 라벨을 추가해, 아이콘만 보일 때도 스크린 리더가 이름을 읽어 줍니다."
+        "답변에서 CJK 문자와 라틴 문자·숫자 사이의 간격을 Vela가 직접 조절하며, 복사한 텍스트는 그대로입니다.",
+        "생각 블록, 계획 패널, 검토 화면, 입력창 칩, 브라우저 보기를 개선했습니다."
       ]
     }
   }

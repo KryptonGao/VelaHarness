@@ -1,5 +1,6 @@
-import { useState } from "react";
-import type { Appearance, FileIconTheme, PreferencesApi } from "../../hooks/usePreferences";
+import { useMemo, useState } from "react";
+import { serifLatinInUse } from "../../font-detect";
+import type { Appearance, FileIconTheme, PreferencesApi, ReplyFontFace, UiFontFace } from "../../hooks/usePreferences";
 import {
   builtinThemeColors,
   createCustomThemeId,
@@ -58,6 +59,19 @@ export function AppearancePage({ copy, preferences }: { copy: SettingsCopy; pref
   const fileIconThemeOptions: { id: FileIconTheme; label: string }[] = [
     { id: "material", label: text.materialIconTheme },
     { id: "devicon", label: text.devicon },
+  ];
+
+  const serifNote = useMemo(
+    () => (serifLatinInUse() === "anthropic-serif" ? text.fontSerifAnthropic : text.fontSerifGeorgia),
+    [text],
+  );
+  const uiFontOptions: { id: UiFontFace; label: string }[] = [
+    { id: "sans", label: text.fontSans },
+    { id: "serif", label: text.fontSerif },
+  ];
+  const replyFontOptions: { id: ReplyFontFace; label: string }[] = [
+    { id: "inherit", label: text.fontInherit },
+    ...uiFontOptions,
   ];
 
   const editor = editing ? (
@@ -119,6 +133,28 @@ export function AppearancePage({ copy, preferences }: { copy: SettingsCopy; pref
           options={fileIconThemeOptions}
           onChange={setFileIconTheme}
         />
+      </SettingsBlock>
+      <SettingsBlock id="ui-font" title={text.uiFont} hint={text.uiFontHint}>
+        <div className="settings-font-row">
+          <span className="settings-font-label">{text.fontLatin}</span>
+          <Segmented label={`${text.uiFont} · ${text.fontLatin}`} value={preferences.uiFontLatin} options={uiFontOptions} onChange={preferences.setUiFontLatin} />
+        </div>
+        <div className="settings-font-row">
+          <span className="settings-font-label">{text.fontCjk}</span>
+          <Segmented label={`${text.uiFont} · ${text.fontCjk}`} value={preferences.uiFontCjk} options={uiFontOptions} onChange={preferences.setUiFontCjk} />
+        </div>
+        <p className="settings-font-note">{serifNote}</p>
+      </SettingsBlock>
+      <SettingsBlock id="reply-font" title={text.replyFont} hint={text.replyFontHint}>
+        <div className="settings-font-row">
+          <span className="settings-font-label">{text.fontLatin}</span>
+          <Segmented label={`${text.replyFont} · ${text.fontLatin}`} value={preferences.replyFontLatin} options={replyFontOptions} onChange={preferences.setReplyFontLatin} />
+        </div>
+        <div className="settings-font-row">
+          <span className="settings-font-label">{text.fontCjk}</span>
+          <Segmented label={`${text.replyFont} · ${text.fontCjk}`} value={preferences.replyFontCjk} options={replyFontOptions} onChange={preferences.setReplyFontCjk} />
+        </div>
+        <p className="settings-font-note">{serifNote}</p>
       </SettingsBlock>
     </section>
   );

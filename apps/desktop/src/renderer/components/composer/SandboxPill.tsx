@@ -65,12 +65,11 @@ export function SandboxPill({ project, conversationMode }: { project: ProjectApi
               </span>
               <span className="sandbox-option-text">
                 <span className="sandbox-option-name">{modeLabel(candidate)}</span>
-                <span className="sandbox-option-desc">{modeDescription(candidate)}</span>
               </span>
               {candidate === mode ? <CheckIcon /> : null}
             </button>
           ))}
-          <div className="composer-popover-footnote">{conversationMode ? tr("此对话使用配方启动时的权限快照；应用默认权限不受影响。", "This chat uses the permission snapshot from its recipe launch. App defaults are unchanged.") : tr("执行权限会影响 Agent 能自动完成的操作。「帮我批准」由当前对话选择的模型判断风险。", "Permissions control which actions the agent can complete automatically. Smart approval uses the model selected for the current conversation to check risk.")}</div>
+          {conversationMode ? <div className="composer-popover-footnote">{tr("此对话使用配方启动时的权限快照；应用默认权限不受影响。", "This chat uses the permission snapshot from its recipe launch. App defaults are unchanged.")}</div> : null}
         </div>
       </PopoverPresence>
     </div>

@@ -20,7 +20,7 @@ import { isAppLocale, type AppLocale, type ThinkingSummaryModel } from "@vela/sh
 import { isConversationLinkTarget, type ConversationLinkTarget } from "../browser/conversation-link-policy";
 import { soundEffectsKey } from "../notification-sounds";
 
-export type InfoLayout = "sidebar" | "floating";
+export type InfoLayout = "sidebar" | "floating" | "cards";
 export type Appearance = "system" | "light" | "dark";
 export type { AppLocale };
 
@@ -32,6 +32,9 @@ export type ToolFold = "message" | "position" | "none";
 export type ThinkingSummaryStyle = "inline" | "headline" | "prose";
 export type FileIconTheme = "devicon" | "material";
 export type SendButtonIcon = "paper-plane" | "arrow-up";
+/** 字体风格:sans 为无衬线,serif 为明体(衬线);回复字体另有 inherit,表示沿用界面字体。 */
+export type UiFontFace = "sans" | "serif";
+export type ReplyFontFace = UiFontFace | "inherit";
 
 const infoLayoutKey = "vela.infoLayout";
 const conversationLinkTargetKey = "vela.conversationLinkTarget";
@@ -45,6 +48,7 @@ const localeKey = "vela.locale";
 const toolDisplayKey = "vela.toolDisplay";
 const toolFoldKey = "vela.toolFold";
 const toolProcessDetailsKey = "vela.toolProcessDetails";
+const runViewKey = "vela.runView";
 const toolIconColorKey = "vela.toolIconColor";
 const thinkingSummaryKey = "vela.thinkingSummary";
 const thinkingSummaryStyleKey = "vela.thinkingSummaryStyle";
@@ -54,6 +58,10 @@ const inputPredictionModelKey = "vela.inputPredictionModel";
 const fileIconThemeKey = "vela.fileIconTheme";
 const composerCapsulesKey = "vela.composerCapsules";
 const sendButtonIconKey = "vela.sendButtonIcon";
+const uiFontLatinKey = "vela.font.ui.latin";
+const uiFontCjkKey = "vela.font.ui.cjk";
+const replyFontLatinKey = "vela.font.reply.latin";
+const replyFontCjkKey = "vela.font.reply.cjk";
 const hiddenModelsKey = "vela.hiddenModels";
 const darkQuery = "(prefers-color-scheme: dark)";
 
@@ -132,6 +140,14 @@ function isSendButtonIcon(value: unknown): value is SendButtonIcon {
   return value === "paper-plane" || value === "arrow-up";
 }
 
+function isUiFontFace(value: unknown): value is UiFontFace {
+  return value === "sans" || value === "serif";
+}
+
+function isReplyFontFace(value: unknown): value is ReplyFontFace {
+  return value === "inherit" || isUiFontFace(value);
+}
+
 function systemScheme(): ColorScheme {
   return window.matchMedia(darkQuery).matches ? "dark" : "light";
 }
@@ -144,7 +160,7 @@ export function usePreferences() {
     readStored(conversationLinkTargetKey, isConversationLinkTarget, "embedded"),
   );
   const [infoLayout, setInfoLayout] = useState<InfoLayout>(() =>
-    readStored(infoLayoutKey, (value): value is InfoLayout => value === "sidebar" || value === "floating", "sidebar"),
+    readStored(infoLayoutKey, (value): value is InfoLayout => value === "sidebar" || value === "floating" || value === "cards", "sidebar"),
   );
   const [appearance, setAppearance] = useState<Appearance>(() => readStored(appearanceKey, isAppearance, "system"));
   const [customThemes, setCustomThemes] = useState<CustomTheme[]>(() =>
@@ -180,6 +196,10 @@ export function usePreferences() {
   const [toolProcessDetails, setToolProcessDetails] = useState(() =>
     readStored(toolProcessDetailsKey, (value): value is string => value === "true", "false") === "true",
   );
+  /** 运行视图:运行中在本轮过程末尾显示待办清单与当前步骤状态,并要求模型提交待办清单。默认关闭。 */
+  const [runView, setRunView] = useState(() =>
+    readStored(runViewKey, (value): value is string => value === "true", "false") === "true",
+  );
   const [thinkingSummary, setThinkingSummary] = useState(() =>
     readStored(thinkingSummaryKey, (value): value is string => value === "true", "false") === "true",
   );
@@ -210,6 +230,14 @@ export function usePreferences() {
   );
   const [sendButtonIcon, setSendButtonIcon] = useState<SendButtonIcon>(() =>
     readStored(sendButtonIconKey, isSendButtonIcon, "paper-plane"),
+  );
+  const [uiFontLatin, setUiFontLatin] = useState<UiFontFace>(() => readStored(uiFontLatinKey, isUiFontFace, "sans"));
+  const [uiFontCjk, setUiFontCjk] = useState<UiFontFace>(() => readStored(uiFontCjkKey, isUiFontFace, "sans"));
+  const [replyFontLatin, setReplyFontLatin] = useState<ReplyFontFace>(() =>
+    readStored(replyFontLatinKey, isReplyFontFace, "inherit"),
+  );
+  const [replyFontCjk, setReplyFontCjk] = useState<ReplyFontFace>(() =>
+    readStored(replyFontCjkKey, isReplyFontFace, "inherit"),
   );
 
   const isModelHidden = useCallback(
@@ -291,6 +319,11 @@ export function usePreferences() {
   useEffect(() => writeStored(toolDisplayKey, toolDisplay), [toolDisplay]);
   useEffect(() => writeStored(toolFoldKey, toolFold), [toolFold]);
   useEffect(() => writeStored(toolProcessDetailsKey, String(toolProcessDetails)), [toolProcessDetails]);
+  useEffect(() => {
+    writeStored(runViewKey, String(runView));
+    // 运行时要据此决定是否要求模型提交待办清单;浏览器预览等没有 window.vela 的环境直接跳过。
+    void Promise.resolve(window.vela?.setRunView(runView)).catch(() => undefined);
+  }, [runView]);
   useEffect(() => writeStored(thinkingSummaryKey, String(thinkingSummary)), [thinkingSummary]);
   useEffect(() => writeStored(thinkingSummaryStyleKey, thinkingSummaryStyle), [thinkingSummaryStyle]);
   useEffect(() => writeStored(thinkingSummaryModelKey, JSON.stringify(thinkingSummaryModel)), [thinkingSummaryModel]);
@@ -303,6 +336,22 @@ export function usePreferences() {
     document.documentElement.dataset.toolIconColor = String(toolIconColor);
     writeStored(toolIconColorKey, String(toolIconColor));
   }, [toolIconColor]);
+  useEffect(() => {
+    document.documentElement.dataset.uiFontLatin = uiFontLatin;
+    writeStored(uiFontLatinKey, uiFontLatin);
+  }, [uiFontLatin]);
+  useEffect(() => {
+    document.documentElement.dataset.uiFontCjk = uiFontCjk;
+    writeStored(uiFontCjkKey, uiFontCjk);
+  }, [uiFontCjk]);
+  useEffect(() => {
+    document.documentElement.dataset.replyFontLatin = replyFontLatin;
+    writeStored(replyFontLatinKey, replyFontLatin);
+  }, [replyFontLatin]);
+  useEffect(() => {
+    document.documentElement.dataset.replyFontCjk = replyFontCjk;
+    writeStored(replyFontCjkKey, replyFontCjk);
+  }, [replyFontCjk]);
   useEffect(() => {
     document.documentElement.dataset.composerCapsules = String(composerCapsules);
     writeStored(composerCapsulesKey, String(composerCapsules));
@@ -327,6 +376,7 @@ export function usePreferences() {
     toolDisplay,
     toolFold,
     toolProcessDetails,
+    runView,
     toolIconColor,
     thinkingSummary,
     thinkingSummaryStyle,
@@ -339,6 +389,14 @@ export function usePreferences() {
     setComposerCapsules,
     sendButtonIcon,
     setSendButtonIcon,
+    uiFontLatin,
+    setUiFontLatin,
+    uiFontCjk,
+    setUiFontCjk,
+    replyFontLatin,
+    setReplyFontLatin,
+    replyFontCjk,
+    setReplyFontCjk,
     isModelHidden,
     setModelHidden,
     showAllModels,
@@ -349,6 +407,7 @@ export function usePreferences() {
     setToolDisplay,
     setToolFold,
     setToolProcessDetails,
+    setRunView,
     setToolIconColor,
     setThinkingSummary,
     setThinkingSummaryStyle,

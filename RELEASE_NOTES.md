@@ -1,16 +1,19 @@
-# Vela 1.1.14
+# Vela 1.2.0
 
-Vela 1.1.14 makes the top bar and the composer tray adapt to narrow windows instead of wrapping or getting cut off.
+Vela 1.2.0 adds a Run View that keeps a live todo list and step status in the conversation, an Info Cards layout for the side panel, new font controls, and a new animated "jump to latest" orb.
 
 ## New
 
-- **Top-bar tabs that fit narrow panels**: When the Conversation, Trace, Version Control, Usage, Context and Usage limit tabs no longer fit, they first drop their icons and keep the text, then keep only the icons. Every tab still shows its name on hover.
-- **A composer tray that never wraps**: The row under the input stays on a single line. When space runs out, the stats are hidden step by step: output speed first, then tokens and cache hits, then the usage percentage and ring. Mode, permissions and model always stay visible.
+- **Run View**: Turn it on under Settings → Conversation Display (off by default). While a task runs, a todo list and a status line (animation plus the current step, such as Thinking, Running Command or Reading Files, with elapsed time) appear at the end of the turn and scroll with the conversation. In Agent and Goal modes the model is asked to submit a todo list through the new `update_todos` tool before it runs commands or edits files; reading tools are not restricted.
+- **Info Cards layout**: A third option for the information panel (Settings → Interface → Info layout). A column of cards floats over the conversation: Environment, Goal, Plan, Context, Outputs, Changes, Sub-agents and Tools. Drag the handle (or use Space and the arrow keys) to reorder, click a title to collapse, hide cards and bring them back from the tray, or restore the default layout. Your layout is saved and survives upgrades.
+- **Font settings**: Choose Latin and CJK fonts separately for the interface and for model replies, each as sans-serif or serif. Replies can follow the interface font. Serif Latin uses the same serif as the Claude app and falls back to Georgia when it is not installed.
+- **Animated orb**: The "jump to latest" button and the inline activity indicator now use a canvas-drawn orb with several styles for thinking and for running commands, rotating smoothly instead of cutting between them.
 
 ## Improved
 
-- Top-bar tab labels no longer wrap, and the tab strip can scroll sideways as a last resort.
-- Tabs now carry an accessible label, so screen readers still announce them when only the icon is visible.
+- Spacing between CJK text and Latin letters or digits in replies is now controlled by Vela instead of the browser's fixed 1/8 em; copied text stays identical to the original.
+- Refinements to the thinking block, plan panel, review view, composer mode and sandbox chips, and the browser view host.
+- Japanese, Korean and Traditional Chinese translations for the new settings and cards are included.
 
 ## Upgrade
 
@@ -24,18 +27,18 @@ The macOS build is not notarized and uses an ad-hoc signature. If macOS blocks f
 
 | File | Platform |
 | --- | --- |
-| `Vela-1.1.14-arm64.dmg` | macOS Apple Silicon installer |
-| `Vela-1.1.14-arm64.zip` | macOS Apple Silicon application bundle (`.app`); also the package used by in-app updates |
+| `Vela-1.2.0-arm64.dmg` | macOS Apple Silicon installer |
+| `Vela-1.2.0-arm64.zip` | macOS Apple Silicon application bundle (`.app`); also the package used by in-app updates |
 | `SHA256SUMS.txt` | SHA-256 checksums for both packages |
 | `SHA256SUMS.txt.sig` | Ed25519 signature of `SHA256SUMS.txt`, verified by the in-app updater |
 
-Package version: `1.1.14`. macOS bundle and download version: `1.1.14`.
+Package version: `1.2.0`. macOS bundle and download version: `1.2.0`.
 
 ## Validation
 
-- Type checks and unit tests passed (`pnpm test`): 191 workspace, 695 agent and 920 desktop tests passed; one agent test was skipped. The first run hit the timing-sensitive `gh-run` test under load; it passes in isolation and on rerun.
+- Type checks passed, and unit tests passed in the workspace (191) and agent (703, one skipped) packages. In the desktop package 951 of 952 tests passed; the one failure, `script UI check timeout cleans up its own child processes`, fails with `kill EPERM` in the full run on this machine but passes when run on its own.
 - All 29 in-app update tests passed (`pnpm --filter @vela/desktop test:updates`).
 - The production build passed (`pnpm build`).
 - Twelve of fourteen real-Electron smoke suites passed. Task Recipes and PR Inbox failed with the same symptoms already documented in earlier releases; these failures remain unresolved.
-- macOS arm64 packaging completed (`pnpm package:mac`); the application bundle reports version `1.1.14` and identifier `com.vela.desktop`, the ZIP contains a single `Vela.app`, and the DMG checksum verifies.
+- macOS arm64 packaging completed (`pnpm package:mac`); the application bundle reports version `1.2.0` and identifier `com.vela.desktop`, the ZIP contains a single `Vela.app`, and the DMG checksum verifies.
 - The signed checksum file was generated for the DMG and ZIP with the bundled-public-key check (`pnpm sign:release`).

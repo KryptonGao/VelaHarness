@@ -1,0 +1,177 @@
+/* 信息卡片模式：右侧一列浮在对话上的卡片，没有边栏。 */
+
+.info-card-stack {
+  position: absolute;
+  z-index: 5;
+  top: 8px;
+  right: -12px;
+  width: min(348px, calc(100% + 24px));
+  max-height: max(100px, calc(100% - var(--info-stack-clearance, 0px) - 16px));
+  /* 滚动容器会裁掉卡片阴影，用内边距把阴影留在容器里：左右各 24px、底部 30px 容得下 --shadow-dock 的扩散。
+     卡片本身仍是 312px 宽、距右缘 6px，横向多出的 18px 由 right 和 width 抵消。 */
+  padding: 4px 24px 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: none;
+  /* 内容超出时底部渐隐，提示还能滚动；没超出时渐隐区落在内边距上，不影响卡片。 */
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 30px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 30px), transparent);
+  /* 卡片之间的空隙把点击交还给对话。 */
+  pointer-events: none;
+}
+.info-card-stack::-webkit-scrollbar { display: none; }
+.info-card-stack.is-empty { width: auto; }
+.info-card-list { position: relative; display: flex; flex-direction: column; gap: 10px; }
+body.info-card-dragging, body.info-card-dragging * { cursor: grabbing !important; user-select: none; -webkit-user-select: none; }
+
+/* ---- 卡片外壳 ---- */
+.info-card {
+  position: relative;
+  pointer-events: auto;
+  color: var(--text-primary);
+  background: var(--bg-card-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-dock);
+  transition: transform 240ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 200ms ease, border-color 200ms ease;
+}
+.info-card[data-entering] { animation: info-card-in 340ms cubic-bezier(0.16, 1, 0.3, 1); }
+@keyframes info-card-in { from { opacity: 0; transform: scale(0.96) translateY(6px); } }
+.info-card[data-dragging] {
+  z-index: 5;
+  transition: box-shadow 200ms ease, border-color 200ms ease;
+  border-color: var(--accent-border);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.18), 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+.info-card[data-lifted] {
+  z-index: 4;
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 3px var(--accent-tint), var(--shadow-dock);
+}
+
+.info-card-head { position: relative; display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 12px 0 14px; }
+.info-card-ico { display: grid; place-items: center; color: var(--text-muted); }
+.info-card-title {
+  display: flex; flex: 1; align-items: center; gap: 6px; min-width: 0; height: 40px;
+  font-size: 13px; font-weight: 600; text-align: left; color: inherit;
+}
+.info-card-title:focus-visible, .info-card-icon-btn:focus-visible, .info-card-row:focus-visible,
+.info-card-add:focus-visible, .info-card-tray-chip:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 2px; }
+.info-card-chevron { display: grid; place-items: center; color: var(--text-dim); transition: transform 240ms cubic-bezier(0.16, 1, 0.3, 1); }
+.info-card[data-collapsed] .info-card-chevron { transform: rotate(-90deg); }
+
+/* 折叠后的摘要；悬停时让位给右上角的操作按钮。 */
+.info-card-meta {
+  display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 12px; color: var(--text-muted);
+  white-space: nowrap; font-variant-numeric: tabular-nums; opacity: 0; transition: opacity 150ms ease;
+}
+.info-card[data-collapsed] .info-card-meta { opacity: 1; }
+.info-card[data-collapsed]:hover .info-card-meta,
+.info-card[data-collapsed]:has(:focus-visible) .info-card-meta,
+.info-card[data-dragging] .info-card-meta,
+.info-card[data-lifted] .info-card-meta { opacity: 0; }
+
+/* 右上角：隐藏 + 六点把手 */
+.info-card-tools {
+  position: absolute; top: 7px; right: 7px; display: flex; align-items: center; gap: 2px; padding-left: 18px;
+  border-radius: var(--radius-sm); opacity: 0; pointer-events: none; transition: opacity 150ms ease;
+  background: linear-gradient(90deg, transparent, var(--bg-card-surface) 16px);
+}
+/* 用 :focus-visible 而不是 :focus-within：鼠标点过按钮后焦点还留着，不能让工具一直亮着。 */
+.info-card:hover .info-card-tools, .info-card:has(:focus-visible) .info-card-tools,
+.info-card[data-dragging] .info-card-tools, .info-card[data-lifted] .info-card-tools { opacity: 1; pointer-events: auto; }
+@media (hover: none) { .info-card-tools { opacity: 0.7; pointer-events: auto; } }
+.info-card-icon-btn {
+  display: grid; place-items: center; width: 26px; height: 26px; border-radius: var(--radius-sm); color: var(--text-muted);
+}
+.info-card-icon-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+.info-card-grip { cursor: grab; touch-action: none; }
+.info-card[data-dragging] .info-card-grip { cursor: grabbing; color: var(--accent-blue); }
+.info-card-grip[aria-pressed="true"] { color: var(--accent-blue); background: var(--accent-tint); }
+
+/* 折叠动画：行高 1fr → 0fr */
+.info-card-body { display: grid; grid-template-rows: 1fr; transition: grid-template-rows 240ms cubic-bezier(0.16, 1, 0.3, 1); }
+.info-card[data-collapsed] .info-card-body { grid-template-rows: 0fr; }
+/* 定位后才能裁住内部的绝对定位元素（如待办里的 .sr-only），否则它们越过折叠的卡片把栈撑出滚动高度。 */
+.info-card-inner { position: relative; min-height: 0; overflow: hidden; }
+.info-card-content { padding: 0 14px 14px 16px; font-size: 13px; }
+
+/* ---- 内容 ---- */
+.info-card-rows { display: flex; flex-direction: column; gap: 2px; }
+.info-card-row {
+  display: flex; align-items: center; gap: 9px; width: calc(100% + 16px); min-height: 30px; margin: 0 -8px; padding: 0 8px;
+  border-radius: var(--radius-sm); text-align: left; color: var(--text-primary);
+}
+button.info-card-row:hover:not(:disabled), .info-card-row.is-active { background: var(--bg-hover); }
+.info-card-row:disabled { cursor: default; }
+.info-card-row > svg { flex: none; color: var(--text-muted); }
+.info-card-row-main { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.info-card-row-note { flex: none; max-width: 48%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--text-muted); }
+.info-card-file-icon { display: grid; place-items: center; width: 16px; height: 16px; flex: none; }
+.info-card-file-icon img, .info-card-file-icon svg { width: 16px; height: 16px; }
+.info-card-branch { position: relative; }
+.info-card-empty { margin: 4px 0; font-size: 12px; color: var(--text-muted); }
+.info-card-spacer { flex: 1; }
+.info-card-stat { display: flex; align-items: center; gap: 10px; min-height: 30px; margin-bottom: 4px; }
+.info-card-stat-link { display: inline-flex; align-items: center; gap: 10px; min-width: 0; margin: 0 -6px; padding: 4px 6px; border-radius: var(--radius-sm); }
+.info-card-stat-link:hover, .info-card-stat-link.is-active { background: var(--bg-hover); }
+.info-card-added { color: var(--diff-stat-add-fg, var(--success)); font-variant-numeric: tabular-nums; font-size: 12px; }
+.info-card-deleted { color: var(--diff-stat-del-fg, var(--danger)); font-variant-numeric: tabular-nums; font-size: 12px; }
+.info-card-pill { padding: 3px 11px; border-radius: var(--radius-sm); background: var(--bg-hover); font-size: 12.5px; font-weight: 520; }
+.info-card-pill:hover { background: color-mix(in srgb, var(--accent-blue) 12%, var(--bg-hover)); }
+.info-card-more { align-self: flex-start; margin-top: 4px; font-size: 12px; color: var(--text-muted); }
+.info-card-more:hover { color: var(--text-primary); }
+.info-card-chip { flex: none; padding: 1px 8px; border-radius: var(--radius-pill); background: var(--bg-hover); color: var(--text-secondary); font-size: 11.5px; white-space: nowrap; }
+.info-card-chip.is-running, .info-card-chip.is-goal-active { color: var(--accent-blue); background: var(--accent-tint); }
+.info-card-chip.is-completed, .info-card-chip.is-goal-complete { color: var(--success); background: color-mix(in srgb, var(--success) 12%, transparent); }
+.info-card-chip.is-failed { color: var(--danger); background: color-mix(in srgb, var(--danger) 12%, transparent); }
+.info-card-chip.is-paused, .info-card-chip.is-aborted, .info-card-chip.is-goal-paused { color: var(--warning); background: color-mix(in srgb, var(--warning) 12%, transparent); }
+.info-card-spin {
+  width: 12px; height: 12px; flex: none; margin: 0 1.5px; border-radius: 50%;
+  border: 2px solid var(--accent-border); border-top-color: var(--accent-blue); animation: info-card-spin 800ms linear infinite;
+}
+@keyframes info-card-spin { to { transform: rotate(360deg); } }
+
+.info-card-mini { display: inline-flex; width: 56px; height: 5px; overflow: hidden; border-radius: 3px; background: var(--bg-hover); }
+.info-card-mini i { display: block; height: 100%; border-radius: 3px; background: var(--accent-blue); }
+.info-card-mini.high i { background: var(--warning); }
+.info-card-mini.is-done i { background: var(--success); }
+
+.info-card-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.info-card-chips li { padding: 2px 8px; border-radius: var(--radius-xs); background: var(--bg-code); color: var(--text-secondary); font-family: var(--font-mono); font-size: 11.5px; }
+
+/* 上下文用量沿用原组件，去掉它作为底部固定条的外观。 */
+.info-card-context .context-usage { margin: 0; padding: 0; border-top: 0; }
+.info-card-context .context-usage-title { display: none; }
+.info-card-context .context-usage-percent, .info-card-context .context-usage-total { font-size: 13px; }
+
+/* ---- 找回隐藏的卡片 ---- */
+.info-card-add {
+  pointer-events: auto; align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; margin-top: 10px;
+  height: 30px; padding: 0 12px 0 10px; font-size: 12px; color: var(--text-muted); border-radius: var(--radius-pill);
+  border: 1.5px dashed var(--border-strong); background: color-mix(in srgb, var(--bg-chat) 82%, transparent); backdrop-filter: blur(6px);
+}
+.info-card-add:hover, .info-card-add[aria-expanded="true"] { color: var(--accent-blue); border-color: var(--accent-border); }
+.info-card-tray {
+  pointer-events: auto; margin-top: 8px; padding: 12px; border: 1px solid var(--border-subtle); border-radius: var(--radius-md);
+  background: var(--bg-card-surface); box-shadow: var(--shadow-dock); animation: info-card-in 240ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.info-card-tray-title { margin-bottom: 8px; font-size: 11.5px; font-weight: 600; color: var(--text-muted); }
+.info-card-tray-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.info-card-tray-chip {
+  display: inline-flex; align-items: center; gap: 5px; height: 28px; padding: 0 10px 0 8px; font-size: 12px;
+  border: 1px solid var(--border-strong); border-radius: var(--radius-pill); background: var(--bg-card-surface);
+}
+.info-card-tray-chip:hover { color: var(--accent-blue); border-color: var(--accent-border); background: var(--accent-tint); }
+.info-card-reset { margin-top: 10px; font-size: 12px; color: var(--text-muted); }
+.info-card-reset:hover { color: var(--text-primary); }
+
+.info-card-stack .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+@media (prefers-reduced-motion: reduce) {
+  .info-card, .info-card-body, .info-card-chevron, .info-card-meta, .info-card-tools { transition: none; }
+  .info-card[data-entering], .info-card-tray { animation: none; }
+}

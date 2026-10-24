@@ -36,7 +36,7 @@ const planStatusLabels: Record<ProposedPlanStatus, [string, string]> = {
 /** plan revision id -> 文档阅读位置；面板关闭再打开后仍然恢复。 */
 const planScrollPositions = new Map<string, number>();
 
-function planStatusLabel(status: ProposedPlanStatus): string {
+export function planStatusLabel(status: ProposedPlanStatus): string {
   const [zh, en] = planStatusLabels[status];
   return tr(zh, en);
 }

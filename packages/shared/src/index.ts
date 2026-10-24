@@ -220,6 +220,7 @@ export const IpcChannel = {
   getIntelligentUi: "intelligent-ui:get",
   setIntelligentUi: "intelligent-ui:set",
   setIntelligentUiMicroApps: "intelligent-ui:set-micro-apps",
+  setRunView: "run-view:set",
   getTaskBudget: "task-budget:get",
   setTaskBudget: "task-budget:set",
   getContextLimit: "context-limit:get",
@@ -2942,6 +2943,8 @@ export interface VelaApi extends McpApi, PluginApi {
   setIntelligentUi(preference: UiPreference): Promise<IntelligentUiState>;
   /** 沙盒微应用开关（默认关闭，IUI-14）。 */
   setIntelligentUiMicroApps(enabled: boolean): Promise<IntelligentUiState>;
+  /** 同步「运行视图」开关:开启后要求模型提交待办清单。偏好存在渲染层,这里只镜像给运行时。 */
+  setRunView(enabled: boolean): Promise<void>;
   /** 任务用量上限：时间与 Token，统计包含子代理。 */
   getTaskBudget(): Promise<TaskBudgetSettings>;
   setTaskBudget(settings: TaskBudgetSettings): Promise<TaskBudgetSettings>;

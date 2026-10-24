@@ -195,7 +195,7 @@ export function Thinking({
         <div className="thinking-header">
           <button className={`time-spent-trigger${showActivity ? " is-running" : ""}`} type="button" aria-expanded={open} aria-controls={bodyId} onClick={toggle}>
             {label}
-            {showActivity ? <ActivityIndicator /> : null}
+            {showActivity ? <ActivityIndicator activity="thinking" /> : null}
           </button>
           {/* 折叠时只在“思考”右侧露出一行总结;展开后完整总结移到标题下方,这里不再重复。 */}
           {summaryAvailable && (!open || !summary || summary.status === "error") ? (
@@ -206,7 +206,7 @@ export function Thinking({
                 </button>
               ) : null}
               {!open && summary?.status === "pending" ? (
-                <span className="thinking-summary-status" role="status"><ActivityIndicator label={tr("正在总结", "Summarizing")} />{tr("正在总结…", "Summarizing…")}</span>
+                <span className="thinking-summary-status" role="status"><ActivityIndicator activity="thinking" label={tr("正在总结", "Summarizing")} />{tr("正在总结…", "Summarizing…")}</span>
               ) : null}
               {!summary || summary.status === "error" ? (
                 <>

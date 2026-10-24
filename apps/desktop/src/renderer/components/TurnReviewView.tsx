@@ -45,6 +45,16 @@ export interface TurnReviewTarget {
   diffToolId?: string;
 }
 
+const firstBatch = 3;
+const nextBatch = 3;
+/** 占位高度：按差异行数估算，对应拆分视图里每行的大致高度。 */
+const placeholderLineHeight = 19;
+
+function placeholderHeight(diffs: readonly string[]): number {
+  const lines = diffs.reduce((sum, diff) => sum + (diff ? diff.split("\n").length : 2), 0);
+  return Math.max(60, lines * placeholderLineHeight);
+}
+
 export function TurnReviewView({ review, visible, onClose, target, title, filesLabel, emptyLabel }: {
   review: TurnReviewRequest;
   visible: boolean;
@@ -84,6 +94,15 @@ export function TurnReviewView({ review, visible, onClose, target, title, filesL
     return changes.files.filter(file => file.path.toLocaleLowerCase().includes(query));
   }, [changes.files, filter]);
   const tree = useMemo(() => fileTree(files), [files]);
+
+  // 几十个文件的差异一次挂载会长时间占住主线程（顶栏点不动）：先挂前几项，其余分批补上，
+  // 没挂上的文件先按行数预留高度，滚动位置不会跳。
+  const [mountedCount, setMountedCount] = useState(firstBatch);
+  useEffect(() => {
+    if (mountedCount >= files.length) return;
+    const timer = window.setTimeout(() => setMountedCount(count => count + nextBatch), 32);
+    return () => window.clearTimeout(timer);
+  }, [mountedCount, files.length]);
 
   useEffect(() => {
     const root = contentRef.current;
@@ -215,7 +234,7 @@ export function TurnReviewView({ review, visible, onClose, target, title, filesL
     </header>
     <div className="turn-review-body">
       <div className="turn-review-scroll" ref={scroller} onScroll={onScroll}>
-        {files.map(file => <section key={file.path} className="turn-review-file"
+        {files.map((file, index) => <section key={file.path} className="turn-review-file"
           ref={node => { if (node) sections.current.set(file.path, node); else sections.current.delete(file.path); }}
           aria-label={file.path}>
           <header className="turn-review-file-header">
@@ -224,7 +243,9 @@ export function TurnReviewView({ review, visible, onClose, target, title, filesL
           </header>
           {file.diffs.some(diff => diff && !isAddedOnlyDiff(diff, file.format ?? "tool"))
             ? <div className="turn-review-side-labels"><span>{tr("编辑前", "Before")}</span><span>{tr("编辑后", "After")}</span></div> : null}
-          {file.diffs.length > 0 ? file.diffs.map((diff, index) => {
+          {index >= mountedCount && file.path !== target?.path
+            ? <div className="turn-review-pending" style={{ height: placeholderHeight(file.diffs) }} aria-hidden="true" />
+            : file.diffs.length > 0 ? file.diffs.map((diff, index) => {
             const toolIds = file.diffToolIds;
             const toolId = toolIds?.[index];
             return <div className="turn-review-edit" key={index} data-diff-tool-id={toolId}

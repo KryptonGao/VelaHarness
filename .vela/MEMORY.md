@@ -1,12 +1,13 @@
 ---
 ---
+---
 # Vela 项目记忆
 
 ## 项目概况
 
 - Vela：在本地代码仓库中工作的桌面 AI 编程助手，基于 [Pi Agent](https://github.com/earendil-works/pi) TypeScript SDK 嵌入 Electron 桌面应用。
 - GitHub 仓库：`https://github.com/KryptonGao/VelaHarness`（2026-10 由 `VelaAgent` 更名并重新绑定，旧地址在 GitHub 侧自动重定向）；工作区目录与根包名同步为 `VelaHarness` / `vela-harness`，origin 使用 HTTPS。仓库地址硬编码在 `apps/desktop/src/main/menu.ts` 的 `repoUrl`。
-- 技术栈：pnpm workspace（hoisted）；Electron 44 + electron-vite + React 19 + TypeScript；Pi 依赖 `@earendil-works/pi-coding-agent`、`pi-agent-core`、`pi-ai` 精确锁定 `1.0.0`，并通过 `pnpm-workspace.yaml` 的 `patchedDependencies` 打补丁。Node >= 22.19.0，pnpm 由 `packageManager` 固定为 11.24.0。
+- 技术栈：pnpm workspace（hoisted）；Electron 44 + electron-vite + React 19 + TypeScript；Pi 依赖 `@earendil-works/pi-coding-agent`、`pi-agent-core`、`pi-ai` 三包同版本精确锁定（当前 `1.3.0`），并通过 `pnpm-workspace.yaml` 的 `patchedDependencies` 对 `pi-coding-agent` 打补丁。Node >= 22.19.0，pnpm 由 `packageManager` 固定为 11.24.0。
 - 包结构：`apps/desktop`（Electron 主进程 / preload / React 渲染层）、`packages/agent`（Pi 会话运行时、交互模式、上下文统计）、`packages/workspace`（工作区、worktree、Git、PR、审批）、`packages/shared`（主进程与界面共享类型与 IPC 契约）、`packages/tools`（内置工具目录）。workspace 包均为 private、无构建产物（exports 指向 `src/index.ts`）。
 - 会话在主进程通过 `createAgentSession()` 创建，不启动 Pi CLI。主进程处理 Agent / 文件系统 / Git，renderer 经 preload IPC 调用；窗口启用 `contextIsolation`、关闭 `nodeIntegration`。
 
@@ -36,7 +37,7 @@
 
 ## 发布与提交约定
 
-- 版本号维护在 `apps/desktop/package.json` 的 `version` 与 `shortVersion`；当前线为 1.1.x（工作区 `version` 为 1.1.0，最新 tag 为 v1.0.8）。
+- 版本号维护在 `apps/desktop/package.json` 的 `version` 与 `shortVersion`；当前线为 1.1.x，发版时与 `electron-builder.yml`、`release-notes.json` 五处保持一致。
 - `RELEASE_NOTES.md` 记录各版本发布说明（New / Improved / Upgrade / Download / Validation 结构，英文）。
 - 提交信息为 conventional commits（`feat:` / `fix:` / `docs:` / `test:`），发布提交以 `release X.Y.Z` 结尾。
 - macOS 打包：`pnpm package:mac`、`pnpm --filter @vela/desktop dist:mac:signed`；发布包未公证，首次启动需 Open Anyway。
