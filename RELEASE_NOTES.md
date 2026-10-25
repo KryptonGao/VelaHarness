@@ -43,4 +43,5 @@ Package version: `1.2.3`. macOS bundle and download version: `1.2.3`.
 - All 29 in-app update tests passed (`pnpm --filter @vela/desktop test:updates`).
 - The production build passed (`pnpm build`).
 - Twelve of the fourteen real-Electron smoke suites passed (`pnpm test:smoke`). Task Recipes failed with `Missing button 编辑` and PR Inbox with `Loaded PRs did not refresh while working outside the inbox`; both are the same symptoms already documented in earlier releases and neither touches code changed here. The other twelve suites passed.
-- macOS arm64 packaging completed (`pnpm package:mac`); see the checks below once the build is verified.
+- macOS arm64 packaging completed (`pnpm package:mac`); the application bundle reports version `1.2.3` and identifier `com.vela.desktop`, the ZIP contains a single `Vela.app`, and the DMG checksum verifies.
+- The signed checksum file was generated for the DMG and ZIP with the bundled-public-key check (`pnpm sign:release`).
