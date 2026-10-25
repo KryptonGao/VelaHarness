@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <a href="#compact-mode">Compact mode</a> · <a href="#subagents">SubAgents</a> · <a href="#trace-view">Trace view</a> · <a href="#get-started">Get started</a> · <a href="#develop">Develop</a>
+  <a href="#compact-mode">Compact mode</a> · <a href="#subagents">SubAgents</a> · <a href="#trace-view">Trace view</a> · <a href="#usage-costs">Usage costs</a> · <a href="#get-started">Get started</a> · <a href="#develop">Develop</a>
 </p>
 
 Vela is a desktop app where an AI agent works inside a repository on your machine: it reads the project, splits up the task, edits code and runs commands. A clean interface and a rich feature set draw on the strengths of harnesses such as Codex, Claude Code and DeepSeek Harness: a compact chat, sub-agents in their own panel, and a trace view when you want the details.
@@ -52,12 +52,31 @@ In the example, the `bash` call that ran the login test is selected: its full ou
 
 > All three screenshots are rendered from Vela's real interface components with generated sample data. The `atlas-web` project, the conversations, test results, timings and token metrics are for illustration only; they are not real task records or performance benchmarks. They show the Simplified Chinese interface; Vela also ships in English, Traditional Chinese, Japanese and Korean (**Settings → Interface → Language**). "In the style of" describes the interaction and layout, not any affiliation.
 
+## Usage costs
+
+**Register a price for each model and see what your conversations actually cost.** In **Settings → Usage statistics → Model pricing**, enter the input, output, cache write and cache read price per 1M tokens, in CNY or USD. The overview then shows an estimated cost and the usage table shows a cost per model; a conversation's own usage view also shows what its latest task cost — every request since your last message.
+
+Prices stay on this machine, CNY and USD are totalled separately and never converted, and a model without a registered price is left out of the totals instead of being counted as 0.
+
+<p align="center">
+  <a href="./assets/readme/vela-usage-costs.png"><img src="./assets/readme/vela-usage-costs.png" width="100%" alt="Vela usage statistics: overview with request and token totals, an estimated cost of ¥82.04, and a daily activity chart." /></a>
+</p>
+
+<p align="center">
+  <a href="./assets/readme/vela-model-pricing.png"><img src="./assets/readme/vela-model-pricing.png" width="100%" alt="Vela model pricing: registered per-1M-token prices for three models in CNY, with input, output, cache write and cache read columns." /></a>
+</p>
+
+> Both screenshots are rendered from Vela's real usage components with generated sample data, like the three above. The prices shown are sample values entered for the screenshot, not a vendor price list; Vela ships no built-in prices.
+
 ## More you can do
 
 - **Agent / Plan / Goal:** everyday read-write work, plan first and then implement, or keep going toward a multi-step goal.
 - **Local workspaces and Git worktrees:** open a project on your machine and work in place or in a separate worktree.
 - **Review and work panel:** inspect Git diffs and staged changes; the right-hand tabs hold file previews, changes and an integrated terminal (`⌘T` opens a new tab).
 - **Models and accounts:** sign in to a model provider, enter an API key or add a custom model endpoint.
+- **Commands that say what they do:** `ls`, `cat`, `grep`, `find` and script runs are labelled List, Read, Search, Find and Script, and the card shows the directory, file or search term instead of the raw command line; a command chaining several recognisable steps shows "+N more".
+- **Live edit previews:** an edit or write card appears as soon as the model starts writing its arguments, and the diff and its +/− counts grow with the content. If the model never finishes the call, the card ends with a note that nothing was changed.
+- **Context free space:** the context card lists Free space next to system, rules, skills and conversation, and every row shows its share of the window.
 - **MCP servers:** connect local or remote MCP tools, with global and per-project configuration, on-demand discovery, project trust and read-only authorisation. See [docs/mcp.md](./docs/mcp.md).
 - **Project and global memory:** two Markdown files hold your cross-project preferences and the current project's conventions and decisions. They load before every run, and you can view, edit, clear or delete them in Settings. See [docs/memory.md](./docs/memory.md).
 - **Scheduled tasks:** schedule a task once, daily, weekly or with a cron expression. Each run starts a new chat in the bound workspace with the permissions, model and reasoning effort you chose. See [docs/scheduled-tasks.md](./docs/scheduled-tasks.md).
