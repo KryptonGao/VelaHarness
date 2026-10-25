@@ -3,12 +3,16 @@ import type { ToolPlanItem } from "@vela/shared";
 import { tr } from "../locale";
 import type { UiMessage } from "../hooks/useSession";
 import {
-  currentRunStep,
+  advanceRunStep,
   currentTurnAssistants,
   currentTurnStartedAt,
   formatRunElapsed,
+  initialRunStepDisplay,
   latestTodos,
   orbActivityOf,
+  runStepSignal,
+  sameRunStepDisplay,
+  type RunStepDisplay,
   type RunStepKind,
 } from "../run-view";
 import { ActivityIndicator } from "./ActivityIndicator";
@@ -68,16 +72,40 @@ function RunElapsed({ startedAt }: { startedAt: number }) {
   return <span className="run-status-time" aria-hidden="true">{formatRunElapsed(now - startedAt)}</span>;
 }
 
-/** 状态条:左边是运行动画,右边是当前步骤类型和用时。 */
+/**
+ * 状态条:左边是运行动画,右边是当前步骤类型和用时。
+ * 命令要跑过冷却才显示「运行命令」,几十毫秒就结束的命令不会让标签闪一下。
+ */
 function RunStatusBar({ messages }: { messages: UiMessage[] }) {
   const startedAt = currentTurnStartedAt(messages);
   const assistants = currentTurnAssistants(messages);
-  const kind = currentRunStep(assistants[assistants.length - 1]);
-  const label = stepLabel(kind);
+  const step = runStepSignal(assistants[assistants.length - 1]);
+  const stepKind = step.kind;
+  const stepKey = step.key;
+  const [display, setDisplay] = useState<RunStepDisplay>(() => initialRunStepDisplay(step, Date.now()));
+  const [tick, setTick] = useState(0);
+
+  // 步骤变了(含流式更新)就推进一次:普通步骤立即换,命令先挂起等冷却。
+  useEffect(() => {
+    setDisplay((current) => {
+      const next = advanceRunStep(current, { kind: stepKind, key: stepKey }, Date.now());
+      return sameRunStepDisplay(next, current) ? current : next;
+    });
+  }, [stepKind, stepKey, tick]);
+
+  // 冷却到点后再推进一次,把撑过冷却的命令显示出来。
+  const deadline = display.pending?.deadline;
+  useEffect(() => {
+    if (deadline === undefined) return undefined;
+    const timer = window.setTimeout(() => setTick((value) => value + 1), Math.max(0, deadline - Date.now()));
+    return () => window.clearTimeout(timer);
+  }, [deadline, tick]);
+
+  const label = stepLabel(display.kind);
   return (
     <div className="run-status">
       <div className="run-status-row">
-        <ActivityIndicator label={label} activity={orbActivityOf(kind)} />
+        <ActivityIndicator label={label} activity={orbActivityOf(display.kind)} />
         <span className="run-status-label">{label}</span>
         {startedAt !== undefined ? <RunElapsed startedAt={startedAt} /> : null}
       </div>

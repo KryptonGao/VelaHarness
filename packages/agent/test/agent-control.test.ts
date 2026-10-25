@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { AgentMessage } from "@earendil-works/pi-agent-core";
 import type { AgentSession, AgentSessionEvent } from "@earendil-works/pi-coding-agent";
+import type { SubagentLimits } from "@vela/shared";
 import {
   AgentControl,
   maxConcurrentAgents,
@@ -104,9 +105,9 @@ async function waitFor(predicate: () => boolean, label: string): Promise<void> {
   throw new Error(`等待超时: ${label}`);
 }
 
-function createControl(): { control: AgentControl; host: FakeHost; root: FakeSession } {
+function createControl(limits?: () => SubagentLimits): { control: AgentControl; host: FakeHost; root: FakeSession } {
   const host = new FakeHost();
-  const control = new AgentControl({ conversationId: "root-id", host });
+  const control = new AgentControl({ conversationId: "root-id", host, ...(limits ? { limits } : {}) });
   const root = new FakeSession();
   control.registerRoot(root.asSession());
   return { control, host, root };
@@ -240,6 +241,33 @@ describe("agent 树", () => {
     const second = control.spawn(first.id, { kind: "general", task: "两层", name: "b" });
     const third = control.spawn(second.id, { kind: "general", task: "三层", name: "c" });
     assert.throws(() => control.spawn(third.id, { kind: "explore", task: "四层" }), /嵌套/);
+  });
+
+  it("子代理总数上限跨所有层级，改动后立即生效", () => {
+    const limits: SubagentLimits = { maxSubagents: 3, allowNested: true };
+    const { control } = createControl(() => limits);
+    const a = control.spawn("root-id", { kind: "general", task: "一", name: "a" });
+    control.spawn(a.id, { kind: "general", task: "二", name: "b" });
+    control.spawn("root-id", { kind: "general", task: "三", name: "c" });
+    assert.throws(() => control.spawn("root-id", { kind: "general", task: "四" }), /最多同时存在 3 个子代理/);
+    assert.throws(() => control.spawn(a.id, { kind: "general", task: "四" }), /最多同时存在 3 个子代理/);
+    limits.maxSubagents = 4;
+    control.spawn("root-id", { kind: "general", task: "四", name: "d" });
+  });
+
+  it("上限为 0 时不允许创建子代理", () => {
+    const { control } = createControl(() => ({ maxSubagents: 0, allowNested: true }));
+    assert.throws(() => control.spawn("root-id", { kind: "general", task: "x" }), /不允许创建子代理/);
+  });
+
+  it("关闭嵌套后只有主代理能创建子代理", () => {
+    const limits: SubagentLimits = { maxSubagents: 16, allowNested: false };
+    const { control } = createControl(() => limits);
+    const a = control.spawn("root-id", { kind: "general", task: "一", name: "a" });
+    control.spawn("root-id", { kind: "general", task: "二", name: "b" });
+    assert.throws(() => control.spawn(a.id, { kind: "general", task: "三" }), /不允许子代理再创建子代理/);
+    limits.allowNested = true;
+    control.spawn(a.id, { kind: "general", task: "三", name: "c" });
   });
 
   it("explore 只能创建和联系 explore", () => {

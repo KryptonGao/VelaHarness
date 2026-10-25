@@ -10,7 +10,7 @@
   <a href="#コンパクトモード">コンパクトモード</a> · <a href="#subagents">SubAgents</a> · <a href="#トレース表示">トレース表示</a> · <a href="#はじめる">はじめる</a> · <a href="#開発">開発</a>
 </p>
 
-Vela は、手元のマシンにあるリポジトリの中で AI エージェントが作業するデスクトップアプリです。プロジェクトを読み取り、タスクを分割し、コードを編集して実行します。進捗はコンパクトなチャットで追い、サブエージェントは専用パネルで確認し、実行トレースで一つひとつのステップを検証できます。
+Vela は、手元のマシンにあるリポジトリの中で AI エージェントが作業するデスクトップアプリです。プロジェクトを読み取り、タスクを分割し、コードを編集して実行します。すっきりした画面と豊富な機能で、Codex、Claude Code、DeepSeek Harness など各種 Harness の長所を取り入れています。コンパクトなチャット、専用パネルのサブエージェント、必要なときに詳細を確認できる実行トレースを備えています。
 
 ## コンパクトモード
 
@@ -163,7 +163,7 @@ pnpm test:center # テストセンター：Node のユニットテストとブ�
 
 Vela は [Pi Agent](https://github.com/earendil-works/pi) をベースに構築され、TypeScript SDK を通じてエージェントのランタイムをデスクトップアプリに組み込んでいます。Pi がモデルのインターフェース、セッション、ツールのランタイムを提供し、Vela がその上にデスクトップ UI、タスクモード、権限の承認、Git ワークスペースとの連携を実装しています。
 
-- **技術スタック：** Electron 44、electron-vite、React 19、TypeScript。デスクトップアプリと共有パッケージは pnpm workspace で管理します。Pi は `1.0.0`（`@earendil-works/pi-coding-agent`、`pi-agent-core`、`pi-ai`）に厳密に固定しています。Vela はメインプロセスで `createAgentSession()` を呼び出し、Pi のコマンドラインプログラムを起動してエージェントを動かすことはしません。詳しくは [Pi 1.0 移行記録](./docs/pi-1.0-migration.md)を参照してください。
+- **技術スタック：** Electron 44、electron-vite、React 19、TypeScript。デスクトップアプリと共有パッケージは pnpm workspace で管理します。Pi は `1.0.0`（`@earendil-works/pi-coding-agent`、`pi-agent-core`、`pi-ai`）に厳密に固定しています。Vela はメインプロセスで `createAgentSession()` を呼び出し、Pi のコマンドラインプログラムを起動してエージェントを動かすことはしません。
 - **セッションとモデル：** チャットごとに独立した Pi の `AgentSession` を使います。メッセージは `~/.vela/sessions`、チャットの索引は `~/.vela/conversations.json` に保存されます。プロバイダーとモデルは Pi の `ModelRuntime` で読み込まれ、Vela 独自の `~/.vela` の設定を使い、ローカルの Pi の設定は読み取りません。
 - **ツール、モード、権限：** 基本ツールは Pi の `read`、`bash`、`edit`、`write` で、Vela は承認を組み込むために `bash`、`edit`、`write` をラップしています。`Plan` モードは ToolPolicy で編集と書き込みを禁止して読み取り専用コマンドだけを許可し、完全な計画を `<proposed_plan>` として出力します。承認後は、現在のコンテキストまたは新しいコンテキストで実行できます。`Goal` モードは `update_goal` で進捗を記録します。詳しくは [docs/plan-mode.md](./docs/plan-mode.md) と [docs/plan-mode-architecture.md](./docs/plan-mode-architecture.md) を参照してください。
 - **MCP：** ツールは初期設定では `tool_search` を通じて必要なときに検出されます。直接提供することも、非表示にすることもできます。プロジェクトの設定には信頼の確認が必要です。Plan モードと `explore` サブエージェントには、読み取り専用として確認済みのツールだけが提供されます。

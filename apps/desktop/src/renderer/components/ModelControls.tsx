@@ -60,6 +60,8 @@ interface ModelControlsProps {
   onReplyLogin: (promptId: string, value: string | null) => Promise<void>;
   onCancelLogin: () => Promise<void>;
   onDismissLogin: () => void;
+  /** 每次值变化（且大于 0）就展开模型菜单；`/model` 命令用它从输入框外部打开。 */
+  openRequest?: number;
 }
 
 /** 思考强度胶囊里的小标记：calm 布局显示信号格，capsule 布局显示弧形撥盘，classic 不显示。 */
@@ -105,6 +107,10 @@ export function ModelControls(props: ModelControlsProps) {
   const sliderValue = sliderIndex + sliderOffset;
   const sliderProgress = sliderRangeMax > 0 ? sliderValue / sliderRangeMax : 0;
   const particleDuration = `${(3.4 - sliderProgress * 2.65).toFixed(2)}s`;
+
+  useEffect(() => {
+    if (props.openRequest) setMenu("model");
+  }, [props.openRequest]);
 
   useEffect(() => {
     if (menu !== "thinking") setSliderLevel(shownThinking);

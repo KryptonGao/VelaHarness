@@ -21,9 +21,8 @@
 | [checkpoints.md](./checkpoints.md) | 使用者与开发者 | 文件检查点的存储：共享 blob 池与硬链接、stat 缓存、保留策略与总量上限、设置页的清理，以及已知限制。 |
 | [conversation-export.md](./conversation-export.md) | 使用者与开发者 | 对话导出为 Markdown / HTML：包含的内容（工具调用、文件 diff、轨迹、检查点改动）、脱敏规则、实现位置与已知限制。 |
 | [handoff-pack.md](./handoff-pack.md) | 使用者与开发者 | 任务交接包：把对话整理成目标、决策、修改文件、实际验证与未完成事项，预览编辑后填入新对话；事实与模型整理的分工、降级、实现位置与限制。 |
-| [outcome-acceptance.md](./outcome-acceptance.md) | 使用者與開發者 | 成果驗收：逐項需求、修改、驗證證據與待確認，agent 歸屬、確定性事實推導、fallback 與限制。 |
+| [outcome-acceptance.md](./outcome-acceptance.md) | 使用者与开发者 | 成果验收：逐项需求、修改、验证证据与待确认，agent 归属、确定性事实推导、fallback 与限制。 |
 | [race.md](./race.md) | 使用者与开发者 | 赛马：同一任务在 2–4 个独立 worktree 里用不同模型/思考强度/提示并行尝试，按耗时、token、改动、统一验证并排比较，一键 squash 采用其一；存储、恢复、限制与验证。 |
-| [pi-1.0-migration.md](./pi-1.0-migration.md) | 开发者 | Pi 1.0 精确版本迁移、接口适配、依赖与打包检查、验证结果和未验证项。 |
 | [mcp.md](./mcp.md) | 使用者与开发者 | MCP 服务器的配置、项目信任、工具曝光、只读授权、会话生命周期与定向验收。 |
 | [model-catalog.md](./model-catalog.md) | 使用者与开发者 | 模型列表的自动与手动刷新、Pi 的 4 小时检查间隔、按 Pi 版本过滤模型目录，以及升级 Pi 后的验收步骤。 |
 | [memory.md](./memory.md) | 使用者与开发者 | 项目记忆与全局记忆的目录、作用域、加载与刷新时机、写入权限、设置页管理、worktree 行为与验证。 |
@@ -39,16 +38,14 @@
 | [requirements/task-recipes.md](./requirements/task-recipes.md) | 产品与开发者 | 任务配方需求基线：参数化模板、预览、新对话启动、版本快照与使用记录；P0/P1/P2 已实现。 |
 | [intelligent-ui.md](./intelligent-ui.md) | 使用者与开发者 | Intelligent UI 的已实现能力：`vela-ui` 协议、组件与表达式、流式解析、本地状态与生命周期、图表与图解、可信数据源、本地指标与检查器、沙盒微应用、安全限制、导出、实现位置与验证（P0–P2）。 |
 | [requirements/intelligent-ui.md](./requirements/intelligent-ui.md) | 产品与开发者 | Intelligent UI 需求：自适应回答、原生声明式组件、流式编译、安全交互、持久化及 P0–P2 验收；P0–P2 已实现，用户模板除外。 |
-| [requirements/system-prompt-optimization.md](./requirements/system-prompt-optimization.md) | 产品与开发者 | 系统提示词优化方案（部分实现）：现状分段与问题清单、对照 DeepSeek Harness 的结论、`systemPromptOverride` 接入机制、v2 提示词、`VELA_SYSTEM_PROMPT` 开关与基线数据、分阶段计划、评测与验收、待决策事项；默认 v2，可用 `VELA_SYSTEM_PROMPT=v1` 切回，模型评测未做。 |
 | [agent-inbox.md](./agent-inbox.md) | 使用者与开发者 | Agent Inbox 的已实现能力：事项类型与状态、Host 权威决策与并发保护、重启作废、先落盘后通知、Resident Agent 与委派审批、Intelligent UI 嵌入、后台运行与通知、主动规则、限制、实现位置与验证。 |
 | [requirements/agent-inbox.md](./requirements/agent-inbox.md) | 产品与开发者 | Agent Inbox 与常驻 Agent 需求：定位、阶段状态、关键约束、后续设计决定与验收；第一至第七阶段均已实现。 |
 | [run-view.md](./run-view.md) | 使用者与开发者 | 运行视图：运行中在过程末尾显示待办清单与当前步骤状态条，并要求模型先提交待办清单（`update_todos`、闸门、偏好同步）。 |
 | [info-cards.md](./info-cards.md) | 使用者与开发者 | 信息卡片布局：右侧浮在对话上的可排序卡片、各卡片内容与显示条件、拖动与键盘排序、隐藏与找回、布局存储和实现位置。 |
+| [requirements/competitive-gap-analysis.md](./requirements/competitive-gap-analysis.md) | 产品与开发者 | 竞品差距与新功能构想：对比 Codex、Claude Code、ZCode 缺失的能力，并按优先级列出构想；仅为构想稿，均未实现。 |
 | [plan-mode.md](./plan-mode.md) | 使用者 | Plan 模式的工作方式：规划流程、Plan Document、revision、批准与执行、只读限制和常见问题。 |
 | [plan-mode-architecture.md](./plan-mode-architecture.md) | 开发者 | Plan 模式的实现：数据模型、流式解析、运行时编排、持久化与迁移、界面状态和测试。 |
 | [logging.md](./logging.md) | 使用者与开发者 | 日志位置与格式、级别、轮转与脱敏、未捕获错误记录，以及诊断包导出的内容与隐私边界。 |
-| [motion-audit.md](./motion-audit.md) | 开发者 | 桌面端动效盘点：现有基建、各区域缺口、总优先级表、统一动效规范与落地批次。 |
-| [motion-audit.md](./motion-audit.md) | 开发者 | 界面动效现状盘点与补全建议：已有基建、按区域缺口清单、统一参数规范与落地批次。 |
 
 ## 新增文档
 

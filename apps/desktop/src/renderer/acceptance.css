@@ -13,7 +13,7 @@
 .acceptance-requirement:hover { background: var(--bg-hover); }
 .acceptance-requirement.is-selected { background: var(--bg-surface-subtle); color: var(--text-primary); box-shadow: inset 2px 0 var(--accent-blue); }
 .acceptance-requirement-text { line-height: 1.5; overflow-wrap: anywhere; }
-.acceptance-status { display: inline-flex; flex: none; align-items: center; gap: 4px; font-size: 11px; line-height: 1.5; color: var(--text-muted); }
+.acceptance-status { display: inline-flex; flex: none; align-items: center; gap: 4px; font-size: 12px; line-height: 1.5; color: var(--text-muted); }
 .acceptance-status.is-done, .acceptance-result.is-passed { color: var(--success); }
 .acceptance-status.is-partial, .acceptance-stale { color: var(--warning-strong); }
 .acceptance-result.is-failed { color: var(--danger); }
@@ -29,10 +29,10 @@
 .acceptance-change-link:disabled { cursor: default; opacity: 1; }
 .acceptance-change-link > svg { flex: none; }
 .acceptance-change-path { flex: 1; min-width: 0; overflow-wrap: anywhere; }
-.acceptance-change-stats { display: inline-flex; flex: none; gap: 5px; font-variant-numeric: tabular-nums; font-size: 11px; }
-.acceptance-change-note { margin: 0 6px 6px 28px; color: var(--text-muted); font-size: 11px; }
+.acceptance-change-stats { display: inline-flex; flex: none; gap: 5px; font-variant-numeric: tabular-nums; font-size: 12px; }
+.acceptance-change-note { margin: 0 6px 6px 28px; color: var(--text-muted); font-size: 12px; }
 .acceptance-edits { display: flex; flex-wrap: wrap; gap: 4px; margin: 0 0 6px 28px; }
-.acceptance-edits button { padding: 4px 6px; border-radius: var(--radius-xs); color: var(--text-muted); font-size: 11px; }
+.acceptance-edits button { padding: 4px 6px; border-radius: var(--radius-xs); color: var(--text-muted); font-size: 12px; }
 .acceptance-evidence { min-width: 0; border: 1px solid var(--border-subtle); border-radius: var(--radius-xs); overflow: hidden; margin-bottom: 8px; }
 .acceptance-evidence-toggle { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; width: 100%; padding: 9px 10px; color: var(--text-secondary); text-align: left; }
 .acceptance-evidence-toggle:hover { background: var(--bg-hover); }
@@ -40,10 +40,10 @@
 .acceptance-evidence-toggle > svg:last-child { transition: transform var(--transition-enter); }
 .acceptance-evidence-toggle[aria-expanded="true"] > svg:last-child { transform: rotate(90deg); }
 .acceptance-evidence-toggle code { flex: 1; min-width: 80px; overflow-wrap: anywhere; font: 11px/1.5 var(--font-mono); }
-.acceptance-result, .acceptance-stale { flex: none; font-size: 11px; }
+.acceptance-result, .acceptance-stale { flex: none; font-size: 12px; }
 .acceptance-evidence-output { border-top: 1px solid var(--border-subtle); }
 .acceptance-evidence-output[hidden] { display: none; }
-.acceptance-output-meta { padding: 6px 10px; color: var(--text-muted); font-size: 11px; }
+.acceptance-output-meta { padding: 6px 10px; color: var(--text-muted); font-size: 12px; }
 .acceptance-evidence .tool-terminal { border: 0; margin: 0; border-radius: 0; }
 .acceptance-evidence .tool-terminal-cmd > span:last-child { min-width: 0; overflow-wrap: anywhere; }
 .acceptance-evidence .tool-terminal-out { max-height: 360px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }

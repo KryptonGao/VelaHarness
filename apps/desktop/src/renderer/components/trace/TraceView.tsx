@@ -47,7 +47,8 @@ export function TraceView({
   const list = useRef<HTMLDivElement>(null),
     timeline = useRef<HTMLDivElement>(null),
     followRef = useRef(true),
-    zoomAnchor = useRef<number | null>(null);
+    zoomAnchor = useRef<number | null>(null),
+    lastScaleKey = useRef<string | null>(null);
   const selectionPause = useRef(false);
   const running =
     trace.nodes.some((n) => n.status === "Running") ||
@@ -85,6 +86,13 @@ export function TraceView({
     trace.nodes[0] ??
     null;
   const metrics = useMemo(() => traceMetrics(trace.requests), [trace.requests]);
+  // The fit floor keeps over-long traces wider than the viewport at zoom 1, so
+  // only promise a full-trace fit when resetting would actually fit.
+  const fitsViewport =
+    geometry.width / zoom <= Math.max(1, timelineWindow.width - timelinePadding) + 1;
+  const fitLabel = fitsViewport
+    ? tr("适应宽度，展示完整过程", "Fit width to show the full trace")
+    : tr("最小比例尺，轨迹过长时需横向滚动", "Minimum scale; long traces scroll horizontally");
   useLayoutEffect(() => {
     const element = list.current,
       chart = timeline.current;
@@ -100,19 +108,26 @@ export function TraceView({
     return () => observer.disconnect();
   }, []);
   // Keep the visible time range centered while zooming, then refresh the window
-  // so ruler and group labels match what is actually visible.
+  // so ruler and group labels match what is actually visible. Reposition only
+  // when the scale actually changes: a running trace keeps growing the canvas
+  // at zoom 1 once the fit floor kicks in, and that must not snap the user's
+  // horizontal scroll back to the start.
   useLayoutEffect(() => {
     const chart = timeline.current;
     if (!chart) return;
-    if (zoom === 1) {
-      chart.scrollLeft = 0;
-      zoomAnchor.current = null;
-    } else if (zoomAnchor.current !== null) {
-      chart.scrollLeft = Math.max(
-        0,
-        zoomAnchor.current * geometry.width - chart.clientWidth / 2,
-      );
-      zoomAnchor.current = null;
+    const key = `${zoom}:${mode}`;
+    if (lastScaleKey.current !== key) {
+      lastScaleKey.current = key;
+      if (zoom === 1) {
+        chart.scrollLeft = 0;
+        zoomAnchor.current = null;
+      } else if (zoomAnchor.current !== null) {
+        chart.scrollLeft = Math.max(
+          0,
+          zoomAnchor.current * geometry.width - chart.clientWidth / 2,
+        );
+        zoomAnchor.current = null;
+      }
     }
     setTimelineWindow((window) =>
       window.left === chart.scrollLeft && window.width === chart.clientWidth
@@ -268,8 +283,8 @@ export function TraceView({
             <button
               className="trace-scale-value"
               disabled={zoom === 1}
-              title={tr("适应宽度，展示完整过程", "Fit width to show the full trace")}
-              aria-label={tr("适应宽度，展示完整过程", "Fit width to show the full trace")}
+              title={fitLabel}
+              aria-label={fitLabel}
               onClick={() => applyZoom(1)}
             >
               {zoomLabel(zoom)}

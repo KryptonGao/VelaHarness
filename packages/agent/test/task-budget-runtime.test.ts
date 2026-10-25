@@ -109,7 +109,7 @@ describe("AgentRuntime 任务用量上限", { timeout: 30_000 }, () => {
     f.runtime.setTaskBudgetSettings({ enabled: false, maxMinutes: 30, maxTokens: 2_000_000 });
     const other = await f.runtime.createConversation(f.workspace).then(() => f.runtime.activeConversationId!);
     assert.notEqual(other, f.id);
-    const custom = { enabled: true, maxMinutes: null, maxTokens: 10_000 };
+    const custom = { enabled: true, maxMinutes: null, maxTokens: 10_000, maxSubagents: 16, allowNestedSubagents: true };
     const saved = f.runtime.setConversationTaskBudget(f.id, custom);
     assert.deepEqual(saved.override, custom);
     assert.deepEqual(saved.effective, custom);

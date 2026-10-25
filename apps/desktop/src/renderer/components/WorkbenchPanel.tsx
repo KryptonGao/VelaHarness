@@ -2,7 +2,7 @@ import type { AgentControlAction, AgentInfo, ExecutionPlan, PlanExecutionContext
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import type { ProjectApi } from "../hooks/useProject";
 import type { SidebarResize } from "../hooks/useSidebarResize";
-import type { ToolDisplay } from "../hooks/usePreferences";
+import type { ToolDisplay, ToolFold } from "../hooks/usePreferences";
 import type { MessageStore } from "../hooks/message-store";
 import type { UiMessage } from "../hooks/useSession";
 import { useMotionPresence } from "../hooks/useMotionPresence";
@@ -71,6 +71,7 @@ interface WorkbenchPanelProps {
   messageStore?: MessageStore;
   conversationId?: string | null;
   toolDisplay?: ToolDisplay;
+  toolFold?: ToolFold;
   ensureAgentMessages: (agentId: string) => void;
   onControlAgent: (agentId: string, action: AgentControlAction) => void;
   onOpenAgent: (agentId: string) => void;
@@ -160,6 +161,7 @@ function WorkbenchPanelContent({
   conversationId,
   browserOperating,
   toolDisplay,
+  toolFold,
   ensureAgentMessages,
   onControlAgent,
   onOpenAgent,
@@ -636,6 +638,7 @@ function WorkbenchPanelContent({
                 messageStore={messageStore}
                 conversationId={conversationId}
                 toolDisplay={toolDisplay}
+                toolFold={toolFold}
                 visible={activeTab?.id === tab.id}
                 onSwitch={(agentId) => {
                   const next = tabs.find((candidate) => candidate.kind === "agent" && candidate.agent.id === agentId);

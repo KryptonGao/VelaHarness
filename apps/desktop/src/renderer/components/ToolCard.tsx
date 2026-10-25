@@ -18,7 +18,7 @@ import {
 } from "./AgentPanel";
 import { useFilePreview } from "./preview/FilePreviewContext";
 import type { ThemedToken } from "./preview/highlighter";
-import { QuestionCard } from "./QuestionCard";
+import { QuestionCard, type QuestionReplyHandler } from "./QuestionCard";
 import { FileTypeIcon } from "./FileTypeIcon";
 import { tokenStyle, useDiffHighlight, type HighlightedDiff } from "./diff-highlight";
 import { ArrowRightIcon, CheckIcon, CircleIcon, ExternalIcon, EyeIcon, FilePlusIcon, GlobeIcon, McpIcon, PencilIcon, StackIcon, SubagentIcon, TerminalIcon, ToolIcon, WebFetchIcon, WebSearchIcon } from "./icons";
@@ -63,17 +63,20 @@ export const ToolList = memo(function ToolList({
   onReplyQuestion,
   display = "card",
   fold = "message",
+  arrivalKey,
 }: {
   tools: ToolTrace[];
   getQuestion?: QuestionLookup;
-  onReplyQuestion?: (id: string, answer: string | null) => void;
+  onReplyQuestion?: QuestionReplyHandler;
   display?: ToolDisplay;
   fold?: ToolFold;
+  /** 入场动画的标记；直接挂在列表上，保证列表仍是消息块的直接子节点。 */
+  arrivalKey?: string;
 }) {
   const segments = useMemo(() => splitToolRuns(tools), [tools]);
   const compact = display === "compact";
   return (
-    <div className={compact ? "tool-card-list is-compact" : "tool-card-list"}>
+    <div className={compact ? "tool-card-list is-compact" : "tool-card-list"} data-arrival-key={arrivalKey}>
       {segments.map((segment) =>
         toolKind(segment[0].name) === "other" ? (
           segment.map((tool) => (
@@ -119,7 +122,7 @@ function splitToolRuns(tools: ToolTrace[]): ToolTrace[][] {
 interface ToolCardProps {
   tool: ToolTrace;
   getQuestion?: QuestionLookup;
-  onReplyQuestion?: (id: string, answer: string | null) => void;
+  onReplyQuestion?: QuestionReplyHandler;
   compact?: boolean;
 }
 

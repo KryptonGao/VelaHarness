@@ -10,7 +10,7 @@
   <a href="#紧凑模式">紧凑模式</a> · <a href="#subagents">SubAgents</a> · <a href="#轨迹界面">轨迹界面</a> · <a href="#快速开始">快速开始</a> · <a href="#开发指南">开发指南</a>
 </p>
 
-Vela 是一款桌面应用，让 AI Agent 在你本机的代码仓库里工作：理解项目、拆分任务、修改并运行代码。用紧凑对话查看进度，用独立面板跟踪子代理，用执行轨迹检查每一步。
+Vela 是一款桌面应用，让 AI Agent 在你本机的代码仓库里工作：理解项目、拆分任务、修改并运行代码。界面清爽、功能丰富，吸收了 Codex、Claude Code、DeepSeek Harness 等 Harness 的优点：紧凑对话、独立的子代理面板，以及需要时可查看细节的执行轨迹。
 
 ## 紧凑模式
 
@@ -163,7 +163,7 @@ pnpm test:center # 测试中心：统一运行 Node 单测与浏览器 UI 检查
 
 Vela 基于 [Pi Agent](https://github.com/earendil-works/pi) 构建，并通过 TypeScript SDK 将 Agent 运行时嵌入桌面应用。Pi 提供模型接口、会话和工具运行时；Vela 在其上实现桌面界面、任务模式、权限审批以及 Git 工作区集成。
 
-- **技术栈：** Electron 44、electron-vite、React 19 和 TypeScript；pnpm workspace 管理桌面应用及共享包。Pi 精确锁定 `1.0.0`（`@earendil-works/pi-coding-agent`、`pi-agent-core`、`pi-ai`）；Vela 在主进程调用 `createAgentSession()`，不通过启动 Pi 命令行程序来运行 Agent。详见 [Pi 1.0 迁移记录](./docs/pi-1.0-migration.md)。
+- **技术栈：** Electron 44、electron-vite、React 19 和 TypeScript；pnpm workspace 管理桌面应用及共享包。Pi 精确锁定 `1.0.0`（`@earendil-works/pi-coding-agent`、`pi-agent-core`、`pi-ai`）；Vela 在主进程调用 `createAgentSession()`，不通过启动 Pi 命令行程序来运行 Agent。
 - **会话与模型：** 每个对话使用独立的 Pi `AgentSession`，消息保存在 `~/.vela/sessions`，对话索引在 `~/.vela/conversations.json`。提供方和模型通过 Pi 的 `ModelRuntime` 加载，使用 Vela 自己的 `~/.vela` 配置，不读取本机 Pi 配置。
 - **工具、模式与权限：** 基础工具为 Pi 的 `read`、`bash`、`edit` 和 `write`，Vela 包装了 `bash`、`edit`、`write` 以接入审批。`Plan` 模式通过 ToolPolicy 禁止编辑和写入，只放行只读命令，并以 `<proposed_plan>` 输出完整方案，批准后可在当前或全新上下文执行；`Goal` 模式通过 `update_goal` 记录进度。详见 [docs/plan-mode.md](./docs/plan-mode.md) 与 [docs/plan-mode-architecture.md](./docs/plan-mode-architecture.md)。
 - **MCP：** 工具默认通过 `tool_search` 按需发现，也可设为直接提供或隐藏；项目配置需要确认信任。Plan 和 `explore` 只提供已确认为只读的工具。

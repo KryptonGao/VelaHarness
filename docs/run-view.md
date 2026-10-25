@@ -3,7 +3,7 @@
 设置 → 对话显示 → 「运行视图」，默认关闭。开启后，任务运行时在本轮过程的末尾多出两块（它们是对话流的一部分，紧跟在过程后面并随对话一起滚动，不固定在输入框上方）：
 
 - **待办清单**：圆角卡片，待办是虚线圈，进行中转圈，完成实心并划线；右上角计数可折叠到只剩当前项。
-- **状态条**：左边是运行动画，右边是当前步骤类型（思考中 / 运行命令 / 读取文件 / 编辑文件 / 搜索网页 / 运行子代理 / 更新待办 / 撰写回复）和用时。
+- **状态条**：左边是运行动画，右边是当前步骤类型（思考中 / 运行命令 / 读取文件 / 编辑文件 / 搜索网页 / 运行子代理 / 更新待办 / 撰写回复）和用时。命令带冷却：跑满 `runStepCooldownMs`（600ms）才显示「运行命令」，几十毫秒就结束的命令不会让标签闪一下，冷却期间保持上一步的标签。测试见 `test/run-view.test.ts`，可交互核对 `test/run-view-preview.html`。
 
 对话里的步骤和工具行不变；这两块只在本轮运行中出现。设计稿见 [design/agent-run-mode.html](./design/agent-run-mode.html)。
 
@@ -12,7 +12,7 @@
 | 部分 | 位置 |
 | --- | --- |
 | 偏好 `vela.runView`（渲染层本地存储），变化时经 `setRunView` IPC 同步给运行时 | `hooks/usePreferences.ts`、`IpcChannel.setRunView`、`AgentRuntime.setRunView` |
-| 取清单、判断当前步骤、选圆球样式池（纯函数） | `renderer/run-view.ts` |
+| 取清单、判断当前步骤、命令冷却状态机、选圆球样式池（纯函数） | `renderer/run-view.ts` |
 | 待办卡与状态条，渲染在 `ChatView` 滚动区里最后一轮之后 | `components/RunViewDock.tsx`、`ChatView.tsx` |
 | 运行动画：直接复用 `ActivityIndicator`（`jump-orb.ts` 的样式池与轮换） | `components/ActivityIndicator.tsx` |
 

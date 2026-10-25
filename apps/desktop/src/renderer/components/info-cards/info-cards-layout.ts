@@ -107,13 +107,36 @@ export function stepRendered(rendered: readonly InfoCardId[], id: InfoCardId, de
 }
 
 /**
- * 拖动时的落点：dragged 的中心越过多少张其他卡片的中点，就排在它们之后。
- * mids 是其他卡片按当前顺序的中点（同一坐标系），返回 dragged 在新顺序里的下标。
+ * 拖动时的落点：position 越过多少条分界，就排在它们之后，返回它在新顺序里的下标。
+ * boundaries 是“被拖动的卡片让出位置后”各相邻落位的中点，与 position 同一坐标系。
  */
-export function dropIndex(center: number, mids: readonly number[]): number {
+export function dropIndex(position: number, boundaries: readonly number[]): number {
   let index = 0;
-  for (const mid of mids) if (mid < center) index++;
+  for (const boundary of boundaries) if (boundary < position) index++;
   return index;
+}
+
+/**
+ * 被拖动的卡片让出位置后，其余卡片依次落下的分界：每张卡片自己那一段的中点。
+ * 分界只由其他卡片的高度决定，不随卡片换位移动，也不受被拖卡片自身高度影响。
+ */
+export function dropBoundaries(heights: readonly number[], gap: number): number[] {
+  const boundaries: number[] = [];
+  let top = 0;
+  for (const height of heights) {
+    boundaries.push(top + (height + gap) / 2);
+    top += height + gap;
+  }
+  return boundaries;
+}
+
+/**
+ * 拖动落点以卡片顶端为准：落在顶端最近的那一档。
+ * 用顶端而不是中心，所以高卡片拖到最上面时，只需要把顶端移到顶部卡片的中段，
+ * 不必先把自己一半的高度拖过整个列表。
+ */
+export function dropIndexAtTop(top: number, heights: readonly number[], gap: number): number {
+  return dropIndex(top, dropBoundaries(heights, gap));
 }
 
 /** 把 dragged 放到 others 的第 index 个位置之前，得到新顺序。 */

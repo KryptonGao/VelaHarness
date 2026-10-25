@@ -60,8 +60,16 @@ const minBarWidth = 10;
 const sequenceBarWidth = 36;
 const sequenceBarGap = 2;
 /**
+ * Fitting compresses at most to this fraction of the natural width. Longer
+ * traces keep this floor scale and scroll horizontally instead of shrinking
+ * bars below a readable size.
+ */
+const minFitScale = 0.25;
+/**
  * `zoom` multiplies the horizontal scale, starting at `viewportWidth` when given.
  * Insets and minimum bar widths scale with it so fitting preserves proportions.
+ * The fit scale never drops below `minFitScale`, so an over-long trace no
+ * longer fits without scrolling at the minimum zoom.
  */
 export function traceTimeline(
   nodes: TraceNode[],
@@ -183,7 +191,7 @@ export function traceTimeline(
       );
   const width = (
     viewportWidth !== undefined && Number.isFinite(viewportWidth) && viewportWidth > 0
-      ? viewportWidth
+      ? Math.max(viewportWidth, naturalWidth * minFitScale)
       : naturalWidth
   ) * magnification;
   const scale = width / naturalWidth;

@@ -6,7 +6,7 @@ import {
   type AgentSessionEvent,
   type ToolDefinition,
 } from "@earendil-works/pi-coding-agent";
-import { emptyAgentUsage, isAgentBusy, type AgentInfo, type AgentStatus, type AgentUsage, type SubagentKind } from "@vela/shared";
+import { emptyAgentUsage, isAgentBusy, type AgentInfo, type AgentStatus, type AgentUsage, type SubagentKind, type SubagentLimits } from "@vela/shared";
 import { randomUUID } from "node:crypto";
 import { Type } from "typebox";
 import { normalizeStoredAgents, type StoredAgent } from "./agent-history";
@@ -24,7 +24,7 @@ import {
 /** 子代理最多嵌套几层：/root 之外还能再挂 3 层。 */
 export const maxAgentDepth = 3;
 
-/** 一个对话里同时存在的子代理上限。 */
+/** 一个对话里同时存在的子代理上限；未提供 limits 时的默认值，用户可在用量限制里调整。 */
 export const maxAgentsPerTree = 16;
 
 /** 同一时刻允许并发运行的子代理回合计。 */
@@ -81,6 +81,8 @@ export interface AgentControlOptions {
   host: AgentControlHost;
   onChange?: (agents: AgentInfo[]) => void;
   restoredAgents?: StoredAgent[];
+  /** 每次派生前读取，设置改动立即生效；缺省时用 maxAgentsPerTree，且允许嵌套。 */
+  limits?: () => SubagentLimits;
 }
 
 interface AgentTaskOutcome {
@@ -317,12 +319,19 @@ export class AgentControl {
     if (caller.info.kind === "explore" && kind !== "explore") {
       throw new Error("查阅子代理只能创建 explore 子代理。");
     }
+    const limits = this.options.limits?.() ?? { maxSubagents: maxAgentsPerTree, allowNested: true };
+    if (caller.info.kind !== "root" && !limits.allowNested) {
+      throw new Error("当前设置不允许子代理再创建子代理，请把任务交回给上一级。");
+    }
     const depth = caller.info.depth + 1;
     if (depth > maxAgentDepth) {
       throw new Error(`子代理最多嵌套 ${maxAgentDepth} 层，不能再往下创建。`);
     }
-    if (this.childCount() >= maxAgentsPerTree) {
-      throw new Error(`一个对话最多同时存在 ${maxAgentsPerTree} 个子代理，请先停止或等一部分结束。`);
+    if (limits.maxSubagents <= 0) {
+      throw new Error("当前设置不允许创建子代理。");
+    }
+    if (this.childCount() >= limits.maxSubagents) {
+      throw new Error(`一个对话最多同时存在 ${limits.maxSubagents} 个子代理（所有层级合计），请先停止或等一部分结束。`);
     }
     const task = input.task.trim();
     if (!task) throw new Error("任务不能为空。");

@@ -5,10 +5,14 @@ import { settingsCopy } from "./settings-copy";
 import { TaskBudgetFields } from "./settings/TaskBudgetFields";
 
 function describe(settings: TaskBudgetSettings): string {
-  if (!settings.enabled) return tr("未启用", "Off");
   const parts: string[] = [];
-  if (settings.maxMinutes !== null) parts.push(trf("{0} 分钟", "{0} min", settings.maxMinutes));
-  if (settings.maxTokens !== null) parts.push(`${formatTaskBudgetTokens(settings.maxTokens)} Token`);
+  if (!settings.enabled) parts.push(tr("未启用", "Off"));
+  else {
+    if (settings.maxMinutes !== null) parts.push(trf("{0} 分钟", "{0} min", settings.maxMinutes));
+    if (settings.maxTokens !== null) parts.push(`${formatTaskBudgetTokens(settings.maxTokens)} Token`);
+  }
+  parts.push(trf("子代理最多 {0} 个", "up to {0} subagents", settings.maxSubagents));
+  if (!settings.allowNestedSubagents) parts.push(tr("不可嵌套", "no nesting"));
   return parts.join(" · ");
 }
 
@@ -85,8 +89,8 @@ export function TaskBudgetTab({ conversationId, budget }: { conversationId: stri
     <div className="tb-inner">
       <header className="tb-header">
         <h2>{tr("用量限制", "Usage limit")}</h2>
-        <p>{tr("为当前对话设置一次任务的时间与 Token 上限，统计包含子代理。这里的设置只对当前对话生效，不影响其他对话。",
-          "Set a time and token limit for a single task in this conversation, subagents included. These settings apply to this conversation only.")}</p>
+        <p>{tr("为当前对话设置一次任务的时间与 Token 上限（统计包含子代理），以及子代理的数量上限。这里的设置只对当前对话生效，不影响其他对话。",
+          "Set a time and token limit for a single task in this conversation (subagents included), plus a cap on subagents. These settings apply to this conversation only.")}</p>
       </header>
       <section className="tb-card">
         <div className="tb-card-head"><h3>{tr("当前任务", "Current task")}</h3></div>

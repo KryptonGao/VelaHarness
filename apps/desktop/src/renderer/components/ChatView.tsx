@@ -51,7 +51,8 @@ import {
 import { acceptanceCounts, outcomeByFinalMessage, type AcceptanceRequest } from "./acceptance";
 import { summarizeTurnChanges, type TurnChanges, type TurnReviewRequest } from "./turn-changes";
 import { chatLaneDefaultMaxWidth, planChatLane } from "../chat-lane";
-import { ConversationViewTabs, isEmptyConversationView, type ConversationViewKey } from "./ConversationViewTabs";
+import { ConversationViewTabs, conversationPanelId, conversationTabId, isEmptyConversationView, type ConversationViewKey } from "./ConversationViewTabs";
+import type { QuestionReplyHandler } from "./QuestionCard";
 import { RecipeChatCard } from "./RecipeChatContext";
 import { ChatActionsMenu } from "./ChatActionsMenu";
 import { UserMessageFrame } from "./UserMessageFrame";
@@ -143,7 +144,8 @@ function TurnProgressHeader({ startedAt }: { startedAt: number }) {
   const elapsed = formatElapsedTime(startedAt, now);
   if (!elapsed) return null;
   return (
-    <span className="time-spent-trigger assistant-turn-trigger">
+    // 每秒更新的计时不进入 role="log" 的朗读范围。
+    <span className="time-spent-trigger assistant-turn-trigger" aria-live="off">
       {trf("已处理 {0}", "Worked {0}", elapsed)}
     </span>
   );
@@ -180,7 +182,7 @@ export interface ChatViewProps {
   predictionEnabled?: boolean;
   /** 预测使用的模型；null 表示跟随当前对话模型。 */
   predictionModel?: import("@vela/shared").ThinkingSummaryModel | null;
-  onSend: (text: string, images?: import("@vela/shared").ImageAttachment[], deliverAs?: import("@vela/shared").RuntimeInstructionMode) => Promise<void>;
+  onSend: (text: string, images?: import("@vela/shared").ImageAttachment[], deliverAs?: import("@vela/shared").RuntimeInstructionMode) => Promise<void | boolean>;
   /** 撤销一条还没被模型消费的排队/调整指令。 */
   onRemoveInstruction: (instructionId: string) => Promise<void>;
   onEdit?: (turnIndex: number, text: string, images?: import("@vela/shared").ImageAttachment[]) => Promise<void>;
@@ -189,7 +191,7 @@ export interface ChatViewProps {
   models: ReturnType<typeof useModels>;
   question?: AskUserQuestionRequest | null;
   getQuestion: QuestionLookup;
-  onReplyQuestion: (id: string, answer: string | null) => void;
+  onReplyQuestion: QuestionReplyHandler;
   /** 从某一轮回复处分支出新对话;参数是可见用户消息的序号。 */
   onBranch: (turnIndex: number) => void;
   /** 打开检查点时间轴；传入轮次时选中那一轮。 */
@@ -257,6 +259,7 @@ export function ChatView({
     if (filePreview) filePreview.openFile(path);
     else void project.openFile(path);
   }, [filePreview, project]);
+  const tabIdPrefix = useId();
   const [views, setViews] = useState<Record<string, ConversationViewKey>>({});
   const [vcMounted, setVcMounted] = useState(false);
   const [imageView, setImageView] = useState<ImageViewerRequest | null>(null);
@@ -692,11 +695,15 @@ export function ChatView({
         </div>
       </header>
 
-      <ConversationViewTabs view={view} showVersionControl={hasWorkspace && !embedded} emptyConversation={emptyConversation} onChange={setView} />
-      {view === "trace" ? <TraceView key={viewKey} state={state} onConversation={() => setView("chat")} onAbort={onAbort} pendingInteraction={pendingInteraction} /> : null}
-      {view === "usage" ? <UsageView key={viewKey} conversationId={state?.activeConversationId ?? null} providers={models.catalog?.providers ?? []} /> : null}
-      {view === "context" ? <ContextTab key={viewKey} conversationId={state?.activeConversationId ?? null} context={state?.context} /> : null}
-      {view === "budget" ? <TaskBudgetTab key={viewKey} conversationId={state?.activeConversationId ?? null} budget={session?.taskBudget} /> : null}
+      <ConversationViewTabs idPrefix={tabIdPrefix} view={view} showVersionControl={hasWorkspace && !embedded} emptyConversation={emptyConversation} onChange={setView} />
+      {view === "trace" || view === "usage" || view === "context" || view === "budget" ? (
+        <div className="conversation-view-panel" role="tabpanel" id={conversationPanelId(tabIdPrefix, view)} aria-labelledby={conversationTabId(tabIdPrefix, view)}>
+          {view === "trace" ? <TraceView key={viewKey} state={state} onConversation={() => setView("chat")} onAbort={onAbort} pendingInteraction={pendingInteraction} /> : null}
+          {view === "usage" ? <UsageView key={viewKey} conversationId={state?.activeConversationId ?? null} providers={models.catalog?.providers ?? []} /> : null}
+          {view === "context" ? <ContextTab key={viewKey} conversationId={state?.activeConversationId ?? null} context={state?.context} /> : null}
+          {view === "budget" ? <TaskBudgetTab key={viewKey} conversationId={state?.activeConversationId ?? null} budget={session?.taskBudget} /> : null}
+        </div>
+      ) : null}
       {hasWorkspace && vcMounted ? <VersionControlView
         project={project}
         session={session ?? null}
@@ -706,7 +713,7 @@ export function ChatView({
         onAbort={onAbort}
         onOpenFile={(absolutePath) => void project.openFile(absolutePath)}
       /> : null}
-      <div className="chat-conversation-pane" data-home={homeLayout ? "true" : undefined} data-prompts={homeLayout && hasProjectWorkspace && !modelMissing ? "true" : undefined} hidden={view !== "chat"} inert={view !== "chat" ? true : undefined}>
+      <div className="chat-conversation-pane" role="tabpanel" id={conversationPanelId(tabIdPrefix, "chat")} aria-labelledby={conversationTabId(tabIdPrefix, "chat")} data-home={homeLayout ? "true" : undefined} data-prompts={homeLayout && hasProjectWorkspace && !modelMissing ? "true" : undefined} hidden={view !== "chat"} inert={view !== "chat" ? true : undefined}>
       {homeLayout ? <VelaMark /> : null}
       {floatingInfo && infoCards && !environmentCollapsed && !emptyConversation ? (
         <InfoCardStack state={state} project={project} messages={messages} planDraft={planDraft}
@@ -723,7 +730,16 @@ export function ChatView({
       ) : null}
       <ConversationLinkContext.Provider value={onOpenWebLink ?? null}>
       <div className="chat-scroll-area" ref={scrollerRef}>
-        <div className="chat-message-surface" key={messageSurfaceKey} ref={messageSurfaceRef}>
+        <div
+          className="chat-message-surface"
+          key={messageSurfaceKey}
+          ref={messageSurfaceRef}
+          role="log"
+          aria-live="polite"
+          aria-relevant="additions text"
+          aria-busy={streaming}
+          aria-label={tr("对话消息", "Conversation messages")}
+        >
         {session?.status === "error" && session.error ? (
           <div className="chat-error-card" role="alert">
             <div className="chat-error-card-title">{tr("会话还不能开始", "Chat is not ready yet")}</div>
@@ -985,7 +1001,7 @@ const Message = memo(function Message({
   onReviewTurn?: (request: TurnReviewRequest) => void;
   canManageChanges: boolean;
   getQuestion: QuestionLookup;
-  onReplyQuestion: (id: string, answer: string | null) => void;
+  onReplyQuestion: QuestionReplyHandler;
   /** 只有用户消息的图片会打开全屏查看器;助手消息沿用同一个组件时不需要传。 */
   onOpenImage?: (request: ImageViewerRequest) => void;
   editDisabled?: boolean;
@@ -1087,7 +1103,7 @@ function AssistantMessageContent({
   onReviewTurn?: (request: TurnReviewRequest) => void;
   canManageChanges: boolean;
   getQuestion: QuestionLookup;
-  onReplyQuestion: (id: string, answer: string | null) => void;
+  onReplyQuestion: QuestionReplyHandler;
   toolDisplay?: ToolDisplay;
   toolFold?: ToolFold;
 }) {
@@ -1142,7 +1158,7 @@ function ToolSequence({
   includeText?: (message: UiMessage) => boolean;
   toolDisplay: ToolDisplay;
   getQuestion: QuestionLookup;
-  onReplyQuestion: (id: string, answer: string | null) => void;
+  onReplyQuestion: QuestionReplyHandler;
 }) {
   const nodes = useMemo(
     () => groupProcessItems(buildTurnItems(messages, { includeText }), toolDisplay),
@@ -1234,7 +1250,7 @@ const CompletedAssistantTurn = memo(function CompletedAssistantTurn({
   onReviewTurn?: (request: TurnReviewRequest) => void;
   canManageChanges: boolean;
   getQuestion: QuestionLookup;
-  onReplyQuestion: (id: string, answer: string | null) => void;
+  onReplyQuestion: QuestionReplyHandler;
   toolDisplay?: ToolDisplay;
   toolFold?: ToolFold;
   branchTurn: number | null;
@@ -1256,7 +1272,7 @@ const CompletedAssistantTurn = memo(function CompletedAssistantTurn({
   const enterClass = entering ? " message-enter" : "";
   const triggerContent = (
     <>
-      <span>{displayedElapsed ? trf("用时 {0}", "Took {0}", displayedElapsed) : hasProcess ? tr("查看过程", "View process") : tr("耗时未记录", "Duration unavailable")}</span>
+      <span>{displayedElapsed ? trf("用时 {0}", "Took {0}", displayedElapsed) : tr("查看过程", "View process")}</span>
       {hasProcess ? (
         <svg className="time-spent-trigger-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
           <polyline points="9 18 15 12 9 6" />
@@ -1267,6 +1283,7 @@ const CompletedAssistantTurn = memo(function CompletedAssistantTurn({
 
   return (
     <article className={`assistant-block assistant-turn${enterClass}`}>
+      {hasProcess || displayedElapsed ? (
       <div className={`time-spent-collapsible${expanded ? " expanded" : ""}`}>
         {hasProcess ? (
           <button
@@ -1319,6 +1336,7 @@ const CompletedAssistantTurn = memo(function CompletedAssistantTurn({
           </div>
         </div>
       </div>
+      ) : null}
       <div className="agent-reply-prose">
         <AssistantMarkdown messageId={finalReply.id} text={finalReply.text} />
       </div>
@@ -1454,11 +1472,11 @@ function TurnChangesCard({ turnId, changes, onOpenChanges, onReviewTurn, canMana
           <button
             type="button"
             className="turn-changes-undo"
-            title={tr("在工作区变更中选择文件并确认撤销当前改动", "Choose files in Workspace Changes to confirm reverting these edits")}
+            title={tr("打开工作区变更，在那里选择文件并确认撤销；此处不会直接还原", "Opens Workspace Changes, where you choose files and confirm. Nothing is reverted from here")}
             disabled={!canManageChanges}
             onClick={onOpenChanges}
           >
-            {tr("撤销", "Revert")} <UndoIcon />
+            {tr("在变更中撤销…", "Revert in Changes…")} <UndoIcon />
           </button>
           <button
             type="button"
@@ -1525,7 +1543,7 @@ function UndoIcon() {
 
 function SidebarIcon() {
   return (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
       <rect x="3" y="3" width="18" height="18" rx="2" />
       <line x1="9" y1="3" x2="9" y2="21" />
     </svg>

@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useRef } from "react";
-import { CloseIcon, FileIcon, SkillIcon } from "../icons";
+import { CloseIcon, CommandIcon, FileIcon, SkillIcon } from "../icons";
 import type { SlashMenuItem } from "./slash-picker";
 import { skillOriginLabel, skillTitle } from "./skill-picker";
 import { localizeError, tr } from "../../locale";
@@ -53,15 +53,29 @@ export function SkillMenu({ id = "skill-menu", optionIdPrefix = "skill-option", 
   }, [activeIndex, items, reduced]);
   const empty = loadingSkills || loadingRecipes
     ? tr("正在读取技能与任务配方…", "Loading skills and task recipes…")
-    : query ? tr("没有匹配的技能或任务配方", "No matching skills or task recipes")
+    : query ? tr("没有匹配的命令、技能或任务配方", "No matching commands, skills or task recipes")
     : tr("还没有技能或任务配方", "No skills or task recipes yet");
   const originLabel = (origin: string) => origin === 'builtin' ? tr('内置', 'Built-in') : origin === 'project' ? tr('项目', 'Project') : origin === 'team' ? tr('团队', 'Team') : tr('个人', 'Personal');
-  return <div className="skill-menu" id={id} role="listbox" aria-label={tr("技能与任务配方", "Skills and task recipes")} onMouseDown={event => event.preventDefault()}>
+  return <div className="skill-menu" id={id} role="listbox" aria-label={tr("命令、技能与任务配方", "Commands, skills and task recipes")} onMouseDown={event => event.preventDefault()}>
     <div className="skill-menu-list" ref={listRef}>
       {items.map((item, index) => {
         const selected = index === activeIndex;
+        const command = item.type === 'command' ? item.command : null;
         const skill = item.type === 'skill' ? item.skill : null;
         const recipe = item.type === 'recipe' ? item.recipe : null;
+        if (command) {
+          return <Fragment key={`command:${command.id}`}>
+            {index === 0 || items[index - 1]!.type !== item.type ? <div className="skill-menu-title" aria-hidden="true">{tr('命令', 'Commands')}</div> : null}
+            <button id={`${optionIdPrefix}-${index}`} ref={selected ? activeRef : undefined} type="button" role="option" aria-selected={selected}
+              aria-label={`/${command.name} · ${tr('命令', 'Command')} · ${command.description}`}
+              className={`skill-menu-row${selected ? " active" : ""}`} onMouseEnter={() => onActiveIndex(index)} onClick={() => onSelect(item)}>
+              <span className="skill-menu-icon"><CommandIcon size={15} /></span>
+              <span className="skill-menu-name">/{command.name}</span>
+              <span className="skill-menu-desc">{command.description}</span>
+              <span className="skill-menu-origin">{tr('命令', 'Command')}</span>
+            </button>
+          </Fragment>;
+        }
         return <Fragment key={skill ? `skill:${skill.location}` : `recipe:${recipe!.id}`}>
           {index === 0 || items[index - 1]!.type !== item.type ? <div className="skill-menu-title" aria-hidden="true">{skill ? tr('技能', 'Skills') : tr('任务配方', 'Task recipes')}</div> : null}
           <button id={`${optionIdPrefix}-${index}`} ref={selected ? activeRef : undefined} type="button" role="option" aria-selected={selected}

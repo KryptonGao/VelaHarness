@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { CheckIcon, CopyIcon, PencilIcon } from "./icons";
-import { localizeError, tr } from "../locale";
+import { activeIntlLocale, localizeError, tr, trf } from "../locale";
+import { modKeyLabel } from "../platform";
 
 /** The action row remains outside the bubble, aligned with its right edge. */
 export function UserMessageFrame({ text, timestamp, disabled, className, onEdit, editNote, savingLabel, children }: {
@@ -52,7 +53,11 @@ export function UserMessageFrame({ text, timestamp, disabled, className, onEdit,
               if (event.key === "Escape") { event.preventDefault(); cancel(); }
               if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) { event.preventDefault(); void submit(); }
             }} />
-          <p className="user-edit-note">{editNote ?? tr("重新发送会撤回这条消息及之后的内容和文件更改，保留原图片附件。", "Resending discards this message and everything after it, restores file changes, and keeps the original images.")}</p>
+          <p className="user-edit-note warning" role="note">
+            <span aria-hidden="true">⚠</span>
+            <span>{editNote ?? tr("重新发送会撤回这条消息及之后的内容和文件更改，保留原图片附件。", "Resending discards this message and everything after it, restores file changes, and keeps the original images.")}</span>
+          </p>
+          <p className="user-edit-shortcut">{trf("{0}Enter 重新发送 · Enter 换行 · Esc 取消", "{0}Enter to resend · Enter for a new line · Esc to cancel", modKeyLabel(/mac/i.test(navigator.platform) ? "darwin" : ""))}</p>
           {error ? <p className="user-edit-error" role="alert">{error}</p> : null}
           <div className="user-edit-buttons">
             <button type="button" className="user-edit-cancel" disabled={saving} onClick={cancel}>{tr("取消", "Cancel")}</button>
@@ -62,7 +67,7 @@ export function UserMessageFrame({ text, timestamp, disabled, className, onEdit,
       ) : children}
       <div className="user-message-actions">
         {validDate ? <time dateTime={validDate.toISOString()} title={validDate.toLocaleString()}>
-          {validDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false })}
+          {validDate.toLocaleTimeString(activeIntlLocale(), { hour: "2-digit", minute: "2-digit" })}
         </time> : null}
         <button className="reply-action user-message-action" type="button" disabled={!text || saving}
           title={copied ? tr("已复制", "Copied") : tr("复制消息", "Copy message")}

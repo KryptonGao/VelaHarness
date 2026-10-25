@@ -9,6 +9,8 @@ export const taskBudgetLimits = {
   maxMinutes: 24 * 60,
   minTokens: 10_000,
   maxTokens: 10_000_000_000,
+  minSubagents: 0,
+  maxSubagents: 64,
 } as const;
 
 /** 用量达到上限的这个比例时先提示用户。 */
@@ -20,13 +22,25 @@ export interface TaskBudgetSettings {
   maxMinutes: number | null;
   /** 单次任务 Token 上限（输入 + 输出，含子代理，不含缓存读取）；null 表示不限。 */
   maxTokens: number | null;
+  /** 一个对话里所有层级子代理的总数上限；0 表示不允许创建子代理。与 enabled 无关，始终生效。 */
+  maxSubagents: number;
+  /** 子代理是否可以继续创建子代理；关闭后只有主代理能派生。 */
+  allowNestedSubagents: boolean;
 }
 
 export const defaultTaskBudgetSettings: Readonly<TaskBudgetSettings> = Object.freeze({
   enabled: false,
   maxMinutes: 30,
   maxTokens: 20_000_000,
+  maxSubagents: 16,
+  allowNestedSubagents: true,
 });
+
+/** agent 树控制面每次派生子代理前读取的限制。 */
+export interface SubagentLimits {
+  maxSubagents: number;
+  allowNested: boolean;
+}
 
 /** 一个对话的用量上限：全局默认、本对话自定义（没有则沿用全局）和实际生效的设置。 */
 export interface ConversationTaskBudget {
@@ -73,7 +87,16 @@ export function parseTaskBudgetSettings(raw: unknown): TaskBudgetSettings {
     throw new Error("Token 上限超出范围");
   }
   if (input.enabled && maxMinutes === null && maxTokens === null) throw new Error("启用任务用量上限时至少要设置时间或 Token 其中一项");
-  return { enabled: input.enabled, maxMinutes, maxTokens };
+  // 子代理限制是后加的字段：缺省时取默认值，让旧的设置文件和旧调用方继续可用。
+  const maxSubagents = input.maxSubagents === undefined
+    ? defaultTaskBudgetSettings.maxSubagents
+    : validLimit(input.maxSubagents, taskBudgetLimits.minSubagents, taskBudgetLimits.maxSubagents);
+  if (maxSubagents === undefined || maxSubagents === null) throw new Error("子代理数量上限超出范围");
+  if (input.allowNestedSubagents !== undefined && typeof input.allowNestedSubagents !== "boolean") {
+    throw new Error("子代理嵌套开关必须是布尔值");
+  }
+  const allowNestedSubagents = input.allowNestedSubagents ?? defaultTaskBudgetSettings.allowNestedSubagents;
+  return { enabled: input.enabled, maxMinutes, maxTokens, maxSubagents, allowNestedSubagents };
 }
 
 /** 读取磁盘上的设置：损坏或越界时回到默认（关闭），不会意外启用。 */

@@ -300,10 +300,15 @@ export function useSession(notify: NotifySound = noSound, fixedConversationId?: 
     };
   }, [fixedConversationId, loadTranscript, messageStore, setAgentBuckets, setBuckets, setState]);
 
-  const send = useCallback(async (text: string, images?: ImageAttachment[], deliverAs?: RuntimeInstructionMode) => {
+  /**
+   * 返回 false 表示这条消息没有留下(没进对话、也没进排队),输入框据此把文字和附件放回去。
+   * 普通发送一旦失败,用户消息和错误提示都已在对话里,不会再放回输入框:
+   * 整轮对话可能已经跑了很久才报错,放回去会让人重复发送。
+   */
+  const send = useCallback(async (text: string, images?: ImageAttachment[], deliverAs?: RuntimeInstructionMode): Promise<boolean> => {
     const api = window.vela;
     const id = activeIdRef.current;
-    if (!api || !id) return;
+    if (!api || !id) return false;
     const attachments = images && images.length > 0 ? images : undefined;
     setErrors((current) => ({ ...current, [id]: "" }));
     if (deliverAs) {
@@ -314,8 +319,9 @@ export function useSession(notify: NotifySound = noSound, fixedConversationId?: 
       } catch (error) {
         const message = error instanceof Error ? localizeError(error.message) : tr("发送失败", "Failed to send message");
         setErrors((current) => ({ ...current, [id]: message }));
+        return false;
       }
-      return;
+      return true;
     }
     completionBlockedRef.current[id] = false;
     setBuckets((current) => ({
@@ -330,11 +336,13 @@ export function useSession(notify: NotifySound = noSound, fixedConversationId?: 
     try {
       const next = await api.prompt(text, images, id);
       setState(next);
+      return true;
     } catch (error) {
       const message = error instanceof Error ? localizeError(error.message) : tr("发送失败", "Failed to send message");
       completionBlockedRef.current[id] = true;
       setErrors((current) => ({ ...current, [id]: message }));
       setBuckets((current) => appendAssistantError(current, id, message));
+      return true;
     }
   }, [shareMessages]);
 
@@ -562,13 +570,15 @@ export function useSession(notify: NotifySound = noSound, fixedConversationId?: 
     [],
   );
 
-  const replyQuestion = useCallback(async (id: string, answer: string | null) => {
+  /** 返回 false 表示回答没送达(例如问题已被中止);提问卡片据此恢复选项,由用户重试或跳过。 */
+  const replyQuestion = useCallback(async (id: string, answer: string | null): Promise<boolean> => {
     const api = window.vela;
-    if (!api) return;
+    if (!api) return false;
     try {
       await api.replyQuestion(id, answer);
+      return true;
     } catch {
-      // 回复失败(例如问题已被中止)时保留卡片,由用户重试或跳过。
+      return false;
     }
   }, []);
 

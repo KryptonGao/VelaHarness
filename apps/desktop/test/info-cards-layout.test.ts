@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   defaultLayout,
+  dropBoundaries,
   dropIndex,
+  dropIndexAtTop,
   hiddenCards,
   hideCard,
   placeAt,
@@ -85,10 +87,32 @@ test("step moves one place and stops at the ends", () => {
   assert.equal(stepRendered(rendered, "tools", 1), null);
 });
 
-test("drop index counts the midpoints above the dragged center", () => {
+test("drop index counts the boundaries above the dragged edge", () => {
   assert.equal(dropIndex(10, [50, 150, 250]), 0);
   assert.equal(dropIndex(100, [50, 150, 250]), 1);
   assert.equal(dropIndex(300, [50, 150, 250]), 3);
   assert.deepEqual(placeAt(["a", "b", "c"] as unknown as InfoCardId[], "x" as InfoCardId, 1), ["a", "x", "b", "c"]);
   assert.deepEqual(placeAt(["a"] as unknown as InfoCardId[], "x" as InfoCardId, 9), ["a", "x"]);
+});
+
+test("drop boundaries sit in the middle of each slot the dragged card leaves behind", () => {
+  // 两张 100px 卡片、间距 10：被拖卡片让位后，剩下的卡片落在 0 和 110，分界是 55 和 165。
+  assert.deepEqual(dropBoundaries([100, 100], 10), [55, 165]);
+  assert.deepEqual(dropBoundaries([], 10), []);
+  assert.equal(dropIndexAtTop(0, [100, 100], 10), 0);
+  assert.equal(dropIndexAtTop(54, [100, 100], 10), 0);
+  assert.equal(dropIndexAtTop(56, [100, 100], 10), 1);
+  assert.equal(dropIndexAtTop(500, [100, 100], 10), 2);
+});
+
+/** 落点用的分界与被拖卡片自身高度无关：只要顶端到分界，就换位。 */
+test("a tall card reaches the top inside the list instead of above it", () => {
+  const above = [260, 150, 300, 40, 220, 120, 160];
+  const boundary = dropBoundaries(above, 10)[0]!;
+  // 旧判断看卡片中心，顶端得退到 135 - 自身半高：642px 高的卡片要拖到列表上方 186px 处才能排到第一。
+  // 现在看顶端，越过顶部卡片（260px）的中段就换位，跟卡片自身多高无关。
+  assert.equal(boundary, 135);
+  assert.ok(boundary > 0, "顶端不需要越过列表上沿");
+  assert.equal(dropIndexAtTop(boundary - 1, above, 10), 0);
+  assert.equal(dropIndexAtTop(boundary + 1, above, 10), 1);
 });

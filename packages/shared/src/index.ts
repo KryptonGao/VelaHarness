@@ -80,6 +80,7 @@ export const IpcChannel = {
   sessionSetMode: "session:set-mode",
   sessionExecutePlan: "session:execute-plan",
   sessionResumeGoal: "session:resume-goal",
+  sessionCompact: "session:compact",
   sessionRemoveInstruction: "session:instruction-remove",
   event: "session:event",
   getCatalog: "models:get-catalog",
@@ -2884,6 +2885,8 @@ export interface VelaApi extends McpApi, PluginApi {
   executePlan(conversationId?: string, strategy?: PlanExecutionContextStrategy): Promise<AppState>;
   /** 把暂停中的目标重新设为进行中，并自动续跑。 */
   resumeGoal(conversationId?: string): Promise<AppState>;
+  /** `/compact`：手动压缩对话上下文。失败时 error 为原因，成功为 null；状态通过 state 事件推送。 */
+  compactConversation(conversationId?: string, instructions?: string): Promise<{ error: string | null }>;
   /** 新建对话；activate 为 false 时返回新对话状态，保留主聊天与工作区。 */
   createConversation(cwd?: string, options?: { activate?: boolean }): Promise<AppState>;
   switchConversation(id: string): Promise<AppState>;

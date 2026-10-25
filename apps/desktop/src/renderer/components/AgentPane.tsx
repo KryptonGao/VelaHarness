@@ -1,8 +1,8 @@
 import { isAgentBusy, type AgentControlAction, type AgentInfo } from "@vela/shared";
-import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState, type MutableRefObject, type ReactNode } from "react";
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type MutableRefObject, type ReactNode } from "react";
 import { useDismissable } from "../hooks/useDismissable";
 import { useEntryArrival } from "../hooks/useEntryArrival";
-import type { ToolDisplay } from "../hooks/usePreferences";
+import type { ToolDisplay, ToolFold } from "../hooks/usePreferences";
 import { useFrameTask } from "../hooks/useFrameTask";
 import { emptyMessages, type MessageStore } from "../hooks/message-store";
 import { useMessages } from "../hooks/useMessages";
@@ -13,9 +13,15 @@ import {
   AgentControls, AgentRunStats, AgentStatusMark, agentKindLabel, agentStateText, formatTokenCount, useAgentClock,
 } from "./AgentPanel";
 import { Markdown } from "./Markdown";
+import { AssistantMarkdown } from "./intelligent-ui/AssistantMarkdown";
 import { Thinking } from "./Thinking";
-import { ToolList } from "./ToolCard";
+import { CompactToolGroup, CompactToolLine, ToolCard, ToolList, ToolRunGroup } from "./ToolCard";
+import { toolCompactKind } from "./tool-compact";
+import { buildTurnItems, groupAgentStream, groupProcessItems, type ProcessNode } from "./tool-sequence";
 import { BranchIcon } from "./icons";
+import { JumpOrb } from "./JumpOrb";
+import type { OrbActivity } from "./jump-orb";
+import { shouldShowJumpToLatest } from "./chat-scroll";
 
 interface AgentPaneProps {
   agent: AgentInfo;
@@ -24,6 +30,8 @@ interface AgentPaneProps {
   messageStore?: MessageStore;
   conversationId?: string | null;
   toolDisplay?: ToolDisplay;
+  /** 工具折叠方式；与主对话保持一致，默认按 Assistant 消息分组。 */
+  toolFold?: ToolFold;
   /** 隐藏时卸载内容与订阅，外壳保留滚动位置。 */
   visible?: boolean;
   onSwitch: (agentId: string) => void;
@@ -52,10 +60,12 @@ export function AgentPane(props: AgentPaneProps) {
 
 function VisibleAgentPane({
   agent, agents, messages: providedMessages, messageStore, conversationId = null,
-  toolDisplay, onSwitch, ensureMessages, onControl, follow,
+  toolDisplay, toolFold = "message", onSwitch, ensureMessages, onControl, follow,
 }: AgentPaneProps & { follow: MutableRefObject<AgentFollow> }) {
   const storedMessages = useMessages(messageStore, conversationId, agent.id);
   const messages = messageStore ? storedMessages : providedMessages ?? emptyMessages;
+  const streamBlocks = useMemo(() => groupAgentStream(messages, toolFold), [messages, toolFold]);
+  const lastMessageId = messages.length > 0 ? messages[messages.length - 1]!.id : null;
   const agentId = agent.id;
   const scrollRef = useRef<HTMLDivElement>(null);
   const streaming = agent.status === "running";
@@ -70,10 +80,34 @@ function VisibleAgentPane({
     ensureMessages(agentId);
   }, [agentId, ensureMessages]);
 
+  // 回到最新按钮的圆球状态与主对话一致:有 bash 在跑 = 运行命令;还没写出正文 = 思考;其余显示箭头。
+  const activeAssistant = streaming ? [...messages].reverse().find((message) => message.role === "assistant") : undefined;
+  const runningBash = activeAssistant?.tools.find((tool) => tool.name === "bash" && tool.status === "running");
+  const jumpActivity: OrbActivity | undefined = !activeAssistant
+    ? undefined
+    : runningBash ? "command" : !activeAssistant.text ? "thinking" : undefined;
+  const [showJumpToLatest, setShowJumpToLatest] = useState(false);
+  const syncJumpToLatest = useCallback(() => {
+    const node = scrollRef.current;
+    if (!node) return;
+    setShowJumpToLatest(shouldShowJumpToLatest({
+      following: follow.current.pinned,
+      distanceFromBottom: node.scrollHeight - node.scrollTop - node.clientHeight,
+    }));
+  }, [follow]);
+  const jumpToLatest = (): void => {
+    const node = scrollRef.current;
+    if (!node) return;
+    follow.current.pinned = true;
+    node.scrollTop = node.scrollHeight;
+    setShowJumpToLatest(false);
+  };
+
   // Restore before painting; save on unmount so tab switching keeps the viewport.
   const scheduleFollow = useFrameTask(() => {
     const node = scrollRef.current;
     if (node && follow.current.pinned) node.scrollTop = node.scrollHeight;
+    syncJumpToLatest();
   });
   useLayoutEffect(() => {
     const node = scrollRef.current;
@@ -101,6 +135,7 @@ function VisibleAgentPane({
     const distance = node.scrollHeight - node.scrollTop - node.clientHeight;
     follow.current.pinned = distance <= 32;
     follow.current.scrollTop = node.scrollTop;
+    syncJumpToLatest();
   };
 
   const arrivalRef = useEntryArrival(agentId, arrivalKeys, 0, false);
@@ -133,9 +168,9 @@ function VisibleAgentPane({
         {messages.length === 0 ? (
           agent.finalText ? (
             <div className="agent-stream">
-              <article className="agent-stream-message is-assistant">
-                <div className="agent-stream-text">
-                  <Markdown text={agent.finalText} />
+              <article className="assistant-block">
+                <div className="agent-reply-prose">
+                  <AssistantMarkdown messageId={`${agentId}:final`} text={agent.finalText} />
                 </div>
               </article>
             </div>
@@ -153,17 +188,38 @@ function VisibleAgentPane({
           )
         ) : (
           <div className="agent-stream">
-            {messages.map((message, index) => (
+            {streamBlocks.map((block) => block.messages.length === 1 ? (
               <AgentStreamMessage
-                key={`${agentId}:${message.id}`}
-                message={message}
-                streaming={streaming && index === messages.length - 1}
+                key={`${agentId}:${block.id}`}
+                message={block.messages[0]!}
+                streaming={streaming && block.messages[0]!.id === lastMessageId}
+                toolDisplay={toolDisplay}
+                toolFold={toolFold}
+              />
+            ) : (
+              <AgentProcessSequence
+                key={`${agentId}:${block.id}`}
+                messages={block.messages}
+                streamingId={streaming ? lastMessageId : null}
                 toolDisplay={toolDisplay}
               />
             ))}
           </div>
         )}
       </div>
+      <button
+        type="button"
+        className="chat-jump-latest"
+        data-visible={showJumpToLatest ? "true" : "false"}
+        data-activity={jumpActivity}
+        tabIndex={showJumpToLatest ? 0 : -1}
+        aria-hidden={!showJumpToLatest}
+        onClick={jumpToLatest}
+        aria-label={tr("回到最新", "Jump to latest")}
+        title={tr("回到最新", "Jump to latest")}
+      >
+        <JumpOrb activity={jumpActivity} commandKey={runningBash?.id} running={showJumpToLatest} />
+      </button>
     </section>
   );
 }
@@ -299,10 +355,12 @@ const AgentStreamMessage = memo(function AgentStreamMessage({
   message,
   streaming,
   toolDisplay,
+  toolFold,
 }: {
   message: UiMessage;
   streaming: boolean;
   toolDisplay?: ToolDisplay;
+  toolFold?: ToolFold;
 }) {
   if (message.role === "user") {
     return (
@@ -315,20 +373,94 @@ const AgentStreamMessage = memo(function AgentStreamMessage({
   }
   const thinkingActive = streaming && !message.text;
   return (
-    <article className="agent-stream-message is-assistant" data-arrival-key={message.id}>
+    <article className="assistant-block" data-arrival-key={message.id}>
       {message.thinking ? (
         <div data-arrival-key={`${message.id}:thinking`}><Thinking
+          messageId={message.id}
           text={message.thinking}
           active={thinkingActive}
-          showActivityIndicator={thinkingActive && toolDisplay === "compact"}
+          showActivityIndicator={toolDisplay === "compact"}
         /></div>
       ) : null}
-      {message.tools.length > 0 ? <div data-arrival-key={`${message.id}:tools`}><ToolList tools={message.tools} display={toolDisplay} /></div> : null}
+      {message.tools.length > 0 ? (
+        <ToolList tools={message.tools} display={toolDisplay} fold={toolFold} arrivalKey={`${message.id}:tools`} />
+      ) : null}
       {message.text ? (
-        <div className="agent-stream-text" data-arrival-key={`${message.id}:text`}>
-          <Markdown text={message.text} streaming={streaming} />
+        <div className="agent-reply-prose" data-arrival-key={`${message.id}:text`}>
+          <AssistantMarkdown messageId={message.id} text={message.text} streaming={streaming} />
         </div>
       ) : null}
+    </article>
+  );
+});
+
+/**
+ * 折叠方式为「按位置关系」时,相邻助理消息拍平成一条过程流,
+ * 相邻工具跨消息合并成一组;思考、可见正文和不可折叠的工具都会打断分组。
+ */
+const AgentProcessSequence = memo(function AgentProcessSequence({
+  messages,
+  streamingId,
+  toolDisplay,
+}: {
+  messages: UiMessage[];
+  streamingId: string | null;
+  toolDisplay?: ToolDisplay;
+}) {
+  const display = toolDisplay ?? "card";
+  const compact = display === "compact";
+  const nodes = useMemo(() => groupProcessItems(buildTurnItems(messages), display), [messages, display]);
+  const messageById = useMemo(() => new Map(messages.map((message) => [message.id, message])), [messages]);
+  const output: ReactNode[] = [];
+  let buffer: Extract<ProcessNode, { type: "tool" | "run" }>[] = [];
+  const flush = () => {
+    if (buffer.length === 0) return;
+    const first = buffer[0]!;
+    output.push(
+      <div
+        key={`tools:${first.id}`}
+        className={compact ? "tool-card-list is-compact" : "tool-card-list"}
+        data-arrival-key={`${first.messageId}:tools`}
+      >
+        {buffer.map((node) => node.type === "run" ? (
+          compact
+            ? <CompactToolGroup key={node.id} tools={node.tools} sequenceId={node.id} />
+            : <ToolRunGroup key={node.id} tools={node.tools} />
+        ) : compact && toolCompactKind(node.tool.name) ? (
+          <CompactToolLine key={node.id} tool={node.tool} />
+        ) : (
+          <ToolCard key={node.id} tool={node.tool} compact={compact} />
+        ))}
+      </div>,
+    );
+    buffer = [];
+  };
+  for (const node of nodes) {
+    if (node.type === "tool" || node.type === "run") {
+      buffer.push(node);
+      continue;
+    }
+    flush();
+    if (node.type === "thinking") {
+      const message = messageById.get(node.messageId);
+      const active = node.messageId === streamingId && Boolean(message && !message.text && message.tools.length === 0);
+      output.push(
+        <div key={`thinking:${node.id}`} data-arrival-key={`${node.messageId}:thinking`}>
+          <Thinking messageId={node.messageId} text={node.text} active={active} showActivityIndicator={compact} />
+        </div>,
+      );
+    } else {
+      output.push(
+        <div key={`text:${node.id}`} className="agent-reply-prose" data-arrival-key={`${node.messageId}:text`}>
+          <AssistantMarkdown messageId={node.messageId} text={node.text} streaming={node.messageId === streamingId} />
+        </div>,
+      );
+    }
+  }
+  flush();
+  return (
+    <article className="assistant-block" data-arrival-key={messages[0]!.id}>
+      {output}
     </article>
   );
 });

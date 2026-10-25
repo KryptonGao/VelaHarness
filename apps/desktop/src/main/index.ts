@@ -379,7 +379,7 @@ async function start(): Promise<void> {
         ...context,
       }),
     onRecipeStop: id => taskRecipes?.stopConversation(id),
-    // 系统提示档位：v2（默认）、v1（Pi 原有基础段）、v2-visual，见 docs/requirements/system-prompt-optimization.md。
+    // 系统提示档位：v2（默认）、v1（Pi 原有基础段）、v2-visual。
     systemPromptProfile: systemPromptProfileFrom(process.env.VELA_SYSTEM_PROMPT),
     // 激活会话变化时让工作区跟随,保证输入区与仓库卡片显示的目录即会话目录。
     onActiveCwd: (cwd, hasWorkspace) => void project?.syncConversationWorkspace(cwd, hasWorkspace),

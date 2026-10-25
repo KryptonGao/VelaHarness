@@ -4,6 +4,7 @@ import type { ToolTrace } from "@vela/shared";
 import type { UiMessage } from "../src/renderer/hooks/useSession.ts";
 import {
   buildTurnItems,
+  groupAgentStream,
   groupProcessItems,
   shouldFoldRun,
   type ProcessNode,
@@ -63,6 +64,44 @@ describe("buildTurnItems", () => {
       items.map((item) => item.kind),
       ["tool", "text"],
     );
+  });
+});
+
+describe("groupAgentStream", () => {
+  const messages = [
+    message("u1", { role: "user", text: "任务" }),
+    message("a1", { tools: [tool("bash", "b1")] }),
+    message("a2", { tools: [tool("read", "r1")] }),
+    message("u2", { role: "user", text: "继续" }),
+    message("a3", { tools: [tool("edit", "e1")] }),
+  ];
+
+  it("position 把相邻助理消息合成一块,用户消息单独一块并打断", () => {
+    assert.deepEqual(
+      groupAgentStream(messages, "position").map((block) => [block.role, block.messages.map((item) => item.id)]),
+      [
+        ["user", ["u1"]],
+        ["assistant", ["a1", "a2"]],
+        ["user", ["u2"]],
+        ["assistant", ["a3"]],
+      ],
+    );
+  });
+
+  it("message 和 none 保持每条消息一块", () => {
+    for (const fold of ["message", "none"] as const) {
+      assert.deepEqual(
+        groupAgentStream(messages, fold).map((block) => block.messages.map((item) => item.id)),
+        [["u1"], ["a1"], ["a2"], ["u2"], ["a3"]],
+      );
+    }
+  });
+
+  it("合并后的块能跨消息把相邻工具归入同一组", () => {
+    const block = groupAgentStream(messages, "position")[1]!;
+    const nodes = groupProcessItems(buildTurnItems(block.messages), "compact");
+    assert.deepEqual(nodes.map((node) => node.type), ["run"]);
+    assert.deepEqual(runToolIds(nodes[0]!), ["b1", "r1"]);
   });
 });
 

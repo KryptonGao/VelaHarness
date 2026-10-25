@@ -1,6 +1,7 @@
 import type { SandboxApprovalRequest } from "@vela/shared";
-import { useState } from "react";
+import { useId, useState } from "react";
 import { ShieldIcon } from "../icons";
+import { useAttentionFocus } from "../attention-focus";
 import { tr, trf } from "../../locale";
 
 const kindLabels: Record<SandboxApprovalRequest["kind"], [string, string]> = {
@@ -27,9 +28,11 @@ export function ApprovalSlot({
 }) {
   const [shown, setShown] = useState(approval);
   if (approval && shown?.id !== approval.id) setShown(approval);
+  // 默认落在「拒绝」上：误按 Enter 的代价是 Agent 多问一次，而不是放行越界操作。
+  const slot = useAttentionFocus<HTMLDivElement>(Boolean(approval), ".approval-btn.deny");
 
   return (
-    <div className={`approval-slot${approval ? " open" : ""}`}>
+    <div className={`approval-slot${approval ? " open" : ""}`} ref={slot}>
       <div className="approval-slot-inner" inert={approval ? undefined : true}>
         {shown ? <ApprovalBanner approval={shown} onReply={onReply} /> : null}
       </div>
@@ -56,16 +59,29 @@ export function ApprovalBanner({
       ? approval.command ?? tr("(未提供命令)", "(No command provided)")
       : approval.path ?? tr("(未提供路径)", "(No path provided)");
   const [kindZh, kindEn] = kindLabels[approval.kind];
+  const titleId = useId();
+  const summaryId = useId();
 
   return (
-    <div className="approval-banner" role="alertdialog" aria-label={tr("执行权限请求", "Permission request")}>
+    <div
+      className="approval-banner"
+      role="alertdialog"
+      aria-labelledby={titleId}
+      aria-describedby={summaryId}
+      onKeyDown={(event) => {
+        if (event.key !== "Escape" || event.nativeEvent.isComposing) return;
+        event.preventDefault();
+        onReply(approval.id, false);
+      }}
+    >
       <div className="approval-banner-head">
-        <span className="approval-banner-icon">
+        <span className="approval-banner-icon" aria-hidden="true">
           <ShieldIcon size={13} />
         </span>
-        <span className="approval-banner-title">{trf("{0}需要批准", "{0} requires approval", tr(kindZh, kindEn))}</span>
+        <span className="approval-banner-title" id={titleId}>{trf("{0}需要批准", "{0} requires approval", tr(kindZh, kindEn))}</span>
+        <span className="approval-banner-hint" aria-hidden="true">{tr("Esc 拒绝", "Esc to deny")}</span>
       </div>
-      <pre className="approval-banner-summary">{summary}</pre>
+      <pre className="approval-banner-summary" id={summaryId} tabIndex={0}>{summary}</pre>
       <div className="approval-banner-actions">
         <button
           type="button"

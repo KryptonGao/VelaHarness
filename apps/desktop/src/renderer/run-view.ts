@@ -52,12 +52,62 @@ export function currentTurnStartedAt(messages: readonly UiMessage[]): number | u
   return currentTurnAssistants(messages).find((message) => message.turnStartedAt !== undefined)?.turnStartedAt;
 }
 
+/** 状态条里的一步:类型,加上标识(运行中的工具用 id,其余用类型),用来判断是不是同一步。 */
+export interface RunStepSignal {
+  kind: RunStepKind;
+  key: string;
+}
+
 /** 正在进行的一步:有工具在跑按工具分类,否则没写出正文是思考,正文在流式输出是撰写。 */
-export function currentRunStep(message: UiMessage | undefined): RunStepKind {
-  if (!message) return "thinking";
+export function runStepSignal(message: UiMessage | undefined): RunStepSignal {
+  if (!message) return { kind: "thinking", key: "step:thinking" };
   const running = [...message.tools].reverse().find((tool) => tool.status === "running");
-  if (running) return toolKinds[running.name] ?? "working";
-  return message.text.trim() ? "writing" : "thinking";
+  if (running) return { kind: toolKinds[running.name] ?? "working", key: `tool:${running.id}` };
+  return message.text.trim() ? { kind: "writing", key: "step:writing" } : { kind: "thinking", key: "step:thinking" };
+}
+
+/** 命令类步骤的冷却:命令撑过这么久才显示「运行命令」,一闪而过的命令不换标签。 */
+export const runStepCooldownMs = 600;
+
+/** 需要等冷却的步骤类型。 */
+const cooledStepKinds = new Set<RunStepKind>(["command"]);
+
+/** 状态条当前显示的步骤;pending 是还在等冷却的命令,冷却作废时整个丢掉。 */
+export interface RunStepDisplay {
+  kind: RunStepKind;
+  key: string;
+  pending?: { kind: RunStepKind; key: string; deadline: number };
+}
+
+/** 状态条的初始状态:命令类步骤从零开始等冷却,中途切到运行视图也不会直接闪出「运行命令」。 */
+export function initialRunStepDisplay(step: RunStepSignal, now: number): RunStepDisplay {
+  return advanceRunStep({ kind: "thinking", key: "step:thinking" }, step, now);
+}
+
+/**
+ * 推进状态条:普通步骤立即切换;命令先挂起 cooldownMs,同一命令到点才显示。
+ * 冷却期间命令结束(或换成别的步骤)就作废,所以极短的命令永远看不到「运行命令」。
+ */
+export function advanceRunStep(
+  current: RunStepDisplay,
+  step: RunStepSignal,
+  now: number,
+  cooldownMs: number = runStepCooldownMs,
+): RunStepDisplay {
+  const pending = current.pending;
+  if (pending && step.key === pending.key) {
+    return now >= pending.deadline ? { kind: pending.kind, key: pending.key } : current;
+  }
+  // 命令在冷却内结束,或已经在看别的步骤:丢弃挂起,按新步骤照常显示。
+  const shown: RunStepDisplay = { kind: current.kind, key: current.key };
+  if (step.key === shown.key) return shown;
+  if (cooledStepKinds.has(step.kind)) return { ...shown, pending: { kind: step.kind, key: step.key, deadline: now + cooldownMs } };
+  return { kind: step.kind, key: step.key };
+}
+
+/** 两个状态在界面上是否等价;定时器到点后据此决定要不要重新渲染。 */
+export function sameRunStepDisplay(a: RunStepDisplay, b: RunStepDisplay): boolean {
+  return a.kind === b.kind && a.key === b.key && a.pending?.key === b.pending?.key && a.pending?.deadline === b.pending?.deadline;
 }
 
 /** 状态条的圆球样式池:思考和撰写用三点,其余(工具、子代理)用四点,与 ActivityIndicator 一致。 */

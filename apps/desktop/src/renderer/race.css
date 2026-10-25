@@ -20,7 +20,7 @@
 .race-warning { margin: 0; padding: 8px 10px; border-radius: 8px; background: var(--bg-card-surface); color: var(--warning-strong); font-size: 12px; }
 .race-warning[role="alert"] { color: var(--danger); }
 .race-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; flex: 1; color: var(--text-secondary); font-size: 12px; }
-.race-field em { font-style: normal; font-size: 11px; color: var(--text-muted); }
+.race-field em { font-style: normal; font-size: 12px; color: var(--text-muted); }
 .race-field em.race-caution { color: var(--warning-strong); }
 .race-dialog :is(textarea, input, select) { width: 100%; box-sizing: border-box; border: 1px solid var(--border-subtle); border-radius: 8px; background: var(--bg-card-surface); padding: 6px 10px; font-size: 13px; }
 .race-dialog textarea { resize: vertical; }
@@ -59,13 +59,13 @@
 .race-lane.is-dropped { opacity: .6; }
 .race-lane > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
 .race-lane h3 { margin: 0; font-size: 13px; font-weight: 600; line-height: 1.4; overflow-wrap: anywhere; }
-.race-lane-model { margin: 0; color: var(--text-muted); font-size: 11px; overflow-wrap: anywhere; }
-.race-status { display: inline-flex; flex: none; align-items: center; font-size: 11px; line-height: 1.5; color: var(--text-muted); }
+.race-lane-model { margin: 0; color: var(--text-muted); font-size: 12px; overflow-wrap: anywhere; }
+.race-status { display: inline-flex; flex: none; align-items: center; font-size: 12px; line-height: 1.5; color: var(--text-muted); }
 .race-status.is-running, .race-status.is-starting { color: var(--accent-blue); }
 .race-status.is-responded, .race-status.is-ready, .race-status.is-adopted { color: var(--success); }
 .race-status.is-failed, .race-status.is-interrupted { color: var(--danger); }
 .race-badges { display: flex; flex-wrap: wrap; gap: 4px; }
-.race-badge { display: inline-flex; padding: 1px 7px; border-radius: 999px; background: var(--bg-card-surface); color: var(--text-secondary); font-size: 11px; line-height: 18px; }
+.race-badge { display: inline-flex; padding: 1px 7px; border-radius: 999px; background: var(--bg-card-surface); color: var(--text-secondary); font-size: 12px; line-height: 18px; }
 .race-badge.is-adopted { color: var(--success); align-self: flex-start; }
 .race-facts { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 12px; margin: 0; font-size: 12px; }
 .race-facts dt { color: var(--text-muted); }

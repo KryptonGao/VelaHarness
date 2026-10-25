@@ -295,7 +295,7 @@ export function App() {
   const skipWhatsNew = useRef(false);
   const platform = window.vela?.platform ?? "darwin";
   const toggleLeft = useCallback(() => setLeftCollapsed(value => !value), [setLeftCollapsed]);
-  const replyQuestion = useCallback((id: string, answer: string | null) => { void session.replyQuestion(id, answer); }, [session.replyQuestion]);
+  const replyQuestion = useCallback((id: string, answer: string | null) => session.replyQuestion(id, answer), [session.replyQuestion]);
   const branchTurn = useCallback((index: number) => { void session.branch(index); }, [session.branch]);
   const dispatchPlanDocument = useCallback((action: PlanDocumentAction) => {
     setPlanDocuments((current) => ({
@@ -957,6 +957,7 @@ export function App() {
                         messageStore={session.messageStore}
                         conversationId={session.activeConversationId}
                         toolDisplay={preferences.toolDisplay}
+                        toolFold={preferences.toolFold}
                         ensureAgentMessages={session.ensureAgentMessages}
                         onControlAgent={session.controlAgent}
                         onOpenAgent={openAgentPane}

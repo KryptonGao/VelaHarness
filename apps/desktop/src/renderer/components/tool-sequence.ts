@@ -27,6 +27,32 @@ export type ProcessNode =
   | { type: "tool"; id: string; messageId: string; tool: ToolTrace }
   | { type: "run"; id: string; messageId: string; tools: ToolTrace[] };
 
+/**
+ * 子代理运行流的分块:用户消息单独一块;fold 为 position 时相邻助理消息合成一块,
+ * 让工具分组可以跨消息合并,其余取值每条助理消息自成一块。
+ */
+export type AgentStreamBlock = { id: string; role: "user" | "assistant"; messages: UiMessage[] };
+
+export function groupAgentStream(messages: UiMessage[], fold: ToolFold = "message"): AgentStreamBlock[] {
+  const blocks: AgentStreamBlock[] = [];
+  let run: UiMessage[] = [];
+  const flush = () => {
+    if (run.length === 0) return;
+    blocks.push({ id: run[0]!.id, role: "assistant", messages: run });
+    run = [];
+  };
+  for (const message of messages) {
+    if (message.role === "user" || fold !== "position") {
+      flush();
+      blocks.push({ id: message.id, role: message.role, messages: [message] });
+      continue;
+    }
+    run.push(message);
+  }
+  flush();
+  return blocks;
+}
+
 /** 把一轮里的助理消息按界面顺序拍平:思考、工具、正文。 */
 export function buildTurnItems(
   messages: UiMessage[],

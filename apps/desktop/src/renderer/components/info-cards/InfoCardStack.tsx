@@ -9,7 +9,7 @@ import { useAgentWorkspace } from "../AgentPanel";
 import { ChevronDownIcon, PlusIcon } from "../icons";
 import { infoCardDefinitions, type InfoCardContext } from "./InfoCardContents";
 import {
-  defaultLayout, dropIndex, hiddenCards, hideCard, isStoredInfoCardLayout, placeAt, renderedCards,
+  defaultLayout, dropIndexAtTop, hiddenCards, hideCard, isStoredInfoCardLayout, placeAt, renderedCards,
   reorderRendered, sanitizeLayout, showCard, stepRendered, toggleCollapsed,
   type InfoCardId, type InfoCardLayout,
 } from "./info-cards-layout";
@@ -27,11 +27,20 @@ interface DragState {
   lastY: number;
   /** 按下时指针距离卡片顶端的偏移。 */
   grab: number;
+  /** 卡片之间的纵向间距，按下时量一次，拖动期间不再变。 */
+  gap: number;
   active: boolean;
   raf: number;
 }
 
 const prefersReducedMotion = () => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/** 列表里卡片之间的纵向间距（来自 flex gap）。 */
+function cardGap(list: HTMLElement | null): number {
+  if (!list) return 0;
+  const rowGap = Number.parseFloat(getComputedStyle(list).rowGap);
+  return Number.isFinite(rowGap) ? rowGap : 0;
+}
 
 function GripIcon() {
   return (
@@ -118,11 +127,10 @@ export function InfoCardStack(props: InfoCardStackProps) {
     if (!state?.active || !list || !el) return;
     const desired = state.lastY - state.grab - list.getBoundingClientRect().top;
     const others = shownRef.current.filter((id) => id !== state.id);
-    const mids = others.map((id) => {
-      const other = cardRefs.current.get(id);
-      return other ? other.offsetTop + other.offsetHeight / 2 : 0;
-    });
-    const next = placeAt(others, state.id, dropIndex(desired + el.offsetHeight / 2, mids));
+    // 落点按“被拖卡片让位后”的分界算：只看其他卡片的高度，卡片互换位置时分界不动，
+    // 高卡片也不会因为自己的半高而必须拖到面板外面才能排到最上面。
+    const heights = others.map((id) => cardRefs.current.get(id)?.offsetHeight ?? 0);
+    const next = placeAt(others, state.id, dropIndexAtTop(desired, heights, state.gap));
     if (next.join() !== shownRef.current.join()) {
       captureTops();
       setDragOrder(next);
@@ -208,7 +216,7 @@ export function InfoCardStack(props: InfoCardStackProps) {
     if (!grip || !id || !el) return;
     drag.current = {
       id, pointerId: event.pointerId, grip, startY: event.clientY, lastY: event.clientY,
-      grab: event.clientY - el.getBoundingClientRect().top, active: false, raf: 0,
+      grab: event.clientY - el.getBoundingClientRect().top, gap: cardGap(listRef.current), active: false, raf: 0,
     };
     grip.setPointerCapture(event.pointerId);
   };

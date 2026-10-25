@@ -97,7 +97,7 @@ export const SessionChatView = memo(function SessionChatView({ messageStore, sum
     canSubmit: modelReady,
     agentBusy: streaming,
     // 与输入框一致：运行中进入队列，不打断当前任务。
-    submit: (text) => onSend(text, undefined, streaming ? "queue" : undefined),
+    submit: async (text) => { await onSend(text, undefined, streaming ? "queue" : undefined); },
     openLink: () => false,
     toolCalls: (messageId) => toolIndex.calls.slice(0, toolIndex.ends.get(messageId) ?? 0),
   }), [sessionId, uiOrdinals, toolIndex, modelReady, streaming, onSend]);

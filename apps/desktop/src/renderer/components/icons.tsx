@@ -39,6 +39,7 @@ function base(size: number) {
     strokeWidth: 2,
     strokeLinecap: "round" as const,
     strokeLinejoin: "round" as const,
+    "aria-hidden": true as const,
   };
 }
 
@@ -121,7 +122,7 @@ export function ChevronDownIcon({ size = 12 }: IconProps) {
 
 export function GithubIcon({ size = 14 }: IconProps) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" stroke="none">
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true">
       <path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.55 0-.27-.01-1.17-.02-2.12-3.2.7-3.87-1.36-3.87-1.36-.52-1.33-1.28-1.68-1.28-1.68-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.19 1.76 1.19 1.03 1.76 2.69 1.25 3.35.96.1-.75.4-1.25.72-1.54-2.55-.29-5.23-1.28-5.23-5.68 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11.1 11.1 0 0 1 5.8 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.12 3.05.74.81 1.18 1.83 1.18 3.09 0 4.41-2.69 5.38-5.25 5.67.41.35.77 1.05.77 2.12 0 1.53-.01 2.76-.01 3.14 0 .3.2.67.8.55A11.51 11.51 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5z" />
     </svg>
   );
@@ -169,7 +170,7 @@ export function PanelRightIcon({ size = 13 }: IconProps) {
 
 export function MoreIcon({ size = 14 }: IconProps) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" stroke="none">
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true">
       <circle cx="5" cy="12" r="1.8" />
       <circle cx="12" cy="12" r="1.8" />
       <circle cx="19" cy="12" r="1.8" />
@@ -231,7 +232,7 @@ export function ArrowDownIcon({ size = 11 }: IconProps) {
 
 export function SendIcon({ size = 15 }: IconProps) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
       <path d="M22 2L11 13" />
       <polygon points="22 2 15 22 11 13 2 9 22 2" />
     </svg>
@@ -443,6 +444,16 @@ export function SkillIcon({ size = 14 }: IconProps) {
   );
 }
 
+/** 斜线命令图标：终端提示符 `>_`。 */
+export function CommandIcon({ size = 14 }: IconProps) {
+  return (
+    <svg {...base(size)}>
+      <path d="M5 7l5 5-5 5" />
+      <path d="M13 18h6" />
+    </svg>
+  );
+}
+
 export function PrIcon({ size = 13 }: IconProps) {
   return (
     <svg {...base(size)}>
@@ -552,64 +563,6 @@ function viewTabBase(size: number) {
     strokeLinejoin: "round" as const,
     "aria-hidden": true,
   };
-}
-
-const VIEW_TAB_FILL = { fill: "currentColor", fillOpacity: 0.22 };
-
-/** 对话：带两行文字的气泡。 */
-export function ViewChatIcon({ size = 15 }: IconProps) {
-  return (
-    <svg {...viewTabBase(size)}>
-      <path {...VIEW_TAB_FILL} d="M7.5 4.5h9a4 4 0 0 1 4 4V13a4 4 0 0 1-4 4H11l-3.5 3v-3a4 4 0 0 1-4-4V8.5a4 4 0 0 1 4-4Z" />
-      <path d="M8 9.5h8M8 12.5h4.5" />
-    </svg>
-  );
-}
-
-/** 轨迹：纵向时间线，节点右侧各挂一条步骤。 */
-export function ViewTraceIcon({ size = 15 }: IconProps) {
-  return (
-    <svg {...viewTabBase(size)}>
-      <circle {...VIEW_TAB_FILL} cx="6" cy="5.5" r="1.9" />
-      <circle cx="6" cy="12" r="1.9" />
-      <circle cx="6" cy="18.5" r="1.9" />
-      <path d="M6 7.9v2.2M6 14.1v2.2" />
-      <path d="M11.5 5.5h8M11.5 12h5.5M11.5 18.5h8" />
-    </svg>
-  );
-}
-
-/** 版本控制：分叉再汇合的提交线。 */
-export function ViewBranchIcon({ size = 15 }: IconProps) {
-  return (
-    <svg {...viewTabBase(size)}>
-      <circle {...VIEW_TAB_FILL} cx="6" cy="5.5" r="2.3" />
-      <circle cx="6" cy="18.5" r="2.3" />
-      <circle cx="18" cy="8.5" r="2.3" />
-      <path d="M6 7.8v8.4M18 10.8c0 3.7-2.6 4.7-6 5.2-2.6.4-6 .2-6 0" />
-    </svg>
-  );
-}
-
-/** 使用统计：三根圆角柱。 */
-export function ViewUsageIcon({ size = 15 }: IconProps) {
-  return (
-    <svg {...viewTabBase(size)}>
-      <rect {...VIEW_TAB_FILL} x="4" y="12" width="4.2" height="8" rx="1.4" />
-      <rect x="9.9" y="4" width="4.2" height="16" rx="1.4" />
-      <rect x="15.8" y="8.5" width="4.2" height="11.5" rx="1.4" />
-    </svg>
-  );
-}
-
-/** 上下文：已占用的扇形，和输入框旁的占用环对应。 */
-export function ViewContextIcon({ size = 15 }: IconProps) {
-  return (
-    <svg {...viewTabBase(size)}>
-      <circle cx="12" cy="12" r="8.2" />
-      <path {...VIEW_TAB_FILL} d="M12 12V3.8a8.2 8.2 0 0 1 6.6 13.1Z" />
-    </svg>
-  );
 }
 
 /** 用量限制：半圆仪表盘。 */

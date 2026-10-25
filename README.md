@@ -10,7 +10,7 @@
   <a href="#compact-mode">Compact mode</a> · <a href="#subagents">SubAgents</a> · <a href="#trace-view">Trace view</a> · <a href="#get-started">Get started</a> · <a href="#develop">Develop</a>
 </p>
 
-Vela is a desktop app where an AI agent works inside a repository on your machine: it reads the project, splits up the task, edits code and runs commands. Follow progress in a compact chat, track sub-agents in their own panel, and check every step in the execution trace.
+Vela is a desktop app where an AI agent works inside a repository on your machine: it reads the project, splits up the task, edits code and runs commands. A clean interface and a rich feature set draw on the strengths of harnesses such as Codex, Claude Code and DeepSeek Harness: a compact chat, sub-agents in their own panel, and a trace view when you want the details.
 
 ## Compact mode
 
@@ -163,7 +163,7 @@ The sample data, preview URLs and re-shoot steps for the feature screenshots are
 
 Vela is built on [Pi Agent](https://github.com/earendil-works/pi) and embeds the agent runtime in the desktop app through its TypeScript SDK. Pi provides the model interface, sessions and tool runtime; Vela adds the desktop interface, task modes, permission approvals and Git workspace integration.
 
-- **Stack:** Electron 44, electron-vite, React 19 and TypeScript, with a pnpm workspace for the app and shared packages. Pi is pinned to exactly `1.0.0` (`@earendil-works/pi-coding-agent`, `pi-agent-core`, `pi-ai`). Vela calls `createAgentSession()` in the main process rather than launching the Pi command line. See the [Pi 1.0 migration notes](./docs/pi-1.0-migration.md).
+- **Stack:** Electron 44, electron-vite, React 19 and TypeScript, with a pnpm workspace for the app and shared packages. Pi is pinned to exactly `1.0.0` (`@earendil-works/pi-coding-agent`, `pi-agent-core`, `pi-ai`). Vela calls `createAgentSession()` in the main process rather than launching the Pi command line.
 - **Sessions and models:** each chat has its own Pi `AgentSession`; messages live in `~/.vela/sessions` and the chat index in `~/.vela/conversations.json`. Providers and models load through Pi's `ModelRuntime` from Vela's own `~/.vela` configuration; it never reads your local Pi configuration.
 - **Tools, modes and permissions:** the base tools are Pi's `read`, `bash`, `edit` and `write`, and Vela wraps `bash`, `edit` and `write` for approvals. `Plan` mode blocks edits and writes through a ToolPolicy, lets only read-only commands through, and outputs a full plan as `<proposed_plan>` that you can approve and run in the current or a fresh context. `Goal` mode records progress through `update_goal`. See [docs/plan-mode.md](./docs/plan-mode.md) and [docs/plan-mode-architecture.md](./docs/plan-mode-architecture.md).
 - **MCP:** tools are discovered on demand through `tool_search` by default, or can be exposed directly or hidden; project configuration needs a trust confirmation. Plan mode and `explore` sub-agents get only tools you confirmed as read-only.

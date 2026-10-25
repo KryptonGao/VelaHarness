@@ -56,7 +56,7 @@ export function WorkbenchChatView({ conversationId, preferences, project, onRena
                 models={models} onSend={session.send} onRemoveInstruction={session.removeInstruction}
                 onEdit={session.edit} onAbort={session.abort} onMode={session.setMode}
                 question={session.question} getQuestion={session.getQuestion}
-                onReplyQuestion={(id, answer) => { void session.replyQuestion(id, answer); }}
+                onReplyQuestion={(id, answer) => session.replyQuestion(id, answer)}
                 onBranch={index => { void session.branch(index); }}
                 showNewTab={false} onNewTab={onNewTab} onOpenChanges={() => onShowDiff()} onOpenWebLink={onOpenWebLink}
                 planDraft={session.planDraft} onOpenPlan={setPlanId}

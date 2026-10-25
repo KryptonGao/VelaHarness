@@ -7,7 +7,7 @@ import { defaultTaskBudgetSettings, evaluateTaskBudget, parseTaskBudgetSettings,
 import { createTaskBudgetExtension, TaskBudgetTask } from "../src/task-budget.ts";
 import { TaskBudgetSettingsStore } from "../src/task-budget-settings.ts";
 
-const on: TaskBudgetSettings = { enabled: true, maxMinutes: 10, maxTokens: 1000 };
+const on: TaskBudgetSettings = { enabled: true, maxMinutes: 10, maxTokens: 1000, maxSubagents: 16, allowNestedSubagents: true };
 
 describe("任务用量评估", () => {
   it("未启用或没有上限时恒为 ok", () => {
@@ -38,17 +38,30 @@ describe("任务用量设置校验", () => {
     assert.throws(() => parseTaskBudgetSettings({ enabled: true, maxMinutes: 0, maxTokens: null }), /时间上限/);
     assert.throws(() => parseTaskBudgetSettings({ enabled: true, maxMinutes: null, maxTokens: 5 }), /Token 上限/);
     assert.throws(() => parseTaskBudgetSettings({ enabled: true, maxMinutes: null, maxTokens: null }), /至少/);
-    assert.deepEqual(parseTaskBudgetSettings({ enabled: false, maxMinutes: null, maxTokens: null }), { enabled: false, maxMinutes: null, maxTokens: null });
+    assert.deepEqual(parseTaskBudgetSettings({ enabled: false, maxMinutes: null, maxTokens: null }), { enabled: false, maxMinutes: null, maxTokens: null, maxSubagents: 16, allowNestedSubagents: true });
     assert.equal(parseTaskBudgetSettings({ enabled: true, maxMinutes: 12.4, maxTokens: null }).maxMinutes, 12);
     assert.equal(parseTaskBudgetSettings({ enabled: true, maxMinutes: null, maxTokens: 10_000_000_000 }).maxTokens, 10_000_000_000);
     assert.throws(() => parseTaskBudgetSettings({ enabled: true, maxMinutes: null, maxTokens: 10_000_000_001 }), /Token 上限/);
+  });
+
+  it("子代理限制：缺省取默认值，越界或类型错误时拒绝", () => {
+    const base = { enabled: false, maxMinutes: null, maxTokens: null };
+    const parsed = parseTaskBudgetSettings(base);
+    assert.equal(parsed.maxSubagents, defaultTaskBudgetSettings.maxSubagents);
+    assert.equal(parsed.allowNestedSubagents, true);
+    assert.equal(parseTaskBudgetSettings({ ...base, maxSubagents: 0 }).maxSubagents, 0);
+    assert.equal(parseTaskBudgetSettings({ ...base, maxSubagents: 64 }).maxSubagents, 64);
+    assert.throws(() => parseTaskBudgetSettings({ ...base, maxSubagents: 65 }), /子代理数量/);
+    assert.throws(() => parseTaskBudgetSettings({ ...base, maxSubagents: -1 }), /子代理数量/);
+    assert.throws(() => parseTaskBudgetSettings({ ...base, maxSubagents: null }), /子代理数量/);
+    assert.throws(() => parseTaskBudgetSettings({ ...base, allowNestedSubagents: "no" }), /嵌套/);
   });
 
   it("持久化，文件损坏时回到默认（关闭）", () => {
     const dir = mkdtempSync(join(tmpdir(), "vela-budget-"));
     assert.deepEqual(new TaskBudgetSettingsStore(dir).settings, defaultTaskBudgetSettings);
     const store = new TaskBudgetSettingsStore(dir);
-    const valid: TaskBudgetSettings = { enabled: true, maxMinutes: 10, maxTokens: 50_000 };
+    const valid: TaskBudgetSettings = { enabled: true, maxMinutes: 10, maxTokens: 50_000, maxSubagents: 4, allowNestedSubagents: false };
     store.save(valid);
     assert.deepEqual(new TaskBudgetSettingsStore(dir).settings, valid);
     assert.throws(() => store.save({ enabled: true, maxMinutes: -1, maxTokens: null }));

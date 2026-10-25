@@ -2,7 +2,6 @@ import type { InteractionMode, SubagentKind } from "@vela/shared";
 
 /**
  * Vela 自己的系统提示基础段，替换 Pi 的身份句、工具摘要、规则与文档导览。
- * 方案与评测口径见 docs/requirements/system-prompt-optimization.md。
  *
  * - v1：保持 Pi 默认基础段，作为对照与回退（旧名 legacy 仍可用）。
  * - v2：只换身份与规则，默认档。

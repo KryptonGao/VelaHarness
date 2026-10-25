@@ -14,3 +14,23 @@ output/
 # Private planning docs
 docs/marketing-plan.md
 docs/marketing-plan-personal.md
+
+# Local scratch, personal and editor-specific files
+.scratch-logo/
+.vela/
+.zcodeignore
+.claude/settings.local.json
+*.bak
+apps/desktop/.capture-*.mjs
+
+# Internal design drafts, migration logs and porting prompts
+Design/*
+!Design/pull-requests/
+!Design/pull-requests-preview.html
+docs/design/*
+!docs/design/task-recipes-ui.md
+docs/compact-chat-ui/PORTING_PROMPT.md
+docs/compact-chat-ui/UPGRADE_PROMPT.md
+docs/requirements/system-prompt-optimization.md
+docs/pi-1.0-migration.md
+docs/motion-audit.md

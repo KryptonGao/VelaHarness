@@ -10,7 +10,7 @@
   <a href="#간결-모드">간결 모드</a> · <a href="#subagents">SubAgents</a> · <a href="#트레이스-보기">트레이스 보기</a> · <a href="#시작하기">시작하기</a> · <a href="#개발">개발</a>
 </p>
 
-Vela는 내 컴퓨터에 있는 저장소 안에서 AI 에이전트가 작업하는 데스크톱 앱입니다. 프로젝트를 파악하고, 작업을 나누고, 코드를 수정해 실행합니다. 진행 상황은 간결한 채팅으로 따라가고, 하위 에이전트는 별도 패널에서 추적하며, 실행 트레이스로 모든 단계를 하나씩 확인할 수 있습니다.
+Vela는 내 컴퓨터에 있는 저장소 안에서 AI 에이전트가 작업하는 데스크톱 앱입니다. 프로젝트를 파악하고, 작업을 나누고, 코드를 수정해 실행합니다. 깔끔한 화면과 풍부한 기능으로 Codex, Claude Code, DeepSeek Harness 등 여러 Harness의 장점을 담았습니다. 간결한 채팅, 별도 패널의 하위 에이전트, 필요할 때 세부 내용을 확인하는 실행 트레이스를 제공합니다.
 
 ## 간결 모드
 
@@ -163,7 +163,7 @@ pnpm test:center # 테스트 센터: Node 단위 테스트와 브라우저 UI �
 
 Vela는 [Pi Agent](https://github.com/earendil-works/pi)를 기반으로 만들어졌으며, TypeScript SDK를 통해 에이전트 런타임을 데스크톱 앱에 내장합니다. Pi가 모델 인터페이스, 세션, 도구 런타임을 제공하고, Vela가 그 위에 데스크톱 UI, 작업 모드, 권한 승인, Git 워크스페이스 통합을 구현합니다.
 
-- **기술 스택:** Electron 44, electron-vite, React 19, TypeScript. 데스크톱 앱과 공유 패키지는 pnpm workspace로 관리합니다. Pi는 `1.0.0`(`@earendil-works/pi-coding-agent`, `pi-agent-core`, `pi-ai`)으로 정확히 고정되어 있습니다. Vela는 메인 프로세스에서 `createAgentSession()`을 호출하며, Pi 명령줄 프로그램을 실행해 에이전트를 구동하지 않습니다. 자세한 내용은 [Pi 1.0 마이그레이션 기록](./docs/pi-1.0-migration.md)을 참고하세요.
+- **기술 스택:** Electron 44, electron-vite, React 19, TypeScript. 데스크톱 앱과 공유 패키지는 pnpm workspace로 관리합니다. Pi는 `1.0.0`(`@earendil-works/pi-coding-agent`, `pi-agent-core`, `pi-ai`)으로 정확히 고정되어 있습니다. Vela는 메인 프로세스에서 `createAgentSession()`을 호출하며, Pi 명령줄 프로그램을 실행해 에이전트를 구동하지 않습니다.
 - **세션과 모델:** 채팅마다 독립된 Pi `AgentSession`을 사용합니다. 메시지는 `~/.vela/sessions`에, 채팅 인덱스는 `~/.vela/conversations.json`에 저장됩니다. 제공자와 모델은 Pi의 `ModelRuntime`으로 불러오며, Vela 고유의 `~/.vela` 설정을 사용하고 로컬 Pi 설정은 읽지 않습니다.
 - **도구, 모드, 권한:** 기본 도구는 Pi의 `read`, `bash`, `edit`, `write`이며, Vela는 승인을 연결하기 위해 `bash`, `edit`, `write`를 감쌉니다. `Plan` 모드는 ToolPolicy로 편집과 쓰기를 막고 읽기 전용 명령만 허용하며, 전체 계획을 `<proposed_plan>`으로 출력합니다. 승인하면 현재 컨텍스트나 새 컨텍스트에서 실행할 수 있습니다. `Goal` 모드는 `update_goal`로 진행 상황을 기록합니다. 자세한 내용은 [docs/plan-mode.md](./docs/plan-mode.md)와 [docs/plan-mode-architecture.md](./docs/plan-mode-architecture.md)를 참고하세요.
 - **MCP:** 도구는 기본적으로 `tool_search`를 통해 필요할 때 탐색되며, 직접 제공하거나 숨기도록 설정할 수도 있습니다. 프로젝트 설정은 신뢰 확인이 필요합니다. Plan 모드와 `explore` 하위 에이전트에는 읽기 전용으로 확인된 도구만 제공됩니다.

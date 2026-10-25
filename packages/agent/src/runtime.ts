@@ -1438,6 +1438,22 @@ export class AgentRuntime {
     });
   }
 
+  /** `/compact`：手动压缩当前对话的上下文；压缩期间占用 driving，避免同时发言。 */
+  async compactConversation(conversationId: string, instructions?: string): Promise<void> {
+    const entry = this.requireIdle(conversationId);
+    const session = entry.session;
+    if (!session) throw new Error("对话不存在或已结束");
+    if (session.isCompacting) throw new Error("正在压缩上下文");
+    entry.driving = true;
+    this.emitStatus(entry);
+    try {
+      await session.compact(instructions?.trim() || undefined);
+    } finally {
+      entry.driving = false;
+      this.syncFromSession(entry);
+    }
+  }
+
   async abort(conversationId?: string): Promise<void> {
     const entry = conversationId ? this.conversations.get(conversationId) : this.activeConversation();
     if (!entry) return;
@@ -2633,6 +2649,10 @@ export class AgentRuntime {
       const control = new AgentControl({
         conversationId: entry.id,
         restoredAgents: entry.storedAgents,
+        limits: () => {
+          const budget = this.effectiveTaskBudget(entry);
+          return { maxSubagents: budget.maxSubagents, allowNested: budget.allowNestedSubagents };
+        },
         host: {
           createChildSession: (input) => this.createChildSession(entry, input),
           disposeChildSession: (session) => this.closeSession(session),

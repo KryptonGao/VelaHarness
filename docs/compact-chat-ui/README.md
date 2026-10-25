@@ -8,8 +8,6 @@
 | --- | --- |
 | [compact-chat-ui.html](./compact-chat-ui.html) | 单文件、无依赖、可离线打开的参考页。CSS 直接取自 `apps/desktop/src/renderer/styles.css` 的真实规则；渲染逻辑用原生 JS 重写，函数名沿用 React 组件原名。 |
 | [src/](./src/) | 生成脚本与源码：`shell.html`（页面外壳与演示用 CSS）、`app.js`（渲染与演示数据）、`build.mjs`（拼接真实 CSS）。`styles.css` 变动后运行 `node docs/src/build.mjs` 重新生成。 |
-| [PORTING_PROMPT.md](./PORTING_PROMPT.md) | 给 DeepSeek Harness 里的 Agent 的移植提示词：从零复刻紧凑对话界面。 |
-| [UPGRADE_PROMPT.md](./UPGRADE_PROMPT.md) | 给已经移植完成的 `dsh-compact-lane` 的升级提示词：同步「工具图标配色」与思考图标。 |
 
 > 样式的唯一事实来源是 `apps/desktop/src/renderer/styles.css`。HTML 里的 `<style id="vela-extracted">` 是生成物，不要手改。
 
@@ -137,7 +135,7 @@ main.main-chat-view[data-tool-display="compact"]      ← container-type: inline
 - **窄屏**：`@container chat (max-width: 720px)` 下滚动区与 dock 的左右边距从 24px 降到 16px。
 - **滚动条**：5px 宽；平时颜色是 `transparent`，滚动时加 `.is-scrolling` 变成 `--scrollbar-thumb`，800ms 后淡出。颜色用 `@property --chat-scrollbar-color`（`<color>`、可继承）做过渡，滚动条宽度和拖动命中区始终保留。
 - **dock 渐进模糊**：`.chat-dock-wrapper` 自身不透明（`background: var(--bg-chat)`），`::before` / `::after` 在其上方 52px 叠两层 `backdrop-filter`（3px 与 16px，用 `mask-image` 做渐进），最后一段渐变融进 `--bg-chat`。
-- **回到最新**：`.chat-jump-latest` 定位在 `bottom: calc(var(--composer-clearance) - 24px)`，水平居中；出现/消失用 `opacity` + 6px 位移 + `visibility`，`data-visible="true"` 控制。
+- **回到最新**：`.chat-jump-latest` 定位在 `bottom: calc(var(--composer-clearance) - 24px)`；水平位置跟输入框同一条车道，`left: calc(50% - var(--chat-lane-shift, 0px) - var(--chat-scrollbar-width, 0px) / 2)`，悬浮信息卡片让列左移时圆球跟着左移，始终停在输入框正上方的中央。出现/消失用 `opacity` + 6px 位移 + `visibility`，`data-visible="true"` 控制。
 
 ### 4.3 各块规格
 

@@ -119,6 +119,16 @@ export class SessionHost {
       }
       return this.currentState();
     });
+    ipcMain.handle(IpcChannel.sessionCompact, async (_event, rawId: unknown, rawInstructions: unknown) => {
+      const conversationId = resolveConversationId(this.runtime.activeConversationId, rawId);
+      try {
+        const instructions = typeof rawInstructions === "string" ? rawInstructions.slice(0, 2000) : undefined;
+        await this.runtime.compactConversation(conversationId, instructions);
+        return { error: null };
+      } catch (error) {
+        return { error: error instanceof Error ? error.message : "无法压缩上下文" };
+      }
+    });
     ipcMain.handle(IpcChannel.sessionRemoveInstruction, async (_event, rawInstruction: unknown, rawId: unknown) => {
       const conversationId = resolveConversationId(this.runtime.activeConversationId, rawId);
       try {

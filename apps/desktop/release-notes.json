@@ -1,129 +1,134 @@
 {
-  "version": "1.2.0",
+  "version": "1.2.1",
   "locales": {
     "en": {
-      "summary": "Vela 1.2.0 adds a Run View with a live todo list and step status, an Info Cards layout, font controls, and a new animated jump-to-latest orb.",
+      "summary": "Vela 1.2.1 makes the composer safer and the app easier to use with a keyboard or screen reader, adds /model, /compact and /status commands, and lets you limit sub-agents.",
       "highlights": [
         {
-          "title": "Run View",
-          "body": "Turn it on in Settings → Conversation Display. While a task runs, a todo list and a status line with the current step and elapsed time appear at the end of the turn. The model is asked to submit its todo list before it runs commands or edits files."
+          "title": "No more lost drafts",
+          "body": "If sending fails, your text and attachments come back. Enter in an empty composer no longer sends a prediction you never confirmed, and dropped attachments now show a notice."
         },
         {
-          "title": "Info Cards layout",
-          "body": "A column of cards floats over the conversation: Environment, Goal, Plan, Context, Outputs, Changes and more. Drag to reorder, collapse, hide, and bring them back from the tray."
+          "title": "Composer commands",
+          "body": "Type / to run /model, /compact or /status: switch model or reasoning effort, compact the context, or check usage without leaving the composer."
         },
         {
-          "title": "Font settings",
-          "body": "Choose Latin and CJK fonts separately for the interface and for model replies, as sans-serif or serif."
+          "title": "Keyboard and screen reader support",
+          "body": "Approvals and questions take focus when the agent is waiting for you. View tabs work with arrow keys, and streamed replies are announced."
         },
         {
-          "title": "Animated orb",
-          "body": "The jump-to-latest button and the activity indicator now use an animated orb with several styles for thinking and running commands."
+          "title": "Sub-agent limits and Skills page",
+          "body": "Set how many sub-agents a conversation may create and whether they can create their own. The Skills page now has search, filters and a detail view."
         }
       ],
       "improvements": [
-        "Spacing between CJK text and Latin letters or digits in replies is now controlled by Vela; copied text is unchanged.",
-        "Refinements to the thinking block, plan panel, review view, composer chips and the browser view."
+        "Question cards no longer get stuck after a failed reply, and \"Revert\" is now \"Revert in Changes…\" to show it opens Workspace Changes.",
+        "Editing a message shows a clear warning that resending withdraws later content and file changes.",
+        "Larger click targets, clearer disabled controls, and a composer that grows with your font size."
       ]
     },
     "zh-CN": {
-      "summary": "Vela 1.2.0 新增带实时待办清单与步骤状态的运行视图、信息卡片布局、字体设置，以及全新的「回到最新」动态圆球。",
+      "summary": "Vela 1.2.1 让输入框更安全，键盘和读屏用户用起来更顺手，新增 /model、/compact、/status 命令，并支持限制子代理数量。",
       "highlights": [
         {
-          "title": "运行视图",
-          "body": "在设置 → 对话显示中开启。任务运行时，本轮过程末尾会显示待办清单和一条状态条（当前步骤与用时）。模型会被要求先提交待办清单，再运行命令或修改文件。"
+          "title": "不再丢失草稿",
+          "body": "发送失败时，文字和附件会还原。空输入框按 Enter 不会再发出没确认过的预测内容，被丢弃的附件也会提示。"
         },
         {
-          "title": "信息卡片布局",
-          "body": "右侧一列卡片浮在对话上：环境、目标、计划、上下文、产出、变更等。可拖动排序、折叠、隐藏，并从托盘找回。"
+          "title": "输入框命令",
+          "body": "输入 / 可运行 /model、/compact 或 /status：切换模型或思考强度、压缩上下文、查看用量，无需离开输入框。"
         },
         {
-          "title": "字体设置",
-          "body": "界面和模型回复的西文、中日韩文字体可分别选择无衬线或衬线。"
+          "title": "键盘与读屏支持",
+          "body": "Agent 等你决定时，审批和提问会获得焦点。视图分页支持方向键，流式回复会被朗读。"
         },
         {
-          "title": "动态圆球",
-          "body": "「回到最新」按钮和活动指示器改用动态圆球，思考和运行命令各有多种样式。"
+          "title": "子代理上限与 Skill 页面",
+          "body": "可设置一个对话最多创建多少子代理，以及子代理能否再创建子代理。Skill 页面新增搜索、筛选和详情。"
         }
       ],
       "improvements": [
-        "回复中中日韩文字与西文、数字相接处的间距改由 Vela 控制，复制出的文字不变。",
-        "优化了思考块、计划面板、审阅视图、输入框芯片和浏览器视图。"
+        "提问卡片回复失败后不再卡住；「撤销」改为「在变更中撤销…」，表明它会打开工作区变更。",
+        "编辑消息时会明确警告：重新发送会撤回之后的内容和文件更改。",
+        "更大的点击区域、更清晰的停用状态，输入框高度会随字号增长。"
       ]
     },
     "zh-TW": {
-      "summary": "Vela 1.2.0 新增附即時待辦清單與步驟狀態的執行檢視、資訊卡片版面、字型設定，以及全新的「回到最新」動態圓球。",
+      "summary": "Vela 1.2.1 讓輸入框更安全，鍵盤與讀屏使用者用起來更順手，新增 /model、/compact、/status 指令，並支援限制子代理數量。",
       "highlights": [
         {
-          "title": "執行檢視",
-          "body": "在設定 → 對話顯示中開啟。任務執行時，本輪過程末尾會顯示待辦清單與一條狀態列（目前步驟與用時）。模型會被要求先提交待辦清單，再執行指令或修改檔案。"
+          "title": "不再遺失草稿",
+          "body": "送出失敗時，文字與附件會還原。空輸入框按 Enter 不會再送出未經確認的預測內容，被捨棄的附件也會提示。"
         },
         {
-          "title": "資訊卡片版面",
-          "body": "右側一列卡片浮在對話上：環境、目標、計畫、上下文、產出、變更等。可拖曳排序、摺疊、隱藏，並從托盤找回。"
+          "title": "輸入框指令",
+          "body": "輸入 / 可執行 /model、/compact 或 /status：切換模型或思考強度、壓縮上下文、查看用量，無須離開輸入框。"
         },
         {
-          "title": "字型設定",
-          "body": "介面與模型回覆的西文、中日韓文字型可分別選擇無襯線或襯線。"
+          "title": "鍵盤與讀屏支援",
+          "body": "Agent 等你決定時，審批與提問會取得焦點。檢視分頁支援方向鍵，串流回覆會被朗讀。"
         },
         {
-          "title": "動態圓球",
-          "body": "「回到最新」按鈕與活動指示器改用動態圓球，思考與執行指令各有多種樣式。"
+          "title": "子代理上限與 Skill 頁面",
+          "body": "可設定一個對話最多建立多少子代理，以及子代理能否再建立子代理。Skill 頁面新增搜尋、篩選與詳細資料。"
         }
       ],
       "improvements": [
-        "回覆中中日韓文字與西文、數字相接處的間距改由 Vela 控制，複製出的文字不變。",
-        "優化了思考區塊、計畫面板、審閱檢視、輸入框晶片與瀏覽器檢視。"
+        "提問卡片回覆失敗後不再卡住；「撤銷」改為「在變更中撤銷…」，表明它會開啟工作區變更。",
+        "編輯訊息時會明確警告：重新送出會撤回之後的內容與檔案變更。",
+        "更大的點擊區域、更清楚的停用狀態，輸入框高度會隨字級增長。"
       ]
     },
     "ja": {
-      "summary": "Vela 1.2.0 では、リアルタイムの ToDo リストとステップ状態を表示するランビュー、情報カードのレイアウト、フォント設定、新しい「最新へ戻る」アニメーションオーブを追加しました。",
+      "summary": "Vela 1.2.1 では、入力欄がより安全になり、キーボードやスクリーンリーダーでも使いやすくなりました。/model、/compact、/status コマンドとサブエージェント数の上限設定も追加しました。",
       "highlights": [
         {
-          "title": "ランビュー",
-          "body": "設定 → 会話表示でオンにします。タスクの実行中、ターンの末尾に ToDo リストと状態バー（現在のステップと経過時間）が表示されます。モデルはコマンドの実行やファイルの編集の前に ToDo リストを提出するよう求められます。"
+          "title": "下書きが消えない",
+          "body": "送信に失敗しても、テキストと添付ファイルが元に戻ります。空の入力欄で Enter を押しても、確認していない予測が送信されることはなくなり、破棄された添付ファイルは通知されます。"
         },
         {
-          "title": "情報カードのレイアウト",
-          "body": "環境、目標、計画、コンテキスト、成果物、変更などのカードが会話の上に並びます。ドラッグで並べ替え、折りたたみ、非表示にでき、トレイから戻せます。"
+          "title": "入力欄のコマンド",
+          "body": "/ を入力して /model、/compact、/status を実行できます。入力欄を離れずに、モデルや推論強度の切り替え、コンテキストの圧縮、使用状況の確認ができます。"
         },
         {
-          "title": "フォント設定",
-          "body": "インターフェースとモデルの返信で、欧文と CJK のフォントをそれぞれゴシック体または明朝体から選べます。"
+          "title": "キーボードとスクリーンリーダー対応",
+          "body": "エージェントが判断を待っているとき、承認と質問にフォーカスが移ります。ビューのタブは矢印キーで操作でき、ストリーミング中の返信は読み上げられます。"
         },
         {
-          "title": "アニメーションオーブ",
-          "body": "「最新へ戻る」ボタンとアクティビティ表示が、思考とコマンド実行それぞれ複数のスタイルを持つオーブになりました。"
+          "title": "サブエージェント上限とスキルページ",
+          "body": "1 つの会話で作成できるサブエージェントの数と、サブエージェントが更にサブエージェントを作れるかを設定できます。スキルページに検索、絞り込み、詳細表示が加わりました。"
         }
       ],
       "improvements": [
-        "返信内の CJK 文字と欧文・数字の間隔を Vela が制御するようになりました。コピーしたテキストは変わりません。",
-        "思考ブロック、プランパネル、レビュー画面、入力欄のチップ、ブラウザビューを改善しました。"
+        "返信に失敗しても質問カードが固まらなくなりました。「元に戻す」は「変更で元に戻す…」になり、ワークスペースの変更が開くことが分かります。",
+        "メッセージの編集時に、再送信するとそれ以降の内容とファイルの変更が取り消されるという警告を表示します。",
+        "クリック領域を拡大し、無効状態を見やすくしました。入力欄の高さは文字サイズに合わせて伸びます。"
       ]
     },
     "ko": {
-      "summary": "Vela 1.2.0에는 실시간 할 일 목록과 단계 상태를 보여 주는 실행 보기, 정보 카드 레이아웃, 글꼴 설정, 새로운 '최신으로 이동' 애니메이션 구슬이 추가되었습니다.",
+      "summary": "Vela 1.2.1은 입력창을 더 안전하게 만들고 키보드와 화면 낭독기에서 쓰기 편하게 개선했으며, /model, /compact, /status 명령과 하위 에이전트 수 제한을 추가했습니다.",
       "highlights": [
         {
-          "title": "실행 보기",
-          "body": "설정 → 대화 표시에서 켭니다. 작업이 실행되는 동안 턴 끝에 할 일 목록과 상태 표시줄(현재 단계와 경과 시간)이 나타납니다. 모델은 명령을 실행하거나 파일을 수정하기 전에 할 일 목록을 제출해야 합니다."
+          "title": "작성 중인 내용이 사라지지 않음",
+          "body": "전송에 실패하면 텍스트와 첨부 파일이 복원됩니다. 빈 입력창에서 Enter를 눌러도 확인하지 않은 예측 문장이 전송되지 않으며, 버려진 첨부 파일은 알림으로 알려 줍니다."
         },
         {
-          "title": "정보 카드 레이아웃",
-          "body": "환경, 목표, 계획, 컨텍스트, 산출물, 변경 등의 카드가 대화 위에 떠 있습니다. 드래그로 순서를 바꾸고 접거나 숨길 수 있으며 트레이에서 되돌릴 수 있습니다."
+          "title": "입력창 명령",
+          "body": "/를 입력해 /model, /compact, /status를 실행할 수 있습니다. 입력창을 떠나지 않고 모델이나 추론 강도를 바꾸고, 컨텍스트를 압축하고, 사용량을 확인합니다."
         },
         {
-          "title": "글꼴 설정",
-          "body": "인터페이스와 모델 답변의 라틴 문자와 CJK 글꼴을 각각 고딕체 또는 명조체로 고를 수 있습니다."
+          "title": "키보드 및 화면 낭독기 지원",
+          "body": "에이전트가 결정을 기다릴 때 승인과 질문에 포커스가 이동합니다. 보기 탭은 화살표 키로 이동할 수 있고, 스트리밍 중인 답변은 음성으로 안내됩니다."
         },
         {
-          "title": "애니메이션 구슬",
-          "body": "'최신으로 이동' 버튼과 활동 표시기가 생각 중과 명령 실행에 맞는 여러 스타일의 구슬로 바뀌었습니다."
+          "title": "하위 에이전트 제한과 스킬 페이지",
+          "body": "한 대화에서 만들 수 있는 하위 에이전트 수와, 하위 에이전트가 다시 하위 에이전트를 만들 수 있는지 설정할 수 있습니다. 스킬 페이지에 검색, 필터, 상세 보기가 추가되었습니다."
         }
       ],
       "improvements": [
-        "답변에서 CJK 문자와 라틴 문자·숫자 사이의 간격을 Vela가 직접 조절하며, 복사한 텍스트는 그대로입니다.",
-        "생각 블록, 계획 패널, 검토 화면, 입력창 칩, 브라우저 보기를 개선했습니다."
+        "답변에 실패해도 질문 카드가 멈추지 않습니다. '되돌리기'는 '변경에서 되돌리기…'로 바뀌어 작업 공간 변경이 열린다는 것을 알려 줍니다.",
+        "메시지를 편집할 때 다시 보내면 이후 내용과 파일 변경이 취소된다는 경고를 분명하게 표시합니다.",
+        "클릭 영역이 커지고 비활성 상태가 더 잘 보이며, 입력창 높이가 글꼴 크기에 맞게 늘어납니다."
       ]
     }
   }

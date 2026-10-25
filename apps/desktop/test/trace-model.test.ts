@@ -417,7 +417,7 @@ describe("trace renderer model", () => {
       fallback.width,
     );
   });
-  it("fits the full trace to the available width in every mode, including long traces", () => {
+  it("fits the trace to the available width but never compresses below the fit floor", () => {
     const events = Array.from({ length: 240 }, (_, i) => node(`n${i}`, i, {
       kind: i === 0 ? "system" : i % 3 === 0 ? "tool-result" : "assistant",
       turn: Math.floor(i / 4) + 1,
@@ -430,22 +430,40 @@ describe("trace renderer model", () => {
         const natural = traceTimeline(nodes, [request()], mode, 15000000);
         for (const width of [260, 840, 1600]) {
           const fitted = traceTimeline(nodes, [request()], mode, 15000000, 1, width);
-          assert.equal(fitted.width, width, mode);
+          assert.equal(fitted.width, Math.max(width, natural.width * 0.25), mode);
           assert.deepEqual(fitted.bars.map((b) => b.node.id), natural.bars.map((b) => b.node.id));
           assert.ok(fitted.bars.every((b) =>
-            b.x >= 0 && b.width > 0 && b.x + b.width <= width + 1e-9), mode);
+            b.x >= 0 && b.width > 0 && b.x + b.width <= fitted.width + 1e-9), mode);
         }
       }
     }
   });
+  it("keeps a fixed readable minimum scale once the trace outgrows the fit limit", () => {
+    const events = Array.from({ length: 600 }, (_, i) =>
+      node(`n${i}`, i, { startedAt: 1000 + i * 100, completedAt: 1050 + i * 100 }),
+    );
+    const natural = traceTimeline(events, [], "sequence", 61000);
+    for (const width of [400, 2000]) {
+      const floored = traceTimeline(events, [], "sequence", 61000, 1, width);
+      assert.equal(floored.width, natural.width * 0.25);
+      assert.ok(floored.width > width);
+      assert.ok(floored.bars.every((b) => b.width >= 36 * 0.25 - 1e-9));
+      assert.ok(floored.bars.every((b, i, bars) => i === 0 ||
+        bars[i - 1]!.x + bars[i - 1]!.width < b.x));
+    }
+    assert.equal(
+      traceTimeline(events, [], "sequence", 61000, 2, 400).width,
+      natural.width * 0.5,
+    );
+  });
   it("keeps the full trace fitted as events arrive and zooms relative to the viewport", () => {
     const events = [node("first", 1), node("last", 2, {
-      turn: 2, startedAt: 1000000, completedAt: 1000200,
+      turn: 2, startedAt: 5000, completedAt: 5200,
     })];
     for (const mode of ["sequence", "duration", "turn", "request"] as const) {
-      const initial = traceTimeline(events.slice(0, 1), [request()], mode, 1000300, 1, 500);
-      const updated = traceTimeline(events, [request()], mode, 1000300, 1, 500);
-      const zoomed = traceTimeline(events, [request()], mode, 1000300, 3, 500);
+      const initial = traceTimeline(events.slice(0, 1), [request()], mode, 5200, 1, 500);
+      const updated = traceTimeline(events, [request()], mode, 5200, 1, 500);
+      const zoomed = traceTimeline(events, [request()], mode, 5200, 3, 500);
       assert.equal(initial.width, 500, mode);
       assert.equal(updated.width, 500, mode);
       assert.equal(zoomed.width, 1500, mode);

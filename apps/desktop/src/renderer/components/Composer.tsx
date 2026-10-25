@@ -42,6 +42,7 @@ import {
 } from "./composer/skill-editor";
 import { modKeyLabel } from "../platform";
 import { slashMenuItems, type SlashMenuItem } from "./composer/slash-picker";
+import { formatTokens, slashCommands, statusItems, type SlashCommand, type StatusItem } from "./composer/slash-commands";
 import { RecipeActionsContext } from "./recipe-actions-context";
 import { RaceActionsContext } from "./race-actions-context";
 import { RaceSetupDialog } from "./RaceSetupDialog";
@@ -84,11 +85,33 @@ export interface ComposerProps {
   usage: ContextUsage | null;
   contextPopover?: boolean;
   project: ProjectApi;
-  onSend: (text: string, images?: ImageAttachment[], deliverAs?: RuntimeInstructionMode) => Promise<void>;
+  onSend: (text: string, images?: ImageAttachment[], deliverAs?: RuntimeInstructionMode) => Promise<void | boolean>;
   /** 撤销一条还没被模型消费的排队/调整指令。 */
   onRemoveInstruction: (instructionId: string) => Promise<void>;
   onAbort: () => Promise<void>;
   onMode: (mode: InteractionMode) => void;
+}
+
+/** 输入框上方命令卡片的内容：`/status` 的条目，或 `/compact` 的进度与结果。 */
+type CommandCard =
+  | { kind: "status"; items: StatusItem[] }
+  | { kind: "compact"; phase: "busy" | "done" | "error"; before: number | null; error?: string };
+
+function commandCardView(card: CommandCard, usage: ContextUsage | null): { title: string; message?: string; items: StatusItem[]; busy: boolean; tone: "info" | "error" } {
+  if (card.kind === "status") return { title: tr("状态", "Status"), items: card.items, busy: false, tone: "info" };
+  if (card.phase === "busy") return { title: tr("正在压缩上下文…", "Compacting context…"), message: tr("把较早的对话总结成摘要，完成后可以继续发送。", "Summarizing earlier turns. You can keep chatting once it finishes."), items: [], busy: true, tone: "info" };
+  if (card.phase === "error") return { title: tr("无法压缩上下文", "Could not compact the context"), message: card.error, items: [], busy: false, tone: "error" };
+  const after = usage?.tokens ?? null;
+  const items = card.before !== null && after !== null && after < card.before
+    ? [{ label: tr("上下文", "Context"), value: `${formatTokens(card.before)} → ${formatTokens(after)}` }]
+    : [];
+  return { title: tr("上下文已压缩", "Context compacted"), items, busy: false, tone: "info" };
+}
+
+/** 上限由样式表决定（随字号和窗口高度变化）；读不到时退回 140px。 */
+function maxInputHeight(input: HTMLElement): number {
+  const value = Number.parseFloat(getComputedStyle(input).maxHeight);
+  return Number.isFinite(value) ? value : 140;
 }
 
 export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Composer({
@@ -141,7 +164,15 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
   const [slash, setSlash] = useState<EditorSlash | null>(null);
   const [dismissedKey, setDismissedKey] = useState<string | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [modelOpenRequest, setModelOpenRequest] = useState(0);
+  const [commandCard, setCommandCard] = useState<CommandCard | null>(null);
+  const cardToken = useRef(0);
+  const usageRef = useRef(usage);
+  usageRef.current = usage;
   const [attachments, setAttachments] = useState<FileAttachmentPayload[]>([]);
+  const attachmentsRef = useRef<FileAttachmentPayload[]>([]);
+  attachmentsRef.current = attachments;
+  const [attachNotice, setAttachNotice] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const reducedMotion = useReducedMotion();
   const measuredInput = useRef(false);
@@ -154,7 +185,11 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
   const slashKey = slash ? `${slash.start}:${slash.query}` : "";
   const menuOpen = Boolean(slash) && dismissedKey !== slashKey && (!disabled || streaming);
   const recipesEnabled = !!recipeActions?.useRecipe && !streaming && !recipeActive;
-  const filtered = useMemo(() => slashMenuItems(skills ?? [], recipesEnabled ? recipes ?? [] : [], slash?.query ?? ""), [skills, recipes, recipesEnabled, slash?.query]);
+  const commandsAvailable = useMemo(() => slashCommands({
+    canChangeModel: !streaming && !recipeActive,
+    canCompact: !disabled && !streaming && !recipeActive && modelReady && (usage?.turnCount ?? 0) > 0,
+  }), [streaming, recipeActive, disabled, modelReady, usage?.turnCount]);
+  const filtered = useMemo(() => slashMenuItems(skills ?? [], recipesEnabled ? recipes ?? [] : [], slash?.query ?? "", commandsAvailable), [skills, recipes, recipesEnabled, slash?.query, commandsAvailable]);
   const safeIndex = filtered.length === 0 ? 0 : Math.min(activeIndex, filtered.length - 1);
   // 输入框里的 Skill 芯片会写成文字中的 `/skill:名称`，所以 value 本身就是要发送的内容。
   const prompt = value.trim();
@@ -176,7 +211,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
     // Measure at natural height without animating the temporary auto value.
     input.style.transition = "none";
     input.style.height = "auto";
-    const targetHeight = Math.min(input.scrollHeight, 140);
+    const targetHeight = Math.min(input.scrollHeight, maxInputHeight(input));
     input.style.height = `${currentHeight}px`;
     void input.offsetHeight;
     input.style.transition = measuredInput.current && !reducedMotion ? "" : "none";
@@ -188,7 +223,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
       measuredWidth = input.getBoundingClientRect().width;
       input.style.transition = "none";
       input.style.height = "auto";
-      input.style.height = `${Math.min(input.scrollHeight, 140)}px`;
+      input.style.height = `${Math.min(input.scrollHeight, maxInputHeight(input))}px`;
       input.style.transition = "";
     });
     let measuredWidth = input.getBoundingClientRect().width;
@@ -243,7 +278,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
       },
       (caught: unknown) => {
         if (!active || skillRequest.current !== id) return;
-        setSkillsError(caught instanceof Error ? caught.message : "无法读取 Skill");
+        setSkillsError(caught instanceof Error ? caught.message : tr("无法读取 Skill", "Unable to read skills"));
       },
     );
     return () => {
@@ -279,20 +314,27 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
     return () => window.removeEventListener("pointerdown", onPointerDown);
   }, [menuOpen, slashKey]);
 
-  function addAttachments(payloads: FileAttachmentPayload[]): void {
-    setAttachments((current) => {
-      // 粘贴图片没有路径，用图片数据本身去重，避免同一张图被剪贴板的多个表示重复加入。
-      const keyOf = (entry: FileAttachmentPayload) => entry.path || entry.image?.data || entry.name;
-      const known = new Set(current.map(keyOf));
-      const merged = [...current];
-      for (const payload of payloads) {
-        const key = keyOf(payload);
-        if (known.has(key)) continue;
-        known.add(key);
-        merged.push(payload);
-      }
-      return merged.slice(0, 12);
-    });
+  /** 附件被丢弃（超出数量、读取或解码失败）时给出可见提示，几秒后自行收起。 */
+  function addAttachments(payloads: FileAttachmentPayload[], failed = 0): void {
+    // 粘贴图片没有路径，用图片数据本身去重，避免同一张图被剪贴板的多个表示重复加入。
+    const keyOf = (entry: FileAttachmentPayload) => entry.path || entry.image?.data || entry.name;
+    const current = attachmentsRef.current;
+    const known = new Set(current.map(keyOf));
+    const merged = [...current];
+    let overflow = 0;
+    for (const payload of payloads) {
+      const key = keyOf(payload);
+      if (known.has(key)) continue;
+      known.add(key);
+      if (merged.length >= maxAttachments) { overflow += 1; continue; }
+      merged.push(payload);
+    }
+    attachmentsRef.current = merged;
+    setAttachments(merged);
+    const notes: string[] = [];
+    if (overflow > 0) notes.push(trf("已忽略 {0} 个文件：最多附加 {1} 个", "Ignored {0} files: up to {1} attachments", overflow, maxAttachments));
+    if (failed > 0) notes.push(trf("{0} 个文件无法读取", "{0} files could not be read", failed));
+    if (notes.length > 0) setAttachNotice(notes.join("；"));
   }
 
   async function handleDrop(event: React.DragEvent): Promise<void> {
@@ -308,17 +350,19 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
       .filter((path) => path && !path.startsWith("/dev/"));
     if (paths.length === 0) return;
     const payloads = await api.hydrateAttachments(paths).catch(() => []);
-    if (payloads.length > 0) addAttachments(payloads);
+    const failed = Math.max(0, paths.length - payloads.length);
+    if (payloads.length > 0 || failed > 0) addAttachments(payloads, failed);
   }
 
   async function handlePaste(event: React.ClipboardEvent): Promise<void> {
     // Chromium 从系统剪贴板取图片时常常把 item.type 留空（图片字节已经转成 PNG），
     // 所以不能只按 image/* 过滤，否则这类图片会被静默丢掉。
-    const files = Array.from(event.clipboardData.items)
+    const pasted = Array.from(event.clipboardData.items)
       .filter((item) => item.kind === "file" && (item.type === "" || item.type.startsWith("image/")))
       .map((item) => item.getAsFile())
-      .filter((file): file is File => file !== null && file.size > 0)
-      .slice(0, maxPastedImages);
+      .filter((file): file is File => file !== null && file.size > 0);
+    const files = pasted.slice(0, maxPastedImages);
+    const truncated = pasted.length - files.length;
     if (files.length === 0) {
       // 输入框是 contenteditable，默认会带着样式粘贴；这里只收纯文本。
       const text = event.clipboardData.getData("text/plain");
@@ -331,16 +375,17 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
     event.preventDefault();
     const payloads: FileAttachmentPayload[] = [];
     const seen = new Set<string>();
+    let failed = truncated;
     for (const file of files) {
       const prepared = await preparePastedImage(file);
-      if (!prepared) continue;
+      if (!prepared) { failed += 1; continue; }
       if (prepared.fingerprint) {
         if (seen.has(prepared.fingerprint)) continue;
         seen.add(prepared.fingerprint);
       }
       payloads.push(prepared.payload);
     }
-    if (payloads.length > 0) addAttachments(payloads);
+    if (payloads.length > 0 || failed > 0) addAttachments(payloads, failed);
   }
 
   /** 输入框内容有变化时，把它同步成发送用的文字，并重新判断 `/查询`。 */
@@ -378,7 +423,36 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
     setDismissedKey(null);
   }
 
+  /** 内置命令：去掉输入框里的 `/查询` 后直接执行。 */
+  function runCommand(command: SlashCommand): void {
+    const root = inputRef.current;
+    const token = root ? editorSlash(root) ?? slash : null;
+    if (!root || !token) return;
+    removeSlashText(token);
+    setValue(serializeEditor(root)); setSlash(null); setDismissedKey(null);
+    if (command.id === "model") { setModelOpenRequest((count) => count + 1); return; }
+    const token_ = ++cardToken.current;
+    if (command.id === "status") {
+      setCommandCard({ kind: "status", items: statusItems({ model, thinkingLevel, mode, usage }) });
+      return;
+    }
+    const api = window.vela;
+    if (!api) return;
+    const before = usageRef.current?.tokens ?? null;
+    setCommandCard({ kind: "compact", phase: "busy", before });
+    void api.compactConversation(conversationId ?? undefined)
+      .catch((caught: unknown) => ({ error: caught instanceof Error ? caught.message : tr("无法压缩上下文", "Could not compact the context") }))
+      // 用户中途关掉卡片，或又开了别的命令卡片，就不再回写结果。
+      .then((result) => {
+        if (cardToken.current !== token_) return;
+        setCommandCard(result.error
+          ? { kind: "compact", phase: "error", before, error: localizeError(result.error) }
+          : { kind: "compact", phase: "done", before });
+      });
+  }
+
   function selectSlashItem(item: SlashMenuItem): void {
+    if (item.type === 'command') { runCommand(item.command); return; }
     if (item.type === 'skill') { selectSkill(item.skill); return; }
     const root = inputRef.current;
     const token = root ? editorSlash(root) ?? slash : null;
@@ -395,13 +469,49 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
     const images = attachments
       .map((entry) => entry.image)
       .filter((image): image is ImageAttachment => image !== null);
+    const draftAttachments = attachments;
     clearEditor();
     setAttachments([]);
     // 运行中按追加指令投递:Enter 排队,⌘/Ctrl+Enter 调整当前任务。
     const deliverAs: RuntimeInstructionMode | undefined = streaming
       ? (steerIntent ? "steer" : "queue")
       : undefined;
-    await onSend(text, images.length > 0 ? images : undefined, deliverAs);
+    let kept = true;
+    try {
+      kept = (await onSend(text, images.length > 0 ? images : undefined, deliverAs)) !== false;
+    } catch {
+      kept = false;
+    }
+    // 消息没有留下(没进对话也没排上队)时把草稿放回去;用户已经开始写新内容就不覆盖。
+    if (!kept) restoreDraft(text, draftAttachments);
+  }
+
+  function restoreDraft(text: string, draftAttachments: FileAttachmentPayload[]): void {
+    const root = inputRef.current;
+    if (!root || serializeEditor(root).trim()) return;
+    setText(text);
+    setAttachments((current) => (current.length === 0 ? draftAttachments : current));
+  }
+
+  // 压缩完成的提示几秒后自行收起；状态卡片和报错保留到用户关闭。
+  useEffect(() => {
+    if (commandCard?.kind !== "compact" || commandCard.phase !== "done") return;
+    const timer = window.setTimeout(() => closeCommandCard(), 8_000);
+    return () => window.clearTimeout(timer);
+  }, [commandCard]);
+
+  // 换了对话就不再显示上一个对话的命令结果。
+  useEffect(() => { closeCommandCard(); }, [conversationId]);
+
+  useEffect(() => {
+    if (!attachNotice) return;
+    const timer = window.setTimeout(() => setAttachNotice(null), 6_000);
+    return () => window.clearTimeout(timer);
+  }, [attachNotice]);
+
+  function closeCommandCard(): void {
+    cardToken.current += 1;
+    setCommandCard(null);
   }
 
   const showError = sendError ? localizeError(sendError) : project.error ? localizeError(project.error) : null;
@@ -411,7 +521,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
     : !modelReady
       ? tr("先选择一个可用的模型", "Choose an available model first")
       : !prompt && suggestion
-        ? tr("发送预测的内容 (Enter)", "Send the predicted message (Enter)")
+        ? tr("发送预测的内容", "Send the predicted message")
       : !prompt
         ? tr("输入内容后发送", "Enter a message to send")
         : streaming
@@ -428,7 +538,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
 
   const statusBar = (
     <>
-      {showSetupControls || showError ? (
+      {showSetupControls || showError || attachNotice ? (
         <div className="composer-status-bar">
           {showSetupControls ? (
             <>
@@ -440,6 +550,11 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
           {showError ? (
             <span className="composer-status-notice" role="alert" title={showError}>
               {showError}
+            </span>
+          ) : null}
+          {attachNotice ? (
+            <span className="composer-status-notice" role="status" title={attachNotice}>
+              {attachNotice}
             </span>
           ) : null}
         </div>
@@ -463,6 +578,38 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
           onActiveIndex={setActiveIndex}
           onSelect={selectSlashItem}
         />
+      </div>
+    </PopoverPresence>
+  );
+
+  // 关闭时保留最后一帧内容，让退出动画不会闪出空卡片。
+  const lastCard = useRef<ReturnType<typeof commandCardView> | null>(null);
+  const liveCard = commandCard ? commandCardView(commandCard, usage) : null;
+  if (liveCard) lastCard.current = liveCard;
+  const card = liveCard ?? lastCard.current;
+  const statusPanel = (
+    <PopoverPresence present={Boolean(liveCard) && !menuOpen}>
+      <div className="skill-menu-anchor">
+        <section className={`status-card${card?.tone === "error" ? " error" : ""}`} role={card?.tone === "error" ? "alert" : "status"} aria-label={card?.title}>
+          <header className="status-card-head">
+            {card?.busy ? <span className="status-card-spinner" aria-hidden="true" /> : null}
+            <span className="status-card-title">{card?.title}</span>
+            <button type="button" className="status-card-close" aria-label={tr("关闭", "Close")} title={tr("关闭", "Close")} onClick={closeCommandCard}>
+              <CloseIcon size={12} />
+            </button>
+          </header>
+          {card?.message ? <p className="status-card-message">{card.message}</p> : null}
+          {card?.items.length ? (
+            <dl className="status-card-list">
+              {card.items.map((item) => (
+                <div className="status-card-row" key={item.label}>
+                  <dt>{item.label}</dt>
+                  <dd title={item.value}>{item.value}</dd>
+                </div>
+              ))}
+            </dl>
+          ) : null}
+        </section>
       </div>
     </PopoverPresence>
   );
@@ -544,6 +691,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
         aria-expanded={menuOpen}
         aria-controls={menuOpen ? menuId : undefined}
         aria-activedescendant={menuOpen && filtered[safeIndex] ? `${optionIdPrefix}-${safeIndex}` : undefined}
+        aria-describedby={suggestion ? `${promptId}-suggestion` : undefined}
         onInput={syncEditor}
         onFocus={() => setDismissedKey(null)}
         onPaste={(event) => void handlePaste(event)}
@@ -583,8 +731,8 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
             event.preventDefault();
             return;
           }
-          if (suggestion && event.key === "Tab" && !event.shiftKey && !event.altKey && !event.metaKey && !event.ctrlKey) {
-            // Tab 把预测填进输入框，方便先改再发。
+          if (suggestion && (event.key === "Tab" || event.key === "Enter") && !event.shiftKey && !event.altKey && !event.metaKey && !event.ctrlKey) {
+            // Tab 或 Enter 只把预测填进输入框，看清、改完再按 Enter 才会发送，空输入框里的 Enter 不会替用户发出没确认过的内容。
             event.preventDefault();
             setText(suggestion);
             return;
@@ -597,7 +745,10 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
         }}
       />
       {suggestion ? (
-        <span className="composer-prediction-hint" aria-hidden="true" title={tr("Tab 填入输入框，Enter 直接发送", "Tab to edit, Enter to send")}>Tab</span>
+        <>
+          <span className="composer-prediction-hint" aria-hidden="true" title={tr("Tab 或 Enter 填入输入框，再按 Enter 发送", "Tab or Enter to fill the input, then Enter to send")}>Tab</span>
+          <span className="visually-hidden" id={`${promptId}-suggestion`} role="status">{tr("建议的消息：", "Suggested message: ")}{suggestion}{tr("。按 Tab 或 Enter 填入输入框。", ". Press Tab or Enter to fill the input.")}</span>
+        </>
       ) : null}
     </div>
   );
@@ -637,6 +788,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
       onReplyLogin={models.replyLogin}
       onCancelLogin={models.cancelLogin}
       onDismissLogin={models.dismissLogin}
+      openRequest={modelOpenRequest}
     />
   );
 
@@ -657,7 +809,13 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
       {approvalSlots}
       {layout === "capsule" ? null : statusBar}
       {skillMenu}
+      {statusPanel}
       {instructionRow}
+      {streaming && !recipeActive ? (
+        <p className="composer-queue-hint">
+          {trf("Enter 排队 · {0}Enter 调整当前任务", "Enter queues · {0}Enter steers the current task", modifier)}
+        </p>
+      ) : null}
       {attachmentRow}
     </>
   );
@@ -782,6 +940,7 @@ function placeholderFor(mode: InteractionMode): string {
 }
 
 const maxPastedImages = 6;
+const maxAttachments = 12;
 /** 转码时限制长边，避免超大图在 base64 传输与模型侧被拒。 */
 const maxTranscodeEdge = 4096;
 const maxTranscodedBytes = 9 * 1024 * 1024;

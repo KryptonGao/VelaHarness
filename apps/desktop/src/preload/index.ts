@@ -383,6 +383,8 @@ const api: VelaApi = {
     ipcRenderer.invoke(IpcChannel.sessionExecutePlan, conversationId ?? null, strategy ?? "continue") as Promise<AppState>,
   resumeGoal: (conversationId) =>
     ipcRenderer.invoke(IpcChannel.sessionResumeGoal, conversationId ?? null) as Promise<AppState>,
+  compactConversation: (conversationId, instructions) =>
+    ipcRenderer.invoke(IpcChannel.sessionCompact, conversationId ?? null, instructions ?? null) as Promise<{ error: string | null }>,
   createConversation: (cwd, options) => ipcRenderer.invoke(IpcChannel.sessionCreate, cwd, options) as Promise<AppState>,
   switchConversation: (id: string) =>
     ipcRenderer.invoke(IpcChannel.sessionSwitch, id) as Promise<AppState>,
