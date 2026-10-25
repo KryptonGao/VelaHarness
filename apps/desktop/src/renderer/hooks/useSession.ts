@@ -150,20 +150,20 @@ export function useSession(notify: NotifySound = noSound, fixedConversationId?: 
     }
   }, [setBuckets]);
 
-  /** 从主进程读取某个子代理的消息历史;本地已有实时流时不覆盖。 */
+  /** 从主进程读取某个子代理的消息历史;已回填过则跳过,实时流先到时历史排在它前面。 */
   const loadAgentMessages = useCallback(async (conversationId: string, agentId: string) => {
     const api = window.vela;
     if (!api) return;
-    if (agentBucketsRef.current[conversationId]?.[agentId]?.length) return;
+    if (hasAgentHistory(agentBucketsRef.current[conversationId]?.[agentId])) return;
     try {
       const transcript = await api.getAgentMessages(conversationId, agentId);
       if (transcript.length === 0) return;
       setAgentBuckets((current) => {
-        if (current[conversationId]?.[agentId]?.length) return current;
-        const restored = transcript.map(toUiMessage);
+        const merged = mergeAgentHistory(current[conversationId]?.[agentId], transcript.map(toUiMessage));
+        if (!merged) return current;
         return {
           ...current,
-          [conversationId]: { ...(current[conversationId] ?? {}), [agentId]: restored },
+          [conversationId]: { ...(current[conversationId] ?? {}), [agentId]: merged },
         };
       });
     } catch {
@@ -651,6 +651,21 @@ export function useSession(notify: NotifySound = noSound, fixedConversationId?: 
     restoreCheckpoint,
     setAppState: setState,
   };
+}
+
+/** 子代理消息桶里是否已有回填的历史(toUiMessage 产出的消息带 historical)。 */
+function hasAgentHistory(messages: readonly UiMessage[] | undefined): boolean {
+  return Boolean(messages?.some((message) => message.historical));
+}
+
+/**
+ * 把子代理历史接到实时消息前面。窗口重开时子代理往往还在跑,实时事件会先于历史读取到达,
+ * 桶里只有重开之后的片段;历史只含已结束的消息,不会和仍在流式的那条重复。
+ * 已经回填过返回 null,调用方保持原样。
+ */
+export function mergeAgentHistory(live: readonly UiMessage[] | undefined, history: readonly UiMessage[]): UiMessage[] | null {
+  if (hasAgentHistory(live)) return null;
+  return [...history, ...(live ?? [])];
 }
 
 export function toUiMessage(message: TranscriptMessage): UiMessage {

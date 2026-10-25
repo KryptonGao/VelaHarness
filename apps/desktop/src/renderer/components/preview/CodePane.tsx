@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useContentArrival } from "../BatchMotion";
 import { useFilePreview } from "./FilePreviewContext";
 import { localizeError, tr, trf } from "../../locale";
@@ -6,6 +6,8 @@ import { highlightDocument, type ThemedToken } from "./highlighter";
 
 /** 超大文件只渲染前若干行,避免一次性创建过多 DOM。 */
 const maxRenderRows = 8000;
+/** 单行最多渲染的字符数;压缩文件常见一行上百 KB,整段放进 DOM 会让布局卡死。 */
+const maxRenderLineChars = 3000;
 
 const fontStyleMask = { italic: 1, bold: 2, underline: 4 } as const;
 
@@ -101,6 +103,14 @@ export function CodePane({ onOpenExternal }: { onOpenExternal: (absolutePath: st
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab?.jumpLine, rows]);
 
+  const currentTabId = tab?.id;
+  const selectLine = useCallback(
+    (line: number) => {
+      if (currentTabId) setActiveLine({ tabId: currentTabId, line });
+    },
+    [currentTabId],
+  );
+
   if (!preview || !tab) return null;
 
   const tabId = tab.id;
@@ -175,23 +185,12 @@ export function CodePane({ onOpenExternal }: { onOpenExternal: (absolutePath: st
       <>
         <div className="code-rows">
           {rows.map((row) => (
-            <div
-              className={`code-row${activeLine?.tabId === tabId && activeLine.line === row.line ? " active" : ""}`}
+            <CodeRowView
               key={row.line}
-              data-line={row.line}
-              onClick={() => setActiveLine({ tabId, line: row.line })}
-            >
-              <span className="code-row-gutter">{row.line}</span>
-              <span className="code-row-content">
-                {row.tokens
-                  ? row.tokens.map((token, index) => (
-                      <span key={index} style={tokenStyle(token)}>
-                        {token.content}
-                      </span>
-                    ))
-                  : row.text || "\u00A0"}
-              </span>
-            </div>
+              row={row}
+              active={activeLine?.tabId === tabId && activeLine.line === row.line}
+              onSelect={selectLine}
+            />
           ))}
         </div>
         {plainLines.length > maxRenderRows ? (
@@ -203,6 +202,48 @@ export function CodePane({ onOpenExternal }: { onOpenExternal: (absolutePath: st
       </>
     );
   }
+}
+
+const CodeRowView = memo(function CodeRowView({
+  row,
+  active,
+  onSelect,
+}: {
+  row: CodeRow;
+  active: boolean;
+  onSelect: (line: number) => void;
+}) {
+  const clipped = clipRow(row);
+  return (
+    <div className={`code-row${active ? " active" : ""}`} data-line={row.line} onClick={() => onSelect(row.line)}>
+      <span className="code-row-gutter">{row.line}</span>
+      <span className="code-row-content">
+        {clipped.tokens
+          ? clipped.tokens.map((token, index) => (
+              <span key={index} style={tokenStyle(token)}>
+                {token.content}
+              </span>
+            ))
+          : clipped.text || "\u00A0"}
+        {clipped.clipped ? <span className="code-row-clip">{tr(" …（该行过长，已截断）", " … (line truncated)")}</span> : null}
+      </span>
+    </div>
+  );
+});
+
+/** 把过长的行裁到 maxRenderLineChars 个字符以内。 */
+function clipRow(row: CodeRow): { text: string; tokens: ThemedToken[] | null; clipped: boolean } {
+  if (row.text.length <= maxRenderLineChars) return { text: row.text, tokens: row.tokens, clipped: false };
+  if (!row.tokens) return { text: row.text.slice(0, maxRenderLineChars), tokens: null, clipped: true };
+  const tokens: ThemedToken[] = [];
+  let used = 0;
+  for (const token of row.tokens) {
+    if (used >= maxRenderLineChars) break;
+    const remaining = maxRenderLineChars - used;
+    tokens.push(token.content.length > remaining ? { ...token, content: token.content.slice(0, remaining) } : token);
+    used += token.content.length;
+  }
+  return { text: "", tokens, clipped: true };
 }
 
 function CodeNotice({

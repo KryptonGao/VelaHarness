@@ -1,134 +1,124 @@
 {
-  "version": "1.2.3",
+  "version": "1.2.4",
   "locales": {
     "en": {
-      "summary": "Vela 1.2.3 adds a cost limit for each task with an estimate before it starts, lets the main agent run long commands in the background, keeps side chats per project, and adds an Ultra thinking level.",
+      "summary": "Vela 1.2.4 fixes missing icons in packaged builds, stops large or minified files from freezing the code preview, tells apart models with the same name from different providers, and keeps a subagent's earlier messages when you reopen its window mid-run.",
       "highlights": [
         {
-          "title": "Cap what a task may cost",
-          "body": "Set a cost limit in CNY or USD next to the time and token limits, subagents included, using your registered model prices. You are warned at 80% and again at 100% in the chat and the inbox. Once enough similar tasks have run, the composer shows an estimate before you start."
+          "title": "Large files no longer freeze the preview",
+          "body": "Minified bundles and very large files now open in the code preview without hanging the window. Very large text is shown as plain text, each line is capped at 3,000 characters with a truncation note, and selecting a line no longer redraws every row."
         },
         {
-          "title": "Long commands in the background",
-          "body": "bash can now start a dev server, a watcher or a slow build in the background and carry on right away. bash_output reads new output, bash_kill stops it, and the main agent is woken with the result when the command ends."
+          "title": "Same model name, different providers",
+          "body": "When two providers both offer an available model with the same name, the model picker, the side chat and the task status now show the provider too, so you can tell which one is in use."
         },
         {
-          "title": "Side chats are saved per project",
-          "body": "The side chat tab opens a list of this project's chats with search across every message, a preview and time on each row, and a two-step delete. A reply keeps arriving while you are back on the list, and everything is still there after a restart."
+          "title": "Subagent history survives reopening",
+          "body": "If a subagent is still running when you reopen its window, its earlier messages are loaded in front of the live ones instead of being skipped."
         },
         {
-          "title": "Ultra thinking level",
-          "body": "Ultra uses the highest effort the model actually supports and asks it to bring in subagents more readily. It appears at the end of the thinking slider for every model and can be switched at any time; the next turn picks it up."
+          "title": "Icons back in packaged builds",
+          "body": "The window icon and the menu bar icon are now bundled with the app, so the installed version shows them just like the development build."
         }
       ],
       "improvements": [
-        "When the model finishes a task it can offer one to three recommended next actions, such as committing the changes, as a card you can dismiss. A click sends the instruction the model wrote as your next message. It can be turned off in settings.",
-        "Select text in a conversation to quote it in the side chat, or write a reply that sits as a card above the composer. Quotes added while a side chat is open join that chat.",
-        "Registered model prices are also handed to the app's data folder so limits and estimates are calculated there, and the chat says how many models were left out when a price is missing."
+        "In compact tool lines, a long directory path now shrinks first and the file name is cut only after the path is gone, so the file name stays readable."
       ]
     },
     "zh-CN": {
-      "summary": "Vela 1.2.3 为每个任务加入费用上限并在开跑前给出预估，主代理可以把耗时命令放到后台运行，侧边聊天按项目保存，并新增 Ultra 推理强度。",
+      "summary": "Vela 1.2.4 修复了正式版缺失图标的问题，大文件或压缩文件不再卡死代码预览，不同供应商的同名模型可以区分，子代理运行中重新打开窗口时也能保留之前的消息。",
       "highlights": [
         {
-          "title": "给任务设费用上限",
-          "body": "在时间、Token 上限之外，可以按人民币或美元设置费用上限，含子代理，按你登记的模型价格计算。达到 80% 和 100% 时会在聊天和收件箱里提醒。同类任务攒够样本后，输入框会在开跑前显示费用预估。"
+          "title": "大文件不再卡死预览",
+          "body": "压缩后的脚本和超大文件现在可以正常在代码预览中打开，不会再卡住窗口。过大的文本以纯文本显示，每行最多渲染 3000 个字符并提示已截断，选中某一行也不再重绘所有行。"
         },
         {
-          "title": "耗时命令放到后台",
-          "body": "bash 现在可以把开发服务器、watch 或很慢的构建放到后台启动，主代理立刻继续往下做。bash_output 读取新输出，bash_kill 终止命令，命令结束时会带着结果唤醒主代理。"
+          "title": "同名模型分得清供应商",
+          "body": "当两个供应商都有可用的同名模型时，模型选择器、侧边聊天和任务状态会同时显示供应商名称，一眼看出正在用的是哪一个。"
         },
         {
-          "title": "侧边聊天按项目保存",
-          "body": "打开侧边聊天标签先看到本项目的聊天列表：可搜索全部消息，每行有预览和时间，删除需要二次确认。返回列表时回复仍在后台继续接收，重启应用后聊天也还在。"
+          "title": "子代理历史重开后不丢",
+          "body": "子代理还在运行时重新打开它的窗口，之前的消息会被接到实时消息前面，不会再被跳过。"
         },
         {
-          "title": "新增 Ultra 推理强度",
-          "body": "Ultra 使用模型实际支持的最高强度，并让模型更积极地调用子代理。它出现在所有模型推理滑块的末端，可随时切换，下一轮立即生效。"
+          "title": "正式版图标找回来了",
+          "body": "窗口图标和菜单栏图标现在随应用一起打包，安装版与开发版一样能正常显示。"
         }
       ],
       "improvements": [
-        "模型完成任务后可以给出 1–3 个推荐的后续操作（例如提交改动），以可关闭的卡片显示；点击按钮会把模型写好的指令作为你的下一条消息发出。可以在设置里关闭。",
-        "在对话里选中文字可以引用到侧边聊天，也可以写一条回复，作为卡片放在输入框上方。侧边聊天已打开时，引用会加入那段聊天。",
-        "登记的模型价格同时交给应用的资料目录，费用上限和预估在那里计算；缺少价格时，聊天里会说明有多少个模型没有计入。"
+        "在紧凑的工具行里，过长的目录路径会先收缩，路径压到最短后才截断文件名，文件名更容易看清。"
       ]
     },
     "zh-TW": {
-      "summary": "Vela 1.2.3 為每個任務加入費用上限並在開跑前提供預估，主代理可以把耗時指令放到背景執行，側邊聊天依專案保存，並新增 Ultra 推理強度。",
+      "summary": "Vela 1.2.4 修正了正式版缺少圖示的問題，大型或壓縮檔案不再卡死程式碼預覽，不同供應商的同名模型可以區分，子代理執行中重新開啟視窗時也能保留先前的訊息。",
       "highlights": [
         {
-          "title": "為任務設定費用上限",
-          "body": "除了時間與 Token 上限，也可以依人民幣或美元設定費用上限，包含子代理，並依你登記的模型價格計算。達到 80% 與 100% 時會在聊天與收件匣提醒。同類任務累積足夠樣本後，輸入框會在開跑前顯示費用預估。"
+          "title": "大型檔案不再卡死預覽",
+          "body": "壓縮後的腳本與超大檔案現在可以正常在程式碼預覽中開啟，不會再卡住視窗。過大的文字以純文字顯示，每行最多繪製 3000 個字元並提示已截斷，選取某一行也不再重繪所有行。"
         },
         {
-          "title": "耗時指令放到背景",
-          "body": "bash 現在可以把開發伺服器、watch 或很慢的建置放到背景啟動，主代理立刻繼續往下做。bash_output 讀取新輸出，bash_kill 終止指令，指令結束時會帶著結果喚醒主代理。"
+          "title": "同名模型分得清供應商",
+          "body": "當兩個供應商都有可用的同名模型時，模型選擇器、側邊聊天與任務狀態會同時顯示供應商名稱，一眼看出正在使用的是哪一個。"
         },
         {
-          "title": "側邊聊天依專案保存",
-          "body": "開啟側邊聊天分頁會先看到本專案的聊天列表：可搜尋全部訊息，每一列有預覽與時間，刪除需要二次確認。返回列表時回覆仍在背景繼續接收，重新啟動應用程式後聊天也還在。"
+          "title": "子代理歷史重開後不遺失",
+          "body": "子代理仍在執行時重新開啟它的視窗，先前的訊息會被接在即時訊息前面，不會再被略過。"
         },
         {
-          "title": "新增 Ultra 推理強度",
-          "body": "Ultra 使用模型實際支援的最高強度，並讓模型更積極地呼叫子代理。它出現在所有模型推理滑桿的末端，可隨時切換，下一輪立即生效。"
+          "title": "正式版圖示找回來了",
+          "body": "視窗圖示與選單列圖示現在隨應用程式一起打包，安裝版與開發版一樣能正常顯示。"
         }
       ],
       "improvements": [
-        "模型完成任務後可以提出 1–3 個建議的後續操作（例如提交變更），以可關閉的卡片顯示；點擊按鈕會把模型寫好的指令作為你的下一則訊息送出。可以在設定裡關閉。",
-        "在對話裡選取文字可以引用到側邊聊天，也可以寫一則回覆，作為卡片放在輸入框上方。側邊聊天已開啟時，引用會加入該段聊天。",
-        "登記的模型價格同時交給應用程式的資料目錄，費用上限與預估在那裡計算；缺少價格時，聊天裡會說明有多少個模型沒有計入。"
+        "在精簡的工具列裡，過長的目錄路徑會先縮短，路徑縮到最短後才截斷檔名，檔名更容易看清。"
       ]
     },
     "ja": {
-      "summary": "Vela 1.2.3 では、タスクごとの費用上限と開始前の見積もりを追加し、メインエージェントが長いコマンドをバックグラウンドで実行でき、サイドチャットはプロジェクトごとに保存され、新しい思考レベル Ultra も加わります。",
+      "summary": "Vela 1.2.4 では、正式版でアイコンが表示されない問題を修正し、大きなファイルや圧縮ファイルでコードプレビューが固まらないようにし、異なるプロバイダーの同名モデルを区別できるようにし、サブエージェントの実行中にウィンドウを開き直しても以前のメッセージが残るようにしました。",
       "highlights": [
         {
-          "title": "タスクの費用に上限を設ける",
-          "body": "時間とトークンの上限に加えて、人民元または米ドルで費用の上限を設定できます。サブエージェントを含み、登録したモデル価格で計算します。80% と 100% に達するとチャットと受信箱で通知されます。似たタスクの実績がたまると、開始前に入力欄へ見積もりが表示されます。"
+          "title": "大きなファイルでもプレビューが固まらない",
+          "body": "圧縮されたスクリプトや非常に大きなファイルも、ウィンドウが止まることなくコードプレビューで開けます。大きすぎるテキストはプレーンテキストで表示され、1 行は 3000 文字までで切り詰めた旨が表示され、行を選択しても全行が再描画されなくなりました。"
         },
         {
-          "title": "長いコマンドをバックグラウンドで",
-          "body": "bash は開発サーバー、watch、時間のかかるビルドをバックグラウンドで起動し、すぐ次の作業に進めます。bash_output で新しい出力を読み、bash_kill で停止します。コマンドが終わると、結果とともにメインエージェントが呼び起こされます。"
+          "title": "同名モデルもプロバイダーで区別",
+          "body": "2 つのプロバイダーに同名の利用可能なモデルがある場合、モデル選択、サイドチャット、タスクの状態にプロバイダー名も表示され、どちらを使っているか分かります。"
         },
         {
-          "title": "サイドチャットをプロジェクトごとに保存",
-          "body": "サイドチャットのタブを開くと、そのプロジェクトのチャット一覧が表示されます。全メッセージを検索でき、各行にプレビューと時刻が付き、削除は 2 段階の確認です。一覧に戻っても返信は受信され続け、アプリを再起動してもチャットは残ります。"
+          "title": "サブエージェントの履歴が開き直しても残る",
+          "body": "サブエージェントがまだ実行中のうちにウィンドウを開き直しても、以前のメッセージがリアルタイムのメッセージの前に読み込まれ、飛ばされなくなりました。"
         },
         {
-          "title": "思考レベル Ultra",
-          "body": "Ultra はモデルが実際に対応する最高の強度を使い、サブエージェントをより積極的に呼び出すよう促します。すべてのモデルの思考スライダーの末尾に表示され、いつでも切り替えられ、次のターンから反映されます。"
+          "title": "正式版のアイコンが復活",
+          "body": "ウィンドウアイコンとメニューバーのアイコンがアプリに同梱されるようになり、インストール版でも開発版と同じように表示されます。"
         }
       ],
       "improvements": [
-        "モデルはタスクを終えると、コミットなど次の推奨アクションを 1〜3 件、閉じられるカードで提案できます。ボタンを押すと、モデルが用意した指示があなたの次のメッセージとして送信されます。設定でオフにできます。",
-        "会話の中で文字を選択してサイドチャットに引用できるほか、入力欄の上にカードとして置く返信も書けます。サイドチャットが開いているときは、引用がそのチャットに追加されます。",
-        "登録したモデル価格はアプリのデータフォルダにも渡され、費用上限と見積もりはそこで計算されます。価格がないモデルがある場合、チャットに計上されなかったモデル数が表示されます。"
+        "コンパクトなツール行では、長いディレクトリパスが先に縮み、パスがなくなってからファイル名が切り詰められるため、ファイル名が読みやすくなりました。"
       ]
     },
     "ko": {
-      "summary": "Vela 1.2.3은 작업별 비용 한도와 시작 전 예상 비용을 추가하고, 메인 에이전트가 오래 걸리는 명령을 백그라운드에서 실행하게 하며, 사이드 채팅을 프로젝트별로 저장하고, 새 추론 강도 Ultra를 더합니다.",
+      "summary": "Vela 1.2.4는 정식 빌드에서 아이콘이 보이지 않던 문제를 고치고, 큰 파일이나 압축된 파일에서 코드 미리 보기가 멈추지 않게 하며, 서로 다른 공급자의 같은 이름 모델을 구분하고, 서브에이전트 실행 중에 창을 다시 열어도 이전 메시지가 유지되게 합니다.",
       "highlights": [
         {
-          "title": "작업 비용에 한도 설정",
-          "body": "시간과 토큰 한도 외에 위안화 또는 달러로 비용 한도를 설정할 수 있습니다. 서브에이전트를 포함하며 등록한 모델 가격으로 계산합니다. 80%와 100%에 도달하면 채팅과 받은 편지함에서 알려 줍니다. 비슷한 작업의 기록이 쌓이면 시작 전에 입력창에 예상 비용이 표시됩니다."
+          "title": "큰 파일에도 미리 보기가 멈추지 않음",
+          "body": "압축된 스크립트와 매우 큰 파일도 창이 멈추지 않고 코드 미리 보기에서 열립니다. 너무 큰 텍스트는 일반 텍스트로 표시되고, 한 줄은 최대 3000자까지만 그리며 잘렸다는 안내가 붙고, 줄을 선택해도 모든 행을 다시 그리지 않습니다."
         },
         {
-          "title": "오래 걸리는 명령을 백그라운드로",
-          "body": "bash가 개발 서버, watch, 느린 빌드를 백그라운드에서 시작하고 바로 다음 작업을 이어 갈 수 있습니다. bash_output으로 새 출력을 읽고 bash_kill로 중지합니다. 명령이 끝나면 결과와 함께 메인 에이전트를 깨웁니다."
+          "title": "이름이 같은 모델도 공급자로 구분",
+          "body": "두 공급자에 같은 이름의 사용 가능한 모델이 있으면 모델 선택기, 사이드 채팅, 작업 상태에 공급자 이름도 함께 표시되어 어떤 모델을 쓰는지 알 수 있습니다."
         },
         {
-          "title": "사이드 채팅을 프로젝트별로 저장",
-          "body": "사이드 채팅 탭을 열면 이 프로젝트의 채팅 목록이 먼저 나옵니다. 모든 메시지를 검색할 수 있고, 각 행에 미리 보기와 시간이 표시되며, 삭제는 두 단계로 확인합니다. 목록으로 돌아가도 응답은 계속 수신되고, 앱을 다시 시작해도 채팅이 남아 있습니다."
+          "title": "서브에이전트 기록이 다시 열어도 유지",
+          "body": "서브에이전트가 아직 실행 중일 때 창을 다시 열어도 이전 메시지가 실시간 메시지 앞에 불러와져 건너뛰지 않습니다."
         },
         {
-          "title": "추론 강도 Ultra",
-          "body": "Ultra는 모델이 실제로 지원하는 가장 높은 강도를 사용하고 서브에이전트를 더 적극적으로 활용하도록 합니다. 모든 모델의 추론 슬라이더 끝에 나타나며 언제든 바꿀 수 있고 다음 턴부터 적용됩니다."
+          "title": "정식 빌드에 아이콘 복원",
+          "body": "창 아이콘과 메뉴 막대 아이콘이 이제 앱과 함께 번들되어, 설치된 버전에서도 개발 버전처럼 표시됩니다."
         }
       ],
       "improvements": [
-        "모델은 작업을 마치면 변경 사항 커밋 같은 다음 추천 작업을 1~3개, 닫을 수 있는 카드로 제안할 수 있습니다. 버튼을 누르면 모델이 작성한 지시가 다음 메시지로 전송됩니다. 설정에서 끌 수 있습니다.",
-        "대화에서 텍스트를 선택해 사이드 채팅에 인용하거나, 입력창 위에 카드로 놓이는 답장을 쓸 수 있습니다. 사이드 채팅이 열려 있으면 인용이 그 채팅에 추가됩니다.",
-        "등록한 모델 가격은 앱 데이터 폴더에도 전달되어 비용 한도와 예상 비용이 그곳에서 계산되며, 가격이 없는 모델이 있으면 채팅에 집계되지 않은 모델 수가 표시됩니다."
+        "간결한 도구 줄에서 긴 디렉터리 경로가 먼저 줄어들고 경로가 없어진 뒤에야 파일 이름이 잘려, 파일 이름을 알아보기 쉬워졌습니다."
       ]
     }
   }

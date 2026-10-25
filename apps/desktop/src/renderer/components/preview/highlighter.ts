@@ -185,6 +185,13 @@ export function languageForFence(info: string): string | null {
   return null;
 }
 
+/** shiki 在渲染进程主线程同步分词;过大的文本直接退回纯文本,避免卡死整个界面。 */
+const maxHighlightChars = 120_000;
+/** 单行过长(如压缩后的 JS/JSON)时 TextMate 分词会极慢,超过该长度的行不再分词。 */
+const maxHighlightLineLength = 2000;
+/** 单行分词耗时上限(毫秒)。 */
+const maxHighlightLineMs = 100;
+
 async function highlightWithLanguage(lang: string, content: string): Promise<ThemedToken[][] | null> {
   if (!langImports[lang]) return null;
   let highlighter: HighlighterCore;
@@ -196,7 +203,12 @@ async function highlightWithLanguage(lang: string, content: string): Promise<The
   }
   if (!(await ensureLanguage(highlighter, lang))) return null;
   try {
-    const result = highlighter.codeToTokens(content, { lang, theme: velaTheme });
+    const result = highlighter.codeToTokens(content, {
+      lang,
+      theme: velaTheme,
+      tokenizeMaxLineLength: maxHighlightLineLength,
+      tokenizeTimeLimit: maxHighlightLineMs,
+    });
     return result.tokens;
   } catch (error) {
     log.error(`codeToTokens failed: ${lang}`, error);
@@ -207,7 +219,9 @@ async function highlightWithLanguage(lang: string, content: string): Promise<The
 /** 按文件路径高亮;语言不支持或加载失败时返回 null(纯文本)。 */
 export async function highlightDocument(path: string, content: string): Promise<HighlightResult | null> {
   const lang = languageForPath(path);
-  if (!lang) return null;
+  if (!lang || content.length > maxHighlightChars) return null;
+  // 先让出一次事件循环,保证切换/关闭标签等交互先绘制,再做同步分词。
+  await new Promise<void>((resolve) => setTimeout(resolve, 0));
   const lines = await highlightWithLanguage(lang, content);
   if (!lines) return null;
   return { lang, lines };

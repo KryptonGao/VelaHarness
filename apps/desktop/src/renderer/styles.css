@@ -2943,7 +2943,8 @@ button.tool-compact-line:focus-visible {
   object-fit: contain;
 }
 .tool-compact-name {
-  flex: 0 1 auto;
+  /* 空间不够时先让目录路径收缩，文件名几乎不收缩，路径压到 0 后才截断文件名。 */
+  flex: 0 0.001 auto;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2985,6 +2986,7 @@ button.tool-compact-name:hover { text-decoration: underline; text-underline-offs
 .tool-compact-action-toggle { flex: none; }
 .tool-compact-path-toggle {
   flex: 0 1 auto;
+  overflow: hidden;
 }
 .tool-compact-action-toggle:hover .tool-compact-action,
 .tool-compact-path-toggle:hover .tool-compact-dir,
@@ -10784,3 +10786,8 @@ a.mcp-result-title:hover { color: var(--accent-blue); }
 .recommended-action.is-primary:hover:not(:disabled) { background: var(--accent-blue-hover); }
 .recommended-action:disabled { opacity: 0.55; cursor: default; }
 .recommended-actions-error { margin: 0; font-size: 13px; line-height: 1.5; color: var(--danger, #d1242f); }
+.code-row-clip {
+  color: var(--text-dim);
+  font-family: var(--font-sans);
+  font-style: italic;
+}

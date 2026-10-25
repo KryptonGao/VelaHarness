@@ -137,6 +137,17 @@ describe("side chat model", () => {
     assert.deepEqual(sideChatModelInfo(null, null), { label: null, levels: ["off"], level: "off" });
   });
 
+  it("names the provider when two providers offer a model with the same name", () => {
+    const summary = (provider: string, providerName: string, available = true): ModelSummary => ({ provider, providerName,
+      id: "shared", name: "Shared", reasoning: false, contextWindow: 1000, available, custom: false, thinkingLevels: [] });
+    const catalog = { providers: [], error: null, models: [summary("a", "Alpha"), summary("b", "Beta"), summary("c", "Gamma", false)] } as unknown as ModelCatalog;
+    assert.equal(sideChatModelInfo(catalog, { provider: "a", id: "shared", thinkingLevel: "off" }).label, "Alpha · Shared");
+    assert.equal(sideChatModelInfo(catalog, { provider: "b", id: "shared", thinkingLevel: "off" }).label, "Beta · Shared");
+    // 另一个同名模型不可用时不算重名。
+    const single = { providers: [], error: null, models: [summary("a", "Alpha"), summary("c", "Gamma", false)] } as unknown as ModelCatalog;
+    assert.equal(sideChatModelInfo(single, { provider: "a", id: "shared", thinkingLevel: "off" }).label, "Shared");
+  });
+
   it("describes which memory was included", () => {
     setActiveLocale("en");
     assert.equal(sideChatMemoryLabel(null), "Uses long-term memory");

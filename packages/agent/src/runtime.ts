@@ -3190,7 +3190,7 @@ export class AgentRuntime {
       : entry.recipeExecution?.thinkingLevel ?? directory?.selection.thinkingLevel ?? "medium";
     entry.snapshot = {
       ...entry.snapshot,
-      model: intended ? modelLabel(intended) : entry.recipeExecution ? `${entry.recipeExecution.model.provider}/${entry.recipeExecution.model.id}` : null,
+      model: intended ? directory?.displayName(intended) ?? modelLabel(intended) : entry.recipeExecution ? `${entry.recipeExecution.model.provider}/${entry.recipeExecution.model.id}` : null,
       modelProvider: intended?.provider ?? entry.recipeExecution?.model.provider ?? null,
       modelId: intended?.id ?? entry.recipeExecution?.model.id ?? null,
       modelReady: Boolean(active && directory?.isAvailable(active)),

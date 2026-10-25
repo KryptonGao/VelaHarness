@@ -228,6 +228,17 @@ export class ModelDirectory {
     await this.writeSelection();
   }
 
+  /** 界面显示名。不同供应商下有同名可用模型时,加上供应商名以示区分。 */
+  displayName(model: Model<Api>): string {
+    const name = baseName(model);
+    const key = name.toLowerCase();
+    const clash = this.runtime
+      .getAvailableSnapshot()
+      .some((item) => item.provider !== model.provider && baseName(item).toLowerCase() === key);
+    if (!clash) return name;
+    return `${this.runtime.getProvider(model.provider)?.name || model.provider} · ${name}`;
+  }
+
   isAvailable(model: { provider: string; id: string }): boolean {
     return this.runtime.getAvailableSnapshot().some((item) => item.provider === model.provider && item.id === model.id);
   }
@@ -602,6 +613,10 @@ const supportedLevels = thinkingLevelsFor;
 
 function modelKey(model: { provider: string; id: string }): string {
   return `${model.provider}\0${model.id}`;
+}
+
+function baseName(model: { name?: string; provider: string; id: string }): string {
+  return model.name?.trim() || `${model.provider}/${model.id}`;
 }
 
 function summarizeModel(model: Model<Api>, providerName: string, available: boolean, custom: boolean): ModelSummary {

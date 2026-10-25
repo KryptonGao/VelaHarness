@@ -50,7 +50,11 @@ export function sideChatModelInfo(catalog: ModelCatalog | null, choice: SideChat
   const rank = (level: ThinkingLevel) => thinkingLevels.indexOf(level);
   const level = levels.includes(wanted) ? wanted
     : [...levels].reverse().find((candidate) => rank(candidate) <= rank(wanted)) ?? levels[0]!;
-  return { label: model?.name ?? (choice ? `${choice.provider}/${choice.id}` : null), levels, level };
+  // 其他供应商下有同名可用模型时,带上供应商名,否则分不清用的是哪一个。
+  const clash = model && catalog?.models.some((item) =>
+    item.available && item.provider !== model.provider && item.name.toLowerCase() === model.name.toLowerCase());
+  const name = model ? (clash ? `${model.providerName} · ${model.name}` : model.name) : undefined;
+  return { label: name ?? (choice ? `${choice.provider}/${choice.id}` : null), levels, level };
 }
 
 export interface SideChatEntry {

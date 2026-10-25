@@ -87,3 +87,33 @@ describe("new conversation selection settings", () => {
     assert.equal(reopened.getSettings().newConversationSelection, "lastUsed");
   });
 });
+
+describe("same-named models from different providers", () => {
+  const custom = (providerId: string, providerName: string) => ({
+    providerId, providerName, baseUrl: "https://example.test/v1", api: "openai-completions" as const, apiKey: "test-key",
+    modelId: "shared-id", modelName: "Shared Model", reasoning: false, contextWindow: null, maxTokens: null,
+  });
+
+  it("keeps them apart by provider and labels them with the provider only when names clash", async () => {
+    const directory = await ModelDirectory.open(await tempDir());
+    await directory.addCustom(custom("alpha", "Alpha"));
+    const alone = directory.runtime.getModel("alpha", "shared-id")!;
+    assert.equal(directory.displayName(alone), "Shared Model");
+
+    await directory.addCustom(custom("beta", "Beta"));
+    const alpha = directory.runtime.getModel("alpha", "shared-id")!;
+    const beta = directory.runtime.getModel("beta", "shared-id")!;
+    assert.equal(directory.displayName(alpha), "Alpha · Shared Model");
+    assert.equal(directory.displayName(beta), "Beta · Shared Model");
+
+    const selected = await directory.select("beta", "shared-id");
+    assert.equal(selected.provider, "beta");
+    assert.equal(directory.modelForSelection()?.provider, "beta");
+    await directory.select("alpha", "shared-id");
+    assert.equal(directory.modelForSelection()?.provider, "alpha");
+
+    await directory.removeCustom("alpha", "shared-id");
+    assert.equal(directory.runtime.getModel("beta", "shared-id")?.provider, "beta");
+    assert.equal(directory.displayName(directory.runtime.getModel("beta", "shared-id")!), "Shared Model");
+  });
+});

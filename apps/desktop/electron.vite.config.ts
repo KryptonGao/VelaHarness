@@ -27,6 +27,10 @@ export default defineConfig({
         // 引导里的「新到港」读取这份随包发布的多语言发布说明，与 GitHub Release 正文无关。
         this.emitFile({ type: "asset", fileName: "release-notes.json",
           source: readFileSync(resolve(root, "release-notes.json"), "utf8") });
+        // 窗口图标与菜单栏图标随 out 一起进 asar；?asset 在正式版会指向包外的 resources/，导致图标缺失。
+        for (const name of ["icon.png", "tray-template.png"]) {
+          this.emitFile({ type: "asset", fileName: name, source: readFileSync(resolve(root, "resources", name)) });
+        }
       },
     }],
     resolve: { alias: workspaceAlias },

@@ -4,6 +4,7 @@ import type { AgentRuntimeStreamEvent } from "@vela/shared";
 import {
   applyAgentStreamEvent,
   applyStreamEvent,
+  mergeAgentHistory,
   type MessageBuckets,
   toUiMessage,
   type AgentMessageBuckets,
@@ -175,5 +176,22 @@ describe("MCP renderer activity", () => {
   it("ignores malformed metadata and does not infer a server from an MCP-looking tool name", () => {
     const messages = reduce([{ type: "tool_start", toolCallId: "unmarked", toolName: "mcp__docs__lookup", activity: { mcp: { server: "", tool: "lookup" } } }]);
     assert.equal(messages[0]?.tools[0]?.activity.mcp, undefined);
+  });
+
+  it("窗口重开后实时流先到时,回填的历史排在它前面", () => {
+    const live = reduce([{ type: "assistant_start" }, { type: "text_delta", delta: "继续检查" }]);
+    const history = [
+      toUiMessage({ id: "h1", role: "user", text: "审查 runtime", thinking: "", tools: [] }),
+      toUiMessage({ id: "h2", role: "assistant", text: "已读完", thinking: "先读文件", tools: [] }),
+    ];
+    const merged = mergeAgentHistory(live, history);
+    assert.deepEqual(merged?.map((message) => message.text), ["审查 runtime", "已读完", "继续检查"]);
+  });
+
+  it("没有实时消息时直接用历史,已回填过则不再合并", () => {
+    const history = [toUiMessage({ id: "h1", role: "assistant", text: "done", thinking: "", tools: [] })];
+    const restored = mergeAgentHistory(undefined, history);
+    assert.equal(restored?.length, 1);
+    assert.equal(mergeAgentHistory(restored!, history), null);
   });
 });

@@ -64,8 +64,6 @@ import { BrowserCdp } from "./browser-cdp";
 import { BrowserReplManager } from "./browser-repl";
 import { BrowserIpc, type BrowserUiCommand } from "../../../../packages/shared/src/browser";
 import { UI_BROWSER_PARTITION } from "../browser-policy";
-import appIconPath from "../../resources/icon.png?asset";
-import trayIconPath from "../../resources/tray-template.png?asset";
 
 const home = configureVelaProfile(app);
 // 日志最先就绪:之后的启动失败、崩溃都能落盘到 <home>/logs。
@@ -88,6 +86,9 @@ app.on("second-instance", () => {
 const loginShellPathReady = primaryInstance || managedByDevServer ? ensureLoginShellPath() : Promise.resolve(null);
 
 const rootDir = dirname(fileURLToPath(import.meta.url));
+// 图标由构建插件输出到 out/main，正式版与 dev 路径一致。
+const appIconPath = join(rootDir, "icon.png");
+const trayIconPath = join(rootDir, "tray-template.png");
 const preloadPath = join(rootDir, "../preload/index.js");
 
 let mcpHost: McpHost | null = null;
