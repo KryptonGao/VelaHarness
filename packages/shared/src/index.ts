@@ -6,11 +6,16 @@ import type { WebToolsApi } from "./web-tools";
 export * from "./handoff";
 export * from "./task-budget";
 export * from "./model-pricing";
+export * from "./task-cost";
 export * from "./context-limit";
 import type { ContextLimitSettings, ConversationContextLimit } from "./context-limit";
 import type { ConversationTaskBudget, TaskBudgetSettings, TaskBudgetState } from "./task-budget";
+import type { ModelPrice } from "./model-pricing";
+import type { TaskCostForecast } from "./task-cost";
 export * from "./outcome";
+export * from "./recommended-actions";
 import type { OutcomeSubmission } from "./outcome";
+import type { RecommendedActions } from "./recommended-actions";
 export * from "./tool-diff";
 export * from "./verification";
 import type { HandoffDraftRequest, HandoffPack } from "./handoff";
@@ -73,6 +78,9 @@ export const IpcChannel = {
   sideChatSend: "side-chat:send",
   sideChatCancel: "side-chat:cancel",
   sideChatEvent: "side-chat:event",
+  sideChatThreadsList: "side-chat:threads-list",
+  sideChatThreadsSave: "side-chat:threads-save",
+  sideChatThreadsRemove: "side-chat:threads-remove",
   sessionHandoffDraft: "session:handoff-draft",
   sessionHandoffCancel: "session:handoff-cancel",
   sessionTrace: "session:trace",
@@ -224,6 +232,7 @@ export const IpcChannel = {
   setIntelligentUi: "intelligent-ui:set",
   setIntelligentUiMicroApps: "intelligent-ui:set-micro-apps",
   setRunView: "run-view:set",
+  setRecommendedActions: "recommended-actions:set",
   getTaskBudget: "task-budget:get",
   setTaskBudget: "task-budget:set",
   getContextLimit: "context-limit:get",
@@ -232,6 +241,9 @@ export const IpcChannel = {
   setConversationContextLimit: "context-limit:set-conversation",
   getConversationTaskBudget: "task-budget:get-conversation",
   setConversationTaskBudget: "task-budget:set-conversation",
+  getModelPrices: "model-prices:get",
+  setModelPrices: "model-prices:set",
+  estimateTaskCost: "task-budget:estimate-cost",
   uiSandboxIssue: "intelligent-ui:sandbox-issue",
   uiSandboxRedeem: "intelligent-ui:sandbox-redeem",
   uiSandboxRevoke: "intelligent-ui:sandbox-revoke",
@@ -283,7 +295,10 @@ export interface InputPredictionInput {
   model?: ThinkingSummaryModel;
 }
 
-export const thinkingLevels = ["off", "minimal", "low", "medium", "high", "xhigh", "max"] as const;
+export const thinkingLevels = ["off", "minimal", "low", "medium", "high", "xhigh", "max", "ultra"] as const;
+
+/** Ultra 不改推理预算：它沿用模型实际的最高强度，并让模型更积极地启用 SubAgent。 */
+export const ultraThinkingLevel = "ultra" as const;
 
 export type ThinkingLevel = (typeof thinkingLevels)[number];
 
@@ -295,6 +310,7 @@ export const thinkingLevelLabel: Record<ThinkingLevel, string> = {
   high: "高",
   xhigh: "极高",
   max: "最高",
+  ultra: "Ultra",
 };
 
 export const skillOrigins = ["user", "project", "agents"] as const;
@@ -852,6 +868,8 @@ export interface ToolActivity {
   plan?: ToolPlanItem[];
   /** submit_outcome 的需求归属，事实由本轮工具记录推导。 */
   outcome?: OutcomeSubmission;
+  /** recommend_actions 的推荐操作，界面在本轮回复末尾渲染成卡片。 */
+  recommendedActions?: RecommendedActions;
   /** task 子代理类型 */
   agent?: SubagentKind;
   /** 常驻子代理的 id 和路径，供界面把卡片关联到 agent 列表。 */
@@ -2650,6 +2668,37 @@ export interface SandboxExecutionContext {
   conversationId?: string;
 }
 
+/** 构造沙箱工具时的上下文；background 只给主代理开启，子代理的 bash 始终同步。 */
+export interface ToolFactoryContext extends SandboxExecutionContext {
+  background?: boolean;
+}
+
+/** 后台命令的配套工具名；启动靠 bash 的 run_in_background。 */
+export const backgroundShellToolNames = ["bash_output", "bash_kill"] as const;
+
+export type BackgroundShellStatus = "running" | "exited" | "failed" | "killed" | "timed_out";
+
+/** 后台命令结束事件；notify 为 false 表示是主动终止或会话关闭，不需要唤醒主代理。 */
+export interface BackgroundShellExit {
+  conversationId: string;
+  id: string;
+  command: string;
+  status: Exclude<BackgroundShellStatus, "running">;
+  exitCode: number | null;
+  durationMs: number;
+  /** 结束时尚未被读取的输出末尾。 */
+  output: string;
+  /** 输出因超出保留上限或读取上限被截掉了开头。 */
+  truncated: boolean;
+  notify: boolean;
+}
+
+/** 运行时需要的后台命令能力：订阅结束事件，会话关闭时清理。 */
+export interface BackgroundShellEvents {
+  subscribe(listener: (event: BackgroundShellExit) => void): () => void;
+  killConversation(conversationId: string): void;
+}
+
 /** delegate：常驻 Agent 请求在某个工作区创建后台任务。 */
 export type SandboxApprovalKind = "bash" | "edit" | "write" | "mkdir" | "browser_repl" | "mcp" | "delegate" | "web";
 
@@ -2954,6 +3003,8 @@ export interface VelaApi extends McpApi, PluginApi {
   setIntelligentUiMicroApps(enabled: boolean): Promise<IntelligentUiState>;
   /** 同步「运行视图」开关:开启后要求模型提交待办清单。偏好存在渲染层,这里只镜像给运行时。 */
   setRunView(enabled: boolean): Promise<void>;
+  /** 同步「推荐操作」开关:开启后模型可在一轮结束时调用 recommend_actions。 */
+  setRecommendedActions(enabled: boolean): Promise<void>;
   /** 任务用量上限：时间与 Token，统计包含子代理。 */
   getTaskBudget(): Promise<TaskBudgetSettings>;
   setTaskBudget(settings: TaskBudgetSettings): Promise<TaskBudgetSettings>;
@@ -2966,6 +3017,11 @@ export interface VelaApi extends McpApi, PluginApi {
   /** 单个对话的用量上限：只对该对话生效；传 null 恢复沿用全局设置。 */
   getConversationTaskBudget(conversationId: string): Promise<ConversationTaskBudget>;
   setConversationTaskBudget(conversationId: string, settings: TaskBudgetSettings | null): Promise<ConversationTaskBudget>;
+  /** 模型价格同步给主进程：费用上限和开跑前预估在主进程里计算，需要知道价格。 */
+  getModelPrices(): Promise<ModelPrice[] | null>;
+  setModelPrices(prices: ModelPrice[]): Promise<void>;
+  /** 开跑前按同类历史任务预估这个对话下一次任务的费用；样本不足时为 null。 */
+  estimateTaskCost(conversationId: string): Promise<TaskCostForecast | null>;
   /** 沙盒应用申请 capability：Main 发放一次性、限定大小的令牌（IUI-14）。 */
   uiSandboxIssue(appKey: string, capability: UiSandboxCapability, size: number): Promise<UiSandboxIssueResult>;
   /** 用户确认后兑换令牌；令牌立即作废。 */

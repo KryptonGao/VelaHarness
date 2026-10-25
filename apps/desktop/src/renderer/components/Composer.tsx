@@ -47,6 +47,7 @@ import { RecipeActionsContext } from "./recipe-actions-context";
 import { RaceActionsContext } from "./race-actions-context";
 import { RaceSetupDialog } from "./RaceSetupDialog";
 import { useComposerSeed } from "./composer-seed-context";
+import { hasReplyText as anyReplyText, replyCardText, replyMessage, type ReplyCard } from "./selection-actions";
 import { localizeError, tr, useAppLocale, trf } from "../locale";
 import { useInputPrediction } from "../hooks/useInputPrediction";
 import { useComposerLayout } from "../hooks/useComposerLayout";
@@ -85,6 +86,10 @@ export interface ComposerProps {
   usage: ContextUsage | null;
   contextPopover?: boolean;
   project: ProjectApi;
+  /** 在对话里选中文字并写好的回复：每条一张卡片，发送时各自的原文作为引用块放在回复前面。 */
+  replies?: readonly ReplyCard[];
+  onRemoveReply?: (id: string) => void;
+  onClearReplies?: () => void;
   onSend: (text: string, images?: ImageAttachment[], deliverAs?: RuntimeInstructionMode) => Promise<void | boolean>;
   /** 撤销一条还没被模型消费的排队/调整指令。 */
   onRemoveInstruction: (instructionId: string) => Promise<void>;
@@ -140,6 +145,9 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
   usage,
   contextPopover = false,
   project,
+  replies = [],
+  onRemoveReply,
+  onClearReplies,
   onSend,
   onRemoveInstruction,
   onAbort,
@@ -193,6 +201,8 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
   const safeIndex = filtered.length === 0 ? 0 : Math.min(activeIndex, filtered.length - 1);
   // 输入框里的 Skill 芯片会写成文字中的 `/skill:名称`，所以 value 本身就是要发送的内容。
   const prompt = value.trim();
+  // 卡片里的回复本身就是要发送的内容，输入框可以留空。
+  const hasReplyText = anyReplyText(replies);
   const prediction = useInputPrediction({
     enabled: predictionEnabled && !disabled && !recipeActive,
     conversationId,
@@ -202,7 +212,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
     locale,
   });
   // 只有空输入框（没有文字、技能和附件）才显示预测；一旦开始输入就让位。
-  const suggestion = !prompt && attachments.length === 0 && !streaming ? prediction : "";
+  const suggestion = !prompt && !hasReplyText && attachments.length === 0 && !streaming ? prediction : "";
 
   useLayoutEffect(() => {
     const input = inputRef.current;
@@ -272,6 +282,11 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
 
   // 任务交接包等外部预填：只在目标对话的输入框里取走，并把光标放到末尾方便补一句指令。
   useComposerSeed(recipeActions?.conversationId ?? null, text => setText(text));
+
+  // 选中文字点「回复」后，光标直接进输入框等用户写回复。
+  useEffect(() => {
+    if (replies.length > 0) inputRef.current?.focus();
+  }, [replies.length]);
 
   useEffect(() => {
     const root = inputRef.current;
@@ -483,7 +498,8 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
 
   async function submit(steerIntent = false): Promise<void> {
     const root = inputRef.current;
-    const text = (root ? serializeEditor(root).trim() : prompt) || suggestion;
+    const typed = (root ? serializeEditor(root).trim() : prompt) || (hasReplyText ? "" : suggestion);
+    const text = replyMessage(replies, typed);
     if (!text || disabled || recipeActive || !modelReady) return;
     const images = attachments
       .map((entry) => entry.image)
@@ -491,6 +507,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
     const draftAttachments = attachments;
     clearEditor();
     setAttachments([]);
+    onClearReplies?.();
     // 运行中按追加指令投递:Enter 排队,⌘/Ctrl+Enter 调整当前任务。
     const deliverAs: RuntimeInstructionMode | undefined = streaming
       ? (steerIntent ? "steer" : "queue")
@@ -539,9 +556,9 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
     ? tr("会话还没有准备好", "Chat is not ready yet")
     : !modelReady
       ? tr("先选择一个可用的模型", "Choose an available model first")
-      : !prompt && suggestion
+      : !prompt && !hasReplyText && suggestion
         ? tr("发送预测的内容", "Send the predicted message")
-      : !prompt
+      : !prompt && !hasReplyText
         ? tr("输入内容后发送", "Enter a message to send")
         : streaming
           ? tr("排队发送 (Enter)", "Queue (Enter)")
@@ -800,6 +817,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
       login={models.login}
       onSelect={models.select}
       onThinking={models.setThinking}
+      fullAccess={sandboxMode ? undefined : { mode: project.sandboxMode, onEnable: () => project.setSandboxMode("full") }}
       onAdd={models.add}
       onRemove={models.remove}
       onLogout={models.logout}
@@ -813,7 +831,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
 
   const actions = (
     <ComposerActions sendButtonIcon={sendButtonIcon} streaming={streaming} sendHint={sendHint} steerHint={steerHint}
-      canQueue={Boolean(prompt)} disabled={disabled || recipeActive || !modelReady || (!prompt && !suggestion)}
+      canQueue={Boolean(prompt) || hasReplyText} disabled={disabled || recipeActive || !modelReady || (!prompt && !hasReplyText && !suggestion)}
       onSteer={() => void submit(true)} onAbort={onAbort} />
   );
 
@@ -830,6 +848,27 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
     </p>
   ) : null;
 
+  const quoteCard = replies.length > 0 ? (
+    <div className="reply-quote-row">
+      {replies.map((reply) => (
+        <div className="reply-quote-card" key={reply.id}>
+          <span className="reply-quote-bar" aria-hidden="true" />
+          <p className="reply-quote-text" title={reply.quote}>{replyCardText(reply)}</p>
+          <span className="reply-quote-badge">{tr("回复", "Reply")}</span>
+          <button
+            type="button"
+            className="reply-quote-remove"
+            title={tr("移除回复", "Remove reply")}
+            aria-label={tr("移除回复", "Remove reply")}
+            onClick={() => { onRemoveReply?.(reply.id); inputRef.current?.focus(); }}
+          >
+            <CloseIcon size={10} />
+          </button>
+        </div>
+      ))}
+    </div>
+  ) : null;
+
   const above = (
     <>
       {approvalSlots}
@@ -838,6 +877,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
       {statusPanel}
       {instructionRow}
       {layout === "capsule" ? null : queueHint}
+      {quoteCard}
       {attachmentRow}
     </>
   );

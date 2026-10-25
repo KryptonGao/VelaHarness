@@ -22,6 +22,7 @@ import { RecipeActionsContext } from "./components/recipe-actions-context";
 import { RaceActionsContext } from "./components/race-actions-context";
 import { useRaces } from "./hooks/useRaces";
 import { ComposerSeedContext, type ComposerSeed } from "./components/composer-seed-context";
+import { SideChatLauncherContext, type SideChatInboxItem } from "./components/selection-actions";
 import { HandoffPackDialog } from "./components/HandoffPackDialog";
 import { ScheduledTasksPage } from "./components/ScheduledTasksPage";
 import { Sidebar } from "./components/Sidebar";
@@ -33,7 +34,7 @@ import { FilePreviewProvider, type PreviewFileDescriptor } from "./components/pr
 import type { StartTabAction } from "./components/StartView";
 import { WorkbenchPanel, type WorkbenchTab } from "./components/WorkbenchPanel";
 import { WorkbenchChatView } from "./components/WorkbenchChatView";
-import { SideChatView } from "./components/SideChatView";
+import { SideChatPanel } from "./components/SideChatPanel";
 import { BrowserViewHost } from "./components/browser/BrowserViewHost";
 import { useBrowserTabs } from "./browser/useBrowserTabs";
 import { routeConversationLink } from "./browser/conversation-link-policy";
@@ -255,8 +256,11 @@ export function App() {
   useEffect(() => { setWorkbenchCollapsed(false); }, [activeWorkbenchTabId]);
   const [startTabState, setStartTabState] = useState<{ id: string }[]>([]);
   const [chatTabState, setChatTabState] = useState<{ id: string; conversationId: string }[]>([]);
-  /** 侧边聊天不绑定工作区，切换目录或对话都保留；记忆跟随当前主对话。 */
-  const [sideChatTabState, setSideChatTabState] = useState<{ id: string; number: number }[]>([]);
+  /**
+   * 侧边聊天按项目（工作区目录）保存：每个项目一个标签，里面是这个项目的聊天列表；
+   * 同一项目的所有对话共用，切到别的项目只显示那个项目的标签。记忆跟随当前主对话。
+   */
+  const [sideChatTabState, setSideChatTabState] = useState<{ id: string; workspace: string; inbox: SideChatInboxItem[] }[]>([]);
   const [pendingChatTabs, setPendingChatTabs] = useState<string[]>([]);
   const [startErrors, setStartErrors] = useState<Record<string, string>>({});
   const chatRequests = useRef(new Set<string>());
@@ -422,11 +426,26 @@ export function App() {
     setActiveWorkbenchTabId(id);
   }, []);
 
-  const openSideChatTab = useCallback(() => {
+  /**
+   * 打开本项目的侧边聊天标签（没有就新建），停在聊天列表。对话里选中的文字送进来时，
+   * 正在某段聊天里就加进那段聊天，否则新开一段。
+   */
+  const openSideChatTab = useCallback((quote?: string, draft?: string) => {
+    const workspace = workspaceKey;
+    const item: SideChatInboxItem[] = quote ? [{ id: crypto.randomUUID(), quote, ...(draft ? { draft } : {}) }] : [];
+    const existing = sideChatTabState.find((tab) => tab.workspace === workspace);
+    if (existing) {
+      if (item.length > 0) setSideChatTabState((current) => current.map((tab) => tab.id === existing.id ? { ...tab, inbox: [...tab.inbox, ...item] } : tab));
+      setActiveWorkbenchTabId(existing.id);
+      return;
+    }
     tabSeq.current += 1;
     const id = `side-chat:${tabSeq.current}`;
-    setSideChatTabState((current) => [...current, { id, number: Math.max(0, ...current.map((tab) => tab.number)) + 1 }]);
+    setSideChatTabState((current) => [...current, { id, workspace, inbox: item }]);
     setActiveWorkbenchTabId(id);
+  }, [sideChatTabState, workspaceKey]);
+  const consumeSideChatInbox = useCallback((tabId: string, count: number) => {
+    setSideChatTabState((current) => current.map((tab) => tab.id === tabId ? { ...tab, inbox: tab.inbox.slice(count) } : tab));
   }, []);
 
   const openFilesTab = useCallback(() => {
@@ -546,11 +565,11 @@ export function App() {
     kind: "chat",
     label: session.conversations.find(item => item.id === tab.conversationId)?.title || tr("聊天", "Chat"),
   })), [chatTabState, session.conversations, preferences.locale]);
-  const sideChatTabs = useMemo<WorkbenchTab[]>(() => sideChatTabState.map((tab) => ({
+  const sideChatTabs = useMemo<WorkbenchTab[]>(() => sideChatTabState.filter((tab) => tab.workspace === workspaceKey).map((tab) => ({
     id: tab.id,
     kind: "side-chat",
-    label: tab.number > 1 ? trf("侧边聊天 {0}", "Side chat {0}", tab.number) : tr("侧边聊天", "Side chat"),
-  })), [sideChatTabState, preferences.locale]);
+    label: tr("侧边聊天", "Side chat"),
+  })), [sideChatTabState, workspaceKey, preferences.locale]);
   const unorderedTabs = useMemo<WorkbenchTab[]>(() => [
     ...fileTabs,
     ...(planTab ? [planTab] : []),
@@ -780,6 +799,7 @@ export function App() {
         <RecipeActionsContext.Provider value={{ conversationId: session.activeConversationId, open: openRecipes, useRecipe: recipe => { setRecipeToUse(recipe); openRecipes(); }, fromMessage: seed => { setRecipeSeed(seed); openRecipes(); }, createHandoff: (conversationId, options) => setHandoff({ conversationId, ...(options?.factsOnly ? { factsOnly: true } : {}) }) }}>
         <RaceActionsContext.Provider value={{ started: openRaceTab, open: openRaceTab, count: workspaceRaces.length }}>
         <ComposerSeedContext.Provider value={{ seed: composerSeed, consume: consumeComposerSeed, offer: offerComposerSeed }}>
+        <SideChatLauncherContext.Provider value={openSideChatTab}>
         <div className="app-screens">
           <BrowserViewHost tabs={browser.allTabs}
             activeTabId={browser.tabs.some(tab => tab.id === activeWorkbenchTabId) ? activeWorkbenchTabId : null}
@@ -897,6 +917,7 @@ export function App() {
                           summaryStyle={preferences.thinkingSummaryStyle}
                           summaryModel={preferences.thinkingSummaryModel}
                           predictionEnabled={preferences.inputPrediction}
+                          recommendedActionsEnabled={preferences.recommendedActions}
                           predictionModel={preferences.inputPredictionModel}
                           locale={preferences.locale}
                           hiddenModels={preferences.hiddenModels}
@@ -970,12 +991,18 @@ export function App() {
                           onRenameConversation={openRenameConversation}
                           onOpenConversation={id => { void session.switchTo(id); }}
                           onNewTab={openStartTab} onShowDiff={openChanges} onOpenWebLink={openConversationLink} />}
-                        renderSideChat={(tab, visible) => <SideChatView key={tab.id}
-                          conversationId={session.activeConversationId} locale={preferences.locale} visible={visible}
+                        renderSideChat={(tab, visible) => {
+                          const state = sideChatTabState.find(item => item.id === tab.id);
+                          return state ? <SideChatPanel key={tab.id}
+                          workspace={state.workspace} visible={visible} inbox={state.inbox}
+                          onInboxConsumed={count => consumeSideChatInbox(tab.id, count)}
+                          conversationId={session.activeConversationId} locale={preferences.locale}
+                          sendButtonIcon={preferences.sendButtonIcon}
                           models={models} hiddenModels={preferences.hiddenModels}
                           defaultChoice={session.state?.session.modelProvider && session.state.session.modelId
                             ? { provider: session.state.session.modelProvider, id: session.state.session.modelId, thinkingLevel: session.state.session.thinkingLevel }
-                            : null} />}
+                            : null} /> : null;
+                        }}
                         gitAvailable={Boolean(project.git?.repo)}
                         onActivateTab={(tab) => {
                           if (tab.kind === "browser") browser.select(tab.id);
@@ -1103,6 +1130,7 @@ export function App() {
         {whatsNew && !introReplay ? (
           <WhatsNewCard notes={whatsNew} locale={preferences.locale} onClose={() => { writeWhatsNewSeen(whatsNew.version); setWhatsNew(null); }} />
         ) : null}
+        </SideChatLauncherContext.Provider>
         </ComposerSeedContext.Provider>
         </RaceActionsContext.Provider>
         </RecipeActionsContext.Provider>

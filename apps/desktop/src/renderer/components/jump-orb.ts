@@ -2,7 +2,7 @@
  * 「回到最新」圆球的动效:样式池、轮换规则和两个逐帧样式(T4、C5)的几何。
  *
  * 轮换规则:
- * 1. 状态决定样式池:思考用 T1–T4,运行命令用 C1/C2/C4/C5;没有活动时显示静态箭头。
+ * 1. 状态决定样式池:思考用 T1–T5,运行命令用 C1/C2/C4/C5;没有活动时显示静态箭头。
  * 2. 池内用「洗牌袋」:一轮内每个样式各出现一次,袋空了重新洗牌,且新一袋的第一个不等于上一个。
  * 3. 一个样式随机播放 {@link ORB_MIN_LOOPS}–{@link ORB_MAX_LOOPS} 个完整周期(停留时长恰好是周期的整数倍,换样式时姿势已回到起点),之后换到袋里的下一个。
  * 4. 状态切换(思考 ↔ 运行命令)或开始新的命令时,立刻从对应池里抽下一个,并重新计时。
@@ -10,19 +10,20 @@
  */
 
 export type OrbActivity = "thinking" | "command";
-export type OrbStyle = "t1" | "t2" | "t3" | "t4" | "c1" | "c2" | "c4" | "c5";
+export type OrbStyle = "t1" | "t2" | "t3" | "t4" | "t5" | "c1" | "c2" | "c4" | "c5";
 
 export const ORB_POOLS: Record<OrbActivity, readonly OrbStyle[]> = {
-  thinking: ["t1", "t2", "t3", "t4"],
+  thinking: ["t1", "t2", "t3", "t4", "t5"],
   command: ["c1", "c2", "c4", "c5"],
 };
 
 /** 每个样式的一个完整周期(毫秒),用来决定它至少要播几轮;orbFrame 里各样式的周期要与它一致。 */
 export const ORB_LOOP_MS: Record<OrbStyle, number> = {
-  t1: 2400,
+  t1: 1700,
   t2: 2200,
   t3: 2200,
   t4: 4200,
+  t5: 1500,
   c1: 4800,
   c2: 1600,
   c4: 4600,
@@ -251,6 +252,7 @@ const cycleOf = (seconds: number, period: number) => {
   return { loops, pct: Math.min(100, Math.max(0, (seconds / period - loops) * 100)) };
 };
 const percentOf = (seconds: number, period: number) => cycleOf(seconds, period).pct;
+const lerp = (from: number, to: number, amount: number) => from + (to - from) * amount;
 const rad = (degrees: number) => (degrees * Math.PI) / 180;
 const dot = (x: number, y: number, r = DOT_RADIUS, o = 1): OrbDot => ({ x, y, r, o });
 /** 三点样式的第 4 个点:收在圆心,不可见。 */
@@ -260,7 +262,9 @@ const P = 6;
 const TL = [-P, -P], TR = [P, -P], BR = [P, P], BL = [-P, P];
 const at = (point: readonly number[]) => dot(CENTER + point[0], CENTER + point[1]);
 
-const T1_STAGGER: Array<[number, number, number]> = [4, 12, 20].map((start) => [start, start + 13, start + 26]);
+/** T1 每个点起跳、到顶、落回的位置(周期百分比):起跳和落回的节奏按 2.4 秒周期时的秒数保留,只缩短最后一个点落回后的停顿。 */
+const T1_PERIOD_S = 1.7;
+const T1_STAGGER: Array<[number, number, number]> = [0.096, 0.288, 0.48].map((start) => [start, start + 0.312, start + 0.624].map((seconds) => (seconds / T1_PERIOD_S) * 100) as [number, number, number]);
 const C1_PATHS: Stop[][] = [
   [[0, TL], [5, TL], [17, BR], [55, BR], [67, TL], [100, TL]],
   [[0, BR], [5, BR], [17, TL], [55, TL], [67, BR], [100, BR]],
@@ -277,6 +281,9 @@ const C4_PATHS: Stop[][] = [loopStops(CLOCKWISE, 0), loopStops(CLOCKWISE, 2), lo
 const SPIN: Stop[] = [[0, [0]], [6, [0]], [88, [120]], [100, [120]]];
 const T2_RADIUS: Stop[] = [[0, [6]], [6, [6]], [47, [2.5]], [88, [6]], [100, [6]]];
 const T3_RADIUS: Stop[] = [[0, [6]], [6, [6]], [38, [0]], [46, [0]], [88, [6]], [100, [6]]];
+/** T5 的两个姿势:[外侧点的横向距离, 外侧点半径, 中间点半径]。 */
+const T5_MIDDLE_BIG = [4.8, 1.1, 1.7] as const;
+const T5_OUTER_BIG = [5.8, 1.8, 0.9] as const;
 const C2_TURN: Stop[] = [[0, [0, 1]], [8, [0, 1]], [43, [45, 0.7]], [78, [90, 1]], [100, [90, 1]]];
 
 const arms = (seconds: number, radiusStops: Stop[]): OrbDot[] => {
@@ -296,7 +303,7 @@ export function orbFrame(style: OrbStyle, seconds: number): OrbFrame {
   let path = "";
   switch (style) {
     case "t1": {
-      const pct = percentOf(seconds, 2.4);
+      const pct = percentOf(seconds, T1_PERIOD_S);
       dots = T1_STAGGER.map(([start, peak, end], index) => {
         const [lift, opacity] = sample([[0, [0, 0.35]], [start, [0, 0.35]], [peak, [-3.5, 1]], [end, [0, 0.35]], [100, [0, 0.35]]], pct);
         return dot(CENTER + (index - 1) * 6, CENTER + lift, DOT_RADIUS, opacity);
@@ -313,6 +320,15 @@ export function orbFrame(style: OrbStyle, seconds: number): OrbFrame {
     case "t4":
       dots = [...tiltedOrbit(seconds).map((item) => dot(CENTER + item.x, CENTER + item.y, DOT_RADIUS * item.scale)), hidden()];
       break;
+    case "t5": {
+      // T5:三点一字排开,「中间大、两边小」和「两边大、中间小」在两个姿势之间平滑来回;
+      // 余弦做底,波形两端各削掉 3%,再过一次 smootherstep:两个姿势各停留一小会儿,进出都是缓的。
+      const wave = 0.5 - 0.5 * Math.cos((2 * Math.PI * percentOf(seconds, 1.5)) / 100);
+      const amount = smootherstep((wave - 0.03) / 0.94);
+      const [spread, outer, middle] = T5_MIDDLE_BIG.map((value, axis) => lerp(value, T5_OUTER_BIG[axis], amount));
+      dots = [dot(CENTER - spread, CENTER, outer), dot(CENTER, CENTER, middle), dot(CENTER + spread, CENTER, outer), hidden()];
+      break;
+    }
     case "c1":
       dots = C1_PATHS.map((stops) => at(sample(stops, percentOf(seconds, 4.8))));
       break;
@@ -336,8 +352,6 @@ export function orbFrame(style: OrbStyle, seconds: number): OrbFrame {
   }
   return { dots, path, pathOpacity: path ? 0.8 : 0 };
 }
-
-const lerp = (from: number, to: number, amount: number) => from + (to - from) * amount;
 
 /** 从上一帧平滑过渡到新样式的一帧:位置、大小、透明度各自插值;线由新样式的线淡入。 */
 export function blendOrbFrames(from: OrbFrame, to: OrbFrame, amount: number): OrbFrame {

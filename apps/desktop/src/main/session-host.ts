@@ -274,6 +274,10 @@ export class SessionHost {
       if (typeof raw !== "boolean") throw new Error("运行视图设置不正确");
       this.runtime.setRunView(raw);
     });
+    ipcMain.handle(IpcChannel.setRecommendedActions, (_event, raw: unknown) => {
+      if (typeof raw !== "boolean") throw new Error("推荐操作设置不正确");
+      this.runtime.setRecommendedActions(raw);
+    });
     ipcMain.handle(IpcChannel.getContextLimit, () => this.runtime.getContextLimit());
     ipcMain.handle(IpcChannel.setContextLimit, (_event, raw: unknown) => this.runtime.setContextLimit(raw));
     ipcMain.handle(IpcChannel.getConversationContextLimit, (_event, id: unknown) => this.runtime.getConversationContextLimit(id));
@@ -282,6 +286,9 @@ export class SessionHost {
     ipcMain.handle(IpcChannel.setTaskBudget, (_event, raw: unknown) => this.runtime.setTaskBudgetSettings(raw));
     ipcMain.handle(IpcChannel.getConversationTaskBudget, (_event, id: unknown) => this.runtime.getConversationTaskBudget(id));
     ipcMain.handle(IpcChannel.setConversationTaskBudget, (_event, id: unknown, raw: unknown) => this.runtime.setConversationTaskBudget(id, raw));
+    ipcMain.handle(IpcChannel.getModelPrices, () => this.runtime.getModelPrices());
+    ipcMain.handle(IpcChannel.setModelPrices, (_event, raw: unknown) => this.runtime.setModelPrices(raw));
+    ipcMain.handle(IpcChannel.estimateTaskCost, (_event, id: unknown) => this.runtime.estimateTaskCost(id));
     ipcMain.handle(IpcChannel.listSkills, () => this.runtime.listSkills(this.hooks.currentCwd()));
     ipcMain.handle(IpcChannel.scanExternalSkills, () => this.runtime.scanExternalSkills(this.hooks.currentCwd()));
     ipcMain.handle(IpcChannel.migrateSkills, (_event, raw: unknown) => {
@@ -340,7 +347,8 @@ export class SessionHost {
   }
 
   private onRuntimeEvent(event: RuntimeEvent): void {
-    if (event.type === "prompt_end") return;
+    // 这两类事件只给主进程里的收件箱用，不广播给渲染层。
+    if (event.type === "prompt_end" || event.type === "task_budget") return;
     // 流式参数阶段的 tool_start 只是提前亮出卡片，同一个调用开始执行时才会再发一次并计数。
     if (event.type === "tool_start" && !event.activity.streaming) this.runtime.addUsage(event.conversationId, 0, 1);
 

@@ -55,7 +55,12 @@ if (!process.versions.electron) {
       await evaluate("new Promise(done => setTimeout(done, 250))");
       writeFileSync(join(process.env.VELA_SIDE_CHAT_CAPTURE, `${name}.png`), (await win.webContents.capturePage()).toPNG());
     };
-    const view = ".workbench-tabpanel:not(.is-inactive) .side-chat";
+    const tabPanel = ".workbench-tabpanel:not(.is-inactive)";
+    const home = tabPanel + " .side-chat-home";
+    const view = tabPanel + " .side-chat-pane:not([hidden]) .side-chat";
+    const homeShown = `document.querySelector(${JSON.stringify(home)}) && !document.querySelector(${JSON.stringify(home)}).hidden`;
+    const rows = () => evaluate(`[...document.querySelectorAll(${JSON.stringify(home + " .side-chat-thread")})].map(el => ({ title: el.querySelector('.side-chat-thread-title').textContent, preview: el.querySelector('.side-chat-thread-preview').textContent, replying: el.querySelector('.is-replying') !== null }))`);
+    const setValue = (selector, value) => evaluate(`(() => { const el = document.querySelector(${JSON.stringify(selector)}); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(el, ${JSON.stringify(value)}); el.dispatchEvent(new Event('input', {bubbles:true})); })()`);
     const input = view + " textarea";
     const type = async value => {
       await evaluate(`(() => { const el = document.querySelector(${JSON.stringify(input)}); Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set.call(el, ${JSON.stringify(value)}); el.dispatchEvent(new Event('input', {bubbles:true})); })()`);
@@ -73,8 +78,13 @@ if (!process.versions.electron) {
       await newTab();
       assert.equal(await text(sideOption + " .start-option-title"), "侧边聊天");
       await click(sideOption);
-      await until(`document.querySelector(${JSON.stringify(view)})`);
+      // 先进到本项目的聊天列表；还没有聊天时给出提示，新聊天按钮进入对话。
+      await until(homeShown);
       assert.equal(await text(".workbench-tab[aria-selected=true] .workbench-tab-label"), "侧边聊天");
+      assert.ok((await text(home + " .side-chat-empty")).includes("还没有侧边聊天"));
+      await capture("side-chat-list-empty");
+      await click(home + " .side-chat-new");
+      await until(`document.querySelector(${JSON.stringify(view)})`);
       assert.ok((await text(view + " .side-chat-empty")).includes("不会读写文件或运行命令"));
       assert.equal(await text(view + " .side-chat-meta .side-chat-chip:nth-child(2)"), "带入长期记忆");
       await until(`document.activeElement === document.querySelector(${JSON.stringify(input)})`);
@@ -177,20 +187,82 @@ if (!process.versions.electron) {
       await click(view + " .model-pill");
       await evaluate("document.documentElement.style.removeProperty('--workbench-width')");
 
-      // 清空；第二个侧边聊天编号；关闭仍在回复的标签会停止请求。
-      await click(view + " .side-chat-clear");
-      await until(`document.querySelector(${JSON.stringify(view + " .side-chat-empty")})`);
-      await newTab(); await click(sideOption);
-      await until("[...document.querySelectorAll('.workbench-tab-label')].some(el => el.textContent === '侧边聊天 2')");
-      // 新开的侧边聊天沿用上一次的选择。
+      // 返回聊天列表：刚才的聊天在列表里，名字取自第一条消息。
+      await click(view + " .side-chat-icon-button[aria-label='返回聊天列表']");
+      await until(homeShown);
+      let list = await rows();
+      assert.equal(list.length, 1);
+      assert.equal(list[0].title, "TypeScript 的 satisfies 是做什么的？");
+      assert.ok(list[0].preview.includes("在。"));
+      await capture("side-chat-list");
+
+      // 搜索：按名字和全部消息匹配并高亮，没有匹配时提示，清除后恢复。
+      await setValue(home + " .side-chat-search input", "更窄类型");
+      await until(`document.querySelector(${JSON.stringify(home + " .side-chat-thread-preview mark")})?.textContent === '更窄类型'`);
+      assert.equal((await rows()).length, 1);
+      await setValue(home + " .side-chat-search input", "不存在的词");
+      await until(`document.querySelector(${JSON.stringify(home + " .side-chat-empty")})`);
+      assert.ok((await text(home + " .side-chat-empty")).includes("没有匹配的聊天"));
+      await click(home + " .side-chat-search-clear");
+      await until(`document.querySelectorAll(${JSON.stringify(home + " .side-chat-thread")}).length === 1`);
+
+      // 新聊天沿用上一次的模型选择；还在回复时返回列表不会中断，列表里显示「正在回复」。
+      await click(home + " .side-chat-new");
+      await until(`document.querySelector(${JSON.stringify(view)})`);
       await until(`document.querySelector(${JSON.stringify(view + " .model-pill")})?.textContent.includes('Model Two')`);
       assert.equal(await text(view + " .model-choice-pill:not(.model-pill)"), "高");
       await type("关闭前的问题"); await enter();
       await until("sideChatFixture.requests.length === 6");
       const cancelledBefore = await evaluate("sideChatFixture.cancelled.length");
+      await click(view + " .side-chat-icon-button[aria-label='返回聊天列表']");
+      await until(homeShown);
+      await until(`document.querySelectorAll(${JSON.stringify(home + " .side-chat-thread")}).length === 2`);
+      assert.equal(await evaluate("sideChatFixture.cancelled.length"), cancelledBefore);
+      list = await rows();
+      assert.equal(list[0].title, "关闭前的问题");
+      assert.equal(list[0].replying, true);
+      await evaluate("sideChatFixture.delta('后台收到'); sideChatFixture.finish()");
+      await until(`document.querySelector(${JSON.stringify(home + " .side-chat-thread-preview")})?.textContent === '后台收到'`);
+      await click(home + " .side-chat-thread");
+      await until(`document.querySelector(${JSON.stringify(view)})`);
+      assert.ok((await text(view + " .side-chat-assistant")).includes("后台收到"));
+
+      // 删除：垃圾桶需要二次确认；列表和磁盘（夹具）里都不再有它。
+      await click(view + " .side-chat-icon-button[aria-label='返回聊天列表']");
+      await until(homeShown);
+      await click(home + " .side-chat-thread-delete");
+      await until(`document.querySelector(${JSON.stringify(home + " .side-chat-thread-delete.is-armed")})`);
+      assert.equal((await rows()).length, 2, "the first click must only ask for confirmation");
+      await click(home + " .side-chat-thread-delete.is-armed");
+      await until(`document.querySelectorAll(${JSON.stringify(home + " .side-chat-thread")}).length === 1`);
+      assert.equal(await evaluate("[...sideChatFixture.threads.values()].flat().length"), 1);
+      // 对话界面里也能删除，删除后回到列表。
+      await click(home + " .side-chat-thread");
+      await until(`document.querySelector(${JSON.stringify(view)})`);
+      await click(view + " .confirm-delete");
+      await click(view + " .confirm-delete.is-armed");
+      await until(homeShown);
+      await until(`document.querySelector(${JSON.stringify(home + " .side-chat-empty")})`);
+      assert.equal(await evaluate("[...sideChatFixture.threads.values()].flat().length"), 0);
+
+      // 关闭标签：仍在回复的请求被停止；已保存的聊天在重新打开后回到列表里。
+      await click(home + " .side-chat-new");
+      await until(`document.querySelector(${JSON.stringify(view)})`);
+      await type("关闭时仍在回复"); await enter();
+      await until("sideChatFixture.requests.length === 7");
+      const cancelledOpen = await evaluate("sideChatFixture.cancelled.length");
       await click(".workbench-tab-close:last-child");
-      await until(`sideChatFixture.cancelled.length === ${cancelledBefore + 1}`);
-      assert.equal(await evaluate("document.querySelectorAll('.side-chat').length"), 1);
+      await until(`sideChatFixture.cancelled.length === ${cancelledOpen + 1}`);
+      await until("document.querySelectorAll('.side-chat').length === 0");
+      const requestsBefore = await evaluate("sideChatFixture.requests.length");
+      await newTab(); await click(sideOption);
+      await until(homeShown);
+      await until(`document.querySelectorAll(${JSON.stringify(home + " .side-chat-thread")}).length === 1`);
+      assert.equal((await rows())[0].title, "关闭时仍在回复");
+      await click(home + " .side-chat-thread");
+      await until(`document.querySelector(${JSON.stringify(view)})`);
+      assert.ok((await text(view + " .side-chat-bubble")).includes("关闭时仍在回复"));
+      assert.equal(await evaluate("sideChatFixture.requests.length"), requestsBefore, "restoring must not send a request");
 
       for (const [locale, label] of [["en", "Side chat"], ["zh-TW", "側邊聊天"], ["ja", "サイドチャット"], ["ko", "사이드 채팅"]]) {
         await win.loadFile(join(temporary, "index.html"), { query: { locale } });
@@ -198,7 +270,7 @@ if (!process.versions.electron) {
         assert.equal(await text(sideOption + " .start-option-title"), label);
       }
       assert.equal(errors.length, 0, errors.join("\n"));
-      console.log("PASS side chat tab, own model and reasoning choice, streaming, memory status, history, stop, retry, follows main chat, narrow width, close cancels, locales");
+      console.log("PASS side chat tab, own model and reasoning choice, streaming, memory status, history, stop, retry, follows main chat, narrow width, list and search, back to list, background reply, delete, close cancels, restore saved chats, locales");
       win.destroy(); app.exit(0);
     } catch (error) {
       console.error(error);

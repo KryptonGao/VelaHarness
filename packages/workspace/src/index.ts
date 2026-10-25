@@ -15,6 +15,7 @@ export { parsePatchSection, buildPatchFromHunks, missingHunkIndexes, type PatchH
 export { parseGithubSlug } from "./github-url";
 export { PullRequestService } from "./pull-request-service";
 export { SandboxPermissionManager, sandboxApprovalTimeoutMs } from "./sandbox-permission-manager";
+export { BackgroundShellManager, type BackgroundShellInfo } from "./background-shells";
 export { createSandboxedToolDefinitions, type SandboxToolFactoryInput } from "./sandbox-tools";
 export { ExecutionEnvironmentManager } from "./environment-manager";
 export { createWorktree, removeWorktree } from './git-worktree';

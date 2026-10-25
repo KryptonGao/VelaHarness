@@ -1,4 +1,4 @@
-import { parseOutcomeSubmission, type SubagentKind, type ToolActivity, type ToolPlanItem, type ToolStep } from "@vela/shared";
+import { parseOutcomeSubmission, parseRecommendedActions, recommendedActionsToolName, type SubagentKind, type ToolActivity, type ToolPlanItem, type ToolStep } from "@vela/shared";
 import { followupTaskToolName, sendMessageToolName, spawnAgentToolName } from "./subagent";
 
 const maxChars = 80_000;
@@ -15,10 +15,15 @@ export function activityFromCall(toolName: string, args: unknown): ToolActivity 
     const body = modeToolSummary(toolName, args);
     return { ...(outcome ? { outcome } : {}), ...(body ? { body } : {}) };
   }
+  if (toolName === recommendedActionsToolName) {
+    const recommendedActions = parseRecommendedActions(args);
+    return recommendedActions ? { recommendedActions, body: recommendedActions.question } : {};
+  }
   if (toolName === "browser_repl") return { command: readString(args, "code") };
   // 网页工具：卡片标题直接显示搜索词或网址。
   if (toolName === "web_search") return { command: readString(args, "query") };
   if (toolName === "web_fetch") return { command: readString(args, "url") };
+  if (toolName === "bash_output" || toolName === "bash_kill") return { body: readString(args, "shell_id") ?? "" };
   const command = readString(args, "command");
   const path = readString(args, "path") ?? readString(args, "file_path");
   const mcp = mcpIdentity(toolName);
@@ -55,6 +60,9 @@ export function activityFromExecution(
     return { ...call, mcp: mcpIdentity(toolName, detailsOf(result)), body: clip(text) || (isError ? "执行失败" : undefined) };
   }
   if (toolName === "browser_repl") return { ...call, body: browserResultBody(result, text) };
+  if (toolName === recommendedActionsToolName) {
+    return isError ? { body: clip(text) || "推荐操作提交失败" } : call;
+  }
   if (toolName === "submit_outcome") {
     return { ...call, body: clip(text) || (isError ? "成果验收提交失败" : call.body || "已提交成果验收") };
   }

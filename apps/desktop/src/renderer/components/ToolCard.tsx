@@ -1330,6 +1330,7 @@ function toolLabel(name: string, kind: ToolKind): string {
   if (name === "update_plan") return tr("执行清单", "Execution");
   if (name === "update_todos") return tr("待办", "Todos");
   if (name === "submit_outcome") return tr("交付", "Outcome");
+  if (name === "recommend_actions") return tr("推荐操作", "Recommended actions");
   if (cardToolGroup(name) === "schedule") return tr("定时任务", "Schedule");
   if (cardToolGroup(name) === "memory") return tr("记忆", "Memory");
   if (name === "record_goal_validation") return tr("验证", "Validation");
@@ -1337,6 +1338,8 @@ function toolLabel(name: string, kind: ToolKind): string {
   if (name === "complete_step") return tr("步骤", "Step");
   if (name === "web_search") return tr("网页搜索", "Web search");
   if (name === "web_fetch") return tr("网页抓取", "Web fetch");
+  if (name === "bash_output") return tr("后台输出", "Background output");
+  if (name === "bash_kill") return tr("结束后台命令", "Stop background");
   return toolKindLabel(kind);
 }
 
@@ -1382,7 +1385,8 @@ function subjectOf(kind: ToolKind, activity: ToolActivity, name: string): { name
       name === "record_goal_validation" ||
       name === "update_goal" ||
       name === "complete_step" ||
-      name === "submit_outcome"
+      name === "submit_outcome" ||
+      name === "recommend_actions"
     ) {
       const line = activity.body?.split("\n").find((item) => item.trim())?.trim();
       return { name: line || name, dir: "" };

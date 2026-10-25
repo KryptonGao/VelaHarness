@@ -49,6 +49,7 @@ const toolDisplayKey = "vela.toolDisplay";
 const toolFoldKey = "vela.toolFold";
 const toolProcessDetailsKey = "vela.toolProcessDetails";
 const runViewKey = "vela.runView";
+const recommendedActionsKey = "vela.recommendedActions";
 const toolIconColorKey = "vela.toolIconColor";
 const thinkingSummaryKey = "vela.thinkingSummary";
 const thinkingSummaryStyleKey = "vela.thinkingSummaryStyle";
@@ -200,6 +201,10 @@ export function usePreferences() {
   const [runView, setRunView] = useState(() =>
     readStored(runViewKey, (value): value is string => value === "true", "false") === "true",
   );
+  /** 推荐操作：模型完成任务后可给出后续操作卡片。默认开启，不额外调用模型。 */
+  const [recommendedActions, setRecommendedActions] = useState(() =>
+    readStored(recommendedActionsKey, (value): value is string => value === "true" || value === "false", "true") === "true",
+  );
   const [thinkingSummary, setThinkingSummary] = useState(() =>
     readStored(thinkingSummaryKey, (value): value is string => value === "true", "false") === "true",
   );
@@ -324,6 +329,10 @@ export function usePreferences() {
     // 运行时要据此决定是否要求模型提交待办清单;浏览器预览等没有 window.vela 的环境直接跳过。
     void Promise.resolve(window.vela?.setRunView(runView)).catch(() => undefined);
   }, [runView]);
+  useEffect(() => {
+    writeStored(recommendedActionsKey, String(recommendedActions));
+    void Promise.resolve(window.vela?.setRecommendedActions(recommendedActions)).catch(() => undefined);
+  }, [recommendedActions]);
   useEffect(() => writeStored(thinkingSummaryKey, String(thinkingSummary)), [thinkingSummary]);
   useEffect(() => writeStored(thinkingSummaryStyleKey, thinkingSummaryStyle), [thinkingSummaryStyle]);
   useEffect(() => writeStored(thinkingSummaryModelKey, JSON.stringify(thinkingSummaryModel)), [thinkingSummaryModel]);
@@ -377,6 +386,7 @@ export function usePreferences() {
     toolFold,
     toolProcessDetails,
     runView,
+    recommendedActions,
     toolIconColor,
     thinkingSummary,
     thinkingSummaryStyle,
@@ -408,6 +418,7 @@ export function usePreferences() {
     setToolFold,
     setToolProcessDetails,
     setRunView,
+    setRecommendedActions,
     setToolIconColor,
     setThinkingSummary,
     setThinkingSummaryStyle,

@@ -55,6 +55,10 @@ export function itemLabel(item: AgentInboxItem): string {
     case "result": return scheduled ? tr("定时任务已完成", "Scheduled task finished") : resident ? tr("后台任务已完成", "Background task finished") : tr("对话已完成", "Conversation finished");
     case "system": return scheduled ? tr("定时任务已跳过", "Scheduled task skipped") : typeLabels.system();
     case "review": return tr("计划待检查", "Plan ready for review");
+    case "alert":
+      if (item.outcome === "cost_exhausted") return tr("任务费用已到上限，已停止", "Task cost limit reached, stopped");
+      if (item.outcome === "cost_warning") return tr("任务费用接近上限", "Task cost is near its limit");
+      return typeLabels.alert();
     default: return typeLabels[item.type]();
   }
 }

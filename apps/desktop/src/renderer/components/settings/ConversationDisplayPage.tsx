@@ -29,6 +29,7 @@ export function ConversationDisplayPage({
     toolFold,
     toolProcessDetails,
     runView,
+    recommendedActions,
     toolIconColor,
     thinkingSummary,
     thinkingSummaryStyle,
@@ -39,6 +40,7 @@ export function ConversationDisplayPage({
     setToolFold,
     setToolProcessDetails,
     setRunView,
+    setRecommendedActions,
     setToolIconColor,
     setThinkingSummary,
     setThinkingSummaryStyle,
@@ -155,6 +157,17 @@ export function ConversationDisplayPage({
             { id: "on", label: text.runViewOn },
           ]}
           onChange={(value) => setRunView(value === "on")}
+        />
+      </SettingsBlock>
+      <SettingsBlock id="recommended-actions" title={text.recommendedActions} hint={text.recommendedActionsHint}>
+        <Segmented
+          label={text.recommendedActions}
+          value={onOff(recommendedActions)}
+          options={[
+            { id: "off", label: text.recommendedActionsOff },
+            { id: "on", label: text.recommendedActionsOn },
+          ]}
+          onChange={(value) => setRecommendedActions(value === "on")}
         />
       </SettingsBlock>
       <SettingsBlock

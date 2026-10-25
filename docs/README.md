@@ -27,6 +27,7 @@
 | [model-catalog.md](./model-catalog.md) | 使用者与开发者 | 模型列表的自动与手动刷新、Pi 的 4 小时检查间隔、按 Pi 版本过滤模型目录，以及升级 Pi 后的验收步骤。 |
 | [memory.md](./memory.md) | 使用者与开发者 | 项目记忆与全局记忆的目录、作用域、加载与刷新时机、写入权限、设置页管理、worktree 行为与验证。 |
 | [web-tools.md](./web-tools.md) | 使用者与开发者 | 网页搜索与抓取：与模型提供商分开的可自定义提供商（内置 DeepSeek 预设 + 通用 HTTP 适配器）、加密密钥存储、`web_search`/`web_fetch` 工具、审批策略、不可信内容与安全边界、设置页与验证。 |
+| [background-shells.md](./background-shells.md) | 使用者与开发者 | 后台命令：`bash` 的 `run_in_background`、`bash_output` / `bash_kill`、结束后唤醒主代理、权限与 Plan/子代理限制、输出保留与已知限制。 |
 | [side-chat.md](./side-chat.md) | 使用者与开发者 | 侧边聊天：工作面板里不带工具的轻量对话，带入全局与项目记忆，可单独选择模型与推理强度；模型与记忆的选择、历史与停止、实现位置与验证。 |
 | [compact-chat-ui/](./compact-chat-ui/README.md) | 开发者 | 紧凑工具调用模式与整条对话流的样式（仅晴空浅色主题）、令牌、DOM 结构、折叠与滚动规则，配套可离线打开的参考页 [compact-chat-ui/compact-chat-ui.html](./compact-chat-ui/compact-chat-ui.html)，用于在其他 Harness 里复刻界面。 |
 | [built-in-mcp-plugins.md](./built-in-mcp-plugins.md) | 使用者与开发者 | Notion 内置插件、通用 OAuth、安全凭证、插件扩展与验证边界。 |
@@ -34,6 +35,7 @@
 | [requirements/version-control.md](./requirements/version-control.md) | 产品与开发者 | 版本控制需求：Git/GH CLI 分工、Commit 与同步、提交关系图、PR、AI 文案辅助及验收标准；P0–P2 已实现，P3 尚未实现。 |
 | [requirements/pull-requests.md](./requirements/pull-requests.md) | 产品与开发者 | Pull Request 中心方案：仅经 GH CLI 访问 GitHub，跨仓库关联查询、分页去重、概览与 diff、同步及验收；第一期读取闭环已实现，AI 与远程写入留待后续。 |
 | [pr-inbox.md](./pr-inbox.md) | 使用者与开发者 | Pull Request 中心的已实现能力、gh/IPC/缓存结构、针对性验证和第一期边界，以及让 Agent 回应审阅意见（工作树修改、确认后推送并回复）。 |
+| [task-cost-guard.md](./task-cost-guard.md) | 使用者与开发者 | 任务费用护栏：按人民币/美元设置任务费用上限、币种与未登记价格的处理、逼近上限时的收件箱提醒、按同类历史任务的开跑前预估、价格同步、实现位置与限制。 |
 | [task-recipes.md](./task-recipes.md) | 使用者与开发者 | 任务配方 P0/P1/P2 的使用、结构化阶段、分支审批与重试、团队共享、效果比较，以及验证和边界。 |
 | [requirements/task-recipes.md](./requirements/task-recipes.md) | 产品与开发者 | 任务配方需求基线：参数化模板、预览、新对话启动、版本快照与使用记录；P0/P1/P2 已实现。 |
 | [intelligent-ui.md](./intelligent-ui.md) | 使用者与开发者 | Intelligent UI 的已实现能力：`vela-ui` 协议、组件与表达式、流式解析、本地状态与生命周期、图表与图解、可信数据源、本地指标与检查器、沙盒微应用、安全限制、导出、实现位置与验证（P0–P2）。 |

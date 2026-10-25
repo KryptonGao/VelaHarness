@@ -268,7 +268,7 @@ function RecipeUse({ recipe: initial, run, latest, workspace, workspaces, catalo
   const localErrors = validateRecipeValues(recipe, values); const errors = { ...localErrors, ...preview?.errors };
   const availableModels = catalog?.models.filter(m => m.available) ?? [];
   const selectedModel = catalog?.models.find(m => m.provider === model?.provider && m.id === model?.id);
-  const levels = selectedModel?.thinkingLevels ?? catalog?.models.find(m => m.provider === preview?.execution?.model.provider && m.id === preview?.execution?.model.id)?.thinkingLevels ?? ['off', 'minimal', 'low', 'medium', 'high', 'xhigh'];
+  const levels = selectedModel?.thinkingLevels ?? catalog?.models.find(m => m.provider === preview?.execution?.model.provider && m.id === preview?.execution?.model.id)?.thinkingLevels ?? ['off', 'minimal', 'low', 'medium', 'high', 'xhigh', 'ultra'];
   const changeCwd = (next: string) => {
     initialWorkspaceApplied.current = true;
     const cache = drafts.get(`${recipe.id}:${next}`); setCwd(next);

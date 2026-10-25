@@ -1,4 +1,4 @@
-import { clampThinkingLevel, type Api, type AssistantMessage, type Message, type Model } from "@earendil-works/pi-ai";
+import { type Api, type AssistantMessage, type Message, type Model } from "@earendil-works/pi-ai";
 import type { ModelRuntime } from "@earendil-works/pi-coding-agent";
 import {
   isAppLocale,
@@ -14,6 +14,7 @@ import {
 } from "@vela/shared";
 import { memoryContextBlock } from "./memory-context";
 import { openCodeSessionHeaders } from "./provider-headers";
+import { modelThinkingLevel } from "./thinking-level";
 
 const maxMessages = 400;
 const maxMessageChars = 100_000;
@@ -134,7 +135,8 @@ export class SideChatService {
 
   async run({ runtime, model, request, memory, memoryEnabled, onDelta }: SideChatRunInput): Promise<SideChatResult> {
     if (this.controllers.has(request.requestId)) throw new Error("侧边聊天请求不正确");
-    const thinkingLevel = clampThinkingLevel(model, request.thinkingLevel ?? "off") as ThinkingLevel;
+    // 侧边聊天没有 SubAgent，Ultra 等同于模型的最高强度。
+    const thinkingLevel = modelThinkingLevel(model, request.thinkingLevel ?? "off");
     const controller = new AbortController();
     this.controllers.set(request.requestId, controller);
     const result = (text: string, aborted: boolean): SideChatResult => ({

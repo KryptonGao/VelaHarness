@@ -1,4 +1,4 @@
-import { clampThinkingLevel, getSupportedThinkingLevels, type Api, type AuthEvent, type AuthInteraction, type AuthPrompt, type AuthType, type Model } from "@earendil-works/pi-ai";
+import { type Api, type AuthEvent, type AuthInteraction, type AuthPrompt, type AuthType, type Model } from "@earendil-works/pi-ai";
 import { ModelRuntime } from "@earendil-works/pi-coding-agent";
 import {
   customModelApis,
@@ -19,6 +19,7 @@ import {
   type ThinkingLevel,
 } from "@vela/shared";
 import { randomUUID } from "node:crypto";
+import { clampThinkingLevelFor, thinkingLevelsFor } from "./thinking-level";
 import { chmod, mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
@@ -596,14 +597,8 @@ function normalizeInstructions(value: string): string {
   return text;
 }
 
-function clampLevel(model: Model<Api>, level: ThinkingLevel): ThinkingLevel {
-  const clamped = clampThinkingLevel(model, level);
-  return isThinkingLevel(clamped) ? clamped : "off";
-}
-
-function supportedLevels(model: Model<Api>): ThinkingLevel[] {
-  return getSupportedThinkingLevels(model).filter(isThinkingLevel);
-}
+const clampLevel = clampThinkingLevelFor;
+const supportedLevels = thinkingLevelsFor;
 
 function modelKey(model: { provider: string; id: string }): string {
   return `${model.provider}\0${model.id}`;

@@ -141,6 +141,8 @@ import {
   type ContextLimitSettings,
   type ConversationContextLimit,
   type TaskBudgetSettings,
+  type TaskCostForecast,
+  type ModelPrice,
   type IntelligentUiState,
   type UiPreference,
   type UiSandboxIssueResult,
@@ -308,6 +310,9 @@ const api: VelaApi = {
   sideChat: {
     send: (request) => ipcRenderer.invoke(IpcChannel.sideChatSend, request),
     cancel: (requestId) => ipcRenderer.invoke(IpcChannel.sideChatCancel, requestId),
+    listThreads: (workspace) => ipcRenderer.invoke(IpcChannel.sideChatThreadsList, workspace),
+    saveThread: (workspace, thread) => ipcRenderer.invoke(IpcChannel.sideChatThreadsSave, workspace, thread),
+    removeThread: (workspace, threadId) => ipcRenderer.invoke(IpcChannel.sideChatThreadsRemove, workspace, threadId),
     onEvent: (listener) => {
       const handler = (_event: IpcRendererEvent, event: SideChatEvent) => listener(event);
       ipcRenderer.on(IpcChannel.sideChatEvent, handler);
@@ -435,6 +440,7 @@ const api: VelaApi = {
   setIntelligentUi: (preference: UiPreference) =>
     ipcRenderer.invoke(IpcChannel.setIntelligentUi, preference) as Promise<IntelligentUiState>,
   setRunView: (enabled: boolean) => ipcRenderer.invoke(IpcChannel.setRunView, enabled) as Promise<void>,
+  setRecommendedActions: (enabled: boolean) => ipcRenderer.invoke(IpcChannel.setRecommendedActions, enabled) as Promise<void>,
   setIntelligentUiMicroApps: (enabled: boolean) =>
     ipcRenderer.invoke(IpcChannel.setIntelligentUiMicroApps, enabled) as Promise<IntelligentUiState>,
   getContextLimit: () => ipcRenderer.invoke(IpcChannel.getContextLimit) as Promise<ContextLimitSettings>,
@@ -451,6 +457,10 @@ const api: VelaApi = {
     ipcRenderer.invoke(IpcChannel.getConversationTaskBudget, conversationId) as Promise<ConversationTaskBudget>,
   setConversationTaskBudget: (conversationId: string, settings: TaskBudgetSettings | null) =>
     ipcRenderer.invoke(IpcChannel.setConversationTaskBudget, conversationId, settings) as Promise<ConversationTaskBudget>,
+  getModelPrices: () => ipcRenderer.invoke(IpcChannel.getModelPrices) as Promise<ModelPrice[] | null>,
+  setModelPrices: (prices: ModelPrice[]) => ipcRenderer.invoke(IpcChannel.setModelPrices, prices) as Promise<void>,
+  estimateTaskCost: (conversationId: string) =>
+    ipcRenderer.invoke(IpcChannel.estimateTaskCost, conversationId) as Promise<TaskCostForecast | null>,
   uiSandboxIssue: (appKey, capability, size) =>
     ipcRenderer.invoke(IpcChannel.uiSandboxIssue, appKey, capability, size) as Promise<UiSandboxIssueResult>,
   uiSandboxRedeem: (token, appKey, capability, size) =>

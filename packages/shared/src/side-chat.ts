@@ -4,7 +4,8 @@ import type { ThinkingLevel } from "./index";
 
 /**
  * 侧边聊天：只和模型对话，不提供 Agent 工具，带入全局与当前项目的长期记忆。
- * 历史只保存在界面里，每次请求完整发送；主进程不落盘、不写进任何对话。
+ * 历史按项目保存在资料目录（`side-chats/`），同一项目的所有对话共用；
+ * 每次请求仍完整发送，不写进任何对话，也不计入轨迹和用量。
  */
 export interface SideChatMessage {
   role: "user" | "assistant";
@@ -47,9 +48,37 @@ export type SideChatEvent =
   | { requestId: string; type: "delta"; text: string }
   | { requestId: string; type: "memory"; memory: MemoryLoadReport[]; memoryEnabled: boolean; model: string };
 
+/** 落盘的一条侧边聊天消息；流式中的占位回复不保存。 */
+export interface SideChatStoredEntry {
+  id: string;
+  role: "user" | "assistant";
+  text: string;
+  /** 用户消息附带的引用文字。 */
+  quotes?: string[];
+  /** 回复被用户停止或出错中断。 */
+  stopped?: boolean;
+}
+
+/** 一个项目下的一段侧边聊天；同一项目的所有对话共用。 */
+export interface SideChatThread {
+  id: string;
+  /** 标签编号，第二个起显示在标签名里。 */
+  number: number;
+  updatedAt: number;
+  entries: SideChatStoredEntry[];
+}
+
 export interface SideChatApi {
   /** 发送并等待完整回复；过程中的增量经 onEvent 推送。失败时抛出错误。 */
   send(request: SideChatRequest): Promise<SideChatResult>;
   cancel(requestId: string): Promise<void>;
   onEvent(listener: (event: SideChatEvent) => void): () => void;
+  /**
+   * 项目下已保存的侧边聊天，按最近更新在前。workspace 为项目目录，
+   * 没有项目（空字符串）的对话共用一份。
+   */
+  listThreads(workspace: string): Promise<SideChatThread[]>;
+  /** 保存一段侧边聊天；没有消息时等同于删除。 */
+  saveThread(workspace: string, thread: SideChatThread): Promise<void>;
+  removeThread(workspace: string, threadId: string): Promise<void>;
 }

@@ -1,0 +1,144 @@
+/* 选中对话文字后的浮层，以及输入框上方的回复引用卡片。 */
+.selection-actions {
+  position: fixed;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  padding: 3px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow-popover);
+  white-space: nowrap;
+  user-select: none;
+  animation: selection-actions-in 120ms ease-out;
+}
+.selection-actions button {
+  padding: 6px 12px;
+  border-radius: 9px;
+  font-size: 14px;
+  color: var(--text-primary);
+  background: transparent;
+  transition: background-color 100ms ease;
+}
+.selection-actions button:hover { background: var(--bg-hover); }
+.selection-actions.is-replying {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  width: min(420px, calc(100vw - 16px));
+  padding: 10px 12px 10px 14px;
+  border-radius: 16px;
+  white-space: normal;
+  user-select: auto;
+}
+.selection-reply-quote { position: relative; padding-left: 12px; }
+.selection-reply-quote .reply-quote-bar { left: 0; top: 2px; height: 16px; }
+.selection-reply-quote p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--text-muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+.selection-reply-row { display: flex; align-items: flex-end; gap: 8px; }
+.selection-reply-row textarea {
+  flex: 1;
+  min-width: 0;
+  min-height: 28px;
+  max-height: 120px;
+  padding: 4px 0;
+  border: 0;
+  outline: none;
+  resize: none;
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 15px;
+  line-height: 1.4;
+  field-sizing: content;
+}
+.selection-reply-row textarea::placeholder { color: var(--text-muted); }
+.selection-actions .selection-reply-side {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--text-muted);
+}
+.selection-actions .selection-reply-side:hover { color: var(--text-primary); }
+.selection-actions-divider { width: 1px; height: 16px; background: var(--border-subtle); }
+@keyframes selection-actions-in {
+  from { opacity: 0; transform: translateY(3px); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .selection-actions { animation: none; }
+}
+
+.reply-quote-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 8px; }
+.reply-quote-row .reply-quote-card { margin: 0; }
+.reply-quote-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-self: flex-start;
+  width: min(260px, 100%);
+  margin: 0 0 8px;
+  padding: 10px 28px 10px 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg, 14px);
+  background: var(--bg-surface-subtle);
+  box-sizing: border-box;
+}
+.reply-quote-bar {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  width: 3px;
+  height: 18px;
+  border-radius: 2px;
+  background: var(--border-strong);
+}
+.reply-quote-text {
+  margin: 0 0 0 12px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.reply-quote-badge {
+  align-self: flex-start;
+  padding: 1px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.reply-quote-remove {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--text-dim);
+  background: transparent;
+}
+.reply-quote-remove:hover { background: var(--bg-hover); color: var(--text-primary); }

@@ -1,4 +1,4 @@
-import { formatTaskBudgetTokens, parseTaskBudgetSettings, taskBudgetLimits, type TaskBudgetSettings } from "@vela/shared";
+import { formatTaskBudgetTokens, parseTaskBudgetSettings, pricingCurrencies, pricingCurrencySymbols, taskBudgetLimits, type PricingCurrency, type TaskBudgetSettings } from "@vela/shared";
 import { useEffect, useState } from "react";
 import { localizeError, tr, trf } from "../../locale";
 import type { SettingsCopy } from "../settings-copy";
@@ -85,6 +85,8 @@ export function TaskBudgetFields({ text, value, disabled, onCommit }: {
   const [minutes, setMinutes] = useState("");
   const [tokens, setTokens] = useState("");
   const [subagents, setSubagents] = useState("");
+  const [cost, setCost] = useState("");
+  const [currency, setCurrency] = useState<PricingCurrency>("CNY");
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -92,23 +94,29 @@ export function TaskBudgetFields({ text, value, disabled, onCommit }: {
     setMinutes(value.maxMinutes === null ? "" : String(value.maxMinutes));
     setTokens(value.maxTokens === null ? "" : String(value.maxTokens));
     setSubagents(String(value.maxSubagents));
+    setCost(value.maxCost ? String(value.maxCost.amount) : "");
+    if (value.maxCost) setCurrency(value.maxCost.currency);
   }, [value]);
 
-  async function commit(draft: { enabled: boolean; minutes: string; tokens: string; subagents: string; nested: boolean }): Promise<void> {
+  async function commit(draft: { enabled: boolean; minutes: string; tokens: string; subagents: string; nested: boolean; cost: string; currency: PricingCurrency }): Promise<void> {
+    const amount = readLimit(draft.cost);
     const next = {
       enabled: draft.enabled,
       maxMinutes: readLimit(draft.minutes),
       maxTokens: readLimit(draft.tokens),
+      // 金额留空表示不限；不是数字时交给校验报错。
+      maxCost: amount === null ? null : amount === undefined ? undefined : { currency: draft.currency, amount },
       maxSubagents: draft.subagents.trim() ? Number(draft.subagents) : undefined,
       allowNestedSubagents: draft.nested,
     };
     try {
-      if (next.maxMinutes === undefined || next.maxTokens === undefined || next.maxSubagents === undefined || Number.isNaN(next.maxSubagents)) {
+      if (next.maxMinutes === undefined || next.maxTokens === undefined || next.maxCost === undefined || next.maxSubagents === undefined || Number.isNaN(next.maxSubagents)) {
         throw new Error("请输入数字");
       }
       const parsed = parseTaskBudgetSettings(next);
       // 没有改动就不提交，避免只是点一下滑块或失焦就把「沿用全局」的对话写成自定义。
       if (value && parsed.enabled === value.enabled && parsed.maxMinutes === value.maxMinutes && parsed.maxTokens === value.maxTokens
+        && parsed.maxCost?.amount === value.maxCost?.amount && parsed.maxCost?.currency === value.maxCost?.currency
         && parsed.maxSubagents === value.maxSubagents && parsed.allowNestedSubagents === value.allowNestedSubagents) {
         setError(null);
         return;
@@ -131,7 +139,7 @@ export function TaskBudgetFields({ text, value, disabled, onCommit }: {
           checked={enabled}
           label={text.taskBudgetEnabled}
           disabled={inactive}
-          onChange={(next) => void commit({ enabled: next, minutes, tokens, subagents, nested })}
+          onChange={(next) => void commit({ enabled: next, minutes, tokens, subagents, nested, cost, currency })}
         />
       </div>
       <LimitControl
@@ -147,7 +155,7 @@ export function TaskBudgetFields({ text, value, disabled, onCommit }: {
         placeholder={text.taskBudgetNoLimit}
         disabled={inactive}
         onChange={setMinutes}
-        onCommit={() => void commit({ enabled, minutes, tokens, subagents, nested })}
+        onCommit={() => void commit({ enabled, minutes, tokens, subagents, nested, cost, currency })}
       />
       <LimitControl
         label={text.taskBudgetTokens}
@@ -162,8 +170,41 @@ export function TaskBudgetFields({ text, value, disabled, onCommit }: {
         placeholder={text.taskBudgetNoLimit}
         disabled={inactive}
         onChange={setTokens}
-        onCommit={() => void commit({ enabled, minutes, tokens, subagents, nested })}
+        onCommit={() => void commit({ enabled, minutes, tokens, subagents, nested, cost, currency })}
       />
+      <div className="tb-limit" data-disabled={inactive ? "true" : undefined}>
+        <div className="tb-limit-head">
+          <span className="tb-limit-label">{text.taskBudgetCost}</span>
+          <div className="tb-seg tb-currency" role="radiogroup" aria-label={text.taskBudgetCostCurrency}>
+            {pricingCurrencies.map((code) => (
+              <button key={code} type="button" role="radio" aria-checked={currency === code} data-active={currency === code ? "true" : undefined} disabled={inactive}
+                onClick={() => {
+                  if (code === currency) return;
+                  setCurrency(code);
+                  // 没填金额时只是切换币种，不提交。
+                  if (cost.trim()) void commit({ enabled, minutes, tokens, subagents, nested, cost, currency: code });
+                }}>{code}</button>
+            ))}
+          </div>
+          <label className="tb-number">
+            <span aria-hidden="true">{pricingCurrencySymbols[currency]}</span>
+            <input
+              type="number"
+              aria-label={text.taskBudgetCost}
+              inputMode="decimal"
+              min={taskBudgetLimits.minCost}
+              max={taskBudgetLimits.maxCost}
+              step={0.5}
+              value={cost}
+              placeholder={text.taskBudgetNoLimit}
+              disabled={inactive}
+              onChange={(event) => setCost(event.target.value)}
+              onBlur={() => void commit({ enabled, minutes, tokens, subagents, nested, cost, currency })}
+            />
+          </label>
+        </div>
+        <p className="tb-limit-hint">{text.taskBudgetCostHint}</p>
+      </div>
       <div className="tb-subagents">
         <div className="tb-limit" data-disabled={inactive ? "true" : undefined}>
           <div className="tb-limit-head">
@@ -179,7 +220,7 @@ export function TaskBudgetFields({ text, value, disabled, onCommit }: {
                 value={subagents}
                 disabled={inactive}
                 onChange={(event) => setSubagents(event.target.value)}
-                onBlur={() => void commit({ enabled, minutes, tokens, subagents, nested })}
+                onBlur={() => void commit({ enabled, minutes, tokens, subagents, nested, cost, currency })}
               />
               <span aria-hidden="true">{tr("个", "agents")}</span>
             </label>
@@ -192,7 +233,7 @@ export function TaskBudgetFields({ text, value, disabled, onCommit }: {
             checked={nested}
             label={text.taskBudgetNested}
             disabled={inactive}
-            onChange={(next) => void commit({ enabled, minutes, tokens, subagents, nested: next })}
+            onChange={(next) => void commit({ enabled, minutes, tokens, subagents, nested: next, cost, currency })}
           />
         </div>
       </div>

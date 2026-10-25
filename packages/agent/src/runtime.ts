@@ -3,13 +3,13 @@ import { PluginRegistry } from "./mcp/plugin-registry";
 import { OAuthMCPManager } from "./mcp/oauth";
 import { PluginMCPManager } from "./mcp/manager";
 import type { CredentialStore } from "./mcp/credentials";
-import { compactionTokensForLimit, effectiveContextWindow, parseContextLimitSettings, parseTaskBudgetSettings, type ContextLimitSettings, type ConversationContextLimit, type ConversationTaskBudget, type TaskBudgetSettings } from "@vela/shared";
+import { compactionTokensForLimit, effectiveContextWindow, estimateTaskCost, parseContextLimitSettings, parseTaskBudgetSettings, primaryModel, taskBudgetWarnRatio, taskCostKinds, type ContextLimitSettings, type ConversationContextLimit, type ConversationTaskBudget, type ModelPrice, type TaskBudgetCostLimit, type TaskBudgetSettings, type TaskBudgetState, type TaskCostForecast } from "@vela/shared";
 import type { BuiltInPlugin, IntelligentUiState, PluginCatalog, PluginTarget, PluginStatusEvent, UiPreference } from "@vela/shared";
 import { redactMcpDisplay, mcpConfiguredSecrets, preserveTraceModels } from "./mcp-redaction";
 import { McpSessionBridge, isMcpTool, type McpPermission } from "./mcp-session";
 import { createScheduledTaskTools, scheduledTaskInstructions } from "./scheduled-task-tools";
 import { RecipeGenerator, parseRecipeGenerateInput } from './recipe-generator';
-import type { RaceTokens, RecipeExecution, RecipeRun, RecipeStageSubmission, RecipeSubmitResult, RecipeStageEvidence, RecipeUseDraft, ScheduledTaskInput, SandboxExecutionContext, SandboxMode, ScheduledTaskService } from "@vela/shared";
+import type { RaceTokens, RecipeExecution, RecipeRun, RecipeStageSubmission, RecipeSubmitResult, RecipeStageEvidence, RecipeUseDraft, ScheduledTaskInput, BackgroundShellEvents, BackgroundShellExit, ToolFactoryContext, SandboxMode, ScheduledTaskService } from "@vela/shared";
 import type { McpCatalog, McpCatalogInput, McpServerInput, McpServerTarget, McpEnabledInput, McpProjectTrustInput, McpToolReadOnlyInput, McpStatusEvent, MemoryLoadReport, SideChatEvent, SideChatResult } from "@vela/shared";
 import { memoryLoadReport, modelLanguageName, type AppLocale } from "@vela/shared";
 import { browserUseInstructions, createBrowserTools, type BrowserReplService, type BrowserReplPermission } from "./browser-use";
@@ -34,7 +34,6 @@ import {
 } from "@earendil-works/pi-coding-agent";
 import type { AgentMessage } from "@earendil-works/pi-agent-core";
 import {
-  thinkingLevels,
   type AgentInfo,
   type SubagentKind,
   type AgentRuntimeStreamEvent,
@@ -50,6 +49,7 @@ import {
   type ImageAttachment,
   type InteractionMode,
   type OutcomeSubmission,
+  type RecommendedActions,
   type ModelAuthEvent,
   type ModelCatalog,
   type ModelRefreshResult,
@@ -75,10 +75,12 @@ import {
   isAgentBusy,
   parseHandoffDraftRequest,
   parseOutcomeSubmission,
+  parseRecommendedActions,
   validateOutcomeSubmission,
 } from "@vela/shared";
 import { defaultToolNames } from "@vela/tools";
-import { getCurrentTools, clampThinkingLevel, getSupportedThinkingLevels, type Api, type Model } from "@earendil-works/pi-ai";
+import { getCurrentTools, type Api, type Model } from "@earendil-works/pi-ai";
+import { clampThinkingLevelFor, isThinkingLevel, isUltra, modelThinkingLevel, thinkingLevelsFor, ultraInstructions } from "./thinking-level";
 import { existsSync, readdirSync } from "node:fs";
 import { stat } from "node:fs/promises";
 import { readTraceUsage } from "./trace-usage";
@@ -112,6 +114,8 @@ import { createWebTools, webToolsInstructions, type WebToolPermission } from "./
 import { TaskBudgetSettingsStore } from "./task-budget-settings";
 import { ContextLimitSettingsStore } from "./context-limit-settings";
 import { createTaskBudgetExtension, TaskBudgetTask } from "./task-budget";
+import { ModelPriceStore } from "./model-price-store";
+import { TaskCostHistoryStore } from "./task-cost-history";
 import { IntelligentUiSettings } from "./intelligent-ui-settings";
 import { intelligentUiInstructions } from "./intelligent-ui-prompt";
 import { browserVisualCheckNote, checksVisualWork, defaultSystemPromptProfile, intelligentUiScopeNote, usesVelaPrompt, velaPreamble, velaRules, type RuleKind, type SystemPromptProfile } from "./system-prompt";
@@ -190,6 +194,8 @@ export type RuntimeEvent =
   | TraceUpdate
   | { type: "status"; conversationId: string }
   | { type: "prompt_end"; conversationId: string; status: "responded" | "stopped" | "failed"; error?: string; planPending: boolean }
+  /** 任务费用接近或到达费用上限；每个任务每个阶段只发一次，收件箱据此提醒。 */
+  | { type: "task_budget"; conversationId: string; startedAt: number; phase: "warning" | "exhausted"; costUsed: number; maxCost: TaskBudgetCostLimit }
   | { type: "text_delta"; conversationId: string; delta: string }
   | { type: "thinking_delta"; conversationId: string; delta: string }
   | { type: "assistant_start"; conversationId: string }
@@ -227,7 +233,9 @@ export interface AgentRuntimeOptions {
   pluginCredentialStore?: CredentialStore;
   builtInPlugins?: readonly BuiltInPlugin[];
   /** 按会话 cwd 构造沙箱化的 bash/edit/write 工具,以同名覆盖 Pi 内置实现。 */
-  toolFactory?: (cwd: string, context?: SandboxExecutionContext) => ToolDefinition[];
+  toolFactory?: (cwd: string, context?: ToolFactoryContext) => ToolDefinition[];
+  /** 后台命令的结束事件源；提供后主代理获得 bash_output / bash_kill，命令结束时被唤醒。 */
+  backgroundShells?: BackgroundShellEvents;
   /** 以 cwd 为主要文件夹的工作区所附加的文件夹;每轮对话开始时读取,用于告知模型。 */
   workspaceFolders?: (cwd: string) => readonly string[];
   /** 仅用于迁移旧会话缺失的工作区归属。 */
@@ -269,6 +277,8 @@ interface Conversation {
   recipeExecution?: RecipeExecution;
   recipeRunId?: string;
   recipeWorkflowActive?: boolean;
+  /** 当前选的是 Ultra：底层会话用模型的最高强度，这里记住用户的选择，并在每轮提示里要求多用 SubAgent。 */
+  ultra?: boolean;
   recipeStageSideEffect?: RecipeStageSubmission["sideEffect"];
   id: string;
   session: AgentSession | null;
@@ -400,13 +410,17 @@ export class AgentRuntime {
   private readonly intelligentUiSettings: IntelligentUiSettings;
   /** 渲染层「运行视图」偏好的镜像:开启后要求模型提交待办清单。只在内存里,每次启动由渲染层同步。 */
   private runView = false;
+  private recommendedActions = false;
   private readonly taskBudgetSettings: TaskBudgetSettingsStore;
+  private readonly modelPrices: ModelPriceStore;
+  private readonly taskCostHistory: TaskCostHistoryStore;
   private readonly contextLimitSettings: ContextLimitSettingsStore;
   /** 每个 Pi 会话的设置对象与压缩默认值,上下文上限改动时据此重新套用。 */
   private readonly contextLimited = new Map<AgentSession, { entry: Conversation; settings: SettingsManager; defaults: { reserveTokens: number; keepRecentTokens: number } }>();
   private readonly checkpointSettings: CheckpointSettingsStore;
   /** 本进程里创建或恢复为常驻 Agent 的会话；重启后由 options.resident 重新指认。 */
   private readonly residentIds = new Set<string>();
+  private readonly stopBackgroundShells: (() => void) | null;
 
   constructor(private readonly options: AgentRuntimeOptions) {
     this.currentCwd = options.cwd;
@@ -421,17 +435,22 @@ export class AgentRuntime {
     this.webTools.onChange(() => { for (const entry of this.conversations.values()) this.applyActiveTools(entry); });
     this.intelligentUiSettings = new IntelligentUiSettings(options.agentDir);
     this.taskBudgetSettings = new TaskBudgetSettingsStore(options.agentDir);
+    this.modelPrices = new ModelPriceStore(options.agentDir);
+    this.taskCostHistory = new TaskCostHistoryStore(options.agentDir);
     this.contextLimitSettings = new ContextLimitSettingsStore(options.agentDir);
     this.checkpointSettings = new CheckpointSettingsStore(options.agentDir);
     this.skills = new SkillLibrary(options.agentDir);
     this.tools = new ToolLoadout({
       scheduledTasks: Boolean(options.scheduledTasks),
       browser: Boolean(options.browserRepl),
+      background: Boolean(options.backgroundShells),
       memoryEnabled: () => this.memorySettings.enabled,
       web: () => this.webTools.ready(),
       runView: () => this.runView,
+      recommendedActions: () => this.recommendedActions,
       ...(options.resident ? { resident: { isResident: entry => this.isResident(entry.id) } } : {}),
     });
+    this.stopBackgroundShells = options.backgroundShells?.subscribe((event) => this.handleBackgroundShellExit(event)) ?? null;
     this.traces = new ConversationTraces({
       agentDir: options.agentDir,
       emit: (event) => this.emit(event),
@@ -530,6 +549,7 @@ export class AgentRuntime {
         || entry.control?.list().some(agent => agent.kind !== "root" && isAgentBusy(agent.status)))) {
         throw new Error("这批同步的会话仍在运行，请先停止后再撤销");
       }
+      for (const entry of entries) this.options.backgroundShells?.killConversation(entry.id);
       await Promise.all(entries.map(entry => this.detachEntry(entry)));
       for (const entry of entries) this.conversations.delete(entry.id);
       const count = this.store.remove(ids);
@@ -812,7 +832,7 @@ export class AgentRuntime {
       await session.setModel(model);
       this.enforceContextLimit(session);
     }
-    if (session.thinkingLevel !== thinkingLevel) session.setThinkingLevel(thinkingLevel);
+    this.setEntryThinking(entry, session.model, thinkingLevel);
     this.syncFromSession(entry);
   }
 
@@ -1109,7 +1129,7 @@ export class AgentRuntime {
     this.rewindingWorkspaces.add(entry.snapshot.cwd);
     try {
       await checkpoints.restore(selected);
-      const selection = { model: entry.session.model, thinkingLevel: entry.session.thinkingLevel as ThinkingLevel };
+      const selection = { model: entry.session.model, thinkingLevel: (entry.ultra ? "ultra" : entry.session.thinkingLevel) as ThinkingLevel };
       await this.detachEntry(entry);
       if (point.leaf) manager.branch(point.leaf); else manager.resetLeaf();
       manager.appendCustomEntry("vela_rewind", { turnIndex });
@@ -1582,7 +1602,7 @@ export class AgentRuntime {
       if (active?.recipeWorkflowActive) throw new Error("配方执行期间不能更换思考强度");
       const model = active?.session?.model ?? directory.modelForSelection();
       const next = model ? clampToModel(model, level) : level;
-      active?.session?.setThinkingLevel(next);
+      if (active?.session) this.setEntryThinking(active, model, next);
       if (active?.recipeExecution) active.recipeExecution = { ...active.recipeExecution, thinkingLevel: next };
       if (active) this.syncFromSession(active);
       if (model) await directory.rememberLastUsed(model.provider, model.id, next);
@@ -2377,7 +2397,11 @@ export class AgentRuntime {
     this.traces.dispose();
     this.directory?.cancelLogin();
     this.questions.cancelAll();
-    for (const entry of this.conversations.values()) closing.push(this.detachEntry(entry));
+    this.stopBackgroundShells?.();
+    for (const entry of this.conversations.values()) {
+      this.options.backgroundShells?.killConversation(entry.id);
+      closing.push(this.detachEntry(entry));
+    }
     for (const session of this.mcpManagement.values()) closing.push(this.closeSession(session));
     for (const pending of this.mcpManagementStarting.values()) closing.push(pending.then(bridge => bridge.session ? this.closeSession(bridge.session) : undefined, () => undefined));
     for (const session of this.mcpBridges.keys()) closing.push(this.closeSession(session));
@@ -2638,6 +2662,7 @@ export class AgentRuntime {
             mode: entry.snapshot.mode,
             hasExecutionPlan: entry.snapshot.executionPlan !== null,
             runView: this.runView && !this.isResident(entry.id) && !entry.scheduledTaskConversation && !entry.recipeExecution,
+            recommendedActions: this.recommendedActions && !this.isResident(entry.id) && !entry.scheduledTaskConversation && !entry.recipeExecution,
           }), {
             availableTools: (mode, plan) => this.tools.native(mode, plan, entry),
             authorizeCall: call => this.tools.authorize(call, entry),
@@ -2667,6 +2692,15 @@ export class AgentRuntime {
             if (!extra) return;
             const current = event.systemPromptOptions.appendSystemPrompt.trim();
             event.systemPromptOptions.appendSystemPrompt = current ? `${current}\n\n${extra}` : extra;
+          }); }) as ExtensionFactory,
+        }, {
+          name: "vela-ultra",
+          hidden: true,
+          factory: ((pi) => { pi.on("before_agent_start", event => {
+            // Ultra 可随时切换，每轮读取，下一轮立即生效。
+            if (!entry.ultra) return;
+            const current = event.systemPromptOptions.appendSystemPrompt.trim();
+            event.systemPromptOptions.appendSystemPrompt = current ? `${current}\n\n${ultraInstructions}` : ultraInstructions;
           }); }) as ExtensionFactory,
         }, ...(this.options.scheduledTasks ? [{ name: "vela-scheduled-tasks-clock", hidden: true,
           factory: ((pi) => { pi.on("before_agent_start", event => {
@@ -2711,10 +2745,10 @@ export class AgentRuntime {
           resourceLoader,
           modelRuntime: directory.runtime,
           model: chosen,
-          thinkingLevel,
+          thinkingLevel: modelThinkingLevel(chosen, thinkingLevel),
           // MCP registers tools after session_start; defaultTools selects the loadout without restricting the registry.
           customTools: [
-            ...(this.options.toolFactory?.(cwd, { conversationId: entry.id, sandboxMode: entry.scheduledSandboxMode }) ?? []),
+            ...(this.options.toolFactory?.(cwd, { conversationId: entry.id, sandboxMode: entry.scheduledSandboxMode, background: true }) ?? []),
             ...this.browserTools(entry, entry.id),
             ...(this.options.scheduledTasks ? createScheduledTaskTools(this.options.scheduledTasks, cwd, () => entry.snapshot.mode !== "plan") : []),
             ...this.memoryTools(entry, entry.id, true),
@@ -2724,6 +2758,7 @@ export class AgentRuntime {
               updateGoal: (status, note) => this.updateGoal(entry, status, note),
               recordGoalValidation: (draft) => this.recordGoalValidation(entry, draft),
               submitOutcome: (draft) => this.submitOutcome(entry, draft),
+              recommendActions: (draft) => this.recommendActions(entry, draft),
               askUser: (input) => this.askUser(entry, input),
             }),
             ...control.createAgentTools(entry.id),
@@ -2744,6 +2779,7 @@ export class AgentRuntime {
       }
       // 没有显式选择时，Pi 会挑第一个带本机环境变量的模型。这里清掉，只保留用户在 Vela 里选的模型。
       if (!chosen) clearSessionModel(session);
+      entry.ultra = isUltra(thinkingLevel);
       this.registerContextLimit(session, settingsManager, entry);
       mcp.attach(session);
       this.mcpBridges.set(session, mcp);
@@ -2796,7 +2832,7 @@ export class AgentRuntime {
     const directory = this.directory;
     const session = this.activeConversation()?.session;
     if (!directory || !session?.model) return;
-    await directory.rememberLastUsed(session.model.provider, session.model.id, session.thinkingLevel);
+    await directory.rememberLastUsed(session.model.provider, session.model.id, this.activeConversation()?.ultra ? "ultra" : session.thinkingLevel);
   }
 
   private async applySavedModel(): Promise<void> {
@@ -2811,6 +2847,15 @@ export class AgentRuntime {
     await this.applyModel(chosen, thinkingLevel);
   }
 
+  /** 套用用户选的强度；Ultra 换成模型的最高强度交给底层会话，并在 entry 上记下。 */
+  private setEntryThinking(entry: Conversation, model: Model<Api> | undefined, level: ThinkingLevel): void {
+    const session = entry.session;
+    if (!session) return;
+    entry.ultra = isUltra(level);
+    const effective = modelThinkingLevel(model ?? session.model, level);
+    if (session.thinkingLevel !== effective) session.setThinkingLevel(effective);
+  }
+
   private async applyModel(model: Model<Api>, thinkingLevel: ThinkingLevel, conversationId?: string): Promise<void> {
     const entry = conversationId ? this.requireConversation(conversationId) : this.activeConversation();
     const session = entry?.session;
@@ -2821,7 +2866,7 @@ export class AgentRuntime {
       await session.setModel(model);
       this.enforceContextLimit(session);
     }
-    session.setThinkingLevel(thinkingLevel);
+    this.setEntryThinking(entry, model, thinkingLevel);
     if (entry.recipeExecution) entry.recipeExecution = { ...entry.recipeExecution, model: { provider: model.provider, id: model.id }, thinkingLevel };
     this.syncFromSession(entry);
   }
@@ -2878,7 +2923,10 @@ export class AgentRuntime {
     if (event.type === "message_end") {
       if (event.message.role === "assistant") {
         const entry = this.conversations.get(conversationId);
-        if (entry) this.checkTaskBudget(entry);
+        if (entry) {
+          this.recordTaskUsage(entry, event.message);
+          this.checkTaskBudget(entry);
+        }
         const stream = entry?.planStream;
         if (entry && stream) {
           entry.planStream = null;
@@ -3023,7 +3071,15 @@ export class AgentRuntime {
     }
     if (event.type === "message_end") {
       const message = event.message;
-      if (message.role === "assistant") this.settleToolStreams(`${conversationId}:${agentId}`, message, emit);
+      if (message.role === "assistant") {
+        // 子代理的请求同样计入任务费用。
+        const owner = this.conversations.get(conversationId);
+        if (owner) {
+          this.recordTaskUsage(owner, message);
+          this.checkTaskBudget(owner);
+        }
+        this.settleToolStreams(`${conversationId}:${agentId}`, message, emit);
+      }
       if (message.role === "user") {
         const text = userMessageText(message);
         if (text.trim()) emit({ type: "user_message", text });
@@ -3130,7 +3186,7 @@ export class AgentRuntime {
     const active = session?.model;
     const intended = active ?? (entry.recipeExecution ? directory?.runtime.getModel(entry.recipeExecution.model.provider, entry.recipeExecution.model.id) : directory?.modelForSelection());
     const thinkingLevel = active && session
-      ? session.thinkingLevel
+      ? (entry.ultra ? "ultra" : session.thinkingLevel)
       : entry.recipeExecution?.thinkingLevel ?? directory?.selection.thinkingLevel ?? "medium";
     entry.snapshot = {
       ...entry.snapshot,
@@ -3226,6 +3282,7 @@ export class AgentRuntime {
   /** 当前对话自己的思考强度;没有会话时用新建对话的默认值。 */
   private liveThinking(directory: ModelDirectory, conversationId?: string): ThinkingLevel {
     const entry = conversationId ? this.requireConversation(conversationId) : this.activeConversation();
+    if (entry?.ultra) return "ultra";
     const sessionLevel = entry?.session?.thinkingLevel;
     if (typeof sessionLevel === "string" && isThinkingLevel(sessionLevel)) return sessionLevel;
     return directory.selection.thinkingLevel;
@@ -3574,9 +3631,7 @@ export class AgentRuntime {
    * follow-up 追加，用户已停止则只进上下文不唤醒。
    */
   private async deliverAgentMessage(entry: Conversation, message: AgentRootMessage): Promise<void> {
-    const session = entry.session;
-    if (!session) return;
-    const payload = {
+    await this.deliverRootMessage(entry, {
       customType: message.kind === "result" ? "vela_agent_result" : "vela_agent_message",
       content: formatAgentRootMessage(message),
       display: false,
@@ -3586,7 +3641,26 @@ export class AgentRuntime {
         kind: message.agentKind,
         status: message.status ?? null,
       },
-    };
+    });
+  }
+
+  /** 后台命令结束：主动终止或会话已被移除时不打扰主代理，其余像子代理结论一样唤醒或排队。 */
+  private handleBackgroundShellExit(event: BackgroundShellExit): void {
+    if (!event.notify) return;
+    const entry = this.conversations.get(event.conversationId);
+    if (!entry?.session) return;
+    void this.deliverRootMessage(entry, {
+      customType: "vela_background_shell",
+      content: formatBackgroundShellExit(event),
+      display: false,
+      details: { shellId: event.id, command: event.command, status: event.status, exitCode: event.exitCode },
+    });
+  }
+
+  /** 把一条不可见的自定义消息送进 root 会话：空闲则唤醒，运行中追加为 follow-up，用户已停止则只进上下文。 */
+  private async deliverRootMessage(entry: Conversation, payload: { customType: string; content: string; display: false; details: Record<string, unknown> }): Promise<void> {
+    const session = entry.session;
+    if (!session) return;
     if (entry.stopRequested) {
       await this.sendAgentMessageSafely(session, payload, { triggerTurn: false });
       return;
@@ -3728,6 +3802,14 @@ export class AgentRuntime {
     for (const entry of this.conversations.values()) this.applyActiveTools(entry);
   }
 
+  /** 同步渲染层的推荐操作开关;已有会话立刻重算可用工具,提示词下一轮生效。 */
+  setRecommendedActions(enabled: boolean): void {
+    if (this.recommendedActions === enabled) return;
+    this.recommendedActions = enabled;
+    if (this.disposed) return;
+    for (const entry of this.conversations.values()) this.applyActiveTools(entry);
+  }
+
   getIntelligentUiSettings(): IntelligentUiState {
     return this.intelligentUiSettings.state;
   }
@@ -3740,6 +3822,36 @@ export class AgentRuntime {
   setIntelligentUiMicroApps(enabled: boolean): IntelligentUiState {
     this.intelligentUiSettings.setMicroApps(enabled);
     return this.getIntelligentUiSettings();
+  }
+
+  /** 渲染层同步过来的模型价格；null 表示还没同步过。 */
+  getModelPrices(): ModelPrice[] | null {
+    return this.modelPrices.list();
+  }
+
+  /** 价格改动立即作用于进行中的任务。 */
+  setModelPrices(raw: unknown): void {
+    this.modelPrices.save(raw);
+    for (const entry of this.conversations.values()) this.applyTaskBudgetChange(entry);
+  }
+
+  /**
+   * 开跑前按同类历史任务预估费用，用现在的价格重新换算。
+   * 优先用费用上限的币种，没设上限就用当前模型登记的币种；样本不足时返回 null。
+   */
+  estimateTaskCost(conversationId: unknown): TaskCostForecast | null {
+    const entry = this.requireBudgetEntry(conversationId);
+    // snapshot.model 是显示名；用量与价格登记用的是 provider/id。
+    const { modelProvider, modelId } = entry.snapshot;
+    const model = modelProvider && modelId ? `${modelProvider}/${modelId}` : null;
+    const cap = this.effectiveTaskBudget(entry);
+    const limit = cap.enabled ? cap.maxCost : null;
+    const estimate = estimateTaskCost(this.taskCostHistory.list(), this.modelPrices.prices, {
+      kind: entry.recipeRunId ? taskCostKinds.recipe : taskCostKinds.chat,
+      model,
+      currency: limit?.currency ?? null,
+    });
+    return estimate ? { ...estimate, limit: limit?.amount ?? null } : null;
   }
 
   getTaskBudgetSettings(): TaskBudgetSettings {
@@ -3882,6 +3994,34 @@ export class AgentRuntime {
     if (task.timer) clearInterval(task.timer);
     task.timer = null;
     task.ended = true;
+    this.recordTaskHistory(entry, task);
+  }
+
+  /** 把一次请求的用量记进当前任务的账本；没有进行中的任务时忽略。 */
+  private recordTaskUsage(entry: Conversation, message: AgentMessage): void {
+    const task = entry.budget;
+    if (!task || task.ended || message.role !== "assistant" || !message.usage) return;
+    task.recordUsage(`${message.provider}/${message.model}`, message.usage);
+  }
+
+  /** 任务结束时留一条用量记录，之后给同类任务做费用预估。没有任何请求的任务不记。 */
+  private recordTaskHistory(entry: Conversation, task: TaskBudgetTask): void {
+    if (task.recorded) return;
+    task.recorded = true;
+    const model = primaryModel(task.usageByModel);
+    if (!model) return;
+    try {
+      this.taskCostHistory.append({
+        at: Date.now(),
+        kind: entry.recipeRunId ? taskCostKinds.recipe : taskCostKinds.chat,
+        model,
+        durationMs: Math.max(0, Date.now() - task.startedAt),
+        requests: task.requests,
+        usageByModel: { ...task.usageByModel },
+      });
+    } catch (error) {
+      log.error("task cost history write failed", error);
+    }
   }
 
   private tickTaskBudget(entry: Conversation, task: TaskBudgetTask): void {
@@ -3903,7 +4043,7 @@ export class AgentRuntime {
     const task = entry.budget;
     if (!task || task.ended) return;
     const settings = this.effectiveTaskBudget(entry);
-    const { state, phaseChanged, changed } = task.update(this.treeTokens(entry), settings);
+    const { state, phaseChanged, changed } = task.update(this.treeTokens(entry), settings, this.modelPrices.prices);
     if (!state) {
       if (entry.snapshot.taskBudget) this.patchEntry(entry, { taskBudget: null });
       return;
@@ -3913,11 +4053,35 @@ export class AgentRuntime {
       void this.exhaustTaskBudget(entry, task);
     }
     if (state.phase === "warning") task.warned = true;
-    // token 数每次都变；只在跨过 1% 或阶段变化时推送，避免刷屏。
+    this.alertTaskCost(entry, task, state);
+    // token 数和费用每次都变；只在跨过 1% 或阶段变化时推送，避免刷屏。
     const previous = entry.snapshot.taskBudget;
-    const coarse = state.maxTokens ? Math.floor(state.tokensUsed / state.maxTokens * 100) : 0;
-    const previousCoarse = previous?.maxTokens ? Math.floor(previous.tokensUsed / previous.maxTokens * 100) : -1;
+    const coarse = this.coarseUsage(state);
+    const previousCoarse = previous ? this.coarseUsage(previous) : null;
     if (!previous || phaseChanged || (changed && coarse !== previousCoarse)) this.patchEntry(entry, { taskBudget: state });
+  }
+
+  /** Token、费用各取已用百分比，再加上未计入的模型数：任何一项变化都值得推送一次。 */
+  private coarseUsage(state: TaskBudgetState): string {
+    const tokens = state.maxTokens ? Math.floor(state.tokensUsed / state.maxTokens * 100) : 0;
+    const cost = state.maxCost && state.costUsed !== null ? Math.floor(state.costUsed / state.maxCost.amount * 100) : 0;
+    return `${tokens}:${cost}:${state.uncountedModels}`;
+  }
+
+  /**
+   * 费用接近、到达上限时通知收件箱。按费用自己的比例判断，不看 state.reason：
+   * 时间或 Token 同时更接近上限时，费用的提醒也不应该被盖住。
+   */
+  private alertTaskCost(entry: Conversation, task: TaskBudgetTask, state: TaskBudgetState): void {
+    if (!state.maxCost || state.costUsed === null) return;
+    const ratio = state.costUsed / state.maxCost.amount;
+    const phase = ratio >= 1 ? "exhausted" : ratio >= taskBudgetWarnRatio ? "warning" : null;
+    if (!phase) return;
+    if (task.costAlerts.has(phase)) return;
+    task.costAlerts.add(phase);
+    // 直接越过 80% 到达 100% 时，不再补发一条「接近上限」。
+    if (phase === "exhausted") task.costAlerts.add("warning");
+    this.emit({ type: "task_budget", conversationId: entry.id, startedAt: task.startedAt, phase, costUsed: state.costUsed, maxCost: state.maxCost });
   }
 
   /** 到达上限：停掉根会话和全部子代理，之后不再产生新的模型请求；交接由界面用事实整理。 */
@@ -4252,6 +4416,13 @@ export class AgentRuntime {
     };
   }
 
+  private recommendActions(entry: Conversation, draft: RecommendedActions): ToolOutcome {
+    if (entry.snapshot.mode === "plan") return { ok: false, text: "Plan 模式不能推荐操作。" };
+    const recommendation = parseRecommendedActions(draft);
+    if (!recommendation) return { ok: false, text: "推荐操作需要一句建议和至少一个带标签与 prompt 的操作。" };
+    return { ok: true, text: `已向用户展示 ${recommendation.actions.length} 个推荐操作。请直接结束本轮，不要再补充文字。` };
+  }
+
   private submitOutcome(entry: Conversation, draft: OutcomeSubmission): ToolOutcome {
     if (entry.snapshot.mode === "plan") return { ok: false, text: "Plan 模式不能提交成果验收。" };
     const submission = parseOutcomeSubmission(draft);
@@ -4299,18 +4470,8 @@ export interface BackgroundExecution {
   thinkingLevel?: ThinkingLevel | null;
 }
 
-function levelsFor(model: Model<Api>): ThinkingLevel[] {
-  return getSupportedThinkingLevels(model).filter(isThinkingLevel);
-}
-
-function clampToModel(model: Model<Api>, level: ThinkingLevel): ThinkingLevel {
-  const clamped = clampThinkingLevel(model, level);
-  return isThinkingLevel(clamped) ? clamped : "off";
-}
-
-function isThinkingLevel(value: string): value is ThinkingLevel {
-  return (thinkingLevels as readonly string[]).includes(value);
-}
+const levelsFor = thinkingLevelsFor;
+const clampToModel = clampThinkingLevelFor;
 
 /** 分支会话在侧边栏里用原标题加后缀区分。 */
 function branchTitle(title: string): string {
@@ -4369,6 +4530,18 @@ function formatAgentRootMessage(message: AgentRootMessage): string {
   }
   const label = message.status === "completed" ? "已完成" : message.status === "aborted" ? "已停止" : "失败";
   return `[子代理 ${message.path} ${label}]\n\n${message.text}`;
+}
+
+/** 投递给主代理的后台命令结束通知；输出只带结束时还没读过的末尾。 */
+function formatBackgroundShellExit(event: BackgroundShellExit): string {
+  const outcome = event.status === "exited"
+    ? `exited with code ${event.exitCode ?? "unknown"}`
+    : event.status === "timed_out" ? "stopped because it timed out" : event.status;
+  const seconds = Math.max(1, Math.round(event.durationMs / 1000));
+  const head = `[Background shell ${event.id} ${outcome} after ${seconds}s]\ncommand: ${event.command}`;
+  if (!event.output) return `${head}\n\n(no unread output)`;
+  const note = event.truncated ? "[Only the last part of the unread output is shown.]\n" : "";
+  return `${head}\n\nUnread output:\n${note}${event.output}`;
 }
 
 function readSessionError(session: AgentSession): string | null {

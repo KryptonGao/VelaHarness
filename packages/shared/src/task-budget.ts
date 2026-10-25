@@ -4,6 +4,8 @@
  * Token 与耗时都按整棵 agent 树统计。纯函数，主进程和界面共用。
  */
 
+import { isPricingCurrency, type PricingCurrency } from "./model-pricing";
+
 export const taskBudgetLimits = {
   minMinutes: 1,
   maxMinutes: 24 * 60,
@@ -11,10 +13,19 @@ export const taskBudgetLimits = {
   maxTokens: 10_000_000_000,
   minSubagents: 0,
   maxSubagents: 64,
+  /** 费用上限的金额范围（所选币种的元）。 */
+  minCost: 0.01,
+  maxCost: 1_000_000,
 } as const;
 
 /** 用量达到上限的这个比例时先提示用户。 */
 export const taskBudgetWarnRatio = 0.8;
+
+/** 以金额设置的上限。人民币与美元不换算，所以上限只对这个币种登记了价格的模型生效。 */
+export interface TaskBudgetCostLimit {
+  currency: PricingCurrency;
+  amount: number;
+}
 
 export interface TaskBudgetSettings {
   enabled: boolean;
@@ -22,6 +33,11 @@ export interface TaskBudgetSettings {
   maxMinutes: number | null;
   /** 单次任务 Token 上限（输入 + 输出，含子代理，不含缓存读取）；null 表示不限。 */
   maxTokens: number | null;
+  /**
+   * 单次任务费用上限（含子代理，按登记的模型价格计算，四类 Token 都计入）；null 表示不限。
+   * 没登记价格的模型、登记为另一种币种的模型不计入。
+   */
+  maxCost: TaskBudgetCostLimit | null;
   /** 一个对话里所有层级子代理的总数上限；0 表示不允许创建子代理。与 enabled 无关，始终生效。 */
   maxSubagents: number;
   /** 子代理是否可以继续创建子代理；关闭后只有主代理能派生。 */
@@ -32,6 +48,7 @@ export const defaultTaskBudgetSettings: Readonly<TaskBudgetSettings> = Object.fr
   enabled: false,
   maxMinutes: 30,
   maxTokens: 20_000_000,
+  maxCost: null,
   maxSubagents: 16,
   allowNestedSubagents: true,
 });
@@ -50,7 +67,7 @@ export interface ConversationTaskBudget {
 }
 
 export type TaskBudgetPhase = "ok" | "warning" | "exhausted";
-export type TaskBudgetReason = "time" | "tokens";
+export type TaskBudgetReason = "time" | "tokens" | "cost";
 
 /** 挂在会话快照上的当前任务用量；没有任务或未启用时为 null。 */
 export interface TaskBudgetState {
@@ -62,8 +79,25 @@ export interface TaskBudgetState {
   /** 任务开始时的上限快照，设置改动后以下一次评估为准。 */
   maxTokens: number | null;
   maxMs: number | null;
+  /** 已计入的费用（上限币种）；没有设置费用上限时为 null。 */
+  costUsed: number | null;
+  maxCost: TaskBudgetCostLimit | null;
+  /** 没能计入费用的模型数（没登记价格，或登记为另一种币种），界面据此提示「实际花费可能更高」。 */
+  uncountedModels: number;
   /** 到达上限的时间；仅 exhausted 时有值。 */
   exhaustedAt: number | null;
+}
+
+function parseCostLimit(value: unknown): TaskBudgetCostLimit | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value !== "object" || Array.isArray(value)) throw new Error("费用上限设置不正确");
+  const input = value as Record<string, unknown>;
+  if (!isPricingCurrency(input.currency)) throw new Error("费用上限的币种不正确");
+  const amount = input.amount;
+  if (typeof amount !== "number" || !Number.isFinite(amount)) throw new Error("费用上限超出范围");
+  const rounded = Math.round(amount * 100) / 100;
+  if (rounded < taskBudgetLimits.minCost || rounded > taskBudgetLimits.maxCost) throw new Error("费用上限超出范围");
+  return { currency: input.currency, amount: rounded };
 }
 
 function validLimit(value: unknown, min: number, max: number): number | null | undefined {
@@ -86,7 +120,11 @@ export function parseTaskBudgetSettings(raw: unknown): TaskBudgetSettings {
   if (maxTokens === undefined) {
     throw new Error("Token 上限超出范围");
   }
-  if (input.enabled && maxMinutes === null && maxTokens === null) throw new Error("启用任务用量上限时至少要设置时间或 Token 其中一项");
+  // 费用上限是后加的字段：缺省视为不限，旧的设置文件继续可用。
+  const maxCost = parseCostLimit(input.maxCost);
+  if (input.enabled && maxMinutes === null && maxTokens === null && maxCost === null) {
+    throw new Error("启用任务用量上限时至少要设置时间、Token 或费用其中一项");
+  }
   // 子代理限制是后加的字段：缺省时取默认值，让旧的设置文件和旧调用方继续可用。
   const maxSubagents = input.maxSubagents === undefined
     ? defaultTaskBudgetSettings.maxSubagents
@@ -96,7 +134,7 @@ export function parseTaskBudgetSettings(raw: unknown): TaskBudgetSettings {
     throw new Error("子代理嵌套开关必须是布尔值");
   }
   const allowNestedSubagents = input.allowNestedSubagents ?? defaultTaskBudgetSettings.allowNestedSubagents;
-  return { enabled: input.enabled, maxMinutes, maxTokens, maxSubagents, allowNestedSubagents };
+  return { enabled: input.enabled, maxMinutes, maxTokens, maxCost, maxSubagents, allowNestedSubagents };
 }
 
 /** 读取磁盘上的设置：损坏或越界时回到默认（关闭），不会意外启用。 */
@@ -111,6 +149,8 @@ export function readTaskBudgetSettings(raw: unknown): TaskBudgetSettings {
 export interface TaskBudgetUsage {
   tokensUsed: number;
   elapsedMs: number;
+  /** 已计入的费用（上限币种）；没有费用上限时可省略。 */
+  costUsed?: number;
 }
 
 export interface TaskBudgetEvaluation {
@@ -118,13 +158,16 @@ export interface TaskBudgetEvaluation {
   reason: TaskBudgetReason | null;
   tokenRatio: number | null;
   timeRatio: number | null;
+  costRatio: number | null;
 }
 
 /** 按当前设置评估用量。未启用或没有任何上限时恒为 ok。 */
 export function evaluateTaskBudget(settings: TaskBudgetSettings, usage: TaskBudgetUsage): TaskBudgetEvaluation {
   const tokenRatio = settings.enabled && settings.maxTokens !== null ? usage.tokensUsed / settings.maxTokens : null;
   const timeRatio = settings.enabled && settings.maxMinutes !== null ? usage.elapsedMs / (settings.maxMinutes * 60_000) : null;
+  const costRatio = settings.enabled && settings.maxCost ? (usage.costUsed ?? 0) / settings.maxCost.amount : null;
   const ratios: Array<[TaskBudgetReason, number]> = [];
+  if (costRatio !== null) ratios.push(["cost", costRatio]);
   if (tokenRatio !== null) ratios.push(["tokens", tokenRatio]);
   if (timeRatio !== null) ratios.push(["time", timeRatio]);
   let phase: TaskBudgetPhase = "ok";
@@ -140,7 +183,7 @@ export function evaluateTaskBudget(settings: TaskBudgetSettings, usage: TaskBudg
       top = ratio;
     }
   }
-  return { phase, reason, tokenRatio, timeRatio };
+  return { phase, reason, tokenRatio, timeRatio, costRatio };
 }
 
 /** 面向界面和提示的用量文本：12.3K / 1.20M。 */

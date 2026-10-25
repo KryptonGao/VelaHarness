@@ -14,6 +14,7 @@ const host: ModeToolHost = {
   recordGoalValidation: () => ({ ok: true, text: "recorded" }),
   askUser: async () => ({ ok: true, text: "answered", answer: null }),
   submitOutcome: () => ({ ok: true, text: "submitted" }),
+  recommendActions: () => ({ ok: true, text: "recommended" }),
 };
 
 describe("运行视图的待办清单", () => {

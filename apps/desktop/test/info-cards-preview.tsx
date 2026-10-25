@@ -54,7 +54,7 @@ const gitSnapshot = () => ({ repo: { name: "VelaHarness", root: "/workspace/Vela
   upstream: `origin/${branchName}`, files: changedFiles, addedLines: 1189, deletedLines: 23, ahead: 0, behind: 0, detached: false, lastFetchAt: null, operation: null,
   identity: { name: "tester", email: null, configured: true } });
 window.vela = {
-  platform: "darwin", setLocale: () => {}, setRunView: () => {},
+  platform: "darwin", setLocale: () => {}, setRunView: () => {}, setRecommendedActions: () => {},
   getState: async () => state,
   getMessages: async () => planFixture ? plans.flatMap((plan, index) => [
     { id: `u-${index}`, role: "user", text: index ? "补齐计划入口" : "设计审查方案", thinking: "", tools: [] },

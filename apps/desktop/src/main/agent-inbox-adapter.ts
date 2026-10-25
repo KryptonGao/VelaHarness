@@ -6,6 +6,7 @@ import {
   type AgentInboxContentRef,
   boundApprovalRequest,
   createLogger,
+  formatCost,
   questionDetail,
   questionOutcome,
   truncateInboxText,
@@ -13,6 +14,7 @@ import {
   type AskUserQuestionEvent,
   type ConversationSummary,
   type SandboxApprovalEvent,
+  type TaskBudgetCostLimit,
   type ScheduledTaskRun,
   type ScheduledTasksState,
   type TranscriptMessage,
@@ -32,6 +34,7 @@ export interface AgentInboxRuntimeSource {
 export type AgentInboxRuntimeEvent =
   | { type: "prompt_end"; conversationId: string; status: "responded" | "stopped" | "failed"; error?: string; planPending: boolean }
   | { type: "agents"; conversationId: string; agents: AgentInfo[] }
+  | { type: "task_budget"; conversationId: string; startedAt: number; phase: "warning" | "exhausted"; costUsed: number; maxCost: TaskBudgetCostLimit }
   | { type: string; conversationId?: string };
 
 export interface AgentInboxSandboxSource {
@@ -179,6 +182,30 @@ export class AgentInboxAdapter {
   private onRuntime(event: AgentInboxRuntimeEvent): void {
     if (event.type === "prompt_end") this.onPromptEnd(event as Extract<AgentInboxRuntimeEvent, { type: "prompt_end" }>);
     else if (event.type === "agents") this.onAgents(event as Extract<AgentInboxRuntimeEvent, { type: "agents" }>);
+    else if (event.type === "task_budget") this.onTaskBudget(event as Extract<AgentInboxRuntimeEvent, { type: "task_budget" }>);
+  }
+
+  /**
+   * 费用接近或到达上限的提醒。摘要只放金额（「¥1.62 / ¥2.00」），不带语言，
+   * 说明文字由界面按 outcome 本地化。同一个任务的同一阶段只有一条。
+   */
+  private onTaskBudget(event: Extract<AgentInboxRuntimeEvent, { type: "task_budget" }>): void {
+    const { service } = this.options;
+    const conversation = this.conversation(event.conversationId);
+    const { currency, amount } = event.maxCost;
+    const text = `${formatCost({ [currency]: event.costUsed }) ?? ""} / ${formatCost({ [currency]: amount }) ?? ""}`;
+    service.upsert({
+      sourceEventId: `budget:${event.conversationId}:${event.startedAt}:${event.phase}`,
+      type: "alert",
+      origin: "turn",
+      outcome: event.phase === "exhausted" ? "cost_exhausted" : "cost_warning",
+      priority: event.phase === "exhausted" ? "high" : "normal",
+      title: conversation?.title ?? "",
+      summary: text,
+      detail: { kind: "text", text },
+      conversationId: event.conversationId,
+      ...(this.workspaceOf(conversation) ? { workspaceId: this.workspaceOf(conversation)! } : {}),
+    });
   }
 
   /**

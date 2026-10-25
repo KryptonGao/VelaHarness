@@ -1,13 +1,25 @@
-import { formatTaskBudgetDuration, formatTaskBudgetTokens, type TaskBudgetState } from "@vela/shared";
+import { formatCost, formatTaskBudgetDuration, formatTaskBudgetTokens, type TaskBudgetState } from "@vela/shared";
 import { useContext, useEffect, useState } from "react";
-import { tr, trf } from "../locale";
+import { activeIntlLocale, tr, trf } from "../locale";
 import { RecipeActionsContext } from "./recipe-actions-context";
 
 function usageLine(budget: TaskBudgetState, elapsedMs: number): string {
   const parts: string[] = [];
   if (budget.maxTokens !== null) parts.push(`${formatTaskBudgetTokens(budget.tokensUsed)} / ${formatTaskBudgetTokens(budget.maxTokens)} Token`);
   if (budget.maxMs !== null) parts.push(`${formatTaskBudgetDuration(elapsedMs)} / ${formatTaskBudgetDuration(budget.maxMs)}`);
+  if (budget.maxCost !== null && budget.costUsed !== null) {
+    const { currency, amount } = budget.maxCost;
+    const locale = activeIntlLocale();
+    parts.push(`${formatCost({ [currency]: budget.costUsed }, locale)} / ${formatCost({ [currency]: amount }, locale)}`);
+  }
   return parts.join(" · ");
+}
+
+/** 有模型没能计入费用时说明一下，免得把「没超」当成「花得少」。 */
+export function uncountedNote(budget: TaskBudgetState): string | null {
+  if (budget.maxCost === null || budget.uncountedModels === 0) return null;
+  return trf("有 {0} 个模型没有登记 {1} 价格，没有计入费用，实际花费可能更高。",
+    "{0} model(s) have no {1} price and are not counted, so the real spend may be higher.", budget.uncountedModels, budget.maxCost.currency);
 }
 
 /**
@@ -28,7 +40,8 @@ export function TaskBudgetBanner({ budget, conversationId }: { budget: TaskBudge
   const exhausted = budget.phase === "exhausted";
   if (!exhausted && dismissed === budget.startedAt) return null;
   const elapsed = (exhausted ? budget.exhaustedAt ?? now : now) - budget.startedAt;
-  const reason = budget.reason === "time" ? tr("时间", "time") : "Token";
+  const reason = budget.reason === "time" ? tr("时间", "time") : budget.reason === "cost" ? tr("费用", "cost") : "Token";
+  const uncounted = uncountedNote(budget);
   return <aside className={`task-budget-banner${exhausted ? " exhausted" : ""}`} role={exhausted ? "alert" : "status"} aria-live="polite">
     <span className="task-budget-icon" aria-hidden="true">
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
@@ -45,6 +58,7 @@ export function TaskBudgetBanner({ budget, conversationId }: { budget: TaskBudge
         : tr("到达上限后会停止新增模型请求并整理交接。统计包含子代理。",
           "At the limit, new model requests stop and a handoff is prepared. Subagents are included.")}</span>
       <span className="task-budget-usage">{usageLine(budget, elapsed)}</span>
+      {uncounted ? <span>{uncounted}</span> : null}
     </div>
     <div className="task-budget-actions">
       {exhausted && conversationId && actions?.createHandoff

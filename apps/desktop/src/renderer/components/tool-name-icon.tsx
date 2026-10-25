@@ -21,6 +21,7 @@ export function toolNameIcon(name: string, size = 13): ReactNode | null {
   if (name === "followup_task") return <FollowupTaskIcon size={size} />;
   if (name === "update_todos") return <TodoListIcon size={size} />;
   if (name === "submit_outcome") return <OutcomeIcon size={size} />;
+  if (name === "recommend_actions") return <OutcomeIcon size={size} />;
   if (name === "ask_user_question") return <QuestionIcon size={size} />;
   if (name === "create_scheduled_task") return <ScheduleCreateIcon size={size} />;
   if (name === "list_scheduled_tasks") return <ScheduleListIcon size={size} />;

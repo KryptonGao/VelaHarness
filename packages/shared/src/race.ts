@@ -13,7 +13,7 @@ export const raceLimits = {
   idLength: 100,
 } as const;
 
-const thinkingLevelNames = ["off", "minimal", "low", "medium", "high", "xhigh", "max"] as const;
+const thinkingLevelNames = ["off", "minimal", "low", "medium", "high", "xhigh", "max", "ultra"] as const;
 const sandboxModeNames = ["ask", "smart", "full"] as const;
 
 export interface RaceModelRef { provider: string; id: string }

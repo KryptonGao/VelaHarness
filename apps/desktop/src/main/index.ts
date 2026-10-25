@@ -8,6 +8,7 @@ import {
   sandboxApprovalTimeoutMs,
   WorkspaceFileService,
   WorkspaceManager,
+  BackgroundShellManager,
   createSandboxedToolDefinitions,
   createWorktree, removeWorktree,
 } from "@vela/workspace";
@@ -54,6 +55,8 @@ import { TerminalHost } from "./terminal-host";
 import { configureVelaProfile, noWorkspaceCwd, prepareVelaHome } from "./vela-home";
 import { registerDevelopmentIpc } from "./development-host";
 import { UiStorage } from "./ui-storage";
+import { SideChatHost } from "./side-chat-host";
+import { SideChatStore } from "./side-chat-store";
 import { registerUiBrowserSecurity } from "./browser-security";
 import { configureBrowserPlatformAuthenticator, readWebAuthnAccessGroup, registerBrowserWebAuthn } from "./browser-webauthn";
 import { BrowserHost } from "./browser-host";
@@ -114,6 +117,7 @@ let terminals: TerminalHost | null = null;
 let prInboxHost: PrInboxHost | null = null;
 let logHost: LogHost | null = null;
 let conversationExportHost: ConversationExportHost | null = null;
+let sideChatHost: SideChatHost | null = null;
 let updateHost: UpdateHost | null = null;
 let releaseNotesHost: ReleaseNotesHost | null = null;
 let uiSandboxHost: UiSandboxHost | null = null;
@@ -345,6 +349,7 @@ async function start(): Promise<void> {
   setUpdateMenuAction(() => { void updateHost?.checkFromMenu().catch(error => log.error("update check from menu failed", error)); });
   // 开发版只提供手动检查，不在后台联网，也不会替换 Electron 开发二进制。
   if (app.isPackaged) updateHost.service.start();
+  const backgroundShells = new BackgroundShellManager();
   const runtime = new AgentRuntime({
     locale: getApplicationLocale,
     // 常驻 Agent 的工具只读取 Supervisor 的真实记录；Supervisor 在运行时之后创建，所以这里延迟取用。
@@ -370,13 +375,15 @@ async function start(): Promise<void> {
     workspaceFolders: cwd => workspaceManager.foldersOf(cwd),
     isWorkspaceCwd: (cwd) => (cwd !== fallbackCwd && cwd !== legacyFallbackCwd) || workspaceManager.getState().recents.some(recent => recent.path === cwd),
     agentDir: home,
-    toolFactory: (cwd, context) =>
+    backgroundShells,
+    toolFactory: (cwd, { background, ...context } = {}) =>
       createSandboxedToolDefinitions({
         cwd,
         workspace: cwd,
         extraRoots: () => workspaceManager.foldersOf(cwd),
         permission: sandbox,
         ...context,
+        ...(background ? { background: backgroundShells } : {}),
       }),
     onRecipeStop: id => taskRecipes?.stopConversation(id),
     // 系统提示档位：v2（默认）、v1（Pi 原有基础段）、v2-visual。
@@ -624,6 +631,8 @@ async function start(): Promise<void> {
   host.register();
   conversationExportHost = new ConversationExportHost(runtime, getApplicationLocale, key => uiStorage.getItem(key) ?? null);
   conversationExportHost.register();
+  sideChatHost = new SideChatHost(new SideChatStore(join(home, "side-chats")));
+  sideChatHost.register();
   registerDevelopmentIpc(runtime, { isPackaged: app.isPackaged, home });
   scheduledTaskHost = new ScheduledTaskHost(scheduler);
   scheduledTaskHost.register();
@@ -705,6 +714,8 @@ app.on("before-quit", (event) => {
   logHost = null;
   conversationExportHost?.dispose();
   conversationExportHost = null;
+  sideChatHost?.dispose();
+  sideChatHost = null;
   updateHost?.dispose();
   releaseNotesHost?.dispose();
   uiSandboxHost?.dispose();

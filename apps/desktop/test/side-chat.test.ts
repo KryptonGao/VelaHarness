@@ -12,7 +12,7 @@ const store = new Map<string, string>();
   } },
 };
 const { setActiveLocale } = await import("../src/renderer/locale.ts");
-const { readSideChatChoice, sideChatMemoryLabel, sideChatModelInfo, sideChatRequestMessages, sideChatRetryHistory, writeSideChatChoice } =
+const { readSideChatChoice, searchSideChats, sideChatPreview, sideChatTimeLabel, sideChatTitle, forgetSideChatEntries, isSideChatDeleted, recallSideChatEntries, rememberSideChatEntries, sideChatEntriesFromStored, sideChatStoredEntries, sideChatMemoryLabel, sideChatModelInfo, sideChatRequestMessages, sideChatRetryHistory, writeSideChatChoice } =
   await import("../src/renderer/components/side-chat-model.ts");
 type SideChatEntry = import("../src/renderer/components/side-chat-model.ts").SideChatEntry;
 
@@ -26,6 +26,78 @@ describe("side chat model", () => {
       { id: "2", role: "assistant", text: "", pending: true },
     ];
     assert.deepEqual(sideChatRequestMessages(entries), [{ role: "user", text: "hi" }]);
+  });
+
+  it("stores only entries with text and round-trips them", () => {
+    const entries: SideChatEntry[] = [
+      { id: "1", role: "user", text: "a", quotes: ["q"] },
+      { id: "2", role: "assistant", text: "partial", pending: true },
+      { id: "3", role: "user", text: "b" },
+      { id: "4", role: "assistant", text: "", pending: true },
+    ];
+    const stored = sideChatStoredEntries(entries);
+    assert.deepEqual(stored, [
+      { id: "1", role: "user", text: "a", quotes: ["q"] },
+      { id: "2", role: "assistant", text: "partial", stopped: true },
+      { id: "3", role: "user", text: "b" },
+    ]);
+    assert.deepEqual(sideChatEntriesFromStored(stored), [
+      { id: "1", role: "user", text: "a", quotes: ["q"] },
+      { id: "2", role: "assistant", text: "partial", stopped: true },
+      { id: "3", role: "user", text: "b" },
+    ]);
+  });
+
+  it("remembers the latest entries per thread", () => {
+    assert.equal(recallSideChatEntries("t"), undefined);
+    rememberSideChatEntries("t", [{ id: "1", role: "user", text: "a" }]);
+    assert.equal(recallSideChatEntries("t")?.length, 1);
+  });
+
+  it("names a chat after its first message and previews the last one", () => {
+    const entries = [
+      { id: "1", role: "user" as const, text: "  How does\n  satisfies work?  " },
+      { id: "2", role: "assistant" as const, text: "It checks\nwithout widening." },
+    ];
+    assert.equal(sideChatTitle(entries), "How does satisfies work?");
+    assert.equal(sideChatPreview(entries), "It checks without widening.");
+    assert.equal(sideChatTitle([{ id: "1", role: "user", text: "x".repeat(60) }]), `${"x".repeat(40)}…`);
+    setActiveLocale("en");
+    assert.equal(sideChatTitle([]), "New chat");
+    setActiveLocale("zh-CN");
+    assert.equal(sideChatTitle([]), "新聊天");
+    assert.equal(sideChatPreview([]), "");
+  });
+
+  it("searches names and every message without caring about case", () => {
+    const thread = (id: string, texts: string[]) => ({
+      id, number: 1, updatedAt: 1, entries: texts.map((text, index) => ({ id: `${id}${index}`, role: index % 2 ? "assistant" as const : "user" as const, text })),
+    });
+    const threads = [thread("a", ["About Rust lifetimes", "Borrowing rules apply"]), thread("b", ["Cooking pasta", "Boil water first"])];
+    assert.equal(searchSideChats(threads, "  ").length, 2);
+    assert.deepEqual(searchSideChats(threads, "BORROWING").map((hit) => hit.thread.id), ["a"]);
+    assert.deepEqual(searchSideChats(threads, "borrowing")[0]!.snippet, { before: "", match: "Borrowing", after: " rules apply" });
+    assert.deepEqual(searchSideChats(threads, "boil").map((hit) => hit.thread.id), ["b"]);
+    assert.equal(searchSideChats(threads, "quantum").length, 0);
+  });
+
+  it("labels the time as clock, yesterday, weekday or date", () => {
+    const now = new Date(2026, 9, 25, 18, 30).getTime();
+    assert.match(sideChatTimeLabel(new Date(2026, 9, 25, 8, 5).getTime(), now, "en"), /8:05/);
+    setActiveLocale("en");
+    assert.equal(sideChatTimeLabel(new Date(2026, 9, 24, 23, 59).getTime(), now, "en"), "Yesterday");
+    setActiveLocale("zh-CN");
+    assert.match(sideChatTimeLabel(new Date(2026, 9, 21, 12).getTime(), now, "en"), /^(Mon|Tue|Wed|Thu|Fri|Sat|Sun)/);
+    assert.match(sideChatTimeLabel(new Date(2026, 8, 1, 12).getTime(), now, "en"), /9\/1/);
+    assert.match(sideChatTimeLabel(new Date(2025, 8, 1, 12).getTime(), now, "en"), /2025/);
+  });
+
+  it("remembers deleted chats so late saves can be skipped", () => {
+    assert.equal(isSideChatDeleted("gone"), false);
+    rememberSideChatEntries("gone", [{ id: "1", role: "user", text: "a" }]);
+    forgetSideChatEntries("gone");
+    assert.equal(recallSideChatEntries("gone"), undefined);
+    assert.equal(isSideChatDeleted("gone"), true);
   });
 
   it("retries from the last user message", () => {

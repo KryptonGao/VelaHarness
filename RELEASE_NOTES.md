@@ -1,36 +1,28 @@
-# Vela 1.2.2
+# Vela 1.2.3
 
-Vela 1.2.2 adds cost tracking to usage statistics: register a price for each model and every usage view shows what a conversation cost, in CNY or USD. Tool cards now say what a command actually did, edit and write calls appear while the model is still writing their arguments, and the context card shows the free space left in the window.
+Vela 1.2.3 lets you cap what a task may cost, with an estimate before it starts, and lets the main agent run long commands in the background. Side chats are now saved per project with a searchable list, and a new Ultra thinking level asks the model to use its highest effort and bring in subagents more readily.
 
 ## New
 
-- **Model prices and costs**: Settings › Usage statistics has a new **Model pricing** section. Register the input, output, cache write and cache read price of a model per 1M tokens, in CNY or USD, and usage statistics calculate costs from it. The overview shows an estimated cost, the Usage table shows a cost per model, and a conversation's usage also shows what its latest task cost — that is, every request made since your last message. Prices stay on this machine, CNY and USD are totalled separately and never converted, and a model without a price is reported by name and left out of the totals instead of being counted as 0.
-- **Bash commands say what they do**: `ls`, `cat`, `grep`, `find` and script runs are labelled List, Read, Search, Find and Script with a matching icon, and the card shows the directory, file or search term (plus "in src" for the search scope) instead of the raw command line. A command that chains several recognisable steps shows "+N more".
-- **Per-tool icons**: updates to the todo list, the outcome, questions, sub-agent messages, scheduled tasks and memory have their own icons, coloured by tool family, in both full and compact tool cards. A todo card shows the item in progress (or the next one) and an outcome card shows its first line.
-- **Live preview while edit and write arguments stream**: the card appears as soon as the model starts writing the arguments, the diff and its +/− counts grow with the content, and the view follows the end. If the model never finishes the call, the card ends with a note that nothing was changed.
-- **Free space in the context card**: the context usage card lists Free space next to system, rules, skills and conversation, and every row shows its share of the window.
+- **Task cost limit**: Settings › Defaults and permissions › Task usage limits has a new **Cost limit**, set in CNY or USD, next to the time and token limits; a single conversation can override it in its Usage limits tab. Cost covers the whole agent tree and is calculated from the model prices you registered. CNY and USD are never converted, and a model with no price (or priced in the other currency) is not counted — the chat says how many models were left out, so "not over the limit" is not mistaken for "cheap". At 80% the chat warns you, and at 100% the agent tree stops and offers a handoff. Cost also sends one inbox reminder at 80% and one at 100%.
+- **Cost estimate before a task starts**: once at least three similar tasks have finished on this machine (conversations and recipes are estimated separately, same model first), the composer shows the median cost and the range the middle half of those tasks fell in. Nothing is shown without enough history or a usable price.
+- **Background commands**: `bash` accepts `run_in_background`, so a dev server, a watcher or a slow build keeps running while the main agent continues. `bash_output` reads new output (and can wait up to 600 seconds), `bash_kill` stops the command and its child processes, and when a command finishes, fails or times out the main agent is woken with the result. Commands go through the same permission gate as foreground ones; subagents and Plan mode keep synchronous `bash`.
+- **Side chats saved per project**: the side chat tab opens a list of the project's chats, newest first, with a preview and time on every row. The search box looks through names and every message and highlights the match. A trash button on each row asks for confirmation before it deletes. Going back to the list does not interrupt a reply that is still arriving, and chats survive a restart (up to 50 per project, 400 messages each).
+- **Ultra thinking level**: Ultra sits at the end of the thinking slider for every model. It uses the highest effort the model actually supports and asks the model to use subagents more readily. You can switch to and from it at any time and the next turn picks it up.
+- **Recommended actions**: when the model finishes a task it can offer one to three next steps, such as committing the changes, as a card you can dismiss. A click sends the instruction the model wrote as your next message, with no extra model request. Settings › Conversation display can turn it off.
+- **Quote selected text**: select text in a conversation to quote it in the side chat or to write a reply that sits as a card above the composer. When a side chat is already open the quote joins that chat; otherwise a new one starts.
 
 ## Improved
 
-- **Usage statistics open without reading whole traces**: only the request and usage records are streamed from each trace file, four conversations at a time, and the page updates once when loading finishes. A long history no longer loads hundreds of megabytes of trace into memory or recomputes the page dozens of times.
-- **Compact tool groups**: mixed Bash groups count listed directories and searches separately ("Listed 3 directories · Ran 2 searches"), and each row keeps its own action word and icon instead of inheriting one for the whole group.
-- **Run view**: write calls show "Writing Files", and a step whose tools have all finished goes back to thinking instead of still claiming to write a reply.
-- **Jump orb**: each style now plays one to six full loops instead of a fixed three seconds, so a style change starts from the pose at the beginning of the loop. Edit and write calls count as command activity.
-- **Composer**: the input grows while you type with an IME (Zhuyin, Pinyin) instead of waiting for the next keystroke, a long placeholder or prediction is truncated to one line instead of adding a horizontal scrollbar, and the plus button keeps its width when the text gets long. In the capsule layout the queue hint sits outside the capsule.
-- **Context card layout**: rows align in three columns (name, tokens, share), the total no longer repeats "tokens" twice, and the percentage is easier to read in the information cards.
+- Registered model prices are also handed to the main process (`model-prices.json` in the data folder) and re-synced at startup, so cost limits and estimates are calculated with the same prices the settings page shows.
+- The task usage banner and Usage limits tab show cost used against the limit. The thinking-level control shows a small glyph for the chosen level, with a blue-violet gradient for Ultra, and choosing Ultra suggests switching to Full access.
 - Japanese, Korean and Traditional Chinese translations for the new text are included.
-
-## Fixed
-
-- Model identifiers in usage records are no longer rewritten when an MCP secret happens to be a substring of them, so requests stay grouped under the real model and registered prices match.
-- A tool call that was already announced while its arguments streamed is counted once in the conversation's tool count, not twice.
-- A step that called tools after writing text no longer stays on "Writing a reply" while waiting for the next model response.
 
 ## Upgrade
 
 Installed copies of Vela 1.0.6 and later receive this update automatically: Vela downloads it in the background and prompts you to restart. Versions 1.0.5 and earlier cannot update themselves, so install this version manually once: quit Vela completely, replace the application with this version, and reopen it.
 
-Keep your existing `~/.vela` directory (or the directory specified by `VELA_USER_DATA`); no data reset is needed. Registered model prices are stored in your local UI state and are kept across the update.
+Keep your existing `~/.vela` directory (or the directory specified by `VELA_USER_DATA`); no data reset is needed. Side chats from earlier versions only existed in the open tab and are not carried over. Background commands live only inside the running app and stop when it quits.
 
 The macOS build is not notarized and uses an ad-hoc signature. If macOS blocks first launch, use **Open Anyway** in System Settings → Privacy & Security. Because the code signature differs between versions, macOS may ask you to confirm privacy or keychain access again after an update.
 
@@ -38,18 +30,17 @@ The macOS build is not notarized and uses an ad-hoc signature. If macOS blocks f
 
 | File | Platform |
 | --- | --- |
-| `Vela-1.2.2-arm64.dmg` | macOS Apple Silicon installer |
-| `Vela-1.2.2-arm64.zip` | macOS Apple Silicon application bundle (`.app`); also the package used by in-app updates |
+| `Vela-1.2.3-arm64.dmg` | macOS Apple Silicon installer |
+| `Vela-1.2.3-arm64.zip` | macOS Apple Silicon application bundle (`.app`); also the package used by in-app updates |
 | `SHA256SUMS.txt` | SHA-256 checksums for both packages |
 | `SHA256SUMS.txt.sig` | Ed25519 signature of `SHA256SUMS.txt`, verified by the in-app updater |
 
-Package version: `1.2.2`. macOS bundle and download version: `1.2.2`.
+Package version: `1.2.3`. macOS bundle and download version: `1.2.3`.
 
 ## Validation
 
-- Type checks passed for all packages, and unit tests passed sequentially in the agent (719 tests, 718 passed and one skipped), workspace (191) and desktop (997) packages (`pnpm typecheck` and `pnpm -r --if-present --workspace-concurrency=1 test`). One timing-sensitive test in `packages/workspace/test/gh-run.test.ts` hit its own 1000 ms spawn timeout in a parallel run of `pnpm test` and passed on every run afterwards.
+- Type checks passed for all packages, and unit tests passed in the agent (750 tests, 749 passed and one skipped), workspace (200) and desktop (1033) packages (`pnpm typecheck` and `pnpm -r --if-present --workspace-concurrency=1 test`). One timing-sensitive test in `packages/workspace/test/gh-run.test.ts` hit its own 1000 ms spawn timeout in the first run and passed when the workspace package was run again.
 - All 29 in-app update tests passed (`pnpm --filter @vela/desktop test:updates`).
 - The production build passed (`pnpm build`).
-- Twelve of the fourteen real-Electron smoke suites passed (`pnpm test:smoke`). Task Recipes failed with `Missing button 编辑` and PR Inbox with `Loaded PRs did not refresh while working outside the inbox`; both are the same symptoms already documented in earlier releases and neither touches code changed here. All other twelve suites — PI SDK, profile, Browser, Browser auth, Browser Use, MCP, Scheduled Tasks, Handoff, PR Review Response, Notification Sounds, Settings and Thinking Blur — passed.
-- macOS arm64 packaging completed (`pnpm package:mac`); the application bundle reports version `1.2.2` and identifier `com.vela.desktop`, the ZIP contains a single `Vela.app`, and the DMG checksum verifies.
-- The signed checksum file was generated for the DMG and ZIP with the bundled-public-key check (`pnpm sign:release`).
+- Twelve of the fourteen real-Electron smoke suites passed (`pnpm test:smoke`). Task Recipes failed with `Missing button 编辑` and PR Inbox with `Loaded PRs did not refresh while working outside the inbox`; both are the same symptoms already documented in earlier releases and neither touches code changed here. The other twelve suites passed.
+- macOS arm64 packaging completed (`pnpm package:mac`); see the checks below once the build is verified.

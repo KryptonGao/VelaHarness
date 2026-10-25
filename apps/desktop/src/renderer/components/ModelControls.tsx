@@ -8,6 +8,7 @@ import {
   type ModelCatalog,
   type ModelSummary,
   type ProviderSummary,
+  type SandboxMode,
   type ThinkingLevel,
 } from "@vela/shared";
 import { useEffect, useId, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
@@ -26,6 +27,7 @@ const thinkingLabelsEn: Record<ThinkingLevel, string> = {
   high: "High",
   xhigh: "Extra high",
   max: "Max",
+  ultra: "Ultra",
 };
 
 export function thinkingLabel(level: ThinkingLevel): string {
@@ -62,27 +64,56 @@ interface ModelControlsProps {
   onDismissLogin: () => void;
   /** 每次值变化（且大于 0）就展开模型菜单；`/model` 命令用它从输入框外部打开。 */
   openRequest?: number;
+  /** 选用 Ultra 时推荐完全访问：传入当前执行权限和切换方法；不传（如侧边聊天、权限被配方锁定）就不提示。 */
+  fullAccess?: { mode: SandboxMode; onEnable: () => unknown };
 }
 
-/** 思考强度胶囊里的小标记：calm 布局显示信号格，capsule 布局显示弧形撥盘，classic 不显示。 */
+/** Ultra 标签「更快使用算力」替换「Ultra」的停留时间。 */
+const ultraFlashMs = 2400;
+
+/**
+ * 思考强度胶囊里的小标记：calm 布局显示信号格，capsule 布局显示弧形撥盘，classic 不显示。
+ * 刻度只按模型自己的强度档位算（最高档即满格），Ultra 同样满格，只把强调色换成蓝紫渐变。
+ */
 function ThinkingGlyph({ choices, level }: { choices: ThinkingLevel[]; level: ThinkingLevel }) {
-  const index = Math.max(0, choices.indexOf(level));
+  const gradientId = useId();
+  const ultra = level === "ultra";
+  const scale = choices.filter((choice) => choice !== "ultra");
+  const index = ultra ? scale.length - 1 : Math.max(0, scale.indexOf(level));
   const lit = level === "off" ? -1 : index;
-  const fraction = choices.length > 1 && level !== "off" ? index / (choices.length - 1) : 0;
+  const fraction = ultra ? 1 : scale.length > 1 && level !== "off" ? index / (scale.length - 1) : 0;
   return (
-    <span className="thinking-glyph" aria-hidden="true">
+    <span className={`thinking-glyph${ultra ? " is-ultra" : ""}`} aria-hidden="true">
       <span className="thinking-bars">
-        {choices.map((choice, i) => (
+        {scale.map((choice, i) => (
           <i
             key={choice}
             className={i <= lit ? "on" : undefined}
-            style={{ height: `${4 + (choices.length > 1 ? (i / (choices.length - 1)) * 10 : 10)}px` }}
+            style={{
+              height: `${4 + (scale.length > 1 ? (i / (scale.length - 1)) * 10 : 10)}px`,
+              ...(ultra ? { background: `color-mix(in srgb, #8b5cf6 ${scale.length > 1 ? Math.round((i / (scale.length - 1)) * 100) : 100}%, #3b82f6)` } : null),
+            }}
           />
         ))}
       </span>
       <svg className="thinking-dial" viewBox="0 0 24 24">
+        {ultra ? (
+          <defs>
+            <linearGradient id={gradientId} gradientUnits="userSpaceOnUse" x1="6" y1="0" x2="18" y2="0">
+              <stop offset="0" stopColor="#3b82f6" />
+              <stop offset="1" stopColor="#8b5cf6" />
+            </linearGradient>
+          </defs>
+        ) : null}
         <circle className="thinking-dial-track" cx="12" cy="12" r="6" />
-        <circle className="thinking-dial-progress" cx="12" cy="12" r="6" strokeDasharray={`${(fraction * 28.27).toFixed(2)} 100`} />
+        <circle
+          className="thinking-dial-progress"
+          cx="12"
+          cy="12"
+          r="6"
+          strokeDasharray={`${(fraction * 28.27).toFixed(2)} 100`}
+          style={ultra ? { stroke: `url(#${gradientId})` } : undefined}
+        />
       </svg>
     </span>
   );
@@ -107,6 +138,18 @@ export function ModelControls(props: ModelControlsProps) {
   const sliderValue = sliderIndex + sliderOffset;
   const sliderProgress = sliderRangeMax > 0 ? sliderValue / sliderRangeMax : 0;
   const particleDuration = `${(3.4 - sliderProgress * 2.65).toFixed(2)}s`;
+  const ultraSelected = sliderThinking === "ultra";
+  const [ultraFlash, setUltraFlash] = useState(false);
+
+  useEffect(() => {
+    if (menu !== "thinking" || !ultraSelected) {
+      setUltraFlash(false);
+      return;
+    }
+    setUltraFlash(true);
+    const timer = window.setTimeout(() => setUltraFlash(false), ultraFlashMs);
+    return () => window.clearTimeout(timer);
+  }, [menu, ultraSelected]);
 
   useEffect(() => {
     if (props.openRequest) setMenu("model");
@@ -158,11 +201,17 @@ export function ModelControls(props: ModelControlsProps) {
         <PopoverPresence present={menu === "thinking"}>
           <div id={thinkingPopoverId} className="dock-popover thinking-popover" role="group" aria-label={tr("思考强度", "Reasoning effort")}>
             <div className="thinking-popover-heading">
-              <span className="thinking-level-value" aria-live="polite">{thinkingLabel(sliderThinking)}</span>
+              <span
+                key={ultraFlash ? "ultra-flash" : sliderThinking}
+                className={`thinking-level-value${ultraSelected ? " is-ultra" : ""}${ultraFlash ? " is-ultra-flash" : ""}`}
+                aria-live="polite"
+              >
+                {ultraFlash ? tr("更快使用算力", "Faster compute") : thinkingLabel(sliderThinking)}
+              </span>
               <span className="thinking-model-label">{props.modelLabel ?? tr("选择模型", "Choose a model")}</span>
             </div>
             <div
-              className="thinking-slider"
+              className={`thinking-slider${ultraSelected ? " is-ultra" : ""}`}
               style={{
                 "--thinking-progress": `${sliderProgress * 100}%`,
                 "--thinking-particle-duration": particleDuration,
@@ -220,6 +269,12 @@ export function ModelControls(props: ModelControlsProps) {
                 }}
               />
             </div>
+            {ultraSelected && props.fullAccess && props.fullAccess.mode !== "full" ? (
+              <div className="thinking-ultra-tip">
+                <span>{tr("Ultra 会并行启用更多 SubAgent，推荐使用完全访问权限，避免逐项审批打断它们。", "Ultra runs more SubAgents in parallel. Full access is recommended so approvals do not interrupt them.")}</span>
+                <button type="button" onClick={() => { void props.fullAccess?.onEnable(); }}>{tr("切换到完全访问", "Switch to full access")}</button>
+              </div>
+            ) : null}
           </div>
         </PopoverPresence>
       </div>

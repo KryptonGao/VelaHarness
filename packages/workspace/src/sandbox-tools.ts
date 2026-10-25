@@ -12,6 +12,8 @@ import {
   type BashOperations,
   type ToolDefinition,
 } from "@earendil-works/pi-coding-agent";
+import type { BackgroundShellManager } from "./background-shells";
+import { createBackgroundShellTools, withBackgroundOption } from "./background-shell-tools";
 import { isPathInside } from "./git-service";
 import type { SandboxPermissionManager } from "./sandbox-permission-manager";
 
@@ -23,6 +25,8 @@ export interface SandboxToolFactoryInput extends SandboxExecutionContext {
   /** 工作区的附加文件夹,每次文件写入时读取;其中的改动与主要文件夹一样视为工作区内。 */
   extraRoots?: () => readonly string[];
   permission: SandboxPermissionManager;
+  /** 提供后即开启 bash 的后台模式并注册 bash_output / bash_kill；需要 conversationId 归属。 */
+  background?: BackgroundShellManager;
 }
 
 /**
@@ -55,9 +59,18 @@ export function createSandboxedToolDefinitions(input: SandboxToolFactoryInput): 
     if (!allowed) throw new Error(`用户拒绝了文件修改:${path}`);
   };
 
+  const bash = defineTool(createBashToolDefinition(input.cwd, { operations: bashOperations }));
+  const background = input.background;
+  const conversationId = input.conversationId;
+
   // defineTool 保留参数推断,同时让具体类型满足 customTools 的宽接口。
   return [
-    defineTool(createBashToolDefinition(input.cwd, { operations: bashOperations })),
+    background && conversationId
+      ? withBackgroundOption(bash, input.cwd, background, conversationId, async (command, cwd, signal) => {
+          const allowed = await input.permission.request({ sandboxMode: input.sandboxMode, conversationId, kind: "bash", command, cwd, workspace: boundary, signal });
+          if (!allowed) throw new Error(`用户拒绝了命令执行:${command}`);
+        })
+      : bash,
     defineTool(
       withPermissionGuard(
         defineTool(createEditToolDefinition(input.cwd)),
@@ -74,6 +87,7 @@ export function createSandboxedToolDefinitions(input: SandboxToolFactoryInput): 
         guardFileWrite,
       ),
     ),
+    ...(background && conversationId ? createBackgroundShellTools(background, conversationId) : []),
   ];
 }
 

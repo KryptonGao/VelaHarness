@@ -6,9 +6,12 @@ import {
 } from "@earendil-works/pi-coding-agent";
 import {
   outcomeLimits,
+  recommendedActionLimits,
+  recommendedActionsToolName,
   type GoalStatus,
   type InteractionMode,
   type OutcomeSubmission,
+  type RecommendedActions,
 } from "@vela/shared";
 import { Type } from "typebox";
 import { isPlanSafeCommand } from "./plan-command";
@@ -87,6 +90,9 @@ const outcomePrompt = `If you modified files or ran verification in this turn, c
 Only cite files changed by completed edit/write calls and bash tool call ids completed in this turn. Leave verificationIds empty if you did not run verification; never invent files, ids, or results. If submission is rejected, correct the invalid references and retry before finishing.
 In Goal mode, call record_goal_validation before submit_outcome, then update_goal to complete when appropriate. Pure questions and answers with no changes or verification do not require an outcome submission.`;
 
+const recommendedActionsPrompt = `When you finish the user's request and there is a clear, useful next step the user would probably want (for example committing the changes, running a broader check, or continuing with a follow-up task), call ${recommendedActionsToolName} as the very last step, after your final reply text. The UI shows it as a dismissible card under your reply with one button per action; clicking a button sends that action's prompt to you as the user's next message.
+Give 1-${recommendedActionLimits.maxActions} actions. Each prompt must be complete and self-contained, written from the user's point of view as an instruction to you, because it is sent verbatim. Do not call it when the request was a plain question, when you are still working or blocked on the user, or when there is no natural next step; it is optional, and never use it to repeat your reply. After it returns, end your turn without writing anything more.`;
+
 const agentTreePrompt = `When you need broad investigation or want to hand off a self-contained piece of work, use spawn_agent to start a persistent subagent: agent is explore (read-only) or general (can modify files); it returns the agent id and path immediately without waiting for the result.
 name is the last segment of the path (such as backend); fork decides how much of the current context the subagent inherits: none inherits nothing (default), all inherits everything, and a number means the most recent N turns.
 When a subagent finishes, its conclusion is delivered back to you automatically; use followup_task to wait for it when you need the result to continue, and send_message when you are only adding requirements.
@@ -104,11 +110,12 @@ export function toolNamesFor(mode: InteractionMode, hasExecutionPlan: boolean, r
     : [...workTools, ...todos, "submit_outcome", "ask_user_question"];
 }
 
-export function modeSystemPrompt(mode: InteractionMode, hasExecutionPlan: boolean, runView = false): string {
+export function modeSystemPrompt(mode: InteractionMode, hasExecutionPlan: boolean, runView = false, recommendedActions = false): string {
   if (mode === "plan") return planPrompt;
   const todo = runView ? (hasExecutionPlan ? todoPromptWithPlan : todoPrompt) : "";
-  if (mode === "goal") return [goalPrompt, todo, outcomePrompt, agentTreePrompt].filter(Boolean).join("\n\n");
-  return [hasExecutionPlan ? agentPlanPrompt : "", todo, outcomePrompt, agentTreePrompt].filter(Boolean).join("\n\n");
+  const recommend = recommendedActions ? recommendedActionsPrompt : "";
+  if (mode === "goal") return [goalPrompt, todo, outcomePrompt, recommend, agentTreePrompt].filter(Boolean).join("\n\n");
+  return [hasExecutionPlan ? agentPlanPrompt : "", todo, outcomePrompt, recommend, agentTreePrompt].filter(Boolean).join("\n\n");
 }
 
 // ---------- Tool policy ----------
@@ -149,6 +156,9 @@ export class DefaultToolPolicy implements ToolPolicy {
       return { allowed: false, reason: `Plan 模式不允许调用 ${call.toolName}。` };
     }
     if (call.toolName === "bash") {
+      if ((call.input as { run_in_background?: unknown } | null)?.run_in_background === true) {
+        return { allowed: false, reason: "Plan 模式不能启动后台命令。" };
+      }
       const command = bashCommandOf(call.input);
       if (!command) return { allowed: false, reason: "Plan 模式只能运行查阅类命令。" };
       if (!isPlanSafeCommand(command)) {
@@ -172,6 +182,8 @@ export interface ModeState {
   hasExecutionPlan: boolean;
   /** 运行视图开启:要求本轮先提交待办清单,否则不放行改动类工具。 */
   runView?: boolean;
+  /** 推荐操作开启:提示词告知模型可在一轮结束时调用 recommend_actions。 */
+  recommendedActions?: boolean;
 }
 
 /** 运行视图下,待办清单提交之前不放行的工具:会改动工作区或执行命令的那几个。 */
@@ -188,7 +200,7 @@ export function createModeExtension(
     pi.on("before_agent_start", async (event) => {
       todosSubmitted = false;
       const state = read();
-      const extra = modeSystemPrompt(state.mode, state.hasExecutionPlan, state.runView === true);
+      const extra = modeSystemPrompt(state.mode, state.hasExecutionPlan, state.runView === true, state.recommendedActions === true);
       if (!extra) return;
       const current = event.systemPromptOptions.appendSystemPrompt.trim();
       event.systemPromptOptions.appendSystemPrompt = current ? `${current}\n\n${extra}` : extra;
@@ -220,7 +232,7 @@ export type ToolOutcome = { ok: true; text: string } | { ok: false; text: string
  * Pi 的 createAgentSession 把 tools 参数当作注册表白名单(内置与自定义都过滤),
  * 这些名字必须并入 tools,否则工具进不了注册表,setActiveToolsByName 会静默忽略。
  */
-export const modeToolNames = ["update_plan", updateTodosToolName, "update_goal", "record_goal_validation", "submit_outcome", "ask_user_question"];
+export const modeToolNames = ["update_plan", updateTodosToolName, "update_goal", "record_goal_validation", "submit_outcome", "ask_user_question", recommendedActionsToolName];
 
 export interface AskUserInput {
   toolCallId: string;
@@ -235,6 +247,7 @@ export interface ModeToolHost {
   updateGoal(status: Extract<GoalStatus, "active" | "complete">, note: string | null): ToolOutcome;
   recordGoalValidation(draft: GoalValidationDraft): ToolOutcome;
   submitOutcome(draft: OutcomeSubmission): ToolOutcome;
+  recommendActions(draft: RecommendedActions): ToolOutcome;
   askUser(input: AskUserInput): Promise<AskUserOutcome>;
 }
 
@@ -271,6 +284,26 @@ export function createModeTools(host: ModeToolHost): ToolDefinition[] {
       summary: Type.Optional(Type.String({ maxLength: outcomeLimits.itemLength })),
     }),
     execute: async (_toolCallId, params) => outcome(host.submitOutcome(params)),
+  });
+
+  const recommendActions = defineTool({
+    name: recommendedActionsToolName,
+    label: "推荐操作",
+    description:
+      "Offer the user 1-3 recommended next actions as buttons under your final reply. Each action has a short label and a complete, self-contained prompt that is sent verbatim as the user's next message when they click it. Call it only as the last step of a finished turn when a clear next step exists; do not use it for plain questions or to repeat your reply.",
+    promptSnippet: "Offer 1-3 recommended next actions (label + prompt) as buttons after finishing a task",
+    executionMode: "sequential",
+    parameters: Type.Object({
+      question: Type.String({ minLength: 1, maxLength: recommendedActionLimits.questionLength, description: "One short sentence suggesting the next step, e.g. \"Commit these changes?\"" }),
+      actions: Type.Array(
+        Type.Object({
+          label: Type.String({ minLength: 1, maxLength: recommendedActionLimits.labelLength, description: "Short button text" }),
+          prompt: Type.String({ minLength: 1, maxLength: recommendedActionLimits.promptLength, description: "Complete instruction sent to you verbatim as the user's next message" }),
+        }),
+        { minItems: 1, maxItems: recommendedActionLimits.maxActions },
+      ),
+    }),
+    execute: async (_toolCallId, params) => outcome(host.recommendActions(params)),
   });
 
   const updatePlan = defineTool({
@@ -408,7 +441,7 @@ export function createModeTools(host: ModeToolHost): ToolDefinition[] {
     },
   });
 
-  return [updatePlan, updateTodos, updateGoal, recordGoalValidation, submitOutcome, askUserQuestion];
+  return [updatePlan, updateTodos, updateGoal, recordGoalValidation, submitOutcome, recommendActions, askUserQuestion];
 }
 
 /** update_todos 不改任何对话状态,清单只随工具调用显示在界面上;这里只校验「最多一项进行中」。 */

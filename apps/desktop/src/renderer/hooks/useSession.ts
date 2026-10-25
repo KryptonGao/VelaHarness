@@ -17,7 +17,7 @@ import type {
   ToolTrace,
   TranscriptMessage,
 } from "@vela/shared";
-import { agentStatuses, emptyAgentUsage, parseOutcomeSubmission } from "@vela/shared";
+import { agentStatuses, emptyAgentUsage, parseOutcomeSubmission, parseRecommendedActions } from "@vela/shared";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createMessageStore, emptyMessages, messageScope, type MessageStore } from "./message-store";
 import { uiStateStore } from "../components/intelligent-ui/ui-state-instance";
@@ -888,6 +888,7 @@ function sanitizeActivity(value: ToolActivity | undefined): ToolActivity {
     diff: typeof value?.diff === "string" ? value.diff : undefined,
     plan,
     outcome: parseOutcomeSubmission(value?.outcome) ?? undefined,
+    recommendedActions: parseRecommendedActions(value?.recommendedActions) ?? undefined,
     agent: value?.agent === "explore" || value?.agent === "general" ? value.agent : undefined,
     agentId: typeof value?.agentId === "string" ? value.agentId : undefined,
     agentPath: typeof value?.agentPath === "string" ? value.agentPath : undefined,
@@ -1036,6 +1037,7 @@ function mergeActivity(current: ToolActivity | undefined, patch: ToolActivity): 
     diff: patch.diff ?? base.diff,
     plan: patch.plan ?? base.plan,
     outcome: patch.outcome ?? base.outcome,
+    recommendedActions: patch.recommendedActions ?? base.recommendedActions,
     agent: patch.agent ?? base.agent,
     agentId: patch.agentId ?? base.agentId,
     agentPath: patch.agentPath ?? base.agentPath,

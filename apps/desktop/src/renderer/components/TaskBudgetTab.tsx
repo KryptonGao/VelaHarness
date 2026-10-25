@@ -1,6 +1,7 @@
-import { formatTaskBudgetDuration, formatTaskBudgetTokens, type ConversationTaskBudget, type TaskBudgetSettings, type TaskBudgetState } from "@vela/shared";
+import { formatCost, formatTaskBudgetDuration, formatTaskBudgetTokens, type ConversationTaskBudget, type TaskBudgetSettings, type TaskBudgetState } from "@vela/shared";
 import { useCallback, useEffect, useState } from "react";
-import { localizeError, tr, trf, useAppLocale } from "../locale";
+import { activeIntlLocale, localizeError, tr, trf, useAppLocale } from "../locale";
+import { uncountedNote } from "./TaskBudgetBanner";
 import { settingsCopy } from "./settings-copy";
 import { TaskBudgetFields } from "./settings/TaskBudgetFields";
 
@@ -10,6 +11,7 @@ function describe(settings: TaskBudgetSettings): string {
   else {
     if (settings.maxMinutes !== null) parts.push(trf("{0} 分钟", "{0} min", settings.maxMinutes));
     if (settings.maxTokens !== null) parts.push(`${formatTaskBudgetTokens(settings.maxTokens)} Token`);
+    if (settings.maxCost !== null) parts.push(formatCost({ [settings.maxCost.currency]: settings.maxCost.amount }, activeIntlLocale()) ?? "");
   }
   parts.push(trf("子代理最多 {0} 个", "up to {0} subagents", settings.maxSubagents));
   if (!settings.allowNestedSubagents) parts.push(tr("不可嵌套", "no nesting"));
@@ -47,12 +49,20 @@ function CurrentTask({ budget }: { budget: TaskBudgetState | null | undefined })
   if (!budget) return <p className="tb-empty">{tr("当前没有进行中的任务，或没有启用上限。", "No task is running, or no limit is enabled.")}</p>;
   const elapsed = (budget.exhaustedAt ?? now) - budget.startedAt;
   const [zh, en] = phaseLabels[budget.phase];
+  const locale = activeIntlLocale();
+  const uncounted = uncountedNote(budget);
   return <>
     <span className="tb-pill" data-phase={budget.phase}>{tr(zh, en)}</span>
     <div className="tb-stats">
       <Stat label="Token" used={budget.tokensUsed} limit={budget.maxTokens} value={formatTaskBudgetTokens(budget.tokensUsed)} max={formatTaskBudgetTokens(budget.maxTokens ?? 0)} />
       <Stat label={tr("时间", "Time")} used={elapsed} limit={budget.maxMs} value={formatTaskBudgetDuration(elapsed)} max={formatTaskBudgetDuration(budget.maxMs ?? 0)} />
+      {budget.maxCost !== null && budget.costUsed !== null
+        ? <Stat label={tr("费用", "Cost")} used={budget.costUsed} limit={budget.maxCost.amount}
+          value={formatCost({ [budget.maxCost.currency]: budget.costUsed }, locale) ?? ""}
+          max={formatCost({ [budget.maxCost.currency]: budget.maxCost.amount }, locale) ?? ""} />
+        : null}
     </div>
+    {uncounted ? <p className="tb-note">{uncounted}</p> : null}
   </>;
 }
 
@@ -89,8 +99,8 @@ export function TaskBudgetTab({ conversationId, budget }: { conversationId: stri
     <div className="tb-inner">
       <header className="tb-header">
         <h2>{tr("用量限制", "Usage limit")}</h2>
-        <p>{tr("为当前对话设置一次任务的时间与 Token 上限（统计包含子代理），以及子代理的数量上限。这里的设置只对当前对话生效，不影响其他对话。",
-          "Set a time and token limit for a single task in this conversation (subagents included), plus a cap on subagents. These settings apply to this conversation only.")}</p>
+        <p>{tr("为当前对话设置一次任务的时间、Token 与费用上限（统计包含子代理），以及子代理的数量上限。这里的设置只对当前对话生效，不影响其他对话。",
+          "Set a time, token and cost limit for a single task in this conversation (subagents included), plus a cap on subagents. These settings apply to this conversation only.")}</p>
       </header>
       <section className="tb-card">
         <div className="tb-card-head"><h3>{tr("当前任务", "Current task")}</h3></div>

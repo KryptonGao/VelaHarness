@@ -2,7 +2,7 @@
 import type { AgentInfo, ToolTrace, TraceDetails, TraceKind, TraceNode, TraceRequest } from "@vela/shared";
 import type { UiMessage } from "../src/renderer/hooks/useSession";
 
-export const base = Date.parse("2026-10-02T10:24:00+08:00");
+export const base = Date.parse("2026-10-25T10:24:00+08:00");
 export const cwd = "/projects/atlas-web";
 export const title = "修复登录后的重定向";
 export const task = "修复登录后丢失目标页面的问题，补齐安全校验和测试。可以并行查阅路由、实现修复、检查边界条件。";
@@ -12,7 +12,8 @@ const message = (id: string, text: string, tools: ToolTrace[] = [], thinking = "
 export const diff = "  12 export function resolveRedirect(value: string | null) {\n- 13   return value || '/';\n+ 13   if (!value?.startsWith('/') || value.startsWith('//')) return '/';\n+ 14   return value;\n  15 }";
 export const compactMessages: UiMessage[] = [
   { id: "user", role: "user", text: task, thinking: "", tools: [], timestamp: base },
-  message("inspect", "先沿登录回调和路由守卫查找目标地址的传递位置。", [
+  message("inspect", "先搜索 redirect 参数的使用位置，再沿登录回调和路由守卫确认传递路径。", [
+    tool("search-1", "bash", { command: `grep -rn "searchParams.get('redirect')" src`, body: "src/auth/callback.ts:12:  const target = searchParams.get('redirect');\nsrc/router/guards.ts:31:  return `/login?redirect=${encodeURIComponent(to.fullPath)}`;" }),
     tool("read-1", "read", { path: `${cwd}/src/auth/callback.ts`, body: "const target = searchParams.get('redirect');\nrouter.replace('/');" }),
     tool("read-2", "read", { path: `${cwd}/src/router/guards.ts`, body: "return `/login?redirect=${encodeURIComponent(to.fullPath)}`;" }),
     tool("read-3", "read", { path: `${cwd}/test/auth/redirect.test.ts`, body: "describe('login redirect', () => { /* existing tests */ });" }),
@@ -27,10 +28,14 @@ export const compactMessages: UiMessage[] = [
 ];
 
 export const agents: AgentInfo[] = [
-  { id: "root", parentId: null, path: "/root", name: "root", kind: "root", status: "completed", depth: 0, task, steps: [], mutated: false, finalText: "已汇总修复与验证结果。", error: null, createdAt: base, updatedAt: base + 94000 },
-  { id: "routing", parentId: "root", path: "/root/routing", name: "routing", kind: "explore", status: "completed", depth: 1, task: "只读查阅登录回调和路由守卫，定位目标地址丢失的位置。", steps: [], mutated: false, finalText: "守卫已保存 redirect 参数；callback.ts 固定跳转到首页，导致目标丢失。", error: null, createdAt: base + 1000, updatedAt: base + 18000 },
-  { id: "auth", parentId: "root", path: "/root/auth", name: "auth", kind: "general", status: "completed", depth: 1, task: "实现站内重定向恢复，并补齐登录回调测试。", steps: [], mutated: true, finalText: "新增 resolveRedirect，回调恢复站内目标，8 个定向测试通过。", error: null, createdAt: base + 1100, updatedAt: base + 87000 },
-  { id: "review", parentId: "root", path: "/root/review", name: "review", kind: "explore", status: "completed", depth: 1, task: "检查空地址、外部 URL 与协议相对地址的处理。", steps: [], mutated: false, finalText: "边界条件已覆盖；外部 URL 与协议相对地址均回退到首页。", error: null, createdAt: base + 1200, updatedAt: base + 92000 },
+  { id: "root", parentId: null, path: "/root", name: "root", kind: "root", status: "completed", depth: 0, task, steps: [], mutated: false, finalText: "已汇总修复与验证结果。", error: null,
+    usage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 }, activeMs: 94000, runningSince: null, createdAt: base, updatedAt: base + 94000 },
+  { id: "routing", parentId: "root", path: "/root/routing", name: "routing", kind: "explore", status: "completed", depth: 1, task: "只读查阅登录回调和路由守卫，定位目标地址丢失的位置。", steps: [], mutated: false, finalText: "守卫已保存 redirect 参数；callback.ts 固定跳转到首页，导致目标丢失。", error: null,
+    usage: { input: 6200, output: 840, cacheRead: 21000, cacheWrite: 0, total: 28040 }, activeMs: 17000, runningSince: null, createdAt: base + 1000, updatedAt: base + 18000 },
+  { id: "auth", parentId: "root", path: "/root/auth", name: "auth", kind: "general", status: "completed", depth: 1, task: "实现站内重定向恢复，并补齐登录回调测试。", steps: [], mutated: true, finalText: "新增 resolveRedirect，回调恢复站内目标，8 个定向测试通过。", error: null,
+    usage: { input: 9800, output: 1600, cacheRead: 34200, cacheWrite: 0, total: 45600 }, activeMs: 86000, runningSince: null, createdAt: base + 1100, updatedAt: base + 87000 },
+  { id: "review", parentId: "root", path: "/root/review", name: "review", kind: "explore", status: "completed", depth: 1, task: "检查空地址、外部 URL 与协议相对地址的处理。", steps: [], mutated: false, finalText: "边界条件已覆盖；外部 URL 与协议相对地址均回退到首页。", error: null,
+    usage: { input: 4100, output: 520, cacheRead: 12800, cacheWrite: 0, total: 17420 }, activeMs: 90800, runningSince: null, createdAt: base + 1200, updatedAt: base + 92000 },
 ];
 export const agentMessages: Record<string, UiMessage[]> = {
   routing: [{ id: "routing-user", role: "user", text: agents[1]!.task, thinking: "", tools: [] }, message("routing-report", agents[1]!.finalText!)],

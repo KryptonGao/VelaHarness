@@ -322,3 +322,35 @@ it("stripUiFences removes complete and unterminated fences only", () => {
   assert.equal(stripUiFences("前\n```vela-ui\n{\"op\":\"create\"}"), "前");
   assert.equal(stripUiFences("```js\nconst a = 1;\n```"), "```js\nconst a = 1;\n```");
 });
+
+it("turns task cost warnings into one alert per task and phase, with language-neutral amounts", async t => {
+  const f = await fixture(t);
+  const budget = (phase: "warning" | "exhausted", costUsed: number, startedAt = 1000): AgentInboxRuntimeEvent => ({
+    type: "task_budget", conversationId: "active-chat", startedAt, phase, costUsed, maxCost: { currency: "CNY", amount: 2 },
+  });
+  f.emit(budget("warning", 1.62));
+  f.emit(budget("warning", 1.7));
+  f.emit(budget("exhausted", 2.01));
+  // 另一个任务（不同 startedAt）的同一阶段是新的事项。
+  f.emit(budget("warning", 1.65, 2000));
+  const items = f.service.list().items;
+  assert.equal(items.length, 3);
+  const exhausted = items.find(item => item.outcome === "cost_exhausted")!;
+  const warning = items.find(item => item.outcome === "cost_warning" && item.sourceEventId.endsWith("1000:warning"))!;
+  assert.equal(exhausted.type, "alert");
+  assert.equal(exhausted.priority, "high");
+  assert.equal(exhausted.status, "resolved");
+  assert.equal(exhausted.conversationId, "active-chat");
+  assert.equal(exhausted.title, "Active");
+  assert.equal(exhausted.workspaceId, "/work/a");
+  assert.equal(exhausted.summary, "¥2.01 / ¥2.00");
+  assert.equal(warning.priority, "normal");
+  assert.equal(warning.summary, "¥1.62 / ¥2.00");
+  assert.equal(warning.readState, "unread");
+});
+
+it("formats alerts in the budget currency", async t => {
+  const f = await fixture(t);
+  f.emit({ type: "task_budget", conversationId: "bg", startedAt: 1, phase: "warning", costUsed: 0.0042, maxCost: { currency: "USD", amount: 0.005 } });
+  assert.equal(f.service.list().items[0]?.summary, "$0.0042 / $0.005");
+});

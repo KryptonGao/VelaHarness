@@ -7,7 +7,8 @@ import { describe, it, type TestContext } from "node:test";
 import type { AgentSession } from "@earendil-works/pi-coding-agent";
 import type { StreamFn } from "@earendil-works/pi-agent-core";
 import { createAssistantMessageEventStream, type AssistantMessage } from "@earendil-works/pi-ai";
-import { AgentRuntime } from "../src/runtime.ts";
+import type { ModelPrice } from "@vela/shared";
+import { AgentRuntime, type RuntimeEvent } from "../src/runtime.ts";
 
 interface Internals {
   conversations: Map<string, { session: AgentSession; budget?: { exhausted: boolean; ended: boolean } }>;
@@ -109,7 +110,7 @@ describe("AgentRuntime 任务用量上限", { timeout: 30_000 }, () => {
     f.runtime.setTaskBudgetSettings({ enabled: false, maxMinutes: 30, maxTokens: 2_000_000 });
     const other = await f.runtime.createConversation(f.workspace).then(() => f.runtime.activeConversationId!);
     assert.notEqual(other, f.id);
-    const custom = { enabled: true, maxMinutes: null, maxTokens: 10_000, maxSubagents: 16, allowNestedSubagents: true };
+    const custom = { enabled: true, maxMinutes: null, maxTokens: 10_000, maxCost: null, maxSubagents: 16, allowNestedSubagents: true };
     const saved = f.runtime.setConversationTaskBudget(f.id, custom);
     assert.deepEqual(saved.override, custom);
     assert.deepEqual(saved.effective, custom);
@@ -134,3 +135,115 @@ describe("AgentRuntime 任务用量上限", { timeout: 30_000 }, () => {
     assert.equal(restored.getSnapshot().taskBudget ?? null, null);
   });
 });
+
+/** 每次请求 10,000 token：按 100 元 / 百万 Token 计价，每次恰好 ¥1.00。 */
+const fixturePrice: ModelPrice = { model: "budget-fixture/fixture-model", currency: "CNY", input: 100, output: 100, cacheWrite: 0, cacheRead: 0 };
+const costBudget = (amount: number, currency: "CNY" | "USD" = "CNY") => ({ enabled: true, maxMinutes: null, maxTokens: null, maxCost: { currency, amount } });
+
+async function untilEnded(f: Awaited<ReturnType<typeof fixture>>): Promise<void> {
+  const until = Date.now() + 8000;
+  const task = () => (f.runtime as unknown as Internals).conversations.get(f.id)!.budget;
+  while (!task()?.ended && Date.now() < until) await delay(50);
+  assert.equal(task()?.ended, true);
+}
+
+describe("AgentRuntime 费用上限", { timeout: 60_000 }, () => {
+  it("费用到达上限后停止，状态带金额，并只向收件箱通知一次", async (t) => {
+    const f = await fixture(t);
+    f.runtime.setModelPrices([fixturePrice]);
+    f.runtime.setTaskBudgetSettings(costBudget(1));
+    const events: RuntimeEvent[] = [];
+    t.after(f.runtime.subscribe(event => { if (event.type === "task_budget") events.push(event); }));
+    f.script();
+    await f.runtime.prompt(f.id, "任务");
+    const state = f.runtime.getSnapshot().taskBudget;
+    assert.equal(state?.phase, "exhausted");
+    assert.equal(state?.reason, "cost");
+    assert.equal(state?.costUsed, 1);
+    assert.deepEqual(state?.maxCost, { currency: "CNY", amount: 1 });
+    assert.equal(state?.uncountedModels, 0);
+    assert.equal(f.requests(), 1);
+    assert.deepEqual(events.map(event => event.type === "task_budget" ? event.phase : null), ["exhausted"]);
+  });
+
+  it("接近上限时先提醒一次，任务结束后状态收起", async (t) => {
+    const f = await fixture(t);
+    f.runtime.setModelPrices([fixturePrice]);
+    f.runtime.setTaskBudgetSettings(costBudget(1.2));
+    const phases: string[] = [];
+    t.after(f.runtime.subscribe(event => { if (event.type === "task_budget") phases.push(event.phase); }));
+    f.script();
+    await f.runtime.prompt(f.id, "任务");
+    assert.equal(f.runtime.getSnapshot().taskBudget?.phase, "warning");
+    assert.equal(f.runtime.getSnapshot().taskBudget?.reason, "cost");
+    assert.deepEqual(phases, ["warning"]);
+  });
+
+  it("没登记价格的模型不计入，也不会触发费用上限", async (t) => {
+    const f = await fixture(t);
+    f.runtime.setTaskBudgetSettings(costBudget(0.5));
+    f.script();
+    await f.runtime.prompt(f.id, "任务");
+    const state = f.runtime.getSnapshot().taskBudget;
+    assert.equal(state?.phase, "ok");
+    assert.equal(state?.costUsed, 0);
+    assert.equal(state?.uncountedModels, 1);
+    assert.equal(f.requests(), 1);
+  });
+
+  it("价格登记为另一种币种时不换算，不计入", async (t) => {
+    const f = await fixture(t);
+    f.runtime.setModelPrices([{ ...fixturePrice, currency: "USD" }]);
+    f.runtime.setTaskBudgetSettings(costBudget(0.5, "CNY"));
+    f.script();
+    await f.runtime.prompt(f.id, "任务");
+    const state = f.runtime.getSnapshot().taskBudget;
+    assert.deepEqual([state?.phase, state?.costUsed, state?.uncountedModels], ["ok", 0, 1]);
+  });
+
+  it("价格改动立即作用于进行中的任务，并随进程重启保留", async (t) => {
+    const f = await fixture(t);
+    assert.equal(f.runtime.getModelPrices(), null);
+    f.runtime.setTaskBudgetSettings(costBudget(1));
+    f.script();
+    await f.runtime.prompt(f.id, "任务");
+    assert.equal(f.runtime.getSnapshot().taskBudget?.phase, "ok");
+    f.runtime.setModelPrices([fixturePrice]);
+    assert.equal(f.runtime.getSnapshot().taskBudget?.phase, "exhausted");
+    // 到达上限后的收尾（停止整棵 agent 树）是异步的，等它结束再继续。
+    await untilEnded(f);
+    assert.throws(() => f.runtime.setModelPrices([{ ...fixturePrice, input: -1 }]), /价格/);
+    await f.runtime.dispose();
+    const restored = new AgentRuntime({ cwd: f.workspace, agentDir: f.agentDir });
+    assert.deepEqual(restored.getModelPrices(), [fixturePrice]);
+    // 两个运行时的后台落盘（trace、检查点）在 dispose 之后还会收尾，等它写完再清理目录。
+    await restored.dispose();
+    await delay(500);
+  });
+
+  it("同类任务做过 3 次后才给预估，并带上本对话的费用上限", async (t) => {
+    const f = await fixture(t);
+    f.runtime.setModelPrices([fixturePrice]);
+    f.script();
+    assert.equal(f.runtime.estimateTaskCost(f.id), null);
+    for (let run = 0; run < 3; run += 1) {
+      await f.runtime.prompt(f.id, `任务 ${run}`);
+      assert.equal(f.runtime.estimateTaskCost(f.id), null, run < 2 ? "样本不足" : "最后一个任务还没结束，不算样本");
+      await untilEnded(f);
+    }
+    const estimate = f.runtime.estimateTaskCost(f.id)!;
+    assert.equal(estimate.currency, "CNY");
+    assert.equal(estimate.samples, 3);
+    assert.equal(estimate.sameModel, true);
+    assert.equal(estimate.median, 1);
+    assert.equal(estimate.limit, null);
+    f.runtime.setTaskBudgetSettings(costBudget(5));
+    assert.equal(f.runtime.estimateTaskCost(f.id)?.limit, 5);
+    // 价格翻倍，预估跟着变；没有价格时不再给数。
+    f.runtime.setModelPrices([{ ...fixturePrice, input: 200, output: 200 }]);
+    assert.equal(f.runtime.estimateTaskCost(f.id)?.median, 2);
+    f.runtime.setModelPrices([]);
+    assert.equal(f.runtime.estimateTaskCost(f.id), null);
+  });
+});
+

@@ -4,7 +4,7 @@ import { VersionControlView } from "./version-control/VersionControlView";
 import { TraceView } from "./trace/TraceView";
 import { UsageView } from "./usage/UsageView";
 import { isAgentBusy, type AppState, type AskUserQuestionRequest, type InteractionMode } from "@vela/shared";
-import { Fragment, memo, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Fragment, memo, useCallback, useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useAgentWorkspace } from "./AgentPanel";
 import { modKeyLabel } from "../platform";
 import { ArrowLeftIcon, BranchIcon, CheckIcon, CopyIcon, HistoryIcon, PlusIcon, StackIcon } from "./icons";
@@ -16,6 +16,7 @@ import type { UiMessage } from "../hooks/useSession";
 import { RepoCard } from "./RepoCard";
 import { Composer } from "./Composer";
 import { TaskBudgetBanner } from "./TaskBudgetBanner";
+import { TaskCostForecastHint } from "./TaskCostForecastHint";
 import { RunViewDock } from "./RunViewDock";
 import { JumpOrb } from "./JumpOrb";
 import type { OrbActivity } from "./jump-orb";
@@ -26,6 +27,8 @@ import { useContentArrival } from "./BatchMotion";
 import { Markdown } from "./Markdown";
 import { AssistantMarkdown } from "./intelligent-ui/AssistantMarkdown";
 import { ConversationLinkContext } from "./ConversationLinkContext";
+import { SelectionActions } from "./SelectionActions";
+import { SideChatLauncherContext, type ReplyCard } from "./selection-actions";
 import { OpenInAppButton } from "./OpenInAppButton";
 import { Thinking } from "./Thinking";
 import { ThinkingSummaryContext } from "./ThinkingSummaryContext";
@@ -53,6 +56,8 @@ import { summarizeTurnChanges, type TurnChanges, type TurnReviewRequest } from "
 import { chatLaneDefaultMaxWidth, planChatLane } from "../chat-lane";
 import { ConversationViewTabs, conversationPanelId, conversationTabId, isEmptyConversationView, type ConversationViewKey } from "./ConversationViewTabs";
 import type { QuestionReplyHandler } from "./QuestionCard";
+import { RecommendedActionsCard } from "./RecommendedActionsCard";
+import { latestRecommendedActions } from "./recommended-actions";
 import { RecipeChatCard } from "./RecipeChatContext";
 import { ChatActionsMenu } from "./ChatActionsMenu";
 import { UserMessageFrame } from "./UserMessageFrame";
@@ -182,6 +187,8 @@ export interface ChatViewProps {
   predictionEnabled?: boolean;
   /** 预测使用的模型；null 表示跟随当前对话模型。 */
   predictionModel?: import("@vela/shared").ThinkingSummaryModel | null;
+  /** 推荐操作：回复结束后在消息流末尾显示模型给出的后续操作卡片。 */
+  recommendedActionsEnabled?: boolean;
   onSend: (text: string, images?: import("@vela/shared").ImageAttachment[], deliverAs?: import("@vela/shared").RuntimeInstructionMode) => Promise<void | boolean>;
   /** 撤销一条还没被模型消费的排队/调整指令。 */
   onRemoveInstruction: (instructionId: string) => Promise<void>;
@@ -233,6 +240,7 @@ export function ChatView({
   sendButtonIcon = "paper-plane",
   predictionEnabled = false,
   predictionModel = null,
+  recommendedActionsEnabled = true,
   onSend,
   onRemoveInstruction,
   onEdit,
@@ -263,6 +271,12 @@ export function ChatView({
   const [views, setViews] = useState<Record<string, ConversationViewKey>>({});
   const [vcMounted, setVcMounted] = useState(false);
   const [imageView, setImageView] = useState<ImageViewerRequest | null>(null);
+  /** 选中文字后点「回复」得到的引用，随下一条消息一起发送。 */
+  const [replies, setReplies] = useState<ReplyCard[]>([]);
+  const startSideChat = useContext(SideChatLauncherContext);
+  const activeConversationId = state?.activeConversationId ?? null;
+  // 引用只属于当时的对话，切走就丢掉。
+  useEffect(() => { setReplies([]); }, [activeConversationId]);
   // 换会话时收起全屏查看器:里面是上一条对话的图片。
   useEffect(() => { setImageView(null); }, [state?.activeConversationId]);
   const viewKey = state?.activeConversationId ?? "empty";
@@ -282,6 +296,12 @@ export function ChatView({
   // 末条是已结束的助手回复时，它的 id 就是这一轮预测的依据；其余情况不预测。
   const lastMessage = messages[messages.length - 1];
   const predictionKey = lastMessage?.role === "assistant" && !streaming && lastMessage.text.trim() ? `${lastMessage.id}:${lastMessage.text.length}` : null;
+  const [dismissedRecommendations, setDismissedRecommendations] = useState<ReadonlySet<string>>(() => new Set());
+  const turnRecommendation = useMemo(() => latestRecommendedActions(messages), [messages]);
+  const recommendation = recommendedActionsEnabled && session?.status === "ready" && !pendingInteraction &&
+    turnRecommendation && !dismissedRecommendations.has(turnRecommendation.id)
+    ? turnRecommendation
+    : null;
   const activeAssistantId = streaming
     ? [...messages].reverse().find((message) => message.role === "assistant")?.id
     : undefined;
@@ -871,12 +891,26 @@ export function ChatView({
             );
           })
         )}
+        {recommendation ? (
+          <RecommendedActionsCard
+            key={recommendation.id}
+            recommendation={recommendation.recommendation}
+            onSelect={async (action) => {
+              const sent = await onSend(action.prompt);
+              if (sent !== false) setDismissedRecommendations((current) => new Set(current).add(recommendation.id));
+              return sent;
+            }}
+            onDismiss={() => setDismissedRecommendations((current) => new Set(current).add(recommendation.id))}
+          />
+        ) : null}
         {/* 运行视图:待办清单和状态条是对话内容的一部分,紧跟在本轮过程之后,随对话一起滚动。 */}
         {runView && streaming && view === "chat" && messages.length > 0 ? <RunViewDock messages={messages} /> : null}
         </div>
       </div>
 
       </ConversationLinkContext.Provider>
+      <SelectionActions containerRef={scrollerRef} onSideChat={startSideChat}
+        onReply={(quote, text) => setReplies((current) => [...current, { id: crypto.randomUUID(), quote, text }])} />
       <button
         type="button"
         className="chat-jump-latest"
@@ -891,6 +925,7 @@ export function ChatView({
         <JumpOrb activity={jumpActivity} commandKey={runningBash?.id} running={showJumpToLatest && view === "chat"} />
       </button>
       <TaskBudgetBanner budget={session?.taskBudget} conversationId={state?.activeConversationId} />
+      <TaskCostForecastHint session={session} />
       <Composer
         embedded={embedded}
         sandboxMode={session?.sandboxMode}
@@ -919,6 +954,9 @@ export function ChatView({
         contextPopover={floatingInfo}
         project={project}
         onSend={onSend}
+        replies={replies}
+        onRemoveReply={(id) => setReplies((current) => current.filter((item) => item.id !== id))}
+        onClearReplies={() => setReplies([])}
         onRemoveInstruction={onRemoveInstruction}
         onAbort={onAbort}
         onMode={onMode}

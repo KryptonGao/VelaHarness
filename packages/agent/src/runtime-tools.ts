@@ -1,4 +1,4 @@
-import type { InteractionMode, RecipeStageSubmission, SubagentKind } from "@vela/shared";
+import { backgroundShellToolNames, recommendedActionsToolName, type InteractionMode, type RecipeStageSubmission, type SubagentKind } from "@vela/shared";
 import { defaultToolNames } from "@vela/tools";
 import { browserToolNames } from "./browser-use";
 import { defaultToolPolicy, modeToolNames, type ToolAuthorizationResult, type ToolPolicyCall } from "./interaction";
@@ -22,11 +22,15 @@ export interface ToolLoadoutConversation {
 export interface ToolLoadoutOptions {
   scheduledTasks: boolean;
   browser: boolean;
+  /** 后台命令可用：主代理在非 Plan 模式获得 bash_output / bash_kill。 */
+  background?: boolean;
   memoryEnabled: () => boolean;
   /** 网页搜索与抓取当前是否可用；开关、提供商和密钥都就绪才为 true。 */
   web?: () => { search: boolean; fetch: boolean };
   /** 运行视图是否开启:开启后主代理额外提供 update_todos,并要求先提交待办清单。 */
   runView?: () => boolean;
+  /** 推荐操作是否开启:开启后主代理在非 Plan 模式获得 recommend_actions。 */
+  recommendedActions?: () => boolean;
   /** 常驻 Agent 的会话：没有文件与命令工具，只有协调工具。 */
   resident?: { isResident(entry: ToolLoadoutConversation): boolean };
 }
@@ -57,6 +61,7 @@ export class ToolLoadout {
       ...(this.options.web ? webToolNames : []),
       ...(this.options.scheduledTasks ? scheduledTaskToolNames : []),
       ...(this.options.browser ? browserToolNames : []),
+      ...(this.options.background ? backgroundShellToolNames : []),
       ...(this.options.resident ? residentToolNames : []),
     ];
   }
@@ -70,12 +75,19 @@ export class ToolLoadout {
     return this.options.runView?.() === true && !(entry?.scheduledTaskConversation || entry?.recipeExecution);
   }
 
+  /** 推荐操作只给有人看着的主代理对话；定时任务和配方执行没有人点按钮。 */
+  private recommendedActionsFor(mode: InteractionMode, entry?: ToolLoadoutConversation): boolean {
+    return this.options.recommendedActions?.() === true && mode !== "plan" && !(entry?.scheduledTaskConversation || entry?.recipeExecution);
+  }
+
   /** 模式决定的原生工具；传入对话时附带它可用的记忆工具。 */
   native(mode: InteractionMode, plan: boolean, entry?: ToolLoadoutConversation): string[] {
     if (entry && this.isResident(entry)) return [...residentTools];
     const scheduled = this.options.scheduledTasks ? (mode === "plan" ? ["list_scheduled_tasks"] : scheduledTaskToolNames) : [];
     const tools = [...defaultToolPolicy.availableTools(mode, plan, this.runViewFor(entry)), ...scheduled];
+    if (this.recommendedActionsFor(mode, entry)) tools.push(recommendedActionsToolName);
     if (entry) tools.push(...this.memory(entry), ...this.web());
+    if (this.options.background && mode !== "plan") tools.push(...backgroundShellToolNames);
     return tools;
   }
 
@@ -140,6 +152,9 @@ export class ToolLoadout {
   authorize(call: ToolPolicyCall, entry: ToolLoadoutConversation): ToolAuthorizationResult {
     if (this.isResident(entry)) return residentTools.includes(call.toolName) ? { allowed: true } : { allowed: false, reason: residentDenial };
     if ((residentToolNames as readonly string[]).includes(call.toolName)) return { allowed: false, reason: "这个工具只属于常驻 Agent" };
+    if (call.toolName === recommendedActionsToolName && !this.recommendedActionsFor(entry.snapshot.mode, entry)) {
+      return { allowed: false, reason: "推荐操作当前不可用" };
+    }
     if (isMemoryTool(call.toolName) && !this.options.memoryEnabled()) return { allowed: false, reason: memoryDisabledDenial };
     if (entry.recipeStageSideEffect && isAgentTool(call.toolName)) return { allowed: false, reason: recipeStageSubagentDenial };
     if (call.toolName === memoryUpdateToolName && !this.canUpdateMemory(entry)) return { allowed: false, reason: memoryUpdateDenial };
