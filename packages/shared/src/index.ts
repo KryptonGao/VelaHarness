@@ -5,6 +5,7 @@ export * from "./web-tools";
 import type { WebToolsApi } from "./web-tools";
 export * from "./handoff";
 export * from "./task-budget";
+export * from "./model-pricing";
 export * from "./context-limit";
 import type { ContextLimitSettings, ConversationContextLimit } from "./context-limit";
 import type { ConversationTaskBudget, TaskBudgetSettings, TaskBudgetState } from "./task-budget";
@@ -75,6 +76,7 @@ export const IpcChannel = {
   sessionHandoffDraft: "session:handoff-draft",
   sessionHandoffCancel: "session:handoff-cancel",
   sessionTrace: "session:trace",
+  sessionUsage: "session:usage",
   sessionTraceDetails: "session:trace-details",
   sessionExport: "session:export",
   sessionSetMode: "session:set-mode",
@@ -859,6 +861,8 @@ export interface ToolActivity {
   steps?: ToolStep[];
   /** task 是否可能改动了工作区，供 Git 刷新判断 */
   mutated?: boolean;
+  /** edit / write 的参数还在流式生成时的实时行数；参数完整、开始执行后不再带这个字段。 */
+  streaming?: { added: number; removed: number };
 }
 
 export interface ToolTrace {
@@ -2924,6 +2928,8 @@ export interface VelaApi extends McpApi, PluginApi {
   draftHandoff(request: HandoffDraftRequest): Promise<HandoffPack>;
   cancelHandoff(requestId: string): Promise<void>;
   getTrace(conversationId: string): Promise<TraceSnapshot>;
+  /** 只含模型请求与用量（nodes 恒为空）；不会载入完整轨迹。 */
+  getTraceUsage(conversationId: string): Promise<TraceSnapshot>;
   getTraceDetails(conversationId: string, nodeId: string): Promise<TraceDetails | null>;
   /** 读取某个常驻子代理自己的消息历史(用于打开右侧 Agent Pane 时回填)。 */
   getAgentMessages(conversationId: string, agentId: string): Promise<TranscriptMessage[]>;

@@ -4,7 +4,7 @@
  * 轮换规则:
  * 1. 状态决定样式池:思考用 T1–T4,运行命令用 C1/C2/C4/C5;没有活动时显示静态箭头。
  * 2. 池内用「洗牌袋」:一轮内每个样式各出现一次,袋空了重新洗牌,且新一袋的第一个不等于上一个。
- * 3. 一个样式至少播放 {@link ORB_MIN_DWELL_MS},且至少播完一个完整周期(取较长者),之后换到袋里的下一个。
+ * 3. 一个样式随机播放 {@link ORB_MIN_LOOPS}–{@link ORB_MAX_LOOPS} 个完整周期(停留时长恰好是周期的整数倍,换样式时姿势已回到起点),之后换到袋里的下一个。
  * 4. 状态切换(思考 ↔ 运行命令)或开始新的命令时,立刻从对应池里抽下一个,并重新计时。
  * 5. 换样式时不硬切:点从上一个样式的当前位置滑到新样式的位置({@link blendOrbFrames}),新样式从它自己的起始姿势开始。
  */
@@ -29,10 +29,13 @@ export const ORB_LOOP_MS: Record<OrbStyle, number> = {
   c5: 0, // 见文件末尾,由节拍表算出
 };
 
-export const ORB_MIN_DWELL_MS = 3000;
+export const ORB_MIN_LOOPS = 1;
+export const ORB_MAX_LOOPS = 6;
 
-export function orbDwellMs(style: OrbStyle): number {
-  return Math.max(ORB_MIN_DWELL_MS, ORB_LOOP_MS[style]);
+/** 样式这一次要停留多久:随机播 ORB_MIN_LOOPS–ORB_MAX_LOOPS 个整周期。 */
+export function orbDwellMs(style: OrbStyle, random: () => number = Math.random): number {
+  const loops = ORB_MIN_LOOPS + Math.floor(random() * (ORB_MAX_LOOPS - ORB_MIN_LOOPS + 1));
+  return loops * ORB_LOOP_MS[style];
 }
 
 export interface OrbRotation {

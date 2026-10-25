@@ -1,134 +1,134 @@
 {
-  "version": "1.2.1",
+  "version": "1.2.2",
   "locales": {
     "en": {
-      "summary": "Vela 1.2.1 makes the composer safer and the app easier to use with a keyboard or screen reader, adds /model, /compact and /status commands, and lets you limit sub-agents.",
+      "summary": "Vela 1.2.2 adds model prices and cost totals to usage statistics, shows what a command actually did on tool cards, and previews edit and write changes while the model is still writing them.",
       "highlights": [
         {
-          "title": "No more lost drafts",
-          "body": "If sending fails, your text and attachments come back. Enter in an empty composer no longer sends a prediction you never confirmed, and dropped attachments now show a notice."
+          "title": "Costs from your own prices",
+          "body": "Register each model's input, output, cache write and cache read price per 1M tokens under Settings › Usage statistics › Model pricing. The overview, the per-model table and each conversation then show what it cost, in CNY or USD, totalled separately and never converted. A model without a price is listed by name instead of counted as 0."
         },
         {
-          "title": "Composer commands",
-          "body": "Type / to run /model, /compact or /status: switch model or reasoning effort, compact the context, or check usage without leaving the composer."
+          "title": "Tool cards say what happened",
+          "body": "ls, cat and grep now read List, Read and Search with a matching icon, and the card shows the directory, file or search term instead of the raw command line. Todo, outcome, schedule and memory tools get their own icons, coloured by tool family."
         },
         {
-          "title": "Keyboard and screen reader support",
-          "body": "Approvals and questions take focus when the agent is waiting for you. View tabs work with arrow keys, and streamed replies are announced."
+          "title": "Watch edits while they stream",
+          "body": "An edit or write card appears as soon as the model starts writing the arguments; the diff and its +/− counts grow live and the view follows the end. A call the model never finishes ends with a note that nothing was changed."
         },
         {
-          "title": "Sub-agent limits and Skills page",
-          "body": "Set how many sub-agents a conversation may create and whether they can create their own. The Skills page now has search, filters and a detail view."
+          "title": "Usage statistics open faster",
+          "body": "Only the request and usage records are streamed from each trace file, four conversations at a time, so a long history no longer loads hundreds of megabytes of trace into memory or updates the page dozens of times while it loads."
         }
       ],
       "improvements": [
-        "Question cards no longer get stuck after a failed reply, and \"Revert\" is now \"Revert in Changes…\" to show it opens Workspace Changes.",
-        "Editing a message shows a clear warning that resending withdraws later content and file changes.",
-        "Larger click targets, clearer disabled controls, and a composer that grows with your font size."
+        "The context card lists Free space next to system, rules, skills and conversation, and every row shows its share of the window; the total no longer repeats \"tokens\".",
+        "The run view shows Writing Files for write calls and goes back to thinking once a step's tools finish, while the jump orb plays one to six full loops per style and treats edit and write as command activity.",
+        "The composer grows while you type with an IME, a long placeholder or prediction is cut to one line instead of adding a horizontal scrollbar, and the plus button keeps its width. Japanese, Korean and Traditional Chinese translations are included."
       ]
     },
     "zh-CN": {
-      "summary": "Vela 1.2.1 让输入框更安全，键盘和读屏用户用起来更顺手，新增 /model、/compact、/status 命令，并支持限制子代理数量。",
+      "summary": "Vela 1.2.2 在使用统计里加入模型价格与费用合计，工具卡片直接说明命令做了什么，编辑和写入在模型还在生成参数时就开始预览改动。",
       "highlights": [
         {
-          "title": "不再丢失草稿",
-          "body": "发送失败时，文字和附件会还原。空输入框按 Enter 不会再发出没确认过的预测内容，被丢弃的附件也会提示。"
+          "title": "用自己的价格算费用",
+          "body": "在「设置 › 使用统计 › 模型价格」里登记每个模型每 100 万 Token 的输入、输出、缓存写入和缓存读取价。总览、按模型的表格和每个对话都会显示费用：人民币与美元分别汇总，不做换算。没有登记价格的模型会按名字列出，而不是算成 0。"
         },
         {
-          "title": "输入框命令",
-          "body": "输入 / 可运行 /model、/compact 或 /status：切换模型或思考强度、压缩上下文、查看用量，无需离开输入框。"
+          "title": "工具卡片说明发生了什么",
+          "body": "ls、cat、grep 现在显示为「列目录」「读取」「搜索」并配上对应图标，卡片直接给出目录、文件或搜索词，而不是原始命令行。待办、交付、定时任务和记忆工具也有各自的图标，并按工具类型配色。"
         },
         {
-          "title": "键盘与读屏支持",
-          "body": "Agent 等你决定时，审批和提问会获得焦点。视图分页支持方向键，流式回复会被朗读。"
+          "title": "边生成边看改动",
+          "body": "模型开始写参数时，编辑和写入的卡片就会出现，差异和 +/− 行数随内容增长并自动跟到底部。模型没写完就结束的调用会标注没有改动文件。"
         },
         {
-          "title": "子代理上限与 Skill 页面",
-          "body": "可设置一个对话最多创建多少子代理，以及子代理能否再创建子代理。Skill 页面新增搜索、筛选和详情。"
+          "title": "使用统计打开更快",
+          "body": "每个轨迹文件只流式读取请求和用量记录，一次处理四个对话。历史很长时不必把几百 MB 的轨迹载入内存，页面也不会在加载期间反复重算。"
         }
       ],
       "improvements": [
-        "提问卡片回复失败后不再卡住；「撤销」改为「在变更中撤销…」，表明它会打开工作区变更。",
-        "编辑消息时会明确警告：重新发送会撤回之后的内容和文件更改。",
-        "更大的点击区域、更清晰的停用状态，输入框高度会随字号增长。"
+        "上下文卡片新增「剩余空间」一行，每一行都显示占窗口的比例；合计不再重复「tokens」。",
+        "运行视图把写入显示为「写入文件」，一步的工具结束后回到思考；回到最新圆球每种样式随机播放 1–6 个完整周期，编辑和写入也算作运行命令。",
+        "输入框在注音、拼音组字时就会跟着长高，过长的占位符或预测内容单行截断、不再出现横向滚动条，加号按钮也不会被压扁。补充了日文、韩文和繁体中文翻译。"
       ]
     },
     "zh-TW": {
-      "summary": "Vela 1.2.1 讓輸入框更安全，鍵盤與讀屏使用者用起來更順手，新增 /model、/compact、/status 指令，並支援限制子代理數量。",
+      "summary": "Vela 1.2.2 在使用統計裡加入模型價格與費用合計，工具卡片直接說明指令做了什麼，編輯與寫入在模型還在產生參數時就開始預覽變更。",
       "highlights": [
         {
-          "title": "不再遺失草稿",
-          "body": "送出失敗時，文字與附件會還原。空輸入框按 Enter 不會再送出未經確認的預測內容，被捨棄的附件也會提示。"
+          "title": "用自己的價格算費用",
+          "body": "在「設定 › 使用統計 › 模型價格」裡登記每個模型每 100 萬 Token 的輸入、輸出、快取寫入與快取讀取價格。總覽、依模型的表格和每個對話都會顯示費用：人民幣與美元分別合計，不做換算。沒有登記價格的模型會依名稱列出，而不是算成 0。"
         },
         {
-          "title": "輸入框指令",
-          "body": "輸入 / 可執行 /model、/compact 或 /status：切換模型或思考強度、壓縮上下文、查看用量，無須離開輸入框。"
+          "title": "工具卡片說明發生了什麼",
+          "body": "ls、cat、grep 現在顯示為「列出目錄」「讀取」「搜尋」並搭配對應圖示，卡片直接給出目錄、檔案或搜尋詞，而不是原始指令列。待辦、交付、排程任務與記憶工具也有各自的圖示，並依工具類型配色。"
         },
         {
-          "title": "鍵盤與讀屏支援",
-          "body": "Agent 等你決定時，審批與提問會取得焦點。檢視分頁支援方向鍵，串流回覆會被朗讀。"
+          "title": "邊產生邊看變更",
+          "body": "模型開始寫參數時，編輯與寫入的卡片就會出現，差異和 +/− 行數隨內容成長並自動跟到最底部。模型沒寫完就結束的呼叫會標註沒有變更檔案。"
         },
         {
-          "title": "子代理上限與 Skill 頁面",
-          "body": "可設定一個對話最多建立多少子代理，以及子代理能否再建立子代理。Skill 頁面新增搜尋、篩選與詳細資料。"
+          "title": "使用統計開啟更快",
+          "body": "每個軌跡檔案只串流讀取請求與用量記錄，一次處理四個對話。歷史很長時不必把幾百 MB 的軌跡載入記憶體，頁面也不會在載入期間反覆重算。"
         }
       ],
       "improvements": [
-        "提問卡片回覆失敗後不再卡住；「撤銷」改為「在變更中撤銷…」，表明它會開啟工作區變更。",
-        "編輯訊息時會明確警告：重新送出會撤回之後的內容與檔案變更。",
-        "更大的點擊區域、更清楚的停用狀態，輸入框高度會隨字級增長。"
+        "上下文卡片新增「剩餘空間」一行，每一行都顯示占視窗的比例；合計不再重複「tokens」。",
+        "執行檢視把寫入顯示為「寫入檔案」，一步的工具結束後回到思考；回到最新圓球每種樣式隨機播放 1–6 個完整週期，編輯與寫入也算作執行指令。",
+        "輸入框在注音、拼音組字時就會跟著長高，過長的預留位置或預測內容單行截斷、不再出現橫向捲軸，加號按鈕也不會被壓扁。補充了日文、韓文與繁體中文翻譯。"
       ]
     },
     "ja": {
-      "summary": "Vela 1.2.1 では、入力欄がより安全になり、キーボードやスクリーンリーダーでも使いやすくなりました。/model、/compact、/status コマンドとサブエージェント数の上限設定も追加しました。",
+      "summary": "Vela 1.2.2 では、使用統計にモデル価格と費用の合計を追加し、ツールカードがコマンドの内容をそのまま示し、edit / write の変更をモデルが引数を書いている間にプレビューします。",
       "highlights": [
         {
-          "title": "下書きが消えない",
-          "body": "送信に失敗しても、テキストと添付ファイルが元に戻ります。空の入力欄で Enter を押しても、確認していない予測が送信されることはなくなり、破棄された添付ファイルは通知されます。"
+          "title": "自分の価格で費用を計算",
+          "body": "設定 › 使用統計 › モデル価格 で、モデルごとに 100 万トークンあたりの入力・出力・キャッシュ書き込み・キャッシュ読み取りの価格を登録します。概要、モデル別の表、各会話に費用が表示されます。人民元と米ドルは換算せず別々に合計します。価格が未登録のモデルは 0 ではなく名前で示されます。"
         },
         {
-          "title": "入力欄のコマンド",
-          "body": "/ を入力して /model、/compact、/status を実行できます。入力欄を離れずに、モデルや推論強度の切り替え、コンテキストの圧縮、使用状況の確認ができます。"
+          "title": "ツールカードが内容を示す",
+          "body": "ls、cat、grep は「一覧」「読み取り」「検索」と対応するアイコンで表示され、カードには生のコマンドではなくディレクトリ、ファイル、検索語が出ます。ToDo、成果、スケジュール、メモリのツールにも専用アイコンが付き、種類ごとに色分けされます。"
         },
         {
-          "title": "キーボードとスクリーンリーダー対応",
-          "body": "エージェントが判断を待っているとき、承認と質問にフォーカスが移ります。ビューのタブは矢印キーで操作でき、ストリーミング中の返信は読み上げられます。"
+          "title": "生成中の変更を見られる",
+          "body": "モデルが引数を書き始めた時点で edit / write のカードが現れ、差分と +/− の行数が増えながら末尾に追従します。書き終わらずに終わった呼び出しには、ファイルを変更していない旨が表示されます。"
         },
         {
-          "title": "サブエージェント上限とスキルページ",
-          "body": "1 つの会話で作成できるサブエージェントの数と、サブエージェントが更にサブエージェントを作れるかを設定できます。スキルページに検索、絞り込み、詳細表示が加わりました。"
+          "title": "使用統計が速く開く",
+          "body": "各トレースファイルからはリクエストと使用量の記録だけを、4 会話ずつまとめて読み取ります。履歴が長くても数百 MB のトレースをメモリに載せず、読み込み中に画面を何度も再計算しません。"
         }
       ],
       "improvements": [
-        "返信に失敗しても質問カードが固まらなくなりました。「元に戻す」は「変更で元に戻す…」になり、ワークスペースの変更が開くことが分かります。",
-        "メッセージの編集時に、再送信するとそれ以降の内容とファイルの変更が取り消されるという警告を表示します。",
-        "クリック領域を拡大し、無効状態を見やすくしました。入力欄の高さは文字サイズに合わせて伸びます。"
+        "コンテキストカードに「空き容量」の行が加わり、各行がウィンドウに占める割合も表示されます。合計で「tokens」を重複して表示しなくなりました。",
+        "実行ビューは書き込みを「ファイルを書き込み」と表示し、ステップ内のツールが終わると思考に戻ります。ジャンプオーブはスタイルごとに 1〜6 周期をランダムに再生し、edit と write もコマンド実行として扱います。",
+        "入力欄は IME の変換中にも高さが伸び、長いプレースホルダーや予測は 1 行で省略されて横スクロールバーが出ません。プラスボタンも幅を保ちます。日本語・韓国語・繁体字中国語の翻訳を追加しました。"
       ]
     },
     "ko": {
-      "summary": "Vela 1.2.1은 입력창을 더 안전하게 만들고 키보드와 화면 낭독기에서 쓰기 편하게 개선했으며, /model, /compact, /status 명령과 하위 에이전트 수 제한을 추가했습니다.",
+      "summary": "Vela 1.2.2는 사용 통계에 모델 가격과 비용 합계를 추가하고, 도구 카드가 명령이 실제로 한 일을 보여 주며, 모델이 인자를 쓰는 동안 edit / write 변경을 미리 보여 줍니다.",
       "highlights": [
         {
-          "title": "작성 중인 내용이 사라지지 않음",
-          "body": "전송에 실패하면 텍스트와 첨부 파일이 복원됩니다. 빈 입력창에서 Enter를 눌러도 확인하지 않은 예측 문장이 전송되지 않으며, 버려진 첨부 파일은 알림으로 알려 줍니다."
+          "title": "직접 등록한 가격으로 비용 계산",
+          "body": "설정 › 사용 통계 › 모델 가격에서 모델마다 100만 토큰당 입력, 출력, 캐시 쓰기, 캐시 읽기 가격을 등록합니다. 개요, 모델별 표, 각 대화에 비용이 표시됩니다. 위안화와 달러는 환산하지 않고 따로 합산합니다. 가격이 없는 모델은 0이 아니라 이름으로 표시됩니다."
         },
         {
-          "title": "입력창 명령",
-          "body": "/를 입력해 /model, /compact, /status를 실행할 수 있습니다. 입력창을 떠나지 않고 모델이나 추론 강도를 바꾸고, 컨텍스트를 압축하고, 사용량을 확인합니다."
+          "title": "도구 카드가 한 일을 보여 줌",
+          "body": "ls, cat, grep은 이제 '목록', '읽기', '검색'과 해당 아이콘으로 표시되고, 카드에는 원래 명령 대신 디렉터리, 파일, 검색어가 나옵니다. 할 일, 결과, 예약 작업, 기억 도구에도 전용 아이콘이 생기고 종류별로 색이 다릅니다."
         },
         {
-          "title": "키보드 및 화면 낭독기 지원",
-          "body": "에이전트가 결정을 기다릴 때 승인과 질문에 포커스가 이동합니다. 보기 탭은 화살표 키로 이동할 수 있고, 스트리밍 중인 답변은 음성으로 안내됩니다."
+          "title": "생성 중인 변경 미리 보기",
+          "body": "모델이 인자를 쓰기 시작하면 edit / write 카드가 나타나고, diff와 +/− 줄 수가 늘어나며 화면이 끝을 따라갑니다. 모델이 끝까지 쓰지 못한 호출은 파일을 바꾸지 않았다고 표시됩니다."
         },
         {
-          "title": "하위 에이전트 제한과 스킬 페이지",
-          "body": "한 대화에서 만들 수 있는 하위 에이전트 수와, 하위 에이전트가 다시 하위 에이전트를 만들 수 있는지 설정할 수 있습니다. 스킬 페이지에 검색, 필터, 상세 보기가 추가되었습니다."
+          "title": "사용 통계가 더 빠르게 열림",
+          "body": "각 추적 파일에서 요청과 사용량 기록만 스트리밍으로 읽고, 대화 네 개씩 처리합니다. 기록이 길어도 수백 MB의 추적을 메모리에 올리지 않고, 로딩 중 화면을 여러 번 다시 계산하지 않습니다."
         }
       ],
       "improvements": [
-        "답변에 실패해도 질문 카드가 멈추지 않습니다. '되돌리기'는 '변경에서 되돌리기…'로 바뀌어 작업 공간 변경이 열린다는 것을 알려 줍니다.",
-        "메시지를 편집할 때 다시 보내면 이후 내용과 파일 변경이 취소된다는 경고를 분명하게 표시합니다.",
-        "클릭 영역이 커지고 비활성 상태가 더 잘 보이며, 입력창 높이가 글꼴 크기에 맞게 늘어납니다."
+        "컨텍스트 카드에 '남은 공간' 행이 생기고 각 행이 창에서 차지하는 비율이 표시됩니다. 합계에서 'tokens'를 두 번 표시하지 않습니다.",
+        "실행 보기는 쓰기를 '파일 쓰기'로 표시하고, 단계의 도구가 끝나면 다시 생각 중으로 돌아갑니다. 점프 오브는 스타일마다 1~6 주기를 무작위로 재생하고 edit과 write도 명령 실행으로 취급합니다.",
+        "입력창은 IME 조합 중에도 높이가 늘어나고, 긴 자리 표시자나 예측은 한 줄로 줄어들어 가로 스크롤 막대가 생기지 않습니다. 더하기 버튼도 폭을 유지합니다. 일본어, 한국어, 번체 중국어 번역을 추가했습니다."
       ]
     }
   }

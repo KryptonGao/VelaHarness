@@ -1,4 +1,5 @@
 import type { ToolTrace } from "@vela/shared";
+import { describeBashCommand } from "./bash-intent";
 
 /** 可折叠进紧凑摘要的工具种类,与 ToolCard 的 ToolKind 对齐(不含 other)。 */
 export type CompactKind = "bash" | "read" | "edit" | "write";
@@ -32,6 +33,52 @@ export function compactSummaryParts(tools: ToolTrace[]): CompactSummaryPart[] {
     }
     if (!counts.has(kind)) order.push(kind);
     counts.set(kind, (counts.get(kind) ?? 0) + 1);
+  }
+  return order.map((kind) => ({ kind, count: counts.get(kind) ?? 0 }));
+}
+
+/** 摘要文案用的种类:bash 里的 ls / grep 单独成「列目录」「搜索」,cat 并入「读取文件」。 */
+export type CompactLabelKind = CompactKind | "list" | "search";
+
+export interface CompactLabelPart {
+  kind: CompactLabelKind;
+  count: number;
+}
+
+/** 与 compactSummaryParts 相同,但按 bash 命令的含义拆分;无法归类的 bash 仍算「运行命令」。 */
+export function compactLabelParts(tools: ToolTrace[]): CompactLabelPart[] {
+  const order: CompactLabelKind[] = [];
+  const counts = new Map<CompactLabelKind, number>();
+  const seenFiles = new Set<string>();
+  const add = (kind: CompactLabelKind, by = 1) => {
+    if (!counts.has(kind)) order.push(kind);
+    counts.set(kind, (counts.get(kind) ?? 0) + by);
+  };
+  for (const tool of tools) {
+    const kind = toolCompactKind(tool.name);
+    if (!kind) continue;
+    if (kind === "bash") {
+      const intent = describeBashCommand(tool.activity?.command);
+      if (!intent || intent.kind === "script") {
+        add("bash");
+      } else if (intent.kind === "list") {
+        add("list");
+      } else if (intent.kind === "read") {
+        const fresh = intent.targets.filter((target) => !seenFiles.has(`read:${target}`));
+        for (const target of fresh) seenFiles.add(`read:${target}`);
+        if (fresh.length > 0) add("read", fresh.length);
+      } else {
+        add("search");
+      }
+      continue;
+    }
+    const path = tool.activity?.path?.trim().replaceAll("\\", "/");
+    if (path) {
+      const key = `${kind}:${path}`;
+      if (seenFiles.has(key)) continue;
+      seenFiles.add(key);
+    }
+    add(kind);
   }
   return order.map((kind) => ({ kind, count: counts.get(kind) ?? 0 }));
 }

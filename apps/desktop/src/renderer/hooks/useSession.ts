@@ -762,15 +762,19 @@ function applyToMessages(messages: UiMessage[], event: StreamUpdate, startedAt?:
   } else if (event.type === "thinking_delta") {
     last.thinking += event.delta;
   } else if (event.type === "tool_start") {
-    last.tools = [
-      ...last.tools,
-      {
-        id: event.toolCallId,
-        name: event.toolName,
-        status: "running",
-        activity: sanitizeActivity(event.activity),
-      },
-    ];
+    // edit / write 在参数流式生成时就会先报一次，开始执行时同一个调用再报一次：原位替换，不重复建卡片。
+    const started: ToolTrace = {
+      id: event.toolCallId,
+      name: event.toolName,
+      status: "running",
+      activity: sanitizeActivity(event.activity),
+    };
+    // 执行开始到结束之间保留流式阶段的 diff 与进度，卡片不闪空；tool_end 会换成真实结果。
+    last.tools = last.tools.some((tool) => tool.id === event.toolCallId)
+      ? last.tools.map((tool) => tool.id === event.toolCallId
+        ? { ...started, activity: { ...started.activity, diff: started.activity.diff ?? tool.activity?.diff, streaming: started.activity.streaming ?? tool.activity?.streaming } }
+        : tool)
+      : [...last.tools, started];
   } else if (event.type === "tool_output") {
     last.tools = last.tools.map((tool) =>
       tool.id === event.toolCallId && tool.status === "running"
@@ -828,15 +832,19 @@ function applyAgentToMessages(messages: UiMessage[], event: AgentRuntimeStreamEv
   } else if (event.type === "thinking_delta") {
     last.thinking += event.delta;
   } else if (event.type === "tool_start") {
-    last.tools = [
-      ...last.tools,
-      {
-        id: event.toolCallId,
-        name: event.toolName,
-        status: "running",
-        activity: sanitizeActivity(event.activity),
-      },
-    ];
+    // edit / write 在参数流式生成时就会先报一次，开始执行时同一个调用再报一次：原位替换，不重复建卡片。
+    const started: ToolTrace = {
+      id: event.toolCallId,
+      name: event.toolName,
+      status: "running",
+      activity: sanitizeActivity(event.activity),
+    };
+    // 执行开始到结束之间保留流式阶段的 diff 与进度，卡片不闪空；tool_end 会换成真实结果。
+    last.tools = last.tools.some((tool) => tool.id === event.toolCallId)
+      ? last.tools.map((tool) => tool.id === event.toolCallId
+        ? { ...started, activity: { ...started.activity, diff: started.activity.diff ?? tool.activity?.diff, streaming: started.activity.streaming ?? tool.activity?.streaming } }
+        : tool)
+      : [...last.tools, started];
   } else if (event.type === "tool_output") {
     last.tools = last.tools.map((tool) =>
       tool.id === event.toolCallId && tool.status === "running"
@@ -889,7 +897,15 @@ function sanitizeActivity(value: ToolActivity | undefined): ToolActivity {
       ? { server: value.mcp.server, tool: value.mcp.tool }
       : undefined,
     mutated: value?.mutated === true ? true : undefined,
+    streaming: sanitizeStreaming(value?.streaming),
   };
+}
+
+function sanitizeStreaming(value: ToolActivity["streaming"]): ToolActivity["streaming"] {
+  if (!value || typeof value !== "object") return undefined;
+  const added = Number.isFinite(value.added) ? Math.max(0, Math.floor(value.added)) : 0;
+  const removed = Number.isFinite(value.removed) ? Math.max(0, Math.floor(value.removed)) : 0;
+  return { added, removed };
 }
 
 function sanitizePlanItems(value: ToolActivity["plan"]): ToolActivity["plan"] {
@@ -1026,6 +1042,7 @@ function mergeActivity(current: ToolActivity | undefined, patch: ToolActivity): 
     steps: patch.steps ?? base.steps,
     mcp: patch.mcp ?? base.mcp,
     mutated: patch.mutated ?? base.mutated,
+    streaming: patch.streaming ?? base.streaming,
   };
 }
 

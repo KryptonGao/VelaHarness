@@ -1,5 +1,5 @@
 import { intlLocale, type AppLocale } from "@vela/shared";
-import type { TraceRequest, TraceUsage } from "@vela/shared";
+import { addCost, costOfUsage, findModelPrice, type CostByCurrency, type ModelPrice, type PricingCurrency, type TraceRequest, type TraceUsage } from "@vela/shared";
 
 /** Minimal shape shared by turn requests and standalone summary requests. */
 export interface UsageRecord {
@@ -141,6 +141,48 @@ export function summarizeUsage(requests: UsageRecord[]) {
     days,
     undated,
   };
+}
+
+export interface ModelCost {
+  currency: PricingCurrency;
+  amount: number;
+}
+
+/** 已登记价格的模型按自己的单价算费用；没登记价格或没有计量用量时返回 null，而不是 0。 */
+export function modelCost(model: UsageTotals & { key: string }, prices: readonly ModelPrice[]): ModelCost | null {
+  const price = findModelPrice(prices, model.key);
+  if (!price || model.metered === 0) return null;
+  return { currency: price.currency, amount: costOfUsage(model, price) };
+}
+
+export interface CostSummary {
+  /** 各币种的费用合计，不做汇率换算。 */
+  total: CostByCurrency;
+  byModel: Map<string, ModelCost>;
+  /** 有计量用量但还没登记价格的模型，费用没有计入合计。 */
+  unpriced: string[];
+}
+
+export function summarizeCost(models: readonly (UsageTotals & { key: string })[], prices: readonly ModelPrice[]): CostSummary {
+  let total: CostByCurrency = {};
+  const byModel = new Map<string, ModelCost>();
+  const unpriced: string[] = [];
+  for (const model of models) {
+    const cost = modelCost(model, prices);
+    if (cost) {
+      byModel.set(model.key, cost);
+      total = addCost(total, cost.currency, cost.amount);
+    } else if (model.metered > 0) {
+      unpriced.push(model.key);
+    }
+  }
+  return { total, byModel, unpriced };
+}
+
+/** 一次任务从用户发出消息开始，对应追踪里编号最大的那一轮。 */
+export function latestTaskRequests<T extends { turn: number }>(requests: readonly T[]): T[] {
+  const turn = requests.reduce((max, request) => Math.max(max, request.turn), 0);
+  return turn > 0 ? requests.filter(request => request.turn === turn) : [];
 }
 
 export function formatUsageNumber(value: number, locale: AppLocale = "zh-CN"): string {

@@ -55,6 +55,10 @@ window.vela = {
     if (params.get("scenario") === "error") throw new Error("Preview trace unavailable");
     return snapshot(id);
   },
+  getTraceUsage: async (id: string) => {
+    if (params.get("scenario") === "error") throw new Error("Preview trace unavailable");
+    return { ...snapshot(id), nodes: [] };
+  },
   pickAttachments: async () => [], hydrateAttachments: async () => [],
 } as unknown as VelaApi;
 const models = {

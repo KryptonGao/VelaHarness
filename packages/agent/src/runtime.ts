@@ -5,7 +5,7 @@ import { PluginMCPManager } from "./mcp/manager";
 import type { CredentialStore } from "./mcp/credentials";
 import { compactionTokensForLimit, effectiveContextWindow, parseContextLimitSettings, parseTaskBudgetSettings, type ContextLimitSettings, type ConversationContextLimit, type ConversationTaskBudget, type TaskBudgetSettings } from "@vela/shared";
 import type { BuiltInPlugin, IntelligentUiState, PluginCatalog, PluginTarget, PluginStatusEvent, UiPreference } from "@vela/shared";
-import { redactMcpDisplay, mcpConfiguredSecrets } from "./mcp-redaction";
+import { redactMcpDisplay, mcpConfiguredSecrets, preserveTraceModels } from "./mcp-redaction";
 import { McpSessionBridge, isMcpTool, type McpPermission } from "./mcp-session";
 import { createScheduledTaskTools, scheduledTaskInstructions } from "./scheduled-task-tools";
 import { RecipeGenerator, parseRecipeGenerateInput } from './recipe-generator';
@@ -21,7 +21,7 @@ import { ConversationTraces, subscribeTracedSession } from "./runtime-tracing";
 import { SkillLibrary } from "./runtime-skills";
 import { ToolLoadout } from "./runtime-tools";
 import { RecipeSubmitOutcome, stageResponseEvidence, suspendAutomaticRecovery } from "./recipe-stage";
-import type { BranchConversationOptions, CheckpointCleanResult, CheckpointDeleteResult, CheckpointSettings, CheckpointRestorePreview, CheckpointStorageUsage, CheckpointTimeline, TraceSummaryRequest, TraceUpdate } from "@vela/shared";
+import type { BranchConversationOptions, CheckpointCleanResult, CheckpointDeleteResult, CheckpointSettings, CheckpointRestorePreview, CheckpointStorageUsage, CheckpointTimeline, TraceSnapshot, TraceSummaryRequest, TraceUpdate } from "@vela/shared";
 import {
   createAgentSession,
   DefaultResourceLoader,
@@ -80,6 +80,8 @@ import {
 import { defaultToolNames } from "@vela/tools";
 import { getCurrentTools, clampThinkingLevel, getSupportedThinkingLevels, type Api, type Model } from "@earendil-works/pi-ai";
 import { existsSync, readdirSync } from "node:fs";
+import { stat } from "node:fs/promises";
+import { readTraceUsage } from "./trace-usage";
 import { randomUUID } from "node:crypto";
 import { dirname, join, resolve } from "node:path";
 import {
@@ -158,6 +160,7 @@ import {
   sandboxRiskTimeoutMs,
 } from "./sandbox-risk";
 import { activityFromCall, activityFromExecution, activityFromOutput, toolResultIsError } from "./tool-activity";
+import { ToolStreamTracker } from "./tool-stream";
 import {
   branchLeafForTurn,
   isVisibleTranscriptMessage,
@@ -347,10 +350,13 @@ export class AgentRuntime {
   /** 绑定开始执行时的证据表，避免上一轮迟到的结果混入新一轮。 */
   private readonly toolTurnContexts = new Map<string, Conversation["turnToolEvidence"]>();
   private readonly traces: ConversationTraces;
+  private readonly usageCache = new Map<string, { key: string; records: Awaited<ReturnType<typeof readTraceUsage>> }>();
   /** toolCallId -> Goal id 与执行时工作区修订号。 */
   private readonly toolGoalContexts = new Map<string, { goalId: string; workRevision: number }>();
   /** toolCallId -> 子代理工具参数；子代理事件不带参数，结果事件用它还原命令和路径。 */
   private readonly agentToolArgs = new Map<string, unknown>();
+  /** edit / write 参数的流式进度。键是 conversationId，子代理再拼上 agentId。 */
+  private readonly toolStreams = new Map<string, ToolStreamTracker>();
   private readonly questions = new QuestionManager();
   private readonly thinkingSummaries = new ThinkingSummaryGenerator();
   private readonly inputPredictions = new InputPredictionGenerator();
@@ -1754,7 +1760,38 @@ export class AgentRuntime {
 
   getTrace(conversationId: string) {
     if (!this.conversations.has(conversationId)) throw new Error("对话不存在或已结束");
-    return this.redactMcpForConversation(conversationId, this.trace(conversationId).snapshot());
+    return this.redactTraceForConversation(conversationId, this.trace(conversationId).snapshot());
+  }
+
+  /**
+   * 使用统计只要模型请求和用量。轨迹文件可能有几百 MB（节点里带完整内容），
+   * 所以没载入内存的对话直接流式扫描文件，不创建记录器，也不把节点发给渲染层。
+   * 没有轨迹文件的老对话仍走 getTrace，由会话历史重建。
+   */
+  async getTraceUsage(conversationId: string): Promise<TraceSnapshot> {
+    if (!this.conversations.has(conversationId)) throw new Error("对话不存在或已结束");
+    const live = () => {
+      const { version, requests, summaries, warning } = this.getTrace(conversationId);
+      return { version, nodes: [], requests, summaries, warning };
+    };
+    if (this.traces.has(conversationId)) return live();
+    const file = this.traces.file(conversationId);
+    const info = await stat(file).catch(() => null);
+    if (!info || info.size === 0) return live();
+    const key = `${info.size}:${info.mtimeMs}`;
+    let cached = this.usageCache.get(conversationId);
+    if (cached?.key !== key) {
+      const records = await readTraceUsage(file);
+      cached = { key, records };
+      this.usageCache.set(conversationId, cached);
+    }
+    // 扫描期间记录器可能已被对话本身创建（并写入了新记录），以内存里的为准。
+    if (this.traces.has(conversationId)) return live();
+    const { records } = cached;
+    return {
+      version: 0, nodes: [], requests: records.requests, summaries: records.summaries,
+      warning: records.damaged ? "轨迹文件部分记录无法读取；已保留可恢复内容。" : null,
+    };
   }
 
   /** Trace bookkeeping must never block a summary; narrow test harnesses may omit the traces. */
@@ -2852,12 +2889,14 @@ export class AgentRuntime {
           entry.planStreamPlan = null;
         }
       }
+      if (event.message.role === "assistant") this.settleToolStreams(conversationId, event.message, (stream) => this.emit({ ...stream, conversationId }));
       this.recordGeneration(conversationId, event.message);
       return;
     }
     if (event.type === "message_update") {
       const update = event.assistantMessageEvent;
       const entry = this.conversations.get(conversationId);
+      this.emitToolStream(conversationId, update, (stream) => this.emit({ ...stream, conversationId }));
       if (update.type === "text_delta" || update.type === "thinking_delta") {
         // 首字到达前的等待属于提示词处理,不计入生成速度。
         if (entry && entry.generation.firstTokenAt === null) entry.generation.firstTokenAt = Date.now();
@@ -2891,6 +2930,7 @@ export class AgentRuntime {
       if (entry?.snapshot.mode === "goal" && goal?.status === "active") {
         this.toolGoalContexts.set(event.toolCallId, { goalId: goal.id, workRevision: goal.workRevision });
       }
+      this.toolStreams.get(conversationId)?.executed(event.toolCallId);
       this.toolArgs.set(event.toolCallId, event.args);
       if (entry && (event.toolName === "edit" || event.toolName === "write" || event.toolName === "bash")) {
         this.toolTurnContexts.set(event.toolCallId, entry.turnToolEvidence);
@@ -2976,12 +3016,14 @@ export class AgentRuntime {
     }
     if (event.type === "message_update") {
       const update = event.assistantMessageEvent;
+      this.emitToolStream(`${conversationId}:${agentId}`, update, emit);
       if (update.type === "text_delta") emit({ type: "text_delta", delta: update.delta });
       else if (update.type === "thinking_delta") emit({ type: "thinking_delta", delta: update.delta });
       return;
     }
     if (event.type === "message_end") {
       const message = event.message;
+      if (message.role === "assistant") this.settleToolStreams(`${conversationId}:${agentId}`, message, emit);
       if (message.role === "user") {
         const text = userMessageText(message);
         if (text.trim()) emit({ type: "user_message", text });
@@ -2992,6 +3034,7 @@ export class AgentRuntime {
       return;
     }
     if (event.type === "tool_execution_start") {
+      this.toolStreams.get(`${conversationId}:${agentId}`)?.executed(event.toolCallId);
       this.agentToolArgs.set(event.toolCallId, event.args);
       emit({
         type: "tool_start",
@@ -3015,6 +3058,46 @@ export class AgentRuntime {
         toolName: event.toolName,
         isError: toolResultIsError(event.toolName, event.result, event.isError),
         activity: activityFromExecution(event.toolName, args, event.result, toolResultIsError(event.toolName, event.result, event.isError)),
+      });
+    }
+  }
+
+  /**
+   * edit / write 的参数是流式生成的，完整之前不会执行。这里在模型开始写参数时就报告一张运行中的卡片，
+   * 并随流式内容更新行数；真正的写入仍然等完整参数到齐后由 tool_execution_* 触发。
+   */
+  private emitToolStream(
+    key: string,
+    update: Parameters<ToolStreamTracker["update"]>[0],
+    emit: (event: AgentRuntimeStreamEvent) => void,
+  ): void {
+    let tracker = this.toolStreams.get(key);
+    const progress = (tracker ??= new ToolStreamTracker()).update(update);
+    this.toolStreams.set(key, tracker);
+    if (!progress) return;
+    emit(
+      progress.first
+        ? { type: "tool_start", toolCallId: progress.toolCallId, toolName: progress.toolName, activity: progress.activity }
+        : { type: "tool_output", toolCallId: progress.toolCallId, activity: progress.activity },
+    );
+  }
+
+  /** 一条 assistant 消息结束时，把不会再执行的流式调用收尾，避免卡片一直转圈。 */
+  private settleToolStreams(
+    key: string,
+    message: AgentMessage,
+    emit: (event: AgentRuntimeStreamEvent) => void,
+  ): void {
+    const tracker = this.toolStreams.get(key);
+    if (!tracker) return;
+    const stopReason = message.role === "assistant" ? message.stopReason : undefined;
+    for (const call of tracker.settle(stopReason === "aborted" || stopReason === "error")) {
+      emit({
+        type: "tool_end",
+        toolCallId: call.toolCallId,
+        toolName: call.toolName,
+        isError: true,
+        activity: { ...(call.path ? { path: call.path } : {}), body: "模型没有写完这次调用，已取消，没有改动文件。" },
       });
     }
   }
@@ -3159,6 +3242,11 @@ export class AgentRuntime {
     } catch { return value; }
   }
 
+  private redactTraceForConversation<T extends { requests?: { model: string }[]; summaries?: { model: string }[] }>(conversationId: string, trace: T): T {
+    const redacted = this.redactMcpForConversation(conversationId, trace);
+    return redacted === trace ? trace : preserveTraceModels(redacted, trace);
+  }
+
   private decorateMcpTranscript(conversationId: string, session: AgentSession | null, messages: TranscriptMessage[]): TranscriptMessage[] {
     const bridge = session ? this.mcpBridges.get(session) : undefined;
     return messages.map(message => ({ ...message, tools: message.tools.map(tool => ({ ...tool,
@@ -3167,7 +3255,7 @@ export class AgentRuntime {
   }
 
   private emit(event: RuntimeEvent): void {
-    if (event.type === "trace") event = this.redactMcpForConversation(event.conversationId, event);
+    if (event.type === "trace") event = this.redactTraceForConversation(event.conversationId, event);
     for (const listener of this.listeners) listener(event);
   }
 

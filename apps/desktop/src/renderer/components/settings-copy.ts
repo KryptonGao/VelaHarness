@@ -80,6 +80,10 @@ const zh = {
     noticeManualTitle: "发现新版本 Vela {0}",
     noticeManualHint: "这份安装无法自动更新，请到发布页下载。",
   },
+  modelPricing: {
+    title: "模型价格",
+    hint: "手动登记每个模型的价格，用于计算费用。",
+  },
   storage: {
     checkpointsTitle: "文件检查点",
     checkpointsHint: "每轮对话开始和结束时记录工作区文件，用于回到之前的状态。相同内容的文件只存一份；每个对话保留最近 {0} 轮，所有检查点合计超过 {1} 时先清理最旧的。",
@@ -790,6 +794,10 @@ const en: typeof zh = {
     noticeReadyHint: "Restart Vela to finish updating.",
     noticeManualTitle: "Vela {0} is available",
     noticeManualHint: "This installation can't update itself. Download it from the release page.",
+  },
+  modelPricing: {
+    title: "Model pricing",
+    hint: "Register model prices to calculate costs.",
   },
   storage: {
     checkpointsTitle: "File checkpoints",

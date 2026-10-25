@@ -115,6 +115,7 @@ export const settingsEntries: readonly SettingsEntry[] = [
   { id: "archived", page: "archived", title: (c) => c.archived.title, hint: (c) => c.archived.hint, keywords: { zh: ["归档", "取消归档", "恢复对话"], en: ["archive", "unarchive", "restore chat"] } },
 
   { id: "usage", page: "usage", title: (c) => c.pages.usage.label, hint: (c) => c.pages.usage.description, keywords: { zh: ["用量", "Token", "统计", "请求"], en: ["usage", "tokens", "statistics", "requests", "cost"] } },
+  { id: "model-pricing", page: "usage", title: (c) => c.modelPricing.title, hint: (c) => c.modelPricing.hint, keywords: { zh: ["价格", "费用", "成本", "计价", "人民币", "美元", "缓存写入", "缓存读取"], en: ["price", "pricing", "cost", "billing", "cny", "usd", "cache write", "cache read", "per million"] } },
 
   { id: "checkpoint-storage", page: "storage", title: (c) => c.storage.checkpointsTitle, hint: (c) => c.storage.checkpointsHint, keywords: { zh: ["检查点", "磁盘", "空间", "占用", "清理", "缓存", "存储"], en: ["checkpoint", "disk", "space", "storage", "clean", "cleanup", "cache", "size"] } },
 

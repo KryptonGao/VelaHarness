@@ -207,28 +207,47 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
   useLayoutEffect(() => {
     const input = inputRef.current;
     if (!input) return;
-    const currentHeight = input.getBoundingClientRect().height;
-    // Measure at natural height without animating the temporary auto value.
-    input.style.transition = "none";
-    input.style.height = "auto";
-    const targetHeight = Math.min(input.scrollHeight, maxInputHeight(input));
-    input.style.height = `${currentHeight}px`;
-    void input.offsetHeight;
-    input.style.transition = measuredInput.current && !reducedMotion ? "" : "none";
-    input.style.height = `${targetHeight}px`;
-    measuredInput.current = true;
-    const observer = new ResizeObserver(() => {
+    let appliedHeight = -1;
+    const fit = () => {
+      const currentHeight = input.getBoundingClientRect().height;
+      // Measure at natural height without animating the temporary auto value.
+      input.style.transition = "none";
+      input.style.height = "auto";
+      const targetHeight = Math.min(input.scrollHeight, maxInputHeight(input));
+      if (targetHeight === appliedHeight) {
+        input.style.height = `${targetHeight}px`;
+        input.style.transition = "";
+        return;
+      }
+      input.style.height = `${currentHeight}px`;
+      void input.offsetHeight;
+      input.style.transition = measuredInput.current && !reducedMotion ? "" : "none";
+      input.style.height = `${targetHeight}px`;
+      appliedHeight = targetHeight;
+      measuredInput.current = true;
+    };
+    fit();
+    let measuredWidth = input.getBoundingClientRect().width;
+    const resizeObserver = new ResizeObserver(() => {
       // Width changes (sidebar resize/window resize) can change line wrapping too.
       if (Math.abs(input.getBoundingClientRect().width - measuredWidth) < 1) return;
       measuredWidth = input.getBoundingClientRect().width;
-      input.style.transition = "none";
-      input.style.height = "auto";
-      input.style.height = `${Math.min(input.scrollHeight, maxInputHeight(input))}px`;
-      input.style.transition = "";
+      appliedHeight = -1;
+      fit();
     });
-    let measuredWidth = input.getBoundingClientRect().width;
-    observer.observe(input);
-    return () => observer.disconnect();
+    resizeObserver.observe(input);
+    // 输入法组字（注音、拼音）会直接改 DOM 而不一定带来 value 变化；换行那一刻也要跟着撑高，
+    // 否则要多输入几个字才会长高。
+    const mutationObserver = new MutationObserver(fit);
+    mutationObserver.observe(input, { childList: true, characterData: true, subtree: true });
+    input.addEventListener("compositionupdate", fit);
+    input.addEventListener("compositionend", fit);
+    return () => {
+      resizeObserver.disconnect();
+      mutationObserver.disconnect();
+      input.removeEventListener("compositionupdate", fit);
+      input.removeEventListener("compositionend", fit);
+    };
   }, [value, reducedMotion]);
 
   useEffect(() => {
@@ -804,6 +823,13 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
     <ComposerStatsRow usage={usage} contextPopover={contextPopover} />
   ) : null;
 
+  // 胶囊布局里提示放在胶囊外侧，不占用输入框内部空间。
+  const queueHint = streaming && !recipeActive ? (
+    <p className="composer-queue-hint">
+      {trf("Enter 排队 · {0}Enter 调整当前任务", "Enter queues · {0}Enter steers the current task", modifier)}
+    </p>
+  ) : null;
+
   const above = (
     <>
       {approvalSlots}
@@ -811,11 +837,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
       {skillMenu}
       {statusPanel}
       {instructionRow}
-      {streaming && !recipeActive ? (
-        <p className="composer-queue-hint">
-          {trf("Enter 排队 · {0}Enter 调整当前任务", "Enter queues · {0}Enter steers the current task", modifier)}
-        </p>
-      ) : null}
+      {layout === "capsule" ? null : queueHint}
       {attachmentRow}
     </>
   );
@@ -843,6 +865,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
         {layout === "capsule" ? (
           <>
             {statusBar}
+            {queueHint}
             <div className="composer-capsule">
               {above}
               <div className="composer-capsule-main">

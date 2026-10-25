@@ -124,3 +124,22 @@
 .usage-daily-details { margin-top: 12px; color: var(--text-muted); font-size: 12px; }
 .usage-daily-details summary { cursor: pointer; width: fit-content; padding: 4px 0; }
 .usage-daily-details .usage-table-scroll { max-height: 260px; overflow: auto; margin-top: 10px; color: var(--text-primary); }
+
+.model-pricing { margin-top: 28px; container: pricing / inline-size; }
+.pricing-form { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)) auto; align-items: end; gap: 12px; margin: 16px 0; }
+.pricing-form label { display: flex; flex-direction: column; gap: 6px; min-width: 0; color: var(--text-muted); font-size: 13px; }
+.pricing-form input, .pricing-form select { width: 100%; min-width: 0; height: 34px; padding: 0 10px; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); background: var(--bg-card-surface); color: var(--text-primary); font: inherit; }
+.pricing-form input::placeholder { color: var(--text-muted); }
+.pricing-model { grid-column: 1 / 4; }
+.pricing-currency { grid-column: 4 / 6; }
+.pricing-number input { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+@container pricing (max-width: 560px) {
+  .pricing-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pricing-model, .pricing-currency { grid-column: 1 / -1; }
+  .pricing-actions { grid-column: 1 / -1; }
+}
+.pricing-actions, .pricing-row-actions { display: flex; gap: 8px; }
+.pricing-row-actions { justify-content: flex-end; }
+.pricing-table tr > :nth-child(2) { text-align: left; }
+.model-pricing .usage-warning { margin: 0 0 12px; }
+.model-pricing .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }

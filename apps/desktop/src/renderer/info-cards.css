@@ -143,10 +143,14 @@ button.info-card-row:hover:not(:disabled), .info-card-row.is-active { background
 .info-card-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
 .info-card-chips li { padding: 2px 8px; border-radius: var(--radius-xs); background: var(--bg-code); color: var(--text-secondary); font-family: var(--font-mono); font-size: 12px; }
 
-/* 上下文用量沿用原组件，去掉它作为底部固定条的外观。 */
+/* 上下文用量沿用原组件，去掉它作为底部固定条的外观，并为信息卡片收紧行高。 */
 .info-card-context .context-usage { margin: 0; padding: 0; border-top: 0; }
 .info-card-context .context-usage-title { display: none; }
-.info-card-context .context-usage-percent, .info-card-context .context-usage-total { font-size: 13px; }
+.info-card-context .context-usage-percent { font-size: 15px; }
+.info-card-context .context-usage-total { font-size: 13px; }
+.info-card-context .context-usage-track { margin-top: 8px; }
+.info-card-context .context-usage-row { padding: 5px 0; font-size: 13.5px; }
+.info-card-context .context-usage-share { min-width: 3.4em; }
 
 /* ---- 找回隐藏的卡片 ---- */
 .info-card-add {

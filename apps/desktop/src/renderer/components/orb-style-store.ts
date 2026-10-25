@@ -37,7 +37,7 @@ export function createOrbStyleStore(
       state.style = drawOrbStyle(rotation, activity, random);
       state.listeners.forEach((listener) => listener());
       schedule(activity);
-    }, orbDwellMs(current(activity)));
+    }, orbDwellMs(current(activity), random));
   };
 
   return {

@@ -17,11 +17,14 @@ export function useUsageHistory(conversations: ConversationSummary[]) {
     let alive = true;
     setHistory({ scope, traces: {}, loading: Boolean(api && ids.length), failed: 0 });
     if (!api || ids.length === 0) return;
+    // 加载期间页面只显示「加载中」，逐个对话更新状态会让每次都重算全部统计；攒到一起再提交。
+    let traces: Record<string, TraceState> = {};
+    let loading = true;
+    const commit = () => setHistory(current => ({ ...current, traces, loading }));
     const merge = (id: string, snapshot: TraceSnapshot & { reset?: boolean }) => {
       if (!alive) return;
-      setHistory(current => ({ ...current, traces: { ...current.traces,
-        [id]: mergeTrace(current.traces[id] ?? emptyTrace, { ...snapshot, nodes: [] }),
-      } }));
+      traces = { ...traces, [id]: mergeTrace(traces[id] ?? emptyTrace, { ...snapshot, nodes: [] }) };
+      if (!loading) commit();
     };
     const unsubscribe = api.onEvent(event => {
       if (event.type === "trace" && wanted.has(event.conversationId)) merge(event.conversationId, event);
@@ -31,14 +34,16 @@ export function useUsageHistory(conversations: ConversationSummary[]) {
       while (alive && cursor < ids.length) {
         const id = ids[cursor++]!;
         try {
-          merge(id, await api.getTrace(id));
+          merge(id, await api.getTraceUsage(id));
         } catch {
           if (alive) setHistory(current => ({ ...current, failed: current.failed + 1 }));
         }
       }
     };
     void Promise.all(Array.from({ length: Math.min(4, ids.length) }, worker)).then(() => {
-      if (alive) setHistory(current => ({ ...current, loading: false }));
+      if (!alive) return;
+      loading = false;
+      commit();
     });
     return () => { alive = false; unsubscribe(); };
   }, [scope, revision]);

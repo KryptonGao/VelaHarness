@@ -11,16 +11,22 @@ export function ScrollFade({
   className,
   contentClassName,
   ariaLabel,
+  followEnd = false,
 }: {
   children: ReactNode;
   className?: string;
   contentClassName?: string;
   ariaLabel?: string;
+  /** 内容在增长时（流式写入）视口跟着滚到底部。 */
+  followEnd?: boolean;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const [edges, setEdges] = useState({ top: 0, bottom: 0 });
   const [viewportHeight, setViewportHeight] = useState(0);
+
+  const followEndRef = useRef(followEnd);
+  followEndRef.current = followEnd;
 
   const sync = (): void => {
     const viewport = scrollRef.current;
@@ -37,7 +43,11 @@ export function ScrollFade({
     const content = contentRef.current;
     if (!viewport) return;
     sync();
-    const observer = new ResizeObserver(sync);
+    // 只在内容长高时跟随到底部，用户自己滚动（onScroll）不被拉回去。
+    const observer = new ResizeObserver(() => {
+      if (followEndRef.current) viewport.scrollTop = viewport.scrollHeight;
+      sync();
+    });
     observer.observe(viewport);
     if (content) observer.observe(content);
     return () => observer.disconnect();

@@ -1,15 +1,17 @@
 import { useId, useMemo, useState } from "react";
-import type { ConversationSummary, ProviderSummary } from "@vela/shared";
+import type { ConversationSummary, ModelSummary, ProviderSummary } from "@vela/shared";
 import { useUsageHistory } from "../../hooks/useUsageHistory";
 import { tr, trf } from "../../locale";
+import { ModelPricingEditor, type PriceableModel } from "./ModelPricingEditor";
 import { UsageReport } from "./UsageView";
 import { filterUsageRequests, requestDate, summarizeUsage, usageDateKey } from "./usage-model";
 
 type Range = "all" | "30" | "7" | "custom";
 
-export function SettingsUsageView({ conversations, providers }: {
+export function SettingsUsageView({ conversations, providers, models = [] }: {
   conversations: ConversationSummary[];
-  providers: Pick<ProviderSummary, "id" | "name">[];
+  providers: Pick<ProviderSummary, "id" | "name" | "authenticated">[];
+  models?: Pick<ModelSummary, "provider" | "providerName" | "id" | "name">[];
 }) {
   const history = useUsageHistory(conversations);
   const [range, setRange] = useState<Range>("30");
@@ -32,6 +34,12 @@ export function SettingsUsageView({ conversations, providers }: {
   const available = useMemo(() => summarizeUsage([...history.requests, ...history.summaryRequests]).providers, [history.requests, history.summaryRequests]);
   const missingDates = history.requests.filter(request => requestDate(request) === null).length;
   const providerNames = new Map(providers.map(item => [item.id, item.name]));
+  // 只列出已登录供应商的可用模型；已登记价格但不在其中的模型由编辑器自己补上。
+  const loggedIn = new Set(providers.filter(item => item.authenticated).map(item => item.id));
+  const priceable = useMemo<PriceableModel[]>(() => models
+    .filter(model => loggedIn.has(model.provider))
+    .map(model => ({ key: `${model.provider}/${model.id}`, group: model.providerName, label: model.name })),
+  [models, providers]);
   return <section className="settings-usage" data-setting-id="usage" aria-labelledby={`${id}-title`}>
     <div className="usage-heading">
       <div><h2 id={`${id}-title`}>{tr("使用统计", "Usage statistics")}</h2>
@@ -73,5 +81,6 @@ export function SettingsUsageView({ conversations, providers }: {
     </p> : null}
     <UsageReport requests={requests} summaries={summaryRequests} providers={providers} loading={history.loading} settings
       start={filterStart} end={filterEnd} />
+    <ModelPricingEditor candidates={priceable} />
   </section>;
 }

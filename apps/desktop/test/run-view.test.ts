@@ -47,18 +47,22 @@ describe("运行视图的数据", () => {
     const bash = tool("bash", "running", { command: "pnpm test" });
     assert.equal(kindOf(assistant("a", { tools: [tool("read", "done"), bash] })), "command");
     assert.equal(kindOf(assistant("a", { tools: [tool("read", "running", { path: "a.ts" })] })), "reading");
-    assert.equal(kindOf(assistant("a", { tools: [tool("write", "running")] })), "editing");
+    assert.equal(kindOf(assistant("a", { tools: [tool("write", "running")] })), "creating");
     assert.equal(kindOf(assistant("a", { tools: [tool("web_search", "running")] })), "searching");
     assert.equal(kindOf(assistant("a", { tools: [tool("spawn_agent", "running")] })), "subagent");
     assert.equal(kindOf(assistant("a", { tools: [tool("update_todos", "running")] })), "todos");
     assert.equal(kindOf(assistant("a", { tools: [tool("mcp__x__y", "running")] })), "working");
     // 全部结束后又开始下一步前,回到思考。
     assert.equal(kindOf(assistant("a", { tools: [tool("bash", "done")] })), "thinking");
+    // 这一步写过话再调了工具:工具结束后等下一次响应,不能一直显示「撰写回复」。
+    assert.equal(kindOf(assistant("a", { text: "我先检查一下", tools: [tool("bash", "done")] })), "thinking");
   });
 
   it("圆球样式池:思考与撰写用三点,工具用四点", () => {
     assert.equal(orbActivityOf("thinking"), "thinking");
     assert.equal(orbActivityOf("writing"), "thinking");
+    assert.equal(orbActivityOf("creating"), "command");
+    assert.equal(orbActivityOf("editing"), "command");
     for (const kind of ["command", "reading", "editing", "searching", "subagent", "todos", "working"] as const) assert.equal(orbActivityOf(kind), "command");
   });
 

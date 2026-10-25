@@ -25,6 +25,7 @@ function stepLabel(kind: RunStepKind): string {
     case "command": return tr("运行命令", "Running Command");
     case "reading": return tr("读取文件", "Reading Files");
     case "editing": return tr("编辑文件", "Editing Files");
+    case "creating": return tr("写入文件", "Writing Files");
     case "searching": return tr("搜索网页", "Searching the Web");
     case "subagent": return tr("运行子代理", "Running Subagent");
     case "todos": return tr("更新待办", "Updating Todos");

@@ -322,6 +322,94 @@ export function ToolIcon({ size = 13 }: IconProps) {
   );
 }
 
+/** 待办清单：一个已勾选的方框加两行条目。 */
+export function TodoListIcon({ size = 13 }: IconProps) {
+  return (
+    <svg {...base(size)} aria-hidden="true">
+      <path d="m3.5 6.5 1.7 1.7 3-3.4" />
+      <path d="M12 7h8.5" />
+      <rect x="3.5" y="13.5" width="4.8" height="4.8" rx="1" />
+      <path d="M12 16h8.5" />
+    </svg>
+  );
+}
+
+/** 交付结果：一面旗帜。 */
+export function OutcomeIcon({ size = 13 }: IconProps) {
+  return (
+    <svg {...base(size)} aria-hidden="true">
+      <path d="M5 21V4" />
+      <path d="M5 4h12l-2.5 4 2.5 4H5" />
+    </svg>
+  );
+}
+
+/** 发送消息：纸飞机。 */
+export function SendMessageIcon({ size = 13 }: IconProps) {
+  return (
+    <svg {...base(size)} aria-hidden="true">
+      <path d="M21 3 10.5 13.5" />
+      <path d="M21 3l-6.5 18-4-7.5L3 9.5 21 3Z" />
+    </svg>
+  );
+}
+
+/** 追加任务：一支向右拐的回复箭头。 */
+export function FollowupTaskIcon({ size = 13 }: IconProps) {
+  return (
+    <svg {...base(size)} aria-hidden="true">
+      <path d="M9 14 4 9l5-5" />
+      <path d="M4 9h10a6 6 0 0 1 6 6v5" />
+    </svg>
+  );
+}
+
+function CalendarFrame() {
+  return (
+    <>
+      <rect x="3.5" y="5" width="17" height="15.5" rx="2.5" />
+      <path d="M3.5 10h17M8 3v4M16 3v4" />
+    </>
+  );
+}
+
+/** 定时任务四个动作：同一块日历，里面的符号区分创建、查询、修改、删除。 */
+export function ScheduleCreateIcon({ size = 13 }: IconProps) {
+  return <svg {...base(size)} aria-hidden="true"><CalendarFrame /><path d="M12 12.6v5.2M9.4 15.2h5.2" /></svg>;
+}
+
+export function ScheduleListIcon({ size = 13 }: IconProps) {
+  return <svg {...base(size)} aria-hidden="true"><CalendarFrame /><path d="M8.5 13h7M8.5 16.6h4.6" /></svg>;
+}
+
+export function ScheduleUpdateIcon({ size = 13 }: IconProps) {
+  return <svg {...base(size)} aria-hidden="true"><CalendarFrame /><path d="m9.6 17.6.5-2.3 3.9-3.9 1.8 1.8-3.9 3.9-2.3.5Z" /></svg>;
+}
+
+export function ScheduleDeleteIcon({ size = 13 }: IconProps) {
+  return <svg {...base(size)} aria-hidden="true"><CalendarFrame /><path d="m9.7 12.9 4.6 4.6M14.3 12.9l-4.6 4.6" /></svg>;
+}
+
+/** 读取记忆：翻开的书。 */
+export function MemoryReadIcon({ size = 13 }: IconProps) {
+  return (
+    <svg {...base(size)} aria-hidden="true">
+      <path d="M12 6.5v13" />
+      <path d="M12 6.5C10.5 5 8 4.5 3.5 4.5v13c4.5 0 7 .5 8.5 2 1.5-1.5 4-2 8.5-2v-13c-4.5 0-7 .5-8.5 2Z" />
+    </svg>
+  );
+}
+
+/** 更新记忆：合上的书，封面上一个加号。 */
+export function MemoryUpdateIcon({ size = 13 }: IconProps) {
+  return (
+    <svg {...base(size)} aria-hidden="true">
+      <path d="M5 19.5V5a2 2 0 0 1 2-2h12v15H7a2 2 0 0 0-2 2Zm0 0A2 2 0 0 0 7 21.5h12V18" />
+      <path d="M13 6.8v5.4M10.3 9.5h5.4" />
+    </svg>
+  );
+}
+
 /** 网页搜索：放大镜里带一个经纬线地球。 */
 export function WebSearchIcon({ size = 13 }: IconProps) {
   return (

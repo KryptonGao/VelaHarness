@@ -1,11 +1,12 @@
 import { useId, useMemo, useState } from "react";
-import type { ProviderSummary, TraceRequest, TraceSummaryRequest } from "@vela/shared";
+import { formatCost, hasCost, type CostByCurrency, type ProviderSummary, type TraceRequest, type TraceSummaryRequest } from "@vela/shared";
 import { useTrace } from "../../hooks/useTrace";
+import { useModelPrices } from "../../model-prices";
 import { localizeError, tr, trf, activeIntlLocale, getActiveLocale } from "../../locale";
 import { useSlidingTabIndicator } from "../useSlidingTabIndicator";
 import {
-  formatUsageNumber, formatUsagePercent, summarizeUsage, usageCacheHitRate,
-  usageCalendar, usageCoverage, usageInputTokens, type UsageTotals,
+  formatUsageNumber, formatUsagePercent, latestTaskRequests, summarizeCost, summarizeUsage, usageCacheHitRate,
+  usageCalendar, usageCoverage, usageInputTokens, type CostSummary, type ModelCost, type UsageTotals,
 } from "./usage-model";
 import "./usage.css";
 
@@ -17,6 +18,11 @@ function TokenValue({ value, metered }: { value: number; metered: number }) {
   </span>;
 }
 
+function ModelCostValue({ cost, metered }: { cost: ModelCost | undefined; metered: number }) {
+  if (!cost) return <span title={metered > 0 ? tr("未登记价格", "No price registered") : undefined}>—</span>;
+  return <CostValue total={{ [cost.currency]: cost.amount }} />;
+}
+
 function UsageShare({ value, total }: { value: number; total: number }) {
   const share = total > 0 ? value / total : null;
   return <div className="usage-share" title={tr("占已记录 Token 总数的比例", "Share of recorded tokens")}>
@@ -25,7 +31,14 @@ function UsageShare({ value, total }: { value: number; total: number }) {
   </div>;
 }
 
-function UsageOverview({ totals, activeDays, undated, settings }: { totals: UsageTotals; activeDays: number; undated: number; settings: boolean }) {
+function CostValue({ total, empty = "—" }: { total: CostByCurrency; empty?: string }) {
+  return <>{formatCost(total, activeIntlLocale()) ?? empty}</>;
+}
+
+function UsageOverview({ totals, activeDays, undated, settings, cost, taskCost }: {
+  totals: UsageTotals; activeDays: number; undated: number; settings: boolean;
+  cost: CostSummary; taskCost: CostSummary | null;
+}) {
   const cards = [
     [tr("请求数", "Requests"), formatUsageNumber(totals.requests, getActiveLocale())],
     [tr("已计量", "Metered"), formatUsageNumber(totals.metered, getActiveLocale())],
@@ -33,6 +46,8 @@ function UsageOverview({ totals, activeDays, undated, settings }: { totals: Usag
     [tr("缓存命中 Token", "Cache read tokens"), <TokenValue value={totals.cacheRead} metered={totals.metered} />],
     [tr("覆盖率", "Coverage"), formatUsagePercent(usageCoverage(totals))],
     [tr("活跃天数", "Active days"), activeDays > 0 || undated === 0 ? String(activeDays) : "—"],
+    [tr("预估费用", "Estimated cost"), <CostValue total={cost.total} />],
+    ...(taskCost ? [[tr("最近一次任务费用", "Latest task cost"), <CostValue total={taskCost.total} />] as const] : []),
   ] as const;
   return <>
     <div className="usage-summary-grid">
@@ -45,7 +60,18 @@ function UsageOverview({ totals, activeDays, undated, settings }: { totals: Usag
       : tr("统计当前对话中的模型请求。已计量表示提供方返回了 Token 用量；覆盖率 = 已计量请求数 / 请求总数。", "Model requests in this conversation. Metered requests have token usage reported by the provider; coverage = metered requests / all requests.")}
       {undated > 0 ? ` ${trf("{0} 个请求缺少日期，未计入活跃天数。", "{0} requests have no date and are excluded from active days.", undated)}` : ""}
     </p>
+    <p className="usage-note">{costNote(cost, taskCost, settings)}</p>
   </>;
+}
+
+function costNote(cost: CostSummary, taskCost: CostSummary | null, settings: boolean): string {
+  const parts = [settings
+    ? tr("费用按「模型价格」里登记的单价计算，人民币与美元不换算、分别汇总。", "Costs use the prices registered under Model pricing; CNY and USD are never converted and are totalled separately.")
+    : tr("费用按设置 › 使用统计 › 模型价格里登记的单价计算，人民币与美元不换算、分别汇总。最近一次任务指最后一次发送消息后产生的全部请求。", "Costs use the prices registered under Settings › Usage statistics › Model pricing; CNY and USD are never converted and are totalled separately. The latest task is every request made since the last message you sent.")];
+  const missing = new Set([...cost.unpriced, ...(taskCost?.unpriced ?? [])]);
+  if (missing.size > 0) parts.push(trf("以下模型还没有登记价格，未计入费用：{0}。", "These models have no registered price and are left out of costs: {0}.", [...missing].join(tr("、", ", "))));
+  else if (!hasCost(cost.total)) parts.push(tr("还没有可计算的费用：请先登记模型价格。", "No cost to show yet: register model prices first."));
+  return parts.join(" ");
 }
 
 export function UsageView({ conversationId, providers }: {
@@ -68,6 +94,10 @@ export function UsageReport({ requests, summaries = [], providers, loading = fal
   end?: string;
 }) {
   const stats = useMemo(() => summarizeUsage(requests), [requests]);
+  const prices = useModelPrices();
+  const cost = useMemo(() => summarizeCost(stats.models, prices), [stats.models, prices]);
+  // 只有单个对话的视图才有「最近一次任务」；设置页汇总了所有对话，没有这个概念。
+  const taskCost = useMemo(() => settings ? null : summarizeCost(summarizeUsage(latestTaskRequests(requests)).models, prices), [requests, prices, settings]);
   const summaryStats = useMemo(() => summarizeUsage(summaries), [summaries]);
   const providerNames = useMemo(() => new Map(providers.map(provider => [provider.id, provider.name])), [providers]);
   const providerName = (id: string) => providerNames.get(id) ?? (id || tr("未知提供方", "Unknown provider"));
@@ -109,7 +139,7 @@ export function UsageReport({ requests, summaries = [], providers, loading = fal
         {error ? <p className="usage-warning" role="alert">{tr("使用统计加载失败：", "Could not load usage statistics: ")}{localizeError(error)}</p> : null}
         {warning ? <p className="usage-warning" role="status">{localizeError(warning)}</p> : null}
         {!error || stats.totals.requests > 0 ? <>
-          {tab === "overview" ? <UsageOverview totals={stats.totals} activeDays={stats.activeDays} undated={stats.undated} settings={settings} /> : null}
+          {tab === "overview" ? <UsageOverview totals={stats.totals} activeDays={stats.activeDays} undated={stats.undated} settings={settings} cost={cost} taskCost={taskCost} /> : null}
           {settings && tab === "overview" ? <UsageActivity days={stats.days} start={start} end={end} /> : null}
           {stats.totals.requests === 0 && summaryStats.totals.requests === 0 ? <p className="usage-empty">{settings
             ? tr("所选范围内没有模型请求。可调整时间范围或提供方。", "No model requests in this range. Try a different date range or provider.")
@@ -127,6 +157,7 @@ export function UsageReport({ requests, summaries = [], providers, loading = fal
                     <th scope="col">{tr("输入 Token", "Input tokens")}</th><th scope="col">{tr("输出 Token", "Output tokens")}</th>
                     <th scope="col">{tr("缓存命中 Token", "Cache read tokens")}</th><th scope="col">{tr("缓存写入 Token", "Cache write tokens")}</th>
                     <th scope="col">{tr("命中率", "Cache hit rate")}</th>
+                    <th scope="col">{tr("费用", "Cost")}</th>
                   </tr></thead>
                   <tbody>{models.map(model => <tr key={model.key}>
                     <th scope="row" className="usage-model-name">{model.model || tr("未知模型", "Unknown model")}</th>
@@ -139,6 +170,7 @@ export function UsageReport({ requests, summaries = [], providers, loading = fal
                     <td><TokenValue value={model.cacheRead} metered={model.metered} /></td>
                     <td><TokenValue value={model.cacheWrite} metered={model.metered} /></td>
                     <td>{formatUsagePercent(usageCacheHitRate(model))}</td>
+                    <td><ModelCostValue cost={cost.byModel.get(model.key)} metered={model.metered} /></td>
                   </tr>)}</tbody>
                 </table>
                 {models.length === 0 ? <p className="usage-empty">{tr("没有匹配的模型", "No matching models")}</p> : null}

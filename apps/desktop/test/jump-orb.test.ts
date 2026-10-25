@@ -8,7 +8,8 @@ import {
   orbMorphEase,
   type OrbFrame,
   type OrbStyle,
-  ORB_MIN_DWELL_MS,
+  ORB_MAX_LOOPS,
+  ORB_MIN_LOOPS,
   ORB_POOLS,
   createOrbRotation,
   drawOrbStyle,
@@ -61,12 +62,16 @@ describe("drawOrbStyle", () => {
 });
 
 describe("orbDwellMs", () => {
-  it("plays every style for at least 3 seconds and one full loop", () => {
+  it("plays every style for a whole number of loops between 1 and 6", () => {
     for (const style of [...ORB_POOLS.thinking, ...ORB_POOLS.command]) {
-      const dwell = orbDwellMs(style);
-      assert.equal(ORB_MIN_DWELL_MS, 3000);
-      assert.ok(dwell >= ORB_MIN_DWELL_MS, style);
-      assert.ok(dwell >= ORB_LOOP_MS[style], style);
+      assert.equal(ORB_MIN_LOOPS, 1);
+      assert.equal(ORB_MAX_LOOPS, 6);
+      assert.equal(orbDwellMs(style, () => 0), ORB_LOOP_MS[style]);
+      assert.equal(orbDwellMs(style, () => 0.999), ORB_LOOP_MS[style] * 6);
+      for (let index = 0; index < 50; index++) {
+        const loops = orbDwellMs(style) / ORB_LOOP_MS[style];
+        assert.ok(Number.isInteger(loops) && loops >= 1 && loops <= 6, `${style} ${loops}`);
+      }
     }
   });
 
@@ -201,7 +206,8 @@ describe("createOrbStyleStore", () => {
     const stopB = store.subscribe("thinking", () => seen.push("b"));
     const first = store.get("thinking");
     assert.equal(clock.pending.size, 1);
-    assert.equal([...clock.pending.values()][0].ms, orbDwellMs(first));
+    const loops = [...clock.pending.values()][0].ms / ORB_LOOP_MS[first];
+    assert.ok(Number.isInteger(loops) && loops >= 1 && loops <= 6);
     clock.fire();
     assert.notEqual(store.get("thinking"), first);
     assert.deepEqual(seen, ["a", "b"]);

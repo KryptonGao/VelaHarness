@@ -21,23 +21,27 @@ import type { ThemedToken } from "./preview/highlighter";
 import { QuestionCard, type QuestionReplyHandler } from "./QuestionCard";
 import { FileTypeIcon } from "./FileTypeIcon";
 import { tokenStyle, useDiffHighlight, type HighlightedDiff } from "./diff-highlight";
-import { ArrowRightIcon, CheckIcon, CircleIcon, ExternalIcon, EyeIcon, FilePlusIcon, GlobeIcon, McpIcon, PencilIcon, StackIcon, SubagentIcon, TerminalIcon, ToolIcon, WebFetchIcon, WebSearchIcon } from "./icons";
+import { ArrowRightIcon, CheckIcon, CircleIcon, ExternalIcon, EyeIcon, FilePlusIcon, FolderIcon, GlobeIcon, McpIcon, PencilIcon, SearchIcon, StackIcon, TerminalIcon, ToolIcon, WebFetchIcon, WebSearchIcon } from "./icons";
 import {
+  compactLabelParts,
   compactSummaryParts,
   diffStat,
   parseDisplayDiff,
   splitPath,
   totalDiffStat,
   toolCompactKind,
-  type CompactSummaryPart,
+  type CompactLabelPart,
   type DisplayDiffRow,
 } from "./tool-compact";
+import { bashIntentDisplay } from "./bash-intent-label";
 import { shouldFoldRun } from "./tool-sequence";
 import { firstCodeLine, lastBrowserUrl, splitBrowserBody, summarizeBrowserCode, type BrowserStep } from "./browser-call";
 import { foldRowId, foldSequenceId } from "./tool-fold-state";
 import { DurationLabel, ToolDurationLabel, useToolExpanded, useToolProcessDetails, useToolsDuration } from "./ToolProcessContext";
 import type { ToolDisplay, ToolFold } from "../hooks/usePreferences";
 import { localizeError, tr, trf } from "../locale";
+import { cardToolGroup } from "./tool-groups";
+import { toolNameIcon } from "./tool-name-icon";
 
 type ToolKind = "browser" | "bash" | "read" | "edit" | "write" | "other";
 
@@ -256,7 +260,7 @@ function AgentToolCard({ tool, compact = false }: { tool: ToolTrace; compact?: b
             aria-label={summaryLabel}
           >
             <span className="tool-compact-icon" aria-hidden="true">
-              <SubagentIcon size={13} />
+              {toolNameIcon(tool.name) ?? <ToolIcon size={13} />}
             </span>
             <span className="tool-compact-action">{label}</span>
           </button>
@@ -308,7 +312,7 @@ function AgentToolCard({ tool, compact = false }: { tool: ToolTrace; compact?: b
           disabled={!canOpen}
         >
           <span className="tool-card-icon" aria-hidden="true">
-            <SubagentIcon size={13} />
+            {toolNameIcon(tool.name) ?? <ToolIcon size={13} />}
           </span>
           <span className="tool-kind-label">{label}</span>
           <span className="tool-card-main">
@@ -378,15 +382,17 @@ function GenericToolCard({ tool, compact = false }: ToolCardProps) {
   const mcp = activity.mcp;
   const kind = mcp ? "other" : toolKind(tool.name);
   const subject = mcp ? { name: mcp.tool, dir: "" } : subjectOf(kind, activity, tool.name);
-  const planFirst = activity.plan?.[0] ?? null;
-  const stat = diffStat(activity.diff);
+  const group = mcp ? null : cardToolGroup(tool.name);
+  const planFirst = (tool.name === "update_todos" ? todoFocus(activity.plan) : activity.plan?.[0]) ?? null;
+  const stat = diffStat(activity.diff) ?? streamingStat(activity);
   const lines = kind === "read" ? readLineCount(activity.body) : null;
   const previewPath = kind === "bash" || mcp ? null : activity.path?.trim() || null;
   const canPreview = Boolean(preview && previewPath);
   const webTool = !mcp && isWebTool(tool.name);
+  const bashIntent = !mcp && kind === "bash" ? bashIntentDisplay(activity.command) : null;
 
   return (
-    <article className={`tool-card tool-kind-${kind}${mcp ? " is-mcp" : ""}${webTool ? " is-web" : ""} is-${tool.status}${open ? " open" : ""}`}>
+    <article className={`tool-card tool-kind-${kind}${mcp ? " is-mcp" : ""}${webTool ? " is-web" : ""}${bashIntent ? " is-intent" : ""}${group ? ` tool-group-${group}` : ""} is-${tool.status}${open ? " open" : ""}`}>
       <div className="tool-card-top">
         <button
           className="tool-card-head"
@@ -396,9 +402,9 @@ function GenericToolCard({ tool, compact = false }: ToolCardProps) {
           onClick={() => setOpen((value) => !value)}
         >
           <span className="tool-card-icon" aria-hidden="true">
-            {mcp ? <McpIcon size={13} /> : webTool ? <WebToolIcon name={tool.name} /> : <KindIcon kind={kind} />}
+            {mcp ? <McpIcon size={13} /> : webTool ? <WebToolIcon name={tool.name} /> : <GroupIcon name={tool.name} fallback={<KindIcon kind={kind} command={activity.command} />} />}
           </span>
-          <span className="tool-kind-label">{mcp ? "MCP" : toolLabel(tool.name, kind)}</span>
+          <span className="tool-kind-label">{mcp ? "MCP" : bashIntent?.label ?? toolLabel(tool.name, kind)}</span>
           <span className="tool-card-main">
             <span className={`tool-card-name${subject.dir ? "" : " grow"}`}>
               {planFirst ? <PlanStatusIcon status={planFirst.status} className="plan-status-inline" /> : null}
@@ -573,6 +579,10 @@ export function ToolRunGroup({ tools }: { tools: ToolTrace[] }) {
   const failed = tools.filter((tool) => tool.status === "error").length;
   const stat = totalDiffStat(tools);
   const subject = subjectOf(toolKind(current.name), activity, current.name);
+  const currentIntent = toolKind(current.name) === "bash" ? bashIntentDisplay(activity.command) : null;
+  const subjectText = currentIntent
+    ? [currentIntent.label, currentIntent.name, currentIntent.dir].filter(Boolean).join(" ")
+    : subject.name;
   const detail = activity.command?.trim() || activity.path?.trim() || "";
   const breakdown = [...kindCounts].map(([kind, count]) => `${toolKindLabel(kind)} ×${count}`).join(" · ");
 
@@ -590,11 +600,11 @@ export function ToolRunGroup({ tools }: { tools: ToolTrace[] }) {
         onClick={() => setOpen((value) => !value)}
       >
         <span className="tool-card-icon" aria-hidden="true">
-          {uniform ? <KindIcon kind={uniform} /> : <StackIcon />}
+          {uniform ? <KindIcon kind={uniform} command={uniform === "bash" && tools.every((tool) => bashIntentDisplay(tool.activity?.command)?.kind === currentIntent?.kind) ? activity.command : undefined} /> : <StackIcon />}
         </span>
         <span className="tool-kind-label">{uniform ? toolKindLabel(uniform) : tr("工具", "Tools")}</span>
         <span className="tool-run-count">×{tools.length}</span>
-        <span className="tool-run-subject">{subject.name}</span>
+        <span className="tool-run-subject">{subjectText}</span>
         {failed > 0 ? <span className="tool-run-failed">{trf("{0} 失败", "{0} failed", failed)}</span> : null}
         {stat ? (
           <span className="tool-stat">
@@ -639,7 +649,10 @@ export function CompactToolGroup({ tools, sequenceId = tools[0]?.id }: { tools: 
   const parts = compactSummaryParts(tools);
   const stat = totalDiffStat(tools);
   const uniform = parts.length === 1 ? parts[0].kind : null;
-  const label = parts.map((part) => compactPartLabel(part)).join(" · ");
+  const labelParts = compactLabelParts(tools);
+  const label = labelParts.map((part) => compactPartLabel(part)).join(" · ");
+  // bash 里混着列目录、搜索等不同含义时,每行仍要自己的动作词和图标。
+  const mixedBash = uniform === "bash" && labelParts.length > 1;
   const fileTools = tools.filter((tool) => toolCompactKind(tool.name) === uniform && tool.activity?.path);
   const uniqueFileTools = fileTools.filter((tool, index) => (
     fileTools.findIndex((candidate) => candidate.activity?.path?.replaceAll("\\", "/") === tool.activity?.path?.replaceAll("\\", "/")) === index
@@ -648,8 +661,9 @@ export function CompactToolGroup({ tools, sequenceId = tools[0]?.id }: { tools: 
     ? []
     : uniqueFileTools.map((tool) => splitPath(tool.activity?.path ?? "").name).slice(0, 2);
   const extraSamples = Math.max(0, uniqueFileTools.length - samples.length);
-  const sampleLabel = uniform === "bash"
-    ? tools[0]?.activity?.command?.replace(/\s+/g, " ").trim()
+  const firstBash = uniform === "bash" ? subjectOf("bash", tools[0]?.activity ?? {}, "bash") : null;
+  const sampleLabel = firstBash
+    ? [firstBash.name, firstBash.dir].filter(Boolean).join(" ")
     : samples.length > 0
       ? `${samples.join(", ")}${extraSamples > 0 ? ` +${extraSamples}` : ""}`
       : "";
@@ -670,7 +684,7 @@ export function CompactToolGroup({ tools, sequenceId = tools[0]?.id }: { tools: 
         onClick={() => setOpen((value) => !value)}
       >
         <span className="tool-compact-icon" aria-hidden="true">
-          {uniform ? <KindIcon kind={uniform} /> : <StackIcon size={13} />}
+          {uniform ? <KindIcon kind={uniform} command={uniform === "bash" ? tools[0]?.activity?.command : undefined} /> : <StackIcon size={13} />}
         </span>
         <span className="tool-compact-label">{label}</span>
         {sampleLabel && !(open && fileDiffGroup) ? <span className="tool-compact-sample">{sampleLabel}</span> : null}
@@ -704,7 +718,7 @@ export function CompactToolGroup({ tools, sequenceId = tools[0]?.id }: { tools: 
         {() => <>
         <div className="tool-compact-lines">
           {tools.map((tool) => (
-            <CompactToolLine key={tool.id} tool={tool} hideAction={Boolean(uniform)} hideIcon={Boolean(uniform)} />
+            <CompactToolLine key={tool.id} tool={tool} hideAction={Boolean(uniform) && !mixedBash} hideIcon={Boolean(uniform) && !mixedBash} />
           ))}
         </div>
         </>}
@@ -713,7 +727,9 @@ export function CompactToolGroup({ tools, sequenceId = tools[0]?.id }: { tools: 
   );
 }
 
-function compactPartLabel({ kind, count }: CompactSummaryPart): string {
+function compactPartLabel({ kind, count }: CompactLabelPart): string {
+  if (kind === "list") return trf("已列出 {0} 个目录", count === 1 ? "Listed {0} directory" : "Listed {0} directories", count);
+  if (kind === "search") return trf("已搜索 {0} 次", count === 1 ? "Ran {0} search" : "Ran {0} searches", count);
   if (kind === "edit") return trf("已编辑 {0} 个文件", count === 1 ? "Edited {0} file" : "Edited {0} files", count);
   if (kind === "write") return trf("已创建 {0} 个文件", count === 1 ? "Created {0} file" : "Created {0} files", count);
   if (kind === "read") return trf("已读取 {0} 个文件", count === 1 ? "Read {0} file" : "Read {0} files", count);
@@ -736,12 +752,16 @@ export function CompactToolLine({
   if (tool.name === "browser_repl") return <BrowserReplCard tool={tool} compact />;
   const activity = tool.activity ?? {};
   const subject = subjectOf(kind, activity, tool.name);
-  const stat = diffStat(activity.diff);
+  const bashIntent = kind === "bash" ? bashIntentDisplay(activity.command) : null;
+  const stat = diffStat(activity.diff) ?? streamingStat(activity);
   const running = tool.status === "running";
   const failed = tool.status === "error";
   const hasFileDetails = kind === "edit" || kind === "write";
   const hasCompactDiff = hasFileDetails && Boolean(activity.diff) && !failed;
-  const isDiffPreview = hasCompactDiff && open;
+  // 参数还在流式生成时自动展开 diff，让内容边写边出现；用户折叠过则尊重折叠。
+  const streamingNow = running && Boolean(activity.streaming);
+  const detailOpen = open || (streamingNow && hasCompactDiff);
+  const isDiffPreview = hasCompactDiff && detailOpen;
   const previewPath = kind === "bash" ? null : activity.path?.trim() || null;
   const fileIconPath = kind === "bash" ? null : previewPath ?? subject.name;
   const canPreview = Boolean(preview && previewPath);
@@ -754,16 +774,17 @@ export function CompactToolLine({
           type="button"
           aria-expanded={open}
           aria-label={open ? tr("收起命令和输出", "Hide command and output") : tr("展开命令和输出", "Show command and output")}
-          title={subject.name}
+          title={activity.command?.trim() || subject.name}
           onClick={() => setOpen((value) => !value)}
         >
           {!hideIcon ? (
             <span className="tool-compact-icon" aria-hidden="true">
-              <KindIcon kind={kind} />
+              <KindIcon kind={kind} command={activity.command} />
             </span>
           ) : null}
-          {!hideAction ? <span className="tool-compact-action">{tr("已运行", "Ran")}</span> : null}
+          {!hideAction ? <span className="tool-compact-action">{bashIntent?.action ?? tr("已运行", "Ran")}</span> : null}
           <span className="tool-compact-cmd">{subject.name}</span>
+          {subject.dir ? <span className="tool-compact-dir">{subject.dir}</span> : null}
           <svg
             className="tool-compact-chevron"
             width="12"
@@ -793,7 +814,7 @@ export function CompactToolLine({
   }
 
   return (
-    <div className={`tool-compact-item tool-kind-${kind}${hasFileDetails && open ? " open" : ""}`}>
+    <div className={`tool-compact-item tool-kind-${kind}${hasFileDetails && detailOpen ? " open" : ""}`}>
       <div className="tool-compact-line">
         {!hideIcon ? (
           <span className="tool-compact-icon" aria-hidden="true">
@@ -805,13 +826,13 @@ export function CompactToolLine({
             <button
               className="tool-compact-text-toggle tool-compact-action-toggle"
               type="button"
-              aria-expanded={open}
+              aria-expanded={detailOpen}
               onClick={() => setOpen((value) => !value)}
             >
-              <span className="tool-compact-action">{compactAction(kind)}</span>
+              <span className="tool-compact-action">{compactAction(kind, running && Boolean(activity.streaming))}</span>
             </button>
           ) : (
-            <span className="tool-compact-action">{compactAction(kind)}</span>
+            <span className="tool-compact-action">{compactAction(kind, running && Boolean(activity.streaming))}</span>
           )
         ) : null}
         {fileIconPath ? <FileTypeIcon path={fileIconPath} /> : null}
@@ -831,7 +852,7 @@ export function CompactToolLine({
           <button
             className="tool-compact-text-toggle tool-compact-path-toggle"
             type="button"
-            aria-expanded={open}
+            aria-expanded={detailOpen}
             title={subject.dir}
             onClick={() => setOpen((value) => !value)}
           >
@@ -844,7 +865,7 @@ export function CompactToolLine({
           <button
             className="tool-compact-detail-toggle"
             type="button"
-            aria-expanded={open}
+            aria-expanded={detailOpen}
             aria-label={open ? tr("收起文件差异", "Hide file diff") : tr("展开文件差异", "Show file diff")}
             title={open ? tr("收起差异", "Hide diff") : tr("查看差异", "View diff")}
             onClick={() => setOpen((value) => !value)}
@@ -873,15 +894,16 @@ export function CompactToolLine({
         <CompactStatus running={running} failed={failed} />
       </div>
       {hasFileDetails ? (
-        <ToolCollapse open={open}>
+        <ToolCollapse open={detailOpen}>
         {() => <>
           <div className={`tool-compact-file-detail${isDiffPreview ? " has-diff-preview" : ""}`}>
             {hasCompactDiff && activity.diff ? (
               <CompactDiffCard
                 fileName={subject.name}
-                filePath={previewPath ?? undefined}
+                filePath={streamingNow ? undefined : previewPath ?? undefined}
                 diff={activity.diff}
                 note={activity.body}
+                streaming={streamingNow}
               />
             ) : (
               <ScrollFade className="tool-details-scroll" ariaLabel={tr("工具详情，可在区域内滚动", "Tool details, scrollable")}>
@@ -896,7 +918,16 @@ export function CompactToolLine({
   );
 }
 
-function compactAction(kind: ToolKind): string {
+/** 参数还在流式生成时的行数：+新增 −删除，随内容增长，完成后由真实 diff 取代。 */
+function streamingStat(activity: ToolActivity): { added: number; removed: number } | null {
+  const streaming = activity.streaming;
+  if (!streaming || (streaming.added === 0 && streaming.removed === 0)) return null;
+  return streaming;
+}
+
+function compactAction(kind: ToolKind, streaming = false): string {
+  if (streaming && kind === "write") return tr("正在创建", "Creating");
+  if (streaming && kind === "edit") return tr("正在编辑", "Editing");
   if (kind === "write") return tr("已创建", "Created");
   if (kind === "edit") return tr("已编辑", "Edited");
   if (kind === "read") return tr("已读取", "Read");
@@ -937,7 +968,7 @@ function CopyIcon({ size = 13 }: { size?: number }) {
   );
 }
 
-function CompactDiffCard({ fileName, filePath, diff, note }: { fileName: string; filePath?: string; diff: string; note?: string }) {
+function CompactDiffCard({ fileName, filePath, diff, note, streaming = false }: { fileName: string; filePath?: string; diff: string; note?: string; streaming?: boolean }) {
   const [copied, setCopied] = useState(false);
   const stat = diffStat(diff);
 
@@ -970,15 +1001,16 @@ function CompactDiffCard({ fileName, filePath, diff, note }: { fileName: string;
         </button>
       </header>
       {note ? <ToolMarkdown text={note} className="compact-diff-card-note" /> : null}
-      <CompactDiffView diff={diff} path={filePath} />
+      <CompactDiffView diff={diff} path={filePath} followEnd={streaming} />
     </section>
   );
 }
 
 /** 紧凑 diff 保留改动附近的上下文,长段未改内容自动折叠。 */
-function CompactDiffView({ diff, path }: { diff: string; path?: string }) {
+function CompactDiffView({ diff, path, followEnd = false }: { diff: string; path?: string; followEnd?: boolean }) {
   return (
     <ScrollFade
+      followEnd={followEnd}
       className="compact-diff-scroll-shell"
       contentClassName="compact-diff-scroll-content"
       ariaLabel={tr("文件差异，可在区域内滚动", "File diff, scrollable")}
@@ -1263,9 +1295,30 @@ function StatusMarkContent({ status, compact = false }: { status: ToolTrace["sta
   return null;
 }
 
-function KindIcon({ kind }: { kind: ToolKind }): ReactNode {
+function GroupIcon({ name, fallback }: { name: string; fallback: ReactNode }): ReactNode {
+  return toolNameIcon(name) ?? fallback;
+}
+
+/** 没有路径或正文可显示时,按工具名给出一个短动作名,避免把原始工具名当标题。 */
+function toolActionName(name: string): string | null {
+  if (name === "create_scheduled_task") return tr("创建", "Create");
+  if (name === "list_scheduled_tasks") return tr("查询", "List");
+  if (name === "update_scheduled_task") return tr("修改", "Update");
+  if (name === "delete_scheduled_task") return tr("删除", "Delete");
+  if (name === "memory_read") return tr("读取", "Read");
+  if (name === "memory_update") return tr("更新", "Update");
+  return null;
+}
+
+function KindIcon({ kind, command }: { kind: ToolKind; command?: string }): ReactNode {
   if (kind === "other") return <ToolIcon size={13} />;
-  if (kind === "bash") return <TerminalIcon size={13} />;
+  if (kind === "bash") {
+    const intent = bashIntentDisplay(command)?.kind;
+    if (intent === "list") return <FolderIcon size={13} />;
+    if (intent === "read") return <EyeIcon size={13} />;
+    if (intent === "search" || intent === "find") return <SearchIcon size={13} />;
+    return <TerminalIcon size={13} />;
+  }
   if (kind === "read") return <EyeIcon size={13} />;
   if (kind === "edit") return <PencilIcon size={13} />;
   if (kind === "write") return <FilePlusIcon size={13} />;
@@ -1275,12 +1328,26 @@ function KindIcon({ kind }: { kind: ToolKind }): ReactNode {
 function toolLabel(name: string, kind: ToolKind): string {
   if (name === "submit_plan") return tr("计划", "Plan");
   if (name === "update_plan") return tr("执行清单", "Execution");
+  if (name === "update_todos") return tr("待办", "Todos");
+  if (name === "submit_outcome") return tr("交付", "Outcome");
+  if (cardToolGroup(name) === "schedule") return tr("定时任务", "Schedule");
+  if (cardToolGroup(name) === "memory") return tr("记忆", "Memory");
   if (name === "record_goal_validation") return tr("验证", "Validation");
   if (name === "update_goal") return tr("目标", "Goal");
   if (name === "complete_step") return tr("步骤", "Step");
   if (name === "web_search") return tr("网页搜索", "Web search");
   if (name === "web_fetch") return tr("网页抓取", "Web fetch");
   return toolKindLabel(kind);
+}
+
+/** 待办清单的焦点项:优先进行中的一项,其次第一项未完成的,全部完成时取最后一项。 */
+function todoFocus(plan: ToolActivity["plan"]): NonNullable<ToolActivity["plan"]>[number] | null {
+  if (!plan?.length) return null;
+  return (
+    plan.find((item) => item.status === "in_progress") ??
+    plan.find((item) => item.status === "pending") ??
+    plan[plan.length - 1]!
+  );
 }
 
 function toolKindLabel(kind: ToolKind): string {
@@ -1296,6 +1363,8 @@ function toolKind(name: string): ToolKind {
 
 function subjectOf(kind: ToolKind, activity: ToolActivity, name: string): { name: string; dir: string } {
   if (kind === "bash") {
+    const intent = bashIntentDisplay(activity.command);
+    if (intent) return { name: intent.name, dir: intent.dir };
     const command = activity.command?.replace(/\s+/g, " ").trim();
     return { name: command || tr("命令", "Command"), dir: "" };
   }
@@ -1304,17 +1373,21 @@ function subjectOf(kind: ToolKind, activity: ToolActivity, name: string): { name
     if (name === "update_plan" && activity.plan?.length) {
       return { name: activity.plan[0]!.text, dir: "" };
     }
+    if (name === "update_todos" && activity.plan?.length) {
+      return { name: todoFocus(activity.plan)!.text, dir: "" };
+    }
     if (
       name === "submit_plan" ||
       name === "update_plan" ||
       name === "record_goal_validation" ||
       name === "update_goal" ||
-      name === "complete_step"
+      name === "complete_step" ||
+      name === "submit_outcome"
     ) {
       const line = activity.body?.split("\n").find((item) => item.trim())?.trim();
       return { name: line || name, dir: "" };
     }
-    return { name, dir: "" };
+    return { name: toolActionName(name) ?? name, dir: "" };
   }
   const normalized = path.replaceAll("\\", "/");
   const index = normalized.lastIndexOf("/");

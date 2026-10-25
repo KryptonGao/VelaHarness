@@ -200,6 +200,7 @@ export class SessionHost {
       return { state: this.currentState(), messages: this.runtime.getMessages(id) };
     });
     ipcMain.handle(IpcChannel.sessionTrace, (_event, rawId: unknown) => this.runtime.getTrace(parseConversationId(rawId, "对话")));
+    ipcMain.handle(IpcChannel.sessionUsage, (_event, rawId: unknown) => this.runtime.getTraceUsage(parseConversationId(rawId, "对话")));
     ipcMain.handle(IpcChannel.sessionTraceDetails, (_event, rawId: unknown, rawNode: unknown) => this.runtime.getTraceDetails(parseConversationId(rawId, "对话"), parseId(rawNode, "轨迹节点")));
     ipcMain.handle(IpcChannel.sessionMessages, (_event, rawId: unknown) => {
       return this.runtime.getMessages(parseConversationId(rawId, "对话"));
@@ -340,7 +341,8 @@ export class SessionHost {
 
   private onRuntimeEvent(event: RuntimeEvent): void {
     if (event.type === "prompt_end") return;
-    if (event.type === "tool_start") this.runtime.addUsage(event.conversationId, 0, 1);
+    // 流式参数阶段的 tool_start 只是提前亮出卡片，同一个调用开始执行时才会再发一次并计数。
+    if (event.type === "tool_start" && !event.activity.streaming) this.runtime.addUsage(event.conversationId, 0, 1);
 
     if (event.type === "status") {
       this.broadcast({ type: "state", state: this.currentState() });

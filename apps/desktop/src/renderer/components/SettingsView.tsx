@@ -155,7 +155,7 @@ export function SettingsView({
           {page === "mcp" ? <McpSettingsSection locale={locale} workspacePath={workspacePath} conversationId={conversationId} detached={conversationDetached} /> : null}
           {page === "web" ? <WebToolsSettingsSection locale={locale} /> : null}
           {page === "memory" ? <MemorySettingsSection locale={locale} conversationId={conversationId} /> : null}
-          {page === "usage" ? <SettingsUsageView conversations={conversations} providers={models.catalog?.providers ?? []} /> : null}
+          {page === "usage" ? <SettingsUsageView conversations={conversations} providers={models.catalog?.providers ?? []} models={models.catalog?.models ?? []} /> : null}
           <div hidden={page !== "appearance"}>
             <AppearancePage copy={copy} preferences={preferences} />
           </div>

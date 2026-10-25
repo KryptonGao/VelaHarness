@@ -302,10 +302,14 @@ export function ContextUsageCard({ context, details = false }: { context: Contex
   const contextWindow = context?.contextWindow ?? null;
   const segments = context?.segments;
   const used = contextCategories.reduce((sum, id) => sum + (segments?.[id] ?? 0), 0);
-  const basis = contextWindow && contextWindow > 0 ? Math.max(contextWindow, used) : used;
+  const windowTokens = contextWindow && contextWindow > 0 ? contextWindow : null;
+  const basis = windowTokens ? Math.max(windowTokens, used) : used;
+  // 剩余空间只在知道窗口时才算得出来；分段之和超过窗口时没有剩余。
+  const free = windowTokens ? Math.max(0, windowTokens - used) : 0;
+  const expanded = open || details;
 
   return (
-    <section className={`context-usage${open || details ? "" : " collapsed"}`} aria-label={tr("上下文用量", "Context usage")}>
+    <section className={`context-usage${expanded ? "" : " collapsed"}`} aria-label={tr("上下文用量", "Context usage")}>
       {details ? <div className="context-usage-title">{tr("上下文用量", "Context usage")}</div> : <button
         className="context-usage-title"
         type="button"
@@ -338,21 +342,37 @@ export function ContextUsageCard({ context, details = false }: { context: Contex
           );
         })}
       </div>
-      <div className={`context-usage-details${open || details ? " open" : ""}`} inert={!open && !details} aria-hidden={!open && !details}>
+      <div className={`context-usage-details${expanded ? " open" : ""}`} inert={!expanded} aria-hidden={!expanded}>
         <div className="context-usage-details-inner">
-        <ul className="context-usage-legend">
-          {contextCategories.map((id) => (
-            <li className="context-usage-row" key={id}>
-              <span className="context-usage-label">
-                <span className={`context-usage-swatch ${id}`} />
-                {categoryLabel(id)}
-              </span>
-              <span className="context-usage-value" title={`${(segments?.[id] ?? 0).toLocaleString(activeIntlLocale())} tokens`}>
-                {formatPrecise(segments?.[id] ?? 0)}
-              </span>
-            </li>
-          ))}
-        </ul>
+          <ul className="context-usage-legend">
+            {contextCategories.map((id) => {
+              const value = segments?.[id] ?? 0;
+              return (
+                <li className="context-usage-row" key={id}>
+                  <span className="context-usage-label">
+                    <span className={`context-usage-swatch ${id}`} aria-hidden="true" />
+                    {categoryLabel(id)}
+                  </span>
+                  <span className="context-usage-value" title={`${value.toLocaleString(activeIntlLocale())} tokens`}>
+                    {formatPrecise(value)}
+                  </span>
+                  <span className="context-usage-share">{formatShare(value, basis)}</span>
+                </li>
+              );
+            })}
+            {windowTokens ? (
+              <li className="context-usage-row is-free">
+                <span className="context-usage-label">
+                  <span className="context-usage-swatch free" aria-hidden="true" />
+                  {tr("剩余空间", "Free space")}
+                </span>
+                <span className="context-usage-value" title={`${free.toLocaleString(activeIntlLocale())} tokens`}>
+                  {formatPrecise(free)}
+                </span>
+                <span className="context-usage-share">{formatShare(free, basis)}</span>
+              </li>
+            ) : null}
+          </ul>
         </div>
       </div>
     </section>
@@ -367,8 +387,17 @@ function formatPercent(percent: number | null, tokens: number): string {
 }
 
 function formatTotal(tokens: number, contextWindow: number | null): string {
-  if (!contextWindow) return tokens > 0 ? `~${formatPrecise(tokens)} tokens` : "— tokens";
-  return `~${formatPrecise(tokens)} / ${formatWindow(contextWindow)} tokens`;
+  if (!contextWindow) return tokens > 0 ? `~${formatPrecise(tokens)}` : "—";
+  return `~${formatPrecise(tokens)} / ${formatWindow(contextWindow)}`;
+}
+
+/** 每行相对窗口的占比，保留一位小数，和汇总条里的整数百分比互相补充。 */
+function formatShare(value: number, basis: number): string {
+  if (value <= 0 || basis <= 0) return "0%";
+  const percent = (value / basis) * 100;
+  if (percent < 0.1) return "<0.1%";
+  if (percent >= 99.95) return "100%";
+  return `${percent.toFixed(1)}%`;
 }
 
 function formatPrecise(value: number): string {

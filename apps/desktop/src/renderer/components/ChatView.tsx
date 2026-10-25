@@ -287,7 +287,7 @@ export function ChatView({
     : undefined;
   // 回到最新按钮的圆球状态:有 bash 在跑 = 运行命令;助手还没写出正文 = 思考;其余显示箭头。
   const activeAssistant = activeAssistantId ? messages.find((message) => message.id === activeAssistantId) : undefined;
-  const runningBash = activeAssistant?.tools.find((tool) => tool.name === "bash" && tool.status === "running");
+  const runningBash = activeAssistant?.tools.find((tool) => (tool.name === "bash" || tool.name === "edit" || tool.name === "write") && tool.status === "running");
   const jumpActivity: OrbActivity | undefined = !activeAssistant
     ? undefined
     : runningBash

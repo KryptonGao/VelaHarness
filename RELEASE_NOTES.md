@@ -1,39 +1,36 @@
-# Vela 1.2.1
+# Vela 1.2.2
 
-Vela 1.2.1 is a usability and accessibility release. It fixes several cases where typed text, attachments or an answer could be lost, makes approvals and questions reachable from the keyboard and screen readers, adds `/model`, `/compact` and `/status` commands to the composer, redesigns the Skills settings page, and lets you limit how many sub-agents a conversation can create.
+Vela 1.2.2 adds cost tracking to usage statistics: register a price for each model and every usage view shows what a conversation cost, in CNY or USD. Tool cards now say what a command actually did, edit and write calls appear while the model is still writing their arguments, and the context card shows the free space left in the window.
 
 ## New
 
-- **Composer commands**: Type `/` to run `/model` (open the model and reasoning-effort picker), `/compact` (compact the context, with progress and a before/after token count) and `/status` (show the model, mode and context usage). Commands appear next to your skills and only when they apply.
-- **Sub-agent limits**: The usage-limit settings (including the conversation's Limit settings tab) now have a sub-agent limit (0 to 64 across all levels of a conversation; 0 disables sub-agents) and a switch for whether sub-agents may create their own sub-agents. These apply even when the time and token limits are off.
-- **Skills page**: Search, filter by All, Enabled or Disabled, refresh the list, and open a detail view with the description, scope, status and file path (with Copy path). Skill load errors and warnings are summarized at the top.
-
-## Fixed
-
-- Pressing Enter in an empty composer no longer sends the predicted message you never confirmed. Tab or Enter now only fills the prediction into the input so you can read and edit it, and Enter sends it from there. The prediction is also announced to screen readers.
-- If sending fails, your text and attachments are restored instead of being cleared. A newer draft you have already started is never overwritten.
-- Question cards no longer get stuck on "waiting for confirmation" after a failed reply: the options come back and the error is shown.
-- Attachments that are dropped (more than 12 files or 6 pasted images) or that cannot be read or decoded now show an "Ignored N files" notice instead of disappearing silently.
-- A history reply with no process and no recorded duration no longer shows a "Duration unavailable" divider.
-- The composer input grows to the height set by your font size and window instead of stopping at a fixed 140px.
-- A hard-coded Chinese error ("Unable to read skills") is now translated, and user message times use your language and region.
+- **Model prices and costs**: Settings › Usage statistics has a new **Model pricing** section. Register the input, output, cache write and cache read price of a model per 1M tokens, in CNY or USD, and usage statistics calculate costs from it. The overview shows an estimated cost, the Usage table shows a cost per model, and a conversation's usage also shows what its latest task cost — that is, every request made since your last message. Prices stay on this machine, CNY and USD are totalled separately and never converted, and a model without a price is reported by name and left out of the totals instead of being counted as 0.
+- **Bash commands say what they do**: `ls`, `cat`, `grep`, `find` and script runs are labelled List, Read, Search, Find and Script with a matching icon, and the card shows the directory, file or search term (plus "in src" for the search scope) instead of the raw command line. A command that chains several recognisable steps shows "+N more".
+- **Per-tool icons**: updates to the todo list, the outcome, questions, sub-agent messages, scheduled tasks and memory have their own icons, coloured by tool family, in both full and compact tool cards. A todo card shows the item in progress (or the next one) and an outcome card shows its first line.
+- **Live preview while edit and write arguments stream**: the card appears as soon as the model starts writing the arguments, the diff and its +/− counts grow with the content, and the view follows the end. If the model never finishes the call, the card ends with a note that nothing was changed.
+- **Free space in the context card**: the context usage card lists Free space next to system, rules, skills and conversation, and every row shows its share of the window.
 
 ## Improved
 
-- **Approvals and questions**: When the agent is waiting for your decision, focus moves to the safer control (Deny) unless you are in the middle of typing, and returns to where it was afterwards. Question cards announce themselves to screen readers.
-- **View tabs**: The Conversation, Trace, Version Control, Usage, Context and Limit settings tabs support Left and Right arrows, Home and End (Enter or Space selects), and are linked to their panels. A disabled tab's reason is read aloud, not just shown as a tooltip. When the tabs are cut off in a narrow window, a fade at the edge shows they scroll. The Limits tab is renamed "Limit settings" to tell it apart from Usage.
-- **Conversation log**: The message area is a polite live region, marked busy while a reply streams, so streamed replies, finished tools and errors are announced. The per-second timer is excluded.
-- **Clearer destructive actions**: The "Revert" button on a turn is now "Revert in Changes…" with a tooltip saying it opens Workspace Changes rather than reverting directly. Editing a message now shows a warning that resending withdraws later content and file changes, with the shortcut for sending.
-- Queue and steer shortcuts are shown next to the send button while a task is running.
-- Larger click targets for message action buttons, disabled controls are easier to see, and Copy and Branch to new chat no longer wrap one character per line in narrow columns.
-- Sub-agent streams can group tool calls across consecutive messages, matching the main conversation.
+- **Usage statistics open without reading whole traces**: only the request and usage records are streamed from each trace file, four conversations at a time, and the page updates once when loading finishes. A long history no longer loads hundreds of megabytes of trace into memory or recomputes the page dozens of times.
+- **Compact tool groups**: mixed Bash groups count listed directories and searches separately ("Listed 3 directories · Ran 2 searches"), and each row keeps its own action word and icon instead of inheriting one for the whole group.
+- **Run view**: write calls show "Writing Files", and a step whose tools have all finished goes back to thinking instead of still claiming to write a reply.
+- **Jump orb**: each style now plays one to six full loops instead of a fixed three seconds, so a style change starts from the pose at the beginning of the loop. Edit and write calls count as command activity.
+- **Composer**: the input grows while you type with an IME (Zhuyin, Pinyin) instead of waiting for the next keystroke, a long placeholder or prediction is truncated to one line instead of adding a horizontal scrollbar, and the plus button keeps its width when the text gets long. In the capsule layout the queue hint sits outside the capsule.
+- **Context card layout**: rows align in three columns (name, tokens, share), the total no longer repeats "tokens" twice, and the percentage is easier to read in the information cards.
 - Japanese, Korean and Traditional Chinese translations for the new text are included.
+
+## Fixed
+
+- Model identifiers in usage records are no longer rewritten when an MCP secret happens to be a substring of them, so requests stay grouped under the real model and registered prices match.
+- A tool call that was already announced while its arguments streamed is counted once in the conversation's tool count, not twice.
+- A step that called tools after writing text no longer stays on "Writing a reply" while waiting for the next model response.
 
 ## Upgrade
 
 Installed copies of Vela 1.0.6 and later receive this update automatically: Vela downloads it in the background and prompts you to restart. Versions 1.0.5 and earlier cannot update themselves, so install this version manually once: quit Vela completely, replace the application with this version, and reopen it.
 
-Keep your existing `~/.vela` directory (or the directory specified by `VELA_USER_DATA`); no data reset is needed.
+Keep your existing `~/.vela` directory (or the directory specified by `VELA_USER_DATA`); no data reset is needed. Registered model prices are stored in your local UI state and are kept across the update.
 
 The macOS build is not notarized and uses an ad-hoc signature. If macOS blocks first launch, use **Open Anyway** in System Settings → Privacy & Security. Because the code signature differs between versions, macOS may ask you to confirm privacy or keychain access again after an update.
 
@@ -41,18 +38,18 @@ The macOS build is not notarized and uses an ad-hoc signature. If macOS blocks f
 
 | File | Platform |
 | --- | --- |
-| `Vela-1.2.1-arm64.dmg` | macOS Apple Silicon installer |
-| `Vela-1.2.1-arm64.zip` | macOS Apple Silicon application bundle (`.app`); also the package used by in-app updates |
+| `Vela-1.2.2-arm64.dmg` | macOS Apple Silicon installer |
+| `Vela-1.2.2-arm64.zip` | macOS Apple Silicon application bundle (`.app`); also the package used by in-app updates |
 | `SHA256SUMS.txt` | SHA-256 checksums for both packages |
 | `SHA256SUMS.txt.sig` | Ed25519 signature of `SHA256SUMS.txt`, verified by the in-app updater |
 
-Package version: `1.2.1`. macOS bundle and download version: `1.2.1`.
+Package version: `1.2.2`. macOS bundle and download version: `1.2.2`.
 
 ## Validation
 
-- Type checks passed, and unit tests passed in the workspace (191), agent (707 passed, one skipped) and desktop (975) packages.
+- Type checks passed for all packages, and unit tests passed sequentially in the agent (719 tests, 718 passed and one skipped), workspace (191) and desktop (997) packages (`pnpm typecheck` and `pnpm -r --if-present --workspace-concurrency=1 test`). One timing-sensitive test in `packages/workspace/test/gh-run.test.ts` hit its own 1000 ms spawn timeout in a parallel run of `pnpm test` and passed on every run afterwards.
 - All 29 in-app update tests passed (`pnpm --filter @vela/desktop test:updates`).
 - The production build passed (`pnpm build`).
-- Eleven of fourteen real-Electron smoke suites passed in the full run. Task Recipes and PR Inbox failed with the same symptoms already documented in earlier releases (Task Recipes: `Missing button 编辑`); these failures remain unresolved. Scheduled Tasks timed out at startup in the full run while the machine was low on memory, and passed twice when run on its own.
-- macOS arm64 packaging completed (`pnpm package:mac`); the application bundle reports version `1.2.1` and identifier `com.vela.desktop`, the ZIP contains a single `Vela.app`, and the DMG checksum verifies.
+- Twelve of the fourteen real-Electron smoke suites passed (`pnpm test:smoke`). Task Recipes failed with `Missing button 编辑` and PR Inbox with `Loaded PRs did not refresh while working outside the inbox`; both are the same symptoms already documented in earlier releases and neither touches code changed here. All other twelve suites — PI SDK, profile, Browser, Browser auth, Browser Use, MCP, Scheduled Tasks, Handoff, PR Review Response, Notification Sounds, Settings and Thinking Blur — passed.
+- macOS arm64 packaging completed (`pnpm package:mac`); the application bundle reports version `1.2.2` and identifier `com.vela.desktop`, the ZIP contains a single `Vela.app`, and the DMG checksum verifies.
 - The signed checksum file was generated for the DMG and ZIP with the bundled-public-key check (`pnpm sign:release`).

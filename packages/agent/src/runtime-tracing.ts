@@ -16,10 +16,19 @@ export class ConversationTraces {
 
   constructor(private readonly options: ConversationTracesOptions) {}
 
+  file(conversationId: string): string {
+    return join(this.options.agentDir, "traces", `${conversationId}.jsonl`);
+  }
+
+  /** 记录器是否已经载入内存；没载入的对话不要为了读用量而去创建它。 */
+  has(conversationId: string): boolean {
+    return this.recorders.has(conversationId);
+  }
+
   get(conversationId: string, restoreHistory = true): TraceRecorder {
     let recorder = this.recorders.get(conversationId);
     if (recorder) return recorder;
-    const file = join(this.options.agentDir, "traces", `${conversationId}.jsonl`);
+    const file = this.file(conversationId);
     recorder = new TraceRecorder(conversationId, file, this.options.emit);
     this.recorders.set(conversationId, recorder);
     const manager = restoreHistory ? this.options.history(conversationId) : null;

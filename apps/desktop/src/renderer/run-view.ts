@@ -3,7 +3,7 @@ import type { OrbActivity } from "./components/jump-orb";
 import type { UiMessage } from "./hooks/useSession";
 
 /** 运行视图状态条显示的步骤类型。 */
-export type RunStepKind = "thinking" | "writing" | "command" | "reading" | "editing" | "searching" | "subagent" | "todos" | "working";
+export type RunStepKind = "thinking" | "writing" | "command" | "reading" | "editing" | "creating" | "searching" | "subagent" | "todos" | "working";
 
 /** 提交待办清单的两个工具:运行视图的 update_todos,以及已批准方案的 update_plan。 */
 const todoTools = new Set(["update_todos", "update_plan"]);
@@ -12,7 +12,7 @@ const toolKinds: Record<string, RunStepKind> = {
   bash: "command",
   read: "reading",
   edit: "editing",
-  write: "editing",
+  write: "creating",
   apply_patch: "editing",
   web_search: "searching",
   web_fetch: "searching",
@@ -63,6 +63,8 @@ export function runStepSignal(message: UiMessage | undefined): RunStepSignal {
   if (!message) return { kind: "thinking", key: "step:thinking" };
   const running = [...message.tools].reverse().find((tool) => tool.status === "running");
   if (running) return { kind: toolKinds[running.name] ?? "working", key: `tool:${running.id}` };
+  // 工具都已结束的消息说明这一步的回复早就写完了，正在等下一次模型响应，属于思考，不是撰写。
+  if (message.tools.length > 0) return { kind: "thinking", key: "step:thinking" };
   return message.text.trim() ? { kind: "writing", key: "step:writing" } : { kind: "thinking", key: "step:thinking" };
 }
 
