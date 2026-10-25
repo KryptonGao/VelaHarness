@@ -16,4 +16,12 @@
 
 截图使用 1440 × 960 CSS 像素、2× 像素密度、浅色外观、简体中文与 Asia/Shanghai 时区。先等待动画结束，再截取视口；图片为 2880 × 1920 PNG，可直接替换相应素材。
 
+## 用量成本截图（1.2.2 新增）
+
+用量统计与模型价格截图直接渲染真实的 `SettingsUsageView` 组件，数据沿用 `usage-preview` 的生成数据；价格是为截图预置的示例值，不是厂商价目表。
+
+- 页面：`apps/desktop/test/usage-costs-preview.tsx` 与 `usage-costs-preview.html`（直接渲染用量统计页；不要用 `usage-preview.html?settings`，该设置页预览缺少新版设置组件所需的存根，会白屏）
+- 输出：`vela-usage-costs.png`（概览与预估费用）、`vela-model-pricing.png`（模型价格登记表，需滚动到模型价格区再截）
+- 截图前在浏览器 localStorage 预置示例价格（`vela.modelPrices`）：`openai-codex/gpt-6.1-sol`（CNY：输入 8、输出 32、缓存写入 16、缓存读取 2）、`opencode-go/deepseek-v4.1-flash`（CNY：2、4、1、0.5）、`openai-codex/gpt-6-luna`（CNY：5、20、10、1），单位均为每 100 万 Token；等待概览出现「预估费用」后再截取。价格图截后可裁掉下方空白。
+
 模型与账号、外观设置的旧截图保留在主 README 的折叠区；`vela-desktop.png`、`vela-task-review.png` 保留作为历史素材。
