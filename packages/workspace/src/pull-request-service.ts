@@ -40,7 +40,7 @@ import type {
   PullRequestInfo,
 } from "@vela/shared";
 import { runGh, type GhResult } from "./gh-run";
-import { gitQuery, runGit } from "./git-run";
+import { gitQuery, gitQueryCapped, runGit } from "./git-run";
 import { githubSlug, parseGithubSlug } from "./github-url";
 import { matchRemotePrefix } from "./git-remote";
 
@@ -50,7 +50,7 @@ const templateSizeLimit = 100 * 1024;
 const recentPrWindowMs = 5 * 60_000;
 const maxBodyLength = 100_000;
 /** getScope 返回的 diff 上限(供 PR 文案 AI 使用);截断保证 UTF-8 安全。 */
-const maxScopeDiffLength = 400_000;
+const maxScopeDiffBytes = 400_000;
 
 /**
  * gh pr list/view 统一使用的字段;顺序固定便于排查。
@@ -471,8 +471,9 @@ export class PullRequestService {
     }
 
     // 完整 diff 供 AI 文案使用;超限截断并标记,截断点保证 UTF-8 合法。
-    const rawDiff = (await gitTry(cwd, ["diff", "--no-color", "-M", mergeBase, head])) ?? "";
-    const truncatedDiff = truncateTextPrefix(rawDiff, maxScopeDiffLength);
+    const truncatedDiff = await gitQueryCapped(cwd, ["diff", "--no-color", "-M", mergeBase, head], maxScopeDiffBytes)
+      .then(({ stdout, truncated }) => ({ text: stdout.trim(), truncated }))
+      .catch(() => ({ text: "", truncated: false }));
     const pushTarget: GitRemoteTarget | null = headRemote
       ? { remote: headRemote, branch: head }
       : null;
@@ -1656,14 +1657,6 @@ function scopeError(base: string, head: string, error: string): PrCompareScope {
     diffTruncated: false,
     error,
   } as PrCompareScope;
-}
-
-/** 按字符上限截断文本;若切点落在代理对中间则回退一位,保证 UTF-8 合法。 */
-function truncateTextPrefix(text: string, limit: number): { text: string; truncated: boolean } {
-  if (text.length <= limit) return { text, truncated: false };
-  const code = text.charCodeAt(limit - 1);
-  const end = code >= 0xd800 && code <= 0xdbff ? limit - 1 : limit;
-  return { text: text.slice(0, end), truncated: true };
 }
 
 function createFailure(message: string): PrCreateResult {

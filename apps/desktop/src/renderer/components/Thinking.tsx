@@ -1,13 +1,20 @@
-import { useContext, useId, useLayoutEffect, useMemo, useRef, useState, type TouchEvent, type WheelEvent } from "react";
+import { useContext, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type TouchEvent, type WheelEvent } from "react";
 import { ActivityIndicator } from "./ActivityIndicator";
 import { ThinkingIcon } from "./icons";
 import { Markdown } from "./Markdown";
+import { usePacedText } from "../hooks/usePacedText";
 import { nextStreamFollow, releasesStreamFollow } from "./chat-scroll";
 import { localizeError, tr, useAppLocale } from "../locale";
 import { thinkingSummaryLayout } from "../thinking-summary";
 import { ThinkingSummaryContext } from "./ThinkingSummaryContext";
 import { ScrollFadeShell } from "./ScrollFadeShell";
 import { thinkingEdges } from "./thinking-edges";
+
+/** 思考总结一次性整段到达,这里按回复正文同款的节奏逐步展示;打开历史记录时的总结直接显示。 */
+function PacedSummary({ text, animate, id, trailing }: { text: string; animate: boolean; id?: string; trailing: ReactNode }) {
+  const { text: paced, resumed } = usePacedText(text, true, id, animate);
+  return <Markdown text={paced} streaming={paced.length < text.length} resumed={resumed} fade="reply" trailing={trailing} />;
+}
 
 /** 思考进行中默认展开,思考结束(出现新工具、开始回复或回合结束)时自动折叠;任意长度都能手动开合。 */
 export function Thinking({
@@ -25,6 +32,9 @@ export function Thinking({
   const locale = useAppLocale();
   const summaryAvailable = !active && summaries?.enabled && messageId !== undefined;
   const summary = summaryAvailable ? summaries.get(messageId, text) : undefined;
+  // 总结是在这个组件存在期间才出来的(而不是挂载时就有),才逐步展示。
+  const summaryArrived = useRef(false);
+  if (!summary || summary.status !== "done") summaryArrived.current = true;
   const bodyId = useId();
   const summarize = () => {
     if (summaryAvailable) summaries.request(messageId, text);
@@ -176,7 +186,7 @@ export function Thinking({
   ), [open, bodyId, locale]);
   const prose = layout === "prose" && summary?.status === "done" ? (
     <div
-      className="thinking-prose-summary agent-reply-prose summary-arrival"
+      className={`thinking-prose-summary agent-reply-prose${summaryArrived.current ? "" : " summary-arrival"}`}
       onClick={(event) => {
         // 划选总结文字时不触发展开;单击整段文字等同点击末尾图标。
         const selection = window.getSelection();
@@ -186,7 +196,7 @@ export function Thinking({
         toggle();
       }}
     >
-      <Markdown text={summary.text} trailing={proseToggle} />
+      <PacedSummary text={summary.text} animate={summaryArrived.current} id={messageId ? `summary:${messageId}` : undefined} trailing={proseToggle} />
     </div>
   ) : null;
   return (
@@ -243,7 +253,7 @@ export function Thinking({
               tabIndex={0}
             >
               <div className="stream-prose-block thinking-text" ref={contentRef}>
-                {revealed ? <Markdown text={text} streaming={active} /> : null}
+                {revealed ? <Markdown text={text} streaming={active} fade="thinking" /> : null}
               </div>
             </div>
           </ScrollFadeShell>

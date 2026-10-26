@@ -13,14 +13,14 @@ import type {
 } from "@vela/shared";
 import { classifyGhFailure, ghFailureMessage, runGh } from "./gh-run";
 import { parseGithubSlug } from "./github-url";
-import { assertSafeName, gitQuery, runGit } from "./git-run";
+import { assertSafeName, gitQuery, gitQueryCapped, runGit } from "./git-run";
 import { resolveCommit } from "./git-state";
 
 /** Tag 与 Release (RL-01) 以及发布说明的版本区间数据 (AI-12)。 */
 
 const fieldSeparator = "\x1f";
 const maxTagCount = 500;
-const maxReleaseScopeDiffLength = 400_000;
+const maxReleaseScopeDiffBytes = 400_000;
 const maxReleaseCommits = 300;
 const remoteProbeTimeoutMs = 8_000;
 
@@ -260,10 +260,11 @@ export async function getReleaseNotesScope(
         .then((stdout) => parseTotals(stdout))
         .catch(() => ({ files: 0, added: 0, deleted: 0 }))
     : { files: 0, added: 0, deleted: 0 };
-  const rawDiff = baseSha && headSha
-    ? await gitQuery(cwd, ["diff", baseSha, headSha]).catch(() => "")
-    : "";
-  const truncated = truncateTextPrefix(rawDiff, maxReleaseScopeDiffLength);
+  const truncated = baseSha && headSha
+    ? await gitQueryCapped(cwd, ["diff", "--no-color", baseSha, headSha], maxReleaseScopeDiffBytes)
+        .then(({ stdout, truncated }) => ({ text: stdout, truncated }))
+        .catch(() => ({ text: "", truncated: false }))
+    : { text: "", truncated: false };
 
   const pullRequests = await listRangePulls(cwd, rangeShas);
   const previousNotes = baseTag ? await releaseNotes(cwd, baseTag) : null;
@@ -457,12 +458,6 @@ function parseTotals(stdout: string): { files: number; added: number; deleted: n
     deleted += tabs[1] === "-" ? 0 : Number(tabs[1]) || 0;
   }
   return { files, added, deleted };
-}
-
-function truncateTextPrefix(text: string, limit: number): { text: string; truncated: boolean } {
-  if (text.length <= limit) return { text, truncated: false };
-  const buffer = Buffer.from(text, "utf8").subarray(0, limit);
-  return { text: buffer.toString("utf8"), truncated: true };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

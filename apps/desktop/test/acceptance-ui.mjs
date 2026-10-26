@@ -87,12 +87,12 @@ if (!process.versions.electron) {
     await evaluate("new Promise(done => setTimeout(done, 300))");
     assert.equal(await evaluate("document.querySelector('.turn-review-scroll').scrollTop > 0"), true);
     assert.equal(await evaluate("(() => { const scroll=document.querySelector('.turn-review-scroll'); const s=scroll.getBoundingClientRect(); const e=document.querySelector('.turn-review-edit[data-diff-tool-id=parser-second]').getBoundingClientRect(); return (Math.abs(e.top-s.top)<2 || scroll.scrollTop + scroll.clientHeight >= scroll.scrollHeight - 1) && e.top >= s.top - 2 && e.bottom <= s.bottom; })()"), true);
-    assert.equal(await evaluate("document.querySelector('.turn-review-file-link[title=\"src/parser.ts\"]').getAttribute('aria-current')"), "location");
-    const filter = "document.querySelector('.turn-review-filter input')";
+    assert.equal(await evaluate("document.querySelector('.turn-review-sidebar .explorer-tree-item.file[title=\"src/parser.ts\"]').classList.contains('active')"), true);
+    const filter = "document.querySelector('.turn-review-sidebar .explorer-search-input')";
     await evaluate(`(() => { const input=${filter}; Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,'README'); input.dispatchEvent(new Event('input',{bubbles:true})); })()`);
     await until("document.querySelectorAll('.turn-review-file').length === 1");
     await open(0); await click(".acceptance-edits button:last-child");
-    await until("document.querySelector('.turn-review-filter input').value === '' && document.querySelectorAll('.turn-review-file').length === 3");
+    await until("document.querySelector('.turn-review-sidebar .explorer-search-input').value === '' && document.querySelectorAll('.turn-review-file').length === 3");
     console.log("PASS exact repeated-edit diff jump and clearing a previously filtered review");
 
     await open(0);

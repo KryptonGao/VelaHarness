@@ -31,6 +31,10 @@ export function ConversationDisplayPage({
     runView,
     recommendedActions,
     toolIconColor,
+    replyFade,
+    replyPop,
+    thinkingFade,
+    thinkingPop,
     thinkingSummary,
     thinkingSummaryStyle,
     thinkingSummaryModel,
@@ -42,6 +46,10 @@ export function ConversationDisplayPage({
     setRunView,
     setRecommendedActions,
     setToolIconColor,
+    setReplyFade,
+    setReplyPop,
+    setThinkingFade,
+    setThinkingPop,
     setThinkingSummary,
     setThinkingSummaryStyle,
     setThinkingSummaryModel,
@@ -94,7 +102,6 @@ export function ConversationDisplayPage({
     { id: "headline", label: text.thinkingSummaryStyleHeadline },
     { id: "prose", label: text.thinkingSummaryStyleProse },
   ];
-
   return (
     <section className="settings-section">
       <ConversationPreview settings={view} previewing={hover !== null && previewing(hover.key)} />
@@ -237,6 +244,58 @@ export function ConversationDisplayPage({
           onChange={setThinkingSummaryStyle}
           onPreview={peek("thinkingSummaryStyle")}
         />
+      </SettingsBlock>
+      <SettingsBlock id="reply-animation" title={text.replyAnimation} hint={text.replyAnimationHint}>
+        <div className="settings-font-row">
+          <span className="settings-font-label">{text.animationFade}</span>
+          <Segmented
+            label={`${text.replyAnimation} · ${text.animationFade}`}
+            value={onOff(replyFade)}
+            options={[
+              { id: "off", label: text.animationOff },
+              { id: "on", label: text.animationOn },
+            ]}
+            onChange={(value) => setReplyFade(value === "on")}
+          />
+        </div>
+        <div className="settings-font-row">
+          <span className="settings-font-label">{text.animationPop}</span>
+          <Segmented
+            label={`${text.replyAnimation} · ${text.animationPop}`}
+            value={onOff(replyPop)}
+            options={[
+              { id: "off", label: text.animationOff },
+              { id: "on", label: text.animationOn },
+            ]}
+            onChange={(value) => setReplyPop(value === "on")}
+          />
+        </div>
+      </SettingsBlock>
+      <SettingsBlock id="thinking-animation" title={text.thinkingAnimation} hint={text.thinkingAnimationHint}>
+        <div className="settings-font-row">
+          <span className="settings-font-label">{text.animationFade}</span>
+          <Segmented
+            label={`${text.thinkingAnimation} · ${text.animationFade}`}
+            value={onOff(thinkingFade)}
+            options={[
+              { id: "off", label: text.animationOff },
+              { id: "on", label: text.animationOn },
+            ]}
+            onChange={(value) => setThinkingFade(value === "on")}
+          />
+        </div>
+        <div className="settings-font-row">
+          <span className="settings-font-label">{text.animationPop}</span>
+          <Segmented
+            label={`${text.thinkingAnimation} · ${text.animationPop}`}
+            value={onOff(thinkingPop)}
+            options={[
+              { id: "off", label: text.animationOff },
+              { id: "on", label: text.animationOn },
+            ]}
+            onChange={(value) => setThinkingPop(value === "on")}
+          />
+        </div>
       </SettingsBlock>
       <SettingsBlock
         id="input-prediction"

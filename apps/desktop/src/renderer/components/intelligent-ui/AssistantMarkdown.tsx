@@ -1,6 +1,7 @@
 import { memo, useEffect, useMemo, useRef } from "react";
 import { mayContainUi, UiStreamParser, type UiSegment } from "@vela/shared";
 import { Markdown } from "../Markdown";
+import { usePacedText } from "../../hooks/usePacedText";
 import { MicroAppView } from "./MicroApp";
 import { uiMetrics } from "./ui-metrics-instance";
 import { UiArtifactView } from "./UiArtifactView";
@@ -29,12 +30,12 @@ function useUiSegments(text: string, streaming: boolean): UiSegment[] {
   }, [text, streaming]);
 }
 
-function WithUi({ messageId, text, streaming }: { messageId: string; text: string; streaming: boolean }) {
+function WithUi({ messageId, text, streaming, resumed }: { messageId: string; text: string; streaming: boolean; resumed: boolean }) {
   const segments = useUiSegments(text, streaming);
   const lastIndex = segments.length - 1;
   return <>
     {segments.map((segment, index) => segment.type === "markdown"
-      ? <Markdown key={segment.key} text={segment.text} streaming={streaming && index === lastIndex} />
+      ? <Markdown key={segment.key} text={segment.text} streaming={streaming && index === lastIndex} resumed={resumed} fade="reply" />
       : segment.type === "app"
         ? <MicroAppView key={segment.key} app={segment.app} raw={segment.raw} messageId={messageId} streaming={streaming} />
         : <UiArtifactView key={segment.key} artifact={segment.artifact} raw={segment.raw} messageId={messageId} streaming={streaming} />)}
@@ -54,8 +55,10 @@ function useReplyMetrics(messageId: string, hasUi: boolean, streaming: boolean):
 export const AssistantMarkdown = memo(function AssistantMarkdown({ messageId, text, streaming = false }: {
   messageId: string; text: string; streaming?: boolean;
 }) {
-  const hasUi = mayContainUi(text);
-  useReplyMetrics(messageId, hasUi, streaming);
-  if (!hasUi) return <Markdown text={text} streaming={streaming} />;
-  return <WithUi messageId={messageId} text={text} streaming={streaming} />;
+  useReplyMetrics(messageId, mayContainUi(text), streaming);
+  // 模型输出太快时按帧限速展示;队列没放完前仍按流式处理,解析器和动画才不会提前收尾。
+  const { text: paced, resumed } = usePacedText(text, streaming, messageId);
+  const live = streaming || paced.length < text.length;
+  if (!mayContainUi(paced)) return <Markdown text={paced} streaming={live} resumed={resumed} fade="reply" />;
+  return <WithUi messageId={messageId} text={paced} streaming={live} resumed={resumed} />;
 });

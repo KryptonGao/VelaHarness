@@ -1,39 +1,36 @@
+import { useEffect, useState } from "react";
 import type { ContextUsage } from "@vela/shared";
 import { ContextUsageTrigger } from "../ContextUsagePopover";
-import { composerStats } from "./composer-stats";
+import { COMPOSER_STAT_ROTATE_MS, composerStats } from "./composer-stats";
 import { tr } from "../../locale";
 
 /**
- * 输入框下方的会话统计条：输出速度、累计 token 与缓存命中率、上下文占用环。
+ * 输入框下方的会话统计条：输出速度、缓存命中率与 token 总量（每 30 秒轮流展示）、上下文占用环。
  * 没有数据的分组整个不渲染，全部缺失时整条隐藏。
  */
-export function ComposerStatsRow({ usage, contextPopover = false, part }: {
+export function ComposerStatsRow({ usage, contextPopover = false }: {
   usage: ContextUsage | undefined | null;
   contextPopover?: boolean;
-  /** 只渲染一部分：activity 为输出速度，usage 为累计 token 与上下文占用；不传则全部渲染。 */
-  part?: "activity" | "usage";
 }) {
   // tok/s 是常驻信息：新对话也保留位置，不会让整条统计只剩占用环。
-  const stats = composerStats(usage, { alwaysShowActivity: true });
-  const showActivity = part !== "usage";
-  const showUsage = part !== "activity";
-  const hasGroup = Boolean((showActivity && stats.activity) || (showUsage && (stats.tokens || stats.percentLabel || contextPopover)));
+  const stats = composerStats(usage, { alwaysShowSpeed: true });
+  const hasGroup = Boolean(stats.speed || stats.rotating.length > 0 || stats.percentLabel || contextPopover);
   if (!hasGroup) return null;
 
   return (
     <div className="composer-stats-row" role="group" aria-label={tr("会话统计", "Chat stats")}>
-      {showActivity && stats.activity ? (
-        <span className="composer-stat" title={stats.activity}>
-          <span className="composer-stat-text">{stats.activity}</span>
+      {stats.speed ? (
+        <span className="composer-stat" title={stats.speed}>
+          <span className="composer-stat-text">{stats.speed}</span>
         </span>
       ) : null}
-      {showUsage && stats.tokens ? (
-        <span className="composer-stat" title={stats.tokens}>
+      {stats.rotating.length > 0 ? (
+        <span className="composer-stat">
           <span className="composer-stat-icon" aria-hidden="true"><TokenStackIcon /></span>
-          <span className="composer-stat-text">{stats.tokens}</span>
+          <RotatingText items={stats.rotating} />
         </span>
       ) : null}
-      {!showUsage ? null : contextPopover ? (
+      {contextPopover ? (
         <ContextUsageTrigger usage={usage} high={(stats.percent ?? 0) >= 80}>
           <ContextRing percent={stats.percent ?? 0} />
           <span className="composer-stat-text">{stats.percentLabel ?? (usage?.tokens ? "—" : "0%")}</span>
@@ -48,6 +45,34 @@ export function ComposerStatsRow({ usage, contextPopover = false, part }: {
         </span>
       ) : null}
     </div>
+  );
+}
+
+/**
+ * 几项文字在同一位置定时轮流展示。所有项叠在同一个网格格子里，宽度取最宽的一项，
+ * 切换时不会挤动旁边的统计；进出用淡入淡出加轻微上下位移表现。
+ */
+function RotatingText({ items }: { items: string[] }) {
+  const [tick, setTick] = useState(0);
+  const count = items.length;
+  useEffect(() => {
+    if (count < 2) return undefined;
+    const timer = window.setInterval(() => setTick((value) => value + 1), COMPOSER_STAT_ROTATE_MS);
+    return () => window.clearInterval(timer);
+  }, [count]);
+  const active = tick % count;
+  return (
+    <span className="composer-stat-rotator" title={items[active]}>
+      {items.map((text, index) => (
+        <span
+          key={index}
+          className={`composer-stat-text composer-stat-rotator-item${index === active ? " is-active" : ""}`}
+          aria-hidden={index === active ? undefined : true}
+        >
+          {text}
+        </span>
+      ))}
+    </span>
   );
 }
 

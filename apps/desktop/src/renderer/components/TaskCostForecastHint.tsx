@@ -3,6 +3,12 @@ import { useEffect, useState } from "react";
 import { activeIntlLocale, tr, trf } from "../locale";
 import { useModelPrices } from "../model-prices";
 
+const dismissedKey = "vela.taskCostForecast.dismissed";
+
+function readDismissed(): boolean {
+  try { return window.localStorage.getItem(dismissedKey) === "1"; } catch { return false; }
+}
+
 function money(forecast: TaskCostForecast, amount: number): string {
   return formatCost({ [forecast.currency]: amount }, activeIntlLocale()) ?? "";
 }
@@ -14,6 +20,7 @@ function money(forecast: TaskCostForecast, amount: number): string {
 export function TaskCostForecastHint({ session }: { session: SessionSnapshot | null | undefined }) {
   const prices = useModelPrices();
   const [forecast, setForecast] = useState<TaskCostForecast | null>(null);
+  const [dismissed, setDismissed] = useState(readDismissed);
   const conversationId = session?.id ?? null;
   const idle = session?.status === "ready" && (!session.taskBudget || session.taskBudget.phase === "ok");
   // 任务结束、换模型或改价格后重新取；切换对话时先清掉旧值，避免短暂显示别的对话的预估。
@@ -21,15 +28,19 @@ export function TaskCostForecastHint({ session }: { session: SessionSnapshot | n
   useEffect(() => {
     const api = window.vela;
     setForecast(null);
-    if (!api || !conversationId || !idle) return;
+    if (!api || !conversationId || !idle || dismissed) return;
     let active = true;
     void api.estimateTaskCost(conversationId).then(
       (next) => { if (active) setForecast(next); },
       () => undefined,
     );
     return () => { active = false; };
-  }, [key]);
-  if (!forecast || !idle) return null;
+  }, [key, dismissed]);
+  if (!forecast || !idle || dismissed) return null;
+  const dismiss = () => {
+    try { window.localStorage.setItem(dismissedKey, "1"); } catch { /* 存不下就只在本次运行内隐藏 */ }
+    setDismissed(true);
+  };
   const over = forecast.limit !== null && forecast.median >= forecast.limit;
   return <aside className="task-cost-forecast" data-over={over ? "true" : undefined} role="status">
     <span>{trf("预估费用约 {0}（常见 {1} – {2}）", "Estimated cost about {0} (usually {1} – {2})",
@@ -39,5 +50,7 @@ export function TaskCostForecastHint({ session }: { session: SessionSnapshot | n
       {forecast.sameModel ? "" : ` · ${tr("含其他模型，按现价换算", "includes other models, repriced at current prices")}`}
     </span>
     {over ? <strong>{trf("已达本任务的费用上限 {0}", "At the task cost limit of {0}", money(forecast, forecast.limit!))}</strong> : null}
+    <button type="button" className="task-cost-forecast-close" onClick={dismiss}
+      aria-label={tr("关闭", "Close")} title={tr("关闭，不再显示费用预估", "Close and stop showing cost estimates")}>×</button>
   </aside>;
 }

@@ -2,12 +2,12 @@ import { PrInboxPage } from "./components/PrInboxPage";
 import { AgentInboxPage } from "./components/AgentInboxPage";
 import { useAgentInbox } from "./hooks/useAgentInbox";
 import { uiStorage } from "./ui-storage";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ContextType } from "react";
 import { emptyAgentUsage, type AgentInboxNavigation, type AgentInfo, type ReleaseNotes, type TaskRecipe } from "@vela/shared";
 import { AgentWorkspaceProvider } from "./components/AgentPanel";
 import { SessionChatView } from "./components/SessionChatView";
 import { ContextPanel } from "./components/ContextPanel";
-import { useMessages } from "./hooks/useMessages";
+import { useMessagesEmpty } from "./hooks/useMessages";
 import { FileIconThemeProvider } from "./components/FileTypeIcon";
 import { OnboardingView } from "./components/OnboardingView";
 import { PlanDocumentProvider } from "./components/PlanPanel";
@@ -226,7 +226,8 @@ export function App() {
   const floatingInfo = preferences.infoLayout !== "sidebar";
   const infoCards = preferences.infoLayout === "cards";
   // 新对话的首页不显示右侧信息卡，发出第一句话后再出现。
-  const conversationEmpty = useMessages(session.messageStore, session.activeConversationId).length === 0;
+  // 只订阅「是否为空」：流式回复每帧发布新消息数组，订阅整个数组会让整棵应用逐帧重渲染。
+  const conversationEmpty = useMessagesEmpty(session.messageStore, session.activeConversationId);
   const contextSidebarOpen = !floatingInfo && !rightCollapsed && !conversationEmpty && !scheduledTasksOpen && !recipesOpen && !prInboxOpen && !agentInboxOpen;
   const [environmentCollapsed, setEnvironmentCollapsed] = useStoredState("vela.environmentCollapsed", false, isBoolean);
   const toggleInfo = useCallback(() => {
@@ -299,6 +300,7 @@ export function App() {
   const skipWhatsNew = useRef(false);
   const platform = window.vela?.platform ?? "darwin";
   const toggleLeft = useCallback(() => setLeftCollapsed(value => !value), [setLeftCollapsed]);
+  const resumeGoal = useCallback(() => { void session.resumeGoal(); }, [session.resumeGoal]);
   const replyQuestion = useCallback((id: string, answer: string | null) => session.replyQuestion(id, answer), [session.replyQuestion]);
   const branchTurn = useCallback((index: number) => { void session.branch(index); }, [session.branch]);
   const dispatchPlanDocument = useCallback((action: PlanDocumentAction) => {
@@ -461,6 +463,18 @@ export function App() {
     setRaceTabOpen(true);
     setActiveWorkbenchTabId(raceTabId);
   }, []);
+  // 三个 context 的 value 保持引用稳定，避免 App 每次渲染都让所有消费者跟着重渲染。
+  const recipeActions = useMemo((): ContextType<typeof RecipeActionsContext> => ({
+    conversationId: session.activeConversationId,
+    open: openRecipes,
+    useRecipe: recipe => { setRecipeToUse(recipe); openRecipes(); },
+    fromMessage: seed => { setRecipeSeed(seed); openRecipes(); },
+    createHandoff: (conversationId, options) => setHandoff({ conversationId, ...(options?.factsOnly ? { factsOnly: true } : {}) }),
+  }), [session.activeConversationId, openRecipes]);
+  const raceActions = useMemo(() => ({ started: openRaceTab, open: openRaceTab, count: workspaceRaces.length }),
+    [openRaceTab, workspaceRaces.length]);
+  const composerSeedContext = useMemo(() => ({ seed: composerSeed, consume: consumeComposerSeed, offer: offerComposerSeed }),
+    [composerSeed, consumeComposerSeed, offerComposerSeed]);
 
   const openBrowserTab = useCallback((url?: string) => {
     const id = `browser:${crypto.randomUUID()}`;
@@ -796,9 +810,9 @@ export function App() {
   return (
     <FileIconThemeProvider value={preferences.fileIconTheme}>
       <AppLocaleProvider locale={preferences.locale}>
-        <RecipeActionsContext.Provider value={{ conversationId: session.activeConversationId, open: openRecipes, useRecipe: recipe => { setRecipeToUse(recipe); openRecipes(); }, fromMessage: seed => { setRecipeSeed(seed); openRecipes(); }, createHandoff: (conversationId, options) => setHandoff({ conversationId, ...(options?.factsOnly ? { factsOnly: true } : {}) }) }}>
-        <RaceActionsContext.Provider value={{ started: openRaceTab, open: openRaceTab, count: workspaceRaces.length }}>
-        <ComposerSeedContext.Provider value={{ seed: composerSeed, consume: consumeComposerSeed, offer: offerComposerSeed }}>
+        <RecipeActionsContext.Provider value={recipeActions}>
+        <RaceActionsContext.Provider value={raceActions}>
+        <ComposerSeedContext.Provider value={composerSeedContext}>
         <SideChatLauncherContext.Provider value={openSideChatTab}>
         <div className="app-screens">
           <BrowserViewHost tabs={browser.allTabs}
@@ -905,7 +919,7 @@ export function App() {
                           onToggleRight={toggleInfo}
                           floatingInfo={floatingInfo}
                           infoCards={infoCards}
-                          onResumeGoal={() => void session.resumeGoal()}
+                          onResumeGoal={resumeGoal}
                           environmentCollapsed={environmentCollapsed}
                           changesActive={activeWorkbenchTab?.kind === "changes"}
                           project={project}
@@ -1020,7 +1034,7 @@ export function App() {
                         project={project}
                         onToggle={() => setRightCollapsed(true)}
                         onOpenPlan={openPlan}
-                        onResumeGoal={() => void session.resumeGoal()}
+                        onResumeGoal={resumeGoal}
                         changesActive={activeWorkbenchTab?.kind === "changes"}
                         onOpenChanges={openAllChanges}
                       /> : null}

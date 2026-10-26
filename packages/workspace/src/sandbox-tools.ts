@@ -14,7 +14,7 @@ import {
 } from "@earendil-works/pi-coding-agent";
 import type { BackgroundShellManager } from "./background-shells";
 import { createBackgroundShellTools, withBackgroundOption } from "./background-shell-tools";
-import { isPathInside } from "./git-service";
+import { isPathInsideReal } from "./git-service";
 import type { SandboxPermissionManager } from "./sandbox-permission-manager";
 
 export interface SandboxToolFactoryInput extends SandboxExecutionContext {
@@ -53,7 +53,7 @@ export function createSandboxedToolDefinitions(input: SandboxToolFactoryInput): 
       kind,
       path,
       workspace: boundary,
-      insideWorkspace: isPathInside(path, boundary) || (input.extraRoots?.() ?? []).some((root) => isPathInside(path, root)),
+      insideWorkspace: await isInsideWorkspace(path, [boundary, ...(input.extraRoots?.() ?? [])]),
       signal,
     });
     if (!allowed) throw new Error(`用户拒绝了文件修改:${path}`);
@@ -148,6 +148,12 @@ async function readPreviousFile(absolute: string): Promise<{ text: string; note?
   } catch {
     return { text: "" };
   }
+}
+
+/** 按真实路径判断:工作区内指向外部的符号链接不算工作区内,需要走审批。 */
+async function isInsideWorkspace(path: string, roots: readonly string[]): Promise<boolean> {
+  const results = await Promise.all(roots.map((root) => isPathInsideReal(path, root)));
+  return results.includes(true);
 }
 
 function resolveToolPath(filePath: string, cwd: string): string {

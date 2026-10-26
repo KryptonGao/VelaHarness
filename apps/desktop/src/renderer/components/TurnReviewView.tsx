@@ -4,32 +4,17 @@ import { tr, trf } from "../locale";
 import { DiffPane, isAddedOnlyDiff } from "./DiffPane";
 import { FileTypeIcon } from "./FileTypeIcon";
 import { FileIcon, FolderIcon, SearchIcon } from "./icons";
-import type { TurnFileChange, TurnReviewRequest } from "./turn-changes";
+import { FileTree } from "./preview/ExplorerPane";
+import { buildFileTree, type FileTreeNode } from "./preview/tree";
+import type { TurnReviewRequest } from "./turn-changes";
 
-interface Directory {
-  name: string;
-  path: string;
-  directories: Directory[];
-  files: TurnFileChange[];
-}
-
-function fileTree(files: TurnFileChange[]): Directory {
-  const root: Directory = { name: "", path: "", directories: [], files: [] };
-  for (const file of files) {
-    const parts = file.path.split("/");
-    let directory = root;
-    for (const part of parts.slice(0, -1)) {
-      const path = `${directory.path}/${part}`;
-      let child = directory.directories.find(item => item.path === path);
-      if (!child) {
-        child = { name: part || "/", path, directories: [], files: [] };
-        directory.directories.push(child);
-      }
-      directory = child;
-    }
-    directory.files.push(file);
+function directoryPaths(nodes: FileTreeNode[], into = new Set<string>()): Set<string> {
+  for (const node of nodes) {
+    if (node.type !== "dir") continue;
+    into.add(node.path);
+    if (node.children) directoryPaths(node.children, into);
   }
-  return root;
+  return into;
 }
 
 function ChangeStats({ added, removed }: { added: number; removed: number }) {
@@ -93,7 +78,14 @@ export function TurnReviewView({ review, visible, onClose, target, title, filesL
     const query = filter.trim().toLocaleLowerCase();
     return changes.files.filter(file => file.path.toLocaleLowerCase().includes(query));
   }, [changes.files, filter]);
-  const tree = useMemo(() => fileTree(files), [files]);
+  const tree = useMemo(() => buildFileTree(files.map(file => file.path)), [files]);
+  const stats = useMemo(() => new Map(files.map(file => [file.path, file])), [files]);
+  // 变更树默认全部展开;只记录被用户收起的目录。
+  const expanded = useMemo(() => {
+    const open = directoryPaths(tree);
+    for (const path of collapsed) open.delete(path);
+    return open;
+  }, [tree, collapsed]);
 
   // 几十个文件的差异一次挂载会长时间占住主线程（顶栏点不动）：先挂前几项，其余分批补上，
   // 没挂上的文件先按行数预留高度，滚动位置不会跳。
@@ -191,35 +183,42 @@ export function TurnReviewView({ review, visible, onClose, target, title, filesL
     targetScroll.current = { path: target.path, top };
     scroll.scrollTo({ top });
     setSelected(target.path);
-    setCollapsed(current => new Set([...current].filter(path => !`/${target.path}`.startsWith(`${path}/`))));
+    setCollapsed(current => new Set([...current].filter(path => !target.path.startsWith(`${path}/`))));
     setDrawerOpen(false);
   }, [visible, target?.path, target?.requestKey, target?.diffToolId, review.turnId, changes.files, filter]);
 
-  const renderDirectory = (directory: Directory) => <ul className="turn-review-tree-list">
-    {directory.directories.map(child => {
-      const open = !collapsed.has(child.path);
-      return <li key={child.path}>
-        <button type="button" className="turn-review-directory" aria-expanded={open}
-          onClick={() => setCollapsed(current => {
-            const next = new Set(current);
-            if (next.has(child.path)) next.delete(child.path);
-            else next.add(child.path);
-            return next;
-          })}>
-          <svg className={`turn-review-chevron${open ? " open" : ""}`} width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="m6 3 5 5-5 5" /></svg>
-          <FolderIcon size={13} /><span>{child.name}</span>
-        </button>
-        {open ? renderDirectory(child) : null}
-      </li>;
-    })}
-    {directory.files.map(file => <li key={file.path}>
-      <button type="button" className={`turn-review-file-link${selected === file.path ? " active" : ""}`}
-        title={file.path} aria-current={selected === file.path ? "location" : undefined} onClick={() => selectFile(file.path)}>
-        <FileTypeIcon path={file.path} /><span className="turn-review-file-name">{file.path.split("/").at(-1)}</span>
-        <ChangeStats added={file.added} removed={file.removed} />
-      </button>
-    </li>)}
-  </ul>;
+  const toggleDirectory = (path: string) => setCollapsed(current => {
+    const next = new Set(current);
+    if (next.has(path)) next.delete(path);
+    else next.add(path);
+    return next;
+  });
+
+  // 展开/收起目录、滚动高亮只改侧栏状态;差异区单独缓存,避免几十个文件的 Diff 跟着重渲染。
+  const sectionList = useMemo(() => (
+    files.map((file, index) => <section key={file.path} className="turn-review-file"
+        ref={node => { if (node) sections.current.set(file.path, node); else sections.current.delete(file.path); }}
+        aria-label={file.path}>
+        <header className="turn-review-file-header">
+          <FileTypeIcon path={file.path} /><strong title={file.path}>{file.path}</strong>
+          <ChangeStats added={file.added} removed={file.removed} />
+        </header>
+        {file.diffs.some(diff => diff && !isAddedOnlyDiff(diff, file.format ?? "tool"))
+          ? <div className="turn-review-side-labels"><span>{tr("编辑前", "Before")}</span><span>{tr("编辑后", "After")}</span></div> : null}
+        {index >= mountedCount && file.path !== target?.path
+          ? <div className="turn-review-pending" style={{ height: placeholderHeight(file.diffs) }} aria-hidden="true" />
+          : file.diffs.length > 0 ? file.diffs.map((diff, index) => {
+          const toolIds = file.diffToolIds;
+          const toolId = toolIds?.[index];
+          return <div className="turn-review-edit" key={index} data-diff-tool-id={toolId}
+            ref={node => { if (!toolId) return; if (node) edits.current.set(toolId, node); else edits.current.delete(toolId); }}>
+          {file.diffs.length > 1 ? <div className="turn-review-edit-label">{trf("编辑 {0} / {1}", "Edit {0} / {1}", index + 1, file.diffs.length)}</div> : null}
+          {diff ? <DiffPane path={file.path} diff={diff} mode="split" format={file.format ?? "tool"} showLineNumbers hideMeta />
+            : <div className="turn-review-empty">{tr("这项编辑没有保存可显示的差异", "No saved diff is available for this edit")}</div>}
+        </div>; }) : <div className="turn-review-empty">{tr("这项编辑没有保存可显示的差异", "No saved diff is available for this edit")}</div>}
+      </section>)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  ), [files, mountedCount, target?.path]);
 
   return <div ref={contentRef} className={`turn-review-view${compact ? " is-compact" : ""}${drawerOpen ? " is-drawer-open" : ""}`}
     role="region" aria-labelledby={`${id}-title`}>
@@ -234,37 +233,24 @@ export function TurnReviewView({ review, visible, onClose, target, title, filesL
     </header>
     <div className="turn-review-body">
       <div className="turn-review-scroll" ref={scroller} onScroll={onScroll}>
-        {files.map((file, index) => <section key={file.path} className="turn-review-file"
-          ref={node => { if (node) sections.current.set(file.path, node); else sections.current.delete(file.path); }}
-          aria-label={file.path}>
-          <header className="turn-review-file-header">
-            <FileTypeIcon path={file.path} /><strong title={file.path}>{file.path}</strong>
-            <ChangeStats added={file.added} removed={file.removed} />
-          </header>
-          {file.diffs.some(diff => diff && !isAddedOnlyDiff(diff, file.format ?? "tool"))
-            ? <div className="turn-review-side-labels"><span>{tr("编辑前", "Before")}</span><span>{tr("编辑后", "After")}</span></div> : null}
-          {index >= mountedCount && file.path !== target?.path
-            ? <div className="turn-review-pending" style={{ height: placeholderHeight(file.diffs) }} aria-hidden="true" />
-            : file.diffs.length > 0 ? file.diffs.map((diff, index) => {
-            const toolIds = file.diffToolIds;
-            const toolId = toolIds?.[index];
-            return <div className="turn-review-edit" key={index} data-diff-tool-id={toolId}
-              ref={node => { if (!toolId) return; if (node) edits.current.set(toolId, node); else edits.current.delete(toolId); }}>
-            {file.diffs.length > 1 ? <div className="turn-review-edit-label">{trf("编辑 {0} / {1}", "Edit {0} / {1}", index + 1, file.diffs.length)}</div> : null}
-            {diff ? <DiffPane path={file.path} diff={diff} mode="split" format={file.format ?? "tool"} showLineNumbers hideMeta />
-              : <div className="turn-review-empty">{tr("这项编辑没有保存可显示的差异", "No saved diff is available for this edit")}</div>}
-          </div>; }) : <div className="turn-review-empty">{tr("这项编辑没有保存可显示的差异", "No saved diff is available for this edit")}</div>}
-        </section>)}
+        {sectionList}
         {files.length === 0 ? <div className="turn-review-empty">{noChanges && emptyLabel ? emptyLabel : tr("没有匹配的文件", "No matching files")}</div> : null}
       </div>
-      <nav id={`${id}-files`} ref={sidebar} className="turn-review-sidebar" aria-label={filesLabel ?? tr("本轮变更文件", "Files changed in this turn")}
+      <nav id={`${id}-files`} ref={sidebar} className="turn-review-sidebar preview-explorer-pane" aria-label={filesLabel ?? tr("本轮变更文件", "Files changed in this turn")}
         hidden={compact && !drawerOpen}>
-        <label className="turn-review-filter"><SearchIcon size={14} />
-          <input value={filter} onChange={event => setFilter(event.target.value)}
-            aria-label={tr("筛选文件", "Filter files")} placeholder={tr("筛选文件…", "Filter files…")} />
-        </label>
-        <div className="turn-review-tree">{renderDirectory(tree)}
-          {files.length === 0 ? <div className="turn-review-empty">{tr("没有匹配的文件", "No matching files")}</div> : null}
+        <div className="explorer-search-row">
+          <label className="explorer-search-field"><SearchIcon size={13} />
+            <input className="explorer-search-input" type="text" value={filter} onChange={event => setFilter(event.target.value)}
+              aria-label={tr("筛选文件", "Filter files")} placeholder={tr("筛选文件…", "Filter files…")} />
+          </label>
+        </div>
+        <div className="explorer-body">
+          <FileTree nodes={tree} expanded={expanded} activePath={selected} onToggleDir={toggleDirectory} onOpenFile={selectFile}
+            renderFileMeta={path => {
+              const file = stats.get(path);
+              return file ? <ChangeStats added={file.added} removed={file.removed} /> : null;
+            }} />
+          {files.length === 0 ? <div className="explorer-empty">{tr("没有匹配的文件", "No matching files")}</div> : null}
         </div>
       </nav>
     </div>

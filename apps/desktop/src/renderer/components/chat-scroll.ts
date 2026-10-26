@@ -25,6 +25,19 @@ export function nextStreamFollow(input: {
   return input.following;
 }
 
+/**
+ * 内容变矮时浏览器会把滚动位置往回夹,随后才派发 scroll 事件。
+ * 这种位置回退不是用户在向上滚,不能因此取消跟随。
+ */
+export function isContentClamp(input: {
+  scrollHeight: number;
+  previousScrollHeight: number;
+  scrollTop: number;
+  previousScrollTop: number;
+}): boolean {
+  return input.scrollHeight < input.previousScrollHeight - 1 && input.scrollTop < input.previousScrollTop;
+}
+
 /** 用户正在看更早的内容,且列表还能往上走。在滚动生效前调用,避免随后的输出把视口拉回去。 */
 export function releasesStreamFollow(scrollTop: number, towardEarlier: boolean): boolean {
   return towardEarlier && scrollTop > 0;

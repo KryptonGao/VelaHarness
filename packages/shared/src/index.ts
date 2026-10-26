@@ -1257,6 +1257,8 @@ export interface GitCommitDetail {
   body: string;
   files: GitCommitFileChange[];
   diff: string;
+  /** diff 超过上限被截断,只包含前一部分文件 */
+  diffTruncated?: boolean;
   /** 本次 Diff 的相对父提交;根提交为 null */
   parentSha: string | null;
   isRoot: boolean;

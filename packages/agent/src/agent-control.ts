@@ -330,8 +330,8 @@ export class AgentControl {
     if (limits.maxSubagents <= 0) {
       throw new Error("当前设置不允许创建子代理。");
     }
-    if (this.childCount() >= limits.maxSubagents) {
-      throw new Error(`一个对话最多同时存在 ${limits.maxSubagents} 个子代理（所有层级合计），请先停止或等一部分结束。`);
+    if (this.activeChildCount() >= limits.maxSubagents) {
+      throw new Error(`一个对话最多同时存在 ${limits.maxSubagents} 个子代理（所有层级合计），请先停止一部分或等它们结束。`);
     }
     const task = input.task.trim();
     if (!task) throw new Error("任务不能为空。");
@@ -594,10 +594,17 @@ export class AgentControl {
     return byName.length === 1 ? byName[0] ?? null : null;
   }
 
-  private childCount(): number {
+  /**
+   * 还没结束的子代理数：刚派生待启动的、运行或暂停中的、还有排队任务的。
+   * 已完成、失败或停止的子代理留在树里供查看和 followup，不占上限。
+   */
+  private activeChildCount(): number {
     let count = 0;
     for (const agent of this.agents.values()) {
-      if (agent.info.kind !== "root") count += 1;
+      if (agent.info.kind === "root" || agent.disposed) continue;
+      if (agent.info.status === "idle" || isAgentBusy(agent.info.status) || agent.processing || agent.queue.length > 0) {
+        count += 1;
+      }
     }
     return count;
   }

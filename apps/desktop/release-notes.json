@@ -1,124 +1,144 @@
 {
-  "version": "1.2.4",
+  "version": "1.2.5",
   "locales": {
     "en": {
-      "summary": "Vela 1.2.4 fixes missing icons in packaged builds, stops large or minified files from freezing the code preview, tells apart models with the same name from different providers, and keeps a subagent's earlier messages when you reopen its window mid-run.",
+      "summary": "Vela 1.2.5 adds fade-in and bounce animations for streamed reply and thinking text, a rotating cache-hit and token readout under the composer, a tree view in the turn review, and a stricter read-only guard for Plan mode. It also keeps huge git diffs from freezing the app and stops finished subagents from using up the subagent limit.",
       "highlights": [
         {
-          "title": "Large files no longer freeze the preview",
-          "body": "Minified bundles and very large files now open in the code preview without hanging the window. Very large text is shown as plain text, each line is capped at 3,000 characters with a truncation note, and selecting a line no longer redraws every row."
+          "title": "Animated streaming text",
+          "body": "New text in replies and in thinking now fades in and can bounce up slightly as it arrives. Reply text and thinking text have their own Fade-in and Bounce switches in Settings → Conversation display, and the thinking summary is revealed at the same pace as the reply."
         },
         {
-          "title": "Same model name, different providers",
-          "body": "When two providers both offer an available model with the same name, the model picker, the side chat and the task status now show the provider too, so you can tell which one is in use."
+          "title": "Safer Plan mode",
+          "body": "In Plan mode and in read-only subagents, shell commands are now parsed the way a shell reads them. Commands that could write files, run other programs or expand into something else are refused, while ordinary look-up commands still work."
         },
         {
-          "title": "Subagent history survives reopening",
-          "body": "If a subagent is still running when you reopen its window, its earlier messages are loaded in front of the live ones instead of being skipped."
+          "title": "Turn review as a file tree",
+          "body": "The list of files changed in a turn now uses the same tree as the file explorer, with folders you can fold and the added and removed line counts beside each file."
         },
         {
-          "title": "Icons back in packaged builds",
-          "body": "The window icon and the menu bar icon are now bundled with the app, so the installed version shows them just like the development build."
+          "title": "Huge diffs no longer freeze Vela",
+          "body": "Very large git diffs, such as a big commit, a stash or a release range, are now cut off while they are read instead of being loaded whole. The history page tells you when only the first part of a diff is shown."
         }
       ],
       "improvements": [
-        "In compact tool lines, a long directory path now shrinks first and the file name is cut only after the path is gone, so the file name stays readable."
+        "Under the composer, cache hit rate and total tokens now take turns in one spot every 30 seconds, while the output speed stays in place.",
+        "Finished, failed or stopped subagents no longer count toward the subagent limit; only those still running or waiting do.",
+        "The cost estimate hint can now be closed for good with its × button.",
+        "Writes through a symbolic link that points outside the workspace now ask for approval like any other outside path.",
+        "Following a streaming reply no longer lets go when the content gets shorter, for example when a thinking summary replaces a longer line."
       ]
     },
     "zh-CN": {
-      "summary": "Vela 1.2.4 修复了正式版缺失图标的问题，大文件或压缩文件不再卡死代码预览，不同供应商的同名模型可以区分，子代理运行中重新打开窗口时也能保留之前的消息。",
+      "summary": "Vela 1.2.5 为流式的回复和思考文字加入淡入与弹跳动画，输入框下方轮流展示缓存命中率和 token 总量，变更审阅改用文件树，并加强了 Plan 模式的只读检查。同时，超大的 git 差异不再卡住应用，已结束的子代理也不再占用子代理上限。",
       "highlights": [
         {
-          "title": "大文件不再卡死预览",
-          "body": "压缩后的脚本和超大文件现在可以正常在代码预览中打开，不会再卡住窗口。过大的文本以纯文本显示，每行最多渲染 3000 个字符并提示已截断，选中某一行也不再重绘所有行。"
+          "title": "流式文字有了动画",
+          "body": "回复和思考里新出现的文字会淡入，还可以轻轻向上弹一下再落回。设置 → 对话显示里，回复文字和思考内容各有「淡入」「弹跳」两个开关，思考总结也会和回复一样逐步展示。"
         },
         {
-          "title": "同名模型分得清供应商",
-          "body": "当两个供应商都有可用的同名模型时，模型选择器、侧边聊天和任务状态会同时显示供应商名称，一眼看出正在用的是哪一个。"
+          "title": "更安全的 Plan 模式",
+          "body": "Plan 模式和只读子代理里的 shell 命令，现在按 shell 的规则逐条解析。可能写文件、运行其他程序或展开成别的内容的写法会被拒绝，常规的查阅命令照常可用。"
         },
         {
-          "title": "子代理历史重开后不丢",
-          "body": "子代理还在运行时重新打开它的窗口，之前的消息会被接到实时消息前面，不会再被跳过。"
+          "title": "变更审阅改用文件树",
+          "body": "一轮对话里改动的文件列表，现在和文件浏览器使用同一棵树，文件夹可以折叠，每个文件旁边显示新增和删除的行数。"
         },
         {
-          "title": "正式版图标找回来了",
-          "body": "窗口图标和菜单栏图标现在随应用一起打包，安装版与开发版一样能正常显示。"
+          "title": "超大差异不再卡死应用",
+          "body": "很大的 git 差异，比如体量很大的提交、暂存或发布区间，现在读取时就会截断，不再整个载入。历史页面在只显示了差异前一部分时会给出提示。"
         }
       ],
       "improvements": [
-        "在紧凑的工具行里，过长的目录路径会先收缩，路径压到最短后才截断文件名，文件名更容易看清。"
+        "输入框下方的缓存命中率和累计 token 现在每 30 秒在同一位置轮流展示，输出速度保持不动。",
+        "已完成、失败或停止的子代理不再占用子代理上限，只有仍在运行或排队的才计入。",
+        "费用预估提示现在可以用右侧的 × 按钮永久关闭。",
+        "通过指向工作区之外的符号链接写文件，现在和其他工作区外的路径一样需要审批。",
+        "流式回复的跟随不再因为内容变短（例如思考总结替换掉较长的一行）而中断。"
       ]
     },
     "zh-TW": {
-      "summary": "Vela 1.2.4 修正了正式版缺少圖示的問題，大型或壓縮檔案不再卡死程式碼預覽，不同供應商的同名模型可以區分，子代理執行中重新開啟視窗時也能保留先前的訊息。",
+      "summary": "Vela 1.2.5 為串流的回覆與思考文字加入淡入與彈跳動畫，輸入框下方輪流顯示快取命中率與 token 總量，變更審閱改用檔案樹，並加強了 Plan 模式的唯讀檢查。同時，超大的 git 差異不再卡住應用程式，已結束的子代理也不再佔用子代理上限。",
       "highlights": [
         {
-          "title": "大型檔案不再卡死預覽",
-          "body": "壓縮後的腳本與超大檔案現在可以正常在程式碼預覽中開啟，不會再卡住視窗。過大的文字以純文字顯示，每行最多繪製 3000 個字元並提示已截斷，選取某一行也不再重繪所有行。"
+          "title": "串流文字有了動畫",
+          "body": "回覆與思考中新出現的文字會淡入，還可以輕輕向上彈一下再落回。設定 → 對話顯示裡，回覆文字與思考內容各有「淡入」「彈跳」兩個開關，思考總結也會和回覆一樣逐步顯示。"
         },
         {
-          "title": "同名模型分得清供應商",
-          "body": "當兩個供應商都有可用的同名模型時，模型選擇器、側邊聊天與任務狀態會同時顯示供應商名稱，一眼看出正在使用的是哪一個。"
+          "title": "更安全的 Plan 模式",
+          "body": "Plan 模式與唯讀子代理中的 shell 指令，現在依 shell 的規則逐條解析。可能寫入檔案、執行其他程式或展開成其他內容的寫法會被拒絕，一般的查閱指令照常可用。"
         },
         {
-          "title": "子代理歷史重開後不遺失",
-          "body": "子代理仍在執行時重新開啟它的視窗，先前的訊息會被接在即時訊息前面，不會再被略過。"
+          "title": "變更審閱改用檔案樹",
+          "body": "一輪對話中改動的檔案清單，現在與檔案瀏覽器使用同一棵樹，資料夾可以摺疊，每個檔案旁邊顯示新增與刪除的行數。"
         },
         {
-          "title": "正式版圖示找回來了",
-          "body": "視窗圖示與選單列圖示現在隨應用程式一起打包，安裝版與開發版一樣能正常顯示。"
+          "title": "超大差異不再卡死應用程式",
+          "body": "很大的 git 差異，例如體量很大的提交、暫存或發布區間，現在讀取時就會截斷，不再整個載入。歷史頁面在只顯示了差異前一部分時會給出提示。"
         }
       ],
       "improvements": [
-        "在精簡的工具列裡，過長的目錄路徑會先縮短，路徑縮到最短後才截斷檔名，檔名更容易看清。"
+        "輸入框下方的快取命中率與累計 token 現在每 30 秒在同一位置輪流顯示，輸出速度保持不動。",
+        "已完成、失敗或停止的子代理不再佔用子代理上限，只有仍在執行或排隊的才會計入。",
+        "費用預估提示現在可以用右側的 × 按鈕永久關閉。",
+        "透過指向工作區之外的符號連結寫入檔案，現在和其他工作區外的路徑一樣需要核准。",
+        "串流回覆的跟隨不再因為內容變短（例如思考總結取代較長的一行）而中斷。"
       ]
     },
     "ja": {
-      "summary": "Vela 1.2.4 では、正式版でアイコンが表示されない問題を修正し、大きなファイルや圧縮ファイルでコードプレビューが固まらないようにし、異なるプロバイダーの同名モデルを区別できるようにし、サブエージェントの実行中にウィンドウを開き直しても以前のメッセージが残るようにしました。",
+      "summary": "Vela 1.2.5 では、ストリーミング表示される返信と思考テキストにフェードインとバウンスのアニメーションを追加し、入力欄の下でキャッシュヒット率とトークン総数を交互に表示し、ターンのレビューをファイルツリーにし、Plan モードの読み取り専用チェックを強化しました。巨大な git 差分でアプリが固まらなくなり、終了したサブエージェントがサブエージェントの上限を使わなくなりました。",
       "highlights": [
         {
-          "title": "大きなファイルでもプレビューが固まらない",
-          "body": "圧縮されたスクリプトや非常に大きなファイルも、ウィンドウが止まることなくコードプレビューで開けます。大きすぎるテキストはプレーンテキストで表示され、1 行は 3000 文字までで切り詰めた旨が表示され、行を選択しても全行が再描画されなくなりました。"
+          "title": "ストリーミング文字にアニメーション",
+          "body": "返信と思考に新しく加わった文字がフェードインし、少し跳ねてから元の位置に戻ることもできます。設定 → 会話の表示で、返信テキストと思考内容のそれぞれに「フェードイン」「バウンス」のスイッチがあり、思考の要約も返信と同じペースで表示されます。"
         },
         {
-          "title": "同名モデルもプロバイダーで区別",
-          "body": "2 つのプロバイダーに同名の利用可能なモデルがある場合、モデル選択、サイドチャット、タスクの状態にプロバイダー名も表示され、どちらを使っているか分かります。"
+          "title": "より安全な Plan モード",
+          "body": "Plan モードと読み取り専用のサブエージェントでは、シェルコマンドをシェルの規則に沿って解析するようになりました。ファイルへの書き込み、他のプログラムの実行、別の内容への展開につながる書き方は拒否され、通常の調査用コマンドはこれまでどおり使えます。"
         },
         {
-          "title": "サブエージェントの履歴が開き直しても残る",
-          "body": "サブエージェントがまだ実行中のうちにウィンドウを開き直しても、以前のメッセージがリアルタイムのメッセージの前に読み込まれ、飛ばされなくなりました。"
+          "title": "ターンのレビューをファイルツリーで",
+          "body": "1 回のターンで変更されたファイルの一覧が、ファイルエクスプローラーと同じツリーになりました。フォルダーは折りたためて、各ファイルの横に追加・削除の行数が表示されます。"
         },
         {
-          "title": "正式版のアイコンが復活",
-          "body": "ウィンドウアイコンとメニューバーのアイコンがアプリに同梱されるようになり、インストール版でも開発版と同じように表示されます。"
+          "title": "巨大な差分で固まらない",
+          "body": "大きなコミット、スタッシュ、リリース範囲などの非常に大きな git 差分は、全体を読み込まず、読み込み中に打ち切られるようになりました。履歴ページでは、差分の最初の部分だけを表示している場合にそのことをお知らせします。"
         }
       ],
       "improvements": [
-        "コンパクトなツール行では、長いディレクトリパスが先に縮み、パスがなくなってからファイル名が切り詰められるため、ファイル名が読みやすくなりました。"
+        "入力欄の下では、キャッシュヒット率とトークン総数が 30 秒ごとに同じ位置で交互に表示され、出力速度はそのまま固定されます。",
+        "完了・失敗・停止したサブエージェントはサブエージェントの上限に数えられなくなり、実行中または待機中のものだけが対象です。",
+        "費用の見積もりのヒントは、右側の × ボタンで今後表示しないようにできます。",
+        "ワークスペース外を指すシンボリックリンク経由の書き込みも、ほかのワークスペース外のパスと同様に承認が必要になりました。",
+        "ストリーミング中の返信への追従は、内容が短くなっても（たとえば思考の要約が長い行に置き換わるとき）途切れなくなりました。"
       ]
     },
     "ko": {
-      "summary": "Vela 1.2.4는 정식 빌드에서 아이콘이 보이지 않던 문제를 고치고, 큰 파일이나 압축된 파일에서 코드 미리 보기가 멈추지 않게 하며, 서로 다른 공급자의 같은 이름 모델을 구분하고, 서브에이전트 실행 중에 창을 다시 열어도 이전 메시지가 유지되게 합니다.",
+      "summary": "Vela 1.2.5는 스트리밍되는 답변과 생각 텍스트에 페이드인과 바운스 애니메이션을 더하고, 입력창 아래에서 캐시 적중률과 토큰 총량을 번갈아 보여 주며, 턴 검토를 파일 트리로 바꾸고, Plan 모드의 읽기 전용 검사를 강화했습니다. 또한 매우 큰 git diff가 앱을 멈추게 하지 않고, 끝난 서브에이전트가 서브에이전트 한도를 차지하지 않습니다.",
       "highlights": [
         {
-          "title": "큰 파일에도 미리 보기가 멈추지 않음",
-          "body": "압축된 스크립트와 매우 큰 파일도 창이 멈추지 않고 코드 미리 보기에서 열립니다. 너무 큰 텍스트는 일반 텍스트로 표시되고, 한 줄은 최대 3000자까지만 그리며 잘렸다는 안내가 붙고, 줄을 선택해도 모든 행을 다시 그리지 않습니다."
+          "title": "스트리밍 텍스트에 애니메이션",
+          "body": "답변과 생각에 새로 나타나는 글자가 페이드인되고, 살짝 위로 튀었다가 제자리로 돌아오게 할 수도 있습니다. 설정 → 대화 표시에서 답변 텍스트와 생각 내용에 각각 '페이드인', '바운스' 스위치가 있으며, 생각 요약도 답변과 같은 속도로 나타납니다."
         },
         {
-          "title": "이름이 같은 모델도 공급자로 구분",
-          "body": "두 공급자에 같은 이름의 사용 가능한 모델이 있으면 모델 선택기, 사이드 채팅, 작업 상태에 공급자 이름도 함께 표시되어 어떤 모델을 쓰는지 알 수 있습니다."
+          "title": "더 안전한 Plan 모드",
+          "body": "Plan 모드와 읽기 전용 서브에이전트에서는 셸 명령을 셸의 규칙대로 해석합니다. 파일을 쓰거나, 다른 프로그램을 실행하거나, 다른 내용으로 확장될 수 있는 형태는 거부되고, 일반적인 조회 명령은 그대로 동작합니다."
         },
         {
-          "title": "서브에이전트 기록이 다시 열어도 유지",
-          "body": "서브에이전트가 아직 실행 중일 때 창을 다시 열어도 이전 메시지가 실시간 메시지 앞에 불러와져 건너뛰지 않습니다."
+          "title": "턴 검토를 파일 트리로",
+          "body": "한 턴에서 바뀐 파일 목록이 파일 탐색기와 같은 트리로 바뀌었습니다. 폴더를 접을 수 있고, 각 파일 옆에 추가·삭제된 줄 수가 표시됩니다."
         },
         {
-          "title": "정식 빌드에 아이콘 복원",
-          "body": "창 아이콘과 메뉴 막대 아이콘이 이제 앱과 함께 번들되어, 설치된 버전에서도 개발 버전처럼 표시됩니다."
+          "title": "거대한 diff에도 멈추지 않음",
+          "body": "큰 커밋, 스태시, 릴리스 범위처럼 매우 큰 git diff는 전부 불러오지 않고 읽는 도중에 잘라 냅니다. 기록 페이지는 diff의 앞부분만 보여 주는 경우 그 사실을 알려 줍니다."
         }
       ],
       "improvements": [
-        "간결한 도구 줄에서 긴 디렉터리 경로가 먼저 줄어들고 경로가 없어진 뒤에야 파일 이름이 잘려, 파일 이름을 알아보기 쉬워졌습니다."
+        "입력창 아래에서는 캐시 적중률과 누적 토큰이 30초마다 같은 자리에서 번갈아 표시되고, 출력 속도는 그대로 고정됩니다.",
+        "끝나거나 실패하거나 중지된 서브에이전트는 서브에이전트 한도에 포함되지 않으며, 아직 실행 중이거나 대기 중인 것만 계산됩니다.",
+        "비용 예상 안내는 오른쪽 × 버튼으로 더 이상 표시하지 않게 닫을 수 있습니다.",
+        "작업 공간 밖을 가리키는 심볼릭 링크를 통한 쓰기도 다른 작업 공간 밖 경로와 같이 승인이 필요합니다.",
+        "스트리밍 답변을 따라가는 동작이 내용이 짧아져도(예: 생각 요약이 더 긴 줄을 대체할 때) 끊기지 않습니다."
       ]
     }
   }

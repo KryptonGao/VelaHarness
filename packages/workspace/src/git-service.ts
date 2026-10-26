@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { watch, type FSWatcher } from "node:fs";
-import { readFile } from "node:fs/promises";
-import { basename, isAbsolute, join, relative } from "node:path";
+import { lstat, readFile, realpath } from "node:fs/promises";
+import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
 import type {
   BranchSummary,
   GitBranchAtInput,
@@ -104,7 +104,16 @@ import {
   remoteSetUrl,
   readRemotes,
 } from "./git-remote";
-import { assertSafeName, assertValidRefName, gitMutate, gitQuery, runGit, type GitRunResult } from "./git-run";
+import {
+  assertSafeName,
+  assertValidRefName,
+  gitMutate,
+  gitQuery,
+  completeLines,
+  gitQueryCapped,
+  runGit,
+  type GitRunResult,
+} from "./git-run";
 import { applyStash, createStash, dropStash, listStashes, stashDiff } from "./git-stash";
 import {
   detectOperation,
@@ -135,7 +144,12 @@ import {
 
 const refreshDebounceMs = 600;
 const maxUntrackedSampleBytes = 2 * 1024 * 1024;
-const maxCompareDiffLength = 400_000;
+const maxCompareDiffBytes = 400_000;
+// 单文件 Diff 上限;变更页在渲染层再截到 40 万字符并提示,这里留足余量保证截断一定会被提示。
+const maxFileDiffBytes = 2 * 1024 * 1024;
+const maxCommitDiffBytes = 4 * 1024 * 1024;
+// 按代码块操作需要完整 Diff 才能核对补丁,超过上限直接拒绝。
+const maxHunkSourceDiffBytes = 8 * 1024 * 1024;
 const emptyTreeSha = "4b825dc642cb6eb9a060e54bf8d69288fbee4904";
 const maxGraphSnapshots = 8;
 const fieldSeparator = "\x1f";
@@ -311,23 +325,20 @@ export class GitService {
     // 索引范围(例如已暂存的删除)始终走 git diff --cached,不能用这个兜底。
     const untrackedInWorktree = scope === "worktree" && !(await isTrackedPath(cwd, path));
     if (untrackedInWorktree) {
-      const result = await runGit(cwd, [
-        "--no-optional-locks",
-        "diff",
-        "--no-color",
-        ...whitespaceArgs,
-        "--no-index",
-        "--",
-        "/dev/null",
-        path,
-      ]);
-      return result.stdout;
+      // --no-index 有差异时以 1 退出,不能按非零视为失败。
+      const result = await runGit(
+        cwd,
+        ["--no-optional-locks", "diff", "--no-color", ...whitespaceArgs, "--no-index", "--", "/dev/null", path],
+        undefined,
+        { maxOutputBytes: maxFileDiffBytes },
+      );
+      return result.truncated ? completeLines(result.stdout) : result.stdout;
     }
     const args = ["diff", "--no-color", ...whitespaceArgs];
     if (scope === "index") args.push("--cached");
     args.push("--", path);
     try {
-      return await gitQuery(cwd, args);
+      return (await gitQueryCapped(cwd, args, maxFileDiffBytes)).stdout;
     } catch {
       return "";
     }
@@ -343,7 +354,13 @@ export class GitService {
     const action: GitHunkApplyInput["action"] = input.action;
     return this.mutateAndRefresh(async (cwd) => {
       const scopeArgs = action === "unstage" ? ["--cached"] : [];
-      const currentDiff = await gitQuery(cwd, ["diff", "--no-color", ...scopeArgs, "--", path]).catch(() => "");
+      const currentResult = await gitQueryCapped(
+        cwd,
+        ["diff", "--no-color", ...scopeArgs, "--", path],
+        maxHunkSourceDiffBytes,
+      ).catch(() => ({ stdout: "", truncated: false }));
+      if (currentResult.truncated) throw new Error("该文件差异过大，无法按代码块操作");
+      const currentDiff = currentResult.stdout;
       if (!currentDiff.trim()) {
         throw new Error("该文件当前没有可操作的差异，请刷新后重试");
       }
@@ -374,7 +391,7 @@ export class GitService {
     const workspace = this.workspacePath;
     if (!workspace) return "";
     try {
-      return await gitQuery(this.repoCwd(), ["diff", "--cached", "--no-color"]);
+      return (await gitQueryCapped(this.repoCwd(), ["diff", "--cached", "--no-color"], maxFileDiffBytes)).stdout;
     } catch {
       return "";
     }
@@ -1158,7 +1175,8 @@ export class GitService {
     const [numstatOut, nameStatusOut, rawDiff] = await Promise.all([
       gitQuery(cwd, ["diff", "--numstat", "-z", "-M", ...whitespaceArgs, diffBase, headSha]).catch(() => ""),
       gitQuery(cwd, ["diff", "--name-status", "-z", "-M", ...whitespaceArgs, diffBase, headSha]).catch(() => ""),
-      gitQuery(cwd, ["diff", "--no-color", "-M", ...whitespaceArgs, diffBase, headSha]).catch(() => ""),
+      gitQueryCapped(cwd, ["diff", "--no-color", "-M", ...whitespaceArgs, diffBase, headSha], maxCompareDiffBytes)
+        .catch(() => ({ stdout: "", truncated: false })),
     ]);
     const stats = parseNumstatZ(numstatOut);
     const files: GitCompareFile[] = parseNameStatusZ(nameStatusOut).map((entry) => {
@@ -1171,7 +1189,6 @@ export class GitService {
         deletedLines: stat.deleted,
       };
     });
-    const truncated = rawDiff.length > maxCompareDiffLength;
     return {
       base,
       head,
@@ -1183,8 +1200,8 @@ export class GitService {
       fileCount: files.length,
       addedLines: files.reduce((sum, file) => sum + file.addedLines, 0),
       deletedLines: files.reduce((sum, file) => sum + file.deletedLines, 0),
-      diff: truncated ? rawDiff.slice(0, maxCompareDiffLength) : rawDiff,
-      diffTruncated: truncated,
+      diff: rawDiff.stdout,
+      diffTruncated: rawDiff.truncated,
       error: null,
     };
   }
@@ -1470,10 +1487,15 @@ export class GitService {
       base = effectiveParent;
     }
     let diff = "";
+    let diffTruncated = false;
     let files: GitCommitFileChange[] = [];
     try {
       const whitespaceArgs = options?.ignoreWhitespace ? ["--ignore-all-space"] : [];
-      diff = await gitQuery(cwd, ["diff", "--no-color", "-M", ...whitespaceArgs, base, sha]);
+      ({ stdout: diff, truncated: diffTruncated } = await gitQueryCapped(
+        cwd,
+        ["diff", "--no-color", "-M", ...whitespaceArgs, base, sha],
+        maxCommitDiffBytes,
+      ));
       files = await readCommitFiles(cwd, base, sha);
     } catch {
       // 某些对象缺失(浅克隆)时保留空 diff,元数据仍可用。
@@ -1483,6 +1505,7 @@ export class GitService {
       body: parsed.body,
       files,
       diff,
+      diffTruncated,
       parentSha: effectiveParent,
       isRoot,
       parents: commit.parents,
@@ -2379,4 +2402,36 @@ function assertCommitSha(value: string): void {
 export function isPathInside(target: string, boundary: string): boolean {
   const rel = relative(boundary, target);
   return rel === "" || (!rel.startsWith("..") && !isAbsolute(rel));
+}
+
+/**
+ * 按真实路径判断 target 是否在 boundary 内:两侧都解析符号链接,
+ * 防止工作区里指向外部的链接把写入带出边界。任何一侧解析失败都按「不在内」处理。
+ */
+export async function isPathInsideReal(target: string, boundary: string): Promise<boolean> {
+  const [realTarget, realBoundary] = await Promise.all([resolveWritablePath(target), realpath(boundary).catch(() => null)]);
+  return realTarget !== null && realBoundary !== null && isPathInside(realTarget, realBoundary);
+}
+
+/**
+ * 写入会落到的真实路径:对最深的已存在祖先取 realpath,再接上尚不存在的部分。
+ * 某段存在却无法解析(悬空链接、循环链接、无权限)时返回 null,
+ * 否则写入会顺着悬空链接在别处创建文件。
+ */
+async function resolveWritablePath(target: string): Promise<string | null> {
+  const missing: string[] = [];
+  let current = resolve(target);
+  for (;;) {
+    try {
+      return join(await realpath(current), ...missing);
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      if (code !== "ENOENT" && code !== "ENOTDIR") return null;
+      if (await lstat(current).then(() => true, () => false)) return null;
+      const parent = dirname(current);
+      if (parent === current) return null;
+      missing.unshift(basename(current));
+      current = parent;
+    }
+  }
 }

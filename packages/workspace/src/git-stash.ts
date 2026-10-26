@@ -5,10 +5,11 @@ import type {
   GitStashCreateResult,
   GitStashEntry,
 } from "@vela/shared";
-import { assertRepoRelativePath, gitQuery, runGit } from "./git-run";
+import { assertRepoRelativePath, gitQuery, gitQueryCapped, runGit } from "./git-run";
 import { listConflictedPaths } from "./git-state";
 
 const maxStashMessageLength = 200;
+const maxStashDiffBytes = 2 * 1024 * 1024;
 
 /** `stash@{0}` 与纯序号都接受,统一成 `stash@{n}`。 */
 export function normalizeStashId(value: string): string {
@@ -112,11 +113,11 @@ export async function dropStash(cwd: string, id: string): Promise<{ ok: boolean;
 export async function stashDiff(cwd: string, id: string): Promise<string> {
   const normalized = normalizeStashId(id);
   try {
-    return await gitQuery(cwd, ["stash", "show", "-p", "--no-color", normalized]);
+    return (await gitQueryCapped(cwd, ["stash", "show", "-p", "--no-color", normalized], maxStashDiffBytes)).stdout;
   } catch {
     // 未跟踪文件不在 stash 提交的父提交差异中,补充其内容。
     try {
-      return await gitQuery(cwd, ["diff", "--no-color", normalized, `${normalized}^`]);
+      return (await gitQueryCapped(cwd, ["diff", "--no-color", normalized, `${normalized}^`], maxStashDiffBytes)).stdout;
     } catch {
       return "";
     }

@@ -485,6 +485,9 @@ function CommitDetailPane({
           </label>
         </div>
       </div>
+      {detail.diffTruncated ? (
+        <div className="vc-inline-notice">{tr("差异过大，仅显示前一部分。", "The diff is very large; only the first part is shown.")}</div>
+      ) : null}
       <div className="vc-detail-diff">
         {fileDiff ? <DiffPane key={`${commit.sha}:${selectedFile}:${detail.parentSha ?? ""}`} path={selectedFile ?? ""} diff={fileDiff} mode={diffMode} /> : (
           <div className="vc-state">{tr("没有可显示的差异", "No diff to display")}</div>

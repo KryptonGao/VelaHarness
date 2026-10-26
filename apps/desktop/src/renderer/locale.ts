@@ -178,6 +178,8 @@ const knownErrors: Record<string, string> = {
   "Pull Request 链接不正确": "Invalid pull request URL.",
   "git 命令超时": "Git command timed out.",
   "git 命令启动失败": "Could not start Git command.",
+  "git 输出过大": "Git output is too large.",
+  "该文件差异过大，无法按代码块操作": "This file's diff is too large to stage by hunk.",
   "不是普通文件": "This is not a regular file.",
   "搜索词不正确": "Invalid search query.",
   "文件路径不正确": "Invalid file path.",

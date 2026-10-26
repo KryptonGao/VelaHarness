@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  isContentClamp,
   nextStreamFollow,
   releasesStreamFollow,
   shouldResumeFollowForMessages,
@@ -123,5 +124,20 @@ describe("shouldShowJumpToLatest", () => {
 
   it("stays hidden while following the stream", () => {
     assert.equal(shouldShowJumpToLatest({ following: true, distanceFromBottom: 400 }), false);
+  });
+});
+
+describe("isContentClamp", () => {
+  it("treats a scroll-position drop caused by shorter content as a clamp", () => {
+    assert.equal(isContentClamp({ scrollHeight: 2900, previousScrollHeight: 2930, scrollTop: 2300, previousScrollTop: 2330 }), true);
+  });
+
+  it("does not hide a real upward scroll when the content did not shrink", () => {
+    assert.equal(isContentClamp({ scrollHeight: 2930, previousScrollHeight: 2930, scrollTop: 2100, previousScrollTop: 2330 }), false);
+    assert.equal(isContentClamp({ scrollHeight: 3000, previousScrollHeight: 2930, scrollTop: 2100, previousScrollTop: 2330 }), false);
+  });
+
+  it("ignores shrinking content when the position did not move back", () => {
+    assert.equal(isContentClamp({ scrollHeight: 2900, previousScrollHeight: 2930, scrollTop: 2330, previousScrollTop: 2330 }), false);
   });
 });

@@ -255,6 +255,38 @@ describe("agent 树", () => {
     control.spawn("root-id", { kind: "general", task: "四", name: "d" });
   });
 
+  it("上限只算未结束的子代理，完成或停止后可以继续派生", async () => {
+    const { control, host } = createControl(() => ({ maxSubagents: 2, allowNested: true }));
+    const a = control.spawn("root-id", { kind: "general", task: "一", name: "a" });
+    control.spawn("root-id", { kind: "general", task: "二", name: "b" });
+    assert.throws(() => control.spawn("root-id", { kind: "general", task: "三" }), /最多同时存在 2 个子代理/);
+    await waitFor(
+      () => control.list().filter((agent) => agent.kind !== "root").every((agent) => agent.status === "completed"),
+      "前两个完成",
+    );
+
+    host.sessionFactory = () => {
+      const session = new FakeSession();
+      session.responder = async (_text, self) => {
+        await self.blockUntilReleased();
+        return "停下了";
+      };
+      return session;
+    };
+    const c = control.spawn("root-id", { kind: "general", task: "三", name: "c" });
+    control.spawn(a.id, { kind: "general", task: "四", name: "d" });
+    assert.equal(control.list().filter((agent) => agent.kind !== "root").length, 4);
+    assert.throws(() => control.spawn("root-id", { kind: "general", task: "五" }), /最多同时存在 2 个子代理/);
+
+    await waitFor(() => control.list().find((agent) => agent.id === c.id)?.status === "running", "c 开始运行");
+    control.abortAll();
+    await waitFor(
+      () => control.list().filter((agent) => agent.kind !== "root").every((agent) => !["idle", "running"].includes(agent.status)),
+      "全部停止",
+    );
+    control.spawn("root-id", { kind: "general", task: "五", name: "e" });
+  });
+
   it("上限为 0 时不允许创建子代理", () => {
     const { control } = createControl(() => ({ maxSubagents: 0, allowNested: true }));
     assert.throws(() => control.spawn("root-id", { kind: "general", task: "x" }), /不允许创建子代理/);

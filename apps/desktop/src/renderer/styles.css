@@ -2432,6 +2432,8 @@ code,
 /* 总结跟随回复正文:去掉“思考”“总结”字样,整段可点,图标跟在最后一行文字后面开合思考内容。 */
 .thinking-prose-summary {
   min-width: 0;
+  /* 总结逐步展示时,开头还没有文字的那一刻不能塌成零高度,否则整页会先缩再涨。 */
+  min-height: 1lh;
   /* 整段总结都可点击开合思考内容。 */
   cursor: pointer;
 }
@@ -4071,6 +4073,24 @@ button.tool-compact-line:hover .tool-compact-cmd {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.composer-stat-rotator {
+  display: inline-grid;
+  min-width: 0;
+  overflow: hidden;
+}
+.composer-stat-rotator-item {
+  grid-area: 1 / 1;
+  opacity: 0;
+  transform: translateY(-60%);
+  transition: opacity 320ms ease, transform 320ms var(--motion-ease-enter);
+}
+.composer-stat-rotator-item.is-active {
+  opacity: 1;
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .composer-stat-rotator-item { transition: opacity 120ms ease; transform: none; }
+}
 .composer-stat-icon {
   display: grid;
   place-items: center;
@@ -4842,6 +4862,7 @@ button.tool-compact-line:hover .tool-compact-cmd {
   box-shadow: 0 0 0 3px var(--accent-ring);
 }
 .thinking-slider-input:disabled { cursor: default; }
+.thinking-level-value.is-ultra,
 .thinking-level-value.is-ultra-flash,
 .thinking-slider.is-ultra .thinking-slider-fill {
   --ultra-gradient: linear-gradient(90deg, #3b82f6 0%, #8b5cf6 100%);
@@ -4856,6 +4877,20 @@ button.tool-compact-line:hover .tool-compact-cmd {
   color: transparent;
   -webkit-text-fill-color: transparent;
   animation: thinking-ultra-swap 220ms ease-out;
+}
+/* 「更快使用算力」结束后换成「Ultra」：沿用同一渐变，从模糊放大淡入并扫过一道高光，和前一句衔接。 */
+.thinking-level-value.is-ultra:not(.is-ultra-flash) {
+  background: var(--ultra-gradient);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  animation: thinking-ultra-arrive 520ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes thinking-ultra-arrive {
+  0% { opacity: 0; transform: translateY(5px) scale(0.86); filter: blur(4px); letter-spacing: 0.12em; }
+  60% { opacity: 1; filter: blur(0); }
+  100% { opacity: 1; transform: none; filter: none; letter-spacing: normal; }
 }
 @keyframes thinking-ultra-swap {
   from { opacity: 0; transform: translateY(3px); }
@@ -4881,7 +4916,8 @@ button.tool-compact-line:hover .tool-compact-cmd {
 }
 .thinking-ultra-tip button:hover { background: var(--bg-surface-subtle); }
 @media (prefers-reduced-motion: reduce) {
-  .thinking-level-value.is-ultra-flash { animation: none; }
+  .thinking-level-value.is-ultra-flash,
+  .thinking-level-value.is-ultra:not(.is-ultra-flash) { animation: none; }
 }
 @keyframes thinking-particle-travel {
   0% { left: 0; opacity: 0; }
@@ -8602,6 +8638,7 @@ button.settings-radio:hover:not(:disabled) { background: var(--bg-hover); }
 .explorer-name {
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
 }
 .explorer-empty {
   padding: 12px 8px;
@@ -9233,6 +9270,28 @@ button.turn-changes-path:hover { color: var(--accent-blue); }
 .thinking-scroll-viewport .md-content > .md-block:last-child > p:last-child { margin-bottom: 0; }
 .md-block.is-entering > * { animation: markdown-tail-in 120ms cubic-bezier(0.16, 1, 0.3, 1) backwards; }
 @keyframes markdown-tail-in { from { opacity: 0; } }
+/* 流式文字:每一批新追加的文字各自出现。行内元素不能做 transform,弹起用相对定位的 top 实现。 */
+/* 正式回复(含思考总结)和思考内容各有淡入、弹跳两个开关,由根节点的 data-*-fade / data-*-pop 切换;默认都开。 */
+.fade-reply .md-fresh,
+.fade-thinking .md-fresh { position: relative; animation: md-fresh-pop 520ms ease-out backwards; }
+@keyframes md-fresh-pop {
+  0% { opacity: 0; top: 5px; filter: blur(1px); }
+  55% { opacity: 1; top: -2px; filter: blur(0); }
+  100% { top: 0; }
+}
+@keyframes md-fresh-soft { from { opacity: 0; filter: blur(0.8px); } }
+@keyframes md-fresh-bounce {
+  0% { top: 5px; }
+  55% { top: -2px; }
+  100% { top: 0; }
+}
+html[data-reply-fade="false"] .fade-reply .md-fresh,
+html[data-thinking-fade="false"] .fade-thinking .md-fresh { animation-name: md-fresh-bounce; }
+html[data-reply-pop="false"] .fade-reply .md-fresh,
+html[data-thinking-pop="false"] .fade-thinking .md-fresh { animation-name: md-fresh-soft; animation-duration: 360ms; }
+html[data-reply-fade="false"][data-reply-pop="false"] .fade-reply .md-fresh,
+html[data-thinking-fade="false"][data-thinking-pop="false"] .fade-thinking .md-fresh { animation: none; }
+@media (prefers-reduced-motion: reduce) { .fade-reply .md-fresh, .fade-thinking .md-fresh { animation: none; } }
 
 .plan-revision-swap > .content-swap-current { animation: content-swap-in 150ms cubic-bezier(0.16, 1, 0.3, 1) backwards; }
 .plan-revision-swap > .content-swap-outgoing { animation: content-swap-out 150ms cubic-bezier(0.4, 0, 1, 1) both; }
@@ -9765,33 +9824,11 @@ button.turn-changes-path:hover { color: var(--accent-blue); }
 .turn-review-edit-label { padding: 5px 12px; font-size: 12px; color: var(--text-muted); background: var(--bg-surface-subtle); border-top: 1px solid var(--border-subtle); }
 .turn-review-pending { background: var(--bg-surface-subtle); }
 .turn-review-empty { padding: 20px 14px; font-size: 12px; color: var(--text-muted); }
-.turn-review-sidebar { flex: none; width: 220px; min-height: 0; display: flex; flex-direction: column; border-left: 1px solid var(--border-subtle); background: var(--bg-chat); }
+.turn-review-sidebar { flex: none; border-left: 1px solid var(--border-subtle); }
 .turn-review-sidebar[hidden] { display: none; }
-.turn-review-filter { display: flex; align-items: center; gap: 6px; flex: none; margin: 8px; padding: 5px 8px; min-height: 30px; border: 1px solid var(--border-subtle); border-radius: var(--radius-xs); color: var(--text-muted); }
-.turn-review-filter input { border: none; background: transparent; color: var(--text-primary); outline: none; width: 100%; min-width: 0; font-size: 12px; }
-.turn-review-filter:focus-within { outline: 2px solid var(--accent-blue); outline-offset: 1px; }
-.turn-review-tree { flex: 1; min-height: 0; overflow: auto; padding: 0 6px 10px; }
-.turn-review-tree-list { padding: 0; margin: 0; list-style: none; }
-.turn-review-tree-list .turn-review-tree-list { padding-left: 10px; }
-.turn-review-directory, .turn-review-file-link {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  border: none;
-  border-radius: var(--radius-xs);
-  padding: 6px;
-  min-height: 30px;
-  text-align: left;
-  font-size: 12px;
-}
-.turn-review-directory { color: var(--text-secondary); }
-.turn-review-directory > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.turn-review-directory svg { flex: none; }
-.turn-review-chevron.open { transform: rotate(90deg); }
-.turn-review-file-link:hover, .turn-review-directory:hover { background: var(--bg-hover); }
-.turn-review-file-link.active { background: var(--bg-surface-subtle); }
-.turn-review-file-name { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.turn-review-sidebar .explorer-tree-meta { margin-left: auto; padding-left: 6px; flex: none; }
+.turn-review-sidebar .explorer-tree-item.file { font-size: 14px; }
+.turn-review-sidebar .turn-review-stats { font-size: 11px; gap: 4px; }
 .turn-review-view button:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: -2px; }
 .turn-review-view.is-compact .turn-review-sidebar { position: absolute; top: 0; right: 0; bottom: 0; z-index: 3; width: min(280px, 90%); box-shadow: var(--shadow-card); }
 
@@ -10087,6 +10124,20 @@ a.mcp-result-title:hover { color: var(--accent-blue); }
 }
 .task-cost-forecast .task-cost-forecast-basis { color: var(--text-muted); }
 .task-cost-forecast strong { font-weight: 600; color: var(--warning); }
+.task-cost-forecast-close {
+  align-self: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 18px;
+  cursor: pointer;
+}
+.task-cost-forecast-close:hover { background: var(--bg-hover); color: var(--text-primary); }
 .task-cost-forecast[data-over="true"] { background: var(--warning-tint-strong); }
 
 /* ── 用量限制标签页 ─────────────────────────────────────────── */
@@ -10598,6 +10649,8 @@ a.mcp-result-title:hover { color: var(--accent-blue); }
 .composer-capsule-main .attach-btn:hover:not(:disabled) { background: var(--bg-hover); }
 .composer-capsule-main .composer-action-slot { margin-bottom: 2.5px; }
 .composer-tray .model-choice-pill.model-pill { max-width: min(200px, 100%); }
+/* 百分比的 max-width 在算外层宽度时不生效，外层会按完整模型名撑宽，在思考强度和模型之间留出空白；外层也用同一上限，两者就紧挨着。 */
+.composer-tray .model-controls .dock-menu:has(.model-pill) { max-width: 200px; }
 .composer-tray .model-choice-pill:has(.thinking-glyph) { gap: 5px; padding-left: 6px; }
 .composer-tray .thinking-glyph { display: inline-flex; align-items: center; }
 .composer-tray .thinking-bars { display: none; }

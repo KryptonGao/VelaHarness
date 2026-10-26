@@ -23,7 +23,7 @@ const noop = () => {};
 const subscribe = () => noop;
 let reads = 0;
 window.vela = {
-  platform: "darwin", listOpenTargets: async () => [], listSkills: async () => ({ skills: [] }),
+  estimateTaskCost: async () => null, platform: "darwin", listOpenTargets: async () => [], listSkills: async () => ({ skills: [] }),
   getAgentSettings: async () => ({ provider: null, modelId: null, thinkingLevel: "medium", newConversationSelection: "default", instructions: "" }),
   onWorkspaceEvent: subscribe, onGitEvent: subscribe, onEvent: subscribe,
   pickAttachments: async () => [], hydrateAttachments: async () => [],
@@ -132,41 +132,42 @@ async function run() {
     await clickReview();
     assert(reviewTab()?.getAttribute("aria-selected") === "true", "Click activates review tab");
     assert(view()?.querySelectorAll(".turn-review-file").length === 4, "All files are continuous");
+    await wait(300); // 差异分批挂载,等剩余文件补齐
     assert(!document.querySelector(".turn-changes-diffs"), "No inline diff expansion");
     assert(view()?.textContent?.includes(tr("编辑 2 / 2", "Edit 2 / 2")), "Repeated edits are separate");
     assert(view()?.textContent?.includes(tr("这项编辑没有保存可显示的差异", "No saved diff is available for this edit")), "Missing diff explanation");
     assert(view()?.textContent?.includes("… 内容过长，已截断"), "Truncation remains visible");
     pass("card opens read-only review, including repeated edits and missing/truncated records");
 
-    const filter = view()!.querySelector<HTMLInputElement>(".turn-review-filter input")!;
+    const filter = view()!.querySelector<HTMLInputElement>(".turn-review-sidebar .explorer-search-input")!;
     const setValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
     flushSync(() => { setValue.call(filter, "PACKAGE"); filter.dispatchEvent(new Event("input", { bubbles: true })); });
     await wait();
     assert(view()?.querySelectorAll(".turn-review-file").length === 1, "Filter affects main content");
-    assert(view()?.querySelectorAll(".turn-review-file-link").length === 1, "Filter affects navigator");
+    assert(view()?.querySelectorAll(".turn-review-sidebar .explorer-tree-item.file").length === 1, "Filter affects navigator");
     await clickReview();
     assert(view()?.querySelector<HTMLInputElement>("input")?.value === "PACKAGE", "Same turn preserves UI state");
     flushSync(() => { setValue.call(filter, ""); filter.dispatchEvent(new Event("input", { bubbles: true })); });
     await wait();
-    const directory = view()!.querySelector<HTMLButtonElement>(".turn-review-directory")!;
+    const directory = view()!.querySelector<HTMLButtonElement>(".turn-review-sidebar .explorer-tree-item.dir")!;
     flushSync(() => directory.click());
     assert(directory.getAttribute("aria-expanded") === "false", "Directory collapses");
     flushSync(() => directory.click());
     pass("filtering, directory collapse and repeated review clicks");
 
-    const link = view()!.querySelector<HTMLButtonElement>('.turn-review-file-link[title="src/review.ts"]')!;
+    const link = view()!.querySelector<HTMLButtonElement>('.turn-review-sidebar .explorer-tree-item.file[title="src/review.ts"]')!;
     flushSync(() => link.click());
     await wait();
-    assert(link.getAttribute("aria-current") === "location", "File navigation selects target");
+    assert(link.classList.contains("active"), "File navigation selects target");
     const scroll = view()!.querySelector<HTMLElement>(".turn-review-scroll")!;
     assert(scroll.scrollTop > 0, "Navigation scrolls main content");
-    const lastLink = view()!.querySelector<HTMLButtonElement>('.turn-review-file-link[title="README.md"]')!;
+    const lastLink = view()!.querySelector<HTMLButtonElement>('.turn-review-sidebar .explorer-tree-item.file[title="README.md"]')!;
     flushSync(() => lastLink.click());
     await wait();
-    assert(lastLink.getAttribute("aria-current") === "location", "Short final file stays selected at bottom");
+    assert(lastLink.classList.contains("active"), "Short final file stays selected at bottom");
     scroll.scrollTo({ top: 0 });
     await wait();
-    assert(view()?.querySelector('.turn-review-file-link[title="apps/desktop/electron-builder.yml"]')?.getAttribute("aria-current") === "location", "Scroll updates active file");
+    assert(view()?.querySelector('.turn-review-sidebar .explorer-tree-item.file[title="apps/desktop/electron-builder.yml"]')?.classList.contains("active"), "Scroll updates active file");
     pass("file navigation and active file follow scrolling");
 
     flushSync(() => controls.width(480));

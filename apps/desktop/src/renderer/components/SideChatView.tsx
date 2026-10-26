@@ -4,6 +4,7 @@ import type { useModels } from "../hooks/useModels";
 import type { SendButtonIcon } from "../hooks/usePreferences";
 import { localizeError, tr, trf } from "../locale";
 import { Markdown } from "./Markdown";
+import { usePacedText } from "../hooks/usePacedText";
 import { ModelControls } from "./ModelControls";
 import { composeQuotes, type SideChatInboxItem } from "./selection-actions";
 import { ArrowLeftIcon, ArrowUpIcon, CloseIcon, SendIcon } from "./icons";
@@ -31,6 +32,12 @@ import {
  * 每次发送时按当前主对话的工作区带入全局与项目记忆。历史按项目保存在磁盘上：
  * 同一项目的所有对话共用，重启后仍在；由 SideChatPanel 的聊天列表进入，删除才会清除。
  */
+/** 旁聊回复同样按帧限速展示,避免模型输出太快时文字一下子涌出。 */
+function PacedReply({ text, pending = false }: { text: string; pending?: boolean }) {
+  const { text: paced } = usePacedText(text, pending);
+  return <Markdown text={paced} streaming={pending || paced.length < text.length} fade="reply" />;
+}
+
 export function SideChatView({ workspace, threadId, number, initialEntries, onBack, onPersisted, onBusyChange, onDeleted, onInboxConsumed, conversationId, locale, visible, inbox, sendButtonIcon = "paper-plane", models, hiddenModels, defaultChoice }: {
   /** 这段侧边聊天所属的项目目录（没有项目为空字符串）。 */
   workspace: string;
@@ -241,7 +248,7 @@ export function SideChatView({ workspace, threadId, number, initialEntries, onBa
           </div>
         ) : (
           <div className="side-chat-assistant" key={entry.id}>
-            {entry.text ? <Markdown text={entry.text} streaming={entry.pending} />
+            {entry.text ? <PacedReply text={entry.text} pending={entry.pending} />
               : <span className="side-chat-thinking">{tr("正在回复…", "Replying…")}</span>}
             {entry.stopped ? <span className="side-chat-stopped">{tr("已停止", "Stopped")}</span> : null}
           </div>

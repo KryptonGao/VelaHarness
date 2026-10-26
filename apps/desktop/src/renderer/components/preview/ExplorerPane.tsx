@@ -190,6 +190,7 @@ export function FileTree({
   activePath,
   onToggleDir,
   onOpenFile,
+  renderFileMeta,
   depth = 0,
 }: {
   nodes: FileTreeNode[];
@@ -197,6 +198,8 @@ export function FileTree({
   activePath: string | null;
   onToggleDir: (path: string) => void;
   onOpenFile: (path: string) => void;
+  /** 文件行末尾的附加内容(如变更行数)。 */
+  renderFileMeta?: (path: string) => ReactNode;
   depth?: number;
 }) {
   return (
@@ -225,6 +228,7 @@ export function FileTree({
                 activePath={activePath}
                 onToggleDir={onToggleDir}
                 onOpenFile={onOpenFile}
+                renderFileMeta={renderFileMeta}
                 depth={depth + 1}
               />
             </TreeBranch> : null}
@@ -241,6 +245,7 @@ export function FileTree({
             <span className="explorer-caret" aria-hidden="true" />
             <FileTypeIcon path={node.path} />
             <span className="explorer-name">{node.name}</span>
+            {renderFileMeta ? <span className="explorer-tree-meta">{renderFileMeta(node.path)}</span> : null}
           </button>
         ),
       )}

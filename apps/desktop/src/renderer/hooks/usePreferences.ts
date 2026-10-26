@@ -51,6 +51,10 @@ const toolProcessDetailsKey = "vela.toolProcessDetails";
 const runViewKey = "vela.runView";
 const recommendedActionsKey = "vela.recommendedActions";
 const toolIconColorKey = "vela.toolIconColor";
+const replyFadeKey = "vela.replyFade";
+const replyPopKey = "vela.replyPop";
+const thinkingFadeKey = "vela.thinkingFade";
+const thinkingPopKey = "vela.thinkingPop";
 const thinkingSummaryKey = "vela.thinkingSummary";
 const thinkingSummaryStyleKey = "vela.thinkingSummaryStyle";
 const thinkingSummaryModelKey = "vela.thinkingSummaryModel";
@@ -79,6 +83,10 @@ function readStored<T>(key: string, accept: (value: unknown) => value is T, fall
     // 隐私模式无法读取本地存储时使用默认值。
   }
   return fallback;
+}
+
+function readStoredFlag(key: string, fallback: boolean): boolean {
+  return readStored(key, (value): value is string => value === "true" || value === "false", String(fallback)) === "true";
 }
 
 function writeStored(key: string, value: string) {
@@ -230,6 +238,10 @@ export function usePreferences() {
   const [toolIconColor, setToolIconColor] = useState(() =>
     readStored(toolIconColorKey, (value): value is string => value === "true" || value === "false", "true") === "true",
   );
+  const [replyFade, setReplyFade] = useState(() => readStoredFlag(replyFadeKey, true));
+  const [replyPop, setReplyPop] = useState(() => readStoredFlag(replyPopKey, true));
+  const [thinkingFade, setThinkingFade] = useState(() => readStoredFlag(thinkingFadeKey, true));
+  const [thinkingPop, setThinkingPop] = useState(() => readStoredFlag(thinkingPopKey, true));
   const [composerCapsules, setComposerCapsules] = useState(() =>
     readStored(composerCapsulesKey, (value): value is string => value === "true", "false") === "true",
   );
@@ -345,6 +357,23 @@ export function usePreferences() {
     document.documentElement.dataset.toolIconColor = String(toolIconColor);
     writeStored(toolIconColorKey, String(toolIconColor));
   }, [toolIconColor]);
+  // 流式文字的淡入、弹跳动画由 CSS 按根节点属性切换,不必把开关传到每个 Markdown。
+  useEffect(() => {
+    document.documentElement.dataset.replyFade = String(replyFade);
+    writeStored(replyFadeKey, String(replyFade));
+  }, [replyFade]);
+  useEffect(() => {
+    document.documentElement.dataset.replyPop = String(replyPop);
+    writeStored(replyPopKey, String(replyPop));
+  }, [replyPop]);
+  useEffect(() => {
+    document.documentElement.dataset.thinkingFade = String(thinkingFade);
+    writeStored(thinkingFadeKey, String(thinkingFade));
+  }, [thinkingFade]);
+  useEffect(() => {
+    document.documentElement.dataset.thinkingPop = String(thinkingPop);
+    writeStored(thinkingPopKey, String(thinkingPop));
+  }, [thinkingPop]);
   useEffect(() => {
     document.documentElement.dataset.uiFontLatin = uiFontLatin;
     writeStored(uiFontLatinKey, uiFontLatin);
@@ -388,6 +417,10 @@ export function usePreferences() {
     runView,
     recommendedActions,
     toolIconColor,
+    replyFade,
+    replyPop,
+    thinkingFade,
+    thinkingPop,
     thinkingSummary,
     thinkingSummaryStyle,
     thinkingSummaryModel,
@@ -420,6 +453,10 @@ export function usePreferences() {
     setRunView,
     setRecommendedActions,
     setToolIconColor,
+    setReplyFade,
+    setReplyPop,
+    setThinkingFade,
+    setThinkingPop,
     setThinkingSummary,
     setThinkingSummaryStyle,
     setThinkingSummaryModel,

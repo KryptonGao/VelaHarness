@@ -25,6 +25,7 @@ document.documentElement.dataset.scheme = params.get("theme") ?? "light";
 const noop = () => {};
 let reads = 0;
 window.vela = {
+  estimateTaskCost: async () => null,
   platform: "darwin", listOpenTargets: async () => [], listSkills: async () => ({ skills: [] }),
   getAgentSettings: async () => ({ provider: null, modelId: null, thinkingLevel: "medium", newConversationSelection: "default", instructions: "" }),
   onWorkspaceEvent: () => noop, onGitEvent: () => noop, onEvent: () => noop,

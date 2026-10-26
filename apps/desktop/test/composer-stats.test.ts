@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { ContextUsage } from "@vela/shared";
-import { composerStats, formatRate, formatSpeed, formatTokens } from "../src/renderer/components/composer/composer-stats.ts";
+import { COMPOSER_STAT_ROTATE_MS, composerStats, formatRate, formatSpeed, formatTokens } from "../src/renderer/components/composer/composer-stats.ts";
 
 function usage(patch: Partial<ContextUsage> = {}): ContextUsage {
   return {
@@ -21,43 +21,49 @@ function usage(patch: Partial<ContextUsage> = {}): ContextUsage {
 }
 
 describe("composer stats", () => {
-  it("renders only the output speed in the activity group", () => {
-    assert.equal(composerStats(usage({ turnCount: 2, stepCount: 11, outputSpeed: 241.4 })).activity, "241 tok/s");
+  it("renders the output speed on its own", () => {
+    assert.equal(composerStats(usage({ turnCount: 2, stepCount: 11, outputSpeed: 241.4 })).speed, "241 tok/s");
   });
 
-  it("omits the activity group when speed is not measurable yet", () => {
-    assert.equal(composerStats(usage({ turnCount: 1, stepCount: 3 })).activity, null);
+  it("omits the speed when it is not measurable yet", () => {
+    assert.equal(composerStats(usage({ turnCount: 1, stepCount: 3 })).speed, null);
   });
 
-  it("shows tokens and cache hit rate together", () => {
+  it("rotates between cache hit rate and the session token total", () => {
     const stats = composerStats(usage({ sessionTokens: 257_000, cacheHitRate: 0.968 }));
-    assert.equal(stats.tokens, "257K tok · 缓存命中 97%");
+    assert.deepEqual(stats.rotating, ["缓存命中 97%", "累计 257K tok"]);
+    assert.equal(COMPOSER_STAT_ROTATE_MS, 30_000);
+  });
+
+  it("rotates nothing when neither is reported, and one item when only one is", () => {
+    assert.deepEqual(composerStats(usage()).rotating, []);
+    assert.deepEqual(composerStats(usage({ cacheHitRate: 0.5 })).rotating, ["缓存命中 50%"]);
+    assert.deepEqual(composerStats(usage({ sessionTokens: 940 })).rotating, ["累计 940 tok"]);
   });
 
   it("omits fields the provider has not reported", () => {
     const stats = composerStats(usage({ turnCount: 1, stepCount: 2 }));
-    assert.equal(stats.tokens, null);
+    assert.deepEqual(stats.rotating, []);
     assert.equal(stats.percent, null);
     assert.equal(stats.percentLabel, null);
   });
 
   it("drops an all-zero session instead of printing placeholders", () => {
     const stats = composerStats(usage());
-    assert.equal(stats.activity, null);
-    assert.equal(stats.tokens, null);
+    assert.equal(stats.speed, null);
+    assert.deepEqual(stats.rotating, []);
   });
 
   it("can keep the speed visible before any usage exists", () => {
-    assert.equal(composerStats(usage(), { alwaysShowActivity: true }).activity, "— tok/s");
-    assert.equal(composerStats(undefined, { alwaysShowActivity: true }).activity, "— tok/s");
-    assert.equal(composerStats(usage({ turnCount: 1, stepCount: 3 }), { alwaysShowActivity: true }).activity, "— tok/s");
-    assert.equal(composerStats(usage({ turnCount: 2, stepCount: 11, outputSpeed: 241.4 }), { alwaysShowActivity: true }).activity, "241 tok/s");
+    assert.equal(composerStats(usage(), { alwaysShowSpeed: true }).speed, "— tok/s");
+    assert.equal(composerStats(undefined, { alwaysShowSpeed: true }).speed, "— tok/s");
+    assert.equal(composerStats(usage({ turnCount: 2, stepCount: 11, outputSpeed: 241.4 }), { alwaysShowSpeed: true }).speed, "241 tok/s");
   });
 
   it("tolerates a missing usage snapshot", () => {
     const stats = composerStats(undefined);
-    assert.equal(stats.activity, null);
-    assert.equal(stats.tokens, null);
+    assert.equal(stats.speed, null);
+    assert.deepEqual(stats.rotating, []);
     assert.equal(stats.percentLabel, null);
   });
 

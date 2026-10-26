@@ -1,15 +1,18 @@
 import type { ContextUsage } from "@vela/shared";
 import { trf } from "../../locale";
 
+/** 缓存命中率与 token 总量在同一个位置轮流展示，切换间隔。 */
+export const COMPOSER_STAT_ROTATE_MS = 30_000;
+
 /**
- * 输入框统计条的数据模型。三段都可以单独缺失：没有会话、没产生用量或提供方
+ * 输入框统计条的数据模型。每一段都可以单独缺失：没有会话、没产生用量或提供方
  * 不上报缓存时，对应的一段整个不渲染，避免出现 "0 tok/s" 这种没意义的数字。
  */
 export interface ComposerStats {
   /** 输出速度，例如 "241 tok/s"。 */
-  activity: string | null;
-  /** 会话累计 token 与缓存命中率，例如 "257K tok · 缓存命中 97%"。 */
-  tokens: string | null;
+  speed: string | null;
+  /** 轮流展示的几项，例如 ["缓存命中 97%", "累计 257K tok"]；没有数据时为空数组。 */
+  rotating: string[];
   /** 上下文占用百分比；窗口未知时为空。 */
   percent: number | null;
   /** 占用百分比的展示文本。 */
@@ -18,33 +21,33 @@ export interface ComposerStats {
 
 export interface ComposerStatsOptions {
   /** 速度始终展示：还没有数据时显示 "— tok/s"。 */
-  alwaysShowActivity?: boolean;
+  alwaysShowSpeed?: boolean;
 }
 
 export function composerStats(usage: ContextUsage | undefined | null, options: ComposerStatsOptions = {}): ComposerStats {
   const speed = usage?.outputSpeed ?? null;
-  const sessionTokens = usage?.sessionTokens ?? null;
   const hitRate = usage?.cacheHitRate ?? null;
+  const sessionTokens = usage?.sessionTokens ?? null;
   const percent = usage?.percent ?? null;
 
-  const activityParts: string[] = [];
+  let speedLabel: string | null = null;
   if (speed !== null && speed > 0) {
-    activityParts.push(`${formatSpeed(speed)} tok/s`);
-  } else if (options.alwaysShowActivity) {
-    activityParts.push("— tok/s");
+    speedLabel = `${formatSpeed(speed)} tok/s`;
+  } else if (options.alwaysShowSpeed) {
+    speedLabel = "— tok/s";
   }
 
-  const tokenParts: string[] = [];
-  if (sessionTokens !== null && sessionTokens > 0) {
-    tokenParts.push(`${formatTokens(sessionTokens)} tok`);
-  }
+  const rotating: string[] = [];
   if (hitRate !== null) {
-    tokenParts.push(trf("缓存命中 {0}", "Cache hit {0}", formatRate(hitRate)));
+    rotating.push(trf("缓存命中 {0}", "Cache hit {0}", formatRate(hitRate)));
+  }
+  if (sessionTokens !== null && sessionTokens > 0) {
+    rotating.push(trf("累计 {0} tok", "Total {0} tok", formatTokens(sessionTokens)));
   }
 
   return {
-    activity: activityParts.length > 0 ? activityParts.join(" · ") : null,
-    tokens: tokenParts.length > 0 ? tokenParts.join(" · ") : null,
+    speed: speedLabel,
+    rotating,
     percent: percent !== null && Number.isFinite(percent) ? percent : null,
     percentLabel: percent !== null && Number.isFinite(percent) ? `${Math.round(percent)}%` : null,
   };

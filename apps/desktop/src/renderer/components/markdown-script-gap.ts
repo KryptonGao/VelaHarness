@@ -7,7 +7,8 @@ type MdNode = {
   type: string;
   value?: string;
   children?: MdNode[];
-  data?: { hName?: string; hProperties?: Record<string, unknown> };
+  position?: { start: { offset?: number }; end: { offset?: number } };
+  data?: { hName?: string; hProperties?: Record<string, unknown>; srcOffset?: number };
 };
 
 const cjk = "\\p{Script=Han}\\p{Script=Hiragana}\\p{Script=Katakana}\\p{Script=Hangul}";
@@ -20,10 +21,17 @@ function gapNode(): MdNode {
 function splitText(node: MdNode): MdNode[] {
   const parts = (node.value ?? "").split(boundary);
   if (parts.length < 2) return [node];
+  // 保留每段在源码里的起点,淡入插件靠它判断哪些文字是新追加的。
+  const start = node.position?.start.offset;
+  const end = node.position?.end.offset;
+  const total = node.value?.length || 1;
+  let consumed = 0;
   const out: MdNode[] = [];
   parts.forEach((part, index) => {
     if (index > 0) out.push(gapNode());
-    out.push({ type: "text", value: part });
+    const srcOffset = start === undefined ? undefined : start + Math.round(consumed * ((end ?? start + total) - start) / total);
+    out.push({ type: "text", value: part, ...(srcOffset === undefined ? {} : { data: { srcOffset } }) });
+    consumed += part.length;
   });
   return out;
 }

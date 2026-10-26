@@ -46,6 +46,7 @@ import { parseSkillSegments } from "./composer/skill-picker";
 import { useFilePreview } from "./preview/FilePreviewContext";
 import { InfoCardStack } from "./info-cards/InfoCardStack";
 import {
+  isContentClamp,
   nextStreamFollow,
   releasesStreamFollow,
   shouldResumeFollowForMessages,
@@ -67,6 +68,8 @@ import { localizeError, tr, trf, activeIntlLocale } from "../locale";
 interface FollowState {
   pinned: boolean;
   lastScrollTop: number;
+  /** 上一次布局或滚动时的内容高度;高度缩小导致的滚动位置回退不是用户在向上滚。 */
+  lastScrollHeight: number;
   ignoreScroll: boolean;
   conversationId: string | null | undefined;
   userMessageId: string | null | undefined;
@@ -74,6 +77,7 @@ interface FollowState {
 
 function scrollFollowToEnd(scroller: HTMLDivElement, follow: FollowState) {
   const maxScroll = scroller.scrollHeight - scroller.clientHeight;
+  follow.lastScrollHeight = scroller.scrollHeight;
   if (maxScroll - scroller.scrollTop < 1) {
     follow.lastScrollTop = scroller.scrollTop;
     return;
@@ -325,6 +329,7 @@ export function ChatView({
   const followRef = useRef<FollowState>({
     pinned: true,
     lastScrollTop: 0,
+    lastScrollHeight: 0,
     ignoreScroll: false,
     conversationId: undefined,
     userMessageId: undefined,
@@ -393,6 +398,20 @@ export function ChatView({
       }
       const scrollTop = scroller.scrollTop;
       const distanceFromBottom = scroller.scrollHeight - scrollTop - scroller.clientHeight;
+      // 内容变矮(例如总结行替换成更短的内容)时浏览器会把滚动位置往回夹,这不是用户在向上滚。
+      const clamped = isContentClamp({
+        scrollHeight: scroller.scrollHeight,
+        previousScrollHeight: follow.lastScrollHeight,
+        scrollTop,
+        previousScrollTop: follow.lastScrollTop,
+      });
+      follow.lastScrollHeight = scroller.scrollHeight;
+      if (clamped) {
+        follow.lastScrollTop = scrollTop;
+        if (follow.pinned) scheduleLayout();
+        syncJumpToLatest();
+        return;
+      }
       const wasPinned = follow.pinned;
       follow.pinned = nextStreamFollow({
         following: follow.pinned,
@@ -1157,7 +1176,7 @@ function AssistantMessageContent({
           />
         ) : (
           <div className="stream-prose-block thinking-text process-thinking-text">
-            <Markdown text={message.thinking} streaming={thinkingActive} />
+            <Markdown text={message.thinking} streaming={thinkingActive} fade="thinking" />
           </div>
         )
       ) : null}

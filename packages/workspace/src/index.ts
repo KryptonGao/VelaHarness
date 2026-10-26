@@ -1,5 +1,5 @@
 export { WorkspaceManager } from "./workspace-manager";
-export { GitService, collectStatus, isPathInside } from "./git-service";
+export { GitService, collectStatus, isPathInside, isPathInsideReal } from "./git-service";
 export {
   GitOperationLog,
   type GitOperationBeginInput,

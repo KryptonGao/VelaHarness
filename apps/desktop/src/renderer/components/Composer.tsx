@@ -920,15 +920,9 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
                   {modeChip}
                   {sandboxPill}
                 </div>
-                {showStats ? (
-                  <>
-                    <span className="composer-tray-sep" aria-hidden="true" />
-                    <ComposerStatsRow usage={usage} part="activity" />
-                  </>
-                ) : null}
               </div>
               <div className="composer-tray-right">
-                {showStats ? <ComposerStatsRow usage={usage} contextPopover={contextPopover} part="usage" /> : null}
+                {showStats ? <ComposerStatsRow usage={usage} contextPopover={contextPopover} /> : null}
                 {modelControls}
               </div>
             </div>
