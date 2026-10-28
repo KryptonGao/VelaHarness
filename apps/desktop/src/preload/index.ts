@@ -321,6 +321,7 @@ const api: VelaApi = {
   },
   browser: {
     command: (command) => ipcRenderer.invoke(BrowserIpc.command, command),
+    annotationImages: (tabId, annotationIds) => ipcRenderer.invoke(BrowserIpc.annotationImages, tabId, annotationIds),
     subscribe: (listener) => {
       const handler = (_event: IpcRendererEvent, state: BrowserWindowState) => listener(state);
       ipcRenderer.on(BrowserIpc.state, handler);

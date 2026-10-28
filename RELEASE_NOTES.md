@@ -1,21 +1,25 @@
-# Vela 1.2.5
+# Vela 1.2.6
 
-Vela 1.2.5 makes streamed text feel smoother and keeps the app responsive on huge repositories. Reply and thinking text can now fade in and bounce as it arrives, the stats under the composer rotate between cache hit rate and total tokens, the turn review shows changed files as a tree, and Plan mode checks shell commands much more strictly before letting them run.
+Vela 1.2.6 adds element annotations to the built-in browser. Point to an element, write a note, and send the Agent its page context and a screenshot alongside your message. This release also keeps complete answers visible when the model follows them with a short closing message.
 
 ## New
 
-- **Streaming text animation**: new text in a streamed reply and in thinking fades in from transparent and can hop up slightly before settling back. Reply text (including the thinking summary in the "Like reply" style) and thinking text each have their own **Fade-in** and **Bounce** switches in Settings → Conversation display; with both off the text appears at once. Thinking summaries now appear at the same pace as the reply instead of all at once, while summaries in older history still open instantly.
-- **Turn review as a file tree**: the list of files changed in a turn now uses the same tree as the file explorer, with foldable folders and the added and removed line counts beside each file.
-- **Rotating stats under the composer**: cache hit rate and total tokens now take turns in the same spot every 30 seconds; the output speed stays fixed. The cost estimate hint has a × button that closes it permanently.
+- **Browser element annotations**: turn on **Annotate** in the browser toolbar, select an element and write a note. Move the selection between parent and child elements, then add more notes before sending. Element notes share the reply-card row above the composer with quoted text replies.
+- **Context and screenshots for the Agent**: each annotation includes the page address and title, element description, CSS selector, position and key styles. Messages can include up to four numbered element screenshots; your own attachments take priority when space is limited.
+- **Markers and conversation drafts**: numbered markers follow elements as the page scrolls, zooms or changes layout. Element notes stay in memory when switching conversations or hiding the browser. Navigating marks old notes as stale, so their text and descriptions remain sendable; closing a tab removes its notes. Unsent notes are not restored after restarting Vela.
 
 ## Improved
 
-- **Stricter read-only guard in Plan mode**: shell commands in Plan mode and in read-only subagents are now split into words the way a shell reads them, instead of being matched with patterns. Command substitution, variable expansion, sub-shells, background jobs and redirects that write files are refused, each allowed command is checked against its own argument rules (for example `find` without `-delete` or `-exec`, `sed` and `awk` scripts that cannot write files), and anything uncertain is refused. Ordinary look-up commands still work.
-- **Huge git diffs**: file, commit, stash and release-range diffs are now cut off while they are read, rather than loaded whole and trimmed afterwards. Git output is capped, the history page shows a notice when only the first part of a commit's diff is displayed, and splitting a very large file diff into hunks is refused with a clear message instead of stalling.
-- **Subagent limit**: subagents that are finished, failed or stopped no longer count toward the per-conversation limit; only those that are running, paused or waiting do. They stay in the tree for viewing and follow-ups.
-- **Writes through symbolic links**: a file write is now judged by its real path, so a symbolic link inside the workspace that points outside it asks for approval like any other outside path.
-- **Following a streaming reply**: when the content gets shorter, for example when a thinking summary replaces a longer line, the browser pulling the scroll position back is no longer mistaken for you scrolling up, so the view keeps following the bottom.
-- **Smoother streaming**: the app now only watches whether a conversation is empty instead of the whole message list, so the whole window no longer re-renders on every streamed frame.
+- **Complete final answers**: consecutive answer messages separated only by recommended actions or thinking remain visible outside the collapsed process. A short closing message no longer hides the main answer. Copying the final reply includes the related answer messages.
+- **Retrying a message**: when a send fails, reply cards, annotation notes and attachments return to the composer. Successful sends clear the associated page markers.
+- **Annotation privacy**: page URLs redact common secret parameters, element descriptions do not read filled form values, and element screenshots mask password fields. Annotation controls stay outside the page DOM.
+- **Browser control handoff**: annotation mode exits when the Agent takes control of the browser and when switching tabs or conversations, keeping existing notes available for later sending.
+
+## Known issues
+
+Two real-Electron smoke checks still fail with the same symptoms documented in 1.2.5: Task Recipes reports `Missing button 编辑`, and PR Inbox reports `Loaded PRs did not refresh while working outside the inbox`. Those features were not changed in this release.
+
+Five UI suites also fail: `mcp-settings-ui`, `workbench-chat-ui`, `side-chat-ui`, `intelligent-ui-ui` and `agent-inbox-ui`. Each failure was reproduced with the same symptom against the unchanged 1.2.5 source at `a18343c`; they include missing fixture APIs, outdated UI expectations and an assertion that does not include the Ultra thinking level.
 
 ## Upgrade
 
@@ -29,18 +33,22 @@ The macOS build is not notarized and uses an ad-hoc signature. If macOS blocks f
 
 | File | Platform |
 | --- | --- |
-| `Vela-1.2.5-arm64.dmg` | macOS Apple Silicon installer |
-| `Vela-1.2.5-arm64.zip` | macOS Apple Silicon application bundle (`.app`); also the package used by in-app updates |
+| `Vela-1.2.6-arm64.dmg` | macOS Apple Silicon installer |
+| `Vela-1.2.6-arm64.zip` | macOS Apple Silicon application bundle (`.app`); also the package used by in-app updates |
 | `SHA256SUMS.txt` | SHA-256 checksums for both packages |
 | `SHA256SUMS.txt.sig` | Ed25519 signature of `SHA256SUMS.txt`, verified by the in-app updater |
 
-Package version: `1.2.5`. macOS bundle and download version: `1.2.5`.
+Package version: `1.2.6`. macOS bundle and download version: `1.2.6`.
 
 ## Validation
 
-- Type checks passed for all packages, and unit tests passed in the agent (762 tests, 761 passed and one skipped), workspace (208) and desktop (1054) packages (`pnpm test`). One workspace test (`gh-run`, which starts a child process under a 1-second limit) timed out once during the first parallel run; it passed three times on its own and in the full re-run.
+- Browser unit tests passed: 91 tests (`pnpm --filter @vela/desktop test:browser`).
+- Turn-review unit tests passed: 24 tests (`pnpm --filter @vela/desktop test:turn-review`).
+- Type checks passed for all packages. Unit tests passed in agent (761 passed, one skipped), workspace (208 passed) and desktop (1,092 passed) (`pnpm test`).
 - All 29 in-app update tests passed (`pnpm --filter @vela/desktop test:updates`).
 - The production build passed (`pnpm build`).
-- Twelve of the fourteen real-Electron smoke suites passed (`pnpm test:smoke`). Task Recipes failed with `Missing button 编辑` and PR Inbox with `Loaded PRs did not refresh while working outside the inbox`; both are the same symptoms already documented in earlier releases and neither touches code changed here. The other twelve suites passed.
-- macOS arm64 packaging completed (`pnpm package:mac`); the application bundle reports version `1.2.5` and identifier `com.vela.desktop`, the ZIP contains a single `Vela.app`, the DMG checksum verifies, and the packaged `app.asar` contains `icon.png`, `tray-template.png` and `release-notes.json` under `out/main`.
-- The signed checksum file was generated for the DMG and ZIP (`pnpm sign:release`), and its signature verifies against the public key bundled in the app.
+- Thirteen real-Electron smoke suites passed, including browser annotations, browser authentication and automation, MCP, scheduled tasks, handoff, PR review response, notification sounds, settings and thinking display (`pnpm --filter @vela/desktop test:smoke`; see Known issues for the other two suites).
+- Nine UI suites passed: plugins, memory settings, web tools, web-tool cards, chat actions, acceptance, races, handoff packs and updates (`pnpm test:ui`; see Known issues for the five baseline failures).
+- macOS arm64 packaging completed (`pnpm package:mac`). The application bundle and extracted ZIP report version and build `1.2.6` with identifier `com.vela.desktop`; the ZIP extracts to a single `Vela.app`, and the DMG checksum verifies and mounts successfully.
+- The packaged `app.asar` contains the exact five-language `release-notes.json`, application icon and tray icon.
+- Signed checksums were generated (`pnpm sign:release`). Both package hashes match, and the Ed25519 signature passes the application's `verifySignature` check with `updatePublicKeys`.

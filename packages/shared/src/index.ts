@@ -3220,3 +3220,4 @@ export interface VelaApi extends McpApi, PluginApi {
 }
 
 export * from "./browser";
+export * from "./browser-annotation";

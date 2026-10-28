@@ -13,13 +13,15 @@ export interface BrowserState {
   canGoBack: boolean;
   canGoForward: boolean;
   error: BrowserError | null;
+  /** 元素批注模式是否开启。 */
+  annotating: boolean;
 }
 
 /** Immutable snapshots for React; no DOM or Electron dependency. */
 export class BrowserStore {
   private state: BrowserState = {
     url: "about:blank", address: "", editingAddress: false, title: "",
-    loading: false, ready: false, canGoBack: false, canGoForward: false, error: null,
+    loading: false, ready: false, canGoBack: false, canGoForward: false, error: null, annotating: false,
   };
   private readonly listeners = new Set<() => void>();
 

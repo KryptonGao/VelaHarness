@@ -25,6 +25,12 @@ export function GlobeIcon({ size = 13 }: IconProps) {
     <path d="M3 12h18M12 3a18 18 0 0 1 0 18 18 18 0 0 1 0-18" /></svg>;
 }
 
+/** 元素批注：虚线选框加一个批注气泡。 */
+export function AnnotateIcon({ size = 13 }: IconProps) {
+  return <svg {...base(size)} aria-hidden="true"><path d="M4 9V5a1 1 0 0 1 1-1h4M15 4h4a1 1 0 0 1 1 1v4M4 15v4a1 1 0 0 0 1 1h4" strokeDasharray="0.1 0" />
+    <path d="M12 20h7a1 1 0 0 0 1-1v-6a1 1 0 0 0-1-1h-5l-3 3v4a1 1 0 0 0 1 1Z" /></svg>;
+}
+
 export function ArrowLeftIcon({ size = 13 }: IconProps) {
   return <svg {...base(size)} aria-hidden="true"><path d="m12 5-7 7 7 7M5 12h14" /></svg>;
 }

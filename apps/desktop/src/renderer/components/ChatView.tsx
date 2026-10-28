@@ -28,7 +28,8 @@ import { Markdown } from "./Markdown";
 import { AssistantMarkdown } from "./intelligent-ui/AssistantMarkdown";
 import { ConversationLinkContext } from "./ConversationLinkContext";
 import { SelectionActions } from "./SelectionActions";
-import { SideChatLauncherContext, type ReplyCard } from "./selection-actions";
+import { SideChatLauncherContext } from "./selection-actions";
+import { replyStore, useReplyCards } from "../browser/reply-store";
 import { OpenInAppButton } from "./OpenInAppButton";
 import { Thinking } from "./Thinking";
 import { ThinkingSummaryContext } from "./ThinkingSummaryContext";
@@ -38,6 +39,7 @@ import { toolCompactKind } from "./tool-compact";
 import { buildTurnItems, groupProcessItems, type ProcessNode } from "./tool-sequence";
 import { formatDuration, readToolDuration } from "./tool-duration";
 import { foldSequenceId } from "./tool-fold-state";
+import { selectFinalReplies } from "./final-replies";
 import { useToolExpanded, useToolProcessDetails, useToolsDuration } from "./ToolProcessContext";
 import { PlanPreviewList } from "./PlanPanel";
 import { collectPlanIds, planReferenceModel } from "../plan-draft";
@@ -125,6 +127,10 @@ function groupMessagesIntoTurns(messages: UiMessage[], previous: MessageTurn[]):
     return before && before.user === turn.user && before.assistants.length === turn.assistants.length &&
       before.assistants.every((message, index) => message === turn.assistants[index]) ? before : turn;
   });
+}
+
+function joinReplyText(replies: UiMessage[]): string {
+  return replies.map((reply) => reply.text.trim()).join("\n\n");
 }
 
 function formatElapsedTime(startedAt: number | undefined, completedAt: number | undefined): string | null {
@@ -275,12 +281,13 @@ export function ChatView({
   const [views, setViews] = useState<Record<string, ConversationViewKey>>({});
   const [vcMounted, setVcMounted] = useState(false);
   const [imageView, setImageView] = useState<ImageViewerRequest | null>(null);
-  /** 选中文字后点「回复」得到的引用，随下一条消息一起发送。 */
-  const [replies, setReplies] = useState<ReplyCard[]>([]);
   const startSideChat = useContext(SideChatLauncherContext);
   const activeConversationId = state?.activeConversationId ?? null;
-  // 引用只属于当时的对话，切走就丢掉。
-  useEffect(() => { setReplies([]); }, [activeConversationId]);
+  /** 选中文字后点「回复」得到的引用、浏览器里的元素批注，随下一条消息一起发送。 */
+  const replyKey = activeConversationId ?? "";
+  const replies = useReplyCards(replyKey);
+  // 选中文字的引用只属于当时的对话，切走就丢掉；元素批注属于浏览器标签页，保留。
+  useEffect(() => () => replyStore.dropTextReplies(replyKey), [replyKey]);
   // 换会话时收起全屏查看器:里面是上一条对话的图片。
   useEffect(() => { setImageView(null); }, [state?.activeConversationId]);
   const viewKey = state?.activeConversationId ?? "empty";
@@ -795,10 +802,11 @@ export function ChatView({
           />
         ) : (
           turns.map((turn, index) => {
-            const finalReply = [...turn.assistants].reverse().find((message) => message.text.trim().length > 0) ?? null;
+            const finalReplies = selectFinalReplies(turn.assistants);
+            const finalReply = finalReplies[finalReplies.length - 1] ?? null;
             const lastAssistant = turn.assistants[turn.assistants.length - 1] ?? null;
             const isCurrentTurn = index === turns.length - 1;
-            const canCollapse = Boolean(finalReply) && (!isCurrentTurn || (
+            const canCollapse = finalReplies.length > 0 && (!isCurrentTurn || (
               session?.status === "ready" &&
               (lastAssistant?.turnStartedAt === undefined || lastAssistant.turnCompletedAt !== undefined)
             ));
@@ -833,7 +841,7 @@ export function ChatView({
                   <CompletedAssistantTurn
                     key={lastAssistant.id}
                     messages={turn.assistants}
-                    finalReply={finalReply}
+                    finalReplies={finalReplies}
                     elapsed={formatElapsedTime(lastAssistant.turnStartedAt, lastAssistant.turnCompletedAt)}
                     entering={turn.assistants.some((message) => entering.has(message.id))}
                     changes={changes}
@@ -895,7 +903,7 @@ export function ChatView({
                     <PlanPreviewList planIds={collectPlanIds(turn.assistants)} />
                     {finalReply ? (
                       <ReplyActions
-                        text={finalReply.text}
+                        text={joinReplyText(finalReplies)}
                         timestamp={finalReply.timestamp ?? null}
                         branchTurn={branchTurn}
                         branchDisabled={session?.status !== "ready"}
@@ -929,7 +937,7 @@ export function ChatView({
 
       </ConversationLinkContext.Provider>
       <SelectionActions containerRef={scrollerRef} onSideChat={startSideChat}
-        onReply={(quote, text) => setReplies((current) => [...current, { id: crypto.randomUUID(), quote, text }])} />
+        onReply={(quote, text) => replyStore.addText(replyKey, quote, text)} />
       <button
         type="button"
         className="chat-jump-latest"
@@ -974,8 +982,10 @@ export function ChatView({
         project={project}
         onSend={onSend}
         replies={replies}
-        onRemoveReply={(id) => setReplies((current) => current.filter((item) => item.id !== id))}
-        onClearReplies={() => setReplies([])}
+        onRemoveReply={(id) => replyStore.remove(replyKey, id)}
+        onFocusReply={(id) => replyStore.requestFocus(id)}
+        onBeginReplies={() => replyStore.beginSend(replyKey)}
+        onSettleReplies={(sent, kept) => replyStore.settleSend(replyKey, sent, kept)}
         onRemoveInstruction={onRemoveInstruction}
         onAbort={onAbort}
         onMode={onMode}
@@ -1282,7 +1292,7 @@ function ToolSequence({
 
 const CompletedAssistantTurn = memo(function CompletedAssistantTurn({
   messages,
-  finalReply,
+  finalReplies,
   elapsed,
   entering,
   changes,
@@ -1299,7 +1309,7 @@ const CompletedAssistantTurn = memo(function CompletedAssistantTurn({
   onCheckpoints,
 }: {
   messages: UiMessage[];
-  finalReply: UiMessage;
+  finalReplies: UiMessage[];
   elapsed: string | null;
   entering: boolean;
   changes: TurnChanges | null;
@@ -1323,9 +1333,10 @@ const CompletedAssistantTurn = memo(function CompletedAssistantTurn({
   const turnDuration = details && toolDisplay === "compact" ? readToolDuration({ startedAt, completedAt }) ?? toolsDuration : null;
   const displayedElapsed = turnDuration === null ? elapsed : formatDuration(turnDuration);
   const processId = useId();
+  const isFinalReply = (message: UiMessage) => finalReplies.includes(message);
   const hasProcess = messages.some((message) => (
-    message.id !== finalReply.id && Boolean(message.text || message.thinking || message.tools.length > 0)
-  )) || Boolean(finalReply.thinking || finalReply.tools.length > 0);
+    !isFinalReply(message) && Boolean(message.text || message.thinking || message.tools.length > 0)
+  )) || finalReplies.some((message) => Boolean(message.thinking || message.tools.length > 0));
   const enterClass = entering ? " message-enter" : "";
   const triggerContent = (
     <>
@@ -1362,7 +1373,7 @@ const CompletedAssistantTurn = memo(function CompletedAssistantTurn({
               <article className="assistant-block assistant-turn-process-item">
                 <ToolSequence
                   messages={messages}
-                  includeText={(message) => message.id !== finalReply.id}
+                  includeText={(message) => !isFinalReply(message)}
                   toolDisplay={toolDisplay ?? "card"}
                   getQuestion={getQuestion}
                   onReplyQuestion={onReplyQuestion}
@@ -1376,7 +1387,7 @@ const CompletedAssistantTurn = memo(function CompletedAssistantTurn({
                     thinkingActive={false}
                     thinkingDisclosure
                     showTools
-                    showText={message.id !== finalReply.id}
+                    showText={!isFinalReply(message)}
                     changes={null}
                     onOpenChanges={onOpenChanges}
                     onReviewTurn={onReviewTurn}
@@ -1394,12 +1405,14 @@ const CompletedAssistantTurn = memo(function CompletedAssistantTurn({
         </div>
       </div>
       ) : null}
-      <div className="agent-reply-prose">
-        <AssistantMarkdown messageId={finalReply.id} text={finalReply.text} />
-      </div>
+      {finalReplies.map((reply) => (
+        <div className="agent-reply-prose" key={reply.id}>
+          <AssistantMarkdown messageId={reply.id} text={reply.text} />
+        </div>
+      ))}
       <PlanPreviewList planIds={collectPlanIds(messages)} />
       <ReplyActions
-        text={finalReply.text}
+        text={joinReplyText(finalReplies)}
         timestamp={replyTime}
         branchTurn={branchTurn}
         branchDisabled={branchTurn === null}

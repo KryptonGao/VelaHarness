@@ -1,12 +1,13 @@
 import type { WebContents, Session } from 'electron';
-import type { BrowserAgentAction, BrowserUiCommand, BrowserWindowState } from '../../../../packages/shared/src/browser';
+import type { BrowserAgentAction, BrowserAnnotationImages, BrowserUiCommand, BrowserWindowState } from '../../../../packages/shared/src/browser';
 import { isUiBrowserUrl } from '../browser-policy';
+import { BrowserAnnotations, type AnnotationBackend } from './browser-annotations';
 import { BrowserHostError, BrowserSessionRegistry, type BrowserRecord } from './browser-session-registry';
 
 export interface BrowserInvocation {
   windowId: number; conversationId: string; agentId: string; turnId: string; invocationId: string; signal?: AbortSignal;
 }
-interface Automation { call(method: string, args?: unknown[], frameId?: string, signal?: AbortSignal, onAction?: (action: BrowserAgentAction) => void): Promise<unknown>; dispose(): void }
+interface Automation extends Partial<AnnotationBackend> { call(method: string, args?: unknown[], frameId?: string, signal?: AbortSignal, onAction?: (action: BrowserAgentAction) => void): Promise<unknown>; dispose(): void }
 interface WindowEntry {
   embedder: WebContents; conversationId: string | null; selected: Record<string, string>;
   viewport: {width: number; height: number}; focusRequest: BrowserWindowState['focusRequest']; nonce: number;
@@ -23,6 +24,16 @@ export class BrowserHost {
   private readonly listeners = new Set<(windowId: number, state: BrowserWindowState) => void>();
   private readonly cursors = new Map<string, { invocationId: string; timer: ReturnType<typeof setTimeout> }>();
   private cursorSequence = 0;
+  private readonly annotations = new BrowserAnnotations({
+    backend: tab => {
+      const entry = tab.guestId === null ? undefined : this.guests.get(tab.guestId);
+      if (!entry || entry.guest.isDestroyed()) return null;
+      entry.automation ??= this.automationFactory(entry.guest);
+      return entry.automation.annotationStart ? entry.automation as AnnotationBackend : null;
+    },
+    publish: tab => this.publish(tab.windowId),
+    operating: conversationId => conversationId !== null && [...this.invocations.values()].some(i => i.context.conversationId === conversationId),
+  });
   constructor(private readonly automationFactory: (guest: WebContents) => Automation, private readonly browserSession: Session) {}
   subscribe(listener: (windowId: number, state: BrowserWindowState) => void): () => void { this.listeners.add(listener); return () => { this.listeners.delete(listener); }; }
   registerWindow(windowId: number, embedder: WebContents): void {
@@ -50,7 +61,10 @@ export class BrowserHost {
   }
   state(windowId: number): BrowserWindowState {
     const win = this.window(windowId);
-    return { tabs: this.registry.list(windowId).map(({windowId: _w, guestId: _g, generation: _n, ...tab}) => ({...tab})),
+    return { tabs: this.registry.list(windowId).map(({windowId: _w, guestId: _g, generation: _n, ...tab}) => {
+        const annotation = this.annotations.state(tab.id);
+        return annotation ? {...tab, annotation} : {...tab};
+      }),
       selected: {...win.selected}, activeConversationId: win.conversationId, focusRequest: win.focusRequest,
       operating: [...new Set([...this.invocations.values()].filter(i => i.context.windowId === windowId).map(i => i.context.conversationId))] };
   }
@@ -68,6 +82,7 @@ export class BrowserHost {
     if (!input || typeof input !== 'object' || typeof input.type !== 'string') throw new BrowserHostError('invalid-command', 'Invalid browser command');
     if (input.type === 'activate') {
       if (input.conversationId !== null && (typeof input.conversationId !== 'string' || !input.conversationId)) throw new BrowserHostError('invalid-conversation', 'Invalid conversation');
+      if (win.conversationId !== input.conversationId) this.annotations.stopWhere(this.registry.list(windowId), () => true);
       win.conversationId = input.conversationId;
     } else if (input.type === 'open') {
       this.open(windowId, win.conversationId, input.url ?? 'about:blank', input.id);
@@ -79,8 +94,11 @@ export class BrowserHost {
         if (![input.width,input.height].every(v => Number.isFinite(v) && v > 0 && v <= 16384)) throw new BrowserHostError('invalid-viewport', 'Invalid viewport size');
         tab.width = Math.round(input.width); tab.height = Math.round(input.height);
         win.viewport = {width: tab.width,height: tab.height};
-      } else if (input.type === 'select') win.selected[win.conversationId ?? ''] = tab.id;
-      else if (input.type === 'close') this.closeTab(tab);
+      } else if (input.type === 'select') {
+        win.selected[win.conversationId ?? ''] = tab.id;
+        this.annotations.stopWhere(this.registry.list(windowId), other => other.id !== tab.id);
+      } else if (input.type === 'close') this.closeTab(tab);
+      else if (isAnnotationCommand(input)) await this.annotations.command(tab, input);
       else await this.navigation(tab, input.type, input.type === 'goto' ? input.url : undefined);
     }
     this.publish(windowId); return this.state(windowId);
@@ -88,6 +106,8 @@ export class BrowserHost {
   beginInvocation(context: BrowserInvocation): (reason?: 'complete' | 'cancel') => void {
     this.window(context.windowId);
     if (this.invocations.has(context.invocationId)) throw new BrowserHostError('duplicate-invocation', 'Invocation already active');
+    // The Agent and a person must not compete for page input.
+    this.annotations.stopWhere(this.registry.list(context.windowId, context.conversationId), () => true);
     const entry = {context,abort: new AbortController()}; this.invocations.set(context.invocationId, entry);
     const revoke = (reason?: 'complete' | 'cancel') => {
       entry.abort.abort(); this.invocations.delete(context.invocationId);
@@ -155,13 +175,22 @@ export class BrowserHost {
     };
     return this.cancellable(execute(),entry.abort.signal);
   }
+  /** Element crops for annotations of a tab the caller's window currently owns. */
+  async annotationImages(windowId: number, sender: WebContents, mainFrame: boolean, tabId: string, annotationIds: string[]): Promise<BrowserAnnotationImages> {
+    const win = this.window(windowId);
+    if (sender !== win.embedder || !mainFrame) throw new BrowserHostError('invalid-sender', 'Browser IPC requires the local window main frame');
+    if (typeof tabId !== 'string' || !Array.isArray(annotationIds) || annotationIds.length > 50 || !annotationIds.every(id => typeof id === 'string' && id.length <= 100))
+      throw new BrowserHostError('invalid-command', 'Invalid annotation image request');
+    const tab = this.registry.get(tabId, windowId, win.conversationId, true);
+    return this.annotations.images(tab, annotationIds);
+  }
   closeWindow(windowId: number): void {
     for (const entry of this.invocations.values()) if (entry.context.windowId===windowId) { entry.abort.abort(); this.invocations.delete(entry.context.invocationId); }
     for (const tab of this.registry.list(windowId)) this.closeTab(tab);
     for (const [id,g] of this.guests) if(g.windowId===windowId) {g.dispose?.();g.automation?.dispose();this.guests.delete(id);}
     this.windows.delete(windowId);
   }
-  dispose(): void { for(const id of [...this.windows.keys()]) this.closeWindow(id); this.listeners.clear(); }
+  dispose(): void { for(const id of [...this.windows.keys()]) this.closeWindow(id); this.listeners.clear(); this.annotations.dispose(); }
   private window(id: number): WindowEntry { const w=this.windows.get(id); if(!w) throw new BrowserHostError('window-closed','Browser window closed'); return w; }
   private publish(id: number): void { if(this.windows.has(id)) for(const listener of this.listeners) listener(id,this.state(id)); }
   private clearCursor(tab: BrowserRecord): void {
@@ -207,13 +236,19 @@ export class BrowserHost {
       tab.canGoBack=guest.navigationHistory.canGoBack();tab.canGoForward=guest.navigationHistory.canGoForward();
       this.publish(tab.windowId);
     };
-    const navigate=()=>{tab.generation++;tab.error=null;this.settleCursor(tab);sync();};
+    const navigate=()=>{tab.generation++;tab.error=null;this.settleCursor(tab);this.annotations.navigated(tab);sync();};
     const ready=()=>{tab.ready=true;sync();};
     const failed=(_event:unknown,code:number,description:string,_url:string,isMainFrame:boolean)=>{if(isMainFrame&&code!==-3){tab.error={code:'load-failed',detail:description};sync();}};
-    const gone=()=>{tab.generation++;tab.ready=false;tab.error={code:'renderer-gone'};this.settleCursor(tab);entry.automation?.dispose();entry.automation=undefined;this.publish(tab.windowId);};
+    const gone=()=>{tab.generation++;tab.ready=false;tab.error={code:'renderer-gone'};this.settleCursor(tab);this.annotations.crashed(tab);entry.automation?.dispose();entry.automation=undefined;this.publish(tab.windowId);};
+    // Esc leaves annotation mode even while the page has keyboard focus.
+    const escape=(event:{preventDefault():void},input:{type:string;key:string})=>{
+      if(input.type!=='keyDown'||input.key!=='Escape'||!this.annotations.state(tab.id)?.mode)return;
+      event.preventDefault();void this.annotations.stop(tab);
+    };
     const listeners: [string,(...args:any[])=>void][]=[['dom-ready',ready],['did-start-loading',sync],['did-stop-loading',sync],['did-navigate',navigate],['did-navigate-in-page',sync],['page-title-updated',sync],['did-fail-load',failed],['render-process-gone',gone]];
     for(const [event,fn] of listeners)guest.on(event as any,fn);
-    entry.dispose=()=>{for(const [event,fn] of listeners)guest.removeListener(event as any,fn);};
+    guest.on('before-input-event' as any,escape as any);
+    entry.dispose=()=>{for(const [event,fn] of listeners)guest.removeListener(event as any,fn);guest.removeListener('before-input-event' as any,escape as any);};
     tab.ready=true;
     const pendingUrl=tab.url;sync();
     if(pendingUrl!=='about:blank'&&guest.getURL()!==pendingUrl)void this.navigation(tab,'goto',pendingUrl).catch(()=>undefined);
@@ -242,6 +277,7 @@ export class BrowserHost {
   }
   private closeTab(tab:BrowserRecord):void{
     this.clearCursor(tab);
+    this.annotations.close(tab);
     tab.generation++;this.tabSignals.get(tab.id)?.abort();this.tabSignals.delete(tab.id);this.navigationEpoch.delete(tab.id);this.registry.remove(tab.id);
     const guest=tab.guestId===null?null:this.guests.get(tab.guestId);
     guest?.dispose?.();guest?.automation?.dispose();
@@ -265,4 +301,8 @@ export class BrowserHost {
       promise.then(resolve,reject).finally(()=>signal.removeEventListener('abort',abort));
     });
   }
+}
+
+function isAnnotationCommand(input: BrowserUiCommand): input is Extract<BrowserUiCommand, { type: `annotate-${string}` }> {
+  return input.type.startsWith('annotate-');
 }

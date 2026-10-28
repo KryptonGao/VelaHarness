@@ -1,144 +1,134 @@
 {
-  "version": "1.2.5",
+  "version": "1.2.6",
   "locales": {
     "en": {
-      "summary": "Vela 1.2.5 adds fade-in and bounce animations for streamed reply and thinking text, a rotating cache-hit and token readout under the composer, a tree view in the turn review, and a stricter read-only guard for Plan mode. It also keeps huge git diffs from freezing the app and stops finished subagents from using up the subagent limit.",
+      "summary": "Vela 1.2.6 lets you annotate elements in the built-in browser and send your notes, element details and screenshots to the Agent. It also keeps complete answers visible when the model follows them with a short closing message.",
       "highlights": [
         {
-          "title": "Animated streaming text",
-          "body": "New text in replies and in thinking now fades in and can bounce up slightly as it arrives. Reply text and thinking text have their own Fade-in and Bounce switches in Settings → Conversation display, and the thinking summary is revealed at the same pace as the reply."
+          "title": "Point to a page element",
+          "body": "Turn on Annotate in the browser toolbar, select an element and write a note. Adjust the selection to a parent or child element, then add more notes before sending."
         },
         {
-          "title": "Safer Plan mode",
-          "body": "In Plan mode and in read-only subagents, shell commands are now parsed the way a shell reads them. Commands that could write files, run other programs or expand into something else are refused, while ordinary look-up commands still work."
+          "title": "Send notes with visual context",
+          "body": "Element notes appear beside text replies above the composer. Sending includes the page address, element description, selector, position and key styles, with up to four numbered element screenshots."
         },
         {
-          "title": "Turn review as a file tree",
-          "body": "The list of files changed in a turn now uses the same tree as the file explorer, with folders you can fold and the added and removed line counts beside each file."
+          "title": "Keep notes with your conversation",
+          "body": "Switching conversations or hiding the browser keeps element notes in memory. Markers follow page layout changes; notes whose elements disappear keep their descriptions and can still be sent. Unsent notes are not restored after restarting Vela."
         },
         {
-          "title": "Huge diffs no longer freeze Vela",
-          "body": "Very large git diffs, such as a big commit, a stash or a release range, are now cut off while they are read instead of being loaded whole. The history page tells you when only the first part of a diff is shown."
+          "title": "Keep the full answer visible",
+          "body": "When a model adds a short closing message after its answer and recommended actions, the answer stays visible outside the collapsed process. Copying the final reply includes the related answer messages."
         }
       ],
       "improvements": [
-        "Under the composer, cache hit rate and total tokens now take turns in one spot every 30 seconds, while the output speed stays in place.",
-        "Finished, failed or stopped subagents no longer count toward the subagent limit; only those still running or waiting do.",
-        "The cost estimate hint can now be closed for good with its × button.",
-        "Writes through a symbolic link that points outside the workspace now ask for approval like any other outside path.",
-        "Following a streaming reply no longer lets go when the content gets shorter, for example when a thinking summary replaces a longer line."
+        "Annotation details redact common secret parameters in page URLs and do not read filled form values; element screenshots mask password fields.",
+        "If a message fails to send, its reply cards, annotation notes and attachments return to the composer.",
+        "Annotation mode pauses when the Agent takes control of the browser, and closing a tab removes its notes."
       ]
     },
     "zh-CN": {
-      "summary": "Vela 1.2.5 为流式的回复和思考文字加入淡入与弹跳动画，输入框下方轮流展示缓存命中率和 token 总量，变更审阅改用文件树，并加强了 Plan 模式的只读检查。同时，超大的 git 差异不再卡住应用，已结束的子代理也不再占用子代理上限。",
+      "summary": "Vela 1.2.6 支持在内置浏览器中批注页面元素，把意见、元素信息和截图一起发给 Agent。同时修复了模型在完整答案后补上一句简短结语时，正文被折叠到过程区的问题。",
       "highlights": [
         {
-          "title": "流式文字有了动画",
-          "body": "回复和思考里新出现的文字会淡入，还可以轻轻向上弹一下再落回。设置 → 对话显示里，回复文字和思考内容各有「淡入」「弹跳」两个开关，思考总结也会和回复一样逐步展示。"
+          "title": "点选页面元素写批注",
+          "body": "打开浏览器工具栏的「批注」，点选元素并写下意见。可以调整到父级或子级元素，也可以继续添加多条批注后一起发送。"
         },
         {
-          "title": "更安全的 Plan 模式",
-          "body": "Plan 模式和只读子代理里的 shell 命令，现在按 shell 的规则逐条解析。可能写文件、运行其他程序或展开成别的内容的写法会被拒绝，常规的查阅命令照常可用。"
+          "title": "连同截图和定位信息发送",
+          "body": "元素批注与文字回复一起显示在输入框上方。发送时附上页面地址、元素描述、选择器、位置和关键样式，并可携带最多四张带编号的元素截图。"
         },
         {
-          "title": "变更审阅改用文件树",
-          "body": "一轮对话里改动的文件列表，现在和文件浏览器使用同一棵树，文件夹可以折叠，每个文件旁边显示新增和删除的行数。"
+          "title": "切换对话也保留批注",
+          "body": "切换对话或收起浏览器时，元素批注会保留在内存中。标记跟随页面布局变化；元素消失后，批注仍保留描述并可发送。重启 Vela 后不会恢复未发送的批注。"
         },
         {
-          "title": "超大差异不再卡死应用",
-          "body": "很大的 git 差异，比如体量很大的提交、暂存或发布区间，现在读取时就会截断，不再整个载入。历史页面在只显示了差异前一部分时会给出提示。"
+          "title": "完整答案留在过程区外",
+          "body": "模型在答案和推荐操作后补上一句简短结语时，完整答案仍保持可见，不会被折叠进执行过程。复制最终回复时，也会包含相关的答案段落。"
         }
       ],
       "improvements": [
-        "输入框下方的缓存命中率和累计 token 现在每 30 秒在同一位置轮流展示，输出速度保持不动。",
-        "已完成、失败或停止的子代理不再占用子代理上限，只有仍在运行或排队的才计入。",
-        "费用预估提示现在可以用右侧的 × 按钮永久关闭。",
-        "通过指向工作区之外的符号链接写文件，现在和其他工作区外的路径一样需要审批。",
-        "流式回复的跟随不再因为内容变短（例如思考总结替换掉较长的一行）而中断。"
+        "批注信息会遮去页面地址中的常见敏感参数，不读取表单已填的值；元素截图会遮挡密码框。",
+        "消息发送失败时，回复卡片、元素批注和附件会放回输入框。",
+        "Agent 接管浏览器时会退出批注模式；关闭标签页时会移除该页的批注。"
       ]
     },
     "zh-TW": {
-      "summary": "Vela 1.2.5 為串流的回覆與思考文字加入淡入與彈跳動畫，輸入框下方輪流顯示快取命中率與 token 總量，變更審閱改用檔案樹，並加強了 Plan 模式的唯讀檢查。同時，超大的 git 差異不再卡住應用程式，已結束的子代理也不再佔用子代理上限。",
+      "summary": "Vela 1.2.6 支援在內建瀏覽器中批註頁面元素，把意見、元素資訊與截圖一起傳給 Agent。同時修正了模型在完整答案後補上一句簡短結語時，正文被摺疊到過程區的問題。",
       "highlights": [
         {
-          "title": "串流文字有了動畫",
-          "body": "回覆與思考中新出現的文字會淡入，還可以輕輕向上彈一下再落回。設定 → 對話顯示裡，回覆文字與思考內容各有「淡入」「彈跳」兩個開關，思考總結也會和回覆一樣逐步顯示。"
+          "title": "點選頁面元素寫批註",
+          "body": "開啟瀏覽器工具列的「批註」，點選元素並寫下意見。可以調整到父層或子層元素，也可以繼續新增多則批註後一起傳送。"
         },
         {
-          "title": "更安全的 Plan 模式",
-          "body": "Plan 模式與唯讀子代理中的 shell 指令，現在依 shell 的規則逐條解析。可能寫入檔案、執行其他程式或展開成其他內容的寫法會被拒絕，一般的查閱指令照常可用。"
+          "title": "連同截圖與定位資訊傳送",
+          "body": "元素批註與文字回覆一起顯示在輸入框上方。傳送時附上頁面網址、元素描述、選擇器、位置與關鍵樣式，並可攜帶最多四張附編號的元素截圖。"
         },
         {
-          "title": "變更審閱改用檔案樹",
-          "body": "一輪對話中改動的檔案清單，現在與檔案瀏覽器使用同一棵樹，資料夾可以摺疊，每個檔案旁邊顯示新增與刪除的行數。"
+          "title": "切換對話也保留批註",
+          "body": "切換對話或收起瀏覽器時，元素批註會保留在記憶體中。標記跟隨頁面版面變化；元素消失後，批註仍保留描述並可傳送。重新啟動 Vela 後不會還原未傳送的批註。"
         },
         {
-          "title": "超大差異不再卡死應用程式",
-          "body": "很大的 git 差異，例如體量很大的提交、暫存或發布區間，現在讀取時就會截斷，不再整個載入。歷史頁面在只顯示了差異前一部分時會給出提示。"
+          "title": "完整答案留在過程區外",
+          "body": "模型在答案與建議操作後補上一句簡短結語時，完整答案仍保持可見，不會被摺疊進執行過程。複製最終回覆時，也會包含相關的答案段落。"
         }
       ],
       "improvements": [
-        "輸入框下方的快取命中率與累計 token 現在每 30 秒在同一位置輪流顯示，輸出速度保持不動。",
-        "已完成、失敗或停止的子代理不再佔用子代理上限，只有仍在執行或排隊的才會計入。",
-        "費用預估提示現在可以用右側的 × 按鈕永久關閉。",
-        "透過指向工作區之外的符號連結寫入檔案，現在和其他工作區外的路徑一樣需要核准。",
-        "串流回覆的跟隨不再因為內容變短（例如思考總結取代較長的一行）而中斷。"
+        "批註資訊會遮去頁面網址中的常見敏感參數，不讀取表單已填入的值；元素截圖會遮蔽密碼欄位。",
+        "訊息傳送失敗時，回覆卡片、元素批註與附件會放回輸入框。",
+        "Agent 接管瀏覽器時會退出批註模式；關閉分頁時會移除該頁的批註。"
       ]
     },
     "ja": {
-      "summary": "Vela 1.2.5 では、ストリーミング表示される返信と思考テキストにフェードインとバウンスのアニメーションを追加し、入力欄の下でキャッシュヒット率とトークン総数を交互に表示し、ターンのレビューをファイルツリーにし、Plan モードの読み取り専用チェックを強化しました。巨大な git 差分でアプリが固まらなくなり、終了したサブエージェントがサブエージェントの上限を使わなくなりました。",
+      "summary": "Vela 1.2.6 では、内蔵ブラウザーのページ要素に注釈を付け、メモ・要素情報・スクリーンショットを Agent に送れるようになりました。回答の後に短い締めのメッセージが続いても、回答全体が折りたたまれずに表示されます。",
       "highlights": [
         {
-          "title": "ストリーミング文字にアニメーション",
-          "body": "返信と思考に新しく加わった文字がフェードインし、少し跳ねてから元の位置に戻ることもできます。設定 → 会話の表示で、返信テキストと思考内容のそれぞれに「フェードイン」「バウンス」のスイッチがあり、思考の要約も返信と同じペースで表示されます。"
+          "title": "ページ要素を選んで注釈",
+          "body": "ブラウザーのツールバーで注釈モードを有効にし、要素を選んでメモを書けます。親要素や子要素へ選択を調整したり、複数の注釈をまとめて送ったりできます。"
         },
         {
-          "title": "より安全な Plan モード",
-          "body": "Plan モードと読み取り専用のサブエージェントでは、シェルコマンドをシェルの規則に沿って解析するようになりました。ファイルへの書き込み、他のプログラムの実行、別の内容への展開につながる書き方は拒否され、通常の調査用コマンドはこれまでどおり使えます。"
+          "title": "画像と位置情報も一緒に送信",
+          "body": "要素の注釈はテキストへの返信と同じく入力欄の上に表示されます。ページの URL、要素の説明、セレクター、位置、主なスタイルに加え、番号付きの要素スクリーンショットを最大 4 枚送れます。"
         },
         {
-          "title": "ターンのレビューをファイルツリーで",
-          "body": "1 回のターンで変更されたファイルの一覧が、ファイルエクスプローラーと同じツリーになりました。フォルダーは折りたためて、各ファイルの横に追加・削除の行数が表示されます。"
+          "title": "会話を切り替えても注釈を保持",
+          "body": "会話の切り替えやブラウザーの非表示でも、要素の注釈はメモリーに残ります。マーカーはレイアウトの変化に追従し、要素が消えても説明付きで送れます。Vela を再起動すると未送信の注釈は復元されません。"
         },
         {
-          "title": "巨大な差分で固まらない",
-          "body": "大きなコミット、スタッシュ、リリース範囲などの非常に大きな git 差分は、全体を読み込まず、読み込み中に打ち切られるようになりました。履歴ページでは、差分の最初の部分だけを表示している場合にそのことをお知らせします。"
+          "title": "回答全体を見える位置に",
+          "body": "回答と推奨アクションの後に短い締めの文が追加されても、回答全体は実行過程に折りたたまれません。最終返信のコピーにも関連する回答メッセージが含まれます。"
         }
       ],
       "improvements": [
-        "入力欄の下では、キャッシュヒット率とトークン総数が 30 秒ごとに同じ位置で交互に表示され、出力速度はそのまま固定されます。",
-        "完了・失敗・停止したサブエージェントはサブエージェントの上限に数えられなくなり、実行中または待機中のものだけが対象です。",
-        "費用の見積もりのヒントは、右側の × ボタンで今後表示しないようにできます。",
-        "ワークスペース外を指すシンボリックリンク経由の書き込みも、ほかのワークスペース外のパスと同様に承認が必要になりました。",
-        "ストリーミング中の返信への追従は、内容が短くなっても（たとえば思考の要約が長い行に置き換わるとき）途切れなくなりました。"
+        "注釈の URL に含まれる一般的な機密パラメーターは伏せられ、フォームの入力済みの値は読み取りません。要素の画像ではパスワード欄をマスクします。",
+        "送信に失敗した場合、返信カード、要素の注釈、添付ファイルを入力欄に戻します。",
+        "Agent がブラウザーを操作すると注釈モードを終了し、タブを閉じるとその注釈を削除します。"
       ]
     },
     "ko": {
-      "summary": "Vela 1.2.5는 스트리밍되는 답변과 생각 텍스트에 페이드인과 바운스 애니메이션을 더하고, 입력창 아래에서 캐시 적중률과 토큰 총량을 번갈아 보여 주며, 턴 검토를 파일 트리로 바꾸고, Plan 모드의 읽기 전용 검사를 강화했습니다. 또한 매우 큰 git diff가 앱을 멈추게 하지 않고, 끝난 서브에이전트가 서브에이전트 한도를 차지하지 않습니다.",
+      "summary": "Vela 1.2.6에서는 내장 브라우저의 페이지 요소에 주석을 달고 메모, 요소 정보, 스크린샷을 Agent에게 보낼 수 있습니다. 모델이 답변 뒤에 짧은 마무리 메시지를 덧붙여도 전체 답변이 접히지 않고 표시됩니다.",
       "highlights": [
         {
-          "title": "스트리밍 텍스트에 애니메이션",
-          "body": "답변과 생각에 새로 나타나는 글자가 페이드인되고, 살짝 위로 튀었다가 제자리로 돌아오게 할 수도 있습니다. 설정 → 대화 표시에서 답변 텍스트와 생각 내용에 각각 '페이드인', '바운스' 스위치가 있으며, 생각 요약도 답변과 같은 속도로 나타납니다."
+          "title": "페이지 요소를 골라 주석 달기",
+          "body": "브라우저 도구 모음에서 주석 모드를 켜고 요소를 선택해 의견을 적으세요. 부모 또는 자식 요소로 선택을 조정하고, 여러 주석을 추가한 뒤 함께 보낼 수 있습니다."
         },
         {
-          "title": "더 안전한 Plan 모드",
-          "body": "Plan 모드와 읽기 전용 서브에이전트에서는 셸 명령을 셸의 규칙대로 해석합니다. 파일을 쓰거나, 다른 프로그램을 실행하거나, 다른 내용으로 확장될 수 있는 형태는 거부되고, 일반적인 조회 명령은 그대로 동작합니다."
+          "title": "스크린샷과 위치 정보 함께 전송",
+          "body": "요소 주석은 텍스트 답장과 함께 입력창 위에 표시됩니다. 보낼 때 페이지 주소, 요소 설명, 선택자, 위치와 주요 스타일이 포함되며, 번호가 붙은 요소 스크린샷을 최대 4장 첨부할 수 있습니다."
         },
         {
-          "title": "턴 검토를 파일 트리로",
-          "body": "한 턴에서 바뀐 파일 목록이 파일 탐색기와 같은 트리로 바뀌었습니다. 폴더를 접을 수 있고, 각 파일 옆에 추가·삭제된 줄 수가 표시됩니다."
+          "title": "대화를 바꿔도 주석 유지",
+          "body": "대화를 전환하거나 브라우저를 숨겨도 요소 주석은 메모리에 남습니다. 표시가 페이지 배치 변화를 따라가고, 요소가 사라져도 설명과 함께 보낼 수 있습니다. Vela를 다시 시작하면 보내지 않은 주석은 복원되지 않습니다."
         },
         {
-          "title": "거대한 diff에도 멈추지 않음",
-          "body": "큰 커밋, 스태시, 릴리스 범위처럼 매우 큰 git diff는 전부 불러오지 않고 읽는 도중에 잘라 냅니다. 기록 페이지는 diff의 앞부분만 보여 주는 경우 그 사실을 알려 줍니다."
+          "title": "전체 답변을 계속 표시",
+          "body": "모델이 답변과 추천 작업 뒤에 짧은 마무리 문장을 덧붙여도 전체 답변이 실행 과정 안으로 접히지 않습니다. 최종 답변을 복사할 때 관련 답변 메시지도 함께 포함됩니다."
         }
       ],
       "improvements": [
-        "입력창 아래에서는 캐시 적중률과 누적 토큰이 30초마다 같은 자리에서 번갈아 표시되고, 출력 속도는 그대로 고정됩니다.",
-        "끝나거나 실패하거나 중지된 서브에이전트는 서브에이전트 한도에 포함되지 않으며, 아직 실행 중이거나 대기 중인 것만 계산됩니다.",
-        "비용 예상 안내는 오른쪽 × 버튼으로 더 이상 표시하지 않게 닫을 수 있습니다.",
-        "작업 공간 밖을 가리키는 심볼릭 링크를 통한 쓰기도 다른 작업 공간 밖 경로와 같이 승인이 필요합니다.",
-        "스트리밍 답변을 따라가는 동작이 내용이 짧아져도(예: 생각 요약이 더 긴 줄을 대체할 때) 끊기지 않습니다."
+        "주석의 페이지 주소에서 일반적인 민감 매개변수를 가리고, 폼에 입력된 값은 읽지 않습니다. 요소 스크린샷에서는 비밀번호 필드를 가립니다.",
+        "메시지 전송에 실패하면 답장 카드, 요소 주석과 첨부 파일이 입력창으로 돌아옵니다.",
+        "Agent가 브라우저를 제어하면 주석 모드를 종료하고, 탭을 닫으면 해당 주석을 삭제합니다."
       ]
     }
   }

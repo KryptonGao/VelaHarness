@@ -39,6 +39,7 @@ const suites = {
     { name: "browser-electron-smoke", runner: "electron" },
     { name: "browser-auth-electron-smoke", runner: "node" },
     { name: "browser-use-electron-smoke", runner: "node" },
+    { name: "browser-annotation-electron-smoke", runner: "node" },
     { name: "mcp-electron-smoke", runner: "node" },
     { name: "scheduled-tasks-electron-smoke", runner: "node" },
     { name: "task-recipes-electron-smoke", runner: "node" },

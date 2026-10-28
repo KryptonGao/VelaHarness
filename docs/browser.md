@@ -173,6 +173,27 @@ and assess JavaScript code. No additional site approval is applied. Browser
 executions count as potential workspace mutations for Git refresh, subagent
 mutation tracking and Goal validation invalidation.
 
+## Element annotations
+
+The panel toolbar has an annotation toggle. In annotation mode the main process
+drives CDP (`Overlay.setInspectMode`, `DOM.*`, isolated-world probes) to pick
+an element, including inside iframes and open shadow roots; nothing is injected
+into the page. The popover, numbered markers and element boxes are drawn by the
+app above the `<webview>`, so they never reach the DOM or Agent screenshots.
+
+A committed annotation becomes an `element` reply card next to the text-reply
+cards (`browser/reply-store.ts`). On send the message gets a quoted reference
+block (redacted URL, element description, selector, geometry, whitelisted
+styles) and up to 4 cropped screenshots ("see image N"), at most 20
+annotations per message. Password and one-time-code fields are never read and
+are masked in crops. Navigation or removal marks annotations stale. Requirement
+and acceptance details: [requirements/browser-annotations.md](./requirements/browser-annotations.md).
+
+```sh
+pnpm --filter @vela/desktop test:browser
+node apps/desktop/test/browser-annotation-electron-smoke.mjs   # needs pnpm build
+```
+
 ## Build and validation
 
 The worker, Browser Client and embedded API guide are bundled into the main

@@ -30,7 +30,7 @@ export class BrowserController {
   project(tab: BrowserTabState): void {
     const state = this.store.getSnapshot();
     const { url, title, loading, ready, canGoBack, canGoForward, error } = tab;
-    this.store.update({ url, title, loading, ready, canGoBack, canGoForward, error,
+    this.store.update({ url, title, loading, ready, canGoBack, canGoForward, error, annotating: !!tab.annotation?.mode,
       ...(!state.editingAddress ? { address: url === UI_BROWSER_BLANK_URL ? "" : url } : {}) });
   }
 
@@ -39,6 +39,14 @@ export class BrowserController {
     this.host.command({ type, tabId: this.host.tabId });
     return true;
   }
+
+  /** 元素批注需要主进程的浏览器宿主。 */
+  get supportsAnnotation(): boolean { return !!this.host; }
+
+  /** 开关元素批注模式；只有应用内窗口（有主进程的浏览器宿主）支持。 */
+  setAnnotating = (enabled: boolean): void => {
+    this.host?.command({ type: "annotate-mode", tabId: this.host.tabId, enabled });
+  };
 
   attach(view: BrowserView): void {
     if (this.host) return;

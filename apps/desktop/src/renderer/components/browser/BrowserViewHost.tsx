@@ -4,6 +4,7 @@ import type { RendererBrowserTab } from "../../browser/useBrowserTabs";
 import type { BrowserView } from "../../browser/browser-controller";
 import { UI_BROWSER_BLANK_URL, UI_BROWSER_PARTITION } from "../../../browser-policy";
 import { BrowserAgentPointer } from "./BrowserAgentPointer";
+import { BrowserAnnotationLayer } from "./BrowserAnnotationLayer";
 
 interface Placement { left: number; top: number; width: number; height: number; visible: boolean }
 /** Stable parent and keys: panel lifecycles never detach or recreate guests. */
@@ -77,11 +78,18 @@ function PersistentGuest({ tab, visible, hosted, command }: {
     return () => { cancelAnimationFrame(frame); setFrozen(null); };
   }, [visible, hosted, tab.id, command]);
   const pinned = guestVisible ? frozen : null;
+  // 面板收起、切走标签页或对话时退出批注模式；已写的批注保留。
+  const annotating = !!tab.annotation?.mode;
+  useEffect(() => {
+    if (annotating && !guestVisible) command({ type: "annotate-mode", tabId: tab.id, enabled: false });
+  }, [annotating, guestVisible, tab.id, command]);
   return <div className="browser-guest-frame" aria-hidden={!guestVisible} inert={!guestVisible}
     style={{ position: "fixed", left: guestVisible ? placement.left : -10000, top: placement.top, width: placement.width, height: placement.height,
       visibility: guestVisible ? "visible" : "hidden", pointerEvents: guestVisible ? "auto" : "none" }}>
     <webview ref={bind} className="browser-webview" style={pinned ? { position: "absolute", top: 0, right: 0, width: pinned.width, height: pinned.height } : undefined} partition={UI_BROWSER_PARTITION}
       webpreferences="contextIsolation=yes,sandbox=yes,nodeIntegration=no" aria-label="Web content" />
+    {guestVisible && hosted && <BrowserAnnotationLayer tab={tab} width={placement.width} height={placement.height}
+      offsetX={pinned ? placement.width - pinned.width : 0} command={command} />}
     {guestVisible && tab.agentCursor && <BrowserAgentPointer cursor={tab.agentCursor} width={placement.width} height={placement.height} />}
   </div>;
 }

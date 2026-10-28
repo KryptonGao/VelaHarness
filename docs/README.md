@@ -42,6 +42,7 @@
 | [requirements/intelligent-ui.md](./requirements/intelligent-ui.md) | 产品与开发者 | Intelligent UI 需求：自适应回答、原生声明式组件、流式编译、安全交互、持久化及 P0–P2 验收；P0–P2 已实现，用户模板除外。 |
 | [agent-inbox.md](./agent-inbox.md) | 使用者与开发者 | Agent Inbox 的已实现能力：事项类型与状态、Host 权威决策与并发保护、重启作废、先落盘后通知、Resident Agent 与委派审批、Intelligent UI 嵌入、后台运行与通知、主动规则、限制、实现位置与验证。 |
 | [requirements/agent-inbox.md](./requirements/agent-inbox.md) | 产品与开发者 | Agent Inbox 与常驻 Agent 需求：定位、阶段状态、关键约束、后续设计决定与验收；第一至第七阶段均已实现。 |
+| [requirements/browser-annotations.md](./requirements/browser-annotations.md) | 产品与开发者 | 浏览器元素批注需求：在内置浏览器点选元素写批注，与“选中文字回复”共用卡片，随下一轮消息发送；P0–P2 分期、安全限制与验收；P0 已实现。 |
 | [run-view.md](./run-view.md) | 使用者与开发者 | 运行视图：运行中在过程末尾显示待办清单与当前步骤状态条，并要求模型先提交待办清单（`update_todos`、闸门、偏好同步）。 |
 | [info-cards.md](./info-cards.md) | 使用者与开发者 | 信息卡片布局：右侧浮在对话上的可排序卡片、各卡片内容与显示条件、拖动与键盘排序、隐藏与找回、布局存储和实现位置。 |
 | [requirements/competitive-gap-analysis.md](./requirements/competitive-gap-analysis.md) | 产品与开发者 | 竞品差距与新功能构想：对比 Codex、Claude Code、ZCode 缺失的能力，并按优先级列出构想；仅为构想稿，均未实现。 |

@@ -328,6 +328,11 @@ async function start(): Promise<void> {
     if (!window || !browserHost) throw new Error("Browser window is unavailable");
     return browserHost.command(window.id, event.sender, event.senderFrame === event.sender.mainFrame, command);
   });
+  ipcMain.handle(BrowserIpc.annotationImages, (event, tabId: string, annotationIds: string[]) => {
+    const window = BrowserWindow.fromWebContents(event.sender);
+    if (!window || !browserHost) throw new Error("Browser window is unavailable");
+    return browserHost.annotationImages(window.id, event.sender, event.senderFrame === event.sender.mainFrame, tabId, annotationIds);
+  });
 
   const scheduler = new ScheduledTaskScheduler(join(home, "scheduled-tasks.json"),
     (task, onCreated, run) => task.recipeBinding ? executeScheduledRecipe(recipes, task, onCreated, run) : runtime.runScheduledTask(task.workspace, task.prompt, onCreated, task));

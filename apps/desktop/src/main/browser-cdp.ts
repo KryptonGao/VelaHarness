@@ -2,6 +2,8 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import type { WebContents } from "electron";
 import type { BrowserAgentAction } from "../../../../packages/shared/src/browser";
+import { sensitiveAutocompleteSource } from "../../../../packages/shared/src/browser-annotation";
+import type { AnnotationRect, AnnotationViewport, BrowserAnnotationImage, ElementDescription } from "../../../../packages/shared/src/browser-annotation";
 
 export class BrowserCdpError extends Error {
   constructor(public code: string, message: string) { super(message); this.name = "BrowserCdpError"; }
@@ -69,6 +71,152 @@ function domOperation(operation: string, query: any, value: any, generation: str
   return { ref: ref(n), x, y, rect: [r.x, r.y, r.width, r.height] };
 }
 
+
+/** 点选到的节点：主会话或 OOPIF 子会话里的 backend node。 */
+export interface AnnotationHit { session?: string; backendNodeId: number }
+export interface AnnotationDescribed { element: ElementDescription; rect: AnnotationRect | null; viewport: AnnotationViewport; canParent: boolean; canChild: boolean }
+export type AnnotationBoxResult = { rect: AnnotationRect } | { error: "gone" | "hidden" };
+
+// 以下三个函数在隔离世界里以被点选的元素作为 this 运行：只读属性与布局，
+// 不派发事件、不改 DOM，也不读取输入框已填的值。
+function elementProbe(this: Element, sensitivePattern: string): any {
+  const el = this;
+  const win = el.ownerDocument.defaultView as Window & typeof globalThis;
+  const flat = (value: string | null | undefined, limit: number) => {
+    const text = (value || "").replace(/\s+/g, " ").trim();
+    return text.length > limit ? `${text.slice(0, limit - 1).trimEnd()}…` : text;
+  };
+  const tag = el.tagName.toLowerCase();
+  const type = tag === "input" ? ((el as HTMLInputElement).type || "").toLowerCase() : "";
+  const pattern = new RegExp(sensitivePattern);
+  const sensitive = type === "password" || (el.getAttribute("autocomplete") || "").toLowerCase().split(/\s+/).some(token => pattern.test(token));
+  const implicit: Record<string, string> = { a: el.hasAttribute("href") ? "link" : "", button: "button", select: "combobox", textarea: "textbox", img: "img", nav: "navigation", ul: "list", ol: "list", li: "listitem", table: "table", form: "form", main: "main", header: "banner", footer: "contentinfo", h1: "heading", h2: "heading", h3: "heading", h4: "heading", h5: "heading", h6: "heading" };
+  const inputRoles: Record<string, string> = { checkbox: "checkbox", radio: "radio", button: "button", submit: "button", reset: "button", range: "slider" };
+  const role = el.getAttribute("role") || (tag === "input" ? inputRoles[type] || "textbox" : implicit[tag] || "");
+  const root = el.getRootNode() as Document | ShadowRoot;
+  const labelledBy = (el.getAttribute("aria-labelledby") || "").split(/\s+/).filter(Boolean).map(id => root.getElementById?.(id)?.textContent || "").join(" ");
+  const labels = (el as HTMLInputElement).labels;
+  const label = el.getAttribute("aria-label") || labelledBy || (labels && labels[0]?.textContent) || el.getAttribute("placeholder") || el.getAttribute("alt") || el.getAttribute("title") || "";
+  const skip = ["SCRIPT", "STYLE", "NOSCRIPT", "TEXTAREA", "SELECT", "INPUT", "OPTION", "TEMPLATE"];
+  let text = "";
+  const collect = (node: Node) => {
+    if (text.length >= 300) return;
+    if (node.nodeType === 3) { text += ` ${node.nodeValue || ""}`; return; }
+    if (node.nodeType !== 1) return;
+    const child = node as HTMLElement;
+    if (skip.includes(child.tagName) || child.isContentEditable) return;
+    for (const next of Array.from(child.childNodes)) collect(next);
+  };
+  if (!sensitive) collect(el);
+  const summary = flat(text, 120);
+  const name = flat(label || (["button", "link", "heading", "tab", "menuitem"].includes(role) ? summary : ""), 120);
+
+  const escapeIdent = (value: string) => (win.CSS && win.CSS.escape ? win.CSS.escape(value) : value.replace(/[^a-zA-Z0-9_-]/g, "\\$&"));
+  const selectorIn = (node: Element): string => {
+    const scope = node.getRootNode() as Document | ShadowRoot;
+    const count = (selector: string) => { try { return scope.querySelectorAll(selector).length; } catch { return 0; } };
+    const matches = (candidate: Element, selector: string) => { try { return candidate.matches(selector); } catch { return false; } };
+    const anchor = (candidate: Element): string => {
+      const id = candidate.getAttribute("id");
+      if (id && count(`#${escapeIdent(id)}`) === 1) return `#${escapeIdent(id)}`;
+      for (const attr of ["data-testid", "data-test-id", "data-test", "data-cy"]) {
+        const value = candidate.getAttribute(attr);
+        if (!value) continue;
+        const selector = `[${attr}="${value.replace(/["\\]/g, "\\$&")}"]`;
+        if (count(selector) === 1) return selector;
+      }
+      return "";
+    };
+    const compound = (candidate: Element): string => {
+      const classes = Array.from(candidate.classList).filter(name => /^[A-Za-z][\w-]{0,30}$/.test(name)).slice(0, 2).map(name => `.${escapeIdent(name)}`).join("");
+      const base = `${candidate.tagName.toLowerCase()}${classes}`;
+      const parent = candidate.parentElement;
+      if (!parent) return base;
+      const children = Array.from(parent.children);
+      if (children.filter(child => matches(child, base)).length <= 1) return base;
+      return `${base}:nth-of-type(${children.filter(child => child.tagName === candidate.tagName).indexOf(candidate) + 1})`;
+    };
+    const parts: string[] = [];
+    for (let current: Element | null = node; current && parts.length < 8; current = current.parentElement) {
+      const hook = anchor(current);
+      parts.unshift(hook || compound(current));
+      if (hook || count(parts.join(" > ")) === 1) break;
+    }
+    return parts.join(" > ");
+  };
+  const hops: string[] = [];
+  let hopNode: Element = el;
+  for (let guard = 0; guard < 6; guard++) {
+    hops.unshift(selectorIn(hopNode));
+    const rootNode = hopNode.getRootNode() as ShadowRoot;
+    if (rootNode.nodeType === 11 && rootNode.host) hopNode = rootNode.host; else break;
+  }
+  const framePath: string[] = [];
+  let frameWindow: Window = win;
+  for (let guard = 0; guard < 6 && frameWindow !== frameWindow.top; guard++) {
+    let owner: Element | null = null;
+    try { owner = frameWindow.frameElement; } catch { owner = null; }
+    if (!owner) break;
+    framePath.unshift(selectorIn(owner));
+    frameWindow = owner.ownerDocument.defaultView as Window;
+  }
+
+  const computed = win.getComputedStyle(el);
+  const sides = (prefix: string) => {
+    const values = ["top", "right", "bottom", "left"].map(side => computed.getPropertyValue(`${prefix}-${side}`));
+    return values.every(value => value === values[0]) ? values[0]! : values.join(" ");
+  };
+  const color = (value: string) => {
+    const match = /^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)$/.exec(value);
+    if (!match || (match[4] !== undefined && Number(match[4]) < 1)) return value;
+    const pairs = [match[1], match[2], match[3]].map(part => Number(part).toString(16).padStart(2, "0"));
+    return `#${pairs.every(pair => pair[0] === pair[1]) ? pairs.map(pair => pair[0]).join("") : pairs.join("")}`;
+  };
+  const styles: Record<string, string> = {
+    color: color(computed.color), "background-color": color(computed.backgroundColor), "font-size": computed.fontSize,
+    "font-weight": computed.fontWeight, margin: sides("margin"), padding: sides("padding"), display: computed.display, position: computed.position,
+  };
+  const shadowHost = (el.getRootNode() as ShadowRoot);
+  return {
+    tag, id: el.getAttribute("id") || undefined, classes: Array.from(el.classList).slice(0, 6).map(name => flat(name, 40)),
+    role: role || undefined, name: name || undefined, text: summary || undefined, selector: hops.join(" >>> "), framePath, styles, sensitive,
+    hasParent: !!el.parentElement || (shadowHost.nodeType === 11 && !!shadowHost.host), hasChild: el.children.length > 0,
+  };
+}
+function neighborProbe(this: Element, direction: string): Element | null {
+  if (direction === "parent") {
+    if (this.parentElement) return this.parentElement;
+    const root = this.getRootNode() as ShadowRoot;
+    return root.nodeType === 11 && root.host ? root.host : null;
+  }
+  const children = Array.from(this.children);
+  return children.find(child => { const box = child.getBoundingClientRect(); return box.width > 0 && box.height > 0; }) ?? children[0] ?? null;
+}
+// 密码框与敏感自动填充字段的位置（主框架视口坐标），截图时据此打码。
+function sensitiveProbe(sensitivePattern: string): number[][] {
+  const pattern = new RegExp(sensitivePattern);
+  const found: number[][] = [];
+  const visit = (root: Document | ShadowRoot, dx: number, dy: number, depth: number) => {
+    for (const node of Array.from(root.querySelectorAll("*"))) {
+      if (node.shadowRoot) visit(node.shadowRoot, dx, dy, depth);
+      if (node.tagName === "INPUT") {
+        const input = node as HTMLInputElement;
+        if (input.type.toLowerCase() !== "password" && !(input.getAttribute("autocomplete") || "").toLowerCase().split(/\s+/).some(token => pattern.test(token))) continue;
+        const box = input.getBoundingClientRect();
+        found.push([box.x + dx, box.y + dy, box.width, box.height]);
+      } else if ((node.tagName === "IFRAME" || node.tagName === "FRAME") && depth < 3) {
+        try {
+          const doc = (node as HTMLIFrameElement).contentDocument;
+          const box = node.getBoundingClientRect();
+          if (doc) visit(doc, dx + box.x + node.clientLeft, dy + box.y + node.clientTop, depth + 1);
+        } catch { /* cross-origin frames are handled through their own sessions */ }
+      }
+    }
+  };
+  visit(document, 0, 0, 0);
+  return found;
+}
+
 export class BrowserCdp {
   private ready: Promise<void>;
   private invocation = new AsyncLocalStorage<AbortSignal | undefined>();
@@ -102,6 +250,9 @@ export class BrowserCdp {
   private disposed = false;
   private debuggerApi: WebContents["debugger"];
   private sessionReady = new Map<string, Promise<void>>();
+  private annotationMode = false;
+  private annotationListener: ((hit: AnnotationHit) => void) | null = null;
+  private domReady = new Set<string>();
   private mainContexts = new Map<string, { id: number; frameId: string; session?: string }>();
   private contextKey(frameId: string, session?: string) { return JSON.stringify([session || "", frameId]); }
   constructor(private guest: WebContents) {
@@ -155,12 +306,17 @@ export class BrowserCdp {
       const ready = this.invocation.run(undefined, () => this.enable(p.sessionId));
       this.sessionReady.set(p.sessionId, ready);
       void ready.catch(() => {});
+      if (this.annotationMode) void ready.then(() => this.armInspect(p.sessionId)).catch(() => {});
     } else if (method === "Target.detachedFromTarget") { for (const [id, f] of this.frames) if (f.session === p.sessionId) { this.frames.delete(id); this.contexts.delete(id); this.mainContexts.delete(this.contextKey(id, p.sessionId)); } }
     else if (method === "Page.frameAttached") {
       this.frames.set(p.frameId, { url: "", ...this.frames.get(p.frameId), id: p.frameId, parentId: p.parentFrameId, session });
     }
+    else if (method === "Overlay.inspectNodeRequested") {
+      if (this.annotationMode && typeof p.backendNodeId === "number") this.annotationListener?.({ session, backendNodeId: p.backendNodeId });
+    }
     else if (method === "Page.frameNavigated") {
       this.generation++; this.contexts.delete(p.frame.id);
+      if (this.annotationMode && !p.frame.parentId && !session) void this.armInspect(undefined).catch(() => {});
       const previous = this.frames.get(p.frame.id);
       this.mainContexts.delete(this.contextKey(p.frame.id, session));
       this.frames.set(p.frame.id, { ...previous, ...p.frame, parentId: p.frame.parentId ?? previous?.parentId, session: session ?? previous?.session });
@@ -362,6 +518,193 @@ export class BrowserCdp {
     if (method === "selectOption") { const result = await this.locate(method, args[0], args[1], frame); if (result.error) throw new BrowserCdpError(result.error, "Cannot select option"); await this.reportAction(result, frame); return; }
     throw new BrowserCdpError("UNSUPPORTED_METHOD", `Unsupported browser method: ${method}`);
   }
+
+  // ---- 元素批注：拾取、描述、跟踪与截图。全部走 CDP，不向页面注入脚本、不派发页面事件。 ----
+  setAnnotationListener(listener: ((hit: AnnotationHit) => void) | null): void { this.annotationListener = listener; }
+  private async annotate<T>(operation: () => Promise<T>): Promise<T> {
+    this.checkActive();
+    await this.awaitReady(this.ready);
+    return this.invocation.run(undefined, operation);
+  }
+  private async ensureDom(session?: string): Promise<void> {
+    const key = session || "";
+    if (this.domReady.has(key)) return;
+    await this.send("DOM.enable", {}, session);
+    this.domReady.add(key);
+  }
+  private async armInspect(session?: string): Promise<void> {
+    if (session) { const ready = this.sessionReady.get(session); if (ready) await ready; }
+    await this.ensureDom(session);
+    await this.send("Overlay.enable", {}, session);
+    const fill = (a: number) => ({ r: 63, g: 131, b: 235, a });
+    await this.send("Overlay.setInspectMode", {
+      mode: "searchForNode",
+      highlightConfig: { showInfo: false, showStyles: false, showRulers: false, showAccessibilityInfo: false, showExtensionLines: false, contentColor: fill(0.22), paddingColor: fill(0.1), borderColor: fill(0.95), marginColor: { r: 0, g: 0, b: 0, a: 0 } },
+    }, session);
+  }
+  private annotationSessions(): (string | undefined)[] {
+    return [undefined, ...new Set([...this.frames.values()].map(frame => frame.session).filter((id): id is string => !!id))];
+  }
+  /** 进入拾取：鼠标悬停高亮元素，点击只触发拾取，页面收不到点击。 */
+  async annotationStart(): Promise<void> {
+    return this.annotate(async () => {
+      this.annotationMode = true;
+      await this.armInspect(undefined);
+      for (const session of this.annotationSessions()) if (session) await this.armInspect(session).catch(() => {});
+    });
+  }
+  async annotationStop(): Promise<void> {
+    this.annotationMode = false;
+    if (this.dead) return;
+    try {
+      await this.annotate(async () => {
+        for (const session of this.annotationSessions()) {
+          await this.send("Overlay.setInspectMode", { mode: "none", highlightConfig: {} }, session).catch(() => {});
+          await this.send("Overlay.hideHighlight", {}, session).catch(() => {});
+        }
+      });
+    } catch { /* the page may already be gone */ }
+  }
+  private annotationFrame(session?: string): Frame {
+    if (!session) return this.frame();
+    const frame = [...this.frames.values()].find(f => f.session === session && (!f.parentId || this.frames.get(f.parentId)?.session !== session));
+    if (!frame) throw new BrowserCdpError("FRAME_NOT_FOUND", "The frame of the picked element is unavailable");
+    return frame;
+  }
+  private async isolatedContext(frame: Frame): Promise<number> {
+    let context = this.contexts.get(frame.id);
+    if (!context) {
+      const result = await this.send("Page.createIsolatedWorld", { frameId: frame.id, worldName: "vela-browser" }, frame.session);
+      context = result.executionContextId as number; this.contexts.set(frame.id, context);
+    }
+    return context;
+  }
+  /** 在隔离世界里解析节点并以它为 this 调用函数。 */
+  private async withNode<T>(hit: AnnotationHit, run: (objectId: string, session?: string) => Promise<T>): Promise<T> {
+    const frame = this.annotationFrame(hit.session);
+    await this.ensureDom(hit.session);
+    const context = await this.isolatedContext(frame);
+    let resolved: any;
+    try { resolved = await this.send("DOM.resolveNode", { backendNodeId: hit.backendNodeId, executionContextId: context }, hit.session); }
+    catch { throw new BrowserCdpError("ELEMENT_UNAVAILABLE", "The element is no longer available"); }
+    const objectId = resolved?.object?.objectId as string | undefined;
+    if (!objectId) throw new BrowserCdpError("ELEMENT_UNAVAILABLE", "The element is no longer available");
+    try { return await run(objectId, hit.session); }
+    finally { void this.send("Runtime.releaseObject", { objectId }, hit.session).catch(() => {}); }
+  }
+  private async toRoot(points: number[][], frame: Frame): Promise<number[][] | null> {
+    let pts = points; let child = frame;
+    while (child.parentId) {
+      const parent = this.frame(child.parentId);
+      const viewport = await this.evaluate("({width: innerWidth, height: innerHeight})", child);
+      const owner = await this.send("DOM.getFrameOwner", { frameId: child.id }, parent.session);
+      const box = await this.send("DOM.getBoxModel", { backendNodeId: owner.backendNodeId }, parent.session);
+      const q = box.model.content as number[];
+      if (!(viewport.width > 0 && viewport.height > 0) || q.length !== 8) return null;
+      if (Math.abs(q[0]! + q[4]! - q[2]! - q[6]!) > 0.5 || Math.abs(q[1]! + q[5]! - q[3]! - q[7]!) > 0.5) return null;
+      pts = pts.map(([x, y]) => {
+        const u = x! / viewport.width, v = y! / viewport.height;
+        return [q[0]! + u * (q[2]! - q[0]!) + v * (q[6]! - q[0]!), q[1]! + u * (q[3]! - q[1]!) + v * (q[7]! - q[1]!)];
+      });
+      child = parent;
+      while (child.parentId && this.frame(child.parentId).session === child.session) child = this.frame(child.parentId);
+    }
+    return pts;
+  }
+  private async isConnected(hit: AnnotationHit): Promise<boolean> {
+    try {
+      return await this.withNode(hit, async (objectId, session) => {
+        const result = await this.send("Runtime.callFunctionOn", { objectId, functionDeclaration: "function () { return this.isConnected; }", returnByValue: true }, session);
+        return result.result?.value === true;
+      });
+    } catch { return false; }
+  }
+  private async boxOf(hit: AnnotationHit): Promise<AnnotationBoxResult> {
+    let model: any;
+    try { model = (await this.send("DOM.getBoxModel", { backendNodeId: hit.backendNodeId }, hit.session)).model; }
+    catch (error) {
+      const message = String((error as Error).message || "");
+      // A removed node also fails to lay out: only a connected one is merely hidden.
+      if (/could not compute box model/i.test(message)) return await this.isConnected(hit) ? { error: "hidden" } : { error: "gone" };
+      if (/not found|no node|could not find|detached|does not belong/i.test(message)) return { error: "gone" };
+      throw error;
+    }
+    const quad = model.border as number[];
+    let points = [[quad[0]!, quad[1]!], [quad[2]!, quad[3]!], [quad[4]!, quad[5]!], [quad[6]!, quad[7]!]];
+    if (hit.session) {
+      const lifted = await this.toRoot(points, this.annotationFrame(hit.session)).catch(() => null);
+      if (!lifted) return { error: "hidden" };
+      points = lifted;
+    }
+    const xs = points.map(point => point[0]!), ys = points.map(point => point[1]!);
+    const rect = { x: Math.min(...xs), y: Math.min(...ys), width: Math.max(...xs) - Math.min(...xs), height: Math.max(...ys) - Math.min(...ys) };
+    return rect.width > 0 && rect.height > 0 ? { rect } : { error: "hidden" };
+  }
+  async annotationBox(hit: AnnotationHit): Promise<AnnotationBoxResult> { return this.annotate(() => this.boxOf(hit)); }
+  async annotationDescribe(hit: AnnotationHit): Promise<AnnotationDescribed> {
+    return this.annotate(async () => {
+      const probe = await this.withNode(hit, async (objectId, session) => {
+        const result = await this.send("Runtime.callFunctionOn", {
+          objectId, functionDeclaration: elementProbe.toString(), arguments: [{ value: sensitiveAutocompleteSource }], returnByValue: true,
+        }, session);
+        if (result.exceptionDetails) throw new BrowserCdpError("ELEMENT_UNAVAILABLE", "The element could not be described");
+        return result.result.value;
+      });
+      const box = await this.boxOf(hit);
+      const viewport = await this.evaluate("({width: innerWidth, height: innerHeight})", this.frame());
+      const { hasParent, hasChild, ...element } = probe;
+      return { element: element as ElementDescription, rect: "rect" in box ? box.rect : null, viewport, canParent: !!hasParent, canChild: !!hasChild };
+    });
+  }
+  /** 取父级或第一个可见子级；到头了返回 null。 */
+  async annotationNeighbor(hit: AnnotationHit, direction: "parent" | "child"): Promise<AnnotationHit | null> {
+    return this.annotate(() => this.withNode(hit, async (objectId, session) => {
+      const result = await this.send("Runtime.callFunctionOn", { objectId, functionDeclaration: neighborProbe.toString(), arguments: [{ value: direction }], returnByValue: false }, session);
+      if (result.exceptionDetails || !result.result?.objectId) return null;
+      const neighbor = result.result.objectId as string;
+      try {
+        const described = await this.send("DOM.describeNode", { objectId: neighbor }, session);
+        return typeof described.node?.backendNodeId === "number" ? { session, backendNodeId: described.node.backendNodeId as number } : null;
+      } finally { void this.send("Runtime.releaseObject", { objectId: neighbor }, session).catch(() => {}); }
+    }));
+  }
+  /** 元素裁切图：只截元素的可见部分，裁切区域里的密码框位置一并返回，由渲染层打码。 */
+  async annotationCapture(rect: AnnotationRect, viewport: AnnotationViewport): Promise<BrowserAnnotationImage> {
+    return this.annotate(async () => {
+      const left = Math.max(0, rect.x), top = Math.max(0, rect.y);
+      const right = Math.min(viewport.width, rect.x + rect.width), bottom = Math.min(viewport.height, rect.y + rect.height);
+      const width = Math.floor(right - left), height = Math.floor(bottom - top);
+      if (!(width >= 1 && height >= 1)) throw new BrowserCdpError("ELEMENT_OFFSCREEN", "The element is outside the visible area");
+      const cropped = rect.x < -0.5 || rect.y < -0.5 || rect.x + rect.width > viewport.width + 0.5 || rect.y + rect.height > viewport.height + 0.5;
+      const metrics = await this.send("Page.getLayoutMetrics");
+      const visual = metrics.cssVisualViewport ?? metrics.visualViewport ?? {};
+      const masks = await this.sensitiveRects();
+      const { data } = await this.send("Page.captureScreenshot", {
+        format: "png", fromSurface: true, captureBeyondViewport: false,
+        clip: { x: left + (visual.pageX ?? 0), y: top + (visual.pageY ?? 0), width, height, scale: 1 },
+      });
+      const bytes = Buffer.from(data, "base64");
+      if (bytes.length < 24 || bytes.toString("hex", 0, 8) !== "89504e470d0a1a0a") throw new BrowserCdpError("INVALID_SCREENSHOT", "CDP returned invalid PNG");
+      return {
+        data, mimeType: "image/png" as const, width: bytes.readUInt32BE(16), height: bytes.readUInt32BE(20), clipWidth: width, clipHeight: height, cropped,
+        masks: masks.map(mask => ({ x: mask.x - left, y: mask.y - top, width: mask.width, height: mask.height }))
+          .filter(mask => mask.x < width && mask.y < height && mask.x + mask.width > 0 && mask.y + mask.height > 0),
+      };
+    });
+  }
+  private async sensitiveRects(): Promise<AnnotationRect[]> {
+    const rects: AnnotationRect[] = [];
+    const frames = [this.frame(), ...[...this.frames.values()].filter(frame => frame.session && (!frame.parentId || this.frames.get(frame.parentId)?.session !== frame.session))];
+    for (const frame of frames) {
+      try {
+        const found = await this.evaluate(`(${sensitiveProbe.toString()})(${JSON.stringify(sensitiveAutocompleteSource)})`, frame) as number[][];
+        const lifted = frame.session ? await this.toRoot(found.map(([x, y]) => [x!, y!]), frame) : found.map(([x, y]) => [x!, y!]);
+        if (!lifted) continue;
+        found.forEach(([, , w, h], index) => rects.push({ x: lifted[index]![0]!, y: lifted[index]![1]!, width: w!, height: h! }));
+      } catch { /* an unreachable frame cannot leak what it cannot show */ }
+    }
+    return rects;
+  }
   private async press(key: string, session?: string) {
     if (typeof key !== "string") throw new BrowserCdpError("INVALID_ARGUMENT", "press requires a key");
     const parts = key.split("+"); const name = parts.pop()!; let modifiers = 0;
@@ -377,6 +720,7 @@ export class BrowserCdp {
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
+    this.annotationMode = false; this.annotationListener = null;
     this.fail("CDP_DISPOSED", "Browser automation disposed");
     this.guest.removeListener("destroyed", this.destroyed); this.guest.removeListener("render-process-gone", this.crashed);
     this.debuggerApi.removeListener("message", this.message); this.debuggerApi.removeListener("detach", this.detached);

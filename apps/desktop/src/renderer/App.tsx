@@ -37,6 +37,7 @@ import { WorkbenchChatView } from "./components/WorkbenchChatView";
 import { SideChatPanel } from "./components/SideChatPanel";
 import { BrowserViewHost } from "./components/browser/BrowserViewHost";
 import { useBrowserTabs } from "./browser/useBrowserTabs";
+import { useReplyFocus } from "./browser/reply-store";
 import { routeConversationLink } from "./browser/conversation-link-policy";
 import { useModels } from "./hooks/useModels";
 import { usePreferences } from "./hooks/usePreferences";
@@ -283,6 +284,18 @@ export function App() {
     setWorkbenchCollapsed(false);
     setActiveWorkbenchTabId(focus.tabId);
   }, [browser.state.focusRequest, browser.tabs]);
+  // 点输入框上方的元素批注卡片：展开面板并切到对应的浏览器标签页，页面里的标记随后闪烁。
+  const replyFocus = useReplyFocus();
+  const replyFocusNonce = useRef<number | null>(null);
+  useEffect(() => {
+    if (!replyFocus || replyFocusNonce.current === replyFocus.nonce) return;
+    replyFocusNonce.current = replyFocus.nonce;
+    if (!browser.allTabs.some(tab => tab.id === replyFocus.tabId)) return;
+    setSettingsOpen(false);
+    setWorkbenchCollapsed(false);
+    setActiveWorkbenchTabId(replyFocus.tabId);
+    browser.select(replyFocus.tabId);
+  }, [replyFocus, browser.allTabs, browser.select]);
   // 终端与文件浏览标签不按工作区拆开存:工作区状态加载前(地址为空)创建的标签
   // 不能因为工作区地址随后确定而消失;真正切换工作区时再统一关闭。
   const [terminalTabState, setTerminalTabState] = useState<{ id: string; sessionId: string; label: string }[]>([]);

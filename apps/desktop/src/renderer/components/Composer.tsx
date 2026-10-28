@@ -47,7 +47,9 @@ import { RecipeActionsContext } from "./recipe-actions-context";
 import { RaceActionsContext } from "./race-actions-context";
 import { RaceSetupDialog } from "./RaceSetupDialog";
 import { useComposerSeed } from "./composer-seed-context";
-import { hasReplyText as anyReplyText, replyCardText, replyMessage, type ReplyCard } from "./selection-actions";
+import { elementNumber, hasReplyText as anyReplyText, isElementReply, replyCardText, replyMessage, type ReplyCard } from "./selection-actions";
+import { collectAnnotationImages, planAnnotationImages } from "./annotation-images";
+import { useAnnotationTracking } from "../browser/reply-store";
 import { localizeError, tr, useAppLocale, trf } from "../locale";
 import { useInputPrediction } from "../hooks/useInputPrediction";
 import { useComposerLayout } from "../hooks/useComposerLayout";
@@ -89,7 +91,12 @@ export interface ComposerProps {
   /** 在对话里选中文字并写好的回复：每条一张卡片，发送时各自的原文作为引用块放在回复前面。 */
   replies?: readonly ReplyCard[];
   onRemoveReply?: (id: string) => void;
-  onClearReplies?: () => void;
+  /** 点元素批注卡片：在浏览器里定位对应元素。 */
+  onFocusReply?: (id: string) => void;
+  /** 开始发送：卡片离开输入框上方，返回发出去的卡片。 */
+  onBeginReplies?: () => readonly ReplyCard[];
+  /** 发送结束：消息留下了就释放页面里的元素，没有留下就把卡片原样放回。 */
+  onSettleReplies?: (sent: readonly ReplyCard[], kept: boolean) => void;
   onSend: (text: string, images?: ImageAttachment[], deliverAs?: RuntimeInstructionMode) => Promise<void | boolean>;
   /** 撤销一条还没被模型消费的排队/调整指令。 */
   onRemoveInstruction: (instructionId: string) => Promise<void>;
@@ -147,7 +154,9 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
   project,
   replies = [],
   onRemoveReply,
-  onClearReplies,
+  onFocusReply,
+  onBeginReplies,
+  onSettleReplies,
   onSend,
   onRemoveInstruction,
   onAbort,
@@ -203,6 +212,8 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
   const prompt = value.trim();
   // 卡片里的回复本身就是要发送的内容，输入框可以留空。
   const hasReplyText = anyReplyText(replies);
+  const tracking = useAnnotationTracking();
+  const submitting = useRef(false);
   const prediction = useInputPrediction({
     enabled: predictionEnabled && !disabled && !recipeActive,
     conversationId,
@@ -497,17 +508,37 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
   }
 
   async function submit(steerIntent = false): Promise<void> {
+    if (submitting.current) return;
     const root = inputRef.current;
     const typed = (root ? serializeEditor(root).trim() : prompt) || (hasReplyText ? "" : suggestion);
-    const text = replyMessage(replies, typed);
-    if (!text || disabled || recipeActive || !modelReady) return;
-    const images = attachments
-      .map((entry) => entry.image)
-      .filter((image): image is ImageAttachment => image !== null);
-    const draftAttachments = attachments;
-    clearEditor();
-    setAttachments([]);
-    onClearReplies?.();
+    const cards = replies;
+    // 只有元素、没有批注文字时，输入框必须有内容才能发送。
+    if (!typed && !hasReplyText && cards.some(isElementReply)) return;
+    if ((!typed && cards.length === 0) || disabled || recipeActive || !modelReady) return;
+    // 取回元素截图需要一点时间；这段时间内不重复提交。发出之后运行中的追加指令仍可继续提交。
+    submitting.current = true;
+    let prepared: { text: string; images: ImageAttachment[]; draftAttachments: FileAttachmentPayload[]; sent: readonly ReplyCard[] } | null = null;
+    try {
+      const userImages = attachments
+        .map((entry) => entry.image)
+        .filter((image): image is ImageAttachment => image !== null);
+      // 元素截图占用的名额：优先保留用户自己添加的附件。
+      const capacity = Math.min(maxMessageImages - userImages.length, maxAttachments - attachments.length);
+      const plan = planAnnotationImages(cards, tracking, capacity);
+      const annotation = await collectAnnotationImages(cards, plan, userImages.length + 1,
+        (tabId, ids) => window.vela?.browser?.annotationImages(tabId, ids) ?? Promise.resolve({}));
+      const text = replyMessage(cards, typed, { stale: annotation.stale, images: annotation.refs, t: tr });
+      if (text) {
+        const draftAttachments = attachments;
+        clearEditor();
+        setAttachments([]);
+        prepared = { text, images: [...userImages, ...annotation.images], draftAttachments, sent: onBeginReplies?.() ?? [] };
+      }
+    } finally {
+      submitting.current = false;
+    }
+    if (!prepared) return;
+    const { text, images, draftAttachments, sent } = prepared;
     // 运行中按追加指令投递:Enter 排队,⌘/Ctrl+Enter 调整当前任务。
     const deliverAs: RuntimeInstructionMode | undefined = streaming
       ? (steerIntent ? "steer" : "queue")
@@ -518,8 +549,9 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
     } catch {
       kept = false;
     }
-    // 消息没有留下(没进对话也没排上队)时把草稿放回去;用户已经开始写新内容就不覆盖。
-    if (!kept) restoreDraft(text, draftAttachments);
+    onSettleReplies?.(sent, kept);
+    // 消息没有留下(没进对话也没排上队)时把草稿放回去;卡片已原样放回,用户已经开始写新内容就不覆盖。
+    if (!kept) restoreDraft(typed, draftAttachments);
   }
 
   function restoreDraft(text: string, draftAttachments: FileAttachmentPayload[]): void {
@@ -850,22 +882,37 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
 
   const quoteCard = replies.length > 0 ? (
     <div className="reply-quote-row">
-      {replies.map((reply) => (
-        <div className="reply-quote-card" key={reply.id}>
-          <span className="reply-quote-bar" aria-hidden="true" />
-          <p className="reply-quote-text" title={reply.quote}>{replyCardText(reply)}</p>
-          <span className="reply-quote-badge">{tr("回复", "Reply")}</span>
-          <button
-            type="button"
-            className="reply-quote-remove"
-            title={tr("移除回复", "Remove reply")}
-            aria-label={tr("移除回复", "Remove reply")}
-            onClick={() => { onRemoveReply?.(reply.id); inputRef.current?.focus(); }}
-          >
-            <CloseIcon size={10} />
-          </button>
-        </div>
-      ))}
+      {replies.map((reply) => {
+        const element = isElementReply(reply);
+        const track = tracking.get(reply.id);
+        const stale = element && (!track || track.status === "stale");
+        const label = element ? reply.data.element.selector : reply.quote;
+        return (
+          <div className={`reply-quote-card${element ? " is-element" : ""}${stale ? " is-stale" : ""}`} key={reply.id}>
+            <span className="reply-quote-bar" aria-hidden="true" />
+            {element && !stale ? (
+              <button type="button" className="reply-quote-text reply-quote-locate" title={label}
+                onClick={() => onFocusReply?.(reply.id)}>{replyCardText(reply)}</button>
+            ) : (
+              <p className="reply-quote-text" title={label}>{replyCardText(reply)}</p>
+            )}
+            <span className="reply-quote-badge">
+              {element ? trf("批注 {0}", "Note {0}", elementNumber(replies, reply.id)) : tr("回复", "Reply")}
+            </span>
+            {stale && <span className="reply-quote-note">{tr("元素已不在页面上，仍会发送文字和元素描述", "The element is gone. The note is still sent with its description")}</span>}
+            {element && !stale && track?.shot === "failed" && <span className="reply-quote-note">{tr("未能截图", "Screenshot unavailable")}</span>}
+            <button
+              type="button"
+              className="reply-quote-remove"
+              title={element ? tr("移除批注", "Remove note") : tr("移除回复", "Remove reply")}
+              aria-label={element ? tr("移除批注", "Remove note") : tr("移除回复", "Remove reply")}
+              onClick={() => { onRemoveReply?.(reply.id); inputRef.current?.focus(); }}
+            >
+              <CloseIcon size={10} />
+            </button>
+          </div>
+        );
+      })}
     </div>
   ) : null;
 
@@ -998,6 +1045,8 @@ function placeholderFor(mode: InteractionMode): string {
 
 const maxPastedImages = 6;
 const maxAttachments = 12;
+/** 服务端对一条消息图片数量的上限。 */
+const maxMessageImages = 10;
 /** 转码时限制长边，避免超大图在 base64 传输与模型侧被拒。 */
 const maxTranscodeEdge = 4096;
 const maxTranscodedBytes = 9 * 1024 * 1024;

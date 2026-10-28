@@ -2,7 +2,7 @@ import { useSyncExternalStore } from "react";
 import { UI_BROWSER_BLANK_URL } from "../../../browser-policy";
 import type { BrowserController } from "../../browser/browser-controller";
 import { tr } from "../../locale";
-import { ArrowLeftIcon, ArrowRightIcon, CloseIcon, GlobeIcon, RefreshIcon } from "../icons";
+import { AnnotateIcon, ArrowLeftIcon, ArrowRightIcon, CloseIcon, GlobeIcon, RefreshIcon } from "../icons";
 
 /** Presentation and DOM binding only. Guest events/navigation live in BrowserController. */
 export function BrowserPanel({ controller, tabId, operating, onAbort }: { controller: BrowserController; tabId: string; operating?: boolean; onAbort?: () => void }) {
@@ -12,6 +12,9 @@ export function BrowserPanel({ controller, tabId, operating, onAbort }: { contro
     : state.error?.code === "renderer-gone"
       ? tr("页面已停止响应，请刷新重试", "The page stopped responding. Reload to retry")
       : state.error ? tr("页面加载失败", "Failed to load page") : null;
+  const blank = state.url === UI_BROWSER_BLANK_URL;
+  const annotateDisabled = !state.ready || blank || !!state.error || !!operating;
+  const annotateLabel = state.annotating ? tr("退出批注", "Exit annotation") : tr("批注", "Annotate");
   const refreshLabel = state.loading ? tr("停止加载", "Stop loading") : tr("刷新", "Reload");
 
   return <section className="browser-panel" aria-label={tr("浏览器", "Browser")}>
@@ -39,6 +42,12 @@ export function BrowserPanel({ controller, tabId, operating, onAbort }: { contro
             if (event.key === "Escape") { controller.resetAddress(); event.currentTarget.blur(); }
           }} />
       </form>
+      {controller.supportsAnnotation && <button type="button" className="browser-nav browser-annotate" aria-label={annotateLabel}
+        title={operating ? tr("Agent 正在操作浏览器", "The Agent is using the browser") : annotateLabel}
+        aria-pressed={state.annotating} disabled={annotateDisabled && !state.annotating}
+        onClick={() => controller.setAnnotating(!state.annotating)}>
+        <AnnotateIcon size={14} />
+      </button>}
     </div>
     <div className="browser-page-info">
       <span className="browser-page-title" title={state.title || state.url}>

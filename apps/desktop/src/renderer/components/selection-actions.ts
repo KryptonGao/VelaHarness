@@ -1,4 +1,5 @@
 import { createContext } from "react";
+import { elementReferenceBlock, elementSummary, type AnnotationImageRef, type ElementAnnotationData } from "@vela/shared";
 
 /** 选中文字后「开启侧边聊天」：由 App 提供，打开一个侧边聊天标签，带上引用和已经写好的问题。 */
 export const SideChatLauncherContext = createContext<((quote: string, draft?: string) => void) | null>(null);
@@ -22,25 +23,65 @@ export function composeReply(quote: string | null, text: string): string {
   return quote ? `${quoteBlock(quote)}\n\n${text}` : text;
 }
 
-/** 选区浮层里写好的回复：选中的文字和回复内容是一体的，在输入框上方显示成一张卡片。 */
-export interface ReplyDraft {
+/** 选中文字后写好的回复：选中的文字和回复内容是一体的，在输入框上方显示成一张卡片。 */
+export interface TextReplyDraft {
+  kind?: "text";
   /** 选中的原文，发送时作为引用块。 */
   quote: string;
   /** 回复内容；为空时卡片显示原文，回复在输入框里写。 */
   text: string;
 }
 
-/** 卡片上显示的文字：写了回复就显示回复，否则显示被引用的原文。 */
+/** 浏览器里点选元素写下的批注：与文字回复同是下一条消息的一部分。 */
+export interface ElementReplyDraft {
+  kind: "element";
+  /** 批注文字，可以为空；上限见 `maxAnnotationText`。 */
+  text: string;
+  /** 元素所在的浏览器标签页；关闭标签页时批注一并移除。 */
+  tabId: string;
+  data: ElementAnnotationData;
+}
+
+export type ReplyDraft = TextReplyDraft | ElementReplyDraft;
+
+export function isElementReply<T extends ReplyDraft>(reply: T): reply is Extract<T, { kind: "element" }> {
+  return reply.kind === "element";
+}
+
+/** 卡片上显示的文字：写了回复就显示回复，否则显示被引用的原文或元素简述。 */
 export function replyCardText(reply: ReplyDraft): string {
-  return reply.text.trim() || reply.quote;
+  return reply.text.trim() || (isElementReply(reply) ? elementSummary(reply.data.element) : reply.quote);
 }
 
 /** 一张回复卡片带上它的编号，方便单独移除。 */
 export type ReplyCard = ReplyDraft & { id: string };
 
-/** 发出的消息正文：每张卡片是「引用原文 + 回复内容」一组，按顺序排列，输入框里补充的话在最后。 */
-export function replyMessage(replies: readonly ReplyDraft[], typed: string): string {
-  const groups = replies.map((reply) => composeReply(reply.quote, reply.text.trim()).trim());
+/** 元素批注在本条消息里的序号（从 1 开始），按卡片顺序。 */
+export function elementNumber(replies: readonly ReplyCard[], id: string): number {
+  return replies.filter(isElementReply).findIndex((reply) => reply.id === id) + 1;
+}
+
+export interface ReplyMessageOptions {
+  /** 元素已经不在页面上的批注卡片编号。 */
+  stale?: ReadonlySet<string>;
+  /** 批注卡片编号 → 截图在本条消息图片里的序号，或没有截图的原因。 */
+  images?: ReadonlyMap<string, { ref: AnnotationImageRef; cropped?: boolean }>;
+  /** 引用块里的说明文字语言，默认中文。 */
+  t?: (chinese: string, english: string) => string;
+}
+
+/** 发出的消息正文：每张卡片是「引用原文（或元素引用块）+ 回复内容」一组，按顺序排列，输入框里补充的话在最后。 */
+export function replyMessage(replies: readonly (ReplyDraft & { id?: string })[], typed: string, options: ReplyMessageOptions = {}): string {
+  let number = 0;
+  const groups = replies.map((reply) => {
+    if (!isElementReply(reply)) return composeReply(reply.quote, reply.text.trim()).trim();
+    const image = reply.id ? options.images?.get(reply.id) : undefined;
+    const block = elementReferenceBlock({
+      number: ++number, data: reply.data, stale: !!reply.id && !!options.stale?.has(reply.id),
+      image: image?.ref ?? null, cropped: image?.cropped,
+    }, options.t ?? ((chinese) => chinese));
+    return [block, reply.text.trim()].filter(Boolean).join("\n\n");
+  });
   return [...groups, typed.trim()].filter(Boolean).join("\n\n");
 }
 
