@@ -3,7 +3,9 @@ import { describe, it } from "node:test";
 import type { ToolTrace } from "@vela/shared";
 import type { UiMessage } from "../src/renderer/hooks/useSession.ts";
 import {
+  attachFollowerTools,
   buildTurnItems,
+  countFailedTools,
   groupAgentStream,
   groupProcessItems,
   shouldFoldRun,
@@ -165,5 +167,57 @@ describe("groupProcessItems", () => {
     const nodes = groupProcessItems(items, "compact");
     assert.deepEqual(nodes.map((node) => node.type), ["run", "tool", "run"]);
     assert.equal(nodes[1]!.type === "tool" && nodes[1]!.tool.id, "p1");
+  });
+});
+
+describe("countFailedTools", () => {
+  it("counts only tools that ended in error", () => {
+    const failed: ToolTrace = { ...tool("bash", "b"), status: "error" };
+    const running: ToolTrace = { ...tool("bash", "c"), status: "running" };
+    assert.equal(countFailedTools([tool("read", "a"), failed, running, failed]), 2);
+    assert.equal(countFailedTools([]), 0);
+  });
+});
+
+describe("attachFollowerTools", () => {
+  const titled = "**Considering DOM manipulations**\n\nLooking at the toggle state.";
+
+  it("moves tools from later thinking-less messages under the titled thinking", () => {
+    const lead = message("a", { thinking: titled, tools: [tool("update_plan", "plan")] });
+    const next = message("b", { tools: [tool("edit", "e1"), tool("edit", "e2")] });
+    const last = message("c", {});
+    const units = attachFollowerTools([lead, next, last]);
+    assert.equal(units.length, 1);
+    assert.deepEqual(units[0]!.message.tools.map((item) => item.id), ["plan", "e1", "e2"]);
+    assert.deepEqual(units[0]!.memberIds, ["a", "b", "c"]);
+    assert.equal(units[0]!.message.id, "a");
+  });
+
+  it("ends the group at text and keeps the text as its own unit", () => {
+    const lead = message("a", { thinking: titled });
+    const reply = message("b", { text: "Done.", tools: [tool("bash", "t")] });
+    const later = message("c", { tools: [tool("read", "r")] });
+    const units = attachFollowerTools([lead, reply, later]);
+    assert.deepEqual(units.map((unit) => unit.message.id), ["a", "b", "c"]);
+    assert.deepEqual(units[0]!.message.tools.map((item) => item.id), ["t"]);
+    assert.deepEqual(units[0]!.memberIds, ["a"]);
+    assert.deepEqual(units[1]!.message.tools, []);
+    assert.equal(units[1]!.message.text, "Done.");
+    assert.deepEqual(units[2]!.message.tools.map((item) => item.id), ["r"]);
+  });
+
+  it("stops at the next thinking and leaves untitled thinking alone", () => {
+    const first = message("a", { thinking: titled, tools: [tool("read", "r1")] });
+    const second = message("b", { thinking: "plain reasoning", tools: [tool("read", "r2")] });
+    const after = message("c", { tools: [tool("read", "r3")] });
+    const units = attachFollowerTools([first, second, after]);
+    assert.deepEqual(units.map((unit) => unit.message.id), ["a", "b", "c"]);
+    assert.deepEqual(units.map((unit) => unit.message.tools.length), [1, 1, 1]);
+  });
+
+  it("reuses merged messages while nothing changed", () => {
+    const lead = message("a", { thinking: titled });
+    const follower = message("b", { tools: [tool("read", "r")] });
+    assert.equal(attachFollowerTools([lead, follower])[0]!.message, attachFollowerTools([lead, follower])[0]!.message);
   });
 });

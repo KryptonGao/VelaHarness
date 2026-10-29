@@ -14,10 +14,10 @@ import {
 } from "./AgentPanel";
 import { Markdown } from "./Markdown";
 import { AssistantMarkdown } from "./intelligent-ui/AssistantMarkdown";
-import { Thinking } from "./Thinking";
+import { ThinkingGroup } from "./Thinking";
 import { CompactToolGroup, CompactToolLine, ToolCard, ToolList, ToolRunGroup } from "./ToolCard";
 import { toolCompactKind } from "./tool-compact";
-import { buildTurnItems, groupAgentStream, groupProcessItems, type ProcessNode } from "./tool-sequence";
+import { attachFollowerTools, buildTurnItems, groupAgentStream, groupProcessItems, type ProcessNode } from "./tool-sequence";
 import { BranchIcon } from "./icons";
 import { JumpOrb } from "./JumpOrb";
 import type { OrbActivity } from "./jump-orb";
@@ -64,7 +64,13 @@ function VisibleAgentPane({
 }: AgentPaneProps & { follow: MutableRefObject<AgentFollow> }) {
   const storedMessages = useMessages(messageStore, conversationId, agent.id);
   const messages = messageStore ? storedMessages : providedMessages ?? emptyMessages;
-  const streamBlocks = useMemo(() => groupAgentStream(messages, toolFold), [messages, toolFold]);
+  // 按位置折叠时由 AgentProcessSequence 自己归组;否则把没有思考的后续几轮的工具并进前一段标题思考。
+  const units = useMemo(() => toolFold === "position" ? null : attachFollowerTools(messages), [messages, toolFold]);
+  const memberIdsOf = useMemo(() => new Map(units?.map((unit) => [unit.message.id, unit.memberIds])), [units]);
+  const streamBlocks = useMemo(
+    () => groupAgentStream(units ? units.map((unit) => unit.message) : messages, toolFold),
+    [units, messages, toolFold],
+  );
   const lastMessageId = messages.length > 0 ? messages[messages.length - 1]!.id : null;
   const agentId = agent.id;
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -192,7 +198,7 @@ function VisibleAgentPane({
               <AgentStreamMessage
                 key={`${agentId}:${block.id}`}
                 message={block.messages[0]!}
-                streaming={streaming && block.messages[0]!.id === lastMessageId}
+                streaming={streaming && lastMessageId !== null && (memberIdsOf.get(block.messages[0]!.id)?.includes(lastMessageId) ?? block.messages[0]!.id === lastMessageId)}
                 toolDisplay={toolDisplay}
                 toolFold={toolFold}
               />
@@ -372,19 +378,25 @@ const AgentStreamMessage = memo(function AgentStreamMessage({
     );
   }
   const thinkingActive = streaming && !message.text;
+  const tools = message.tools.length > 0 ? (
+    <ToolList tools={message.tools} display={toolDisplay} fold={toolFold} arrivalKey={`${message.id}:tools`} />
+  ) : null;
   return (
     <article className="assistant-block" data-arrival-key={message.id}>
       {message.thinking ? (
-        <div data-arrival-key={`${message.id}:thinking`}><Thinking
-          messageId={message.id}
-          text={message.thinking}
-          active={thinkingActive}
-          showActivityIndicator={toolDisplay === "compact"}
-        /></div>
-      ) : null}
-      {message.tools.length > 0 ? (
-        <ToolList tools={message.tools} display={toolDisplay} fold={toolFold} arrivalKey={`${message.id}:tools`} />
-      ) : null}
+        <div data-arrival-key={`${message.id}:thinking`}>
+          <ThinkingGroup
+            messageId={message.id}
+            text={message.thinking}
+            active={thinkingActive}
+            live={thinkingActive}
+            showActivityIndicator={toolDisplay === "compact"}
+            tools={message.tools}
+          >
+            {tools}
+          </ThinkingGroup>
+        </div>
+      ) : tools}
       {message.text ? (
         <div className="agent-reply-prose" data-arrival-key={`${message.id}:text`}>
           <AssistantMarkdown messageId={message.id} text={message.text} streaming={streaming} />
@@ -411,31 +423,33 @@ const AgentProcessSequence = memo(function AgentProcessSequence({
   const compact = display === "compact";
   const nodes = useMemo(() => groupProcessItems(buildTurnItems(messages), display), [messages, display]);
   const messageById = useMemo(() => new Map(messages.map((message) => [message.id, message])), [messages]);
+  type ToolNode = Extract<ProcessNode, { type: "tool" | "run" }>;
+  const renderToolList = (nodes: ToolNode[]): ReactNode => (
+    <div
+      key={`tools:${nodes[0]!.id}`}
+      className={compact ? "tool-card-list is-compact" : "tool-card-list"}
+      data-arrival-key={`${nodes[0]!.messageId}:tools`}
+    >
+      {nodes.map((node) => node.type === "run" ? (
+        compact
+          ? <CompactToolGroup key={node.id} tools={node.tools} sequenceId={node.id} />
+          : <ToolRunGroup key={node.id} tools={node.tools} />
+      ) : compact && toolCompactKind(node.tool.name) ? (
+        <CompactToolLine key={node.id} tool={node.tool} />
+      ) : (
+        <ToolCard key={node.id} tool={node.tool} compact={compact} />
+      ))}
+    </div>
+  );
   const output: ReactNode[] = [];
-  let buffer: Extract<ProcessNode, { type: "tool" | "run" }>[] = [];
+  let buffer: ToolNode[] = [];
   const flush = () => {
     if (buffer.length === 0) return;
-    const first = buffer[0]!;
-    output.push(
-      <div
-        key={`tools:${first.id}`}
-        className={compact ? "tool-card-list is-compact" : "tool-card-list"}
-        data-arrival-key={`${first.messageId}:tools`}
-      >
-        {buffer.map((node) => node.type === "run" ? (
-          compact
-            ? <CompactToolGroup key={node.id} tools={node.tools} sequenceId={node.id} />
-            : <ToolRunGroup key={node.id} tools={node.tools} />
-        ) : compact && toolCompactKind(node.tool.name) ? (
-          <CompactToolLine key={node.id} tool={node.tool} />
-        ) : (
-          <ToolCard key={node.id} tool={node.tool} compact={compact} />
-        ))}
-      </div>,
-    );
+    output.push(renderToolList(buffer));
     buffer = [];
   };
-  for (const node of nodes) {
+  for (let index = 0; index < nodes.length; index += 1) {
+    const node = nodes[index]!;
     if (node.type === "tool" || node.type === "run") {
       buffer.push(node);
       continue;
@@ -444,9 +458,29 @@ const AgentProcessSequence = memo(function AgentProcessSequence({
     if (node.type === "thinking") {
       const message = messageById.get(node.messageId);
       const active = node.messageId === streamingId && Boolean(message && !message.text && message.tools.length === 0);
+      // 紧随这段思考的工具(含后续没有思考的几轮)归到它下面;下一段思考或正文出现时分组结束。
+      const grouped: ToolNode[] = [];
+      while (index + 1 < nodes.length) {
+        const next = nodes[index + 1]!;
+        if (next.type !== "tool" && next.type !== "run") break;
+        grouped.push(next);
+        index += 1;
+      }
+      const activeMessage = streamingId ? messageById.get(streamingId) : undefined;
+      const live = Boolean(streamingId && !activeMessage?.text
+        && (node.messageId === streamingId || grouped.some((item) => item.messageId === streamingId)));
       output.push(
         <div key={`thinking:${node.id}`} data-arrival-key={`${node.messageId}:thinking`}>
-          <Thinking messageId={node.messageId} text={node.text} active={active} showActivityIndicator={compact} />
+          <ThinkingGroup
+            messageId={node.messageId}
+            text={node.text}
+            active={active}
+            live={live}
+            showActivityIndicator={compact}
+            tools={grouped.flatMap((item) => item.type === "run" ? item.tools : [item.tool])}
+          >
+            {grouped.length > 0 ? renderToolList(grouped) : null}
+          </ThinkingGroup>
         </div>,
       );
     } else {

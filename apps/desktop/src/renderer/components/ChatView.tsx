@@ -32,12 +32,12 @@ import { SelectionActions } from "./SelectionActions";
 import { SideChatLauncherContext } from "./selection-actions";
 import { replyStore, useReplyCards } from "../browser/reply-store";
 import { OpenInAppButton } from "./OpenInAppButton";
-import { Thinking } from "./Thinking";
+import { ThinkingGroup } from "./Thinking";
 import { ThinkingSummaryContext } from "./ThinkingSummaryContext";
 import type { ThinkingSummariesApi } from "../hooks/useThinkingSummaries";
 import { ToolCard, ToolList, CompactToolGroup, CompactToolLine, ToolRunGroup, type QuestionLookup } from "./ToolCard";
 import { toolCompactKind } from "./tool-compact";
-import { buildTurnItems, groupProcessItems, type ProcessNode } from "./tool-sequence";
+import { attachFollowerTools, buildTurnItems, groupProcessItems, type ProcessNode } from "./tool-sequence";
 import { formatDuration, readToolDuration } from "./tool-duration";
 import { foldSequenceId } from "./tool-fold-state";
 import { selectFinalReplies } from "./final-replies";
@@ -883,12 +883,12 @@ export function ChatView({
                       </article>
                     ) : (
                       // 每一步 assistant 的思考都跟着自己的工具调用走;Thinking 组件负责运行中展开、结束后折叠。
-                      turn.assistants.map((message) => (
+                      attachFollowerTools(turn.assistants).map(({ message, memberIds }) => (
                         <Message
                           key={message.id}
                           message={message}
                           thinkingActive={message.id === activeAssistantId && !message.text && message.tools.length === 0}
-                          streaming={message.id === activeAssistantId}
+                          streaming={activeAssistantId !== undefined && memberIds.includes(activeAssistantId)}
                           entering={entering.has(message.id)}
                           changes={turnChanges.get(message.id) ?? null}
                           onOpenChanges={onOpenChanges}
@@ -1176,31 +1176,39 @@ function AssistantMessageContent({
   toolDisplay?: ToolDisplay;
   toolFold?: ToolFold;
 }) {
+  const tools = showTools && message.tools.length > 0 ? (
+    <ToolList
+      tools={message.tools}
+      getQuestion={getQuestion}
+      onReplyQuestion={onReplyQuestion}
+      display={toolDisplay}
+      fold={toolFold}
+    />
+  ) : null;
   return (
     <>
       {message.thinking ? (
         thinkingDisclosure ? (
-          <Thinking
+          <ThinkingGroup
             messageId={message.id}
             text={message.thinking}
             active={thinkingActive}
+            live={streaming && !message.text}
             showActivityIndicator={toolDisplay === "compact"}
-          />
+            tools={message.tools}
+            forceOpen={message.tools.some((tool) => getQuestion(tool.id) !== null)}
+          >
+            {tools}
+          </ThinkingGroup>
         ) : (
-          <div className="stream-prose-block thinking-text process-thinking-text">
-            <Markdown text={message.thinking} streaming={thinkingActive} fade="thinking" />
-          </div>
+          <>
+            <div className="stream-prose-block thinking-text process-thinking-text">
+              <Markdown text={message.thinking} streaming={thinkingActive} fade="thinking" />
+            </div>
+            {tools}
+          </>
         )
-      ) : null}
-      {showTools && message.tools.length > 0 ? (
-        <ToolList
-          tools={message.tools}
-          getQuestion={getQuestion}
-          onReplyQuestion={onReplyQuestion}
-          display={toolDisplay}
-          fold={toolFold}
-        />
-      ) : null}
+      ) : tools}
       {showText && message.text ? (
         <div className="agent-reply-prose">
           <AssistantMarkdown messageId={message.id} text={message.text} streaming={streaming} />
@@ -1256,19 +1264,24 @@ function ToolSequence({
     );
   };
 
+  const renderToolList = (nodes: Extract<ProcessNode, { type: "tool" | "run" }>[]): ReactNode => (
+    <div key={`tools:${nodes[0]!.id}`} className={compact ? "tool-card-list is-compact" : "tool-card-list"}>
+      {nodes.map((node) => renderTool(node))}
+    </div>
+  );
+  const nodeTools = (nodes: Extract<ProcessNode, { type: "tool" | "run" }>[]) =>
+    nodes.flatMap((node) => node.type === "run" ? node.tools : [node.tool]);
+
   const output: ReactNode[] = [];
   let buffer: Extract<ProcessNode, { type: "tool" | "run" }>[] = [];
   const flushTools = () => {
     if (buffer.length === 0) return;
-    output.push(
-      <div key={`tools:${buffer[0]!.id}`} className={compact ? "tool-card-list is-compact" : "tool-card-list"}>
-        {buffer.map((node) => renderTool(node))}
-      </div>,
-    );
+    output.push(renderToolList(buffer));
     buffer = [];
   };
 
-  for (const node of nodes) {
+  for (let index = 0; index < nodes.length; index += 1) {
+    const node = nodes[index]!;
     if (node.type === "tool" || node.type === "run") {
       buffer.push(node);
       continue;
@@ -1277,7 +1290,33 @@ function ToolSequence({
     if (node.type === "thinking") {
       const message = messageById.get(node.messageId);
       const active = node.messageId === activeAssistantId && Boolean(message && !message.text && message.tools.length === 0);
-      output.push(withEnter(node.id, node.messageId, <Thinking messageId={node.messageId} text={node.text} active={active} showActivityIndicator={compact} />));
+      // 紧随这段思考的工具(含后续没有思考的几轮)归到它下面;下一段思考或正文出现时分组结束。
+      const grouped: Extract<ProcessNode, { type: "tool" | "run" }>[] = [];
+      while (index + 1 < nodes.length) {
+        const next = nodes[index + 1]!;
+        if (next.type !== "tool" && next.type !== "run") break;
+        grouped.push(next);
+        index += 1;
+      }
+      const activeMessage = activeAssistantId ? messageById.get(activeAssistantId) : undefined;
+      const live = Boolean(activeAssistantId && !activeMessage?.text
+        && (node.messageId === activeAssistantId || grouped.some((item) => item.messageId === activeAssistantId)));
+      const tools = nodeTools(grouped);
+      output.push(withEnter(
+        node.id,
+        node.messageId,
+        <ThinkingGroup
+          messageId={node.messageId}
+          text={node.text}
+          active={active}
+          live={live}
+          showActivityIndicator={compact}
+          tools={tools}
+          forceOpen={tools.some((tool) => getQuestion(tool.id) !== null)}
+        >
+          {grouped.length > 0 ? renderToolList(grouped) : null}
+        </ThinkingGroup>,
+      ));
     } else {
       output.push(
         withEnter(
@@ -1382,7 +1421,7 @@ const CompletedAssistantTurn = memo(function CompletedAssistantTurn({
                 />
               </article>
             ) : (
-              messages.map((message) => (
+              attachFollowerTools(messages).map(({ message }) => (
                 <article className="assistant-block assistant-turn-process-item" key={message.id}>
                   <AssistantMessageContent
                     message={message}

@@ -1,6 +1,7 @@
 import type { ToolTrace } from "@vela/shared";
 import type { ToolDisplay, ToolFold } from "../hooks/usePreferences";
 import type { UiMessage } from "../hooks/useSession";
+import { splitThinkingTitle } from "../thinking-title";
 
 /** 可折叠的工具种类,与 tool-compact 的 toolCompactKind 保持一致。 */
 const foldableToolNames = new Set(["bash", "read", "edit", "write"]);
@@ -12,6 +13,11 @@ export const RUN_MIN = 3;
 export function shouldFoldRun(length: number, display: ToolDisplay, fold: ToolFold = "message"): boolean {
   if (fold === "none") return false;
   return display === "compact" ? length > 1 : length >= RUN_MIN;
+}
+
+/** 失败的工具数;思考分组折叠时用它在标题后提示。 */
+export function countFailedTools(tools: readonly ToolTrace[]): number {
+  return tools.filter((tool) => tool.status === "error").length;
 }
 
 /** 按界面顺序拍平后的回合内容,用于跨 Assistant 消息做位置分组。 */
@@ -103,4 +109,73 @@ export function groupProcessItems(items: ProcessItem[], display: ToolDisplay): P
   }
   flush();
   return nodes;
+}
+
+/** 渲染用的助理消息:思考分组可能把后续消息的工具并进来,memberIds 是仍处在“分组进行中”的消息 id。 */
+export interface AssistantUnit {
+  message: UiMessage;
+  memberIds: readonly string[];
+}
+
+const mergedCache = new WeakMap<UiMessage, { followers: readonly UiMessage[]; merged: UiMessage }>();
+const strippedCache = new WeakMap<UiMessage, UiMessage>();
+
+function sameMessages(a: readonly UiMessage[], b: readonly UiMessage[]): boolean {
+  return a.length === b.length && a.every((message, index) => message === b[index]);
+}
+
+/**
+ * 模型每调用一轮工具就是一条新的助理消息,后续几轮常常没有自己的思考。
+ * 标题思考(OpenAI CoT 总结)之后、没有思考的助理消息,它们的工具并到这段思考名下;
+ * 出现正文或下一段思考时分组结束。带正文的后续消息只留下正文,自己不再显示工具;空消息不再显示。
+ */
+export function attachFollowerTools(messages: readonly UiMessage[]): AssistantUnit[] {
+  const followersOf = new Map<UiMessage, UiMessage[]>();
+  const followerSet = new Set<UiMessage>();
+  let lead: UiMessage | null = null;
+  for (const message of messages) {
+    if (message.role !== "assistant") {
+      lead = null;
+      continue;
+    }
+    if (message.thinking.trim()) {
+      lead = !message.text && splitThinkingTitle(message.thinking, false) ? message : null;
+      continue;
+    }
+    if (!lead) continue;
+    followerSet.add(message);
+    const list = followersOf.get(lead) ?? [];
+    list.push(message);
+    followersOf.set(lead, list);
+    if (message.text) lead = null;
+  }
+
+  const units: AssistantUnit[] = [];
+  for (const message of messages) {
+    if (followerSet.has(message)) {
+      if (!message.text) continue;
+      let stripped = strippedCache.get(message);
+      if (!stripped) {
+        stripped = { ...message, tools: [] };
+        strippedCache.set(message, stripped);
+      }
+      units.push({ message: stripped, memberIds: [message.id] });
+      continue;
+    }
+    const followers = followersOf.get(message);
+    if (!followers) {
+      units.push({ message, memberIds: [message.id] });
+      continue;
+    }
+    let cached = mergedCache.get(message);
+    if (!cached || !sameMessages(cached.followers, followers)) {
+      cached = { followers, merged: { ...message, tools: [...message.tools, ...followers.flatMap((follower) => follower.tools)] } };
+      mergedCache.set(message, cached);
+    }
+    units.push({
+      message: cached.merged,
+      memberIds: [message.id, ...followers.filter((follower) => !follower.text).map((follower) => follower.id)],
+    });
+  }
+  return units;
 }

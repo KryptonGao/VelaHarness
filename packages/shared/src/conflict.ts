@@ -1,6 +1,6 @@
 /**
  * 跨对话冲突提醒：同时开着几个任务时，记录每个对话近期用 edit / write 改过的文件，
- * 发现两个以上对话改了同一个文件就提醒，并可以把其中一个转到独立 worktree。
+ * 发现两个以上仍运行的对话改了同一个文件就提醒，运行结束后不再提醒；可以把其中一个转到独立 worktree。
  * 只统计 edit / write 的成功调用；bash 和外部程序造成的改动无法归因到某个对话。
  */
 
@@ -32,7 +32,7 @@ export interface ConversationEditSummary {
   files: ConversationEditedFile[];
 }
 
-/** 一个文件被多个对话改过。 */
+/** 一个文件被多个仍运行的对话改过。 */
 export interface FileOverlap {
   path: string;
   /** 以第一个对话的视角显示的相对路径。 */
@@ -44,6 +44,7 @@ export interface FileOverlap {
 export interface ConflictsState {
   /** 有近期改动的对话，最近活跃的在前。 */
   conversations: ConversationEditSummary[];
+  /** 仅包含仍运行的对话之间的重叠；已结束对话的改动仍保留在 conversations 中。 */
   overlaps: FileOverlap[];
   windowMs: number;
   error: string | null;

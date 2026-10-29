@@ -99,6 +99,28 @@ if (!process.versions.electron) {
       await evaluate(`(() => {const el = document.querySelector(${JSON.stringify(panel + ' .thinking-slider-input')}); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(el, '3'); el.dispatchEvent(new Event('input', {bubbles:true}));})()`);
       await until("chatFixture.state('panel-1').session.thinkingLevel === 'high'");
       assert.equal(await evaluate("chatFixture.state('main-chat').session.thinkingLevel"), "medium");
+      // Ultra 提示只由滑杆切入触发：到期后、尚未到期时重新打开都不能重播。
+      const thinkingValue = `document.querySelector(${JSON.stringify(panel + ' .thinking-level-value')})?.textContent`;
+      const setThinkingSlider = value => evaluate(`(() => {const el = document.querySelector(${JSON.stringify(panel + ' .thinking-slider-input')}); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(el, ${JSON.stringify(String(value))}); el.dispatchEvent(new Event('input', {bubbles:true}));})()`);
+      await setThinkingSlider(4);
+      await until(`${thinkingValue} === '更快使用算力'`);
+      await until(`${thinkingValue} === 'Ultra'`);
+      await click(panel + " .model-choice-pill:not(.model-pill)");
+      await until(`!document.querySelector(${JSON.stringify(panel + ' .thinking-popover')})`);
+      await click(panel + " .model-choice-pill:not(.model-pill)");
+      await until(`document.querySelector(${JSON.stringify(panel + ' .thinking-popover')})`);
+      assert.equal(await evaluate(thinkingValue), "Ultra");
+      await setThinkingSlider(3);
+      await until(`${thinkingValue} === '高'`);
+      await setThinkingSlider(4);
+      await until(`${thinkingValue} === '更快使用算力'`);
+      await click(panel + " .model-choice-pill:not(.model-pill)");
+      await until(`!document.querySelector(${JSON.stringify(panel + ' .thinking-popover')})`);
+      await click(panel + " .model-choice-pill:not(.model-pill)");
+      await until(`document.querySelector(${JSON.stringify(panel + ' .thinking-popover')})`);
+      assert.equal(await evaluate(thinkingValue), "Ultra");
+      await setThinkingSlider(3);
+      await until(`${thinkingValue} === '高'`);
       await click(panel + " .model-choice-pill:not(.model-pill)");
       await evaluate("chatFixture.changeMain()");
       await until("document.querySelector('.main-stage-pane > .main-chat-view .chat-active-title')?.textContent === '另一条主聊天'");
@@ -125,6 +147,39 @@ if (!process.versions.electron) {
       await until(`document.querySelector(${JSON.stringify(main)})?.textContent.includes('第一条独立聊天')`);
       assert.equal(await evaluate(`document.querySelectorAll(${JSON.stringify(main + ' .user-msg-container')}).length`), 1);
       assert.equal(await evaluate(`document.querySelectorAll(${JSON.stringify(panel + ' .user-msg-container')}).length`), 1);
+      // 时间、复制和编辑默认隐藏；消息、间隙和操作栏悬停都保持显示，且只影响当前消息。
+      const actions = view => `getComputedStyle(document.querySelector(${JSON.stringify(view + ' .user-message-actions')}))`;
+      const movePointer = async (selector, atGap = false) => {
+        const point = await evaluate(`(() => { const r = document.querySelector(${JSON.stringify(selector)}).getBoundingClientRect(); return { x: Math.round(r.right - 12), y: Math.round(${atGap ? 'r.bottom + 4' : 'r.top + r.height / 2'}) }; })()`);
+        win.webContents.sendInputEvent({ type: 'mouseMove', ...point });
+      };
+      await evaluate("document.activeElement?.blur()");
+      win.webContents.sendInputEvent({ type: 'mouseMove', x: 0, y: 0 });
+      for (const view of [main, panel]) {
+        await until(`${actions(view)}.opacity === '0'`);
+        assert.equal(await evaluate(`${actions(view)}.pointerEvents`), 'none');
+      }
+      await movePointer(panel + ' .user-bubble');
+      await until(`${actions(panel)}.opacity === '1'`);
+      assert.equal(await evaluate(`${actions(main)}.opacity`), '0');
+      await movePointer(panel + ' .user-bubble', true);
+      assert.equal(await evaluate(`${actions(panel)}.opacity`), '1');
+      await movePointer(panel + ' .user-message-actions');
+      assert.equal(await evaluate(`${actions(panel)}.pointerEvents`), 'auto');
+      await capture('user-actions-hover');
+      win.webContents.sendInputEvent({ type: 'mouseMove', x: 0, y: 0 });
+      await until(`${actions(panel)}.opacity === '0'`);
+      // 隐藏的按钮仍在 Tab 顺序里，键盘聚焦后整排显示。
+      await evaluate(`document.querySelector(${JSON.stringify(panel + " .user-message-action[aria-label='复制消息']")}).focus()`);
+      await until(`${actions(panel)}.opacity === '1'`);
+      win.webContents.sendInputEvent({ type: 'keyDown', keyCode: 'Tab' });
+      win.webContents.sendInputEvent({ type: 'keyUp', keyCode: 'Tab' });
+      await until(`document.activeElement === document.querySelector(${JSON.stringify(panel + " .user-message-action[aria-label='修改消息']")})`);
+      await evaluate("document.activeElement.blur()");
+      await until(`${actions(panel)}.opacity === '0'`);
+      await movePointer(main + ' .user-bubble');
+      await until(`${actions(main)}.opacity === '1'`);
+      assert.equal(await evaluate(`${actions(panel)}.opacity`), '0');
       await click(panel + " .user-message-action[aria-label='修改消息']");
       await until(`document.querySelector(${JSON.stringify(panel + ' .user-message-editor textarea')})`);
       await input(panel + " .user-message-editor textarea", "修改后的独立聊天");

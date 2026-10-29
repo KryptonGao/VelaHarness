@@ -1,133 +1,133 @@
 {
-  "version": "1.2.7",
+  "version": "1.2.8",
   "locales": {
     "en": {
-      "summary": "Vela 1.2.7 warns you when two conversations edit the same file, adds a category-based navigation layout, and lets you switch the Changes view between uncommitted, staged, committed and branch diffs.",
+      "summary": "Vela 1.2.8 groups the thinking of OpenAI reasoning models under a title with its tool calls, adds a third tool icon color option, and only warns about overlapping edits between conversations that are still running.",
       "highlights": [
         {
-          "title": "Cross-conversation edit warnings",
-          "body": "When several conversations edit the same file, Vela shows a reminder and lists which conversations overlap. You can move one of them into its own worktree so the changes stop overwriting each other."
+          "title": "Thinking groups",
+          "body": "Thinking from OpenAI reasoning models now folds into a group titled by its first line, with the tool calls that follow nested underneath. A collapsed group notes how many tools failed."
         },
         {
-          "title": "Category navigation layout",
-          "body": "Choose the new Categories layout in Settings → Interface to add an icon rail for Home, Scheduled Tasks, Task Recipes, Agent Inbox and Settings, leaving the sidebar for your conversation list."
+          "title": "Adjustable group height",
+          "body": "Settings → Conversation display lets you cap the height of an expanded group and of the command output and edit diffs inside it. Longer content scrolls with softly blurred edges."
         },
         {
-          "title": "Filter the Changes view",
-          "body": "Switch between the last turn, uncommitted, unstaged, staged and committed changes, or compare against a branch or a single commit. Very large diffs show a partial preview."
+          "title": "Theme-colored tool icons",
+          "body": "Tool icon colors now have three choices: Colorful by type, Theme to use the current accent color, or Gray."
         },
         {
-          "title": "Scrollbars that stay out of the way",
-          "body": "Scrollbars in the inbox, recipes, scheduled tasks, pull request and settings pages now appear only while you scroll."
+          "title": "Fewer false overlap warnings",
+          "body": "Edit warnings now appear only while the conversations involved are still running. Finished conversations stay in the recent edits list but no longer trigger a reminder."
         }
       ],
       "improvements": [
-        "Overlap detection only counts files changed through edit and write; files with the same name in different worktrees are not treated as overlapping.",
-        "Pages in the Categories layout share a consistent top bar and spacing.",
+        "Opening the model menu with Ultra already selected no longer replays the Ultra highlight.",
+        "In the Categories layout the chat area keeps square corners when the sidebar collapses or expands.",
         "New interface text is available in all five languages."
       ]
     },
     "zh-CN": {
-      "summary": "Vela 1.2.7 会在多个对话修改同一文件时提醒你，新增「分类」导航布局，并让「变更」视图可以在未提交、已暂存、已提交和分支差异之间切换。",
+      "summary": "Vela 1.2.8 会把 OpenAI 推理模型的思考与随后的工具调用归入同一个带标题的分组，新增第三种工具图标配色，并且只在仍在运行的对话之间提醒重叠改动。",
       "highlights": [
         {
-          "title": "跨对话改动提醒",
-          "body": "多个对话改了同一个文件时，Vela 会弹出提醒并列出重叠的对话。你可以把其中一个转到独立 worktree，避免改动互相覆盖。"
+          "title": "思考分组",
+          "body": "OpenAI 推理模型的思考现在以首行标题折叠成一组，随后的工具调用挂在下面。折叠时会提示有多少个工具失败。"
         },
         {
-          "title": "分类导航布局",
-          "body": "在 设置 → 界面 中选择新的「分类」布局，最左侧会增加图标栏，放置主页、定时任务、任务配方、Agent 收件箱和设置，侧边栏只保留对话列表。"
+          "title": "可调的分组高度",
+          "body": "在 设置 → 对话显示 中可以限制展开后整组的高度，以及其中命令输出和编辑 diff 的高度；超出部分可滚动，边缘渐进模糊。"
         },
         {
-          "title": "筛选变更视图",
-          "body": "可在上一轮、未提交、未暂存、已暂存和已提交的变更之间切换，也能与某个分支或某次提交比较。差异过大时只显示部分内容。"
+          "title": "主题色工具图标",
+          "body": "工具图标配色新增选项：「彩色」按类型区分，「主题色」使用当前主题的强调色，「灰色」统一为灰色。"
         },
         {
-          "title": "不打扰的滚动条",
-          "body": "收件箱、任务配方、定时任务、Pull Request 和设置页面中的滚动条现在只在滚动时出现。"
+          "title": "更少的误报重叠提醒",
+          "body": "改动重叠提醒现在只在相关对话仍在运行时出现；已结束的对话仍保留在近期改动列表里，但不再触发提醒。"
         }
       ],
       "improvements": [
-        "重叠检测只统计通过 edit 和 write 修改的文件；不同 worktree 里的同名文件不算重叠。",
-        "「分类」布局下各页面的顶栏与间距保持一致。",
+        "在已选中 Ultra 时打开模型菜单，不再重复播放 Ultra 的高亮动画。",
+        "「分类」布局下，侧边栏展开或收起时对话区保持直角。",
         "新增界面文案已提供五种语言。"
       ]
     },
     "zh-TW": {
-      "summary": "Vela 1.2.7 會在多個對話修改同一檔案時提醒你，新增「分類」導覽版面，並讓「變更」檢視可在未提交、已暫存、已提交與分支差異之間切換。",
+      "summary": "Vela 1.2.8 會把 OpenAI 推理模型的思考與隨後的工具呼叫歸入同一個帶標題的分組，新增第三種工具圖示配色，並且只在仍在執行的對話之間提醒重疊改動。",
       "highlights": [
         {
-          "title": "跨對話改動提醒",
-          "body": "多個對話改了同一個檔案時，Vela 會顯示提醒並列出重疊的對話。你可以把其中一個轉到獨立 worktree，避免改動互相覆蓋。"
+          "title": "思考分組",
+          "body": "OpenAI 推理模型的思考現在以首行標題摺疊成一組，隨後的工具呼叫掛在下面。摺疊時會提示有多少個工具失敗。"
         },
         {
-          "title": "分類導覽版面",
-          "body": "在 設定 → 介面 中選擇新的「分類」版面，最左側會增加圖示欄，放置首頁、排程任務、任務配方、Agent 收件匣與設定，側邊欄只保留對話列表。"
+          "title": "可調整的分組高度",
+          "body": "在 設定 → 對話顯示 中可以限制展開後整組的高度，以及其中指令輸出與編輯 diff 的高度；超出部分可捲動，邊緣漸進模糊。"
         },
         {
-          "title": "篩選變更檢視",
-          "body": "可在上一輪、未提交、未暫存、已暫存與已提交的變更之間切換，也能與某個分支或某次提交比較。差異過大時只顯示部分內容。"
+          "title": "主題色工具圖示",
+          "body": "工具圖示配色新增選項：「彩色」依類型區分，「主題色」使用目前主題的強調色，「灰色」統一為灰色。"
         },
         {
-          "title": "不打擾的捲軸",
-          "body": "收件匣、任務配方、排程任務、Pull Request 與設定頁面中的捲軸現在只在捲動時出現。"
+          "title": "更少的誤報重疊提醒",
+          "body": "改動重疊提醒現在只在相關對話仍在執行時出現；已結束的對話仍保留在近期改動列表中，但不再觸發提醒。"
         }
       ],
       "improvements": [
-        "重疊偵測只統計透過 edit 與 write 修改的檔案；不同 worktree 中的同名檔案不算重疊。",
-        "「分類」版面下各頁面的頂欄與間距保持一致。",
+        "在已選取 Ultra 時開啟模型選單，不再重複播放 Ultra 的高亮動畫。",
+        "「分類」版面下，側邊欄展開或收合時對話區保持直角。",
         "新增介面文字已提供五種語言。"
       ]
     },
     "ja": {
-      "summary": "Vela 1.2.7 では、複数の会話が同じファイルを編集すると通知し、新しい「カテゴリ」ナビゲーションレイアウトを追加しました。変更ビューでは未コミット、ステージ済み、コミット済み、ブランチ差分を切り替えられます。",
+      "summary": "Vela 1.2.8 では、OpenAI の推論モデルの思考と続くツール呼び出しをタイトル付きのグループにまとめ、ツールアイコンの配色に 3 つ目の選択肢を追加しました。編集の重なりの通知は、実行中の会話どうしに限られます。",
       "highlights": [
         {
-          "title": "会話をまたぐ編集の通知",
-          "body": "複数の会話が同じファイルを編集すると、Vela が通知して重なっている会話を一覧表示します。いずれかを独立した worktree に移せば、変更が上書きし合うのを防げます。"
+          "title": "思考グループ",
+          "body": "OpenAI の推論モデルの思考は、1 行目のタイトルでまとまり、続くツール呼び出しがその下に付きます。折りたたんだ状態でも、失敗したツールの数が分かります。"
         },
         {
-          "title": "カテゴリ型ナビゲーション",
-          "body": "設定 → インターフェース で新しい「カテゴリ」レイアウトを選ぶと、ホーム、スケジュール済みタスク、タスクレシピ、Agent 受信トレイ、設定を収めたアイコンバーが左端に加わり、サイドバーは会話リストだけになります。"
+          "title": "グループの高さを調整",
+          "body": "設定 → 会話の表示 で、展開したグループ全体と、その中のコマンド出力・編集 diff の高さの上限を設定できます。超えた分はスクロールでき、端が徐々にぼけます。"
         },
         {
-          "title": "変更ビューの絞り込み",
-          "body": "直前のターン、未コミット、未ステージ、ステージ済み、コミット済みの変更を切り替えられ、ブランチや特定のコミットとの比較もできます。差分が大きすぎる場合は一部のみ表示します。"
+          "title": "テーマカラーのツールアイコン",
+          "body": "ツールアイコンの配色に、種類ごとの「カラー」、現在のテーマのアクセントカラーを使う「テーマカラー」、統一する「グレー」の 3 つが選べます。"
         },
         {
-          "title": "邪魔にならないスクロールバー",
-          "body": "受信トレイ、タスクレシピ、スケジュール済みタスク、Pull Request、設定ページのスクロールバーは、スクロール中だけ表示されます。"
+          "title": "誤った重なり通知を減らしました",
+          "body": "編集の重なりの通知は、対象の会話がまだ実行中のときだけ表示されます。終了した会話は最近の編集一覧に残りますが、通知は出ません。"
         }
       ],
       "improvements": [
-        "重なりの検出は edit と write で変更されたファイルのみが対象です。別の worktree にある同名ファイルは重なりとして扱いません。",
-        "「カテゴリ」レイアウトでは、各ページのトップバーと余白が統一されました。",
+        "Ultra を選択済みの状態でモデルメニューを開いても、Ultra のハイライトが再生されなくなりました。",
+        "「カテゴリ」レイアウトでは、サイドバーを開閉しても会話エリアの角が直角のままです。",
         "追加された画面テキストは 5 言語に対応しています。"
       ]
     },
     "ko": {
-      "summary": "Vela 1.2.7은 여러 대화가 같은 파일을 수정하면 알려 주고, 새 '카테고리' 내비게이션 레이아웃을 추가했습니다. 변경 사항 보기에서는 미커밋, 스테이징됨, 커밋됨, 브랜치 차이를 전환할 수 있습니다.",
+      "summary": "Vela 1.2.8은 OpenAI 추론 모델의 사고와 이어지는 도구 호출을 제목이 있는 그룹으로 묶고, 도구 아이콘 색상에 세 번째 옵션을 추가했습니다. 수정 겹침 알림은 아직 실행 중인 대화 사이에서만 표시됩니다.",
       "highlights": [
         {
-          "title": "대화 간 수정 충돌 알림",
-          "body": "여러 대화가 같은 파일을 수정하면 Vela가 알림을 표시하고 겹치는 대화를 보여 줍니다. 그중 하나를 독립된 worktree로 옮겨 변경 사항이 서로 덮어쓰지 않게 할 수 있습니다."
+          "title": "사고 그룹",
+          "body": "OpenAI 추론 모델의 사고는 첫 줄 제목으로 묶인 그룹으로 접히고, 이어지는 도구 호출이 그 아래에 표시됩니다. 접은 상태에서도 실패한 도구 수를 알려 줍니다."
         },
         {
-          "title": "카테고리 내비게이션 레이아웃",
-          "body": "설정 → 인터페이스에서 새 '카테고리' 레이아웃을 선택하면 홈, 예약 작업, 작업 레시피, Agent 받은편지함, 설정이 있는 아이콘 바가 왼쪽에 추가되고 사이드바에는 대화 목록만 남습니다."
+          "title": "그룹 높이 조절",
+          "body": "설정 → 대화 표시에서 펼친 그룹 전체와 그 안의 명령 출력, 편집 diff의 최대 높이를 정할 수 있습니다. 넘치는 내용은 스크롤되며 가장자리가 부드럽게 흐려집니다."
         },
         {
-          "title": "변경 사항 보기 필터",
-          "body": "지난 턴, 미커밋, 스테이징 안 됨, 스테이징됨, 커밋됨 변경 사항을 전환하거나 브랜치 또는 특정 커밋과 비교할 수 있습니다. 차이가 너무 크면 일부만 표시합니다."
+          "title": "테마 색상 도구 아이콘",
+          "body": "도구 아이콘 색상에 유형별 '컬러', 현재 테마의 강조색을 쓰는 '테마', 하나로 통일하는 '회색'의 세 가지 선택지가 생겼습니다."
         },
         {
-          "title": "방해하지 않는 스크롤바",
-          "body": "받은편지함, 작업 레시피, 예약 작업, Pull Request, 설정 페이지의 스크롤바는 이제 스크롤하는 동안에만 나타납니다."
+          "title": "잘못된 겹침 알림 감소",
+          "body": "수정 겹침 알림은 해당 대화가 아직 실행 중일 때만 표시됩니다. 끝난 대화는 최근 수정 목록에 남지만 더 이상 알림을 띄우지 않습니다."
         }
       ],
       "improvements": [
-        "겹침 감지는 edit와 write로 수정한 파일만 집계하며, 서로 다른 worktree의 같은 이름 파일은 겹침으로 보지 않습니다.",
-        "'카테고리' 레이아웃에서 각 페이지의 상단 바와 간격이 일관되게 맞춰졌습니다.",
+        "이미 Ultra가 선택된 상태에서 모델 메뉴를 열어도 Ultra 강조 효과가 다시 재생되지 않습니다.",
+        "'카테고리' 레이아웃에서 사이드바를 열거나 닫아도 대화 영역의 모서리가 직각으로 유지됩니다.",
         "새 화면 문구는 5개 언어로 제공됩니다."
       ]
     }

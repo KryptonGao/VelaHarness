@@ -1,9 +1,11 @@
 import { useMemo, useState } from "react";
 import type { ModelCatalog } from "@vela/shared";
-import type { PreferencesApi, ThinkingSummaryStyle, ToolDisplay, ToolFold } from "../../hooks/usePreferences";
+import type { PreferencesApi, ThinkingSummaryStyle, ToolDisplay, ToolFold, ToolIconColor } from "../../hooks/usePreferences";
 import type { SettingsCopy } from "../settings-copy";
 import { groupAvailable, modelValue, parseModelValue } from "./model-helpers";
-import { Segmented, SettingsBlock } from "./primitives";
+import { Segmented, SettingsBlock, SettingsSwitch } from "./primitives";
+import { HeightLimitControl } from "./HeightLimitControl";
+import { thinkingGroupHeightStops, toolDetailHeightStops } from "../../thinking-group-height";
 import { IntelligentUiSetting } from "../intelligent-ui/IntelligentUiSetting";
 import {
   ConversationPreview,
@@ -31,6 +33,9 @@ export function ConversationDisplayPage({
     runView,
     recommendedActions,
     toolIconColor,
+    thinkingGroupHeight,
+    toolDetailHeight,
+    toolDetailHeightScale,
     replyFade,
     replyPop,
     thinkingFade,
@@ -46,6 +51,9 @@ export function ConversationDisplayPage({
     setRunView,
     setRecommendedActions,
     setToolIconColor,
+    setThinkingGroupHeight,
+    setToolDetailHeight,
+    setToolDetailHeightScale,
     setReplyFade,
     setReplyPop,
     setThinkingFade,
@@ -61,7 +69,7 @@ export function ConversationDisplayPage({
   const selected: Record<string, string> = {
     toolDisplay,
     toolFold,
-    toolIconColor: onOff(toolIconColor),
+    toolIconColor,
     toolProcessDetails: onOff(toolProcessDetails),
     thinkingSummary: onOff(thinkingSummary),
     thinkingSummaryStyle,
@@ -75,7 +83,7 @@ export function ConversationDisplayPage({
   const view = {
     toolDisplay: pick<ToolDisplay>("toolDisplay"),
     toolFold: pick<ToolFold>("toolFold"),
-    toolIconColor: pick("toolIconColor") === "on",
+    toolIconColor: pick<ToolIconColor>("toolIconColor"),
     toolProcessDetails: pick("toolProcessDetails") === "on",
     thinkingSummary: pick("thinkingSummary") === "on",
     thinkingSummaryStyle: pick<ThinkingSummaryStyle>("thinkingSummaryStyle"),
@@ -96,6 +104,11 @@ export function ConversationDisplayPage({
     { id: "message", label: text.toolFoldMessage },
     { id: "position", label: text.toolFoldPosition },
     { id: "none", label: text.toolFoldNone },
+  ];
+  const toolIconColorOptions: { id: ToolIconColor; label: string }[] = [
+    { id: "color", label: text.toolIconColorOn },
+    { id: "theme", label: text.toolIconColorTheme },
+    { id: "gray", label: text.toolIconColorOff },
   ];
   const thinkingSummaryStyleOptions: { id: ThinkingSummaryStyle; label: string }[] = [
     { id: "inline", label: text.thinkingSummaryStyleInline },
@@ -125,16 +138,13 @@ export function ConversationDisplayPage({
         id="tool-icon-color"
         title={text.toolIconColor}
         hint={text.toolIconColorHint}
-        aside={<ToolIconColorPreview colored={view.toolIconColor} previewing={previewing("toolIconColor")} />}
+        aside={<ToolIconColorPreview mode={view.toolIconColor} previewing={previewing("toolIconColor")} />}
       >
         <Segmented
           label={text.toolIconColor}
-          value={onOff(toolIconColor)}
-          options={[
-            { id: "off", label: text.toolIconColorOff },
-            { id: "on", label: text.toolIconColorOn },
-          ]}
-          onChange={(value) => setToolIconColor(value === "on")}
+          value={toolIconColor}
+          options={toolIconColorOptions}
+          onChange={setToolIconColor}
           onPreview={peek("toolIconColor")}
         />
       </SettingsBlock>
@@ -245,7 +255,33 @@ export function ConversationDisplayPage({
           onPreview={peek("thinkingSummaryStyle")}
         />
       </SettingsBlock>
-      <SettingsBlock id="reply-animation" title={text.replyAnimation} hint={text.replyAnimationHint}>
+            <SettingsBlock id="thinking-group-height" title={text.thinkingGroupHeight} hint={text.thinkingGroupHeightHint}>
+        <div className="tb-fields">
+        <HeightLimitControl
+          label={text.thinkingGroupHeightGroup}
+          stops={thinkingGroupHeightStops}
+          value={thinkingGroupHeight}
+          onChange={setThinkingGroupHeight}
+        />
+        <HeightLimitControl
+          label={text.thinkingGroupHeightDetail}
+          stops={toolDetailHeightStops}
+          value={toolDetailHeight}
+          onChange={setToolDetailHeight}
+        />
+        <div className="tb-enable" title={text.thinkingGroupHeightScaleHint}>
+          <span>{text.thinkingGroupHeightScale}</span>
+          <SettingsSwitch
+            checked={toolDetailHeightScale}
+            label={text.thinkingGroupHeightScale}
+            title={text.thinkingGroupHeightScaleHint}
+            onChange={setToolDetailHeightScale}
+          />
+        </div>
+        <p className="tb-limit-hint">{text.thinkingGroupHeightScaleHint}</p>
+        </div>
+      </SettingsBlock>
+<SettingsBlock id="reply-animation" title={text.replyAnimation} hint={text.replyAnimationHint}>
         <div className="settings-font-row">
           <span className="settings-font-label">{text.animationFade}</span>
           <Segmented

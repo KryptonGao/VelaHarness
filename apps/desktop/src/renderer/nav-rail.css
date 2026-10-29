@@ -23,6 +23,23 @@
   isolation: isolate;
 }
 .nav-rail-layout .main-stage { background: none; }
+/* 纸面始终是直角，不随折叠状态切换形状。 */
+.nav-rail-layout .main-chat-view { --paper-left-radius: 0px; }
+/*
+ * 左侧圆角是固定在收起位置的透明遮罩，而非随纸面移动的 border-radius。
+ * 遮罩反向偏移 --nav-open，抵消纸面的位移：展开时直角从圆角下面抽出，
+ * 收起时再滑回圆角下面。只裁两个角，不重复绘制玻璃，也不裁掉顶栏和菜单。
+ */
+.nav-rail-layout .main-stage-pane > .main-chat-view {
+  mask-image:
+    radial-gradient(circle at right bottom, transparent calc(var(--glass-fillet) - 0.5px), #000 var(--glass-fillet)),
+    radial-gradient(circle at right top, transparent calc(var(--glass-fillet) - 0.5px), #000 var(--glass-fillet)),
+    linear-gradient(#000, #000);
+  mask-size: var(--glass-fillet) var(--glass-fillet), var(--glass-fillet) var(--glass-fillet), 100% 100%;
+  mask-position: calc(0px - var(--nav-open)) var(--header-height), calc(0px - var(--nav-open)) bottom, 0 0;
+  mask-repeat: no-repeat;
+  mask-composite: exclude;
+}
 .nav-rail-layout :is(.main-chat-view, .workbench-panel, .settings-view, .scheduled-tasks-page-shell, .pr-inbox-page, .agent-inbox-page)::before {
   background: none;
   backdrop-filter: none;
@@ -111,7 +128,7 @@
  * 位置全由一个动画变量 --nav-open（侧栏当前露出的宽度，展开 = 侧栏宽度，收起 = 0）驱动：
  *   · 对话区的左缘 = 图标栏 + 6px 边 + --nav-open（负外边距实现，纸面盖在侧栏上方）；
  *   · 侧栏只露出这条边左侧的部分（clip-path），被盖住的内容直接被裁掉，不淡出、不挤压。
- * 纸面形状（圆角、与图标栏的距离）展开收起时完全一致，卡片与纸面的左缘都离图标栏 6px。
+ * 左侧圆角遮罩固定在收起位置，纸面从遮罩下抽出；收起后的纸面与卡片左缘都离图标栏 6px。
  * 离开主页时同样收起，不动用户保存的折叠状态。
  */
 @property --nav-open {

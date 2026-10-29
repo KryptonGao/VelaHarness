@@ -15,9 +15,9 @@ const rec = (editedAt: number, edits = 1) => ({ editedAt, edits });
 describe("buildConflictsState", () => {
   it("flags a file only when two or more chats edited the same absolute path", () => {
     const state = buildConflictsState([
-      { conversationId: "a", title: "Auth", cwd: "/repo", files: new Map([["/repo/src/x.ts", rec(now - 5 * 60_000)], ["/repo/only-a.ts", rec(now - hour)]]) },
-      { conversationId: "b", title: "Login", cwd: "/repo", files: new Map([["/repo/src/x.ts", rec(now - 60_000)]]) },
-      { conversationId: "c", title: "Worktree", cwd: "/wt", files: new Map([["/wt/src/x.ts", rec(now)]]) },
+      { conversationId: "a", title: "Auth", cwd: "/repo", running: true, files: new Map([["/repo/src/x.ts", rec(now - 5 * 60_000)], ["/repo/only-a.ts", rec(now - hour)]]) },
+      { conversationId: "b", title: "Login", cwd: "/repo", running: true, files: new Map([["/repo/src/x.ts", rec(now - 60_000)]]) },
+      { conversationId: "c", title: "Worktree", cwd: "/wt", running: true, files: new Map([["/wt/src/x.ts", rec(now)]]) },
     ], now);
     assert.deepEqual(state.overlaps.map(item => [item.relativePath, item.conversations.map(entry => entry.conversationId)]), [["src/x.ts", ["b", "a"]]]);
     assert.deepEqual(state.conversations.map(item => item.conversationId), ["c", "b", "a"]);
@@ -26,10 +26,22 @@ describe("buildConflictsState", () => {
     assert.equal(overlapsForConversation(state, "c").length, 0);
   });
 
+  it("only warns about running chats while preserving completed chats in the history", () => {
+    const state = buildConflictsState([
+      { conversationId: "a", title: "Running A", cwd: "/repo", running: true, files: new Map([["/repo/x.ts", rec(now)]]) },
+      { conversationId: "b", title: "Finished", cwd: "/repo", running: false, files: new Map([["/repo/x.ts", rec(now)]]) },
+      { conversationId: "c", title: "Running C", cwd: "/repo", running: true, files: new Map([["/repo/x.ts", rec(now)]]) },
+    ], now);
+    assert.equal(state.conversations.length, 3);
+    assert.deepEqual(state.overlaps[0]!.conversations.map(item => item.conversationId), ["a", "c"]);
+    assert.deepEqual(overlapsForConversation(state, "b"), []);
+    assert.deepEqual(conflictingConversations(state, "a"), [{ conversationId: "c", title: "Running C", files: ["x.ts"] }]);
+  });
+
   it("ignores edits older than the window", () => {
     const state = buildConflictsState([
-      { conversationId: "a", title: "A", cwd: "/repo", files: new Map([["/repo/x.ts", rec(now - conflictLimits.windowMs - 1)]]) },
-      { conversationId: "b", title: "B", cwd: "/repo", files: new Map([["/repo/x.ts", rec(now)]]) },
+      { conversationId: "a", title: "A", cwd: "/repo", running: true, files: new Map([["/repo/x.ts", rec(now - conflictLimits.windowMs - 1)]]) },
+      { conversationId: "b", title: "B", cwd: "/repo", running: true, files: new Map([["/repo/x.ts", rec(now)]]) },
     ], now);
     assert.deepEqual(state.overlaps, []);
     assert.deepEqual(state.conversations.map(item => item.conversationId), ["b"]);
@@ -50,9 +62,9 @@ async function setup(t: TestContext, repo = false) {
     git("add", "-A");
     git("commit", "-m", "init");
   }
-  const conversations = new Map<string, { title: string; cwd: string; hasWorkspace: boolean }>([
-    ["a", { title: "First", cwd: workspace, hasWorkspace: true }],
-    ["b", { title: "Second", cwd: join(workspace, "pkg"), hasWorkspace: true }],
+  const conversations = new Map<string, NonNullable<ReturnType<ConflictRuntime["conversation"]>>>([
+    ["a", { title: "First", cwd: workspace, hasWorkspace: true, running: true }],
+    ["b", { title: "Second", cwd: join(workspace, "pkg"), hasWorkspace: true, running: true }],
   ]);
   const created: string[] = [];
   const runtime: ConflictRuntime = {
@@ -76,6 +88,52 @@ describe("ConflictService", () => {
     assert.equal(state.overlaps[0]!.path, join(env.workspace, "pkg", "x.ts"));
     assert.equal(state.conversations.find(item => item.conversationId === "b")!.files[0]!.edits, 2);
     service.dispose();
+  });
+
+  it("notifies subscribers and removes the warning when either chat finishes without another edit", async t => {
+    const env = await setup(t);
+    t.mock.timers.enable({ apis: ["setTimeout"] });
+    const service = new ConflictService(env.file, env.runtime, () => now);
+    t.after(() => service.dispose());
+    service.record("a", env.workspace, "x.ts");
+    service.record("b", env.workspace, "x.ts");
+    t.mock.timers.tick(200);
+    const updates: number[] = [];
+    service.subscribe(() => updates.push(service.list().overlaps.length));
+    assert.equal(service.list().overlaps.length, 1);
+
+    env.conversations.get("b")!.running = false;
+    service.runningChanged("b");
+    t.mock.timers.tick(200);
+    assert.deepEqual(updates, [0]);
+    assert.equal(service.list().conversations.length, 2);
+
+    env.conversations.get("b")!.running = true;
+    service.runningChanged("b");
+    t.mock.timers.tick(200);
+    assert.deepEqual(updates, [0, 1]);
+
+    env.conversations.get("a")!.running = false;
+    service.runningChanged("a");
+    t.mock.timers.tick(200);
+    assert.deepEqual(updates, [0, 1, 0]);
+  });
+
+  it("does not restore warnings for idle chats from persisted edit history", async t => {
+    const env = await setup(t);
+    const first = new ConflictService(env.file, env.runtime, () => now);
+    first.record("a", env.workspace, "x.ts");
+    first.record("b", env.workspace, "x.ts");
+    first.dispose();
+    env.conversations.get("a")!.running = false;
+    env.conversations.get("b")!.running = false;
+    const restored = new ConflictService(env.file, env.runtime, () => now);
+    t.after(() => restored.dispose());
+    restored.init();
+    assert.equal(restored.list().conversations.length, 2);
+    assert.deepEqual(restored.list().overlaps, []);
+    env.conversations.get("a")!.running = true;
+    assert.deepEqual(restored.list().overlaps, []);
   });
 
   it("drops archived or missing chats, expired files and forgotten chats", async t => {

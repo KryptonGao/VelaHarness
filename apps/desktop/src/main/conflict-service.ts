@@ -12,7 +12,7 @@ const log = createLogger("conflicts");
 
 export interface ConflictRuntime {
   /** 未归档且仍存在的对话；否则返回 null，它的记录会被丢弃。 */
-  conversation(id: string): { title: string; cwd: string; hasWorkspace: boolean } | null;
+  conversation(id: string): { title: string; cwd: string; hasWorkspace: boolean; running: boolean } | null;
   createConversation(cwd: string): Promise<string>;
   /** 受管 worktree 的根目录。 */
   worktreeRoot: string;
@@ -27,10 +27,11 @@ export interface ConflictEntry {
   conversationId: string;
   title: string;
   cwd: string;
+  running: boolean;
   files: ReadonlyMap<string, FileRecord>;
 }
 
-/** 纯函数：窗口内的改动汇总，以及被两个以上对话改过的文件。 */
+/** 纯函数：窗口内的改动汇总；仅在仍运行的对话之间判断重叠。 */
 export function buildConflictsState(entries: readonly ConflictEntry[], now: number, windowMs: number = conflictLimits.windowMs): ConflictsState {
   const cutoff = now - windowMs;
   const conversations: ConversationEditSummary[] = [];
@@ -42,6 +43,7 @@ export function buildConflictsState(entries: readonly ConflictEntry[], now: numb
       .sort((a, b) => b.editedAt - a.editedAt || a.path.localeCompare(b.path));
     if (files.length === 0) continue;
     conversations.push({ conversationId: entry.conversationId, title: entry.title, cwd: entry.cwd, files });
+    if (!entry.running) continue;
     for (const file of files) {
       const list = byPath.get(file.path) ?? [];
       list.push({ conversationId: entry.conversationId, title: entry.title, editedAt: file.editedAt, relativePath: file.relativePath });
@@ -119,6 +121,11 @@ export class ConflictService {
     if (this.tracked.delete(conversationId)) this.changed();
   }
 
+  /** 运行状态变化也要刷新提醒，但不改动已保存的文件记录。 */
+  runningChanged(conversationId: string): void {
+    if (this.tracked.has(conversationId)) this.scheduleEmit();
+  }
+
   list(now: number = this.clock()): ConflictsState {
     const cutoff = now - conflictLimits.windowMs;
     const entries: ConflictEntry[] = [];
@@ -130,7 +137,7 @@ export class ConflictService {
         if (record.editedAt < cutoff) { tracked.files.delete(path); pruned = true; }
       }
       if (tracked.files.size === 0) { this.tracked.delete(id); pruned = true; continue; }
-      entries.push({ conversationId: id, title: cleanTitle(conversation.title), cwd: tracked.cwd, files: tracked.files });
+      entries.push({ conversationId: id, title: cleanTitle(conversation.title), cwd: tracked.cwd, running: conversation.running, files: tracked.files });
     }
     if (pruned) this.scheduleSave();
     return { ...buildConflictsState(entries, now), error: this.error };
@@ -183,6 +190,10 @@ export class ConflictService {
 
   private changed(): void {
     this.scheduleSave();
+    this.scheduleEmit();
+  }
+
+  private scheduleEmit(): void {
     if (this.emitTimer) return;
     // 一轮 edit 往往连着好几次，合并成一次通知。
     this.emitTimer = setTimeout(() => {

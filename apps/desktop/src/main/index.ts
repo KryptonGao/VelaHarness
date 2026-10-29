@@ -466,12 +466,15 @@ async function start(): Promise<void> {
   });
   raceService.init(); races = raceService;
   raceHost = new RaceHost(raceService); raceHost.register();
-  // 跨对话冲突提醒：记录各对话近期 edit / write 的文件，发现重叠时提醒并可转到独立 worktree。
+  // 跨对话冲突提醒：记录近期 edit / write 的文件，仅在仍运行的对话之间提醒重叠。
   const conflictService = new ConflictService(join(home, "conversation-edits.json"), {
     conversation: id => {
       if (residentSupervisor?.isResidentConversation(id)) return null;
       const found = runtime.listConversations().find(item => item.id === id);
-      return found && found.archivedAt === null ? { title: found.title, cwd: found.cwd, hasWorkspace: found.hasWorkspace !== false } : null;
+      return found && found.archivedAt === null ? {
+        title: found.title, cwd: found.cwd, hasWorkspace: found.hasWorkspace !== false,
+        running: found.status === "streaming" || runtime.getAgents(id).some(agent => isAgentBusy(agent.status)),
+      } : null;
     },
     createConversation: async cwd => {
       const snapshot = await runtime.createConversation(cwd, { hasWorkspace: true });
@@ -483,6 +486,10 @@ async function start(): Promise<void> {
   conflictService.init(); conflicts = conflictService;
   conflictHost = new ConflictHost(conflictService); conflictHost.register();
   runtime.subscribe(event => {
+    if (event.type === "status" || event.type === "agents") {
+      conflictService.runningChanged(event.conversationId);
+      return;
+    }
     const cwd = (id: string) => runtime.listConversations().find(item => item.id === id)?.cwd;
     if (event.type === "tool_end" && !event.isError && (event.toolName === "edit" || event.toolName === "write") && event.activity.path) {
       const dir = cwd(event.conversationId);

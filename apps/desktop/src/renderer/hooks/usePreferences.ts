@@ -1,3 +1,10 @@
+import {
+  clampHeight,
+  defaultThinkingGroupHeight,
+  defaultToolDetailHeight,
+  thinkingGroupHeightStops,
+  toolDetailHeightStops,
+} from "../thinking-group-height";
 import { uiStorage } from "../ui-storage";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -28,6 +35,8 @@ export type { AppLocale };
 export type ToolDisplay = "card" | "compact";
 /** 工具折叠的分组范围:按 Assistant 消息、按界面上的位置关系跨消息合并,或完全不折叠。 */
 export type ToolFold = "message" | "position" | "none";
+/** 紧凑工具图标的配色:按类型彩色、全部使用主题强调色、或统一灰色。 */
+export type ToolIconColor = "color" | "theme" | "gray";
 /** 思考总结的展示方式:跟在“思考”后面、替换“思考”作为标题、或跟随回复正文样式。 */
 export type ThinkingSummaryStyle = "inline" | "headline" | "prose";
 export type FileIconTheme = "devicon" | "material";
@@ -51,6 +60,9 @@ const toolProcessDetailsKey = "vela.toolProcessDetails";
 const runViewKey = "vela.runView";
 const recommendedActionsKey = "vela.recommendedActions";
 const toolIconColorKey = "vela.toolIconColor";
+const thinkingGroupHeightKey = "vela.thinkingGroupHeight";
+const toolDetailHeightKey = "vela.toolDetailHeight";
+const toolDetailHeightScaleKey = "vela.toolDetailHeightScale";
 const replyFadeKey = "vela.replyFade";
 const replyPopKey = "vela.replyPop";
 const thinkingFadeKey = "vela.thinkingFade";
@@ -83,6 +95,12 @@ function readStored<T>(key: string, accept: (value: unknown) => value is T, fall
     // 隐私模式无法读取本地存储时使用默认值。
   }
   return fallback;
+}
+
+/** 读取高度设置:不是整数或超出档位范围时用默认值。 */
+function readStoredHeight(key: string, stops: readonly number[], fallback: number): number {
+  const value = Number(readStored(key, (raw): raw is string => typeof raw === "string" && /^\d+$/.test(raw), String(fallback)));
+  return clampHeight(stops, value);
 }
 
 function readStoredFlag(key: string, fallback: boolean): boolean {
@@ -123,6 +141,16 @@ function isLocale(value: unknown): value is AppLocale {
 
 function isToolDisplay(value: unknown): value is ToolDisplay {
   return value === "card" || value === "compact";
+}
+
+/** 旧版本把配色存成 "true" / "false",读取时映射到新的三档。 */
+function readToolIconColor(): ToolIconColor {
+  const stored = readStored(
+    toolIconColorKey,
+    (value): value is string => ["color", "theme", "gray", "true", "false"].includes(value as string),
+    "color",
+  );
+  return stored === "true" ? "color" : stored === "false" ? "gray" : (stored as ToolIconColor);
 }
 
 function isToolFold(value: unknown): value is ToolFold {
@@ -235,9 +263,18 @@ export function usePreferences() {
   const [hiddenModels, setHiddenModels] = useState<string[]>(() =>
     readStoredJson(hiddenModelsKey, isHiddenModelList, []),
   );
-  const [toolIconColor, setToolIconColor] = useState(() =>
-    readStored(toolIconColorKey, (value): value is string => value === "true" || value === "false", "true") === "true",
+  const [toolIconColor, setToolIconColor] = useState<ToolIconColor>(readToolIconColor);
+  /** 思考分组展开区、以及其中命令/编辑详情的最大高度(px),通过根节点 CSS 变量作用到界面。 */
+  const [thinkingGroupHeight, setThinkingGroupHeightState] = useState(() =>
+    readStoredHeight(thinkingGroupHeightKey, thinkingGroupHeightStops, defaultThinkingGroupHeight),
   );
+  const [toolDetailHeight, setToolDetailHeightState] = useState(() =>
+    readStoredHeight(toolDetailHeightKey, toolDetailHeightStops, defaultToolDetailHeight),
+  );
+  const setThinkingGroupHeight = useCallback((value: number) => setThinkingGroupHeightState(clampHeight(thinkingGroupHeightStops, value)), []);
+  const setToolDetailHeight = useCallback((value: number) => setToolDetailHeightState(clampHeight(toolDetailHeightStops, value)), []);
+  /** 分组实际高度不足设定值时,详情高度按「详情上限 ÷ 分组上限」同比缩小。默认开启。 */
+  const [toolDetailHeightScale, setToolDetailHeightScale] = useState(() => readStoredFlag(toolDetailHeightScaleKey, true));
   const [replyFade, setReplyFade] = useState(() => readStoredFlag(replyFadeKey, true));
   const [replyPop, setReplyPop] = useState(() => readStoredFlag(replyPopKey, true));
   const [thinkingFade, setThinkingFade] = useState(() => readStoredFlag(thinkingFadeKey, true));
@@ -354,9 +391,26 @@ export function usePreferences() {
   useEffect(() => writeStored(sendButtonIconKey, sendButtonIcon), [sendButtonIcon]);
   useEffect(() => writeStored(hiddenModelsKey, JSON.stringify(hiddenModels)), [hiddenModels]);
   useEffect(() => {
-    document.documentElement.dataset.toolIconColor = String(toolIconColor);
-    writeStored(toolIconColorKey, String(toolIconColor));
+    // data-tool-icon-color 仍是「是否上色」的开关,主题色模式再叠加 data-tool-icon-theme。
+    document.documentElement.dataset.toolIconColor = String(toolIconColor !== "gray");
+    document.documentElement.dataset.toolIconTheme = String(toolIconColor === "theme");
+    writeStored(toolIconColorKey, toolIconColor);
   }, [toolIconColor]);
+  useEffect(() => {
+    document.documentElement.style.setProperty("--thinking-group-height", `${thinkingGroupHeight}px`);
+    writeStored(thinkingGroupHeightKey, String(thinkingGroupHeight));
+  }, [thinkingGroupHeight]);
+  useEffect(() => {
+    document.documentElement.style.setProperty("--tool-detail-height", `${toolDetailHeight}px`);
+    writeStored(toolDetailHeightKey, String(toolDetailHeight));
+  }, [toolDetailHeight]);
+  useEffect(() => {
+    document.documentElement.style.setProperty("--tool-detail-ratio", (toolDetailHeight / thinkingGroupHeight).toFixed(4));
+  }, [thinkingGroupHeight, toolDetailHeight]);
+  useEffect(() => {
+    document.documentElement.dataset.toolDetailScale = String(toolDetailHeightScale);
+    writeStored(toolDetailHeightScaleKey, String(toolDetailHeightScale));
+  }, [toolDetailHeightScale]);
   // 流式文字的淡入、弹跳动画由 CSS 按根节点属性切换,不必把开关传到每个 Markdown。
   useEffect(() => {
     document.documentElement.dataset.replyFade = String(replyFade);
@@ -417,6 +471,9 @@ export function usePreferences() {
     runView,
     recommendedActions,
     toolIconColor,
+    thinkingGroupHeight,
+    toolDetailHeight,
+    toolDetailHeightScale,
     replyFade,
     replyPop,
     thinkingFade,
@@ -453,6 +510,9 @@ export function usePreferences() {
     setRunView,
     setRecommendedActions,
     setToolIconColor,
+    setThinkingGroupHeight,
+    setToolDetailHeight,
+    setToolDetailHeightScale,
     setReplyFade,
     setReplyPop,
     setThinkingFade,

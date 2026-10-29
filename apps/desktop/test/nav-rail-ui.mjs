@@ -29,12 +29,15 @@ if (!process.versions.electron) {
         function Fixture() {
           const [category, setCategory] = useState('home');
           const away = category !== 'home';
+          const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+          const collapsed = away || sidebarCollapsed;
+          window.setSidebarCollapsed = setSidebarCollapsed;
           window.setCategory = setCategory;
-          return <AppLocaleProvider locale="zh-CN"><div className={'vela-window platform-darwin nav-rail-layout right-collapsed' + (away ? ' rail-away left-collapsed' : '')} style={{height:'100vh'}}>
+          return <AppLocaleProvider locale="zh-CN"><div className={'vela-window platform-darwin nav-rail-layout right-collapsed' + (away ? ' rail-away' : '') + (collapsed ? ' left-collapsed' : '')} style={{height:'100vh'}}>
             <NavRail active={category} platform="darwin" agentInboxBadge={3} onSelect={next => { window.selected.push(next); setCategory(next); }} />
-            <Sidebar railMode collapsed={away} platform="darwin" resize={{widths:{left:248,right:300,workbench:500},startResize(){},nudge(){},reset(){}}}
+            <Sidebar railMode collapsed={collapsed} platform="darwin" resize={{widths:{left:248,right:300,workbench:500},startResize(){},nudge(){},reset(){}}}
               conversations={conversations} activeConversationId="a0" settingsOpen={false} settingsLabel="设置"
-              onToggle={()=>{}} onOpenSettings={()=>{}} onNewChat={()=>{ window.newChatCalls = (window.newChatCalls || 0) + 1; }} onSwitchConversation={()=>{}}
+              onToggle={()=>setSidebarCollapsed(value => !value)} onOpenSettings={()=>{}} onNewChat={()=>{ window.newChatCalls = (window.newChatCalls || 0) + 1; }} onSwitchConversation={()=>{}}
               onArchiveConversation={()=>{}} onOpenPrInbox={()=>{}} prInboxOpen={false} onOpenAgentInbox={()=>{}} agentInboxOpen={false} agentInboxBadge={3}
               onOpenRecipes={()=>{}} recipesOpen={false} onOpenScheduledTasks={()=>{}} scheduledTasksOpen={false}/>
             <div className="main-stage"><div className="main-stage-pane is-hidden is-overlay" inert><div id="ghost-header" style={{ WebkitAppRegion: "drag" }} /></div><div className="main-stage-pane"><main className="main-chat-view" style={{flex:1}}><div className="main-chat-header"><span className="chat-active-title" id="stage-title">{category}</span></div></main></div></div>
@@ -102,9 +105,11 @@ if (!process.versions.electron) {
       const open = await measure();
       assert.equal(open.cardLeft, open.railRight + 6, "Card sits 6px from the rail");
       assert.equal(open.paperLeft, open.sidebarLeft + open.sidebarWidth, "Paper lies flush against the open sidebar");
-      assert.equal(open.paperRadius, "12px", "Paper keeps its rounded corner while open");
+      assert.equal(open.paperRadius, "0px", "Category paper has a square top-left corner while open");
+      const paperCorners = () => evaluate("(() => { const style = getComputedStyle(document.querySelector('.main-chat-view'), '::after'); return [style.borderTopLeftRadius, style.borderTopRightRadius, style.borderBottomRightRadius, style.borderBottomLeftRadius]; })()");
+      assert.deepEqual(await paperCorners(), ["0px", "12px", "12px", "0px"], "Only the category paper's left corners are square");
       await evaluate("document.querySelector('.nav-rail-item[aria-label=\"定时任务\"]').click()");
-      // 收起时纸面向左滑过去盖住侧栏：侧栏原地不动、内容不挤压不淡出，纸面形状不变，只有左缘在移动。
+      // 收起时直角纸面滑到固定的圆角遮罩下，侧栏原地不动、内容不挤压不淡出。
       let sawSliding = false;
       let previousLeft = open.paperLeft;
       const slideDeadline = Date.now() + 5000;
@@ -115,7 +120,7 @@ if (!process.versions.electron) {
         assert.equal(now.contentLeft, open.contentLeft, "Sidebar content never moves while collapsing");
         assert.equal(now.contentWidth, open.contentWidth, "Sidebar content is covered, not squeezed");
         assert.equal(now.contentOpacity, "1", "Sidebar content never fades");
-        assert.equal(now.paperRadius, "12px", "Paper keeps one shape the whole time");
+        assert.equal(now.paperRadius, "0px", "Paper itself stays square while sliding under the fixed corner mask");
         assert.ok(now.paperLeft <= previousLeft + 0.01, "Paper only moves left");
         previousLeft = now.paperLeft;
         if (now.paperLeft > now.railRight + 7 && now.paperLeft < open.paperLeft - 1) sawSliding = true;
@@ -125,12 +130,60 @@ if (!process.versions.electron) {
       }
       assert.ok(sawSliding, "Paper edge animates over the sidebar instead of jumping");
       const closed = await measure();
+      assert.deepEqual(await paperCorners(), ["0px", "12px", "12px", "0px"], "Collapsed paper stays square underneath the corner mask");
       assert.equal(closed.paperLeft, open.cardLeft, "Paper and card share the same left edge, open or closed");
       assert.equal(await evaluate("document.querySelector('.sidebar-left').inert"), true, "Hidden sidebar leaves the tab order");
       assert.equal(await evaluate("document.querySelector('.nav-rail-item[aria-current=page]').getAttribute('aria-label')"), "定时任务");
       await evaluate("document.querySelector('.nav-rail-item[aria-label=\"主页\"]').click()");
       await until("(() => { const paper = document.querySelector('.main-chat-view').getBoundingClientRect().left; const sidebar = document.querySelector('.sidebar-left').getBoundingClientRect(); return paper === sidebar.right; })()");
       assert.deepEqual(await evaluate("window.selected"), ["scheduledTasks", "home"]);
+      assert.deepEqual(await paperCorners(), ["0px", "12px", "12px", "0px"], "Returning home restores square sidebar seams");
+      await evaluate("document.querySelector('.titlebar-drag-row .icon-btn-ghost').click()");
+      await until("document.querySelector('.vela-window').classList.contains('left-collapsed') && document.querySelector('.main-chat-view').getBoundingClientRect().left === document.querySelector('.nav-rail').getBoundingClientRect().right + 6");
+      assert.deepEqual(await paperCorners(), ["0px", "12px", "12px", "0px"], "Manual collapse does not switch the paper's shape");
+      await evaluate("window.setSidebarCollapsed(false)");
+      await until("!document.querySelector('.vela-window').classList.contains('left-collapsed') && document.querySelector('.main-chat-view').getBoundingClientRect().left === document.querySelector('.sidebar-left').getBoundingClientRect().right");
+      assert.deepEqual(await paperCorners(), ["0px", "12px", "12px", "0px"], "Reopening the home sidebar restores square left corners");
+      // 定格展开/收起的中间帧并检查真实像素：圆弧留在窗口左侧，不跟纸面走，
+      // 同一位移的画面不受 left-collapsed 状态影响（不能先切角再开始移动）。
+      for (const collapsing of [false, true]) {
+        for (const offset of collapsing ? [24, 12, 9, 6, 3, 0] : [0, 3, 6, 9, 12, 24]) {
+          const geometry = await evaluate(`(() => {
+            const shell = document.querySelector('.vela-window');
+            shell.style.transition = 'none';
+            shell.classList.toggle('left-collapsed', ${collapsing});
+            shell.style.setProperty('--nav-open', '${offset}px');
+            const paper = document.querySelector('.main-chat-view');
+            const box = paper.getBoundingClientRect();
+            return { left: box.left, top: parseFloat(getComputedStyle(paper).getPropertyValue('--header-height')), bottom: box.bottom };
+          })()`);
+          await evaluate("new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+          const image = await win.webContents.capturePage();
+          const { width, height } = image.getSize();
+          const bitmap = image.toBitmap({ scaleFactor: 1 });
+          assert.equal(bitmap.length, width * height * 4, "Pixel checks use CSS-pixel resolution");
+          const pixel = (x, y) => [...bitmap.subarray((y * width + x) * 4, (y * width + x) * 4 + 3)];
+          const paperColor = pixel(Math.ceil(geometry.left) + 24, geometry.top + 24);
+          for (const bottom of [false, true]) {
+            for (const dx of [1, 4, 8, 14]) for (const dy of [1, 4, 8, 14]) {
+              const x = Math.ceil(geometry.left) + dx;
+              const y = bottom ? geometry.bottom - 1 - dy : geometry.top + dy;
+              const cx = open.cardLeft + 12;
+              const cy = bottom ? geometry.bottom - 12 : geometry.top + 12;
+              const distance = Math.hypot(x + 0.5 - cx, y + 0.5 - cy);
+              const inCorner = x + 0.5 < cx && (bottom ? y + 0.5 > cy : y + 0.5 < cy);
+              if (inCorner && Math.abs(distance - 12) < 1) continue; // 避开抗锯齿边缘。
+              const difference = Math.max(...pixel(x, y).map((value, index) => Math.abs(value - paperColor[index])));
+              const cutOut = inCorner && distance > 12;
+              assert.ok(cutOut ? difference > 4 : difference <= 2,
+                `Fixed ${bottom ? 'bottom' : 'top'} corner at offset ${offset}, collapsing=${collapsing}, pixel=${x},${y}, difference=${difference}`);
+            }
+          }
+        }
+      }
+      await evaluate("(() => { const shell = document.querySelector('.vela-window'); shell.classList.remove('left-collapsed'); shell.style.removeProperty('--nav-open'); shell.style.removeProperty('transition'); shell.classList.remove('nav-rail-layout'); })()");
+      assert.deepEqual(await paperCorners(), ["12px", "12px", "12px", "12px"], "Classic layout keeps all four rounded corners");
+      assert.equal(await evaluate("getComputedStyle(document.querySelector('.main-chat-view')).maskImage"), "none", "Classic layout has no corner mask");
       console.log("Passed nav rail checks: category items, badge, sidebar header actions, away collapse, home restore.");
       app.exit(0);
     } catch (error) { console.error(error); app.exit(1); }

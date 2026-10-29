@@ -2076,6 +2076,17 @@ code,
   color: var(--text-muted);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 140ms ease;
+}
+.user-msg-container:hover .user-message-actions,
+.user-msg-container:focus-within .user-message-actions {
+  opacity: 1;
+  pointer-events: auto;
+}
+@media (prefers-reduced-motion: reduce) {
+  .user-message-actions { transition: none; }
 }
 .user-message-actions time { margin-right: 4px; white-space: nowrap; }
 .user-message-action { min-width: 28px; height: 28px; padding: 0; justify-content: center; }
@@ -2580,6 +2591,43 @@ code,
 }
 .thinking-scroll-viewport .md-content > p { margin: 0 0 0.85em; }
 .thinking-scroll-viewport .md-content > p:last-child { margin-bottom: 0; }
+/* 思考分组(OpenAI CoT 总结):标题折叠,展开后思考正文和工具调用挂在同一条引导线下。
+   视口比单纯的思考区高得多,引导线在滚动内容里面,上下漸进模糊时跟着一起淡出。 */
+.thinking-group-shell > .thinking-scroll-viewport { max-height: var(--thinking-group-height, 280px); }
+.thinking-group-rail {
+  margin: 4px 0 2px 7px;
+  padding: 2px 14px 2px 15px;
+  border-left: 1px solid var(--border-subtle);
+}
+.thinking-group-rail > .thinking-text { padding: 0 0 8px; }
+/* 仅分组视图:工具详情(命令输出、diff)的高度上限比普通工具卡片更低,分组里同时展开几个也不会撑得太高。 */
+.thinking-group-rail .tool-details-scroll > .thinking-scroll-viewport,
+.thinking-group-rail .compact-diff-scroll-shell > .thinking-scroll-viewport {
+  max-height: var(--tool-detail-height, 200px);
+}
+/* 开启「按比例缩放」后:分组实际高度不足设定值时,详情按「详情上限 ÷ 分组上限」同比缩小。 */
+:root[data-tool-detail-scale="true"] .thinking-group-rail .tool-details-scroll > .thinking-scroll-viewport,
+:root[data-tool-detail-scale="true"] .thinking-group-rail .compact-diff-scroll-shell > .thinking-scroll-viewport {
+  max-height: min(
+    var(--tool-detail-height, 200px),
+    calc(var(--thinking-group-live-height, var(--thinking-group-height, 280px)) * var(--tool-detail-ratio, 0.7143))
+  );
+}
+.thinking-group-rail > .tool-card-list { margin: 0; }
+/* 组内代码改动的增删行数:紧跟标题,不推到右边。 */
+.thinking-group-stat {
+  margin-left: 3px;
+  font-size: 12px;
+  line-height: 1;
+}
+.thinking-group-failed {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  margin-left: 1px;
+  border-radius: 50%;
+  background: var(--danger);
+}
 .thinking-scroll-viewport::-webkit-scrollbar { width: 5px; }
 .thinking-scroll-viewport::-webkit-scrollbar-thumb {
   border-radius: var(--radius-pill);
@@ -3465,6 +3513,23 @@ button.tool-compact-line:hover .tool-compact-cmd {
   --tool-icon-other: #fb9b7e;
   --tool-icon-web: #7ab8f5;
   --tool-icon-think: #c3e35c;
+}
+/* 「主题色」:所有类型共用当前主题的强调色;预览区用 .dp-icon-theme 达到同样效果。 */
+:root[data-tool-icon-theme="true"],
+.dp-icon-theme {
+  --tool-icon-bash: var(--accent-blue);
+  --tool-icon-read: var(--accent-blue);
+  --tool-icon-edit: var(--accent-blue);
+  --tool-icon-write: var(--accent-blue);
+  --tool-icon-group: var(--accent-blue);
+  --tool-icon-mcp: var(--accent-blue);
+  --tool-icon-agent: var(--accent-blue);
+  --tool-icon-flow: var(--accent-blue);
+  --tool-icon-schedule: var(--accent-blue);
+  --tool-icon-memory: var(--accent-blue);
+  --tool-icon-other: var(--accent-blue);
+  --tool-icon-web: var(--accent-blue);
+  --tool-icon-think: var(--accent-blue);
 }
 :root[data-tool-icon-color="true"] .tool-compact-icon,
 :root[data-tool-icon-color="true"] .tool-card-list.is-compact .tool-card-icon,

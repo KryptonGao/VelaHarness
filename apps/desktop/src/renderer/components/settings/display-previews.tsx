@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import type { ThinkingSummaryStyle, ToolDisplay, ToolFold } from "../../hooks/usePreferences";
+import type { ThinkingSummaryStyle, ToolDisplay, ToolFold, ToolIconColor } from "../../hooks/usePreferences";
 import { tr, trf } from "../../locale";
 import { EyeIcon, FilePlusIcon, PencilIcon, SubagentIcon, TerminalIcon, ThinkingIcon } from "../icons";
 import { formatDuration } from "../tool-duration";
@@ -234,10 +234,11 @@ const chips: { id: string; icon: ReactNode; label: () => string }[] = [
   { id: "agent", icon: <SubagentIcon size={13} />, label: () => tr("子代理", "Subagent") },
 ];
 
-export function ToolIconColorPreview({ colored, previewing }: { colored: boolean; previewing: boolean }) {
+export function ToolIconColorPreview({ mode, previewing }: { mode: ToolIconColor; previewing: boolean }) {
+  const colored = mode !== "gray";
   return (
     <Stage variant={colored ? "on" : "off"} previewing={previewing} period={4200}>
-      <div className="dp-chip-grid">
+      <div className={`dp-chip-grid${mode === "theme" ? " dp-icon-theme" : ""}`}>
         {chips.map((chip, index) => (
           <div className="dp-chip-row" key={chip.id}>
             <span
@@ -433,7 +434,7 @@ export function InputPredictionPreview({ enabled, previewing }: { enabled: boole
 export interface ConversationSettings {
   toolDisplay: ToolDisplay;
   toolFold: ToolFold;
-  toolIconColor: boolean;
+  toolIconColor: ToolIconColor;
   toolProcessDetails: boolean;
   thinkingSummary: boolean;
   thinkingSummaryStyle: ThinkingSummaryStyle;
@@ -553,12 +554,16 @@ export function ConversationPreview({ settings, previewing }: { settings: Conver
       </button>
       {previewing ? <span className="dp-badge dp-live-badge">{tr("预览", "Preview")}</span> : null}
       <StillContext.Provider value>
-        <div className="dp-still dp-live-inner" aria-hidden="true" key={JSON.stringify(settings)}>
+        <div
+          className={`dp-still dp-live-inner${settings.toolIconColor === "theme" ? " dp-icon-theme" : ""}`}
+          aria-hidden="true"
+          key={JSON.stringify(settings)}
+        >
           <ThinkingContent style={settings.thinkingSummaryStyle} summary={settings.thinkingSummary} withBody={false} />
           <LiveTools
             display={settings.toolDisplay}
             fold={settings.toolFold}
-            colored={settings.toolIconColor}
+            colored={settings.toolIconColor !== "gray"}
             details={settings.toolProcessDetails}
           />
           <div className="dp-reply">

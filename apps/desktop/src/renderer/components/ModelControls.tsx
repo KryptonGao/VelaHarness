@@ -146,10 +146,10 @@ export function ModelControls(props: ModelControlsProps) {
       setUltraFlash(false);
       return;
     }
-    setUltraFlash(true);
+    if (!ultraFlash) return;
     const timer = window.setTimeout(() => setUltraFlash(false), ultraFlashMs);
     return () => window.clearTimeout(timer);
-  }, [menu, ultraSelected]);
+  }, [menu, ultraSelected, ultraFlash]);
 
   useEffect(() => {
     if (props.openRequest) setMenu("model");
@@ -258,6 +258,8 @@ export function ModelControls(props: ModelControlsProps) {
                   const nextLevel = thinkingChoices[nextIndex];
                   if (!nextLevel || nextLevel === sliderThinking) return;
                   setSliderLevel(nextLevel);
+                  // 仅在用户切入 Ultra 时播放提示，打开已选 Ultra 的卡片不重播。
+                  setUltraFlash(nextLevel === "ultra");
                   const request = ++thinkingRequestRef.current;
                   void props.onThinking(nextLevel).then((result) => {
                     if (request === thinkingRequestRef.current && typeof result === "string") {

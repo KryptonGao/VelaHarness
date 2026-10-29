@@ -1,14 +1,21 @@
-import { useContext, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type TouchEvent, type WheelEvent } from "react";
+import { useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent, type ReactNode, type TouchEvent, type WheelEvent } from "react";
 import { ActivityIndicator } from "./ActivityIndicator";
 import { ThinkingIcon } from "./icons";
 import { Markdown } from "./Markdown";
 import { usePacedText } from "../hooks/usePacedText";
 import { nextStreamFollow, releasesStreamFollow } from "./chat-scroll";
-import { localizeError, tr, useAppLocale } from "../locale";
+import { localizeError, tr, trf, useAppLocale } from "../locale";
 import { thinkingSummaryLayout } from "../thinking-summary";
+import { splitThinkingTitle, type ThinkingTitle } from "../thinking-title";
+import { totalDiffStat, type DiffStat } from "./tool-compact";
+import { countFailedTools } from "./tool-sequence";
+import type { ToolTrace } from "@vela/shared";
 import { ThinkingSummaryContext } from "./ThinkingSummaryContext";
 import { ScrollFadeShell } from "./ScrollFadeShell";
 import { thinkingEdges } from "./thinking-edges";
+
+/** 分组展开详情时高度封顶的下限。 */
+const GROUP_LOCK_MIN_HEIGHT = 220;
 
 /** 思考总结一次性整段到达,这里按回复正文同款的节奏逐步展示;打开历史记录时的总结直接显示。 */
 function PacedSummary({ text, animate, id, trailing }: { text: string; animate: boolean; id?: string; trailing: ReactNode }) {
@@ -22,15 +29,34 @@ export function Thinking({
   messageId,
   active,
   showActivityIndicator,
+  titled,
+  live = false,
+  failedCount = 0,
+  stat = null,
+  forceOpen = false,
+  children,
 }: {
   text: string;
   messageId?: string;
   active: boolean;
   showActivityIndicator: boolean;
+  /** CoT 总结模式:首行作标题,折叠时只剩标题,展开后是去掉首行的思考内容和挂在下面的 children(工具调用)。 */
+  titled?: ThinkingTitle | null;
+  /** 分组还在进行(最新一段思考,工具仍在追加);结束时自动折叠。 */
+  live?: boolean;
+  /** 组内失败的工具数,折叠时在标题后用红点提示。 */
+  failedCount?: number;
+  /** 组内所有编辑的增删行数总计,显示在标题右边,与标题左对齐连在一起。 */
+  stat?: DiffStat | null;
+  /** 组内有等待用户回答的卡片时,保持展开。 */
+  forceOpen?: boolean;
+  children?: ReactNode;
 }) {
   const summaries = useContext(ThinkingSummaryContext);
   const locale = useAppLocale();
-  const summaryAvailable = !active && summaries?.enabled && messageId !== undefined;
+  // 分组模式下标题已经是总结,不再另行请求总结;展开状态跟随整个分组而不只是思考文字的流式输出。
+  const expandSignal = titled ? live : active;
+  const summaryAvailable = !titled && !active && summaries?.enabled && messageId !== undefined;
   const summary = summaryAvailable ? summaries.get(messageId, text) : undefined;
   // 总结是在这个组件存在期间才出来的(而不是挂载时就有),才逐步展示。
   const summaryArrived = useRef(false);
@@ -39,15 +65,15 @@ export function Thinking({
   const summarize = () => {
     if (summaryAvailable) summaries.request(messageId, text);
   };
-  const [open, setOpen] = useState(active);
-  const [revealed, setRevealed] = useState(active);
+  const [open, setOpen] = useState(expandSignal);
+  const [revealed, setRevealed] = useState(expandSignal);
   const [fadeEdges, setFadeEdges] = useState({ top: 0, bottom: 0 });
   const [viewportHeight, setViewportHeight] = useState(280);
   const scrollRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
-  const prevActive = useRef(active);
+  const prevActive = useRef(expandSignal);
   // 只有当用户停在底部时才跟随新增的思考内容;向上阅读后保持当前位置。
-  const follow = useRef({ pinned: active, lastScrollTop: 0 });
+  const follow = useRef({ pinned: expandSignal, lastScrollTop: 0 });
   const touchY = useRef(0);
   const layout = thinkingSummaryLayout(summaries?.style ?? "inline", summary, open);
 
@@ -91,6 +117,18 @@ export function Thinking({
     if (element && releasesStreamFollow(element.scrollTop, towardEarlier)) follow.current.pinned = false;
   };
 
+  // 分组里展开某个工具的详情(命令输出、diff)时,整块高度不跟着增长:按展开前的高度封顶,详情在里面滚动。
+  // 太矮的分组至少给 GROUP_LOCK_MIN_HEIGHT,否则详情只剩一条缝。
+  const lockGroupHeight = (event: MouseEvent<HTMLDivElement>) => {
+    if (!titled) return;
+    const toggle = (event.target as Element).closest("[aria-expanded]");
+    if (!toggle || !event.currentTarget.contains(toggle)) return;
+    const element = event.currentTarget;
+    const cap = Number.parseFloat(getComputedStyle(element).maxHeight);
+    const height = Math.max(element.offsetHeight, GROUP_LOCK_MIN_HEIGHT);
+    element.style.maxHeight = `${Number.isFinite(cap) ? Math.min(height, cap) : height}px`;
+  };
+
   const handleWheel = (event: WheelEvent<HTMLDivElement>) => {
     releaseFollow(event.deltaY < 0);
   };
@@ -107,9 +145,20 @@ export function Thinking({
   };
 
   useLayoutEffect(() => {
-    if (prevActive.current && !active) setOpen(false);
-    prevActive.current = active;
-  }, [active]);
+    if (prevActive.current && !expandSignal) setOpen(false);
+    prevActive.current = expandSignal;
+  }, [expandSignal]);
+
+  // 分组收起后放开高度封顶,下次展开重新按内容计算。
+  useLayoutEffect(() => {
+    if (!open && scrollRef.current) scrollRef.current.style.maxHeight = "";
+  }, [open]);
+
+  useEffect(() => {
+    if (!forceOpen) return;
+    setRevealed(true);
+    setOpen(true);
+  }, [forceOpen]);
 
   // 新增思考内容后,如果用户仍在底部就继续贴底。
   useLayoutEffect(() => {
@@ -143,7 +192,7 @@ export function Thinking({
     setRevealed(true);
     setOpen((value) => !value);
   };
-  const showActivity = active && showActivityIndicator;
+  const showActivity = expandSignal && showActivityIndicator;
 
   const arrow = (
     <svg className="time-spent-trigger-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
@@ -159,6 +208,25 @@ export function Thinking({
       {arrow}
     </>
   );
+  const groupHeader = titled ? (
+    <div className="thinking-header">
+      <button className={`time-spent-trigger thinking-headline-trigger${showActivity ? " is-running" : ""}`} type="button" aria-expanded={open} aria-controls={bodyId} onClick={toggle} title={titled.title}>
+        {icon}
+        <span className="thinking-summary-excerpt">{titled.title}</span>
+        {stat ? (
+          <span className="tool-compact-stat thinking-group-stat">
+            {stat.added > 0 ? <span className="tool-stat-add">+{stat.added}</span> : null}
+            {stat.removed > 0 ? <span className="tool-stat-del">−{stat.removed}</span> : null}
+          </span>
+        ) : null}
+        {failedCount > 0 && !open ? (
+          <span className="thinking-group-failed" role="img" aria-label={trf("{0} 个工具失败", "{0} tools failed", failedCount)} title={trf("{0} 个工具失败", "{0} tools failed", failedCount)} />
+        ) : null}
+        {arrow}
+        {showActivity ? <ActivityIndicator activity="thinking" /> : null}
+      </button>
+    </div>
+  ) : null;
   // 总结作为标题时,它自己就是开合按钮;正文样式时另起一块,用末尾的图标收起思考。
   const headline = layout === "headline" && summary?.status === "done" ? (
     <div className="thinking-header">
@@ -201,7 +269,7 @@ export function Thinking({
   ) : null;
   return (
     <div className={`time-spent-collapsible thinking-block${open ? " expanded" : ""}`}>
-      {headline ?? prose ?? (
+      {groupHeader ?? headline ?? prose ?? (
         <div className="thinking-header">
           <button className={`time-spent-trigger${showActivity ? " is-running" : ""}`} type="button" aria-expanded={open} aria-controls={bodyId} onClick={toggle}>
             {label}
@@ -240,11 +308,12 @@ export function Thinking({
               ) : <p className="thinking-summary-failed">{localizeError(summary.error)}</p>}
             </aside>
           ) : null}
-          <ScrollFadeShell edges={fadeEdges} height={viewportHeight}>
+          <ScrollFadeShell edges={fadeEdges} height={viewportHeight} className={titled ? "thinking-group-shell" : undefined}>
             <div
               className="thinking-scroll-viewport"
               ref={scrollRef}
               onScroll={handleScroll}
+              onClickCapture={lockGroupHeight}
               onWheel={handleWheel}
               onTouchStart={handleTouchStart}
               onTouchMove={handleTouchMove}
@@ -252,13 +321,72 @@ export function Thinking({
               aria-label={tr("思考内容，可在区域内滚动", "Thinking content, scrollable")}
               tabIndex={0}
             >
-              <div className="stream-prose-block thinking-text" ref={contentRef}>
-                {revealed ? <Markdown text={text} streaming={active} fade="thinking" /> : null}
-              </div>
+              {titled ? (
+                // 引导线在滚动内容里面,随内容一起被上下漸进模糊。
+                <div className="thinking-group-rail" ref={contentRef} style={{ "--thinking-group-live-height": `${viewportHeight}px` } as CSSProperties}>
+                  {titled.body ? (
+                    <div className="stream-prose-block thinking-text">
+                      {revealed ? <Markdown text={titled.body} streaming={active} fade="thinking" /> : null}
+                    </div>
+                  ) : null}
+                  {revealed ? children : null}
+                </div>
+              ) : (
+                <div className="stream-prose-block thinking-text" ref={contentRef}>
+                  {revealed ? <Markdown text={text} streaming={active} fade="thinking" /> : null}
+                </div>
+              )}
             </div>
           </ScrollFadeShell>
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * 思考加上它带出的工具调用。首行是加粗标题(OpenAI CoT 总结)时,工具挂在这段思考下面一起折叠;
+ * 否则保持原样:“思考”之后紧跟工具。两种形态的节点位置一致,标题行流式到齐时不会重挂载。
+ */
+export function ThinkingGroup({
+  text,
+  messageId,
+  active,
+  live,
+  showActivityIndicator,
+  tools,
+  forceOpen,
+  children,
+}: {
+  text: string;
+  messageId?: string;
+  active: boolean;
+  live: boolean;
+  showActivityIndicator: boolean;
+  /** 分组里的全部工具,用来汇总失败数和代码增删行数。 */
+  tools?: readonly ToolTrace[];
+  forceOpen?: boolean;
+  children?: ReactNode;
+}) {
+  const titled = splitThinkingTitle(text, active);
+  const failedCount = tools ? countFailedTools(tools) : 0;
+  const stat = tools ? totalDiffStat([...tools]) : null;
+  return (
+    <>
+      <Thinking
+        messageId={messageId}
+        text={text}
+        active={active}
+        showActivityIndicator={showActivityIndicator}
+        titled={titled}
+        live={live}
+        failedCount={failedCount}
+        stat={stat}
+        forceOpen={forceOpen}
+      >
+        {titled ? children : null}
+      </Thinking>
+      {titled ? null : children}
+    </>
   );
 }
