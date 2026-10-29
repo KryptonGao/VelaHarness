@@ -19,6 +19,7 @@ export { BackgroundShellManager, type BackgroundShellInfo } from "./background-s
 export { createSandboxedToolDefinitions, type SandboxToolFactoryInput } from "./sandbox-tools";
 export { ExecutionEnvironmentManager } from "./environment-manager";
 export { createWorktree, removeWorktree } from './git-worktree';
+export { resolveRepoRoot } from './git-state';
 export { commitWorktreeChanges, currentHead, deleteLocalBranch, hasTrackedChanges, parseNumstat, squashMergeBranch, type SquashResult, type WorktreeCommitResult } from './git-squash';
 export { PullRequestInboxService } from './pull-request-inbox-service';
 export { validateTarget, safeGithubUrl } from './pr-inbox-mapping';

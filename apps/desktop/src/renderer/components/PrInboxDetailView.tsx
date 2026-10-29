@@ -95,7 +95,7 @@ export function PrInboxDetailView({ target, identityKey, active, onBack, related
     </div>
     {error && <p className="pr-inbox-notice" role="alert">{detail && tr('显示缓存详情 · ', 'Showing cached detail · ')}{error}</p>}
     {!related && <p className="pr-inbox-notice">{tr('当前 PR 的关联已变化，仍可继续查看详情。', 'This PR is no longer related to you. Its detail remains available.')}</p>}
-    {!detail ? <div className="pr-inbox-scroll">
+    {!detail ? <div className="pr-inbox-scroll autohide-scrollbar">
         {/* The list row is already cached, so show what it knows while the first detail read is in flight. */}
         {summary && <div className="pr-inbox-overview"><article>
           <div className="pr-inbox-meta"><PrStateBadge state={summary.state}/><span>{target.owner}/{target.repo}</span><span>#{target.number}</span></div>
@@ -104,7 +104,7 @@ export function PrInboxDetailView({ target, identityKey, active, onBack, related
         </article></div>}
         <div className="pr-inbox-empty" role="status">{loading ? tr('正在读取详情…', 'Loading detail…') : tr('详情不可访问，请重试或在 GitHub 查看。', 'Detail unavailable. Retry or view on GitHub.')}</div>
       </div> :
-      tab === 'overview' ? <div id="pr-panel-overview" role="tabpanel" aria-labelledby="pr-tab-overview" className="pr-inbox-scroll">
+      tab === 'overview' ? <div id="pr-panel-overview" role="tabpanel" aria-labelledby="pr-tab-overview" className="pr-inbox-scroll autohide-scrollbar">
         <div className="pr-inbox-overview"><article>
           <div className="pr-inbox-meta"><PrStateBadge state={detail.item.state}/><span>{target.owner}/{target.repo}</span><span>#{target.number}</span></div>
           <h1>{detail.item.title}</h1>
@@ -112,7 +112,7 @@ export function PrInboxDetailView({ target, identityKey, active, onBack, related
             <span className="pr-inbox-stats"><span className="pr-inbox-added">+{detail.additions}</span><span className="pr-inbox-deleted">−{detail.deletions}</span><span>{detail.changedFiles} {tr('个文件', 'files')}</span><code title={detail.item.headSha ?? ''}>{detail.item.headSha?.slice(0, 8)}</code></span></p>
           <PrMarkdown text={detail.body || tr('没有描述', 'No description')} target={target}/>
           <PrActivity key={detail.item.headSha} detail={detail} active={active} draft={commentDraft} onDraft={setCommentDraft} posted={postedComments} submitting={commentBusy} submitError={commentError} notice={commentNotice} onSubmit={submitComment}/>
-        </article><aside className="pr-inbox-checks">
+        </article><aside className="pr-inbox-checks autohide-scrollbar">
           <PrResponsePanel detail={detail} active={active} onOpenConversation={onOpenConversation} onPublished={() => void refresh(true, true)}/>
           <section className="pr-inbox-status-list">
             <div><h2>{tr('合并状态', 'Merge status')}</h2><p className={`pr-inbox-status-line ${detail.item.mergeable === 'CONFLICTING' ? 'tone-bad' : detail.item.mergeable === 'MERGEABLE' ? 'tone-good' : ''}`}>{detail.item.mergeable === 'CONFLICTING' ? tr('存在代码冲突', 'Merge conflicts') : detail.item.mergeable === 'MERGEABLE' ? tr('无代码冲突', 'No code conflicts') : tr('合并能力未知', 'Mergeability unknown')}</p>
@@ -156,7 +156,7 @@ function PrFiles({ target, identityKey, detail }: { target: PrTarget; identityKe
   const selected = result?.files.find(f => f.path === selectedPath);
   const lines = selected?.patch?.split('\n') ?? [];
   return <div className="pr-inbox-files">
-    <aside className="pr-inbox-file-tree"><input type="search" aria-label={tr('搜索已加载文件', 'Search loaded files')} placeholder={tr('搜索已加载文件', 'Search loaded files')} value={search} onChange={e => setSearch(e.target.value)}/>
+    <aside className="pr-inbox-file-tree autohide-scrollbar"><input type="search" aria-label={tr('搜索已加载文件', 'Search loaded files')} placeholder={tr('搜索已加载文件', 'Search loaded files')} value={search} onChange={e => setSearch(e.target.value)}/>
       <p className="pr-inbox-meta">{result?.files.length ?? 0} / {detail.changedFiles} {tr('个文件', 'files')}</p>
       <nav aria-label={tr('变更文件', 'Changed files')}>{files.map(file => <button type="button" key={file.path} className={file.path === selectedPath ? 'selected' : ''} aria-current={file.path === selectedPath ? 'page' : undefined} title={file.path} onClick={() => { setSelectedPath(file.path); setLimit(400); }}><span className="pr-file-name"><strong>{file.path.slice(file.path.lastIndexOf('/') + 1)}</strong>{file.path.includes('/') && <em>{file.path.slice(0, file.path.lastIndexOf('/') + 1)}</em>}</span><small><span className="pr-inbox-added">+{file.additions}</span> <span className="pr-inbox-deleted">−{file.deletions}</span></small></button>)}</nav>
       {!files.length && !busy && <p>{tr('已加载文件中没有匹配结果', 'No matching loaded files')}</p>}
@@ -170,7 +170,7 @@ function PrFiles({ target, identityKey, detail }: { target: PrTarget; identityKe
       {selected ? <><header className="pr-inbox-diff-header"><div><strong>{selected.path}</strong>{selected.previousPath && <p>{selected.previousPath} → {selected.path}</p>}<p className="pr-inbox-meta">{fileStatusLabel(selected.status)} · <span className="pr-inbox-added">+{selected.additions}</span> <span className="pr-inbox-deleted">−{selected.deletions}</span></p></div>
         <label className="pr-inbox-view-mode"><select aria-label={tr('显示模式', 'View mode')} value={mode} onChange={e => setMode(e.target.value as typeof mode)}><option value="unified">{tr('统一', 'Unified')}</option><option value="split">{tr('并排', 'Split')}</option></select></label>
 </header>
-        <div className="pr-inbox-diff-scroll">{selected.patchTruncated && <p className="pr-inbox-notice">{tr("GitHub 只返回了此文件的部分差异，请在 GitHub 查看完整变更。", "GitHub returned only part of this file’s diff. View the complete changes on GitHub.")}</p>}{selected.patch && /^@@/m.test(selected.patch) ? <><DiffPane path={selected.path} diff={lines.slice(0, limit).join('\n')} mode={mode} showLineNumbers/>{lines.length > limit && <button type="button" className="pr-inbox-diff-more" onClick={() => setLimit(l => l + 400)}>{tr('展开更多差异', 'Show more diff')} ({Math.min(limit, lines.length)} / {lines.length})</button>}</> : <div className="pr-inbox-empty">{tr('此文件没有可用的文本差异。可通过顶栏在 GitHub 查看。', 'No text diff is available for this file. Use the GitHub link in the toolbar.')}</div>}</div>
+        <div className="pr-inbox-diff-scroll autohide-scrollbar">{selected.patchTruncated && <p className="pr-inbox-notice">{tr("GitHub 只返回了此文件的部分差异，请在 GitHub 查看完整变更。", "GitHub returned only part of this file’s diff. View the complete changes on GitHub.")}</p>}{selected.patch && /^@@/m.test(selected.patch) ? <><DiffPane path={selected.path} diff={lines.slice(0, limit).join('\n')} mode={mode} showLineNumbers/>{lines.length > limit && <button type="button" className="pr-inbox-diff-more" onClick={() => setLimit(l => l + 400)}>{tr('展开更多差异', 'Show more diff')} ({Math.min(limit, lines.length)} / {lines.length})</button>}</> : <div className="pr-inbox-empty">{tr('此文件没有可用的文本差异。可通过顶栏在 GitHub 查看。', 'No text diff is available for this file. Use the GitHub link in the toolbar.')}</div>}</div>
       </> : !busy && !error && <div className="pr-inbox-empty">{tr('没有变更文件', 'No changed files')}</div>}
     </section>
   </div>;

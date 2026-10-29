@@ -4,6 +4,7 @@ import { tr, activeIntlLocale } from '../locale';
 import { filterInbox, loadedCount } from './pr-inbox-model';
 import { PrInboxDetailView } from './PrInboxDetailView';
 import { usePrInboxCache } from '../hooks/usePrInboxCache';
+import { useAutoHideScrollbarsWithin } from '../hooks/useAutoHideScrollbar';
 import { useSlidingTabIndicator } from './useSlidingTabIndicator';
 import { defaultPrInboxQuery } from './pr-inbox-cache';
 import '../pr-inbox.css';
@@ -64,6 +65,8 @@ export function PrInboxPage({ active, sidebarCollapsed, onToggleSidebar, onOpenC
   const request = useRef<string | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const pageRef = useRef<HTMLElement>(null);
+  useAutoHideScrollbarsWithin(pageRef);
   const scrollPosition = useRef(0);
   const activeRef = useRef(active); activeRef.current = active;
   const previousIdentity = useRef(list?.identity?.key);
@@ -138,17 +141,17 @@ export function PrInboxPage({ active, sidebarCollapsed, onToggleSidebar, onOpenC
   const selectedItem = selected ? items.find(i => i.key === `${selected.host}/${selected.owner}/${selected.repo}#${selected.number}`.toLowerCase()) ?? null : null;
   const open = (item: PrInboxItem) => { scrollPosition.current = scrollRef.current?.scrollTop ?? 0; setSelected(item.target); };
 
-  return <section className="pr-inbox-page" aria-label="Pull Request">
+  return <section className="pr-inbox-page" ref={pageRef} aria-label="Pull Request">
     <header className="pr-inbox-topbar main-chat-header">
       {sidebarCollapsed && <button type="button" onClick={onToggleSidebar} aria-label={tr('展开侧栏', 'Show sidebar')}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></svg></button>}
-      <span>Pull Requests</span>
+      <span className="page-topbar-title">Pull Requests</span>
       <span className="pr-inbox-sync">{list?.syncedAt ? `${list.stale ? tr('缓存 · ', 'Cached · ') : ''}${tr('同步于 ', 'Synced ')}${new Date(list.syncedAt).toLocaleTimeString()}` : ''}</span>
       <span className="pr-inbox-account">{list?.identity ? `@${list.identity.login}` : tr('GitHub 身份未确认', 'GitHub identity unavailable')}</span>
       <button type="button" disabled={loading} onClick={() => void refresh(true)}>{loading ? tr('读取中…', 'Loading…') : tr('刷新', 'Refresh')}</button>
     </header>
     {selected && identityKey ? <PrInboxDetailView key={`${identityKey}:${selected.owner}/${selected.repo}#${selected.number}`} active={active}
       summary={selectedItem} target={selected} identityKey={identityKey} onBack={() => setSelected(null)} related={!!selectedItem} onOpenConversation={onOpenConversation} /> :
-      <div ref={scrollRef} className="pr-inbox-scroll">
+      <div ref={scrollRef} className="pr-inbox-scroll autohide-scrollbar">
         <div className="pr-inbox-content">
           <div className="pr-inbox-sticky">
             <nav ref={relationTabs.navRef} className="conversation-view-tabs pr-inbox-relations" role="tablist" aria-label={tr('关联类型', 'Relationships')}

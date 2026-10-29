@@ -21,11 +21,15 @@ import { TaskRecipesPage, type RecipeMessageSeed } from "./components/TaskRecipe
 import { RecipeActionsContext } from "./components/recipe-actions-context";
 import { RaceActionsContext } from "./components/race-actions-context";
 import { useRaces } from "./hooks/useRaces";
+import { useConflicts } from "./hooks/useConflicts";
+import { ConflictContext, type ConflictContextValue } from "./components/conflict-context";
+import { ConflictDialog } from "./components/ConflictDialog";
 import { ComposerSeedContext, type ComposerSeed } from "./components/composer-seed-context";
 import { SideChatLauncherContext, type SideChatInboxItem } from "./components/selection-actions";
 import { HandoffPackDialog } from "./components/HandoffPackDialog";
 import { ScheduledTasksPage } from "./components/ScheduledTasksPage";
 import { Sidebar } from "./components/Sidebar";
+import { NavRail, type NavCategory } from "./components/NavRail";
 import { RenameConversationDialog } from "./components/RenameConversationDialog";
 import { WorkspaceSettingsDialog } from "./components/WorkspaceSettingsDialog";
 import { findWorkspace, folderName } from "./components/workspace-names";
@@ -46,6 +50,7 @@ import { isBoolean, useStoredState } from "./hooks/useStoredState";
 import { useProject } from "./hooks/useProject";
 import { usePrInboxBackgroundRefresh } from "./hooks/usePrInboxCache";
 import { useSidebarItems } from "./hooks/useSidebarItems";
+import { useNavLayout } from "./hooks/useNavLayout";
 import { useSession, type UiMessage } from "./hooks/useSession";
 import { useSidebarResize } from "./hooks/useSidebarResize";
 import { useAcceptance } from "./hooks/useAcceptance";
@@ -237,6 +242,12 @@ export function App() {
   }, [floatingInfo]);
   const resize = useSidebarResize(!leftCollapsed, contextSidebarOpen, floatingInfo);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  // 分类视图：最左侧多一列图标栏；离开主页（打开任何页面）时侧栏整体收起。
+  const railMode = useNavLayout() === "rail";
+  const pageOpen = settingsOpen || scheduledTasksOpen || recipesOpen || prInboxOpen || agentInboxOpen;
+  const railAway = railMode && pageOpen;
+  const navCategory: NavCategory = settingsOpen ? "settings" : scheduledTasksOpen ? "scheduledTasks" : recipesOpen ? "recipes"
+    : agentInboxOpen ? "agentInbox" : prInboxOpen ? "prInbox" : "home";
   const workspaceKey = project.workspace?.current ?? "";
   const conversationKey = session.activeConversationId ?? "";
   const { review: turnReview, tabId: turnReviewTabId, open: showTurnReview, close: dismissTurnReview } = useTurnReview(workspaceKey, conversationKey);
@@ -301,6 +312,8 @@ export function App() {
   const [terminalTabState, setTerminalTabState] = useState<{ id: string; sessionId: string; label: string }[]>([]);
   const [filesTabOpen, setFilesTabOpen] = useState(false);
   const raceState = useRaces();
+  const conflicts = useConflicts();
+  const [conflictsOpen, setConflictsOpen] = useState(false);
   const [raceTabOpen, setRaceTabOpen] = useState(false);
   const lastKnownWorkspace = useRef("");
   const tabSeq = useRef(0);
@@ -484,6 +497,19 @@ export function App() {
     fromMessage: seed => { setRecipeSeed(seed); openRecipes(); },
     createHandoff: (conversationId, options) => setHandoff({ conversationId, ...(options?.factsOnly ? { factsOnly: true } : {}) }),
   }), [session.activeConversationId, openRecipes]);
+  const conflictContext = useMemo((): ConflictContextValue => ({
+    state: conflicts.state,
+    openOverview: () => setConflictsOpen(true),
+    openConversation: id => { void session.switchTo(id); },
+    moveToWorktree: async conversationId => {
+      const api = window.vela?.conflicts;
+      if (!api) throw new Error("会话服务不可用");
+      const moved = await api.moveToWorktree(conversationId);
+      // 主进程已把新对话设为当前；这里同步渲染层状态，并把交接文本填进它的输入框。
+      await session.switchTo(moved.conversationId);
+      setComposerSeed({ id: crypto.randomUUID(), conversationId: moved.conversationId, text: moved.seed });
+    },
+  }), [conflicts.state, session.switchTo]);
   const raceActions = useMemo(() => ({ started: openRaceTab, open: openRaceTab, count: workspaceRaces.length }),
     [openRaceTab, workspaceRaces.length]);
   const composerSeedContext = useMemo(() => ({ seed: composerSeed, consume: consumeComposerSeed, offer: offerComposerSeed }),
@@ -812,6 +838,26 @@ export function App() {
     return () => { active = false; };
   }, [onboardingComplete]);
 
+  const openPrInbox = () => leaveRecipes(() => { setSettingsOpen(false); setScheduledTasksOpen(false); setAgentInboxOpen(false); setPrInboxOpen(true); });
+  const openAgentInbox = () => leaveRecipes(() => { setSettingsOpen(false); setScheduledTasksOpen(false); setPrInboxOpen(false); setAgentInboxOpen(true); });
+  const openScheduledTasks = () => leaveRecipes(() => {
+    setSettingsOpen(false);
+    setPrInboxOpen(false); setAgentInboxOpen(false); setScheduledTasksOpen(true);
+  });
+  const toggleSettings = () => leaveRecipes(() => { setPrInboxOpen(false); setAgentInboxOpen(false); setScheduledTasksOpen(false); setSettingsOpen((open) => !open); });
+  const goHome = () => leaveRecipes(() => { setPrInboxOpen(false); setAgentInboxOpen(false); setScheduledTasksOpen(false); setSettingsOpen(false); });
+  const selectNavCategory = (category: NavCategory) => {
+    if (category === navCategory) return;
+    switch (category) {
+      case "home": goHome(); break;
+      case "scheduledTasks": openScheduledTasks(); break;
+      case "recipes": openRecipes(); break;
+      case "agentInbox": openAgentInbox(); break;
+      case "prInbox": openPrInbox(); break;
+      case "settings": toggleSettings(); break;
+    }
+  };
+
   if (!session.available) {
     return (
       <div className="boot-fallback">
@@ -825,6 +871,7 @@ export function App() {
       <AppLocaleProvider locale={preferences.locale}>
         <RecipeActionsContext.Provider value={recipeActions}>
         <RaceActionsContext.Provider value={raceActions}>
+        <ConflictContext.Provider value={conflictContext}>
         <ComposerSeedContext.Provider value={composerSeedContext}>
         <SideChatLauncherContext.Provider value={openSideChatTab}>
         <div className="app-screens">
@@ -863,20 +910,19 @@ export function App() {
             </div>
           </ScreenPresence>
           <ScreenPresence present={onboardingComplete} className="app-screen-main">
-            <div className={`vela-window platform-${platform}${leftCollapsed ? " left-collapsed" : ""}${!contextSidebarOpen ? " right-collapsed" : ""}${floatingInfo ? " layout-floating" : ""}`}>
+            <div className={`vela-window platform-${platform}${railMode ? " nav-rail-layout" : ""}${railAway ? " rail-away" : ""}${leftCollapsed || railAway ? " left-collapsed" : ""}${!contextSidebarOpen ? " right-collapsed" : ""}${floatingInfo ? " layout-floating" : ""}`}>
+              {railMode ? <NavRail active={navCategory} platform={platform} agentInboxBadge={agentInbox.badge} onSelect={selectNavCategory} /> : null}
               <Sidebar
                 prInboxOpen={prInboxOpen}
-                onOpenPrInbox={() => leaveRecipes(() => { setSettingsOpen(false); setScheduledTasksOpen(false); setAgentInboxOpen(false); setPrInboxOpen(true); })}
+                onOpenPrInbox={openPrInbox}
                 agentInboxOpen={agentInboxOpen}
                 agentInboxBadge={agentInbox.badge}
-                onOpenAgentInbox={() => leaveRecipes(() => { setSettingsOpen(false); setScheduledTasksOpen(false); setPrInboxOpen(false); setAgentInboxOpen(true); })}
+                onOpenAgentInbox={openAgentInbox}
                 onOpenRecipes={openRecipes}
                 recipesOpen={recipesOpen}
-                onOpenScheduledTasks={() => leaveRecipes(() => {
-                  setSettingsOpen(false);
-                  setPrInboxOpen(false); setAgentInboxOpen(false); setScheduledTasksOpen(true);
-                })}
-                collapsed={leftCollapsed}
+                onOpenScheduledTasks={openScheduledTasks}
+                collapsed={leftCollapsed || railAway}
+                railMode={railMode}
                 resize={resize}
                 platform={platform}
                 conversations={session.conversations}
@@ -886,7 +932,7 @@ export function App() {
                 settingsOpen={settingsOpen}
                 settingsLabel={tr("设置", "Settings")}
                 onToggle={() => setLeftCollapsed((value) => !value)}
-                onOpenSettings={() => leaveRecipes(() => { setPrInboxOpen(false); setAgentInboxOpen(false); setScheduledTasksOpen(false); setSettingsOpen((open) => !open); })}
+                onOpenSettings={toggleSettings}
                 onNewChat={(cwd) => leaveRecipes(() => {
                   setPrInboxOpen(false); setAgentInboxOpen(false); setScheduledTasksOpen(false); setSettingsOpen(false); void session.newChat(cwd);
                 })}
@@ -991,6 +1037,7 @@ export function App() {
                         resize={resize}
                         project={project}
                         busy={session.state?.session.status !== "ready"}
+                        streaming={session.state?.session.status === "streaming"}
                         execution={session.state?.session.executionPlan ?? null}
                         onRevise={() => void session.setMode("plan")}
                         onExecutePlan={(strategy) => void session.executePlan(strategy)}
@@ -1055,11 +1102,11 @@ export function App() {
                   </Presence>
                 </FilePreviewProvider>
                 <Presence present={prInboxOpen} keepMounted className="main-stage-pane scheduled-tasks-stage">
-                  <PrInboxPage active={prInboxOpen} sidebarCollapsed={leftCollapsed} onToggleSidebar={toggleLeft}
+                  <PrInboxPage active={prInboxOpen} sidebarCollapsed={leftCollapsed && !railMode} onToggleSidebar={toggleLeft}
                     onOpenConversation={(id) => { setPrInboxOpen(false); setAgentInboxOpen(false); void session.switchTo(id); }} />
                 </Presence>
                 <Presence present={agentInboxOpen} keepMounted className="main-stage-pane scheduled-tasks-stage">
-                  <AgentInboxPage active={agentInboxOpen} sidebarCollapsed={leftCollapsed} onToggleSidebar={toggleLeft}
+                  <AgentInboxPage active={agentInboxOpen} sidebarCollapsed={leftCollapsed && !railMode} onToggleSidebar={toggleLeft}
                     messageStore={session.messageStore} ensureTranscript={session.ensureTranscript}
                     navigation={agentInboxNav} onNavigationHandled={handleAgentInboxNavigated}
                     catalog={models.catalog} catalogError={models.catalogError}
@@ -1068,7 +1115,7 @@ export function App() {
                 <Presence present={recipesOpen} className="main-stage-pane scheduled-tasks-stage">
                   <TaskRecipesPage catalog={models.catalog} workspace={project.workspace?.current ?? null}
                     workspaces={[...new Set([...(project.workspace?.recents.map(r => r.path) ?? []), ...session.conversations.filter(c => c.hasWorkspace !== false).map(c => c.cwd)])]}
-                    locale={preferences.locale} sidebarCollapsed={leftCollapsed} onToggleSidebar={toggleLeft}
+                    locale={preferences.locale} sidebarCollapsed={leftCollapsed && !railMode} onToggleSidebar={toggleLeft}
                     seed={recipeSeed} onConsumeSeed={consumeRecipeSeed} selectedRecipe={recipeToUse} onConsumeSelection={consumeRecipeSelection} registerLeaveGuard={registerRecipeLeave}
                     onOpenConversation={id => leaveRecipes(() => { void session.switchTo(id); })} />
                 </Presence>
@@ -1078,7 +1125,7 @@ export function App() {
                     catalogError={models.catalogError}
                     workspace={project.workspace?.current ?? null}
                     workspaces={project.workspace?.recents.map(recent => recent.path) ?? []}
-                    sidebarCollapsed={leftCollapsed}
+                    sidebarCollapsed={leftCollapsed && !railMode}
                     onToggleSidebar={toggleLeft}
                     onOpenConversation={(id) => {
                       setPrInboxOpen(false); setAgentInboxOpen(false); setScheduledTasksOpen(false);
@@ -1148,6 +1195,7 @@ export function App() {
           onConfirm={text => startHandoff(handoff.conversationId, text)}
           onClose={() => setHandoff(null)}
         /> : null}
+        {conflictsOpen ? <ConflictDialog onClose={() => setConflictsOpen(false)} /> : null}
         {onboardingComplete ? <UpdateNotice locale={preferences.locale} /> : null}
         {introReplay ? (
           <div className="ob-replay" role="dialog" aria-modal="true">
@@ -1159,6 +1207,7 @@ export function App() {
         ) : null}
         </SideChatLauncherContext.Provider>
         </ComposerSeedContext.Provider>
+        </ConflictContext.Provider>
         </RaceActionsContext.Provider>
         </RecipeActionsContext.Provider>
       </AppLocaleProvider>

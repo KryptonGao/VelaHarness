@@ -164,7 +164,7 @@ function Chat({ api, status, settings, messageStore, notice, setNotice }: {
 
   const lastIndex = messages.length - 1;
   return <div className="resident-chat">
-    <div className="resident-messages" ref={listRef} role="log" aria-label={tr("与 Resident Agent 的对话", "Conversation with Resident Agent")}
+    <div className="resident-messages autohide-scrollbar" ref={listRef} role="log" aria-label={tr("与 Resident Agent 的对话", "Conversation with Resident Agent")}
       onScroll={event => { const el = event.currentTarget; stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 48; }}>
       {messages.length === 0
         ? <p className="agent-inbox-empty">{tr("还没有对话。告诉它你想让后台处理什么，比如「检查一下 api 项目最近的失败测试」。", "No conversation yet. Tell it what to handle in the background, e.g. “check the failing tests in the api project”.")}</p>
@@ -313,7 +313,7 @@ export function ResidentAgentView({ api, status, settings, rules, messageStore, 
         aria-selected={tab === value} aria-controls={`resident-panel-${value}`} tabIndex={tab === value ? 0 : -1} onClick={() => setTab(value)}>{label}</button>)}
       {slider.indicator}
     </nav>
-    <div className="resident-panel" role="tabpanel" id={`resident-panel-${tab}`} aria-labelledby={`resident-tab-${tab}`}>
+    <div className="resident-panel autohide-scrollbar" role="tabpanel" id={`resident-panel-${tab}`} aria-labelledby={`resident-tab-${tab}`}>
       {tab === "chat" ? <Chat api={api} status={status} settings={settings} messageStore={messageStore} notice={notice} setNotice={setNotice} /> : null}
       {tab === "tasks" ? <Tasks api={api} status={status} onOpenConversation={onOpenConversation} /> : null}
       {tab === "rules" ? <ProactiveRulesPanel api={api} status={status} settings={settings} rules={rules} /> : null}

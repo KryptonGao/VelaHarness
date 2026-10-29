@@ -60,7 +60,7 @@ function StartDialog({ detail, onClose, onStarted }: { detail: PrInboxDetail; on
     finally { pending.current = false; setBusy(false); }
   };
   return <Modal title={tr('让 Agent 回应审阅意见', 'Let the agent respond to review')} busy={busy} onClose={onClose}>
-    <div className="pr-response-body">
+    <div className="pr-response-body autohide-scrollbar">
       {!plan && !error && <p role="status">{tr('正在读取审阅意见…', 'Reading review feedback…')}</p>}
       {error && <p className="pr-inbox-notice" role="alert">{error}</p>}
       {plan && <>
@@ -121,7 +121,7 @@ function PublishDialog({ run, identityKey, onClose, onChanged }: { run: PrReview
   };
   const finished = result && result.push.state === 'pushed' && result.replies.every(r => r.state !== 'failed');
   return <Modal title={tr('检查并发布', 'Review and publish')} busy={busy} onClose={onClose} wide>
-    <div className="pr-response-body">
+    <div className="pr-response-body autohide-scrollbar">
       {!review && !error && <p role="status">{tr('正在读取工作树…', 'Reading the worktree…')}</p>}
       {error && <p className="pr-inbox-notice" role="alert">{error}</p>}
       {review && !result && <>

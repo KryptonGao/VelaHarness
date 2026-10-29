@@ -3,11 +3,13 @@ import type { UiMessage } from "../hooks/useSession";
 import { useDismissable } from "../hooks/useDismissable";
 import { localizeError, tr } from "../locale";
 import { RecipeActionsContext } from "./recipe-actions-context";
+import { ConflictContext } from "./conflict-context";
 import type { RecipeMessageSeed } from "./TaskRecipesPage";
 import { PopoverPresence } from "./MotionPresence";
 
 export function ChatActionsMenu({ messages, streaming }: { messages: UiMessage[]; streaming: boolean }) {
   const actions = useContext(RecipeActionsContext);
+  const conflicts = useContext(ConflictContext);
   const [open, setOpen] = useState(false);
   const [seed, setSeed] = useState<RecipeMessageSeed | null>(null);
   const [exporting, setExporting] = useState(false);
@@ -101,6 +103,11 @@ export function ChatActionsMenu({ messages, streaming }: { messages: UiMessage[]
             actions.createHandoff(conversationId);
           }}>
           {tr("生成交接包…", "Create handoff pack…")}
+        </button>
+        <button type="button" role="menuitem" tabIndex={-1}
+          title={tr("查看各对话近期改过的文件，发现改了同一处的对话", "See which files each chat edited recently and spot chats editing the same file")}
+          onClick={() => { setOpen(false); conflicts.openOverview(); }}>
+          {tr("各对话的近期改动…", "Recent edits across chats…")}
         </button>
         {(["markdown", "html"] as const).map(format => (
           <button key={format} type="button" role="menuitem" aria-disabled={!canExport || exporting} tabIndex={-1}

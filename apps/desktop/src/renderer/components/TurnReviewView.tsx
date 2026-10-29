@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { useEscapeKey } from "../hooks/useDismissable";
 import { tr, trf } from "../locale";
 import { DiffPane, isAddedOnlyDiff } from "./DiffPane";
@@ -40,7 +40,7 @@ function placeholderHeight(diffs: readonly string[]): number {
   return Math.max(60, lines * placeholderLineHeight);
 }
 
-export function TurnReviewView({ review, visible, onClose, target, title, filesLabel, emptyLabel }: {
+export function TurnReviewView({ review, visible, onClose, target, title, filesLabel, emptyLabel, toolbarControl, statusLabel, noticeLabel }: {
   review: TurnReviewRequest;
   visible: boolean;
   onClose: () => void;
@@ -51,6 +51,9 @@ export function TurnReviewView({ review, visible, onClose, target, title, filesL
   filesLabel?: string;
   /** 没有任何变更文件时的提示;默认「没有匹配的文件」。 */
   emptyLabel?: string;
+  toolbarControl?: ReactNode;
+  statusLabel?: ReactNode;
+  noticeLabel?: string;
 }) {
   const { changes } = review;
   const [filter, setFilter] = useState("");
@@ -90,6 +93,13 @@ export function TurnReviewView({ review, visible, onClose, target, title, filesL
   // 几十个文件的差异一次挂载会长时间占住主线程（顶栏点不动）：先挂前几项，其余分批补上，
   // 没挂上的文件先按行数预留高度，滚动位置不会跳。
   const [mountedCount, setMountedCount] = useState(firstBatch);
+  useEffect(() => {
+    setFilter("");
+    setCollapsed(new Set());
+    setMountedCount(firstBatch);
+    targetScroll.current = null;
+    scroller.current?.scrollTo({ top: 0 });
+  }, [review.turnId]);
   useEffect(() => {
     if (mountedCount >= files.length) return;
     const timer = window.setTimeout(() => setMountedCount(count => count + nextBatch), 32);
@@ -212,7 +222,9 @@ export function TurnReviewView({ review, visible, onClose, target, title, filesL
           const toolId = toolIds?.[index];
           return <div className="turn-review-edit" key={index} data-diff-tool-id={toolId}
             ref={node => { if (!toolId) return; if (node) edits.current.set(toolId, node); else edits.current.delete(toolId); }}>
-          {file.diffs.length > 1 ? <div className="turn-review-edit-label">{trf("编辑 {0} / {1}", "Edit {0} / {1}", index + 1, file.diffs.length)}</div> : null}
+          {file.diffs.length > 1 ? <div className="turn-review-edit-label">{file.diffScopes?.[index]
+            ? file.diffScopes[index] === "index" ? tr("已暂存", "Staged") : tr("未暂存", "Unstaged")
+            : trf("编辑 {0} / {1}", "Edit {0} / {1}", index + 1, file.diffs.length)}</div> : null}
           {diff ? <DiffPane path={file.path} diff={diff} mode="split" format={file.format ?? "tool"} showLineNumbers hideMeta />
             : <div className="turn-review-empty">{tr("这项编辑没有保存可显示的差异", "No saved diff is available for this edit")}</div>}
         </div>; }) : <div className="turn-review-empty">{tr("这项编辑没有保存可显示的差异", "No saved diff is available for this edit")}</div>}
@@ -223,7 +235,8 @@ export function TurnReviewView({ review, visible, onClose, target, title, filesL
   return <div ref={contentRef} className={`turn-review-view${compact ? " is-compact" : ""}${drawerOpen ? " is-drawer-open" : ""}`}
     role="region" aria-labelledby={`${id}-title`}>
     <header className="turn-review-toolbar">
-      <FileIcon size={14} /><strong id={`${id}-title`}>{title ?? tr("本轮变更", "Turn changes")}</strong>
+      {toolbarControl ? <div className="changes-filter-heading" id={`${id}-title`}>{toolbarControl}</div>
+        : <><FileIcon size={14} /><strong id={`${id}-title`}>{title ?? tr("本轮变更", "Turn changes")}</strong></>}
       <span className="turn-review-count">{trf("{0} 个文件", "{0} files", changes.files.length)}</span>
       <ChangeStats added={changes.added} removed={changes.removed} />
       {compact ? <button ref={toggle} type="button" className="turn-review-files-toggle" aria-controls={`${id}-files`}
@@ -233,8 +246,9 @@ export function TurnReviewView({ review, visible, onClose, target, title, filesL
     </header>
     <div className="turn-review-body">
       <div className="turn-review-scroll" ref={scroller} onScroll={onScroll}>
-        {sectionList}
-        {files.length === 0 ? <div className="turn-review-empty">{noChanges && emptyLabel ? emptyLabel : tr("没有匹配的文件", "No matching files")}</div> : null}
+        {noticeLabel ? <div className="changes-filter-notice" role="status">{noticeLabel}</div> : null}
+        {statusLabel ? <div className="turn-review-empty" role="status">{statusLabel}</div> : sectionList}
+        {!statusLabel && files.length === 0 ? <div className="turn-review-empty">{noChanges && emptyLabel ? emptyLabel : tr("没有匹配的文件", "No matching files")}</div> : null}
       </div>
       <nav id={`${id}-files`} ref={sidebar} className="turn-review-sidebar preview-explorer-pane" aria-label={filesLabel ?? tr("本轮变更文件", "Files changed in this turn")}
         hidden={compact && !drawerOpen}>

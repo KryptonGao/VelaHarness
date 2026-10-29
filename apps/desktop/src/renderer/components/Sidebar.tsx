@@ -1,5 +1,5 @@
-import type { ConversationSummary, WorkspaceRecent } from "@vela/shared";
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { overlapsForConversation, type ConversationSummary, type WorkspaceRecent } from "@vela/shared";
+import { useContext, useEffect, useId, useMemo, useRef, useState } from "react";
 import { isBooleanRecord, useStoredState } from "../hooks/useStoredState";
 import { modKeyLabel } from "../platform";
 import { tr, trf, useAppLocale } from "../locale";
@@ -17,6 +17,7 @@ import {
   type SidebarView,
 } from "./conversation-activity";
 import { ConversationSearchDialog } from "./ConversationSearchDialog";
+import { ConflictContext } from "./conflict-context";
 import { ClockIcon, InboxIcon } from "./icons";
 import { useSidebarItems } from "../hooks/useSidebarItems";
 import { workspaceTitle } from "./workspace-names";
@@ -33,6 +34,8 @@ interface SidebarProps {
   onOpenScheduledTasks: () => void;
   scheduledTasksOpen: boolean;
   collapsed: boolean;
+  /** 分类视图：页面入口和设置移到最左侧图标栏，这里只保留新对话、活动视图、搜索。 */
+  railMode?: boolean;
   resize: SidebarResize;
   platform: string;
   conversations: ConversationSummary[];
@@ -51,6 +54,8 @@ interface SidebarProps {
   onRenameConversation?: (id: string) => void;
 }
 
+const workspaceConversationLimit = 5;
+
 export function Sidebar({
   onOpenPrInbox,
   prInboxOpen,
@@ -62,6 +67,7 @@ export function Sidebar({
   onOpenScheduledTasks,
   scheduledTasksOpen,
   collapsed,
+  railMode = false,
   resize,
   platform,
   conversations: allConversations,
@@ -160,6 +166,7 @@ export function Sidebar({
   const [collapsedWorkspaces, setCollapsedWorkspaces] = useStoredState<Record<string, boolean>>(
     "vela.collapsedWorkspaces", {}, isBooleanRecord,
   );
+  const [expandedWorkspaces, setExpandedWorkspaces] = useState<Record<string, boolean>>({});
   const activeWorkspace = allConversations.find(
     (item) => item.id === activeConversationId && item.archivedAt === null,
   )?.cwd ?? null;
@@ -175,7 +182,7 @@ export function Sidebar({
   const mod = modKeyLabel(platform);
 
   return (
-    <aside ref={sidebarRef} className={`sidebar-left${collapsed ? " collapsed" : ""}`} inert={collapsed ? true : undefined}>
+    <aside ref={sidebarRef} className={`sidebar-left${collapsed ? " collapsed" : ""}${railMode ? " is-rail" : ""}`} inert={collapsed ? true : undefined}>
       <SidebarResizeHandle target="left" resize={resize} />
       <div className="sidebar-left-header">
         <div className="titlebar-drag-row">
@@ -194,6 +201,10 @@ export function Sidebar({
             <span>Vela</span>
           </div>
           <div className="sidebar-header-actions">
+            {railMode && items.newChat ? <button className="icon-btn-ghost sidebar-new-chat-trigger" type="button"
+              title={tr("新对话", "New chat")} aria-label={tr("新对话", "New chat")} onClick={() => onNewChat()}>
+              <ComposeIcon />
+            </button> : null}
             <button className="icon-btn-ghost sidebar-activity-trigger" type="button"
               title={tr("活动视图：按优先级排布对话", "Activity view: chats ordered by priority")}
               aria-label={tr("活动视图", "Activity view")} aria-pressed={view === "activity"}
@@ -216,7 +227,7 @@ export function Sidebar({
         </div>
       </div>
 
-      {Object.values(items).some(Boolean) ? <div className="sidebar-quick-actions">
+      {!railMode && Object.values(items).some(Boolean) ? <div className="sidebar-quick-actions">
         {items.prInbox ? <button className="quick-action-item" type="button" aria-current={prInboxOpen ? "page" : undefined} onClick={onOpenPrInbox}>
           <span className="quick-action-item-left"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><circle cx="6" cy="5" r="3"/><circle cx="6" cy="19" r="3"/><circle cx="18" cy="19" r="3"/><path d="M6 8v8M18 16V9a4 4 0 0 0-4-4h-2m2-2-2 2 2 2"/></svg><span>Pull Request</span></span>
         </button> : null}
@@ -257,6 +268,15 @@ export function Sidebar({
           <MotionList className="session-groups" items={groups} keyOf={(group) => group.cwd}>{(group) => {
             const isCollapsed = Boolean(collapsedWorkspaces[group.cwd]);
             const groupName = workspaceTitle(workspaces, group.cwd);
+            const isExpanded = Boolean(expandedWorkspaces[group.cwd]);
+            const hasOverflow = group.conversations.length > workspaceConversationLimit;
+            let visibleConversations = isExpanded ? group.conversations : group.conversations.slice(0, workspaceConversationLimit);
+            // 搜索或外部入口打开较早的对话时，仍在收起后的列表里显示当前对话。
+            const selected = group.conversations.find(conversation => conversation.id === activeConversationId);
+            if (!isExpanded && selected && !visibleConversations.includes(selected)) {
+              visibleConversations = [...visibleConversations.slice(0, workspaceConversationLimit - 1), selected];
+            }
+            const listId = `${searchId}-workspace-${encodeURIComponent(group.cwd)}`;
             return (
               <div className={`session-group${isCollapsed ? " collapsed" : ""}`} key={group.cwd}>
                 <div className="session-group-row">
@@ -265,12 +285,16 @@ export function Sidebar({
                     type="button"
                     title={group.cwd}
                     aria-expanded={!isCollapsed}
-                    onClick={() =>
-                      setCollapsedWorkspaces((current) => ({ ...current, [group.cwd]: !isCollapsed }))
-                    }
+                    aria-controls={listId}
+                    onClick={() => {
+                      setCollapsedWorkspaces((current) => ({ ...current, [group.cwd]: !isCollapsed }));
+                      if (!isCollapsed) {
+                        setExpandedWorkspaces(current => ({ ...current, [group.cwd]: false }));
+                      }
+                    }}
                   >
-                    <span className="session-group-chevron">
-                      <ChevronIcon />
+                    <span className="session-group-folder" aria-hidden="true">
+                      <WorkspaceFolderIcon collapsed={isCollapsed} />
                     </span>
                     <span className="session-group-name">{groupName}</span>
                     <span className="session-group-count">{group.conversations.length}</span>
@@ -294,11 +318,20 @@ export function Sidebar({
                     <ComposeIcon />
                   </button>
                 </div>
-                {isCollapsed ? null : (
-                  <MotionList className="subchat-list" items={group.conversations} keyOf={(conversation) => conversation.id}>
-                    {renderConversation}
-                  </MotionList>
-                )}
+                <div id={listId} className={`session-group-content${isCollapsed ? "" : " is-open"}`}
+                  inert={isCollapsed} aria-hidden={isCollapsed || undefined}>
+                  <div className="session-group-content-inner">
+                    <MotionList className="subchat-list workspace-chat-list" items={visibleConversations} keyOf={(conversation) => conversation.id}>
+                      {renderConversation}
+                    </MotionList>
+                    {hasOverflow ? <button className="session-group-show-more" type="button"
+                      aria-expanded={isExpanded} aria-controls={listId}
+                      aria-label={`${isExpanded ? tr("收起", "Show less") : tr("展开显示", "Show more")} · ${groupName}`}
+                      onClick={() => setExpandedWorkspaces(current => ({ ...current, [group.cwd]: !isExpanded }))}>
+                      {isExpanded ? tr("收起", "Show less") : tr("展开显示", "Show more")}
+                    </button> : null}
+                  </div>
+                </div>
               </div>
             );
           }}</MotionList>
@@ -316,7 +349,7 @@ export function Sidebar({
         </>}
       </div>
 
-      <div className="sidebar-left-footer">
+      {!railMode ? <div className="sidebar-left-footer">
         <button
           className={`sidebar-user-pill${settingsOpen ? " active" : ""}`}
           type="button"
@@ -332,7 +365,7 @@ export function Sidebar({
             {mod},
           </span>
         </button>
-      </div>
+      </div> : null}
       {searchOpen ? <ConversationSearchDialog
         id={searchId}
         conversations={allConversations}
@@ -371,6 +404,9 @@ function ConversationRow({ conversation, active, activity, reason, priority, loc
   onTogglePriority: (id: string) => void; onRename?: (id: string) => void; onArchive: (id: string) => void;
 }) {
   const title = conversation.title || tr("新对话", "New chat");
+  const conflictState = useContext(ConflictContext).state;
+  const conflictCount = useMemo(() => overlapsForConversation(conflictState, conversation.id).length, [conflictState, conversation.id]);
+  const conflictLabel = conflictCount > 0 ? trf("与其他对话改了同一处（{0} 个文件）", "Edits the same files as another chat ({0})", conflictCount) : "";
   const statusLabel = activityReasonLabel(reason, conversation);
   const priorityLabel = priority ? tr("取消优先关注", "Remove priority") : tr("设为优先关注", "Mark as priority");
   const workspaceLabel = conversation.hasWorkspace === false ? "" : workspaceName(conversation.cwd);
@@ -382,11 +418,12 @@ function ConversationRow({ conversation, active, activity, reason, priority, loc
   return <div className={`subchat-row${activity ? " activity-row" : ""}${onRename ? " has-rename" : ""}`}>
     <button className={`subchat-item${active ? " active" : ""}`} type="button"
       title={activity ? [title, workspaceLabel ? conversation.cwd : "", `${statusLabel} · ${updatedAt.toLocaleString(locale)}`].filter(Boolean).join("\n") : title}
-      aria-label={activity ? [title, workspaceLabel, statusLabel].filter(Boolean).join(", ") : title}
+      aria-label={activity ? [title, workspaceLabel, statusLabel, conflictLabel].filter(Boolean).join(", ") : [title, conflictLabel].filter(Boolean).join(", ")}
       aria-current={active ? "page" : undefined} onClick={() => onSelect(conversation.id)}>
       {activity ? <span className="activity-row-content">
         <span className="activity-row-heading">
           <span className="subchat-title">{title}</span>
+          {conflictCount > 0 ? <span className="subchat-conflict" role="img" aria-label={conflictLabel} title={conflictLabel} /> : null}
           {workspaceLabel ? <span className="activity-workspace">{workspaceLabel}</span> : null}
         </span>
         <span className="activity-row-detail">
@@ -398,6 +435,7 @@ function ConversationRow({ conversation, active, activity, reason, priority, loc
         </span>
       </span> : <>
         <span className="subchat-title">{title}</span>
+        {conflictCount > 0 ? <span className="subchat-conflict" role="img" aria-label={conflictLabel} title={conflictLabel} /> : null}
         {conversation.status === "streaming" ? <span className="subchat-streaming-dot" role="img" aria-label={tr("正在回复", "Replying")} title={tr("正在回复", "Replying")} /> : null}
       </>}
     </button>
@@ -477,10 +515,13 @@ function SettingsIcon() {
   );
 }
 
-function ChevronIcon() {
+function WorkspaceFolderIcon({ collapsed }: { collapsed: boolean }) {
   return (
-    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-      <polyline points="9 18 15 12 9 6" />
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {collapsed ? <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2zM2 10h20" /> : <>
+      <path d="M3 19V5a2 2 0 0 1 2-2h4l3 3h6a2 2 0 0 1 2 2v2" />
+      <path d="M5 10h15a1 1 0 0 1 .94 1.34l-2.5 7A2.5 2.5 0 0 1 16.09 20H5a2 2 0 0 1-2-2.3l1-6A2 2 0 0 1 5 10Z" />
+      </>}
     </svg>
   );
 }

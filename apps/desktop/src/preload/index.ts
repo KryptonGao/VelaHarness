@@ -4,6 +4,7 @@ import {
   PrInboxIpc,
   TaskRecipesIpc,
   RaceIpc,
+  ConflictIpc,
   ScheduledTasksIpc,
   AgentInboxIpc,
   ResidentIpc,
@@ -212,6 +213,14 @@ const api: VelaApi = {
     subscribe: listener => {
       const handler = () => listener(); ipcRenderer.on(RaceIpc.state, handler);
       return () => { ipcRenderer.removeListener(RaceIpc.state, handler); };
+    },
+  },
+  conflicts: {
+    list: () => ipcRenderer.invoke(ConflictIpc.list),
+    moveToWorktree: conversationId => ipcRenderer.invoke(ConflictIpc.moveToWorktree, conversationId),
+    subscribe: listener => {
+      const handler = () => listener(); ipcRenderer.on(ConflictIpc.state, handler);
+      return () => { ipcRenderer.removeListener(ConflictIpc.state, handler); };
     },
   },
   scheduledTasks: {

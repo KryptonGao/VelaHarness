@@ -8,6 +8,8 @@ export interface TurnFileChange {
   diffs: string[];
   /** 对应 diffs 的真实工具 ID，用于验收定位。 */
   diffToolIds?: string[];
+  /** 工作区同一文件的索引与未暂存差异。 */
+  diffScopes?: ("index" | "worktree")[];
   /** diffs 的格式;默认是工具保存的带行号记录,工作区 Git 变更用 unified。 */
   format?: "tool" | "unified";
 }

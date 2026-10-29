@@ -24,6 +24,7 @@ export * from "./agent-inbox";
 export * from "./resident-agent";
 export * from "./task-recipes";
 export * from "./race";
+export * from "./conflict";
 export * from "./recipe-validation";
 export * from "./recipe-workflow";
 export * from "./plugin";
@@ -2912,6 +2913,7 @@ export interface VelaApi extends McpApi, PluginApi {
   development?: DevelopmentApi;
   taskRecipes?: import("./task-recipes").TaskRecipesApi;
   races?: import("./race").RacesApi;
+  conflicts?: import("./conflict").ConflictsApi;
   scheduledTasks?: import("./scheduled-tasks").ScheduledTasksApi;
   agentInbox?: import("./agent-inbox").AgentInboxApi;
   resident?: import("./resident-agent").ResidentAgentApi;

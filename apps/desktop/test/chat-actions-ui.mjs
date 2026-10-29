@@ -162,18 +162,18 @@ if (!process.versions.electron) {
     // Export items: the postmortem defaults go to the API, a failure stays visible in the menu, and an empty chat cannot export.
     await evaluate("fixture.exports = []; fixture.exportFails = false; window.vela.exportConversation = async (id, options) => { fixture.exports.push({ id, options }); if (fixture.exportFails) throw new Error('这个对话还没有消息'); return { path: '/tmp/chat.md' }; }; true");
     await evaluate("window.renderChat('chat-export')"); await open();
-    assert.deepEqual(await evaluate("Array.from(document.querySelectorAll('[role=menuitem]')).map(item => item.textContent)"), ["从对话创建配方", "生成交接包…", "导出为 Markdown…", "导出为 HTML…"]);
-    await evaluate("document.querySelectorAll('[role=menuitem]')[3].click()"); await closed();
+    assert.deepEqual(await evaluate("Array.from(document.querySelectorAll('[role=menuitem]')).map(item => item.textContent)"), ["从对话创建配方", "生成交接包…", "各对话的近期改动…", "导出为 Markdown…", "导出为 HTML…"]);
+    await evaluate("document.querySelectorAll('[role=menuitem]')[4].click()"); await closed();
     assert.deepEqual(await evaluate("fixture.exports"), [{ id: "chat-export", options: { format: "html", includeTrace: true, includeDiffs: true, includeThinking: false } }]);
-    await open(); await evaluate("fixture.exportFails = true; document.querySelectorAll('[role=menuitem]')[2].click()");
+    await open(); await evaluate("fixture.exportFails = true; document.querySelectorAll('[role=menuitem]')[3].click()");
     await until("Boolean(document.querySelector('.chat-actions-error'))");
     assert.equal(await evaluate("document.querySelector('.chat-actions-error').textContent"), "这个对话还没有消息");
-    assert.equal(await evaluate("document.querySelectorAll('[role=menuitem]')[2].getAttribute('aria-disabled')"), "false");
+    assert.equal(await evaluate("document.querySelectorAll('[role=menuitem]')[3].getAttribute('aria-disabled')"), "false");
     assert.equal(await evaluate("fixture.exports.at(-1).options.format"), "markdown");
     await evaluate("window.renderChat('chat-after-error')"); await closed();
     await evaluate("window.renderChat('empty-export', [])"); await open();
-    assert.equal(await evaluate("document.querySelectorAll('[role=menuitem]')[2].getAttribute('aria-disabled')"), "true");
-    await evaluate("document.querySelectorAll('[role=menuitem]')[2].click()");
+    assert.equal(await evaluate("document.querySelectorAll('[role=menuitem]')[3].getAttribute('aria-disabled')"), "true");
+    await evaluate("document.querySelectorAll('[role=menuitem]')[3].click()");
     assert.equal(await evaluate("fixture.exports.length"), 2);
     await evaluate("window.renderChat('closing')"); await closed();
 

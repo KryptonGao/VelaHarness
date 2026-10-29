@@ -6,7 +6,7 @@
 .agent-inbox-page :is(button,input,select):focus-visible { outline:2px solid var(--accent-blue); outline-offset:2px; }
 .agent-inbox-topbar { gap:12px; flex:none; font-size:13px; }
 .agent-inbox-topbar button { -webkit-app-region:no-drag; }
-.agent-inbox-topbar h1 { margin:0; font-size:13px; font-weight:600; }
+.agent-inbox-topbar h1 { margin:0; }
 .agent-inbox-summary { margin-left:auto; color:var(--text-secondary); font-size:12px; white-space:nowrap; }
 .agent-inbox-banner { flex:none; margin:0; padding:8px 20px; font-size:13px; color:var(--danger); background:color-mix(in srgb, var(--danger) 8%, transparent); }
 

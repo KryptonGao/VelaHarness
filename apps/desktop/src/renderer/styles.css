@@ -955,18 +955,20 @@ code,
 }
 
 .sidebar-left-header {
-  padding: 14px 16px 10px;
+  padding: 12px 16px 10px;
   display: flex;
   flex-direction: column;
   gap: 14px;
 }
 
 .platform-darwin .sidebar-left-header {
-  padding-top: 18px;
+  padding-top: 12px;
 }
 
+/* 折叠按钮与右侧顶栏（52px 高）、红绿灯同在 y=26 的中线上；下方内容位置保持不变。 */
 .titlebar-drag-row {
   height: 28px;
+  margin-bottom: 2px;
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -975,6 +977,7 @@ code,
 
 .platform-darwin .titlebar-drag-row {
   padding-left: 68px;
+  margin-bottom: 6px;
 }
 
 .icon-btn-ghost,
@@ -1022,7 +1025,8 @@ code,
 .sidebar-search-trigger svg { width: 18px; height: 18px; }
 
 .sidebar-header-actions { display: flex; align-items: center; gap: 4px; }
-.sidebar-activity-trigger { width: 28px; height: 28px; }
+.sidebar-activity-trigger,
+.sidebar-new-chat-trigger { width: 28px; height: 28px; }
 .sidebar-activity-trigger[aria-pressed="true"] {
   color: var(--accent-blue);
   background: color-mix(in srgb, var(--accent-blue) 10%, transparent);
@@ -1395,15 +1399,69 @@ code,
   background: var(--bg-sidebar-hover);
   color: var(--text-secondary);
 }
-.session-group-chevron {
+.session-group-folder {
   display: flex;
   align-items: center;
-  transition: transform 0.18s ease;
-  /* 基础箭头朝右,展开的分组让箭头朝下 */
-  transform: rotate(90deg);
+  flex: none;
+  margin-right: 3px;
 }
-.session-group.collapsed .session-group-chevron {
-  transform: rotate(0deg);
+.session-group-content {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition: grid-template-rows 200ms var(--motion-ease-enter), opacity 140ms ease;
+}
+.session-group-content.is-open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+.session-group-content-inner {
+  min-height: 0;
+  overflow: hidden;
+  visibility: hidden;
+  transition: visibility 0s 200ms;
+}
+.session-group-content.is-open > .session-group-content-inner {
+  visibility: visible;
+  transition-delay: 0s;
+}
+.workspace-chat-list {
+  margin-left: 24px;
+}
+.workspace-chat-list > .motion-list-item {
+  transition: grid-template-rows 160ms var(--motion-ease-enter), opacity 140ms ease;
+}
+@starting-style {
+  .workspace-chat-list > .motion-list-item.is-entering {
+    grid-template-rows: 0fr;
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .session-group-content,
+  .session-group-content-inner,
+  .workspace-chat-list > .motion-list-item {
+    transition: none;
+    animation: none;
+  }
+}
+.session-group-show-more {
+  display: block;
+  margin-left: 24px;
+  padding: 6px 10px;
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  font-size: 15px;
+  text-align: left;
+  cursor: pointer;
+}
+.session-group-show-more:hover {
+  background: var(--bg-sidebar-hover);
+  color: var(--text-secondary);
+}
+.session-group-show-more:focus-visible {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: -2px;
 }
 .session-group-name {
   flex: 1;
@@ -1519,6 +1577,13 @@ code,
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* 各页面顶栏左上角的页面标题：与主页的对话标题（.chat-active-title）同一套字号字重。 */
+.page-topbar-title {
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .chat-header-actions,
@@ -6778,7 +6843,7 @@ button.environment-row:not(:disabled):hover { background: var(--bg-surface-subtl
 }
 .settings-header h1 {
   font-size: 15px;
-  font-weight: 650;
+  font-weight: 600;
 }
 .settings-done,
 .settings-nav-item,
@@ -8883,6 +8948,19 @@ button.turn-changes-path:hover { color: var(--accent-blue); }
   z-index: 2;
   pointer-events: none;
 }
+/*
+ * 窗口拖动区（-webkit-app-region）由 Electron 按文档顺序合成，既不看遮挡也不看透明度：
+ * 被隐藏的页面（如 PR 收件箱，为保留 webview 而一直挂载）顶栏里的 drag 区域排在主页顶栏之后，
+ * 会把主页顶栏上的按钮重新盖成拖动区，切回主页后顶栏就点不动了。
+ * 不可操作的内容（inert）和已隐藏的窗格不该参与拖动区合成。
+ * 注意要用 initial：显式写 none 会被 Chromium 当成 no-drag，同样会在合成里留下一块区域。
+ */
+[inert],
+[inert] *,
+.main-stage-pane.is-hidden,
+.main-stage-pane.is-hidden * {
+  -webkit-app-region: initial !important;
+}
 
 @media (max-width: 1100px) {
   .sidebar-right:not(.collapsed) {
@@ -10956,3 +11034,40 @@ a.mcp-result-title:hover { color: var(--accent-blue); }
 @media (prefers-reduced-motion: reduce) {
   .annotation-box.is-flash { animation: none; background: color-mix(in srgb, var(--accent-blue) 30%, transparent); }
 }
+
+/* 右侧变更页的只读范围筛选,沿用现有浮层与中性色。 */
+.changes-filter-heading { min-width: 0; }
+.changes-filter { position: relative; min-width: 0; }
+.changes-filter-trigger {
+  display: flex; align-items: center; gap: 8px; max-width: 100%; min-height: 30px;
+  padding: 4px 10px; border: 1px solid var(--border-subtle); border-radius: var(--radius-pill);
+  background: var(--bg-elevated); color: var(--text-primary); font: inherit; cursor: pointer;
+}
+.changes-filter-trigger > span { display: flex; align-items: center; gap: 7px; min-width: 0; white-space: nowrap; }
+.changes-filter-trigger svg { flex: none; }
+.changes-filter-detail { max-width: 110px; overflow: hidden; text-overflow: ellipsis; color: var(--text-muted); font-size: 11px; }
+.changes-filter-trigger:hover { background: var(--bg-hover); }
+.changes-filter-menu {
+  position: absolute; top: calc(100% + 6px); left: 0; z-index: 10;
+  width: min(280px, calc(100vw - 60px)); padding: 6px;
+  border: 1px solid var(--border-subtle); border-radius: var(--radius-lg);
+  background: var(--bg-elevated); box-shadow: var(--shadow-card); color: var(--text-primary);
+}
+.changes-filter-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  width: 100%; min-height: 34px; padding: 7px 10px; border: 0; border-radius: var(--radius-md);
+  background: transparent; color: inherit; text-align: left; font: inherit; cursor: pointer;
+}
+.changes-filter-item > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.changes-filter-item svg { flex: none; }
+.changes-filter-item:hover, .changes-filter-item:focus-visible, .changes-filter-item[aria-checked="true"] { background: var(--bg-hover); }
+.changes-filter-separator { height: 1px; margin: 5px 10px; background: var(--border-subtle); }
+.changes-filter-back { justify-content: flex-start; color: var(--text-secondary); }
+.changes-filter-options { max-height: min(360px, 55vh); overflow-y: auto; }
+.changes-filter-commit { display: flex; flex-direction: column; gap: 2px; }
+.changes-filter-commit > span { overflow: hidden; text-overflow: ellipsis; }
+.changes-filter-commit small { color: var(--text-muted); font-size: 11px; }
+.changes-filter-empty { padding: 14px 10px; color: var(--text-muted); }
+.changes-filter-notice { padding: 10px 14px; color: var(--text-secondary); background: var(--bg-surface-subtle); font-size: 12px; }
+.changes-filter-retry { margin-left: 8px; color: var(--accent-blue); cursor: pointer; }
+.turn-review-view.is-compact .changes-filter-detail { max-width: 64px; }

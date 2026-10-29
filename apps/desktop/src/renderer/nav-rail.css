@@ -1,0 +1,170 @@
+/*
+ * 分类视图：最左侧是一列图标栏，与侧栏共用同一套毛玻璃；
+ * 主页显示「侧栏 + 对话」，其余分类收起侧栏，内容区纸面直接贴着图标栏。
+ */
+.vela-window.nav-rail-layout { --nav-rail-width: 52px; }
+
+/*
+ * 整个窗口只有一张玻璃：图标栏、侧栏、对话区顶栏和四周的窄边都不再各画一层，
+ * 否则半透明的玻璃在它们交界处会叠加、产生接缝，侧栏开合时这条接缝还会跟着移动。
+ * 对话纸面和侧栏卡片是不透明的，盖在这张玻璃上。
+ */
+.vela-window.nav-rail-layout {
+  background: linear-gradient(var(--bg-sidebar-glass), var(--bg-sidebar-glass)), var(--bg-chat);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+}
+.platform-darwin .vela-window.nav-rail-layout { background: var(--bg-sidebar-glass); }
+.nav-rail-layout .sidebar-left {
+  background: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  /* 卡片垫在侧栏自己的层叠上下文里（原先靠 backdrop-filter 建立），现在显式建立。 */
+  isolation: isolate;
+}
+.nav-rail-layout .main-stage { background: none; }
+.nav-rail-layout :is(.main-chat-view, .workbench-panel, .settings-view, .scheduled-tasks-page-shell, .pr-inbox-page, .agent-inbox-page)::before {
+  background: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.nav-rail {
+  position: relative;
+  z-index: 2;
+  flex: none;
+  width: var(--nav-rail-width, 52px);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* 顶部一行留给 macOS 红绿灯，同时可以拖动窗口。 */
+.nav-rail-titlebar {
+  flex: none;
+  width: 100%;
+  height: var(--header-height);
+  -webkit-app-region: drag;
+}
+
+.nav-rail-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0;
+}
+.nav-rail-footer {
+  margin-top: auto;
+  padding-bottom: 12px;
+}
+
+.nav-rail-item {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  -webkit-app-region: no-drag;
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+.nav-rail-item:hover {
+  background: var(--bg-sidebar-hover);
+  color: var(--text-primary);
+}
+.nav-rail-item[aria-current="page"] {
+  background: var(--bg-sidebar-active);
+  color: var(--text-primary);
+  box-shadow: 0 0 0 1px var(--border-subtle, rgba(0, 0, 0, 0.06));
+}
+.nav-rail-icon { display: flex; }
+
+.nav-rail-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  min-width: 16px;
+  box-sizing: border-box;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--accent-blue);
+  color: var(--accent-contrast);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 16px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 红绿灯落在图标栏上，侧栏和主区顶栏不再为它们让位。 */
+.nav-rail-layout.platform-darwin .titlebar-drag-row { padding-left: 12px; }
+/* 红绿灯的原生点击区比圆点大一圈，第一个控件要与经典布局落在同一位置（距窗口左缘约 78px 起），否则会被红绿灯吃掉点击。 */
+.nav-rail-layout.platform-darwin.left-collapsed .main-chat-header,
+.nav-rail-layout.platform-darwin.left-collapsed .settings-header { padding-left: 32px; }
+
+/*
+ * 侧栏开合：侧栏原地不动，右侧对话纸面像一张纸向左滑过去盖住它，再滑回来露出。
+ * 位置全由一个动画变量 --nav-open（侧栏当前露出的宽度，展开 = 侧栏宽度，收起 = 0）驱动：
+ *   · 对话区的左缘 = 图标栏 + 6px 边 + --nav-open（负外边距实现，纸面盖在侧栏上方）；
+ *   · 侧栏只露出这条边左侧的部分（clip-path），被盖住的内容直接被裁掉，不淡出、不挤压。
+ * 纸面形状（圆角、与图标栏的距离）展开收起时完全一致，卡片与纸面的左缘都离图标栏 6px。
+ * 离开主页时同样收起，不动用户保存的折叠状态。
+ */
+@property --nav-open {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 0px;
+}
+.vela-window.nav-rail-layout {
+  --nav-open: var(--sidebar-left-width);
+  transition: --nav-open var(--transition-sidebar);
+}
+.vela-window.nav-rail-layout.left-collapsed { --nav-open: 0px; }
+/* 拖动侧栏宽度时跟着指针走，不要追动画。 */
+:root[data-resizing="true"] .vela-window.nav-rail-layout { transition: none; }
+
+.nav-rail-layout .sidebar-left,
+.nav-rail-layout .sidebar-left.collapsed {
+  flex: none;
+  width: var(--sidebar-left-width);
+  min-width: var(--sidebar-left-width);
+  margin-left: var(--glass-edge-inset);
+  overflow: visible;
+  /* 只露出纸面左缘以左的部分，另外多留 12px 垫在纸面圆角下面；展开后放开右、上、下三边，弹层不被裁。 */
+  clip-path: inset(
+    -1000px
+    calc(var(--sidebar-left-width) - var(--nav-open) - min(12px, var(--nav-open)) - max(0px, (var(--nav-open) - var(--sidebar-left-width) + 1px) * 1000))
+    -1000px
+    0
+  );
+}
+.nav-rail-layout .sidebar-left.collapsed > * { opacity: 1; transition: none; }
+/* 对话区左缘本身就是纸面左缘：不再留左侧玻璃边（6px 的间距由侧栏的外边距承担）。 */
+.vela-window.nav-rail-layout .main-stage {
+  --stage-left-inset: 0px;
+  padding-left: 0;
+  margin-left: calc(var(--nav-open) - var(--sidebar-left-width));
+}
+
+/*
+ * 侧栏是一张不透明的卡片：从顶栏下沿开始，底部留出玻璃边，左侧圆角；
+ * 右侧多伸出 12px 垫在对话纸面的圆角下面，纸面盖上来时圆角缺口里是卡片的颜色。
+ * 卡片画在侧栏自己的层叠上下文里（isolation），垫在所有子元素之下。
+ */
+.sidebar-left.is-rail::before {
+  content: "";
+  position: absolute;
+  top: var(--header-height);
+  bottom: var(--glass-edge-inset);
+  left: 0;
+  right: -12px;
+  z-index: -1;
+  border-radius: var(--glass-fillet) 0 0 var(--glass-fillet);
+  background: var(--bg-surface-subtle);
+  pointer-events: none;
+}
+.sidebar-left.is-rail .sidebar-scroll-area { margin-bottom: var(--glass-edge-inset); }

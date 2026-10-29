@@ -34,6 +34,8 @@ import { TaskRecipeService } from "./task-recipe-service";
 import { TaskRecipeHost } from "./task-recipe-host";
 import { RaceService } from "./race-service";
 import { RaceHost } from "./race-host";
+import { ConflictService } from "./conflict-service";
+import { ConflictHost } from "./conflict-host";
 import { executeScheduledRecipe } from './task-recipe-schedule';
 import { ScheduledTaskHost } from "./scheduled-task-host";
 import { AgentInboxService } from "./agent-inbox-service";
@@ -110,6 +112,8 @@ let taskRecipeHost: TaskRecipeHost | null = null;
 let taskRecipes: TaskRecipeService | null = null;
 let raceHost: RaceHost | null = null;
 let races: RaceService | null = null;
+let conflictHost: ConflictHost | null = null;
+let conflicts: ConflictService | null = null;
 let host: SessionHost | null = null;
 let browserHost: BrowserHost | null = null;
 let browserRepl: BrowserReplManager | null = null;
@@ -462,6 +466,33 @@ async function start(): Promise<void> {
   });
   raceService.init(); races = raceService;
   raceHost = new RaceHost(raceService); raceHost.register();
+  // 跨对话冲突提醒：记录各对话近期 edit / write 的文件，发现重叠时提醒并可转到独立 worktree。
+  const conflictService = new ConflictService(join(home, "conversation-edits.json"), {
+    conversation: id => {
+      if (residentSupervisor?.isResidentConversation(id)) return null;
+      const found = runtime.listConversations().find(item => item.id === id);
+      return found && found.archivedAt === null ? { title: found.title, cwd: found.cwd, hasWorkspace: found.hasWorkspace !== false } : null;
+    },
+    createConversation: async cwd => {
+      const snapshot = await runtime.createConversation(cwd, { hasWorkspace: true });
+      if (!snapshot.id) throw new Error(snapshot.error || "新建对话失败");
+      return snapshot.id;
+    },
+    worktreeRoot: join(home, "worktrees"),
+  });
+  conflictService.init(); conflicts = conflictService;
+  conflictHost = new ConflictHost(conflictService); conflictHost.register();
+  runtime.subscribe(event => {
+    const cwd = (id: string) => runtime.listConversations().find(item => item.id === id)?.cwd;
+    if (event.type === "tool_end" && !event.isError && (event.toolName === "edit" || event.toolName === "write") && event.activity.path) {
+      const dir = cwd(event.conversationId);
+      if (dir) conflictService.record(event.conversationId, dir, event.activity.path);
+    } else if (event.type === "agent_event" && event.event.type === "tool_end" && !event.event.isError
+      && (event.event.toolName === "edit" || event.event.toolName === "write") && event.event.activity.path) {
+      const dir = cwd(event.conversationId);
+      if (dir) conflictService.record(event.conversationId, dir, event.event.activity.path);
+    }
+  });
   // 「帮我批准」模式下由当前对话选择的模型判断操作风险。
   sandbox.setRiskEvaluator((input) => runtime.evaluateSandboxRisk(input));
 
@@ -730,6 +761,8 @@ app.on("before-quit", (event) => {
   taskRecipeHost?.dispose(); taskRecipeHost = null;
   try { races?.stop(); } catch (error) { log.error("race shutdown failed", error); }
   raceHost?.dispose(); raceHost = null;
+  try { conflicts?.dispose(); } catch (error) { log.error("conflict shutdown failed", error); }
+  conflictHost?.dispose(); conflictHost = null;
   scheduledTaskHost?.dispose();
   scheduledTaskHost = null;
   // 先于 runtime 释放：运行时关闭时会取消所有等待点，那不是用户的决策。

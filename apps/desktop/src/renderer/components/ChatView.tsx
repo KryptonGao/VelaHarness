@@ -16,6 +16,7 @@ import type { UiMessage } from "../hooks/useSession";
 import { RepoCard } from "./RepoCard";
 import { Composer } from "./Composer";
 import { TaskBudgetBanner } from "./TaskBudgetBanner";
+import { ConflictBanner } from "./ConflictBanner";
 import { TaskCostForecastHint } from "./TaskCostForecastHint";
 import { RunViewDock } from "./RunViewDock";
 import { JumpOrb } from "./JumpOrb";
@@ -729,7 +730,7 @@ export function ChatView({
           ) : null}
           <ChatActionsMenu key={state?.activeConversationId ?? "empty"} messages={messages} streaming={Boolean(streaming)} />
           {!embedded && !emptyConversation ? <button
-            className={`view-icon-btn${rightCollapsed ? "" : " active"}`}
+            className="icon-btn-ghost"
             type="button"
             title={`${rightLabel} (${mod}J)`}
             aria-label={rightLabel}
@@ -952,6 +953,7 @@ export function ChatView({
         <JumpOrb activity={jumpActivity} commandKey={runningBash?.id} running={showJumpToLatest && view === "chat"} />
       </button>
       <TaskBudgetBanner budget={session?.taskBudget} conversationId={state?.activeConversationId} />
+      <ConflictBanner conversationId={state?.activeConversationId} />
       <TaskCostForecastHint session={session} />
       <Composer
         embedded={embedded}
@@ -1643,9 +1645,9 @@ function InfoCardsIcon() {
 
 function PanelIcon() {
   return (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
       <rect x="3" y="3" width="18" height="18" rx="2" />
-      <line x1="16" y1="3" x2="16" y2="21" />
+      <line x1="15" y1="3" x2="15" y2="21" />
     </svg>
   );
 }

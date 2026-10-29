@@ -3,6 +3,7 @@ import type { AgentInboxDecideFailure, AgentInboxDecision, AgentInboxItem, Agent
 import { activeIntlLocale, tr, trf } from "../locale";
 import { useAgentInbox } from "../hooks/useAgentInbox";
 import { useResidentAgent } from "../hooks/useResidentAgent";
+import { useAutoHideScrollbarsWithin } from "../hooks/useAutoHideScrollbar";
 import type { MessageStore } from "../hooks/message-store";
 import { ApprovalBanner } from "./composer/ApprovalBanner";
 import { AgentInboxQuestionForm } from "./AgentInboxQuestionForm";
@@ -223,6 +224,8 @@ export function AgentInboxPage({ active, sidebarCollapsed, onToggleSidebar, onOp
   const [busyId, setBusyId] = useState<string | null>(null);
   const [notice, setNotice] = useState<{ id: string; text: string } | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
+  const pageRef = useRef<HTMLElement>(null);
+  useAutoHideScrollbarsWithin(pageRef);
   const selectedRef = useRef(selectedId); selectedRef.current = selectedId;
 
   useEffect(() => { if (active && view === "archive") void store?.loadArchived(); }, [active, view, store]);
@@ -273,17 +276,17 @@ export function AgentInboxPage({ active, sidebarCollapsed, onToggleSidebar, onOp
     : filtering ? tr("没有匹配的事项。", "No matching items.")
     : tr("审批、提问和后台任务的结果会出现在这里。", "Approvals, questions and background results show up here.");
 
-  return <section className="agent-inbox-page" aria-label={tr("Agent 收件箱", "Agent Inbox")}>
+  return <section className="agent-inbox-page" ref={pageRef} aria-label={tr("Agent 收件箱", "Agent Inbox")}>
     <header className="agent-inbox-topbar main-chat-header">
       {sidebarCollapsed && <button type="button" onClick={onToggleSidebar} aria-label={tr("展开侧栏", "Show sidebar")}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></svg></button>}
-      <h1>{tr("Agent 收件箱", "Agent Inbox")}</h1>
+      <h1 className="page-topbar-title">{tr("Agent 收件箱", "Agent Inbox")}</h1>
       <span className="agent-inbox-summary" role="status">
         {snapshot.badge > 0 ? trf("{0} 项需要处理", "{0} need your attention", snapshot.badge) : tr("没有待处理事项", "All caught up")}
       </span>
     </header>
     {snapshot.loadError || snapshot.error ? <p className="agent-inbox-banner" role="alert">{snapshot.loadError ?? snapshot.error}</p> : null}
     <div className="agent-inbox-body" data-mode={section === "resident" ? "resident" : selected ? "detail" : "list"}>
-      <nav className="agent-inbox-nav" aria-label={tr("收件箱视图", "Inbox views")}>
+      <nav className="agent-inbox-nav autohide-scrollbar" aria-label={tr("收件箱视图", "Inbox views")}>
         {agentInboxViews.map(value => <button type="button" key={value} aria-current={section === "inbox" && view === value ? "page" : undefined}
           onClick={() => { setSection("inbox"); setView(value); setSelectedId(null); }}>
           <span>{viewLabels[value]()}</span>
@@ -301,7 +304,7 @@ export function AgentInboxPage({ active, sidebarCollapsed, onToggleSidebar, onOp
           messageStore={messageStore} ensureTranscript={ensureTranscript} onOpenConversation={onOpenConversation} onSettings={resident.setSettings}
           catalog={catalog} catalogError={catalogError} />
       </div> : <>
-      <div className="agent-inbox-feed">
+      <div className="agent-inbox-feed autohide-scrollbar">
         <div className="agent-inbox-filters">
           <label className="agent-inbox-search"><span className="agent-inbox-sr">{tr("搜索事项", "Search items")}</span>
             <input ref={searchRef} type="search" value={search} placeholder={tr("搜索事项", "Search items")} onChange={event => setSearch(event.target.value)} /></label>
@@ -328,7 +331,7 @@ export function AgentInboxPage({ active, sidebarCollapsed, onToggleSidebar, onOp
             {!list.length ? <p className="agent-inbox-empty">{emptyText}</p> : null}
           </Fragment>}
       </div>
-      <div className="agent-inbox-detail-pane">
+      <div className="agent-inbox-detail-pane autohide-scrollbar">
         {selected
           ? <Detail key={selected.id} item={selected} busy={busyId === selected.id} notice={notice?.id === selected.id ? notice.text : null}
             onDecide={decide} onArchive={archive} onBack={() => setSelectedId(null)} onOpenConversation={onOpenConversation} />

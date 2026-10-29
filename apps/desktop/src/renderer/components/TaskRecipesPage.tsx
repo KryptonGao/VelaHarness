@@ -3,6 +3,7 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState, type ReactNod
 import type { ModelCatalog, RecipeParameter, RecipePreview, RecipeRun, RecipeUseDraft, RecipeValue, TaskRecipe, TaskRecipeInput, TaskRecipesState } from '@vela/shared';
 import { parseRecipeInput, recipeDefaults, validateRecipe, validateRecipeValues } from '@vela/shared';
 import { tr } from '../locale';
+import { useAutoHideScrollbarsWithin } from '../hooks/useAutoHideScrollbar';
 import '../task-recipes.css';
 import { RecipeGeneratePanel, RecipeSchedulePanel } from './RecipeEnhancements';
 import { RecipeStageEditor, RecipeStagePreview, RecipeRunProgress, RecipeRunOutcome, RecipeComparison, RecipeTeamPanel } from './RecipeWorkflow';
@@ -25,6 +26,8 @@ const originLabel = (origin: TaskRecipe['origin']) => origin === 'builtin' ? tr(
 type Editor = { recipe: TaskRecipeInput; original: string; id?: string; revision?: number; projectWorkspace?: string; teamWorkspace?: string; teamFingerprint?: string };
 
 export function TaskRecipesPage(props: TaskRecipesPageProps) {
+  const pageRef = useRef<HTMLElement>(null);
+  useAutoHideScrollbarsWithin(pageRef);
   const [state, setState] = useState<TaskRecipesState>({ recipes: [], runs: [], error: null });
   const [loading, setLoading] = useState(true); const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState(''); const [origin, setOrigin] = useState('all');
@@ -76,12 +79,12 @@ export function TaskRecipesPage(props: TaskRecipesPageProps) {
   const origins = useMemo(() => [{ id: 'all', label: tr('全部', 'All'), count: state.recipes.length }, ...(['builtin', 'user', 'project', 'team'] as const).map(id => ({ id, label: originLabel(id), count: state.recipes.filter(r => r.origin === id).length })).filter(o => o.count > 0 || o.id === origin)], [state.recipes, origin]);
   const runs = state.runs.filter(r => history === '*' || r.recipeId === history).sort((a, b) => b.startedAt - a.startedAt);
   const choose = (recipe: TaskRecipe, run?: RecipeRun) => guard(() => { setEditor(null); setUsing({ recipe, run }); setError(null); });
-  return <section className="scheduled-tasks-page-shell recipe-page-shell">
+  return <section className="scheduled-tasks-page-shell recipe-page-shell" ref={pageRef}>
     <header className="scheduled-tasks-page-toolbar main-chat-header">
       {props.sidebarCollapsed && <button type="button" className="header-toggle" aria-label={tr('展开侧栏', 'Show sidebar')} onClick={props.onToggleSidebar}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></svg></button>}
-      <span>{tr('任务配方', 'Task Recipes')}</span>
+      <span className="page-topbar-title">{tr('任务配方', 'Task Recipes')}</span>
     </header>
-    <div className="scheduled-tasks-page-scroll"><div className={`scheduled-tasks-page recipe-page${editor ? ' is-editing' : ''}`}>
+    <div className="scheduled-tasks-page-scroll autohide-scrollbar"><div className={`scheduled-tasks-page recipe-page${editor ? ' is-editing' : ''}`}>
       {!editor && <div className="scheduled-tasks-header recipe-page-heading"><div><h1>{tr('任务配方', 'Task Recipes')}</h1><p className="scheduled-tasks-note">{tr('把常用任务保存为配方，下次填写参数即可开始。', 'Save repeatable tasks. Fill in the parameters and start again anytime.')}</p></div>
         <div className="scheduled-task-actions"><button type="button" className="recipe-primary" disabled={pending || !!state.error} onClick={() => edit()}><PlusIcon />{tr('创建配方', 'Create recipe')}</button>
           <button type="button" disabled={pending || !!state.error} onClick={() => guard(() => { void api()!.importFile().then(result => { if (result) { setImports(result); setEditor(null); setUsing(null); } }).catch(e => setError((e as Error).message)); })}>{tr('导入配方', 'Import recipes')}</button>

@@ -55,6 +55,7 @@ interface WorkbenchPanelProps {
   resize: SidebarResize;
   project: ProjectApi;
   busy: boolean;
+  streaming?: boolean;
   execution: ExecutionPlan | null;
   onRevise: () => void;
   onExecutePlan: (strategy: PlanExecutionContextStrategy) => void;
@@ -145,6 +146,7 @@ function WorkbenchPanelContent({
   resize,
   project,
   busy,
+  streaming = false,
   execution,
   onRevise,
   onExecutePlan,
@@ -541,6 +543,9 @@ function WorkbenchPanelContent({
           >
             <WorkspaceChangesView
               project={project}
+              messageStore={messageStore}
+              conversationId={conversationId}
+              streaming={streaming}
               initialPath={initialDiffPath}
               initialPathRequestKey={initialDiffPathRequestKey}
               visible={activeTab?.kind === "changes"}

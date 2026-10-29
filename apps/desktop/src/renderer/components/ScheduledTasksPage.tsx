@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { thinkingLevels, thinkingLevelLabel, type ModelCatalog, type SandboxMode, type ThinkingLevel, type ScheduledTask, type ScheduledTaskInput, type ScheduledTasksState, type TaskSchedule } from "@vela/shared";
 import { tr } from "../locale";
 import { cleanErrorMessage } from "../hooks/useProject";
+import { useAutoHideScrollbarsWithin } from "../hooks/useAutoHideScrollbar";
 import "../scheduled-tasks.css";
 
 const emptyState: ScheduledTasksState = { tasks: [], runs: [] };
@@ -22,6 +23,8 @@ export function ScheduledTasksPage({ workspace, workspaces, onOpenConversation, 
   workspace: string | null; workspaces: string[]; onOpenConversation: (id: string) => void;
   sidebarCollapsed: boolean; onToggleSidebar: () => void; catalog: ModelCatalog | null; catalogError: string | null;
 }) {
+  const pageRef = useRef<HTMLElement>(null);
+  useAutoHideScrollbarsWithin(pageRef);
   const api = window.vela?.scheduledTasks;
   const [state, setState] = useState(emptyState);
   const [error, setError] = useState<string | null>(null);
@@ -47,7 +50,7 @@ export function ScheduledTasksPage({ workspace, workspaces, onOpenConversation, 
   }
   const choices = [...new Set([...(workspace ? [workspace] : []), ...workspaces, ...state.tasks.map(task => task.workspace)])];
   const tasks = state.tasks.filter(task => scope === "all" || task.workspace === workspace).sort((a, b) => b.createdAt - a.createdAt);
-  return <main className="scheduled-tasks-page-shell">
+  return <main className="scheduled-tasks-page-shell" ref={pageRef}>
     <header className="main-chat-header scheduled-tasks-page-toolbar">
       <div className="chat-title-group">
         {sidebarCollapsed && <button className="view-icon-btn" type="button" onClick={onToggleSidebar}
@@ -57,7 +60,7 @@ export function ScheduledTasksPage({ workspace, workspaces, onOpenConversation, 
         <span className="chat-active-title">{tr("定时任务", "Scheduled Tasks")}</span>
       </div>
     </header>
-    <div className="scheduled-tasks-page-scroll">
+    <div className="scheduled-tasks-page-scroll autohide-scrollbar">
     <section className="scheduled-tasks-page st-page" aria-label={tr("定时任务", "Scheduled Tasks")}>
     <header className="scheduled-tasks-header"><div><h1 tabIndex={-1}>{tr("定时任务", "Scheduled Tasks")}</h1><p>{tr("让 Vela 在指定时间开始一段新对话。", "Start a new chat at a scheduled time.")}</p>
       <p className="scheduled-tasks-note">{tr("应用运行时调度。睡眠或退出后，恢复时按策略补执行一次或跳过；每个任务保留最近 100 条已结束记录。", "Runs while the app is open. After sleep or exit, catch up once or skip. Keeps the latest 100 settled runs per task.")}</p></div>

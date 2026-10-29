@@ -1,134 +1,134 @@
 {
-  "version": "1.2.6",
+  "version": "1.2.7",
   "locales": {
     "en": {
-      "summary": "Vela 1.2.6 lets you annotate elements in the built-in browser and send your notes, element details and screenshots to the Agent. It also keeps complete answers visible when the model follows them with a short closing message.",
+      "summary": "Vela 1.2.7 warns you when two conversations edit the same file, adds a category-based navigation layout, and lets you switch the Changes view between uncommitted, staged, committed and branch diffs.",
       "highlights": [
         {
-          "title": "Point to a page element",
-          "body": "Turn on Annotate in the browser toolbar, select an element and write a note. Adjust the selection to a parent or child element, then add more notes before sending."
+          "title": "Cross-conversation edit warnings",
+          "body": "When several conversations edit the same file, Vela shows a reminder and lists which conversations overlap. You can move one of them into its own worktree so the changes stop overwriting each other."
         },
         {
-          "title": "Send notes with visual context",
-          "body": "Element notes appear beside text replies above the composer. Sending includes the page address, element description, selector, position and key styles, with up to four numbered element screenshots."
+          "title": "Category navigation layout",
+          "body": "Choose the new Categories layout in Settings → Interface to add an icon rail for Home, Scheduled Tasks, Task Recipes, Agent Inbox and Settings, leaving the sidebar for your conversation list."
         },
         {
-          "title": "Keep notes with your conversation",
-          "body": "Switching conversations or hiding the browser keeps element notes in memory. Markers follow page layout changes; notes whose elements disappear keep their descriptions and can still be sent. Unsent notes are not restored after restarting Vela."
+          "title": "Filter the Changes view",
+          "body": "Switch between the last turn, uncommitted, unstaged, staged and committed changes, or compare against a branch or a single commit. Very large diffs show a partial preview."
         },
         {
-          "title": "Keep the full answer visible",
-          "body": "When a model adds a short closing message after its answer and recommended actions, the answer stays visible outside the collapsed process. Copying the final reply includes the related answer messages."
+          "title": "Scrollbars that stay out of the way",
+          "body": "Scrollbars in the inbox, recipes, scheduled tasks, pull request and settings pages now appear only while you scroll."
         }
       ],
       "improvements": [
-        "Annotation details redact common secret parameters in page URLs and do not read filled form values; element screenshots mask password fields.",
-        "If a message fails to send, its reply cards, annotation notes and attachments return to the composer.",
-        "Annotation mode pauses when the Agent takes control of the browser, and closing a tab removes its notes."
+        "Overlap detection only counts files changed through edit and write; files with the same name in different worktrees are not treated as overlapping.",
+        "Pages in the Categories layout share a consistent top bar and spacing.",
+        "New interface text is available in all five languages."
       ]
     },
     "zh-CN": {
-      "summary": "Vela 1.2.6 支持在内置浏览器中批注页面元素，把意见、元素信息和截图一起发给 Agent。同时修复了模型在完整答案后补上一句简短结语时，正文被折叠到过程区的问题。",
+      "summary": "Vela 1.2.7 会在多个对话修改同一文件时提醒你，新增「分类」导航布局，并让「变更」视图可以在未提交、已暂存、已提交和分支差异之间切换。",
       "highlights": [
         {
-          "title": "点选页面元素写批注",
-          "body": "打开浏览器工具栏的「批注」，点选元素并写下意见。可以调整到父级或子级元素，也可以继续添加多条批注后一起发送。"
+          "title": "跨对话改动提醒",
+          "body": "多个对话改了同一个文件时，Vela 会弹出提醒并列出重叠的对话。你可以把其中一个转到独立 worktree，避免改动互相覆盖。"
         },
         {
-          "title": "连同截图和定位信息发送",
-          "body": "元素批注与文字回复一起显示在输入框上方。发送时附上页面地址、元素描述、选择器、位置和关键样式，并可携带最多四张带编号的元素截图。"
+          "title": "分类导航布局",
+          "body": "在 设置 → 界面 中选择新的「分类」布局，最左侧会增加图标栏，放置主页、定时任务、任务配方、Agent 收件箱和设置，侧边栏只保留对话列表。"
         },
         {
-          "title": "切换对话也保留批注",
-          "body": "切换对话或收起浏览器时，元素批注会保留在内存中。标记跟随页面布局变化；元素消失后，批注仍保留描述并可发送。重启 Vela 后不会恢复未发送的批注。"
+          "title": "筛选变更视图",
+          "body": "可在上一轮、未提交、未暂存、已暂存和已提交的变更之间切换，也能与某个分支或某次提交比较。差异过大时只显示部分内容。"
         },
         {
-          "title": "完整答案留在过程区外",
-          "body": "模型在答案和推荐操作后补上一句简短结语时，完整答案仍保持可见，不会被折叠进执行过程。复制最终回复时，也会包含相关的答案段落。"
+          "title": "不打扰的滚动条",
+          "body": "收件箱、任务配方、定时任务、Pull Request 和设置页面中的滚动条现在只在滚动时出现。"
         }
       ],
       "improvements": [
-        "批注信息会遮去页面地址中的常见敏感参数，不读取表单已填的值；元素截图会遮挡密码框。",
-        "消息发送失败时，回复卡片、元素批注和附件会放回输入框。",
-        "Agent 接管浏览器时会退出批注模式；关闭标签页时会移除该页的批注。"
+        "重叠检测只统计通过 edit 和 write 修改的文件；不同 worktree 里的同名文件不算重叠。",
+        "「分类」布局下各页面的顶栏与间距保持一致。",
+        "新增界面文案已提供五种语言。"
       ]
     },
     "zh-TW": {
-      "summary": "Vela 1.2.6 支援在內建瀏覽器中批註頁面元素，把意見、元素資訊與截圖一起傳給 Agent。同時修正了模型在完整答案後補上一句簡短結語時，正文被摺疊到過程區的問題。",
+      "summary": "Vela 1.2.7 會在多個對話修改同一檔案時提醒你，新增「分類」導覽版面，並讓「變更」檢視可在未提交、已暫存、已提交與分支差異之間切換。",
       "highlights": [
         {
-          "title": "點選頁面元素寫批註",
-          "body": "開啟瀏覽器工具列的「批註」，點選元素並寫下意見。可以調整到父層或子層元素，也可以繼續新增多則批註後一起傳送。"
+          "title": "跨對話改動提醒",
+          "body": "多個對話改了同一個檔案時，Vela 會顯示提醒並列出重疊的對話。你可以把其中一個轉到獨立 worktree，避免改動互相覆蓋。"
         },
         {
-          "title": "連同截圖與定位資訊傳送",
-          "body": "元素批註與文字回覆一起顯示在輸入框上方。傳送時附上頁面網址、元素描述、選擇器、位置與關鍵樣式，並可攜帶最多四張附編號的元素截圖。"
+          "title": "分類導覽版面",
+          "body": "在 設定 → 介面 中選擇新的「分類」版面，最左側會增加圖示欄，放置首頁、排程任務、任務配方、Agent 收件匣與設定，側邊欄只保留對話列表。"
         },
         {
-          "title": "切換對話也保留批註",
-          "body": "切換對話或收起瀏覽器時，元素批註會保留在記憶體中。標記跟隨頁面版面變化；元素消失後，批註仍保留描述並可傳送。重新啟動 Vela 後不會還原未傳送的批註。"
+          "title": "篩選變更檢視",
+          "body": "可在上一輪、未提交、未暫存、已暫存與已提交的變更之間切換，也能與某個分支或某次提交比較。差異過大時只顯示部分內容。"
         },
         {
-          "title": "完整答案留在過程區外",
-          "body": "模型在答案與建議操作後補上一句簡短結語時，完整答案仍保持可見，不會被摺疊進執行過程。複製最終回覆時，也會包含相關的答案段落。"
+          "title": "不打擾的捲軸",
+          "body": "收件匣、任務配方、排程任務、Pull Request 與設定頁面中的捲軸現在只在捲動時出現。"
         }
       ],
       "improvements": [
-        "批註資訊會遮去頁面網址中的常見敏感參數，不讀取表單已填入的值；元素截圖會遮蔽密碼欄位。",
-        "訊息傳送失敗時，回覆卡片、元素批註與附件會放回輸入框。",
-        "Agent 接管瀏覽器時會退出批註模式；關閉分頁時會移除該頁的批註。"
+        "重疊偵測只統計透過 edit 與 write 修改的檔案；不同 worktree 中的同名檔案不算重疊。",
+        "「分類」版面下各頁面的頂欄與間距保持一致。",
+        "新增介面文字已提供五種語言。"
       ]
     },
     "ja": {
-      "summary": "Vela 1.2.6 では、内蔵ブラウザーのページ要素に注釈を付け、メモ・要素情報・スクリーンショットを Agent に送れるようになりました。回答の後に短い締めのメッセージが続いても、回答全体が折りたたまれずに表示されます。",
+      "summary": "Vela 1.2.7 では、複数の会話が同じファイルを編集すると通知し、新しい「カテゴリ」ナビゲーションレイアウトを追加しました。変更ビューでは未コミット、ステージ済み、コミット済み、ブランチ差分を切り替えられます。",
       "highlights": [
         {
-          "title": "ページ要素を選んで注釈",
-          "body": "ブラウザーのツールバーで注釈モードを有効にし、要素を選んでメモを書けます。親要素や子要素へ選択を調整したり、複数の注釈をまとめて送ったりできます。"
+          "title": "会話をまたぐ編集の通知",
+          "body": "複数の会話が同じファイルを編集すると、Vela が通知して重なっている会話を一覧表示します。いずれかを独立した worktree に移せば、変更が上書きし合うのを防げます。"
         },
         {
-          "title": "画像と位置情報も一緒に送信",
-          "body": "要素の注釈はテキストへの返信と同じく入力欄の上に表示されます。ページの URL、要素の説明、セレクター、位置、主なスタイルに加え、番号付きの要素スクリーンショットを最大 4 枚送れます。"
+          "title": "カテゴリ型ナビゲーション",
+          "body": "設定 → インターフェース で新しい「カテゴリ」レイアウトを選ぶと、ホーム、スケジュール済みタスク、タスクレシピ、Agent 受信トレイ、設定を収めたアイコンバーが左端に加わり、サイドバーは会話リストだけになります。"
         },
         {
-          "title": "会話を切り替えても注釈を保持",
-          "body": "会話の切り替えやブラウザーの非表示でも、要素の注釈はメモリーに残ります。マーカーはレイアウトの変化に追従し、要素が消えても説明付きで送れます。Vela を再起動すると未送信の注釈は復元されません。"
+          "title": "変更ビューの絞り込み",
+          "body": "直前のターン、未コミット、未ステージ、ステージ済み、コミット済みの変更を切り替えられ、ブランチや特定のコミットとの比較もできます。差分が大きすぎる場合は一部のみ表示します。"
         },
         {
-          "title": "回答全体を見える位置に",
-          "body": "回答と推奨アクションの後に短い締めの文が追加されても、回答全体は実行過程に折りたたまれません。最終返信のコピーにも関連する回答メッセージが含まれます。"
+          "title": "邪魔にならないスクロールバー",
+          "body": "受信トレイ、タスクレシピ、スケジュール済みタスク、Pull Request、設定ページのスクロールバーは、スクロール中だけ表示されます。"
         }
       ],
       "improvements": [
-        "注釈の URL に含まれる一般的な機密パラメーターは伏せられ、フォームの入力済みの値は読み取りません。要素の画像ではパスワード欄をマスクします。",
-        "送信に失敗した場合、返信カード、要素の注釈、添付ファイルを入力欄に戻します。",
-        "Agent がブラウザーを操作すると注釈モードを終了し、タブを閉じるとその注釈を削除します。"
+        "重なりの検出は edit と write で変更されたファイルのみが対象です。別の worktree にある同名ファイルは重なりとして扱いません。",
+        "「カテゴリ」レイアウトでは、各ページのトップバーと余白が統一されました。",
+        "追加された画面テキストは 5 言語に対応しています。"
       ]
     },
     "ko": {
-      "summary": "Vela 1.2.6에서는 내장 브라우저의 페이지 요소에 주석을 달고 메모, 요소 정보, 스크린샷을 Agent에게 보낼 수 있습니다. 모델이 답변 뒤에 짧은 마무리 메시지를 덧붙여도 전체 답변이 접히지 않고 표시됩니다.",
+      "summary": "Vela 1.2.7은 여러 대화가 같은 파일을 수정하면 알려 주고, 새 '카테고리' 내비게이션 레이아웃을 추가했습니다. 변경 사항 보기에서는 미커밋, 스테이징됨, 커밋됨, 브랜치 차이를 전환할 수 있습니다.",
       "highlights": [
         {
-          "title": "페이지 요소를 골라 주석 달기",
-          "body": "브라우저 도구 모음에서 주석 모드를 켜고 요소를 선택해 의견을 적으세요. 부모 또는 자식 요소로 선택을 조정하고, 여러 주석을 추가한 뒤 함께 보낼 수 있습니다."
+          "title": "대화 간 수정 충돌 알림",
+          "body": "여러 대화가 같은 파일을 수정하면 Vela가 알림을 표시하고 겹치는 대화를 보여 줍니다. 그중 하나를 독립된 worktree로 옮겨 변경 사항이 서로 덮어쓰지 않게 할 수 있습니다."
         },
         {
-          "title": "스크린샷과 위치 정보 함께 전송",
-          "body": "요소 주석은 텍스트 답장과 함께 입력창 위에 표시됩니다. 보낼 때 페이지 주소, 요소 설명, 선택자, 위치와 주요 스타일이 포함되며, 번호가 붙은 요소 스크린샷을 최대 4장 첨부할 수 있습니다."
+          "title": "카테고리 내비게이션 레이아웃",
+          "body": "설정 → 인터페이스에서 새 '카테고리' 레이아웃을 선택하면 홈, 예약 작업, 작업 레시피, Agent 받은편지함, 설정이 있는 아이콘 바가 왼쪽에 추가되고 사이드바에는 대화 목록만 남습니다."
         },
         {
-          "title": "대화를 바꿔도 주석 유지",
-          "body": "대화를 전환하거나 브라우저를 숨겨도 요소 주석은 메모리에 남습니다. 표시가 페이지 배치 변화를 따라가고, 요소가 사라져도 설명과 함께 보낼 수 있습니다. Vela를 다시 시작하면 보내지 않은 주석은 복원되지 않습니다."
+          "title": "변경 사항 보기 필터",
+          "body": "지난 턴, 미커밋, 스테이징 안 됨, 스테이징됨, 커밋됨 변경 사항을 전환하거나 브랜치 또는 특정 커밋과 비교할 수 있습니다. 차이가 너무 크면 일부만 표시합니다."
         },
         {
-          "title": "전체 답변을 계속 표시",
-          "body": "모델이 답변과 추천 작업 뒤에 짧은 마무리 문장을 덧붙여도 전체 답변이 실행 과정 안으로 접히지 않습니다. 최종 답변을 복사할 때 관련 답변 메시지도 함께 포함됩니다."
+          "title": "방해하지 않는 스크롤바",
+          "body": "받은편지함, 작업 레시피, 예약 작업, Pull Request, 설정 페이지의 스크롤바는 이제 스크롤하는 동안에만 나타납니다."
         }
       ],
       "improvements": [
-        "주석의 페이지 주소에서 일반적인 민감 매개변수를 가리고, 폼에 입력된 값은 읽지 않습니다. 요소 스크린샷에서는 비밀번호 필드를 가립니다.",
-        "메시지 전송에 실패하면 답장 카드, 요소 주석과 첨부 파일이 입력창으로 돌아옵니다.",
-        "Agent가 브라우저를 제어하면 주석 모드를 종료하고, 탭을 닫으면 해당 주석을 삭제합니다."
+        "겹침 감지는 edit와 write로 수정한 파일만 집계하며, 서로 다른 worktree의 같은 이름 파일은 겹침으로 보지 않습니다.",
+        "'카테고리' 레이아웃에서 각 페이지의 상단 바와 간격이 일관되게 맞춰졌습니다.",
+        "새 화면 문구는 5개 언어로 제공됩니다."
       ]
     }
   }

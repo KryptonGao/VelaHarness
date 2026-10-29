@@ -1,4 +1,5 @@
 import { appLocaleNames, appLocales } from "@vela/shared";
+import { navLayouts, setNavLayout, useNavLayout, type NavLayout } from "../../hooks/useNavLayout";
 import { setSidebarItem, sidebarItemIds, useSidebarItems } from "../../hooks/useSidebarItems";
 import type { AppLocale, InfoLayout, PreferencesApi } from "../../hooks/usePreferences";
 import type { ConversationLinkTarget } from "../../browser/conversation-link-policy";
@@ -36,6 +37,8 @@ export function InterfacePage({
     capsule: text.composerLayoutCapsule,
   };
   const sidebarItems = useSidebarItems();
+  const navLayout = useNavLayout();
+  const navLayoutLabels: Record<NavLayout, string> = { classic: text.navLayoutClassic, rail: text.navLayoutRail };
   const soundLabels = {
     error: text.soundError, complete: text.soundComplete,
     question: text.soundQuestion, permission: text.soundPermission,
@@ -78,6 +81,10 @@ export function InterfacePage({
       <SettingsBlock id="conversation-link-target" title={text.conversationLinkTarget} hint={text.conversationLinkHint}>
         <Segmented label={text.conversationLinkTarget} value={conversationLinkTarget}
           options={conversationLinkOptions} onChange={setConversationLinkTarget} />
+      </SettingsBlock>
+      <SettingsBlock id="nav-layout" title={text.navLayout} hint={text.navLayoutHint}>
+        <Segmented label={text.navLayout} value={navLayout}
+          options={navLayouts.map(id => ({ id, label: navLayoutLabels[id] }))} onChange={setNavLayout} />
       </SettingsBlock>
       <SettingsBlock id="sidebar-items" title={text.sidebarItems} hint={text.sidebarItemsHint}>
         {sidebarItemIds.map(id => (

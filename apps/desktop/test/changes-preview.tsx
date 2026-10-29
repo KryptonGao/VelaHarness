@@ -4,6 +4,8 @@ import { createRoot } from "react-dom/client";
 import type { GitFileChange, GitRepoInfo, GitStatusSnapshot, VelaApi, WorkspaceFileContent } from "@vela/shared";
 import { WorkspaceChangesView } from "../src/renderer/components/WorkspaceChangesView";
 import type { ProjectApi } from "../src/renderer/hooks/useProject";
+import { createMessageStore, messageScope } from "../src/renderer/hooks/message-store";
+import type { UiMessage } from "../src/renderer/hooks/useSession";
 import "../src/renderer/styles.css";
 
 const README = `# Vela
@@ -112,14 +114,44 @@ const git: GitStatusSnapshot = {
 
 const project = {
   git,
-  fileDiff: (path: string) => Promise.resolve(path === "README.md" ? readmeDiff : path.endsWith("new.test.ts") ? newFileDiff : tsDiff),
+  branches: [{ name: "main", current: true }, { name: "feature/menu", current: false }, { name: "origin/main", current: false, remote: true }],
+  fileDiff: async (path: string, scope: string) => {
+    fixture.calls.push(`${path}:${scope}`);
+    if (fixture.failDiff) throw new Error("fixture read failed");
+    return path === "README.md" ? scope === "index" ? readmeDiff.replace("继续工作", "已暂存的工作") : readmeDiff : path.endsWith("new.test.ts") ? newFileDiff : tsDiff;
+  },
   stageFiles: () => Promise.resolve(true),
   unstageFiles: () => Promise.resolve(true),
   discardFiles: () => Promise.resolve(true),
   openFile: () => Promise.resolve(true),
 } as unknown as ProjectApi;
 
+files[0].indexStatus = "modified";
+files[0].indexAddedLines = 2;
+files[0].indexDeletedLines = 1;
+files[1].indexStatus = "modified";
+files[1].indexAddedLines = 3;
+files[1].indexDeletedLines = 2;
+files[1].worktreeStatus = null;
+const fixture = { calls: [] as string[], closed: 0, failDiff: false, commitSha: "abc1234", comparison: [] as string[] };
+(window as unknown as { changesFixture: typeof fixture }).changesFixture = fixture;
+const messageStore = createMessageStore();
+messageStore.publish(messageScope("fixture"), [
+  { id: "user", role: "user", tools: [] },
+  { id: "reply", role: "assistant", tools: [{ id: "edit", name: "edit", status: "done", activity: { path: "last-turn.ts", diff: "-1 old\n+1 new" } }] },
+] as unknown as UiMessage[]);
+messageStore.flush();
+
 const api = {
+  getCommitGraph: async () => ({ commits: [{ sha: "abc1234", shortSha: "abc1234", subject: "Add change filters" }, { sha: "def5678", shortSha: "def5678", subject: "Earlier change" }] }),
+  getCommitDetail: async (sha: string) => {
+    fixture.commitSha = sha;
+    return { files: [{ path: "README.md", addedLines: 2, deletedLines: 1 }], diff: readmeDiff };
+  },
+  compareRefs: async (base: string, head: string) => {
+    fixture.comparison = [base, head];
+    return { files: [{ path: "apps/desktop/src/index.ts", addedLines: 3, deletedLines: 2 }], diff: tsDiff, error: null };
+  },
   readWorkspaceFile: (path: string): Promise<WorkspaceFileContent> => {
     const content = path === "README.md" ? README : `import { app } from "electron";\n`;
     return Promise.resolve({
@@ -137,7 +169,7 @@ const api = {
 function Fixture() {
   return (
     <div className="fixture" style={{ height: 640 }}>
-      <WorkspaceChangesView project={project} onClose={() => undefined} />
+      <WorkspaceChangesView project={project} onClose={() => { fixture.closed++; }} messageStore={messageStore} conversationId="fixture" />
     </div>
   );
 }
