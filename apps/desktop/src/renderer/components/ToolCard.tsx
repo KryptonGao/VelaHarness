@@ -21,7 +21,7 @@ import type { ThemedToken } from "./preview/highlighter";
 import { QuestionCard, type QuestionReplyHandler } from "./QuestionCard";
 import { FileTypeIcon } from "./FileTypeIcon";
 import { tokenStyle, useDiffHighlight, type HighlightedDiff } from "./diff-highlight";
-import { ArrowRightIcon, CheckIcon, CircleIcon, ExternalIcon, EyeIcon, FilePlusIcon, FolderIcon, GlobeIcon, McpIcon, PencilIcon, SearchIcon, StackIcon, TerminalIcon, ToolIcon, WebFetchIcon, WebSearchIcon } from "./icons";
+import { ArrowRightIcon, CheckIcon, CircleIcon, EditFileIcon, ExternalIcon, EyeIcon, FilePlusIcon, FolderIcon, GlobeIcon, McpIcon, ReadFileIcon, SearchIcon, StackIcon, TerminalIcon, ToolIcon, WebFetchIcon, WebSearchIcon } from "./icons";
 import {
   compactLabelParts,
   compactSummaryParts,
@@ -1315,12 +1315,12 @@ function KindIcon({ kind, command }: { kind: ToolKind; command?: string }): Reac
   if (kind === "bash") {
     const intent = bashIntentDisplay(command)?.kind;
     if (intent === "list") return <FolderIcon size={13} />;
-    if (intent === "read") return <EyeIcon size={13} />;
+    if (intent === "read") return <ReadFileIcon size={13} />;
     if (intent === "search" || intent === "find") return <SearchIcon size={13} />;
     return <TerminalIcon size={13} />;
   }
-  if (kind === "read") return <EyeIcon size={13} />;
-  if (kind === "edit") return <PencilIcon size={13} />;
+  if (kind === "read") return <ReadFileIcon size={13} />;
+  if (kind === "edit") return <EditFileIcon size={13} />;
   if (kind === "write") return <FilePlusIcon size={13} />;
   return <TerminalIcon size={13} />;
 }

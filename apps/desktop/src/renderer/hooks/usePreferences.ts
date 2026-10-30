@@ -39,6 +39,8 @@ export type ToolFold = "message" | "position" | "none";
 export type ToolIconColor = "color" | "theme" | "gray";
 /** 思考总结的展示方式:跟在“思考”后面、替换“思考”作为标题、或跟随回复正文样式。 */
 export type ThinkingSummaryStyle = "inline" | "headline" | "prose";
+/** 思考分组方式:每次 CoT 总结自成一组(默认),或以正式回复为界、回复之间的过程合成一组。 */
+export type ThinkingGroupMode = "single" | "coherent";
 export type FileIconTheme = "devicon" | "material";
 export type SendButtonIcon = "paper-plane" | "arrow-up";
 /** 字体风格:sans 为无衬线,serif 为明体(衬线);回复字体另有 inherit,表示沿用界面字体。 */
@@ -60,9 +62,11 @@ const toolProcessDetailsKey = "vela.toolProcessDetails";
 const runViewKey = "vela.runView";
 const recommendedActionsKey = "vela.recommendedActions";
 const toolIconColorKey = "vela.toolIconColor";
+const thinkingGroupModeKey = "vela.thinkingGroupMode";
 const thinkingGroupHeightKey = "vela.thinkingGroupHeight";
 const toolDetailHeightKey = "vela.toolDetailHeight";
 const toolDetailHeightScaleKey = "vela.toolDetailHeightScale";
+const thinkingGroupHeightGrowKey = "vela.thinkingGroupHeightGrow";
 const replyFadeKey = "vela.replyFade";
 const replyPopKey = "vela.replyPop";
 const thinkingFadeKey = "vela.thinkingFade";
@@ -155,6 +159,10 @@ function readToolIconColor(): ToolIconColor {
 
 function isToolFold(value: unknown): value is ToolFold {
   return value === "message" || value === "position" || value === "none";
+}
+
+function isThinkingGroupMode(value: unknown): value is ThinkingGroupMode {
+  return value === "single" || value === "coherent";
 }
 
 function isThinkingSummaryStyle(value: unknown): value is ThinkingSummaryStyle {
@@ -265,6 +273,9 @@ export function usePreferences() {
   );
   const [toolIconColor, setToolIconColor] = useState<ToolIconColor>(readToolIconColor);
   /** 思考分组展开区、以及其中命令/编辑详情的最大高度(px),通过根节点 CSS 变量作用到界面。 */
+  const [thinkingGroupMode, setThinkingGroupMode] = useState<ThinkingGroupMode>(() =>
+    readStored(thinkingGroupModeKey, isThinkingGroupMode, "single"),
+  );
   const [thinkingGroupHeight, setThinkingGroupHeightState] = useState(() =>
     readStoredHeight(thinkingGroupHeightKey, thinkingGroupHeightStops, defaultThinkingGroupHeight),
   );
@@ -275,6 +286,8 @@ export function usePreferences() {
   const setToolDetailHeight = useCallback((value: number) => setToolDetailHeightState(clampHeight(toolDetailHeightStops, value)), []);
   /** 分组实际高度不足设定值时,详情高度按「详情上限 ÷ 分组上限」同比缩小。默认开启。 */
   const [toolDetailHeightScale, setToolDetailHeightScale] = useState(() => readStoredFlag(toolDetailHeightScaleKey, true));
+  /** 展开命令或编辑详情时增高分组,优先于按比例缩小。默认关闭,保留旧行为。 */
+  const [thinkingGroupHeightGrow, setThinkingGroupHeightGrow] = useState(() => readStoredFlag(thinkingGroupHeightGrowKey, false));
   const [replyFade, setReplyFade] = useState(() => readStoredFlag(replyFadeKey, true));
   const [replyPop, setReplyPop] = useState(() => readStoredFlag(replyPopKey, true));
   const [thinkingFade, setThinkingFade] = useState(() => readStoredFlag(thinkingFadeKey, true));
@@ -372,6 +385,7 @@ export function usePreferences() {
 
   useEffect(() => writeStored(toolDisplayKey, toolDisplay), [toolDisplay]);
   useEffect(() => writeStored(toolFoldKey, toolFold), [toolFold]);
+  useEffect(() => writeStored(thinkingGroupModeKey, thinkingGroupMode), [thinkingGroupMode]);
   useEffect(() => writeStored(toolProcessDetailsKey, String(toolProcessDetails)), [toolProcessDetails]);
   useEffect(() => {
     writeStored(runViewKey, String(runView));
@@ -411,6 +425,10 @@ export function usePreferences() {
     document.documentElement.dataset.toolDetailScale = String(toolDetailHeightScale);
     writeStored(toolDetailHeightScaleKey, String(toolDetailHeightScale));
   }, [toolDetailHeightScale]);
+  useEffect(() => {
+    document.documentElement.dataset.thinkingGroupGrow = String(thinkingGroupHeightGrow);
+    writeStored(thinkingGroupHeightGrowKey, String(thinkingGroupHeightGrow));
+  }, [thinkingGroupHeightGrow]);
   // 流式文字的淡入、弹跳动画由 CSS 按根节点属性切换,不必把开关传到每个 Markdown。
   useEffect(() => {
     document.documentElement.dataset.replyFade = String(replyFade);
@@ -471,9 +489,11 @@ export function usePreferences() {
     runView,
     recommendedActions,
     toolIconColor,
+    thinkingGroupMode,
     thinkingGroupHeight,
     toolDetailHeight,
     toolDetailHeightScale,
+    thinkingGroupHeightGrow,
     replyFade,
     replyPop,
     thinkingFade,
@@ -510,9 +530,11 @@ export function usePreferences() {
     setRunView,
     setRecommendedActions,
     setToolIconColor,
+    setThinkingGroupMode,
     setThinkingGroupHeight,
     setToolDetailHeight,
     setToolDetailHeightScale,
+    setThinkingGroupHeightGrow,
     setReplyFade,
     setReplyPop,
     setThinkingFade,

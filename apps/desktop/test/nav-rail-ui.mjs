@@ -147,7 +147,7 @@ if (!process.versions.electron) {
       // 定格展开/收起的中间帧并检查真实像素：圆弧留在窗口左侧，不跟纸面走，
       // 同一位移的画面不受 left-collapsed 状态影响（不能先切角再开始移动）。
       for (const collapsing of [false, true]) {
-        for (const offset of collapsing ? [24, 12, 9, 6, 3, 0] : [0, 3, 6, 9, 12, 24]) {
+        for (const offset of collapsing ? [open.sidebarWidth, 120, 24, 12, 9, 6, 3, 0] : [0, 3, 6, 9, 12, 24, 120, open.sidebarWidth]) {
           const geometry = await evaluate(`(() => {
             const shell = document.querySelector('.vela-window');
             shell.style.transition = 'none';
@@ -155,7 +155,7 @@ if (!process.versions.electron) {
             shell.style.setProperty('--nav-open', '${offset}px');
             const paper = document.querySelector('.main-chat-view');
             const box = paper.getBoundingClientRect();
-            return { left: box.left, top: parseFloat(getComputedStyle(paper).getPropertyValue('--header-height')), bottom: box.bottom };
+            return { left: box.left, right: box.right, top: parseFloat(getComputedStyle(paper).getPropertyValue('--header-height')), bottom: box.bottom };
           })()`);
           await evaluate("new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
           const image = await win.webContents.capturePage();
@@ -164,6 +164,14 @@ if (!process.versions.electron) {
           assert.equal(bitmap.length, width * height * 4, "Pixel checks use CSS-pixel resolution");
           const pixel = (x, y) => [...bitmap.subarray((y * width + x) * 4, (y * width + x) * 4 + 3)];
           const paperColor = pixel(Math.ceil(geometry.left) + 24, geometry.top + 24);
+          // 除了左右外缘圆角，整条纸面上下边缘必须连续，不能在右侧冒出被错误定位的遮罩缺口。
+          for (const y of [geometry.top + 1, geometry.bottom - 2]) {
+            for (let x = Math.ceil(geometry.left) + 12; x < Math.floor(geometry.right) - 12; x++) {
+              const difference = Math.max(...pixel(x, y).map((value, index) => Math.abs(value - paperColor[index])));
+              assert.ok(difference <= 2,
+                `Continuous paper edge at offset ${offset}, collapsing=${collapsing}, pixel=${x},${y}, difference=${difference}`);
+            }
+          }
           for (const bottom of [false, true]) {
             for (const dx of [1, 4, 8, 14]) for (const dy of [1, 4, 8, 14]) {
               const x = Math.ceil(geometry.left) + dx;

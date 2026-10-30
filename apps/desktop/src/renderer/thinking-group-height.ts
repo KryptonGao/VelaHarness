@@ -4,6 +4,18 @@ export const toolDetailHeightStops = [120, 160, 200, 240, 280, 320, 400] as cons
 export const defaultThinkingGroupHeight = 280;
 export const defaultToolDetailHeight = 200;
 
+/** 展开详情时保留两项上限之差;不缩小原分组,也不突破分组上限。多个详情取最高的一项。 */
+export function expandedThinkingGroupHeight(
+  baseHeight: number,
+  detailHeights: readonly number[],
+  groupLimit: number,
+  detailLimit: number,
+): number {
+  const detailHeight = Math.min(detailLimit, Math.max(0, ...detailHeights));
+  const gap = Math.max(0, groupLimit - detailLimit);
+  return Math.min(groupLimit, Math.max(baseHeight, detailHeights.length ? detailHeight + gap : 0));
+}
+
 /** 输入框允许的范围,取自对应档位的两端。 */
 export function heightRange(stops: readonly number[]): { min: number; max: number } {
   return { min: stops[0]!, max: stops[stops.length - 1]! };

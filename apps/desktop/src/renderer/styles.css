@@ -22,6 +22,8 @@
   --font-reply-cjk: var(--font-ui-cjk);
   --font-sans: var(--font-ui-latin), var(--font-ui-cjk), system-ui, "Segoe UI", sans-serif;
   --font-reply: var(--font-reply-latin), var(--font-reply-cjk), system-ui, "Segoe UI", sans-serif;
+  /* 回复正文和连贯模式的分组标题共用,两者字重始终一致。 */
+  --font-reply-weight: 500;
   --font-mono: "SF Mono", ui-monospace, Menlo, Monaco, Consolas, monospace;
   --sidebar-left-width: 250px;
   --sidebar-right-width: 340px;
@@ -2171,11 +2173,8 @@ code,
   font-family: var(--font-reply);
   color: var(--text-primary);
   font-size: 15px;
+  font-weight: var(--font-reply-weight);
   line-height: 1.75;
-}
-/* 浅色底上明体的细笔画配深色字太扎眼,正文向底色调和一点;深色模式保持原亮度。 */
-[data-scheme="light"] .agent-reply-prose {
-  color: color-mix(in srgb, var(--text-primary) 90%, var(--bg-chat));
 }
 
 /* 聊天回覆的段落间距比 .md-content 默认的更松;思考区和追踪预览仍沿用紧凑间距。 */
@@ -2505,6 +2504,38 @@ code,
 .thinking-headline-trigger:hover { color: var(--text-primary); }
 .thinking-headline-trigger .thinking-summary-excerpt { min-width: 0; }
 .thinking-headline-trigger .time-spent-trigger-arrow { flex-shrink: 0; }
+/* 进行中的标题:一道高光从左到右反复划过文字,停顿一拍再来下一道。 */
+.thinking-headline-trigger.is-running .thinking-summary-excerpt {
+  --shimmer-base: var(--text-muted);
+  --shimmer-glow: var(--text-primary);
+  background-image: linear-gradient(
+    100deg,
+    var(--shimmer-base) 0%,
+    var(--shimmer-base) 38%,
+    var(--shimmer-glow) 50%,
+    var(--shimmer-base) 62%,
+    var(--shimmer-base) 100%
+  );
+  background-size: 250% 100%;
+  background-repeat: no-repeat;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  animation: thinking-title-shimmer 2.4s cubic-bezier(0.4, 0, 0.3, 1) infinite;
+}
+@keyframes thinking-title-shimmer {
+  0% { background-position: 100% 0; }
+  70%, 100% { background-position: 0% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .thinking-headline-trigger.is-running .thinking-summary-excerpt {
+    animation: none;
+    background-image: none;
+    color: inherit;
+    -webkit-text-fill-color: currentColor;
+  }
+}
 /* 总结跟随回复正文:去掉“思考”“总结”字样,整段可点,图标跟在最后一行文字后面开合思考内容。 */
 .thinking-prose-summary {
   min-width: 0;
@@ -2594,6 +2625,11 @@ code,
 /* 思考分组(OpenAI CoT 总结):标题折叠,展开后思考正文和工具调用挂在同一条引导线下。
    视口比单纯的思考区高得多,引导线在滚动内容里面,上下漸进模糊时跟着一起淡出。 */
 .thinking-group-shell > .thinking-scroll-viewport { max-height: var(--thinking-group-height, 280px); }
+/* 详情联动增高时用同一高度固定视口,短内容也能保留两项上限之间的间距。 */
+:root[data-thinking-group-grow="true"] .thinking-group-shell > .thinking-scroll-viewport {
+  min-height: min(var(--thinking-group-height, 280px), var(--thinking-group-expanded-height, 0px));
+  max-height: min(var(--thinking-group-height, 280px), var(--thinking-group-expanded-height, var(--thinking-group-height, 280px)));
+}
 .thinking-group-rail {
   margin: 4px 0 2px 7px;
   padding: 2px 14px 2px 15px;
@@ -2606,8 +2642,8 @@ code,
   max-height: var(--tool-detail-height, 200px);
 }
 /* 开启「按比例缩放」后:分组实际高度不足设定值时,详情按「详情上限 ÷ 分组上限」同比缩小。 */
-:root[data-tool-detail-scale="true"] .thinking-group-rail .tool-details-scroll > .thinking-scroll-viewport,
-:root[data-tool-detail-scale="true"] .thinking-group-rail .compact-diff-scroll-shell > .thinking-scroll-viewport {
+:root[data-tool-detail-scale="true"]:not([data-thinking-group-grow="true"]) .thinking-group-rail .tool-details-scroll > .thinking-scroll-viewport,
+:root[data-tool-detail-scale="true"]:not([data-thinking-group-grow="true"]) .thinking-group-rail .compact-diff-scroll-shell > .thinking-scroll-viewport {
   max-height: min(
     var(--tool-detail-height, 200px),
     calc(var(--thinking-group-live-height, var(--thinking-group-height, 280px)) * var(--tool-detail-ratio, 0.7143))
@@ -2628,6 +2664,85 @@ code,
   border-radius: 50%;
   background: var(--danger);
 }
+/* 连贯模式:两段回复之间的思考与工具合成一组。标题是汇总句,前面没有图标;
+   组内每次思考总结是一行标题加缩进的正文,按到达顺序与工具行交替排列。 */
+/* 分组标题与回复正文字体、字号、字重、行高一致,只有颜色保持灰色。 */
+.thinking-block.is-coherent .thinking-headline-trigger {
+  font-family: var(--font-reply);
+  font-size: 15px;
+  font-weight: var(--font-reply-weight);
+  line-height: 1.75;
+}
+/* 标题左边的灰色图标:折叠后按汇总的首个动作变化,进行中是思考图标;不随工具图标配色开关变色。 */
+.coherent-group-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin-right: 1px;
+  color: var(--text-muted);
+}
+.coherent-flat { min-width: 0; margin: 2px 0 6px; }
+.coherent-thought { min-width: 0; margin: 8px 0 2px; }
+.coherent-thought:first-child { margin-top: 0; }
+.coherent-thought-trigger {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+  padding: 2px 0;
+  border: 0;
+  background: none;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 550;
+  line-height: 1.55;
+  text-align: left;
+  cursor: pointer;
+}
+.coherent-thought-trigger:disabled { cursor: default; }
+.coherent-thought-trigger:not(:disabled):hover { color: var(--text-primary); }
+.coherent-thought-trigger:focus-visible {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.coherent-thought-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.coherent-thought-arrow {
+  flex: none;
+  opacity: 0;
+  transition: transform var(--transition-smooth), opacity 0.15s;
+}
+.coherent-thought-trigger:hover .coherent-thought-arrow,
+.coherent-thought-trigger:focus-visible .coherent-thought-arrow { opacity: 0.8; }
+.coherent-thought.open .coherent-thought-arrow { transform: rotate(90deg); }
+.coherent-thought-body {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--transition-smooth);
+}
+.coherent-thought.open > .coherent-thought-body { grid-template-rows: 1fr; }
+.coherent-thought-body-inner { min-height: 0; overflow: hidden; }
+.coherent-thought-body .thinking-text,
+.thinking-scroll-viewport .coherent-thought-body .thinking-text {
+  padding: 2px 0 6px;
+  font-size: 13px;
+  line-height: 1.62;
+}
+/* 紧凑模式下标题前有图标,正文与标题文字对齐。 */
+.main-chat-view[data-tool-display="compact"] .coherent-thought-body .thinking-text,
+.main-chat-view[data-tool-display="compact"] .thinking-scroll-viewport .coherent-thought-body .thinking-text {
+  padding-left: 22px;
+}
+.thinking-group-rail > .tool-card-list + .coherent-thought { margin-top: 8px; }
 .thinking-scroll-viewport::-webkit-scrollbar { width: 5px; }
 .thinking-scroll-viewport::-webkit-scrollbar-thumb {
   border-radius: var(--radius-pill);

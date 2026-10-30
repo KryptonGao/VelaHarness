@@ -14,10 +14,11 @@ import {
 } from "./AgentPanel";
 import { Markdown } from "./Markdown";
 import { AssistantMarkdown } from "./intelligent-ui/AssistantMarkdown";
-import { ThinkingGroup } from "./Thinking";
+import { CoherentGroup, CoherentThought, ThinkingGroup } from "./Thinking";
+import { useThinkingGroupMode } from "./ThinkingGroupModeContext";
 import { CompactToolGroup, CompactToolLine, ToolCard, ToolList, ToolRunGroup } from "./ToolCard";
 import { toolCompactKind } from "./tool-compact";
-import { attachFollowerTools, buildTurnItems, groupAgentStream, groupProcessItems, type ProcessNode } from "./tool-sequence";
+import { attachFollowerTools, buildTurnItems, groupAgentStream, groupCoherentItems, groupProcessItems, isFlatCoherentGroup, latestThoughtId, type CoherentNode, type ProcessNode } from "./tool-sequence";
 import { BranchIcon } from "./icons";
 import { JumpOrb } from "./JumpOrb";
 import type { OrbActivity } from "./jump-orb";
@@ -64,12 +65,14 @@ function VisibleAgentPane({
 }: AgentPaneProps & { follow: MutableRefObject<AgentFollow> }) {
   const storedMessages = useMessages(messageStore, conversationId, agent.id);
   const messages = messageStore ? storedMessages : providedMessages ?? emptyMessages;
-  // 按位置折叠时由 AgentProcessSequence 自己归组;否则把没有思考的后续几轮的工具并进前一段标题思考。
-  const units = useMemo(() => toolFold === "position" ? null : attachFollowerTools(messages), [messages, toolFold]);
+  const coherent = useThinkingGroupMode() === "coherent";
+  const positional = toolFold === "position" || coherent;
+  // 按位置折叠或连贯模式时由 AgentProcessSequence 自己归组;否则把没有思考的后续几轮的工具并进前一段标题思考。
+  const units = useMemo(() => positional ? null : attachFollowerTools(messages), [messages, positional]);
   const memberIdsOf = useMemo(() => new Map(units?.map((unit) => [unit.message.id, unit.memberIds])), [units]);
   const streamBlocks = useMemo(
-    () => groupAgentStream(units ? units.map((unit) => unit.message) : messages, toolFold),
-    [units, messages, toolFold],
+    () => groupAgentStream(units ? units.map((unit) => unit.message) : messages, positional ? "position" : toolFold),
+    [units, messages, positional, toolFold],
   );
   const lastMessageId = messages.length > 0 ? messages[messages.length - 1]!.id : null;
   const agentId = agent.id;
@@ -194,7 +197,7 @@ function VisibleAgentPane({
           )
         ) : (
           <div className="agent-stream">
-            {streamBlocks.map((block) => block.messages.length === 1 ? (
+            {streamBlocks.map((block) => block.messages.length === 1 && !(coherent && block.role === "assistant") ? (
               <AgentStreamMessage
                 key={`${agentId}:${block.id}`}
                 message={block.messages[0]!}
@@ -389,7 +392,7 @@ const AgentStreamMessage = memo(function AgentStreamMessage({
             messageId={message.id}
             text={message.thinking}
             active={thinkingActive}
-            live={thinkingActive}
+            live={streaming && (!message.text || message.tools.some((tool) => tool.status === "running"))}
             showActivityIndicator={toolDisplay === "compact"}
             tools={message.tools}
           >
@@ -421,7 +424,10 @@ const AgentProcessSequence = memo(function AgentProcessSequence({
 }) {
   const display = toolDisplay ?? "card";
   const compact = display === "compact";
-  const nodes = useMemo(() => groupProcessItems(buildTurnItems(messages), display), [messages, display]);
+  const coherent = useThinkingGroupMode() === "coherent";
+  const items = useMemo(() => buildTurnItems(messages), [messages]);
+  const nodes = useMemo(() => coherent ? [] : groupProcessItems(items, display), [coherent, items, display]);
+  const coherentNodes = useMemo(() => coherent ? groupCoherentItems(items) : [], [coherent, items]);
   const messageById = useMemo(() => new Map(messages.map((message) => [message.id, message])), [messages]);
   type ToolNode = Extract<ProcessNode, { type: "tool" | "run" }>;
   const renderToolList = (nodes: ToolNode[]): ReactNode => (
@@ -448,6 +454,55 @@ const AgentProcessSequence = memo(function AgentProcessSequence({
     output.push(renderToolList(buffer));
     buffer = [];
   };
+  // 连贯模式:正文是唯一的分界,两段正文之间的思考和工具按到达顺序合成一组。
+  const renderCoherentGroup = (node: Extract<CoherentNode, { type: "group" }>, last: boolean): ReactNode => {
+    const tools = node.entries.flatMap((entry) => entry.type === "tool" ? [entry.tool] : []);
+    const activeMessage = streamingId ? messageById.get(streamingId) : undefined;
+    const live = Boolean(streamingId && (tools.some((tool) => tool.status === "running") || (last && !activeMessage?.text)));
+    const latestId = latestThoughtId(node.entries);
+    const content: ReactNode[] = [];
+    let run: Extract<ProcessNode, { type: "tool" }>[] = [];
+    const flushRun = () => {
+      if (run.length === 0) return;
+      content.push(renderToolList(run));
+      run = [];
+    };
+    for (const entry of node.entries) {
+      if (entry.type === "tool") {
+        run.push(entry);
+        continue;
+      }
+      flushRun();
+      const message = messageById.get(entry.messageId);
+      content.push(
+        <CoherentThought
+          key={entry.id}
+          text={entry.text}
+          active={entry.messageId === streamingId && Boolean(message && !message.text && message.tools.length === 0)}
+          expanded={live && entry.id === latestId}
+        />,
+      );
+    }
+    flushRun();
+    // 步骤很少的分组没必要折叠,思考和工具直接平铺。
+    if (isFlatCoherentGroup(node.entries)) {
+      return <div key={`group:${node.id}`} className="coherent-flat" data-arrival-key={`${node.messageId}:thinking`}>{content}</div>;
+    }
+    return (
+      <div key={`group:${node.id}`} data-arrival-key={`${node.messageId}:thinking`}>
+        <CoherentGroup entries={node.entries} live={live} showActivityIndicator={compact}>
+          {content}
+        </CoherentGroup>
+      </div>
+    );
+  };
+  coherentNodes.forEach((node, index) => {
+    output.push(node.type === "group" ? renderCoherentGroup(node, index === coherentNodes.length - 1) : (
+      <div key={`text:${node.id}`} className="agent-reply-prose" data-arrival-key={`${node.messageId}:text`}>
+        <AssistantMarkdown messageId={node.messageId} text={node.text} streaming={node.messageId === streamingId} />
+      </div>
+    ));
+  });
   for (let index = 0; index < nodes.length; index += 1) {
     const node = nodes[index]!;
     if (node.type === "tool" || node.type === "run") {
@@ -458,7 +513,7 @@ const AgentProcessSequence = memo(function AgentProcessSequence({
     if (node.type === "thinking") {
       const message = messageById.get(node.messageId);
       const active = node.messageId === streamingId && Boolean(message && !message.text && message.tools.length === 0);
-      // 紧随这段思考的工具(含后续没有思考的几轮)归到它下面;下一段思考或正文出现时分组结束。
+      // groupProcessItems 已把跨过正文的后续工具移到标题思考之后。
       const grouped: ToolNode[] = [];
       while (index + 1 < nodes.length) {
         const next = nodes[index + 1]!;
@@ -467,8 +522,10 @@ const AgentProcessSequence = memo(function AgentProcessSequence({
         index += 1;
       }
       const activeMessage = streamingId ? messageById.get(streamingId) : undefined;
-      const live = Boolean(streamingId && !activeMessage?.text
-        && (node.messageId === streamingId || grouped.some((item) => item.messageId === streamingId)));
+      const tools = grouped.flatMap((item) => item.type === "run" ? item.tools : [item.tool]);
+      const ownsActiveMessage = node.messageId === streamingId || grouped.some((item) => item.messageId === streamingId);
+      const live = Boolean(streamingId && (tools.some((tool) => tool.status === "running")
+        || (!activeMessage?.text && ownsActiveMessage)));
       output.push(
         <div key={`thinking:${node.id}`} data-arrival-key={`${node.messageId}:thinking`}>
           <ThinkingGroup
@@ -477,7 +534,7 @@ const AgentProcessSequence = memo(function AgentProcessSequence({
             active={active}
             live={live}
             showActivityIndicator={compact}
-            tools={grouped.flatMap((item) => item.type === "run" ? item.tools : [item.tool])}
+            tools={tools}
           >
             {grouped.length > 0 ? renderToolList(grouped) : null}
           </ThinkingGroup>

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import type { ModelCatalog } from "@vela/shared";
-import type { PreferencesApi, ThinkingSummaryStyle, ToolDisplay, ToolFold, ToolIconColor } from "../../hooks/usePreferences";
+import type { PreferencesApi, ThinkingGroupMode, ThinkingSummaryStyle, ToolDisplay, ToolFold, ToolIconColor } from "../../hooks/usePreferences";
 import type { SettingsCopy } from "../settings-copy";
 import { groupAvailable, modelValue, parseModelValue } from "./model-helpers";
 import { Segmented, SettingsBlock, SettingsSwitch } from "./primitives";
@@ -33,9 +33,11 @@ export function ConversationDisplayPage({
     runView,
     recommendedActions,
     toolIconColor,
+    thinkingGroupMode,
     thinkingGroupHeight,
     toolDetailHeight,
     toolDetailHeightScale,
+    thinkingGroupHeightGrow,
     replyFade,
     replyPop,
     thinkingFade,
@@ -51,9 +53,11 @@ export function ConversationDisplayPage({
     setRunView,
     setRecommendedActions,
     setToolIconColor,
+    setThinkingGroupMode,
     setThinkingGroupHeight,
     setToolDetailHeight,
     setToolDetailHeightScale,
+    setThinkingGroupHeightGrow,
     setReplyFade,
     setReplyPop,
     setThinkingFade,
@@ -109,6 +113,10 @@ export function ConversationDisplayPage({
     { id: "color", label: text.toolIconColorOn },
     { id: "theme", label: text.toolIconColorTheme },
     { id: "gray", label: text.toolIconColorOff },
+  ];
+  const thinkingGroupModeOptions: { id: ThinkingGroupMode; label: string }[] = [
+    { id: "single", label: text.thinkingGroupModeSingle },
+    { id: "coherent", label: text.thinkingGroupModeCoherent },
   ];
   const thinkingSummaryStyleOptions: { id: ThinkingSummaryStyle; label: string }[] = [
     { id: "inline", label: text.thinkingSummaryStyleInline },
@@ -255,7 +263,10 @@ export function ConversationDisplayPage({
           onPreview={peek("thinkingSummaryStyle")}
         />
       </SettingsBlock>
-            <SettingsBlock id="thinking-group-height" title={text.thinkingGroupHeight} hint={text.thinkingGroupHeightHint}>
+      <SettingsBlock id="thinking-group-mode" title={text.thinkingGroupMode} hint={text.thinkingGroupModeHint}>
+        <Segmented label={text.thinkingGroupMode} value={thinkingGroupMode} options={thinkingGroupModeOptions} onChange={setThinkingGroupMode} />
+      </SettingsBlock>
+      <SettingsBlock id="thinking-group-height" title={text.thinkingGroupHeight} hint={text.thinkingGroupHeightHint}>
         <div className="tb-fields">
         <HeightLimitControl
           label={text.thinkingGroupHeightGroup}
@@ -279,6 +290,16 @@ export function ConversationDisplayPage({
           />
         </div>
         <p className="tb-limit-hint">{text.thinkingGroupHeightScaleHint}</p>
+        <div className="tb-enable" title={text.thinkingGroupHeightGrowHint}>
+          <span>{text.thinkingGroupHeightGrow}</span>
+          <SettingsSwitch
+            checked={thinkingGroupHeightGrow}
+            label={text.thinkingGroupHeightGrow}
+            title={text.thinkingGroupHeightGrowHint}
+            onChange={setThinkingGroupHeightGrow}
+          />
+        </div>
+        <p className="tb-limit-hint">{text.thinkingGroupHeightGrowHint}</p>
         </div>
       </SettingsBlock>
 <SettingsBlock id="reply-animation" title={text.replyAnimation} hint={text.replyAnimationHint}>

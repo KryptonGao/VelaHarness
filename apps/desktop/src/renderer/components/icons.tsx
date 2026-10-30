@@ -438,6 +438,18 @@ export function WebFetchIcon({ size = 13 }: IconProps) {
   );
 }
 
+/** 读取文件：翻开的书，左侧书页微微竖起。 */
+export function ReadFileIcon({ size = 13 }: IconProps) {
+  return (
+    <svg {...base(size)} strokeWidth="1.5">
+      <g transform="translate(24 0) scale(-1 1)">
+        <path d="M12 7C9.8 5.2 6.5 4.5 3 4.5v15c3.5 0 6.8.7 9 2.5 2.2-1.8 5.5-2.5 9-2.5v-15h-3" />
+        <path d="M12 7v15M12 7c1.2-2.2 3.2-3.8 6-5v15c-2.8 1.2-4.8 2.8-6 5" />
+      </g>
+    </svg>
+  );
+}
+
 export function EyeIcon({ size = 13 }: IconProps) {
   return (
     <svg {...base(size)}>
@@ -452,6 +464,18 @@ export function PencilIcon({ size = 13 }: IconProps) {
     <svg {...base(size)}>
       <path d="M12 20h9" />
       <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z" />
+    </svg>
+  );
+}
+
+/** 编辑文件:单只铅笔,笔身较宽,斜放笔尖朝左下,只有笔帽处一道横线。 */
+export function EditFileIcon({ size = 13 }: IconProps) {
+  return (
+    <svg {...base(size)} strokeWidth={1.6}>
+      <g transform="translate(12 12) scale(1.35) rotate(45) translate(-12 -12)">
+        <path d="M8.5 4.5a1.5 1.5 0 0 1 1.5-1.5h4a1.5 1.5 0 0 1 1.5 1.5V16L12 21.5 8.5 16z" />
+        <path d="M8.5 7.5h7" />
+      </g>
     </svg>
   );
 }

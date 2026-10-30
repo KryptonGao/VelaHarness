@@ -9,6 +9,7 @@ import { SessionChatView } from "./components/SessionChatView";
 import { ContextPanel } from "./components/ContextPanel";
 import { useMessagesEmpty } from "./hooks/useMessages";
 import { FileIconThemeProvider } from "./components/FileTypeIcon";
+import { ThinkingGroupModeContext } from "./components/ThinkingGroupModeContext";
 import { OnboardingView } from "./components/OnboardingView";
 import { PlanDocumentProvider } from "./components/PlanPanel";
 import { ScreenPresence } from "./components/MotionPresence";
@@ -867,6 +868,7 @@ export function App() {
   }
 
   return (
+    <ThinkingGroupModeContext.Provider value={preferences.thinkingGroupMode}>
     <FileIconThemeProvider value={preferences.fileIconTheme}>
       <AppLocaleProvider locale={preferences.locale}>
         <RecipeActionsContext.Provider value={recipeActions}>
@@ -1212,5 +1214,6 @@ export function App() {
         </RecipeActionsContext.Provider>
       </AppLocaleProvider>
     </FileIconThemeProvider>
+    </ThinkingGroupModeContext.Provider>
   );
 }

@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import type { ThinkingSummaryStyle, ToolDisplay, ToolFold, ToolIconColor } from "../../hooks/usePreferences";
 import { tr, trf } from "../../locale";
-import { EyeIcon, FilePlusIcon, PencilIcon, SubagentIcon, TerminalIcon, ThinkingIcon } from "../icons";
+import { EditFileIcon, EyeIcon, FilePlusIcon, ReadFileIcon, SubagentIcon, TerminalIcon, ThinkingIcon } from "../icons";
 import { formatDuration } from "../tool-duration";
 
 /** 常驻预览里的动画一律静止:只显示终态,选项切换时即时刷新。 */
@@ -54,8 +54,8 @@ type Kind = "bash" | "read" | "edit" | "write";
 
 const kindIcon: Record<Kind, ReactNode> = {
   bash: <TerminalIcon size={13} />,
-  read: <EyeIcon size={13} />,
-  edit: <PencilIcon size={13} />,
+  read: <ReadFileIcon size={13} />,
+  edit: <EditFileIcon size={13} />,
   write: <FilePlusIcon size={13} />,
 };
 

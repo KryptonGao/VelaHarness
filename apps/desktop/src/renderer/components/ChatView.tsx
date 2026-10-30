@@ -32,12 +32,13 @@ import { SelectionActions } from "./SelectionActions";
 import { SideChatLauncherContext } from "./selection-actions";
 import { replyStore, useReplyCards } from "../browser/reply-store";
 import { OpenInAppButton } from "./OpenInAppButton";
-import { ThinkingGroup } from "./Thinking";
+import { CoherentGroup, CoherentThought, ThinkingGroup } from "./Thinking";
+import { useThinkingGroupMode } from "./ThinkingGroupModeContext";
 import { ThinkingSummaryContext } from "./ThinkingSummaryContext";
 import type { ThinkingSummariesApi } from "../hooks/useThinkingSummaries";
 import { ToolCard, ToolList, CompactToolGroup, CompactToolLine, ToolRunGroup, type QuestionLookup } from "./ToolCard";
 import { toolCompactKind } from "./tool-compact";
-import { attachFollowerTools, buildTurnItems, groupProcessItems, type ProcessNode } from "./tool-sequence";
+import { attachFollowerTools, buildTurnItems, groupCoherentItems, groupProcessItems, isFlatCoherentGroup, latestThoughtId, type CoherentNode, type ProcessNode } from "./tool-sequence";
 import { formatDuration, readToolDuration } from "./tool-duration";
 import { foldSequenceId } from "./tool-fold-state";
 import { selectFinalReplies } from "./final-replies";
@@ -273,6 +274,7 @@ export function ChatView({
   planDraft = null,
   onOpenPlan,
 }: ChatViewProps) {
+  const thinkingGroupMode = useThinkingGroupMode();
   const filePreview = useFilePreview();
   const openOutputFile = useCallback((path: string) => {
     if (filePreview) filePreview.openFile(path);
@@ -861,7 +863,7 @@ export function ChatView({
                 ) : turn.assistants.length > 0 ? (
                   <div className="assistant-live-turn">
                     {liveStartedAt !== undefined ? <TurnProgressHeader startedAt={liveStartedAt} /> : null}
-                    {toolFold === "position" ? (
+                    {toolFold === "position" || thinkingGroupMode === "coherent" ? (
                       <article className="assistant-block">
                         <ToolSequence
                           messages={turn.assistants}
@@ -1193,7 +1195,7 @@ function AssistantMessageContent({
             messageId={message.id}
             text={message.thinking}
             active={thinkingActive}
-            live={streaming && !message.text}
+            live={streaming && (!message.text || message.tools.some((tool) => tool.status === "running"))}
             showActivityIndicator={toolDisplay === "compact"}
             tools={message.tools}
             forceOpen={message.tools.some((tool) => getQuestion(tool.id) !== null)}
@@ -1237,10 +1239,10 @@ function ToolSequence({
   getQuestion: QuestionLookup;
   onReplyQuestion: QuestionReplyHandler;
 }) {
-  const nodes = useMemo(
-    () => groupProcessItems(buildTurnItems(messages, { includeText }), toolDisplay),
-    [messages, includeText, toolDisplay],
-  );
+  const coherent = useThinkingGroupMode() === "coherent";
+  const items = useMemo(() => buildTurnItems(messages, { includeText }), [messages, includeText]);
+  const nodes = useMemo(() => coherent ? [] : groupProcessItems(items, toolDisplay), [coherent, items, toolDisplay]);
+  const coherentNodes = useMemo(() => coherent ? groupCoherentItems(items) : [], [coherent, items]);
   const messageById = useMemo(() => new Map(messages.map((message) => [message.id, message])), [messages]);
   const compact = toolDisplay === "compact";
 
@@ -1280,6 +1282,61 @@ function ToolSequence({
     buffer = [];
   };
 
+  // 连贯模式:正文是唯一的分界,两段正文之间的思考和工具按到达顺序合成一组。
+  const renderCoherentGroup = (node: Extract<CoherentNode, { type: "group" }>, last: boolean): ReactNode => {
+    const tools = node.entries.flatMap((entry) => entry.type === "tool" ? [entry.tool] : []);
+    const activeMessage = activeAssistantId ? messageById.get(activeAssistantId) : undefined;
+    const live = Boolean(activeAssistantId && (tools.some((tool) => tool.status === "running") || (last && !activeMessage?.text)));
+    const latestId = latestThoughtId(node.entries);
+    const content: ReactNode[] = [];
+    let run: Extract<ProcessNode, { type: "tool" }>[] = [];
+    const flushRun = () => {
+      if (run.length === 0) return;
+      content.push(renderToolList(run));
+      run = [];
+    };
+    for (const entry of node.entries) {
+      if (entry.type === "tool") {
+        run.push(entry);
+        continue;
+      }
+      flushRun();
+      const message = messageById.get(entry.messageId);
+      content.push(
+        <CoherentThought
+          key={entry.id}
+          text={entry.text}
+          active={entry.messageId === activeAssistantId && Boolean(message && !message.text && message.tools.length === 0)}
+          expanded={live && entry.id === latestId}
+        />,
+      );
+    }
+    flushRun();
+    // 步骤很少的分组没必要折叠,思考和工具直接平铺。
+    if (isFlatCoherentGroup(node.entries)) {
+      return withEnter(node.id, node.messageId, <div className="coherent-flat">{content}</div>);
+    }
+    return withEnter(
+      node.id,
+      node.messageId,
+      <CoherentGroup
+        entries={node.entries}
+        live={live}
+        showActivityIndicator={compact}
+        forceOpen={tools.some((tool) => getQuestion(tool.id) !== null)}
+      >
+        {content}
+      </CoherentGroup>,
+    );
+  };
+  coherentNodes.forEach((node, index) => {
+    output.push(node.type === "group" ? renderCoherentGroup(node, index === coherentNodes.length - 1) : withEnter(
+      node.id,
+      node.messageId,
+      <div className="agent-reply-prose"><AssistantMarkdown messageId={node.messageId} text={node.text} streaming={node.messageId === activeAssistantId} /></div>,
+    ));
+  });
+
   for (let index = 0; index < nodes.length; index += 1) {
     const node = nodes[index]!;
     if (node.type === "tool" || node.type === "run") {
@@ -1290,7 +1347,7 @@ function ToolSequence({
     if (node.type === "thinking") {
       const message = messageById.get(node.messageId);
       const active = node.messageId === activeAssistantId && Boolean(message && !message.text && message.tools.length === 0);
-      // 紧随这段思考的工具(含后续没有思考的几轮)归到它下面;下一段思考或正文出现时分组结束。
+      // groupProcessItems 已把跨过正文的后续工具移到标题思考之后。
       const grouped: Extract<ProcessNode, { type: "tool" | "run" }>[] = [];
       while (index + 1 < nodes.length) {
         const next = nodes[index + 1]!;
@@ -1299,9 +1356,10 @@ function ToolSequence({
         index += 1;
       }
       const activeMessage = activeAssistantId ? messageById.get(activeAssistantId) : undefined;
-      const live = Boolean(activeAssistantId && !activeMessage?.text
-        && (node.messageId === activeAssistantId || grouped.some((item) => item.messageId === activeAssistantId)));
       const tools = nodeTools(grouped);
+      const ownsActiveMessage = node.messageId === activeAssistantId || grouped.some((item) => item.messageId === activeAssistantId);
+      const live = Boolean(activeAssistantId && (tools.some((tool) => tool.status === "running")
+        || (!activeMessage?.text && ownsActiveMessage)));
       output.push(withEnter(
         node.id,
         node.messageId,
@@ -1366,6 +1424,7 @@ const CompletedAssistantTurn = memo(function CompletedAssistantTurn({
   onBranch: (turnIndex: number) => void;
   onCheckpoints?: (turnIndex?: number) => void;
 }) {
+  const thinkingGroupMode = useThinkingGroupMode();
   const [expanded, setExpanded] = useToolExpanded(foldSequenceId(messages[0]?.id ? `turn:${messages[0].id}` : undefined), toolDisplay === "compact");
   const details = useToolProcessDetails();
   const toolsDuration = useToolsDuration(messages.flatMap(message => message.tools));
@@ -1374,7 +1433,7 @@ const CompletedAssistantTurn = memo(function CompletedAssistantTurn({
   const turnDuration = details && toolDisplay === "compact" ? readToolDuration({ startedAt, completedAt }) ?? toolsDuration : null;
   const displayedElapsed = turnDuration === null ? elapsed : formatDuration(turnDuration);
   const processId = useId();
-  const isFinalReply = (message: UiMessage) => finalReplies.includes(message);
+  const isFinalReply = (message: UiMessage) => finalReplies.some((reply) => reply.id === message.id);
   const hasProcess = messages.some((message) => (
     !isFinalReply(message) && Boolean(message.text || message.thinking || message.tools.length > 0)
   )) || finalReplies.some((message) => Boolean(message.thinking || message.tools.length > 0));
@@ -1410,7 +1469,7 @@ const CompletedAssistantTurn = memo(function CompletedAssistantTurn({
         <div id={processId} className="time-spent-body" aria-hidden={!expanded} inert={!expanded}>
           <div className="time-spent-body-inner">
             <LazyMount open={expanded}>{() => <>
-            {toolFold === "position" ? (
+            {toolFold === "position" || thinkingGroupMode === "coherent" ? (
               <article className="assistant-block assistant-turn-process-item">
                 <ToolSequence
                   messages={messages}

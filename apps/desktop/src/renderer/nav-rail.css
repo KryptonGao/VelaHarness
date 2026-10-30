@@ -27,16 +27,20 @@
 .nav-rail-layout .main-chat-view { --paper-left-radius: 0px; }
 /*
  * 左侧圆角是固定在收起位置的透明遮罩，而非随纸面移动的 border-radius。
- * 遮罩反向偏移 --nav-open，抵消纸面的位移：展开时直角从圆角下面抽出，
+ * 遮罩宽度随 --nav-open 缩小，圆心始终留在收起位置：展开时直角从圆角下面抽出，
  * 收起时再滑回圆角下面。只裁两个角，不重复绘制玻璃，也不裁掉顶栏和菜单。
+ * 不用负数 mask-position：Chromium 会把移出左缘的遮罩误画到右侧，造成纸面缺角。
  */
 .nav-rail-layout .main-stage-pane > .main-chat-view {
   mask-image:
     radial-gradient(circle at right bottom, transparent calc(var(--glass-fillet) - 0.5px), #000 var(--glass-fillet)),
     radial-gradient(circle at right top, transparent calc(var(--glass-fillet) - 0.5px), #000 var(--glass-fillet)),
     linear-gradient(#000, #000);
-  mask-size: var(--glass-fillet) var(--glass-fillet), var(--glass-fillet) var(--glass-fillet), 100% 100%;
-  mask-position: calc(0px - var(--nav-open)) var(--header-height), calc(0px - var(--nav-open)) bottom, 0 0;
+  mask-size:
+    max(0px, calc(var(--glass-fillet) - var(--nav-open))) var(--glass-fillet),
+    max(0px, calc(var(--glass-fillet) - var(--nav-open))) var(--glass-fillet),
+    100% 100%;
+  mask-position: 0 var(--header-height), 0 bottom, 0 0;
   mask-repeat: no-repeat;
   mask-composite: exclude;
 }

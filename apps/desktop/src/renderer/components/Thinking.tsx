@@ -1,6 +1,6 @@
 import { useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent, type ReactNode, type TouchEvent, type WheelEvent } from "react";
 import { ActivityIndicator } from "./ActivityIndicator";
-import { ThinkingIcon } from "./icons";
+import { EditFileIcon, ReadFileIcon, TerminalIcon, ThinkingIcon, ToolIcon } from "./icons";
 import { Markdown } from "./Markdown";
 import { usePacedText } from "../hooks/usePacedText";
 import { nextStreamFollow, releasesStreamFollow } from "./chat-scroll";
@@ -8,11 +8,12 @@ import { localizeError, tr, trf, useAppLocale } from "../locale";
 import { thinkingSummaryLayout } from "../thinking-summary";
 import { splitThinkingTitle, type ThinkingTitle } from "../thinking-title";
 import { totalDiffStat, type DiffStat } from "./tool-compact";
-import { countFailedTools } from "./tool-sequence";
+import { coherentActions, countFailedTools, type CoherentAction, type CoherentEntry } from "./tool-sequence";
 import type { ToolTrace } from "@vela/shared";
 import { ThinkingSummaryContext } from "./ThinkingSummaryContext";
 import { ScrollFadeShell } from "./ScrollFadeShell";
 import { thinkingEdges } from "./thinking-edges";
+import { defaultThinkingGroupHeight, defaultToolDetailHeight, expandedThinkingGroupHeight } from "../thinking-group-height";
 
 /** 分组展开详情时高度封顶的下限。 */
 const GROUP_LOCK_MIN_HEIGHT = 220;
@@ -34,6 +35,8 @@ export function Thinking({
   failedCount = 0,
   stat = null,
   forceOpen = false,
+  coherent = false,
+  leadingIcon,
   children,
 }: {
   text: string;
@@ -50,6 +53,10 @@ export function Thinking({
   stat?: DiffStat | null;
   /** 组内有等待用户回答的卡片时,保持展开。 */
   forceOpen?: boolean;
+  /** 连贯模式:标题是整组的汇总而不是某段思考的标题,前面不放思考图标,内容全部由 children 提供。 */
+  coherent?: boolean;
+  /** 连贯模式标题左边的灰色图标,随汇总的首个动作变化。 */
+  leadingIcon?: ReactNode;
   children?: ReactNode;
 }) {
   const summaries = useContext(ThinkingSummaryContext);
@@ -120,7 +127,7 @@ export function Thinking({
   // 分组里展开某个工具的详情(命令输出、diff)时,整块高度不跟着增长:按展开前的高度封顶,详情在里面滚动。
   // 太矮的分组至少给 GROUP_LOCK_MIN_HEIGHT,否则详情只剩一条缝。
   const lockGroupHeight = (event: MouseEvent<HTMLDivElement>) => {
-    if (!titled) return;
+    if (!titled || document.documentElement.dataset.thinkingGroupGrow === "true") return;
     const toggle = (event.target as Element).closest("[aria-expanded]");
     if (!toggle || !event.currentTarget.contains(toggle)) return;
     const element = event.currentTarget;
@@ -187,6 +194,66 @@ export function Thinking({
     return () => observer.disconnect();
   }, [open, revealed]);
 
+  const isGroup = Boolean(titled);
+  useLayoutEffect(() => {
+    const viewport = scrollRef.current;
+    if (!isGroup || !open || !revealed || !viewport) return;
+    const root = document.documentElement;
+    let baseHeight = viewport.clientHeight;
+    let growing = false;
+    let previousMaxHeight = viewport.style.maxHeight;
+    const observed = new Set<Element>();
+    // 只联动命令、编辑和写入详情,不受文件预览、普通读取等开合影响。
+    const selector = ["bash", "edit", "write"].map((kind) =>
+      `.tool-kind-${kind} .tool-details-scroll > .thinking-scroll-viewport, .tool-kind-${kind} .compact-diff-scroll-shell > .thinking-scroll-viewport`,
+    ).join(", ");
+    const resize = new ResizeObserver(() => sync());
+    const sync = () => {
+      if (root.dataset.thinkingGroupGrow !== "true") {
+        viewport.style.removeProperty("--thinking-group-expanded-height");
+        if (growing) viewport.style.maxHeight = previousMaxHeight;
+        growing = false;
+        baseHeight = viewport.clientHeight;
+        return;
+      }
+      if (!growing) {
+        // 切换开关前可能已经展开了详情,不能沿用挂载时较矮的基线。
+        baseHeight = Math.max(baseHeight, viewport.clientHeight);
+        previousMaxHeight = viewport.style.maxHeight;
+        growing = true;
+      }
+      // 清除旧模式在点击时写入的封顶值;关闭开关时恢复它。
+      viewport.style.maxHeight = "";
+      const details = Array.from(viewport.querySelectorAll<HTMLElement>(selector));
+      const contents = new Set(details.flatMap((detail) => detail.firstElementChild ? [detail.firstElementChild] : []));
+      for (const node of observed) if (!contents.has(node)) { resize.unobserve(node); observed.delete(node); }
+      for (const node of contents) if (!observed.has(node)) { resize.observe(node); observed.add(node); }
+      const heights = details.filter((detail) => !detail.closest("[inert]")).map((detail) => detail.scrollHeight);
+      if (!heights.length) {
+        viewport.style.removeProperty("--thinking-group-expanded-height");
+        baseHeight = viewport.clientHeight;
+        return;
+      }
+      const styles = getComputedStyle(root);
+      const groupLimit = Number.parseFloat(styles.getPropertyValue("--thinking-group-height")) || defaultThinkingGroupHeight;
+      const detailLimit = Number.parseFloat(styles.getPropertyValue("--tool-detail-height")) || defaultToolDetailHeight;
+      const height = expandedThinkingGroupHeight(baseHeight, heights, groupLimit, detailLimit);
+      viewport.style.setProperty("--thinking-group-expanded-height", `${height}px`);
+    };
+    const mutations = new MutationObserver(sync);
+    mutations.observe(viewport, { childList: true, subtree: true, attributes: true, attributeFilter: ["inert"] });
+    const preferences = new MutationObserver(sync);
+    preferences.observe(root, { attributes: true, attributeFilter: ["data-thinking-group-grow", "style"] });
+    resize.observe(viewport);
+    sync();
+    return () => {
+      resize.disconnect();
+      mutations.disconnect();
+      preferences.disconnect();
+      viewport.style.removeProperty("--thinking-group-expanded-height");
+    };
+  }, [isGroup, open, revealed]);
+
   const toggle = () => {
     // 展开过就保留 Markdown 挂载,收起时才有平滑的高度过渡。
     setRevealed(true);
@@ -211,7 +278,7 @@ export function Thinking({
   const groupHeader = titled ? (
     <div className="thinking-header">
       <button className={`time-spent-trigger thinking-headline-trigger${showActivity ? " is-running" : ""}`} type="button" aria-expanded={open} aria-controls={bodyId} onClick={toggle} title={titled.title}>
-        {icon}
+        {coherent ? leadingIcon : icon}
         <span className="thinking-summary-excerpt">{titled.title}</span>
         {stat ? (
           <span className="tool-compact-stat thinking-group-stat">
@@ -268,7 +335,7 @@ export function Thinking({
     </div>
   ) : null;
   return (
-    <div className={`time-spent-collapsible thinking-block${open ? " expanded" : ""}`}>
+    <div className={`time-spent-collapsible thinking-block${open ? " expanded" : ""}${coherent ? " is-coherent" : ""}`}>
       {groupHeader ?? headline ?? prose ?? (
         <div className="thinking-header">
           <button className={`time-spent-trigger${showActivity ? " is-running" : ""}`} type="button" aria-expanded={open} aria-controls={bodyId} onClick={toggle}>
@@ -388,5 +455,123 @@ export function ThinkingGroup({
       </Thinking>
       {titled ? null : children}
     </>
+  );
+}
+
+const actionLabels: Record<CoherentAction, () => string> = {
+  edit: () => tr("编辑了文件", "edited files"),
+  read: () => tr("读取了文件", "read files"),
+  bash: () => tr("运行了命令", "ran commands"),
+  tools: () => tr("使用了工具", "used tools"),
+};
+
+/** 英文逐项以逗号相接,韩文以空格相接,日文以顿号相接;中文直接连写。 */
+function actionSeparator(locale: ReturnType<typeof useAppLocale>): string {
+  if (locale === "en") return ", ";
+  if (locale === "ko") return " ";
+  return locale === "ja" ? "、" : "";
+}
+
+const actionIcons: Record<CoherentAction, ReactNode> = {
+  edit: <EditFileIcon size={14} />,
+  read: <ReadFileIcon size={14} />,
+  bash: <TerminalIcon size={14} />,
+  tools: <ToolIcon size={14} />,
+};
+
+/**
+ * 连贯模式折叠标题:进行中是最新一段总结的标题,结束后汇总组内的编辑、读取、运行;
+ * 没有工具时只写「思考」。
+ */
+function coherentTitle(entries: readonly CoherentEntry[], live: boolean, locale: ReturnType<typeof useAppLocale>): string {
+  const fallback = tr("思考", "Thinking");
+  if (live) {
+    for (let index = entries.length - 1; index >= 0; index -= 1) {
+      const entry = entries[index]!;
+      if (entry.type === "thinking") return splitThinkingTitle(entry.text, false)?.title ?? fallback;
+    }
+    return fallback;
+  }
+  const actions = coherentActions(entries);
+  if (actions.length === 0) return fallback;
+  const sentence = actions.map((action) => actionLabels[action]()).join(actionSeparator(locale));
+  return locale === "en" ? sentence.charAt(0).toUpperCase() + sentence.slice(1) : sentence;
+}
+
+/**
+ * 连贯模式分组:两段回复之间的全部思考和工具合成一组,折叠时标题汇总这一组做了什么。
+ * 组内内容(CoherentThought 与工具列表)由 children 按到达顺序提供。
+ */
+export function CoherentGroup({
+  entries,
+  live,
+  showActivityIndicator,
+  forceOpen,
+  children,
+}: {
+  entries: readonly CoherentEntry[];
+  live: boolean;
+  showActivityIndicator: boolean;
+  forceOpen?: boolean;
+  children?: ReactNode;
+}) {
+  const locale = useAppLocale();
+  // 进行中标题是最新思考的标题,配思考图标;结束后图标跟着汇总的第一个动作。
+  const firstAction = live ? undefined : coherentActions(entries)[0];
+  return (
+    <Thinking
+      text=""
+      active={false}
+      showActivityIndicator={showActivityIndicator}
+      titled={{ title: coherentTitle(entries, live, locale), body: "" }}
+      leadingIcon={
+        <span className="coherent-group-icon" aria-hidden="true">
+          {firstAction ? actionIcons[firstAction] : <ThinkingIcon size={14} />}
+        </span>
+      }
+      live={live}
+      forceOpen={forceOpen}
+      coherent
+    >
+      {children}
+    </Thinking>
+  );
+}
+
+/**
+ * 连贯模式组内的一次思考总结:加粗首行作标题,正文缩进在下面,可单独开合。
+ * expanded 是默认状态:分组进行中只有最新一段展开,更早的和分组结束后的都折叠;手动开合过就不再跟随。
+ */
+export function CoherentThought({ text, active, expanded }: { text: string; active: boolean; expanded: boolean }) {
+  useAppLocale();
+  const [manual, setManual] = useState<boolean | null>(null);
+  const open = manual ?? expanded;
+  const bodyId = useId();
+  const titled = splitThinkingTitle(text, active);
+  // 流式中标题行还没收齐时只显示「思考」,避免半截标题闪一下。
+  const pending = !titled && active && /^\s*(\*\*|#)/.test(text) && !text.trimStart().includes("\n");
+  const title = titled?.title ?? tr("思考", "Thinking");
+  const body = titled ? titled.body : pending ? "" : text.trim();
+  return (
+    <div className={`coherent-thought${open ? " open" : ""}`}>
+      <button className="coherent-thought-trigger" type="button" aria-expanded={open} aria-controls={bodyId} disabled={!body} onClick={() => setManual(!open)} title={title}>
+        <span className="thinking-icon" aria-hidden="true"><ThinkingIcon size={13} /></span>
+        <span className="coherent-thought-title">{title}</span>
+        {body ? (
+          <svg className="coherent-thought-arrow" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        ) : null}
+      </button>
+      {body ? (
+        <div id={bodyId} className="coherent-thought-body" aria-hidden={!open} inert={!open ? true : undefined}>
+          <div className="coherent-thought-body-inner">
+            <div className="stream-prose-block thinking-text">
+              <Markdown text={body} streaming={active} fade="thinking" />
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </div>
   );
 }
