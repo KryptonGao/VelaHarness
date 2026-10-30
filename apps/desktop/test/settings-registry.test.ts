@@ -83,6 +83,11 @@ test("search finds settings across languages through keywords", () => {
   assert.ok(searchSettings("theme", zh).some((result) => result.entry.id === "theme"));
   assert.ok(searchSettings("主题", en).some((result) => result.entry.id === "theme"));
   assert.ok(searchSettings("sandbox", zh).some((result) => result.entry.id === "permissions"));
+  for (const locale of ["zh-CN", "en", "zh-TW", "ja", "ko"] as const) {
+    const entries = resolveSettingsEntries(settingsCopy(locale));
+    assert.equal(searchSettings("Catppuccin", entries)[0]?.entry.id, "file-icon-theme", locale);
+    assert.equal(settingsCopy(locale).appearance.catppuccinIconTheme, "Catppuccin");
+  }
 });
 
 test("search requires every word, normalizes case and width, and ranks title hits first", () => {

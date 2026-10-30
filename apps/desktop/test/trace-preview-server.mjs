@@ -12,7 +12,7 @@ const server = await createServer({
       "@vela/shared": resolve(desktop, "../../packages/shared/src/index.ts"),
     },
   },
-  optimizeDeps: { entries: ["test/trace-preview.html", "test/changes-preview.html", "test/image-viewer-preview.html", "test/version-control-preview.html", "test/run-view-preview.html", "test/thinking-group-preview.html"] },
+  optimizeDeps: { entries: ["test/trace-preview.html", "test/changes-preview.html", "test/image-viewer-preview.html", "test/version-control-preview.html", "test/run-view-preview.html", "test/thinking-group-preview.html", "test/usage-limit-preview.html"] },
   server: { port: 5179, host: "127.0.0.1" },
 });
 await server.listen();
@@ -27,6 +27,7 @@ console.log(
       "  vcs:     http://127.0.0.1:5179/test/version-control-preview.html (append ?page=history|pr)",
       "  motion:  http://127.0.0.1:5179/test/motion-batch3-preview.html (append ?checks=1 for Batch 3 checks)",
       "  run view: http://127.0.0.1:5179/test/run-view-preview.html (append ?quiet=1 to stop the 60ms refresh; window.__runViewLog records every label change)",
+      "  usage ring: http://127.0.0.1:5179/test/usage-limit-preview.html (append ?plan=pro for weekly only, ?high=1, ?theme=dark, ?en)",
       "  thinking group: http://127.0.0.1:5179/test/thinking-group-preview.html (append ?display=card for card tools)",
   ].join("\n"),
 );

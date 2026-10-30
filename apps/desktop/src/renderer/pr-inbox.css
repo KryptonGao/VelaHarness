@@ -37,10 +37,12 @@
 .pr-inbox-relation-tag::before { content:"·"; margin-right:8px; }
 .pr-inbox-pr-symbol { display:inline-flex; }
 .pr-inbox-badge { display:inline-flex; justify-content:center; font-size:11px; line-height:1.5; border-radius:10px; padding:0 8px; border:1px solid currentColor; white-space:nowrap; justify-self:start; }
-.pr-inbox-page .state-open,.pr-inbox-added,.check-passing { color:var(--success, #267046); }
+.pr-inbox-page .state-open,.check-passing { color:var(--success, #267046); }
+.pr-inbox-added { color:var(--diff-stat-add-fg); }
 .pr-inbox-page .state-draft { color:var(--text-secondary); }
 .pr-inbox-page .state-merged { color:var(--accent-purple, #8653b8); }
-.pr-inbox-page .state-closed,.pr-inbox-deleted,.check-failing,.check-cancelled { color:var(--danger, #b84141); }
+.pr-inbox-page .state-closed,.check-failing,.check-cancelled { color:var(--danger, #b84141); }
+.pr-inbox-deleted { color:var(--diff-stat-del-fg); }
 .check-pending,.check-skipped,.check-unknown { color:var(--text-secondary); }
 .pr-inbox-updated { color:var(--text-muted); font-size:12px; text-align:right; white-space:nowrap; }
 .pr-inbox-group { font-size:12px; color:var(--text-secondary); font-weight:500; margin:14px 0 4px; padding:0 10px; }

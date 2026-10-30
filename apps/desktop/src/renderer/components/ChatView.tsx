@@ -58,7 +58,7 @@ import {
 } from "./chat-scroll";
 import { acceptanceCounts, outcomeByFinalMessage, type AcceptanceRequest } from "./acceptance";
 import { summarizeTurnChanges, type TurnChanges, type TurnReviewRequest } from "./turn-changes";
-import { chatLaneDefaultMaxWidth, planChatLane } from "../chat-lane";
+import { chatLaneDefaultMaxWidth, planChatLane, planInfoCardLane } from "../chat-lane";
 import { ConversationViewTabs, conversationPanelId, conversationTabId, isEmptyConversationView, type ConversationViewKey } from "./ConversationViewTabs";
 import type { QuestionReplyHandler } from "./QuestionCard";
 import { RecommendedActionsCard } from "./RecommendedActionsCard";
@@ -520,12 +520,12 @@ export function ChatView({
   const messageSurfaceKey = JSON.stringify([project.workspace?.current ?? null, state?.activeConversationId ?? null]);
   const messageSurfaceRef = useContentArrival(messageSurfaceKey, 180, 6);
 
-  // 悬浮信息布局下,环境卡片会盖住居中的对话列右缘:被盖住时把对话列放到
-  // 「左侧边栏分界 → 卡片左缘」之间居中,两侧预留滚动区的横向 padding。
-  // 卡片避让最多收窄不到 10%,间距另计;超过预算就保持原样(见 chat-lane.ts)。
+  const [infoCardsConcealed, setInfoCardsConcealed] = useState(true);
+  // 信息卡片按避让后的文字宽度决定显隐;旧环境卡片保留 10% 收窄预算。
+  // 隐藏后仍测量卡片未变换的布局位置,避免隐藏释放空间后又立即显示。
   useLayoutEffect(() => {
     const pane = scrollerRef.current?.parentElement;
-    if (!floatingInfo || environmentCollapsed || !pane) return;
+    if (!floatingInfo || (environmentCollapsed && !infoCards) || !pane) return;
 
     // 消息面会在工作区/会话切换时按 key 重建,每次测量都重新取一遍实时元素。
     const measure = () => {
@@ -539,17 +539,22 @@ export function ChatView({
       const maxLane =
         Number.parseFloat(getComputedStyle(pane).getPropertyValue("--chat-lane-max")) || chatLaneDefaultMaxWidth;
       const laneWidth = Math.min(surfaceBox.width, maxLane);
-      return planChatLane({
+      const paneLeft = pane.getBoundingClientRect().left;
+      const isStack = card.classList.contains("info-card-stack");
+      const cardStyle = getComputedStyle(card);
+      const paddingLeft = Number.parseFloat(cardStyle.paddingLeft) || 0;
+      const paddingRight = Number.parseFloat(cardStyle.paddingRight) || 0;
+      const input = {
         laneLeft: surfaceBox.left + (surfaceBox.width - laneWidth) / 2,
         laneWidth,
         minGap: Number.parseFloat(getComputedStyle(scroller).paddingLeft),
-        // 卡片栈左侧留着装阴影的内边距,让位以卡片本身的左缘为准。
-        cardLeft:
-          card.getBoundingClientRect().left +
-          (card.classList.contains("info-card-stack") ? Number.parseFloat(getComputedStyle(card).paddingLeft) || 0 : 0),
-        // 左侧边栏分界即对话区左缘,让位后左右两侧的距离以它为参照。
-        laneLimitLeft: pane.getBoundingClientRect().left,
-      });
+        // offsetLeft 不受进出场 transform 影响;阴影内边距不计入卡片实体。
+        cardLeft: isStack ? paneLeft + card.offsetLeft + paddingLeft : card.getBoundingClientRect().left,
+        laneLimitLeft: paneLeft,
+      };
+      return isStack
+        ? planInfoCardLane({ ...input, cardWidth: card.clientWidth - paddingLeft - paddingRight })
+        : { ...planChatLane(input), concealed: false };
     };
 
     const apply = () => {
@@ -557,17 +562,30 @@ export function ChatView({
       if (!plan) return;
       const scroller = scrollerRef.current;
       if (scroller) pane.style.setProperty("--chat-scrollbar-width", `${scroller.offsetWidth - scroller.clientWidth}px`);
-      pane.style.setProperty("--chat-lane-shift", `${plan.shift}px`);
-      pane.style.setProperty("--chat-lane-shrink", `${plan.shrink}px`);
+      setInfoCardsConcealed(plan.concealed);
+      pane.style.setProperty("--chat-lane-shift", `${environmentCollapsed ? 0 : plan.shift}px`);
+      pane.style.setProperty("--chat-lane-shrink", `${environmentCollapsed ? 0 : plan.shrink}px`);
     };
 
-    apply();
-    // 触发条件只有窗口/侧栏和卡片自身的尺寸变化;变量只改对话列宽度,不会反哺这三者。
+    // 栈可能在数据到达后才挂载,或在所有卡片都不可用时卸载。
     const observer = new ResizeObserver(apply);
-    observer.observe(pane);
-    const card = pane.querySelector<HTMLElement>(".floating-environment, .info-card-stack");
-    if (card) observer.observe(card);
+    const observeCard = () => {
+      observer.disconnect();
+      observer.observe(pane);
+      const card = pane.querySelector<HTMLElement>(".floating-environment, .info-card-stack");
+      if (card) observer.observe(card);
+      else {
+        setInfoCardsConcealed(true);
+        pane.style.setProperty("--chat-lane-shift", "0px");
+        pane.style.setProperty("--chat-lane-shrink", "0px");
+      }
+      apply();
+    };
+    observeCard();
+    const children = new MutationObserver(observeCard);
+    children.observe(pane, { childList: true });
     return () => {
+      children.disconnect();
       observer.disconnect();
       pane.style.removeProperty("--chat-scrollbar-width");
       pane.style.removeProperty("--chat-lane-shift");
@@ -764,8 +782,8 @@ export function ChatView({
       /> : null}
       <div className="chat-conversation-pane" role="tabpanel" id={conversationPanelId(tabIdPrefix, "chat")} aria-labelledby={conversationTabId(tabIdPrefix, "chat")} data-home={homeLayout ? "true" : undefined} data-prompts={homeLayout && hasProjectWorkspace && !modelMissing ? "true" : undefined} hidden={view !== "chat"} inert={view !== "chat" ? true : undefined}>
       {homeLayout ? <VelaMark /> : null}
-      {floatingInfo && infoCards && !environmentCollapsed && !emptyConversation ? (
-        <InfoCardStack state={state} project={project} messages={messages} planDraft={planDraft}
+      {floatingInfo && infoCards && !emptyConversation ? (
+        <InfoCardStack concealed={environmentCollapsed || infoCardsConcealed} state={state} project={project} messages={messages} planDraft={planDraft}
           changesActive={changesActive} onOpenChanges={onOpenChanges} onOpenPlan={onOpenPlan}
           onResumeGoal={onResumeGoal} onOpenFile={openOutputFile} />
       ) : null}

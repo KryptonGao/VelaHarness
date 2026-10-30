@@ -6,6 +6,7 @@
  *      让列左缘到分界的距离等于列右缘到卡片左缘的距离,且至少保留滚动区的横向 padding(默认 24px);
  *   3. 原始宽度放不下时,允许为卡片收窄不到 10%,再额外预留两侧间距;
  *      卡片本身需要收窄 10% 以上就保持原样,让卡片盖住对话流。
+ * 信息卡片模式改用 planInfoCardLane:文字区域不足卡片实体宽度的 1.25 倍时隐藏卡片。
  * 纯几何计算,便于单测;DOM 测量留在 ChatView 里。
  */
 
@@ -33,8 +34,21 @@ export interface ChatLaneInput {
 
 export const chatLaneMaxShrinkRatio = 0.1;
 export const chatLaneMinGap = 24;
+export const infoCardMinTextWidthRatio = 1.25;
 /** 与 CSS 的 --chat-lane-max 保持一致;能读到变量时以变量为准。 */
 export const chatLaneDefaultMaxWidth = 760;
+
+/** 信息卡片只按避让后的文字宽度决定显隐,不再受旧的 10% 收窄预算限制。 */
+export function planInfoCardLane(input: ChatLaneInput & { cardWidth: number }): ChatLanePlan & { concealed: boolean } {
+  const minGap = Math.max(0, input.minGap ?? chatLaneMinGap);
+  const textWidth = Math.min(input.laneWidth, input.cardLeft - input.laneLimitLeft - minGap * 2);
+  if (!Number.isFinite(textWidth) || !Number.isFinite(input.laneWidth) || !(input.cardWidth > 0) || !Number.isFinite(input.cardWidth) ||
+      !Number.isFinite(input.laneLeft) || !Number.isFinite(input.cardLeft) || !Number.isFinite(input.laneLimitLeft) ||
+      textWidth < input.cardWidth * infoCardMinTextWidthRatio) {
+    return { shift: 0, shrink: 0, concealed: true };
+  }
+  return { ...planChatLane({ ...input, maxShrinkRatio: Infinity }), concealed: false };
+}
 
 export function planChatLane(input: ChatLaneInput): ChatLanePlan {
   const noChange: ChatLanePlan = { shift: 0, shrink: 0 };

@@ -347,11 +347,11 @@
 }
 
 .vc-plus {
-  color: var(--success);
+  color: var(--diff-stat-add-fg);
 }
 
 .vc-minus {
-  color: var(--danger);
+  color: var(--diff-stat-del-fg);
 }
 
 .vc-ahead {

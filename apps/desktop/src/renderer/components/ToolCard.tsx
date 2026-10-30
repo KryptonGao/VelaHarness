@@ -1,6 +1,6 @@
 import type { AskUserQuestionRequest, ExecutionItemStatus, ToolActivity, ToolPlanItem, ToolTrace } from "@vela/shared";
 import { isAgentToolName, unescapeMarkdown } from "@vela/shared";
-import { memo, useContext, useEffect, useMemo, useRef, useState, type ReactNode, type TransitionEvent } from "react";
+import { memo, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type TransitionEvent } from "react";
 import { QuestionContext } from "./QuestionContext";
 import { LazyMount } from "./LazyMount";
 import { ContentSwap } from "./BatchMotion";
@@ -1011,11 +1011,12 @@ function CompactDiffView({ diff, path, followEnd = false }: { diff: string; path
   return (
     <ScrollFade
       followEnd={followEnd}
+      fade={false}
       className="compact-diff-scroll-shell"
       contentClassName="compact-diff-scroll-content"
       ariaLabel={tr("文件差异，可在区域内滚动", "File diff, scrollable")}
     >
-      <DiffView diff={diff} path={path} compact />
+      <DiffView diff={diff} path={path} compact focusFirstChange={!followEnd} />
     </ScrollFade>
   );
 }
@@ -1188,13 +1189,25 @@ function ReadView({ body, running }: { body?: string; running: boolean }) {
   );
 }
 
-function DiffView({ diff, path, compact = false }: { diff: string; path?: string; compact?: boolean }) {
+function DiffView({ diff, path, compact = false, focusFirstChange = false }: { diff: string; path?: string; compact?: boolean; focusFirstChange?: boolean }) {
+  const sheetRef = useRef<HTMLDivElement>(null);
   const parsed = useMemo(() => parseDisplayDiff(diff), [diff]);
   const rows = useMemo(() => (compact ? collapseDiffContext(parsed.rows) : parsed.rows), [parsed, compact]);
   const highlight = useDiffHighlight(path, parsed.oldLines, parsed.newLines);
+  useLayoutEffect(() => {
+    if (!compact || !focusFirstChange) return;
+    const sheet = sheetRef.current;
+    const viewport = sheet?.closest<HTMLElement>(".thinking-scroll-viewport");
+    const changed = sheet?.querySelector<HTMLElement>(".tool-diff-line.add, .tool-diff-line.del");
+    if (!viewport || !changed) return;
+    // 首处增删放在第二个可见行；按视觉行高留上下文，避免长行换行把改动挤出视口。
+    const style = getComputedStyle(changed);
+    const lineHeight = Math.max(parseFloat(style.lineHeight) || 0, parseFloat(style.minHeight) || 0);
+    viewport.scrollTop += changed.getBoundingClientRect().top - viewport.getBoundingClientRect().top - lineHeight;
+  }, [compact, focusFirstChange]);
   if (rows.length === 0) return <p className="tool-wait">{tr("没有差异", "No diff")}</p>;
   return (
-    <div className={`tool-sheet${compact ? " tool-sheet-compact-diff" : ""}`}>
+    <div ref={sheetRef} className={`tool-sheet${compact ? " tool-sheet-compact-diff" : ""}`}>
       {rows.map((row, index) => {
         if (row.kind === "gap") {
           return (

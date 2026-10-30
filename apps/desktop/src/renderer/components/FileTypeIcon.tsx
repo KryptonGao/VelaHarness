@@ -68,6 +68,43 @@ import materialTypescript from "material-icon-theme/icons/typescript.svg";
 import materialVue from "material-icon-theme/icons/vue.svg";
 import materialXml from "material-icon-theme/icons/xml.svg";
 import materialYaml from "material-icon-theme/icons/yaml.svg";
+import catppuccinAstro from "../assets/catppuccin-icons/astro.svg";
+import catppuccinBash from "../assets/catppuccin-icons/bash.svg";
+import catppuccinC from "../assets/catppuccin-icons/c.svg";
+import catppuccinCHeader from "../assets/catppuccin-icons/c-header.svg";
+import catppuccinCpp from "../assets/catppuccin-icons/cpp.svg";
+import catppuccinCppHeader from "../assets/catppuccin-icons/cpp-header.svg";
+import catppuccinCsharp from "../assets/catppuccin-icons/csharp.svg";
+import catppuccinCss from "../assets/catppuccin-icons/css.svg";
+import catppuccinDart from "../assets/catppuccin-icons/dart.svg";
+import catppuccinDocker from "../assets/catppuccin-icons/docker.svg";
+import catppuccinElixir from "../assets/catppuccin-icons/elixir.svg";
+import catppuccinGo from "../assets/catppuccin-icons/go.svg";
+import catppuccinGraphql from "../assets/catppuccin-icons/graphql.svg";
+import catppuccinHtml from "../assets/catppuccin-icons/html.svg";
+import catppuccinJava from "../assets/catppuccin-icons/java.svg";
+import catppuccinJavascript from "../assets/catppuccin-icons/javascript.svg";
+import catppuccinJavascriptReact from "../assets/catppuccin-icons/javascript-react.svg";
+import catppuccinJson from "../assets/catppuccin-icons/json.svg";
+import catppuccinKotlin from "../assets/catppuccin-icons/kotlin.svg";
+import catppuccinLua from "../assets/catppuccin-icons/lua.svg";
+import catppuccinMarkdown from "../assets/catppuccin-icons/markdown.svg";
+import catppuccinMdx from "../assets/catppuccin-icons/markdown-mdx.svg";
+import catppuccinPhp from "../assets/catppuccin-icons/php.svg";
+import catppuccinPowershell from "../assets/catppuccin-icons/powershell.svg";
+import catppuccinPython from "../assets/catppuccin-icons/python.svg";
+import catppuccinRuby from "../assets/catppuccin-icons/ruby.svg";
+import catppuccinRust from "../assets/catppuccin-icons/rust.svg";
+import catppuccinSass from "../assets/catppuccin-icons/sass.svg";
+import catppuccinScala from "../assets/catppuccin-icons/scala.svg";
+import catppuccinSvelte from "../assets/catppuccin-icons/svelte.svg";
+import catppuccinSwift from "../assets/catppuccin-icons/swift.svg";
+import catppuccinText from "../assets/catppuccin-icons/text.svg";
+import catppuccinTypescript from "../assets/catppuccin-icons/typescript.svg";
+import catppuccinTypescriptReact from "../assets/catppuccin-icons/typescript-react.svg";
+import catppuccinVue from "../assets/catppuccin-icons/vue.svg";
+import catppuccinXml from "../assets/catppuccin-icons/xml.svg";
+import catppuccinYaml from "../assets/catppuccin-icons/yaml.svg";
 import type { FileIconTheme } from "../hooks/usePreferences";
 
 const FileIconThemeContext = createContext<FileIconTheme>("material");
@@ -188,14 +225,78 @@ const materialIconsByName: Record<string, string> = {
   ".dockerignore": materialDocker,
 };
 
+const catppuccinIconsByExtension: Record<string, string> = {
+  ts: catppuccinTypescript,
+  tsx: catppuccinTypescriptReact,
+  js: catppuccinJavascript,
+  mjs: catppuccinJavascript,
+  cjs: catppuccinJavascript,
+  jsx: catppuccinJavascriptReact,
+  py: catppuccinPython,
+  rs: catppuccinRust,
+  go: catppuccinGo,
+  java: catppuccinJava,
+  php: catppuccinPhp,
+  rb: catppuccinRuby,
+  swift: catppuccinSwift,
+  kt: catppuccinKotlin,
+  kts: catppuccinKotlin,
+  c: catppuccinC,
+  h: catppuccinCHeader,
+  cc: catppuccinCpp,
+  cpp: catppuccinCpp,
+  cxx: catppuccinCpp,
+  hpp: catppuccinCppHeader,
+  cs: catppuccinCsharp,
+  dart: catppuccinDart,
+  ex: catppuccinElixir,
+  exs: catppuccinElixir,
+  scala: catppuccinScala,
+  lua: catppuccinLua,
+  sh: catppuccinBash,
+  bash: catppuccinBash,
+  zsh: catppuccinBash,
+  ps1: catppuccinPowershell,
+  html: catppuccinHtml,
+  htm: catppuccinHtml,
+  css: catppuccinCss,
+  scss: catppuccinSass,
+  sass: catppuccinSass,
+  json: catppuccinJson,
+  yaml: catppuccinYaml,
+  yml: catppuccinYaml,
+  md: catppuccinMarkdown,
+  mdx: catppuccinMdx,
+  xml: catppuccinXml,
+  graphql: catppuccinGraphql,
+  gql: catppuccinGraphql,
+  vue: catppuccinVue,
+  svelte: catppuccinSvelte,
+  astro: catppuccinAstro,
+  dockerfile: catppuccinDocker,
+};
+
+const catppuccinIconsByName: Record<string, string> = {
+  dockerfile: catppuccinDocker,
+  ".dockerignore": catppuccinDocker,
+};
+
 export function FileTypeIcon({ path }: { path: string }) {
   const theme = useContext(FileIconThemeContext);
   const fileName = path.split(/[\\/]/).filter(Boolean).at(-1)?.toLowerCase() ?? "";
   const extension = fileName.includes(".") ? fileName.slice(fileName.lastIndexOf(".") + 1) : fileName;
-  const icon =
-    theme === "material"
-      ? materialIconsByName[fileName] ?? materialIconsByExtension[extension] ?? materialFile
-      : fileIconsByName[fileName] ?? fileIconsByExtension[extension];
+  let icon: string | undefined;
+  switch (theme) {
+    case "catppuccin":
+      icon = catppuccinIconsByName[fileName] ?? catppuccinIconsByExtension[extension] ?? catppuccinText;
+      break;
+    case "material":
+      icon = materialIconsByName[fileName] ?? materialIconsByExtension[extension] ?? materialFile;
+      break;
+    case "devicon":
+      icon = fileIconsByName[fileName] ?? fileIconsByExtension[extension];
+      break;
+  }
   if (!icon) return null;
 
   return <img className="file-type-icon" src={icon} alt="" aria-hidden="true" />;

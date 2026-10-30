@@ -12,6 +12,7 @@ export function ScrollFade({
   contentClassName,
   ariaLabel,
   followEnd = false,
+  fade = true,
 }: {
   children: ReactNode;
   className?: string;
@@ -19,6 +20,8 @@ export function ScrollFade({
   ariaLabel?: string;
   /** 内容在增长时（流式写入）视口跟着滚到底部。 */
   followEnd?: boolean;
+  /** 是否在滚动区域上下显示渐进模糊和渐隐遮罩。 */
+  fade?: boolean;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -54,7 +57,7 @@ export function ScrollFade({
   }, []);
 
   return (
-    <ScrollFadeShell className={className} edges={edges} height={viewportHeight}>
+    <ScrollFadeShell className={className} edges={edges} height={viewportHeight} enabled={fade}>
       <div
         className="thinking-scroll-viewport"
         ref={scrollRef}

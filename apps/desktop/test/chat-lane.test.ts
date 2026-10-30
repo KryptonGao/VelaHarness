@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { chatLaneMaxShrinkRatio, chatLaneMinGap, planChatLane } from "../src/renderer/chat-lane.ts";
+import { chatLaneMaxShrinkRatio, chatLaneMinGap, infoCardMinTextWidthRatio, planChatLane, planInfoCardLane } from "../src/renderer/chat-lane.ts";
 
 /** 自然几何:760px 的列在 [24, 860] 之间居中放不下时才会让位。 */
 function plan(overrides: Partial<Parameters<typeof planChatLane>[0]> = {}) {
@@ -18,6 +18,76 @@ function laneBox(plan: { shift: number; shrink: number }, laneLeft = 100, laneWi
   const left = laneLeft + plan.shrink / 2 - plan.shift;
   return { left, right: left + (laneWidth - plan.shrink) };
 }
+
+describe("planInfoCardLane", () => {
+  const input = { laneLeft: 100, laneWidth: 760, cardLeft: 447, cardWidth: 300, laneLimitLeft: 24 };
+
+  it("shows cards at exactly 1.25 times their width and hides below it", () => {
+    const result = planInfoCardLane(input);
+    assert.equal(result.concealed, false);
+    assert.equal(input.laneWidth - result.shrink, input.cardWidth * infoCardMinTextWidthRatio);
+    assert.deepEqual(planInfoCardLane({ ...input, cardLeft: 446.5 }), { shift: 0, shrink: 0, concealed: true });
+  });
+
+  it("replaces the 10% shrink limit only in card mode", () => {
+    const geometry = { ...input, cardLeft: 700 };
+    assert.deepEqual(planChatLane(geometry), { shift: 0, shrink: 0 });
+    const result = planInfoCardLane(geometry);
+    assert.equal(result.concealed, false);
+    assert.ok(result.shrink > input.laneWidth * chatLaneMaxShrinkRatio);
+    const box = laneBox(result);
+    assert.equal(box.left - input.laneLimitLeft, chatLaneMinGap);
+    assert.equal(geometry.cardLeft - box.right, chatLaneMinGap);
+  });
+
+  it("uses the text width after both gutters, including compact padding", () => {
+    const result = planInfoCardLane({ ...input, cardLeft: 431, minGap: 16 });
+    assert.equal(result.concealed, false);
+    assert.equal(input.laneWidth - result.shrink, 375);
+    assert.equal(planInfoCardLane({ ...input, cardLeft: 431 }).concealed, true);
+  });
+
+  it("caps the text area by the natural lane width", () => {
+    assert.equal(planInfoCardLane({ ...input, laneWidth: 374, cardLeft: 2000 }).concealed, true);
+    assert.deepEqual(planInfoCardLane({ ...input, laneWidth: 375, cardLeft: 2000 }), { shift: 0, shrink: 0, concealed: false });
+  });
+
+  it("recomputes visibility from reserved geometry when the window grows again", () => {
+    assert.deepEqual(planInfoCardLane({ ...input, cardLeft: 400 }), { shift: 0, shrink: 0, concealed: true });
+    assert.equal(planInfoCardLane(input).concealed, false);
+    assert.deepEqual(planInfoCardLane({ ...input, cardLeft: 1000 }), { shift: 0, shrink: 0, concealed: false });
+  });
+
+  it("tracks the measured card width rather than a fixed breakpoint", () => {
+    assert.equal(planInfoCardLane({ ...input, cardWidth: 299 }).concealed, false);
+    assert.equal(planInfoCardLane({ ...input, cardWidth: 301 }).concealed, true);
+  });
+
+  it("conceals cards for invalid or empty geometry", () => {
+    for (const overrides of [{ cardWidth: 0 }, { cardWidth: Infinity }, { laneWidth: 0 }, { laneWidth: Infinity },
+      { laneLeft: NaN }, { cardLeft: NaN }, { cardLeft: Infinity }, { laneLimitLeft: Infinity }, { cardLeft: 0 }]) {
+      assert.deepEqual(planInfoCardLane({ ...input, ...overrides }), { shift: 0, shrink: 0, concealed: true });
+    }
+  });
+
+  it("preserves the ratio and symmetric gutters across card widths and pane sizes", () => {
+    for (const cardWidth of [200, 300, 340]) {
+      for (let cardLeft = 100; cardLeft < 1300; cardLeft += 3) {
+        const result = planInfoCardLane({ ...input, cardWidth, cardLeft });
+        const expectedWidth = Math.min(input.laneWidth, cardLeft - input.laneLimitLeft - chatLaneMinGap * 2);
+        assert.equal(result.concealed, expectedWidth < cardWidth * infoCardMinTextWidthRatio);
+        if (result.concealed) {
+          assert.equal(result.shift, 0);
+          assert.equal(result.shrink, 0);
+        } else if (result.shift || result.shrink) {
+          const box = laneBox(result);
+          assert.ok(box.right <= cardLeft - chatLaneMinGap + 1e-9);
+          assert.ok(Math.abs((box.left - input.laneLimitLeft) - (cardLeft - box.right)) < 1e-9);
+        }
+      }
+    }
+  });
+});
 
 describe("planChatLane", () => {
   it("keeps the natural centered layout when the card does not cover the column", () => {

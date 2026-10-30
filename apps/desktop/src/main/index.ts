@@ -162,6 +162,11 @@ function createWindow(): BrowserWindow {
     },
   });
 
+  // 窗口失焦时玻璃改为不透明:用系统窗口焦点而不是页面的 blur,焦点进入内嵌浏览器时页面也会收到 blur。
+  const sendFocus = (focused: boolean) => { if (!win.isDestroyed()) win.webContents.send(IpcChannel.appWindowFocusChange, focused); };
+  win.on("focus", () => sendFocus(true));
+  win.on("blur", () => sendFocus(false));
+
   browserHost?.registerWindow(win.id, win.webContents);
   registerUiBrowserSecurity(win.webContents, (guest) => browserHost?.registerGuest(win.id, guest),
     (options) => new BrowserWindow({ ...options, parent: win }));
@@ -713,6 +718,10 @@ app.whenReady().then(async () => {
   if (process.platform === "darwin" && app.dock && !app.isPackaged) {
     app.dock.setIcon(nativeImage.createFromPath(appIconPath));
   }
+  ipcMain.on(IpcChannel.appWindowFocus, (event) => {
+    const owner = BrowserWindow.fromWebContents(event.sender);
+    event.returnValue = owner ? owner.isFocused() : true;
+  });
   ipcMain.on(IpcChannel.appSetLocale, (_event, locale: unknown) => {
     if (isAppLocale(locale)) setApplicationLocale(locale);
   });

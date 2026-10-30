@@ -10,11 +10,11 @@
  * 对话纸面和侧栏卡片是不透明的，盖在这张玻璃上。
  */
 .vela-window.nav-rail-layout {
-  background: linear-gradient(var(--bg-sidebar-glass), var(--bg-sidebar-glass)), var(--bg-chat);
+  background: linear-gradient(var(--glass-fill), var(--glass-fill)), var(--bg-chat);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
 }
-.platform-darwin .vela-window.nav-rail-layout { background: var(--bg-sidebar-glass); }
+.platform-darwin .vela-window.nav-rail-layout { background: var(--glass-fill); }
 .nav-rail-layout .sidebar-left {
   background: none;
   backdrop-filter: none;
@@ -23,6 +23,21 @@
   isolation: isolate;
 }
 .nav-rail-layout .main-stage { background: none; }
+/* 侧栏卡片和主纸面共用一圈轻微外阴影，只落在四周玻璃上，不在内部接缝投影。
+ * 左缘抵消纸面的滑动位移，收起侧栏时仍贴着整块不透明区域的外轮廓。
+ * 放在 main-stage 上，避免被对话纸面的圆角遮罩裁掉。
+ */
+.nav-rail-layout .main-stage::before {
+  content: "";
+  position: absolute;
+  top: var(--header-height);
+  bottom: var(--glass-edge-inset);
+  left: calc(0px - var(--nav-open));
+  right: var(--stage-right-inset);
+  border-radius: var(--glass-fillet);
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.12);
+  pointer-events: none;
+}
 /* 纸面始终是直角，不随折叠状态切换形状。 */
 .nav-rail-layout .main-chat-view { --paper-left-radius: 0px; }
 /*
@@ -91,7 +106,7 @@
   border-radius: var(--radius-sm);
   color: var(--text-muted);
   -webkit-app-region: no-drag;
-  transition: background-color 0.12s ease, color 0.12s ease;
+  transition: background-color 0.12s ease, color 0.12s ease, box-shadow 0.12s ease;
 }
 .nav-rail-item:hover {
   background: var(--bg-sidebar-hover);
@@ -100,7 +115,7 @@
 .nav-rail-item[aria-current="page"] {
   background: var(--bg-sidebar-active);
   color: var(--text-primary);
-  box-shadow: 0 0 0 1px var(--border-subtle, rgba(0, 0, 0, 0.06));
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.08);
 }
 .nav-rail-icon { display: flex; }
 

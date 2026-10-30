@@ -39,6 +39,8 @@
           root.dataset.theme = builtin.indexOf(picked) >= 0 ? picked : builtin[0];
         }
         if (readPreference("vela.locale") === "en") root.lang = "en";
+        var glassTint = readPreference("vela.glassTint");
+        root.dataset.glassTint = glassTint === "neutral" || glassTint === "none" ? glassTint : "theme";
         // 字体风格在首帧前就套上,避免先用无衬线渲染再跳成明体。
         function fontFace(key, fallback, allowInherit) {
           var value = readPreference(key);

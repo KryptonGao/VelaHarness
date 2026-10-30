@@ -1,17 +1,20 @@
 interface IconProps {
   size?: number;
+  filled?: boolean;
 }
 
 export function ChatIcon({ size = 13 }: IconProps) {
   return <svg {...base(size)} aria-hidden="true"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l-2 2v-10A8.5 8.5 0 0 1 10.5 3h2a8.5 8.5 0 0 1 8.5 8.5Z" /><path d="M7 9h9M7 14h6" /></svg>;
 }
 
-export function ClockIcon({ size = 13 }: IconProps) {
+export function ClockIcon({ size = 13, filled = false }: IconProps) {
+  if (filled) return <svg {...base(size)} fill="currentColor" stroke="none"><path fillRule="evenodd" d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm-.8 3.5v5.9l3.4 2.3.9-1.4-2.7-1.8v-5Z" /></svg>;
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>;
 }
 
 /** Agent Inbox：带托盘的收件箱。 */
-export function InboxIcon({ size = 13 }: IconProps) {
+export function InboxIcon({ size = 13, filled = false }: IconProps) {
+  if (filled) return <svg {...base(size)} fill="currentColor" stroke="none"><path fillRule="evenodd" d="M7.4 4a2.3 2.3 0 0 0-2.2 1.6l-2.5 7.7v4.4A2.3 2.3 0 0 0 5 20h14a2.3 2.3 0 0 0 2.3-2.3v-4.4l-2.5-7.7A2.3 2.3 0 0 0 16.6 4Zm0 1.6h9.2a.7.7 0 0 1 .7.5l2.1 6.6h-4.9v.8a2.5 2.5 0 0 1-5 0v-.8H4.6l2.1-6.6a.7.7 0 0 1 .7-.5Z" /></svg>;
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3.5 13.5 6 5.8A1.5 1.5 0 0 1 7.4 4.8h9.2a1.5 1.5 0 0 1 1.4 1l2.5 7.7" /><path d="M3.5 13.5v4.2a1.5 1.5 0 0 0 1.5 1.5h14a1.5 1.5 0 0 0 1.5-1.5v-4.2h-5.2a3.3 3.3 0 0 1-6.6 0z" /></svg>;
 }
 
@@ -438,14 +441,12 @@ export function WebFetchIcon({ size = 13 }: IconProps) {
   );
 }
 
-/** 读取文件：翻开的书，左侧书页微微竖起。 */
+/** 读取文件：正常摊开的书，左侧一张书页半翻起。 */
 export function ReadFileIcon({ size = 13 }: IconProps) {
   return (
-    <svg {...base(size)} strokeWidth="1.5">
-      <g transform="translate(24 0) scale(-1 1)">
-        <path d="M12 7C9.8 5.2 6.5 4.5 3 4.5v15c3.5 0 6.8.7 9 2.5 2.2-1.8 5.5-2.5 9-2.5v-15h-3" />
-        <path d="M12 7v15M12 7c1.2-2.2 3.2-3.8 6-5v15c-2.8 1.2-4.8 2.8-6 5" />
-      </g>
+    <svg {...base(size)} strokeWidth="1.5" aria-hidden="true">
+      <path d="M12 7c2.5-1.5 5.5-2 9-2v14c-3.5 0-6.5.5-9 2-2.5-1.5-5.5-2-9-2V5h3" />
+      <path d="M12 21V7C10.5 5 8.5 3.8 6 3v14c2.5.8 4.5 2 6 4" />
     </svg>
   );
 }
@@ -695,21 +696,24 @@ export function ViewGaugeIcon({ size = 15 }: IconProps) {
 }
 
 /** 分类栏：主页。 */
-export function HomeIcon({ size = 13 }: IconProps) {
+export function HomeIcon({ size = 13, filled = false }: IconProps) {
+  if (filled) return <svg {...base(size)} fill="currentColor" stroke="none"><path d="m2.9 10.2 8.5-7a1 1 0 0 1 1.2 0l8.5 7a1 1 0 0 1-1.2 1.6l-.4-.3V19a2 2 0 0 1-2 2H14v-6h-4v6H6.5a2 2 0 0 1-2-2v-7.5l-.4.3a1 1 0 0 1-1.2-1.6Z" /></svg>;
   return <svg {...base(size)} aria-hidden="true"><path d="M3.5 11 12 4l8.5 7" /><path d="M5.5 9.5V19a1 1 0 0 0 1 1H10v-5h4v5h3.5a1 1 0 0 0 1-1V9.5" /></svg>;
 }
 
 /** 分类栏：任务配方。 */
-export function RecipeIcon({ size = 13 }: IconProps) {
+export function RecipeIcon({ size = 13, filled = false }: IconProps) {
+  if (filled) return <svg {...base(size)} fill="currentColor" stroke="none"><path fillRule="evenodd" d="M7 2a3 3 0 0 0-3 3v14a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3V5a3 3 0 0 0-3-3Zm1.2 5.2h7.6v1.6H8.2Zm0 4h7.6v1.6H8.2Zm0 4h5.6v1.6H8.2Z" /></svg>;
   return <svg {...base(size)} aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2" /><path d="M9 8h6M9 12h6M9 16h4" /></svg>;
 }
 
 /** 分类栏：Pull Request。 */
-export function PullRequestIcon({ size = 13 }: IconProps) {
+export function PullRequestIcon({ size = 13, filled = false }: IconProps) {
+  if (filled) return <svg {...base(size)} fill="currentColor" stroke="none"><circle cx="6" cy="5" r="3.5" /><circle cx="6" cy="19" r="3.5" /><circle cx="18" cy="19" r="3.5" /><path d="M6 8v8M18 16V9a4 4 0 0 0-4-4h-2m2-2-2 2 2 2" fill="none" stroke="currentColor" strokeWidth="2.4" /></svg>;
   return <svg {...base(size)} aria-hidden="true"><circle cx="6" cy="5" r="3" /><circle cx="6" cy="19" r="3" /><circle cx="18" cy="19" r="3" /><path d="M6 8v8M18 16V9a4 4 0 0 0-4-4h-2m2-2-2 2 2 2" /></svg>;
 }
 
 /** 分类栏：设置。 */
-export function GearIcon({ size = 13 }: IconProps) {
-  return <svg {...base(size)} aria-hidden="true"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.65 1.65 0 0 0 15 19.4a1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>;
+export function GearIcon({ size = 13, filled = false }: IconProps) {
+  return <svg {...base(size)} fill={filled ? "currentColor" : "none"} stroke={filled ? "none" : "currentColor"} aria-hidden="true">{!filled ? <circle cx="12" cy="12" r="3" /> : null}<path fillRule="evenodd" d={"M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.65 1.65 0 0 0 15 19.4a1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" + (filled ? " M15 12a3 3 0 1 0-6 0 3 3 0 0 0 6 0Z" : "")} /></svg>;
 }

@@ -3,13 +3,17 @@ import { ThinkingEdgeBlur } from "./ThinkingEdgeBlur";
 import { SCROLL_EDGE_HEIGHT } from "./thinking-edges";
 
 /** Shared painting for thinking, task summaries and conclusions; callers own scrolling. */
-export function ScrollFadeShell({ children, className, edges, height }: {
+export function ScrollFadeShell({ children, className, edges, height, enabled = true }: {
   children: ReactNode;
   className?: string;
   edges: { top: number; bottom: number };
   height: number;
+  enabled?: boolean;
 }) {
   const filterId = `${useId()}-edge-blur`;
+  if (!enabled) {
+    return <div className={`thinking-scroll-shell${className ? ` ${className}` : ""}`}>{children}</div>;
+  }
   return (
     <div
       className={`thinking-scroll-shell has-content-edge-blur${className ? ` ${className}` : ""}`}

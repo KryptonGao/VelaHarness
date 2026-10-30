@@ -41,7 +41,9 @@ export type ToolIconColor = "color" | "theme" | "gray";
 export type ThinkingSummaryStyle = "inline" | "headline" | "prose";
 /** 思考分组方式:每次 CoT 总结自成一组(默认),或以正式回复为界、回复之间的过程合成一组。 */
 export type ThinkingGroupMode = "single" | "coherent";
-export type FileIconTheme = "devicon" | "material";
+/** 半透明玻璃上叠的颜色:当前主题色、按明暗固定的白/黑、或不叠色。 */
+export type GlassTint = "theme" | "neutral" | "none";
+export type FileIconTheme = "devicon" | "material" | "catppuccin";
 export type SendButtonIcon = "paper-plane" | "arrow-up";
 /** 字体风格:sans 为无衬线,serif 为明体(衬线);回复字体另有 inherit,表示沿用界面字体。 */
 export type UiFontFace = "sans" | "serif";
@@ -78,6 +80,7 @@ const inputPredictionKey = "vela.inputPrediction";
 const inputPredictionModelKey = "vela.inputPredictionModel";
 const fileIconThemeKey = "vela.fileIconTheme";
 const composerCapsulesKey = "vela.composerCapsules";
+const glassTintKey = "vela.glassTint";
 const sendButtonIconKey = "vela.sendButtonIcon";
 const uiFontLatinKey = "vela.font.ui.latin";
 const uiFontCjkKey = "vela.font.ui.cjk";
@@ -177,8 +180,12 @@ function isThinkingSummaryModel(value: unknown): value is ThinkingSummaryModel |
     typeof model.id === "string" && Boolean(model.id.trim()) && model.id.length <= 500;
 }
 
+function isGlassTint(value: unknown): value is GlassTint {
+  return value === "theme" || value === "neutral" || value === "none";
+}
+
 function isFileIconTheme(value: unknown): value is FileIconTheme {
-  return value === "devicon" || value === "material";
+  return value === "devicon" || value === "material" || value === "catppuccin";
 }
 
 function isSendButtonIcon(value: unknown): value is SendButtonIcon {
@@ -295,6 +302,7 @@ export function usePreferences() {
   const [composerCapsules, setComposerCapsules] = useState(() =>
     readStored(composerCapsulesKey, (value): value is string => value === "true", "false") === "true",
   );
+  const [glassTint, setGlassTint] = useState<GlassTint>(() => readStored(glassTintKey, isGlassTint, "theme"));
   const [sendButtonIcon, setSendButtonIcon] = useState<SendButtonIcon>(() =>
     readStored(sendButtonIconKey, isSendButtonIcon, "paper-plane"),
   );
@@ -466,6 +474,17 @@ export function usePreferences() {
     document.documentElement.dataset.composerCapsules = String(composerCapsules);
     writeStored(composerCapsulesKey, String(composerCapsules));
   }, [composerCapsules]);
+  // 窗口失焦时玻璃改为不透明(见 styles.css 的 data-window-focused)。浏览器预览没有 window.vela,视为一直聚焦。
+  useEffect(() => {
+    const root = document.documentElement;
+    const apply = (focused: boolean) => { root.dataset.windowFocused = String(focused); };
+    apply(window.vela?.isWindowFocused?.() ?? true);
+    return window.vela?.onWindowFocusChange?.(apply);
+  }, []);
+  useEffect(() => {
+    document.documentElement.dataset.glassTint = glassTint;
+    writeStored(glassTintKey, glassTint);
+  }, [glassTint]);
 
   return {
     soundEffects,
@@ -507,6 +526,8 @@ export function usePreferences() {
     hiddenModels,
     composerCapsules,
     setComposerCapsules,
+    glassTint,
+    setGlassTint,
     sendButtonIcon,
     setSendButtonIcon,
     uiFontLatin,

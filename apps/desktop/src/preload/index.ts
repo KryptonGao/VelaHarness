@@ -105,6 +105,7 @@ import {
   type ModelAuthEvent,
   type ModelCatalog,
   type ModelRefreshResult,
+  type UsageLimits,
   type OpenTarget,
   type PrCloseInput,
   type PrCloseResult,
@@ -380,6 +381,12 @@ const api: VelaApi = {
     removeItem: (key) => { storageRequest(IpcChannel.appUiStorageSet, key, null); },
   },
   setLocale: (locale: AppLocale) => ipcRenderer.send(IpcChannel.appSetLocale, locale),
+  isWindowFocused: () => ipcRenderer.sendSync(IpcChannel.appWindowFocus) === true,
+  onWindowFocusChange: listener => {
+    const handler = (_event: IpcRendererEvent, focused: boolean) => listener(focused);
+    ipcRenderer.on(IpcChannel.appWindowFocusChange, handler);
+    return () => { ipcRenderer.removeListener(IpcChannel.appWindowFocusChange, handler); };
+  },
   getState: (conversationId) => ipcRenderer.invoke(IpcChannel.getState, conversationId) as Promise<AppState>,
   prompt: (text, images, conversationId, deliverAs) =>
     ipcRenderer.invoke(IpcChannel.prompt, {
@@ -438,6 +445,7 @@ const api: VelaApi = {
     ipcRenderer.invoke(IpcChannel.sessionAgentControl, conversationId, agentId, action) as Promise<void>,
   getCatalog: () => ipcRenderer.invoke(IpcChannel.getCatalog) as Promise<ModelCatalog>,
   refreshCatalog: () => ipcRenderer.invoke(IpcChannel.refreshCatalog) as Promise<ModelRefreshResult>,
+  getUsageLimits: (provider: string) => ipcRenderer.invoke(IpcChannel.usageLimits, provider) as Promise<UsageLimits | null>,
   selectModel: (provider, id, conversationId) => ipcRenderer.invoke(IpcChannel.selectModel, provider, id, conversationId) as Promise<AppState>,
   setThinkingLevel: (level, conversationId) => ipcRenderer.invoke(IpcChannel.setThinkingLevel, level, conversationId) as Promise<AppState>,
   addModel: (input: CustomModelInput) => ipcRenderer.invoke(IpcChannel.addModel, input) as Promise<AppState>,

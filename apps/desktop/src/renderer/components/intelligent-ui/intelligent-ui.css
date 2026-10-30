@@ -276,17 +276,17 @@ h3.iui-heading { font-size: 16px; } h4.iui-heading { font-size: 14.5px; } h5.iui
 .iui-plot-num { fill: var(--accent-contrast); font-size: 9px; font-weight: 700; }
 .iui-plot-legend { margin: 0; padding-left: 20px; font-size: 12.5px; color: var(--text-secondary); }
 .iui-diff-head { display: flex; gap: 10px; align-items: center; font-size: 12.5px; }
-.iui-diff-add { color: var(--success); font-weight: 600; } .iui-diff-del { color: var(--danger); font-weight: 600; }
+.iui-diff-add { color: var(--diff-stat-add-fg); font-weight: 600; } .iui-diff-del { color: var(--diff-stat-del-fg); font-weight: 600; }
 .iui-diff { max-height: 420px; overflow: auto; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); background: var(--bg-code); font-family: var(--font-mono); font-size: 12.5px; line-height: 1.5; }
 .iui-diff-line { display: grid; grid-template-columns: 3.4ch 3.4ch 2ch minmax(0, 1fr); gap: 0 6px; min-width: max-content; padding: 0 8px 0 4px; }
 .iui-diff-no { text-align: right; color: var(--text-muted); user-select: none; font-variant-numeric: tabular-nums; }
 .iui-diff-sign { text-align: center; user-select: none; }
 .iui-diff-text { white-space: pre; }
-.iui-diff-line.is-add { background: color-mix(in srgb, var(--success) 16%, transparent); }
-.iui-diff-line.is-del { background: color-mix(in srgb, var(--danger) 16%, transparent); }
+.iui-diff-line.is-add { background: color-mix(in srgb, var(--diff-add-fg) 16%, transparent); }
+.iui-diff-line.is-del { background: color-mix(in srgb, var(--diff-del-fg) 16%, transparent); }
 .iui-diff-line.is-hunk { background: color-mix(in srgb, var(--accent-blue) 12%, transparent); color: var(--text-secondary); }
 .iui-diff-line.is-file, .iui-diff-line.is-meta { color: var(--text-muted); }
-.iui-diff-line.is-add .iui-diff-sign { color: var(--success); } .iui-diff-line.is-del .iui-diff-sign { color: var(--danger); }
+.iui-diff-line.is-add .iui-diff-sign { color: var(--diff-add-fg); } .iui-diff-line.is-del .iui-diff-sign { color: var(--diff-del-fg); }
 
 /* ---------- 数据来源与状态 ---------- */
 .iui-badge-loading { border-color: var(--accent-blue); color: var(--accent-blue); }

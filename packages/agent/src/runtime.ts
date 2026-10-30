@@ -53,6 +53,7 @@ import {
   type ModelAuthEvent,
   type ModelCatalog,
   type ModelRefreshResult,
+  type UsageLimits,
   type PlanExecutionContextStrategy,
   type ProposedPlanItem,
   type RuntimeInstructionMode,
@@ -1533,6 +1534,11 @@ export class AgentRuntime {
   async refreshCatalog(): Promise<ModelRefreshResult> {
     const directory = await this.readyDirectory();
     return directory.refreshCatalogNow();
+  }
+
+  async getUsageLimits(provider: string): Promise<UsageLimits | null> {
+    const directory = await this.readyDirectory();
+    return directory.usageLimits(provider);
   }
 
   /**

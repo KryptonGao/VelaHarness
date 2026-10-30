@@ -1,133 +1,133 @@
 {
-  "version": "1.2.9",
+  "version": "1.2.10",
   "locales": {
     "en": {
-      "summary": "Vela 1.2.9 adds a Coherent grouping mode that gathers all thinking and tools between two replies into one group, can grow a group when you expand command or edit details, and fixes a notch that could appear in the chat area while the sidebar moved.",
+      "summary": "Vela 1.2.10 shows your ChatGPT subscription usage next to the model name, lets you choose how translucent areas are tinted, adds the Catppuccin file icon theme, and makes info cards and compact file diffs behave more predictably.",
       "highlights": [
         {
-          "title": "Coherent thinking groups",
-          "body": "Settings → Conversation display now offers a grouping mode. Coherent mode treats formal reply text as the boundary: every thought and tool between two replies forms one group, and the collapsed title sums up the edits, reads and commands."
+          "title": "Subscription usage at a glance",
+          "body": "When you sign in to GPT with ChatGPT, a small ring next to the model name shows how much of your 5-hour and weekly limits is used. Click it to see each window's usage and reset time."
         },
         {
-          "title": "Groups that grow with details",
-          "body": "An optional setting grows a thinking group when you expand command or edit details, keeping the gap between the group and the detail limits without exceeding the group limit."
+          "title": "Translucent area tint",
+          "body": "Settings → Appearance now lets you choose how the sidebars and top bar are tinted: the theme color, plain light/dark, or no tint to show only the system blur. The glass turns opaque when the window loses focus."
         },
         {
-          "title": "Clearer tool icons",
-          "body": "Reading and editing files now have their own file-style icons, so they are easier to tell apart from other tools."
+          "title": "Catppuccin file icons",
+          "body": "A third file icon theme, Catppuccin, joins Material Icon Theme and Devicon for file previews and tool calls."
         },
         {
-          "title": "Steadier groups while running",
-          "body": "A group stays live while its tools are still running, even after reply text appears, and follow-up tool rounds stay under the thought they belong to."
+          "title": "Steadier info cards and diffs",
+          "body": "Info cards hide only when the text area becomes too narrow for them, and compact file diffs open at the first change without a fading edge."
         }
       ],
       "improvements": [
-        "Fixed a missing corner on the chat area while the sidebar opened or closed in the Categories layout.",
-        "Groups with only a few tool calls are shown flat instead of folded in Coherent mode.",
+        "The selected item in the Categories rail now uses a filled icon.",
+        "Info cards no longer capture the pointer while hidden, and their spacing next to the composer is measured more accurately.",
         "New interface text is available in all five languages."
       ]
     },
     "zh-CN": {
-      "summary": "Vela 1.2.9 新增「连贯模式」分组，把两段回复之间的所有思考和工具合成一组；展开命令或编辑详情时可自动增高分组；并修复了侧边栏移动时对话区可能出现缺角的问题。",
+      "summary": "Vela 1.2.10 在模型名称旁显示 ChatGPT 订阅额度，可选择半透明区域的染色方式，新增 Catppuccin 文件图标主题，并让信息卡片和紧凑文件差异的表现更可预期。",
       "highlights": [
         {
-          "title": "连贯思考分组",
-          "body": "在 设置 → 对话显示 中可选择分组方式。连贯模式以正式回复文字为界，两段回复之间的所有思考和工具合成一组，折叠标题汇总其中的编辑、读取和运行。"
+          "title": "订阅额度一目了然",
+          "body": "用 ChatGPT 登录 GPT 后，模型名称旁会出现一个小圆环，显示 5 小时和每周额度的已用比例；点击可查看各额度窗口的用量和重置时间。"
         },
         {
-          "title": "随详情增高的分组",
-          "body": "新增可选设置：展开命令或编辑详情时增高分组，使分组与详情保持设定的高度差，且不超过分组上限。"
+          "title": "透明部分染色",
+          "body": "在 设置 → 外观 中可选择侧栏、顶栏等半透明区域的染色方式：主题颜色、明暗，或不染色而只显示系统毛玻璃。窗口失去焦点时，玻璃会变为不透明。"
         },
         {
-          "title": "更清晰的工具图标",
-          "body": "读取和编辑文件现在使用各自的文件样式图标，更容易与其他工具区分。"
+          "title": "Catppuccin 文件图标",
+          "body": "文件预览和工具调用的图标主题新增 Catppuccin，与 Material Icon Theme、Devicon 并列可选。"
         },
         {
-          "title": "运行中的分组更稳定",
-          "body": "只要分组内的工具仍在运行，即使已出现回复文字，分组也保持进行中；后续几轮工具调用会继续归在所属的思考之下。"
+          "title": "更稳定的信息卡片与差异",
+          "body": "信息卡片只在文字区域窄到放不下时才隐藏；紧凑文件差异会直接定位到第一处改动，边缘也不再渐隐。"
         }
       ],
       "improvements": [
-        "修复「分类」布局下，侧边栏展开或收起时对话区缺角的问题。",
-        "连贯模式下，工具调用很少的分组会直接平铺，不再折叠。",
+        "「分类」栏中选中的项目现在使用实心图标。",
+        "信息卡片隐藏时不再捕获鼠标指针，与输入框之间的间距测量也更准确。",
         "新增界面文案已提供五种语言。"
       ]
     },
     "zh-TW": {
-      "summary": "Vela 1.2.9 新增「連貫模式」分組，把兩段回覆之間的所有思考與工具合成一組；展開指令或編輯詳情時可自動增高分組；並修復了側邊欄移動時對話區可能出現缺角的問題。",
+      "summary": "Vela 1.2.10 在模型名稱旁顯示 ChatGPT 訂閱額度，可選擇半透明區域的染色方式，新增 Catppuccin 檔案圖示主題，並讓資訊卡片與精簡檔案差異的表現更可預期。",
       "highlights": [
         {
-          "title": "連貫思考分組",
-          "body": "在 設定 → 對話顯示 中可選擇分組方式。連貫模式以正式回覆文字為界，兩段回覆之間的所有思考與工具合成一組，摺疊標題彙總其中的編輯、讀取與執行。"
+          "title": "訂閱額度一目了然",
+          "body": "以 ChatGPT 登入 GPT 後，模型名稱旁會出現一個小圓環，顯示 5 小時與每週額度的已用比例；點擊可查看各額度視窗的用量與重置時間。"
         },
         {
-          "title": "隨詳情增高的分組",
-          "body": "新增選用設定：展開指令或編輯詳情時增高分組，使分組與詳情保持設定的高度差，且不超過分組上限。"
+          "title": "透明部分染色",
+          "body": "在 設定 → 外觀 中可選擇側欄、頂欄等半透明區域的染色方式：主題顏色、明暗，或不染色而只顯示系統毛玻璃。視窗失去焦點時，玻璃會變為不透明。"
         },
         {
-          "title": "更清晰的工具圖示",
-          "body": "讀取與編輯檔案現在使用各自的檔案樣式圖示，更容易與其他工具區分。"
+          "title": "Catppuccin 檔案圖示",
+          "body": "檔案預覽與工具呼叫的圖示主題新增 Catppuccin，與 Material Icon Theme、Devicon 並列可選。"
         },
         {
-          "title": "執行中的分組更穩定",
-          "body": "只要分組內的工具仍在執行，即使已出現回覆文字，分組也保持進行中；後續幾輪工具呼叫會繼續歸在所屬的思考之下。"
+          "title": "更穩定的資訊卡片與差異",
+          "body": "資訊卡片只在文字區域窄到放不下時才隱藏；精簡檔案差異會直接定位到第一處變更，邊緣也不再漸隱。"
         }
       ],
       "improvements": [
-        "修復「分類」版面下，側邊欄展開或收合時對話區缺角的問題。",
-        "連貫模式下，工具呼叫很少的分組會直接平鋪，不再摺疊。",
+        "「分類」欄中選取的項目現在使用實心圖示。",
+        "資訊卡片隱藏時不再捕捉滑鼠指標，與輸入框之間的間距量測也更準確。",
         "新增介面文字已提供五種語言。"
       ]
     },
     "ja": {
-      "summary": "Vela 1.2.9 では、2 つの返信の間の思考とツールを 1 つにまとめる「連続モード」を追加しました。コマンドや編集の詳細を開くとグループが高くなる設定も使え、サイドバーの開閉中に会話エリアの角が欠ける問題も修正しました。",
+      "summary": "Vela 1.2.10 では、モデル名の横に ChatGPT サブスクリプションの利用枠を表示し、半透明部分の色付け方法を選べるようにしました。Catppuccin ファイルアイコンテーマも追加し、情報カードとコンパクトなファイル差分の挙動を安定させました。",
       "highlights": [
         {
-          "title": "連続モードの思考グループ",
-          "body": "設定 → 会話の表示 でグループ化の方式を選べます。連続モードは通常の返信テキストを区切りとし、2 つの返信の間にある思考とツールを 1 つのグループにまとめ、折りたたみ時のタイトルに編集・読み取り・実行を要約します。"
+          "title": "利用枠をひと目で確認",
+          "body": "ChatGPT で GPT にサインインすると、モデル名の横に小さなリングが表示され、5 時間枠と週間枠の使用率が分かります。クリックすると各枠の使用量とリセット時刻を確認できます。"
         },
         {
-          "title": "詳細に合わせて高くなるグループ",
-          "body": "コマンドや編集の詳細を開いたときにグループを高くする設定を追加しました。グループと詳細の上限の差を保ちつつ、グループの上限は超えません。"
+          "title": "半透明部分の色付け",
+          "body": "設定 → 外観 で、サイドバーやトップバーなど半透明部分の色付けを、テーマカラー・明暗・色付けなし（システムのぼかしのみ）から選べます。ウィンドウがフォーカスを失うとガラスは不透明になります。"
         },
         {
-          "title": "分かりやすいツールアイコン",
-          "body": "ファイルの読み取りと編集に専用のファイル型アイコンを使い、ほかのツールと見分けやすくなりました。"
+          "title": "Catppuccin ファイルアイコン",
+          "body": "ファイルプレビューとツール呼び出しのアイコンテーマに Catppuccin が加わり、Material Icon Theme・Devicon と並んで選べます。"
         },
         {
-          "title": "実行中のグループが安定",
-          "body": "グループ内のツールが実行中の間は、返信テキストが出てもグループは実行中のままです。続くツール呼び出しも、元の思考の下にまとまります。"
+          "title": "より安定した情報カードと差分",
+          "body": "情報カードは、テキスト領域が狭くなって収まらないときだけ隠れます。コンパクトなファイル差分は最初の変更位置から表示され、端のフェードもなくなりました。"
         }
       ],
       "improvements": [
-        "「カテゴリ」レイアウトで、サイドバーの開閉中に会話エリアの角が欠ける問題を修正しました。",
-        "連続モードでは、ツール呼び出しが少ないグループは折りたたまず、そのまま並べて表示します。",
+        "「カテゴリ」レールで選択中の項目は塗りつぶしアイコンで表示されます。",
+        "情報カードが隠れている間はポインターを受け取らなくなり、入力欄との間隔の測定も正確になりました。",
         "追加された画面テキストは 5 言語に対応しています。"
       ]
     },
     "ko": {
-      "summary": "Vela 1.2.9는 두 답변 사이의 사고와 도구를 하나로 묶는 '연속 모드'를 추가했습니다. 명령이나 편집 상세를 펼치면 그룹이 높아지는 옵션도 있으며, 사이드바가 움직일 때 대화 영역 모서리가 잘려 보이던 문제를 고쳤습니다.",
+      "summary": "Vela 1.2.10은 모델 이름 옆에 ChatGPT 구독 사용량을 표시하고, 반투명 영역의 색조 방식을 고를 수 있게 했습니다. Catppuccin 파일 아이콘 테마를 추가했고, 정보 카드와 간결한 파일 diff의 동작도 더 안정적으로 다듬었습니다.",
       "highlights": [
         {
-          "title": "연속 사고 그룹",
-          "body": "설정 → 대화 표시에서 그룹 방식을 고를 수 있습니다. 연속 모드는 일반 답변 텍스트를 경계로, 두 답변 사이의 사고와 도구를 하나의 그룹으로 묶고 접었을 때 제목에 편집·읽기·실행을 요약합니다."
+          "title": "구독 사용량을 한눈에",
+          "body": "ChatGPT로 GPT에 로그인하면 모델 이름 옆에 작은 링이 나타나 5시간 및 주간 한도의 사용 비율을 보여 줍니다. 클릭하면 각 한도의 사용량과 초기화 시각을 볼 수 있습니다."
         },
         {
-          "title": "상세에 맞춰 높아지는 그룹",
-          "body": "명령이나 편집 상세를 펼칠 때 그룹을 높이는 옵션이 추가되었습니다. 그룹과 상세의 상한 차이를 유지하되 그룹 상한은 넘지 않습니다."
+          "title": "반투명 영역 색조",
+          "body": "설정 → 모양에서 사이드바와 상단 바 같은 반투명 영역의 색조를 테마 색, 밝음/어두움, 색조 없음(시스템 블러만 표시) 중에서 고를 수 있습니다. 창이 포커스를 잃으면 유리는 불투명해집니다."
         },
         {
-          "title": "더 알아보기 쉬운 도구 아이콘",
-          "body": "파일 읽기와 편집에 전용 파일 모양 아이콘을 사용해 다른 도구와 더 쉽게 구분됩니다."
+          "title": "Catppuccin 파일 아이콘",
+          "body": "파일 미리보기와 도구 호출의 아이콘 테마에 Catppuccin이 추가되어 Material Icon Theme, Devicon과 함께 선택할 수 있습니다."
         },
         {
-          "title": "실행 중 그룹이 더 안정적",
-          "body": "그룹 안의 도구가 실행 중이면 답변 텍스트가 나타나도 그룹은 진행 중으로 유지됩니다. 이어지는 도구 호출도 원래 사고 아래에 모입니다."
+          "title": "더 안정적인 정보 카드와 diff",
+          "body": "정보 카드는 텍스트 영역이 너무 좁아졌을 때만 숨겨집니다. 간결한 파일 diff는 첫 번째 변경 위치에서 열리고 가장자리 페이드도 사라졌습니다."
         }
       ],
       "improvements": [
-        "'카테고리' 레이아웃에서 사이드바를 열거나 닫을 때 대화 영역 모서리가 잘리던 문제를 고쳤습니다.",
-        "연속 모드에서 도구 호출이 적은 그룹은 접지 않고 그대로 펼쳐 보여 줍니다.",
+        "'카테고리' 레일에서 선택된 항목은 채워진 아이콘으로 표시됩니다.",
+        "정보 카드가 숨겨져 있는 동안에는 포인터를 가로채지 않으며, 입력창과의 간격 측정도 더 정확해졌습니다.",
         "새 화면 문구는 5개 언어로 제공됩니다."
       ]
     }

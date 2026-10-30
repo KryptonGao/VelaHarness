@@ -17,6 +17,8 @@ import {
 export type InfoCardStackProps = Omit<InfoCardContext, "outputs" | "agents" | "onOpenAgent"> & {
   /** 打开一个文件预览；没有预览上下文时由调用方回退到系统打开。 */
   onOpenFile: (path: string) => void;
+  /** 自动避让或手动收起时保留挂载,供测量和退场动画使用。 */
+  concealed?: boolean;
 };
 
 interface DragState {
@@ -180,6 +182,22 @@ export function InfoCardStack(props: InfoCardStackProps) {
 
   useEffect(() => { if (hidden.length === 0) setTrayOpen(false); }, [hidden.length]);
 
+  // 隐藏时取消未完成的排序,避免离屏卡片继续捕获指针或自动滚动。
+  useEffect(() => {
+    if (!props.concealed) return;
+    const state = drag.current;
+    if (state) {
+      cancelAnimationFrame(state.raf);
+      drag.current = null;
+      try { state.grip.releasePointerCapture(state.pointerId); } catch { /* 捕获可能已被 inert 释放 */ }
+    }
+    document.body.classList.remove("info-card-dragging");
+    setDragOrder(null);
+    setDraggingId(null);
+    setLiftedId(null);
+    liftedSnapshot.current = null;
+  }, [props.concealed]);
+
   // 拖动中途卸载（切换对话或布局）时收尾，避免遗留抓取状态。
   useEffect(() => () => {
     const state = drag.current;
@@ -310,7 +328,7 @@ export function InfoCardStack(props: InfoCardStackProps) {
     let frame = 0;
     const measure = () => {
       const composer = pane.querySelector<HTMLElement>(".floating-input-card");
-      const overlaps = Boolean(composer) && composer!.getBoundingClientRect().right > root.getBoundingClientRect().left;
+      const overlaps = Boolean(composer) && composer!.getBoundingClientRect().right > pane.getBoundingClientRect().left + root.offsetLeft;
       root.style.setProperty("--info-stack-clearance", overlaps ? "var(--composer-clearance)" : "0px");
     };
     const schedule = () => { cancelAnimationFrame(frame); frame = requestAnimationFrame(measure); };
@@ -326,7 +344,9 @@ export function InfoCardStack(props: InfoCardStackProps) {
   if (!present) return null;
 
   return (
-    <div className={`info-card-stack${shown.length === 0 ? " is-empty" : ""}`} ref={rootRef} role="region" aria-label={tr("信息卡片", "Info cards")}>
+    <div className={`info-card-stack${shown.length === 0 ? " is-empty" : ""}`} ref={rootRef}
+      data-concealed={props.concealed ? "true" : undefined} inert={props.concealed ? true : undefined}
+      aria-hidden={props.concealed ? true : undefined} role="region" aria-label={tr("信息卡片", "Info cards")}>
       <div className="info-card-list" ref={listRef}
         onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={endDrag} onPointerCancel={endDrag}
         onKeyDown={onKeyDown}>

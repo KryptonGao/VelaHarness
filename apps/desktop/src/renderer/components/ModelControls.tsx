@@ -15,8 +15,10 @@ import { useEffect, useId, useMemo, useRef, useState, type CSSProperties, type R
 import { useEscapeKey } from "../hooks/useDismissable";
 import type { LoginState } from "../hooks/useModels";
 import { modelKey } from "../hooks/usePreferences";
+import { useUsageLimits } from "../hooks/useUsageLimits";
 import { PopoverPresence } from "./MotionPresence";
 import { SheetPresence } from "./Presence";
+import { UsageLimitMenu } from "./UsageLimitMenu";
 import { localizeError, tr, trf } from "../locale";
 
 const thinkingLabelsEn: Record<ThinkingLevel, string> = {
@@ -120,7 +122,7 @@ function ThinkingGlyph({ choices, level }: { choices: ThinkingLevel[]; level: Th
 }
 
 export function ModelControls(props: ModelControlsProps) {
-  const [menu, setMenu] = useState<"model" | "thinking" | null>(null);
+  const [menu, setMenu] = useState<"model" | "thinking" | "usage" | null>(null);
   const [accountsOpen, setAccountsOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [sliderLevel, setSliderLevel] = useState(props.thinkingLevel);
@@ -140,6 +142,15 @@ export function ModelControls(props: ModelControlsProps) {
   const particleDuration = `${(3.4 - sliderProgress * 2.65).toFixed(2)}s`;
   const ultraSelected = sliderThinking === "ultra";
   const [ultraFlash, setUltraFlash] = useState(false);
+  const usage = useUsageLimits(props.modelProvider);
+  const refreshUsage = usage.refresh;
+
+  // 一轮对话结束（输入框从禁用变回可用）后，额度已经变化，补读一次。
+  const wasDisabledRef = useRef(props.disabled);
+  useEffect(() => {
+    if (wasDisabledRef.current && !props.disabled) refreshUsage();
+    wasDisabledRef.current = props.disabled;
+  }, [props.disabled, refreshUsage]);
 
   useEffect(() => {
     if (menu !== "thinking" || !ultraSelected) {
@@ -317,6 +328,17 @@ export function ModelControls(props: ModelControlsProps) {
           />
         </PopoverPresence>
       </div>
+
+      {usage.limits ? (
+        <UsageLimitMenu
+          limits={usage.limits}
+          open={menu === "usage"}
+          onToggle={() => {
+            if (menu !== "usage") refreshUsage();
+            setMenu((current) => (current === "usage" ? null : "usage"));
+          }}
+        />
+      ) : null}
 
       <SheetPresence present={accountsOpen}>
         <AccountSheet

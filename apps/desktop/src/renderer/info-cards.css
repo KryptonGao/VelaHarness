@@ -21,6 +21,21 @@
   mask-image: linear-gradient(to bottom, #000 calc(100% - 30px), transparent);
   /* 卡片之间的空隙把点击交还给对话。 */
   pointer-events: none;
+  transform: translateX(0);
+  opacity: 1;
+  visibility: visible;
+  transition: transform 320ms cubic-bezier(0.16, 1, 0.3, 1), opacity 200ms ease, visibility 0s;
+}
+/* 保留布局尺寸,只向右退场;窗口变宽时可从当前动画位置直接反向滑入。 */
+.info-card-stack[data-concealed] {
+  transform: translateX(calc(100% + 24px));
+  opacity: 0;
+  visibility: hidden;
+  transition: transform 320ms cubic-bezier(0.16, 1, 0.3, 1), opacity 200ms ease, visibility 0s 320ms;
+}
+.info-card-stack[data-concealed] * { pointer-events: none !important; }
+@starting-style {
+  .info-card-stack:not([data-concealed]) { transform: translateX(calc(100% + 24px)); opacity: 0; }
 }
 .info-card-stack::-webkit-scrollbar { display: none; }
 .info-card-stack.is-empty { width: auto; }
@@ -176,6 +191,7 @@ button.info-card-row:hover:not(:disabled), .info-card-row.is-active { background
 .info-card-stack .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
 @media (prefers-reduced-motion: reduce) {
+  .info-card-stack, .info-card-stack[data-concealed] { transform: none; transition: none; }
   .info-card, .info-card-body, .info-card-chevron, .info-card-meta, .info-card-tools { transition: none; }
   .info-card[data-entering], .info-card-tray { animation: none; }
 }

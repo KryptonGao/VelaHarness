@@ -84,6 +84,19 @@ if (!process.versions.electron) {
       assert.deepEqual(labels.map(label => label.split('，')[0]), ["主页", "定时任务", "任务配方", "Agent 收件箱", "Pull Request", "设置"]);
       assert.equal(await evaluate("document.querySelector('.nav-rail-item[aria-current=page]').getAttribute('aria-label')"), "主页");
       assert.equal(await evaluate("document.querySelector('.nav-rail-badge').textContent"), "3");
+      const checkRailIcons = async () => {
+        const icons = await evaluate("[...document.querySelectorAll('.nav-rail-item')].map(item => { const icon = item.querySelector('svg'); const style = getComputedStyle(item); return { active: item.getAttribute('aria-current') === 'page', fill: icon.getAttribute('fill'), stroke: icon.getAttribute('stroke'), border: style.borderWidth, shadow: style.boxShadow }; })");
+        assert.equal(icons.filter(icon => icon.active).length, 1);
+        for (const icon of icons) {
+          assert.equal(icon.fill, icon.active ? "currentColor" : "none", "Only the selected category uses a solid icon");
+          assert.equal(icon.stroke, icon.active ? "none" : "currentColor", "Inactive categories keep outline icons");
+          assert.equal(icon.border, "0px", "Category buttons have no border");
+          if (icon.active) assert.equal(icon.shadow, "rgba(0, 0, 0, 0.08) 0px 1px 5px 0px", "Selection has a soft shadow, not a border-like ring");
+          else assert.equal(icon.shadow, "none");
+        }
+      };
+      await until("getComputedStyle(document.querySelector('.nav-rail-item[aria-current=page]')).boxShadow === 'rgba(0, 0, 0, 0.08) 0px 1px 5px 0px'");
+      await checkRailIcons();
       assert.equal(await evaluate("document.querySelector('.sidebar-quick-actions')"), null, "Quick actions move into the rail");
       assert.equal(await evaluate("document.querySelector('.sidebar-left-footer')"), null, "Settings moves into the rail");
       assert.equal(await evaluate("document.querySelectorAll('.sidebar-header-actions > button').length"), 3);
@@ -103,6 +116,31 @@ if (!process.versions.electron) {
       assert.equal(await evaluate("getComputedStyle(document.querySelector('#ghost-header')).getPropertyValue('-webkit-app-region')"), "none", "Hidden inert panes leave no drag region");
       const measure = () => evaluate("(() => { const rect = selector => document.querySelector(selector).getBoundingClientRect(); const sidebar = rect('.sidebar-left'); const header = document.querySelector('.sidebar-left-header'); return { sidebarLeft: sidebar.left, sidebarWidth: sidebar.width, contentLeft: rect('.sidebar-left-header').left, contentWidth: rect('.sidebar-left-header').width, contentOpacity: getComputedStyle(header).opacity, railRight: rect('.nav-rail').right, paperLeft: rect('.main-chat-view').left, paperRadius: getComputedStyle(document.querySelector('.main-chat-view'), '::after').borderTopLeftRadius, cardLeft: sidebar.left }; })()");
       const open = await measure();
+      const shadowBounds = () => evaluate("(() => { const stage = document.querySelector('.main-stage'); const box = stage.getBoundingClientRect(); const style = getComputedStyle(stage, '::before'); return { left: box.left + parseFloat(style.left), right: box.right - parseFloat(style.right), top: box.top + parseFloat(style.top), bottom: box.bottom - parseFloat(style.bottom), shadow: style.boxShadow, pointerEvents: style.pointerEvents }; })()");
+      const openShadow = await shadowBounds();
+      assert.equal(openShadow.left, open.cardLeft, "One shadow wraps both sidebar card and main paper");
+      assert.equal(openShadow.top, 52, "Shadow starts below the glass titlebar");
+      assert.equal(openShadow.bottom, await evaluate("document.querySelector('.main-chat-view').getBoundingClientRect().bottom"), "Shadow follows the paper above the bottom glass inset");
+      assert.equal(openShadow.pointerEvents, "none", "Shadow does not intercept input");
+      assert.equal(openShadow.shadow, "rgba(0, 0, 0, 0.12) 0px 0px 4px 0px", "Small centered shadow reaches all four sides");
+      const shadowPixels = async () => {
+        const image = await win.webContents.capturePage();
+        const { width } = image.getSize();
+        const bitmap = image.toBitmap({ scaleFactor: 1 });
+        const { left, right, top, bottom } = openShadow;
+        return [[left - 2, (top + bottom) / 2], [right + 1, (top + bottom) / 2], [(left + right) / 2, top - 2], [(left + right) / 2, bottom + 1]].map(([x, y]) => {
+          const index = (Math.floor(y) * width + Math.floor(x)) * 4;
+          return [...bitmap.subarray(index, index + 3)];
+        });
+      };
+      const shaded = await shadowPixels();
+      await evaluate("(() => { const style = document.createElement('style'); style.id = 'disable-paper-shadow'; style.textContent = '.nav-rail-layout .main-stage::before { box-shadow: none !important; }'; document.head.append(style); })()");
+      await evaluate("new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+      const unshaded = await shadowPixels();
+      for (let side = 0; side < 4; side++) {
+        assert.ok(shaded[side].some((value, channel) => value < unshaded[side][channel]), `Outer shadow is visible on glass: side ${side}`);
+      }
+      await evaluate("document.querySelector('#disable-paper-shadow').remove()");
       assert.equal(open.cardLeft, open.railRight + 6, "Card sits 6px from the rail");
       assert.equal(open.paperLeft, open.sidebarLeft + open.sidebarWidth, "Paper lies flush against the open sidebar");
       assert.equal(open.paperRadius, "0px", "Category paper has a square top-left corner while open");
@@ -130,6 +168,7 @@ if (!process.versions.electron) {
       }
       assert.ok(sawSliding, "Paper edge animates over the sidebar instead of jumping");
       const closed = await measure();
+      assert.deepEqual(await shadowBounds(), openShadow, "Outer shadow stays fixed as paper covers the sidebar");
       assert.deepEqual(await paperCorners(), ["0px", "12px", "12px", "0px"], "Collapsed paper stays square underneath the corner mask");
       assert.equal(closed.paperLeft, open.cardLeft, "Paper and card share the same left edge, open or closed");
       assert.equal(await evaluate("document.querySelector('.sidebar-left').inert"), true, "Hidden sidebar leaves the tab order");
@@ -189,9 +228,30 @@ if (!process.versions.electron) {
           }
         }
       }
+      // 每个分类在浅色、深色下都切换实心/空心，保留键盘焦点反馈。
+      for (const scheme of ["light", "dark"]) {
+        await evaluate(`document.documentElement.dataset.scheme = '${scheme}'`);
+        for (const category of ["scheduledTasks", "recipes", "agentInbox", "prInbox", "settings", "home"]) {
+          await evaluate(`window.setCategory('${category}')`);
+          await until(`document.querySelector('.nav-rail-item[aria-current=page]').getAttribute('aria-label') === ${JSON.stringify(labels[["home", "scheduledTasks", "recipes", "agentInbox", "prInbox", "settings"].indexOf(category)])}`);
+          await evaluate("new Promise(resolve => setTimeout(resolve, 160))");
+          await checkRailIcons();
+        }
+      }
+      // 隐藏的测试窗口没有原生焦点，模拟页面激活后再检查 :focus-visible。
+      win.webContents.debugger.attach("1.3");
+      await win.webContents.debugger.sendCommand("Emulation.setFocusEmulationEnabled", { enabled: true });
+      await evaluate("document.documentElement.dataset.scheme = 'light'; document.querySelector('.nav-rail-item').focus()");
+      await win.webContents.sendInputEvent({ type: "keyDown", keyCode: "Tab" });
+      await win.webContents.sendInputEvent({ type: "keyUp", keyCode: "Tab" });
+      await until("document.activeElement === document.querySelectorAll('.nav-rail-item')[1]");
+      assert.equal(await evaluate("document.activeElement.matches('.nav-rail-item:focus-visible')"), true, "Keyboard navigation keeps visible focus");
+      assert.notEqual(await evaluate("getComputedStyle(document.activeElement).outlineStyle"), "none");
+      win.webContents.debugger.detach();
       await evaluate("(() => { const shell = document.querySelector('.vela-window'); shell.classList.remove('left-collapsed'); shell.style.removeProperty('--nav-open'); shell.style.removeProperty('transition'); shell.classList.remove('nav-rail-layout'); })()");
       assert.deepEqual(await paperCorners(), ["12px", "12px", "12px", "12px"], "Classic layout keeps all four rounded corners");
       assert.equal(await evaluate("getComputedStyle(document.querySelector('.main-chat-view')).maskImage"), "none", "Classic layout has no corner mask");
+      assert.equal(await evaluate("getComputedStyle(document.querySelector('.main-stage'), '::before').boxShadow"), "none", "Classic layout has no category paper shadow");
       console.log("Passed nav rail checks: category items, badge, sidebar header actions, away collapse, home restore.");
       app.exit(0);
     } catch (error) { console.error(error); app.exit(1); }

@@ -36,6 +36,8 @@
   --glass-blur: blur(16px) saturate(190%);
   --glass-fillet: 12px;
   --glass-edge-inset: 6px;
+  /* 玻璃上叠的颜色:默认是主题色,可在设置里改成明暗色或不染色,见下方 data-glass-tint 规则。 */
+  --glass-fill: var(--bg-sidebar-glass);
   --transition-smooth: 0.24s cubic-bezier(0.16, 1, 0.3, 1);
   --transition-enter: 0.18s cubic-bezier(0.16, 1, 0.3, 1);
   --motion-ease-enter: cubic-bezier(0.16, 1, 0.3, 1);
@@ -205,17 +207,12 @@
   --tool-edit-tint: color-mix(in srgb, var(--tool-edit) var(--tint), transparent);
   --tool-write-tint: color-mix(in srgb, var(--tool-write) var(--tint), transparent);
   --tool-other-tint: color-mix(in srgb, var(--tool-other) var(--tint), transparent);
-  --diff-add-bg: color-mix(in srgb, var(--success) var(--tint), transparent);
-  --diff-add-fg: color-mix(in srgb, var(--success) 78%, var(--text-primary));
-  --diff-stat-add-fg: color-mix(in srgb, var(--success) 88%, var(--bg-chat));
-  --diff-stat-del-fg: color-mix(in srgb, var(--danger) 88%, var(--bg-chat));
-  --diff-del-bg: color-mix(in srgb, var(--danger) var(--tint), transparent);
-  --diff-del-fg: color-mix(in srgb, var(--danger) 78%, var(--text-primary));
-}
-
-[data-scheme="dark"] {
-  --diff-stat-add-fg: color-mix(in srgb, var(--success) 72%, var(--text-primary));
-  --diff-stat-del-fg: color-mix(in srgb, var(--danger) 72%, var(--text-primary));
+  --diff-add-fg: #00a240;
+  --diff-del-fg: #e02e2a;
+  --diff-add-bg: color-mix(in srgb, var(--diff-add-fg) var(--tint), transparent);
+  --diff-del-bg: color-mix(in srgb, var(--diff-del-fg) var(--tint), transparent);
+  --diff-stat-add-fg: var(--diff-add-fg);
+  --diff-stat-del-fg: var(--diff-del-fg);
 }
 
 /* 宣纸 Paper:暖米色纸面,赤陶强调色 */
@@ -757,11 +754,39 @@ code,
   background: transparent;
 }
 
+/*
+ * 玻璃染色(设置 → 外观):默认染主题色;「明暗」亮色染白、深色染黑,与主题无关;
+ * 「不染色」去掉这一层,透出系统毛玻璃本身(非 macOS 则透出窗口底色)。
+ * 模糊半径三档共用,只改叠色,切换时玻璃的质感不变。
+ */
+:root[data-glass-tint="neutral"][data-scheme="light"] {
+  --glass-fill: rgba(255, 255, 255, 0.6);
+}
+:root[data-glass-tint="neutral"][data-scheme="dark"] {
+  --glass-fill: rgba(0, 0, 0, 0.5);
+}
+/*
+ * 窗口失焦时,所有半透明玻璃改为不透明:不再透出桌面,也不随系统失焦变灰。
+ * 底色取自各染色方式对应的实色,放在染色规则之后以覆盖它们。
+ */
+:root {
+  --glass-solid: color-mix(in srgb, rgb(from var(--bg-sidebar-glass) r g b / 1) 55%, var(--bg-chat));
+}
+:root[data-glass-tint="neutral"][data-scheme="light"] { --glass-solid: #f4f4f4; }
+:root[data-glass-tint="neutral"][data-scheme="dark"] { --glass-solid: #151515; }
+:root[data-glass-tint="none"] {
+  --glass-fill: transparent;
+}
+/* 属性数量要不少于上面的明暗染色规则,否则失焦时压不过它们。 */
+:root[data-window-focused="false"][data-glass-tint][data-scheme] {
+  --glass-fill: var(--glass-solid);
+}
+
 .sidebar-left,
 .sidebar-right {
   position: relative;
   height: 100%;
-  background: var(--bg-sidebar-glass);
+  background: var(--glass-fill);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
   display: flex;
@@ -815,7 +840,7 @@ code,
   right: 0;
   bottom: 0;
   z-index: 0;
-  background: var(--bg-sidebar-glass);
+  background: var(--glass-fill);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
   pointer-events: none;
@@ -2507,7 +2532,7 @@ code,
 /* 进行中的标题:一道高光从左到右反复划过文字,停顿一拍再来下一道。 */
 .thinking-headline-trigger.is-running .thinking-summary-excerpt {
   --shimmer-base: var(--text-muted);
-  --shimmer-glow: var(--text-primary);
+  --shimmer-glow: #fff;
   background-image: linear-gradient(
     100deg,
     var(--shimmer-base) 0%,
@@ -2684,7 +2709,12 @@ code,
   color: var(--text-muted);
 }
 .coherent-flat { min-width: 0; margin: 2px 0 6px; }
-.coherent-thought { min-width: 0; margin: 8px 0 2px; }
+/* 组内思考标题和展开正文也跟随回复字体,代码仍使用各自的等宽字体。 */
+.coherent-thought {
+  min-width: 0;
+  margin: 8px 0 2px;
+  font-family: var(--font-reply);
+}
 .coherent-thought:first-child { margin-top: 0; }
 .coherent-thought-trigger {
   display: flex;
@@ -3372,8 +3402,8 @@ button.tool-compact-line:hover .tool-compact-cmd {
   width: 3px;
   content: "";
 }
-.tool-sheet-compact-diff .tool-diff-line.add::before { background: var(--success); }
-.tool-sheet-compact-diff .tool-diff-line.del::before { background: var(--danger); }
+.tool-sheet-compact-diff .tool-diff-line.add::before { background: var(--diff-add-fg); }
+.tool-sheet-compact-diff .tool-diff-line.del::before { background: var(--diff-del-fg); }
 .tool-sheet-compact-diff .tool-diff-gap.is-compact {
   height: 7px;
   padding: 0;
@@ -9102,9 +9132,9 @@ button.turn-changes-path:hover { color: var(--accent-blue); }
   /* 玻璃底层包住整块纸面;底部与收起侧栏的一侧只留窄边。 */
   padding: 0 var(--stage-right-inset) var(--glass-edge-inset) var(--stage-left-inset);
   background:
-    linear-gradient(var(--bg-sidebar-glass), var(--bg-sidebar-glass)) bottom / 100% var(--glass-edge-inset) no-repeat,
-    linear-gradient(var(--bg-sidebar-glass), var(--bg-sidebar-glass)) top left / var(--stage-left-inset) calc(100% - var(--glass-edge-inset)) no-repeat,
-    linear-gradient(var(--bg-sidebar-glass), var(--bg-sidebar-glass)) top right / var(--stage-right-inset) calc(100% - var(--glass-edge-inset)) no-repeat;
+    linear-gradient(var(--glass-fill), var(--glass-fill)) bottom / 100% var(--glass-edge-inset) no-repeat,
+    linear-gradient(var(--glass-fill), var(--glass-fill)) top left / var(--stage-left-inset) calc(100% - var(--glass-edge-inset)) no-repeat,
+    linear-gradient(var(--glass-fill), var(--glass-fill)) top right / var(--stage-right-inset) calc(100% - var(--glass-edge-inset)) no-repeat;
 }
 .vela-window.left-collapsed .main-stage { --stage-left-inset: var(--glass-edge-inset); }
 .vela-window.right-collapsed .main-stage,
@@ -9194,7 +9224,7 @@ button.turn-changes-path:hover { color: var(--accent-blue); }
     position: absolute;
     inset: var(--header-height) 0 0 0;
     z-index: -1;
-    background: var(--bg-sidebar-glass);
+    background: var(--glass-fill);
     pointer-events: none;
   }
   .workbench-panel::before {

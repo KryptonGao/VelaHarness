@@ -239,6 +239,7 @@ export class SessionHost {
     });
     ipcMain.handle(IpcChannel.getCatalog, () => this.runtime.getCatalog());
     ipcMain.handle(IpcChannel.refreshCatalog, () => this.runtime.refreshCatalog());
+    ipcMain.handle(IpcChannel.usageLimits, (_event, provider: unknown) => this.runtime.getUsageLimits(parseId(provider, "提供方")));
     ipcMain.handle(IpcChannel.selectModel, async (_event, provider: unknown, id: unknown, rawConversation: unknown) => {
       const conversationId = parseOptionalConversationId(rawConversation);
       await this.runtime.selectModel(parseId(provider, "提供方"), parseId(id, "模型"), conversationId);

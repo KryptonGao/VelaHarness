@@ -13,6 +13,8 @@ import {
   type ModelAuthEvent,
   type ModelCatalog,
   type ModelRefreshResult,
+  type UsageLimits,
+  type UsageLimitWindow,
   type ModelSummary,
   type NewConversationSelection,
   type ProviderSummary,
@@ -141,6 +143,37 @@ export class ModelDirectory {
     this.emit({ type: "catalog" });
     const errors = [...result.errors].map(([provider, error]) => ({ provider, message: error.message }));
     return { catalog: await this.catalog(), offline: false, errors };
+  }
+
+  /**
+   * 读取 ChatGPT 订阅（openai-codex）的 5 小时 / 每周额度。
+   * 用 Pi 解析并按需刷新过的登录令牌请求 ChatGPT 的 wham/usage；窗口按时长而不是 primary/secondary 归类，
+   * 只有周额度的计划（如 Pro）只会得到一个窗口。
+   * 返回 null 表示这个提供方没有额度可读（不是 GPT 订阅、没登录、离线模式）；网络或服务端的临时失败会抛错，
+   * 让界面保留上一次的数值，而不是把圆环藏起来。
+   */
+  async usageLimits(providerId: string): Promise<UsageLimits | null> {
+    if (providerId !== codexProviderId || process.env.PI_OFFLINE !== undefined) return null;
+    const result = await this.runtime.getAuth(providerId);
+    const token = result?.auth.apiKey;
+    const accountId = token ? chatgptAccountId(token) : null;
+    if (!token || !accountId) return null;
+    let failure: unknown;
+    // chatgpt.com 偶尔在 TLS 握手时就断开连接，重试一次通常就恢复。
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      if (attempt > 0) await new Promise((resolve) => setTimeout(resolve, 800));
+      try {
+        const response = await fetch(codexUsageUrl, {
+          headers: { Authorization: `Bearer ${token}`, "chatgpt-account-id": accountId, originator: "pi", Accept: "application/json" },
+          signal: AbortSignal.timeout(10_000),
+        });
+        if (!response.ok) throw new Error(`额度接口返回 ${response.status}`);
+        return parseCodexUsage(providerId, await response.json(), Date.now());
+      } catch (error) {
+        failure = error;
+      }
+    }
+    throw failure instanceof Error ? failure : new Error("无法读取额度");
   }
 
   subscribeAuth(listener: (event: ModelAuthEvent) => void): () => void {
@@ -775,4 +808,41 @@ function isAuthSource(value: string | undefined): value is AuthSource {
     || value === "fallback"
     || value === "models_json_key"
     || value === "models_json_command";
+}
+
+const codexProviderId = "openai-codex";
+const codexUsageUrl = "https://chatgpt.com/backend-api/wham/usage";
+
+/** ChatGPT 访问令牌是 JWT，账号 ID 在 `https://api.openai.com/auth` 声明里。 */
+function chatgptAccountId(token: string): string | null {
+  try {
+    const payload = JSON.parse(Buffer.from(token.split(".")[1] ?? "", "base64url").toString("utf8")) as Record<string, unknown>;
+    const claim = payload["https://api.openai.com/auth"] as { chatgpt_account_id?: unknown } | undefined;
+    return typeof claim?.chatgpt_account_id === "string" ? claim.chatgpt_account_id : null;
+  } catch {
+    return null;
+  }
+}
+
+/** 把 wham/usage 的返回整理成额度窗口；字段缺失或格式不符的窗口直接丢弃。导出供测试。 */
+export function parseCodexUsage(provider: string, body: unknown, now: number): UsageLimits | null {
+  if (!body || typeof body !== "object") return null;
+  const record = body as { plan_type?: unknown; rate_limit?: { primary_window?: unknown; secondary_window?: unknown } | null };
+  const windows: UsageLimitWindow[] = [];
+  for (const raw of [record.rate_limit?.primary_window, record.rate_limit?.secondary_window]) {
+    if (!raw || typeof raw !== "object") continue;
+    const item = raw as { used_percent?: unknown; limit_window_seconds?: unknown; reset_at?: unknown; reset_after_seconds?: unknown };
+    if (typeof item.used_percent !== "number" || !Number.isFinite(item.used_percent)) continue;
+    if (typeof item.limit_window_seconds !== "number" || item.limit_window_seconds <= 0) continue;
+    const resetsAt = typeof item.reset_at === "number" ? item.reset_at * 1000
+      : typeof item.reset_after_seconds === "number" ? now + item.reset_after_seconds * 1000
+      : null;
+    windows.push({
+      windowMinutes: Math.round(item.limit_window_seconds / 60),
+      usedPercent: Math.min(100, Math.max(0, item.used_percent)),
+      resetsAt,
+    });
+  }
+  windows.sort((a, b) => a.windowMinutes - b.windowMinutes);
+  return { provider, plan: typeof record.plan_type === "string" ? record.plan_type : null, windows, fetchedAt: now };
 }

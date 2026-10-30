@@ -96,6 +96,7 @@ export const IpcChannel = {
   event: "session:event",
   getCatalog: "models:get-catalog",
   refreshCatalog: "models:refresh-catalog",
+  usageLimits: "models:usage-limits",
   selectModel: "models:select",
   setThinkingLevel: "models:thinking",
   addModel: "models:add",
@@ -215,6 +216,8 @@ export const IpcChannel = {
   appUiStorageGet: "app:ui-storage-get",
   appUiStorageSet: "app:ui-storage-set",
   appIsDevelopment: "app:is-development",
+  appWindowFocus: "app:window-focus",
+  appWindowFocusChange: "app:window-focus-change",
   appSyncProductionConversations: "app:sync-production-conversations",
   appSyncPreview: "app:sync-production-preview",
   appSyncRun: "app:sync-production-run",
@@ -486,6 +489,26 @@ export interface ModelRefreshResult {
   offline: boolean;
   /** 获取失败的提供方，已保留本地缓存的模型。 */
   errors: { provider: string; message: string }[];
+}
+
+/** 订阅账号的一个额度窗口（如 5 小时、每周）。 */
+export interface UsageLimitWindow {
+  /** 窗口长度（分钟）；5 小时为 300，每周为 10080。 */
+  windowMinutes: number;
+  /** 已用百分比，0–100。 */
+  usedPercent: number;
+  /** 重置时间（毫秒时间戳），未知为 null。 */
+  resetsAt: number | null;
+}
+
+/** GPT（ChatGPT 登录）订阅额度；没有额度信息的账号 windows 为空。 */
+export interface UsageLimits {
+  provider: string;
+  /** 订阅计划，如 plus、pro。 */
+  plan: string | null;
+  /** 按窗口从短到长排列。 */
+  windows: UsageLimitWindow[];
+  fetchedAt: number;
 }
 
 export interface CustomModelInput {
@@ -2932,6 +2955,10 @@ export interface VelaApi extends McpApi, PluginApi {
     removeItem(key: string): void;
   };
   setLocale(locale: AppLocale): void;
+  /** 本窗口当前是否为系统的活动窗口;焦点在内嵌浏览器里时仍算活动。 */
+  isWindowFocused?(): boolean;
+  /** 窗口得到或失去系统焦点时回调,返回取消订阅函数。 */
+  onWindowFocusChange?(listener: (focused: boolean) => void): () => void;
   getState(conversationId?: string): Promise<AppState>;
   prompt(text: string, images?: ImageAttachment[], conversationId?: string, deliverAs?: RuntimeInstructionMode): Promise<AppState>;
   /** 撤销一条尚未被模型消费的运行中指令。 */
@@ -2992,6 +3019,8 @@ export interface VelaApi extends McpApi, PluginApi {
   getCatalog(): Promise<ModelCatalog>;
   /** 立即从 Pi 重新获取模型列表，忽略 4 小时的检查间隔。 */
   refreshCatalog(): Promise<ModelRefreshResult>;
+  /** 读取订阅额度；不支持或没有登录时返回 null，网络等临时失败会抛错。 */
+  getUsageLimits(provider: string): Promise<UsageLimits | null>;
   selectModel(provider: string, id: string, conversationId?: string): Promise<AppState>;
   setThinkingLevel(level: ThinkingLevel, conversationId?: string): Promise<AppState>;
   addModel(input: CustomModelInput): Promise<AppState>;

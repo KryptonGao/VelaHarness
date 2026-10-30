@@ -33,6 +33,7 @@ const suites = {
     { name: "intelligent-ui-ui", runner: "node" },
     { name: "agent-inbox-ui", runner: "node" },
     { name: "nav-rail-ui", runner: "node" },
+    { name: "info-cards-ui", runner: "node" },
   ],
   smoke: [
     { name: "pi-sdk-electron-smoke", runner: "node" },

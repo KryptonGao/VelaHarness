@@ -59,6 +59,7 @@ export function AppearancePage({ copy, preferences }: { copy: SettingsCopy; pref
   const fileIconThemeOptions: { id: FileIconTheme; label: string }[] = [
     { id: "material", label: text.materialIconTheme },
     { id: "devicon", label: text.devicon },
+    { id: "catppuccin", label: text.catppuccinIconTheme },
   ];
 
   const serifNote = useMemo(
@@ -125,6 +126,18 @@ export function AppearancePage({ copy, preferences }: { copy: SettingsCopy; pref
         >
           {editing?.theme.scheme === "dark" ? editor : null}
         </ThemeGroup>
+      </SettingsBlock>
+      <SettingsBlock id="glass-tint" title={text.glassTint} hint={text.glassTintHint}>
+        <Segmented
+          label={text.glassTint}
+          value={preferences.glassTint}
+          options={[
+            { id: "theme", label: text.glassTintTheme },
+            { id: "neutral", label: text.glassTintNeutral },
+            { id: "none", label: text.glassTintNone },
+          ]}
+          onChange={preferences.setGlassTint}
+        />
       </SettingsBlock>
       <SettingsBlock id="file-icon-theme" title={text.fileIconTheme} hint={text.fileIconThemeHint}>
         <Segmented
