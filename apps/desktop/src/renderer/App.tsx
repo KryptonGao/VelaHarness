@@ -41,6 +41,7 @@ import { WorkbenchPanel, type WorkbenchTab } from "./components/WorkbenchPanel";
 import { WorkbenchChatView } from "./components/WorkbenchChatView";
 import { SideChatPanel } from "./components/SideChatPanel";
 import { BrowserViewHost } from "./components/browser/BrowserViewHost";
+import { ButtonTooltip } from "./components/ButtonTooltip";
 import { useBrowserTabs } from "./browser/useBrowserTabs";
 import { useReplyFocus } from "./browser/reply-store";
 import { routeConversationLink } from "./browser/conversation-link-policy";
@@ -825,6 +826,10 @@ export function App() {
     window.vela?.setLocale(preferences.locale);
   }, [preferences.locale]);
 
+  useEffect(() => {
+    window.vela?.setAppearance(preferences.appearance);
+  }, [preferences.appearance]);
+
   // 更新后第一次打开：安装版读取包内的发布说明，没看过这个版本就盖一张「新到港」。
   useEffect(() => {
     if (!onboardingComplete || skipWhatsNew.current) return;
@@ -877,6 +882,7 @@ export function App() {
         <ComposerSeedContext.Provider value={composerSeedContext}>
         <SideChatLauncherContext.Provider value={openSideChatTab}>
         <div className="app-screens">
+          <ButtonTooltip />
           <BrowserViewHost tabs={browser.allTabs}
             activeTabId={browser.tabs.some(tab => tab.id === activeWorkbenchTabId) ? activeWorkbenchTabId : null}
             visible={onboardingComplete && !settingsOpen && !scheduledTasksOpen && !recipesOpen && !prInboxOpen && !agentInboxOpen && !workbenchCollapsed} hosted={browser.hosted} command={browser.command} />

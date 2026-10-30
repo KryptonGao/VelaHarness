@@ -213,6 +213,7 @@ export const IpcChannel = {
   appOpenInTarget: "app:open-in-target",
   appMenuAction: "app:menu-action",
   appSetLocale: "app:set-locale",
+  appSetAppearance: "app:set-appearance",
   appUiStorageGet: "app:ui-storage-get",
   appUiStorageSet: "app:ui-storage-set",
   appIsDevelopment: "app:is-development",
@@ -2955,6 +2956,8 @@ export interface VelaApi extends McpApi, PluginApi {
     removeItem(key: string): void;
   };
   setLocale(locale: AppLocale): void;
+  /** 把应用的明暗选择同步给系统外观,让原生毛玻璃材质与界面明暗一致。 */
+  setAppearance(appearance: "system" | "light" | "dark"): void;
   /** 本窗口当前是否为系统的活动窗口;焦点在内嵌浏览器里时仍算活动。 */
   isWindowFocused?(): boolean;
   /** 窗口得到或失去系统焦点时回调,返回取消订阅函数。 */

@@ -381,6 +381,7 @@ const api: VelaApi = {
     removeItem: (key) => { storageRequest(IpcChannel.appUiStorageSet, key, null); },
   },
   setLocale: (locale: AppLocale) => ipcRenderer.send(IpcChannel.appSetLocale, locale),
+  setAppearance: (appearance) => ipcRenderer.send(IpcChannel.appSetAppearance, appearance),
   isWindowFocused: () => ipcRenderer.sendSync(IpcChannel.appWindowFocus) === true,
   onWindowFocusChange: listener => {
     const handler = (_event: IpcRendererEvent, focused: boolean) => listener(focused);

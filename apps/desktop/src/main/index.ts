@@ -725,6 +725,10 @@ app.whenReady().then(async () => {
   ipcMain.on(IpcChannel.appSetLocale, (_event, locale: unknown) => {
     if (isAppLocale(locale)) setApplicationLocale(locale);
   });
+  // 窗口底层是系统 vibrancy,材质明暗跟随 nativeTheme;不与界面明暗一致,会在亮色界面下透出发暗的灰、深色界面下透出发亮的灰。
+  ipcMain.on(IpcChannel.appSetAppearance, (_event, appearance: unknown) => {
+    if (appearance === "system" || appearance === "light" || appearance === "dark") nativeTheme.themeSource = appearance;
+  });
   setApplicationLocale("zh-CN");
 
   log.info("app started", systemInfo());

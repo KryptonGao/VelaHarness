@@ -755,15 +755,23 @@ code,
 }
 
 /*
+ * 深色下系统毛玻璃会把明亮的壁纸透成一圈发灰的亮边,贴着近黑的内容纸面显得很突兀;
+ * 把叠色提到约 85% 不透明,让外框沉下来,仍保留一点透出的质感。
+ */
+:root[data-scheme="dark"] {
+  --glass-fill: rgb(from var(--bg-sidebar-glass) r g b / 0.85);
+}
+
+/*
  * 玻璃染色(设置 → 外观):默认染主题色;「明暗」亮色染白、深色染黑,与主题无关;
- * 「不染色」去掉这一层,透出系统毛玻璃本身(非 macOS 则透出窗口底色)。
+ * 「不染色」去掉这一层,透出系统毛玻璃本身(非 macOS 则透出窗口底色);深色下例外,回退为「明暗」。
  * 模糊半径三档共用,只改叠色,切换时玻璃的质感不变。
  */
 :root[data-glass-tint="neutral"][data-scheme="light"] {
   --glass-fill: rgba(255, 255, 255, 0.6);
 }
 :root[data-glass-tint="neutral"][data-scheme="dark"] {
-  --glass-fill: rgba(0, 0, 0, 0.5);
+  --glass-fill: rgba(0, 0, 0, 0.62);
 }
 /*
  * 窗口失焦时,所有半透明玻璃改为不透明:不再透出桌面,也不随系统失焦变灰。
@@ -776,6 +784,11 @@ code,
 :root[data-glass-tint="neutral"][data-scheme="dark"] { --glass-solid: #151515; }
 :root[data-glass-tint="none"] {
   --glass-fill: transparent;
+}
+/* 深色下「不染色」会透出发灰发亮的系统毛玻璃,与近黑纸面反差过大,所以回退为「明暗」的深色效果。 */
+:root[data-glass-tint="none"][data-scheme="dark"] {
+  --glass-fill: rgba(0, 0, 0, 0.62);
+  --glass-solid: #151515;
 }
 /* 属性数量要不少于上面的明暗染色规则,否则失焦时压不过它们。 */
 :root[data-window-focused="false"][data-glass-tint][data-scheme] {
@@ -11281,3 +11294,31 @@ a.mcp-result-title:hover { color: var(--accent-blue); }
 .changes-filter-notice { padding: 10px 14px; color: var(--text-secondary); background: var(--bg-surface-subtle); font-size: 12px; }
 .changes-filter-retry { margin-left: 8px; color: var(--accent-blue); cursor: pointer; }
 .turn-review-view.is-compact .changes-filter-detail { max-width: 64px; }
+
+/* 按钮悬停提示:黑色小窗,功能名加快捷键。 */
+.button-tooltip {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  padding: 7px 12px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: #0d0d0f;
+  color: #f4f4f5;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.28);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: max-content;
+  max-width: min(340px, calc(100vw - 16px));
+  font: 500 13px/1.3 var(--font-sans);
+  pointer-events: none;
+  overflow: visible;
+  animation: button-tooltip-in 120ms var(--motion-ease-enter);
+  /* 在按钮之间切换时滑过去,不闪也不跳 */
+  transition: left 140ms var(--motion-ease-enter), top 140ms var(--motion-ease-enter);
+}
+.button-tooltip-keys { display: inline-flex; align-items: center; gap: 5px; color: #b4b6bb; flex: none; }
+.button-tooltip-keys kbd { font: inherit; }
+@keyframes button-tooltip-in { from { opacity: 0; transform: translateY(-2px); } }
+@media (prefers-reduced-motion: reduce) { .button-tooltip { animation: none; transition: none; } }

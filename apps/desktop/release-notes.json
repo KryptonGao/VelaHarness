@@ -1,134 +1,119 @@
 {
-  "version": "1.2.10",
+  "version": "1.2.11",
   "locales": {
     "en": {
-      "summary": "Vela 1.2.10 shows your ChatGPT subscription usage next to the model name, lets you choose how translucent areas are tinted, adds the Catppuccin file icon theme, and makes info cards and compact file diffs behave more predictably.",
+      "summary": "Vela 1.2.11 adds hover tooltips to icon buttons that show the action and its keyboard shortcut, and softens the translucent frame in dark mode so it sits better against the content area.",
       "highlights": [
         {
-          "title": "Subscription usage at a glance",
-          "body": "When you sign in to GPT with ChatGPT, a small ring next to the model name shows how much of your 5-hour and weekly limits is used. Click it to see each window's usage and reset time."
+          "title": "Button tooltips with shortcuts",
+          "body": "Hover an icon button for a moment and a small dark tooltip names the action and shows its keyboard shortcut. Moving between neighboring buttons slides the tooltip along instead of flickering."
         },
         {
-          "title": "Translucent area tint",
-          "body": "Settings → Appearance now lets you choose how the sidebars and top bar are tinted: the theme color, plain light/dark, or no tint to show only the system blur. The glass turns opaque when the window loses focus."
+          "title": "Softer dark-mode frame",
+          "body": "In dark mode the translucent sidebars and top bar no longer show a pale gray rim from bright wallpapers; they are tinted deeper so the frame blends into the near-black content area."
         },
         {
-          "title": "Catppuccin file icons",
-          "body": "A third file icon theme, Catppuccin, joins Material Icon Theme and Devicon for file previews and tool calls."
-        },
-        {
-          "title": "Steadier info cards and diffs",
-          "body": "Info cards hide only when the text area becomes too narrow for them, and compact file diffs open at the first change without a fading edge."
+          "title": "Tint setting made clearer",
+          "body": "In dark mode, choosing None for the translucent area tint now falls back to the Light/Dark look, and the setting's description says so."
         }
       ],
       "improvements": [
-        "The selected item in the Categories rail now uses a filled icon.",
-        "Info cards no longer capture the pointer while hidden, and their spacing next to the composer is measured more accurately.",
-        "New interface text is available in all five languages."
+        "The window's native blur material now follows Vela's own light/dark setting instead of the system appearance, so a light Vela on a dark system (or the reverse) no longer shows a mismatched gray.",
+        "The rename button next to the chat title and the navigation rail items show the new tooltips too.",
+        "Tooltips stay out of settings, the file tree and expand/collapse toggles, and respect reduced-motion preferences.",
+        "The updated setting description is available in all five languages."
       ]
     },
     "zh-CN": {
-      "summary": "Vela 1.2.10 在模型名称旁显示 ChatGPT 订阅额度，可选择半透明区域的染色方式，新增 Catppuccin 文件图标主题，并让信息卡片和紧凑文件差异的表现更可预期。",
+      "summary": "Vela 1.2.11 为图标按钮加入悬停提示，显示功能名称和快捷键，并在深色模式下柔化半透明外框，使其与内容区域更协调。",
       "highlights": [
         {
-          "title": "订阅额度一目了然",
-          "body": "用 ChatGPT 登录 GPT 后，模型名称旁会出现一个小圆环，显示 5 小时和每周额度的已用比例；点击可查看各额度窗口的用量和重置时间。"
+          "title": "带快捷键的按钮提示",
+          "body": "将鼠标停在图标按钮上片刻，会弹出一个深色小提示，写明功能名称并显示对应快捷键；在相邻按钮之间移动时，提示会平滑滑过去而不是闪烁。"
         },
         {
-          "title": "透明部分染色",
-          "body": "在 设置 → 外观 中可选择侧栏、顶栏等半透明区域的染色方式：主题颜色、明暗，或不染色而只显示系统毛玻璃。窗口失去焦点时，玻璃会变为不透明。"
+          "title": "更柔和的深色外框",
+          "body": "深色模式下，半透明的侧栏和顶栏不再被明亮壁纸透出一圈发灰的亮边；叠色更深，外框与近黑的内容区域融为一体。"
         },
         {
-          "title": "Catppuccin 文件图标",
-          "body": "文件预览和工具调用的图标主题新增 Catppuccin，与 Material Icon Theme、Devicon 并列可选。"
-        },
-        {
-          "title": "更稳定的信息卡片与差异",
-          "body": "信息卡片只在文字区域窄到放不下时才隐藏；紧凑文件差异会直接定位到第一处改动，边缘也不再渐隐。"
+          "title": "染色设置说明更清楚",
+          "body": "深色模式下，把「透明部分染色」设为「不染色」会回退为「明暗」的效果，设置说明里也已注明。"
         }
       ],
       "improvements": [
-        "「分类」栏中选中的项目现在使用实心图标。",
-        "信息卡片隐藏时不再捕获鼠标指针，与输入框之间的间距测量也更准确。",
-        "新增界面文案已提供五种语言。"
+        "窗口的原生毛玻璃材质现在跟随 Vela 自己的明暗设置而不是系统外观，亮色界面搭配深色系统（或反之）时不再透出不协调的灰色。",
+        "对话标题旁的重命名按钮和导航栏项目也会显示新的悬停提示。",
+        "设置页、文件树和展开/折叠开关不会弹出提示，并遵循「减少动态效果」偏好。",
+        "更新后的设置说明已提供五种语言。"
       ]
     },
     "zh-TW": {
-      "summary": "Vela 1.2.10 在模型名稱旁顯示 ChatGPT 訂閱額度，可選擇半透明區域的染色方式，新增 Catppuccin 檔案圖示主題，並讓資訊卡片與精簡檔案差異的表現更可預期。",
+      "summary": "Vela 1.2.11 為圖示按鈕加入懸停提示，顯示功能名稱與快捷鍵，並在深色模式下柔化半透明外框，使其與內容區域更協調。",
       "highlights": [
         {
-          "title": "訂閱額度一目了然",
-          "body": "以 ChatGPT 登入 GPT 後，模型名稱旁會出現一個小圓環，顯示 5 小時與每週額度的已用比例；點擊可查看各額度視窗的用量與重置時間。"
+          "title": "帶快捷鍵的按鈕提示",
+          "body": "將滑鼠停在圖示按鈕上片刻，會彈出一個深色小提示，寫明功能名稱並顯示對應快捷鍵；在相鄰按鈕之間移動時，提示會平滑滑過去而不是閃爍。"
         },
         {
-          "title": "透明部分染色",
-          "body": "在 設定 → 外觀 中可選擇側欄、頂欄等半透明區域的染色方式：主題顏色、明暗，或不染色而只顯示系統毛玻璃。視窗失去焦點時，玻璃會變為不透明。"
+          "title": "更柔和的深色外框",
+          "body": "深色模式下，半透明的側欄與頂欄不再被明亮桌布透出一圈發灰的亮邊；疊色更深，外框與近黑的內容區域融為一體。"
         },
         {
-          "title": "Catppuccin 檔案圖示",
-          "body": "檔案預覽與工具呼叫的圖示主題新增 Catppuccin，與 Material Icon Theme、Devicon 並列可選。"
-        },
-        {
-          "title": "更穩定的資訊卡片與差異",
-          "body": "資訊卡片只在文字區域窄到放不下時才隱藏；精簡檔案差異會直接定位到第一處變更，邊緣也不再漸隱。"
+          "title": "染色設定說明更清楚",
+          "body": "深色模式下，把「透明部分染色」設為「不染色」會回退為「明暗」的效果，設定說明中也已註明。"
         }
       ],
       "improvements": [
-        "「分類」欄中選取的項目現在使用實心圖示。",
-        "資訊卡片隱藏時不再捕捉滑鼠指標，與輸入框之間的間距量測也更準確。",
-        "新增介面文字已提供五種語言。"
+        "視窗的原生毛玻璃材質現在跟隨 Vela 自己的明暗設定而非系統外觀，亮色介面搭配深色系統（或反之）時不再透出不協調的灰色。",
+        "對話標題旁的重新命名按鈕與導覽列項目也會顯示新的懸停提示。",
+        "設定頁、檔案樹與展開/收合開關不會彈出提示，並遵循「減少動態效果」偏好。",
+        "更新後的設定說明已提供五種語言。"
       ]
     },
     "ja": {
-      "summary": "Vela 1.2.10 では、モデル名の横に ChatGPT サブスクリプションの利用枠を表示し、半透明部分の色付け方法を選べるようにしました。Catppuccin ファイルアイコンテーマも追加し、情報カードとコンパクトなファイル差分の挙動を安定させました。",
+      "summary": "Vela 1.2.11 では、アイコンボタンにホバーツールチップを追加し、機能名とショートカットキーを表示します。また、ダークモードの半透明フレームを柔らかくし、コンテンツ領域となじむようにしました。",
       "highlights": [
         {
-          "title": "利用枠をひと目で確認",
-          "body": "ChatGPT で GPT にサインインすると、モデル名の横に小さなリングが表示され、5 時間枠と週間枠の使用率が分かります。クリックすると各枠の使用量とリセット時刻を確認できます。"
+          "title": "ショートカット付きボタンヒント",
+          "body": "アイコンボタンにしばらくカーソルを置くと、機能名と対応するショートカットキーを示す黒い小さなヒントが表示されます。隣のボタンへ移動すると、ヒントはちらつかずに滑らかに移動します。"
         },
         {
-          "title": "半透明部分の色付け",
-          "body": "設定 → 外観 で、サイドバーやトップバーなど半透明部分の色付けを、テーマカラー・明暗・色付けなし（システムのぼかしのみ）から選べます。ウィンドウがフォーカスを失うとガラスは不透明になります。"
+          "title": "やわらかなダークモードのフレーム",
+          "body": "ダークモードでは、半透明のサイドバーやトップバーに明るい壁紙の灰色っぽい縁が透けなくなりました。色を深くのせることで、ほぼ黒のコンテンツ領域となじみます。"
         },
         {
-          "title": "Catppuccin ファイルアイコン",
-          "body": "ファイルプレビューとツール呼び出しのアイコンテーマに Catppuccin が加わり、Material Icon Theme・Devicon と並んで選べます。"
-        },
-        {
-          "title": "より安定した情報カードと差分",
-          "body": "情報カードは、テキスト領域が狭くなって収まらないときだけ隠れます。コンパクトなファイル差分は最初の変更位置から表示され、端のフェードもなくなりました。"
+          "title": "色付け設定の説明を明確化",
+          "body": "ダークモードで「半透明部分の色付け」を「なし」にすると「明暗」の見た目に切り替わります。設定の説明にもその旨を追記しました。"
         }
       ],
       "improvements": [
-        "「カテゴリ」レールで選択中の項目は塗りつぶしアイコンで表示されます。",
-        "情報カードが隠れている間はポインターを受け取らなくなり、入力欄との間隔の測定も正確になりました。",
-        "追加された画面テキストは 5 言語に対応しています。"
+        "ウィンドウのネイティブなぼかし素材が、システムの外観ではなく Vela 自身のライト/ダーク設定に従うようになり、システムと Vela の明暗が異なる場合でも不自然なグレーが透けなくなりました。",
+        "チャットタイトル横の名前変更ボタンとナビゲーションレールの項目にも新しいツールチップが表示されます。",
+        "設定画面、ファイルツリー、展開/折りたたみの切り替えにはヒントを表示せず、視差効果を減らす設定にも対応しています。",
+        "更新した設定の説明は 5 言語に対応しています。"
       ]
     },
     "ko": {
-      "summary": "Vela 1.2.10은 모델 이름 옆에 ChatGPT 구독 사용량을 표시하고, 반투명 영역의 색조 방식을 고를 수 있게 했습니다. Catppuccin 파일 아이콘 테마를 추가했고, 정보 카드와 간결한 파일 diff의 동작도 더 안정적으로 다듬었습니다.",
+      "summary": "Vela 1.2.11은 아이콘 버튼에 마우스를 올리면 기능 이름과 단축키를 보여 주는 툴팁을 추가하고, 다크 모드의 반투명 프레임을 부드럽게 다듬어 콘텐츠 영역과 더 잘 어울리게 했습니다.",
       "highlights": [
         {
-          "title": "구독 사용량을 한눈에",
-          "body": "ChatGPT로 GPT에 로그인하면 모델 이름 옆에 작은 링이 나타나 5시간 및 주간 한도의 사용 비율을 보여 줍니다. 클릭하면 각 한도의 사용량과 초기화 시각을 볼 수 있습니다."
+          "title": "단축키가 표시되는 버튼 툴팁",
+          "body": "아이콘 버튼 위에 잠시 마우스를 올리면 기능 이름과 단축키를 알려 주는 작은 검은색 툴팁이 나타납니다. 인접한 버튼으로 이동하면 툴팁이 깜빡이지 않고 부드럽게 따라갑니다."
         },
         {
-          "title": "반투명 영역 색조",
-          "body": "설정 → 모양에서 사이드바와 상단 바 같은 반투명 영역의 색조를 테마 색, 밝음/어두움, 색조 없음(시스템 블러만 표시) 중에서 고를 수 있습니다. 창이 포커스를 잃으면 유리는 불투명해집니다."
+          "title": "더 부드러운 다크 모드 프레임",
+          "body": "다크 모드에서 반투명 사이드바와 상단 바에 밝은 배경화면의 회색빛 테두리가 비치지 않습니다. 색조를 더 짙게 입혀 거의 검은 콘텐츠 영역과 자연스럽게 어우러집니다."
         },
         {
-          "title": "Catppuccin 파일 아이콘",
-          "body": "파일 미리보기와 도구 호출의 아이콘 테마에 Catppuccin이 추가되어 Material Icon Theme, Devicon과 함께 선택할 수 있습니다."
-        },
-        {
-          "title": "더 안정적인 정보 카드와 diff",
-          "body": "정보 카드는 텍스트 영역이 너무 좁아졌을 때만 숨겨집니다. 간결한 파일 diff는 첫 번째 변경 위치에서 열리고 가장자리 페이드도 사라졌습니다."
+          "title": "색조 설정 설명 개선",
+          "body": "다크 모드에서 '반투명 영역 색조'를 '없음'으로 선택하면 '밝음/어두움' 모양으로 대체되며, 설정 설명에도 이를 안내합니다."
         }
       ],
       "improvements": [
-        "'카테고리' 레일에서 선택된 항목은 채워진 아이콘으로 표시됩니다.",
-        "정보 카드가 숨겨져 있는 동안에는 포인터를 가로채지 않으며, 입력창과의 간격 측정도 더 정확해졌습니다.",
-        "새 화면 문구는 5개 언어로 제공됩니다."
+        "창의 기본 블러 소재가 시스템 외관이 아닌 Vela 자체의 밝음/어두움 설정을 따르므로, 시스템과 Vela의 밝기가 다를 때 어색한 회색이 비치지 않습니다.",
+        "채팅 제목 옆의 이름 바꾸기 버튼과 탐색 레일 항목에도 새 툴팁이 표시됩니다.",
+        "설정, 파일 트리, 펼치기/접기 토글에서는 툴팁이 나타나지 않으며 동작 줄이기 설정을 따릅니다.",
+        "업데이트된 설정 설명은 5개 언어로 제공됩니다."
       ]
     }
   }

@@ -689,7 +689,7 @@ export function ChatView({
             <button
               className="chat-active-title chat-title-rename"
               type="button"
-              title={tr("重命名对话", "Rename chat")}
+              title={tr("重命名对话", "Rename chat")} data-tooltip
               aria-label={`${tr("重命名对话", "Rename chat")} “${title}”`}
               onClick={() => onRenameConversation(state.activeConversationId!)}
             ><span>{title}</span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="m16 3 5 5-12 12-6 1 1-6L16 3Z" /><path d="m14 5 5 5" /></svg></button>

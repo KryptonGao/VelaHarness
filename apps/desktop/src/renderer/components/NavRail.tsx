@@ -21,7 +21,7 @@ export function NavRail({ active, platform, agentInboxBadge, onSelect }: NavRail
   const mod = modKeyLabel(platform);
   const button = (category: NavCategory, label: string, glyph: ReactNode, options: { badge?: number; title?: string } = {}) => {
     const badge = options.badge ?? 0;
-    return <button key={category} className="nav-rail-item" type="button" title={options.title ?? label}
+    return <button key={category} className="nav-rail-item" type="button" title={options.title ?? label} data-tooltip
       aria-label={badge > 0 ? trf("{0}，{1} 项需要处理", "{0}, {1} need your attention", label, badge) : label}
       aria-current={active === category ? "page" : undefined} onClick={() => onSelect(category)}>
       <span className="nav-rail-icon">{glyph}</span>
