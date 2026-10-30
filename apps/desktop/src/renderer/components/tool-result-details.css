@@ -1,0 +1,43 @@
+.tool-result-details { min-width: 0; color: var(--text-secondary); font-size: 13px; line-height: 1.65; overflow-wrap: anywhere; }
+.tool-result-details p { margin: 6px 0; }
+.tool-result-heading, .tool-result-item-title { color: var(--text-primary); font-weight: 600; margin: 4px 0 8px; font-size: inherit; }
+.tool-result-fields { margin: 8px 0; min-width: 0; }
+.tool-result-fields > div { display: grid; grid-template-columns: minmax(72px, 24%) minmax(0, 1fr); column-gap: 12px; padding: 3px 0; align-items: start; }
+.tool-result-fields dt { color: var(--text-muted); font-weight: 400; }
+.tool-result-fields dd { margin: 0; min-width: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.tool-result-fields code, .tool-result-details code { font-family: var(--font-mono); font-size: 0.94em; white-space: pre-wrap; overflow-wrap: anywhere; }
+.tool-result-muted, .tool-value-empty { color: var(--text-muted); }
+.tool-result-error { color: var(--danger); white-space: pre-wrap; overflow-wrap: anywhere; }
+.tool-result-aux { border-top: 1px solid var(--border-subtle); margin: 10px 0 0; padding: 7px 0 0; }
+.tool-result-aux > summary, .tool-value-branch > summary { cursor: pointer; color: var(--text-muted); padding: 4px 0; min-height: 28px; list-style-position: inside; user-select: none; }
+.tool-result-aux > summary:hover, .tool-value-branch > summary:hover { color: var(--text-primary); }
+.tool-result-aux > summary:focus-visible, .tool-value-branch > summary:focus-visible, .tool-result-more:focus-visible, .tool-value-table-scroll:focus-visible, .tool-result-raw-text:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+.tool-result-more { color: var(--text-secondary); background: var(--bg-surface-subtle); border: 1px solid var(--border-subtle); border-radius: var(--radius-md, 6px); padding: 5px 10px; min-height: 30px; font: inherit; font-size: 12px; cursor: pointer; margin: 5px 0; }
+.tool-result-more:hover { background: var(--bg-hover); color: var(--text-primary); }
+.tool-result-list { display: grid; gap: 0; min-width: 0; }
+.tool-result-list-item { min-width: 0; padding: 9px 0; border-bottom: 1px solid var(--border-subtle); }
+.tool-result-list-item:last-child { border-bottom: 0; }
+.tool-result-copy-row { display: flex; align-items: center; gap: 10px; min-height: 36px; }
+.tool-result-raw-text, .tool-result-content-text { margin: 8px 0; font-family: var(--font-mono); font-size: 12px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 280px; overflow: auto; padding: 10px; border-radius: var(--radius-md, 6px); background: var(--bg-code); color: var(--text-secondary); }
+.tool-result-raw-text.tool-result-error { color: var(--danger); }
+.tool-result-image { display: block; max-width: 100%; max-height: 320px; object-fit: contain; margin: 10px 0; border-radius: var(--radius-md, 6px); }
+.tool-result-details a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.tool-result-details .tool-terminal { margin: 10px 0; }
+.tool-result-details .tool-terminal-out { max-width: 100%; white-space: pre-wrap; overflow-wrap: anywhere; }
+.tool-value-branch { min-width: 0; margin: 0; }
+.tool-value-branch > summary { font-size: 12px; }
+.tool-value-children { min-width: 0; margin-left: 10px; }
+.tool-value-list { padding-left: 20px; margin: 4px 0; }
+.tool-value-list > li { padding: 4px 0; min-width: 0; }
+.tool-value-fields { margin-top: 2px; }
+.tool-value-fields > div { grid-template-columns: minmax(64px, 28%) minmax(0, 1fr); border-bottom: 1px solid var(--border-subtle); padding: 5px 0; }
+.tool-value-fields > div:last-child { border-bottom: 0; }
+/* Nested objects stack key over value so deep trees keep a usable width in narrow panels. */
+.tool-value-fields .tool-value-fields > div { grid-template-columns: minmax(0, 1fr); row-gap: 1px; }
+.tool-value-fields .tool-value-children { margin-left: 6px; }
+.tool-value-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.tool-value-table-scroll { overflow-x: auto; max-width: 100%; margin: 5px 0; }
+.tool-value-table { width: 100%; border-collapse: collapse; font-size: 12px; color: var(--text-secondary); }
+.tool-value-table th, .tool-value-table td { text-align: start; vertical-align: top; padding: 7px 9px; border-bottom: 1px solid var(--border-subtle); min-width: 64px; max-width: 360px; overflow-wrap: anywhere; }
+.tool-value-table th { color: var(--text-muted); font-weight: 500; background: var(--bg-surface-subtle); }
+@container (max-width: 360px) { .tool-result-fields > div { grid-template-columns: minmax(0, 1fr); gap: 1px; } }

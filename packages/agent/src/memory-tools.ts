@@ -6,7 +6,7 @@
  * 输入校验、沙箱写权限和并发控制。Plan、子代理、定时任务和配方执行只注册
  * memory_read，写入由具备写权限的主代理完成。
  */
-import { defineTool, type ToolDefinition } from "@earendil-works/pi-coding-agent";
+import { defineTool, type AgentToolResult, type ToolDefinition } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 import {
   memoryFileMaxBytes,
@@ -92,6 +92,15 @@ interface MemoryFailure {
   message: string;
 }
 
+interface MemoryUpdateDetails {
+  scope: MemoryScope;
+  path: string;
+  revision: string;
+  bytes: number;
+  changed: boolean;
+  operation: "saved" | "cleared" | "unchanged";
+}
+
 /**
  * 注册记忆工具。update 为 false 时只返回 memory_read，模型无法看到写入入口。
  * 调用方仍要把工具名并入激活集合，setActiveToolsByName 才会生效。
@@ -132,7 +141,23 @@ export function createMemoryTools(options: MemoryToolOptions): ToolDefinition[] 
       if (entries.length === 1 && entries[0]!.failure) throw new Error(`[${entries[0]!.failure.code}] ${entries[0]!.failure.message}`);
       return {
         content: [{ type: "text", text: entries.map(formatReadEntry).join("\n\n") }],
-        details: { scopes: entries.map((entry) => entry.scope) },
+        details: {
+          scopes: entries.map((entry) => entry.scope),
+          entries: entries.map((entry) => entry.failure ? {
+            scope: entry.scope,
+            ...(entry.failure.path ? { path: entry.failure.path } : {}),
+            status: "failed" as const,
+            error: `[${entry.failure.code}] ${entry.failure.message}`,
+          } : {
+            scope: entry.scope,
+            path: entry.document!.path,
+            revision: entry.document!.revision,
+            bytes: Buffer.byteLength(entry.document!.content, "utf8"),
+            exists: entry.document!.exists,
+            content: entry.document!.content,
+            status: "read" as const,
+          }),
+        },
       };
     },
   });
@@ -152,7 +177,7 @@ export function createMemoryTools(options: MemoryToolOptions): ToolDefinition[] 
       content: Type.String({ description: "The complete merged Markdown document to save; an empty string clears it" }),
       expectedRevision: Type.String({ minLength: 1, description: `The revision returned by the most recent ${memoryReadToolName}; use absent if the file does not exist` }),
     }),
-    execute: async (_toolCallId, params, signal) => {
+    execute: async (_toolCallId, params, signal): Promise<AgentToolResult<MemoryUpdateDetails>> => {
       signal?.throwIfAborted();
       assertEnabled();
       if (!canUpdate()) {
@@ -177,7 +202,7 @@ export function createMemoryTools(options: MemoryToolOptions): ToolDefinition[] 
       if (current.exists && current.content === params.content) {
         return {
           content: [{ type: "text", text: `无需更新 ${current.scope} 记忆：内容未变化\npath: ${current.path}\nrevision: ${current.revision}` }],
-          details: { scope: current.scope, path: current.path, revision: current.revision, bytes: Buffer.byteLength(current.content, "utf8"), changed: false },
+          details: { scope: current.scope, path: current.path, revision: current.revision, bytes: Buffer.byteLength(current.content, "utf8"), changed: false, operation: "unchanged" as const },
         };
       }
       if (!options.permission) {
@@ -212,7 +237,7 @@ export function createMemoryTools(options: MemoryToolOptions): ToolDefinition[] 
           type: "text",
           text: `${summary} ${saved.scope} 记忆：${saved.path}\nrevision: ${saved.revision}\nbytes: ${bytes}`,
         }],
-        details: { scope: saved.scope, path: saved.path, revision: saved.revision, bytes, changed: true },
+        details: { scope: saved.scope, path: saved.path, revision: saved.revision, bytes, changed: true, operation: saved.content.trim().length === 0 ? "cleared" as const : "saved" as const },
       };
     },
   });

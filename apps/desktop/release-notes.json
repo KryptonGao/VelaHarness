@@ -1,119 +1,119 @@
 {
-  "version": "1.2.11",
+  "version": "1.2.12",
   "locales": {
     "en": {
-      "summary": "Vela 1.2.11 adds hover tooltips to icon buttons that show the action and its keyboard shortcut, and softens the translucent frame in dark mode so it sits better against the content area.",
+      "summary": "Vela 1.2.12 turns the results of built-in tools into readable, structured cards: background commands, memory, scheduled tasks, tool search, MCP resources and goals now each show what actually happened.",
       "highlights": [
         {
-          "title": "Button tooltips with shortcuts",
-          "body": "Hover an icon button for a moment and a small dark tooltip names the action and shows its keyboard shortcut. Moving between neighboring buttons slides the tooltip along instead of flickering."
+          "title": "Structured tool results",
+          "body": "Background commands, memory, scheduled tasks, tool search, MCP resources and goals each get a purpose-built details view with status, entries, tables and contents instead of raw text."
         },
         {
-          "title": "Softer dark-mode frame",
-          "body": "In dark mode the translucent sidebars and top bar no longer show a pale gray rim from bright wallpapers; they are tinted deeper so the frame blends into the near-black content area."
+          "title": "A safe fallback",
+          "body": "Results are validated and size-limited before display. If a record cannot be parsed fully, Vela shows the original response rather than a broken card."
         },
         {
-          "title": "Tint setting made clearer",
-          "body": "In dark mode, choosing None for the translucent area tint now falls back to the Light/Dark look, and the setting's description says so."
+          "title": "Older chats still read well",
+          "body": "Results saved by earlier versions are reorganized into the new view where possible, and a call that was only requested is labeled as a request, not a success."
         }
       ],
       "improvements": [
-        "The window's native blur material now follows Vela's own light/dark setting instead of the system appearance, so a light Vela on a dark system (or the reverse) no longer shows a mismatched gray.",
-        "The rename button next to the chat title and the navigation rail items show the new tooltips too.",
-        "Tooltips stay out of settings, the file tree and expand/collapse toggles, and respect reduced-motion preferences.",
-        "The updated setting description is available in all five languages."
+        "MCP tool cards share the same renderer, so images, resource metadata and output paths are laid out consistently.",
+        "The scheduled tasks page and the chat cards use the same task and run formatting.",
+        "Compact diffs and collapsed turns were adjusted so the new cards sit cleanly inside them.",
+        "All new labels are available in five languages."
       ]
     },
     "zh-CN": {
-      "summary": "Vela 1.2.11 为图标按钮加入悬停提示，显示功能名称和快捷键，并在深色模式下柔化半透明外框，使其与内容区域更协调。",
+      "summary": "Vela 1.2.12 把内置工具的结果整理成易读的结构化卡片：后台命令、记忆、定时任务、工具搜索、MCP 资源和目标，现在都会直接展示实际发生了什么。",
       "highlights": [
         {
-          "title": "带快捷键的按钮提示",
-          "body": "将鼠标停在图标按钮上片刻，会弹出一个深色小提示，写明功能名称并显示对应快捷键；在相邻按钮之间移动时，提示会平滑滑过去而不是闪烁。"
+          "title": "结构化的工具结果",
+          "body": "后台命令、记忆、定时任务、工具搜索、MCP 资源和目标各有专门的详情视图，展示状态、条目、表格和内容，而不再是一整块原始文本。"
         },
         {
-          "title": "更柔和的深色外框",
-          "body": "深色模式下，半透明的侧栏和顶栏不再被明亮壁纸透出一圈发灰的亮边；叠色更深，外框与近黑的内容区域融为一体。"
+          "title": "稳妥的回退",
+          "body": "结果在显示前会经过校验并限制大小；记录无法完整解析时，Vela 会显示原始响应，而不是一张残缺的卡片。"
         },
         {
-          "title": "染色设置说明更清楚",
-          "body": "深色模式下，把「透明部分染色」设为「不染色」会回退为「明暗」的效果，设置说明里也已注明。"
+          "title": "旧对话同样好读",
+          "body": "旧版本保存的结果会尽可能整理成新视图；只发出请求的调用会标为「请求」，不再被当作成功。"
         }
       ],
       "improvements": [
-        "窗口的原生毛玻璃材质现在跟随 Vela 自己的明暗设置而不是系统外观，亮色界面搭配深色系统（或反之）时不再透出不协调的灰色。",
-        "对话标题旁的重命名按钮和导航栏项目也会显示新的悬停提示。",
-        "设置页、文件树和展开/折叠开关不会弹出提示，并遵循「减少动态效果」偏好。",
-        "更新后的设置说明已提供五种语言。"
+        "MCP 工具卡片使用同一套渲染，图片、资源信息和输出路径排版更一致。",
+        "定时任务页面与对话卡片使用同一套任务与运行记录格式。",
+        "调整了精简差异和折叠回合，使新卡片能干净地放入其中。",
+        "所有新增文案均提供五种语言。"
       ]
     },
     "zh-TW": {
-      "summary": "Vela 1.2.11 為圖示按鈕加入懸停提示，顯示功能名稱與快捷鍵，並在深色模式下柔化半透明外框，使其與內容區域更協調。",
+      "summary": "Vela 1.2.12 把內建工具的結果整理成易讀的結構化卡片：背景指令、記憶、排程任務、工具搜尋、MCP 資源與目標，現在都會直接呈現實際發生了什麼。",
       "highlights": [
         {
-          "title": "帶快捷鍵的按鈕提示",
-          "body": "將滑鼠停在圖示按鈕上片刻，會彈出一個深色小提示，寫明功能名稱並顯示對應快捷鍵；在相鄰按鈕之間移動時，提示會平滑滑過去而不是閃爍。"
+          "title": "結構化的工具結果",
+          "body": "背景指令、記憶、排程任務、工具搜尋、MCP 資源與目標各有專屬的詳情檢視，呈現狀態、項目、表格與內容，而不再是一整塊原始文字。"
         },
         {
-          "title": "更柔和的深色外框",
-          "body": "深色模式下，半透明的側欄與頂欄不再被明亮桌布透出一圈發灰的亮邊；疊色更深，外框與近黑的內容區域融為一體。"
+          "title": "穩妥的退回機制",
+          "body": "結果在顯示前會經過驗證並限制大小；記錄無法完整解析時，Vela 會顯示原始回應，而不是一張殘缺的卡片。"
         },
         {
-          "title": "染色設定說明更清楚",
-          "body": "深色模式下，把「透明部分染色」設為「不染色」會回退為「明暗」的效果，設定說明中也已註明。"
+          "title": "舊對話同樣好讀",
+          "body": "舊版本儲存的結果會盡可能整理成新檢視；只發出請求的呼叫會標為「請求」，不再被當作成功。"
         }
       ],
       "improvements": [
-        "視窗的原生毛玻璃材質現在跟隨 Vela 自己的明暗設定而非系統外觀，亮色介面搭配深色系統（或反之）時不再透出不協調的灰色。",
-        "對話標題旁的重新命名按鈕與導覽列項目也會顯示新的懸停提示。",
-        "設定頁、檔案樹與展開/收合開關不會彈出提示，並遵循「減少動態效果」偏好。",
-        "更新後的設定說明已提供五種語言。"
+        "MCP 工具卡片使用同一套渲染，圖片、資源資訊與輸出路徑排版更一致。",
+        "排程任務頁面與對話卡片使用同一套任務與執行記錄格式。",
+        "調整了精簡差異與摺疊回合，使新卡片能乾淨地放入其中。",
+        "所有新增文案皆提供五種語言。"
       ]
     },
     "ja": {
-      "summary": "Vela 1.2.11 では、アイコンボタンにホバーツールチップを追加し、機能名とショートカットキーを表示します。また、ダークモードの半透明フレームを柔らかくし、コンテンツ領域となじむようにしました。",
+      "summary": "Vela 1.2.12 では、内蔵ツールの結果を読みやすい構造化カードにしました。バックグラウンドコマンド、メモリ、スケジュールタスク、ツール検索、MCP リソース、目標で、実際に何が起きたかが一目でわかります。",
       "highlights": [
         {
-          "title": "ショートカット付きボタンヒント",
-          "body": "アイコンボタンにしばらくカーソルを置くと、機能名と対応するショートカットキーを示す黒い小さなヒントが表示されます。隣のボタンへ移動すると、ヒントはちらつかずに滑らかに移動します。"
+          "title": "構造化されたツール結果",
+          "body": "バックグラウンドコマンド、メモリ、スケジュールタスク、ツール検索、MCP リソース、目標ごとに専用の詳細ビューを用意し、生のテキストではなくステータス、項目、表、内容を表示します。"
         },
         {
-          "title": "やわらかなダークモードのフレーム",
-          "body": "ダークモードでは、半透明のサイドバーやトップバーに明るい壁紙の灰色っぽい縁が透けなくなりました。色を深くのせることで、ほぼ黒のコンテンツ領域となじみます。"
+          "title": "安全なフォールバック",
+          "body": "結果は表示前に検証され、サイズも制限されます。記録を完全に解析できない場合は、崩れたカードではなく元の応答を表示します。"
         },
         {
-          "title": "色付け設定の説明を明確化",
-          "body": "ダークモードで「半透明部分の色付け」を「なし」にすると「明暗」の見た目に切り替わります。設定の説明にもその旨を追記しました。"
+          "title": "過去の会話も読みやすく",
+          "body": "以前のバージョンで保存された結果も可能な限り新しいビューに整形されます。要求しただけの呼び出しは成功ではなく「要求」と表示されます。"
         }
       ],
       "improvements": [
-        "ウィンドウのネイティブなぼかし素材が、システムの外観ではなく Vela 自身のライト/ダーク設定に従うようになり、システムと Vela の明暗が異なる場合でも不自然なグレーが透けなくなりました。",
-        "チャットタイトル横の名前変更ボタンとナビゲーションレールの項目にも新しいツールチップが表示されます。",
-        "設定画面、ファイルツリー、展開/折りたたみの切り替えにはヒントを表示せず、視差効果を減らす設定にも対応しています。",
-        "更新した設定の説明は 5 言語に対応しています。"
+        "MCP ツールカードも同じレンダラーを使い、画像、リソース情報、出力パスのレイアウトが統一されました。",
+        "スケジュールタスク画面とチャットのカードで、タスクと実行履歴の書式を共通化しました。",
+        "コンパクトな差分と折りたたまれたターンを調整し、新しいカードがきれいに収まるようにしました。",
+        "新しい表示文言はすべて 5 言語に対応しています。"
       ]
     },
     "ko": {
-      "summary": "Vela 1.2.11은 아이콘 버튼에 마우스를 올리면 기능 이름과 단축키를 보여 주는 툴팁을 추가하고, 다크 모드의 반투명 프레임을 부드럽게 다듬어 콘텐츠 영역과 더 잘 어울리게 했습니다.",
+      "summary": "Vela 1.2.12는 내장 도구의 결과를 읽기 쉬운 구조화된 카드로 바꿨습니다. 백그라운드 명령, 메모리, 예약 작업, 도구 검색, MCP 리소스, 목표에서 실제로 무슨 일이 있었는지 바로 보여 줍니다.",
       "highlights": [
         {
-          "title": "단축키가 표시되는 버튼 툴팁",
-          "body": "아이콘 버튼 위에 잠시 마우스를 올리면 기능 이름과 단축키를 알려 주는 작은 검은색 툴팁이 나타납니다. 인접한 버튼으로 이동하면 툴팁이 깜빡이지 않고 부드럽게 따라갑니다."
+          "title": "구조화된 도구 결과",
+          "body": "백그라운드 명령, 메모리, 예약 작업, 도구 검색, MCP 리소스, 목표마다 전용 상세 보기가 있어 원시 텍스트 대신 상태, 항목, 표, 내용을 보여 줍니다."
         },
         {
-          "title": "더 부드러운 다크 모드 프레임",
-          "body": "다크 모드에서 반투명 사이드바와 상단 바에 밝은 배경화면의 회색빛 테두리가 비치지 않습니다. 색조를 더 짙게 입혀 거의 검은 콘텐츠 영역과 자연스럽게 어우러집니다."
+          "title": "안전한 대체 표시",
+          "body": "결과는 표시 전에 검증되고 크기가 제한됩니다. 기록을 완전히 해석할 수 없으면 깨진 카드 대신 원래 응답을 보여 줍니다."
         },
         {
-          "title": "색조 설정 설명 개선",
-          "body": "다크 모드에서 '반투명 영역 색조'를 '없음'으로 선택하면 '밝음/어두움' 모양으로 대체되며, 설정 설명에도 이를 안내합니다."
+          "title": "이전 대화도 깔끔하게",
+          "body": "이전 버전에서 저장한 결과도 가능한 한 새 보기로 정리되며, 요청만 한 호출은 성공이 아니라 '요청'으로 표시됩니다."
         }
       ],
       "improvements": [
-        "창의 기본 블러 소재가 시스템 외관이 아닌 Vela 자체의 밝음/어두움 설정을 따르므로, 시스템과 Vela의 밝기가 다를 때 어색한 회색이 비치지 않습니다.",
-        "채팅 제목 옆의 이름 바꾸기 버튼과 탐색 레일 항목에도 새 툴팁이 표시됩니다.",
-        "설정, 파일 트리, 펼치기/접기 토글에서는 툴팁이 나타나지 않으며 동작 줄이기 설정을 따릅니다.",
-        "업데이트된 설정 설명은 5개 언어로 제공됩니다."
+        "MCP 도구 카드도 같은 렌더러를 사용해 이미지, 리소스 정보, 출력 경로가 일관되게 배치됩니다.",
+        "예약 작업 페이지와 채팅 카드가 같은 작업·실행 기록 형식을 사용합니다.",
+        "간결한 diff와 접힌 턴을 조정해 새 카드가 깔끔하게 들어가도록 했습니다.",
+        "새로 추가된 문구는 모두 5개 언어로 제공됩니다."
       ]
     }
   }

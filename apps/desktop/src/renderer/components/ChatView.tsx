@@ -864,7 +864,6 @@ export function ChatView({
                     messages={turn.assistants}
                     finalReplies={finalReplies}
                     elapsed={formatElapsedTime(lastAssistant.turnStartedAt, lastAssistant.turnCompletedAt)}
-                    entering={turn.assistants.some((message) => entering.has(message.id))}
                     changes={changes}
                     onOpenChanges={onOpenChanges}
                     onReviewTurn={onReviewTurn}
@@ -1411,7 +1410,6 @@ const CompletedAssistantTurn = memo(function CompletedAssistantTurn({
   messages,
   finalReplies,
   elapsed,
-  entering,
   changes,
   onOpenChanges,
   onReviewTurn,
@@ -1428,7 +1426,6 @@ const CompletedAssistantTurn = memo(function CompletedAssistantTurn({
   messages: UiMessage[];
   finalReplies: UiMessage[];
   elapsed: string | null;
-  entering: boolean;
   changes: TurnChanges | null;
   onOpenChanges: () => void;
   onReviewTurn?: (request: TurnReviewRequest) => void;
@@ -1455,7 +1452,6 @@ const CompletedAssistantTurn = memo(function CompletedAssistantTurn({
   const hasProcess = messages.some((message) => (
     !isFinalReply(message) && Boolean(message.text || message.thinking || message.tools.length > 0)
   )) || finalReplies.some((message) => Boolean(message.thinking || message.tools.length > 0));
-  const enterClass = entering ? " message-enter" : "";
   const triggerContent = (
     <>
       <span>{displayedElapsed ? trf("用时 {0}", "Took {0}", displayedElapsed) : tr("查看过程", "View process")}</span>
@@ -1468,7 +1464,8 @@ const CompletedAssistantTurn = memo(function CompletedAssistantTurn({
   );
 
   return (
-    <article className={`assistant-block assistant-turn${enterClass}`}>
+    // 完成时是把已展示的消息换成折叠布局，不是新消息，不能重播入场淡入。
+    <article className="assistant-block assistant-turn">
       {hasProcess || displayedElapsed ? (
       <div className={`time-spent-collapsible${expanded ? " expanded" : ""}`}>
         {hasProcess ? (

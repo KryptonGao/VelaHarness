@@ -1,10 +1,17 @@
 import { parseOutcomeSubmission, parseRecommendedActions, recommendedActionsToolName, type SubagentKind, type ToolActivity, type ToolPlanItem, type ToolStep } from "@vela/shared";
 import { followupTaskToolName, sendMessageToolName, spawnAgentToolName } from "./subagent";
+import { presentationFromCall, presentationFromExecution } from "./tool-presentation";
 
 const maxChars = 80_000;
 
 /** 工具开始时能确定的内容：命令或路径。文件正文和 diff 要等执行结束。 */
 export function activityFromCall(toolName: string, args: unknown): ToolActivity {
+  const activity = rawActivityFromCall(toolName, args);
+  const presentation = presentationFromCall(toolName, args);
+  return presentation ? { ...activity, presentation } : activity;
+}
+
+function rawActivityFromCall(toolName: string, args: unknown): ToolActivity {
   if (toolName === spawnAgentToolName) return spawnCallActivity(args);
   if (toolName === sendMessageToolName || toolName === followupTaskToolName) {
     return agentMessageCallActivity(toolName, args);
@@ -46,6 +53,19 @@ export function activityFromOutput(result: unknown, _toolName?: string): ToolAct
 
 /** 工具结束后的完整展示：命令、输出、diff 或文件正文。 */
 export function activityFromExecution(
+  toolName: string,
+  args: unknown,
+  result: unknown,
+  isError: boolean,
+): ToolActivity {
+  const activity = rawActivityFromExecution(toolName, args, result, isError);
+  const presentation = presentationFromExecution(toolName, args, result, isError);
+  // Never leave a request-only view attached to an unrecognized successful result.
+  const { presentation: _request, ...base } = activity;
+  return presentation ? { ...base, presentation } : base;
+}
+
+function rawActivityFromExecution(
   toolName: string,
   args: unknown,
   result: unknown,

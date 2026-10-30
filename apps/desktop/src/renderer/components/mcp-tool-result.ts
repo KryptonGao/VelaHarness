@@ -1,3 +1,5 @@
+import { boundToolJson, type JsonValue } from "@vela/shared";
+
 export interface McpSearchResult {
   title: string;
   url?: string;
@@ -7,29 +9,42 @@ export interface McpSearchResult {
   timestamp?: string;
 }
 
-export type McpResultView =
+export type McpResultView = (
   | { kind: "search"; results: McpSearchResult[] }
-  | { kind: "json"; value: unknown }
-  | { kind: "text"; text: string };
+  | { kind: "json"; value: JsonValue }
+  | { kind: "text"; text: string }
+) & { truncated?: boolean };
 
 function record(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
 /** Only promote a complete, recognizable search response; keep everything else readable. */
-export function presentMcpResult(body: string): McpResultView {
+export function presentMcpResult(body: string, structured?: unknown): McpResultView {
   const source = body.trim().replace(/^```(?:json)?\s*\n([\s\S]*?)\n```$/i, "$1");
-  let value: unknown;
-  try { value = JSON.parse(source); } catch { return { kind: "text", text: body }; }
+  let parsed: unknown = structured;
+  if (parsed === undefined) {
+    if (source.length > 80_000) return { kind: "text", text: body, truncated: true };
+    try { parsed = JSON.parse(source); } catch { return { kind: "text", text: body }; }
+  }
+  const bounded = boundToolJson(parsed);
+  if (!bounded) return { kind: "text", text: body };
+  // Plain JSON output keeps the established model contract; bounding removes unsafe keys first.
+  const value = JSON.parse(JSON.stringify(bounded.value)) as JsonValue;
+  const truncation = bounded.truncated ? { truncated: true } : {};
   const results = record(value) ? value.results : Array.isArray(value) ? value : undefined;
   if (Array.isArray(results) && results.every(item => record(item) && typeof item.title === "string" && item.title.trim())) {
-    return { kind: "search", results: results.map(item => ({
-      title: item.title as string,
-      ...Object.fromEntries(["url", "id", "type", "highlight", "timestamp"]
-        .filter(key => typeof item[key] === "string").map(key => [key, item[key]])),
-    })) };
+    return { kind: "search", ...truncation, results: results.map(item => {
+      // every() above checks the complete list; repeat the record guard for type narrowing.
+      if (!record(item)) return { title: "" };
+      return {
+        title: item.title as string,
+        ...Object.fromEntries(["url", "id", "type", "highlight", "timestamp"]
+          .filter(key => typeof item[key] === "string").map(key => [key, item[key]])),
+      };
+    }) };
   }
-  return { kind: "json", value };
+  return { kind: "json", value, ...truncation };
 }
 
 export function formatMcpResponse(body: string): string {

@@ -26,21 +26,24 @@ const fields = {
 export function createScheduledTaskTools(service: ScheduledTaskService, cwd: string, allowed: () => boolean): ToolDefinition[] {
   const guard = (signal?: AbortSignal) => { signal?.throwIfAborted(); if (!allowed()) throw new Error("Plan 模式不能修改定时任务"); };
   const own = (id: string) => { if (!service.list(cwd).tasks.some(task => task.id === id)) throw new Error("当前工作区没有这个任务"); };
-  const result = (data: unknown) => ({ content: [{ type: "text" as const, text: JSON.stringify(data) }], details: {} });
+  const result = (operation: "create" | "list" | "update" | "delete", data: unknown) => ({
+    content: [{ type: "text" as const, text: JSON.stringify(data) }],
+    details: { operation, data: structuredClone(data) },
+  });
   return [defineTool({
     name: "create_scheduled_task", label: "创建定时任务", description: "Save a future reminder or recurring task that the user explicitly asked for to the current workspace.", executionMode: "sequential",
     parameters: Type.Object(fields),
-    async execute(_id, params, signal) { guard(signal); return result(await service.create({ ...params, workspace: cwd })); },
+    async execute(_id, params, signal) { guard(signal); return result("create", await service.create({ ...params, workspace: cwd })); },
   }), defineTool({
     name: "list_scheduled_tasks", label: "查询定时任务", description: "List the current workspace's tasks, their next run times, and run history.",
-    parameters: Type.Object({}), execute: async (_id, _params, signal) => { signal?.throwIfAborted(); return result(service.list(cwd)); },
+    parameters: Type.Object({}), execute: async (_id, _params, signal) => { signal?.throwIfAborted(); return result("list", service.list(cwd)); },
   }), defineTool({
     name: "update_scheduled_task", label: "修改定时任务", description: "Modify a task in the current workspace by its real ID; status=paused pauses it and active resumes it.", executionMode: "sequential",
     parameters: Type.Object({ id: Type.String(), title: Type.Optional(fields.title), prompt: Type.Optional(fields.prompt), schedule: Type.Optional(schedule), missedPolicy: fields.missedPolicy, sandboxMode: fields.sandboxMode, model: fields.model, thinkingLevel: fields.thinkingLevel, status: Type.Optional(Type.Union([Type.Literal("active"), Type.Literal("paused")])) }),
-    async execute(_call, params, signal) { guard(signal); own(params.id); const { id, ...patch } = params; return result(await service.update(id, { ...patch, workspace: cwd })); },
+    async execute(_call, params, signal) { guard(signal); own(params.id); const { id, ...patch } = params; return result("update", await service.update(id, { ...patch, workspace: cwd })); },
   }), defineTool({
     name: "delete_scheduled_task", label: "删除定时任务", description: "Delete a task the user specified in the current workspace, along with its run history, by its real ID.", executionMode: "sequential",
     parameters: Type.Object({ id: Type.String() }),
-    async execute(_call, params, signal) { guard(signal); own(params.id); await service.delete(params.id); return result({ deleted: params.id }); },
+    async execute(_call, params, signal) { guard(signal); own(params.id); await service.delete(params.id); return result("delete", { deleted: params.id }); },
   })];
 }

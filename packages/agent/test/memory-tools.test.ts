@@ -7,6 +7,7 @@ import { describe, it, type TestContext } from "node:test";
 import type { ToolDefinition } from "@earendil-works/pi-coding-agent";
 import { memoryFileMaxBytes } from "@vela/shared";
 import { MemoryService } from "../src/memory.ts";
+import { activityFromExecution } from "../src/tool-activity.ts";
 import {
   createMemoryTools,
   memoryReadToolName,
@@ -133,10 +134,20 @@ describe("memory_read", () => {
     assert.match(projectText, /scope: project/);
     assert.match(projectText, /项目约定：测试命令 pnpm test/);
     assert.match(projectText, /revision: sha256:/);
+    const projectDetails = project.details as { scopes: string[]; entries: Array<{ scope: string; path: string; revision: string; bytes: number; exists: boolean; content: string; status: string }> };
+    const stored = await f.service.read({ scope: "project", workspace: f.workspace });
+    assert.deepEqual(projectDetails, { scopes: ["project"], entries: [{
+      scope: "project", path: stored.path, revision: stored.revision,
+      bytes: Buffer.byteLength(stored.content, "utf8"), exists: true, content: stored.content, status: "read",
+    }] });
 
     const missingGlobal = await call(f, memoryReadToolName, { scope: "global" });
     assert.match(text(missingGlobal), /exists: false/);
     assert.match(text(missingGlobal), /revision: absent/);
+    assert.deepEqual((missingGlobal.details as { entries: unknown[] }).entries, [{
+      scope: "global", path: (await f.service.read({ scope: "global", workspace: null })).path,
+      revision: "absent", bytes: 0, exists: false, content: "", status: "read",
+    }]);
     assert.equal(existsSync(f.globalFile), false, "读取不能创建全局记忆");
   });
 
@@ -153,8 +164,49 @@ describe("memory_read", () => {
     assert.match(output, /scope: project/);
     assert.match(output, /status: failed/);
     assert.match(output, /error: content-too-large/);
+    const entries = (result.details as { entries: Array<{ scope: string; status: string; content?: string; error?: string }> }).entries;
+    assert.equal(entries[0].scope, "project");
+    assert.equal(entries[0].status, "failed");
+    assert.equal(typeof entries[0].error, "string");
+    assert.match(entries[0].error!, /^\[content-too-large\] .+/);
+    assert.equal(entries[0].content, undefined, "失败来源不能伪造空正文");
+    assert.equal(entries[1].status, "read");
+    assert.equal(entries[1].content, "全局偏好：中文回复\n");
+    const presentation = activityFromExecution(memoryReadToolName, {}, result, false).presentation;
+    assert.equal(presentation?.kind, "memory");
+    if (presentation?.kind !== "memory") throw new Error("双来源读取必须保留结构化展示");
+    assert.equal(presentation.entries.length, 2);
+    assert.equal(presentation.entries[0].status, "failed");
+    assert.match(presentation.entries[0].error!, /^\[content-too-large\]/);
+    assert.equal(presentation.entries[1].status, "read");
+    assert.equal(presentation.entries[1].content, "全局偏好：中文回复\n");
     // 项目文件超限时保留现场。
     assert.equal((await readFile(f.projectFile)).byteLength, memoryFileMaxBytes + 1);
+  });
+
+  it("未知路径的单来源失败省略 path，转换后仍保留另一来源成功结果", async (t) => {
+    const f = await fixture(t);
+    await f.service.save({ scope: "global", workspace: null }, "成功来源\n", "absent");
+    const original = f.service.read.bind(f.service);
+    f.service.read = async target => {
+      if (target.scope === "project") throw new Error("模拟读取失败");
+      return original(target);
+    };
+    const result = await call(f, memoryReadToolName, {});
+    const entries = (result.details as { entries: Array<Record<string, unknown>> }).entries;
+    assert.deepEqual(entries[0], { scope: "project", status: "failed", error: "[io-error] 模拟读取失败" });
+    assert.equal(Object.hasOwn(entries[0], "path"), false);
+    const presentation = activityFromExecution(memoryReadToolName, {}, result, false).presentation;
+    assert.equal(presentation?.kind, "memory");
+    if (presentation?.kind !== "memory") throw new Error("双来源读取必须保留结构化展示");
+    assert.equal(presentation.entries.length, 2);
+    assert.equal(presentation.entries[0].status, "failed");
+    assert.equal(presentation.entries[0].error, "[io-error] 模拟读取失败");
+    assert.equal(presentation.entries[0].path, undefined);
+    assert.equal(presentation.entries[1].scope, "global");
+    assert.equal(presentation.entries[1].status, "read");
+    assert.equal(presentation.entries[1].content, "成功来源\n");
+    assert.match(text(result), /path: \(unknown\)/, "模型文本保持原协议不变");
   });
 
   it("无工作区会话不能读取项目记忆", async (t) => {
@@ -171,6 +223,7 @@ describe("memory_update", () => {
 
     const saved = await call(f, memoryUpdateToolName, { scope: "project", content: "# 约定\n测试命令 pnpm test\n", expectedRevision: revision });
     assert.match(text(saved), /已保存 project 记忆/);
+    assert.equal((saved.details as { operation: string }).operation, "saved");
     assert.equal(await readFile(f.projectFile, "utf8"), "# 约定\n测试命令 pnpm test\n");
     const realWorkspace = await realpath(f.workspace);
     assert.deepEqual(f.requests, [{ kind: "write", path: join(realWorkspace, ".vela", "MEMORY.md"), insideWorkspace: true, workspace: f.workspace }]);
@@ -179,6 +232,10 @@ describe("memory_update", () => {
     const currentRevision = text(current).match(/revision: (.+)/)![1]!.trim();
     const cleared = await call(f, memoryUpdateToolName, { scope: "project", content: "", expectedRevision: currentRevision });
     assert.match(text(cleared), /已清空 project 记忆/);
+    assert.equal((cleared.details as { operation: string }).operation, "cleared");
+    const emptyRead = await call(f, memoryReadToolName, { scope: "project" });
+    assert.equal((emptyRead.details as { entries: Array<{ exists: boolean; content: string }> }).entries[0].exists, true);
+    assert.equal((emptyRead.details as { entries: Array<{ exists: boolean; content: string }> }).entries[0].content, "");
     assert.equal(existsSync(f.projectFile), true, "清空保留空文件，物理删除由界面完成");
     assert.equal(await readFile(f.projectFile, "utf8"), "");
   });
@@ -218,6 +275,7 @@ describe("memory_update", () => {
     } as never, undefined, undefined, {} as never);
     assert.match(text(result), /内容未变化/);
     assert.equal((result.details as { changed: boolean }).changed, false);
+    assert.equal((result.details as { operation: string }).operation, "unchanged");
     assert.equal(saves, 0);
     assert.deepEqual(f.requests, []);
     assert.equal(await readFile(f.projectFile, "utf8"), document.content);
@@ -227,6 +285,7 @@ describe("memory_update", () => {
     const f = await fixture(t);
     const result = await call(f, memoryUpdateToolName, { scope: "project", content: "", expectedRevision: "absent" });
     assert.equal((result.details as { changed: boolean }).changed, true);
+    assert.equal((result.details as { operation: string }).operation, "cleared");
     assert.equal(await readFile(f.projectFile, "utf8"), "");
     assert.equal(f.requests.length, 1);
   });

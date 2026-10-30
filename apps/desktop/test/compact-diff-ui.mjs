@@ -25,6 +25,8 @@ if (!process.versions.electron) {
           const [kind, setKind] = useState('add');
           const [streaming, setStreaming] = useState(false);
           const [extra, setExtra] = useState(0);
+          const [statCase, setStatCase] = useState(null);
+          window.setStatCase = setStatCase;
           const [, refresh] = useState(0);
           window.setCase = kind => { setKind(kind); setExtra(0); setStreaming(kind === 'stream'); };
           window.grow = () => setExtra(value => value + 10);
@@ -38,7 +40,9 @@ if (!process.versions.electron) {
             path: 'apps/example.txt', diff: rows.join('\\n'), ...(streaming ? {streaming: {added: rows.length, removed: 0}} : {}),
           }};
           return <AppLocaleProvider locale="zh-CN"><div className="thinking-group-rail" style={{width: 620, margin: 24, '--tool-detail-height': '180px'}}>
-            <ToolList key={kind} tools={[tool]} display="compact" fold="none" />
+            <ToolList key={statCase ? statCase.display + statCase.fold : kind}
+              tools={statCase ? Array.from({length: 3}, (_, i) => ({...tool, id: 'stat-' + i, status: 'done', activity: {path: 'apps/example' + i + '.txt', diff: '-1 old\\n+1 new'}})) : [tool]}
+              display={statCase?.display ?? 'compact'} fold={statCase?.fold ?? 'none'} />
           </div></AppLocaleProvider>;
         }
         createRoot(document.getElementById('root')).render(<Fixture />);
@@ -130,7 +134,47 @@ if (!process.versions.electron) {
           await checkAnchor();
         }
       }
-      console.log("Compact diff UI: initial add/delete anchor, wrapped context, height limit, bidirectional scrolling, reopen, pure additions, no changes and streaming passed");
+      // 在真实 Chromium 中强制行级 hover，验证移出恢复及相邻行隔离。
+      win.webContents.debugger.attach('1.3');
+      const protocol = (method, params = {}) => win.webContents.debugger.sendCommand(method, params);
+      await protocol('DOM.enable');
+      await protocol('CSS.enable');
+      const colors = selector => evaluate(`Array.from(document.querySelector(${JSON.stringify(selector)}).querySelectorAll('.tool-stat-add, .tool-stat-del'), el => getComputedStyle(el).color)`);
+      const muted = await evaluate("getComputedStyle(document.documentElement).getPropertyValue('--text-muted').trim()");
+      // 用浏览器解析颜色，兼容 token 的 hex/rgb 表示形式。
+      const resolvedColor = value => evaluate(`(() => { const el = document.createElement('span'); el.style.color = ${JSON.stringify(value)}; document.body.append(el); const color = getComputedStyle(el).color; el.remove(); return color; })()`);
+      const neutral = await resolvedColor(muted);
+      const added = await resolvedColor('var(--diff-stat-add-fg)');
+      const removed = await resolvedColor('var(--diff-stat-del-fg)');
+      for (const display of ['compact', 'card']) {
+        for (const fold of ['none', 'message']) {
+          await evaluate(`window.setStatCase(${JSON.stringify({display, fold})})`);
+          const row = display === 'compact' ? (fold === 'none' ? '.tool-compact-line' : '.tool-compact-summary') : (fold === 'none' ? '.tool-card-head' : '.tool-run-head');
+          await until(`document.querySelectorAll(${JSON.stringify(row)}).length === ${fold === 'none' ? 3 : 1}`);
+          const first = row + ':first-of-type';
+          assert.deepEqual(await colors(first), [neutral, neutral], `${display}/${fold}: neutral by default`);
+          const {root} = await protocol('DOM.getDocument');
+          const {nodeId} = await protocol('DOM.querySelector', {nodeId: root.nodeId, selector: first});
+          await protocol('CSS.forcePseudoState', {nodeId, forcedPseudoClasses: ['hover']});
+          assert.deepEqual(await colors(first), [added, removed], `${display}/${fold}: colored on row hover`);
+          if (fold === 'none') {
+            const allColors = await evaluate(`Array.from(document.querySelectorAll(${JSON.stringify(row)}), row => Array.from(row.querySelectorAll('.tool-stat-add, .tool-stat-del'), el => getComputedStyle(el).color))`);
+            assert.deepEqual(allColors.slice(1), [[neutral, neutral], [neutral, neutral]], 'Neighboring rows must remain neutral');
+          } else {
+            await protocol('CSS.forcePseudoState', {nodeId, forcedPseudoClasses: []});
+            assert.deepEqual(await colors(first), [neutral, neutral], `${display}/${fold}: neutral after leaving row`);
+            await protocol('CSS.forcePseudoState', {nodeId, forcedPseudoClasses: ['hover']});
+            await evaluate(`document.querySelector(${JSON.stringify(row)}).click()`);
+            const childRow = display === 'compact' ? '.tool-compact-line' : '.tool-card-head';
+            await until(`document.querySelector(${JSON.stringify(childRow)})`);
+            assert.deepEqual(await colors(childRow), [neutral, neutral], 'Expanded child rows must not inherit summary hover colors');
+          }
+          await protocol('CSS.forcePseudoState', {nodeId, forcedPseudoClasses: []});
+          if (fold === 'none') assert.deepEqual(await colors(first), [neutral, neutral], `${display}/${fold}: neutral after leaving row`);
+        }
+      }
+      win.webContents.debugger.detach();
+      console.log("Compact diff UI: diff anchoring, scrolling, streaming and row-only stat hover (compact/card, grouped/ungrouped) passed");
       app.exit(0);
     } catch (error) {
       console.error(error);

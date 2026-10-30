@@ -65,6 +65,13 @@ export const browserFixtures = [
     timeoutMs: 120_000,
   },
   {
+    id: "ui:turn-fold",
+    title: "回复完成自动折叠",
+    page: "test/turn-fold-preview.html?checks=1",
+    resultSelector: "#turn-fold-results",
+    timeoutMs: 30_000,
+  },
+  {
     id: "ui:stream-performance",
     title: "流式渲染性能",
     page: "test/stream-performance-preview.html?checks=1",

@@ -17,6 +17,8 @@ export * from "./recommended-actions";
 import type { OutcomeSubmission } from "./outcome";
 import type { RecommendedActions } from "./recommended-actions";
 export * from "./tool-diff";
+export * from "./tool-presentation";
+import type { ToolPresentation } from "./tool-presentation";
 export * from "./verification";
 import type { HandoffDraftRequest, HandoffPack } from "./handoff";
 export * from "./scheduled-tasks";
@@ -879,6 +881,8 @@ export interface ToolPlanItem {
 
 /** 一条工具调用在对话里展示的内容。正文已经截断；steps 只保留最近若干条。 */
 export interface ToolActivity {
+  /** 有界、经校验的结构化结果；缺失时沿用 body 原文。 */
+  presentation?: ToolPresentation;
   /** MCP identity for the tool card and restored history. */
   mcp?: { server: string; tool: string };
   /** bash 要执行的命令 */

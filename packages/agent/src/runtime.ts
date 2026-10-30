@@ -4394,9 +4394,9 @@ export class AgentRuntime {
     const next: ConversationGoal = { ...goal, status, note: nextNote || null, updatedAt: Date.now() };
     this.patchEntry(entry, { goal: next });
     if (status === "complete" && next.validation?.status === "known_issues") {
-      return { ok: true, text: "目标已完成，验证记录中包含已知问题。请在最终回复中列出失败检查和依据。" };
+      return { ok: true, text: "目标已完成，验证记录中包含已知问题。请在最终回复中列出失败检查和依据。", details: { goal: structuredClone(next) } };
     }
-    return { ok: true, text: status === "complete" ? "目标已完成，交付验证已记录。" : `目标仍在进行。${next.note ?? ""}`.trim() };
+    return { ok: true, text: status === "complete" ? "目标已完成，交付验证已记录。" : `目标仍在进行。${next.note ?? ""}`.trim(), details: { goal: structuredClone(next) } };
   }
 
   private recordGoalValidation(entry: Conversation, draft: GoalValidationDraft): ToolOutcome {
@@ -4419,6 +4419,7 @@ export class AgentRuntime {
     return {
       ok: true,
       text: `${status}。命令 ${checks} 项，跳过 ${skipped} 项，已知失败 ${failures} 项。完成前若再运行可能修改工作区的工具，需要重新记录验证。`,
+      details: { validation: structuredClone(result.validation) },
     };
   }
 

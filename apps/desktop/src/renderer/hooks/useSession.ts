@@ -17,7 +17,7 @@ import type {
   ToolTrace,
   TranscriptMessage,
 } from "@vela/shared";
-import { agentStatuses, emptyAgentUsage, parseOutcomeSubmission, parseRecommendedActions } from "@vela/shared";
+import { agentStatuses, emptyAgentUsage, parseOutcomeSubmission, parseRecommendedActions, parseToolPresentation } from "@vela/shared";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createMessageStore, emptyMessages, messageScope, type MessageStore } from "./message-store";
 import { uiStateStore } from "../components/intelligent-ui/ui-state-instance";
@@ -674,7 +674,7 @@ export function toUiMessage(message: TranscriptMessage): UiMessage {
     role: message.role,
     text: message.text,
     thinking: message.thinking,
-    tools: message.tools.map((tool) => ({ ...tool })),
+    tools: message.tools.map((tool) => ({ ...tool, activity: sanitizeActivity(tool.activity) })),
     images: message.images ? message.images.map((image) => ({ ...image })) : undefined,
     planIds: message.planIds ? [...message.planIds] : undefined,
     timestamp: message.timestamp ?? undefined,
@@ -914,6 +914,7 @@ function sanitizeActivity(value: ToolActivity | undefined): ToolActivity {
       : undefined,
     mutated: value?.mutated === true ? true : undefined,
     streaming: sanitizeStreaming(value?.streaming),
+    presentation: parseToolPresentation(value?.presentation),
   };
 }
 
@@ -1060,6 +1061,7 @@ function mergeActivity(current: ToolActivity | undefined, patch: ToolActivity): 
     mcp: patch.mcp ?? base.mcp,
     mutated: patch.mutated ?? base.mutated,
     streaming: patch.streaming ?? base.streaming,
+    presentation: patch.presentation ?? base.presentation,
   };
 }
 

@@ -8,6 +8,8 @@ import {
   outcomeLimits,
   recommendedActionLimits,
   recommendedActionsToolName,
+  type ConversationGoal,
+  type GoalValidation,
   type GoalStatus,
   type InteractionMode,
   type OutcomeSubmission,
@@ -225,7 +227,9 @@ export function createModeExtension(
   };
 }
 
-export type ToolOutcome = { ok: true; text: string } | { ok: false; text: string };
+export type ToolOutcome =
+  | { ok: true; text: string; details?: { goal?: ConversationGoal; validation?: GoalValidation } }
+  | { ok: false; text: string };
 
 /**
  * createModeTools 提供的全部自定义工具名。
@@ -454,10 +458,10 @@ export function todoListOutcome(items: readonly ExecutionPlanUpdateItem[]): Tool
   return { ok: true, text: `待办清单已更新：${done}/${items.length} 完成${active ? `，进行中：${active.step}` : ""}。` };
 }
 
-function outcome(result: ToolOutcome): AgentToolResult<undefined> {
+function outcome(result: ToolOutcome): AgentToolResult<Extract<ToolOutcome, { ok: true }>["details"]> {
   if (!result.ok) throw new Error(result.text);
   return {
     content: [{ type: "text", text: result.text }],
-    details: undefined,
+    details: result.details,
   };
 }

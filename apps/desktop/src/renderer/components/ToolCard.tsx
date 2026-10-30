@@ -7,6 +7,8 @@ import { ContentSwap } from "./BatchMotion";
 import { ActivityIndicator } from "./ActivityIndicator";
 import { Markdown } from "./Markdown";
 import { McpToolDetails } from "./McpToolDetails";
+import { ToolResultDetails } from "./ToolResultDetails";
+import { completeResultJson, needsRawResultFallback } from "./tool-result-model";
 import { ScrollFade } from "./ScrollFade";
 import {
   AgentStatusMark,
@@ -82,7 +84,7 @@ export const ToolList = memo(function ToolList({
   return (
     <div className={compact ? "tool-card-list is-compact" : "tool-card-list"} data-arrival-key={arrivalKey}>
       {segments.map((segment) =>
-        toolKind(segment[0].name) === "other" ? (
+        isStandaloneTool(segment[0].name) ? (
           segment.map((tool) => (
             <ToolCard
               key={tool.id}
@@ -106,12 +108,17 @@ export const ToolList = memo(function ToolList({
   );
 });
 
+/** 不参与折叠的工具;browser_repl_reset 只有一条确认说明，紧凑行没有展开入口，所以也走卡片。 */
+function isStandaloneTool(name: string): boolean {
+  return toolKind(name) === "other" || name === "browser_repl_reset";
+}
+
 /** 按连续的可折叠工具切段;非折叠类工具自成一段。 */
 function splitToolRuns(tools: ToolTrace[]): ToolTrace[][] {
   const segments: ToolTrace[][] = [];
   let run: ToolTrace[] = [];
   for (const tool of tools) {
-    if (toolKind(tool.name) === "other") {
+    if (isStandaloneTool(tool.name)) {
       if (run.length > 0) segments.push(run);
       run = [];
       segments.push([tool]);
@@ -481,6 +488,9 @@ function BrowserReplCard({ tool, compact = false }: { tool: ToolTrace; compact?:
   const failed = tool.status === "error";
   const steps = useMemo(() => summarizeBrowserCode(activity.command), [activity.command]);
   const { screenshots, output } = useMemo(() => splitBrowserBody(activity.body), [activity.body]);
+  const structuredOutput = useMemo(() => activity.presentation?.kind === "json"
+    ? { value: activity.presentation.value, truncated: activity.presentation.truncated }
+    : completeResultJson(output), [activity.presentation, output]);
   const url = useMemo(() => lastBrowserUrl(activity.command), [activity.command]);
   const preview = firstCodeLine(activity.command);
 
@@ -525,10 +535,10 @@ function BrowserReplCard({ tool, compact = false }: { tool: ToolTrace; compact?:
                 <pre className="browser-call-code"><span className="browser-call-prompt" aria-hidden="true">›</span>{activity.command}</pre>
               </ScrollFade>
             ) : null}
-            {output ? (
+            {output || structuredOutput ? (
               <div className={`browser-call-output${failed ? " failed" : ""}`}>
                 <ScrollFade className="tool-details-scroll" ariaLabel={tr("浏览器输出，可在区域内滚动", "Browser output, scrollable")}>
-                  <ToolMarkdown text={output} className="browser-call-text" />
+                  {structuredOutput && !failed ? <ToolResultDetails activity={{ ...activity, body: output || undefined, presentation: activity.presentation?.kind === "json" ? activity.presentation : { version: 1, source: "result", kind: "json", ...structuredOutput } }} status={tool.status} toolName={tool.name} /> : <ToolMarkdown text={output || tr("执行失败", "Execution failed")} className="browser-call-text" />}
                 </ScrollFade>
               </div>
             ) : running ? (
@@ -804,7 +814,7 @@ export function CompactToolLine({
         {() => <>
           <div className="tool-compact-out">
             <ScrollFade className="tool-details-scroll" ariaLabel={tr("命令和输出，可在区域内滚动", "Command and output, scrollable")}>
-              <BashView command={activity.command} output={activity.body} running={running} failed={failed} />
+              {activity.presentation ? <ToolResultDetails activity={activity} status={tool.status} toolName={tool.name} /> : <BashView command={activity.command} output={activity.body} running={running} failed={failed} />}
             </ScrollFade>
           </div>
           </>}
@@ -907,7 +917,7 @@ export function CompactToolLine({
               />
             ) : (
               <ScrollFade className="tool-details-scroll" ariaLabel={tr("工具详情，可在区域内滚动", "Tool details, scrollable")}>
-                <ToolBody kind={kind} activity={activity} status={tool.status} />
+                <ToolBody kind={kind} activity={activity} status={tool.status} toolName={tool.name} />
               </ScrollFade>
             )}
           </div>
@@ -1068,6 +1078,11 @@ function ToolBody({
   status: ToolTrace["status"];
   toolName?: string;
 }) {
+  if (activity.presentation) return <ToolResultDetails activity={activity} status={status} toolName={toolName} />;
+  if (needsRawResultFallback(toolName, status, Boolean(activity.presentation))) return <section className="tool-result-details tool-result-fallback">
+    <p className="tool-result-muted" role="status">{tr("无法完整解析此记录，显示原始响应", "This record could not be fully parsed. Showing the original response.")}</p>
+    {activity.body ? <pre className={`tool-result-raw-text${status === "error" ? " tool-result-error" : ""}`} role={status === "error" ? "alert" : undefined} tabIndex={0}>{activity.body}</pre> : <p className="tool-result-muted">{tr("暂无响应内容", "No response yet")}</p>}
+  </section>;
   if (kind === "browser") {
     const body = activity.body ?? "";
     const pattern = /!\[Browser screenshot\]\((data:image\/(?:png|jpeg|webp|gif);base64,[A-Za-z0-9+/=]+)\)/g;
@@ -1378,6 +1393,14 @@ function toolKind(name: string): ToolKind {
 }
 
 function subjectOf(kind: ToolKind, activity: ToolActivity, name: string): { name: string; dir: string } {
+  const presentation = activity.presentation;
+  if (presentation?.kind === "shell") return { name: presentation.shell.command || presentation.shell.id, dir: "" };
+  if (presentation?.kind === "discovery" && presentation.query) return { name: presentation.query, dir: "" };
+  if (presentation?.kind === "resource") return { name: presentation.uri || presentation.server || name, dir: "" };
+  if (presentation?.kind === "schedule" && presentation.tasks.length === 1) {
+    const task = presentation.tasks[0];
+    if (task && typeof task === "object" && !Array.isArray(task) && typeof task.title === "string") return { name: task.title, dir: "" };
+  }
   if (kind === "bash") {
     const intent = bashIntentDisplay(activity.command);
     if (intent) return { name: intent.name, dir: intent.dir };

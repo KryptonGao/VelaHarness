@@ -64,6 +64,34 @@ if (!process.versions.electron) {
     try {
       await win.loadFile(join(temporary, "index.html"));
       await until("document.querySelector('.chat-active-title')?.textContent === '主聊天'");
+      // 首页的卡片与胶囊都不投影；对话页仍保留浮动 dock 的层次。
+      assert.deepEqual(await evaluate(`(() => {
+        const root = document.documentElement;
+        const previous = { scheme: root.dataset.scheme, theme: root.dataset.theme };
+        const fixture = document.createElement('div');
+        fixture.className = 'chat-conversation-pane';
+        fixture.innerHTML = '<div class="floating-input-card"><div class="composer-capsule"></div></div>';
+        document.body.append(fixture);
+        try {
+          return ['light', 'dark'].map(scheme => {
+            root.dataset.scheme = scheme;
+            root.dataset.theme = scheme === 'dark' ? 'midnight' : 'default';
+            fixture.dataset.home = '';
+            const card = fixture.firstElementChild;
+            const capsule = card.firstElementChild;
+            const flat = [card, capsule].every(el => getComputedStyle(el).boxShadow === 'none');
+            const bordered = [card, capsule].every(el => getComputedStyle(el).borderTopWidth === '1px');
+            delete fixture.dataset.home;
+            const floating = [card, capsule].every(el => getComputedStyle(el).boxShadow !== 'none');
+            return { flat, bordered, floating };
+          });
+        } finally {
+          fixture.remove();
+          for (const [key, value] of Object.entries(previous)) {
+            if (value === undefined) delete root.dataset[key]; else root.dataset[key] = value;
+          }
+        }
+      })()`), Array.from({ length: 2 }, () => ({ flat: true, bordered: true, floating: true })));
       await newTab(); await capture("start-light");
       await click(chatOption);
       await until(`document.querySelector(${JSON.stringify(panel + ' .rich-input')}) && !document.querySelector(${JSON.stringify(panel + ' .rich-input')}).disabled`);

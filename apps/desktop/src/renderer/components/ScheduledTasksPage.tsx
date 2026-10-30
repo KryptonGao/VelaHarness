@@ -4,20 +4,10 @@ import { tr } from "../locale";
 import { cleanErrorMessage } from "../hooks/useProject";
 import { useAutoHideScrollbarsWithin } from "../hooks/useAutoHideScrollbar";
 import "../scheduled-tasks.css";
+import { scheduledStatusText as statusText, scheduledDateText as dateText, scheduledStatusTone as statusTone, scheduledDays as days, scheduledScheduleText as scheduleText } from "./scheduled-task-format";
 
 const emptyState: ScheduledTasksState = { tasks: [], runs: [] };
-const statusLabels = { active: ["启用", "Active"], paused: ["已暂停", "Paused"], completed: ["已完成", "Completed"],
-  running: ["执行中", "Running"], success: ["成功", "Success"], failed: ["失败", "Failed"], skipped: ["已跳过", "Skipped"], interrupted: ["已中断", "Interrupted"] } as const;
-const statusText = (status: keyof typeof statusLabels) => tr(statusLabels[status][0], statusLabels[status][1]);
-const dateText = (date: number | null) => date === null ? "—" : new Date(date).toLocaleString();
 const baseName = (path: string) => path.split(/[\\/]/).filter(Boolean).pop() ?? path;
-const statusTone = (status: keyof typeof statusLabels) => status === "success" || status === "active" ? "ok" : status === "failed" || status === "interrupted" ? "bad" : status === "running" ? "run" : "idle";
-const days = () => [tr("日", "Sun"), tr("一", "Mon"), tr("二", "Tue"), tr("三", "Wed"), tr("四", "Thu"), tr("五", "Fri"), tr("六", "Sat")];
-function scheduleText(schedule: TaskSchedule): string {
-  if (schedule.kind === "once") return `${tr("一次性", "Once")} · ${dateText(Date.parse(schedule.at))}`;
-  if (schedule.kind === "cron") return `Cron · ${schedule.expression} · ${schedule.timezone}`;
-  return `${schedule.kind === "daily" ? tr("每日", "Daily") : `${tr("每周", "Weekly")} ${schedule.weekdays.map(day => days()[day]).join("、")}`} · ${schedule.time} · ${schedule.timezone}`;
-}
 
 export function ScheduledTasksPage({ workspace, workspaces, onOpenConversation, sidebarCollapsed, onToggleSidebar, catalog, catalogError }: {
   workspace: string | null; workspaces: string[]; onOpenConversation: (id: string) => void;

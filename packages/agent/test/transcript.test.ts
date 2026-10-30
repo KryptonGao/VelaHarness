@@ -76,7 +76,10 @@ describe("MCP history identity", () => {
     const [message] = transcriptFromProjection(projection([
       entry("call", call), entry("result", result({ server: "builtin_notion", tool: "notion-list-private-pages" })),
     ]));
-    assert.deepEqual(message!.tools[0]!.activity, { mcp: { server: "builtin_notion", tool: "notion-list-private-pages" }, body });
+    const { presentation, ...legacyFields } = message!.tools[0]!.activity;
+    assert.deepEqual(legacyFields, { mcp: { server: "builtin_notion", tool: "notion-list-private-pages" }, body });
+    assert.equal(presentation?.kind, "json");
+    if (presentation?.kind === "json") assert.deepEqual(JSON.parse(JSON.stringify(presentation.value)), JSON.parse(body));
     assert.equal(message!.tools[0]!.status, "done");
   });
 

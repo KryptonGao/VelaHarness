@@ -5,6 +5,7 @@ import { localizeError, tr, useAppLocale, trf } from "../locale";
 import { ConversationLinkContext } from "./ConversationLinkContext";
 import { Markdown } from "./Markdown";
 import { ScrollFade } from "./ScrollFade";
+import { StructuredValue } from "./StructuredValue";
 import { ExternalIcon } from "./icons";
 import { useSlidingTabIndicator } from "./useSlidingTabIndicator";
 import { formatMcpResponse, mcpResultUrl, presentMcpResult, type McpSearchResult } from "./mcp-tool-result";
@@ -21,9 +22,11 @@ export function McpToolDetails({ tool }: { tool: ToolTrace }) {
   const id = useId();
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const body = activity.body ?? "";
-  const result = useMemo(() => presentMcpResult(body), [body]);
-  const raw = useMemo(() => formatMcpResponse(body), [body]);
-  useEffect(() => { setCopyState("idle"); }, [body]);
+  const structured = activity.presentation?.kind === "json" || activity.presentation?.kind === "resource" ? activity.presentation.value : undefined;
+  const responseText = body || (structured !== undefined ? JSON.stringify(structured) : "");
+  const result = useMemo(() => presentMcpResult(body, structured), [body, structured]);
+  const raw = useMemo(() => formatMcpResponse(responseText), [responseText]);
+  useEffect(() => { setCopyState("idle"); }, [responseText]);
   useEffect(() => {
     if (copyState === "idle") return;
     const timeout = window.setTimeout(() => setCopyState("idle"), 1800);
@@ -59,23 +62,23 @@ export function McpToolDetails({ tool }: { tool: ToolTrace }) {
         <p className="mcp-detail-muted">{tr("此记录未包含完整输入参数。", "Full input parameters are not included in this record.")}</p>
       </> : tab === "raw" ? <>
         <div className="mcp-result-heading"><span>{tr("响应内容", "Response content")}</span>
-          <button type="button" className="mcp-detail-action" disabled={!body} onClick={() => {
-            void navigator.clipboard.writeText(body).then(() => setCopyState("copied"), () => setCopyState("failed"));
+          <button type="button" className="mcp-detail-action" disabled={!responseText} onClick={() => {
+            void Promise.resolve().then(() => navigator.clipboard.writeText(responseText)).then(() => setCopyState("copied"), () => setCopyState("failed"));
           }}>{tr("复制", "Copy")}</button></div>
         <span className="mcp-copy-feedback" role="status">{copyState === "copied" ? tr("已复制", "Copied") : copyState === "failed" ? tr("复制失败，请选择文本复制", "Copy failed. Select the text to copy.") : ""}</span>
-        {body ? <pre className="mcp-response-code">{raw}</pre> : <p className="mcp-detail-muted">{tr("暂无响应内容", "No response yet")}</p>}
+        {responseText ? <pre className="mcp-response-code">{raw}</pre> : <p className="mcp-detail-muted">{tr("暂无响应内容", "No response yet")}</p>}
       </> : status === "error" ? <div className="mcp-result-error" role="alert"><strong>{tr("调用失败", "Call failed")}</strong>
         <div className="tool-markdown tool-error"><Markdown text={body ? localizeError(body) : tr("执行失败", "Execution failed")} /></div></div>
-        : !body ? <p className="mcp-detail-muted">{status === "running" ? tr("正在等待工具返回结果…", "Waiting for tool results…") : tr("工具未返回内容", "The tool returned no content")}</p>
+        : !body && structured === undefined ? <p className="mcp-detail-muted">{status === "running" ? tr("正在等待工具返回结果…", "Waiting for tool results…") : tr("工具未返回内容", "The tool returned no content")}</p>
         : result.kind === "search" ? <>
           <div className="mcp-result-heading"><span>{tr("搜索结果", "Search results")}</span><span className="mcp-detail-muted">{trf("{0} 条", "{0} results", result.results.length)}</span></div>
           {result.results.length ? <ol className="mcp-result-list">{result.results.map((item, index) => <SearchResult key={`${item.id ?? item.url ?? item.title}-${index}`} item={item} />)}</ol>
             : <p className="mcp-detail-muted">{tr("未找到匹配结果", "No matching results")}</p>}
         </> : result.kind === "json" ? <>
           <div className="mcp-result-heading">{tr("返回内容", "Returned content")}</div>
-          {result.value && typeof result.value === "object" && !Array.isArray(result.value) ? <dl className="mcp-call-fields mcp-json-fields">{Object.entries(result.value).map(([key, value]) => <div key={key}><dt>{key}</dt><dd>{typeof value === "string" ? value : <pre>{JSON.stringify(value, null, 2)}</pre>}</dd></div>)}</dl>
-            : <pre className="mcp-response-code">{raw}</pre>}
+          <div className="mcp-json-fields"><StructuredValue value={result.value} /></div>
         </> : <div className="tool-markdown tool-note"><Markdown text={result.text} /></div>}
+      {tab === "result" && (result.truncated || activity.presentation?.truncated) ? <p className="mcp-detail-muted" role="status">{tr("结果过长，部分内容已省略。", "The result is too large; some content was omitted.")}</p> : null}
     </div>
     </ScrollFade>
   </section>;

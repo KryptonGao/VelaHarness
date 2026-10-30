@@ -47,7 +47,7 @@ const fixture = {
 (window as unknown as { chatFixture: typeof fixture }).chatFixture = fixture;
 const subscribe = () => () => {};
 window.vela = {
-  platform: "darwin", setLocale() {}, setRunView: async () => {}, setRecommendedActions: async () => {},
+  platform: "darwin", setLocale() {}, setAppearance: async () => {}, setRunView: async () => {}, setRecommendedActions: async () => {},
   getState: async id => state(id), getMessages: async id => structuredClone(messages.get(id) ?? []), getAgentMessages: async () => [],
   onEvent: listener => { events.add(listener); return () => { events.delete(listener); }; },
   onQuestionEvent: listener => { questions.add(listener); return () => { questions.delete(listener); }; },

@@ -1956,6 +1956,8 @@ code,
 .chat-conversation-pane[data-home] .chat-dock-wrapper::before,
 .chat-conversation-pane[data-home] .chat-dock-wrapper::after { display: none; }
 .chat-conversation-pane[data-home] .floating-input-card { margin-right: 0; }
+/* 首页输入区在内容流中，不需要浮动 dock 的投影，避免暗色下向托盘扩散成黑晕。 */
+.chat-conversation-pane[data-home] :is(.floating-input-card, .composer-capsule) { box-shadow: none; }
 .chat-conversation-pane[data-home] .home-prompts { margin-bottom: auto; }
 /* 没有预设提示词时由输入框承担下方的弹性留白,并预留两行预设(14 + 46 × 2 + 8)的高度,
    让问候和输入框与有预设时停在同一高度。 */
@@ -2953,6 +2955,19 @@ code,
 }
 .tool-stat-add { color: var(--diff-stat-add-fg); }
 .tool-stat-del { color: var(--diff-stat-del-fg); }
+/* 只响应当前摘要行的悬停，展开分组时不连带点亮子行。 */
+:is(.tool-card-head, .tool-run-head, .tool-compact-summary, .tool-compact-line)
+  > :is(.tool-stat, .tool-compact-stat) > :is(.tool-stat-add, .tool-stat-del) {
+  color: var(--text-muted);
+}
+:is(.tool-card-head, .tool-run-head, .tool-compact-summary, .tool-compact-line):hover
+  > :is(.tool-stat, .tool-compact-stat) > .tool-stat-add {
+  color: var(--diff-stat-add-fg);
+}
+:is(.tool-card-head, .tool-run-head, .tool-compact-summary, .tool-compact-line):hover
+  > :is(.tool-stat, .tool-compact-stat) > .tool-stat-del {
+  color: var(--diff-stat-del-fg);
+}
 .tool-lines {
   color: var(--text-muted);
   font-size: 15px;

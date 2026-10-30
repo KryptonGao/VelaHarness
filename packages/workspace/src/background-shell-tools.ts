@@ -64,7 +64,7 @@ export function createBackgroundShellTools(manager: BackgroundShellManager, conv
       const read = await manager.read(conversationId, params.shell_id, { wait: params.wait, signal });
       return {
         content: [{ type: "text", text: formatRead(read.info, read.output, read.truncated) }],
-        details: { backgroundShell: read.info },
+        details: { backgroundShell: read.info, output: read.output, truncated: read.truncated },
       };
     },
   });
@@ -79,7 +79,7 @@ export function createBackgroundShellTools(manager: BackgroundShellManager, conv
       const info = manager.list(conversationId).find((shell) => shell.id === params.shell_id);
       return {
         content: [{ type: "text", text: killed ? `Stopped background shell ${params.shell_id}.` : `Background shell ${params.shell_id} had already exited.` }],
-        details: info ? { backgroundShell: info } : undefined,
+        details: { ...(info ? { backgroundShell: info } : {}), killed },
       };
     },
   });
