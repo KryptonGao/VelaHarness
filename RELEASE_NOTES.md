@@ -37,3 +37,6 @@ Package version: `1.2.12`. macOS bundle and download version: `1.2.12`.
 ## Validation
 
 - The unit, UI and smoke test suites were not run for this release.
+- The in-app release-notes file was checked by hand: version `1.2.12` with matching highlight and improvement counts in all five languages.
+- macOS arm64 packaging completed (`pnpm package:mac`). The application bundle reports version `1.2.12` with identifier `com.vela.desktop`; the ZIP extracts to a single `Vela.app`, and the DMG checksum verifies.
+- Signed checksums were generated (`pnpm sign:release`) for both packages.
