@@ -2,7 +2,7 @@
 
 Agent 回答里可以嵌入原生交互界面：计算器、对比表、分步演示。界面是声明式数据，由 Vela 自己的组件渲染；模型输出的任何 HTML、脚本、JSX 都不会被执行。
 
-需求与分期见 [requirements/intelligent-ui.md](./requirements/intelligent-ui.md)。本文描述已经实现的 P0、P1（图表与图解、可信数据源、导出与继续提问、本地指标与检查器）和 P2（沙盒微应用、更丰富的视图、工作流协作）。
+需求与分期见 [requirements/intelligent-ui.md](../requirements/intelligent-ui.md)。本文描述已经实现的 P0、P1（图表与图解、可信数据源、导出与继续提问、本地指标与检查器）和 P2（沙盒微应用、更丰富的视图、工作流协作）。
 
 ## 使用
 

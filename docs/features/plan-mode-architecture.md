@@ -270,4 +270,4 @@ pnpm --filter @vela/desktop test:plan   # 包含 plan-draft.test.ts 与 plan-doc
 ## 相关文档
 
 - [Plan 模式使用说明](./plan-mode.md)
-- [文档索引](./README.md)
+- [文档索引](../README.md)

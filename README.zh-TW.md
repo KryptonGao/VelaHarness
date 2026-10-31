@@ -58,11 +58,11 @@ Vela 是一款桌面應用程式，讓 AI Agent 在你電腦上的程式碼儲�
 - **本機工作區與 Git worktree：** 開啟電腦上的專案，在原工作區或獨立 worktree 中處理任務。
 - **審閱與工作面板：** 查看 Git 差異與暫存狀態；右側分頁承載檔案預覽、變更與整合終端機，`⌘T` 開啟新分頁。
 - **模型與帳號：** 管理模型提供者，登入帳號、填入 API 金鑰或新增自訂模型介面。
-- **MCP 伺服器：** 連接本機或遠端 MCP 工具，支援全域與專案設定、依需探索、專案信任與唯讀授權。詳見 [docs/mcp.md](./docs/mcp.md)。
-- **專案記憶與全域記憶：** 用兩個 Markdown 檔保存跨專案的個人偏好，以及目前專案的慣例與決策；每次執行前自動載入，可在設定中查看、編輯、清空或刪除。詳見 [docs/memory.md](./docs/memory.md)。
-- **定時任務：** 依單次、每日、每週或 Cron 時間排程，每次執行都在綁定工作區的新對話中進行，可選擇執行權限、模型與推理強度。詳見 [docs/scheduled-tasks.md](./docs/scheduled-tasks.md)。
-- **任務配方：** 保存參數化的任務範本，填入參數並預覽後，在新對話中啟動；支援結構化階段、審批、團隊共享與版本效果比較。詳見 [docs/task-recipes.md](./docs/task-recipes.md)。
-- **整合：** 在設定中一鍵連接 Notion 等內建應用程式，不必填寫 URL 或 Token；OAuth 在系統瀏覽器中完成，憑證由系統安全儲存空間加密。詳見 [docs/built-in-mcp-plugins.md](./docs/built-in-mcp-plugins.md)。
+- **MCP 伺服器：** 連接本機或遠端 MCP 工具，支援全域與專案設定、依需探索、專案信任與唯讀授權。詳見 [docs/features/mcp.md](./docs/features/mcp.md)。
+- **專案記憶與全域記憶：** 用兩個 Markdown 檔保存跨專案的個人偏好，以及目前專案的慣例與決策；每次執行前自動載入，可在設定中查看、編輯、清空或刪除。詳見 [docs/features/memory.md](./docs/features/memory.md)。
+- **定時任務：** 依單次、每日、每週或 Cron 時間排程，每次執行都在綁定工作區的新對話中進行，可選擇執行權限、模型與推理強度。詳見 [docs/features/scheduled-tasks.md](./docs/features/scheduled-tasks.md)。
+- **任務配方：** 保存參數化的任務範本，填入參數並預覽後，在新對話中啟動；支援結構化階段、審批、團隊共享與版本效果比較。詳見 [docs/features/task-recipes.md](./docs/features/task-recipes.md)。
+- **整合：** 在設定中一鍵連接 Notion 等內建應用程式，不必填寫 URL 或 Token；OAuth 在系統瀏覽器中完成，憑證由系統安全儲存空間加密。詳見 [docs/features/built-in-mcp-plugins.md](./docs/features/built-in-mcp-plugins.md)。
 - **外觀與上下文：** 淺色／深色主題與五種介面語言，查看上下文用量、思考強度與 Skill 活動；重新啟動後可還原。
 - **圖片檢視：** 點擊訊息縮圖，即可全螢幕縮放、拖曳並切換多張圖片。
 
@@ -90,7 +90,7 @@ pnpm install
 pnpm dev
 ```
 
-開發版使用獨立的 `~/.vela-dev` 資料夾，可與使用 `~/.vela` 的已安裝 `Vela.app` 同時執行；帳號、會話與設定各自保存。從正式版同步資料與開發工具的說明，請見 [docs/development.md](./docs/development.md)（目前為簡體中文）。
+開發版使用獨立的 `~/.vela-dev` 資料夾，可與使用 `~/.vela` 的已安裝 `Vela.app` 同時執行；帳號、會話與設定各自保存。從正式版同步資料與開發工具的說明，請見 [docs/guides/development.md](./docs/guides/development.md)（目前為簡體中文）。
 
 首次啟動後：
 
@@ -165,7 +165,7 @@ Vela 以 [Pi Agent](https://github.com/earendil-works/pi) 為基礎，透過 Typ
 
 - **技術堆疊：** Electron 44、electron-vite、React 19 與 TypeScript；以 pnpm workspace 管理桌面應用程式與共用套件。Pi 精確鎖定為 `1.0.0`（`@earendil-works/pi-coding-agent`、`pi-agent-core`、`pi-ai`）；Vela 在主程序呼叫 `createAgentSession()`，不是透過啟動 Pi 命令列程式來執行 Agent。
 - **會話與模型：** 每個對話使用獨立的 Pi `AgentSession`，訊息保存在 `~/.vela/sessions`，對話索引在 `~/.vela/conversations.json`。提供者與模型透過 Pi 的 `ModelRuntime` 載入，使用 Vela 自己的 `~/.vela` 設定，不會讀取本機的 Pi 設定。
-- **工具、模式與權限：** 基礎工具為 Pi 的 `read`、`bash`、`edit` 與 `write`，Vela 包裝了 `bash`、`edit`、`write` 以接入審批。`Plan` 模式透過 ToolPolicy 禁止編輯與寫入，只放行唯讀指令，並以 `<proposed_plan>` 輸出完整方案，批准後可在目前或全新的上下文中執行；`Goal` 模式透過 `update_goal` 記錄進度。詳見 [docs/plan-mode.md](./docs/plan-mode.md) 與 [docs/plan-mode-architecture.md](./docs/plan-mode-architecture.md)。
+- **工具、模式與權限：** 基礎工具為 Pi 的 `read`、`bash`、`edit` 與 `write`，Vela 包裝了 `bash`、`edit`、`write` 以接入審批。`Plan` 模式透過 ToolPolicy 禁止編輯與寫入，只放行唯讀指令，並以 `<proposed_plan>` 輸出完整方案，批准後可在目前或全新的上下文中執行；`Goal` 模式透過 `update_goal` 記錄進度。詳見 [docs/features/plan-mode.md](./docs/features/plan-mode.md) 與 [docs/features/plan-mode-architecture.md](./docs/features/plan-mode-architecture.md)。
 - **MCP：** 工具預設透過 `tool_search` 依需探索，也可設為直接提供或隱藏；專案設定需要確認信任。Plan 與 `explore` 只提供已確認為唯讀的工具。
 - **工作區與程序：** Git worktree 由本機 Git 指令建立，放在 `~/.vela/worktrees` 下，使用獨立的 `vela/wt-*` 分支。Pull Request 資訊透過已安裝並登入的 GitHub CLI（`gh`）讀取。Agent、檔案系統與 Git 操作由 Electron 主程序處理，renderer 透過 preload 的 IPC 呼叫；視窗啟用 `contextIsolation`，並關閉 `nodeIntegration`。
 

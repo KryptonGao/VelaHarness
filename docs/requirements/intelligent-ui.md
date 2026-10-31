@@ -1,6 +1,6 @@
 # Intelligent UI（动态生成式交互界面）需求文档
 
-状态：**P0、P1、P2 已实现**（`IUI-12` 中可选的「保存用户模板」除外）。已实现行为见 [../intelligent-ui.md](../intelligent-ui.md)；与本文的差异和已知限制见第 14、15 章。  
+状态：**P0、P1、P2 已实现**（`IUI-12` 中可选的「保存用户模板」除外）。已实现行为见 [../intelligent-ui.md](../features/intelligent-ui.md)；与本文的差异和已知限制见第 14、15 章。  
 日期：2026-10-10。  
 范围：VelaHarness（Vela）桌面端 Agent 对话中的原生、流式、可交互回答。  
 产品名称：**Intelligent UI**；内部模块代号：`Vela UI`。  
@@ -63,7 +63,7 @@
 | 流式消息及切换会话 | `apps/desktop/src/renderer/hooks/useSession.ts` | 不打断目前的消息事件、Agent 子会话及 Plan 草稿 |
 | Chat 内容展示 | `apps/desktop/src/renderer/components/SessionChatView.tsx` | 原消息内嵌 UI，不另起全屏或固定侧栏 |
 | 桌面应用装配 | `apps/desktop/src/renderer/App.tsx` | 仅集成必要的 Provider/Renderer |
-| Plan 格式与分支恢复 | `packages/agent/src/plan.ts`、`docs/plan-mode-architecture.md` | 新 UI 格式不得破坏 `<proposed_plan>` 解析 |
+| Plan 格式与分支恢复 | `packages/agent/src/plan.ts`、`docs/features/plan-mode-architecture.md` | 新 UI 格式不得破坏 `<proposed_plan>` 解析 |
 | 工具权限 | `apps/desktop/src/main/session-host.ts` 与现有 ToolPolicy | UI 不能绕过 Plan、沙箱、MCP 或执行审批 |
 
 现有应用基于 Electron 44、React 19、TypeScript、Pi 1.0、pnpm workspace，包含简中、繁中、英文、日文、韩文与明暗主题。**新功能必须沿用它们**；组件与样式按项目现有约定组织。
@@ -376,7 +376,7 @@ UI Artifact 状态建议：
 
 ## 14. P0 实施记录与与本文的差异
 
-P0 已按 [../intelligent-ui.md](../intelligent-ui.md) 实现。与第 8 章建议相比有以下差异：
+P0 已按 [../intelligent-ui.md](../features/intelligent-ui.md) 实现。与第 8 章建议相比有以下差异：
 
 - 协议模块（解析器、表达式、组件规范化、状态与快照格式）放在 `packages/shared`，不是 `packages/agent/src/intelligent-ui-parser.ts`：Main 导出与 Renderer 渲染需要共用同一份实现。
 - 在 `state` 之外增加了 `derive` 操作和节点级 `show` 表达式，用于派生值与页签面板的条件显示。
@@ -387,7 +387,7 @@ P0 已按 [../intelligent-ui.md](../intelligent-ui.md) 实现。与第 8 章建�
 
 ## 15. P1/P2 实施记录与与本文的差异
 
-P1/P2 的行为描述见 [../intelligent-ui.md](../intelligent-ui.md)，这里只记录与上文的差异和取舍：
+P1/P2 的行为描述见 [../intelligent-ui.md](../features/intelligent-ui.md)，这里只记录与上文的差异和取舍：
 
 - **数据源由真实工具调用解析，不由工具「推送」给 UI**：`source` 操作只指名一次工具调用，数据值由 Vela 从会话里的工具结果取（`resolveUiSource`）。没有会话工具记录的场景（Agent Inbox、Resident）显示找不到工具结果，界面本身不会去抓取任何东西。「刷新」是一条确认后发给 Agent 的消息。
 - **图表可拖动** 只对直接引用 number 状态的点生效，拖动只改本地状态。图表颜色只用主题 token；保存 PNG 时把计算后的样式内联进 SVG 再用 canvas 光栅化。

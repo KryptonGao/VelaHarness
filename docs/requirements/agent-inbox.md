@@ -1,6 +1,6 @@
 # Agent Inbox 与常驻 Agent 需求
 
-**状态：** 第一至第七阶段均已实现。已实现部分的行为、限制和实现位置见 [../agent-inbox.md](../agent-inbox.md)。
+**状态：** 第一至第七阶段均已实现。已实现部分的行为、限制和实现位置见 [../agent-inbox.md](../features/agent-inbox.md)。
 
 ## 定位
 

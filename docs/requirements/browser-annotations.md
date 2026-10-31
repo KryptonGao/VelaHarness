@@ -17,7 +17,7 @@
 
 | 能力 | 当前实现依据 | 与批注的关系 |
 | --- | --- | --- |
-| 浏览器面板 | `apps/desktop/src/renderer/components/browser/BrowserPanel.tsx`、`BrowserViewHost.tsx`；[浏览器](../browser.md) | 批注入口、元素高亮和编号标记在这里呈现；`<webview>` 常驻挂载，批注不能破坏其生命周期。 |
+| 浏览器面板 | `apps/desktop/src/renderer/components/browser/BrowserPanel.tsx`、`BrowserViewHost.tsx`；[浏览器](../features/browser.md) | 批注入口、元素高亮和编号标记在这里呈现；`<webview>` 常驻挂载，批注不能破坏其生命周期。 |
 | 浏览器主进程 | `apps/desktop/src/main/browser-host.ts`、`browser-cdp.ts`；`packages/shared/src/browser.ts` 的 `BrowserUiCommand` | 元素拾取经主进程 CDP 完成，新增命令走同一套 IPC 校验。 |
 | Agent 指针覆盖层 | `BrowserAgentPointer.tsx` | 先例：覆盖层由应用自己绘制，不在页面 DOM 中，也不进入 Agent 截图。批注标记沿用这一做法。 |
 | 选中文字回复 | `components/selection-actions.ts` 的 `ReplyDraft`、`ReplyCard`、`replyMessage`、`hasReplyText`；`Composer.tsx` 的 `replies`；`ChatView.tsx` 持有 `replies` 状态 | 批注复用这套卡片、排序、移除、清空和发送语义。 |

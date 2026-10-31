@@ -2,7 +2,7 @@
 
 状态：第一期读取闭环已实现；AI 与远程写入动作留待后续阶段。2026-10-05 更新。
 
-实现与验证记录：[Pull Request 中心实现记录](../pr-inbox.md)。下文“当前实现”与“待实现”描述保留方案编写时的基线；实际交付范围以实现记录为准。
+实现与验证记录：[Pull Request 中心实现记录](../features/pr-inbox.md)。下文“当前实现”与“待实现”描述保留方案编写时的基线；实际交付范围以实现记录为准。
 
 设计参考：[HTML 设计稿](../../Design/pull-requests-preview.html)、[设计与验证记录](../../Design/pull-requests/README.md)。现有工作区 PR 能力见 [版本控制需求](./version-control.md)。
 

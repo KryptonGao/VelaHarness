@@ -1,6 +1,6 @@
 # 任务配方需求文档
 
-状态：P0、P1、P2 已在当前开发分支实现，尚未随版本发布。实现对照、验证与剩余项见 [任务配方](../task-recipes.md)。  
+状态：P0、P1、P2 已在当前开发分支实现，尚未随版本发布。实现对照、验证与剩余项见 [任务配方](../features/task-recipes.md)。  
 日期：2026-10-04。  
 范围：Vela 桌面端可填写参数、预览并重复使用的任务流程。  
 产品名称：任务配方；英文：Task Recipes。
@@ -15,18 +15,18 @@
 
 首版将配方定义为包含参数、流程要求和交付要求的任务模板。步骤交由现有 Agent 解释执行；首版不提供保证逐步执行的工作流引擎，也不将模型回复结束解释为任务验收通过。
 
-本文保留首版需求基线；P1 文件格式、信任／冲突规则与 worktree 策略见 [P1 增强功能](../task-recipes.md#p1-增强功能)。P2 的阶段状态机、副作用／重试边界、团队权限与统计口径见 [P2 阶段、共享与效果比较](../task-recipes.md#p2-阶段共享与效果比较)。
+本文保留首版需求基线；P1 文件格式、信任／冲突规则与 worktree 策略见 [P1 增强功能](../features/task-recipes.md#p1-增强功能)。P2 的阶段状态机、副作用／重试边界、团队权限与统计口径见 [P2 阶段、共享与效果比较](../features/task-recipes.md#p2-阶段共享与效果比较)。
 
 ## 2. 当前实现基线与能力关系
 
-以下基线记录实施前的会话与工具能力；后续章节保留需求基线。当前实现及边界见 [需求对照](../task-recipes.md#需求对照)。
+以下基线记录实施前的会话与工具能力；后续章节保留需求基线。当前实现及边界见 [需求对照](../features/task-recipes.md#需求对照)。
 
 | 能力 | 当前实现依据 | 与配方的关系 |
 | --- | --- | --- |
 | Skill | `packages/agent/src/skill-catalog.ts` 的 `loadSkillCatalog`；`packages/agent/src/skill-management.ts` 的 `setSkillEnabled` | Skill 提供可复用方法；配方提供本次任务的目标、参数和流程。配方不复制一套 Skill 加载机制。 |
 | 新对话与发送 | `packages/agent/src/runtime.ts` 的 `createConversation`、`prompt` | 配方通过现有会话运行时执行，不引入另一套模型或工具执行链。 |
-| Agent / Plan / Goal | `packages/agent/src/interaction.ts` 的 `toolNamesFor`、`modeSystemPrompt`；[Plan 模式](../plan-mode.md) | 配方选择启动模式；Plan 的方案修订、批准与实施继续沿用现有机制。 |
-| 定时任务 | `packages/agent/src/runtime.ts` 的 `runScheduledTask`；[定时任务](../scheduled-tasks.md) | 定时任务决定触发时间；配方决定触发内容。首版只手动启动，后续再连接定时任务。 |
+| Agent / Plan / Goal | `packages/agent/src/interaction.ts` 的 `toolNamesFor`、`modeSystemPrompt`；[Plan 模式](../features/plan-mode.md) | 配方选择启动模式；Plan 的方案修订、批准与实施继续沿用现有机制。 |
+| 定时任务 | `packages/agent/src/runtime.ts` 的 `runScheduledTask`；[定时任务](../features/scheduled-tasks.md) | 定时任务决定触发时间；配方决定触发内容。首版只手动启动，后续再连接定时任务。 |
 | 本地 / worktree | `packages/workspace/src/environment-manager.ts` 的 `ExecutionEnvironmentManager` | 配方运行绑定具体目录，首版支持已存在的本地工作区或 worktree。 |
 | 运行中指令 | `packages/agent/src/runtime.ts` 的 `prompt`、`removeInstruction`；[运行中追加指令](./runtime-instructions.md) | 配方启动后，用户可沿用现有排队、调整和停止能力。 |
 
@@ -233,7 +233,7 @@ Plan 配方只开展规划。输出方案后由用户通过现有 Plan Document 
 
 ## 10. 首版验收标准
 
-下列场景用于首版验收。当前自动验证使用临时工作区及合成模型响应，范围见 [验证与边界](../task-recipes.md#验证与边界)。
+下列场景用于首版验收。当前自动验证使用临时工作区及合成模型响应，范围见 [验证与边界](../features/task-recipes.md#验证与边界)。
 
 | 验收 ID | 需求 ID | 场景 | 预期结果 |
 | --- | --- | --- | --- |

@@ -1,6 +1,6 @@
 # 信息卡片模式
 
-「信息卡片」是信息面板的第三种布局（设置 → 界面 → 信息布局，另两种是「侧栏」和「浮动」）。右侧一列卡片直接浮在对话上，没有边栏；卡片可以拖动排序、折叠和隐藏。设计稿见 [design/right-rail-cards.html](./design/right-rail-cards.html)。
+「信息卡片」是信息面板的第三种布局（设置 → 界面 → 信息布局，另两种是「侧栏」和「浮动」）。右侧一列卡片直接浮在对话上，没有边栏；卡片可以拖动排序、折叠和隐藏。设计稿见 [design/right-rail-cards.html](../design/right-rail-cards.html)。
 
 ## 卡片
 

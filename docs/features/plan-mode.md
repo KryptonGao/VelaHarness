@@ -143,5 +143,5 @@ Plan 模式只向模型提供 `read`、`bash` 和 `ask_user_question`，并在�
 ## 相关文档
 
 - [Plan 模式实现架构](./plan-mode-architecture.md)
-- [Vela README](../README.md)
-- [文档索引](./README.md)
+- [Vela README](../../README.md)
+- [文档索引](../README.md)

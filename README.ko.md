@@ -58,11 +58,11 @@ Vela는 내 컴퓨터에 있는 저장소 안에서 AI 에이전트가 작업하
 - **로컬 워크스페이스와 Git worktree:** 내 컴퓨터의 프로젝트를 열고, 원래 워크스페이스나 독립된 worktree에서 작업합니다.
 - **검토와 작업 패널:** Git 변경 내용과 스테이징 상태를 확인합니다. 오른쪽 탭에는 파일 미리보기, 변경 사항, 통합 터미널이 들어가며, `⌘T`로 새 탭을 엽니다.
 - **모델 및 계정:** 모델 제공자를 관리하고, 계정에 로그인하거나 API 키를 입력하거나 사용자 지정 모델 엔드포인트를 추가합니다.
-- **MCP 서버:** 로컬 또는 원격 MCP 도구에 연결합니다. 전역 및 프로젝트별 설정, 필요할 때 탐색, 프로젝트 신뢰, 읽기 전용 승인을 지원합니다. 자세한 내용은 [docs/mcp.md](./docs/mcp.md)를 참고하세요.
-- **프로젝트 메모리와 전역 메모리:** Markdown 파일 두 개에 프로젝트를 넘나드는 개인 선호와 현재 프로젝트의 규칙·결정 사항을 저장합니다. 실행할 때마다 자동으로 불러오며, 설정에서 보고, 편집하고, 비우거나 삭제할 수 있습니다. 자세한 내용은 [docs/memory.md](./docs/memory.md)를 참고하세요.
-- **예약 작업:** 한 번, 매일, 매주 또는 Cron 표현식으로 작업을 예약합니다. 실행할 때마다 연결된 워크스페이스에서 새 채팅이 시작되며, 실행 권한, 모델, 추론 강도를 선택할 수 있습니다. 자세한 내용은 [docs/scheduled-tasks.md](./docs/scheduled-tasks.md)를 참고하세요.
-- **작업 레시피:** 매개변수가 있는 작업 템플릿을 저장하고, 매개변수를 채워 미리 본 다음 새 채팅에서 시작합니다. 단계별 워크플로, 승인, 팀 공유, 버전별 효과 비교를 지원합니다. 자세한 내용은 [docs/task-recipes.md](./docs/task-recipes.md)를 참고하세요.
-- **통합:** 설정에서 Notion 같은 내장 앱을 한 번에 연결합니다. URL이나 토큰을 입력할 필요가 없습니다. OAuth는 시스템 브라우저에서 완료되고, 자격 증명은 시스템 보안 저장소로 암호화됩니다. 자세한 내용은 [docs/built-in-mcp-plugins.md](./docs/built-in-mcp-plugins.md)를 참고하세요.
+- **MCP 서버:** 로컬 또는 원격 MCP 도구에 연결합니다. 전역 및 프로젝트별 설정, 필요할 때 탐색, 프로젝트 신뢰, 읽기 전용 승인을 지원합니다. 자세한 내용은 [docs/features/mcp.md](./docs/features/mcp.md)를 참고하세요.
+- **프로젝트 메모리와 전역 메모리:** Markdown 파일 두 개에 프로젝트를 넘나드는 개인 선호와 현재 프로젝트의 규칙·결정 사항을 저장합니다. 실행할 때마다 자동으로 불러오며, 설정에서 보고, 편집하고, 비우거나 삭제할 수 있습니다. 자세한 내용은 [docs/features/memory.md](./docs/features/memory.md)를 참고하세요.
+- **예약 작업:** 한 번, 매일, 매주 또는 Cron 표현식으로 작업을 예약합니다. 실행할 때마다 연결된 워크스페이스에서 새 채팅이 시작되며, 실행 권한, 모델, 추론 강도를 선택할 수 있습니다. 자세한 내용은 [docs/features/scheduled-tasks.md](./docs/features/scheduled-tasks.md)를 참고하세요.
+- **작업 레시피:** 매개변수가 있는 작업 템플릿을 저장하고, 매개변수를 채워 미리 본 다음 새 채팅에서 시작합니다. 단계별 워크플로, 승인, 팀 공유, 버전별 효과 비교를 지원합니다. 자세한 내용은 [docs/features/task-recipes.md](./docs/features/task-recipes.md)를 참고하세요.
+- **통합:** 설정에서 Notion 같은 내장 앱을 한 번에 연결합니다. URL이나 토큰을 입력할 필요가 없습니다. OAuth는 시스템 브라우저에서 완료되고, 자격 증명은 시스템 보안 저장소로 암호화됩니다. 자세한 내용은 [docs/features/built-in-mcp-plugins.md](./docs/features/built-in-mcp-plugins.md)를 참고하세요.
 - **모양과 컨텍스트:** 라이트 / 다크 테마와 다섯 가지 UI 언어를 지원하며, 컨텍스트 사용량, 생각 강도, Skill 활동을 확인할 수 있습니다. 재시작 후에도 복원됩니다.
 - **이미지 보기:** 메시지의 썸네일을 클릭하면 전체 화면에서 확대, 드래그, 여러 이미지 간 전환을 할 수 있습니다.
 
@@ -90,7 +90,7 @@ pnpm install
 pnpm dev
 ```
 
-개발 빌드는 데이터를 `~/.vela-dev`에 저장하므로, `~/.vela`를 쓰는 설치된 `Vela.app`과 동시에 실행할 수 있습니다. 계정, 세션, 설정은 따로 저장됩니다. 설치 버전의 데이터를 동기화하는 방법과 개발자 도구는 [docs/development.md](./docs/development.md)(현재 중국어 간체)를 참고하세요.
+개발 빌드는 데이터를 `~/.vela-dev`에 저장하므로, `~/.vela`를 쓰는 설치된 `Vela.app`과 동시에 실행할 수 있습니다. 계정, 세션, 설정은 따로 저장됩니다. 설치 버전의 데이터를 동기화하는 방법과 개발자 도구는 [docs/guides/development.md](./docs/guides/development.md)(현재 중국어 간체)를 참고하세요.
 
 처음 실행한 뒤에는 다음 순서로 시작합니다.
 
@@ -165,7 +165,7 @@ Vela는 [Pi Agent](https://github.com/earendil-works/pi)를 기반으로 만들�
 
 - **기술 스택:** Electron 44, electron-vite, React 19, TypeScript. 데스크톱 앱과 공유 패키지는 pnpm workspace로 관리합니다. Pi는 `1.0.0`(`@earendil-works/pi-coding-agent`, `pi-agent-core`, `pi-ai`)으로 정확히 고정되어 있습니다. Vela는 메인 프로세스에서 `createAgentSession()`을 호출하며, Pi 명령줄 프로그램을 실행해 에이전트를 구동하지 않습니다.
 - **세션과 모델:** 채팅마다 독립된 Pi `AgentSession`을 사용합니다. 메시지는 `~/.vela/sessions`에, 채팅 인덱스는 `~/.vela/conversations.json`에 저장됩니다. 제공자와 모델은 Pi의 `ModelRuntime`으로 불러오며, Vela 고유의 `~/.vela` 설정을 사용하고 로컬 Pi 설정은 읽지 않습니다.
-- **도구, 모드, 권한:** 기본 도구는 Pi의 `read`, `bash`, `edit`, `write`이며, Vela는 승인을 연결하기 위해 `bash`, `edit`, `write`를 감쌉니다. `Plan` 모드는 ToolPolicy로 편집과 쓰기를 막고 읽기 전용 명령만 허용하며, 전체 계획을 `<proposed_plan>`으로 출력합니다. 승인하면 현재 컨텍스트나 새 컨텍스트에서 실행할 수 있습니다. `Goal` 모드는 `update_goal`로 진행 상황을 기록합니다. 자세한 내용은 [docs/plan-mode.md](./docs/plan-mode.md)와 [docs/plan-mode-architecture.md](./docs/plan-mode-architecture.md)를 참고하세요.
+- **도구, 모드, 권한:** 기본 도구는 Pi의 `read`, `bash`, `edit`, `write`이며, Vela는 승인을 연결하기 위해 `bash`, `edit`, `write`를 감쌉니다. `Plan` 모드는 ToolPolicy로 편집과 쓰기를 막고 읽기 전용 명령만 허용하며, 전체 계획을 `<proposed_plan>`으로 출력합니다. 승인하면 현재 컨텍스트나 새 컨텍스트에서 실행할 수 있습니다. `Goal` 모드는 `update_goal`로 진행 상황을 기록합니다. 자세한 내용은 [docs/features/plan-mode.md](./docs/features/plan-mode.md)와 [docs/features/plan-mode-architecture.md](./docs/features/plan-mode-architecture.md)를 참고하세요.
 - **MCP:** 도구는 기본적으로 `tool_search`를 통해 필요할 때 탐색되며, 직접 제공하거나 숨기도록 설정할 수도 있습니다. 프로젝트 설정은 신뢰 확인이 필요합니다. Plan 모드와 `explore` 하위 에이전트에는 읽기 전용으로 확인된 도구만 제공됩니다.
 - **워크스페이스와 프로세스:** Git worktree는 로컬 Git 명령으로 만들어지며, `~/.vela/worktrees` 아래에 독립된 `vela/wt-*` 브랜치로 놓입니다. Pull Request 정보는 설치되어 있고 로그인된 GitHub CLI(`gh`)로 읽어 옵니다. 에이전트, 파일 시스템, Git 작업은 Electron 메인 프로세스가 처리하고, renderer는 preload의 IPC로 호출합니다. 창은 `contextIsolation`을 켜고 `nodeIntegration`을 끈 상태로 실행됩니다.
 

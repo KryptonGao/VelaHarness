@@ -6,7 +6,7 @@
 
 - pnpm 工作区：`apps/desktop`（Electron 应用，主进程在 `src/main`，渲染层在 `src/renderer`）、`packages/{agent,shared,tools,workspace}`。
 - 只发布 macOS Apple Silicon（arm64）版本，应用未公证，使用 ad-hoc 签名。
-- 更多专题文档见 [docs/README.md](docs/README.md)。应用内更新的原理见 [docs/updates.md](docs/updates.md)。
+- 更多专题文档见 [docs/README.md](docs/README.md)。应用内更新的原理见 [docs/guides/updates.md](docs/guides/updates.md)。
 
 ## 常用命令
 
@@ -90,7 +90,7 @@ pnpm sign:release
 生成 `SHA256SUMS.txt` 和 `SHA256SUMS.txt.sig`，并打印 `gh release upload` 命令。脚本会拒绝使用未内置到应用里的私钥。
 
 - 私钥在 `~/.vela-release/update-signing.key`（可用 `VELA_UPDATE_KEY` 指定）。**绝不提交、绝不打印、绝不上传。** 找不到私钥时停下来告诉用户，不要自己重新生成：新密钥对应的公钥没有随旧版本发布，旧版本将无法验证更新。
-- 密钥轮换见 [docs/updates.md](docs/updates.md)。
+- 密钥轮换见 [docs/guides/updates.md](docs/guides/updates.md)。
 
 ### 7. 创建 Release
 

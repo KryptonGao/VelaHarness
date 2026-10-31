@@ -187,7 +187,7 @@ block (redacted URL, element description, selector, geometry, whitelisted
 styles) and up to 4 cropped screenshots ("see image N"), at most 20
 annotations per message. Password and one-time-code fields are never read and
 are masked in crops. Navigation or removal marks annotations stale. Requirement
-and acceptance details: [requirements/browser-annotations.md](./requirements/browser-annotations.md).
+and acceptance details: [requirements/browser-annotations.md](../requirements/browser-annotations.md).
 
 ```sh
 pnpm --filter @vela/desktop test:browser

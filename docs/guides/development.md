@@ -1,6 +1,6 @@
 # 开发与资料目录
 
-本文收纳从源码运行 Vela 时的细节：开发版与安装版的资料目录、同步正式版资料、开发工具，以及界面设置与会话记录的保存位置。根目录 [README](../README.md) 只保留最短的启动路径。
+本文收纳从源码运行 Vela 时的细节：开发版与安装版的资料目录、同步正式版资料、开发工具，以及界面设置与会话记录的保存位置。根目录 [README](../../README.md) 只保留最短的启动路径。
 
 ## 开发版与安装版
 
@@ -23,7 +23,7 @@
 
 正式版用 `VELA_USER_DATA` 改过资料目录时，用 `VELA_PRODUCTION_HOME` 指向它。
 
-`VELA_SYSTEM_PROMPT` 切换主会话与子代理的系统提示档位：`v2`（默认，Vela 身份与工作规则）、`v1`（Pi 原有基础段，旧名 `legacy`）、`v2-visual`（v2 再加视觉成品自检）。例如 `VELA_SYSTEM_PROMPT=v1 pnpm dev` 切回旧提示词，详见 [requirements/system-prompt-optimization.md](./requirements/system-prompt-optimization.md)。
+`VELA_SYSTEM_PROMPT` 切换主会话与子代理的系统提示档位：`v2`（默认，Vela 身份与工作规则）、`v1`（Pi 原有基础段，旧名 `legacy`）、`v2-visual`（v2 再加视觉成品自检）。例如 `VELA_SYSTEM_PROMPT=v1 pnpm dev` 切回旧提示词，详见 [requirements/system-prompt-optimization.md](../requirements/system-prompt-optimization.md)。
 
 ## 开发工具
 

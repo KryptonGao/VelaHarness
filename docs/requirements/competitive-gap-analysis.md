@@ -14,14 +14,14 @@
 
 | 能力 | 位置 |
 | --- | --- |
-| 赛马：2–4 个 worktree 并行比较 | `docs/race.md` |
-| Agent Inbox 与常驻 Agent、主动规则 | `docs/agent-inbox.md` |
-| Intelligent UI（声明式组件与沙盒微应用） | `docs/intelligent-ui.md` |
+| 赛马：2–4 个 worktree 并行比较 | `docs/features/race.md` |
+| Agent Inbox 与常驻 Agent、主动规则 | `docs/features/agent-inbox.md` |
+| Intelligent UI（声明式组件与沙盒微应用） | `docs/features/intelligent-ui.md` |
 | 轨迹视图（逐节点、首 Token、缓存命中） | README「轨迹界面」 |
-| 任务交接包、成果验收、任务预算 | `docs/handoff-pack.md`、`docs/outcome-acceptance.md` |
-| 任务配方（参数化、阶段、团队共享） | `docs/task-recipes.md` |
-| 文件检查点与消息回退 | `docs/checkpoints.md` |
-| 内置浏览器与 Browser Use | `docs/browser.md` |
+| 任务交接包、成果验收、任务预算 | `docs/features/handoff-pack.md`、`docs/features/outcome-acceptance.md` |
+| 任务配方（参数化、阶段、团队共享） | `docs/features/task-recipes.md` |
+| 文件检查点与消息回退 | `docs/features/checkpoints.md` |
+| 内置浏览器与 Browser Use | `docs/features/browser.md` |
 | 运行中追加指令（排队 / Steering） | `docs/requirements/runtime-instructions.md` |
 
 ## 2. 差距对比

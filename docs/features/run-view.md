@@ -5,7 +5,7 @@
 - **待办清单**：圆角卡片，待办是虚线圈，进行中转圈，完成实心并划线；右上角计数可折叠到只剩当前项。
 - **状态条**：左边是运行动画，右边是当前步骤类型（思考中 / 运行命令 / 读取文件 / 编辑文件 / 搜索网页 / 运行子代理 / 更新待办 / 撰写回复）和用时。命令带冷却：跑满 `runStepCooldownMs`（600ms）才显示「运行命令」，几十毫秒就结束的命令不会让标签闪一下，冷却期间保持上一步的标签。测试见 `test/run-view.test.ts`，可交互核对 `test/run-view-preview.html`。
 
-对话里的步骤和工具行不变；这两块只在本轮运行中出现。设计稿见 [design/agent-run-mode.html](./design/agent-run-mode.html)。
+对话里的步骤和工具行不变；这两块只在本轮运行中出现。设计稿见 [design/agent-run-mode.html](../design/agent-run-mode.html)。
 
 ## 实现
 

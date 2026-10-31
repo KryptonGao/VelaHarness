@@ -2,7 +2,7 @@
 
 左侧栏的「Agent 收件箱」是一个独立的一级页面，把分散在各个对话里的审批、Agent 提问和后台任务结果集中到一处。它不属于任何工作区或对话，切换进去不会停止正在运行的 Agent，返回对话后原有的滚动位置和输入草稿保持不变。
 
-本文描述已经实现的部分，覆盖需求文档中的全部七个阶段：事项数据层、独立页面、真实审批与提问（第一至第三阶段），以及 Resident Agent、Intelligent UI 嵌入、后台运行与主动规则（第四至第七阶段，见本文后半部分）。设计依据与验收见 [requirements/agent-inbox.md](./requirements/agent-inbox.md)。
+本文描述已经实现的部分，覆盖需求文档中的全部七个阶段：事项数据层、独立页面、真实审批与提问（第一至第三阶段），以及 Resident Agent、Intelligent UI 嵌入、后台运行与主动规则（第四至第七阶段，见本文后半部分）。设计依据与验收见 [requirements/agent-inbox.md](../requirements/agent-inbox.md)。
 
 ## 事项
 

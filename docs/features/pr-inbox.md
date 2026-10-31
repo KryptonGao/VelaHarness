@@ -1,6 +1,6 @@
 # Pull Request 中心实现记录
 
-2026-10-05 实现第一期读取闭环；2026-10-06 按追加需求增加活动卡片和普通留言。对应 [需求方案](requirements/pull-requests.md)。
+2026-10-05 实现第一期读取闭环；2026-10-06 按追加需求增加活动卡片和普通留言。对应 [需求方案](../requirements/pull-requests.md)。
 
 ## 已实现
 
@@ -50,7 +50,7 @@ pnpm --filter @vela/desktop build
 pnpm --filter @vela/desktop test:pr-inbox:electron
 ```
 
-截图：[列表](../Design/pull-requests/implementation-inbox.png)、[概览](../Design/pull-requests/implementation-overview.png)、[变更](../Design/pull-requests/implementation-changes.png)、[200% 缩放](../Design/pull-requests/implementation-zoom-200.png)。
+截图：[列表](../../Design/pull-requests/implementation-inbox.png)、[概览](../../Design/pull-requests/implementation-overview.png)、[变更](../../Design/pull-requests/implementation-changes.png)、[200% 缩放](../../Design/pull-requests/implementation-zoom-200.png)。
 
 ## 第一期边界
 

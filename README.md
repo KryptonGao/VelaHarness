@@ -77,11 +77,11 @@ Prices stay on this machine, CNY and USD are totalled separately and never conve
 - **Commands that say what they do:** `ls`, `cat`, `grep`, `find` and script runs are labelled List, Read, Search, Find and Script, and the card shows the directory, file or search term instead of the raw command line; a command chaining several recognisable steps shows "+N more".
 - **Live edit previews:** an edit or write card appears as soon as the model starts writing its arguments, and the diff and its +/− counts grow with the content. If the model never finishes the call, the card ends with a note that nothing was changed.
 - **Context free space:** the context card lists Free space next to system, rules, skills and conversation, and every row shows its share of the window.
-- **MCP servers:** connect local or remote MCP tools, with global and per-project configuration, on-demand discovery, project trust and read-only authorisation. See [docs/mcp.md](./docs/mcp.md).
-- **Project and global memory:** two Markdown files hold your cross-project preferences and the current project's conventions and decisions. They load before every run, and you can view, edit, clear or delete them in Settings. See [docs/memory.md](./docs/memory.md).
-- **Scheduled tasks:** schedule a task once, daily, weekly or with a cron expression. Each run starts a new chat in the bound workspace with the permissions, model and reasoning effort you chose. See [docs/scheduled-tasks.md](./docs/scheduled-tasks.md).
-- **Task recipes:** save parameterised task templates, fill in the parameters, preview and launch them in a new chat. Staged workflows, approvals, team sharing and version comparison are supported. See [docs/task-recipes.md](./docs/task-recipes.md).
-- **Integrations:** connect built-in apps such as Notion in one click, with no URL or token to fill in. OAuth completes in your system browser and credentials are encrypted by system secure storage. See [docs/built-in-mcp-plugins.md](./docs/built-in-mcp-plugins.md).
+- **MCP servers:** connect local or remote MCP tools, with global and per-project configuration, on-demand discovery, project trust and read-only authorisation. See [docs/features/mcp.md](./docs/features/mcp.md).
+- **Project and global memory:** two Markdown files hold your cross-project preferences and the current project's conventions and decisions. They load before every run, and you can view, edit, clear or delete them in Settings. See [docs/features/memory.md](./docs/features/memory.md).
+- **Scheduled tasks:** schedule a task once, daily, weekly or with a cron expression. Each run starts a new chat in the bound workspace with the permissions, model and reasoning effort you chose. See [docs/features/scheduled-tasks.md](./docs/features/scheduled-tasks.md).
+- **Task recipes:** save parameterised task templates, fill in the parameters, preview and launch them in a new chat. Staged workflows, approvals, team sharing and version comparison are supported. See [docs/features/task-recipes.md](./docs/features/task-recipes.md).
+- **Integrations:** connect built-in apps such as Notion in one click, with no URL or token to fill in. OAuth completes in your system browser and credentials are encrypted by system secure storage. See [docs/features/built-in-mcp-plugins.md](./docs/features/built-in-mcp-plugins.md).
 - **Appearance and context:** light and dark themes, five interface languages, context usage, thinking effort and Skill activity, all restored after a restart.
 - **Image viewer:** click a message thumbnail to zoom, drag and flip through images full screen.
 
@@ -109,7 +109,7 @@ pnpm install
 pnpm dev
 ```
 
-The development build keeps its data in `~/.vela-dev`, so it can run next to an installed `Vela.app`, which uses `~/.vela`. Accounts, sessions and settings are stored separately; see [docs/development.md](./docs/development.md) for syncing data from the installed app and for the developer tools.
+The development build keeps its data in `~/.vela-dev`, so it can run next to an installed `Vela.app`, which uses `~/.vela`. Accounts, sessions and settings are stored separately; see [docs/guides/development.md](./docs/guides/development.md) for syncing data from the installed app and for the developer tools.
 
 On first launch:
 
@@ -184,7 +184,7 @@ Vela is built on [Pi Agent](https://github.com/earendil-works/pi) and embeds the
 
 - **Stack:** Electron 44, electron-vite, React 19 and TypeScript, with a pnpm workspace for the app and shared packages. Pi is pinned to exactly `1.0.0` (`@earendil-works/pi-coding-agent`, `pi-agent-core`, `pi-ai`). Vela calls `createAgentSession()` in the main process rather than launching the Pi command line.
 - **Sessions and models:** each chat has its own Pi `AgentSession`; messages live in `~/.vela/sessions` and the chat index in `~/.vela/conversations.json`. Providers and models load through Pi's `ModelRuntime` from Vela's own `~/.vela` configuration; it never reads your local Pi configuration.
-- **Tools, modes and permissions:** the base tools are Pi's `read`, `bash`, `edit` and `write`, and Vela wraps `bash`, `edit` and `write` for approvals. `Plan` mode blocks edits and writes through a ToolPolicy, lets only read-only commands through, and outputs a full plan as `<proposed_plan>` that you can approve and run in the current or a fresh context. `Goal` mode records progress through `update_goal`. See [docs/plan-mode.md](./docs/plan-mode.md) and [docs/plan-mode-architecture.md](./docs/plan-mode-architecture.md).
+- **Tools, modes and permissions:** the base tools are Pi's `read`, `bash`, `edit` and `write`, and Vela wraps `bash`, `edit` and `write` for approvals. `Plan` mode blocks edits and writes through a ToolPolicy, lets only read-only commands through, and outputs a full plan as `<proposed_plan>` that you can approve and run in the current or a fresh context. `Goal` mode records progress through `update_goal`. See [docs/features/plan-mode.md](./docs/features/plan-mode.md) and [docs/features/plan-mode-architecture.md](./docs/features/plan-mode-architecture.md).
 - **MCP:** tools are discovered on demand through `tool_search` by default, or can be exposed directly or hidden; project configuration needs a trust confirmation. Plan mode and `explore` sub-agents get only tools you confirmed as read-only.
 - **Workspaces and processes:** Git worktrees are created with local Git under `~/.vela/worktrees` on separate `vela/wt-*` branches. Pull request data comes from the GitHub CLI (`gh`) when it is installed and signed in. Agent, file-system and Git operations run in the Electron main process; the renderer reaches them through preload IPC with `contextIsolation` on and `nodeIntegration` off.
 

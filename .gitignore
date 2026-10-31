@@ -12,8 +12,7 @@ apps/desktop/test-center/.runs/
 output/
 
 # Private planning docs
-docs/marketing-plan.md
-docs/marketing-plan-personal.md
+docs/marketing/
 
 # Local scratch, personal and editor-specific files
 .scratch-logo/
@@ -32,5 +31,5 @@ docs/design/*
 docs/compact-chat-ui/PORTING_PROMPT.md
 docs/compact-chat-ui/UPGRADE_PROMPT.md
 docs/requirements/system-prompt-optimization.md
-docs/pi-1.0-migration.md
-docs/motion-audit.md
+docs/internal/pi-1.0-migration.md
+docs/internal/motion-audit.md

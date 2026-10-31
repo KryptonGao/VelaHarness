@@ -1,6 +1,6 @@
 # 项目记忆与全局记忆
 
-状态：P1–P5 已随 1.0.0 发布。需求基线与验收对照见 [requirements/memory.md](./requirements/memory.md)。
+状态：P1–P5 已随 1.0.0 发布。需求基线与验收对照见 [requirements/memory.md](../requirements/memory.md)。
 
 Vela 用两个 Markdown 文件保存长期信息：全局记忆跨项目复用，项目记忆跟随会话自己的工作区。文件是唯一内容来源；主代理在对话中主动提炼并保存长期信息，也支持用户明确要求记住、更新或忘记。
 
@@ -115,7 +115,7 @@ pnpm --filter @vela/desktop test:memory     # 存储、加载、权限矩阵、I
 pnpm --filter @vela/desktop test:memory:ui  # 渲染层：列表、保存、冲突、草稿、删除与中英文
 ```
 
-更广的回归与类型检查记录见 [requirements/memory.md](./requirements/memory.md) 的 P5 小节。当前边界：
+更广的回归与类型检查记录见 [requirements/memory.md](../requirements/memory.md) 的 P5 小节。当前边界：
 
 - 不引入向量数据库、云同步、后台总结或自动整理任务。
 - 不自动修改 `.gitignore` 或执行提交；项目文件由用户决定是否纳入版本控制。

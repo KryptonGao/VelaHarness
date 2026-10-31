@@ -15,6 +15,6 @@ pi.dev 按客户端版本过滤模型目录：Pi 的请求会带 `pi-version=<�
 
 升级 Pi（`@earendil-works/pi-ai`、`pi-agent-core`、`pi-coding-agent` 三个包保持同一版本）后，需要：
 
-1. 把补丁文件迁移到新版本并更新 `pnpm-workspace.yaml`，见 [MCP 服务器](./mcp.md)。
+1. 把补丁文件迁移到新版本并更新 `pnpm-workspace.yaml`，见 [MCP 服务器](../features/mcp.md)。
 2. 跑 `pnpm test`、`pnpm build && pnpm test:smoke`（其中 `pi-sdk-electron-smoke`、`mcp-electron-smoke` 里写死了 Pi 版本号，需要同步）。
 3. 用已登录的提供方实际点一次「获取最新模型列表」。
