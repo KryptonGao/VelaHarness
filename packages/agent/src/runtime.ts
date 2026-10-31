@@ -422,6 +422,8 @@ export class AgentRuntime {
   /** 本进程里创建或恢复为常驻 Agent 的会话；重启后由 options.resident 重新指认。 */
   private readonly residentIds = new Set<string>();
   private readonly stopBackgroundShells: (() => void) | null;
+  /** 等待合并投递的 root 通知，按会话 id 分组。 */
+  private readonly rootNotices = new Map<string, { entry: Conversation; items: RootNotice[]; firstAt: number; timer: ReturnType<typeof setTimeout> }>();
 
   constructor(private readonly options: AgentRuntimeOptions) {
     this.currentCwd = options.cwd;
@@ -2404,6 +2406,7 @@ export class AgentRuntime {
     this.directory?.cancelLogin();
     this.questions.cancelAll();
     this.stopBackgroundShells?.();
+    this.clearRootNotices();
     for (const entry of this.conversations.values()) {
       this.options.backgroundShells?.killConversation(entry.id);
       closing.push(this.detachEntry(entry));
@@ -2735,7 +2738,7 @@ export class AgentRuntime {
           disposeChildSession: (session) => this.closeSession(session),
           toolMutates: (session, name) => this.mcpBridges.get(session)?.isMutation(name) ?? false,
           deliverToRoot: (input) => {
-            void this.deliverAgentMessage(entry, input.message);
+            this.deliverAgentMessage(entry, input.message);
           },
           onAgentEvent: (input) => this.handleAgentPiEvent(input.conversationId, input.agentId, input.event),
         },
@@ -3633,41 +3636,77 @@ export class AgentRuntime {
   }
 
   /**
-   * 子代理结论/消息进入 root 会话：主代理空闲就自动唤醒继续处理，运行中作为
-   * follow-up 追加，用户已停止则只进上下文不唤醒。
+   * 子代理结论/消息进入 root 会话。结论要主代理处理，会唤醒它；子代理中途发来的
+   * 进度消息只进上下文，下次回合自然看到，不单独触发一轮回复。
    */
-  private async deliverAgentMessage(entry: Conversation, message: AgentRootMessage): Promise<void> {
-    await this.deliverRootMessage(entry, {
-      customType: message.kind === "result" ? "vela_agent_result" : "vela_agent_message",
-      content: formatAgentRootMessage(message),
-      display: false,
-      details: {
-        agentId: message.agentId,
-        path: message.path,
-        kind: message.agentKind,
-        status: message.status ?? null,
+  private deliverAgentMessage(entry: Conversation, message: AgentRootMessage): void {
+    this.queueRootNotice(entry, {
+      wake: message.kind === "result",
+      payload: {
+        customType: message.kind === "result" ? "vela_agent_result" : "vela_agent_message",
+        content: formatAgentRootMessage(message),
+        display: false,
+        details: {
+          agentId: message.agentId,
+          path: message.path,
+          kind: message.agentKind,
+          status: message.status ?? null,
+        },
       },
     });
   }
 
-  /** 后台命令结束：主动终止或会话已被移除时不打扰主代理，其余像子代理结论一样唤醒或排队。 */
+  /** 后台命令结束：主动终止或会话已被移除时不打扰主代理；正常退出且没有未读输出的也只记录，不唤醒。 */
   private handleBackgroundShellExit(event: BackgroundShellExit): void {
     if (!event.notify) return;
     const entry = this.conversations.get(event.conversationId);
     if (!entry?.session) return;
-    void this.deliverRootMessage(entry, {
-      customType: "vela_background_shell",
-      content: formatBackgroundShellExit(event),
-      display: false,
-      details: { shellId: event.id, command: event.command, status: event.status, exitCode: event.exitCode },
+    this.queueRootNotice(entry, {
+      wake: !(event.status === "exited" && event.exitCode === 0 && !event.output),
+      payload: {
+        customType: "vela_background_shell",
+        content: formatBackgroundShellExit(event),
+        display: false,
+        details: { shellId: event.id, command: event.command, status: event.status, exitCode: event.exitCode },
+      },
     });
   }
 
-  /** 把一条不可见的自定义消息送进 root 会话：空闲则唤醒，运行中追加为 follow-up，用户已停止则只进上下文。 */
-  private async deliverRootMessage(entry: Conversation, payload: { customType: string; content: string; display: false; details: Record<string, unknown> }): Promise<void> {
+  /**
+   * 通知先攒一小会儿再一起投递：同一批里只有最后一条触发回合，其余按顺序写进上下文，
+   * 这样几个子代理/命令前后脚结束时，主代理只回复一次。
+   */
+  private queueRootNotice(entry: Conversation, notice: RootNotice): void {
+    const pending = this.rootNotices.get(entry.id);
+    const firstAt = pending?.firstAt ?? Date.now();
+    if (pending) clearTimeout(pending.timer);
+    const delay = Math.max(0, Math.min(rootNoticeQuietMs, firstAt + rootNoticeMaxHoldMs - Date.now()));
+    const timer = setTimeout(() => {
+      const batch = this.rootNotices.get(entry.id);
+      this.rootNotices.delete(entry.id);
+      if (batch) void this.deliverRootNotices(batch.entry, batch.items);
+    }, delay);
+    this.rootNotices.set(entry.id, { entry, items: [...(pending?.items ?? []), notice], firstAt, timer });
+  }
+
+  private clearRootNotices(): void {
+    for (const pending of this.rootNotices.values()) clearTimeout(pending.timer);
+    this.rootNotices.clear();
+  }
+
+  private async deliverRootNotices(entry: Conversation, items: RootNotice[]): Promise<void> {
+    if (!entry.session || this.conversations.get(entry.id) !== entry) return;
+    const lastWake = entry.stopRequested ? -1 : items.findLastIndex(item => item.wake);
+    for (const [index, item] of items.entries()) {
+      await this.deliverRootMessage(entry, item.payload, index === lastWake);
+    }
+  }
+
+  /** 把一条不可见的自定义消息送进 root 会话。wake 为真时：空闲则唤醒，运行中追加为 follow-up；否则只写进上下文。 */
+  private async deliverRootMessage(entry: Conversation, payload: RootNotice["payload"], wake: boolean): Promise<void> {
     const session = entry.session;
     if (!session) return;
-    if (entry.stopRequested) {
+    if (!wake || entry.stopRequested) {
       await this.sendAgentMessageSafely(session, payload, { triggerTurn: false });
       return;
     }
@@ -4529,6 +4568,16 @@ function isPotentialGoalMutation(toolName: string, args: unknown): boolean {
   if (!args || typeof args !== "object") return true;
   return (args as { agent?: unknown }).agent !== "explore";
 }
+
+/** 等待投递给主代理的一条通知；wake 为假时只记录进上下文，不单独触发回合。 */
+interface RootNotice {
+  wake: boolean;
+  payload: { customType: string; content: string; display: false; details: Record<string, unknown> };
+}
+
+/** 通知合并窗口：安静这么久就投递，最长不超过 rootNoticeMaxHoldMs。 */
+const rootNoticeQuietMs = 600;
+const rootNoticeMaxHoldMs = 3000;
 
 /** 投递给主代理的 agent 消息正文；其余元数据随 custom message details 透出。 */
 function formatAgentRootMessage(message: AgentRootMessage): string {

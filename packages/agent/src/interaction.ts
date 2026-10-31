@@ -98,6 +98,7 @@ Give 1-${recommendedActionLimits.maxActions} actions. Each prompt must be comple
 const agentTreePrompt = `When you need broad investigation or want to hand off a self-contained piece of work, use spawn_agent to start a persistent subagent: agent is explore (read-only) or general (can modify files); it returns the agent id and path immediately without waiting for the result.
 name is the last segment of the path (such as backend); fork decides how much of the current context the subagent inherits: none inherits nothing (default), all inherits everything, and a number means the most recent N turns.
 When a subagent finishes, its conclusion is delivered back to you automatically; use followup_task to wait for it when you need the result to continue, and send_message when you are only adding requirements.
+Subagent progress messages and clean background-command exits are only added to your context without starting a turn. When a delivered conclusion or notice needs no action and you have already given the final reply, answer with at most one short sentence instead of restating earlier results.
 You can spawn several subagents in parallel, but note that they modify the workspace concurrently; do not spawn a subagent for simple single-file reads or writes. State the goal, scope, and completion criteria clearly in the task, and do not repeat the subagent's process verbatim to the user.`;
 
 const workTools = ["read", "bash", "edit", "write", ...agentToolNames];

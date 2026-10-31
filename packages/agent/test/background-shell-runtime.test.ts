@@ -92,7 +92,35 @@ describe("background shells in the agent runtime", () => {
     await until(() => f.runtime.getSnapshot().status === "ready", "wake-up turn to settle");
   });
 
-  it("does not wake the agent for a command it stopped itself", { timeout: 20_000 }, async (t) => {
+  it("records a clean exit with no unread output without waking the agent", { timeout: 20_000 }, async (t) => {
+    const f = await fixture(t);
+    f.script([[call("start", "bash", { command: "sleep 0.3", run_in_background: true })], "Started it."]);
+    await f.runtime.prompt(f.id, "run a quiet command in the background");
+    assert.equal(f.requests.length, 2);
+    await until(() => f.shells.list(f.id)[0]?.status === "exited", "command exit");
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+    assert.equal(f.requests.length, 2);
+  });
+
+  it("wakes the agent once for commands that finish close together", { timeout: 20_000 }, async (t) => {
+    const f = await fixture(t);
+    f.script([
+      [call("a", "bash", { command: "sleep 0.3; echo first-done", run_in_background: true }),
+        call("b", "bash", { command: "sleep 0.4; echo second-done", run_in_background: true })],
+      "Started both.",
+      "Both finished.",
+    ]);
+    await f.runtime.prompt(f.id, "run two commands in the background");
+    await until(() => f.requests.length === 3, "single wake-up turn");
+    const woken = text(f.requests[2]!);
+    assert.match(woken, /first-done/);
+    assert.match(woken, /second-done/);
+    await until(() => f.runtime.getSnapshot().status === "ready", "wake-up turn to settle");
+    await new Promise((resolve) => setTimeout(resolve, 800));
+    assert.equal(f.requests.length, 3);
+  });
+
+  it("does not wake the agent for a command it stopped itself",{ timeout: 20_000 }, async (t) => {
     const f = await fixture(t);
     f.script([
       [call("start", "bash", { command: "sleep 30", run_in_background: true })],
