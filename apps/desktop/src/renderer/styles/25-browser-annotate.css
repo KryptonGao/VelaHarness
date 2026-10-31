@@ -1,0 +1,149 @@
+/* ---------- 元素批注 ---------- */
+.browser-annotate[aria-pressed="true"] { background: var(--accent-blue); color: #fff; }
+.browser-annotate[aria-pressed="true"]:hover:not(:disabled) { background: var(--accent-blue); color: #fff; }
+.browser-annotation-layer { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 2; }
+.annotation-box {
+  position: absolute;
+  box-sizing: border-box;
+  border: 2px solid var(--accent-blue);
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--accent-blue) 12%, transparent);
+}
+.annotation-box.is-pick { border-style: dashed; }
+.annotation-box.is-flash { animation: annotation-flash 1.4s ease-out both; }
+.annotation-badge {
+  position: absolute;
+  left: -2px;
+  top: -2px;
+  transform: translate(-40%, -60%);
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  box-sizing: border-box;
+  background: var(--accent-blue);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 30%);
+}
+@keyframes annotation-flash {
+  0%, 40% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-blue) 55%, transparent); background: color-mix(in srgb, var(--accent-blue) 30%, transparent); }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+.annotation-hint {
+  position: absolute;
+  left: 50%;
+  top: 10px;
+  transform: translateX(-50%);
+  max-width: calc(100% - 24px);
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg-elevated) 92%, transparent);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-size: 12px;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 14%);
+}
+.annotation-popover {
+  position: absolute;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg, 14px);
+  background: var(--bg-elevated);
+  box-shadow: 0 8px 28px rgb(0 0 0 / 22%);
+  pointer-events: auto;
+}
+.annotation-popover-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; }
+.annotation-popover-head code {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.annotation-popover-levels { flex: none; display: flex; gap: 2px; }
+.annotation-popover-levels button {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+.annotation-popover-levels button:hover:not(:disabled) { background: var(--bg-hover); color: var(--text-primary); }
+.annotation-popover-levels button:disabled { opacity: 0.35; cursor: default; }
+.annotation-popover textarea {
+  width: 100%;
+  box-sizing: border-box;
+  resize: none;
+  padding: 6px 8px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--bg-surface-subtle);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.annotation-popover textarea:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 1px; }
+.annotation-popover-note { margin: 0; font-size: 12px; color: var(--danger); }
+.annotation-popover-actions { display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
+.annotation-popover-actions span { flex: 1; min-width: 0; font-size: 11px; color: var(--text-muted); }
+.annotation-popover-actions button {
+  padding: 4px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  font-size: 12px;
+  color: var(--text-primary);
+}
+.annotation-popover-actions button:hover { background: var(--bg-hover); }
+.annotation-popover-actions .is-primary { background: var(--accent-blue); border-color: var(--accent-blue); color: #fff; }
+.annotation-popover-actions .is-primary:hover { background: var(--accent-blue); filter: brightness(1.08); }
+@media (prefers-reduced-motion: reduce) {
+  .annotation-box.is-flash { animation: none; background: color-mix(in srgb, var(--accent-blue) 30%, transparent); }
+}
+
+/* 右侧变更页的只读范围筛选,沿用现有浮层与中性色。 */
+.changes-filter-heading { min-width: 0; }
+.changes-filter { position: relative; min-width: 0; }
+.changes-filter-trigger {
+  display: flex; align-items: center; gap: 8px; max-width: 100%; min-height: 30px;
+  padding: 4px 10px; border: 1px solid var(--border-subtle); border-radius: var(--radius-pill);
+  background: var(--bg-elevated); color: var(--text-primary); font: inherit; cursor: pointer;
+}
+.changes-filter-trigger > span { display: flex; align-items: center; gap: 7px; min-width: 0; white-space: nowrap; }
+.changes-filter-trigger svg { flex: none; }
+.changes-filter-detail { max-width: 110px; overflow: hidden; text-overflow: ellipsis; color: var(--text-muted); font-size: 11px; }
+.changes-filter-trigger:hover { background: var(--bg-hover); }
+.changes-filter-menu {
+  position: absolute; top: calc(100% + 6px); left: 0; z-index: 10;
+  width: min(280px, calc(100vw - 60px)); padding: 6px;
+  border: 1px solid var(--border-subtle); border-radius: var(--radius-lg);
+  background: var(--bg-elevated); box-shadow: var(--shadow-card); color: var(--text-primary);
+}
+.changes-filter-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  width: 100%; min-height: 34px; padding: 7px 10px; border: 0; border-radius: var(--radius-md);
+  background: transparent; color: inherit; text-align: left; font: inherit; cursor: pointer;
+}
+.changes-filter-item > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.changes-filter-item svg { flex: none; }
+.changes-filter-item:hover, .changes-filter-item:focus-visible, .changes-filter-item[aria-checked="true"] { background: var(--bg-hover); }
+.changes-filter-separator { height: 1px; margin: 5px 10px; background: var(--border-subtle); }
+.changes-filter-back { justify-content: flex-start; color: var(--text-secondary); }
+.changes-filter-options { max-height: min(360px, 55vh); overflow-y: auto; }
+.changes-filter-commit { display: flex; flex-direction: column; gap: 2px; }
+.changes-filter-commit > span { overflow: hidden; text-overflow: ellipsis; }
+.changes-filter-commit small { color: var(--text-muted); font-size: 11px; }
+.changes-filter-empty { padding: 14px 10px; color: var(--text-muted); }
+.changes-filter-notice { padding: 10px 14px; color: var(--text-secondary); background: var(--bg-surface-subtle); font-size: 12px; }
+.changes-filter-retry { margin-left: 8px; color: var(--accent-blue); cursor: pointer; }
+.turn-review-view.is-compact .changes-filter-detail { max-width: 64px; }
+

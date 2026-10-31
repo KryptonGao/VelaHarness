@@ -1,0 +1,432 @@
+/* ---------- Plan Preview（聊天里的紧凑卡片） ---------- */
+
+.plan-preview-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+.plan-preview-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  padding: 12px 14px;
+  text-align: left;
+  border-radius: var(--radius-lg);
+  background: var(--bg-card-surface);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-card);
+  transition: border-color var(--transition-smooth), background var(--transition-smooth);
+}
+.plan-preview-card:hover {
+  border-color: color-mix(in srgb, var(--accent-blue) 55%, var(--border-subtle));
+  background: var(--bg-hover);
+}
+.plan-preview-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.plan-preview-kind {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent-blue);
+}
+.plan-preview-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.plan-preview-open { font-size: 12px; }
+.plan-preview-title {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--text-primary);
+}
+.plan-preview-overview {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+.plan-preview-overview-heading { margin-top: 4px; font-size: 13px; font-weight: 600; color: var(--text-primary); }
+.plan-preview-overview.is-streaming { color: var(--accent-blue); }
+.plan-preview-sections {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 2px;
+}
+.plan-preview-chip {
+  font-size: 12px;
+  padding: 1px 7px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-surface-subtle);
+  color: var(--text-muted);
+}
+
+/* ---------- ContextPanel 里的 Plan 引用 ---------- */
+
+.plan-reference-main {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 8px 9px;
+  text-align: left;
+  border-radius: var(--radius-md);
+  background: var(--bg-surface-subtle);
+  transition: background var(--transition-smooth);
+}
+.plan-reference-main:hover { background: var(--bg-hover); }
+.plan-reference-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-sm);
+  background: var(--violet-tint);
+  color: var(--violet);
+}
+.plan-reference-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.plan-reference-title {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.plan-reference-meta { font-size: 12px; color: var(--text-muted); }
+.plan-reference-progress {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.plan-reference-open {
+  align-self: flex-start;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent-blue);
+  padding: 2px 0;
+}
+.plan-reference-open:hover { text-decoration: underline; }
+
+/* ---------- Plan Document Pane ---------- */
+
+.plan-pane {
+  position: relative;
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-chat);
+}
+/* 工作面板每页的上下文栏统一为 34px,与对话区的「对话/轨迹」标签条同高。 */
+.plan-pane-header {
+  flex: none;
+  height: 34px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.plan-pane-header button { -webkit-app-region: no-drag; }
+.plan-pane-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.plan-pane-kind { color: var(--violet); display: grid; place-items: center; flex: none; }
+.plan-pane-title-text {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.plan-pane-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: none;
+}
+.plan-state {
+  flex: none;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-surface-subtle);
+  color: var(--text-muted);
+}
+.plan-state.is-approved { background: var(--success-tint); color: var(--success); }
+.plan-state.is-draft { background: var(--bg-surface-subtle); color: var(--text-secondary); }
+.plan-state.is-superseded { background: var(--bg-surface-subtle); color: var(--text-muted); }
+.plan-state.is-streaming { background: var(--violet-tint); color: var(--violet); }
+.plan-revision-anchor { position: relative; }
+.plan-revision-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  padding: 5px 8px;
+  border-radius: var(--radius-sm);
+}
+.plan-revision-trigger:hover { background: var(--bg-hover); color: var(--text-primary); }
+.plan-revision-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 200px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 20;
+}
+.plan-revision-menu-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 4px 8px 6px;
+}
+.plan-revision-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  text-align: left;
+}
+.plan-revision-option:hover { background: var(--bg-hover); }
+.plan-revision-option.active { background: var(--bg-hover); }
+.plan-revision-option-label { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+.plan-revision-option-meta { font-size: 12px; color: var(--text-muted); }
+
+.plan-doc-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 28px 32px 36px;
+}
+.plan-doc-body {
+  max-width: 760px;
+  margin: 0 auto;
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--text-primary);
+}
+/* 长文档的标题层级和正文字号，不复用聊天里的紧凑排版。 */
+.plan-doc-body .md-content { font-size: 15px; line-height: 1.7; }
+.plan-doc-body .md-content h1 {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0 0 0.7em;
+  padding-bottom: 0.35em;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.plan-doc-body .md-content h2 {
+  font-size: 18px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  margin: 1.5em 0 0.45em;
+}
+.plan-doc-body .md-content h3 { font-size: 15.5px; margin: 1.2em 0 0.35em; }
+/* h4 及以下沿用 .md-content 的比例字号。 */
+.plan-doc-body .md-content h4,
+.plan-doc-body .md-content h5,
+.plan-doc-body .md-content h6 { margin: 1em 0 0.3em; }
+.plan-doc-body .md-content p,
+.plan-doc-body .md-content ul,
+.plan-doc-body .md-content ol,
+.plan-doc-body .md-content blockquote,
+.plan-doc-body .md-content pre,
+.plan-doc-body .md-content .md-table-scroll { margin: 0.7em 0; }
+.plan-doc-body .md-content code { font-size: 13px; }
+.plan-doc-body .md-content pre { font-size: 13px; }
+.plan-doc-body .md-content blockquote {
+  border-left: 3px solid var(--border-strong, var(--border-subtle));
+  padding-left: 12px;
+  color: var(--text-secondary);
+}
+.plan-doc-body .md-content .md-table-scroll { overflow-x: auto; }
+.plan-doc-body .md-content table { border-collapse: collapse; font-size: 13.5px; }
+.plan-doc-body .md-content th,
+.plan-doc-body .md-content td {
+  border: 1px solid var(--border-subtle);
+  padding: 6px 10px;
+  text-align: left;
+}
+
+.plan-doc-footer {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--border-subtle);
+  background: var(--bg-chat);
+}
+.plan-exec-summary { display: flex; flex-direction: column; gap: 6px; }
+.plan-exec-summary-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.plan-exec-active {
+  font-size: 12px;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.plan-action-bar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.plan-action-secondary,
+.plan-action-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 7px 14px;
+  border-radius: var(--radius-pill);
+  transition: background var(--transition-smooth), opacity var(--transition-smooth);
+}
+.plan-action-secondary {
+  background: var(--bg-surface-subtle);
+  color: var(--text-primary);
+}
+.plan-action-secondary:hover { background: var(--bg-hover); }
+.plan-action-primary {
+  background: var(--accent-blue);
+  color: var(--accent-contrast);
+}
+.plan-action-secondary:disabled,
+.plan-action-primary:disabled { opacity: 0.45; cursor: default; }
+.plan-action-anchor { position: relative; }
+.plan-execute-menu {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 6px);
+  min-width: 250px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 20;
+}
+.plan-execute-menu button {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  width: 100%;
+  padding: 7px 9px;
+  border-radius: var(--radius-sm);
+  text-align: left;
+}
+.plan-execute-menu button:hover { background: var(--bg-hover); }
+.plan-execute-menu-label { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+.plan-execute-menu-desc { font-size: 12px; color: var(--text-muted); }
+.plan-readonly-note {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.goal-validation {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  max-height: 360px;
+  overflow-y: auto;
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 8px;
+}
+.goal-validation-heading,
+.goal-validation-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+}
+.goal-validation-status { color: var(--success); }
+.goal-validation-status.is-known_issues,
+.goal-validation-status.is-pending { color: var(--warning); }
+.goal-validation-status.is-skipped { color: var(--text-muted); }
+.goal-validation-note,
+.goal-validation-item > p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 15px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.goal-validation-note.is-stale { color: var(--warning); }
+.goal-validation-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-left: 2px solid var(--success);
+  padding-left: 7px;
+  min-width: 0;
+}
+.goal-validation-item.is-failed,
+.goal-validation-item.is-skipped { border-color: var(--warning); }
+.goal-validation-item.is-stale { opacity: 0.72; border-color: var(--warning); }
+.goal-validation-row { font-size: 15px; color: var(--text-secondary); }
+.goal-validation-item code {
+  color: var(--text-primary);
+  font: 14px/1.4 var(--font-mono);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+

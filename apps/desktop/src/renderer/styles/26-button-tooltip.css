@@ -1,0 +1,27 @@
+/* 按钮悬停提示:黑色小窗,功能名加快捷键。 */
+.button-tooltip {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  padding: 7px 12px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: #0d0d0f;
+  color: #f4f4f5;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.28);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: max-content;
+  max-width: min(340px, calc(100vw - 16px));
+  font: 500 13px/1.3 var(--font-sans);
+  pointer-events: none;
+  overflow: visible;
+  animation: button-tooltip-in 120ms var(--motion-ease-enter);
+  /* 在按钮之间切换时滑过去,不闪也不跳 */
+  transition: left 140ms var(--motion-ease-enter), top 140ms var(--motion-ease-enter);
+}
+.button-tooltip-keys { display: inline-flex; align-items: center; gap: 5px; color: #b4b6bb; flex: none; }
+.button-tooltip-keys kbd { font: inherit; }
+@keyframes button-tooltip-in { from { opacity: 0; transform: translateY(-2px); } }
+@media (prefers-reduced-motion: reduce) { .button-tooltip { animation: none; transition: none; } }

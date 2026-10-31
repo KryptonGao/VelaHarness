@@ -1,0 +1,338 @@
+/* 新对话首页:时段问候 + 预设提示词。 */
+.chat-scroll-area > .empty-state.is-home,
+.chat-message-surface > .empty-state.is-home { width: min(100%, 640px); max-width: 640px; }
+.empty-state.is-home { animation: home-rise 360ms var(--motion-ease-enter) both; }
+/* 巨大而黯淡的轮廓标志:铺满整个对话区的背景水印,问候、输入框和预设压在它上面。 */
+.home-logo {
+  position: absolute;
+  left: 50%;
+  top: 48%;
+  width: min(96%, 760px);
+  height: min(88%, 580px);
+  /* --px/--py 由指针位置写入,慢慢缓动过去,形成轻微视差。 */
+  transform: translate(calc(-50% + var(--px, 0px)), calc(-50% + var(--py, 0px)));
+  transition: transform 900ms var(--motion-ease-enter);
+  z-index: -1;
+  color: var(--text-primary);
+  pointer-events: none;
+  user-select: none;
+  overflow: visible;
+  /* 不透明度自上而下渐降:问候语一带最清楚,到输入框以下逐渐消失,尖端不再和预设抢视线。 */
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 28%, rgba(0, 0, 0, 0.45) 52%, transparent 82%);
+  mask-image: linear-gradient(to bottom, #000 0%, #000 28%, rgba(0, 0, 0, 0.45) 52%, transparent 82%);
+}
+.home-logo-float { animation: logo-float 9s ease-in-out 1.6s infinite alternate; }
+.home-logo-stroke {
+  stroke: currentColor;
+  stroke-opacity: 0.2;
+  stroke-width: 0.9;
+  fill: url(#vela-wash);
+  fill-opacity: 0;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: logo-draw 1700ms var(--motion-ease-enter) 120ms forwards,
+    logo-wash 1400ms ease-out 900ms forwards;
+}
+.home-logo-stroke.is-second { animation-delay: 380ms, 1100ms; }
+@keyframes logo-draw { to { stroke-dashoffset: 0; } }
+@keyframes logo-wash { to { fill-opacity: 1; } }
+@keyframes logo-float {
+  /* 起点必须是 0:描边期间浮动层停在原位,延迟结束后若从非 0 起步会向上跳一下。 */
+  from { transform: translateY(0); }
+  to { transform: translateY(10px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-logo { transition: none; }
+  .home-logo-float { animation: none; }
+  .home-logo-stroke { animation: none; stroke-dashoffset: 0; fill-opacity: 1; }
+}
+
+/* 首页布局:问候、输入框、预设整体居中成一列,输入框不再贴底。 */
+.chat-conversation-pane[data-home] {
+  /* 首页只有一列居中的内容,窄一点更聚拢;输入框与预设共用这个宽度。 */
+  --chat-lane-max: 680px;
+  justify-content: center;
+  padding-bottom: 5vh;
+}
+.chat-conversation-pane[data-home] .chat-scroll-area {
+  flex: 0 0 auto;
+  overflow: visible;
+  clip-path: none;
+  padding: 0 24px;
+  /* 大 Logo 向上伸出滚动区,让它压在顶栏下的空白里。 */
+  margin-top: auto;
+}
+.chat-conversation-pane[data-home] .chat-message-surface { min-height: 0; flex: 0 0 auto; }
+.chat-conversation-pane[data-home] .empty-state.is-home { margin: 0 auto; }
+.chat-conversation-pane[data-home] .chat-dock-wrapper {
+  position: relative;
+  flex: none;
+  margin-top: 26px;
+  padding: 0 24px;
+  background: transparent;
+  border-radius: 0;
+}
+.chat-conversation-pane[data-home] .chat-dock-wrapper::before,
+.chat-conversation-pane[data-home] .chat-dock-wrapper::after { display: none; }
+.chat-conversation-pane[data-home] .floating-input-card { margin-right: 0; }
+/* 首页输入区在内容流中，不需要浮动 dock 的投影，避免暗色下向托盘扩散成黑晕。 */
+.chat-conversation-pane[data-home] :is(.floating-input-card, .composer-capsule) { box-shadow: none; }
+.chat-conversation-pane[data-home] .home-prompts { margin-bottom: auto; }
+/* 没有预设提示词时由输入框承担下方的弹性留白,并预留两行预设(14 + 46 × 2 + 8)的高度,
+   让问候和输入框与有预设时停在同一高度。 */
+.chat-conversation-pane[data-home]:not([data-prompts]) .chat-dock-wrapper { margin-bottom: auto; padding-bottom: 114px; }
+.home-eyebrow {
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+.empty-state.is-home h1.home-greeting {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 10px;
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+.home-spark {
+  display: inline-flex;
+  flex: none;
+  color: var(--accent-blue);
+  animation: home-twinkle 4.2s ease-in-out infinite;
+}
+.home-greeting-part {
+  display: inline-block;
+  white-space: pre;
+  animation: home-char 620ms var(--motion-ease-enter) both;
+}
+@keyframes home-char {
+  from { opacity: 0; transform: translateY(10px); filter: blur(5px); }
+  to { opacity: 1; transform: none; filter: blur(0); }
+}
+@keyframes home-twinkle {
+  0%, 100% { transform: scale(1) rotate(0deg); opacity: 1; }
+  45% { transform: scale(1.18) rotate(18deg); opacity: 0.8; }
+  60% { transform: scale(0.94) rotate(-8deg); opacity: 1; }
+}
+.home-hint {
+  max-width: 460px;
+  margin: 0 auto;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.home-prompts {
+  --home-prompt-columns: 3;
+  width: min(calc(100% - 48px), 680px);
+  flex: none;
+  margin: 14px auto 0;
+  /* 用 flex 换行而不是网格:非 Git 仓库少几张卡片时,最后一行也居中。 */
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+@media (max-width: 560px) {
+  .home-prompts { --home-prompt-columns: 2; }
+}
+.home-prompt {
+  --tone: var(--accent-blue);
+  flex: 0 0 calc((100% - 8px * (var(--home-prompt-columns) - 1)) / var(--home-prompt-columns));
+  min-width: 0;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px 9px 9px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-card-surface);
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.3;
+  text-align: left;
+  cursor: pointer;
+  animation: home-rise 360ms var(--motion-ease-enter) backwards;
+  transition: background 160ms var(--motion-ease-enter), border-color 160ms var(--motion-ease-enter),
+    transform 160ms var(--motion-ease-enter), box-shadow 160ms var(--motion-ease-enter);
+}
+.home-prompt:hover {
+  border-color: color-mix(in srgb, var(--tone) 32%, var(--border-strong));
+  color: var(--text-primary);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px -10px rgba(20, 30, 50, 0.32);
+}
+.home-prompt:active { transform: scale(0.97); box-shadow: none; }
+.home-prompt:focus-visible { outline: 2px solid var(--tone); outline-offset: 2px; }
+.home-prompt-icon {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  /* 克制的淡色底,图标取主题色但略向正文色靠拢,和整体的素净风格保持一致。 */
+  background: color-mix(in srgb, var(--tone) 12%, transparent);
+  color: color-mix(in srgb, var(--tone) 78%, var(--text-primary));
+  transition: background 160ms var(--motion-ease-enter), transform 220ms var(--motion-ease-enter);
+}
+.home-prompt:hover .home-prompt-icon {
+  background: color-mix(in srgb, var(--tone) 20%, transparent);
+  transform: scale(1.06);
+}
+@keyframes home-rise {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .empty-state.is-home,
+  .home-prompt,
+  .home-spark,
+  .home-greeting-part { animation: none; }
+}
+
+.chat-error-card {
+  background: var(--danger-tint);
+  border-radius: var(--radius-lg);
+  padding: 14px 18px;
+  line-height: 1.65;
+  color: var(--text-primary);
+  user-select: text;
+  overflow-wrap: anywhere;
+}
+.chat-error-card-title {
+  font-weight: 600;
+  color: var(--diff-del-fg);
+  margin-bottom: 4px;
+}
+
+.user-msg-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  min-width: 0;
+}
+.user-bubble {
+  background: var(--bg-chat-bubble-user);
+  border-radius: var(--radius-lg);
+  padding: 12px 18px;
+  max-width: 85%;
+  min-width: 0;
+  line-height: 1.65;
+}
+.user-message-actions .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.user-message-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  min-height: 24px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 140ms ease;
+}
+.user-msg-container:hover .user-message-actions,
+.user-msg-container:focus-within .user-message-actions {
+  opacity: 1;
+  pointer-events: auto;
+}
+@media (prefers-reduced-motion: reduce) {
+  .user-message-actions { transition: none; }
+}
+.user-message-actions time { margin-right: 4px; white-space: nowrap; }
+.user-message-action { min-width: 28px; height: 28px; padding: 0; justify-content: center; }
+.user-message-editor {
+  width: 85%;
+  min-width: 0;
+  padding: 12px 16px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--bg-chat-bubble-user);
+}
+.user-message-editor textarea {
+  display: block;
+  width: 100%;
+  min-height: 80px;
+  padding: 2px;
+  resize: vertical;
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  line-height: 1.65;
+}
+.user-message-editor textarea:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 3px; }
+.user-edit-note, .user-edit-error { margin: 10px 0 0; font-size: 12px; line-height: 1.5; }
+.user-edit-note { color: var(--text-muted); }
+.user-edit-note.warning {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+  padding: 8px 10px;
+  border: 1px solid color-mix(in srgb, var(--danger) 40%, transparent);
+  border-radius: var(--radius-xs);
+  background: color-mix(in srgb, var(--danger) 8%, transparent);
+  color: var(--text-primary);
+  font-size: 13px;
+}
+.user-edit-shortcut { margin: 6px 0 0; font-size: 12px; color: var(--text-muted); }
+.user-edit-error { color: var(--diff-del-fg); }
+.user-edit-buttons { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+.user-edit-buttons button { padding: 6px 12px; border-radius: var(--radius-md); font-size: 12px; cursor: pointer; }
+.user-edit-cancel { background: transparent; color: var(--text-primary); }
+.user-edit-submit { background: var(--text-primary); color: var(--bg-chat); }
+.user-edit-buttons button:disabled { opacity: .45; cursor: not-allowed; }
+.user-edit-buttons button:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 2px; }
+.user-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+  max-width: 85%;
+}
+/* 缩略图是打开全屏查看的按钮:图片铺满按钮,圆角由按钮裁出。 */
+.user-attachment-thumb {
+  display: block;
+  width: 120px;
+  height: 120px;
+  max-width: 100%;
+  padding: 0;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background: var(--bg-surface-subtle);
+  cursor: zoom-in;
+}
+.user-attachment-thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: opacity 140ms ease;
+}
+.user-attachment-thumb:hover img {
+  opacity: 0.88;
+}
+.user-attachment-thumb:only-child {
+  width: 140px;
+  height: 140px;
+}
+.agent-reply-prose {
+  min-width: 0;
+  font-family: var(--font-reply);
+  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: var(--font-reply-weight);
+  line-height: 1.75;
+}
+

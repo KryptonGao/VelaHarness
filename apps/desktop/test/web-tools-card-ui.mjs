@@ -1,7 +1,8 @@
 /** Focused renderer behavior checks for the Web tool call cards: node apps/desktop/test/web-tools-card-ui.mjs */
+import { readStyles } from "./read-styles.mjs";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
@@ -70,7 +71,7 @@ if (!process.versions.electron) {
     writeFileSync(
       join(temp, "index.html"),
       '<!doctype html><html><head><meta charset="utf-8"><style>' +
-        readFileSync(resolve(here, "../src/renderer/styles.css"), "utf8") +
+        readStyles(resolve(here, "../src/renderer/styles.css")) +
         '</style></head><body><div id="root" style="padding:24px;max-width:800px"></div><script src="ui.js"></script></body></html>',
     );
     const env = { ...process.env, VELA_WEB_CARD_TEMP: temp };

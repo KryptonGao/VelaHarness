@@ -1,0 +1,618 @@
+:root {
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 22px;
+  --radius-pill: 9999px;
+  /*
+   * 字体按「西文 / 中日韩文」分开选:同一条栈里西文字体在前、中日韩字体在后,
+   * 浏览器逐字符取第一个有该字形的字体,所以两者可以各选各的。
+   * 明体西文沿用 Claude 界面的 Anthropic Serif(装有时),没有则落到 Georgia;
+   * 中日韩明体随界面语言取各自的明体(见下方 :lang 覆盖)。
+   */
+  --font-latin-sans: "SF Pro Text", "SF Pro Display", "SF Pro", -apple-system, BlinkMacSystemFont, "Segoe UI";
+  --font-latin-serif: "Anthropic Serif Text", "Anthropic Serif", "Tiempos Text", Georgia, "Times New Roman";
+  --font-cjk-sans: system-ui;
+  --font-cjk-serif: "Songti SC", "STSong", "Hiragino Mincho ProN", "AppleMyungjo", "Noto Serif CJK SC";
+  --font-ui-latin: var(--font-latin-sans);
+  --font-ui-cjk: var(--font-cjk-sans);
+  --font-reply-latin: var(--font-ui-latin);
+  --font-reply-cjk: var(--font-ui-cjk);
+  --font-sans: var(--font-ui-latin), var(--font-ui-cjk), system-ui, "Segoe UI", sans-serif;
+  --font-reply: var(--font-reply-latin), var(--font-reply-cjk), system-ui, "Segoe UI", sans-serif;
+  /* 回复正文和连贯模式的分组标题共用,两者字重始终一致。 */
+  --font-reply-weight: 500;
+  --font-mono: "SF Mono", ui-monospace, Menlo, Monaco, Consolas, monospace;
+  --sidebar-left-width: 250px;
+  --sidebar-right-width: 340px;
+  --workbench-width: 640px;
+  --header-height: 52px;
+  /*
+   * 左右侧栏和整条顶栏共用同一套毛玻璃配方;内圆角是内容纸面顶角与玻璃壳之间的过渡半径,
+   * 玻璃壳绕进这个圆角,顶栏与侧栏、内容区交界处才不会有硬直角。
+   */
+  --glass-blur: blur(16px) saturate(190%);
+  --glass-fillet: 12px;
+  --glass-edge-inset: 6px;
+  /* 玻璃上叠的颜色:默认是主题色,可在设置里改成明暗色或不染色,见下方 data-glass-tint 规则。 */
+  --glass-fill: var(--bg-sidebar-glass);
+  --transition-smooth: 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-enter: 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  --motion-ease-enter: cubic-bezier(0.16, 1, 0.3, 1);
+  --motion-ease-exit: cubic-bezier(0.4, 0, 1, 1);
+  --transition-popover-exit: 110ms var(--motion-ease-exit);
+  --transition-sidebar: 0.28s cubic-bezier(0.2, 0, 0, 1);
+}
+
+:root:lang(zh-TW) { --font-cjk-serif: "Songti TC", "Songti SC", "STSong", "Hiragino Mincho ProN", "AppleMyungjo"; }
+:root:lang(ja) { --font-cjk-serif: "Hiragino Mincho ProN", "Yu Mincho", "Songti SC", "AppleMyungjo"; }
+:root:lang(ko) { --font-cjk-serif: "AppleMyungjo", "Noto Serif KR", "Songti SC", "Hiragino Mincho ProN"; }
+:root[data-ui-font-latin="serif"] { --font-ui-latin: var(--font-latin-serif); }
+:root[data-ui-font-cjk="serif"] { --font-ui-cjk: var(--font-cjk-serif); }
+:root[data-reply-font-latin="sans"] { --font-reply-latin: var(--font-latin-sans); }
+:root[data-reply-font-latin="serif"] { --font-reply-latin: var(--font-latin-serif); }
+:root[data-reply-font-cjk="sans"] { --font-reply-cjk: var(--font-cjk-sans); }
+:root[data-reply-font-cjk="serif"] { --font-reply-cjk: var(--font-cjk-serif); }
+
+/*
+ * 主题:data-scheme 决定明暗基底,data-theme 在基底上覆盖配色。
+ * 选择器不限定 :root,设置页的主题预览也靠同样的属性套用整套变量,
+ * 所以每个基底都要把颜色变量写全,不能依赖从外层继承。
+ */
+
+/* 晴空 Daylight(浅色基底) */
+:root,
+[data-scheme="light"] {
+  color-scheme: light;
+  --bg-sidebar-glass: rgba(238, 244, 252, 0.52);
+  --bg-sidebar-hover: rgba(0, 0, 0, 0.04);
+  --bg-sidebar-active: #ffffff;
+  --bg-chat: #ffffff;
+  --bg-chat-bubble-user: #edf4fc;
+  --bg-card-surface: #ffffff;
+  --bg-surface-subtle: #f7f7f8;
+  --bg-elevated: #ffffff;
+  --bg-code: #f5f5f6;
+  --bg-hover: #f0f1f2;
+  --scrollbar-thumb: rgba(0, 0, 0, 0.12);
+  --border-subtle: rgba(25, 28, 33, 0.09);
+  --border-strong: #d9dadd;
+  --overlay: rgba(15, 23, 42, 0.18);
+  --text-primary: #202124;
+  --text-secondary: #484b50;
+  --text-muted: #686d75;
+  --text-dim: #a1a6ad;
+  --accent-blue: #2563eb;
+  --accent-blue-hover: #1d4ed8;
+  --accent-contrast: #ffffff;
+  --success: #059669;
+  --danger: #c8322a;
+  --warning: #ea580c;
+  --violet: #7c3aed;
+  --tint: 6%;
+  --tint-strong: 12%;
+  --avatar-from: #f97316;
+  --avatar-to: #ec4899;
+  --shadow-card: 0 1px 3px rgba(20, 20, 20, 0.035);
+  --shadow-dock: 0 8px 24px rgba(20, 20, 20, 0.075), 0 1px 3px rgba(20, 20, 20, 0.035);
+  --shadow-active-item: none;
+  --shadow-popover: 0 12px 32px rgba(20, 20, 20, 0.14), 0 2px 6px rgba(20, 20, 20, 0.05);
+  --tool-bash: #334155;
+  --tool-read: #1d4ed8;
+  --tool-edit: #b45309;
+  --tool-write: #047857;
+  --tool-other: #64748b;
+  --term-bg: var(--bg-code);
+  --term-fg: var(--text-primary);
+  --term-cmd: var(--text-primary);
+  --term-prompt: color-mix(in srgb, var(--success) 72%, var(--text-primary));
+  --term-error: var(--danger);
+  --ctx-track: #dbdbdb;
+  --ctx-system: #717171;
+  --ctx-tools: #7565cc;
+  --ctx-rules: #007041;
+  --ctx-skills: #a46701;
+  --ctx-conversation: #c93714;
+  --syntax-fg: #1e293b;
+  --syntax-comment: #94a3b8;
+  --syntax-string: #16a34a;
+  --syntax-number: #ea580c;
+  --syntax-keyword: #e11d48;
+  --syntax-function: #2563eb;
+  --syntax-type: #0284c7;
+  --syntax-attr: #b45309;
+}
+
+/* 夜航 Midnight(深色基底) */
+[data-scheme="dark"] {
+  color-scheme: dark;
+  --bg-sidebar-glass: rgba(22, 26, 34, 0.58);
+  --bg-sidebar-hover: rgba(255, 255, 255, 0.06);
+  --bg-sidebar-active: #2a3140;
+  --bg-chat: #16181d;
+  --bg-chat-bubble-user: #2a3140;
+  --bg-card-surface: #1e2128;
+  --bg-surface-subtle: #242933;
+  --bg-elevated: #22262e;
+  --bg-code: #12151a;
+  --bg-hover: rgba(255, 255, 255, 0.06);
+  --scrollbar-thumb: rgba(255, 255, 255, 0.18);
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-strong: #3a4252;
+  --overlay: rgba(0, 0, 0, 0.5);
+  --text-primary: #f3f5f8;
+  --text-secondary: #c5ccd6;
+  --text-muted: #8b95a7;
+  --text-dim: #6d7788;
+  --accent-blue: #4f8cff;
+  --accent-blue-hover: #6d9fff;
+  --accent-contrast: #ffffff;
+  --success: #34d399;
+  --danger: #f87171;
+  --warning: #fb923c;
+  --violet: #a78bfa;
+  --tint: 16%;
+  --tint-strong: 22%;
+  --avatar-from: #f97316;
+  --avatar-to: #ec4899;
+  --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.28), 0 1px 3px rgba(0, 0, 0, 0.2);
+  --shadow-dock: 0 12px 36px rgba(0, 0, 0, 0.38), 0 2px 8px rgba(0, 0, 0, 0.24);
+  --shadow-active-item: 0 2px 10px rgba(0, 0, 0, 0.28);
+  --shadow-popover: 0 18px 48px rgba(0, 0, 0, 0.45), 0 4px 14px rgba(0, 0, 0, 0.3);
+  --tool-bash: #cbd5e1;
+  --tool-read: #93c5fd;
+  --tool-edit: #fdba74;
+  --tool-write: #6ee7b7;
+  --tool-other: #94a3b8;
+  --term-bg: #0e141c;
+  --term-fg: #d5dee8;
+  --term-cmd: #f8fafc;
+  --term-prompt: #86efac;
+  --term-error: #fca5a5;
+  --ctx-track: rgba(255, 255, 255, 0.16);
+  --ctx-system: #9a9a9a;
+  --ctx-tools: #9d8ff0;
+  --ctx-rules: #3fb67f;
+  --ctx-skills: #d9a23a;
+  --ctx-conversation: #f07350;
+  --syntax-fg: #d5dee8;
+  --syntax-comment: #6b7a90;
+  --syntax-string: #4ade80;
+  --syntax-number: #fb923c;
+  --syntax-keyword: #fb7185;
+  --syntax-function: #60a5fa;
+  --syntax-type: #38bdf8;
+  --syntax-attr: #fbbf24;
+}
+
+/* 由基础色推导的色调;主题块写在它之后,需要时可以单独覆盖。 */
+:root,
+[data-scheme] {
+  --bg-card-blue: color-mix(in srgb, var(--accent-blue) var(--tint), var(--bg-chat));
+  --accent-tint: color-mix(in srgb, var(--accent-blue) var(--tint), transparent);
+  --accent-tint-strong: color-mix(in srgb, var(--accent-blue) var(--tint-strong), transparent);
+  --accent-border: color-mix(in srgb, var(--accent-blue) 32%, transparent);
+  --accent-ring: color-mix(in srgb, var(--accent-blue) 14%, transparent);
+  --shadow-btn-blue: 0 4px 14px color-mix(in srgb, var(--accent-blue) 35%, transparent);
+  --success-tint: color-mix(in srgb, var(--success) var(--tint), transparent);
+  --danger-tint: color-mix(in srgb, var(--danger) var(--tint), transparent);
+  --warning-tint: color-mix(in srgb, var(--warning) var(--tint), transparent);
+  --warning-tint-strong: color-mix(in srgb, var(--warning) var(--tint-strong), transparent);
+  --warning-strong: color-mix(in srgb, var(--warning) 62%, var(--text-primary));
+  --violet-tint: color-mix(in srgb, var(--violet) var(--tint), transparent);
+  --tool-bash-tint: color-mix(in srgb, var(--tool-bash) var(--tint), transparent);
+  --tool-read-tint: color-mix(in srgb, var(--tool-read) var(--tint), transparent);
+  --tool-edit-tint: color-mix(in srgb, var(--tool-edit) var(--tint), transparent);
+  --tool-write-tint: color-mix(in srgb, var(--tool-write) var(--tint), transparent);
+  --tool-other-tint: color-mix(in srgb, var(--tool-other) var(--tint), transparent);
+  --diff-add-fg: #00a240;
+  --diff-del-fg: #e02e2a;
+  --diff-add-bg: color-mix(in srgb, var(--diff-add-fg) var(--tint), transparent);
+  --diff-del-bg: color-mix(in srgb, var(--diff-del-fg) var(--tint), transparent);
+  --diff-stat-add-fg: var(--diff-add-fg);
+  --diff-stat-del-fg: var(--diff-del-fg);
+}
+
+/* 宣纸 Paper:暖米色纸面,赤陶强调色 */
+[data-theme="paper"] {
+  --bg-sidebar-glass: rgba(241, 236, 226, 0.58);
+  --bg-sidebar-hover: rgba(74, 52, 30, 0.05);
+  --bg-sidebar-active: #fffdf8;
+  --bg-chat: #faf8f3;
+  --bg-chat-bubble-user: #f0eadf;
+  --bg-card-surface: #fffdf8;
+  --bg-surface-subtle: #f4f0e7;
+  --bg-elevated: #fffdf9;
+  --bg-code: #f2ede3;
+  --bg-hover: #ebe4d7;
+  --scrollbar-thumb: rgba(74, 52, 30, 0.16);
+  --border-subtle: rgba(74, 52, 30, 0.1);
+  --border-strong: #dcd2c1;
+  --overlay: rgba(43, 32, 20, 0.2);
+  --text-primary: #29241f;
+  --text-secondary: #595046;
+  --text-muted: #7a6f60;
+  --text-dim: #bbb1a2;
+  --accent-blue: #c15f3c;
+  --accent-blue-hover: #a94f2f;
+  --success: #4d7c46;
+  --danger: #b83a2b;
+  --warning: #b86e1a;
+  --violet: #86609e;
+  --avatar-from: #d97757;
+  --avatar-to: #a8577e;
+  --shadow-card: 0 4px 20px rgba(74, 52, 30, 0.05), 0 1px 3px rgba(74, 52, 30, 0.03);
+  --shadow-dock: 0 12px 36px rgba(74, 52, 30, 0.1), 0 2px 8px rgba(74, 52, 30, 0.05);
+  --shadow-active-item: 0 2px 10px rgba(74, 52, 30, 0.07);
+  --shadow-popover: 0 18px 48px rgba(74, 52, 30, 0.16), 0 4px 14px rgba(74, 52, 30, 0.07);
+  --tool-bash: #4a4038;
+  --tool-read: #3b6a8f;
+  --tool-edit: #a8621b;
+  --tool-write: #4d7c46;
+  --tool-other: #857a6c;
+  --term-bg: var(--bg-code);
+  --term-fg: var(--text-primary);
+  --term-cmd: var(--text-primary);
+  --term-prompt: color-mix(in srgb, var(--success) 72%, var(--text-primary));
+  --term-error: var(--danger);
+  --syntax-fg: #2e2822;
+  --syntax-comment: #a89d8c;
+  --syntax-string: #5b7d3a;
+  --syntax-number: #b86e1a;
+  --syntax-keyword: #b4492d;
+  --syntax-function: #3b6a8f;
+  --syntax-type: #8a5a2b;
+  --syntax-attr: #9c6b1f;
+}
+
+/* 青瓷 Celadon:浅青灰釉色,松石绿强调色 */
+[data-theme="celadon"] {
+  --bg-sidebar-glass: rgba(229, 239, 234, 0.55);
+  --bg-sidebar-hover: rgba(20, 60, 48, 0.05);
+  --bg-sidebar-active: #ffffff;
+  --bg-chat: #f8fbf9;
+  --bg-chat-bubble-user: #e9f1ed;
+  --bg-card-surface: #ffffff;
+  --bg-surface-subtle: #f0f5f2;
+  --bg-elevated: #ffffff;
+  --bg-code: #edf3f0;
+  --bg-hover: #e2ebe6;
+  --scrollbar-thumb: rgba(20, 60, 48, 0.14);
+  --border-subtle: rgba(20, 60, 48, 0.09);
+  --border-strong: #cbdcd4;
+  --overlay: rgba(12, 34, 28, 0.2);
+  --text-primary: #17231f;
+  --text-secondary: #43554d;
+  --text-muted: #64766f;
+  --text-dim: #b1c1ba;
+  --accent-blue: #0e7c6b;
+  --accent-blue-hover: #0a6557;
+  --success: #178a55;
+  --danger: #c23b32;
+  --warning: #c27812;
+  --violet: #6b5bb5;
+  --avatar-from: #2fa58c;
+  --avatar-to: #3b7fc4;
+  --shadow-card: 0 4px 20px rgba(12, 40, 32, 0.05), 0 1px 3px rgba(12, 40, 32, 0.03);
+  --shadow-dock: 0 12px 36px rgba(12, 40, 32, 0.09), 0 2px 8px rgba(12, 40, 32, 0.05);
+  --shadow-active-item: 0 2px 10px rgba(12, 40, 32, 0.06);
+  --shadow-popover: 0 18px 48px rgba(12, 40, 32, 0.15), 0 4px 14px rgba(12, 40, 32, 0.06);
+  --tool-bash: #2f4640;
+  --tool-read: #1f6aa5;
+  --tool-edit: #a8651a;
+  --tool-write: #178a55;
+  --tool-other: #6b7f78;
+  --term-bg: var(--bg-code);
+  --term-fg: var(--text-primary);
+  --term-cmd: var(--text-primary);
+  --term-prompt: color-mix(in srgb, var(--success) 72%, var(--text-primary));
+  --term-error: var(--danger);
+  --syntax-fg: #1c2a25;
+  --syntax-comment: #8aa39a;
+  --syntax-string: #2f8a55;
+  --syntax-number: #c0701a;
+  --syntax-keyword: #b5406b;
+  --syntax-function: #1f6aa5;
+  --syntax-type: #0e7c6b;
+  --syntax-attr: #9a6b12;
+}
+
+/* 丁香 Lilac:淡紫雾色,丁香紫强调色 */
+[data-theme="lilac"] {
+  --bg-sidebar-glass: rgba(236, 232, 247, 0.56);
+  --bg-sidebar-hover: rgba(50, 36, 90, 0.05);
+  --bg-sidebar-active: #ffffff;
+  --bg-chat: #faf9fd;
+  --bg-chat-bubble-user: #ede9f8;
+  --bg-card-surface: #ffffff;
+  --bg-surface-subtle: #f3f1f9;
+  --bg-elevated: #ffffff;
+  --bg-code: #f0edf7;
+  --bg-hover: #e6e2f1;
+  --scrollbar-thumb: rgba(50, 36, 90, 0.15);
+  --border-subtle: rgba(50, 36, 90, 0.09);
+  --border-strong: #d4cde6;
+  --overlay: rgba(30, 20, 60, 0.2);
+  --text-primary: #221f2e;
+  --text-secondary: #4d4860;
+  --text-muted: #70698a;
+  --text-dim: #b9b3cc;
+  --accent-blue: #7c5cd6;
+  --accent-blue-hover: #6847c2;
+  --success: #2f8f5b;
+  --danger: #c23b4a;
+  --warning: #c27812;
+  --violet: #a45bc9;
+  --avatar-from: #8b6ce0;
+  --avatar-to: #d0568f;
+  --shadow-card: 0 4px 20px rgba(50, 36, 90, 0.05), 0 1px 3px rgba(50, 36, 90, 0.03);
+  --shadow-dock: 0 12px 36px rgba(50, 36, 90, 0.09), 0 2px 8px rgba(50, 36, 90, 0.05);
+  --shadow-active-item: 0 2px 10px rgba(50, 36, 90, 0.06);
+  --shadow-popover: 0 18px 48px rgba(50, 36, 90, 0.15), 0 4px 14px rgba(50, 36, 90, 0.06);
+  --tool-bash: #3e3858;
+  --tool-read: #3a6ea5;
+  --tool-edit: #a8651a;
+  --tool-write: #2f8f5b;
+  --tool-other: #766f8a;
+  --term-bg: var(--bg-code);
+  --term-fg: var(--text-primary);
+  --term-cmd: var(--text-primary);
+  --term-prompt: color-mix(in srgb, var(--success) 72%, var(--text-primary));
+  --term-error: var(--danger);
+  --syntax-fg: #26223a;
+  --syntax-comment: #9a94b3;
+  --syntax-string: #2f8a55;
+  --syntax-number: #c0701a;
+  --syntax-keyword: #8a45c7;
+  --syntax-function: #3a6ea5;
+  --syntax-type: #6847c2;
+  --syntax-attr: #9a6b12;
+}
+
+/* 海棠 Blossom:浅粉底色,海棠红强调色 */
+[data-theme="blossom"] {
+  --bg-sidebar-glass: rgba(247, 234, 234, 0.56);
+  --bg-sidebar-hover: rgba(90, 30, 40, 0.05);
+  --bg-sidebar-active: #ffffff;
+  --bg-chat: #fefaf9;
+  --bg-chat-bubble-user: #f9ebec;
+  --bg-card-surface: #ffffff;
+  --bg-surface-subtle: #f8f1f0;
+  --bg-elevated: #ffffff;
+  --bg-code: #f6eeed;
+  --bg-hover: #f0e3e2;
+  --scrollbar-thumb: rgba(90, 30, 40, 0.15);
+  --border-subtle: rgba(90, 30, 40, 0.09);
+  --border-strong: #e6d2d2;
+  --overlay: rgba(50, 18, 24, 0.2);
+  --text-primary: #2b1f22;
+  --text-secondary: #5c464b;
+  --text-muted: #80666b;
+  --text-dim: #c4aeb2;
+  --accent-blue: #c0395f;
+  --accent-blue-hover: #a82d50;
+  --success: #3d8a52;
+  --danger: #c4331f;
+  --warning: #b8700f;
+  --violet: #8a5bb0;
+  --avatar-from: #e0587c;
+  --avatar-to: #8a5bb0;
+  --shadow-card: 0 4px 20px rgba(90, 30, 40, 0.05), 0 1px 3px rgba(90, 30, 40, 0.03);
+  --shadow-dock: 0 12px 36px rgba(90, 30, 40, 0.09), 0 2px 8px rgba(90, 30, 40, 0.05);
+  --shadow-active-item: 0 2px 10px rgba(90, 30, 40, 0.06);
+  --shadow-popover: 0 18px 48px rgba(90, 30, 40, 0.15), 0 4px 14px rgba(90, 30, 40, 0.06);
+  --tool-bash: #4a3b3f;
+  --tool-read: #3b6a8f;
+  --tool-edit: #a8621b;
+  --tool-write: #3d8a52;
+  --tool-other: #8a7479;
+  --term-bg: var(--bg-code);
+  --term-fg: var(--text-primary);
+  --term-cmd: var(--text-primary);
+  --term-prompt: color-mix(in srgb, var(--success) 72%, var(--text-primary));
+  --term-error: var(--danger);
+  --syntax-fg: #2f2326;
+  --syntax-comment: #ad9498;
+  --syntax-string: #4f7f3a;
+  --syntax-number: #b86e1a;
+  --syntax-keyword: #b8325a;
+  --syntax-function: #3b6a8f;
+  --syntax-type: #8a4a8f;
+  --syntax-attr: #9c6b1f;
+}
+
+/* 石墨 Graphite:中性近黑,薰衣草紫强调色 */
+[data-theme="graphite"] {
+  --bg-sidebar-glass: rgba(22, 22, 23, 0.6);
+  --bg-sidebar-hover: rgba(255, 255, 255, 0.05);
+  --bg-sidebar-active: #262628;
+  --bg-chat: #111112;
+  --bg-chat-bubble-user: #232325;
+  --bg-card-surface: #19191b;
+  --bg-surface-subtle: #1d1d1f;
+  --bg-elevated: #1c1c1e;
+  --bg-code: #0b0b0c;
+  --bg-hover: rgba(255, 255, 255, 0.06);
+  --scrollbar-thumb: rgba(255, 255, 255, 0.16);
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-strong: #38383c;
+  --overlay: rgba(0, 0, 0, 0.55);
+  --text-primary: #ececee;
+  --text-secondary: #b8b8bd;
+  --text-muted: #86868c;
+  --text-dim: #5c5c62;
+  --accent-blue: #8e7dff;
+  --accent-blue-hover: #a597ff;
+  --success: #4ade80;
+  --danger: #f87171;
+  --warning: #fbbf24;
+  --violet: #d08cff;
+  --avatar-from: #8e7dff;
+  --avatar-to: #ec4899;
+  --tool-bash: #d4d4d8;
+  --tool-read: #a5b4fc;
+  --tool-edit: #fcd34d;
+  --tool-write: #86efac;
+  --tool-other: #a1a1aa;
+  --term-bg: #09090a;
+  --term-fg: #d8d8dc;
+  --term-cmd: #fafafa;
+  --term-prompt: #b4a7ff;
+  --syntax-fg: #e4e4e7;
+  --syntax-comment: #6b6b73;
+  --syntax-string: #8bd5a4;
+  --syntax-number: #f0a868;
+  --syntax-keyword: #c49bff;
+  --syntax-function: #82aaff;
+  --syntax-type: #6fd4c7;
+  --syntax-attr: #e8c07d;
+}
+
+/* 余烬 Ember:暖炭底色,余火橙强调色 */
+[data-theme="ember"] {
+  --bg-sidebar-glass: rgba(33, 27, 23, 0.62);
+  --bg-sidebar-hover: rgba(255, 228, 196, 0.05);
+  --bg-sidebar-active: #332a23;
+  --bg-chat: #1a1613;
+  --bg-chat-bubble-user: #2d251f;
+  --bg-card-surface: #221d19;
+  --bg-surface-subtle: #28211c;
+  --bg-elevated: #251f1b;
+  --bg-code: #13100d;
+  --bg-hover: rgba(255, 228, 196, 0.07);
+  --scrollbar-thumb: rgba(255, 228, 196, 0.16);
+  --border-subtle: rgba(255, 228, 196, 0.09);
+  --border-strong: #43382f;
+  --overlay: rgba(8, 5, 3, 0.55);
+  --text-primary: #f3eadf;
+  --text-secondary: #cfc1b1;
+  --text-muted: #9c8d7d;
+  --text-dim: #6f6256;
+  --accent-blue: #eb8a5e;
+  --accent-blue-hover: #f4a07a;
+  --accent-contrast: #1f130c;
+  --success: #9fd18b;
+  --danger: #f38b78;
+  --warning: #f2b45c;
+  --violet: #d3a0d8;
+  --avatar-from: #eb8a5e;
+  --avatar-to: #c05a86;
+  --tool-bash: #e0d3c4;
+  --tool-read: #9cc0dc;
+  --tool-edit: #f2b45c;
+  --tool-write: #a8d493;
+  --tool-other: #b3a494;
+  --term-bg: #110e0b;
+  --term-fg: #e6dbcd;
+  --term-cmd: #fbf4ea;
+  --term-prompt: #f2b45c;
+  --term-error: #f5a594;
+  --syntax-fg: #ebe0d3;
+  --syntax-comment: #85776a;
+  --syntax-string: #b8d27e;
+  --syntax-number: #f2a65a;
+  --syntax-keyword: #f08a6c;
+  --syntax-function: #8fb8dc;
+  --syntax-type: #e9c47e;
+  --syntax-attr: #dba26a;
+}
+
+/* 森林 Forest:深林暗绿,薄荷绿强调色 */
+[data-theme="forest"] {
+  --bg-sidebar-glass: rgba(17, 24, 20, 0.62);
+  --bg-sidebar-hover: rgba(220, 255, 235, 0.05);
+  --bg-sidebar-active: #26332b;
+  --bg-chat: #121714;
+  --bg-chat-bubble-user: #1f2b24;
+  --bg-card-surface: #19211c;
+  --bg-surface-subtle: #1d2620;
+  --bg-elevated: #1b241e;
+  --bg-code: #0d120f;
+  --bg-hover: rgba(220, 255, 235, 0.07);
+  --scrollbar-thumb: rgba(220, 255, 235, 0.16);
+  --border-subtle: rgba(220, 255, 235, 0.09);
+  --border-strong: #33433a;
+  --overlay: rgba(2, 8, 5, 0.55);
+  --text-primary: #e9f2ec;
+  --text-secondary: #bcccc2;
+  --text-muted: #8a9c91;
+  --text-dim: #5e6e65;
+  --accent-blue: #4cc38a;
+  --accent-blue-hover: #6bd4a1;
+  --accent-contrast: #07140d;
+  --success: #8fd694;
+  --danger: #f08a7e;
+  --warning: #f0c060;
+  --violet: #c4a0e0;
+  --avatar-from: #4cc38a;
+  --avatar-to: #3b9ec4;
+  --tool-bash: #d3e0d8;
+  --tool-read: #8fc0dc;
+  --tool-edit: #f0c060;
+  --tool-write: #9fe0b0;
+  --tool-other: #a0b0a6;
+  --term-bg: #0b100d;
+  --term-fg: #d6e4db;
+  --term-cmd: #f4fbf6;
+  --term-prompt: #6bd4a1;
+  --term-error: #f5a094;
+  --syntax-fg: #e0ece4;
+  --syntax-comment: #6f8176;
+  --syntax-string: #a8d98a;
+  --syntax-number: #f0b060;
+  --syntax-keyword: #d98fc4;
+  --syntax-function: #8fbfe0;
+  --syntax-type: #6fd4b5;
+  --syntax-attr: #dbb878;
+}
+
+/* 潮汐 Tide:深青海色,浪花青强调色 */
+[data-theme="tide"] {
+  --bg-sidebar-glass: rgba(14, 23, 27, 0.62);
+  --bg-sidebar-hover: rgba(210, 240, 255, 0.05);
+  --bg-sidebar-active: #213039;
+  --bg-chat: #0f181c;
+  --bg-chat-bubble-user: #1a2a33;
+  --bg-card-surface: #152026;
+  --bg-surface-subtle: #19262c;
+  --bg-elevated: #172329;
+  --bg-code: #0a1215;
+  --bg-hover: rgba(210, 240, 255, 0.07);
+  --scrollbar-thumb: rgba(210, 240, 255, 0.16);
+  --border-subtle: rgba(210, 240, 255, 0.09);
+  --border-strong: #2e434d;
+  --overlay: rgba(1, 6, 9, 0.55);
+  --text-primary: #e6f1f5;
+  --text-secondary: #b6c8d0;
+  --text-muted: #849aa5;
+  --text-dim: #586d77;
+  --accent-blue: #38bdd8;
+  --accent-blue-hover: #5fd0e6;
+  --accent-contrast: #04141a;
+  --success: #7fd6a0;
+  --danger: #f28b82;
+  --warning: #f2c060;
+  --violet: #b9a0e8;
+  --avatar-from: #38bdd8;
+  --avatar-to: #6c7ae0;
+  --tool-bash: #d0dfe5;
+  --tool-read: #8cc4e8;
+  --tool-edit: #f2c060;
+  --tool-write: #9bdcb0;
+  --tool-other: #9bb0ba;
+  --term-bg: #0a1114;
+  --term-fg: #d3e3ea;
+  --term-cmd: #f2fafd;
+  --term-prompt: #5fd0e6;
+  --term-error: #f4a39b;
+  --syntax-fg: #dcebf0;
+  --syntax-comment: #667c87;
+  --syntax-string: #9fd98a;
+  --syntax-number: #f2a866;
+  --syntax-keyword: #b79cf0;
+  --syntax-function: #7fb8f0;
+  --syntax-type: #5fd0c0;
+  --syntax-attr: #e0bd80;
+}

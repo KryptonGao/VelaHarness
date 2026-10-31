@@ -1,13 +1,17 @@
 // 把 styles.css 的真实片段 + shell.html + app.js 拼成单文件 docs/compact-chat-ui/compact-chat-ui.html。
-// 用法:node docs/compact-chat-ui/src/build.mjs(styles.css 变动后重新生成)。
+// 用法:node docs/compact-chat-ui/src/build.mjs(styles.css 或 styles/ 下的文件变动后重新生成)。
 // 片段以选择器/注释为锚点定位,不依赖行号;锚点找不到时直接报错。
 import { readFileSync, writeFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = fileURLToPath(new URL(".", import.meta.url));
 const root = fileURLToPath(new URL("../../../", import.meta.url));
 const scratch = here;
-const css = readFileSync(`${root}/apps/desktop/src/renderer/styles.css`, "utf8").split("\n");
+// styles.css 只是 @import 入口,真实规则在 styles/ 下;就地展开后得到与打包一致的完整样式。
+const readStyles = (file) =>
+  readFileSync(file, "utf8").replace(/^@import "([^"]+)";[ \t]*\n?/gm, (_, rel) => readStyles(resolve(dirname(file), rel)));
+const css = readStyles(`${root}/apps/desktop/src/renderer/styles.css`).split("\n");
 
 const find = (pred, from = 0) => {
   for (let i = from; i < css.length; i += 1) if (pred(css[i], i)) return i;

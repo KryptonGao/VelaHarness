@@ -1,4 +1,5 @@
 /** 分类视图图标栏检查：node apps/desktop/test/nav-rail-ui.mjs（VELA_NAV_RAIL_SCREENSHOT=路径 可截图） */
+import { readStyles } from "./read-styles.mjs";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -52,7 +53,7 @@ if (!process.versions.electron) {
     });
     writeFileSync(join(temporary, "index.html"), '<!doctype html><html data-scheme="light"><head><meta charset="utf-8"><style>' +
       // 真实应用里 App（连同 NavRail 的样式）先于 styles.css 被引入，nav-rail.css 排在前面：等优先级时 styles.css 会赢，夹具必须保持同样的顺序。
-      readFileSync(join(here, "../src/renderer/nav-rail.css"), "utf8") + readFileSync(join(here, "../src/renderer/styles.css"), "utf8") +
+      readFileSync(join(here, "../src/renderer/nav-rail.css"), "utf8") + readStyles(join(here, "../src/renderer/styles.css")) +
       '</style></head><body><div id="root"></div><script src="ui.js"></script></body></html>');
     const env = { ...process.env, VELA_NAV_RAIL_TEMP: temporary };
     delete env.ELECTRON_RUN_AS_NODE;

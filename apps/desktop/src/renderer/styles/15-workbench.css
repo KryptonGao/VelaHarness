@@ -1,0 +1,420 @@
+/* ---------- 统一工作面板 ---------- */
+
+.workbench-panel {
+  position: relative;
+  flex: none;
+  width: min(var(--workbench-width, 640px), max(0px, calc(100vw - var(--sidebar-left-width) - 420px)));
+  min-width: min(var(--workbench-width, 640px), max(0px, calc(100vw - var(--sidebar-left-width) - 420px)));
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  /* 白底交给 ::after 从顶栏下沿铺开,顶栏那一段留给玻璃 */
+  background: none;
+  /* 与左侧会话栏、右侧上下文面板使用同一条分隔线,强化左右分栏的视觉分割 */
+  box-shadow: inset 1px 0 0 var(--border-strong);
+  transition: width var(--transition-sidebar), min-width var(--transition-sidebar),
+    margin-right 160ms var(--motion-ease-exit);
+}
+.workbench-panel.is-context-open {
+  width: min(var(--workbench-width, 640px), max(0px, calc(100vw - var(--sidebar-left-width) - var(--sidebar-right-width) - 420px)));
+  min-width: min(var(--workbench-width, 640px), max(0px, calc(100vw - var(--sidebar-left-width) - var(--sidebar-right-width) - 420px)));
+}
+.vela-window.left-collapsed .workbench-panel {
+  width: min(var(--workbench-width, 640px), max(0px, calc(100vw - 420px)));
+  min-width: min(var(--workbench-width, 640px), max(0px, calc(100vw - 420px)));
+}
+.vela-window.left-collapsed .workbench-panel.is-context-open {
+  width: min(var(--workbench-width, 640px), max(0px, calc(100vw - var(--sidebar-right-width) - 420px)));
+  min-width: min(var(--workbench-width, 640px), max(0px, calc(100vw - var(--sidebar-right-width) - 420px)));
+}
+/* 浏览器 webview 以 z-index:20 浮在面板正文上,手柄要高于它才拖得动;仍低于 z-index:30 的弹层。 */
+.workbench-panel > .sidebar-resize-handle { width: 16px; z-index: 21; }
+/*
+ * 左右分栏的统一节奏:对话区和工作面板都以 52px 顶栏 + 34px 上下文栏起头,
+ * 顶栏用同一套内边距和胶囊标签,接缝处两条水平分隔线自然对齐。
+ */
+.workbench-tabbar {
+  position: relative;
+  flex: none;
+  min-width: 0;
+  height: var(--header-height);
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0 12px 0 16px;
+  overflow: hidden;
+  /* 标签页抬到顶栏玻璃之上;竖向分隔线跟着顶栏延伸上去 */
+  z-index: 3;
+  -webkit-app-region: drag;
+}
+.workbench-tablist {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+.workbench-tablist::-webkit-scrollbar { display: none; }
+/*
+ * 标签页等宽:宽度由 WorkbenchPanel 按数量算好、写成内联 width(夹在 72–220px),
+ * 标签变多就一起变窄;收到 72px 下限就不再缩,剩下的交给 .workbench-tablist 横向滚动 ——
+ * 新开或激活的标签会被 revealActiveTab 自动滚进视野。
+ * 宽度写成明确 px 是为了能做过渡动画(纯 flex 分配出来的宽度不可动画);
+ * 例外:指针停在标签行上时,关闭标签会锁住当前宽度(× 不会从指针下滑走),
+ * 但新建标签仍会算出更窄的目标宽度;指针离开这一行后恢复自适应。
+ */
+.workbench-tab {
+  flex: none;
+  min-width: 72px;
+  max-width: 220px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 0 30px 0 10px;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  white-space: nowrap;
+  -webkit-app-region: no-drag;
+  /* 宽度变化(增减标签、锁定/解冻、拉宽面板)都走这条过渡 */
+  transition: width var(--transition-smooth), background var(--transition-smooth), color var(--transition-smooth);
+}
+.workbench-tab > .tool-activity-loader { margin-left: 0; }
+.workbench-tab:hover { background: var(--bg-hover); color: var(--text-primary); }
+/* 降低动效偏好下不做宽度动画 */
+@media (prefers-reduced-motion: reduce) {
+  .workbench-tab { transition: background var(--transition-smooth), color var(--transition-smooth); }
+}
+.workbench-tab-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.workbench-tab[aria-selected="true"] {
+  color: var(--text-primary);
+  background: var(--bg-surface-subtle);
+  box-shadow: inset 0 0 0 1px var(--border-subtle);
+}
+.workbench-tab-close {
+  position: absolute;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  align-self: center;
+  border-radius: 5px;
+  color: var(--text-secondary);
+  pointer-events: auto;
+  -webkit-app-region: no-drag;
+}
+.workbench-tab-close.is-clipped {
+  background: var(--bg-chat);
+  box-shadow: 0 0 0 1px var(--border-subtle);
+}
+/*
+ * 关闭按钮层只当坐标原点用:它继承 tabbar 的 drag 区域,而 z-index 让它叠在标签页之上,
+ * 一旦它的盒子铺满整条标签栏,就会把标签页自己的 no-drag 又盖回成 drag ——
+ * 结果就是真实鼠标点标签页会变成拖窗口,标签切不开(关闭按钮还能用,因为它们单独声明了 no-drag)。
+ * 盒子收成零尺寸后不贡献任何区域,关闭按钮的 left/top 本来就是相对原点算的,位置不变。
+ */
+.workbench-tab-close-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  z-index: 2;
+  pointer-events: none;
+  -webkit-app-region: no-drag;
+}
+.workbench-tab-close:hover { background: var(--bg-hover); color: var(--text-primary); }
+.workbench-content {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  z-index: 1;
+}
+.workbench-tabpanel {
+  position: absolute;
+  inset: 0;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  opacity: 1;
+  transform: none;
+  transition: opacity 120ms var(--motion-ease-enter), transform 120ms var(--motion-ease-enter);
+}
+.workbench-tabpanel.is-inactive { opacity: 0; transform: translateY(2px); pointer-events: none; }
+.workbench-tabpanel[hidden] { display: none; }
+@starting-style {
+  .workbench-tabpanel:not(.is-inactive) { opacity: 0; transform: translateY(2px); }
+}
+
+.workbench-new-tab {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  -webkit-app-region: no-drag;
+  transition: background var(--transition-smooth), color var(--transition-smooth), transform var(--transition-smooth);
+}
+.workbench-new-tab:hover { background: var(--bg-hover); color: var(--text-primary); }
+.workbench-new-tab:active { transform: scale(0.94); }
+
+.workbench-collapse {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  -webkit-app-region: no-drag;
+}
+.workbench-collapse:hover { background: var(--bg-hover); color: var(--text-primary); }
+/* Folding hides boxes only: mounted guests keep history, forms and scroll positions. */
+.vela-window .workbench-panel.is-collapsed { display: none; }
+
+/* ---------- 手动浏览器 ---------- */
+.browser-panel { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+.browser-toolbar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 10px;
+}
+.browser-nav {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-pill);
+  color: var(--text-secondary);
+}
+.browser-nav:hover:not(:disabled) { background: var(--bg-hover); color: var(--text-primary); }
+.browser-nav:disabled { opacity: 0.4; cursor: default; }
+.browser-address-form { flex: 1; min-width: 0; margin-left: 6px; }
+.browser-address {
+  width: 100%;
+  height: 30px;
+  padding: 0 14px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  font-size: 13px;
+  text-align: center;
+  text-overflow: ellipsis;
+}
+.browser-address:focus { text-align: left; background: var(--bg-surface-subtle); border-color: var(--border-subtle); }
+.browser-address::placeholder { color: var(--text-muted); }
+.browser-address:focus-visible, .browser-nav:focus-visible, .workbench-collapse:focus-visible {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: 2px;
+}
+.browser-address[aria-invalid="true"] { border-color: var(--danger); }
+/* Title and load status stay in the DOM for assistive tech; the tab label already shows the title. */
+.browser-page-info { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.browser-error { flex: none; padding: 8px 14px; font-size: 12px; color: var(--danger); background: var(--danger-tint); overflow-wrap: anywhere; }
+.browser-error > span { display: block; margin-top: 4px; }
+/* webview 以 fixed 浮在 viewport 的矩形上(z-index 20),左缘让出 1px,免得盖住面板的竖向分隔线。 */
+.browser-viewport { position: relative; flex: 1; min-height: 0; overflow: hidden; margin-left: 1px; }
+.browser-webview { display: flex; width: 100%; height: 100%; }
+.browser-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px;
+  background: var(--bg-chat);
+  color: var(--text-muted);
+  pointer-events: none;
+}
+.browser-empty h2 { margin: 0; font-size: 17px; font-weight: 550; color: var(--text-primary); }
+.browser-empty p { margin: 0; font-size: 13px; text-align: center; }
+
+/* ---------- 新标签页起始页 ---------- */
+
+.start-view {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
+  padding: 32px 28px 56px;
+}
+.start-view-inner {
+  width: min(520px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+.start-view-header h2 {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.start-view-header p {
+  margin: 6px 0 0;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+.start-options {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.start-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  text-align: left;
+  color: var(--text-primary);
+  background: var(--bg-surface-subtle);
+  box-shadow: inset 0 0 0 1px var(--border-subtle);
+  transition: background var(--transition-smooth), box-shadow var(--transition-smooth), transform var(--transition-smooth);
+}
+.start-option:hover:not(:disabled) {
+  background: var(--bg-hover);
+  box-shadow: inset 0 0 0 1px var(--accent-border);
+}
+.start-option:active:not(:disabled) { transform: scale(0.995); }
+.start-option:disabled { opacity: 0.5; cursor: default; }
+.start-option-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  margin-top: 1px;
+  border-radius: 9px;
+  color: var(--accent-blue);
+  background: var(--accent-tint);
+}
+.start-option-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.start-option-title { font-size: 15px; font-weight: 550; }
+.start-option-description { font-size: 13px; color: var(--text-muted); line-height: 1.45; }
+
+.start-error { margin: 0; color: var(--danger); font-size: 13px; line-height: 1.5; }
+.panel-chat-container, .panel-chat-conversation {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+.panel-chat-conversation[hidden] { display: none; }
+.panel-chat-view { min-height: 0; --paper-left-radius: 0px; --paper-right-radius: 0px; }
+.panel-chat-view::before, .panel-chat-view::after { display: none; }
+.panel-chat-view .main-chat-header { height: 42px; min-height: 42px; padding: 0 16px; -webkit-app-region: no-drag; }
+.platform-darwin.left-collapsed .panel-chat-view .main-chat-header { padding-left: 16px; }
+.left-collapsed:not(.platform-darwin) .panel-chat-view .main-chat-header { padding-left: 16px; }
+.panel-chat-view .conversation-view-tabs { padding-inline: 12px; }
+.panel-chat-view .conversation-view-tabs.chat-view-tabs { padding-inline: 6px; }
+.panel-chat-plan-toolbar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; font-size: 13px; }
+@container chat (max-width: 520px) {
+  .panel-chat-view .dock-controls-row { flex-direction: column; align-items: stretch; }
+  .panel-chat-view .dock-controls-left { flex: none; }
+  .panel-chat-view .dock-controls-right { flex: none; width: 100%; }
+  .panel-chat-view .model-controls { flex: 1; }
+  .panel-chat-view .dock-popover { max-width: calc(100cqi - 64px); }
+}
+
+/* ---------- 集成终端 ---------- */
+
+.panel-terminal-view {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--term-bg);
+}
+.terminal-subbar {
+  flex: none;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 10px 0 16px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.terminal-subbar-path {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+.terminal-subbar-path strong { flex: none; color: var(--text-secondary); font-weight: 550; }
+.terminal-subbar-cwd {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.terminal-subbar-exit { flex: none; color: var(--warning); }
+.terminal-subbar-actions { display: flex; align-items: center; gap: 2px; flex: none; }
+.terminal-action {
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  transition: background var(--transition-smooth), color var(--transition-smooth);
+}
+.terminal-action:hover { background: var(--bg-hover); color: var(--text-primary); }
+.terminal-action:disabled { opacity: 0.5; cursor: default; }
+.terminal-body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  padding: 6px 4px 8px 10px;
+}
+.terminal-xterm {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+.terminal-error {
+  position: absolute;
+  inset: 12px;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  text-align: center;
+  border-radius: var(--radius-md);
+  color: var(--danger);
+  background: var(--danger-tint);
+  font-size: 13px;
+  line-height: 1.5;
+}
+

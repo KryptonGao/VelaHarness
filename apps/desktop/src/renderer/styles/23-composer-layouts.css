@@ -1,0 +1,184 @@
+/* ---------- 输入框布局(外观设置):classic 为原样,calm / capsule 在其上覆盖 ----------
+ * 三种布局都不为输入框聚焦添加高亮;思考强度滑块的弹窗样式不随布局改变。 */
+.thinking-glyph { display: none; }
+.thinking-bars {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 14px;
+}
+.thinking-bars i {
+  width: 3px;
+  border-radius: 1.5px;
+  background: var(--border-strong);
+  transition: background-color 150ms ease;
+}
+.thinking-bars i.on { background: var(--accent-blue); }
+.thinking-dial {
+  width: 22px;
+  height: 22px;
+  transform: rotate(135deg);
+}
+.thinking-dial circle { fill: none; stroke-width: 3; stroke-linecap: round; }
+.thinking-dial-track { stroke: var(--border-strong); stroke-dasharray: 28.27 100; }
+.thinking-dial-progress { stroke: var(--accent-blue); transition: stroke-dasharray 200ms var(--motion-ease-enter); }
+
+/* calm:结构不变,控制行更紧凑,统计行沉成底部淡色脚注带。 */
+:root[data-composer-layout="calm"] .floating-input-card {
+  padding: 14px 16px 0;
+  border-radius: 22px;
+}
+:root[data-composer-layout="calm"] .dock-controls-row { padding-bottom: 8px; }
+:root[data-composer-layout="calm"] .composer-stats-row {
+  margin: 0 -16px;
+  padding: 8px 18px;
+  border-top: 1px solid var(--border-subtle);
+  background: var(--bg-surface-subtle);
+  border-radius: 0 0 calc(22px - 1px) calc(22px - 1px);
+  font-size: 12.5px;
+}
+:root[data-composer-layout="calm"] .composer-stats-row > .composer-stat-context { margin-left: auto; }
+:root[data-composer-layout="calm"] .thinking-glyph { display: inline-flex; align-items: flex-end; }
+:root[data-composer-layout="calm"] .thinking-dial { display: none; }
+:root[data-composer-layout="calm"] .model-choice-pill:has(.thinking-glyph) { gap: 7px; }
+
+/* capsule:输入收成一条膠囊,模式、权限和统计挪到下方托盘。 */
+.floating-input-card.layout-capsule {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+  gap: 0;
+  /* 默认与对话列同宽;托盘放不下时随内容变宽,最宽到 dock 内边距(安全区)为止。 */
+  width: max-content;
+  min-width: calc(min(100%, var(--chat-lane-max, 760px)) - var(--chat-lane-shrink, 0px));
+  max-width: calc(100% - var(--chat-lane-shrink, 0px));
+}
+.composer-capsule {
+  /* 胶囊自身不参与宽度测算,卡片宽度只由下方托盘的内容宽度决定。 */
+  contain: inline-size;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: 26px;
+  box-shadow: var(--shadow-dock);
+}
+/* 审批槽收起时用 -10px 抵消卡片 6px 的行距,这里行距与卡片相同,只需抵消 gap 本身。 */
+.composer-capsule > .approval-slot:not(.open) { margin-bottom: -6px; }
+.composer-capsule > :is(.instruction-row, .attachment-row) { padding-inline: 8px; }
+/* 工作区/环境/分支芯片挪到胶囊外,贴在胶囊上方,与下方托盘同样的左右内边距。 */
+.layout-capsule > .composer-status-bar { padding: 0 12px 6px; contain: inline-size; }
+.layout-capsule > .composer-queue-hint { padding: 0 12px 6px; contain: inline-size; }
+.composer-capsule > :first-child:is(.instruction-row, .attachment-row) { padding-top: 4px; }
+.composer-capsule-main {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  min-width: 0;
+}
+/* 加号按钮的锚点带 min-width: 0，长文本会把它压成 0 宽，按钮溢出后盖在文字上，所以不让它收缩。 */
+.composer-capsule-main > .composer-chip-anchor { flex: none; }
+.composer-capsule-main .composer-entry { flex: 1 1 auto; align-self: stretch; justify-content: center; }
+.composer-capsule-main .input-textarea { min-height: 36px; padding: 7px 4px; }
+.composer-capsule-main .composer-prediction-hint { height: 36px; }
+.composer-capsule-main .composer-prediction-hint::before { inset: 9px -5px 9px -5px; }
+.composer-capsule-main .attach-btn {
+  width: 32px;
+  height: 32px;
+  margin-bottom: 2.5px;
+  background: var(--bg-surface-subtle);
+}
+.composer-capsule-main .attach-btn:hover:not(:disabled) { background: var(--bg-hover); }
+.composer-capsule-main .composer-action-slot { margin-bottom: 2.5px; }
+.composer-tray .model-choice-pill.model-pill { max-width: min(200px, 100%); }
+/* 百分比的 max-width 在算外层宽度时不生效，外层会按完整模型名撑宽，在思考强度和模型之间留出空白；外层也用同一上限，两者就紧挨着。 */
+.composer-tray .model-controls .dock-menu:has(.model-pill) { max-width: 200px; }
+.composer-tray .model-choice-pill:has(.thinking-glyph) { gap: 5px; padding-left: 6px; }
+.composer-tray .thinking-glyph { display: inline-flex; align-items: center; }
+.composer-tray .thinking-bars { display: none; }
+/* 两组托盘:左侧模式/权限加轮步与速度,右侧用量、上下文占用与模型,两端对齐,中间留白。 */
+.composer-tray {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  column-gap: 16px;
+  row-gap: 6px;
+  padding: 8px 12px 0;
+}
+.composer-tray-left,
+.composer-tray-right { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.composer-tray-right { margin-left: auto; justify-content: flex-end; }
+.composer-tray-chips {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+.composer-tray-sep { flex-shrink: 0; width: 1px; height: 14px; background: var(--border-subtle); }
+.composer-tray .composer-stats-row { margin: 0; padding: 0; font-size: 12.5px; }
+.composer-tray .composer-stats-row:empty { display: none; }
+.composer-tray-right .composer-stats-row { column-gap: 10px; }
+/* 托盘不换行:放不下时统计按优先级逐级隐藏(速度 → token 与缓存命中 → 占用百分比 → 占用环),模式、权限与模型始终保留。 */
+.composer-tray { container: composer-tray / inline-size; flex-wrap: nowrap; }
+.composer-tray-left { flex: 0 0 auto; }
+/* 模式与权限芯片也不换行,宽度由模型选择去让。 */
+.composer-tray-chips { flex-wrap: nowrap; }
+.composer-tray-chips > * { flex-shrink: 0; }
+.composer-tray-right { flex: 1 1 auto; min-width: 0; }
+.composer-tray-right .composer-stats-row { flex-wrap: nowrap; flex-shrink: 0; }
+@container composer-tray (max-width: 760px) {
+  .composer-tray-left > .composer-tray-sep,
+  .composer-tray-left > .composer-stats-row { display: none; }
+}
+@container composer-tray (max-width: 620px) {
+  .composer-tray-right .composer-stats-row > .composer-stat:not(.composer-stat-context) { display: none; }
+}
+@container composer-tray (max-width: 500px) {
+  .composer-tray-right .composer-stat-context .composer-stat-text { display: none; }
+}
+@container composer-tray (max-width: 420px) {
+  .composer-tray-right .composer-stats-row { display: none; }
+}
+
+/* 「上下文」标签页 */
+.ctx-summary { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.ctx-percent { font-size: 22px; font-weight: 650; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+.ctx-percent.high { color: var(--warning-strong); }
+.ctx-total { color: var(--text-muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+.ctx-track { position: relative; display: flex; height: 8px; border-radius: 999px; overflow: hidden; background: color-mix(in srgb, var(--text-primary) 8%, transparent); }
+.ctx-marker { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--text-primary); opacity: 0.55; }
+.ctx-legend-note { display: flex; align-items: center; gap: 8px; margin-top: -6px; }
+.ctx-marker-sample { display: inline-block; width: 2px; height: 10px; background: var(--text-primary); opacity: 0.55; }
+.ctx-list { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; }
+.ctx-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 8px 0; font-size: 13px; border-top: 1px solid var(--border-subtle); }
+.ctx-row:first-child { border-top: 0; padding-top: 0; }
+.ctx-row:last-child { padding-bottom: 0; }
+.ctx-row-label { display: inline-flex; align-items: center; gap: 8px; color: var(--text-secondary); }
+.ctx-row-value { display: inline-flex; align-items: baseline; gap: 10px; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.ctx-share { color: var(--text-muted); font-size: 12px; }
+.ctx-limit-control { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
+.ctx-limit-control[data-disabled="true"] { opacity: 0.6; }
+.tb-seg button:disabled { cursor: default; }
+.ctx-tab { container-type: inline-size; }
+.ctx-inner { width: min(1080px, 100%); }
+.ctx-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
+.ctx-col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+@container (min-width: 820px) { .ctx-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.ctx-grid { align-items: stretch; }
+.ctx-col > .tb-card { flex: 1; }
+.ctx-fill { flex: 1; justify-content: space-between; }
+.ctx-fill > .ctx-row, .ctx-fill > .ctx-row:first-child, .ctx-fill > .ctx-row:last-child { flex: 1; padding-top: 8px; padding-bottom: 8px; }
+.ctx-limit-card .tb-card-head { flex-wrap: wrap; }
+.ctx-limit-card .tb-seg { width: 280px; max-width: 100%; }
+.ctx-limit-card .ctx-limit-control { flex-direction: row; flex-wrap: wrap; align-items: center; align-self: stretch; gap: 12px; }
+.ctx-limit-card .ctx-limit-control .settings-segment { flex: 1 1 320px; display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 6px; }
+.ctx-limit-card .ctx-limit-control .settings-segment-item { text-align: center; }
+.ctx-limit-card .ctx-limit-control .settings-error { flex-basis: 100%; }
+

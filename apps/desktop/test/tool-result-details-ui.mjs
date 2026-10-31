@@ -1,7 +1,8 @@
 /** Deterministic real-Electron result details checks: node apps/desktop/test/tool-result-details-ui.mjs */
+import { readStyles } from "./read-styles.mjs";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
@@ -121,7 +122,7 @@ if (!process.versions.electron) {
     });
     assert.ok(existsSync(join(temporary, "ui.css")), "The component-imported stylesheet must be emitted");
     writeFileSync(join(temporary, "index.html"), '<!doctype html><html data-scheme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><style>' +
-      readFileSync(resolve(here, "../src/renderer/styles.css"), "utf8") +
+      readStyles(resolve(here, "../src/renderer/styles.css")) +
       '</style><link rel="stylesheet" href="./ui.css"></head><body style="margin:0;min-width:0"><div id="root"></div><script src="./ui.js"></script></body></html>');
     const env = { ...process.env, VELA_TOOL_RESULTS_UI_TEMP: temporary };
     delete env.ELECTRON_RUN_AS_NODE;

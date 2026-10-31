@@ -1,4 +1,5 @@
 /** Real-Electron checks for Intelligent UI: node apps/desktop/test/intelligent-ui-ui.mjs */
+import { readStyles } from "./read-styles.mjs";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -146,7 +147,7 @@ if (!process.versions.electron) {
       "uiSandboxRedeem: (token, key, capability, size) => Promise.resolve({ ok: window.__broker.redeem(token, key, capability, size).ok }), " +
       "uiSandboxRevoke: key => Promise.resolve(window.__broker.revoke(key)) };" +
       '</script><style>' +
-      readFileSync(join(here, "../src/renderer/styles.css"), "utf8") + readFileSync(join(here, "../src/renderer/components/intelligent-ui/intelligent-ui.css"), "utf8") +
+      readStyles(join(here, "../src/renderer/styles.css")) + readFileSync(join(here, "../src/renderer/components/intelligent-ui/intelligent-ui.css"), "utf8") +
       '</style></head><body><div id="root" style="padding:16px"></div><script src="ui.js"></script></body></html>');
     const env = { ...process.env, VELA_IUI_TEMP: temporary };
     delete env.ELECTRON_RUN_AS_NODE;

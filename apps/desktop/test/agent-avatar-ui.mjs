@@ -1,4 +1,5 @@
 /** Bottts 头像：真实 Electron 加载、跨界面同图、状态与面板切换，完全离线。 */
+import { readStyles } from "./read-styles.mjs";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -85,7 +86,7 @@ if (!process.versions.electron) {
       define: { "process.env.NODE_ENV": '"development"', "import.meta.env.DEV": "false" },
       logLevel: "error",
     });
-    const css = readFileSync(join(here, "../src/renderer/styles.css"), "utf8") + "\n" +
+    const css = readStyles(join(here, "../src/renderer/styles.css")) + "\n" +
       readFileSync(join(here, "../src/renderer/info-cards.css"), "utf8");
     writeFileSync(join(temporary, "index.html"), '<!doctype html><html><head><meta charset="utf-8"><style>' + css +
       '</style></head><body><div id="root" style="padding:20px"></div><script src="ui.js"></script></body></html>');

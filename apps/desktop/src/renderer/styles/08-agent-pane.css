@@ -1,0 +1,313 @@
+/* ---------- 右侧 Agent Pane ---------- */
+
+.agent-pane {
+  position: relative;
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  /* 底色由工作面板纸面提供,避免盖住其左侧分隔线。 */
+  background: none;
+}
+.agent-pane-header {
+  flex: none;
+  height: 34px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.agent-pane-header button { -webkit-app-region: no-drag; }
+.agent-pane-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.agent-pane-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+.agent-breadcrumb {
+  display: flex;
+  align-items: baseline;
+  min-width: 0;
+  overflow: hidden;
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+.agent-breadcrumb-sep { color: var(--text-muted); }
+.agent-breadcrumb-segment {
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-muted);
+}
+.agent-breadcrumb-segment.is-current { color: var(--text-primary); font-weight: 600; }
+.agent-breadcrumb-segment.is-link { cursor: pointer; color: var(--text-secondary); }
+.agent-breadcrumb-segment.is-link:hover { color: var(--accent-blue); }
+.agent-pane-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 12px 16px 28px;
+  display: flex;
+  flex-direction: column;
+}
+.agent-pane-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+.agent-history-notice {
+  margin: 0 0 14px;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+/* 子代理的消息流直接沿用主对话的 .assistant-block / .agent-reply-prose,
+   间距取 --process-block-gap,让紧凑模式下跨消息的工具行间距规则同样生效。 */
+.agent-stream {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.agent-stream-message { min-width: 0; }
+.agent-stream-message.is-user { margin-block: 5px; }
+.agent-stream-user {
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: var(--bg-chat-bubble-user);
+  color: var(--text-primary);
+  font-size: 14px;
+}
+.agent-roster-menu-anchor { position: relative; display: inline-flex; }
+.agent-roster-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 30;
+  width: 380px;
+  max-height: min(420px, 60vh);
+  overflow-y: auto;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-dock);
+}
+.agent-roster-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 10px 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 2px;
+}
+.agent-roster-row {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 2px 6px 4px 0;
+  border-radius: 8px;
+}
+.agent-roster-row:hover { background: var(--bg-hover); }
+.agent-roster-row.is-active { background: var(--bg-surface-subtle); }
+.agent-roster-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  text-align: left;
+  cursor: pointer;
+}
+.agent-roster-row.is-active .agent-roster-menu-item { color: var(--text-primary); }
+.agent-roster-row-detail {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 16px;
+  font-size: 12px;
+  min-width: 0;
+}
+.agent-roster-row-detail .agent-controls { margin-left: auto; }
+.agent-run-stats {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.agent-run-stat { white-space: nowrap; }
+.agent-controls { display: inline-flex; align-items: center; gap: 2px; flex: none; }
+.agent-control-btn {
+  -webkit-app-region: no-drag;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-xs);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.agent-control-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+.agent-control-btn.is-danger:hover { color: var(--danger); }
+.agent-roster-menu-path {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+}
+.agent-roster-menu-meta { flex: none; font-size: 12px; color: var(--text-muted); }
+.tool-terminal {
+  border-radius: 8px;
+  background: var(--term-bg);
+  color: var(--term-fg);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  line-height: 1.55;
+  overflow: hidden;
+}
+.tool-terminal-cmd {
+  display: flex;
+  gap: 8px;
+  padding: 8px 10px;
+  color: var(--term-cmd);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.tool-terminal-prompt {
+  color: var(--term-prompt);
+  flex: none;
+}
+.tool-terminal.failed .tool-terminal-prompt { color: var(--term-error); }
+.tool-terminal-out,
+.tool-terminal-wait {
+  margin: 0;
+  padding: 8px 10px 10px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: inherit;
+  color: var(--term-fg);
+}
+.tool-terminal-cmd + .tool-terminal-out,
+.tool-terminal-cmd + .tool-terminal-wait {
+  border-top: 1px solid var(--border-subtle);
+}
+.tool-terminal-wait { color: color-mix(in srgb, var(--term-fg) 62%, transparent); }
+.tool-sheet {
+  border-radius: 8px;
+  background: var(--bg-code);
+  overflow: hidden;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  line-height: 1.55;
+}
+.tool-code-line {
+  display: flex;
+  align-items: flex-start;
+  min-width: 0;
+  padding-right: 10px;
+}
+.tool-gutter {
+  flex: none;
+  min-width: 4.6em;
+  padding: 0 10px 0 8px;
+  text-align: right;
+  color: var(--text-dim);
+  user-select: none;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.tool-sign {
+  display: inline-block;
+  width: 0.8em;
+  text-align: center;
+}
+.tool-code-text {
+  flex: 1;
+  min-width: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--text-secondary);
+}
+.tool-diff-line.add { background: var(--diff-add-bg); }
+.tool-diff-line.del { background: var(--diff-del-bg); }
+.tool-diff-line.add .tool-code-text,
+.tool-diff-line.add .tool-gutter { color: var(--diff-add-fg); }
+.tool-diff-line.del .tool-code-text,
+.tool-diff-line.del .tool-gutter { color: var(--diff-del-fg); }
+.tool-diff-gap {
+  padding: 2px 12px;
+  color: var(--text-dim);
+  background: var(--bg-surface-subtle);
+}
+.tool-sheet-note,
+.tool-note,
+.tool-wait {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+.tool-sheet-note { padding: 6px 10px 8px; }
+.tool-note { white-space: pre-wrap; overflow-wrap: anywhere; margin-bottom: 6px; }
+.tool-error {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--diff-del-bg);
+  color: var(--diff-del-fg);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.tool-markdown {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+@keyframes tool-spin { to { transform: rotate(360deg); } }
+
+.chat-dock-wrapper {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 0 24px 18px;
+  /* 与滚动区扣除滚动条后的可用宽度一致,输入框才能和正文列对齐。 */
+  padding-right: calc(24px + var(--chat-scrollbar-width, 0px));
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+  /* 输入框及其下方保持不透明,滚动中的正文不会从边上和底部透出来。 */
+  background: var(--bg-chat);
+}

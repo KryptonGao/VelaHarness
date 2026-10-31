@@ -1,7 +1,8 @@
 /** Handoff pack dialog checks: node apps/desktop/test/handoff-pack-ui.mjs */
+import { readStyles } from "./read-styles.mjs";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
@@ -79,7 +80,7 @@ if (!process.versions.electron) {
       define: { "process.env.NODE_ENV": '"development"' },
     });
     writeFileSync(join(temporary, "index.html"), '<!doctype html><html data-scheme="dark"><head><meta charset="utf-8"><style>' +
-      readFileSync(join(here, "../src/renderer/styles.css"), "utf8") +
+      readStyles(join(here, "../src/renderer/styles.css")) +
       '</style><link rel="stylesheet" href="ui.css"></head><body><div id="root"></div><script src="ui.js"></script></body></html>');
     const env = { ...process.env, VELA_HANDOFF_TEMP: temporary };
     delete env.ELECTRON_RUN_AS_NODE;

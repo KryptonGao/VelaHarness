@@ -1,4 +1,5 @@
 /** Real Electron renderer interaction and secureStorage smoke, isolated from user credentials. */
+import { readStyles } from "./read-styles.mjs";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { createRequire } from "node:module";
@@ -31,7 +32,7 @@ if (!process.versions.electron) {
       window.render=(locale='en',cwd='/workspace')=>root.render(<IntegrationsSection locale={locale} workspacePath={cwd} conversationId={null}/>);
       window.render();`, resolveDir: resolve(here, "../../.."), loader: "tsx" }, bundle: true, platform: "browser", format: "iife", jsx: "automatic", outfile: join(temporary, "ui.js"), define: { "process.env.NODE_ENV": '"development"' } });
     await build({ entryPoints: [join(here, "../src/main/plugin-credentials.ts")], bundle: true, platform: "node", format: "esm", outfile: join(temporary, "secure.mjs"), external: ["electron", piEntry], alias: { "@earendil-works/pi-coding-agent": piEntry } });
-    writeFileSync(join(temporary, "index.html"), '<!doctype html><html><head><meta charset="utf-8"><style>' + readFileSync(join(here, "../src/renderer/styles.css"), "utf8") + '</style></head><body><div id="root" style="padding:32px;max-width:800px;margin:auto"></div><script src="ui.js"></script></body></html>');
+    writeFileSync(join(temporary, "index.html"), '<!doctype html><html><head><meta charset="utf-8"><style>' + readStyles(join(here, "../src/renderer/styles.css")) + '</style></head><body><div id="root" style="padding:32px;max-width:800px;margin:auto"></div><script src="ui.js"></script></body></html>');
     const env = { ...process.env, VELA_PLUGIN_UI_TEMP: temporary }; delete env.ELECTRON_RUN_AS_NODE;
     const child = spawn(require("electron"), [fileURLToPath(import.meta.url)], { env, stdio: "inherit" });
     const timer = setTimeout(() => child.kill("SIGKILL"), 45000);

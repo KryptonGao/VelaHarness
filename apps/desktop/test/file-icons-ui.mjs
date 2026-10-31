@@ -1,7 +1,8 @@
 /** Focused icon-theme checks: node apps/desktop/test/file-icons-ui.mjs */
+import { readStyles } from "./read-styles.mjs";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -46,7 +47,7 @@ if (!process.versions.electron) {
       jsx: "automatic",
       define: { "process.env.NODE_ENV": '"development"' },
     });
-    writeFileSync(join(temp, "index.html"), `<!doctype html><html><head><meta charset="utf-8"><style>${readFileSync(join(desktop, "src/renderer/styles.css"), "utf8")}</style></head><body><div id="root"></div><script src="ui.js"></script></body></html>`);
+    writeFileSync(join(temp, "index.html"), `<!doctype html><html><head><meta charset="utf-8"><style>${readStyles(join(desktop, "src/renderer/styles.css"))}</style></head><body><div id="root"></div><script src="ui.js"></script></body></html>`);
     const env = { ...process.env, VELA_FILE_ICONS_TEMP: temp };
     delete env.ELECTRON_RUN_AS_NODE;
     const child = spawn(require("electron"), [fileURLToPath(import.meta.url)], { env, stdio: "inherit" });

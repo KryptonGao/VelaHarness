@@ -1,0 +1,110 @@
+/* ---------- 运行视图:待办清单与状态条 ---------- */
+/* 运行视图:待办清单与状态条跟在本轮过程后面,是对话流的一部分,随对话滚动。 */
+.run-dock {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  /* 与对话列同一条车道:撑满正文宽度、左边与过程行对齐(同 .assistant-live-turn)。 */
+  width: calc(min(100%, var(--chat-lane-max, 760px)) - var(--chat-lane-shrink, 0px));
+  margin-right: calc(var(--chat-lane-shift, 0px) * 2);
+}
+.run-dock .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.run-todo {
+  position: relative;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow-card, none);
+}
+.run-todo-list { list-style: none; margin: 0; padding: 14px 16px; display: grid; gap: 9px; }
+.run-todo-list li { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 12px; align-items: center; color: var(--text-secondary); font-size: 14px; line-height: 1.35; transition: color 0.25s; }
+.run-todo-text { overflow-wrap: anywhere; }
+.run-todo-mark {
+  box-sizing: border-box; width: 16px; height: 16px; justify-self: center; display: grid; place-items: center;
+  border-radius: 50%; border: 1.5px dashed var(--text-dim); color: var(--bg-elevated);
+  transition: background-color 0.25s, border-color 0.25s;
+}
+.run-todo-list li[data-status="completed"] { color: var(--text-muted); }
+.run-todo-list li[data-status="completed"] .run-todo-text { text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--text-muted) 55%, transparent); }
+.run-todo-list li[data-status="completed"] .run-todo-mark { border: 1.5px solid var(--text-muted); background: var(--text-muted); }
+.run-todo-list li[data-status="in_progress"] { color: var(--text-primary); font-weight: 560; }
+.run-todo-list li[data-status="in_progress"] .run-todo-mark { border: 1.8px solid var(--border-strong); border-top-color: var(--text-muted); animation: run-todo-spin 0.9s linear infinite; }
+@keyframes run-todo-spin { to { transform: rotate(360deg); } }
+.run-todo-count {
+  position: absolute; top: 8px; right: 12px; z-index: 1; padding: 2px 4px; border: 0; border-radius: 4px; background: none;
+  color: var(--text-dim); font: inherit; font-size: 12px; font-variant-numeric: tabular-nums; cursor: pointer;
+}
+.run-todo-count:hover { color: var(--text-primary); background: var(--bg-hover); }
+.run-status { display: flex; flex-direction: column; gap: 2px; padding: 0 4px; }
+.run-status-row { display: flex; align-items: center; gap: 10px; min-height: 28px; }
+.run-status .tool-activity-loader { width: 22px; height: 22px; flex-basis: 22px; margin: 0; }
+.run-status-label { font-size: 15px; color: var(--text-muted); }
+.run-status-time { font-size: 15px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+@media (prefers-reduced-motion: reduce) {
+  .run-todo-list li[data-status="in_progress"] .run-todo-mark { animation: none; }
+}
+
+/* 只给读屏软件的文字：用于审批、提问和输入预测的朗读。 */
+.visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+/* ---------- 推荐操作卡片(一轮结束后,消息流末尾) ---------- */
+.recommended-actions {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-sizing: border-box;
+  min-width: 0;
+  margin: 0;
+  padding: 16px 44px 14px 16px;
+  border: 1px solid var(--border-subtle, var(--accent-border));
+  border-radius: 16px;
+  background: var(--bg-surface-subtle);
+}
+.recommended-actions-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  color: var(--text-muted);
+}
+.recommended-actions-close:hover { color: var(--text-primary); background: var(--bg-hover); }
+.recommended-actions-question {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.recommended-actions-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+.recommended-action {
+  max-width: 100%;
+  padding: 7px 16px;
+  border-radius: var(--radius-pill);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: var(--bg-elevated);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: background 0.15s ease;
+}
+.recommended-action:hover:not(:disabled) { background: var(--bg-hover); }
+.recommended-action.is-primary { background: var(--accent-blue); color: var(--accent-contrast); }
+.recommended-action.is-primary:hover:not(:disabled) { background: var(--accent-blue-hover); }
+.recommended-action:disabled { opacity: 0.55; cursor: default; }
+.recommended-actions-error { margin: 0; font-size: 13px; line-height: 1.5; color: var(--danger, #d1242f); }
+.code-row-clip {
+  color: var(--text-dim);
+  font-family: var(--font-sans);
+  font-style: italic;
+}
+

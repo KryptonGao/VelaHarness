@@ -1,0 +1,178 @@
+/*
+ * 全屏图片查看器(components/ImageViewer.tsx):从自己发送的缩略图打开,按视口适配展示,
+ * 滚轮定点缩放、拖动平移。逐帧变换由 JS 直接写 transform,这里只定义静态外观与 chrome 的进出场。
+ * 遮罩刻意不跟窗口主题走:浅色主题下也用深色底,图片四周才不会出现刺眼的亮边。
+ */
+.image-viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  opacity: 0;
+  background: rgba(12, 14, 18, 0.9);
+  backdrop-filter: blur(18px) saturate(150%);
+  transition: opacity 200ms var(--motion-ease-enter);
+}
+.image-viewer.is-open { opacity: 1; }
+/* 退场期间只负责把画面还给对话,不再接受操作。 */
+.image-viewer.is-leaving { pointer-events: none; }
+.image-viewer:focus-visible { outline: none; }
+
+.image-viewer-stage {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  /* 拖动时不要触发浏览器自己的滚动、缩放与文本选择。 */
+  touch-action: none;
+  cursor: grab;
+}
+.image-viewer-stage:active { cursor: grabbing; }
+/*
+ * 图片按 left/top 50% 对齐视口中心,再由 JS 写的 transform(translate(-50%,-50%) + 平移 + 缩放)布局。
+ * 不用 grid 居中是因为图片常常比视口大好几倍,超出容器时的对齐行为在不同引擎上并不一致。
+ */
+.image-viewer-image {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  display: block;
+  max-width: none;
+  max-height: none;
+  opacity: 0;
+  transform-origin: center center;
+  will-change: transform;
+  user-select: none;
+  -webkit-user-drag: none;
+  transition: opacity 180ms ease;
+}
+.image-viewer-image.is-ready { opacity: 1; }
+.image-viewer-error {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 13px;
+}
+
+/* 工具栏整体不进事件,只有按钮本身接收指针,免得拖动图片时被悬浮控件挡住。 */
+.image-viewer-chrome {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 140ms ease;
+}
+.image-viewer.is-open .image-viewer-chrome { opacity: 1; transition-delay: 90ms; }
+.image-viewer.is-leaving .image-viewer-chrome { opacity: 0; transition: opacity 100ms ease; }
+.image-viewer-chrome > * { pointer-events: auto; }
+
+.image-viewer-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--radius-pill);
+  color: rgba(255, 255, 255, 0.88);
+  background: rgba(22, 24, 30, 0.62);
+  backdrop-filter: blur(14px);
+  transition: background-color 120ms ease, color 120ms ease, transform 100ms ease;
+}
+.image-viewer-close:hover { background: rgba(42, 45, 55, 0.86); color: #fff; }
+.image-viewer-close:active { transform: scale(0.96); }
+
+.image-viewer-controls {
+  position: absolute;
+  left: 50%;
+  bottom: 22px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--radius-pill);
+  color: rgba(255, 255, 255, 0.88);
+  background: rgba(22, 24, 30, 0.78);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(16px);
+}
+.image-viewer-action,
+.image-viewer-percent {
+  display: grid;
+  place-items: center;
+  height: 30px;
+  border-radius: var(--radius-pill);
+  color: inherit;
+  transition: background-color 120ms ease, color 120ms ease, transform 100ms ease;
+}
+.image-viewer-action { width: 30px; }
+.image-viewer-action:hover:not(:disabled), .image-viewer-percent:hover { background: rgba(255, 255, 255, 0.14); color: #fff; }
+.image-viewer-action:active:not(:disabled) { transform: scale(0.94); }
+.image-viewer-action:disabled { opacity: 0.3; cursor: default; }
+.image-viewer-percent {
+  min-width: 58px;
+  padding: 0 10px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+.image-viewer-divider { width: 1px; height: 18px; margin: 0 4px; background: rgba(255, 255, 255, 0.16); }
+.image-viewer-counter { padding: 0 8px 0 4px; color: rgba(255, 255, 255, 0.72); font-size: 12px; font-variant-numeric: tabular-nums; }
+
+.image-viewer-nav {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  /* 用 margin 而不是 transform 抵消高度,把 transform 留给按压缩放。 */
+  margin-top: -20px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-pill);
+  color: rgba(255, 255, 255, 0.88);
+  background: rgba(22, 24, 30, 0.62);
+  backdrop-filter: blur(14px);
+  opacity: 0;
+  transition: opacity 160ms ease, background-color 120ms ease, color 120ms ease, transform 100ms ease;
+}
+.image-viewer.is-open .image-viewer-nav { opacity: 1; transition-delay: 90ms; }
+.image-viewer.is-leaving .image-viewer-nav { opacity: 0; transition: opacity 100ms ease; }
+.image-viewer-nav.is-prev { left: 18px; }
+.image-viewer-nav.is-next { right: 18px; }
+.image-viewer-nav:hover { background: rgba(42, 45, 55, 0.86); color: #fff; }
+.image-viewer-nav:active { transform: scale(0.95); }
+
+.image-viewer-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 76px;
+  transform: translateX(-50%);
+  padding: 4px 12px;
+  border-radius: var(--radius-pill);
+  color: rgba(255, 255, 255, 0.62);
+  background: rgba(20, 22, 28, 0.5);
+  font-size: 12px;
+  letter-spacing: 0.01em;
+  pointer-events: none;
+  transition: opacity 260ms ease;
+}
+/* 第一次缩放或拖动之后提示就退场,之后不再出现。 */
+.image-viewer-hint.is-hidden { opacity: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .image-viewer, .image-viewer-chrome, .image-viewer-nav, .image-viewer-image, .image-viewer-hint { transition: none; }
+  .image-viewer-close:active, .image-viewer-action:active:not(:disabled), .image-viewer-nav:active { transform: none; }
+}
+
+/* 降低透明度时改成实色底:模糊在这种满屏遮罩上换不来可读性。 */
+@media (prefers-reduced-transparency: reduce) {
+  .image-viewer { background: rgba(10, 11, 14, 0.97); backdrop-filter: none; }
+  .image-viewer-controls, .image-viewer-nav, .image-viewer-close { background: rgba(26, 28, 34, 0.96); backdrop-filter: none; }
+}
+

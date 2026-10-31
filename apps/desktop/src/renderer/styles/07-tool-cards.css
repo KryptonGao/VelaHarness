@@ -1,0 +1,550 @@
+/* ---------- Browser REPL 调用 ---------- */
+.browser-call { min-width: 0; margin: 2px 0; }
+.browser-call-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  padding: 3px 0;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  text-align: left;
+  cursor: pointer;
+}
+.browser-call-head:hover { color: var(--text-primary); }
+.browser-call-head:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: -2px; }
+.browser-call-badge {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--accent-blue) 13%, transparent);
+  color: var(--accent-blue);
+  transition: background-color 140ms ease;
+}
+.browser-call.is-running .browser-call-badge { animation: browser-call-pulse 1.4s ease-in-out infinite; }
+.browser-call.is-error .browser-call-badge {
+  background: color-mix(in srgb, var(--danger) 13%, transparent);
+  color: var(--danger);
+}
+/* 紧凑模式下 Browser REPL 的图标不要底色,尺寸与其他紧凑图标(16px)对齐。 */
+.browser-call.is-compact .browser-call-badge,
+.browser-call.is-compact.is-error .browser-call-badge {
+  width: 16px;
+  height: 16px;
+  border-radius: 0;
+  background: transparent;
+}
+.browser-call-steps {
+  flex: 0 1 auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  overflow: hidden;
+}
+.browser-call-step-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  color: var(--text-muted);
+}
+.browser-call-step {
+  min-width: 0;
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--bg-surface-subtle);
+  box-shadow: inset 0 0 0 1px var(--border-subtle);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+.browser-call-shots {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--success-tint);
+  color: var(--success);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.browser-call.open > .browser-call-head .browser-call-chevron { transform: rotate(90deg); }
+.browser-call:not(.is-compact) {
+  border-radius: 10px;
+  background: var(--bg-surface-subtle);
+  padding: 2px 10px;
+}
+.browser-call:not(.is-compact) .browser-call-step { background: var(--bg-card-surface); }
+.browser-call.open > .tool-collapse { grid-template-rows: 1fr; }
+.browser-call-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 0 8px 28px;
+}
+.browser-call:not(.is-compact) .browser-call-body { padding-left: 28px; }
+.browser-call-code {
+  position: relative;
+  margin: 0;
+  padding: 8px 10px 8px calc(10px + 1.2em);
+  border-radius: 8px;
+  background: var(--term-bg);
+  color: var(--term-fg);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.browser-call-prompt {
+  position: absolute;
+  left: 10px;
+  color: var(--accent-blue);
+  user-select: none;
+}
+.browser-call-output {
+  padding: 0 2px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.browser-call-output.failed, .browser-call-output.failed .tool-markdown { color: var(--danger); }
+.browser-call-text { margin: 0; }
+.browser-call-wait { padding: 0 2px; font-size: 13px; color: var(--text-muted); }
+.browser-call-frames { display: flex; flex-wrap: wrap; gap: 10px; }
+.browser-call-frame {
+  margin: 0;
+  width: 240px;
+  max-width: 100%;
+  overflow: hidden;
+  border-radius: 8px;
+  background: var(--bg-card-surface);
+  box-shadow: 0 0 0 1px var(--border-subtle), 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: width var(--transition-smooth);
+}
+.browser-call-frame.zoomed { width: 100%; }
+.browser-call-chrome {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 8px;
+  background: var(--bg-surface-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.browser-call-chrome > span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--border-subtle);
+  box-shadow: inset 0 0 0 1px var(--border-subtle);
+}
+.browser-call-chrome > em {
+  flex: 1;
+  min-width: 0;
+  margin-left: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-style: normal;
+  color: var(--text-muted);
+}
+.browser-call-shot {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: zoom-in;
+}
+.browser-call-frame.zoomed .browser-call-shot { cursor: zoom-out; }
+.browser-call-shot img { display: block; width: 100%; height: auto; }
+@keyframes browser-call-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .browser-call.is-running .browser-call-badge { animation: none; }
+}
+.tool-card-list.is-compact .tool-card {
+  overflow: visible;
+  border-radius: 0;
+  background: transparent;
+}
+.tool-card-list.is-compact .tool-card-head {
+  gap: 6px;
+  padding: 2px 0;
+}
+.tool-card-list.is-compact .tool-card-head:hover { background: transparent; }
+.tool-card-list.is-compact .tool-card-icon {
+  width: 16px;
+  height: 16px;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text-muted);
+}
+.tool-card-list.is-compact .tool-kind-label {
+  width: auto;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+.tool-card-list.is-compact .tool-card-name { font-size: 14px; font-weight: 500; }
+.tool-card-list.is-compact .tool-card-dir { font-size: 13px; }
+.tool-card-list.is-compact .tool-card-body { padding: 2px 0 8px; }
+
+/* 紧凑模式的工具图标配色:设置 → 对话显示 → 工具图标配色,关闭时保持统一灰色。
+   Browser REPL 的图标有自己的蓝色底,不在这里处理。 */
+:root,
+[data-scheme="light"] {
+  --tool-icon-bash: #7c5cd6;
+  --tool-icon-read: #0f8a8a;
+  --tool-icon-edit: #c2710c;
+  --tool-icon-write: #1f9d55;
+  --tool-icon-group: #5b6fd6;
+  --tool-icon-mcp: #d6457a;
+  --tool-icon-agent: #b43fc7;
+  --tool-icon-flow: #5b6fd6;
+  --tool-icon-ask: var(--tool-icon-flow);
+  --tool-icon-schedule: #c28a00;
+  --tool-icon-memory: #4b5563;
+  --tool-icon-other: #e0603c;
+  --tool-icon-web: #2f7fd6;
+  --tool-icon-think: #84a10d;
+}
+[data-scheme="dark"] {
+  --tool-icon-bash: #b9a4f5;
+  --tool-icon-read: #5fd0cc;
+  --tool-icon-edit: #fbbf6a;
+  --tool-icon-write: #6ee7a0;
+  --tool-icon-group: #a5b0f5;
+  --tool-icon-mcp: #f59ab9;
+  --tool-icon-agent: #e19af0;
+  --tool-icon-flow: #a5b0f5;
+  --tool-icon-ask: var(--tool-icon-flow);
+  --tool-icon-schedule: #f2c94c;
+  --tool-icon-memory: #cbd5e1;
+  --tool-icon-other: #fb9b7e;
+  --tool-icon-web: #7ab8f5;
+  --tool-icon-think: #c3e35c;
+}
+/* 「主题色」:所有类型共用当前主题的强调色;预览区用 .dp-icon-theme 达到同样效果。 */
+:root[data-tool-icon-theme="true"],
+.dp-icon-theme {
+  --tool-icon-bash: var(--accent-blue);
+  --tool-icon-read: var(--accent-blue);
+  --tool-icon-edit: var(--accent-blue);
+  --tool-icon-write: var(--accent-blue);
+  --tool-icon-group: var(--accent-blue);
+  --tool-icon-mcp: var(--accent-blue);
+  --tool-icon-agent: var(--accent-blue);
+  --tool-icon-flow: var(--accent-blue);
+  --tool-icon-schedule: var(--accent-blue);
+  --tool-icon-memory: var(--accent-blue);
+  --tool-icon-other: var(--accent-blue);
+  --tool-icon-web: var(--accent-blue);
+  --tool-icon-think: var(--accent-blue);
+}
+:root[data-tool-icon-color="true"] .tool-compact-icon,
+:root[data-tool-icon-color="true"] .tool-card-list.is-compact .tool-card-icon,
+:root[data-tool-icon-color="true"] .question-compact-icon {
+  color: var(--tool-icon-other);
+}
+:root[data-tool-icon-color="true"] .tool-kind-bash .tool-compact-icon,
+:root[data-tool-icon-color="true"] .tool-card-list.is-compact .tool-kind-bash .tool-card-icon { color: var(--tool-icon-bash); }
+:root[data-tool-icon-color="true"] .tool-kind-read .tool-compact-icon,
+:root[data-tool-icon-color="true"] .tool-card-list.is-compact .tool-kind-read .tool-card-icon { color: var(--tool-icon-read); }
+:root[data-tool-icon-color="true"] .tool-kind-edit .tool-compact-icon,
+:root[data-tool-icon-color="true"] .tool-card-list.is-compact .tool-kind-edit .tool-card-icon { color: var(--tool-icon-edit); }
+:root[data-tool-icon-color="true"] .tool-kind-write .tool-compact-icon,
+:root[data-tool-icon-color="true"] .tool-card-list.is-compact .tool-kind-write .tool-card-icon { color: var(--tool-icon-write); }
+:root[data-tool-icon-color="true"] .tool-compact-group.tool-kind-other > .tool-compact-summary .tool-compact-icon { color: var(--tool-icon-group); }
+:root[data-tool-icon-color="true"] .tool-card-list.is-compact .tool-card.is-mcp .tool-card-icon { color: var(--tool-icon-mcp); }
+:root[data-tool-icon-color="true"] .tool-card-list.is-compact .tool-card.is-task .tool-card-icon,
+:root[data-tool-icon-color="true"] .tool-compact-item.agent-compact .tool-compact-icon { color: var(--tool-icon-agent); }
+:root[data-tool-icon-color="true"] .tool-card-list.is-compact .tool-card.is-web .tool-card-icon { color: var(--tool-icon-web); }
+:root[data-tool-icon-color="true"] .tool-card-list.is-compact .tool-card[class*="tool-group-"] .tool-card-icon { color: var(--tool-group-color); }
+:root[data-tool-icon-color="true"] .question-compact-icon { color: var(--tool-icon-ask); }
+.tool-group-flow { --tool-group-color: var(--tool-icon-flow); }
+.tool-group-schedule { --tool-group-color: var(--tool-icon-schedule); }
+.tool-group-memory { --tool-group-color: var(--tool-icon-memory); }
+.thinking-icon { display: none; }
+.main-chat-view[data-tool-display="compact"] .thinking-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 16px;
+  height: 16px;
+}
+:root[data-tool-icon-color="true"] .thinking-icon { color: var(--tool-icon-think); }
+/* 关闭配色时,紧凑模式的 Browser REPL 图标也回到灰色(失败状态由右侧的 ✕ 标出)。 */
+:root[data-tool-icon-color="false"] .browser-call.is-compact .browser-call-badge { color: var(--text-muted); }
+.tool-collapse {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--transition-smooth);
+}
+.tool-card.open > .tool-collapse,
+.tool-run.open > .tool-collapse,
+.tool-compact-group.open > .tool-collapse,
+.tool-compact-item.open > .tool-collapse {
+  grid-template-rows: 1fr;
+}
+.tool-collapse-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+.tool-card-body { padding: 0 10px 10px; }
+.thinking-scroll-shell.tool-details-scroll {
+  --scroll-fade-background: var(--bg-surface-subtle);
+}
+.tool-card-list.is-compact .thinking-scroll-shell.tool-details-scroll,
+.tool-compact-item .thinking-scroll-shell.tool-details-scroll {
+  --scroll-fade-background: var(--bg-chat);
+}
+
+/* ---------- 执行清单（update_plan）展开视图 ---------- */
+
+.plan-checklist {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 2px 0 2px 2px;
+}
+/* 竖向引导线：从第一个图标中心连到最后一个图标中心。 */
+.plan-checklist::before {
+  content: "";
+  position: absolute;
+  left: 8px;
+  top: 10px;
+  bottom: 10px;
+  width: 1px;
+  background: var(--border-subtle);
+}
+.plan-checklist-item {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  line-height: 19px;
+}
+.plan-status-icon {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+}
+.plan-status-icon.is-completed { color: var(--success); }
+.plan-status-icon.is-in_progress { color: var(--accent-blue); }
+.plan-status-icon.is-pending { color: var(--text-muted); }
+/* 图标压在引导线上，用卡片底色遮出一段间隔，形成节点效果。 */
+.plan-checklist-icon {
+  position: relative;
+  z-index: 1;
+  width: 13px;
+  height: 19px;
+  background: var(--bg-surface-subtle);
+}
+.plan-checklist-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--text-secondary);
+}
+.plan-checklist-item.is-completed .plan-checklist-text { color: var(--text-muted); }
+.plan-checklist-item.is-in_progress .plan-checklist-text { color: var(--text-primary); font-weight: 600; }
+.plan-status-inline { vertical-align: -2px; margin-right: 6px; }
+.task-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 2px 2px 0;
+  list-style: none;
+}
+.task-step {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  font-size: 15px;
+  line-height: 1.45;
+}
+.task-step-name {
+  flex: none;
+  width: 44px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.task-step.is-running .task-step-name { color: var(--tool-accent); }
+.task-step.is-error .task-step-name { color: var(--danger); }
+.task-step-summary {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-primary);
+}
+.task-report { margin: 8px 0 0; }
+.agent-path {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+}
+.agent-avatar {
+  display: block;
+  flex: none;
+  object-fit: contain;
+  user-select: none;
+}
+.agent-compact .tool-compact-icon { width: 18px; height: 18px; }
+.tool-card.is-task .tool-card-icon:has(.agent-avatar) { background: none; }
+.agent-kind {
+  flex: none;
+  padding: 0 5px;
+  border-radius: 5px;
+  background: var(--bg-surface-subtle);
+  color: var(--text-muted);
+}
+.agent-state { flex: none; color: var(--text-muted); }
+.agent-state.is-running { color: var(--tool-accent); }
+.agent-state.is-paused { color: var(--warning); }
+.agent-state.is-failed { color: var(--danger); }
+.agent-state.is-aborted { color: var(--text-muted); opacity: 0.7; }
+.agent-status-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+.agent-status-dot.is-idle { opacity: 0.5; }
+.agent-status-dot.is-paused { background: var(--warning); }
+.agent-status-dot.is-completed { background: var(--success); }
+.agent-status-dot.is-failed { background: var(--danger); }
+.agent-status-dot.is-aborted { background: var(--text-muted); opacity: 0.55; }
+.chat-agents-button {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  gap: 6px;
+  height: 26px;
+  padding: 0 9px;
+  border-radius: 999px;
+  font-size: 13px;
+  white-space: nowrap;
+  color: var(--text-muted);
+  background: var(--bg-surface-subtle);
+  cursor: pointer;
+  -webkit-app-region: no-drag;
+}
+.chat-agents-button:hover,
+.chat-agents-button.active {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+.agent-summary { padding-top: 2px; }
+.thinking-scroll-shell.agent-summary-scroll {
+  /* 卡片模式下模糊层要盖住卡片底色 */
+  --scroll-fade-background: var(--bg-surface-subtle);
+  margin-top: 2px;
+}
+/* 紧凑模式下卡片背景是透明的，模糊层要跟聊天底色一致 */
+.agent-compact .thinking-scroll-shell.agent-summary-scroll {
+  --scroll-fade-background: var(--bg-chat);
+}
+.agent-summary-scroll .thinking-scroll-viewport {
+  max-height: 320px;
+  overflow-x: hidden;
+}
+.agent-summary-scroll .thinking-scroll-viewport .thinking-text {
+  padding: 7px 10px 7px 0;
+}
+.agent-summary-task { color: var(--text-secondary); }
+.agent-summary-report {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+}
+.agent-summary-error {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-subtle);
+  color: var(--danger);
+}
+
+/* 紧凑模式下的一行：点名称去右侧 Pane，点其他区域开合概况 */
+.agent-compact-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+  padding: 2px 0;
+}
+.agent-compact-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.agent-compact-toggle.is-lead { flex: none; }
+/* 箭头紧跟名称，剩余空间仍属于这个开合区域 */
+.agent-compact-toggle.is-tail { flex: 1; justify-content: flex-start; }
+.agent-compact-line:has(.agent-compact-toggle:hover) .agent-compact-toggle,
+.agent-compact-line:has(.agent-compact-toggle:hover) .tool-compact-icon,
+.agent-compact-line:has(.agent-compact-toggle:hover) .tool-compact-action,
+.agent-compact-line:has(.agent-compact-toggle:hover) .tool-compact-chevron {
+  color: var(--text-primary);
+}
+.agent-compact-name {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+.agent-compact-name:hover { text-decoration: underline; text-underline-offset: 2px; }
+.agent-compact-name:disabled { color: var(--text-muted); cursor: default; }
+.agent-compact-name:disabled:hover { text-decoration: none; }
+.agent-compact-out { margin: 2px 8px 6px; }
+.agent-open-hint {
+  display: block;
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.tool-card.is-openable .tool-card-head { cursor: pointer; }
+

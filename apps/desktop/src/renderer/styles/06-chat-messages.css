@@ -1,0 +1,1249 @@
+/* 聊天回覆的段落间距比 .md-content 默认的更松;思考区和追踪预览仍沿用紧凑间距。 */
+.agent-reply-prose .md-content p,
+.agent-reply-prose .md-content ul,
+.agent-reply-prose .md-content ol,
+.agent-reply-prose .md-content blockquote,
+.agent-reply-prose .md-content pre,
+.agent-reply-prose .md-content .md-table-scroll {
+  margin: 0.85em 0;
+}
+.agent-reply-prose .md-content li {
+  margin: 0.3em 0;
+}
+.agent-reply-prose .md-content h1,
+.agent-reply-prose .md-content h2,
+.agent-reply-prose .md-content h3,
+.agent-reply-prose .md-content h4,
+.agent-reply-prose .md-content h5,
+.agent-reply-prose .md-content h6 {
+  margin: 1.2em 0 0.45em;
+}
+
+.md-content {
+  overflow-wrap: anywhere;
+  /* 中西文间距由 .md-script-gap 接管,关掉浏览器自带的 1/8em,免得叠加。 */
+  text-autospace: no-autospace;
+}
+.md-script-gap {
+  display: inline-block;
+  width: 0.2em;
+}
+.md-content > :first-child {
+  margin-top: 0;
+}
+.md-content > :last-child {
+  margin-bottom: 0;
+}
+.md-content p,
+.md-content ul,
+.md-content ol,
+.md-content blockquote,
+.md-content pre,
+.md-content .md-table-scroll {
+  margin: 0.55em 0;
+}
+.md-content h1,
+.md-content h2,
+.md-content h3,
+.md-content h4,
+.md-content h5,
+.md-content h6 {
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.35;
+  margin: 0.9em 0 0.35em;
+}
+/*
+ * 标题用 em 跟随所在容器的正文字号:聊天 15px、追踪预览 12px、思考区 13px 都能保持
+ * 同一套层级比例,不会在小字号区域里冒出过大的标题。
+ */
+.md-content h1 { font-size: 1.33em; }
+.md-content h2 { font-size: 1.18em; }
+.md-content h3 { font-size: 1.07em; }
+.md-content h4 { font-size: 1em; }
+.md-content h5 { font-size: 0.93em; }
+.md-content h6 { font-size: 0.87em; }
+.md-content ul,
+.md-content ol {
+  padding-left: 1.25em;
+}
+.md-content li {
+  margin: 0.18em 0;
+}
+.md-content li > p {
+  margin: 0.15em 0;
+}
+.md-content a {
+  color: var(--accent-blue);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.md-content a:hover {
+  color: var(--accent-blue-hover);
+}
+.md-content blockquote {
+  border-left: 2px solid var(--border-strong);
+  padding-left: 12px;
+  color: var(--text-secondary);
+}
+.md-content :not(pre) > code {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  background: var(--bg-hover);
+  padding: 0.08em 0.35em;
+  border-radius: 4px;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+.md-content pre {
+  background: var(--bg-code);
+  border-radius: 10px;
+  padding: 12px 14px;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  line-height: 1.55;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+.md-content pre code {
+  font-family: inherit;
+  font-size: inherit;
+  background: none;
+  padding: 0;
+  white-space: pre;
+}
+.user-bubble .md-content pre,
+.user-bubble .md-content :not(pre) > code {
+  background: var(--bg-elevated);
+}
+.md-content hr {
+  height: 1px;
+  background: var(--border-subtle);
+  margin: 0.9em 0;
+}
+.md-content del {
+  color: var(--text-secondary);
+}
+.agent-reply-prose .md-content blockquote,
+.agent-reply-prose .md-content del {
+  color: inherit;
+}
+.md-table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
+.md-content table {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+}
+.md-content th,
+.md-content td {
+  border: 1px solid var(--border-subtle);
+  padding: 6px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+.md-content th {
+  background: var(--bg-surface-subtle);
+  font-weight: 600;
+}
+.md-content img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin: 0.55em 0;
+}
+.md-content input[type="checkbox"] {
+  appearance: auto;
+  margin: 0 0.4em 0 0;
+  vertical-align: -0.12em;
+}
+.md-content li:has(> input[type="checkbox"]) {
+  list-style: none;
+  margin-left: -1.15em;
+}
+
+.assistant-block {
+  --process-block-gap: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+/* 回复下方的操作行:复制与分支在左,回复时间贴右。 */
+.reply-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 28px;
+  margin-top: 2px;
+}
+.reply-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 28px;
+  padding: 3px 8px;
+  white-space: nowrap;
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: color var(--transition-enter), background var(--transition-enter);
+}
+.reply-action:hover:not(:disabled) {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+.reply-action:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+.reply-action:focus-visible {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: 1px;
+}
+.reply-time {
+  margin-left: auto;
+  padding-left: 8px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.time-spent-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--text-muted);
+  font-size: 15px;
+  font-weight: 500;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+}
+.time-spent-trigger.is-running { width: 100%; }
+.assistant-turn-trigger {
+  width: 100%;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.time-spent-trigger-arrow {
+  transition: transform var(--transition-smooth);
+}
+/* 折叠块会嵌套(思考块位于"查看过程"内部),展开态规则必须只作用于直接子级,
+   否则外层展开会把内层折叠体一起强制撑开。 */
+.time-spent-collapsible.expanded > .time-spent-trigger .time-spent-trigger-arrow,
+.time-spent-collapsible.expanded > .thinking-header > .time-spent-trigger .time-spent-trigger-arrow {
+  transform: rotate(90deg);
+}
+.thinking-block { min-width: 0; }
+.thinking-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+.thinking-header > .time-spent-trigger { flex-shrink: 0; }
+.thinking-header > .time-spent-trigger.is-running { flex: 1; }
+.thinking-header button:focus-visible {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+.thinking-summary-inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+.thinking-summary-preview,
+.thinking-summary-action {
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  padding: 3px 0;
+  min-height: 28px;
+  text-align: left;
+  font-size: 13px;
+  cursor: pointer;
+}
+.thinking-summary-preview {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+.thinking-summary-preview:hover,
+.thinking-summary-action:hover { color: var(--text-primary); }
+.thinking-summary-label {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+.thinking-summary-excerpt {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.thinking-summary-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.thinking-summary-status .tool-activity-loader { margin: 0; }
+.thinking-summary-failed { color: var(--danger); }
+.thinking-summary-panel {
+  min-width: 0;
+  margin: 7px 0 2px;
+  padding-left: 14px;
+  border-left: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  font-size: 13px;
+  line-height: 1.62;
+  overflow-wrap: anywhere;
+}
+.thinking-summary-panel p { margin: 5px 0 0; }
+/* 总结作为标题:整行可点,超出时省略号截断;展开后换回“思考”标题。 */
+.thinking-header > .thinking-headline-trigger {
+  flex: 1;
+  min-width: 0;
+}
+.thinking-headline-trigger:hover { color: var(--text-primary); }
+.thinking-headline-trigger .thinking-summary-excerpt { min-width: 0; }
+.thinking-headline-trigger .time-spent-trigger-arrow { flex-shrink: 0; }
+/* 进行中的标题:一道高光从左到右反复划过文字,停顿一拍再来下一道。 */
+.thinking-headline-trigger.is-running .thinking-summary-excerpt {
+  --shimmer-base: var(--text-muted);
+  --shimmer-glow: #fff;
+  background-image: linear-gradient(
+    100deg,
+    var(--shimmer-base) 0%,
+    var(--shimmer-base) 38%,
+    var(--shimmer-glow) 50%,
+    var(--shimmer-base) 62%,
+    var(--shimmer-base) 100%
+  );
+  background-size: 250% 100%;
+  background-repeat: no-repeat;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  animation: thinking-title-shimmer 2.4s cubic-bezier(0.4, 0, 0.3, 1) infinite;
+}
+@keyframes thinking-title-shimmer {
+  0% { background-position: 100% 0; }
+  70%, 100% { background-position: 0% 0; }
+}
+/* 窗口失焦时暂停纯装饰的无限动画。文字高光每帧都要重绘，运行中的思考块一多就是持续的主线程开销。
+   转圈这类表示“正在进行”的动画不动，失焦后仍能看出任务在跑。 */
+:root[data-window-focused="false"] .thinking-headline-trigger.is-running .thinking-summary-excerpt,
+:root[data-window-focused="false"] .thinking-particle,
+:root[data-window-focused="false"] .home-logo-float,
+:root[data-window-focused="false"] .home-spark {
+  animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+  .thinking-headline-trigger.is-running .thinking-summary-excerpt {
+    animation: none;
+    background-image: none;
+    color: inherit;
+    -webkit-text-fill-color: currentColor;
+  }
+}
+/* 总结跟随回复正文:去掉“思考”“总结”字样,整段可点,图标跟在最后一行文字后面开合思考内容。 */
+.thinking-prose-summary {
+  min-width: 0;
+  /* 总结逐步展示时,开头还没有文字的那一刻不能塌成零高度,否则整页会先缩再涨。 */
+  min-height: 1lh;
+  /* 整段总结都可点击开合思考内容。 */
+  cursor: pointer;
+}
+.thinking-prose-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 4px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  vertical-align: -2px;
+}
+.thinking-prose-toggle:hover { color: var(--text-primary); }
+.thinking-prose-toggle:focus-visible {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+/* 与工具调用的展开箭头一致:12px、次要色、展开后转 90° 朝下。 */
+.thinking-prose-toggle svg { transition: transform var(--transition-smooth); }
+.thinking-prose-toggle.expanded svg { transform: rotate(90deg); }
+.assistant-turn-process-item {
+  --process-block-gap: 8px;
+  margin: 6px 0 8px;
+}
+.assistant-turn-process-item:last-child {
+  margin-bottom: 0;
+}
+/* 紧凑模式下,上一条消息以工具行结尾、下一条又以工具行开头时,
+   跨消息的间距收成与同一消息内相同的 1px,避免同类工具行时疏时密。 */
+.assistant-block:has(> .tool-card-list.is-compact:last-child)
+  + .assistant-block:has(> .tool-card-list.is-compact:first-child) {
+  margin-top: calc(1px - var(--process-block-gap));
+}
+/* 折叠用 0fr 网格实现:内容保持挂载,开合时有平滑的高度过渡 */
+.time-spent-body {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--transition-smooth);
+}
+.time-spent-collapsible.expanded > .time-spent-body {
+  grid-template-rows: 1fr;
+}
+.time-spent-body-inner {
+  min-height: 0;
+  overflow: hidden;
+  visibility: hidden;
+  transition: visibility 0s var(--transition-smooth);
+}
+.time-spent-collapsible.expanded > .time-spent-body > .time-spent-body-inner {
+  visibility: visible;
+  transition-delay: 0s;
+}
+.thinking-text {
+  color: var(--text-muted);
+  font-size: 15px;
+  line-height: 1.65;
+  padding-top: 6px;
+}
+.thinking-scroll-shell {
+  position: relative;
+  min-width: 0;
+  --scroll-fade-background: var(--bg-chat);
+}
+.thinking-scroll-viewport {
+  max-height: 280px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+.thinking-scroll-viewport .thinking-text {
+  padding: 7px 14px 9px 0;
+  font-size: 13px;
+  line-height: 1.62;
+}
+.thinking-scroll-viewport .md-content > p { margin: 0 0 0.85em; }
+.thinking-scroll-viewport .md-content > p:last-child { margin-bottom: 0; }
+/* 思考分组(OpenAI CoT 总结):标题折叠,展开后思考正文和工具调用挂在同一条引导线下。
+   视口比单纯的思考区高得多,引导线在滚动内容里面,上下漸进模糊时跟着一起淡出。 */
+.thinking-group-shell > .thinking-scroll-viewport { max-height: var(--thinking-group-height, 280px); }
+/* 详情联动增高时只抬高视口上限,内容不足时按内容自然收缩,不再用 min-height 撑出空白。 */
+:root[data-thinking-group-grow="true"] .thinking-group-shell > .thinking-scroll-viewport {
+  max-height: min(var(--thinking-group-height, 280px), var(--thinking-group-expanded-height, var(--thinking-group-height, 280px)));
+}
+.thinking-group-rail {
+  margin: 4px 0 2px 7px;
+  padding: 2px 14px 2px 15px;
+  border-left: 1px solid var(--border-subtle);
+}
+.thinking-group-rail > .thinking-text { padding: 0 0 8px; }
+/* 仅分组视图:工具详情(命令输出、diff)的高度上限比普通工具卡片更低,分组里同时展开几个也不会撑得太高。 */
+.thinking-group-rail .tool-details-scroll > .thinking-scroll-viewport,
+.thinking-group-rail .compact-diff-scroll-shell > .thinking-scroll-viewport {
+  max-height: var(--tool-detail-height, 200px);
+}
+/* 开启「按比例缩放」后:分组实际高度不足设定值时,详情按「详情上限 ÷ 分组上限」同比缩小。 */
+:root[data-tool-detail-scale="true"]:not([data-thinking-group-grow="true"]) .thinking-group-rail .tool-details-scroll > .thinking-scroll-viewport,
+:root[data-tool-detail-scale="true"]:not([data-thinking-group-grow="true"]) .thinking-group-rail .compact-diff-scroll-shell > .thinking-scroll-viewport {
+  max-height: min(
+    var(--tool-detail-height, 200px),
+    calc(var(--thinking-group-live-height, var(--thinking-group-height, 280px)) * var(--tool-detail-ratio, 0.7143))
+  );
+}
+.thinking-group-rail > .tool-card-list { margin: 0; }
+/* 组内代码改动的增删行数:紧跟标题,不推到右边。 */
+.thinking-group-stat {
+  margin-left: 3px;
+  font-size: 12px;
+  line-height: 1;
+}
+.thinking-group-failed {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  margin-left: 1px;
+  border-radius: 50%;
+  background: var(--danger);
+}
+/* 连贯模式:两段回复之间的思考与工具合成一组。标题是汇总句,前面没有图标;
+   组内每次思考总结是一行标题加缩进的正文,按到达顺序与工具行交替排列。 */
+/* 分组标题与回复正文字体、字号、字重、行高一致,只有颜色保持灰色。 */
+.thinking-block.is-coherent .thinking-headline-trigger {
+  font-family: var(--font-reply);
+  font-size: 15px;
+  font-weight: var(--font-reply-weight);
+  line-height: 1.75;
+}
+/* 标题左边的灰色图标:折叠后按汇总的首个动作变化,进行中是思考图标;不随工具图标配色开关变色。 */
+.coherent-group-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin-right: 1px;
+  color: var(--text-muted);
+}
+.coherent-flat { min-width: 0; margin: 2px 0 6px; }
+/* 组内思考标题和展开正文也跟随回复字体,代码仍使用各自的等宽字体。 */
+.coherent-thought {
+  min-width: 0;
+  margin: 8px 0 2px;
+  font-family: var(--font-reply);
+}
+.coherent-thought:first-child { margin-top: 0; }
+.coherent-thought-trigger {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+  padding: 2px 0;
+  border: 0;
+  background: none;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 550;
+  line-height: 1.55;
+  text-align: left;
+  cursor: pointer;
+}
+.coherent-thought-trigger:disabled { cursor: default; }
+/* 一次思考里的多条简短总结:不可折叠,每行与首行同一字号,排在图标右侧。 */
+.coherent-thought.is-multi .coherent-thought-trigger { align-items: flex-start; cursor: default; }
+.coherent-thought.is-multi .thinking-icon { margin-top: 3px; }
+.coherent-thought-lines { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.coherent-thought-line { min-width: 0; overflow-wrap: anywhere; }
+.coherent-thought:not(.is-multi) > .coherent-thought-trigger:not(:disabled):hover { color: var(--text-primary); }
+.coherent-thought-trigger:focus-visible {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.coherent-thought-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.coherent-thought-arrow {
+  flex: none;
+  opacity: 0;
+  transition: transform var(--transition-smooth), opacity 0.15s;
+}
+.coherent-thought.open > .coherent-thought-trigger .coherent-thought-arrow,
+.coherent-thought-trigger:hover .coherent-thought-arrow,
+.coherent-thought-trigger:focus-visible .coherent-thought-arrow { opacity: 0.8; }
+.coherent-thought.open .coherent-thought-arrow { transform: rotate(90deg); }
+.coherent-thought-body {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--transition-smooth);
+}
+.coherent-thought.open > .coherent-thought-body { grid-template-rows: 1fr; }
+.coherent-thought-body-inner { min-height: 0; overflow: hidden; }
+.coherent-thought-body .thinking-text,
+.thinking-scroll-viewport .coherent-thought-body .thinking-text {
+  padding: 2px 0 6px;
+  font-size: 13px;
+  line-height: 1.62;
+}
+/* 紧凑模式下标题前有图标,正文与标题文字对齐。 */
+.main-chat-view[data-tool-display="compact"] .coherent-thought-body .thinking-text,
+.main-chat-view[data-tool-display="compact"] .thinking-scroll-viewport .coherent-thought-body .thinking-text {
+  padding-left: 22px;
+}
+.thinking-group-rail > .tool-card-list + .coherent-thought { margin-top: 8px; }
+.thinking-scroll-viewport::-webkit-scrollbar { width: 5px; }
+.thinking-scroll-viewport::-webkit-scrollbar-thumb {
+  border-radius: var(--radius-pill);
+  background: var(--scrollbar-thumb);
+}
+.thinking-scroll-fade {
+  position: absolute;
+  z-index: 1;
+  left: 0;
+  right: 5px;
+  height: var(--thinking-edge-height, 66px);
+  opacity: 0;
+  pointer-events: none;
+  /* 背景和滤镜使用同一滚动距离权重。 */
+}
+.thinking-edge-filter { position: absolute; pointer-events: none; }
+.thinking-scroll-shell.has-content-edge-blur > .thinking-scroll-viewport {
+  filter: var(--scroll-edge-filter);
+}
+.thinking-scroll-fade-top {
+  top: 0;
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--scroll-fade-background) 88%, transparent) 0%,
+    color-mix(in srgb, var(--scroll-fade-background) 35%, transparent) 38%,
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 0%, transparent 100%);
+}
+.thinking-scroll-fade-bottom {
+  bottom: 0;
+  background: linear-gradient(
+    to top,
+    color-mix(in srgb, var(--scroll-fade-background) 88%, transparent) 0%,
+    color-mix(in srgb, var(--scroll-fade-background) 35%, transparent) 38%,
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(to top, #000 0%, transparent 100%);
+  mask-image: linear-gradient(to top, #000 0%, transparent 100%);
+}
+.process-thinking-text {
+  padding-top: 0;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+.process-thinking-text .md-content > :first-child { margin-top: 0; }
+.process-thinking-text .md-content > :last-child { margin-bottom: 0; }
+.process-thinking-text .md-content h1,
+.process-thinking-text .md-content h2,
+.process-thinking-text .md-content h3,
+.process-thinking-text .md-content h4,
+.process-thinking-text .md-content h5,
+.process-thinking-text .md-content h6 {
+  margin: 0 0 2px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+/* 紧凑过程卡片里收窄层级差,再大的标题也压在这个字号区间。 */
+.process-thinking-text .md-content h1 { font-size: 15px; }
+.process-thinking-text .md-content h2 { font-size: 14px; }
+.process-thinking-text .md-content h3 { font-size: 13.5px; }
+.process-thinking-text .md-content h4 { font-size: 13px; }
+.process-thinking-text .md-content h5 { font-size: 12.5px; }
+.process-thinking-text .md-content h6 { font-size: 12px; }
+.thinking-text .md-content blockquote,
+.thinking-text .md-content del {
+  color: inherit;
+}
+
+.tool-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.tool-card {
+  min-width: 0;
+  background: var(--bg-surface-subtle);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.tool-kind-bash { --tool-accent: var(--tool-bash); --tool-tint: var(--tool-bash-tint); }
+.tool-kind-read { --tool-accent: var(--tool-read); --tool-tint: var(--tool-read-tint); }
+.tool-kind-edit { --tool-accent: var(--tool-edit); --tool-tint: var(--tool-edit-tint); }
+.tool-kind-write { --tool-accent: var(--tool-write); --tool-tint: var(--tool-write-tint); }
+.tool-kind-other { --tool-accent: var(--tool-other); --tool-tint: var(--tool-other-tint); }
+.tool-card.is-web { --tool-accent: var(--tool-icon-web); --tool-tint: color-mix(in srgb, var(--tool-icon-web) 14%, transparent); }
+.tool-card[class*="tool-group-"] { --tool-accent: var(--tool-group-color); --tool-tint: color-mix(in srgb, var(--tool-group-color) 14%, transparent); }
+.tool-card:is(.is-web, .is-intent, [class*="tool-group-"]) .tool-kind-label { width: auto; min-width: 44px; white-space: nowrap; }
+.tool-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  padding: 8px 10px;
+  text-align: left;
+  cursor: pointer;
+}
+.tool-card-head:hover { background: var(--bg-hover); }
+.tool-card-head:focus-visible {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: -2px;
+}
+.tool-card-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  flex: none;
+  background: var(--tool-tint);
+  color: var(--tool-accent);
+}
+.tool-kind-label {
+  flex: none;
+  width: 44px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--tool-accent);
+}
+.tool-card-main {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+.tool-card-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+.tool-card-name.grow { flex: 1; }
+.tool-kind-bash .tool-card-name {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 500;
+}
+.tool-card-dir {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-muted);
+  font-size: 15px;
+}
+.tool-stat,
+.tool-lines,
+.tool-status-mark,
+.tool-spinner,
+.tool-chevron { flex: none; }
+.tool-stat {
+  display: inline-flex;
+  gap: 6px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 400;
+}
+.tool-stat-add { color: var(--diff-stat-add-fg); }
+.tool-stat-del { color: var(--diff-stat-del-fg); }
+/* 只响应当前摘要行的悬停，展开分组时不连带点亮子行。 */
+:is(.tool-card-head, .tool-run-head, .tool-compact-summary, .tool-compact-line)
+  > :is(.tool-stat, .tool-compact-stat) > :is(.tool-stat-add, .tool-stat-del) {
+  color: var(--text-muted);
+}
+:is(.tool-card-head, .tool-run-head, .tool-compact-summary, .tool-compact-line):hover
+  > :is(.tool-stat, .tool-compact-stat) > .tool-stat-add {
+  color: var(--diff-stat-add-fg);
+}
+:is(.tool-card-head, .tool-run-head, .tool-compact-summary, .tool-compact-line):hover
+  > :is(.tool-stat, .tool-compact-stat) > .tool-stat-del {
+  color: var(--diff-stat-del-fg);
+}
+.tool-lines {
+  color: var(--text-muted);
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+.tool-status-mark {
+  display: grid;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+}
+.tool-status-mark.done { color: var(--success); }
+.tool-status-mark.error { color: var(--danger); }
+.tool-activity-loader {
+  display: block;
+  position: relative;
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  margin-left: auto;
+  color: color-mix(in srgb, var(--accent-blue) 70%, white);
+}
+.orb-indicator { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.orb-indicator path { fill: none; stroke: currentColor; stroke-width: 1.1; stroke-linecap: round; stroke-linejoin: round; }
+.orb-indicator circle { fill: currentColor; }
+.tool-spinner {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1.5px solid color-mix(in srgb, var(--tool-accent) 28%, transparent);
+  border-top-color: var(--tool-accent);
+  animation: tool-spin 0.7s linear infinite;
+}
+.tool-chevron {
+  color: var(--text-muted);
+  transition: transform var(--transition-smooth);
+}
+.tool-card.open .tool-chevron { transform: rotate(90deg); }
+
+/* 连续多个工具的折叠分组 */
+.tool-run {
+  min-width: 0;
+  background: var(--bg-surface-subtle);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.tool-run-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  padding: 8px 10px;
+  text-align: left;
+  cursor: pointer;
+}
+.tool-run-head:hover { background: var(--bg-hover); }
+.tool-run-head:focus-visible {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: -2px;
+}
+.tool-run-count {
+  flex: none;
+  padding: 1px 7px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-hover);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.tool-run-subject {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-secondary);
+  font-size: 15px;
+}
+.tool-kind-bash .tool-run-subject {
+  font-family: var(--font-mono);
+  font-size: 14px;
+}
+.tool-run-failed {
+  flex: none;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--diff-del-fg);
+}
+.tool-run-chevron {
+  flex: none;
+  color: var(--text-muted);
+  transition: transform var(--transition-smooth);
+}
+.tool-run.open .tool-run-chevron { transform: rotate(90deg); }
+.tool-run-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 10px 10px;
+  background: var(--bg-card-surface);
+}
+
+/* 紧凑模式把工具作为过程文本阅读;背景只在悬停/键盘聚焦时出现。 */
+.tool-card-list.is-compact { gap: 1px; }
+.tool-card-list.is-compact .tool-card-main,
+.tool-card-list.is-compact .tool-card-name.grow { flex: 0 1 auto; }
+/* 箭头保留占位;展开时常显,收起时只在对应文字悬停或键盘聚焦时显示,避免文字跳动。 */
+.tool-compact-chevron,
+.tool-card-list.is-compact .tool-chevron,
+.main-chat-view[data-tool-display="compact"] .thinking-block .time-spent-trigger-arrow,
+.main-chat-view[data-tool-display="compact"] .thinking-prose-toggle svg {
+  opacity: 0;
+}
+/* 只匹配当前展开项的标题,不连带显示内部仍收起的箭头。 */
+.tool-compact-group.open > .tool-compact-summary > .tool-compact-chevron,
+.tool-compact-item.open > .tool-compact-line .tool-compact-chevron,
+.browser-call.open > .browser-call-head > .tool-compact-chevron,
+.tool-card-list.is-compact .tool-card.open > .tool-card-top .tool-chevron,
+.main-chat-view[data-tool-display="compact"] .thinking-block.expanded > .thinking-header .time-spent-trigger-arrow,
+.main-chat-view[data-tool-display="compact"] .thinking-prose-toggle.expanded svg,
+.tool-compact-summary:has(:is(.tool-compact-label, .tool-compact-sample):hover) > .tool-compact-chevron,
+.tool-compact-summary:focus-visible > .tool-compact-chevron,
+.tool-compact-line:has(:is(.tool-compact-action, .tool-compact-name, .tool-compact-dir, .tool-compact-cmd, .agent-compact-name):hover) .tool-compact-chevron,
+button.tool-compact-line:focus-visible > .tool-compact-chevron,
+.tool-compact-line:has(> button:focus-visible) .tool-compact-chevron,
+.tool-compact-chevron:hover,
+.tool-compact-detail-toggle:is(:hover, :focus-visible) .tool-compact-chevron,
+.tool-card-list.is-compact .tool-card-head:has(:is(.tool-kind-label, .tool-card-main, .tool-mcp-source):hover) .tool-chevron,
+.tool-card-list.is-compact .tool-card-head:focus-visible .tool-chevron,
+.tool-card-list.is-compact .tool-chevron:hover,
+.main-chat-view[data-tool-display="compact"] .thinking-header:has(:is(.time-spent-trigger > span, .thinking-summary-preview):hover) .time-spent-trigger-arrow,
+.main-chat-view[data-tool-display="compact"] .thinking-header:has(:focus-visible) .time-spent-trigger-arrow,
+.main-chat-view[data-tool-display="compact"] .thinking-block .time-spent-trigger-arrow:hover,
+.main-chat-view[data-tool-display="compact"] .thinking-prose-summary:hover .thinking-prose-toggle svg,
+.main-chat-view[data-tool-display="compact"] .thinking-prose-toggle:focus-visible svg {
+  opacity: 1;
+}
+.tool-compact-summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+  padding: 2px 0;
+  border: none;
+  border-radius: 4px;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1.55;
+}
+.tool-compact-summary:hover { color: var(--text-primary); }
+.tool-compact-summary:focus-visible {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: -2px;
+}
+.tool-compact-icon {
+  width: 16px;
+  height: 16px;
+  display: grid;
+  place-items: center;
+  flex: none;
+  color: var(--text-muted);
+}
+.tool-compact-label {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-secondary);
+}
+.tool-compact-sample {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+.tool-compact-failed {
+  flex: none;
+  font-weight: 600;
+  color: var(--diff-del-fg);
+}
+/* 耗时段靠右;展开箭头必须排在它前面,才能紧跟左侧内容而不被 auto 外边距推右。 */
+.tool-duration,
+.tool-compact-steps {
+  flex: none;
+  margin-left: auto;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.tool-duration {
+  min-width: 7ch;
+  text-align: right;
+}
+.tool-duration.is-failed {
+  color: var(--danger);
+}
+.tool-compact-steps {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.tool-compact-stat {
+  flex: none;
+  display: inline-flex;
+  gap: 6px;
+  font-family: var(--font-sans);
+  font-weight: 400;
+}
+.tool-file-created-dot {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--accent-blue) 65%, white);
+}
+.tool-compact-chevron {
+  flex: none;
+  color: var(--text-muted);
+  transition: transform var(--transition-smooth);
+}
+.tool-compact-summary:hover .tool-compact-label { color: var(--text-primary); }
+.tool-compact-group.open > .tool-compact-summary .tool-compact-chevron { transform: rotate(90deg); }
+.tool-compact-item.open > .tool-compact-line .tool-compact-chevron { transform: rotate(90deg); }
+/* 分组内的左导轨始终保留:展开某条文件差异预览时只调整卡片自身间距,不能把整条导轨收回。 */
+.tool-compact-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin: 2px 0 6px 16px;
+  padding: 1px 0 1px 10px;
+  border-left: 1px solid var(--border-subtle);
+}
+.tool-compact-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+  padding: 2px 0;
+  border: none;
+  border-radius: 4px;
+  background: none;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  text-align: left;
+}
+button.tool-compact-line { cursor: pointer; }
+button.tool-compact-line:hover { color: var(--text-primary); }
+button.tool-compact-line:focus-visible {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: -2px;
+}
+.tool-compact-action {
+  flex: none;
+  color: var(--text-muted);
+}
+.file-type-icon {
+  display: inline-block;
+  flex: none;
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+}
+.tool-compact-name {
+  /* 空间不够时先让目录路径收缩，文件名几乎不收缩，路径压到 0 后才截断文件名。 */
+  flex: 0 0.001 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0;
+  border: none;
+  background: none;
+  font-weight: 500;
+  color: var(--text-primary);
+  text-decoration: none;
+}
+button.tool-compact-name:hover { text-decoration: underline; text-underline-offset: 2px; }
+.tool-compact-name.is-static { font-weight: 500; }
+.tool-compact-dir {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-muted);
+}
+.tool-compact-text-toggle {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.tool-compact-text-toggle:focus-visible {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: 1px;
+  border-radius: 3px;
+}
+.tool-compact-action-toggle { flex: none; }
+.tool-compact-path-toggle {
+  flex: 0 1 auto;
+  overflow: hidden;
+}
+.tool-compact-action-toggle:hover .tool-compact-action,
+.tool-compact-path-toggle:hover .tool-compact-dir,
+button.tool-compact-line:hover .tool-compact-action,
+button.tool-compact-line:hover .tool-compact-cmd {
+  color: var(--text-primary);
+}
+.tool-compact-cmd {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+}
+.tool-compact-error {
+  flex: none;
+  display: grid;
+  place-items: center;
+  color: var(--danger);
+}
+.tool-compact-detail-toggle {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.tool-compact-detail-toggle:hover { color: var(--text-primary); }
+.tool-compact-detail-toggle:focus-visible {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: -2px;
+}
+.tool-compact-file-detail {
+  max-height: 220px;
+  margin: 3px 8px 7px 22px;
+  overflow: auto;
+}
+.tool-compact-file-detail .tool-note { margin: 4px 0 6px; }
+.tool-compact-file-detail.has-diff-preview {
+  max-height: none;
+  margin: 3px 0 7px;
+  overflow: visible;
+}
+.compact-diff-card {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  background: var(--bg-card-surface);
+}
+.compact-diff-card-head {
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 6px 2px 10px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-surface-subtle);
+}
+.compact-diff-card-name {
+  min-width: 0;
+  flex: 0 1 auto;
+  overflow: hidden;
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 550;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.compact-diff-card-stat {
+  flex: none;
+  display: inline-flex;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.compact-diff-card-copy {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  margin-left: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  color: var(--text-muted);
+  background: transparent;
+  cursor: pointer;
+}
+.compact-diff-card-copy:hover { color: var(--text-primary); }
+.compact-diff-card-copy:focus-visible {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: -2px;
+}
+.compact-diff-card-note {
+  margin: 0;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.thinking-scroll-shell.compact-diff-scroll-shell {
+  min-width: 0;
+  background: var(--bg-card-surface);
+  --scroll-fade-background: var(--bg-card-surface);
+}
+.compact-diff-scroll-shell .thinking-scroll-viewport .thinking-text {
+  padding: 0;
+}
+.compact-diff-scroll-content { min-width: 0; }
+.tool-sheet.tool-sheet-compact-diff {
+  border-radius: 0;
+  background: var(--bg-card-surface);
+  font-size: 12px;
+  line-height: 1.65;
+}
+.tool-sheet-compact-diff .tool-code-line {
+  min-height: 22px;
+  padding-right: 8px;
+}
+.tool-sheet-compact-diff .tool-gutter {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  align-self: stretch;
+  align-items: baseline;
+  justify-content: flex-end;
+  min-width: 4.5em;
+  margin-right: 9px;
+  border-right: 1px solid var(--border-subtle);
+}
+.tool-sheet-compact-diff .tool-code-text { position: relative; z-index: 3; }
+.tool-sheet-compact-diff .tool-sign { display: none; }
+.tool-sheet-compact-diff .tool-diff-line { position: relative; }
+.tool-sheet-compact-diff .tool-diff-line.add::before,
+.tool-sheet-compact-diff .tool-diff-line.del::before {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 3px;
+  content: "";
+}
+.tool-sheet-compact-diff .tool-diff-line.add::before { background: var(--diff-add-fg); }
+.tool-sheet-compact-diff .tool-diff-line.del::before { background: var(--diff-del-fg); }
+.tool-sheet-compact-diff .tool-diff-gap.is-compact {
+  height: 7px;
+  padding: 0;
+  border-top: 1px solid var(--border-subtle);
+  background: var(--bg-card-surface);
+}
+.tool-compact-out { margin: 0 8px 4px; }
+

@@ -1,4 +1,5 @@
 /** Focused menu interaction checks: node apps/desktop/test/chat-actions-ui.mjs */
+import { readStyles } from "./read-styles.mjs";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -68,7 +69,7 @@ if (!process.versions.electron) {
       define: { "process.env.NODE_ENV": '"development"' },
     });
     writeFileSync(join(temporary, "index.html"), '<!doctype html><html data-scheme="dark"><head><meta charset="utf-8"><style>' +
-      readFileSync(join(here, "../src/renderer/styles.css"), "utf8") + readFileSync(join(here, "../src/renderer/scheduled-tasks.css"), "utf8") + readFileSync(join(here, "../src/renderer/task-recipes.css"), "utf8") +
+      readStyles(join(here, "../src/renderer/styles.css")) + readFileSync(join(here, "../src/renderer/scheduled-tasks.css"), "utf8") + readFileSync(join(here, "../src/renderer/task-recipes.css"), "utf8") +
       '</style></head><body><div id="root" style="height:100vh"></div><script src="ui.js"></script></body></html>');
     const env = { ...process.env, VELA_CHAT_ACTIONS_TEMP: temporary };
     delete env.ELECTRON_RUN_AS_NODE;
