@@ -1,5 +1,6 @@
 import { formatCost, formatTaskBudgetDuration, formatTaskBudgetTokens, type ConversationTaskBudget, type TaskBudgetSettings, type TaskBudgetState } from "@vela/shared";
 import { useCallback, useEffect, useState } from "react";
+import { useSecondClock } from "../hooks/useSecondClock";
 import { activeIntlLocale, localizeError, tr, trf, useAppLocale } from "../locale";
 import { uncountedNote } from "./TaskBudgetBanner";
 import { settingsCopy } from "./settings-copy";
@@ -39,13 +40,8 @@ function Stat({ label, used, limit, value, max }: { label: string; used: number;
 }
 
 function CurrentTask({ budget }: { budget: TaskBudgetState | null | undefined }) {
-  const [now, setNow] = useState(() => Date.now());
   const live = budget !== null && budget !== undefined && budget.phase !== "exhausted";
-  useEffect(() => {
-    if (!live) return;
-    const timer = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(timer);
-  }, [live]);
+  const now = useSecondClock(live);
   if (!budget) return <p className="tb-empty">{tr("当前没有进行中的任务，或没有启用上限。", "No task is running, or no limit is enabled.")}</p>;
   const elapsed = (budget.exhaustedAt ?? now) - budget.startedAt;
   const [zh, en] = phaseLabels[budget.phase];

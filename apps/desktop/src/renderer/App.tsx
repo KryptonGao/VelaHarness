@@ -3,7 +3,7 @@ import { AgentInboxPage } from "./components/AgentInboxPage";
 import { useAgentInbox } from "./hooks/useAgentInbox";
 import { uiStorage } from "./ui-storage";
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState, type ContextType } from "react";
-import { emptyAgentUsage, type AgentInboxNavigation, type AgentInfo, type ReleaseNotes, type TaskRecipe } from "@vela/shared";
+import { type AgentInboxNavigation, type ReleaseNotes, type TaskRecipe } from "@vela/shared";
 import { AgentWorkspaceProvider } from "./components/AgentPanel";
 import { SessionChatView } from "./components/SessionChatView";
 import { ContextPanel } from "./components/ContextPanel";
@@ -55,7 +55,8 @@ import { useProject } from "./hooks/useProject";
 import { usePrInboxBackgroundRefresh } from "./hooks/usePrInboxCache";
 import { useSidebarItems } from "./hooks/useSidebarItems";
 import { useNavLayout } from "./hooks/useNavLayout";
-import { useSession, type UiMessage } from "./hooks/useSession";
+import { useSession } from "./hooks/useSession";
+import { indexAgentHistory, mergeAgentRoster } from "./agent-roster";
 import { useSidebarResize } from "./hooks/useSidebarResize";
 import { useAcceptance } from "./hooks/useAcceptance";
 import type { AcceptanceRequest } from "./components/acceptance";
@@ -120,43 +121,6 @@ function writeWhatsNewSeen(version: string): void {
   } catch {
     // 写不进去时，下次启动会再提示一次。
   }
-}
-
-/**
- * 从已渲染的工具记录里还原一个已结束子代理的快照。
- * agent 树只在内存里，应用重启后点击历史卡片时用它让 Agent Pane 仍能打开。
- */
-function findAgentInMessages(messages: UiMessage[], agentId: string): AgentInfo | null {
-  for (let index = messages.length - 1; index >= 0; index -= 1) {
-    const tools = messages[index]?.tools ?? [];
-    for (const tool of tools) {
-      const activity = tool.activity;
-      if (activity?.agentId !== agentId) continue;
-      const path = activity.agentPath ?? tool.name;
-      const name = path.split("/").filter(Boolean).pop() ?? path;
-      return {
-        id: agentId,
-        parentId: null,
-        path,
-        name,
-        kind: activity.agent ?? "general",
-        status: tool.status === "running" ? "running" : tool.status === "error" ? "failed" : "completed",
-        depth: 1,
-        task: "",
-        steps: activity.steps ?? [],
-        mutated: activity.mutated === true,
-        finalText: tool.activity.body ?? null,
-        error: null,
-        usage: { ...emptyAgentUsage },
-        activeMs: 0,
-        runningSince: null,
-        pauseRequested: false,
-        createdAt: 0,
-        updatedAt: 0,
-      };
-    }
-  }
-  return null;
 }
 
 interface NavEntry { page: NavCategory; conversationId: string | null }
@@ -344,21 +308,11 @@ export function App() {
     }));
   }, [conversationKey]);
 
-  const allAgents = useMemo(() => {
-    const byId = new Map<string, AgentInfo>();
-    for (const agent of session.agents) {
-      if (agent.kind !== "root") byId.set(agent.id, agent);
-    }
-    for (const message of session.agentHistory) {
-      for (const tool of message.tools) {
-        const id = tool.activity?.agentId;
-        if (!id || byId.has(id)) continue;
-        const restored = findAgentInMessages(session.agentHistory, id);
-        if (restored) byId.set(id, restored);
-      }
-    }
-    return [...byId.values()];
-  }, [session.agents, session.agentHistory]);
+  const restoredAgents = useMemo(() => indexAgentHistory(session.agentHistory), [session.agentHistory]);
+  const allAgents = useMemo(
+    () => mergeAgentRoster(session.agents, restoredAgents),
+    [session.agents, restoredAgents],
+  );
 
   const openPlan = useCallback((planId: string) => {
     dispatchPlanDocument({ type: "open", planId });

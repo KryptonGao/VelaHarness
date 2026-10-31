@@ -27,6 +27,8 @@ import {
   type ThinkingLevel,
 } from "@vela/shared";
 import { BrowserWindow, ipcMain, shell } from "electron";
+import { StateThrottle } from "./state-throttle";
+import { StreamCoalescer } from "./stream-coalescer";
 
 const maxPromptLength = 100_000;
 const maxImageCount = 10;
@@ -54,6 +56,10 @@ export interface SessionHostHooks {
 export class SessionHost {
   /** 已经触发过 Git 刷新的子代理 id，避免状态事件重复刷新。 */
   private readonly mutatedAgents = new Set<string>();
+  /** 合并子代理连续的 text/thinking delta，减少 IPC 条数。 */
+  private readonly coalescer = new StreamCoalescer((event) => this.sendToWindows(event));
+  /** 工具事件触发的状态广播做尾部节流，状态/错误变化仍立即广播。 */
+  private readonly stateThrottle = new StateThrottle(() => this.broadcast({ type: "state", state: this.currentState() }));
 
   constructor(
     private readonly runtime: AgentRuntime,
@@ -331,6 +337,8 @@ export class SessionHost {
   }
 
   dispose(): Promise<void> {
+    this.stateThrottle.cancel();
+    this.coalescer.flush();
     return this.runtime.dispose();
   }
 
@@ -354,7 +362,7 @@ export class SessionHost {
     if (event.type === "tool_start" && !event.activity.streaming) this.runtime.addUsage(event.conversationId, 0, 1);
 
     if (event.type === "status") {
-      this.broadcast({ type: "state", state: this.currentState() });
+      this.stateThrottle.now();
       return;
     }
 
@@ -373,7 +381,8 @@ export class SessionHost {
       if (event.type === "tool_end" && toolMutatedWorkspace(event.toolName, event.activity.mutated)) {
         this.hooks.onAgentMutation?.();
       }
-      this.broadcast({ type: "state", state: this.currentState() });
+      if (event.type === "error") this.stateThrottle.now();
+      else this.stateThrottle.request();
     }
   }
 
@@ -404,6 +413,10 @@ export class SessionHost {
   }
 
   private broadcast(event: AgentStreamEvent): void {
+    this.coalescer.push(event);
+  }
+
+  private sendToWindows(event: AgentStreamEvent): void {
     for (const win of BrowserWindow.getAllWindows()) {
       if (win.isDestroyed() || win.webContents.isDestroyed()) continue;
       win.webContents.send(IpcChannel.event, event);

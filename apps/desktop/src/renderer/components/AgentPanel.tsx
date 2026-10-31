@@ -1,5 +1,6 @@
 import { agentElapsedMs, isAgentBusy, type AgentControlAction, type AgentInfo, type SubagentKind } from "@vela/shared";
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useContext, useMemo, type ReactNode } from "react";
+import { useSecondClock } from "../hooks/useSecondClock";
 import { ActivityIndicator } from "./ActivityIndicator";
 import { PauseIcon, PlayIcon, StopSquareIcon } from "./icons";
 import { tr, trf } from "../locale";
@@ -103,14 +104,7 @@ export function formatElapsed(ms: number): string {
 /** 有代理在计时时每秒刷新一次当前时间；全都停着就不起定时器。 */
 export function useAgentClock(agents: readonly Pick<AgentInfo, "runningSince">[]): number {
   const ticking = agents.some((agent) => agent.runningSince !== null);
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    if (!ticking) return;
-    setNow(Date.now());
-    const timer = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(timer);
-  }, [ticking]);
-  return now;
+  return useSecondClock(ticking);
 }
 
 /** 单个代理的 token 与耗时；token 悬停时给出输入、输出和缓存明细。 */

@@ -1,5 +1,6 @@
 import { raceBadges, type Race, type RaceAdoptResult, type RaceBadge, type RaceLane, type RaceLaneStatus, type RaceStatus } from "@vela/shared";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSecondClock } from "../hooks/useSecondClock";
 import { toUiMessage } from "../hooks/useSession";
 import { localizeError, tr, trf } from "../locale";
 import { acceptanceCounts, outcomeByFinalMessage, type AcceptanceRequest } from "./acceptance";
@@ -66,7 +67,6 @@ function verificationText(lane: RaceLane, hasCommand: boolean): string {
 
 export function RacePanel({ races, onOpenConversation, onOpenAcceptance }: RacePanelProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [now, setNow] = useState(() => Date.now());
   const [outcomes, setOutcomes] = useState<Record<string, LaneOutcome>>({});
   const requested = useRef(new Set<string>());
   const mounted = useRef(true);
@@ -77,14 +77,10 @@ export function RacePanel({ races, onOpenConversation, onOpenAcceptance }: RaceP
 
   const race = races.find(item => item.id === selectedId) ?? races[0] ?? null;
   const running = race?.lanes.some(lane => lane.status === "starting" || lane.status === "running") ?? false;
+  const now = useSecondClock(running);
   // 还有赛道在跑时比较不完整，先不标徽章，避免误导。
   const badges = useMemo(() => race && !running ? raceBadges(race.lanes) : new Map<string, RaceBadge[]>(), [race, running]);
 
-  useEffect(() => {
-    if (!running) return;
-    const timer = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(timer);
-  }, [running]);
 
   useEffect(() => { setConfirming(null); setConfirmingDiscard(false); setMessage(null); }, [race?.id]);
 

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { ToolPlanItem } from "@vela/shared";
 import { tr } from "../locale";
+import { useSecondClock } from "../hooks/useSecondClock";
 import type { UiMessage } from "../hooks/useSession";
 import {
   advanceRunStep,
@@ -64,12 +65,7 @@ function RunTodoCard({ items }: { items: ToolPlanItem[] }) {
 
 /** 本轮用时:自己每秒刷新,不带动状态条里的动画重新渲染。 */
 function RunElapsed({ startedAt }: { startedAt: number }) {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    setNow(Date.now());
-    const timer = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(timer);
-  }, [startedAt]);
+  const now = useSecondClock();
   return <span className="run-status-time" aria-hidden="true">{formatRunElapsed(now - startedAt)}</span>;
 }
 

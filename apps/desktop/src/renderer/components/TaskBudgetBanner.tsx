@@ -1,5 +1,6 @@
 import { formatCost, formatTaskBudgetDuration, formatTaskBudgetTokens, type TaskBudgetState } from "@vela/shared";
-import { useContext, useEffect, useState } from "react";
+import { useContext, useState } from "react";
+import { useSecondClock } from "../hooks/useSecondClock";
 import { activeIntlLocale, tr, trf } from "../locale";
 import { RecipeActionsContext } from "./recipe-actions-context";
 
@@ -28,14 +29,9 @@ export function uncountedNote(budget: TaskBudgetState): string | null {
  */
 export function TaskBudgetBanner({ budget, conversationId }: { budget: TaskBudgetState | null | undefined; conversationId: string | null | undefined }) {
   const actions = useContext(RecipeActionsContext);
-  const [now, setNow] = useState(() => Date.now());
   const [dismissed, setDismissed] = useState<number | null>(null);
   const live = budget?.phase === "warning";
-  useEffect(() => {
-    if (!live) return;
-    const timer = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(timer);
-  }, [live]);
+  const now = useSecondClock(live);
   if (!budget || budget.phase === "ok") return null;
   const exhausted = budget.phase === "exhausted";
   if (!exhausted && dismissed === budget.startedAt) return null;

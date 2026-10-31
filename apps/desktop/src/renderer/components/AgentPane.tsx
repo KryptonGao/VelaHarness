@@ -48,7 +48,18 @@ interface AgentPaneProps {
  * 状态与最终结论），主对话保持独立滚动互不影响。宽度由共享的拖拽条调整。
  */
 type AgentFollow = { pinned: boolean; scrollTop: number };
-export function AgentPane(props: AgentPaneProps) {
+function agentPaneEqual(prev: AgentPaneProps, next: AgentPaneProps): boolean {
+  // 隐藏的面板只在身份(agent / 会话)变化时才需要重算 scope;其余 props 随 agents 流式刷新,不必理会。
+  // 重新显示时 visible 变化会触发完整渲染,拿到最新 props。
+  if (prev.visible === false && next.visible === false) {
+    return prev.agent.id === next.agent.id && prev.conversationId === next.conversationId;
+  }
+  const keys = new Set([...Object.keys(prev), ...Object.keys(next)]) as Set<keyof AgentPaneProps>;
+  for (const key of keys) if (!Object.is(prev[key], next[key])) return false;
+  return true;
+}
+
+export const AgentPane = memo(function AgentPane(props: AgentPaneProps) {
   const follow = useRef<AgentFollow>({ pinned: true, scrollTop: 0 });
   const scope = JSON.stringify([props.conversationId, props.agent.id]);
   const previousScope = useRef(scope);
@@ -58,7 +69,7 @@ export function AgentPane(props: AgentPaneProps) {
   }
   if (props.visible === false) return null;
   return <VisibleAgentPane {...props} follow={follow} />;
-}
+}, agentPaneEqual);
 
 function VisibleAgentPane({
   agent, agents, messages: providedMessages, messageStore, conversationId = null,
@@ -80,11 +91,16 @@ function VisibleAgentPane({
   const scrollRef = useRef<HTMLDivElement>(null);
   const streaming = agent.status === "running";
   const now = useAgentClock([agent]);
-  const arrivalKeys = useMemo(() => messages.flatMap((message) => [message.id,
-    ...(message.thinking ? [`${message.id}:thinking`] : []),
-    ...(message.tools.length ? [`${message.id}:tools`] : []),
-    ...(message.text ? [`${message.id}:text`] : []),
-  ]), [messages]);
+  const arrivalKeys = useMemo(() => {
+    const keys: string[] = [];
+    for (const message of messages) {
+      keys.push(message.id);
+      if (message.thinking) keys.push(`${message.id}:thinking`);
+      if (message.tools.length) keys.push(`${message.id}:tools`);
+      if (message.text) keys.push(`${message.id}:text`);
+    }
+    return keys;
+  }, [messages]);
 
   useEffect(() => {
     ensureMessages(agentId);

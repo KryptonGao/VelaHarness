@@ -2669,6 +2669,14 @@ code,
   0% { background-position: 100% 0; }
   70%, 100% { background-position: 0% 0; }
 }
+/* 窗口失焦时暂停纯装饰的无限动画。文字高光每帧都要重绘，运行中的思考块一多就是持续的主线程开销。
+   转圈这类表示“正在进行”的动画不动，失焦后仍能看出任务在跑。 */
+:root[data-window-focused="false"] .thinking-headline-trigger.is-running .thinking-summary-excerpt,
+:root[data-window-focused="false"] .thinking-particle,
+:root[data-window-focused="false"] .home-logo-float,
+:root[data-window-focused="false"] .home-spark {
+  animation-play-state: paused;
+}
 @media (prefers-reduced-motion: reduce) {
   .thinking-headline-trigger.is-running .thinking-summary-excerpt {
     animation: none;
@@ -9900,6 +9908,13 @@ html[data-thinking-fade="false"][data-thinking-pop="false"] .fade-thinking .md-f
   margin-right: calc(var(--chat-lane-shift, 0px) * 2);
 }
 .chat-message-surface > .empty-state { width: min(100%, 460px); }
+
+/* 已结束的旧轮次离屏时跳过样式、布局和绘制,长对话的成本不再随轮数线性增长。
+   `auto` 让浏览器记住渲染过的真实高度,滚动回来时不会因估算值而跳动;当前轮不加这个类。 */
+.turn-deferred {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 160px;
+}
 
 .content-swap { position: relative; min-width: 0; }
 .content-swap-current { display: block; animation: content-swap-in 140ms var(--motion-ease-enter); }

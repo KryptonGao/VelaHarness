@@ -22,6 +22,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createMessageStore, emptyMessages, messageScope, type MessageStore } from "./message-store";
 import { uiStateStore } from "../components/intelligent-ui/ui-state-instance";
 import { applyPlanDraft, type PlanDraft } from "../plan-draft";
+import { reconcileAgents } from "../agent-roster";
 import { localizeError, tr } from "../locale";
 import { didCompleteTask, noSound, streamNotificationSound, type NotifySound } from "../notification-sounds";
 
@@ -127,6 +128,15 @@ export function useSession(notify: NotifySound = noSound, fixedConversationId?: 
     }
   }, [messageStore]);
 
+  /** 流式事件只会改一个子代理：直接更新并发布这一个 scope，不遍历所有对话和代理。 */
+  const applyAgentEvent = useCallback((conversationId: string, agentId: string, event: AgentRuntimeStreamEvent) => {
+    const current = agentBucketsRef.current;
+    const next = applyAgentStreamEvent(current, conversationId, agentId, event);
+    agentBucketsRef.current = next;
+    const messages = next[conversationId]?.[agentId];
+    if (messages !== current[conversationId]?.[agentId]) messageStore.publish(messageScope(conversationId, agentId), messages ?? emptyMessages);
+  }, [messageStore]);
+
   /** 从主进程读取对话完整历史;本地已有消息(可能正在流式)时不覆盖。 */
   const loadTranscript = useCallback(async (id: string) => {
     const api = window.vela;
@@ -180,7 +190,7 @@ export function useSession(notify: NotifySound = noSound, fixedConversationId?: 
     let receivedStateEvent = false;
     const acceptState = (next: AppState) => {
       const id = next.activeConversationId;
-      if (id && next.agents) setAgents((current) => ({ ...current, [id]: sanitizeAgents(next.agents!) }));
+      if (id && next.agents) setAgents((current) => withAgents(current, id, sanitizeAgents(next.agents!)));
       let completedStream = false;
       // 后台对话也需要记录完成时间，否则切回时会把离开的时间算进用时。
       for (const conversation of next.conversations) {
@@ -246,15 +256,13 @@ export function useSession(notify: NotifySound = noSound, fixedConversationId?: 
       }
       if (event.type === "agents") {
         const next = sanitizeAgents(event.agents);
-        setAgents((current) => ({ ...current, [event.conversationId]: next }));
+        setAgents((current) => withAgents(current, event.conversationId, next));
         return;
       }
       if (event.type === "agent_event") {
         const streamEvent = sanitizeAgentEvent(event.event);
         if (!streamEvent) return;
-        setAgentBuckets((current) =>
-          applyAgentStreamEvent(current, event.conversationId, event.agentId, streamEvent),
-        );
+        applyAgentEvent(event.conversationId, event.agentId, streamEvent);
         return;
       }
       if (event.type === "proposed_plan_start" || event.type === "proposed_plan_delta" || event.type === "proposed_plan_end") {
@@ -298,7 +306,7 @@ export function useSession(notify: NotifySound = noSound, fixedConversationId?: 
       unsubscribeQuestions();
       messageStore.flush();
     };
-  }, [fixedConversationId, loadTranscript, messageStore, setAgentBuckets, setBuckets, setState]);
+  }, [applyAgentEvent, fixedConversationId, loadTranscript, messageStore, setBuckets, setState]);
 
   /**
    * 返回 false 表示这条消息没有留下(没进对话、也没进排队),输入框据此把文字和附件放回去。
@@ -965,6 +973,16 @@ function sanitizeUsage(value: unknown): AgentUsage {
     cacheRead: finiteOr0(record.cacheRead), cacheWrite: finiteOr0(record.cacheWrite),
     total: finiteOr0(record.total),
   };
+}
+
+/** 写入某个对话的 agent 快照；内容没变时返回原 state，避免无谓的重渲染。 */
+function withAgents(
+  current: Record<string, AgentInfo[]>,
+  conversationId: string,
+  next: AgentInfo[],
+): Record<string, AgentInfo[]> {
+  const reconciled = reconcileAgents(current[conversationId], next);
+  return reconciled === current[conversationId] ? current : { ...current, [conversationId]: reconciled };
 }
 
 /** 主进程推来的 agent 快照在渲染层再校验一次，坏数据直接丢掉。 */

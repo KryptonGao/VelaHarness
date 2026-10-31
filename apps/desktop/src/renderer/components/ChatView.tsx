@@ -7,6 +7,7 @@ import { isAgentBusy, type AppState, type AskUserQuestionRequest, type Interacti
 import { Fragment, memo, useCallback, useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useAgentWorkspace } from "./AgentPanel";
 import { modKeyLabel } from "../platform";
+import { useSecondClock } from "../hooks/useSecondClock";
 import { ArrowLeftIcon, BranchIcon, CheckIcon, CopyIcon, HistoryIcon, PlusIcon, StackIcon } from "./icons";
 import { trackEnteredMessages, type EnterTrack } from "./message-motion";
 import type { useModels } from "../hooks/useModels";
@@ -152,12 +153,7 @@ function formatElapsedTime(startedAt: number | undefined, completedAt: number | 
  * CompletedAssistantTurn 的“用时 xx”触发器接替,位置与分界线保持不变。
  */
 function TurnProgressHeader({ startedAt }: { startedAt: number }) {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    setNow(Date.now());
-    const timer = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(timer);
-  }, [startedAt]);
+  const now = useSecondClock();
   const elapsed = formatElapsedTime(startedAt, now);
   if (!elapsed) return null;
   return (
@@ -304,7 +300,12 @@ export function ChatView({
     if (next === "versionControl") setVcMounted(true);
     setViews(current => ({ ...current, [viewKey]: next }));
   };
-  const pendingInteraction = Boolean(project.approval) || messages.some(message => message.tools.some(tool => getQuestion(tool.id)));
+  // 当前对话没有待回答的问题时无需扫描消息；有问题时只在消息或问题变化时重算。
+  const hasPendingQuestion = useMemo(
+    () => question !== null && messages.some(message => message.tools.some(tool => getQuestion(tool.id))),
+    [messages, question, getQuestion],
+  );
+  const pendingInteraction = Boolean(project.approval) || hasPendingQuestion;
   const session = state?.session;
   const streaming = session?.status === "streaming";
   // 末条是已结束的助手回复时，它的 id 就是这一轮预测的依据；其余情况不预测。
@@ -316,11 +317,16 @@ export function ChatView({
     turnRecommendation && !dismissedRecommendations.has(turnRecommendation.id)
     ? turnRecommendation
     : null;
-  const activeAssistantId = streaming
-    ? [...messages].reverse().find((message) => message.role === "assistant")?.id
-    : undefined;
+  // 从末尾往前找最后一条助手消息，不复制数组；流式时它几乎总在末尾附近。
+  const activeAssistant = useMemo(() => {
+    if (!streaming) return undefined;
+    for (let index = messages.length - 1; index >= 0; index--) {
+      if (messages[index]!.role === "assistant") return messages[index];
+    }
+    return undefined;
+  }, [messages, streaming]);
+  const activeAssistantId = activeAssistant?.id;
   // 回到最新按钮的圆球状态:有 bash 在跑 = 运行命令;助手还没写出正文 = 思考;其余显示箭头。
-  const activeAssistant = activeAssistantId ? messages.find((message) => message.id === activeAssistantId) : undefined;
   const runningBash = activeAssistant?.tools.find((tool) => (tool.name === "bash" || tool.name === "edit" || tool.name === "write") && tool.status === "running");
   const jumpActivity: OrbActivity | undefined = !activeAssistant
     ? undefined
@@ -856,6 +862,7 @@ export function ChatView({
                     editDisabled={session?.status !== "ready" || subagents.some(agent => isAgentBusy(agent.status))}
                     editTurn={branchTurn}
                     onEditTurn={onEdit}
+                    deferred={!isCurrentTurn}
                   />
                 ) : null}
                 {canCollapse && finalReply && lastAssistant ? (
@@ -876,6 +883,7 @@ export function ChatView({
                     replyTime={finalReply.timestamp ?? lastAssistant.timestamp ?? lastAssistant.turnCompletedAt ?? null}
                     onBranch={onBranch}
                     onCheckpoints={onOpenCheckpoints}
+                    deferred={!isCurrentTurn}
                   />
                 ) : turn.assistants.length > 0 ? (
                   <div className="assistant-live-turn">
@@ -1079,6 +1087,7 @@ const Message = memo(function Message({
   onEdit,
   toolDisplay,
   toolFold,
+  deferred = false,
 }: {
   message: UiMessage;
   thinkingActive: boolean;
@@ -1096,8 +1105,10 @@ const Message = memo(function Message({
   onEdit?: (text: string) => Promise<void>;
   toolDisplay?: ToolDisplay;
   toolFold?: ToolFold;
+  /** 已结束且不是最新的一轮:离屏时由浏览器跳过渲染,见 styles.css 的 .turn-deferred。 */
+  deferred?: boolean;
 }) {
-  const enterClass = entering ? " message-enter" : "";
+  const enterClass = `${entering ? " message-enter" : ""}${deferred ? " turn-deferred" : ""}`;
   if (message.role === "user") {
     const images = message.images ?? [];
     return (
@@ -1422,6 +1433,7 @@ const CompletedAssistantTurn = memo(function CompletedAssistantTurn({
   replyTime,
   onBranch,
   onCheckpoints,
+  deferred,
 }: {
   messages: UiMessage[];
   finalReplies: UiMessage[];
@@ -1438,6 +1450,7 @@ const CompletedAssistantTurn = memo(function CompletedAssistantTurn({
   replyTime: number | null;
   onBranch: (turnIndex: number) => void;
   onCheckpoints?: (turnIndex?: number) => void;
+  deferred: boolean;
 }) {
   const thinkingGroupMode = useThinkingGroupMode();
   const [expanded, setExpanded] = useToolExpanded(foldSequenceId(messages[0]?.id ? `turn:${messages[0].id}` : undefined), toolDisplay === "compact");
@@ -1465,7 +1478,7 @@ const CompletedAssistantTurn = memo(function CompletedAssistantTurn({
 
   return (
     // 完成时是把已展示的消息换成折叠布局，不是新消息，不能重播入场淡入。
-    <article className="assistant-block assistant-turn">
+    <article className={`assistant-block assistant-turn${deferred ? " turn-deferred" : ""}`}>
       {hasProcess || displayedElapsed ? (
       <div className={`time-spent-collapsible${expanded ? " expanded" : ""}`}>
         {hasProcess ? (

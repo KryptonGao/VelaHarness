@@ -28,7 +28,8 @@ export function useEntryArrival(scope: string, keys: readonly string[], stagger 
     const first = !primed.current;
     primed.current = true;
     if ((first && !animateInitial) || !fresh || reduced) {
-      seen.current = new Set(keys);
+      // keys 全部已见过且数量相同时集合不变，流式期间每个分片都走这里，不必重建。
+      if (fresh || keys.length !== seen.current.size) seen.current = new Set(keys);
       return;
     }
     const viewport = root.current?.getBoundingClientRect();
