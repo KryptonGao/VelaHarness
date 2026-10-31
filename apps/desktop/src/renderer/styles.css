@@ -8936,7 +8936,7 @@ button.settings-radio:hover:not(:disabled) { background: var(--bg-hover); }
   display: flex;
   flex-direction: column;
   min-height: 0;
-  background: var(--bg-surface-subtle);
+  background: var(--bg-chat);
   border-left: 1px solid var(--border-subtle);
 }
 .explorer-search-row {
@@ -9012,7 +9012,7 @@ button.settings-radio:hover:not(:disabled) { background: var(--bg-hover); }
   border: none;
   padding: 5px 6px;
   border-radius: 6px;
-  font-size: 15px;
+  font-size: 13px;
   color: var(--text-secondary);
   cursor: pointer;
   white-space: nowrap;
@@ -9036,29 +9036,16 @@ button.settings-radio:hover:not(:disabled) { background: var(--bg-hover); }
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 12px;
+  width: 16px;
   flex: none;
   color: var(--text-dim);
 }
+.explorer-tree-item .file-type-icon {
+  width: 16px;
+  height: 16px;
+}
 .explorer-tree-item.dir:hover .explorer-caret { color: var(--text-secondary); }
-.explorer-folder-icon {
-  display: inline-flex;
-  flex: none;
-  color: var(--accent-blue);
-  opacity: 0.75;
-}
-.explorer-folder-icon svg { fill: color-mix(in srgb, currentColor 16%, transparent); }
 .explorer-branch-inner { position: relative; }
-.explorer-branch-inner::before {
-  content: "";
-  position: absolute;
-  top: 2px;
-  bottom: 2px;
-  left: var(--guide-x, 11px);
-  width: 1px;
-  background: var(--border-subtle);
-  pointer-events: none;
-}
 .explorer-name {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -10264,7 +10251,7 @@ html[data-thinking-fade="false"][data-thinking-pop="false"] .fade-thinking .md-f
 .turn-review-sidebar { flex: none; border-left: 1px solid var(--border-subtle); }
 .turn-review-sidebar[hidden] { display: none; }
 .turn-review-sidebar .explorer-tree-meta { margin-left: auto; padding-left: 6px; flex: none; }
-.turn-review-sidebar .explorer-tree-item.file { font-size: 14px; }
+.turn-review-sidebar .explorer-tree-item.file { font-size: 13px; }
 .turn-review-sidebar .turn-review-stats { font-size: 11px; gap: 4px; }
 .turn-review-view button:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: -2px; }
 .turn-review-view.is-compact .turn-review-sidebar { position: absolute; top: 0; right: 0; bottom: 0; z-index: 3; width: min(280px, 90%); box-shadow: var(--shadow-card); }

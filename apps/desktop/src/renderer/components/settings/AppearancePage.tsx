@@ -57,6 +57,7 @@ export function AppearancePage({ copy, preferences }: { copy: SettingsCopy; pref
     { id: "dark", label: text.dark },
   ];
   const fileIconThemeOptions: { id: FileIconTheme; label: string }[] = [
+    { id: "pierre", label: text.pierreIconTheme },
     { id: "material", label: text.materialIconTheme },
     { id: "devicon", label: text.devicon },
     { id: "catppuccin", label: text.catppuccinIconTheme },

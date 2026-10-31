@@ -1,7 +1,7 @@
 import type { WorkspaceSearchResult } from "@vela/shared";
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { FileTypeIcon } from "../FileTypeIcon";
-import { ChevronRightIcon, FolderIcon, SearchIcon } from "../icons";
+import { ChevronRightIcon, SearchIcon } from "../icons";
 import { useFilePreview } from "./FilePreviewContext";
 import { ancestorsOf, buildFileTree, filterFilePaths, type FileTreeNode } from "./tree";
 import { localizeError, tr } from "../../locale";
@@ -210,18 +210,17 @@ export function FileTree({
             <button
               type="button"
               className="explorer-tree-item dir"
-              style={{ paddingLeft: 6 + depth * 14 }}
+              style={{ paddingLeft: 6 + depth * 15 }}
               aria-expanded={expanded.has(node.path)}
               onClick={() => onToggleDir(node.path)}
               title={node.path}
             >
               <span className={`explorer-caret${expanded.has(node.path) ? " is-expanded" : ""}`} aria-hidden="true">
-                <ChevronRightIcon size={11} />
+                <ChevronRightIcon size={10} />
               </span>
-              <span className="explorer-folder-icon" aria-hidden="true"><FolderIcon size={14} /></span>
               <span className="explorer-name">{node.name}</span>
             </button>
-            {node.children ? <TreeBranch open={expanded.has(node.path)} guideX={6 + depth * 14 + 5}>
+            {node.children ? <TreeBranch open={expanded.has(node.path)}>
               <FileTree
                 nodes={node.children}
                 expanded={expanded}
@@ -237,12 +236,11 @@ export function FileTree({
           <button
             type="button"
             className={`explorer-tree-item file${node.path === activePath ? " active" : ""}`}
-            style={{ paddingLeft: 6 + depth * 14 }}
+            style={{ paddingLeft: 6 + depth * 15 }}
             key={node.path}
             onClick={() => onOpenFile(node.path)}
             title={node.path}
           >
-            <span className="explorer-caret" aria-hidden="true" />
             <FileTypeIcon path={node.path} />
             <span className="explorer-name">{node.name}</span>
             {renderFileMeta ? <span className="explorer-tree-meta">{renderFileMeta(node.path)}</span> : null}
@@ -254,11 +252,11 @@ export function FileTree({
 }
 
 /** Mount lazily, then retain nested state while the grid reverses a collapse. */
-function TreeBranch({ open, guideX, children }: { open: boolean; guideX: number; children: ReactNode }) {
+function TreeBranch({ open, children }: { open: boolean; children: ReactNode }) {
   const [revealed, setRevealed] = useState(open);
   if (open && !revealed) setRevealed(true);
   return <div className={`explorer-branch${open ? " is-open" : ""}`} inert={!open} aria-hidden={!open}>
-    <div className="explorer-branch-inner" style={{ "--guide-x": `${guideX}px` } as CSSProperties}>{revealed ? children : null}</div>
+    <div className="explorer-branch-inner">{revealed ? children : null}</div>
   </div>;
 }
 

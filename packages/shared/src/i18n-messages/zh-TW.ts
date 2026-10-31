@@ -2646,6 +2646,7 @@ const messages: Record<string, string> = {
   "作为标题": "作為標題",
   "选择文件预览和工具调用中使用的图标样式。": "選擇檔案預覽和工具呼叫中使用的圖標樣式。",
   "Catppuccin": "Catppuccin",
+  "Pierre Icons": "Pierre Icons",
   "这些是当前可用的快捷键。": "這些是當前可用的快捷鍵。",
   "折叠侧边栏": "折疊側邊欄",
   "折叠右侧面板": "折疊右側面板",

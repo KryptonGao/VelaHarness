@@ -43,7 +43,7 @@ export type ThinkingSummaryStyle = "inline" | "headline" | "prose";
 export type ThinkingGroupMode = "single" | "coherent";
 /** 半透明玻璃上叠的颜色:当前主题色、按明暗固定的白/黑、或不叠色。 */
 export type GlassTint = "theme" | "neutral" | "none";
-export type FileIconTheme = "devicon" | "material" | "catppuccin";
+export type FileIconTheme = "devicon" | "material" | "catppuccin" | "pierre";
 export type SendButtonIcon = "paper-plane" | "arrow-up";
 /** 字体风格:sans 为无衬线,serif 为明体(衬线);回复字体另有 inherit,表示沿用界面字体。 */
 export type UiFontFace = "sans" | "serif";
@@ -185,7 +185,7 @@ function isGlassTint(value: unknown): value is GlassTint {
 }
 
 function isFileIconTheme(value: unknown): value is FileIconTheme {
-  return value === "devicon" || value === "material" || value === "catppuccin";
+  return value === "devicon" || value === "material" || value === "catppuccin" || value === "pierre";
 }
 
 function isSendButtonIcon(value: unknown): value is SendButtonIcon {
@@ -273,7 +273,7 @@ export function usePreferences() {
     readStoredJson(inputPredictionModelKey, isThinkingSummaryModel, null),
   );
   const [fileIconTheme, setFileIconTheme] = useState<FileIconTheme>(() =>
-    readStored(fileIconThemeKey, isFileIconTheme, "material"),
+    readStored(fileIconThemeKey, isFileIconTheme, "pierre"),
   );
   const [hiddenModels, setHiddenModels] = useState<string[]>(() =>
     readStoredJson(hiddenModelsKey, isHiddenModelList, []),

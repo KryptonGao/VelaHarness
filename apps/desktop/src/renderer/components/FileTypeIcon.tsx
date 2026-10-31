@@ -1,4 +1,4 @@
-import { createContext, useContext, type ReactNode } from "react";
+import { createContext, useContext, useMemo, type ReactNode } from "react";
 import astro from "devicon/icons/astro/astro-original.svg";
 import bash from "devicon/icons/bash/bash-original.svg";
 import c from "devicon/icons/c/c-original.svg";
@@ -105,12 +105,30 @@ import catppuccinTypescriptReact from "../assets/catppuccin-icons/typescript-rea
 import catppuccinVue from "../assets/catppuccin-icons/vue.svg";
 import catppuccinXml from "../assets/catppuccin-icons/xml.svg";
 import catppuccinYaml from "../assets/catppuccin-icons/yaml.svg";
+import type { ColorScheme } from "../themes";
 import type { FileIconTheme } from "../hooks/usePreferences";
+import {
+  pierreFallbackIcon,
+  pierreIconNameByExtension,
+  pierreIconNameByFileName,
+  pierreIconsDark,
+  pierreIconsLight,
+} from "./pierre-file-icons";
 
-const FileIconThemeContext = createContext<FileIconTheme>("material");
+const FileIconThemeContext = createContext<{ theme: FileIconTheme; scheme: ColorScheme }>({ theme: "pierre", scheme: "dark" });
 
-export function FileIconThemeProvider({ value, children }: { value: FileIconTheme; children: ReactNode }) {
-  return <FileIconThemeContext.Provider value={value}>{children}</FileIconThemeContext.Provider>;
+// scheme 只影响 Pierre：它的图标把颜色写死在 SVG 里，亮暗两套各取 600 / 400 色阶。
+export function FileIconThemeProvider({
+  value,
+  scheme = "dark",
+  children,
+}: {
+  value: FileIconTheme;
+  scheme?: ColorScheme;
+  children: ReactNode;
+}) {
+  const context = useMemo(() => ({ theme: value, scheme }), [value, scheme]);
+  return <FileIconThemeContext.Provider value={context}>{children}</FileIconThemeContext.Provider>;
 }
 
 const fileIconsByExtension: Record<string, string> = {
@@ -282,7 +300,7 @@ const catppuccinIconsByName: Record<string, string> = {
 };
 
 export function FileTypeIcon({ path }: { path: string }) {
-  const theme = useContext(FileIconThemeContext);
+  const { theme, scheme } = useContext(FileIconThemeContext);
   const fileName = path.split(/[\\/]/).filter(Boolean).at(-1)?.toLowerCase() ?? "";
   const extension = fileName.includes(".") ? fileName.slice(fileName.lastIndexOf(".") + 1) : fileName;
   let icon: string | undefined;
@@ -296,6 +314,11 @@ export function FileTypeIcon({ path }: { path: string }) {
     case "devicon":
       icon = fileIconsByName[fileName] ?? fileIconsByExtension[extension];
       break;
+    case "pierre": {
+      const icons = scheme === "light" ? pierreIconsLight : pierreIconsDark;
+      icon = icons[pierreIconNameByFileName[fileName] ?? pierreIconNameByExtension[extension] ?? pierreFallbackIcon];
+      break;
+    }
   }
   if (!icon) return null;
 

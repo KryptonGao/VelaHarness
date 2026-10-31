@@ -27,7 +27,7 @@ if (!process.versions.electron) {
             const preferences = usePreferences();
             return <>
               <AppearancePage copy={settingsCopy(preferences.locale)} preferences={preferences} />
-              <FileIconThemeProvider value={preferences.fileIconTheme}>
+              <FileIconThemeProvider value={preferences.fileIconTheme} scheme={preferences.scheme}>
                 <div id="samples">{${JSON.stringify(paths)}.map(path => <span key={path} data-path={path}><FileTypeIcon path={path} /></span>)}</div>
               </FileIconThemeProvider>
             </>;
@@ -73,13 +73,14 @@ if (!process.versions.electron) {
     const block = '[data-setting-id="file-icon-theme"]';
     const select = async label => {
       await evaluate(`[...document.querySelectorAll('${block} button')].find(button => button.textContent === ${JSON.stringify(label)}).click()`);
-      await until(`localStorage.getItem('vela.fileIconTheme') === ${JSON.stringify(label === "Catppuccin" ? "catppuccin" : label === "Devicon" ? "devicon" : "material")}`, `save ${label}`);
+      await until(`localStorage.getItem('vela.fileIconTheme') === ${JSON.stringify(label === "Catppuccin" ? "catppuccin" : label === "Pierre Icons" ? "pierre" : label === "Devicon" ? "devicon" : "material")}`, `save ${label}`);
       await until(`[...document.querySelectorAll('#samples img')].every(img => img.complete && img.naturalWidth > 0)`, "load icons");
     };
     try {
       await win.loadFile(join(process.env.VELA_FILE_ICONS_TEMP, "index.html"));
       await until(`!!document.querySelector('${block} button')`, "appearance settings");
-      assert.deepEqual(await evaluate(`[...document.querySelectorAll('${block} button')].map(button => button.textContent)`), ["Material Icon Theme", "Devicon", "Catppuccin"]);
+      assert.deepEqual(await evaluate(`[...document.querySelectorAll('${block} button')].map(button => button.textContent)`), ["Pierre Icons", "Material Icon Theme", "Devicon", "Catppuccin"]);
+      assert.equal(await evaluate(`document.querySelector('${block} button[aria-checked="true"]').textContent`), "Pierre Icons", "Pierre Icons is the default");
       const original = await evaluate("document.querySelector('#samples img').src");
       await select("Catppuccin");
       assert.equal(await evaluate(`document.querySelector('${block} button[aria-checked="true"]').textContent`), "Catppuccin");
@@ -95,12 +96,35 @@ if (!process.versions.electron) {
       await until(`document.querySelector('${block} button[aria-checked="true"]')?.textContent === 'Catppuccin'`, "restore saved theme");
       await until("[...document.querySelectorAll('#samples img')].every(img => img.complete && img.naturalWidth > 0)", "reload icons");
       assert.deepEqual(await evaluate("[...document.querySelectorAll('#samples img')].map(img => img.src)"), sources);
+      await select("Pierre Icons");
+      const pierre = await evaluate("[...document.querySelectorAll('#samples img')].map(img => img.src)");
+      assert.equal(pierre.length, paths.length);
+      assert.equal(pierre[0], pierre[1], "TSX and JSX share the Pierre React icon");
+      assert.equal(pierre[2], pierre[3], "Dockerfile and .dockerignore share the Docker icon");
+      assert.equal(pierre[5], pierre[6], "unknown files use the Pierre fallback");
+      assert.notEqual(pierre[5], pierre[0]);
+      assert.ok(pierre.every(src => src.startsWith("data:image/svg+xml")), "Pierre icons are bundled for offline use");
+      assert.ok(pierre.every(src => !decodeURIComponent(src).includes("currentColor")), "Pierre icons carry explicit colors");
+      assert.notDeepEqual(pierre, sources);
+      await evaluate("localStorage.setItem('vela.appearance', 'dark')");
+      win.webContents.reload();
+      await until(`document.documentElement.dataset.scheme === 'dark' && document.querySelector('${block} button[aria-checked="true"]')?.textContent === 'Pierre Icons'`, "dark scheme");
+      await until("[...document.querySelectorAll('#samples img')].every(img => img.complete && img.naturalWidth > 0)", "dark Pierre icons");
+      const dark = await evaluate("[...document.querySelectorAll('#samples img')].map(img => img.src)");
+      await evaluate("localStorage.setItem('vela.appearance', 'light')");
+      win.webContents.reload();
+      await until(`document.documentElement.dataset.scheme === 'light' && document.querySelector('${block} button[aria-checked="true"]')?.textContent === 'Pierre Icons'`, "light scheme");
+      await until("[...document.querySelectorAll('#samples img')].every(img => img.complete && img.naturalWidth > 0)", "light Pierre icons");
+      const light = await evaluate("[...document.querySelectorAll('#samples img')].map(img => img.src)");
+      assert.notEqual(light[0], dark[0], "light schemes use the light Pierre variants");
+      assert.equal(light[0] === light[1] && light[2] === light[3] && light[5] === light[6], true);
+      await evaluate("localStorage.setItem('vela.appearance', 'dark')");
       await select("Devicon");
       assert.equal(await evaluate("document.querySelectorAll('#samples img').length"), 5);
       await select("Material Icon Theme");
-      assert.equal(await evaluate("document.querySelector('#samples img').src"), original);
+      assert.notEqual(await evaluate("document.querySelector('#samples img').src"), original);
       assert.deepEqual(errors, []);
-      console.log("PASS icon themes switch, load offline SVGs, preserve fallbacks and restore Catppuccin after reload");
+      console.log("PASS icon themes switch, load offline SVGs, preserve fallbacks and restore Catppuccin and Pierre Icons after reload");
       app.exit(0);
     } catch (error) {
       console.error(error);

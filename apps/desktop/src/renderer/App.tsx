@@ -943,7 +943,7 @@ export function App() {
 
   return (
     <ThinkingGroupModeContext.Provider value={preferences.thinkingGroupMode}>
-    <FileIconThemeProvider value={preferences.fileIconTheme}>
+    <FileIconThemeProvider value={preferences.fileIconTheme} scheme={preferences.scheme}>
       <AppLocaleProvider locale={preferences.locale}>
         <RecipeActionsContext.Provider value={recipeActions}>
         <RaceActionsContext.Provider value={raceActions}>
