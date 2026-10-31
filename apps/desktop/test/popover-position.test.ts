@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { positionContextPopover, positionRepoPopover } from "../src/renderer/components/popover-position.ts";
+import { positionContextPopover, positionRepoPopover, positionSidePopover } from "../src/renderer/components/popover-position.ts";
 
 const viewport = { width: 960, height: 720 };
 const size = { width: 320, height: 280 };
@@ -45,5 +45,20 @@ describe("repository popover positioning", () => {
     const result = positionRepoPopover({ left: 950, right: 970, top: 140, bottom: 168 }, size, viewport);
     assert.equal(result.left, 628);
     assert.ok(result.left + size.width <= viewport.width - 12);
+  });
+});
+
+describe("side hover card positioning", () => {
+  const card = { width: 260, height: 160 };
+  it("opens to the right of the anchor, top-aligned", () => {
+    assert.deepEqual(positionSidePopover({ left: 8, right: 240, top: 300, bottom: 328 }, card, viewport),
+      { left: 248, top: 294, side: "right" });
+  });
+  it("clamps vertically near the bottom edge", () => {
+    assert.equal(positionSidePopover({ left: 8, right: 240, top: 700, bottom: 728 }, card, viewport).top, 548);
+  });
+  it("flips left when the right side has no room", () => {
+    assert.deepEqual(positionSidePopover({ left: 700, right: 940, top: 100, bottom: 128 }, card, viewport),
+      { left: 432, top: 94, side: "left" });
   });
 });

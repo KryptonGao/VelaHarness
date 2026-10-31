@@ -2,7 +2,7 @@ import { PrInboxPage } from "./components/PrInboxPage";
 import { AgentInboxPage } from "./components/AgentInboxPage";
 import { useAgentInbox } from "./hooks/useAgentInbox";
 import { uiStorage } from "./ui-storage";
-import { useCallback, useEffect, useMemo, useRef, useState, type ContextType } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState, type ContextType } from "react";
 import { emptyAgentUsage, type AgentInboxNavigation, type AgentInfo, type ReleaseNotes, type TaskRecipe } from "@vela/shared";
 import { AgentWorkspaceProvider } from "./components/AgentPanel";
 import { SessionChatView } from "./components/SessionChatView";
@@ -31,6 +31,8 @@ import { HandoffPackDialog } from "./components/HandoffPackDialog";
 import { ScheduledTasksPage } from "./components/ScheduledTasksPage";
 import { Sidebar } from "./components/Sidebar";
 import { NavRail, type NavCategory } from "./components/NavRail";
+import { NavHistoryButtons } from "./components/NavHistoryButtons";
+import { NavHistory } from "./nav-history";
 import { RenameConversationDialog } from "./components/RenameConversationDialog";
 import { WorkspaceSettingsDialog } from "./components/WorkspaceSettingsDialog";
 import { findWorkspace, folderName } from "./components/workspace-names";
@@ -157,6 +159,9 @@ function findAgentInMessages(messages: UiMessage[], agentId: string): AgentInfo 
   return null;
 }
 
+interface NavEntry { page: NavCategory; conversationId: string | null }
+const navEntryKey = (entry: NavEntry) => `${entry.page}:${entry.conversationId ?? ""}`;
+
 export function App() {
   const preferences = usePreferences();
   const sounds = useNotificationSounds(preferences.soundEffects);
@@ -250,6 +255,7 @@ export function App() {
   const railAway = railMode && pageOpen;
   const navCategory: NavCategory = settingsOpen ? "settings" : scheduledTasksOpen ? "scheduledTasks" : recipesOpen ? "recipes"
     : agentInboxOpen ? "agentInbox" : prInboxOpen ? "prInbox" : "home";
+  const navActions = useRef({ back: () => {}, forward: () => {} });
   const workspaceKey = project.workspace?.current ?? "";
   const conversationKey = session.activeConversationId ?? "";
   const { review: turnReview, tabId: turnReviewTabId, open: showTurnReview, close: dismissTurnReview } = useTurnReview(workspaceKey, conversationKey);
@@ -262,7 +268,7 @@ export function App() {
     initialPath: string | null;
     requestKey: number;
   }>>({});
-  const [dismissedAgentsByConversation, setDismissedAgentsByConversation] = useState<Record<string, string[]>>({});
+  const [openedAgentsByConversation, setOpenedAgentsByConversation] = useState<Record<string, string[]>>({});
   const [planDocuments, setPlanDocuments] = useState<Record<string, PlanDocumentState>>({});
   const planDocument = planDocuments[conversationKey] ?? emptyPlanDocumentState;
   const [tabOrder, setTabOrder] = useState<string[]>([]);
@@ -366,9 +372,9 @@ export function App() {
   );
 
   const openAgentPane = useCallback((agentId: string) => {
-    setDismissedAgentsByConversation((current) => ({
+    setOpenedAgentsByConversation((current) => ({
       ...current,
-      [conversationKey]: (current[conversationKey] ?? []).filter((id) => id !== agentId),
+      [conversationKey]: [...new Set([...(current[conversationKey] ?? []), agentId])],
     }));
     setActiveWorkbenchTabId(scopedTabId("agent", conversationKey, agentId));
   }, [conversationKey]);
@@ -589,15 +595,15 @@ export function App() {
     ? { id: acceptanceTabId, kind: "acceptance", label: tr("验收", "Acceptance"), acceptance }
     : null, [acceptance, acceptanceTabId, preferences.locale]);
   const agentTabs = useMemo<WorkbenchTab[]>(() => {
-    const dismissedAgentIds = new Set(dismissedAgentsByConversation[conversationKey] ?? []);
-    return allAgents.filter((agent) => !dismissedAgentIds.has(agent.id)).map((agent) => ({
+    const openedAgentIds = new Set(openedAgentsByConversation[conversationKey] ?? []);
+    return allAgents.filter((agent) => openedAgentIds.has(agent.id)).map((agent) => ({
       id: scopedTabId("agent", conversationKey, agent.id),
       kind: "agent",
       label: agent.name,
       title: agent.path,
       agent,
     }));
-  }, [allAgents, dismissedAgentsByConversation, conversationKey]);
+  }, [allAgents, openedAgentsByConversation, conversationKey]);
   const terminalTabs = useMemo<WorkbenchTab[]>(() => terminalTabState.map((tab) => ({
     id: tab.id,
     kind: "terminal",
@@ -713,9 +719,9 @@ export function App() {
 
   const closeActiveAgent = useCallback(() => {
     if (activeWorkbenchTab?.kind === "agent") {
-      setDismissedAgentsByConversation((current) => ({
+      setOpenedAgentsByConversation((current) => ({
         ...current,
-        [conversationKey]: [...new Set([...(current[conversationKey] ?? []), activeWorkbenchTab.agent.id])],
+        [conversationKey]: (current[conversationKey] ?? []).filter((id) => id !== activeWorkbenchTab.agent.id),
       }));
       setActiveWorkbenchTabId(null);
     }
@@ -740,9 +746,9 @@ export function App() {
     } else if (tab.kind === "turn-review") {
       dismissTurnReview();
     } else if (tab.kind === "agent") {
-      setDismissedAgentsByConversation((current) => ({
+      setOpenedAgentsByConversation((current) => ({
         ...current,
-        [conversationKey]: [...new Set([...(current[conversationKey] ?? []), tab.agent.id])],
+        [conversationKey]: (current[conversationKey] ?? []).filter((id) => id !== tab.agent.id),
       }));
     } else if (tab.kind === "terminal") {
       setTerminalTabState((current) => current.filter((candidate) => candidate.id !== tab.id));
@@ -780,6 +786,18 @@ export function App() {
         setSettingsOpen(false);
         return;
       }
+      // 前进/后退：macOS 用 ⌘[ / ⌘]，其他平台用 Alt+←/→（在输入框里 Alt+←/→ 留给文本编辑）。
+      if (platform === "darwin" ? event.metaKey && !event.altKey && !event.ctrlKey : event.altKey && !event.ctrlKey && !event.metaKey) {
+        const inField = event.target instanceof HTMLElement && event.target.closest("input, textarea, select, [contenteditable='true']");
+        const direction = platform === "darwin"
+          ? event.code === "BracketLeft" ? "back" : event.code === "BracketRight" ? "forward" : null
+          : !inField && event.key === "ArrowLeft" ? "back" : !inField && event.key === "ArrowRight" ? "forward" : null;
+        if (direction) {
+          event.preventDefault();
+          navActions.current[direction]();
+          return;
+        }
+      }
       const mod = platform === "darwin" ? event.metaKey : event.ctrlKey;
       if (!mod) return;
       const key = event.key.toLowerCase();
@@ -797,8 +815,18 @@ export function App() {
         leaveRecipes(() => { setPrInboxOpen(false); setAgentInboxOpen(false); setScheduledTasksOpen(false); setSettingsOpen((open) => !open); });
       }
     };
+    // 鼠标侧键（第 4/5 键）同样前进/后退。
+    const onMouseUp = (event: MouseEvent) => {
+      if (!onboardingComplete || (event.button !== 3 && event.button !== 4)) return;
+      event.preventDefault();
+      navActions.current[event.button === 3 ? "back" : "forward"]();
+    };
     window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    window.addEventListener("mouseup", onMouseUp);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("mouseup", onMouseUp);
+    };
   }, [onboardingComplete, platform, openStartTab, toggleInfo, leaveRecipes]);
 
   useEffect(() => {
@@ -852,6 +880,47 @@ export function App() {
   });
   const toggleSettings = () => leaveRecipes(() => { setPrInboxOpen(false); setAgentInboxOpen(false); setScheduledTasksOpen(false); setSettingsOpen((open) => !open); });
   const goHome = () => leaveRecipes(() => { setPrInboxOpen(false); setAgentInboxOpen(false); setScheduledTasksOpen(false); setSettingsOpen(false); });
+  // 前进/后退历史：记录「页面 + 主页上的当前对话」；回退时先登记目标，等界面落到目标后再放行记录，避免回退被当成新导航。
+  const navEntry: NavEntry = { page: navCategory, conversationId: navCategory === "home" ? session.activeConversationId : null };
+  const navKey = navEntryKey(navEntry);
+  const navEntryRef = useRef(navEntry);
+  navEntryRef.current = navEntry;
+  const [navHistory] = useState(() => new NavHistory<NavEntry>(navEntryKey));
+  const [, bumpNav] = useReducer((count: number) => count + 1, 0);
+  const navPending = useRef<{ key: string; timer: number } | null>(null);
+  const recordNav = useCallback(() => {
+    const entry = navEntryRef.current;
+    if (entry.page === "home" && !entry.conversationId) return;
+    if (navHistory.record(entry)) bumpNav();
+  }, [navHistory]);
+  useEffect(() => {
+    if (!onboardingComplete) return;
+    const pending = navPending.current;
+    if (pending) {
+      if (pending.key !== navKey) return;
+      window.clearTimeout(pending.timer);
+      navPending.current = null;
+      bumpNav();
+      return;
+    }
+    recordNav();
+  }, [navKey, onboardingComplete, recordNav]);
+  const conversationIds = useMemo(() => new Set(session.conversations.map(item => item.id)), [session.conversations]);
+  const navEntryValid = useCallback((entry: NavEntry) => !entry.conversationId || conversationIds.has(entry.conversationId), [conversationIds]);
+  const showNavEntry = (entry: NavEntry) => {
+    const key = navEntryKey(entry);
+    if (navPending.current) window.clearTimeout(navPending.current.timer);
+    // 目标被拦截（如任务配方有未保存内容）时不会落位：超时后按当前界面重新记录。
+    navPending.current = { key, timer: window.setTimeout(() => { navPending.current = null; recordNav(); }, 1500) };
+    leaveRecipes(() => {
+      setSettingsOpen(entry.page === "settings"); setScheduledTasksOpen(entry.page === "scheduledTasks"); setRecipesOpen(entry.page === "recipes");
+      setAgentInboxOpen(entry.page === "agentInbox"); setPrInboxOpen(entry.page === "prInbox");
+      if (entry.page === "home" && entry.conversationId && entry.conversationId !== session.activeConversationId) void session.switchTo(entry.conversationId);
+    });
+  };
+  const goBack = () => { const entry = navHistory.back(navEntryValid); if (entry) showNavEntry(entry); };
+  const goForward = () => { const entry = navHistory.forward(navEntryValid); if (entry) showNavEntry(entry); };
+  navActions.current = { back: goBack, forward: goForward };
   const selectNavCategory = (category: NavCategory) => {
     if (category === navCategory) return;
     switch (category) {
@@ -1169,6 +1238,9 @@ export function App() {
                   />
                 </Presence>
               </div>
+              {/* 放在最后：拖动区按文档顺序合成，no-drag 必须排在侧栏和各顶栏的 drag 之后，按钮才点得动。 */}
+              <NavHistoryButtons platform={platform} canGoBack={navHistory.canGoBack(navEntryValid)} canGoForward={navHistory.canGoForward(navEntryValid)}
+                onBack={goBack} onForward={goForward} />
             </div>
           </ScreenPresence>
         </div>

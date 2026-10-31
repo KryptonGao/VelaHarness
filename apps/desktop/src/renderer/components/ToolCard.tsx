@@ -428,6 +428,7 @@ function GenericToolCard({ tool, compact = false }: ToolCardProps) {
           ) : lines !== null ? (
             <span className="tool-lines">{trf("{0} 行", "{0} lines", lines)}</span>
           ) : null}
+          {kind === "write" && tool.status === "done" ? <span className="tool-file-created-dot" aria-hidden="true" /> : null}
           {compact ? null : <StatusMark status={tool.status} />}
           <svg className="tool-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
             <polyline points="9 18 15 12 9 6" />
@@ -871,6 +872,13 @@ export function CompactToolLine({
         ) : !hasFileDetails ? (
           <span className="tool-compact-dir">{subject.dir}</span>
         ) : null}
+        {stat && !isDiffPreview ? (
+          <span className="tool-compact-stat">
+            {stat.added > 0 ? <span className="tool-stat-add">+{stat.added}</span> : null}
+            {stat.removed > 0 ? <span className="tool-stat-del">−{stat.removed}</span> : null}
+          </span>
+        ) : null}
+        {kind === "write" && tool.status === "done" ? <span className="tool-file-created-dot" aria-hidden="true" /> : null}
         {hasFileDetails ? (
           <button
             className="tool-compact-detail-toggle"
@@ -893,12 +901,6 @@ export function CompactToolLine({
               <polyline points="9 18 15 12 9 6" />
             </svg>
           </button>
-        ) : null}
-        {stat && !isDiffPreview ? (
-          <span className="tool-compact-stat">
-            {stat.added > 0 ? <span className="tool-stat-add">+{stat.added}</span> : null}
-            {stat.removed > 0 ? <span className="tool-stat-del">−{stat.removed}</span> : null}
-          </span>
         ) : null}
         <ToolDurationLabel tool={tool} />
         <CompactStatus running={running} failed={failed} />

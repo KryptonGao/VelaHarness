@@ -1,6 +1,6 @@
 import { overlapsForConversation, type ConversationSummary, type WorkspaceRecent } from "@vela/shared";
 import { useContext, useEffect, useId, useMemo, useRef, useState } from "react";
-import { isBooleanRecord, useStoredState } from "../hooks/useStoredState";
+import { isBoolean, isBooleanRecord, useStoredState } from "../hooks/useStoredState";
 import { modKeyLabel } from "../platform";
 import { tr, trf, useAppLocale } from "../locale";
 import type { SidebarResize } from "../hooks/useSidebarResize";
@@ -18,9 +18,10 @@ import {
 } from "./conversation-activity";
 import { ConversationSearchDialog } from "./ConversationSearchDialog";
 import { ConflictContext } from "./conflict-context";
-import { ClockIcon, InboxIcon } from "./icons";
+import { ChevronDownIcon, ClockIcon, InboxIcon } from "./icons";
 import { useSidebarItems } from "../hooks/useSidebarItems";
-import { workspaceTitle } from "./workspace-names";
+import { findWorkspace, workspaceTitle } from "./workspace-names";
+import { WorkspaceHoverCard } from "./WorkspaceHoverCard";
 
 interface SidebarProps {
   onOpenPrInbox: () => void;
@@ -55,6 +56,9 @@ interface SidebarProps {
 }
 
 const workspaceConversationLimit = 5;
+/** 悬停多久后弹出工作区信息卡;离开后留一小段时间让指针移进卡片。 */
+const cardOpenDelayMs = 400;
+const cardCloseDelayMs = 150;
 
 export function Sidebar({
   onOpenPrInbox,
@@ -167,6 +171,20 @@ export function Sidebar({
     "vela.collapsedWorkspaces", {}, isBooleanRecord,
   );
   const [expandedWorkspaces, setExpandedWorkspaces] = useState<Record<string, boolean>>({});
+  const [pinnedWorkspaces, setPinnedWorkspaces] = useStoredState<Record<string, boolean>>(
+    "vela.pinnedWorkspaces", {}, isBooleanRecord,
+  );
+  const [pinnedSectionCollapsed, setPinnedSectionCollapsed] = useStoredState<boolean>(
+    "vela.pinnedWorkspacesCollapsed", false, isBoolean,
+  );
+  const pinnedGroups = useMemo(() => groups.filter(group => pinnedWorkspaces[group.cwd]), [groups, pinnedWorkspaces]);
+  const otherGroups = useMemo(() => groups.filter(group => !pinnedWorkspaces[group.cwd]), [groups, pinnedWorkspaces]);
+  const togglePinnedWorkspace = (cwd: string) => setPinnedWorkspaces(current => {
+    const next = { ...current };
+    if (next[cwd]) delete next[cwd];
+    else next[cwd] = true;
+    return next;
+  });
   const activeWorkspace = allConversations.find(
     (item) => item.id === activeConversationId && item.archivedAt === null,
   )?.cwd ?? null;
@@ -178,6 +196,51 @@ export function Sidebar({
       current[activeWorkspace] ? { ...current, [activeWorkspace]: false } : current,
     );
   }, [activeWorkspace]);
+
+  const renderGroup = (group: (typeof groups)[number]) => {
+    const isCollapsed = Boolean(collapsedWorkspaces[group.cwd]);
+    const groupName = workspaceTitle(workspaces, group.cwd);
+    const isExpanded = Boolean(expandedWorkspaces[group.cwd]);
+    const hasOverflow = group.conversations.length > workspaceConversationLimit;
+    let visibleConversations = isExpanded ? group.conversations : group.conversations.slice(0, workspaceConversationLimit);
+    // 搜索或外部入口打开较早的对话时，仍在收起后的列表里显示当前对话。
+    const selected = group.conversations.find(conversation => conversation.id === activeConversationId);
+    if (!isExpanded && selected && !visibleConversations.includes(selected)) {
+      visibleConversations = [...visibleConversations.slice(0, workspaceConversationLimit - 1), selected];
+    }
+    const listId = `${searchId}-workspace-${encodeURIComponent(group.cwd)}`;
+    return (
+      <div className={`session-group${isCollapsed ? " collapsed" : ""}`} key={group.cwd}>
+        <WorkspaceGroupRow
+          cwd={group.cwd} name={groupName} folders={findWorkspace(workspaces, group.cwd)?.folders ?? []}
+          chatCount={group.conversations.length} collapsed={isCollapsed} listId={listId}
+          pinned={Boolean(pinnedWorkspaces[group.cwd])}
+          onToggleCollapsed={() => {
+            setCollapsedWorkspaces((current) => ({ ...current, [group.cwd]: !isCollapsed }));
+            if (!isCollapsed) {
+              setExpandedWorkspaces(current => ({ ...current, [group.cwd]: false }));
+            }
+          }}
+          onTogglePin={() => togglePinnedWorkspace(group.cwd)}
+          onEdit={onEditWorkspace ? () => onEditWorkspace(group.cwd) : undefined}
+          onNewChat={() => onNewChat(group.cwd)} />
+        <div id={listId} className={`session-group-content${isCollapsed ? "" : " is-open"}`}
+          inert={isCollapsed} aria-hidden={isCollapsed || undefined}>
+          <div className="session-group-content-inner">
+            <MotionList className="subchat-list workspace-chat-list" items={visibleConversations} keyOf={(conversation) => conversation.id}>
+              {renderConversation}
+            </MotionList>
+            {hasOverflow ? <button className="session-group-show-more" type="button"
+              aria-expanded={isExpanded} aria-controls={listId}
+              aria-label={`${isExpanded ? tr("收起", "Show less") : tr("展开显示", "Show more")} · ${groupName}`}
+              onClick={() => setExpandedWorkspaces(current => ({ ...current, [group.cwd]: !isExpanded }))}>
+              {isExpanded ? tr("收起", "Show less") : tr("展开显示", "Show more")}
+            </button> : null}
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   const mod = modKeyLabel(platform);
 
@@ -265,76 +328,17 @@ export function Sidebar({
           )}</MotionList>
           {activityGroups.length === 0 ? <div className="sidebar-empty-hint" role="status">{tr("还没有会话", "No chats yet")}</div> : null}
         </div> : <>
-          <MotionList className="session-groups" items={groups} keyOf={(group) => group.cwd}>{(group) => {
-            const isCollapsed = Boolean(collapsedWorkspaces[group.cwd]);
-            const groupName = workspaceTitle(workspaces, group.cwd);
-            const isExpanded = Boolean(expandedWorkspaces[group.cwd]);
-            const hasOverflow = group.conversations.length > workspaceConversationLimit;
-            let visibleConversations = isExpanded ? group.conversations : group.conversations.slice(0, workspaceConversationLimit);
-            // 搜索或外部入口打开较早的对话时，仍在收起后的列表里显示当前对话。
-            const selected = group.conversations.find(conversation => conversation.id === activeConversationId);
-            if (!isExpanded && selected && !visibleConversations.includes(selected)) {
-              visibleConversations = [...visibleConversations.slice(0, workspaceConversationLimit - 1), selected];
-            }
-            const listId = `${searchId}-workspace-${encodeURIComponent(group.cwd)}`;
-            return (
-              <div className={`session-group${isCollapsed ? " collapsed" : ""}`} key={group.cwd}>
-                <div className="session-group-row">
-                  <button
-                    className="session-group-header"
-                    type="button"
-                    title={group.cwd}
-                    aria-expanded={!isCollapsed}
-                    aria-controls={listId}
-                    onClick={() => {
-                      setCollapsedWorkspaces((current) => ({ ...current, [group.cwd]: !isCollapsed }));
-                      if (!isCollapsed) {
-                        setExpandedWorkspaces(current => ({ ...current, [group.cwd]: false }));
-                      }
-                    }}
-                  >
-                    <span className="session-group-folder" aria-hidden="true">
-                      <WorkspaceFolderIcon collapsed={isCollapsed} />
-                    </span>
-                    <span className="session-group-name">{groupName}</span>
-                    <span className="session-group-count">{group.conversations.length}</span>
-                  </button>
-                  {onEditWorkspace ? <button
-                    className="subchat-action session-group-settings"
-                    type="button"
-                    title={tr("工作区设置", "Workspace settings")}
-                    aria-label={`${tr("工作区设置", "Workspace settings")} · ${groupName}`}
-                    onClick={() => onEditWorkspace(group.cwd)}
-                  >
-                    <WorkspaceSettingsIcon />
-                  </button> : null}
-                  <button
-                    className="subchat-action session-group-new-chat"
-                    type="button"
-                    title={tr("新建对话", "New chat")}
-                    aria-label={`${tr("新建对话", "New chat")} · ${groupName}`}
-                    onClick={() => onNewChat(group.cwd)}
-                  >
-                    <ComposeIcon />
-                  </button>
-                </div>
-                <div id={listId} className={`session-group-content${isCollapsed ? "" : " is-open"}`}
-                  inert={isCollapsed} aria-hidden={isCollapsed || undefined}>
-                  <div className="session-group-content-inner">
-                    <MotionList className="subchat-list workspace-chat-list" items={visibleConversations} keyOf={(conversation) => conversation.id}>
-                      {renderConversation}
-                    </MotionList>
-                    {hasOverflow ? <button className="session-group-show-more" type="button"
-                      aria-expanded={isExpanded} aria-controls={listId}
-                      aria-label={`${isExpanded ? tr("收起", "Show less") : tr("展开显示", "Show more")} · ${groupName}`}
-                      onClick={() => setExpandedWorkspaces(current => ({ ...current, [group.cwd]: !isExpanded }))}>
-                      {isExpanded ? tr("收起", "Show less") : tr("展开显示", "Show more")}
-                    </button> : null}
-                  </div>
-                </div>
-              </div>
-            );
-          }}</MotionList>
+          {pinnedGroups.length > 0 ? <section className="sidebar-pinned-workspaces" aria-label={tr("置顶", "Pinned")}>
+            <button className="sidebar-section-title sidebar-section-toggle" type="button"
+              aria-expanded={!pinnedSectionCollapsed}
+              onClick={() => setPinnedSectionCollapsed(current => !current)}>
+              <span>{tr("置顶", "Pinned")}</span>
+              <span className={`sidebar-section-chevron${pinnedSectionCollapsed ? " collapsed" : ""}`} aria-hidden="true"><ChevronDownIcon /></span>
+            </button>
+            {pinnedSectionCollapsed ? null : <MotionList className="session-groups" items={pinnedGroups} keyOf={(group) => group.cwd}>{renderGroup}</MotionList>}
+          </section> : null}
+          {pinnedGroups.length > 0 && otherGroups.length > 0 ? <div className="sidebar-section-title sidebar-workspaces-title">{tr("工作区", "Workspaces")}</div> : null}
+          <MotionList className="session-groups" items={otherGroups} keyOf={(group) => group.cwd}>{renderGroup}</MotionList>
           {recentConversations.length > 0 ? (
             <section className="sidebar-recent-chats" aria-label={tr("最近", "Recent")}>
               <div className="sidebar-section-title">{tr("最近", "Recent")}</div>
@@ -396,6 +400,56 @@ function activityReasonLabel(reason: ActivityReason, conversation: ConversationS
     case "starting": return tr("正在准备", "Starting");
     case "recent": return conversation.turnCompletedAt ? tr("已完成", "Completed") : tr("最近更新", "Recently updated");
   }
+}
+
+function WorkspaceGroupRow({ cwd, name, folders, chatCount, collapsed, listId, pinned, onToggleCollapsed, onTogglePin, onEdit, onNewChat }: {
+  cwd: string; name: string; folders: readonly string[]; chatCount: number; collapsed: boolean; listId: string; pinned: boolean;
+  onToggleCollapsed: () => void; onTogglePin: () => void; onEdit?: () => void; onNewChat: () => void;
+}) {
+  const rowRef = useRef<HTMLDivElement>(null);
+  const timer = useRef<number | undefined>(undefined);
+  /** 正在等待的动作:true 为打开、false 为关闭、null 为没有。 */
+  const pending = useRef<boolean | null>(null);
+  const [cardOpen, setCardOpen] = useState(false);
+  const schedule = (open: boolean, delay: number) => {
+    window.clearTimeout(timer.current);
+    if (delay === 0) { pending.current = null; setCardOpen(open); return; }
+    pending.current = open;
+    timer.current = window.setTimeout(() => { pending.current = null; setCardOpen(open); }, delay);
+  };
+  useEffect(() => () => window.clearTimeout(timer.current), []);
+  return (
+    <div ref={rowRef} className="session-group-row"
+      // 指针原本停在已卸载的节点上时(例如刚在卡片里点了置顶),React 收不到 mouseenter,所以也在 mousemove 里兜底。
+      onMouseMove={() => { if (pending.current === false || (!cardOpen && pending.current === null)) schedule(true, cardOpen ? 0 : cardOpenDelayMs); }}
+      onMouseLeave={() => schedule(false, cardCloseDelayMs)}
+      onFocus={event => { if (event.target.matches(":focus-visible")) schedule(true, 0); }}
+      onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) schedule(false, 0); }}
+      onKeyDown={event => { if (event.key === "Escape" && cardOpen) { event.stopPropagation(); schedule(false, 0); } }}>
+      <button className="session-group-header" type="button" aria-expanded={!collapsed} aria-controls={listId}
+        onClick={onToggleCollapsed}>
+        <span className="session-group-folder" aria-hidden="true">
+          <WorkspaceFolderIcon collapsed={collapsed} />
+        </span>
+        <span className="session-group-name">{name}</span>
+        <span className="session-group-count">{chatCount}</span>
+      </button>
+      {onEdit ? <button className="subchat-action session-group-settings" type="button"
+        title={tr("工作区设置", "Workspace settings")}
+        aria-label={`${tr("工作区设置", "Workspace settings")} · ${name}`}
+        onClick={onEdit}>
+        <WorkspaceSettingsIcon />
+      </button> : null}
+      <button className="subchat-action session-group-new-chat" type="button"
+        title={tr("新建对话", "New chat")} aria-label={`${tr("新建对话", "New chat")} · ${name}`}
+        onClick={onNewChat}>
+        <ComposeIcon />
+      </button>
+      {cardOpen ? <WorkspaceHoverCard anchor={rowRef} name={name} cwd={cwd} folders={folders.filter(folder => folder !== cwd)}
+        chatCount={chatCount} pinned={pinned} onTogglePin={onTogglePin}
+        onEdit={onEdit ? () => { schedule(false, 0); onEdit(); } : undefined} /> : null}
+    </div>
+  );
 }
 
 function ConversationRow({ conversation, active, activity, reason, priority, locale, today, onSelect, onTogglePriority, onRename, onArchive }: {

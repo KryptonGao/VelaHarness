@@ -1,3 +1,4 @@
+import { tr } from "../../locale";
 import type { SettingsCopy } from "../settings-copy";
 import { SettingsBlock } from "./primitives";
 
@@ -6,6 +7,8 @@ export function ShortcutsPage({ copy, mod }: { copy: SettingsCopy; mod: string }
   const shortcuts = [
     { label: text.items.sidebar, keys: [`${mod}B`] },
     { label: text.items.panel, keys: [`${mod}J`] },
+    { label: tr("后退", "Back"), keys: mod === "⌘" ? ["⌘["] : ["Alt+←"] },
+    { label: tr("前进", "Forward"), keys: mod === "⌘" ? ["⌘]"] : ["Alt+→"] },
     { label: text.items.settings, keys: [`${mod},`] },
     { label: text.items.search, keys: [`${mod}F`] },
     { label: text.items.close, keys: ["Esc"] },

@@ -34,3 +34,15 @@ export function positionRepoPopover(anchor: Rect, size: { width: number; height:
     viewport.height - height - margin));
   return { left, top, maxHeight, side };
 }
+
+/** Hover cards open beside the anchor (right first), top-aligned, and are clamped to the viewport. */
+export function positionSidePopover(anchor: Rect, size: { width: number; height: number }, viewport: { width: number; height: number }) {
+  const margin = 12;
+  const gap = 8;
+  const fitsRight = anchor.right + gap + size.width + margin <= viewport.width;
+  const side = fitsRight || anchor.left - gap - size.width < margin ? "right" : "left";
+  const left = Math.max(margin, Math.min(side === "right" ? anchor.right + gap : anchor.left - gap - size.width,
+    viewport.width - size.width - margin));
+  const top = Math.max(margin, Math.min(anchor.top - 6, viewport.height - size.height - margin));
+  return { left, top, side };
+}

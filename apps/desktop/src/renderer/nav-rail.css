@@ -140,7 +140,12 @@
 .nav-rail-layout.platform-darwin .titlebar-drag-row { padding-left: 12px; }
 /* 红绿灯的原生点击区比圆点大一圈，第一个控件要与经典布局落在同一位置（距窗口左缘约 78px 起），否则会被红绿灯吃掉点击。 */
 .nav-rail-layout.platform-darwin.left-collapsed .main-chat-header,
-.nav-rail-layout.platform-darwin.left-collapsed .settings-header { padding-left: 32px; }
+.nav-rail-layout.platform-darwin.left-collapsed .settings-header,
+.nav-rail-layout.left-collapsed:not(.platform-darwin) .main-chat-header,
+.nav-rail-layout.left-collapsed:not(.platform-darwin) .settings-header {
+  /* 前进/后退按钮浮在窗口左上角，图标栏（+6px 边）之外的第一个控件要排到它们右边。 */
+  padding-left: calc(var(--nav-history-left) + var(--nav-history-width) + 8px - var(--nav-rail-width, 52px) - 6px);
+}
 
 /*
  * 侧栏开合：侧栏原地不动，右侧对话纸面像一张纸向左滑过去盖住它，再滑回来露出。

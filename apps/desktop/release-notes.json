@@ -1,114 +1,139 @@
 {
-  "version": "1.2.13",
+  "version": "1.2.14",
   "locales": {
     "en": {
-      "summary": "Vela 1.2.13 shows the short progress summaries a model writes while it thinks as a clean list, one per line, instead of squeezing them into a single title.",
+      "summary": "Vela 1.2.14 adds back and forward navigation, pinned workspaces, and workspace hover cards, with clearer tool details and subagent tabs that open when you choose them.",
       "highlights": [
         {
-          "title": "Every thinking summary, in order",
-          "body": "When a model returns several short summaries in one thought, Vela now lists them one per line beside the thinking icon instead of showing only the first."
+          "title": "Back and forward navigation",
+          "body": "Move between pages and conversations with the window navigation buttons, ⌘[ and ⌘] shortcuts on macOS, or mouse side buttons."
         },
         {
-          "title": "Live title follows the latest step",
-          "body": "While a coherent group is still working, its title tracks the most recent summary, so it reflects what the model is doing right now."
+          "title": "Pin your workspaces",
+          "body": "Keep frequently used workspaces in a separate Pinned section. Your pins and the section’s collapsed state are remembered."
         },
         {
-          "title": "No half-written titles",
-          "body": "A summary that is still being typed is held back until its line is finished, so unfinished titles no longer flash on screen."
+          "title": "Workspace details on hover",
+          "body": "Hover over a workspace to see its chat count and folder paths, pin or unpin it, or open its settings."
+        },
+        {
+          "title": "Open subagent tabs when needed",
+          "body": "Subagent tabs now open when you select an agent, keeping the workbench focused on the panes you choose."
         }
       ],
       "improvements": [
-        "Summaries that arrive glued together without a line break are split into separate lines.",
-        "Long summaries wrap onto the next row instead of overflowing narrow panes.",
-        "Thoughts made only of summaries have nothing to expand, so they no longer show a misleading fold control."
+        "Expanded tool and thinking rows keep their chevrons visible so their open state is easier to recognize.",
+        "Completed file writes show a small creation indicator in both regular and compact tool cards.",
+        "File change counts appear before the detail toggle in compact tool rows, with lighter typography in tool cards.",
+        "Workspace groups collapse with a smoother animation while keeping their quick opening transition."
       ]
     },
     "zh-CN": {
-      "summary": "Vela 1.2.13 把模型思考时写下的多条简短进度总结，整理成逐行列表显示，而不再挤成一个标题。",
+      "summary": "Vela 1.2.14 新增前进与后退导航、工作区置顶和悬浮信息卡，并改进工具详情显示，让子代理标签页按需打开。",
       "highlights": [
         {
-          "title": "每条思考总结，依序呈现",
-          "body": "当模型在一次思考里给出多条简短总结时，Vela 现在会在思考图标旁逐行列出，而不是只显示第一条。"
+          "title": "前进与后退导航",
+          "body": "使用窗口导航按钮、macOS 的 ⌘[ 和 ⌘] 快捷键，或鼠标侧键，在页面和对话之间来回切换。"
         },
         {
-          "title": "实时标题跟随最新一步",
-          "body": "连贯分组仍在工作时，标题会跟随最新一条总结，反映模型此刻正在做什么。"
+          "title": "置顶常用工作区",
+          "body": "把常用工作区放进独立的「置顶」分区。置顶状态和分区的折叠状态都会保留。"
         },
         {
-          "title": "不再闪现半截标题",
-          "body": "仍在输入中的总结会等该行写完才显示，未完成的标题不会再在屏幕上一闪而过。"
+          "title": "悬停查看工作区详情",
+          "body": "将指针停在工作区上，即可查看聊天数量与文件夹路径，置顶或取消置顶，也可直接打开工作区设置。"
+        },
+        {
+          "title": "按需打开子代理标签页",
+          "body": "选择子代理时才会打开对应标签页，让工作台集中显示你主动打开的窗格。"
         }
       ],
       "improvements": [
-        "没有换行、粘连在一起的总结会被拆成独立的行。",
-        "较长的总结会自动换到下一行，不再在窄窗格里溢出。",
-        "只由总结组成的思考没有可展开的内容，因此不再显示误导性的折叠控件。"
+        "工具和思考条目展开后，箭头会保持可见，更容易辨认当前展开状态。",
+        "文件写入完成后，普通和紧凑工具卡片都会显示一个小型创建标记。",
+        "紧凑工具条目的文件变更行数移到详情按钮之前，工具卡片中的行数文字也更轻巧。",
+        "工作区分组收起时的动画更平缓，同时保留快速展开的过渡。"
       ]
     },
     "zh-TW": {
-      "summary": "Vela 1.2.13 把模型思考時寫下的多條簡短進度摘要，整理成逐行清單顯示，而不再擠成一個標題。",
+      "summary": "Vela 1.2.14 新增前進與後退導覽、工作區置頂和懸浮資訊卡，並改善工具詳情顯示，讓子代理分頁依需求開啟。",
       "highlights": [
         {
-          "title": "每條思考摘要，依序呈現",
-          "body": "當模型在一次思考裡給出多條簡短摘要時，Vela 現在會在思考圖示旁逐行列出，而不是只顯示第一條。"
+          "title": "前進與後退導覽",
+          "body": "使用視窗導覽按鈕、macOS 的 ⌘[ 和 ⌘] 快速鍵，或滑鼠側鍵，在頁面和對話之間來回切換。"
         },
         {
-          "title": "即時標題跟隨最新一步",
-          "body": "連貫分組仍在工作時，標題會跟隨最新一條摘要，反映模型此刻正在做什麼。"
+          "title": "置頂常用工作區",
+          "body": "把常用工作區放進獨立的「置頂」區塊。置頂狀態和區塊的摺疊狀態都會保留。"
         },
         {
-          "title": "不再閃現半截標題",
-          "body": "仍在輸入中的摘要會等該行寫完才顯示，未完成的標題不會再在螢幕上一閃而過。"
+          "title": "懸停查看工作區詳情",
+          "body": "將游標停在工作區上，即可查看聊天數量與資料夾路徑，置頂或取消置頂，也可直接開啟工作區設定。"
+        },
+        {
+          "title": "依需求開啟子代理分頁",
+          "body": "選取子代理時才會開啟對應分頁，讓工作台集中顯示你主動開啟的窗格。"
         }
       ],
       "improvements": [
-        "沒有換行、黏在一起的摘要會被拆成獨立的行。",
-        "較長的摘要會自動換到下一行，不再在窄窗格裡溢出。",
-        "只由摘要組成的思考沒有可展開的內容，因此不再顯示誤導性的摺疊控制項。"
+        "工具和思考項目展開後，箭頭會保持可見，更容易辨認目前的展開狀態。",
+        "檔案寫入完成後，一般和精簡工具卡片都會顯示一個小型建立標記。",
+        "精簡工具項目的檔案變更行數移到詳情按鈕之前，工具卡片中的行數文字也更輕巧。",
+        "工作區群組收起時的動畫更平緩，同時保留快速展開的轉場。"
       ]
     },
     "ja": {
-      "summary": "Vela 1.2.13 では、モデルが思考中に書く短い進捗サマリーを、ひとつのタイトルに詰め込まず、1 行ずつのリストとして表示します。",
+      "summary": "Vela 1.2.14 では、戻る・進むナビゲーション、ワークスペースのピン留め、ホバーカードを追加しました。ツールの詳細表示も改善し、サブエージェントのタブは必要なときに開くようになりました。",
       "highlights": [
         {
-          "title": "思考サマリーをすべて順番に表示",
-          "body": "モデルがひとつの思考で複数の短いサマリーを返した場合、最初の 1 件だけでなく、思考アイコンの横に 1 行ずつ並べて表示します。"
+          "title": "戻る・進むナビゲーション",
+          "body": "ウィンドウのナビゲーションボタン、macOS の ⌘[ と ⌘] ショートカット、マウスのサイドボタンで、ページや会話を行き来できます。"
         },
         {
-          "title": "ライブのタイトルが最新のステップに追従",
-          "body": "まとまったグループが作業中のあいだ、タイトルは最新のサマリーに追従し、モデルがいま何をしているかを示します。"
+          "title": "よく使うワークスペースをピン留め",
+          "body": "よく使うワークスペースを専用の「ピン留め」セクションにまとめられます。ピン留めとセクションの折りたたみ状態は保存されます。"
         },
         {
-          "title": "書きかけのタイトルを表示しない",
-          "body": "入力中のサマリーは行が完成するまで表示を待つため、未完成のタイトルが一瞬映ることがなくなりました。"
+          "title": "ホバーでワークスペースの詳細を表示",
+          "body": "ワークスペースにポインターを合わせると、チャット数やフォルダーのパスを確認でき、ピン留めの切り替えや設定を開く操作もできます。"
+        },
+        {
+          "title": "必要なときにサブエージェントのタブを開く",
+          "body": "サブエージェントを選択したときに対応するタブが開くため、ワークベンチには自分で開いたペインを表示できます。"
         }
       ],
       "improvements": [
-        "改行なしでつながって届いたサマリーは、別々の行に分割されます。",
-        "長いサマリーは次の行に折り返され、狭いペインでもはみ出しません。",
-        "サマリーだけで構成された思考には展開する内容がないため、紛らわしい折りたたみ操作を表示しなくなりました。"
+        "展開中のツールや思考の行では矢印が表示されたままになり、開いている状態を見分けやすくなりました。",
+        "ファイルの書き込みが完了すると、通常とコンパクトの両方のツールカードに小さな作成マークを表示します。",
+        "コンパクトなツール行ではファイルの変更行数を詳細ボタンの前に移し、ツールカードの行数表示の文字も軽くしました。",
+        "ワークスペースグループを閉じるアニメーションを滑らかにし、開くときの素早い動きは維持しました。"
       ]
     },
     "ko": {
-      "summary": "Vela 1.2.13은 모델이 생각하는 동안 쓰는 짧은 진행 요약을 하나의 제목으로 욱여넣지 않고, 한 줄씩 깔끔한 목록으로 보여 줍니다.",
+      "summary": "Vela 1.2.14에 뒤로 및 앞으로 탐색, 작업 공간 고정, 작업 공간 호버 카드를 추가했습니다. 도구 상세 표시를 개선하고 하위 에이전트 탭은 필요할 때 열리도록 했습니다.",
       "highlights": [
         {
-          "title": "모든 생각 요약을 순서대로",
-          "body": "모델이 한 번의 생각에서 여러 짧은 요약을 반환하면, 첫 번째만이 아니라 생각 아이콘 옆에 한 줄씩 모두 나열합니다."
+          "title": "뒤로 및 앞으로 탐색",
+          "body": "창의 탐색 버튼, macOS의 ⌘[ 및 ⌘] 단축키, 마우스 측면 버튼으로 페이지와 대화 사이를 오갈 수 있습니다."
         },
         {
-          "title": "실시간 제목이 최신 단계를 따라감",
-          "body": "일관된 그룹이 작업 중인 동안 제목이 가장 최근 요약을 따라가, 모델이 지금 무엇을 하는지 보여 줍니다."
+          "title": "자주 쓰는 작업 공간 고정",
+          "body": "자주 쓰는 작업 공간을 별도의 고정 섹션에 모을 수 있습니다. 고정 상태와 섹션의 접힘 상태가 저장됩니다."
         },
         {
-          "title": "쓰다 만 제목은 숨김",
-          "body": "아직 입력 중인 요약은 그 줄이 끝날 때까지 표시를 보류하므로, 미완성 제목이 화면에 깜빡이지 않습니다."
+          "title": "마우스를 올려 작업 공간 정보 확인",
+          "body": "작업 공간에 포인터를 올리면 채팅 수와 폴더 경로를 확인하고, 고정을 전환하거나 작업 공간 설정을 열 수 있습니다."
+        },
+        {
+          "title": "필요할 때 하위 에이전트 탭 열기",
+          "body": "하위 에이전트를 선택할 때 해당 탭이 열리므로 작업대에는 직접 연 창을 중심으로 표시합니다."
         }
       ],
       "improvements": [
-        "줄바꿈 없이 붙어서 온 요약은 별도의 줄로 분리됩니다.",
-        "긴 요약은 다음 줄로 줄바꿈되어 좁은 창에서도 넘치지 않습니다.",
-        "요약만으로 이루어진 생각은 펼칠 내용이 없으므로 오해를 부르는 접기 컨트롤을 더 이상 표시하지 않습니다."
+        "펼친 도구 및 생각 행의 화살표가 계속 표시되어 열린 상태를 더 쉽게 알아볼 수 있습니다.",
+        "파일 쓰기가 완료되면 일반 및 간결한 도구 카드에 작은 생성 표시가 나타납니다.",
+        "간결한 도구 행에서 파일 변경 줄 수를 상세 버튼 앞으로 옮기고 도구 카드의 줄 수 글꼴도 가볍게 조정했습니다.",
+        "작업 공간 그룹을 접는 애니메이션을 더 부드럽게 조정하고 빠르게 펼치는 전환은 유지했습니다."
       ]
     }
   }

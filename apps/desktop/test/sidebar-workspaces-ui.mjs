@@ -33,6 +33,7 @@ if (!process.versions.electron) {
           return <AppLocaleProvider locale={locale}><div className="vela-window platform-darwin right-collapsed" style={{height:'100vh'}}>
             <Sidebar collapsed={false} platform="darwin" resize={{widths:{left:248,right:300,workbench:500},startResize(){},nudge(){},reset(){}}}
               conversations={items} activeConversationId={active} settingsOpen={false} settingsLabel="设置"
+              workspaces={[{path:'/projects/VelaHarness',name:'VelaHarness',lastUsedAt:now,folders:['/projects/shared-lib']}]} onEditWorkspace={cwd=>{window.edited=cwd;}}
               onToggle={()=>{}} onOpenSettings={()=>{}} onNewChat={()=>{}} onSwitchConversation={setActive}
               onArchiveConversation={id=>setItems(items=>items.map(item=>item.id===id?{...item,archivedAt:now}:item))}
               onOpenPrInbox={()=>{}} prInboxOpen={false} onOpenAgentInbox={()=>{}} agentInboxOpen={false} agentInboxBadge={0}
@@ -193,6 +194,50 @@ if (!process.versions.electron) {
     await settle();
     const screenshot = process.env.VELA_SIDEBAR_SCREENSHOT;
     if (screenshot) writeFileSync(screenshot, (await win.webContents.capturePage()).toPNG());
+    // Workspace hover card and pinning.
+    const rowCenter = async index => evaluate(`(() => { const r = document.querySelectorAll('.session-group-header')[${index}].getBoundingClientRect(); return {x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2), right: r.right}; })()`);
+    const hoverRow = async index => {
+      const point = await rowCenter(index);
+      win.webContents.sendInputEvent({ type: "mouseMove", x: point.x, y: point.y });
+      return point;
+    };
+    const card = "document.querySelector('.workspace-hover-card')";
+    const point = await hoverRow(0);
+    await until(`${card}?.matches(':popover-open')`);
+    assert.ok(await evaluate(`${card}.getBoundingClientRect().left >= ${point.right}`), "Card opens to the right of the row");
+    const cardText = await evaluate(`${card}.textContent`);
+    assert.ok(cardText.includes("7 次聊天") && cardText.includes("/projects/VelaHarness") && cardText.includes("/projects/shared-lib"), cardText);
+    const cardScreenshot = process.env.VELA_SIDEBAR_CARD_SCREENSHOT;
+    if (cardScreenshot) await new Promise(done => setTimeout(done, 300));
+    if (cardScreenshot) writeFileSync(cardScreenshot, (await win.webContents.capturePage()).toPNG());
+    win.webContents.sendInputEvent({ type: "mouseMove", x: 700, y: 700 });
+    await until(`!${card}`);
+    await hoverRow(0);
+    await until(`${card}`);
+    await evaluate(`${card}.querySelector('.workspace-hover-card-edit').click()`);
+    assert.equal(await evaluate("window.edited"), "/projects/VelaHarness");
+    await until(`!${card}`);
+    // Pinning moves the workspace into the Pinned section and persists.
+    await hoverRow(1);
+    await until(`${card}?.textContent.includes('6 次聊天')`);
+    await evaluate(`${card}.querySelector('.workspace-hover-card-pin').click()`);
+    await until("document.querySelectorAll('.sidebar-pinned-workspaces .session-group').length === 1");
+    assert.equal(await evaluate("document.querySelector('.sidebar-pinned-workspaces .session-group-name').textContent"), "Notes");
+    assert.equal(await evaluate("document.querySelector('.sidebar-pinned-workspaces .sidebar-section-toggle').textContent"), "置顶");
+    assert.equal(await evaluate("localStorage.getItem('vela.pinnedWorkspaces')"), JSON.stringify({ '/projects/Notes': true }));
+    assert.equal(await evaluate("document.querySelector('.sidebar-workspaces-title').textContent"), "工作区");
+    await until("document.querySelectorAll('.session-group').length === 2");
+    await evaluate("document.querySelector('.sidebar-pinned-workspaces .sidebar-section-toggle').click()");
+    await until("document.querySelectorAll('.sidebar-pinned-workspaces .session-group').length === 0");
+    await evaluate("document.querySelector('.sidebar-pinned-workspaces .sidebar-section-toggle').click()");
+    await until("document.querySelectorAll('.sidebar-pinned-workspaces .session-group').length === 1");
+    // The pointer last rested on the unmounted card; a fresh hover must still open the next one.
+    await hoverRow(0);
+    await until(`${card}?.querySelector('.workspace-hover-card-pin[aria-pressed="true"]')`);
+    await evaluate(`${card}.querySelector('.workspace-hover-card-pin').click()`);
+    await until("!document.querySelector('.sidebar-pinned-workspaces') && !document.querySelector('.sidebar-workspaces-title')");
+    win.webContents.sendInputEvent({ type: "mouseMove", x: 700, y: 700 });
+    await until(`!${card}`);
     // Boundary and live updates: the control disappears as the group drops to five.
     await evaluate("window.setChats(items => items.filter(item => !['a5','a6'].includes(item.id)))");
     await until(`${rows}.length === 5 && !${more}`);
@@ -200,7 +245,7 @@ if (!process.versions.electron) {
     await until(`${rows}.length === 1`);
     await evaluate("window.setChats([])");
     await until("document.querySelectorAll('.session-group').length === 0 && document.querySelector('.sidebar-empty-hint')");
-    console.log('Passed sidebar workspace checks: folder states, 5/6+ overflow, independent expansion, selected older chat, live updates, empty state, five locales, show-more reset on reopen, animation frames, interrupted transitions, reduced motion.');
+    console.log('Passed sidebar workspace checks: folder states, 5/6+ overflow, independent expansion, selected older chat, live updates, empty state, five locales, show-more reset on reopen, animation frames, interrupted transitions, reduced motion, workspace hover card, pinning.');
     app.exit(0);
   } catch (error) { console.error(error); app.exit(1); }
   });
