@@ -81,6 +81,7 @@ const inputPredictionModelKey = "vela.inputPredictionModel";
 const fileIconThemeKey = "vela.fileIconTheme";
 const composerCapsulesKey = "vela.composerCapsules";
 const glassTintKey = "vela.glassTint";
+const sidebarCardGlassKey = "vela.sidebarCardGlass";
 const sendButtonIconKey = "vela.sendButtonIcon";
 const uiFontLatinKey = "vela.font.ui.latin";
 const uiFontCjkKey = "vela.font.ui.cjk";
@@ -303,6 +304,7 @@ export function usePreferences() {
     readStored(composerCapsulesKey, (value): value is string => value === "true", "false") === "true",
   );
   const [glassTint, setGlassTint] = useState<GlassTint>(() => readStored(glassTintKey, isGlassTint, "theme"));
+  const [sidebarCardGlass, setSidebarCardGlass] = useState(() => readStoredFlag(sidebarCardGlassKey, false));
   const [sendButtonIcon, setSendButtonIcon] = useState<SendButtonIcon>(() =>
     readStored(sendButtonIconKey, isSendButtonIcon, "paper-plane"),
   );
@@ -485,6 +487,10 @@ export function usePreferences() {
     document.documentElement.dataset.glassTint = glassTint;
     writeStored(glassTintKey, glassTint);
   }, [glassTint]);
+  useEffect(() => {
+    document.documentElement.dataset.sidebarCard = sidebarCardGlass ? "glass" : "solid";
+    writeStored(sidebarCardGlassKey, String(sidebarCardGlass));
+  }, [sidebarCardGlass]);
 
   return {
     soundEffects,
@@ -528,6 +534,8 @@ export function usePreferences() {
     setComposerCapsules,
     glassTint,
     setGlassTint,
+    sidebarCardGlass,
+    setSidebarCardGlass,
     sendButtonIcon,
     setSendButtonIcon,
     uiFontLatin,

@@ -140,6 +140,17 @@ export function AppearancePage({ copy, preferences }: { copy: SettingsCopy; pref
           onChange={preferences.setGlassTint}
         />
       </SettingsBlock>
+      <SettingsBlock id="sidebar-card-glass" title={text.sidebarCardGlass} hint={text.sidebarCardGlassHint}>
+        <Segmented
+          label={text.sidebarCardGlass}
+          value={preferences.sidebarCardGlass ? "glass" : "solid"}
+          options={[
+            { id: "solid", label: text.sidebarCardSolid },
+            { id: "glass", label: text.sidebarCardTranslucent },
+          ]}
+          onChange={(value) => preferences.setSidebarCardGlass(value === "glass")}
+        />
+      </SettingsBlock>
       <SettingsBlock id="file-icon-theme" title={text.fileIconTheme} hint={text.fileIconThemeHint}>
         <Segmented
           label={text.fileIconTheme}

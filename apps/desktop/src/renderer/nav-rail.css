@@ -208,4 +208,11 @@
   background: var(--bg-surface-subtle);
   pointer-events: none;
 }
+/*
+ * 可选：侧栏卡片半透明（设置 → 外观）。卡片叠在四周那层玻璃之上，用自己的面色留一点透明度，
+ * 叠加后的不透明度比四周玻璃高一档（亮色约 83%、深色约 93%），颜色也与玻璃叠色不同，仍能与边框区分开。
+ * 再提高叠色的不透明度，窗口底层的毛玻璃就看不出来了；想更透就调低。
+ */
+:root[data-sidebar-card="glass"][data-scheme="light"] .sidebar-left.is-rail::before { background: rgb(from var(--bg-surface-subtle) r g b / 0.65); }
+:root[data-sidebar-card="glass"][data-scheme="dark"] .sidebar-left.is-rail::before { background: rgb(from var(--bg-surface-subtle) r g b / 0.5); }
 .sidebar-left.is-rail .sidebar-scroll-area { margin-bottom: var(--glass-edge-inset); }
