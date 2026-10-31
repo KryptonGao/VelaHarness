@@ -1,20 +1,18 @@
-# Vela 1.2.14
+# Vela 1.2.15
 
-Vela 1.2.14 adds back and forward navigation, pinned workspaces, and workspace hover cards. It also makes expanded tool details easier to recognize and opens subagent tabs when you choose them.
+Vela 1.2.15 adds the Pierre Icons file icon theme and a unique robot avatar for every subagent. Skill reads are now shown as skills, and the main agent replies less often when several subagents or background commands finish close together.
 
 ## New
 
-- **Back and forward navigation**: move between pages and conversations with the window navigation buttons, ⌘[ and ⌘] shortcuts on macOS, or mouse side buttons. Navigation skips conversations that have been deleted.
-- **Pinned workspaces**: keep frequently used workspaces in a separate Pinned section. Pins and the section’s collapsed state are remembered.
-- **Workspace hover cards**: hover over a workspace to see its chat count and folder paths, pin or unpin it, or open its settings.
+- **Pierre Icons theme**: choose Pierre Icons under Settings → Appearance → File icons. It is the default for new installs; if you already picked a theme, your choice is kept.
+- **Subagent avatars**: each subagent gets its own robot avatar, shown in its tab, header, roster menu and the Agents card. The avatar stays the same across views and reloads.
+- **Skill reads in tool cards**: reading a skill’s `SKILL.md` is summarized as “Read N skills” instead of being counted as an ordinary file read.
 
 ## Improved
 
-- **Subagent tabs on demand**: agent panes open when you select an agent, keeping the workbench focused on the panes you choose.
-- **Clearer expanded state**: expanded tool and thinking rows keep their chevrons visible without revealing the arrows of nested, collapsed items.
-- **File creation indicator**: completed file writes show a small creation indicator in both regular and compact tool cards.
-- **Easier-to-read file changes**: compact tool rows show added and removed line counts before the detail toggle, with lighter typography for change counts in tool cards.
-- **Smoother workspace collapse**: workspace groups close with a gentler animation while retaining their quick opening transition.
+- **Fewer redundant replies**: notices from subagents and background commands that finish close together are delivered as one batch, so the main agent responds once.
+- **Quiet background commands**: a background command that exits normally without any output no longer wakes the main agent; subagent progress messages are only added to its context.
+- **Shorter follow-ups**: when a delivered conclusion needs no action and the final reply has already been given, the agent answers with at most one short sentence instead of repeating earlier results.
 
 ## Upgrade
 
@@ -28,16 +26,17 @@ The macOS build is not notarized and uses an ad-hoc signature. If macOS blocks f
 
 | File | Platform |
 | --- | --- |
-| `Vela-1.2.14-arm64.dmg` | macOS Apple Silicon installer |
-| `Vela-1.2.14-arm64.zip` | macOS Apple Silicon application bundle (`.app`); also the package used by in-app updates |
+| `Vela-1.2.15-arm64.dmg` | macOS Apple Silicon installer |
+| `Vela-1.2.15-arm64.zip` | macOS Apple Silicon application bundle (`.app`); also the package used by in-app updates |
 | `SHA256SUMS.txt` | SHA-256 checksums for both packages |
 | `SHA256SUMS.txt.sig` | Ed25519 signature of `SHA256SUMS.txt`, verified by the in-app updater |
 
-Package version: `1.2.14`. macOS bundle and download version: `1.2.14`.
+Package version: `1.2.15`. macOS bundle and download version: `1.2.15`.
 
 ## Validation
 
-- Release metadata verified: all package and macOS bundle version fields are `1.2.14`; all five in-app release-note languages contain four highlights and four improvements.
+- Release metadata verified: all package and macOS bundle version fields are `1.2.15`; all five in-app release-note languages contain four highlights and four improvements.
 - Production build and macOS arm64 packaging completed (`pnpm package:mac`); bundled in-app release notes match the source file.
-- The application bundle reports version `1.2.14` and identifier `com.vela.desktop`. The ZIP was extracted and contains a single `Vela.app`; the DMG checksum verified and the image mounted successfully with the matching application.
-- Signed SHA-256 checksums were generated (`pnpm sign:release`) and verified for both packages. The signature was verified using the application’s `verifySignature` function and built-in `updatePublicKeys`.
+- The application bundle reports version `1.2.15` and identifier `com.vela.desktop`. The ZIP was extracted and contains a single `Vela.app` at version `1.2.15`; the DMG checksum verified and the image mounted successfully with the matching application.
+- Signed SHA-256 checksums were generated (`pnpm sign:release`). The signature was verified using the application’s `verifySignature` function and built-in `updatePublicKeys`, and both package hashes were recomputed and match.
+- The automated test suites were not run for this release.
