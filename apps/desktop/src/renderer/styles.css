@@ -2774,9 +2774,8 @@ code,
 /* 思考分组(OpenAI CoT 总结):标题折叠,展开后思考正文和工具调用挂在同一条引导线下。
    视口比单纯的思考区高得多,引导线在滚动内容里面,上下漸进模糊时跟着一起淡出。 */
 .thinking-group-shell > .thinking-scroll-viewport { max-height: var(--thinking-group-height, 280px); }
-/* 详情联动增高时用同一高度固定视口,短内容也能保留两项上限之间的间距。 */
+/* 详情联动增高时只抬高视口上限,内容不足时按内容自然收缩,不再用 min-height 撑出空白。 */
 :root[data-thinking-group-grow="true"] .thinking-group-shell > .thinking-scroll-viewport {
-  min-height: min(var(--thinking-group-height, 280px), var(--thinking-group-expanded-height, 0px));
   max-height: min(var(--thinking-group-height, 280px), var(--thinking-group-expanded-height, var(--thinking-group-height, 280px)));
 }
 .thinking-group-rail {
