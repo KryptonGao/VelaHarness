@@ -9,6 +9,13 @@ export function toolCompactKind(name: string): CompactKind | null {
   return null;
 }
 
+/** 读取技能说明文件(SKILL.md)的调用:展示成「已读取技能」,不当作普通文件读取。 */
+export function isSkillRead(tool: Pick<ToolTrace, "name" | "activity">): boolean {
+  if (tool.name !== "read") return false;
+  const path = tool.activity?.path?.trim().replaceAll("\\", "/");
+  return path?.split("/").pop()?.toLowerCase() === "skill.md";
+}
+
 /** 摘要里的一段动作统计,如「已编辑 2 个文件」。 */
 export interface CompactSummaryPart {
   kind: CompactKind;
@@ -38,7 +45,7 @@ export function compactSummaryParts(tools: ToolTrace[]): CompactSummaryPart[] {
 }
 
 /** 摘要文案用的种类:bash 里的 ls / grep 单独成「列目录」「搜索」,cat 并入「读取文件」。 */
-export type CompactLabelKind = CompactKind | "list" | "search";
+export type CompactLabelKind = CompactKind | "list" | "search" | "skill";
 
 export interface CompactLabelPart {
   kind: CompactLabelKind;
@@ -78,7 +85,7 @@ export function compactLabelParts(tools: ToolTrace[]): CompactLabelPart[] {
       if (seenFiles.has(key)) continue;
       seenFiles.add(key);
     }
-    add(kind);
+    add(isSkillRead(tool) ? "skill" : kind);
   }
   return order.map((kind) => ({ kind, count: counts.get(kind) ?? 0 }));
 }

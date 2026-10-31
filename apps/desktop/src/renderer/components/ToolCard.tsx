@@ -24,7 +24,7 @@ import type { ThemedToken } from "./preview/highlighter";
 import { QuestionCard, type QuestionReplyHandler } from "./QuestionCard";
 import { FileTypeIcon } from "./FileTypeIcon";
 import { tokenStyle, useDiffHighlight, type HighlightedDiff } from "./diff-highlight";
-import { ArrowRightIcon, CheckIcon, CircleIcon, EditFileIcon, ExternalIcon, EyeIcon, FilePlusIcon, FolderIcon, GlobeIcon, McpIcon, ReadFileIcon, SearchIcon, StackIcon, TerminalIcon, ToolIcon, WebFetchIcon, WebSearchIcon } from "./icons";
+import { ArrowRightIcon, CheckIcon, CircleIcon, EditFileIcon, ExternalIcon, EyeIcon, FilePlusIcon, FolderIcon, GlobeIcon, McpIcon, ReadFileIcon, SearchIcon, SkillIcon, StackIcon, TerminalIcon, ToolIcon, WebFetchIcon, WebSearchIcon } from "./icons";
 import {
   compactLabelParts,
   compactSummaryParts,
@@ -32,6 +32,7 @@ import {
   parseDisplayDiff,
   splitPath,
   totalDiffStat,
+  isSkillRead,
   toolCompactKind,
   type CompactLabelPart,
   type DisplayDiffRow,
@@ -390,6 +391,7 @@ function GenericToolCard({ tool, compact = false }: ToolCardProps) {
   const activity = tool.activity ?? {};
   const mcp = activity.mcp;
   const kind = mcp ? "other" : toolKind(tool.name);
+  const skillRead = !mcp && isSkillRead(tool);
   const subject = mcp ? { name: mcp.tool, dir: "" } : subjectOf(kind, activity, tool.name);
   const group = mcp ? null : cardToolGroup(tool.name);
   const planFirst = (tool.name === "update_todos" ? todoFocus(activity.plan) : activity.plan?.[0]) ?? null;
@@ -411,9 +413,9 @@ function GenericToolCard({ tool, compact = false }: ToolCardProps) {
           onClick={() => setOpen((value) => !value)}
         >
           <span className="tool-card-icon" aria-hidden="true">
-            {mcp ? <McpIcon size={13} /> : webTool ? <WebToolIcon name={tool.name} /> : <GroupIcon name={tool.name} fallback={<KindIcon kind={kind} command={activity.command} />} />}
+            {mcp ? <McpIcon size={13} /> : webTool ? <WebToolIcon name={tool.name} /> : <GroupIcon name={tool.name} fallback={<KindIcon kind={kind} command={activity.command} skill={skillRead} />} />}
           </span>
-          <span className="tool-kind-label">{mcp ? "MCP" : bashIntent?.label ?? toolLabel(tool.name, kind)}</span>
+          <span className="tool-kind-label">{mcp ? "MCP" : skillRead ? tr("技能", "Skill") : bashIntent?.label ?? toolLabel(tool.name, kind)}</span>
           <span className="tool-card-main">
             <span className={`tool-card-name${subject.dir ? "" : " grow"}`}>
               {planFirst ? <PlanStatusIcon status={planFirst.status} className="plan-status-inline" /> : null}
@@ -666,6 +668,9 @@ export function CompactToolGroup({ tools, sequenceId = tools[0]?.id }: { tools: 
   const label = labelParts.map((part) => compactPartLabel(part)).join(" · ");
   // bash 里混着列目录、搜索等不同含义时,每行仍要自己的动作词和图标。
   const mixedBash = uniform === "bash" && labelParts.length > 1;
+  // 读文件里混着技能说明(SKILL.md)时同理,技能行要保留自己的动作词和图标。
+  const mixedRead = uniform === "read" && labelParts.length > 1;
+  const allSkills = labelParts.length === 1 && labelParts[0].kind === "skill";
   const fileTools = tools.filter((tool) => toolCompactKind(tool.name) === uniform && tool.activity?.path);
   const uniqueFileTools = fileTools.filter((tool, index) => (
     fileTools.findIndex((candidate) => candidate.activity?.path?.replaceAll("\\", "/") === tool.activity?.path?.replaceAll("\\", "/")) === index
@@ -697,7 +702,7 @@ export function CompactToolGroup({ tools, sequenceId = tools[0]?.id }: { tools: 
         onClick={() => setOpen((value) => !value)}
       >
         <span className="tool-compact-icon" aria-hidden="true">
-          {uniform ? <KindIcon kind={uniform} command={uniform === "bash" ? tools[0]?.activity?.command : undefined} /> : <StackIcon size={13} />}
+          {uniform ? <KindIcon kind={uniform} command={uniform === "bash" ? tools[0]?.activity?.command : undefined} skill={allSkills} /> : <StackIcon size={13} />}
         </span>
         <span className="tool-compact-label">{label}</span>
         {sampleLabel && !(open && fileDiffGroup) ? <span className="tool-compact-sample">{sampleLabel}</span> : null}
@@ -731,7 +736,7 @@ export function CompactToolGroup({ tools, sequenceId = tools[0]?.id }: { tools: 
         {() => <>
         <div className="tool-compact-lines">
           {tools.map((tool) => (
-            <CompactToolLine key={tool.id} tool={tool} hideAction={Boolean(uniform) && !mixedBash} hideIcon={Boolean(uniform) && !mixedBash} />
+            <CompactToolLine key={tool.id} tool={tool} hideAction={Boolean(uniform) && !mixedBash && !mixedRead} hideIcon={Boolean(uniform) && !mixedBash && !mixedRead} />
           ))}
         </div>
         </>}
@@ -746,6 +751,7 @@ function compactPartLabel({ kind, count }: CompactLabelPart): string {
   if (kind === "edit") return trf("已编辑 {0} 个文件", count === 1 ? "Edited {0} file" : "Edited {0} files", count);
   if (kind === "write") return trf("已创建 {0} 个文件", count === 1 ? "Created {0} file" : "Created {0} files", count);
   if (kind === "read") return trf("已读取 {0} 个文件", count === 1 ? "Read {0} file" : "Read {0} files", count);
+  if (kind === "skill") return trf("已读取 {0} 个技能", count === 1 ? "Read {0} skill" : "Read {0} skills", count);
   return trf("已运行 {0} 条命令", count === 1 ? "Ran {0} command" : "Ran {0} commands", count);
 }
 
@@ -762,6 +768,7 @@ export function CompactToolLine({
   const preview = useFilePreview();
   const [open, setOpen] = useToolExpanded(foldRowId(tool.id));
   const kind = toolKind(tool.name);
+  const skillRead = isSkillRead(tool);
   if (tool.name === "browser_repl") return <BrowserReplCard tool={tool} compact />;
   const activity = tool.activity ?? {};
   const subject = subjectOf(kind, activity, tool.name);
@@ -831,7 +838,7 @@ export function CompactToolLine({
       <div className="tool-compact-line">
         {!hideIcon ? (
           <span className="tool-compact-icon" aria-hidden="true">
-            <KindIcon kind={kind} />
+            <KindIcon kind={kind} skill={skillRead} />
           </span>
         ) : null}
         {!hideAction ? (
@@ -842,10 +849,10 @@ export function CompactToolLine({
               aria-expanded={detailOpen}
               onClick={() => setOpen((value) => !value)}
             >
-              <span className="tool-compact-action">{compactAction(kind, running && Boolean(activity.streaming))}</span>
+              <span className="tool-compact-action">{compactAction(kind, running && Boolean(activity.streaming), skillRead)}</span>
             </button>
           ) : (
-            <span className="tool-compact-action">{compactAction(kind, running && Boolean(activity.streaming))}</span>
+            <span className="tool-compact-action">{compactAction(kind, running && Boolean(activity.streaming), skillRead)}</span>
           )
         ) : null}
         {fileIconPath ? <FileTypeIcon path={fileIconPath} /> : null}
@@ -939,7 +946,8 @@ function streamingStat(activity: ToolActivity): { added: number; removed: number
   return streaming;
 }
 
-function compactAction(kind: ToolKind, streaming = false): string {
+function compactAction(kind: ToolKind, streaming = false, skill = false): string {
+  if (skill) return tr("已读取技能", "Read skill");
   if (streaming && kind === "write") return tr("正在创建", "Creating");
   if (streaming && kind === "edit") return tr("正在编辑", "Editing");
   if (kind === "write") return tr("已创建", "Created");
@@ -1342,7 +1350,8 @@ function toolActionName(name: string): string | null {
   return null;
 }
 
-function KindIcon({ kind, command }: { kind: ToolKind; command?: string }): ReactNode {
+function KindIcon({ kind, command, skill = false }: { kind: ToolKind; command?: string; skill?: boolean }): ReactNode {
+  if (skill) return <SkillIcon size={13} />;
   if (kind === "other") return <ToolIcon size={13} />;
   if (kind === "bash") {
     const intent = bashIntentDisplay(command)?.kind;

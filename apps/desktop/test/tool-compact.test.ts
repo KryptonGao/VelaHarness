@@ -2,8 +2,10 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { ToolTrace } from "@vela/shared";
 import {
+  compactLabelParts,
   compactSummaryParts,
   diffStat,
+  isSkillRead,
   parseDisplayDiff,
   splitPath,
   toolCompactKind,
@@ -111,5 +113,24 @@ describe("splitPath", () => {
 
   it("容忍 Windows 反斜杠路径", () => {
     assert.deepEqual(splitPath("apps\\renderer\\App.tsx"), { name: "App.tsx", dir: "apps/renderer" });
+  });
+});
+
+describe("isSkillRead", () => {
+  it("只把读取 SKILL.md 的 read 调用认作技能", () => {
+    assert.equal(isSkillRead(tool("read", { path: "/Users/me/.vela/skills/ui-ux-pro-max/SKILL.md" })), true);
+    assert.equal(isSkillRead(tool("read", { path: "C:\\skills\\demo\\skill.md" })), true);
+    assert.equal(isSkillRead(tool("read", { path: "/repo/README.md" })), false);
+    assert.equal(isSkillRead(tool("edit", { path: "/skills/demo/SKILL.md" })), false);
+    assert.equal(isSkillRead(tool("read")), false);
+  });
+
+  it("摘要里技能和普通文件分开计数", () => {
+    const parts = compactLabelParts([
+      tool("read", { path: "/skills/a/SKILL.md" }),
+      tool("read", { path: "/repo/a.ts" }),
+      tool("read", { path: "/skills/a/SKILL.md" }),
+    ]);
+    assert.deepEqual(parts, [{ kind: "skill", count: 1 }, { kind: "read", count: 1 }]);
   });
 });
