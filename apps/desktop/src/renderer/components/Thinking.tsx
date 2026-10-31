@@ -6,6 +6,7 @@ import { usePacedText } from "../hooks/usePacedText";
 import { nextStreamFollow, releasesStreamFollow } from "./chat-scroll";
 import { localizeError, tr, trf, useAppLocale } from "../locale";
 import { thinkingSummaryLayout } from "../thinking-summary";
+import { supportsThinkingGroups } from "../thinking-model";
 import { splitThinkingSummaries, splitThinkingTitle, type ThinkingTitle } from "../thinking-title";
 import { totalDiffStat, type DiffStat } from "./tool-compact";
 import { coherentActions, countFailedTools, type CoherentAction, type CoherentEntry } from "./tool-sequence";
@@ -418,6 +419,8 @@ export function Thinking({
 export function ThinkingGroup({
   text,
   messageId,
+  model,
+  modelName,
   active,
   live,
   showActivityIndicator,
@@ -427,6 +430,8 @@ export function ThinkingGroup({
 }: {
   text: string;
   messageId?: string;
+  model?: string;
+  modelName?: string;
   active: boolean;
   live: boolean;
   showActivityIndicator: boolean;
@@ -435,7 +440,7 @@ export function ThinkingGroup({
   forceOpen?: boolean;
   children?: ReactNode;
 }) {
-  const titled = splitThinkingTitle(text, active);
+  const titled = supportsThinkingGroups({ model, modelName }) ? splitThinkingTitle(text, active) : null;
   const failedCount = tools ? countFailedTools(tools) : 0;
   const stat = tools ? totalDiffStat([...tools]) : null;
   return (
@@ -545,7 +550,7 @@ export function CoherentGroup({
  * 连贯模式组内的一次思考总结:加粗首行作标题,正文缩进在下面,可单独开合。
  * expanded 是默认状态:分组进行中只有最新一段展开,更早的和分组结束后的都折叠;手动开合过就不再跟随。
  */
-export function CoherentThought({ text, active, expanded }: { text: string; active: boolean; expanded: boolean }) {
+export function CoherentThought({ text, messageId, active, expanded }: { text: string; messageId?: string; active: boolean; expanded: boolean }) {
   useAppLocale();
   const [manual, setManual] = useState<boolean | null>(null);
   const open = manual ?? expanded;
@@ -554,6 +559,10 @@ export function CoherentThought({ text, active, expanded }: { text: string; acti
   const summaries = splitThinkingSummaries(text, active);
   // 流式中标题行还没收齐时只显示「思考」,避免半截标题闪一下。
   const pending = !titled && active && /^\s*(\*\*|#)/.test(text) && !text.trimStart().includes("\n");
+  // 即使 GPT 偶尔返回原始思考，也必须保留普通思考的滚动上限和总结入口。
+  if (!titled && !summaries && !pending) {
+    return <Thinking text={text} messageId={messageId} active={active} showActivityIndicator />;
+  }
   const title = titled?.title ?? tr("思考", "Thinking");
   // 整段都是标题行(一次思考里的多条简短总结)时没有正文可展开。
   const body = summaries ? "" : titled ? titled.body : pending ? "" : text.trim();

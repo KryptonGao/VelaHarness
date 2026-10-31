@@ -2,6 +2,7 @@ import type { ToolTrace } from "@vela/shared";
 import type { ToolDisplay, ToolFold } from "../hooks/usePreferences";
 import type { UiMessage } from "../hooks/useSession";
 import { splitThinkingTitle } from "../thinking-title";
+import { supportsThinkingGroups } from "../thinking-model";
 
 /** 可折叠的工具种类,与 tool-compact 的 toolCompactKind 保持一致。 */
 const foldableToolNames = new Set(["bash", "read", "edit", "write"]);
@@ -22,7 +23,7 @@ export function countFailedTools(tools: readonly ToolTrace[]): number {
 
 /** 按界面顺序拍平后的回合内容,用于跨 Assistant 消息做位置分组。 */
 export type ProcessItem =
-  | { kind: "thinking"; id: string; messageId: string; text: string }
+  | { kind: "thinking"; id: string; messageId: string; text: string; model?: string; modelName?: string }
   | { kind: "text"; id: string; messageId: string; text: string }
   | { kind: "tool"; id: string; messageId: string; tool: ToolTrace };
 
@@ -66,7 +67,7 @@ export function buildTurnItems(
 ): ProcessItem[] {
   const items: ProcessItem[] = [];
   for (const message of messages) {
-    if (message.thinking) items.push({ kind: "thinking", id: message.id, messageId: message.id, text: message.thinking });
+    if (message.thinking) items.push({ kind: "thinking", id: message.id, messageId: message.id, text: message.thinking, ...(message.model ? { model: message.model } : {}), ...(message.modelName ? { modelName: message.modelName } : {}) });
     for (const tool of message.tools) {
       items.push({ kind: "tool", id: tool.id, messageId: message.id, tool });
     }
@@ -191,7 +192,7 @@ function attachThinkingItems(items: ProcessItem[]): ProcessItem[] {
   for (const item of items) {
     if (item.kind === "thinking") {
       flush();
-      if (splitThinkingTitle(item.text, false)) {
+      if (supportsThinkingGroups(item) && splitThinkingTitle(item.text, false)) {
         group = [item];
         continue;
       }
@@ -233,10 +234,14 @@ export function attachFollowerTools(messages: readonly UiMessage[]): AssistantUn
       continue;
     }
     if (message.thinking.trim()) {
-      lead = splitThinkingTitle(message.thinking, false) ? message : null;
+      lead = supportsThinkingGroups(message) && splitThinkingTitle(message.thinking, false) ? message : null;
       continue;
     }
     if (!lead) continue;
+    if (!supportsThinkingGroups(message) || message.model !== lead.model || message.provider !== lead.provider) {
+      lead = null;
+      continue;
+    }
     followerSet.add(message);
     const list = followersOf.get(lead) ?? [];
     list.push(message);

@@ -5,7 +5,9 @@ import {
   applyAgentStreamEvent,
   applyStreamEvent,
   mergeAgentHistory,
+  sanitizeAgentEvent,
   type MessageBuckets,
+  type UiMessage,
   toUiMessage,
   type AgentMessageBuckets,
 } from "../src/renderer/hooks/useSession.ts";
@@ -18,6 +20,66 @@ function reduce(events: AgentRuntimeStreamEvent[], agentId = "a1"): AgentMessage
   }
   return buckets["conv-1"]?.[agentId] ?? [];
 }
+
+describe("assistant 模型来源数据链路", () => {
+  for (const scope of ["main", "child"] as const) {
+    it(`${scope}: 开始复用占位消息，更新/结束补齐来源且不影响旧消息`, () => {
+      let messages: UiMessage[] = [{ id: "placeholder", role: "assistant", text: "", thinking: "", tools: [] }];
+      const apply = (event: AgentRuntimeStreamEvent) => {
+        messages = scope === "main"
+          ? applyStreamEvent({ c: messages }, { ...event, conversationId: "c" }).c!
+          : applyAgentStreamEvent({ c: { a: messages } }, "c", "a", sanitizeAgentEvent(event)!).c!.a!;
+      };
+      apply({ type: "assistant_start", model: "gpt-5.4", provider: "openai-codex" });
+      assert.equal(messages.length, 1);
+      assert.equal(messages[0]!.id, "placeholder");
+      assert.equal(messages[0]!.model, "gpt-5.4");
+      assert.equal(messages[0]!.provider, "openai-codex");
+      apply({ type: "text_delta", delta: "第一条" });
+      const first = messages[0];
+      apply({ type: "assistant_start" });
+      apply({ type: "assistant_update", model: "deepseek-reasoner", provider: "custom-deepseek" });
+      apply({ type: "thinking_delta", delta: "原始思考" });
+      apply({ type: "assistant_end", model: "deepseek-v4" });
+      apply({ type: "assistant_update" });
+      assert.equal(messages.length, 2);
+      assert.equal(messages[0], first);
+      assert.equal(messages[1]!.model, "deepseek-v4");
+      assert.equal(messages[1]!.provider, "custom-deepseek");
+      assert.equal(messages[1]!.thinking, "原始思考");
+      const before = messages;
+      apply({ type: "assistant_update", model: "deepseek-v4", provider: "custom-deepseek" });
+      assert.equal(messages, before, "相同来源不重复发布消息");
+    });
+
+    it(`${scope}: 漏掉开始事件时结束事件仍可补齐模型`, () => {
+      const event = { type: "assistant_end" as const, model: "gpt-5.4", provider: "proxy" };
+      const messages = scope === "main"
+        ? applyStreamEvent({}, { ...event, conversationId: "c" }).c!
+        : reduce([sanitizeAgentEvent(event)!]);
+      assert.equal(messages[0]?.model, "gpt-5.4");
+      assert.equal(messages[0]?.provider, "proxy");
+    });
+  }
+
+  it("历史转换保留来源，旧历史不从当前模型补猜", () => {
+    const base = { id: "history", role: "assistant" as const, text: "回复", thinking: "思考", tools: [], timestamp: null };
+    const restored = toUiMessage({ ...base, model: "deepseek-reasoner", provider: "custom-deepseek" });
+    assert.equal(restored.model, "deepseek-reasoner");
+    assert.equal(restored.provider, "custom-deepseek");
+    assert.equal(toUiMessage(base).model, undefined);
+    assert.equal(toUiMessage(base).provider, undefined);
+    const merged = mergeAgentHistory(reduce([{ type: "assistant_start", model: "gpt-5.4", provider: "openai" }]), [restored]);
+    assert.deepEqual(merged?.map(({ model }) => model), ["deepseek-reasoner", "gpt-5.4"]);
+  });
+
+  it("子代理 IPC 校验保留合法来源并丢弃非字符串", () => {
+    for (const type of ["assistant_start", "assistant_update", "assistant_end"]) {
+      assert.deepEqual(sanitizeAgentEvent({ type, model: "gpt-5.4", provider: "proxy" }), { type, model: "gpt-5.4", provider: "proxy" });
+      assert.deepEqual(sanitizeAgentEvent({ type, model: 123, provider: null }), { type });
+    }
+  });
+});
 
 describe("子代理运行流 reducer", () => {
   it("用户消息和 assistant 文本按顺序累积", () => {

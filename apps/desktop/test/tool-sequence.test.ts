@@ -21,7 +21,7 @@ function tool(name: string, id: string): ToolTrace {
 }
 
 function message(id: string, parts: Partial<UiMessage> = {}): UiMessage {
-  return { id, role: "assistant", text: "", thinking: "", tools: [], ...parts };
+  return { id, role: "assistant", model: "gpt-6.1", text: "", thinking: "", tools: [], ...parts };
 }
 
 function runToolIds(node: ProcessNode): string[] {

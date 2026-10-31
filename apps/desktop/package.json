@@ -14,7 +14,7 @@
     "test:intelligent-ui": "node --import ../../packages/agent/test/register-ts.mjs --experimental-transform-types --test test/intelligent-ui-renderer.test.ts test/intelligent-ui-export.test.ts test/ui-sandbox-guard.test.ts ../../packages/agent/test/intelligent-ui-*.test.ts",
     "test:conversation-export": "node --import ../../packages/agent/test/register-ts.mjs --experimental-transform-types --test test/conversation-export.test.ts",
     "test:trace": "node --import ../../packages/agent/test/register-ts.mjs --experimental-transform-types --test ../../packages/agent/test/trace.test.ts test/trace-model.test.ts",
-    "test:thinking-summary": "node --import ../../packages/agent/test/register-ts.mjs --experimental-transform-types --test ../../packages/agent/test/thinking-summary.test.ts ../../packages/agent/test/thinking-summary-http.test.ts test/thinking-summary.test.ts test/thinking-group-height.test.ts",
+    "test:thinking-summary": "node --import ../../packages/agent/test/register-ts.mjs --experimental-transform-types --test ../../packages/agent/test/thinking-summary.test.ts ../../packages/agent/test/thinking-summary-http.test.ts test/thinking-summary.test.ts test/thinking-group-height.test.ts test/thinking-model.test.ts test/tool-sequence.test.ts",
     "test:persistence": "node --import ../../packages/agent/test/register-ts.mjs --experimental-transform-types --test test/persistence.test.ts test/ui-storage.test.ts ../../packages/agent/test/conversation-persistence.test.ts ../../packages/agent/test/turn-timing.test.ts",
     "test:startup": "node --import ../../packages/agent/test/register-ts.mjs --experimental-transform-types --test test/vela-home.test.ts",
     "test:startup:electron": "node test/vela-profile-electron-smoke.mjs",

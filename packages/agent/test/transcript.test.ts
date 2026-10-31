@@ -107,6 +107,25 @@ describe("MCP history identity", () => {
   });
 });
 
+describe("assistant 模型来源", () => {
+  it("主会话投影与子代理消息都保留每条 SDK 消息的 model/provider", () => {
+    const messages = [
+      user("切换模型"),
+      { ...assistant("GPT 回复"), model: "gpt-5.4", provider: "openai-codex" },
+      { ...assistant("DeepSeek 回复"), model: "deepseek-reasoner", provider: "custom-deepseek" },
+      assistant("旧历史"),
+    ] as AgentMessage[];
+    for (const restored of [transcriptFromMessages(messages), transcriptFromProjection(projection(messages.map((message, index) => entry(String(index), message))))]) {
+      assert.deepEqual(restored.map(({ model, provider }) => ({ model, provider })), [
+        { model: undefined, provider: undefined },
+        { model: "gpt-5.4", provider: "openai-codex" },
+        { model: "deepseek-reasoner", provider: "custom-deepseek" },
+        { model: undefined, provider: undefined },
+      ]);
+    }
+  });
+});
+
 describe("transcript timestamps", () => {
   it("keeps the writing time of each message's source entry", () => {
     const messages = transcriptFromProjection(projection([

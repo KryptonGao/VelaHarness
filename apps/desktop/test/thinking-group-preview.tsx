@@ -29,7 +29,7 @@ const bodyText = "I’m thinking we can enhance the fixture by adding ultra to b
 function Block({ id, title, tools: list, live = false, open }: { id: string; title: string | null; tools: ToolTrace[]; live?: boolean; open?: boolean }) {
   const text = title === null ? "Plain reasoning without a title line.\n\nSecond paragraph." : `**${title}**\n\n${bodyText}`;
   return (
-    <ThinkingGroup messageId={id} text={text} active={false} live={live || Boolean(open)} showActivityIndicator={display === "compact"} tools={list}>
+    <ThinkingGroup model="gpt-6.1" messageId={id} text={text} active={false} live={live || Boolean(open)} showActivityIndicator={display === "compact"} tools={list}>
       <ToolList tools={list} display={display} fold="none" />
     </ThinkingGroup>
   );
@@ -95,7 +95,7 @@ function App() {
       </section>
       <button id="finish" onClick={() => setLive(false)} style={{ marginBottom: 12 }}>Finish turn</button>
       <article className="assistant-block">
-        <ThinkingGroup messageId="short" text={"**Short group growth**\n\nBrief reasoning."} active={false} live={false} showActivityIndicator={false}>
+        <ThinkingGroup model="gpt-6.1" messageId="short" text={"**Short group growth**\n\nBrief reasoning."} active={false} live={false} showActivityIndicator={false}>
           <ToolList tools={[
             { id: "short-bash", name: "bash", status: "done", activity: { command: "printf 'one\\ntwo\\nthree'", body: "one\ntwo\nthree" } },
             { id: "short-edit", name: "edit", status: "done", activity: { path: "short.ts", diff: "+1 short\n-2 old" } },
@@ -109,7 +109,7 @@ function App() {
       </article>
       <h4>Message flow (follower tools attach to the title)</h4>
       <div style={{ height: 360, display: "flex", position: "relative", inset: "auto", width: "100%" }} className="workbench-panel">
-        <AgentPane agent={agent} agents={[agent]} messages={streamMessages} onSwitch={() => {}} ensureMessages={() => {}} onControl={() => {}} toolDisplay={display} />
+        <AgentPane agent={agent} agents={[agent]} messages={streamMessages.map(message => ({ ...message, model: "gpt-6.1" }))} onSwitch={() => {}} ensureMessages={() => {}} onControl={() => {}} toolDisplay={display} />
       </div>
       <h4>Coherent mode (grouped between replies)</h4>
       <article className="assistant-block" id="coherent-direct">
@@ -129,7 +129,7 @@ function App() {
       </article>
       <ThinkingGroupModeContext.Provider value="coherent">
         <div style={{ height: 420, display: "flex", position: "relative", inset: "auto", width: "100%" }} className="workbench-panel">
-          <AgentPane agent={agent} agents={[agent]} messages={coherentMessages} onSwitch={() => {}} ensureMessages={() => {}} onControl={() => {}} toolDisplay={display} />
+          <AgentPane agent={agent} agents={[agent]} messages={coherentMessages.map(message => ({ ...message, model: "gpt-6.1" }))} onSwitch={() => {}} ensureMessages={() => {}} onControl={() => {}} toolDisplay={display} />
         </div>
       </ThinkingGroupModeContext.Provider>
       </div>

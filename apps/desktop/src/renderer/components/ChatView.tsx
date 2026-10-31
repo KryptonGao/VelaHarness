@@ -34,7 +34,8 @@ import { SideChatLauncherContext } from "./selection-actions";
 import { replyStore, useReplyCards } from "../browser/reply-store";
 import { OpenInAppButton } from "./OpenInAppButton";
 import { CoherentGroup, CoherentThought, ThinkingGroup } from "./Thinking";
-import { useThinkingGroupMode } from "./ThinkingGroupModeContext";
+import { useNamedThinkingMessages, useThinkingGroupMode } from "./ThinkingGroupModeContext";
+import { partitionThinkingGroups, supportsThinkingGroups } from "../thinking-model";
 import { ThinkingSummaryContext } from "./ThinkingSummaryContext";
 import type { ThinkingSummariesApi } from "../hooks/useThinkingSummaries";
 import { ToolCard, ToolList, CompactToolGroup, CompactToolLine, ToolRunGroup, type QuestionLookup } from "./ToolCard";
@@ -225,7 +226,7 @@ export interface ChatViewProps {
 
 export function ChatView({
   embedded = false,
-  messages,
+  messages: sourceMessages,
   state,
   sendError,
   platform,
@@ -270,6 +271,7 @@ export function ChatView({
   planDraft = null,
   onOpenPlan,
 }: ChatViewProps) {
+  const messages = useNamedThinkingMessages(sourceMessages);
   const thinkingGroupMode = useThinkingGroupMode();
   const filePreview = useFilePreview();
   const openOutputFile = useCallback((path: string) => {
@@ -888,7 +890,7 @@ export function ChatView({
                 ) : turn.assistants.length > 0 ? (
                   <div className="assistant-live-turn">
                     {liveStartedAt !== undefined ? <TurnProgressHeader startedAt={liveStartedAt} /> : null}
-                    {toolFold === "position" || thinkingGroupMode === "coherent" ? (
+                    {toolFold === "position" || (thinkingGroupMode === "coherent" && turn.assistants.some(supportsThinkingGroups)) ? (
                       <article className="assistant-block">
                         <ToolSequence
                           messages={turn.assistants}
@@ -1221,6 +1223,8 @@ function AssistantMessageContent({
         thinkingDisclosure ? (
           <ThinkingGroup
             messageId={message.id}
+            model={message.model}
+            modelName={message.modelName}
             text={message.thinking}
             active={thinkingActive}
             live={streaming && (!message.text || message.tools.some((tool) => tool.status === "running"))}
@@ -1250,7 +1254,16 @@ function AssistantMessageContent({
 }
 
 /** 位置关系折叠:整轮拍平成序列后合并相邻工具;思考、可见正文和交互卡片都会打断。 */
-function ToolSequence({
+function ToolSequence(props: Omit<Parameters<typeof ModelToolSequence>[0], "coherent">) {
+  const enabled = useThinkingGroupMode() === "coherent";
+  const sections = useMemo(() => partitionThinkingGroups(props.messages, enabled), [props.messages, enabled]);
+  return <>{sections.map(section => (
+    <ModelToolSequence {...props} key={section.id} messages={section.messages} coherent={section.coherent}
+      activeAssistantId={section.messages.some(message => message.id === props.activeAssistantId) ? props.activeAssistantId : undefined} />
+  ))}</>;
+}
+
+function ModelToolSequence({
   messages,
   activeAssistantId,
   entering,
@@ -1258,8 +1271,10 @@ function ToolSequence({
   toolDisplay,
   getQuestion,
   onReplyQuestion,
+  coherent,
 }: {
   messages: UiMessage[];
+  coherent: boolean;
   activeAssistantId?: string;
   entering?: Set<string>;
   includeText?: (message: UiMessage) => boolean;
@@ -1267,7 +1282,6 @@ function ToolSequence({
   getQuestion: QuestionLookup;
   onReplyQuestion: QuestionReplyHandler;
 }) {
-  const coherent = useThinkingGroupMode() === "coherent";
   const items = useMemo(() => buildTurnItems(messages, { includeText }), [messages, includeText]);
   const nodes = useMemo(() => coherent ? [] : groupProcessItems(items, toolDisplay), [coherent, items, toolDisplay]);
   const coherentNodes = useMemo(() => coherent ? groupCoherentItems(items) : [], [coherent, items]);
@@ -1333,6 +1347,7 @@ function ToolSequence({
       content.push(
         <CoherentThought
           key={entry.id}
+          messageId={entry.messageId}
           text={entry.text}
           active={entry.messageId === activeAssistantId && Boolean(message && !message.text && message.tools.length === 0)}
           expanded={live && entry.id === latestId}
@@ -1393,6 +1408,8 @@ function ToolSequence({
         node.messageId,
         <ThinkingGroup
           messageId={node.messageId}
+          model={message?.model}
+          modelName={message?.modelName}
           text={node.text}
           active={active}
           live={live}
@@ -1497,7 +1514,7 @@ const CompletedAssistantTurn = memo(function CompletedAssistantTurn({
         <div id={processId} className="time-spent-body" aria-hidden={!expanded} inert={!expanded}>
           <div className="time-spent-body-inner">
             <LazyMount open={expanded}>{() => <>
-            {toolFold === "position" || thinkingGroupMode === "coherent" ? (
+            {toolFold === "position" || (thinkingGroupMode === "coherent" && messages.some(supportsThinkingGroups)) ? (
               <article className="assistant-block assistant-turn-process-item">
                 <ToolSequence
                   messages={messages}

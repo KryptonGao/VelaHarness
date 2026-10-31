@@ -29,6 +29,11 @@ import { didCompleteTask, noSound, streamNotificationSound, type NotifySound } f
 export interface UiMessage {
   id: string;
   role: "user" | "assistant";
+  /** assistant 消息实际来源的 SDK 模型标识；未知时不以当前选择代替。 */
+  model?: string;
+  provider?: string;
+  /** 渲染时按来源 provider/model 从目录解析的显示名称。 */
+  modelName?: string;
   text: string;
   thinking: string;
   tools: ToolTrace[];
@@ -680,6 +685,7 @@ export function toUiMessage(message: TranscriptMessage): UiMessage {
   return {
     id: message.id,
     role: message.role,
+    ...(message.role === "assistant" ? modelMetadata(message) : {}),
     text: message.text,
     thinking: message.thinking,
     tools: message.tools.map((tool) => ({ ...tool, activity: sanitizeActivity(tool.activity) })),
@@ -768,14 +774,16 @@ function applyToMessages(messages: UiMessage[], event: StreamUpdate, startedAt?:
     const last = messages[messages.length - 1];
     // 发送时预建或上一轮遗留的空 assistant 块直接复用,避免出现两个空气泡。
     if (last?.role === "assistant" && !last.text && !last.thinking && last.tools.length === 0 && !last.planIds?.length) {
-      if (startedAt === undefined || last.turnStartedAt === startedAt) return messages;
-      return [...messages.slice(0, -1), { ...last, turnStartedAt: startedAt }];
+      const next = applyAssistantMetadata(messages, event);
+      if (startedAt === undefined || last.turnStartedAt === startedAt) return next;
+      return [...next.slice(0, -1), { ...next.at(-1)!, turnStartedAt: startedAt }];
     }
     return [
       ...messages,
-      { id: crypto.randomUUID(), role: "assistant", text: "", thinking: "", tools: [], turnStartedAt: startedAt },
+      { id: crypto.randomUUID(), role: "assistant", text: "", thinking: "", tools: [], turnStartedAt: startedAt, ...modelMetadata(event) },
     ];
   }
+  if (event.type === "assistant_update" || event.type === "assistant_end") return applyAssistantMetadata(messages, event);
   const next = ensureAssistant(messages, startedAt);
   const last = next[next.length - 1];
   if (!last || last.role !== "assistant") return next;
@@ -843,9 +851,10 @@ function applyAgentToMessages(messages: UiMessage[], event: AgentRuntimeStreamEv
   }
   if (event.type === "assistant_start") {
     const last = messages[messages.length - 1];
-    if (last?.role === "assistant" && !last.text && !last.thinking && last.tools.length === 0) return messages;
-    return [...messages, { id: crypto.randomUUID(), role: "assistant", text: "", thinking: "", tools: [] }];
+    if (last?.role === "assistant" && !last.text && !last.thinking && last.tools.length === 0) return applyAssistantMetadata(messages, event);
+    return [...messages, { id: crypto.randomUUID(), role: "assistant", text: "", thinking: "", tools: [], ...modelMetadata(event) }];
   }
+  if (event.type === "assistant_update" || event.type === "assistant_end") return applyAssistantMetadata(messages, event);
   const next = ensureAssistant(messages);
   const last = next[next.length - 1];
   if (!last || last.role !== "assistant") return next;
@@ -889,6 +898,26 @@ function applyAgentToMessages(messages: UiMessage[], event: AgentRuntimeStreamEv
     last.text = last.text ? `${last.text}\n\n${event.message}` : event.message;
   }
 
+  return next;
+}
+
+function modelMetadata(value: { model?: unknown; provider?: unknown }): { model?: string; provider?: string } {
+  return {
+    ...(typeof value.model === "string" ? { model: value.model } : {}),
+    ...(typeof value.provider === "string" ? { provider: value.provider } : {}),
+  };
+}
+
+/** 元数据更新不另起消息，也不让未提供的字段擦掉已有来源。 */
+function applyAssistantMetadata(messages: UiMessage[], value: { model?: unknown; provider?: unknown }): UiMessage[] {
+  const metadata = modelMetadata(value);
+  if (metadata.model === undefined && metadata.provider === undefined) return messages;
+  const last = messages.at(-1);
+  if (last?.role === "assistant" &&
+    (metadata.model === undefined || metadata.model === last.model) &&
+    (metadata.provider === undefined || metadata.provider === last.provider)) return messages;
+  const next = ensureAssistant(messages);
+  Object.assign(next[next.length - 1]!, metadata);
   return next;
 }
 
@@ -1028,14 +1057,14 @@ function sanitizeAgents(value: unknown): AgentInfo[] {
 }
 
 /** 子代理会话事件来自 IPC，渲染前再校验一次形状。 */
-function sanitizeAgentEvent(value: unknown): AgentRuntimeStreamEvent | null {
+export function sanitizeAgentEvent(value: unknown): AgentRuntimeStreamEvent | null {
   if (!value || typeof value !== "object") return null;
   const event = value as Record<string, unknown>;
   const type = event.type;
   if (type === "user_message") {
     return typeof event.text === "string" ? { type, text: event.text } : null;
   }
-  if (type === "assistant_start") return { type };
+  if (type === "assistant_start" || type === "assistant_update" || type === "assistant_end") return { type, ...modelMetadata(event) };
   if (type === "text_delta" || type === "thinking_delta") {
     return typeof event.delta === "string" ? { type, delta: event.delta } : null;
   }

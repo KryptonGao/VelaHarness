@@ -8,7 +8,7 @@ import type { AgentMessage } from "@earendil-works/pi-agent-core";
 import { legacyAgentTranscript, normalizeStoredAgents, recoverLegacyAgents, type StoredAgent } from "../src/agent-history.ts";
 import { ConversationStore } from "../src/conversation-store.ts";
 import { createPersistedSession } from "../src/session-persistence.ts";
-import { AgentRuntime } from "../src/runtime.ts";
+import { AgentRuntime, type RuntimeEvent } from "../src/runtime.ts";
 
 function agent(overrides: Partial<StoredAgent> = {}): StoredAgent {
   return { id: "child", parentId: "root", path: "/root/test", name: "test", kind: "explore",
@@ -17,6 +17,35 @@ function agent(overrides: Partial<StoredAgent> = {}): StoredAgent {
     usage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 }, activeMs: 0, runningSince: null,
     pauseRequested: false, ...overrides };
 }
+
+describe("SDK assistant 来源事件", () => {
+  for (const scope of ["main", "child"] as const) {
+    it(`${scope}: 更新补齐实际模型，重复 token 不额外发送来源事件`, () => {
+      const emitted: RuntimeEvent[] = [];
+      const runtime = Object.assign(Object.create(AgentRuntime.prototype), {
+        conversations: new Map(), toolStreams: new Map(), assistantModels: new Map(),
+        trace: () => ({ capture: () => {} }),
+        emit: (event: RuntimeEvent) => emitted.push(event),
+      }) as {
+        handlePiEvent(id: string, event: unknown): void;
+        handleAgentPiEvent(id: string, agentId: string, event: unknown): void;
+      };
+      const send = (event: unknown) => scope === "main" ? runtime.handlePiEvent("c", event) : runtime.handleAgentPiEvent("c", "a", event);
+      const message = { role: "assistant", content: [], model: "gpt-5.4", provider: "openai-codex" };
+      send({ type: "message_start", message: { role: "assistant", content: [] } });
+      for (let index = 0; index < 2; index++) send({ type: "message_update", message, assistantMessageEvent: { type: "thinking_delta", delta: "思考" } });
+      send({ type: "message_end", message: { ...message, model: "deepseek-reasoner", provider: "custom-deepseek" } });
+      const stream = scope === "main" ? emitted : emitted.flatMap(event => event.type === "agent_event" ? [event.event] : []);
+      assert.deepEqual(stream.filter(event => ["assistant_start", "assistant_update", "assistant_end"].includes(event.type)).map(event => ({
+        type: event.type, model: "model" in event ? event.model : undefined, provider: "provider" in event ? event.provider : undefined,
+      })), [
+        { type: "assistant_start", model: undefined, provider: undefined },
+        { type: "assistant_update", model: "gpt-5.4", provider: "openai-codex" },
+        { type: "assistant_end", model: "deepseek-reasoner", provider: "custom-deepseek" },
+      ]);
+    });
+  }
+});
 
 describe("子代理历史恢复", () => {
   it("真实 SDK 执行 spawn_agent 和 read 后，退出重启能恢复思考与完整工具正文", { timeout: 20_000 }, async () => {
@@ -69,6 +98,8 @@ describe("子代理历史恢复", () => {
         contextWindow: 32768, maxTokens: 4096 });
       const id = runtime.activeConversationId;
       assert.ok(id);
+      const events: RuntimeEvent[] = [];
+      runtime.subscribe(event => events.push(event));
       await runtime.prompt(id, "执行本地子代理测试");
       for (let i = 0; i < 300 && !runtime.getAgents(id).some((item) => item.kind !== "root" && item.status === "completed"); i++) {
         await new Promise((resolve) => setTimeout(resolve, 10));
@@ -80,6 +111,17 @@ describe("子代理历史恢复", () => {
       for (let i = 0; i < 300 && runtime.getSnapshot().status === "streaming"; i++) {
         await new Promise((resolve) => setTimeout(resolve, 10));
       }
+      for (const scope of ["main", "child"] as const) {
+        const stream = scope === "main" ? events : events.flatMap(event => event.type === "agent_event" ? [event.event] : []);
+        for (const type of ["assistant_start", "assistant_end"]) {
+          const boundaries = stream.filter(event => event.type === type);
+          assert.ok(boundaries.length > 0, `${scope}/${type}`);
+          for (const event of boundaries) {
+            assert.equal("model" in event ? event.model : undefined, "history-test");
+            assert.equal("provider" in event ? event.provider : undefined, "local-history-test");
+          }
+        }
+      }
       runtime.dispose();
       const stored = JSON.parse(await readFile(join(dir, "conversations.json"), "utf8"));
       assert.ok(stored.conversations.find((item: { id: string }) => item.id === id).agents[0].sessionFile);
@@ -89,6 +131,10 @@ describe("子代理历史恢复", () => {
       assert.ok(restored.some((message) => message.thinking === "先读取持久化测试文件"), JSON.stringify(restored));
       assert.ok(restored.some((message) => message.tools.some((tool) => tool.activity.body?.includes("持久化工具输出"))));
       assert.equal(restored.at(-1)?.text, "已读取：持久化工具输出");
+      for (const message of [...restored, ...restarted.getMessages(id)].filter(message => message.role === "assistant")) {
+        assert.equal(message.model, "history-test");
+        assert.equal(message.provider, "local-history-test");
+      }
       assert.equal(restarted.getAgents(id).find((item) => item.id === child.id)?.historyIncomplete, false);
     } finally {
       runtimes.forEach((runtime) => runtime.dispose());

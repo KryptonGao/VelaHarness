@@ -166,6 +166,8 @@ function transcriptFromSources(sources: TranscriptSource[], plans: readonly Prop
       result.push({
         id: randomUUID(),
         role: "assistant",
+        ...(typeof message.model === "string" ? { model: message.model } : {}),
+        ...(typeof message.provider === "string" ? { provider: message.provider } : {}),
         text,
         thinking,
         tools,

@@ -21,8 +21,11 @@ if (!process.versions.electron) {
         import { flushSync } from 'react-dom';
         import { ToolList } from './apps/desktop/src/renderer/components/ToolCard';
         import { Thinking, CoherentThought } from './apps/desktop/src/renderer/components/Thinking';
+        import { AgentPane } from './apps/desktop/src/renderer/components/AgentPane';
+        import { ThinkingGroupModeContext, ThinkingModelCatalogContext } from './apps/desktop/src/renderer/components/ThinkingGroupModeContext';
         import { ThinkingSummaryContext } from './apps/desktop/src/renderer/components/ThinkingSummaryContext';
         import { AppLocaleProvider } from './apps/desktop/src/renderer/locale';
+        window.addEventListener('error', event => console.error(event.error?.stack ?? event.message));
         const root = createRoot(document.getElementById('root'));
         let revision = 0;
         const tool = (name, activity = {}) => ({id: name, name, status: 'done', activity});
@@ -42,9 +45,18 @@ if (!process.versions.electron) {
         tools.streaming[0].status = 'running';
         window.renderCase = (name, scheme, display = 'compact') => {
           document.documentElement.dataset.scheme = scheme;
-          const summary = {enabled: true, style: 'prose', get: () => ({status: 'done', text: 'Summary text.'})};
+          const summary = {enabled: true, style: 'prose', get: () => name === 'deepseekMissing' ? undefined : ({status: 'done', text: 'Summary text.'}), request: () => {}};
           const thought = <CoherentThought text={'**Review changes**\\n\\nThinking body.'} active={false} expanded={false} />;
-          const content = name === 'coherent' ? thought
+          const raw = Array.from({length: 100}, (_, i) => 'Raw reasoning paragraph ' + i + '.').join('\\n\\n');
+          const modelCase = ['deepseek', 'deepseekMissing', 'gpt', 'gptRaw', 'legacy', 'mixed', 'gptName', 'gptNameSingle', 'idContainsGpt', 'oModel', 'otherProvider'].includes(name);
+          const model = ['gptName', 'gptNameSingle', 'otherProvider'].includes(name) ? 'custom-alias' : name === 'idContainsGpt' ? 'myGpTalias' : name === 'oModel' ? 'o3' : name.startsWith('gpt') ? 'gpt-6.1' : name === 'legacy' ? undefined : 'deepseek-reasoner';
+          const messages = [{id: 'raw', role: 'assistant', model, provider: name === 'otherProvider' ? 'other' : 'custom', thinking: (name === 'gptRaw' ? '' : '**Planning**\\n\\n') + raw, text: 'Done.', tools: []}];
+          if (name === 'mixed') messages.push({id: 'gpt', role: 'assistant', model: 'gpt-6.1', thinking: '**GPT summary**\\n\\nShort body.', text: 'GPT done.', tools: []});
+          const agent = {id: 'agent', name: 'fixture', path: '/root/fixture', kind: 'worker', status: 'completed', depth: 1, usage: {input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0}, activeMs: 0, runningSince: null};
+          const content = modelCase ? <ThinkingModelCatalogContext.Provider value={[{id: 'custom-alias', provider: 'custom', name: 'My GpT Model'}, {id: 'custom-alias', provider: 'other', name: 'DeepSeek'}]}><ThinkingGroupModeContext.Provider value={name === 'gptNameSingle' ? 'single' : 'coherent'}><ThinkingSummaryContext.Provider value={summary}>
+              <AgentPane agent={agent} agents={[agent]} messages={messages} ensureMessages={() => {}} onSwitch={() => {}} onControl={() => {}} toolDisplay="compact" />
+            </ThinkingSummaryContext.Provider></ThinkingGroupModeContext.Provider></ThinkingModelCatalogContext.Provider>
+            : name === 'coherent' ? thought
             : name === 'nested' ? <Thinking text="" active={false} showActivityIndicator={false} titled={{title: 'Read files and run commands', body: ''}} coherent>
                 {thought}<ToolList tools={[bash]} display="compact" fold="none" />
               </Thinking>
@@ -78,6 +90,7 @@ if (!process.versions.electron) {
   void app.whenReady().then(async () => {
     const win = new BrowserWindow({ show: false, width: 800, height: 700,
       webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false, backgroundThrottling: false } });
+    win.webContents.on('console-message', event => { if (event.level === 'error') console.error(event.message); });
     const evaluate = code => win.webContents.executeJavaScript(code);
     let currentCase = '';
     const until = async code => {
@@ -98,6 +111,31 @@ if (!process.versions.electron) {
       await protocol('DOM.enable');
       await protocol('CSS.enable');
       for (const scheme of ['light', 'dark']) {
+        for (const name of ['deepseek', 'deepseekMissing', 'legacy', 'mixed', 'gpt', 'gptRaw', 'gptName', 'gptNameSingle', 'idContainsGpt', 'oModel', 'otherProvider']) {
+          currentCase = scheme + '/' + name;
+          await evaluate(`window.renderCase(${JSON.stringify(name)}, ${JSON.stringify(scheme)})`);
+          await until("document.querySelector('.assistant-block')");
+          if (name === 'gptNameSingle') {
+            assert.equal(await evaluate("document.querySelectorAll('.coherent-flat').length"), 0);
+            assert.equal(await evaluate("document.querySelector('.thinking-headline-trigger').title"), 'Planning', 'display name also enables title grouping');
+            continue;
+          }
+          if (['gpt', 'gptName', 'idContainsGpt'].includes(name)) {
+            assert.equal(await evaluate("document.querySelectorAll('.coherent-flat').length"), 1, 'GPT retains coherent mode');
+            assert.equal(await evaluate("document.querySelector('.coherent-thought-title').textContent"), 'Planning');
+            continue;
+          }
+          assert.equal(await evaluate("document.querySelectorAll('.coherent-flat').length"), ['mixed', 'gptRaw'].includes(name) ? 1 : 0, 'only GPT enters coherent mode');
+          if (name === 'deepseekMissing') {
+            assert.equal(await evaluate("document.querySelector('.thinking-summary-action').textContent"), '总结', 'uncached raw thinking retains the summarize action');
+            await evaluate("document.querySelector('.thinking-header .time-spent-trigger').click()");
+          } else {
+            assert.equal(await evaluate("document.querySelector('.thinking-prose-summary').textContent"), 'Summary text.', 'cached summary remains available');
+            await evaluate("document.querySelector('.thinking-prose-toggle').click()");
+          }
+          await until("document.querySelector('.thinking-block.expanded .thinking-scroll-viewport')?.clientHeight === 280");
+          assert.ok(await evaluate("(() => { const v = document.querySelector('.thinking-scroll-viewport'); return v.scrollHeight > v.clientHeight; })()"), 'long raw thinking scrolls instead of growing unbounded');
+        }
         for (const name of ['command', 'group', 'diff', 'browser', 'agent', 'generic', 'thinking', 'prose', 'coherent', 'nested']) {
           currentCase = `${scheme}/${name}`;
           await evaluate(`window.renderCase(${JSON.stringify(name)}, ${JSON.stringify(scheme)})`);
@@ -187,6 +225,7 @@ if (!process.versions.electron) {
         assert.equal(await opacity(), '1', `${scheme}: auto-expanded streaming diff arrow visible`);
       }
       win.webContents.debugger.detach();
+      console.log('Thinking model UI: GPT, DeepSeek, unknown history, mixed models, cached/missing summaries and bounded raw thinking passed in light/dark');
       console.log('Expand chevron UI: 11 arrow cases + 8 file summary cases × light/dark; visibility, hover/focus, nested isolation, UI fonts, count order and persistent creation dots passed');
       app.exit(0);
     } catch (error) {

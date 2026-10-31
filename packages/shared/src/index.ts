@@ -930,6 +930,9 @@ export interface TranscriptTool {
 export interface TranscriptMessage {
   id: string;
   role: "user" | "assistant";
+  /** assistant 消息实际来源的 SDK 模型标识；旧历史可能没有。 */
+  model?: string;
+  provider?: string;
   text: string;
   thinking: string;
   tools: TranscriptTool[];
@@ -1041,7 +1044,9 @@ export type AgentStreamEvent =
   | { type: "text_delta"; conversationId: string; delta: string }
   | { type: "thinking_delta"; conversationId: string; delta: string }
   /** agent 循环每一步都是一条独立的 assistant 消息;该事件标记一条新消息开始,渲染层据此另起一块。 */
-  | { type: "assistant_start"; conversationId: string }
+  | { type: "assistant_start"; conversationId: string; model?: string; provider?: string }
+  /** 更新/结束时补齐这条 assistant 消息的来源，不创建新消息。 */
+  | { type: "assistant_update" | "assistant_end"; conversationId: string; model?: string; provider?: string }
   | { type: "tool_start"; conversationId: string; toolCallId: string; toolName: string; activity: ToolActivity }
   | { type: "tool_output"; conversationId: string; toolCallId: string; activity: ToolActivity }
   | { type: "tool_end"; conversationId: string; toolCallId: string; toolName: string; isError: boolean; activity: ToolActivity }
@@ -1059,7 +1064,8 @@ export type AgentStreamEvent =
 /** 子代理会话的实时事件；形状与主对话一致，只是用 agentId 代替 conversationId。 */
 export type AgentRuntimeStreamEvent =
   | { type: "user_message"; text: string }
-  | { type: "assistant_start" }
+  | { type: "assistant_start"; model?: string; provider?: string }
+  | { type: "assistant_update" | "assistant_end"; model?: string; provider?: string }
   | { type: "text_delta"; delta: string }
   | { type: "thinking_delta"; delta: string }
   | { type: "tool_start"; toolCallId: string; toolName: string; activity: ToolActivity }

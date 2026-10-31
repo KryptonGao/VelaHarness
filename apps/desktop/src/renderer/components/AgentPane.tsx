@@ -16,7 +16,8 @@ import {
 import { Markdown } from "./Markdown";
 import { AssistantMarkdown } from "./intelligent-ui/AssistantMarkdown";
 import { CoherentGroup, CoherentThought, ThinkingGroup } from "./Thinking";
-import { useThinkingGroupMode } from "./ThinkingGroupModeContext";
+import { useNamedThinkingMessages, useThinkingGroupMode } from "./ThinkingGroupModeContext";
+import { partitionThinkingGroups, supportsThinkingGroups } from "../thinking-model";
 import { CompactToolGroup, CompactToolLine, ToolCard, ToolList, ToolRunGroup } from "./ToolCard";
 import { toolCompactKind } from "./tool-compact";
 import { attachFollowerTools, buildTurnItems, groupAgentStream, groupCoherentItems, groupProcessItems, isFlatCoherentGroup, latestThoughtId, type CoherentNode, type ProcessNode } from "./tool-sequence";
@@ -76,8 +77,8 @@ function VisibleAgentPane({
   toolDisplay, toolFold = "message", onSwitch, ensureMessages, onControl, follow,
 }: AgentPaneProps & { follow: MutableRefObject<AgentFollow> }) {
   const storedMessages = useMessages(messageStore, conversationId, agent.id);
-  const messages = messageStore ? storedMessages : providedMessages ?? emptyMessages;
-  const coherent = useThinkingGroupMode() === "coherent";
+  const messages = useNamedThinkingMessages(messageStore ? storedMessages : providedMessages ?? emptyMessages);
+  const coherent = useThinkingGroupMode() === "coherent" && messages.some(supportsThinkingGroups);
   const positional = toolFold === "position" || coherent;
   // 按位置折叠或连贯模式时由 AgentProcessSequence 自己归组;否则把没有思考的后续几轮的工具并进前一段标题思考。
   const units = useMemo(() => positional ? null : attachFollowerTools(messages), [messages, positional]);
@@ -409,6 +410,8 @@ const AgentStreamMessage = memo(function AgentStreamMessage({
         <div data-arrival-key={`${message.id}:thinking`}>
           <ThinkingGroup
             messageId={message.id}
+            model={message.model}
+            modelName={message.modelName}
             text={message.thinking}
             active={thinkingActive}
             live={streaming && (!message.text || message.tools.some((tool) => tool.status === "running"))}
@@ -432,18 +435,28 @@ const AgentStreamMessage = memo(function AgentStreamMessage({
  * 折叠方式为「按位置关系」时,相邻助理消息拍平成一条过程流,
  * 相邻工具跨消息合并成一组;思考、可见正文和不可折叠的工具都会打断分组。
  */
-const AgentProcessSequence = memo(function AgentProcessSequence({
+const AgentProcessSequence = memo(function AgentProcessSequence(props: Omit<Parameters<typeof ModelAgentProcessSequence>[0], "coherent">) {
+  const enabled = useThinkingGroupMode() === "coherent";
+  const sections = useMemo(() => partitionThinkingGroups(props.messages, enabled), [props.messages, enabled]);
+  return <>{sections.map(section => (
+    <ModelAgentProcessSequence {...props} key={section.id} messages={section.messages} coherent={section.coherent}
+      streamingId={section.messages.some(message => message.id === props.streamingId) ? props.streamingId : null} />
+  ))}</>;
+});
+
+function ModelAgentProcessSequence({
   messages,
   streamingId,
   toolDisplay,
+  coherent,
 }: {
   messages: UiMessage[];
   streamingId: string | null;
   toolDisplay?: ToolDisplay;
+  coherent: boolean;
 }) {
   const display = toolDisplay ?? "card";
   const compact = display === "compact";
-  const coherent = useThinkingGroupMode() === "coherent";
   const items = useMemo(() => buildTurnItems(messages), [messages]);
   const nodes = useMemo(() => coherent ? [] : groupProcessItems(items, display), [coherent, items, display]);
   const coherentNodes = useMemo(() => coherent ? groupCoherentItems(items) : [], [coherent, items]);
@@ -496,6 +509,7 @@ const AgentProcessSequence = memo(function AgentProcessSequence({
       content.push(
         <CoherentThought
           key={entry.id}
+          messageId={entry.messageId}
           text={entry.text}
           active={entry.messageId === streamingId && Boolean(message && !message.text && message.tools.length === 0)}
           expanded={live && entry.id === latestId}
@@ -549,6 +563,8 @@ const AgentProcessSequence = memo(function AgentProcessSequence({
         <div key={`thinking:${node.id}`} data-arrival-key={`${node.messageId}:thinking`}>
           <ThinkingGroup
             messageId={node.messageId}
+            model={message?.model}
+            modelName={message?.modelName}
             text={node.text}
             active={active}
             live={live}
@@ -573,4 +589,4 @@ const AgentProcessSequence = memo(function AgentProcessSequence({
       {output}
     </article>
   );
-});
+}

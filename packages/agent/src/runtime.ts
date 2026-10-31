@@ -191,6 +191,15 @@ const log = createLogger("runtime");
 
 const recipePromptToken = Symbol("recipe-stage-prompt");
 
+/** 只取当前 SDK 消息的来源，不从会话当前选择补猜旧消息的模型。 */
+function assistantModelMetadata(message: AgentMessage | undefined): { model?: string; provider?: string } {
+  if (message?.role !== "assistant") return {};
+  return {
+    ...(typeof message.model === "string" ? { model: message.model } : {}),
+    ...(typeof message.provider === "string" ? { provider: message.provider } : {}),
+  };
+}
+
 export type RuntimeEvent =
   | TraceUpdate
   | { type: "status"; conversationId: string }
@@ -199,7 +208,8 @@ export type RuntimeEvent =
   | { type: "task_budget"; conversationId: string; startedAt: number; phase: "warning" | "exhausted"; costUsed: number; maxCost: TaskBudgetCostLimit }
   | { type: "text_delta"; conversationId: string; delta: string }
   | { type: "thinking_delta"; conversationId: string; delta: string }
-  | { type: "assistant_start"; conversationId: string }
+  | { type: "assistant_start"; conversationId: string; model?: string; provider?: string }
+  | { type: "assistant_update" | "assistant_end"; conversationId: string; model?: string; provider?: string }
   | { type: "tool_start"; conversationId: string; toolCallId: string; toolName: string; activity: ToolActivity }
   | { type: "tool_output"; conversationId: string; toolCallId: string; activity: ToolActivity }
   | { type: "tool_end"; conversationId: string; toolCallId: string; toolName: string; isError: boolean; activity: ToolActivity }
@@ -368,6 +378,8 @@ export class AgentRuntime {
   private readonly agentToolArgs = new Map<string, unknown>();
   /** edit / write 参数的流式进度。键是 conversationId，子代理再拼上 agentId。 */
   private readonly toolStreams = new Map<string, ToolStreamTracker>();
+  /** 仅来源变化时发送补充事件，避免每个 token 都打断 IPC 文本合并。 */
+  private readonly assistantModels = new Map<string, { model?: string; provider?: string }>();
   private readonly questions = new QuestionManager();
   private readonly thinkingSummaries = new ThinkingSummaryGenerator();
   private readonly inputPredictions = new InputPredictionGenerator();
@@ -2902,6 +2914,17 @@ export class AgentRuntime {
     await Promise.all([control?.dispose(), session ? this.closeSession(session) : undefined]);
   }
 
+  private assistantMetadata(key: string, phase: "start" | "update" | "end", message: AgentMessage | undefined): { model?: string; provider?: string } | null {
+    const metadata = assistantModelMetadata(message);
+    const previous = this.assistantModels.get(key);
+    if (phase === "end") this.assistantModels.delete(key);
+    else this.assistantModels.set(key, { ...(phase === "update" ? previous : {}), ...metadata });
+    if (phase === "update" &&
+      (metadata.model === undefined || metadata.model === previous?.model) &&
+      (metadata.provider === undefined || metadata.provider === previous?.provider)) return null;
+    return metadata;
+  }
+
   private handlePiEvent(conversationId: string, event: AgentSessionEvent): void {
     const recorder = this.trace(conversationId);
     recorder.capture(() => recorder.handle(event));
@@ -2926,11 +2949,12 @@ export class AgentRuntime {
         entry.planStream = createPlanStreamParser();
         entry.planStreamPlan = null;
       }
-      this.emit({ type: "assistant_start", conversationId });
+      this.emit({ type: "assistant_start", conversationId, ...this.assistantMetadata(conversationId, "start", event.message) });
       return;
     }
     if (event.type === "message_end") {
       if (event.message.role === "assistant") {
+        this.emit({ type: "assistant_end", conversationId, ...this.assistantMetadata(conversationId, "end", event.message) });
         const entry = this.conversations.get(conversationId);
         if (entry) {
           this.recordTaskUsage(entry, event.message);
@@ -2951,6 +2975,8 @@ export class AgentRuntime {
       return;
     }
     if (event.type === "message_update") {
+      const metadata = this.assistantMetadata(conversationId, "update", event.message);
+      if (metadata) this.emit({ type: "assistant_update", conversationId, ...metadata });
       const update = event.assistantMessageEvent;
       const entry = this.conversations.get(conversationId);
       this.emitToolStream(conversationId, update, (stream) => this.emit({ ...stream, conversationId }));
@@ -3068,10 +3094,12 @@ export class AgentRuntime {
       this.emit({ type: "agent_event", conversationId, agentId, event: streamEvent });
     };
     if (event.type === "message_start" && event.message.role === "assistant") {
-      emit({ type: "assistant_start" });
+      emit({ type: "assistant_start", ...this.assistantMetadata(`${conversationId}:${agentId}`, "start", event.message) });
       return;
     }
     if (event.type === "message_update") {
+      const metadata = this.assistantMetadata(`${conversationId}:${agentId}`, "update", event.message);
+      if (metadata) emit({ type: "assistant_update", ...metadata });
       const update = event.assistantMessageEvent;
       this.emitToolStream(`${conversationId}:${agentId}`, update, emit);
       if (update.type === "text_delta") emit({ type: "text_delta", delta: update.delta });
@@ -3081,6 +3109,7 @@ export class AgentRuntime {
     if (event.type === "message_end") {
       const message = event.message;
       if (message.role === "assistant") {
+        emit({ type: "assistant_end", ...this.assistantMetadata(`${conversationId}:${agentId}`, "end", message) });
         // 子代理的请求同样计入任务费用。
         const owner = this.conversations.get(conversationId);
         if (owner) {
