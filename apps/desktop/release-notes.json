@@ -1,139 +1,139 @@
 {
-  "version": "1.2.15",
+  "version": "1.2.16",
   "locales": {
     "en": {
-      "summary": "Vela 1.2.15 adds the Pierre Icons file icon theme and a unique robot avatar for every subagent, and the main agent now replies less often when several subagents or background commands finish together.",
+      "summary": "Vela 1.2.16 makes the app smoother when many subagents stream at once, and removes the blank gap under short expanded thinking groups.",
       "highlights": [
         {
-          "title": "Pierre Icons theme",
-          "body": "Choose Pierre Icons under Settings → Appearance → File icons. It is the default for new installs, and an icon theme you already picked is kept."
+          "title": "Smoother with many subagents",
+          "body": "Streamed text and thinking from subagents are coalesced before they reach the interface, so a busy roster no longer floods the window with updates."
         },
         {
-          "title": "A face for every subagent",
-          "body": "Each subagent gets its own robot avatar in its tab, header, roster menu and the Agents card, so you can tell them apart at a glance."
+          "title": "Fewer redundant refreshes",
+          "body": "State broadcasts triggered by the main agent’s tool calls are throttled and no-op agent updates are skipped, cutting CPU and IPC traffic during long runs."
         },
         {
-          "title": "Skill reads at a glance",
-          "body": "Reading a skill’s SKILL.md is now summarized as “Read N skills” instead of being counted as an ordinary file read."
+          "title": "Lighter rendering",
+          "body": "The roster, chat view and entry animations avoid repeated full scans, and completed turns are rendered lazily."
         },
         {
-          "title": "One reply for a batch of finishers",
-          "body": "When several subagents or background commands finish close together, their notices arrive as one batch and the main agent responds once."
+          "title": "Thinking groups fit their content",
+          "body": "A short thinking group that grows with its details now shrinks to its content instead of leaving an empty gap."
         }
       ],
       "improvements": [
-        "A background command that exits normally without any output no longer wakes the main agent.",
-        "Subagent progress messages are only added to the main agent’s context instead of starting a reply of their own.",
-        "When a delivered conclusion needs no action, the agent answers with at most one short sentence instead of repeating earlier results.",
-        "Pierre Icons follow the light or dark color scheme automatically."
+        "Elapsed-time clocks across panes now share a single ticker instead of one timer each.",
+        "Agent panes and the task budget banner re-render only when their own data changes.",
+        "Subagent text and thinking deltas are merged in the main process before being sent to the window.",
+        "Switching between many running subagents stays responsive."
       ]
     },
     "zh-CN": {
-      "summary": "Vela 1.2.15 新增 Pierre Icons 文件图标主题，并为每个子代理配上独一无二的机器人头像；多个子代理或后台命令同时结束时，主代理的回复也更少、更简洁。",
+      "summary": "Vela 1.2.16 让多个子代理同时流式输出时更流畅，并消除了较短的展开思考分组下方的空白。",
       "highlights": [
         {
-          "title": "Pierre Icons 图标主题",
-          "body": "在「设置 → 外观 → 文件图标」中选择 Pierre Icons。新安装默认使用它，已选择的图标主题不会被改变。"
+          "title": "多子代理更流畅",
+          "body": "子代理的文字与思考输出会先合并再送到界面，代理很多时不再被大量更新刷屏。"
         },
         {
-          "title": "每个子代理都有自己的头像",
-          "body": "每个子代理在标签页、标题栏、代理列表菜单和「代理」卡片中都有专属的机器人头像，一眼就能分辨。"
+          "title": "更少的重复刷新",
+          "body": "主代理工具调用触发的状态广播被节流，无变化的代理更新会被跳过，长时间运行时 CPU 与 IPC 开销更低。"
         },
         {
-          "title": "技能读取一目了然",
-          "body": "读取技能的 SKILL.md 时，现在显示为「已读取 N 个技能」，不再混在普通文件读取里。"
+          "title": "渲染更轻量",
+          "body": "代理列表、对话视图和入场动画不再反复全量扫描，已完成的回合按需渲染。"
         },
         {
-          "title": "一批任务只回复一次",
-          "body": "多个子代理或后台命令先后脚结束时，通知会合并为一批送达，主代理只回复一次。"
+          "title": "思考分组贴合内容",
+          "body": "随详情一起增高的较短思考分组，现在会按内容收缩，不再留下一块空白。"
         }
       ],
       "improvements": [
-        "后台命令正常退出且没有任何输出时，不再唤醒主代理。",
-        "子代理的进度消息只会写入主代理的上下文，不再单独触发一轮回复。",
-        "收到无需处理的结论时，代理最多用一句简短的话回应，不再重复之前的结果。",
-        "Pierre Icons 会自动跟随浅色或深色配色。"
+        "各面板的计时时钟现在共用同一个定时器，不再各开一个。",
+        "代理面板和任务预算横幅只在自身数据变化时才重新渲染。",
+        "子代理的文字与思考增量在主进程中先合并，再发送给窗口。",
+        "在多个运行中的子代理之间切换依然流畅。"
       ]
     },
     "zh-TW": {
-      "summary": "Vela 1.2.15 新增 Pierre Icons 檔案圖示主題，並為每個子代理配上獨一無二的機器人頭像；多個子代理或背景指令同時結束時，主代理的回覆也更少、更精簡。",
+      "summary": "Vela 1.2.16 讓多個子代理同時串流輸出時更順暢，並消除了較短的展開思考分組下方的空白。",
       "highlights": [
         {
-          "title": "Pierre Icons 圖示主題",
-          "body": "在「設定 → 外觀 → 檔案圖示」中選擇 Pierre Icons。新安裝預設使用它，已選擇的圖示主題不會被改變。"
+          "title": "多子代理更順暢",
+          "body": "子代理的文字與思考輸出會先合併再送到介面，代理很多時不再被大量更新洗版。"
         },
         {
-          "title": "每個子代理都有自己的頭像",
-          "body": "每個子代理在分頁、標題列、代理清單選單和「代理」卡片中都有專屬的機器人頭像，一眼就能分辨。"
+          "title": "更少的重複重新整理",
+          "body": "主代理工具呼叫觸發的狀態廣播被節流，無變化的代理更新會被略過，長時間執行時 CPU 與 IPC 負擔更低。"
         },
         {
-          "title": "技能讀取一目了然",
-          "body": "讀取技能的 SKILL.md 時，現在顯示為「已讀取 N 個技能」，不再混在一般檔案讀取裡。"
+          "title": "繪製更輕量",
+          "body": "代理清單、對話檢視和進場動畫不再反覆全量掃描，已完成的回合按需繪製。"
         },
         {
-          "title": "一批任務只回覆一次",
-          "body": "多個子代理或背景指令先後結束時，通知會合併為一批送達，主代理只回覆一次。"
+          "title": "思考分組貼合內容",
+          "body": "隨詳情一起增高的較短思考分組，現在會依內容收縮，不再留下一塊空白。"
         }
       ],
       "improvements": [
-        "背景指令正常結束且沒有任何輸出時，不再喚醒主代理。",
-        "子代理的進度訊息只會寫入主代理的上下文，不再單獨觸發一輪回覆。",
-        "收到無需處理的結論時，代理最多用一句簡短的話回應，不再重複先前的結果。",
-        "Pierre Icons 會自動跟隨淺色或深色配色。"
+        "各面板的計時時鐘現在共用同一個計時器，不再各開一個。",
+        "代理面板和任務預算橫幅只在自身資料變化時才重新繪製。",
+        "子代理的文字與思考增量在主程序中先合併，再傳送給視窗。",
+        "在多個執行中的子代理之間切換依然順暢。"
       ]
     },
     "ja": {
-      "summary": "Vela 1.2.15 では、ファイルアイコンテーマ「Pierre Icons」を追加し、サブエージェントごとに固有のロボットアバターを表示します。複数のサブエージェントやバックグラウンドコマンドが同時に終了したときのメインエージェントの返信も減りました。",
+      "summary": "Vela 1.2.16 では、多数のサブエージェントが同時にストリーミングしても動作が滑らかになり、短い展開済み思考グループの下に出ていた余白も解消しました。",
       "highlights": [
         {
-          "title": "Pierre Icons テーマ",
-          "body": "「設定 → 外観 → ファイルアイコン」で Pierre Icons を選択できます。新規インストールでは既定で使われ、すでに選んだアイコンテーマは変更されません。"
+          "title": "多数のサブエージェントでも滑らか",
+          "body": "サブエージェントのテキストと思考の出力はまとめてから画面に届くため、エージェントが多くても更新が殺到しなくなりました。"
         },
         {
-          "title": "サブエージェントごとの顔",
-          "body": "各サブエージェントに専用のロボットアバターが付き、タブ、ヘッダー、一覧メニュー、エージェントカードで見分けやすくなりました。"
+          "title": "無駄な再描画を削減",
+          "body": "メインエージェントのツール呼び出しによる状態の通知を間引き、変化のないエージェント更新は省略して、長時間の実行中の CPU と IPC の負荷を減らしました。"
         },
         {
-          "title": "スキルの読み取りがひと目で分かる",
-          "body": "スキルの SKILL.md を読み取ったときは、通常のファイル読み取りではなく「スキル N 件を読み取り」と表示されます。"
+          "title": "描画が軽量に",
+          "body": "エージェント一覧、チャット表示、登場アニメーションが毎回全体を走査しなくなり、完了したターンは必要になったときに描画されます。"
         },
         {
-          "title": "まとめて終わっても返信は 1 回",
-          "body": "複数のサブエージェントやバックグラウンドコマンドが近いタイミングで終了しても、通知はまとめて届き、メインエージェントの返信は 1 回になります。"
+          "title": "思考グループが内容にぴったり",
+          "body": "詳細と一緒に高くなる短い思考グループは、空白を残さず内容に合わせて縮むようになりました。"
         }
       ],
       "improvements": [
-        "出力なしで正常終了したバックグラウンドコマンドは、メインエージェントを起こさなくなりました。",
-        "サブエージェントの進捗メッセージはメインエージェントのコンテキストに追加されるだけで、単独で返信を始めなくなりました。",
-        "対応不要の結論が届いたときは、以前の結果を繰り返さず、短い一文までで答えます。",
-        "Pierre Icons はライト／ダークの配色に自動で合わせて表示されます。"
+        "各ペインの経過時間表示は、個別のタイマーではなく 1 つの共通タイマーで更新されます。",
+        "エージェントペインとタスク予算バナーは、自身のデータが変わったときだけ再描画されます。",
+        "サブエージェントのテキストと思考の差分は、メインプロセスでまとめてからウィンドウに送られます。",
+        "実行中のサブエージェントが多くても切り替えが快適です。"
       ]
     },
     "ko": {
-      "summary": "Vela 1.2.15에 Pierre Icons 파일 아이콘 테마를 추가하고, 하위 에이전트마다 고유한 로봇 아바타를 표시합니다. 여러 하위 에이전트나 백그라운드 명령이 동시에 끝날 때 메인 에이전트의 응답도 줄었습니다.",
+      "summary": "Vela 1.2.16은 많은 하위 에이전트가 동시에 스트리밍할 때 더 부드럽게 동작하며, 짧게 펼쳐진 생각 그룹 아래에 생기던 빈 공간을 없앴습니다.",
       "highlights": [
         {
-          "title": "Pierre Icons 테마",
-          "body": "설정 → 모양 → 파일 아이콘에서 Pierre Icons를 선택할 수 있습니다. 새로 설치하면 기본값이며, 이미 선택한 아이콘 테마는 그대로 유지됩니다."
+          "title": "많은 하위 에이전트에서도 부드럽게",
+          "body": "하위 에이전트의 텍스트와 생각 출력이 합쳐져서 화면에 전달되므로, 에이전트가 많아도 업데이트가 쏟아지지 않습니다."
         },
         {
-          "title": "하위 에이전트마다 고유한 얼굴",
-          "body": "각 하위 에이전트에 전용 로봇 아바타가 생겨 탭, 헤더, 목록 메뉴, 에이전트 카드에서 한눈에 구분할 수 있습니다."
+          "title": "불필요한 새로고침 감소",
+          "body": "메인 에이전트의 도구 호출로 발생하는 상태 전송을 제한하고 변경 없는 에이전트 업데이트를 건너뛰어, 긴 작업 중 CPU와 IPC 부담을 줄였습니다."
         },
         {
-          "title": "스킬 읽기를 한눈에",
-          "body": "스킬의 SKILL.md를 읽으면 일반 파일 읽기가 아니라 스킬 N개 읽음으로 표시됩니다."
+          "title": "더 가벼운 렌더링",
+          "body": "에이전트 목록, 채팅 보기, 등장 애니메이션이 매번 전체를 훑지 않으며 완료된 턴은 필요할 때 렌더링됩니다."
         },
         {
-          "title": "한꺼번에 끝나도 응답은 한 번",
-          "body": "여러 하위 에이전트나 백그라운드 명령이 비슷한 시점에 끝나면 알림이 한 묶음으로 전달되어 메인 에이전트가 한 번만 응답합니다."
+          "title": "내용에 맞는 생각 그룹",
+          "body": "세부 정보와 함께 높아지는 짧은 생각 그룹이 이제 빈 공간 없이 내용에 맞춰 줄어듭니다."
         }
       ],
       "improvements": [
-        "출력 없이 정상 종료된 백그라운드 명령은 더 이상 메인 에이전트를 깨우지 않습니다.",
-        "하위 에이전트의 진행 메시지는 메인 에이전트의 컨텍스트에만 추가되며 별도의 응답을 시작하지 않습니다.",
-        "조치가 필요 없는 결론이 전달되면 이전 결과를 반복하지 않고 짧은 한 문장 이내로 답합니다.",
-        "Pierre Icons는 밝은 색 구성표와 어두운 색 구성표에 자동으로 맞춰 표시됩니다."
+        "각 창의 경과 시간 표시가 개별 타이머 대신 하나의 공유 타이머를 사용합니다.",
+        "에이전트 창과 작업 예산 배너는 자신의 데이터가 바뀔 때만 다시 렌더링됩니다.",
+        "하위 에이전트의 텍스트와 생각 증분은 메인 프로세스에서 합쳐진 뒤 창으로 전달됩니다.",
+        "실행 중인 하위 에이전트가 많아도 전환이 빠릿합니다."
       ]
     }
   }
