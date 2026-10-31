@@ -1,139 +1,139 @@
 {
-  "version": "1.2.14",
+  "version": "1.2.15",
   "locales": {
     "en": {
-      "summary": "Vela 1.2.14 adds back and forward navigation, pinned workspaces, and workspace hover cards, with clearer tool details and subagent tabs that open when you choose them.",
+      "summary": "Vela 1.2.15 adds the Pierre Icons file icon theme and a unique robot avatar for every subagent, and the main agent now replies less often when several subagents or background commands finish together.",
       "highlights": [
         {
-          "title": "Back and forward navigation",
-          "body": "Move between pages and conversations with the window navigation buttons, ⌘[ and ⌘] shortcuts on macOS, or mouse side buttons."
+          "title": "Pierre Icons theme",
+          "body": "Choose Pierre Icons under Settings → Appearance → File icons. It is the default for new installs, and an icon theme you already picked is kept."
         },
         {
-          "title": "Pin your workspaces",
-          "body": "Keep frequently used workspaces in a separate Pinned section. Your pins and the section’s collapsed state are remembered."
+          "title": "A face for every subagent",
+          "body": "Each subagent gets its own robot avatar in its tab, header, roster menu and the Agents card, so you can tell them apart at a glance."
         },
         {
-          "title": "Workspace details on hover",
-          "body": "Hover over a workspace to see its chat count and folder paths, pin or unpin it, or open its settings."
+          "title": "Skill reads at a glance",
+          "body": "Reading a skill’s SKILL.md is now summarized as “Read N skills” instead of being counted as an ordinary file read."
         },
         {
-          "title": "Open subagent tabs when needed",
-          "body": "Subagent tabs now open when you select an agent, keeping the workbench focused on the panes you choose."
+          "title": "One reply for a batch of finishers",
+          "body": "When several subagents or background commands finish close together, their notices arrive as one batch and the main agent responds once."
         }
       ],
       "improvements": [
-        "Expanded tool and thinking rows keep their chevrons visible so their open state is easier to recognize.",
-        "Completed file writes show a small creation indicator in both regular and compact tool cards.",
-        "File change counts appear before the detail toggle in compact tool rows, with lighter typography in tool cards.",
-        "Workspace groups collapse with a smoother animation while keeping their quick opening transition."
+        "A background command that exits normally without any output no longer wakes the main agent.",
+        "Subagent progress messages are only added to the main agent’s context instead of starting a reply of their own.",
+        "When a delivered conclusion needs no action, the agent answers with at most one short sentence instead of repeating earlier results.",
+        "Pierre Icons follow the light or dark color scheme automatically."
       ]
     },
     "zh-CN": {
-      "summary": "Vela 1.2.14 新增前进与后退导航、工作区置顶和悬浮信息卡，并改进工具详情显示，让子代理标签页按需打开。",
+      "summary": "Vela 1.2.15 新增 Pierre Icons 文件图标主题，并为每个子代理配上独一无二的机器人头像；多个子代理或后台命令同时结束时，主代理的回复也更少、更简洁。",
       "highlights": [
         {
-          "title": "前进与后退导航",
-          "body": "使用窗口导航按钮、macOS 的 ⌘[ 和 ⌘] 快捷键，或鼠标侧键，在页面和对话之间来回切换。"
+          "title": "Pierre Icons 图标主题",
+          "body": "在「设置 → 外观 → 文件图标」中选择 Pierre Icons。新安装默认使用它，已选择的图标主题不会被改变。"
         },
         {
-          "title": "置顶常用工作区",
-          "body": "把常用工作区放进独立的「置顶」分区。置顶状态和分区的折叠状态都会保留。"
+          "title": "每个子代理都有自己的头像",
+          "body": "每个子代理在标签页、标题栏、代理列表菜单和「代理」卡片中都有专属的机器人头像，一眼就能分辨。"
         },
         {
-          "title": "悬停查看工作区详情",
-          "body": "将指针停在工作区上，即可查看聊天数量与文件夹路径，置顶或取消置顶，也可直接打开工作区设置。"
+          "title": "技能读取一目了然",
+          "body": "读取技能的 SKILL.md 时，现在显示为「已读取 N 个技能」，不再混在普通文件读取里。"
         },
         {
-          "title": "按需打开子代理标签页",
-          "body": "选择子代理时才会打开对应标签页，让工作台集中显示你主动打开的窗格。"
+          "title": "一批任务只回复一次",
+          "body": "多个子代理或后台命令先后脚结束时，通知会合并为一批送达，主代理只回复一次。"
         }
       ],
       "improvements": [
-        "工具和思考条目展开后，箭头会保持可见，更容易辨认当前展开状态。",
-        "文件写入完成后，普通和紧凑工具卡片都会显示一个小型创建标记。",
-        "紧凑工具条目的文件变更行数移到详情按钮之前，工具卡片中的行数文字也更轻巧。",
-        "工作区分组收起时的动画更平缓，同时保留快速展开的过渡。"
+        "后台命令正常退出且没有任何输出时，不再唤醒主代理。",
+        "子代理的进度消息只会写入主代理的上下文，不再单独触发一轮回复。",
+        "收到无需处理的结论时，代理最多用一句简短的话回应，不再重复之前的结果。",
+        "Pierre Icons 会自动跟随浅色或深色配色。"
       ]
     },
     "zh-TW": {
-      "summary": "Vela 1.2.14 新增前進與後退導覽、工作區置頂和懸浮資訊卡，並改善工具詳情顯示，讓子代理分頁依需求開啟。",
+      "summary": "Vela 1.2.15 新增 Pierre Icons 檔案圖示主題，並為每個子代理配上獨一無二的機器人頭像；多個子代理或背景指令同時結束時，主代理的回覆也更少、更精簡。",
       "highlights": [
         {
-          "title": "前進與後退導覽",
-          "body": "使用視窗導覽按鈕、macOS 的 ⌘[ 和 ⌘] 快速鍵，或滑鼠側鍵，在頁面和對話之間來回切換。"
+          "title": "Pierre Icons 圖示主題",
+          "body": "在「設定 → 外觀 → 檔案圖示」中選擇 Pierre Icons。新安裝預設使用它，已選擇的圖示主題不會被改變。"
         },
         {
-          "title": "置頂常用工作區",
-          "body": "把常用工作區放進獨立的「置頂」區塊。置頂狀態和區塊的摺疊狀態都會保留。"
+          "title": "每個子代理都有自己的頭像",
+          "body": "每個子代理在分頁、標題列、代理清單選單和「代理」卡片中都有專屬的機器人頭像，一眼就能分辨。"
         },
         {
-          "title": "懸停查看工作區詳情",
-          "body": "將游標停在工作區上，即可查看聊天數量與資料夾路徑，置頂或取消置頂，也可直接開啟工作區設定。"
+          "title": "技能讀取一目了然",
+          "body": "讀取技能的 SKILL.md 時，現在顯示為「已讀取 N 個技能」，不再混在一般檔案讀取裡。"
         },
         {
-          "title": "依需求開啟子代理分頁",
-          "body": "選取子代理時才會開啟對應分頁，讓工作台集中顯示你主動開啟的窗格。"
+          "title": "一批任務只回覆一次",
+          "body": "多個子代理或背景指令先後結束時，通知會合併為一批送達，主代理只回覆一次。"
         }
       ],
       "improvements": [
-        "工具和思考項目展開後，箭頭會保持可見，更容易辨認目前的展開狀態。",
-        "檔案寫入完成後，一般和精簡工具卡片都會顯示一個小型建立標記。",
-        "精簡工具項目的檔案變更行數移到詳情按鈕之前，工具卡片中的行數文字也更輕巧。",
-        "工作區群組收起時的動畫更平緩，同時保留快速展開的轉場。"
+        "背景指令正常結束且沒有任何輸出時，不再喚醒主代理。",
+        "子代理的進度訊息只會寫入主代理的上下文，不再單獨觸發一輪回覆。",
+        "收到無需處理的結論時，代理最多用一句簡短的話回應，不再重複先前的結果。",
+        "Pierre Icons 會自動跟隨淺色或深色配色。"
       ]
     },
     "ja": {
-      "summary": "Vela 1.2.14 では、戻る・進むナビゲーション、ワークスペースのピン留め、ホバーカードを追加しました。ツールの詳細表示も改善し、サブエージェントのタブは必要なときに開くようになりました。",
+      "summary": "Vela 1.2.15 では、ファイルアイコンテーマ「Pierre Icons」を追加し、サブエージェントごとに固有のロボットアバターを表示します。複数のサブエージェントやバックグラウンドコマンドが同時に終了したときのメインエージェントの返信も減りました。",
       "highlights": [
         {
-          "title": "戻る・進むナビゲーション",
-          "body": "ウィンドウのナビゲーションボタン、macOS の ⌘[ と ⌘] ショートカット、マウスのサイドボタンで、ページや会話を行き来できます。"
+          "title": "Pierre Icons テーマ",
+          "body": "「設定 → 外観 → ファイルアイコン」で Pierre Icons を選択できます。新規インストールでは既定で使われ、すでに選んだアイコンテーマは変更されません。"
         },
         {
-          "title": "よく使うワークスペースをピン留め",
-          "body": "よく使うワークスペースを専用の「ピン留め」セクションにまとめられます。ピン留めとセクションの折りたたみ状態は保存されます。"
+          "title": "サブエージェントごとの顔",
+          "body": "各サブエージェントに専用のロボットアバターが付き、タブ、ヘッダー、一覧メニュー、エージェントカードで見分けやすくなりました。"
         },
         {
-          "title": "ホバーでワークスペースの詳細を表示",
-          "body": "ワークスペースにポインターを合わせると、チャット数やフォルダーのパスを確認でき、ピン留めの切り替えや設定を開く操作もできます。"
+          "title": "スキルの読み取りがひと目で分かる",
+          "body": "スキルの SKILL.md を読み取ったときは、通常のファイル読み取りではなく「スキル N 件を読み取り」と表示されます。"
         },
         {
-          "title": "必要なときにサブエージェントのタブを開く",
-          "body": "サブエージェントを選択したときに対応するタブが開くため、ワークベンチには自分で開いたペインを表示できます。"
+          "title": "まとめて終わっても返信は 1 回",
+          "body": "複数のサブエージェントやバックグラウンドコマンドが近いタイミングで終了しても、通知はまとめて届き、メインエージェントの返信は 1 回になります。"
         }
       ],
       "improvements": [
-        "展開中のツールや思考の行では矢印が表示されたままになり、開いている状態を見分けやすくなりました。",
-        "ファイルの書き込みが完了すると、通常とコンパクトの両方のツールカードに小さな作成マークを表示します。",
-        "コンパクトなツール行ではファイルの変更行数を詳細ボタンの前に移し、ツールカードの行数表示の文字も軽くしました。",
-        "ワークスペースグループを閉じるアニメーションを滑らかにし、開くときの素早い動きは維持しました。"
+        "出力なしで正常終了したバックグラウンドコマンドは、メインエージェントを起こさなくなりました。",
+        "サブエージェントの進捗メッセージはメインエージェントのコンテキストに追加されるだけで、単独で返信を始めなくなりました。",
+        "対応不要の結論が届いたときは、以前の結果を繰り返さず、短い一文までで答えます。",
+        "Pierre Icons はライト／ダークの配色に自動で合わせて表示されます。"
       ]
     },
     "ko": {
-      "summary": "Vela 1.2.14에 뒤로 및 앞으로 탐색, 작업 공간 고정, 작업 공간 호버 카드를 추가했습니다. 도구 상세 표시를 개선하고 하위 에이전트 탭은 필요할 때 열리도록 했습니다.",
+      "summary": "Vela 1.2.15에 Pierre Icons 파일 아이콘 테마를 추가하고, 하위 에이전트마다 고유한 로봇 아바타를 표시합니다. 여러 하위 에이전트나 백그라운드 명령이 동시에 끝날 때 메인 에이전트의 응답도 줄었습니다.",
       "highlights": [
         {
-          "title": "뒤로 및 앞으로 탐색",
-          "body": "창의 탐색 버튼, macOS의 ⌘[ 및 ⌘] 단축키, 마우스 측면 버튼으로 페이지와 대화 사이를 오갈 수 있습니다."
+          "title": "Pierre Icons 테마",
+          "body": "설정 → 모양 → 파일 아이콘에서 Pierre Icons를 선택할 수 있습니다. 새로 설치하면 기본값이며, 이미 선택한 아이콘 테마는 그대로 유지됩니다."
         },
         {
-          "title": "자주 쓰는 작업 공간 고정",
-          "body": "자주 쓰는 작업 공간을 별도의 고정 섹션에 모을 수 있습니다. 고정 상태와 섹션의 접힘 상태가 저장됩니다."
+          "title": "하위 에이전트마다 고유한 얼굴",
+          "body": "각 하위 에이전트에 전용 로봇 아바타가 생겨 탭, 헤더, 목록 메뉴, 에이전트 카드에서 한눈에 구분할 수 있습니다."
         },
         {
-          "title": "마우스를 올려 작업 공간 정보 확인",
-          "body": "작업 공간에 포인터를 올리면 채팅 수와 폴더 경로를 확인하고, 고정을 전환하거나 작업 공간 설정을 열 수 있습니다."
+          "title": "스킬 읽기를 한눈에",
+          "body": "스킬의 SKILL.md를 읽으면 일반 파일 읽기가 아니라 스킬 N개 읽음으로 표시됩니다."
         },
         {
-          "title": "필요할 때 하위 에이전트 탭 열기",
-          "body": "하위 에이전트를 선택할 때 해당 탭이 열리므로 작업대에는 직접 연 창을 중심으로 표시합니다."
+          "title": "한꺼번에 끝나도 응답은 한 번",
+          "body": "여러 하위 에이전트나 백그라운드 명령이 비슷한 시점에 끝나면 알림이 한 묶음으로 전달되어 메인 에이전트가 한 번만 응답합니다."
         }
       ],
       "improvements": [
-        "펼친 도구 및 생각 행의 화살표가 계속 표시되어 열린 상태를 더 쉽게 알아볼 수 있습니다.",
-        "파일 쓰기가 완료되면 일반 및 간결한 도구 카드에 작은 생성 표시가 나타납니다.",
-        "간결한 도구 행에서 파일 변경 줄 수를 상세 버튼 앞으로 옮기고 도구 카드의 줄 수 글꼴도 가볍게 조정했습니다.",
-        "작업 공간 그룹을 접는 애니메이션을 더 부드럽게 조정하고 빠르게 펼치는 전환은 유지했습니다."
+        "출력 없이 정상 종료된 백그라운드 명령은 더 이상 메인 에이전트를 깨우지 않습니다.",
+        "하위 에이전트의 진행 메시지는 메인 에이전트의 컨텍스트에만 추가되며 별도의 응답을 시작하지 않습니다.",
+        "조치가 필요 없는 결론이 전달되면 이전 결과를 반복하지 않고 짧은 한 문장 이내로 답합니다.",
+        "Pierre Icons는 밝은 색 구성표와 어두운 색 구성표에 자동으로 맞춰 표시됩니다."
       ]
     }
   }
