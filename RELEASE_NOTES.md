@@ -1,18 +1,13 @@
-# Vela 1.2.15
+# Vela 1.2.16
 
-Vela 1.2.15 adds the Pierre Icons file icon theme and a unique robot avatar for every subagent. Skill reads are now shown as skills, and the main agent replies less often when several subagents or background commands finish close together.
-
-## New
-
-- **Pierre Icons theme**: choose Pierre Icons under Settings → Appearance → File icons. It is the default for new installs; if you already picked a theme, your choice is kept.
-- **Subagent avatars**: each subagent gets its own robot avatar, shown in its tab, header, roster menu and the Agents card. The avatar stays the same across views and reloads.
-- **Skill reads in tool cards**: reading a skill’s `SKILL.md` is summarized as “Read N skills” instead of being counted as an ordinary file read.
+Vela 1.2.16 makes the app noticeably smoother when many subagents stream at once, and removes the blank gap that could appear under short expanded thinking groups.
 
 ## Improved
 
-- **Fewer redundant replies**: notices from subagents and background commands that finish close together are delivered as one batch, so the main agent responds once.
-- **Quiet background commands**: a background command that exits normally without any output no longer wakes the main agent; subagent progress messages are only added to its context.
-- **Shorter follow-ups**: when a delivered conclusion needs no action and the final reply has already been given, the agent answers with at most one short sentence instead of repeating earlier results.
+- **Smoother with many subagents**: streamed text and thinking from subagents are coalesced before they reach the interface, so a busy roster no longer floods the window with updates.
+- **Fewer redundant refreshes**: full state broadcasts triggered by the main agent’s tool calls are throttled, and no-op agent updates are skipped, which cuts idle CPU and IPC traffic during long runs.
+- **Lighter rendering**: the agent roster, chat view and entry animations avoid repeated full scans, the elapsed-time clocks share a single ticker, and completed turns are rendered lazily.
+- **Thinking groups fit their content**: when a thinking group grows together with its details, a short group now shrinks to its content instead of leaving an empty gap.
 
 ## Upgrade
 
@@ -26,17 +21,17 @@ The macOS build is not notarized and uses an ad-hoc signature. If macOS blocks f
 
 | File | Platform |
 | --- | --- |
-| `Vela-1.2.15-arm64.dmg` | macOS Apple Silicon installer |
-| `Vela-1.2.15-arm64.zip` | macOS Apple Silicon application bundle (`.app`); also the package used by in-app updates |
+| `Vela-1.2.16-arm64.dmg` | macOS Apple Silicon installer |
+| `Vela-1.2.16-arm64.zip` | macOS Apple Silicon application bundle (`.app`); also the package used by in-app updates |
 | `SHA256SUMS.txt` | SHA-256 checksums for both packages |
 | `SHA256SUMS.txt.sig` | Ed25519 signature of `SHA256SUMS.txt`, verified by the in-app updater |
 
-Package version: `1.2.15`. macOS bundle and download version: `1.2.15`.
+Package version: `1.2.16`. macOS bundle and download version: `1.2.16`.
 
 ## Validation
 
-- Release metadata verified: all package and macOS bundle version fields are `1.2.15`; all five in-app release-note languages contain four highlights and four improvements.
+- Release metadata verified: all package and macOS bundle version fields are `1.2.16`; all five in-app release-note languages contain four highlights and four improvements.
 - Production build and macOS arm64 packaging completed (`pnpm package:mac`); bundled in-app release notes match the source file.
-- The application bundle reports version `1.2.15` and identifier `com.vela.desktop`. The ZIP was extracted and contains a single `Vela.app` at version `1.2.15`; the DMG checksum verified and the image mounted successfully with the matching application.
+- The application bundle reports version `1.2.16` and identifier `com.vela.desktop`. The ZIP was extracted and contains a single `Vela.app` at version `1.2.16`; the DMG checksum verified and the image mounted successfully with the matching application.
 - Signed SHA-256 checksums were generated (`pnpm sign:release`). The signature was verified using the application’s `verifySignature` function and built-in `updatePublicKeys`, and both package hashes were recomputed and match.
 - The automated test suites were not run for this release.
