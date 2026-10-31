@@ -9,6 +9,7 @@ import { localizeError, tr, trf } from "../../locale";
 import { BranchPickerContent } from "../composer/BranchChip";
 import { ContextUsageCard, GoalCardBody, goalStatusLabel } from "../ContextPanel";
 import { FileTypeIcon } from "../FileTypeIcon";
+import { AgentAvatar } from "../AgentAvatar";
 import { PopoverPresence } from "../MotionPresence";
 import { RepoCardPopover } from "../RepoCardPopover";
 import { planStatusLabel } from "../PlanPanel";
@@ -219,8 +220,9 @@ function AgentsBody({ ctx }: { ctx: InfoCardContext }) {
     <div className="info-card-rows">
       {subagentsOf(ctx).map((agent) => (
         <button key={agent.id} type="button" className="info-card-row" title={agent.task || agent.path} onClick={() => ctx.onOpenAgent(agent.id)}>
-          {isAgentBusy(agent.status) ? <span className="info-card-spin" aria-hidden="true" /> : <SubagentIcon size={15} />}
+          <AgentAvatar agentId={agent.id} />
           <span className="info-card-row-main">{agent.name}</span>
+          {isAgentBusy(agent.status) ? <span className="info-card-spin" aria-hidden="true" /> : null}
           <span className={`info-card-chip is-${agent.status}`}>{tr(...agentStatusLabels[agent.status])}</span>
         </button>
       ))}

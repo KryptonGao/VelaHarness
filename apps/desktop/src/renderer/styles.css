@@ -3973,6 +3973,14 @@ button.tool-compact-line:hover .tool-compact-cmd {
   font-family: var(--font-mono);
   color: var(--text-primary);
 }
+.agent-avatar {
+  display: block;
+  flex: none;
+  object-fit: contain;
+  user-select: none;
+}
+.agent-compact .tool-compact-icon { width: 18px; height: 18px; }
+.tool-card.is-task .tool-card-icon:has(.agent-avatar) { background: none; }
 .agent-kind {
   flex: none;
   padding: 0 5px;

@@ -35,6 +35,7 @@ const suites = {
     { name: "updates-ui", runner: "node" },
     { name: "intelligent-ui-ui", runner: "node" },
     { name: "agent-inbox-ui", runner: "node" },
+    { name: "agent-avatar-ui", runner: "node" },
     { name: "nav-rail-ui", runner: "node" },
     { name: "info-cards-ui", runner: "node" },
   ],

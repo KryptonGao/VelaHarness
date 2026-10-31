@@ -10,6 +10,7 @@ import { WorkbenchTabPanel } from "./MotionPresence";
 import { tr, trf } from "../locale";
 import { AgentPane } from "./AgentPane";
 import { AgentStatusMark } from "./AgentPanel";
+import { AgentAvatar } from "./AgentAvatar";
 import { WorkspaceChangesView } from "./WorkspaceChangesView";
 import { AcceptancePanel } from "./AcceptancePanel";
 import { RacePanel } from "./RacePanel";
@@ -110,7 +111,7 @@ function TabIcon({ tab }: { tab: WorkbenchTab }) {
   if (tab.kind === "browser") return <GlobeIcon size={12} />;
   if (tab.kind === "chat") return <ChatIcon size={12} />;
   if (tab.kind === "side-chat") return <SparkIcon size={12} />;
-  return <AgentStatusMark status={tab.agent.status} />;
+  return <><AgentAvatar agentId={tab.agent.id} size={18} /><AgentStatusMark status={tab.agent.status} /></>;
 }
 
 export function WorkbenchPanel(props: WorkbenchPanelProps) {

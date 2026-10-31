@@ -9,6 +9,7 @@ import { useMessages } from "../hooks/useMessages";
 import type { UiMessage } from "../hooks/useSession";
 import { tr, trf } from "../locale";
 import { ActivityIndicator } from "./ActivityIndicator";
+import { AgentAvatar } from "./AgentAvatar";
 import {
   AgentControls, AgentRunStats, AgentStatusMark, agentKindLabel, agentStateText, formatTokenCount, useAgentClock,
 } from "./AgentPanel";
@@ -156,6 +157,7 @@ function VisibleAgentPane({
     >
       <header className="agent-pane-header">
         <div className="agent-pane-title">
+          <AgentAvatar agentId={agent.id} />
           <AgentStatusMark status={agent.status} />
           <AgentBreadcrumb agent={agent} agents={agents} onSwitch={onSwitch} />
           <span className="agent-kind">{agentKindLabel(agent.kind)}</span>
@@ -343,6 +345,7 @@ function AgentRosterMenu({
                   setOpen(false);
                 }}
               >
+                <AgentAvatar agentId={item.id} />
                 <AgentStatusMark status={item.status} />
                 <span className="agent-roster-menu-path">{item.path}</span>
                 <span className="agent-roster-menu-meta">{agentKindLabel(item.kind)}</span>

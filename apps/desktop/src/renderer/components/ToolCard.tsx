@@ -5,6 +5,7 @@ import { QuestionContext } from "./QuestionContext";
 import { LazyMount } from "./LazyMount";
 import { ContentSwap } from "./BatchMotion";
 import { ActivityIndicator } from "./ActivityIndicator";
+import { AgentAvatar } from "./AgentAvatar";
 import { Markdown } from "./Markdown";
 import { McpToolDetails } from "./McpToolDetails";
 import { ToolResultDetails } from "./ToolResultDetails";
@@ -219,6 +220,7 @@ function AgentToolCard({ tool, compact = false }: { tool: ToolTrace; compact?: b
   const report = conclusion ?? (live ? "" : taskReport(activity.body));
   const label = agentKindLabel(live?.kind ?? activity.agent);
   const targetId = live?.id ?? activity.agentId ?? null;
+  const avatarId = targetId ?? activity.agentPath;
   const canOpen = Boolean(targetId);
   const openInPane = (): void => {
     if (targetId) openAgent(targetId);
@@ -267,7 +269,7 @@ function AgentToolCard({ tool, compact = false }: { tool: ToolTrace; compact?: b
             aria-label={summaryLabel}
           >
             <span className="tool-compact-icon" aria-hidden="true">
-              {toolNameIcon(tool.name) ?? <ToolIcon size={13} />}
+              {avatarId ? <AgentAvatar agentId={avatarId} size={18} /> : toolNameIcon(tool.name) ?? <ToolIcon size={13} />}
             </span>
             <span className="tool-compact-action">{label}</span>
           </button>
@@ -319,7 +321,7 @@ function AgentToolCard({ tool, compact = false }: { tool: ToolTrace; compact?: b
           disabled={!canOpen}
         >
           <span className="tool-card-icon" aria-hidden="true">
-            {toolNameIcon(tool.name) ?? <ToolIcon size={13} />}
+            {avatarId ? <AgentAvatar agentId={avatarId} size={22} /> : toolNameIcon(tool.name) ?? <ToolIcon size={13} />}
           </span>
           <span className="tool-kind-label">{label}</span>
           <span className="tool-card-main">
