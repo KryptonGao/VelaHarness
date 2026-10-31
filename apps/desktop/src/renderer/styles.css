@@ -2749,7 +2749,12 @@ code,
   cursor: pointer;
 }
 .coherent-thought-trigger:disabled { cursor: default; }
-.coherent-thought-trigger:not(:disabled):hover { color: var(--text-primary); }
+/* 一次思考里的多条简短总结:不可折叠,每行与首行同一字号,排在图标右侧。 */
+.coherent-thought.is-multi .coherent-thought-trigger { align-items: flex-start; cursor: default; }
+.coherent-thought.is-multi .thinking-icon { margin-top: 3px; }
+.coherent-thought-lines { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.coherent-thought-line { min-width: 0; overflow-wrap: anywhere; }
+.coherent-thought:not(.is-multi) > .coherent-thought-trigger:not(:disabled):hover { color: var(--text-primary); }
 .coherent-thought-trigger:focus-visible {
   outline: 2px solid var(--accent-blue);
   outline-offset: 2px;

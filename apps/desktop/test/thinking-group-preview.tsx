@@ -119,6 +119,7 @@ function App() {
           <CoherentThought text={`**Planning the boundary rule**\n\nA group ends at the next reply.`} active={false} expanded={false} />
           <ToolList tools={tools("k2").slice(2)} display={display} fold="none" />
           <CoherentThought text="Plain reasoning without a title line." active={false} expanded={false} />
+          <CoherentThought text={"**Reviewing test changes**\n\n**Reverting original tests**\n\n**Checking the preview file once more so the line wraps onto a second row in narrow panes**"} active={false} expanded={false} />
         </CoherentGroup>
         <div className="agent-reply-prose"><p>The boundary rule is changed.</p></div>
         <CoherentGroup entries={groupB} live={live} showActivityIndicator={display === "compact"}>

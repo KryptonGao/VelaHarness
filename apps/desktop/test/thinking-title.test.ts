@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { splitThinkingTitle } from "../src/renderer/thinking-title.ts";
+import { splitThinkingSummaries, splitThinkingTitle } from "../src/renderer/thinking-title.ts";
 
 describe("thinking title", () => {
   it("takes a bold first line as the title and keeps the rest as the body", () => {
@@ -29,5 +29,30 @@ describe("thinking title", () => {
 
   it("accepts a finished thought that is only a title", () => {
     assert.deepEqual(splitThinkingTitle("**Checking the toggle**", false), { title: "Checking the toggle", body: "" });
+  });
+
+  it("reads a thought made only of title lines as several short summaries", () => {
+    assert.deepEqual(splitThinkingSummaries("**Reviewing test changes**\n\n**Reverting original tests**", false), ["Reviewing test changes", "Reverting original tests"]);
+    assert.deepEqual(splitThinkingSummaries("**A**\n## B\n\n**C**\n", true), ["A", "B", "C"]);
+  });
+
+  it("does not treat a thought with body text as summaries", () => {
+    assert.equal(splitThinkingSummaries("**A**\n\nSome detail.\n\n**B**", false), null);
+    assert.equal(splitThinkingSummaries("Plain reasoning.", false), null);
+    assert.equal(splitThinkingSummaries("", false), null);
+  });
+
+  it("holds back an unfinished trailing title while streaming", () => {
+    assert.deepEqual(splitThinkingSummaries("**A**\n\n**Reverting orig", true), ["A"]);
+    assert.deepEqual(splitThinkingSummaries("**A**\n\n**B**", true), ["A"]);
+    assert.deepEqual(splitThinkingSummaries("**A**\n\n**B**", false), ["A", "B"]);
+  });
+
+  it("splits summaries that were joined without a newline", () => {
+    assert.deepEqual(
+      splitThinkingSummaries("**Checking mask offsets**\n\n**Testing mask-size approach****Adjusting mask positioning**\n\n**Testing left-top placement**", false),
+      ["Checking mask offsets", "Testing mask-size approach", "Adjusting mask positioning", "Testing left-top placement"],
+    );
+    assert.deepEqual(splitThinkingSummaries("**A****B", true), ["A"]);
   });
 });

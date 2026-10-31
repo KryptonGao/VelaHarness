@@ -22,3 +22,27 @@ export function splitThinkingTitle(text: string, streaming: boolean): ThinkingTi
   const body = lineEnd === -1 ? "" : trimmed.slice(lineEnd + 1).replace(/^\s*\n/, "").trim();
   return { title, body };
 }
+
+function titleOf(line: string): string | undefined {
+  return (boldLine.exec(line) ?? headingLine.exec(line))?.[1]?.trim();
+}
+
+/**
+ * OpenAI 有时在一段思考里返回好几条简短总结,整段由标题行组成、没有正文。
+ * 每个非空行都是 **标题** 或 # 标题行时,返回这些标题;否则返回 null。
+ * 流式输出时尚未换行收尾、看起来像标题的最后一行不算数,避免半截标题闪给用户。
+ */
+export function splitThinkingSummaries(text: string, streaming: boolean): string[] | null {
+  // 总结之间偶尔没有换行,直接以 **A****B** 连在一起,按边界拆成独立的行。
+  const normalized = text.replace(/\*\*\*\*/g, "**\n**");
+  const lines = normalized.split("\n").map((line) => line.trim());
+  if (streaming && !/\n\s*$/.test(normalized) && /^(\*\*|#)/.test(lines[lines.length - 1] ?? "")) lines.pop();
+  const titles: string[] = [];
+  for (const line of lines) {
+    if (!line) continue;
+    const title = titleOf(line);
+    if (!title) return null;
+    titles.push(title);
+  }
+  return titles.length > 0 ? titles : null;
+}

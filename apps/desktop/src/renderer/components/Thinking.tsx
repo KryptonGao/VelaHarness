@@ -6,7 +6,7 @@ import { usePacedText } from "../hooks/usePacedText";
 import { nextStreamFollow, releasesStreamFollow } from "./chat-scroll";
 import { localizeError, tr, trf, useAppLocale } from "../locale";
 import { thinkingSummaryLayout } from "../thinking-summary";
-import { splitThinkingTitle, type ThinkingTitle } from "../thinking-title";
+import { splitThinkingSummaries, splitThinkingTitle, type ThinkingTitle } from "../thinking-title";
 import { totalDiffStat, type DiffStat } from "./tool-compact";
 import { coherentActions, countFailedTools, type CoherentAction, type CoherentEntry } from "./tool-sequence";
 import type { ToolTrace } from "@vela/shared";
@@ -488,7 +488,10 @@ function coherentTitle(entries: readonly CoherentEntry[], live: boolean, locale:
   if (live) {
     for (let index = entries.length - 1; index >= 0; index -= 1) {
       const entry = entries[index]!;
-      if (entry.type === "thinking") return splitThinkingTitle(entry.text, false)?.title ?? fallback;
+      if (entry.type === "thinking") {
+        const summaries = splitThinkingSummaries(entry.text, false);
+        return summaries?.[summaries.length - 1] ?? splitThinkingTitle(entry.text, false)?.title ?? fallback;
+      }
     }
     return fallback;
   }
@@ -548,10 +551,24 @@ export function CoherentThought({ text, active, expanded }: { text: string; acti
   const open = manual ?? expanded;
   const bodyId = useId();
   const titled = splitThinkingTitle(text, active);
+  const summaries = splitThinkingSummaries(text, active);
   // 流式中标题行还没收齐时只显示「思考」,避免半截标题闪一下。
   const pending = !titled && active && /^\s*(\*\*|#)/.test(text) && !text.trimStart().includes("\n");
   const title = titled?.title ?? tr("思考", "Thinking");
-  const body = titled ? titled.body : pending ? "" : text.trim();
+  // 整段都是标题行(一次思考里的多条简短总结)时没有正文可展开。
+  const body = summaries ? "" : titled ? titled.body : pending ? "" : text.trim();
+  if (summaries && summaries.length > 1) {
+    return (
+      <div className="coherent-thought is-multi">
+        <div className="coherent-thought-trigger">
+          <span className="thinking-icon" aria-hidden="true"><ThinkingIcon size={13} /></span>
+          <span className="coherent-thought-lines">
+            {summaries.map((line, index) => <span key={index} className="coherent-thought-line">{line}</span>)}
+          </span>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className={`coherent-thought${open ? " open" : ""}`}>
       <button className="coherent-thought-trigger" type="button" aria-expanded={open} aria-controls={bodyId} disabled={!body} onClick={() => setManual(!open)} title={title}>
