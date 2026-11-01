@@ -9,7 +9,7 @@ import { publishIntelligentUiState } from "./intelligent-ui/ui-settings-store";
 import { modeDescription, modeLabel } from "./resident-agent-model";
 import type { OnboardingCopy } from "./onboarding-copy";
 import { ComposerPreview, InfoPreview, LayoutOption, NavPreview, type InfoLayoutKind } from "./OnboardingLayouts";
-import { Label, Note, Opt, Seg, ToggleRow } from "./onboarding-ui";
+import { Label, Note, Seg, ToggleRow } from "./onboarding-ui";
 import type { SettingsCopy } from "./settings-copy";
 
 /** 第 2 步：思考总结与输入预测。两者都会额外调用模型，默认关闭，这里只是让新用户知道有这个选项。 */
