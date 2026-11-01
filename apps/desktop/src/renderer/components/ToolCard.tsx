@@ -417,7 +417,7 @@ function GenericToolCard({ tool, compact = false }: ToolCardProps) {
           </span>
           <span className="tool-kind-label">{mcp ? "MCP" : skillRead ? tr("技能", "Skill") : bashIntent?.label ?? toolLabel(tool.name, kind)}</span>
           <span className="tool-card-main">
-            <span className={`tool-card-name${subject.dir ? "" : " grow"}`}>
+            <span className={`tool-card-name${subject.dir ? "" : " grow"}${subjectIsCode(kind, activity) ? " is-code" : ""}`}>
               {planFirst ? <PlanStatusIcon status={planFirst.status} className="plan-status-inline" /> : null}
               {subject.name}
             </span>
@@ -705,7 +705,7 @@ export function CompactToolGroup({ tools, sequenceId = tools[0]?.id }: { tools: 
           {uniform ? <KindIcon kind={uniform} command={uniform === "bash" ? tools[0]?.activity?.command : undefined} skill={allSkills} /> : <StackIcon size={13} />}
         </span>
         <span className="tool-compact-label">{label}</span>
-        {sampleLabel && !(open && fileDiffGroup) ? <span className="tool-compact-sample">{sampleLabel}</span> : null}
+        {sampleLabel && !(open && fileDiffGroup) ? <span className={`tool-compact-sample${firstBash && subjectIsCode("bash", tools[0]?.activity ?? {}) ? " is-code" : ""}`}>{sampleLabel}</span> : null}
         {failed > 0 ? <span className="tool-compact-failed">{trf("{0} 失败", "{0} failed", failed)}</span> : null}
         {stat && !(open && fileDiffGroup) ? (
           <span className="tool-compact-stat">
@@ -803,7 +803,7 @@ export function CompactToolLine({
             </span>
           ) : null}
           {!hideAction ? <span className="tool-compact-action">{bashIntent?.action ?? tr("已运行", "Ran")}</span> : null}
-          <span className="tool-compact-cmd">{subject.name}</span>
+          <span className={`tool-compact-cmd${subjectIsCode(kind, activity) ? "" : " is-plain"}`}>{subject.name}</span>
           {subject.dir ? <span className="tool-compact-dir">{subject.dir}</span> : null}
           <svg
             className="tool-compact-chevron"
@@ -1446,6 +1446,14 @@ function subjectOf(kind: ToolKind, activity: ToolActivity, name: string): { name
   const index = normalized.lastIndexOf("/");
   if (index <= 0) return { name: path, dir: "" };
   return splitPath(path);
+}
+
+/** 主体是命令或脚本(含后台命令的输出行)时用等宽字体;读取、列目录、查找文件等意图的主体是路径,不算。 */
+function subjectIsCode(kind: ToolKind, activity: ToolActivity): boolean {
+  if (activity.presentation?.kind === "shell") return true;
+  if (kind !== "bash") return false;
+  const intent = bashIntentDisplay(activity.command);
+  return !intent || intent.kind === "script" || intent.kind === "search";
 }
 
 function readLineCount(body: string | undefined): number | null {

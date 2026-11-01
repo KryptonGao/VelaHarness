@@ -723,7 +723,7 @@
   font-weight: 600;
 }
 .tool-card-name.grow { flex: 1; }
-.tool-kind-bash .tool-card-name {
+.tool-card-name.is-code {
   font-family: var(--font-mono);
   font-size: 14px;
   font-weight: 500;
@@ -1100,6 +1100,9 @@ button.tool-compact-line:hover .tool-compact-cmd {
   font-family: var(--font-mono);
   color: var(--text-secondary);
 }
+/* 主体是路径(读取、列目录等意图)时不用等宽;命令组的示例命令则用等宽。 */
+.tool-compact-cmd.is-plain { font-family: var(--font-sans); }
+.tool-compact-sample.is-code { font-family: var(--font-mono); }
 .tool-compact-error {
   flex: none;
   display: grid;

@@ -232,6 +232,17 @@
   color: var(--text-primary);
 }
 
+/* 原则:紧凑模式里的彩色(待办状态图标、新建文件圆点)只在悬停所在行时显示,平时一律灰色;文件类型图标除外;
+   展开后的内容(如待办清单)不受限,可以保持彩色。
+   失败的红色是警示,运行中的转圈是进度,都不受此限。 */
+.tool-card-list.is-compact :is(.tool-card-head, .tool-compact-line, .tool-compact-summary) .plan-status-icon:is(.is-completed, .is-in_progress) { color: var(--text-muted); }
+.tool-card-list.is-compact :is(.tool-card-head, .tool-compact-line, .tool-compact-summary) .tool-file-created-dot { background: var(--text-muted); }
+.tool-card-list.is-compact :is(.tool-card-head, .tool-compact-line, .tool-compact-summary):hover .plan-status-icon.is-completed { color: var(--success); }
+.tool-card-list.is-compact :is(.tool-card-head, .tool-compact-line, .tool-compact-summary):hover .plan-status-icon.is-in_progress { color: var(--accent-blue); }
+.tool-card-list.is-compact :is(.tool-card-head, .tool-compact-line, .tool-compact-summary):hover .tool-file-created-dot {
+  background: color-mix(in srgb, var(--accent-blue) 65%, white);
+}
+
 /* 紧凑模式的工具图标配色:设置 → 对话显示 → 工具图标配色,关闭时保持统一灰色。
    Browser REPL 的图标有自己的蓝色底,不在这里处理。 */
 :root,
