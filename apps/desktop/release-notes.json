@@ -1,139 +1,149 @@
 {
-  "version": "1.2.17",
+  "version": "1.2.18",
   "locales": {
     "en": {
-      "summary": "Vela 1.2.17 adds an optional translucent sidebar card, and makes thinking groups follow the model that actually wrote each message.",
+      "summary": "Vela 1.2.18 redesigns the models and accounts settings, adds disk usage cleanup and a background tasks card, and polishes the built-in browser.",
       "highlights": [
         {
-          "title": "Translucent sidebar card",
-          "body": "In the Categories layout, Settings → Appearance now lets the sidebar card show the window glass through it, while staying distinct from the surrounding frame."
+          "title": "Models and accounts, redesigned",
+          "body": "Settings now lists connected and custom providers on the left and shows the account, endpoint and model list for the selected one on the right, with a separate add-provider view and bundled provider icons."
         },
         {
-          "title": "Thinking groups follow the source model",
-          "body": "Grouped thinking is applied only to messages written by GPT models, judged by each message’s own model rather than the one currently selected."
+          "title": "Storage usage and cleanup",
+          "body": "The storage page shows disk capacity and Vela’s usage by category, and lets you clean run traces, logs, update packages and cache, or delete a single conversation’s trace. Traces in use are always kept."
         },
         {
-          "title": "Raw thinking summaries restored",
-          "body": "Messages from other models show their original thinking summary again instead of being folded into a group."
+          "title": "Background tasks card",
+          "body": "A new info card and right-panel tab list the background shell commands that a conversation has started, so you can see what is still running."
         },
         {
-          "title": "Correct in mixed conversations",
-          "body": "Switching models mid-conversation no longer changes how earlier messages are displayed, in the main chat and in subagent panes."
+          "title": "A better built-in browser",
+          "body": "Failed pages now show a full error page with retry, loading shows a progress bar, tabs display site favicons, and the blank page offers favorites shortcuts."
         }
       ],
       "improvements": [
-        "The new sidebar card option can be found by searching Settings for “sidebar”, “card” or “translucent”.",
-        "Model and provider are now reported with each assistant message, so thinking display no longer guesses from the current selection.",
-        "Messages of unknown origin fall back to ordinary thinking rather than being grouped.",
-        "The sidebar card setting is available in all five interface languages."
+        "SubAgents have their own enable switch, globally and per conversation. Turning it off blocks new subagents without stopping running ones or losing your count and nesting preferences.",
+        "Onboarding now has nine steps, including thinking summary and input prediction switches, info card and composer layout diagrams, and Settings → About & updates can redo it.",
+        "A new style setting controls the weight and color of chain-of-thought summary titles.",
+        "Drag across the trace timeline to select a span and jump to it in the event list.",
+        "The random theme generator follows readability rules and picks the better accent text color; compact tool-call text stays gray until you hover a clickable part.",
+        "Image scaling notes added by the SDK no longer appear in your own messages, and thinking indicators and command dots are better aligned."
       ]
     },
     "zh-CN": {
-      "summary": "Vela 1.2.17 新增可选的半透明侧栏卡片，并让思考分组按每条消息实际使用的模型来决定。",
+      "summary": "Vela 1.2.18 重新设计了模型与账号设置，新增磁盘占用清理和后台任务卡片，并打磨了内置浏览器。",
       "highlights": [
         {
-          "title": "半透明侧栏卡片",
-          "body": "在「分类」导航布局下，可在 设置 → 外观 中让侧栏卡片透出窗口玻璃，同时仍能与四周边框区分开。"
+          "title": "模型与账号全新设计",
+          "body": "设置页左侧列出已连接和自定义的提供商，右侧显示所选提供商的账号、端点和模型列表，并提供独立的添加提供商页面和内置的提供商图标。"
         },
         {
-          "title": "思考分组按来源模型",
-          "body": "思考分组只作用于 GPT 模型写出的消息，并按每条消息自身的模型判断，而不是当前选中的模型。"
+          "title": "存储占用与清理",
+          "body": "存储页会显示磁盘容量和 Vela 按类别的占用，可清理运行轨迹、日志、更新包和缓存，也可删除单个对话的轨迹。正在使用的轨迹始终会保留。"
         },
         {
-          "title": "恢复原始思考摘要",
-          "body": "其他模型的消息重新显示原始的思考摘要，不再被折叠进分组。"
+          "title": "后台任务卡片",
+          "body": "新增信息卡片和右侧面板标签页，列出对话启动的后台 shell 命令，方便查看哪些仍在运行。"
         },
         {
-          "title": "混合对话显示正确",
-          "body": "对话中途切换模型后，之前的消息显示方式不再改变，主对话和子代理面板都是如此。"
+          "title": "更好用的内置浏览器",
+          "body": "页面加载失败时显示完整的错误页并可重试，加载时有进度条，标签页显示网站图标，空白页提供收藏夹快捷入口。"
         }
       ],
       "improvements": [
-        "在设置中搜索「侧栏」「卡片」或「半透明」即可找到新的侧栏卡片选项。",
-        "每条助手消息现在都会带上模型与提供商，思考显示不再根据当前选择去猜测。",
-        "来源未知的消息会退回普通思考，而不是被分组。",
-        "侧栏卡片设置已提供全部五种界面语言。"
+        "子代理新增独立的启用开关，可全局或按对话设置。关闭后不再启动新的子代理，但不会中断运行中的子代理，也不会丢失数量和嵌套偏好。",
+        "新手引导扩展为九步，包含思考摘要和输入预测开关、信息卡片与输入框布局示意图，并可在 设置 → 关于与更新 中重新引导。",
+        "新增样式设置，可调整思维链摘要标题的字重和颜色。",
+        "在轨迹时间线上拖选一段范围，即可跳转到事件列表中对应位置。",
+        "随机主题生成遵循可读性规则并选取更合适的强调色文字颜色；紧凑的工具调用文字在悬停可点击部分前保持灰色。",
+        "SDK 添加的图片缩放提示不再出现在你发送的消息中，思考指示器和命令圆点的对齐也更好。"
       ]
     },
     "zh-TW": {
-      "summary": "Vela 1.2.17 新增可選的半透明側欄卡片，並讓思考分組依每則訊息實際使用的模型來決定。",
+      "summary": "Vela 1.2.18 重新設計了模型與帳號設定，新增磁碟用量清理和背景任務卡片，並打磨了內建瀏覽器。",
       "highlights": [
         {
-          "title": "半透明側欄卡片",
-          "body": "在「分類」導覽版面中，可在 設定 → 外觀 讓側欄卡片透出視窗玻璃，同時仍能與四周邊框區分開。"
+          "title": "模型與帳號全新設計",
+          "body": "設定頁左側列出已連線和自訂的供應商，右側顯示所選供應商的帳號、端點和模型清單，並提供獨立的新增供應商頁面和內建的供應商圖示。"
         },
         {
-          "title": "思考分組依來源模型",
-          "body": "思考分組只作用於 GPT 模型寫出的訊息，並依每則訊息自身的模型判斷，而不是目前選取的模型。"
+          "title": "儲存用量與清理",
+          "body": "儲存頁會顯示磁碟容量和 Vela 依類別的用量，可清理執行軌跡、記錄檔、更新包和快取，也可刪除單一對話的軌跡。使用中的軌跡一律保留。"
         },
         {
-          "title": "恢復原始思考摘要",
-          "body": "其他模型的訊息重新顯示原始的思考摘要，不再被收合進分組。"
+          "title": "背景任務卡片",
+          "body": "新增資訊卡片和右側面板分頁，列出對話啟動的背景 shell 指令，方便查看哪些仍在執行。"
         },
         {
-          "title": "混合對話顯示正確",
-          "body": "對話中途切換模型後，先前訊息的顯示方式不再改變，主對話和子代理面板皆是如此。"
+          "title": "更好用的內建瀏覽器",
+          "body": "頁面載入失敗時顯示完整的錯誤頁並可重試，載入時有進度條，分頁顯示網站圖示，空白頁提供我的最愛捷徑。"
         }
       ],
       "improvements": [
-        "在設定中搜尋「側欄」「卡片」或「半透明」即可找到新的側欄卡片選項。",
-        "每則助理訊息現在都會附上模型與供應商，思考顯示不再依目前選擇去猜測。",
-        "來源未知的訊息會退回一般思考，而不是被分組。",
-        "側欄卡片設定已提供全部五種介面語言。"
+        "子代理新增獨立的啟用開關，可全域或依對話設定。關閉後不再啟動新的子代理，但不會中斷執行中的子代理，也不會遺失數量和巢狀偏好。",
+        "新手引導擴充為九步，包含思考摘要和輸入預測開關、資訊卡片與輸入框版面示意圖，並可在 設定 → 關於與更新 中重新引導。",
+        "新增樣式設定，可調整思維鏈摘要標題的字重和顏色。",
+        "在軌跡時間軸上拖選一段範圍，即可跳到事件清單中對應位置。",
+        "隨機主題產生器遵循可讀性規則並選取更合適的強調色文字顏色；精簡的工具呼叫文字在懸停可點擊部分前維持灰色。",
+        "SDK 加入的圖片縮放提示不再出現在你送出的訊息中，思考指示器和指令圓點的對齊也更好。"
       ]
     },
     "ja": {
-      "summary": "Vela 1.2.17 では、半透明にできるサイドバーカードを追加し、思考グループを各メッセージを実際に書いたモデルに基づいて適用するようにしました。",
+      "summary": "Vela 1.2.18 では、モデルとアカウントの設定を刷新し、ディスク使用量のクリーンアップとバックグラウンドタスクカードを追加し、内蔵ブラウザーを磨き上げました。",
       "highlights": [
         {
-          "title": "半透明のサイドバーカード",
-          "body": "「カテゴリ」ナビゲーションレイアウトでは、設定 → 外観 でサイドバーカードにウィンドウのガラスを透過させられます。周囲の枠とは区別できる状態のままです。"
+          "title": "モデルとアカウントを刷新",
+          "body": "設定の左側に接続済みとカスタムのプロバイダーを並べ、右側に選択したプロバイダーのアカウント、エンドポイント、モデル一覧を表示します。プロバイダー追加は別画面になり、プロバイダーアイコンも同梱しました。"
         },
         {
-          "title": "思考グループは元のモデルで判定",
-          "body": "思考のグループ化は GPT モデルが書いたメッセージにのみ適用され、現在選択中のモデルではなく各メッセージ自身のモデルで判断されます。"
+          "title": "ストレージ使用量とクリーンアップ",
+          "body": "ストレージのページにディスク容量と Vela のカテゴリ別使用量を表示し、実行トレース、ログ、更新パッケージ、キャッシュを削除したり、1 つの会話のトレースだけを削除したりできます。使用中のトレースは常に保持されます。"
         },
         {
-          "title": "元の思考サマリーを復元",
-          "body": "他のモデルのメッセージは、グループにまとめられず、元の思考サマリーが再び表示されます。"
+          "title": "バックグラウンドタスクカード",
+          "body": "新しい情報カードと右パネルのタブに、会話が起動したバックグラウンドのシェルコマンドが一覧表示され、実行中のものがわかります。"
         },
         {
-          "title": "モデルが混在した会話でも正しく表示",
-          "body": "会話の途中でモデルを切り替えても、それ以前のメッセージの表示は変わりません。メインのチャットでもサブエージェントのペインでも同様です。"
+          "title": "内蔵ブラウザーを改善",
+          "body": "読み込みに失敗したページには再試行付きのエラーページを表示し、読み込み中は進捗バーを表示します。タブにはサイトのファビコンが表示され、空白ページにはお気に入りのショートカットが並びます。"
         }
       ],
       "improvements": [
-        "設定で「サイドバー」「カード」「半透明」を検索すると、新しいサイドバーカードの項目が見つかります。",
-        "各アシスタントメッセージにモデルとプロバイダーが付くようになり、思考の表示が現在の選択からの推測に頼らなくなりました。",
-        "出所が不明なメッセージは、グループ化されず通常の思考表示になります。",
-        "サイドバーカードの設定は 5 つの表示言語すべてに対応しています。"
+        "サブエージェントに独立した有効化スイッチを追加しました。全体でも会話ごとでも設定でき、オフにしても実行中のサブエージェントは止まらず、数やネストの設定も保持されます。",
+        "オンボーディングが 9 ステップになり、思考サマリーと入力予測のスイッチ、情報カードと入力欄のレイアウト図が加わりました。設定 → アプリ情報とアップデート からやり直せます。",
+        "思考の連鎖サマリーのタイトルの太さと色を変える外観設定を追加しました。",
+        "トレースのタイムラインをドラッグして範囲を選ぶと、イベント一覧の該当位置にジャンプできます。",
+        "ランダムテーマ生成が可読性のルールに従い、より読みやすいアクセント文字色を選ぶようになりました。コンパクトなツール呼び出しのテキストは、クリックできる部分にホバーするまでグレーのままです。",
+        "SDK が付ける画像縮小の注記が自分のメッセージに表示されなくなり、思考インジケーターとコマンドのドットの位置も整いました。"
       ]
     },
     "ko": {
-      "summary": "Vela 1.2.17은 반투명하게 만들 수 있는 사이드바 카드를 추가하고, 생각 그룹을 각 메시지를 실제로 작성한 모델 기준으로 적용합니다.",
+      "summary": "Vela 1.2.18은 모델 및 계정 설정을 새로 디자인하고, 디스크 사용량 정리와 백그라운드 작업 카드를 추가했으며, 내장 브라우저를 다듬었습니다.",
       "highlights": [
         {
-          "title": "반투명 사이드바 카드",
-          "body": "「카테고리」 탐색 레이아웃에서 설정 → 외관에서 사이드바 카드가 창의 유리를 투과하도록 할 수 있으며, 주변 테두리와는 계속 구분됩니다."
+          "title": "모델 및 계정 새 디자인",
+          "body": "설정 왼쪽에 연결된 제공자와 사용자 지정 제공자를 나열하고, 오른쪽에 선택한 제공자의 계정, 엔드포인트, 모델 목록을 보여 줍니다. 제공자 추가는 별도 화면이며 제공자 아이콘도 포함되어 있습니다."
         },
         {
-          "title": "생각 그룹은 원본 모델 기준",
-          "body": "생각 그룹화는 GPT 모델이 작성한 메시지에만 적용되며, 현재 선택된 모델이 아니라 각 메시지 자체의 모델로 판단합니다."
+          "title": "저장 공간 사용량과 정리",
+          "body": "저장 공간 페이지에 디스크 용량과 Vela의 범주별 사용량이 표시되며, 실행 트레이스, 로그, 업데이트 패키지, 캐시를 정리하거나 한 대화의 트레이스만 삭제할 수 있습니다. 사용 중인 트레이스는 항상 유지됩니다."
         },
         {
-          "title": "원본 생각 요약 복원",
-          "body": "다른 모델의 메시지는 그룹으로 묶이지 않고 원래의 생각 요약을 다시 표시합니다."
+          "title": "백그라운드 작업 카드",
+          "body": "새 정보 카드와 오른쪽 패널 탭에 대화가 시작한 백그라운드 셸 명령이 나열되어 아직 실행 중인 작업을 확인할 수 있습니다."
         },
         {
-          "title": "모델이 섞인 대화도 올바르게",
-          "body": "대화 중간에 모델을 바꿔도 이전 메시지의 표시 방식이 달라지지 않으며, 메인 채팅과 하위 에이전트 창 모두 마찬가지입니다."
+          "title": "더 나아진 내장 브라우저",
+          "body": "불러오기에 실패한 페이지는 다시 시도 버튼이 있는 전체 오류 페이지로 표시되고, 로딩 중에는 진행 막대가 나타납니다. 탭에 사이트 파비콘이 표시되며 빈 페이지에는 즐겨찾기 바로가기가 있습니다."
         }
       ],
       "improvements": [
-        "설정에서 「사이드바」「카드」「반투명」을 검색하면 새 사이드바 카드 옵션을 찾을 수 있습니다.",
-        "각 어시스턴트 메시지에 모델과 제공자가 함께 기록되어, 생각 표시가 더 이상 현재 선택을 추측하지 않습니다.",
-        "출처를 알 수 없는 메시지는 그룹화되지 않고 일반 생각 표시로 돌아갑니다.",
-        "사이드바 카드 설정은 다섯 가지 표시 언어를 모두 지원합니다."
+        "하위 에이전트에 독립적인 사용 스위치가 생겼습니다. 전체 또는 대화별로 설정할 수 있으며, 꺼도 실행 중인 에이전트는 멈추지 않고 개수와 중첩 설정도 유지됩니다.",
+        "온보딩이 9단계로 늘어 생각 요약 및 입력 예측 스위치, 정보 카드와 입력창 레이아웃 그림이 추가되었습니다. 설정 → 정보 및 업데이트에서 다시 진행할 수 있습니다.",
+        "생각의 사슬 요약 제목의 굵기와 색을 조정하는 스타일 설정이 추가되었습니다.",
+        "트레이스 타임라인을 드래그해 구간을 선택하면 이벤트 목록의 해당 위치로 이동합니다.",
+        "무작위 테마 생성기가 가독성 규칙을 따르며 더 읽기 좋은 강조색 글자색을 고릅니다. 간결한 도구 호출 텍스트는 클릭할 수 있는 부분에 마우스를 올리기 전까지 회색으로 유지됩니다.",
+        "SDK가 붙이는 이미지 축소 안내가 내 메시지에 더 이상 표시되지 않으며, 생각 표시기와 명령 점의 정렬도 개선되었습니다."
       ]
     }
   }
