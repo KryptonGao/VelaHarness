@@ -13,12 +13,13 @@ import { AppLocaleProvider, setActiveLocale } from "../src/renderer/locale";
 import { agents, agentMessages, base, collaborationMessages, compactMessages, cwd, nodes, requests, title, traceDetails } from "./readme-preview-data";
 import "../src/renderer/styles.css";
 
-const scene = new URLSearchParams(location.search).get("scene") ?? "compact";
+const params = new URLSearchParams(location.search);
+const scene = params.get("scene") ?? "compact";
 setActiveLocale("zh-CN");
-document.documentElement.dataset.scheme = "light";
+document.documentElement.dataset.scheme = params.get("theme") ?? "light";
 const noop = () => {};
 const noopSubscription = () => noop;
-window.vela = {
+const stubs = {
   platform: "darwin", setLocale: noop, listOpenTargets: async () => [],
   listSkills: async () => ({ skills: [] }),
   getAgentSettings: async () => ({ provider: null, modelId: null, thinkingLevel: "high", newConversationSelection: "default", instructions: "" }),
@@ -29,7 +30,16 @@ window.vela = {
     const node = nodes.find(node => node.id === id);
     return node ? traceDetails(node) : null;
   },
-} as unknown as VelaApi;
+};
+// Unstubbed API (including nested namespaces) resolves to null; on*/subscribe* return a no-op unsubscribe.
+const lenient = (name: string): unknown => new Proxy(function () {}, {
+  get: (_t, k: string) => k === "then" ? undefined : lenient(k),
+  apply: () => /^(on|subscribe)/.test(name) ? noop : Promise.resolve(null),
+});
+window.vela = new Proxy(stubs, {
+  get: (target, name: string) => name in target ? (target as Record<string, unknown>)[name]
+    : name === "development" ? undefined : lenient(name),
+}) as unknown as VelaApi;
 const models = {
   catalog: { models: [], providers: [], error: null }, login: { active: false }, select: noop, setThinking: noop,
   add: noop, remove: noop, logout: noop, loginProvider: noop, replyLogin: noop, cancelLogin: noop, dismissLogin: noop,
