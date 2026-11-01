@@ -71,6 +71,9 @@
   font-weight: 500;
   color: var(--text-primary);
 }
+/* 紧凑模式下步骤文字同样先灰,悬停该行才提亮。 */
+.browser-call.is-compact .browser-call-head .browser-call-step { color: var(--text-muted); }
+.browser-call.is-compact .browser-call-head:hover .browser-call-step { color: var(--text-primary); }
 .browser-call-shots {
   flex: none;
   display: inline-flex;
@@ -209,6 +212,25 @@
 .tool-card-list.is-compact .tool-card-name { font-size: 14px; font-weight: 500; }
 .tool-card-list.is-compact .tool-card-dir { font-size: 13px; }
 .tool-card-list.is-compact .tool-card-body { padding: 2px 0 8px; }
+
+/* 紧凑模式的文字规范:未悬停时一律灰色(含文件名、命令、目录和耗时)。
+   默认色用 :where 压低优先级,06 里原有的分段悬停规则(动作词、路径、整行命令)仍然生效;
+   其余文字段只在鼠标落在该段自身时提亮,不随整行联动;
+   原则:点了没有操作的文字(如没有差异可展开的「已读取」、只读的文件名)悬停时不提亮,只有按钮内的文字才响应。
+   失败耗时和「N 失败」保留警示色;状态图标自带颜色,不在这里处理。 */
+:where(.tool-card-list.is-compact) :is(
+  .tool-compact-label, .tool-compact-sample, .tool-compact-action, .tool-compact-name, .tool-compact-dir,
+  .tool-compact-cmd, .tool-card-name, .tool-card-dir, .tool-kind-label, .tool-lines, .tool-mcp-source,
+  .tool-duration:not(.is-failed), .tool-compact-steps, .agent-compact-name
+) {
+  color: var(--text-muted);
+}
+.tool-card-list.is-compact :is(button, button *):is(
+  .tool-compact-label, .tool-compact-sample, .tool-compact-action, .tool-compact-name, .tool-compact-dir,
+  .tool-compact-cmd, .tool-card-name, .tool-card-dir, .tool-kind-label, .tool-mcp-source, .agent-compact-name
+):not(:disabled):hover {
+  color: var(--text-primary);
+}
 
 /* 紧凑模式的工具图标配色:设置 → 对话显示 → 工具图标配色,关闭时保持统一灰色。
    Browser REPL 的图标有自己的蓝色底,不在这里处理。 */
