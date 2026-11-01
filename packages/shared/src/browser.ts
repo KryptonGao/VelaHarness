@@ -19,6 +19,8 @@ export interface BrowserTabState {
   conversationId: string | null;
   url: string;
   title: string;
+  /** 页面声明的网站图标（http(s) 或 data:image 地址）；没有或还没取到时缺省。 */
+  favicon?: string;
   loading: boolean;
   ready: boolean;
   canGoBack: boolean;

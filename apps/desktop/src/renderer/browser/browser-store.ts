@@ -10,6 +10,7 @@ export interface BrowserState {
   address: string;
   editingAddress: boolean;
   title: string;
+  favicon: string;
   loading: boolean;
   ready: boolean;
   canGoBack: boolean;
@@ -22,7 +23,7 @@ export interface BrowserState {
 /** Immutable snapshots for React; no DOM or Electron dependency. */
 export class BrowserStore {
   private state: BrowserState = {
-    url: "about:blank", address: "", editingAddress: false, title: "",
+    url: "about:blank", address: "", editingAddress: false, title: "", favicon: "",
     loading: false, ready: false, canGoBack: false, canGoForward: false, error: null, annotating: false,
   };
   private readonly listeners = new Set<() => void>();

@@ -1,6 +1,6 @@
 import type { WebContents, Session } from 'electron';
 import type { BrowserAgentAction, BrowserAnnotationImages, BrowserUiCommand, BrowserWindowState } from '../../../../packages/shared/src/browser';
-import { isUiBrowserUrl } from '../browser-policy';
+import { isFaviconUrl, isUiBrowserUrl } from '../browser-policy';
 import { BrowserAnnotations, type AnnotationBackend } from './browser-annotations';
 import { BrowserHostError, BrowserSessionRegistry, type BrowserRecord } from './browser-session-registry';
 
@@ -240,7 +240,8 @@ export class BrowserHost {
       tab.canGoBack=guest.navigationHistory.canGoBack();tab.canGoForward=guest.navigationHistory.canGoForward();
       this.publish(tab.windowId);
     };
-    const navigate=()=>{tab.generation++;tab.error=null;this.settleCursor(tab);this.annotations.navigated(tab);sync();};
+    const navigate=()=>{tab.generation++;tab.error=null;tab.favicon=undefined;this.settleCursor(tab);this.annotations.navigated(tab);sync();};
+    const icon=(_event:unknown,favicons:string[])=>{const next=favicons.find(isFaviconUrl);if(next!==tab.favicon){tab.favicon=next;this.publish(tab.windowId);}};
     const ready=()=>{tab.ready=true;sync();};
     const failed=(_event:unknown,code:number,description:string,failedUrl:string,isMainFrame:boolean)=>{if(isMainFrame&&code!==-3){tab.error={code:'load-failed',detail:description,url:failedUrl||tab.url};sync();}};
     const gone=()=>{tab.generation++;tab.ready=false;tab.error={code:'renderer-gone'};this.settleCursor(tab);this.annotations.crashed(tab);entry.automation?.dispose();entry.automation=undefined;this.publish(tab.windowId);};
@@ -249,7 +250,7 @@ export class BrowserHost {
       if(input.type!=='keyDown'||input.key!=='Escape'||!this.annotations.state(tab.id)?.mode)return;
       event.preventDefault();void this.annotations.stop(tab);
     };
-    const listeners: [string,(...args:any[])=>void][]=[['dom-ready',ready],['did-start-loading',sync],['did-stop-loading',sync],['did-navigate',navigate],['did-navigate-in-page',sync],['page-title-updated',sync],['did-fail-load',failed],['render-process-gone',gone]];
+    const listeners: [string,(...args:any[])=>void][]=[['dom-ready',ready],['did-start-loading',sync],['did-stop-loading',sync],['did-navigate',navigate],['did-navigate-in-page',sync],['page-title-updated',sync],['page-favicon-updated',icon],['did-fail-load',failed],['render-process-gone',gone]];
     for(const [event,fn] of listeners)guest.on(event as any,fn);
     guest.on('before-input-event' as any,escape as any);
     entry.dispose=()=>{for(const [event,fn] of listeners)guest.removeListener(event as any,fn);guest.removeListener('before-input-event' as any,escape as any);};

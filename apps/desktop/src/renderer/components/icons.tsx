@@ -23,6 +23,11 @@ export function HistoryIcon({ size = 13 }: IconProps) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 2.64-6.36L3 8.3" /><path d="M3 3.5v4.8h4.8" /><path d="M12 7.5V12l3 2" /></svg>;
 }
 
+/** 收藏：五角星，已收藏时实心。 */
+export function StarIcon({ size = 13, filled = false }: IconProps) {
+  return <svg {...base(size)} aria-hidden="true" fill={filled ? "currentColor" : "none"}><path d="m12 3.6 2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.2-4.1 5.8-.8Z" /></svg>;
+}
+
 export function GlobeIcon({ size = 13 }: IconProps) {
   return <svg {...base(size)} aria-hidden="true"><circle cx="12" cy="12" r="9" />
     <path d="M3 12h18M12 3a18 18 0 0 1 0 18 18 18 0 0 1 0-18" /></svg>;

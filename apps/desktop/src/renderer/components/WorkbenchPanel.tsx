@@ -26,9 +26,9 @@ import { PlanDocumentPane } from "./PlanPanel";
 import { SidebarResizeHandle } from "./SidebarResizeHandle";
 import { StartView, type StartTabAction } from "./StartView";
 import { TerminalView } from "./TerminalView";
-import { BrowserPanel, BrowserTabLabel } from "./browser/BrowserPanel";
+import { BrowserPanel, BrowserTabIcon, BrowserTabLabel } from "./browser/BrowserPanel";
 import type { BrowserController } from "../browser/browser-controller";
-import { ArrowRightIcon, BranchIcon, ChatIcon, CloseIcon, FileIcon, FolderIcon, GlobeIcon, PlanIcon, PlusIcon, SparkIcon, TerminalIcon } from "./icons";
+import { ArrowRightIcon, BranchIcon, ChatIcon, CloseIcon, FileIcon, FolderIcon, PlanIcon, PlusIcon, SparkIcon, TerminalIcon } from "./icons";
 
 export type WorkbenchTab =
   | { id: string; kind: "chat"; label: string; title?: string; conversationId: string }
@@ -108,7 +108,7 @@ function TabIcon({ tab }: { tab: WorkbenchTab }) {
   if (tab.kind === "start") return <PlusIcon size={12} />;
   if (tab.kind === "files") return <FolderIcon size={12} />;
   if (tab.kind === "terminal") return <TerminalIcon size={12} />;
-  if (tab.kind === "browser") return <GlobeIcon size={12} />;
+  if (tab.kind === "browser") return <BrowserTabIcon controller={tab.controller} />;
   if (tab.kind === "chat") return <ChatIcon size={12} />;
   if (tab.kind === "side-chat") return <SparkIcon size={12} />;
   return <><AgentAvatar agentId={tab.agent.id} size={18} /><AgentStatusMark status={tab.agent.status} /></>;

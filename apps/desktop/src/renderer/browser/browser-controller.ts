@@ -30,7 +30,7 @@ export class BrowserController {
   project(tab: BrowserTabState): void {
     const state = this.store.getSnapshot();
     const { url, title, loading, ready, canGoBack, canGoForward, error } = tab;
-    this.store.update({ url, title, loading, ready, canGoBack, canGoForward, error, annotating: !!tab.annotation?.mode,
+    this.store.update({ url, title, favicon: tab.favicon ?? "", loading, ready, canGoBack, canGoForward, error, annotating: !!tab.annotation?.mode,
       ...(!state.editingAddress ? { address: url === UI_BROWSER_BLANK_URL ? "" : url } : {}) });
   }
 
@@ -115,6 +115,8 @@ export class BrowserController {
     if (!this.view || !this.store.getSnapshot().ready) this.pendingUrl = url;
     else this.load(url);
   };
+  /** 直接访问一个网址（收藏夹快捷方式用），走与地址栏回车相同的导航。 */
+  visit = (url: string): void => { this.store.update({ address: url }); this.navigate(); };
   /** 重试失败的页面：加载失败时重新请求失败的网址，页面崩溃时重新加载。 */
   retry = (): void => {
     const { error, url } = this.store.getSnapshot();

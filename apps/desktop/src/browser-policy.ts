@@ -12,6 +12,11 @@ export function isUiBrowserUrl(value: string): boolean {
   }
 }
 
+/** 网站图标只接受 http(s) 地址和 data:image，页面声明的其他协议一律忽略。 */
+export function isFaviconUrl(value: string): boolean {
+  return /^data:image\//i.test(value) || (value !== UI_BROWSER_BLANK_URL && isUiBrowserUrl(value));
+}
+
 /** Bare hosts default to HTTPS; local development servers default to HTTP. */
 export function normalizeBrowserAddress(value: string): string | null {
   const address = value.trim();
