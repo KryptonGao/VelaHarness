@@ -8,6 +8,7 @@ import {
   traceMetrics,
   slowestTraceNode,
   traceCodePages,
+  traceRangeRows,
 } from "../src/renderer/components/trace/trace-model.ts";
 const node = (
   id: string,
@@ -575,4 +576,27 @@ it("merges standalone summary usage by id and keeps it through an empty patch", 
   assert.deepEqual(trace.summaries.map((item) => [item.id, item.usage?.totalTokens]), [["summary-1", 20], ["summary-2", 30]]);
   trace = mergeTrace(trace, { version: 3, nodes: [], requests: [], summaries: [], warning: null });
   assert.equal(trace.summaries.length, 2);
+});
+
+describe("traceRangeRows", () => {
+  const bar = (id: string, x: number, width: number, sourceNodeId?: string) => ({
+    node: node(id, 1), sourceNodeId, x, width, lane: 1, row: 0,
+  });
+  const bars = [bar("a", 0, 100), bar("b", 100, 100), bar("c-model", 200, 100, "c"), bar("d", 300, 100)];
+  const index = new Map([["a", 0], ["b", 1], ["c", 2], ["d", 3]]);
+  it("maps a dragged span to the contiguous rows it overlaps", () => {
+    assert.deepEqual(
+      traceRangeRows(bars, 400, { from: 0.3, to: 0.6 }, index),
+      { first: 1, last: 2, count: 2 },
+    );
+  });
+  it("accepts a reversed drag and resolves model spans through their source node", () => {
+    assert.deepEqual(
+      traceRangeRows(bars, 400, { from: 0.7, to: 0.55 }, index),
+      { first: 2, last: 2, count: 1 },
+    );
+  });
+  it("returns null when nothing overlaps", () => {
+    assert.equal(traceRangeRows([bar("x", 0, 10)], 400, { from: 0.5, to: 0.9 }, index), null);
+  });
 });

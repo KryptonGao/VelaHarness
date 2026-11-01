@@ -1,13 +1,18 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  useEffect, useLayoutEffect, useMemo, useRef, useState,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 import type { AppState, TraceNode } from "@vela/shared";
 import { useTrace } from "../../hooks/useTrace";
 import { useEntryArrival } from "../../hooks/useEntryArrival";
-import { tr } from "../../locale";
+import { tr, trf } from "../../locale";
 import {
   traceMetrics,
   traceTimeline,
   slowestTraceNode,
+  traceRangeRows,
   type TimelineMode,
+  type TraceRange,
 } from "./trace-model";
 import {
   TraceIcon,
@@ -21,6 +26,10 @@ import {
 const rowHeight = 30;
 // Reserve the lane labels (52px) and the right gutter (8px) outside the scale.
 const timelinePadding = 60;
+// Pointer travel before a press on the timeline turns into a range drag, so
+// plain clicks on bars keep selecting events.
+const dragThreshold = 4;
+const timelineGutter = 52;
 const zoomLabel = (zoom: number) =>
   `${Number.isInteger(zoom) ? zoom : zoom.toFixed(1)}×`;
 export function TraceView({
@@ -43,13 +52,16 @@ export function TraceView({
     [timelineWindow, setTimelineWindow] = useState({ left: 0, width: 900 }),
     [follow, setFollow] = useState(true),
     [now, setNow] = useState(Date.now),
-    [zoom, setZoom] = useState(1);
+    [zoom, setZoom] = useState(1),
+    [range, setRange] = useState<TraceRange | null>(null);
   const list = useRef<HTMLDivElement>(null),
     timeline = useRef<HTMLDivElement>(null),
     followRef = useRef(true),
     zoomAnchor = useRef<number | null>(null),
     lastScaleKey = useRef<string | null>(null);
   const selectionPause = useRef(false);
+  const rangeDrag = useRef<{ x: number; active: boolean } | null>(null),
+    suppressClick = useRef(false);
   const running =
     trace.nodes.some((n) => n.status === "Running") ||
     state?.session.status === "streaming";
@@ -78,6 +90,22 @@ export function TraceView({
     ...nodes.map((node) => `row:${node.id}`),
     ...geometry.bars.map((bar) => `bar:${bar.node.id}`),
   ], [nodes, geometry.bars]);
+  const rangeRows = useMemo(
+    () =>
+      range
+        ? traceRangeRows(geometry.bars, geometry.width, range, indexById)
+        : null,
+    [range, geometry.bars, geometry.width, indexById],
+  );
+  useEffect(() => setRange(null), [conversationId]);
+  useEffect(() => {
+    if (!range) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setRange(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [range === null]);
   const selectedBar = geometry.bars.find((b) => b.node.id === selected);
   const selectedNode =
     trace.nodes.find((n) => n.id === selected) ??
@@ -135,6 +163,40 @@ export function TraceView({
         : { left: chart.scrollLeft, width: chart.clientWidth },
     );
   }, [zoom, mode, geometry.width]);
+  const rangeFraction = (clientX: number, canvas: HTMLElement) =>
+    Math.min(
+      1,
+      Math.max(
+        0,
+        (clientX - canvas.getBoundingClientRect().left - timelineGutter) /
+          Math.max(1, geometry.width),
+      ),
+    );
+  // Jump the event list to the first row of the selected span.
+  const jumpToRange = (rows: { first: number }) => {
+    selectionPause.current = true;
+    followRef.current = false;
+    setFollow(false);
+    if (list.current) list.current.scrollTop = rows.first * rowHeight;
+  };
+  const endRangeDrag = (e: ReactPointerEvent<HTMLDivElement>) => {
+    const drag = rangeDrag.current;
+    rangeDrag.current = null;
+    if (!drag) return;
+    if (!drag.active) {
+      // A plain press on empty timeline space dismisses the selection.
+      if (!(e.target as HTMLElement).closest(".trace-bar")) setRange(null);
+      return;
+    }
+    suppressClick.current = true;
+    setTimeout(() => (suppressClick.current = false), 0);
+    const finalRange = range;
+    const rows = finalRange
+      ? traceRangeRows(geometry.bars, geometry.width, finalRange, indexById)
+      : null;
+    if (rows) jumpToRange(rows);
+    else setRange(null);
+  };
   const applyZoom = (next: number) => {
     const chart = timeline.current;
     if (chart && geometry.width > 0 && next !== zoom)
@@ -223,6 +285,7 @@ export function TraceView({
               aria-pressed={mode === m}
               onClick={() => {
                 setMode((current) => current === m ? "sequence" : m);
+                setRange(null);
                 if (timeline.current) timeline.current.scrollLeft = 0;
               }}
               key={m}
@@ -251,6 +314,18 @@ export function TraceView({
               : tr("实际时间", "Elapsed time")}
         </span>
         <div className="trace-toolbar-actions">
+          {rangeRows ? (
+            <span className="trace-range-chip" role="status">
+              {trf("已选 {0} 个事件", "{0} events selected", rangeRows.count)}
+              <button
+                aria-label={tr("清除框选", "Clear selection")}
+                title={tr("清除框选", "Clear selection")}
+                onClick={() => setRange(null)}
+              >
+                ×
+              </button>
+            </span>
+          ) : null}
           <div
             className="trace-scale-control"
             role="group"
@@ -338,7 +413,58 @@ export function TraceView({
         <div
           className="trace-timeline-canvas"
           style={{ width: geometry.width + timelinePadding }}
+          title={
+            nodes.length && !range
+              ? tr("拖动框选一段，下方列表跳转到对应事件", "Drag to select a span and jump to it in the list")
+              : undefined
+          }
+          onPointerDown={(e) => {
+            if (e.button !== 0 || !nodes.length) return;
+            rangeDrag.current = { x: e.clientX, active: false };
+          }}
+          onPointerMove={(e) => {
+            const drag = rangeDrag.current;
+            if (!drag) return;
+            const canvas = e.currentTarget;
+            if (!drag.active) {
+              if (Math.abs(e.clientX - drag.x) < dragThreshold) return;
+              drag.active = true;
+              canvas.setPointerCapture(e.pointerId);
+              const origin = rangeFraction(drag.x, canvas);
+              setRange({ from: origin, to: origin });
+            }
+            // Scroll the strip while dragging into its edges, so a span wider
+            // than the viewport can still be selected at high zoom.
+            const chart = timeline.current;
+            if (chart) {
+              const edge = chart.getBoundingClientRect();
+              if (e.clientX > edge.right - 24) chart.scrollLeft += 16;
+              else if (e.clientX < edge.left + timelineGutter + 24) chart.scrollLeft -= 16;
+            }
+            const to = rangeFraction(e.clientX, canvas);
+            setRange((r) => (r ? { ...r, to } : r));
+          }}
+          onPointerUp={endRangeDrag}
+          onPointerCancel={() => {
+            rangeDrag.current = null;
+          }}
+          onClickCapture={(e) => {
+            if (suppressClick.current) {
+              e.stopPropagation();
+              e.preventDefault();
+            }
+          }}
         >
+          {range ? (
+            <div
+              className="trace-range"
+              style={{
+                left:
+                  timelineGutter + Math.min(range.from, range.to) * geometry.width,
+                width: Math.abs(range.to - range.from) * geometry.width,
+              }}
+            />
+          ) : null}
           {mode !== "sequence" ? <div className="trace-ruler">
             {ticks.map((t, i) => (
               <span key={i} style={{
@@ -520,7 +646,11 @@ export function TraceView({
                     aria-selected={selectedNode?.id === node.id}
                     aria-posinset={start + i + 1}
                     aria-setsize={nodes.length}
-                    className={`trace-row${selectedNode?.id === node.id ? " selected" : ""}`}
+                    className={`trace-row${selectedNode?.id === node.id ? " selected" : ""}${
+                      rangeRows && start + i >= rangeRows.first && start + i <= rangeRows.last
+                        ? " in-range"
+                        : ""
+                    }`}
                     style={{ top: (start + i) * rowHeight }}
                     onClick={() => choose(node)}
                   >

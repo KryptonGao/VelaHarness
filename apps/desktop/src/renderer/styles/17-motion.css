@@ -330,7 +330,11 @@
 .trace-icon-button:hover, .trace-dimensions button:hover { background: var(--bg-hover); color: var(--text-primary); }
 .trace-stop { border: 1px solid var(--border-strong); border-radius: 3px; background: var(--bg-chat); color: var(--danger); height: 24px; padding: 0 8px; white-space: nowrap; }
 .trace-timeline { flex: 0 0 auto; max-height: 160px; min-height: 86px; overflow: auto; border-bottom: 1px solid var(--border-strong); background: var(--bg-chat); }
-.trace-timeline-canvas { min-width: 100%; padding-bottom: 4px; }
+.trace-timeline-canvas { position: relative; min-width: 100%; padding-bottom: 4px; touch-action: pan-y; }
+.trace-range { position: absolute; top: 0; bottom: 0; z-index: 1; pointer-events: none; background: color-mix(in srgb, var(--trace-selected) 14%, transparent); border-inline: 1.5px solid var(--trace-selected); }
+.trace-range-chip { display: inline-flex; align-items: center; gap: 4px; padding: 1px 4px 1px 8px; border-radius: 10px; font-size: 12px; white-space: nowrap; color: var(--trace-selected); background: color-mix(in srgb, var(--trace-selected) 12%, transparent); }
+.trace-range-chip button { border: 0; background: transparent; color: inherit; cursor: pointer; font-size: 14px; line-height: 1; padding: 0 3px; border-radius: 50%; }
+.trace-range-chip button:hover { background: color-mix(in srgb, var(--trace-selected) 20%, transparent); }
 .trace-ruler { height: 20px; position: relative; overflow: hidden; color: var(--text-muted); font: 10px/20px var(--font-mono); }
 .trace-ruler > span { position: absolute; white-space: nowrap; }
 .trace-lane { position: relative; min-height: 22px; border-top: 1px solid var(--border-subtle); background-image: linear-gradient(to right, var(--border-subtle) 1px, transparent 1px); background-size: 200px 100%; }
@@ -362,6 +366,7 @@
 .trace-list-spacer { position: relative; width: 100%; }
 .trace-row { position: absolute; left: 0; right: 0; height: 30px; display: flex; align-items: center; gap: 8px; padding: 0 9px 0 0; border-bottom: 1px solid var(--border-subtle); border-left: 3px solid transparent; cursor: pointer; }
 .trace-row:hover { background: var(--bg-hover); }
+.trace-row.in-range { background: color-mix(in srgb, var(--trace-selected) 7%, var(--bg-chat)); border-left-color: color-mix(in srgb, var(--trace-selected) 55%, transparent); }
 .trace-row.selected:hover { background: color-mix(in srgb, var(--trace-selected) 10%, var(--bg-chat)); }
 .trace-sequence { width: 23px; flex: 0 0 23px; text-align: center; color: var(--text-muted); font: 9px var(--font-mono); }
 .trace-row > .trace-kind { width: 20px; height: 20px; display: grid; place-items: center; background: color-mix(in srgb,currentColor 8%,transparent); border-radius: 3px; }

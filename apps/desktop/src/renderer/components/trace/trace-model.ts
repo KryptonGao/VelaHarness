@@ -297,6 +297,35 @@ export function traceTimeline(
   const rows = occupied.map((l) => Math.max(1, l.length));
   return { bars, width, rows, start, duration, groups };
 }
+/** A drag selection on the timeline, as fractions (0–1) of the scale width. */
+export interface TraceRange {
+  from: number;
+  to: number;
+}
+/**
+ * Maps a timeline selection onto the event list. Bars overlapping the range
+ * resolve to their list row (model-request spans via their source node); the
+ * result is the contiguous row span they cover, or null when nothing overlaps.
+ */
+export function traceRangeRows(
+  bars: TraceBar[],
+  width: number,
+  range: TraceRange,
+  indexById: Map<string, number>,
+): { first: number; last: number; count: number } | null {
+  const lo = Math.min(range.from, range.to) * width,
+    hi = Math.max(range.from, range.to) * width;
+  let first = Infinity,
+    last = -Infinity;
+  for (const bar of bars) {
+    if (bar.x > hi || bar.x + bar.width < lo) continue;
+    const index = indexById.get(bar.sourceNodeId ?? bar.node.id);
+    if (index === undefined) continue;
+    first = Math.min(first, index);
+    last = Math.max(last, index);
+  }
+  return last < first ? null : { first, last, count: last - first + 1 };
+}
 export function traceMetrics(requests: TraceRequest[]) {
   let tokens = 0,
     input = 0,
