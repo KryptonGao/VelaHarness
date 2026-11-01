@@ -35,7 +35,7 @@ export function groupOfPage(page: SettingsPageId): SettingsGroupId {
 }
 
 /** 这些页面自带标题栏(含刷新/添加等操作),外壳不再重复画页标题。 */
-export const pagesWithOwnHeader: ReadonlySet<SettingsPageId> = new Set(["integrations", "mcp", "memory", "usage"]);
+export const pagesWithOwnHeader: ReadonlySet<SettingsPageId> = new Set(["models", "integrations", "mcp", "memory", "usage"]);
 
 export interface SettingsEntry {
   /** 与页面里 data-setting-id 一一对应;单测会校验两边一致。 */
@@ -105,8 +105,8 @@ export const settingsEntries: readonly SettingsEntry[] = [
   { id: "skills", page: "skills", title: (c) => c.agent.skills, hint: (c) => c.agent.skillsHint, keywords: { zh: ["技能", "迁移", "Codex", "Claude Code", "SKILL.md"], en: ["skill", "migrate", "codex", "claude code", "SKILL.md"] } },
 
   { id: "providers", page: "models", title: (c) => c.models.connected, keywords: { zh: ["提供方", "登录", "账号", "密钥", "API Key", "退出登录"], en: ["provider", "login", "account", "api key", "oauth", "logout"] } },
-  { id: "model-visibility", page: "models", title: (c) => c.models.visibility, hint: (c) => c.models.visibilityHint, keywords: { zh: ["隐藏模型", "显示模型", "模型列表"], en: ["hide model", "show model", "model list", "visibility"] } },
-  { id: "add-model", page: "models", title: (c) => c.models.add, keywords: { zh: ["自定义模型", "接口地址", "Ollama", "base url"], en: ["custom model", "endpoint", "ollama", "base url", "openai compatible"] } },
+  { id: "model-visibility", page: "models", title: (c) => c.models.visibility, hint: (c) => c.models.visibilityHint, keywords: { zh: ["隐藏模型", "显示模型", "模型列表", "输入框中的模型"], en: ["hide model", "show model", "model list", "visibility", "composer models"] } },
+  { id: "add-model", page: "models", title: (c) => c.models.add, keywords: { zh: ["添加供应商", "自定义供应商", "自定义模型", "接口地址", "Ollama", "base url"], en: ["add provider", "custom provider", "custom model", "endpoint", "ollama", "base url", "openai compatible"] } },
 
   { id: "integrations", page: "integrations", title: (c) => c.pages.integrations.label, hint: (c) => c.pages.integrations.description, keywords: { zh: ["集成", "插件", "连接", "Notion"], en: ["integration", "plugin", "connect", "notion"] } },
 

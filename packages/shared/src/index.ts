@@ -451,6 +451,8 @@ export interface ModelSummary {
   id: string;
   name: string;
   reasoning: boolean;
+  /** 模型能读图片输入。Pi 没给出输入类型时缺省。 */
+  vision?: boolean;
   contextWindow: number;
   available: boolean;
   custom: boolean;

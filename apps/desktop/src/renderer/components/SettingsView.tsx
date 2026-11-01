@@ -144,7 +144,7 @@ export function SettingsView({
           onPick={pickResult}
           searchRef={searchRef}
         />
-        <div className="settings-content autohide-scrollbar" ref={contentRef}>
+        <div className={`settings-content autohide-scrollbar${page === "models" ? " fill" : ""}`} ref={contentRef}>
           {pagesWithOwnHeader.has(page) ? null : (
             <header className="settings-page-header">
               <h2>{pageMeta.label}</h2>
@@ -175,7 +175,7 @@ export function SettingsView({
           <div hidden={page !== "skills"}>
             <SkillsPage copy={copy} workspacePath={project.workspace?.current ?? null} />
           </div>
-          <div hidden={page !== "models"}>
+          <div className="settings-page-fill" hidden={page !== "models"}>
             <ModelsPage copy={copy} models={models} preferences={preferences} />
           </div>
           <div hidden={page !== "workspace"}>

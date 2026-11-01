@@ -102,6 +102,25 @@ export function ShieldIcon({ size = 13 }: IconProps) {
   );
 }
 
+export function EyeOffIcon({ size = 13 }: IconProps) {
+  return (
+    <svg {...base(size)}>
+      <path d="M17.9 17.9A10.9 10.9 0 0 1 12 19c-6.5 0-10-7-10-7a18.5 18.5 0 0 1 5.1-5.9M9.9 5.2A9.7 9.7 0 0 1 12 5c6.5 0 10 7 10 7a18.5 18.5 0 0 1-2.2 3.2" />
+      <path d="M1 1l22 22" />
+    </svg>
+  );
+}
+
+/** 供应商的通用图标:一个立方体。 */
+export function CubeIcon({ size = 14 }: IconProps) {
+  return (
+    <svg {...base(size)}>
+      <path d="M21 8 12 3 3 8v8l9 5 9-5z" />
+      <path d="m3 8 9 5 9-5M12 13v8" />
+    </svg>
+  );
+}
+
 export function PlusIcon({ size = 14 }: IconProps) {
   return (
     <svg {...base(size)}>

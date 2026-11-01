@@ -659,6 +659,7 @@ function summarizeModel(model: Model<Api>, providerName: string, available: bool
     id: model.id,
     name: model.name?.trim() || model.id,
     reasoning: model.reasoning,
+    vision: model.input?.includes("image") ?? false,
     contextWindow: model.contextWindow,
     available,
     custom,
