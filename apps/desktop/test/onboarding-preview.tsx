@@ -51,7 +51,7 @@ let state = initialState();
 const record = (name: string, arg?: unknown) => { state.calls.push({ name, arg }); };
 
 window.vela = {
-  platform: "darwin", setLocale() {},
+  platform: "darwin", setLocale() {}, setRunView() {}, setRecommendedActions() {},
   getAgentSettings: async () => ({ ...state.agent }),
   saveAgentSettings: async (value: any) => { record("saveAgentSettings", value); state.agent = { ...value }; return { ...state.agent }; },
   scanExternalSkills: async () => ({ skills: state.skills }),

@@ -286,6 +286,41 @@
 .ob-lay.floating { grid-template-columns: 30px 1fr; }
 .ob-lay.floating .c { position: absolute; right: 18px; top: 18px; width: 84px; height: 54px; box-shadow: 3px 4px 0 rgba(19, 27, 69, .25); transform: rotate(2deg); }
 
+/* 布局选项的线框小图：信息栏、导航、输入框。每组选项并排，所以比单独一张预览更矮。 */
+.ob-three { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.ob-three .ob-opt.pick { padding: 12px 14px 14px; }
+.ob-three .ob-opt.pick b { font-size: 19px; }
+.ob-three .ob-opt.pick > span:not(.ob-lay) { font-size: 12.5px; line-height: 1.5; min-height: 56px; margin: 2px 0 10px; }
+.ob-two .ob-opt.pick > span:not(.ob-lay) { min-height: 40px; margin-bottom: 10px; }
+.ob-lay.info { height: 84px; padding: 8px; gap: 6px; grid-template-columns: 22px 1fr 64px; }
+.ob-lay.info.floating { grid-template-columns: 22px 1fr; }
+.ob-lay.info.floating .c { right: 14px; top: 14px; width: 64px; height: 40px; }
+.ob-lay.info.cards { grid-template-columns: 22px 1fr; }
+.ob-lay.info .k { position: absolute; right: 12px; width: 58px; height: 17px; border-radius: 5px; background: var(--ob-sky); box-shadow: 2px 3px 0 rgba(19, 27, 69, .22); }
+.ob-lay.info .k1 { top: 9px; } .ob-lay.info .k2 { top: 31px; transform: rotate(1.5deg); } .ob-lay.info .k3 { top: 53px; }
+.ob-lay.nav { height: 84px; padding: 8px; gap: 6px; grid-template-columns: 92px 1fr; }
+.ob-lay.nav.rail { grid-template-columns: 22px 70px 1fr; }
+.ob-lay.nav .rail { display: flex; flex-direction: column; align-items: center; gap: 7px; background: rgba(19, 27, 69, .85); padding: 9px 0; }
+.ob-lay.nav .rail i { width: 9px; height: 9px; border-radius: 50%; background: var(--ob-cream); }
+.ob-lay.nav .side { display: flex; flex-direction: column; gap: 7px; background: var(--ob-sky); padding: 10px 9px; }
+.ob-lay.nav .side i { display: block; height: 7px; border-radius: 4px; background: rgba(19, 27, 69, .4); }
+.ob-lay.nav .side i:nth-child(2) { width: 70%; }
+.ob-lay.cmp { height: 96px; padding: 8px; gap: 6px; display: flex; flex-direction: column; }
+.ob-lay.cmp .b { flex: 1; min-height: 0; padding: 5px 8px; }
+.ob-lay.cmp .box { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; padding: 6px 7px; border-radius: 8px; background: #fff; border: 1.5px solid var(--ob-ink); }
+.ob-lay.cmp .box em, .ob-lay.cmp .pill i { display: block; height: 5px; border-radius: 3px; background: rgba(19, 27, 69, .3); }
+.ob-lay.cmp .box em { flex: 1; }
+.ob-lay.cmp.classic .box em { flex: 1 0 100%; width: 55%; }
+.ob-lay.cmp .chips { display: flex; gap: 4px; flex: 1; padding: 0; background: none; border-radius: 0; }
+.ob-lay.cmp .chips i { width: 18px; height: 6px; border-radius: 3px; background: var(--ob-sky); }
+.ob-lay.cmp .go { width: 10px; height: 10px; border-radius: 50%; background: var(--ob-coral); margin-left: auto; }
+.ob-lay.cmp .foot { display: flex; justify-content: center; padding: 0; background: none; border-radius: 0; }
+.ob-lay.cmp .foot i { width: 50%; height: 4px; border-radius: 2px; background: rgba(19, 27, 69, .25); }
+.ob-lay.cmp .pill { display: flex; align-items: center; height: 18px; padding: 0 9px; border-radius: 999px; background: #fff; border: 1.5px solid var(--ob-ink); }
+.ob-lay.cmp .pill i { width: 45%; }
+.ob-lay.cmp .tray { display: flex; justify-content: center; gap: 5px; padding: 0; background: none; border-radius: 0; }
+.ob-lay.cmp .tray i { width: 22px; height: 6px; border-radius: 3px; background: var(--ob-sky); }
+
 .sk h4 { display: flex; justify-content: space-between; font-size: 16px; font-weight: 700; margin-bottom: 4px; }
 .sk h4 button { font-size: 12.5px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; opacity: .7; }
 .ob-row.skill { position: relative; justify-content: flex-start; gap: 12px; padding: 9px 0; cursor: pointer; }

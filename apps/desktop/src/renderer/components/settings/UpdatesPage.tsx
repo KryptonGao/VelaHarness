@@ -10,7 +10,7 @@ function percent(state: UpdateState): number | null {
   return progress && progress.totalBytes > 0 ? Math.min(100, Math.round((progress.receivedBytes / progress.totalBytes) * 100)) : null;
 }
 
-export function UpdatesPage({ copy, locale, onReplayIntro }: { copy: SettingsCopy; locale: AppLocale; onReplayIntro?: () => void }) {
+export function UpdatesPage({ copy, locale, onReplayIntro, onRestartOnboarding }: { copy: SettingsCopy; locale: AppLocale; onReplayIntro?: () => void; onRestartOnboarding?: () => void }) {
   const text = copy.updates;
   const { state, api } = useUpdates();
   const [acting, setActing] = useState(false);
@@ -74,6 +74,9 @@ export function UpdatesPage({ copy, locale, onReplayIntro }: { copy: SettingsCop
     </SettingsBlock>
     {onReplayIntro ? <SettingsBlock id="update-intro" title={text.replayTitle} hint={text.replayHint}>
       <button className="settings-secondary" type="button" onClick={onReplayIntro}>{text.replayAction}</button>
+    </SettingsBlock> : null}
+    {onRestartOnboarding ? <SettingsBlock id="update-onboarding" title={text.onboardingTitle} hint={text.onboardingHint}>
+      <button className="settings-secondary" type="button" onClick={onRestartOnboarding}>{text.onboardingAction}</button>
     </SettingsBlock> : null}
   </section>;
 }

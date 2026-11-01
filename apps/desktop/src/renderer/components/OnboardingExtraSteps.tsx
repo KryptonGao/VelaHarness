@@ -2,15 +2,67 @@ import { isUiPreference, residentModes, type ResidentMode, type ResidentSettings
 import { useEffect, useState } from "react";
 import type { InfoLayout, PreferencesApi } from "../hooks/usePreferences";
 import { tr } from "../locale";
+import { setComposerLayout, useComposerLayout, type ComposerLayout } from "../hooks/useComposerLayout";
+import { setNavLayout, useNavLayout, type NavLayout } from "../hooks/useNavLayout";
 import { uiCopy } from "./intelligent-ui/copy";
 import { publishIntelligentUiState } from "./intelligent-ui/ui-settings-store";
 import { modeDescription, modeLabel } from "./resident-agent-model";
 import type { OnboardingCopy } from "./onboarding-copy";
+import { ComposerPreview, InfoPreview, LayoutOption, NavPreview, type InfoLayoutKind } from "./OnboardingLayouts";
 import { Label, Note, Opt, Seg, ToggleRow } from "./onboarding-ui";
 import type { SettingsCopy } from "./settings-copy";
 
-/** 第 3 步：信息栏位置（边栏或悬浮）与交互式界面偏好。 */
-export function LayoutStep({ copy, preferences }: { copy: OnboardingCopy; preferences: PreferencesApi }) {
+/** 第 2 步：思考总结与输入预测。两者都会额外调用模型，默认关闭，这里只是让新用户知道有这个选项。 */
+export function AssistSection({ copy, settings, preferences }: { copy: OnboardingCopy; settings: SettingsCopy; preferences: PreferencesApi }) {
+  return (
+    <>
+      <Label title={copy.assistGroup} style={{ marginTop: 22 }} />
+      <div className="ob-sheet tilt-l">
+        <ToggleRow title={settings.appearance.thinkingSummary} hint={copy.thinkingSummaryHint} checked={preferences.thinkingSummary} onChange={preferences.setThinkingSummary} />
+        <ToggleRow title={settings.appearance.inputPrediction} hint={copy.inputPredictionHint} checked={preferences.inputPrediction} onChange={preferences.setInputPrediction} />
+      </div>
+    </>
+  );
+}
+
+/** 第 3 步：信息栏位置（边栏、悬浮或卡片）与导航布局。 */
+export function LayoutStep({ copy, settings, preferences }: { copy: OnboardingCopy; settings: SettingsCopy; preferences: PreferencesApi }) {
+  const navLayout = useNavLayout();
+  const look = settings.appearance;
+  const infoOptions: { id: InfoLayout & InfoLayoutKind; title: string; hint: string }[] = [
+    { id: "sidebar", title: copy.infoSidebar, hint: copy.infoSidebarHint },
+    { id: "floating", title: copy.infoFloating, hint: copy.infoFloatingHint },
+    { id: "cards", title: look.infoLayoutCards, hint: copy.infoCardsHint },
+  ];
+  const navOptions: { id: NavLayout; title: string; hint: string }[] = [
+    { id: "classic", title: look.navLayoutClassic, hint: copy.navClassicHint },
+    { id: "rail", title: look.navLayoutRail, hint: copy.navRailHint },
+  ];
+  return (
+    <>
+      <div className="ob-three" role="radiogroup" aria-label={copy.layoutGroup} style={{ marginTop: 20 }}>
+        {infoOptions.map((option) => (
+          <LayoutOption key={option.id} selected={preferences.infoLayout === option.id} title={option.title} hint={option.hint} onPick={() => preferences.setInfoLayout(option.id)}>
+            <InfoPreview kind={option.id} chat={copy.layoutChat} info={copy.layoutInfo} />
+          </LayoutOption>
+        ))}
+      </div>
+      <Label title={copy.navGroup} style={{ marginTop: 22 }} />
+      <div className="ob-two" role="radiogroup" aria-label={copy.navGroup}>
+        {navOptions.map((option) => (
+          <LayoutOption key={option.id} selected={navLayout === option.id} title={option.title} hint={option.hint} onPick={() => setNavLayout(option.id)}>
+            <NavPreview kind={option.id} chat={copy.layoutChat} />
+          </LayoutOption>
+        ))}
+      </div>
+    </>
+  );
+}
+
+/** 第 4 步：输入框布局，以及交互式界面偏好。 */
+export function ComposerStep({ copy, settings }: { copy: OnboardingCopy; settings: SettingsCopy }) {
+  const composerLayout = useComposerLayout();
+  const look = settings.appearance;
   const [preference, setPreference] = useState<UiPreference | null>(null);
   const [failed, setFailed] = useState(false);
   const text = uiCopy.setting;
@@ -38,13 +90,21 @@ export function LayoutStep({ copy, preferences }: { copy: OnboardingCopy; prefer
     );
   }
 
+  const composerOptions: { id: ComposerLayout; title: string; hint: string }[] = [
+    { id: "classic", title: look.composerLayoutClassic, hint: copy.composerClassicHint },
+    { id: "calm", title: look.composerLayoutCalm, hint: copy.composerCalmHint },
+    { id: "capsule", title: look.composerLayoutCapsule, hint: copy.composerCapsuleHint },
+  ];
   const hints: Record<UiPreference, string> = { auto: text.autoHint(), text_only: text.textOnlyHint(), visual_first: text.visualFirstHint() };
   const current = preference ?? "auto";
   return (
     <>
-      <div className="ob-two" role="radiogroup" aria-label={copy.layoutGroup} style={{ marginTop: 20 }}>
-        <LayoutCard value="sidebar" selected={preferences.infoLayout === "sidebar"} title={copy.infoSidebar} hint={copy.infoSidebarHint} chat={copy.layoutChat} info={copy.layoutInfo} onPick={preferences.setInfoLayout} />
-        <LayoutCard value="floating" selected={preferences.infoLayout === "floating"} title={copy.infoFloating} hint={copy.infoFloatingHint} chat={copy.layoutChat} info={copy.layoutInfo} onPick={preferences.setInfoLayout} />
+      <div className="ob-three" role="radiogroup" aria-label={copy.composerGroup} style={{ marginTop: 20 }}>
+        {composerOptions.map((option) => (
+          <LayoutOption key={option.id} selected={composerLayout === option.id} title={option.title} hint={option.hint} onPick={() => setComposerLayout(option.id)}>
+            <ComposerPreview kind={option.id} chat={copy.layoutChat} />
+          </LayoutOption>
+        ))}
       </div>
       <Label title={copy.interactiveGroup} hint={text.description()} style={{ marginTop: 26 }} />
       <Seg<UiPreference>
@@ -62,26 +122,7 @@ export function LayoutStep({ copy, preferences }: { copy: OnboardingCopy; prefer
   );
 }
 
-function LayoutCard({ value, selected, title, hint, chat, info, onPick }: {
-  value: InfoLayout;
-  selected: boolean;
-  title: string;
-  hint: string;
-  chat: string;
-  info: string;
-  onPick: (value: InfoLayout) => void;
-}) {
-  return (
-    <Opt selected={selected} onClick={() => onPick(value)} className="pick">
-      <b>{title}</b><span>{hint}</span>
-      <span className={`ob-lay ${value}`} aria-hidden="true">
-        <span className="a" /><span className="b">{chat}</span><span className="c">{info}</span>
-      </span>
-    </Opt>
-  );
-}
-
-/** 第 7 步：记忆开关与额外指令。记忆开关立即生效，指令随「继续」保存。 */
+/** 第 8 步：记忆开关与额外指令。记忆开关立即生效，指令随「继续」保存。 */
 export function PersonalizeStep({ copy, settings, instructions, onInstructions, disabled }: {
   copy: OnboardingCopy;
   settings: SettingsCopy;
@@ -145,7 +186,7 @@ export function PersonalizeStep({ copy, settings, instructions, onInstructions, 
   );
 }
 
-/** 第 8 步：常驻 Agent、通知、自动更新。每一项改动都立即交给主进程保存。 */
+/** 第 9 步：常驻 Agent、通知、自动更新。每一项改动都立即交给主进程保存。 */
 export function BackgroundStep({ copy, settings, resident, onResident, update, onUpdate }: {
   copy: OnboardingCopy;
   settings: SettingsCopy;

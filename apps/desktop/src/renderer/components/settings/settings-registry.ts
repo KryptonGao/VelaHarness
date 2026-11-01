@@ -70,6 +70,8 @@ export const settingsEntries: readonly SettingsEntry[] = [
   { id: "update-auto", page: "updates", title: (c) => c.updates.autoTitle, hint: (c) => c.updates.autoHint, keywords: { zh: ["自动更新", "自动下载", "后台"], en: ["automatic updates", "auto update", "download", "background"] } },
   { id: "update-intro", page: "updates", title: (c) => c.updates.replayTitle, hint: (c) => c.updates.replayHint, keywords: { zh: ["介绍", "引导", "新功能", "新到港", "重看"], en: ["intro", "tour", "onboarding", "what's new", "replay"] } },
 
+  { id: "update-onboarding", page: "updates", title: (c) => c.updates.onboardingTitle, hint: (c) => c.updates.onboardingHint, keywords: { zh: ["引导", "重新引导", "OnBoarding", "新手引导", "重新设置", "初始设置"], en: ["onboarding", "setup", "welcome", "first run", "restart", "redo"] } },
+
   { id: "shortcuts", page: "shortcuts", title: (c) => c.appearance.shortcuts, hint: (c) => c.appearance.shortcutsHint, keywords: { zh: ["快捷键", "热键", "按键"], en: ["shortcut", "hotkey", "keyboard", "keybinding"] } },
 
   { id: "default-model", page: "defaults", title: (c) => c.agent.model, hint: (c) => c.agent.modelHint, keywords: { zh: ["模型", "默认模型"], en: ["model", "default model"] } },

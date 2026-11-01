@@ -88,8 +88,8 @@ export async function runOnboardingChecks() {
       await press(forward()); await reach("step-1");
     });
 
-    await check("setup lists 8 steps with two optional markers and future steps stay locked", async () => {
-      assert(all(".ob-route li", document).length === 8, "rail should list 8 steps");
+    await check("setup lists 9 steps with two optional markers and future steps stay locked", async () => {
+      assert(all(".ob-route li", document).length === 9, "rail should list 9 steps");
       assert(all(".ob-route em", document).length === 2, "skills and personalize should be optional");
       assert(all<HTMLButtonElement>(".ob-route button", document).every((item) => item.disabled), "nothing before step 1 is reachable");
     });
@@ -106,16 +106,36 @@ export async function runOnboardingChecks() {
       await press(all<HTMLButtonElement>(".ob-opt")[1]!);
       assert(all(".ob-opt")[1]!.getAttribute("aria-checked") === "true", "compact tool display not selected");
       assert(all(".ob-opt")[0]!.getAttribute("aria-checked") === "false", "card tool display still selected");
+      const assist = all<HTMLElement>("[role=switch]");
+      assert(assist.length === 2 && assist.every((item) => item.getAttribute("aria-checked") === "false"), "thinking summary and input prediction should start off");
+      await press(assist[0]!); await press(assist[1]!);
+      await until(() => all<HTMLElement>("[role=switch]").every((item) => item.getAttribute("aria-checked") === "true"), "thinking summary and input prediction switched on");
     });
 
-    await check("info panel layout offers sidebar and floating and persists the Intelligent UI preference", async () => {
+    await check("info panel offers sidebar, floating and cards, and navigation offers classic and categories, each with a diagram", async () => {
       await next("step-3");
-      const cards = all<HTMLButtonElement>(".ob-opt.pick");
-      assert(cards.length === 2 && cards.every((item) => item.querySelector(".ob-lay")), "layout cards with previews expected");
-      assert(cards[0]!.getAttribute("aria-checked") === "true", "sidebar should be the default");
-      await press(cards[1]!);
-      assert(all(".ob-opt.pick")[1]!.getAttribute("aria-checked") === "true", "floating not selected");
-      assert(all(".ob-opt.pick")[0]!.getAttribute("aria-checked") === "false", "sidebar still selected");
+      const cards = () => all<HTMLButtonElement>(".ob-opt.pick");
+      assert(cards().length === 5 && cards().every((item) => item.querySelector(".ob-lay")), "five layout cards with diagrams expected");
+      assert(cards()[0]!.getAttribute("aria-checked") === "true", "sidebar should be the default");
+      await press(byText(".ob-opt.pick", "Info cards"));
+      assert(byText(".ob-opt.pick", "Info cards").getAttribute("aria-checked") === "true" && cards()[0]!.getAttribute("aria-checked") === "false", "info cards not selected");
+      await press(cards()[1]!);
+      assert(cards()[1]!.getAttribute("aria-checked") === "true" && byText(".ob-opt.pick", "Info cards").getAttribute("aria-checked") === "false", "floating not selected");
+      // 导航与输入框布局存在模块级的存储里，在预览清空 localStorage 之前就读过一次，所以这里不假设起点，两边都点一遍。
+      await press(cards()[3]!);
+      assert(cards()[3]!.getAttribute("aria-checked") === "true" && cards()[4]!.getAttribute("aria-checked") === "false", "classic navigation not selected");
+      await press(byText(".ob-opt.pick", "Categories"));
+      assert(byText(".ob-opt.pick", "Categories").getAttribute("aria-checked") === "true" && cards()[3]!.getAttribute("aria-checked") === "false", "categories navigation not selected");
+    });
+
+    await check("composer layout has its own page with diagrams and persists the Intelligent UI preference", async () => {
+      await next("step-4");
+      const cards = () => all<HTMLButtonElement>(".ob-opt.pick");
+      assert(cards().length === 3 && cards().every((item) => item.querySelector(".ob-lay")), "three composer cards with diagrams expected");
+      await press(cards()[0]!);
+      assert(cards()[0]!.getAttribute("aria-checked") === "true" && document.documentElement.dataset.composerLayout === "classic", "classic composer layout not applied");
+      await press(byText(".ob-opt.pick", "Capsule"));
+      assert(byText(".ob-opt.pick", "Capsule").getAttribute("aria-checked") === "true" && document.documentElement.dataset.composerLayout === "capsule", "capsule composer layout not applied");
       await press(byText(".ob-seg button", "Visual first"));
       await until(() => calls("setIntelligentUi").length === 1, "Intelligent UI preference saved");
       assert(calls("setIntelligentUi")[0].arg === "visual_first", "wrong Intelligent UI preference");
@@ -123,11 +143,11 @@ export async function runOnboardingChecks() {
     });
 
     await check("skills step can be skipped or continued without migrating", async () => {
-      await next("step-4");
+      await next("step-5");
       await until(() => primary().textContent!.includes("Continue without migrating"), "skills step footer");
       assert(!!byText(".ob-link", "Skip this step", bar()), "skills step must be skippable");
       assert(calls("migrateSkills").length === 0, "nothing should be migrated");
-      await next("step-5");
+      await next("step-6");
     });
 
     await check("provider step blocks until a connected provider is chosen", async () => {
@@ -138,13 +158,13 @@ export async function runOnboardingChecks() {
       assert(primary().disabled, "continue must be disabled for an unconnected provider");
       await press(all<HTMLButtonElement>(".ob-prov [role=radio]")[0]!);
       assert(!primary().disabled, "continue must be enabled for a connected provider");
-      await next("step-6");
+      await next("step-7");
     });
 
     await check("model step saves provider, model and reasoning before personalization", async () => {
       await until(() => node<HTMLSelectElement>(".ob-field select").value === "demo-fast", "first model should be preselected");
       await press(byText(".ob-opts.sails .ob-opt", "High"));
-      await next("step-7");
+      await next("step-8");
       const saved = calls("saveAgentSettings").at(-1)?.arg;
       assert(saved?.provider === "demo" && saved.modelId === "demo-fast" && saved.thinkingLevel === "high", `unexpected saved settings ${JSON.stringify(saved)}`);
     });
@@ -157,7 +177,7 @@ export async function runOnboardingChecks() {
       assert(node("[role=switch]").getAttribute("aria-checked") === "false", "memory switch not reflected");
       type(node<HTMLTextAreaElement>("textarea.ob-lined"), "Answer in concise English.");
       await wait(20);
-      await next("step-8");
+      await next("step-9");
       const saved = calls("saveAgentSettings").at(-1)?.arg;
       assert(saved?.instructions === "Answer in concise English." && saved.provider === "demo" && saved.modelId === "demo-fast", `instructions not saved with the model ${JSON.stringify(saved)}`);
     });
@@ -211,17 +231,17 @@ export async function runOnboardingChecks() {
     });
 
     await check("personalize can be skipped without saving, and earlier visited steps stay reachable", async () => {
-      fixture.reset({ agent: { provider: "demo", modelId: "demo-pro", thinkingLevel: "low", newConversationSelection: "default", instructions: "keep" } }, "step-7");
-      await reach("step-7");
+      fixture.reset({ agent: { provider: "demo", modelId: "demo-pro", thinkingLevel: "low", newConversationSelection: "default", instructions: "keep" } }, "step-8");
+      await reach("step-8");
       await until(() => node<HTMLTextAreaElement>("textarea.ob-lined").value === "keep", "saved instructions loaded");
       type(node<HTMLTextAreaElement>("textarea.ob-lined"), "discarded");
       await wait(20);
       await press(byText(".ob-link", "Skip this step", bar()));
-      await reach("step-8");
+      await reach("step-9");
       assert(calls("saveAgentSettings").length === 0, "skipping must not save instructions");
       const visitable = all<HTMLButtonElement>(".ob-route button", document).filter((item) => !item.disabled).length;
-      assert(visitable === 7, `all steps before the current one should be visitable, got ${visitable}`);
-      await press(back()); await reach("step-7");
+      assert(visitable === 8, `all steps before the current one should be visitable, got ${visitable}`);
+      await press(back()); await reach("step-8");
       assert(node<HTMLTextAreaElement>("textarea.ob-lined").value === "discarded", "typed draft should survive back navigation");
     });
 
@@ -229,8 +249,8 @@ export async function runOnboardingChecks() {
       const api = (window as any).vela;
       const saved = { resident: api.resident, updates: api.updates };
       api.resident = undefined; api.updates = undefined;
-      fixture.reset({}, "step-8");
-      await reach("step-8");
+      fixture.reset({}, "step-9");
+      await reach("step-9");
       const text = document.querySelector(".ob-scr.on")!.textContent!;
       assert(text.includes("no Resident Agent") && text.includes("unavailable"), "missing APIs should explain themselves");
       assert(!primary().disabled, "setup must still be completable");

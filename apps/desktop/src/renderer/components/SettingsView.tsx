@@ -165,7 +165,7 @@ export function SettingsView({
           <div hidden={page !== "shortcuts"}>
             <ShortcutsPage copy={copy} mod={mod} />
           </div>
-          {page === "updates" ? <UpdatesPage copy={copy} locale={locale} onReplayIntro={onReplayIntro} /> : null}
+          {page === "updates" ? <UpdatesPage copy={copy} locale={locale} onReplayIntro={onReplayIntro} onRestartOnboarding={onRestartOnboarding} /> : null}
           <div hidden={page !== "defaults"}>
             <AgentDefaultsPage copy={copy} catalog={models.catalog} project={project} />
           </div>

@@ -22,7 +22,7 @@ import { darkThemes, defaultDarkTheme, defaultLightTheme, isCustomThemeId, light
 import { localizeError } from "../locale";
 import { settingsCopy } from "./settings-copy";
 import { onboardingCopy, type OnboardingCopy } from "./onboarding-copy";
-import { BackgroundStep, LayoutStep, PersonalizeStep } from "./OnboardingExtraSteps";
+import { AssistSection, BackgroundStep, ComposerStep, LayoutStep, PersonalizeStep } from "./OnboardingExtraSteps";
 import { FeatureScreen, HelloScreen, LanguageScreen, NewsScreen, TourScreen, Brand } from "./OnboardingIntro";
 import { ObDefs, ObPanel, ObSail, ObSea, obColor } from "./onboarding-art";
 import {
@@ -223,7 +223,7 @@ export function OnboardingView({ preferences, models, project, mode = "full", in
   }, [modelThinkingLevels.join("|")]);
 
   useEffect(() => {
-    if (screen !== "step-4") return;
+    if (screen !== "step-5") return;
     const api = window.vela;
     if (!api) return;
     let active = true;
@@ -247,7 +247,7 @@ export function OnboardingView({ preferences, models, project, mode = "full", in
   }, [scanAttempt, settingsCopyAgent.migrateLoadError, screen]);
 
   useEffect(() => {
-    if (screen !== "step-8" && screen !== "done") return;
+    if (screen !== "step-9" && screen !== "done") return;
     let active = true;
     const api = window.vela;
     void api?.resident?.getSettings().then((value) => { if (active) setResident(value); }, () => undefined);
@@ -346,7 +346,7 @@ export function OnboardingView({ preferences, models, project, mode = "full", in
 
   async function continueFromSkills(): Promise<void> {
     if (!window.vela || !scan || chosenSkills.length === 0) {
-      navigate("step-5");
+      navigate("step-6");
       return;
     }
     setSkillsBusy(true);
@@ -356,7 +356,7 @@ export function OnboardingView({ preferences, models, project, mode = "full", in
       const migrated = result.copied.length + result.replaced.length;
       const suffix = result.skipped.length ? ` ${copy.migrationPartial}` : "";
       setSkillsNotice(`${copy.migrationDone(migrated)}${suffix}`);
-      navigate("step-5");
+      navigate("step-6");
     } catch (error) {
       setScanError(error instanceof Error ? error.message : copy.migrationError);
     } finally {
@@ -411,7 +411,7 @@ export function OnboardingView({ preferences, models, project, mode = "full", in
         instructions: savedAgentSettings?.instructions ?? "",
       };
       setSavedAgentSettings(await window.vela.saveAgentSettings(nextSettings));
-      navigate("step-7");
+      navigate("step-8");
     } catch (error) {
       setSaveError(error instanceof Error ? localizeError(error.message) : copy.saveError);
     } finally {
@@ -421,14 +421,14 @@ export function OnboardingView({ preferences, models, project, mode = "full", in
 
   async function continueFromPersonalize(): Promise<void> {
     if (!window.vela || !savedAgentSettings || instructions === savedAgentSettings.instructions) {
-      navigate("step-8");
+      navigate("step-9");
       return;
     }
     setSavingAgentSettings(true);
     setSaveError(null);
     try {
       setSavedAgentSettings(await window.vela.saveAgentSettings({ ...savedAgentSettings, instructions }));
-      navigate("step-8");
+      navigate("step-9");
     } catch (error) {
       setSaveError(error instanceof Error ? localizeError(error.message) : copy.saveError);
     } finally {
@@ -478,29 +478,29 @@ export function OnboardingView({ preferences, models, project, mode = "full", in
     const skippable = optionalConfigSteps.includes(n);
     const continueDisabled =
       busy ||
-      (n === 5 && (!connected || availableModels.length === 0)) ||
-      (n === 6 && (!selectedModel || !settingsLoaded)) ||
-      (n === 7 && !settingsLoaded);
+      (n === 6 && (!connected || availableModels.length === 0)) ||
+      (n === 7 && (!selectedModel || !settingsLoaded)) ||
+      (n === 8 && !settingsLoaded);
     const label = skillsBusy ? copy.migrating
       : customBusy || savingAgentSettings ? copy.connecting
-        : n === 4 ? (chosenSkills.length ? copy.migrateAndContinue : copy.continueWithoutMigration)
-          : n === 8 ? copy.finishStep : copy.next;
+        : n === 5 ? (chosenSkills.length ? copy.migrateAndContinue : copy.continueWithoutMigration)
+          : n === 9 ? copy.finishStep : copy.next;
     return (
       <div className="ob-bar" style={{ left: 424 }}>
         <div className="ob-fleet" aria-hidden="true">
           {configScreens.map((id, index) => index + 1 === n ? <ObSail key={id} size={18} /> : <i key={id} className={index + 1 < n ? "done" : ""} />)}
         </div>
         <span className="ob-r">
-          {skippable ? <button type="button" className="ob-link" disabled={busy} onClick={() => navigate(n === 4 ? "step-5" : "step-8")}>{copy.skip}</button> : null}
+          {skippable ? <button type="button" className="ob-link" disabled={busy} onClick={() => navigate(n === 5 ? "step-6" : "step-9")}>{copy.skip}</button> : null}
           <button type="button" className="ob-pill" disabled={busy} onClick={back}>{copy.previous}</button>
           <button
             type="button"
             className={`ob-pill fill${continueDisabled ? " off" : ""}`}
             disabled={continueDisabled}
             onClick={() => {
-              if (n === 4) void continueFromSkills();
-              else if (n === 6) void continueFromModel();
-              else if (n === 7) void continueFromPersonalize();
+              if (n === 5) void continueFromSkills();
+              else if (n === 7) void continueFromModel();
+              else if (n === 8) void continueFromPersonalize();
               else next();
             }}
           >{label}{busy ? "" : " →"}</button>
@@ -560,7 +560,7 @@ export function OnboardingView({ preferences, models, project, mode = "full", in
       case "step-2":
         return (
           <SetupFrame {...frame(2, copy.toolTitle, copy.toolHint)}>
-            <div className="ob-two" role="radiogroup" aria-label={appearanceCopy.toolDisplay} style={{ marginTop: 26 }}>
+            <div className="ob-two" role="radiogroup" aria-label={appearanceCopy.toolDisplay} style={{ marginTop: 20 }}>
               <Opt className="pick" selected={preferences.toolDisplay === "card"} onClick={() => preferences.setToolDisplay("card")}>
                 <b>{appearanceCopy.toolCard}</b><span>{copy.toolCardHint}</span>
                 <span className="ob-pv" aria-hidden="true">
@@ -580,13 +580,16 @@ export function OnboardingView({ preferences, models, project, mode = "full", in
                 </span>
               </Opt>
             </div>
+            <AssistSection copy={copy} settings={settings} preferences={preferences} />
           </SetupFrame>
         );
       case "step-3":
-        return <SetupFrame {...frame(3, copy.layoutTitle, copy.layoutHint)}><LayoutStep copy={copy} preferences={preferences} /></SetupFrame>;
+        return <SetupFrame {...frame(3, copy.layoutTitle, copy.layoutHint)}><LayoutStep copy={copy} settings={settings} preferences={preferences} /></SetupFrame>;
       case "step-4":
+        return <SetupFrame {...frame(4, copy.composerTitle, copy.composerHint)}><ComposerStep copy={copy} settings={settings} /></SetupFrame>;
+      case "step-5":
         return (
-          <SetupFrame {...frame(4, copy.migrateTitle, copy.migrateHint)}>
+          <SetupFrame {...frame(5, copy.migrateTitle, copy.migrateHint)}>
             <Label title={copy.foundSkills} style={{ justifyContent: "space-between", alignItems: "center" }}>
               {scan ? <span className="ob-count">{copy.selectedSkills(chosenSkills.length)}</span> : null}
             </Label>
@@ -631,9 +634,9 @@ export function OnboardingView({ preferences, models, project, mode = "full", in
             <Note style={{ width: "max-content", maxWidth: "100%" }}>{copy.migrationNote}</Note>
           </SetupFrame>
         );
-      case "step-5":
+      case "step-6":
         return (
-          <SetupFrame {...frame(5, copy.providerTitle, copy.providerHint)}>
+          <SetupFrame {...frame(6, copy.providerTitle, copy.providerHint)}>
             <label className="ob-search">
               <input value={providerQuery} onChange={(event) => setProviderQuery(event.target.value)} placeholder={copy.providerSearch} aria-label={copy.providerSearch} />
             </label>
@@ -694,9 +697,9 @@ export function OnboardingView({ preferences, models, project, mode = "full", in
             ) : null}
           </SetupFrame>
         );
-      case "step-6":
+      case "step-7":
         return (
-          <SetupFrame {...frame(6, copy.modelTitle, copy.modelHint)}>
+          <SetupFrame {...frame(7, copy.modelTitle, copy.modelHint)}>
             <div className="ob-form-column">
               <Label title={copy.defaultModel} hint={selectedProviderName} />
               {availableModels.length ? (
@@ -721,15 +724,15 @@ export function OnboardingView({ preferences, models, project, mode = "full", in
             <Note style={{ width: "max-content", maxWidth: "100%" }}>{copy.modelNote}</Note>
           </SetupFrame>
         );
-      case "step-7":
+      case "step-8":
         return (
-          <SetupFrame {...frame(7, copy.personalizeTitle, copy.personalizeHint)}>
+          <SetupFrame {...frame(8, copy.personalizeTitle, copy.personalizeHint)}>
             <PersonalizeStep copy={copy} settings={settings} instructions={instructions} onInstructions={setInstructions} disabled={savingAgentSettings} />
           </SetupFrame>
         );
-      case "step-8":
+      case "step-9":
         return (
-          <SetupFrame {...frame(8, copy.backgroundTitle, copy.backgroundHint, true)}>
+          <SetupFrame {...frame(9, copy.backgroundTitle, copy.backgroundHint, true)}>
             <BackgroundStep copy={copy} settings={settings} resident={resident} onResident={setResident} update={updateState} onUpdate={setUpdateState} />
           </SetupFrame>
         );
@@ -754,7 +757,7 @@ export function OnboardingView({ preferences, models, project, mode = "full", in
                 <SummaryRow label={copy.summaryModel} value={selectedModel ? `${selectedModel.name} · ${levelLabels[normalizedThinking]}` : "—"} />
                 <SummaryRow label={copy.summaryTools} value={preferences.toolDisplay === "card" ? appearanceCopy.toolCard : appearanceCopy.toolCompact} />
                 <SummaryRow label={copy.summaryPermissions} value={settings.permissions.smart} />
-                <SummaryRow label={copy.summaryLayout} value={preferences.infoLayout === "sidebar" ? copy.infoSidebar : copy.infoFloating} />
+                <SummaryRow label={copy.summaryLayout} value={preferences.infoLayout === "sidebar" ? copy.infoSidebar : preferences.infoLayout === "cards" ? appearanceCopy.infoLayoutCards : copy.infoFloating} />
                 <SummaryRow label={copy.summaryMemory} value={memoryEnabled === null ? "—" : memoryEnabled ? copy.on : copy.off} />
                 <SummaryRow label={copy.summaryResident} value={resident ? modeLabel(resident.mode) : "—"} />
                 <SummaryRow label={copy.summaryUpdates} value={updateState ? (updateState.autoUpdate ? copy.on : copy.off) : "—"} />
@@ -842,7 +845,7 @@ function SetupFrame({ n, title, lead, wide, copy, busy, saveError, bar, onJump, 
         <p className="ob-rail-note">{copy.railNote}</p>
       </div>
       <div className={`ob-body${wide ? " wide" : ""}`}>
-        <span className="ob-chip">{fill(copy.stepChip, n)} · {copy.steps[n - 1]}{optional ? ` · ${copy.optional}` : ""}</span>
+        <span className="ob-chip">{fill(copy.stepChip, n, configStepCount)} · {copy.steps[n - 1]}{optional ? ` · ${copy.optional}` : ""}</span>
         <h3>{title}</h3>
         <p className="ob-lead">{lead}</p>
         {children}

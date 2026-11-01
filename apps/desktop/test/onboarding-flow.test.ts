@@ -28,7 +28,9 @@ test("intro mode has neither the language picker nor setup steps", () => {
 test("restoreScreen reads new ids and migrates the legacy numeric step", () => {
   assert.equal(restoreScreen("step-3", null), "step-3");
   assert.equal(restoreScreen("tour", "5"), "tour");
-  assert.equal(restoreScreen(null, "5"), "step-5");
+  assert.equal(restoreScreen(null, "3"), "step-3");
+  assert.equal(restoreScreen(null, "4"), "step-5", "legacy skills step moved to make room for the composer page");
+  assert.equal(restoreScreen(null, "8"), "step-9");
   assert.equal(restoreScreen(null, "9"), "done");
   assert.equal(restoreScreen(null, "0"), "language");
   assert.equal(restoreScreen("bogus", null), "language");
