@@ -96,7 +96,9 @@ function VisibleAgentPane({
     const keys: string[] = [];
     for (const message of messages) {
       keys.push(message.id);
-      if (message.thinking) keys.push(`${message.id}:thinking`);
+      // 连贯模式的分组以组内第一项所在消息的 `:thinking` 为 key,第一项是工具时消息没有思考文本,
+      // 也要登记,否则每来一条新消息整组都会被当成新到达而重放淡入,整个面板闪白。
+      if (message.thinking || message.tools.length) keys.push(`${message.id}:thinking`);
       if (message.tools.length) keys.push(`${message.id}:tools`);
       if (message.text) keys.push(`${message.id}:text`);
     }
