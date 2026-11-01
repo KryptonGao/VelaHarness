@@ -278,7 +278,7 @@ export function Thinking({
   );
   const groupHeader = titled ? (
     <div className="thinking-header">
-      <button className={`time-spent-trigger thinking-headline-trigger${showActivity ? " is-running" : ""}`} type="button" aria-expanded={open} aria-controls={bodyId} onClick={toggle} title={titled.title}>
+      <button className={`time-spent-trigger thinking-headline-trigger${coherent ? "" : " thinking-cot-title"}${showActivity ? " is-running" : ""}`} type="button" aria-expanded={open} aria-controls={bodyId} onClick={toggle} title={titled.title}>
         {coherent ? leadingIcon : icon}
         <span className="thinking-summary-excerpt">{titled.title}</span>
         {stat ? (
@@ -569,7 +569,7 @@ export function CoherentThought({ text, messageId, active, expanded }: { text: s
   if (summaries && summaries.length > 1) {
     return (
       <div className="coherent-thought is-multi">
-        <div className="coherent-thought-trigger">
+        <div className="coherent-thought-trigger is-cot-title">
           <span className="thinking-icon" aria-hidden="true"><ThinkingIcon size={13} /></span>
           <span className="coherent-thought-lines">
             {summaries.map((line, index) => <span key={index} className="coherent-thought-line">{line}</span>)}
@@ -580,7 +580,7 @@ export function CoherentThought({ text, messageId, active, expanded }: { text: s
   }
   return (
     <div className={`coherent-thought${open ? " open" : ""}`}>
-      <button className="coherent-thought-trigger" type="button" aria-expanded={open} aria-controls={bodyId} disabled={!body} onClick={() => setManual(!open)} title={title}>
+      <button className={`coherent-thought-trigger${titled || summaries ? " is-cot-title" : ""}`} type="button" aria-expanded={open} aria-controls={bodyId} disabled={!body} onClick={() => setManual(!open)} title={title}>
         <span className="thinking-icon" aria-hidden="true"><ThinkingIcon size={13} /></span>
         <span className="coherent-thought-title">{title}</span>
         {body ? (

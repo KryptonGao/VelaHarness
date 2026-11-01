@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import type { ModelCatalog } from "@vela/shared";
-import type { PreferencesApi, ThinkingGroupMode, ThinkingSummaryStyle, ToolDisplay, ToolFold, ToolIconColor } from "../../hooks/usePreferences";
+import type { PreferencesApi, ThinkingGroupMode, ThinkingSummaryStyle, ThinkingTitleStyle, ToolDisplay, ToolFold, ToolIconColor } from "../../hooks/usePreferences";
 import type { SettingsCopy } from "../settings-copy";
 import { groupAvailable, modelValue, parseModelValue } from "./model-helpers";
 import { Segmented, SettingsBlock, SettingsSwitch } from "./primitives";
@@ -38,6 +38,7 @@ export function ConversationDisplayPage({
     toolDetailHeight,
     toolDetailHeightScale,
     thinkingGroupHeightGrow,
+    thinkingTitleStyle,
     replyFade,
     replyPop,
     thinkingFade,
@@ -60,6 +61,7 @@ export function ConversationDisplayPage({
     setThinkingGroupHeightGrow,
     setReplyFade,
     setReplyPop,
+    setThinkingTitleStyle,
     setThinkingFade,
     setThinkingPop,
     setThinkingSummary,
@@ -108,6 +110,12 @@ export function ConversationDisplayPage({
     { id: "message", label: text.toolFoldMessage },
     { id: "position", label: text.toolFoldPosition },
     { id: "none", label: text.toolFoldNone },
+  ];
+  const thinkingTitleStyleOptions: { id: ThinkingTitleStyle; label: string }[] = [
+    { id: "bold-dark", label: text.thinkingTitleBoldDark },
+    { id: "bold-muted", label: text.thinkingTitleBoldMuted },
+    { id: "normal-dark", label: text.thinkingTitleNormalDark },
+    { id: "normal-muted", label: text.thinkingTitleNormalMuted },
   ];
   const toolIconColorOptions: { id: ToolIconColor; label: string }[] = [
     { id: "color", label: text.toolIconColorOn },
@@ -265,6 +273,9 @@ export function ConversationDisplayPage({
       </SettingsBlock>
       <SettingsBlock id="thinking-group-mode" title={text.thinkingGroupMode} hint={text.thinkingGroupModeHint}>
         <Segmented label={text.thinkingGroupMode} value={thinkingGroupMode} options={thinkingGroupModeOptions} onChange={setThinkingGroupMode} />
+      </SettingsBlock>
+      <SettingsBlock id="thinking-title-style" title={text.thinkingTitleStyle} hint={text.thinkingTitleStyleHint}>
+        <Segmented label={text.thinkingTitleStyle} value={thinkingTitleStyle} options={thinkingTitleStyleOptions} onChange={setThinkingTitleStyle} />
       </SettingsBlock>
       <SettingsBlock id="thinking-group-height" title={text.thinkingGroupHeight} hint={text.thinkingGroupHeightHint}>
         <div className="tb-fields">

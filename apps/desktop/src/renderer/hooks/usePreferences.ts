@@ -41,6 +41,8 @@ export type ToolIconColor = "color" | "theme" | "gray";
 export type ThinkingSummaryStyle = "inline" | "headline" | "prose";
 /** 思考分组方式:每次 CoT 总结自成一组(默认),或以正式回复为界、回复之间的过程合成一组。 */
 export type ThinkingGroupMode = "single" | "coherent";
+/** 思考总结标题的字重与颜色:黑色跟随主题正文色,灰色是默认的弱化色。 */
+export type ThinkingTitleStyle = "bold-dark" | "bold-muted" | "normal-dark" | "normal-muted";
 /** 半透明玻璃上叠的颜色:当前主题色、按明暗固定的白/黑、或不叠色。 */
 export type GlassTint = "theme" | "neutral" | "none";
 export type FileIconTheme = "devicon" | "material" | "catppuccin" | "pierre";
@@ -71,6 +73,7 @@ const toolDetailHeightScaleKey = "vela.toolDetailHeightScale";
 const thinkingGroupHeightGrowKey = "vela.thinkingGroupHeightGrow";
 const replyFadeKey = "vela.replyFade";
 const replyPopKey = "vela.replyPop";
+const thinkingTitleStyleKey = "vela.thinkingTitleStyle";
 const thinkingFadeKey = "vela.thinkingFade";
 const thinkingPopKey = "vela.thinkingPop";
 const thinkingSummaryKey = "vela.thinkingSummary";
@@ -167,6 +170,10 @@ function isToolFold(value: unknown): value is ToolFold {
 
 function isThinkingGroupMode(value: unknown): value is ThinkingGroupMode {
   return value === "single" || value === "coherent";
+}
+
+function isThinkingTitleStyle(value: unknown): value is ThinkingTitleStyle {
+  return value === "bold-dark" || value === "bold-muted" || value === "normal-dark" || value === "normal-muted";
 }
 
 function isThinkingSummaryStyle(value: unknown): value is ThinkingSummaryStyle {
@@ -296,6 +303,10 @@ export function usePreferences() {
   const [toolDetailHeightScale, setToolDetailHeightScale] = useState(() => readStoredFlag(toolDetailHeightScaleKey, true));
   /** 展开命令或编辑详情时增高分组,优先于按比例缩小。默认关闭,保留旧行为。 */
   const [thinkingGroupHeightGrow, setThinkingGroupHeightGrow] = useState(() => readStoredFlag(thinkingGroupHeightGrowKey, false));
+  /** 思考标题（OpenAI 思考总结的首行标题）的字重与颜色，通过根节点属性由 CSS 切换。默认加粗灰色。 */
+  const [thinkingTitleStyle, setThinkingTitleStyle] = useState<ThinkingTitleStyle>(() =>
+    readStored(thinkingTitleStyleKey, isThinkingTitleStyle, "bold-muted"),
+  );
   const [replyFade, setReplyFade] = useState(() => readStoredFlag(replyFadeKey, true));
   const [replyPop, setReplyPop] = useState(() => readStoredFlag(replyPopKey, true));
   const [thinkingFade, setThinkingFade] = useState(() => readStoredFlag(thinkingFadeKey, true));
@@ -439,6 +450,12 @@ export function usePreferences() {
     document.documentElement.dataset.thinkingGroupGrow = String(thinkingGroupHeightGrow);
     writeStored(thinkingGroupHeightGrowKey, String(thinkingGroupHeightGrow));
   }, [thinkingGroupHeightGrow]);
+  useEffect(() => {
+    const [weight, color] = thinkingTitleStyle.split("-") as [string, string];
+    document.documentElement.dataset.thinkingTitleWeight = weight;
+    document.documentElement.dataset.thinkingTitleColor = color;
+    writeStored(thinkingTitleStyleKey, thinkingTitleStyle);
+  }, [thinkingTitleStyle]);
   // 流式文字的淡入、弹跳动画由 CSS 按根节点属性切换,不必把开关传到每个 Markdown。
   useEffect(() => {
     document.documentElement.dataset.replyFade = String(replyFade);
@@ -519,6 +536,7 @@ export function usePreferences() {
     toolDetailHeight,
     toolDetailHeightScale,
     thinkingGroupHeightGrow,
+    thinkingTitleStyle,
     replyFade,
     replyPop,
     thinkingFade,
@@ -566,6 +584,7 @@ export function usePreferences() {
     setThinkingGroupHeightGrow,
     setReplyFade,
     setReplyPop,
+    setThinkingTitleStyle,
     setThinkingFade,
     setThinkingPop,
     setThinkingSummary,

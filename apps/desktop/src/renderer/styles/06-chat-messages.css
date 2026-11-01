@@ -1249,3 +1249,18 @@ button.tool-compact-line:hover .tool-compact-cmd {
 }
 .tool-compact-out { margin: 0 8px 4px; }
 
+
+/* 设置里的「思考标题样式」只作用于模型 CoT 总结的每行标题（单段分组的标题、连贯模式组内每段思考的标题）；
+   没有标题的整段思考文字、流式中的「思考」占位、连贯模式的汇总标题和 Vela 自己生成的总结不受影响。灰色是默认色，不覆盖。 */
+:root[data-thinking-title-weight="normal"] .thinking-cot-title,
+:root[data-thinking-title-weight="normal"] .coherent-thought-trigger.is-cot-title {
+  font-weight: 400;
+}
+:root[data-thinking-title-color="dark"] .thinking-cot-title,
+:root[data-thinking-title-color="dark"] .coherent-thought-trigger.is-cot-title,
+:root[data-thinking-title-color="dark"] .coherent-thought:not(.is-multi) > .coherent-thought-trigger.is-cot-title:not(:disabled):hover {
+  color: var(--text-primary);
+}
+:root[data-thinking-title-color="dark"] .thinking-cot-title.is-running .thinking-summary-excerpt {
+  --shimmer-base: var(--text-primary);
+}
