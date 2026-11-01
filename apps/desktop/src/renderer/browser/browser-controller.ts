@@ -1,6 +1,6 @@
 import type { BrowserTabState, BrowserUiCommand } from "@vela/shared";
 import { normalizeBrowserAddress, UI_BROWSER_BLANK_URL } from "../../browser-policy";
-import { BrowserStore } from "./browser-store";
+import { BrowserStore, type BrowserError } from "./browser-store";
 
 /** Narrow guest adapter. It deliberately exposes no scripting, CDP, or Agent bridge. */
 export interface BrowserView {
@@ -74,10 +74,10 @@ export class BrowserController {
       listen("did-navigate-in-page", () => this.sync()),
       listen("page-title-updated", () => this.sync()),
       listen("did-fail-load", (event) => {
-        const failure = event as Event & { errorCode: number; errorDescription: string; isMainFrame: boolean };
+        const failure = event as Event & { errorCode: number; errorDescription: string; isMainFrame: boolean; validatedURL?: string };
         if (!failure.isMainFrame || failure.errorCode === -3) return; // ERR_ABORTED: stop / superseded load
         this.sync();
-        this.store.update({ loading: false, error: { code: "load-failed", detail: failure.errorDescription } });
+        this.store.update({ loading: false, error: { code: "load-failed", detail: failure.errorDescription, url: failure.validatedURL || this.store.getSnapshot().url } });
       }),
       listen("render-process-gone", () => {
         this.store.update({ loading: false, error: { code: "renderer-gone" } });
@@ -95,12 +95,17 @@ export class BrowserController {
     this.store.update({ ready: false, loading: false });
   }
 
-  setAddress = (address: string): void => { this.store.update({ address, editingAddress: true, error: null }); };
+  /** 改地址栏只清掉“网址无效”的提示；页面错误页要留着，直到真正发起新的导航。 */
+  private withoutAddressError(): BrowserError | null {
+    const { error } = this.store.getSnapshot();
+    return error?.code === "invalid-address" ? null : error;
+  }
+  setAddress = (address: string): void => { this.store.update({ address, editingAddress: true, error: this.withoutAddressError() }); };
   beginAddressEdit = (): void => { this.store.update({ editingAddress: true }); };
   endAddressEdit = (): void => { this.store.update({ editingAddress: false }); };
   resetAddress = (): void => {
     const { url } = this.store.getSnapshot();
-    this.store.update({ address: url === UI_BROWSER_BLANK_URL ? "" : url, editingAddress: false, error: null });
+    this.store.update({ address: url === UI_BROWSER_BLANK_URL ? "" : url, editingAddress: false, error: this.withoutAddressError() });
   };
   navigate = (): void => {
     const url = normalizeBrowserAddress(this.store.getSnapshot().address);
@@ -109,6 +114,19 @@ export class BrowserController {
     if (this.host) { this.host.command({ type: "goto", tabId: this.host.tabId, url }); return; }
     if (!this.view || !this.store.getSnapshot().ready) this.pendingUrl = url;
     else this.load(url);
+  };
+  /** 重试失败的页面：加载失败时重新请求失败的网址，页面崩溃时重新加载。 */
+  retry = (): void => {
+    const { error, url } = this.store.getSnapshot();
+    const target = error?.code === "load-failed" ? error.url || url : null;
+    if (target && target !== UI_BROWSER_BLANK_URL && normalizeBrowserAddress(target)) {
+      this.store.update({ address: target, editingAddress: false, error: null });
+      if (this.host) { this.host.command({ type: "goto", tabId: this.host.tabId, url: target }); return; }
+      if (!this.view || !this.store.getSnapshot().ready) this.pendingUrl = target; else this.load(target);
+      return;
+    }
+    this.store.update({ error: null });
+    this.refresh();
   };
   back = (): void => {
     if (this.send("back")) return;
@@ -137,7 +155,8 @@ export class BrowserController {
     this.run((view) => {
       void view.loadURL(url).catch((error: unknown) => {
         if (navigation !== this.navigation || (error as { code?: string } | null)?.code === "ERR_ABORTED") return;
-        this.store.update({ loading: false, error: { code: "load-failed", detail: String(error) } });
+        if (this.store.getSnapshot().error) return; // did-fail-load 已经记下了更准确的原因
+        this.store.update({ loading: false, error: { code: "load-failed", detail: String(error), url } });
       });
     });
   }

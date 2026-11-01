@@ -226,8 +226,58 @@
 .browser-address[aria-invalid="true"] { border-color: var(--danger); }
 /* Title and load status stay in the DOM for assistive tech; the tab label already shows the title. */
 .browser-page-info { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-.browser-error { flex: none; padding: 8px 14px; font-size: 12px; color: var(--danger); background: var(--danger-tint); overflow-wrap: anywhere; }
-.browser-error > span { display: block; margin-top: 4px; }
+.browser-notice { flex: none; padding: 8px 14px; font-size: 12px; color: var(--danger); background: var(--danger-tint); overflow-wrap: anywhere; }
+/* 加载中的细进度条，贴在工具栏下沿；webview 浮在 viewport 上，所以放在 viewport 之外。 */
+.browser-progress { position: relative; flex: none; height: 2px; margin-top: -2px; overflow: hidden; opacity: 0; pointer-events: none; transition: opacity 160ms ease; z-index: 1; }
+.browser-progress[data-active] { opacity: 1; }
+.browser-progress::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 35%; background: var(--accent-blue); border-radius: 1px; animation: browser-progress-slide 1.1s ease-in-out infinite; }
+@keyframes browser-progress-slide { from { transform: translateX(-100%); } to { transform: translateX(300%); } }
+@media (prefers-reduced-motion: reduce) { .browser-progress::before { width: 100%; animation: none; opacity: 0.55; } }
+/* 页面级错误页：盖在页面区域上（此时 webview 已让位）。 */
+.browser-error {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 24px;
+  background: var(--bg-chat);
+  color: var(--text-muted);
+  text-align: center;
+  overflow: auto;
+}
+.browser-error-icon { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; color: var(--danger); background: var(--danger-tint); }
+.browser-error h2 { margin: 4px 0 0; font-size: 17px; font-weight: 550; color: var(--text-primary); }
+.browser-error p { margin: 0; max-width: 320px; font-size: 13px; line-height: 1.5; }
+.browser-error-url {
+  max-width: min(100%, 360px);
+  overflow: hidden;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: var(--bg-surface-subtle);
+  color: var(--text-secondary);
+  font: 12px var(--font-mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.browser-error-code { font: 11px var(--font-mono); color: var(--text-muted); user-select: text; }
+.browser-error-retry {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  padding: 6px 14px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--bg-surface-subtle);
+  color: var(--text-primary);
+  font-size: 13px;
+  cursor: pointer;
+}
+.browser-error-retry:hover { border-color: var(--accent-blue); }
+.browser-error-retry:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 2px; }
 /* webview 以 fixed 浮在 viewport 的矩形上(z-index 20),左缘让出 1px,免得盖住面板的竖向分隔线。 */
 .browser-viewport { position: relative; flex: 1; min-height: 0; overflow: hidden; margin-left: 1px; }
 .browser-webview { display: flex; width: 100%; height: 100%; }

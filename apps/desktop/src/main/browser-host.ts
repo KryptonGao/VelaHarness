@@ -99,7 +99,11 @@ export class BrowserHost {
         this.annotations.stopWhere(this.registry.list(windowId), other => other.id !== tab.id);
       } else if (input.type === 'close') this.closeTab(tab);
       else if (isAnnotationCommand(input)) await this.annotations.command(tab, input);
-      else await this.navigation(tab, input.type, input.type === 'goto' ? input.url : undefined);
+      else {
+        // A failed page load is already shown on the tab; only the Agent path needs the rejection.
+        try { await this.navigation(tab, input.type, input.type === 'goto' ? input.url : undefined); }
+        catch (error) { if (tab.error?.code !== 'load-failed') throw error; }
+      }
     }
     this.publish(windowId); return this.state(windowId);
   }
@@ -238,7 +242,7 @@ export class BrowserHost {
     };
     const navigate=()=>{tab.generation++;tab.error=null;this.settleCursor(tab);this.annotations.navigated(tab);sync();};
     const ready=()=>{tab.ready=true;sync();};
-    const failed=(_event:unknown,code:number,description:string,_url:string,isMainFrame:boolean)=>{if(isMainFrame&&code!==-3){tab.error={code:'load-failed',detail:description};sync();}};
+    const failed=(_event:unknown,code:number,description:string,failedUrl:string,isMainFrame:boolean)=>{if(isMainFrame&&code!==-3){tab.error={code:'load-failed',detail:description,url:failedUrl||tab.url};sync();}};
     const gone=()=>{tab.generation++;tab.ready=false;tab.error={code:'renderer-gone'};this.settleCursor(tab);this.annotations.crashed(tab);entry.automation?.dispose();entry.automation=undefined;this.publish(tab.windowId);};
     // Esc leaves annotation mode even while the page has keyboard focus.
     const escape=(event:{preventDefault():void},input:{type:string;key:string})=>{
@@ -272,7 +276,7 @@ export class BrowserHost {
     }catch(error){
       if(this.navigationEpoch.get(tab.id)!==epoch || (error as {code?:string})?.code==='ERR_ABORTED') return;
       if(!this.registry.list(tab.windowId).includes(tab)) throw new BrowserHostError('tab-closed','Browser tab closed');
-      tab.error={code:'load-failed',detail:String(error)};this.publish(tab.windowId);throw error;
+      if((tab.error as BrowserRecord['error'])?.code!=='load-failed')tab.error={code:'load-failed',detail:String(error),url:method==='goto'?url:tab.url};this.publish(tab.windowId);throw error;
     }
   }
   private closeTab(tab:BrowserRecord):void{

@@ -1,6 +1,8 @@
 export interface BrowserError {
   code: string;
   detail?: string;
+  /** 加载失败的网址；重试时用它，而不是地址栏里可能已被改动的内容。 */
+  url?: string;
 }
 
 export interface BrowserState {

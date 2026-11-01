@@ -1,17 +1,18 @@
 import { useSyncExternalStore } from "react";
 import { UI_BROWSER_BLANK_URL } from "../../../browser-policy";
 import type { BrowserController } from "../../browser/browser-controller";
+import { describeBrowserError } from "../../browser/browser-error";
 import { tr } from "../../locale";
-import { AnnotateIcon, ArrowLeftIcon, ArrowRightIcon, CloseIcon, GlobeIcon, RefreshIcon } from "../icons";
+import { AlertIcon, AnnotateIcon, ArrowLeftIcon, ArrowRightIcon, CloseIcon, GlobeIcon, RefreshIcon } from "../icons";
 
 /** Presentation and DOM binding only. Guest events/navigation live in BrowserController. */
 export function BrowserPanel({ controller, tabId, operating, onAbort }: { controller: BrowserController; tabId: string; operating?: boolean; onAbort?: () => void }) {
   const state = useSyncExternalStore(controller.store.subscribe, controller.store.getSnapshot);
-  const error = state.error?.code === "invalid-address"
-    ? tr("请输入有效的 HTTP 或 HTTPS 网址", "Enter a valid HTTP or HTTPS address")
-    : state.error?.code === "renderer-gone"
-      ? tr("页面已停止响应，请刷新重试", "The page stopped responding. Reload to retry")
-      : state.error ? tr("页面加载失败", "Failed to load page") : null;
+  const addressError = state.error?.code === "invalid-address"
+    ? tr("请输入有效的 HTTP 或 HTTPS 网址", "Enter a valid HTTP or HTTPS address") : null;
+  // 页面级错误（加载失败、崩溃）直接占据页面区域，而不是挤在工具栏下面的一行小字里。
+  const pageError = state.error && !addressError ? describeBrowserError(state.error, state.url) : null;
+  const failedUrl = state.error?.url || (state.url !== UI_BROWSER_BLANK_URL ? state.url : "");
   const blank = state.url === UI_BROWSER_BLANK_URL;
   const annotateDisabled = !state.ready || blank || !!state.error || !!operating;
   const annotateLabel = state.annotating ? tr("退出批注", "Exit annotation") : tr("批注", "Annotate");
@@ -49,6 +50,7 @@ export function BrowserPanel({ controller, tabId, operating, onAbort }: { contro
         <AnnotateIcon size={14} />
       </button>}
     </div>
+    <div className="browser-progress" data-active={state.loading || undefined} aria-hidden="true" />
     <div className="browser-page-info">
       <span className="browser-page-title" title={state.title || state.url}>
         {state.title || tr("浏览器", "Browser")}
@@ -62,10 +64,18 @@ export function BrowserPanel({ controller, tabId, operating, onAbort }: { contro
       <span>{tr("Agent 正在操作此对话的浏览器", "Agent is using this conversation’s browser")}</span>
       <button type="button" onClick={onAbort}>{tr("停止", "Stop")}</button>
     </div>}
-    {error && <div className="browser-error" role="alert">
-      {error}{state.error?.detail && <span>{state.error.detail}</span>}
-    </div>}
+    {addressError && <div className="browser-notice" role="alert">{addressError}</div>}
     <div className="browser-viewport" data-browser-viewport={tabId}>
+      {pageError && <div className="browser-error" role="alert">
+        <span className="browser-error-icon" aria-hidden="true"><AlertIcon size={22} /></span>
+        <h2>{pageError.title}</h2>
+        <p>{pageError.hint}</p>
+        {failedUrl && <code className="browser-error-url" title={failedUrl}>{failedUrl}</code>}
+        {pageError.technical && <span className="browser-error-code">{pageError.technical}</span>}
+        <button type="button" className="browser-error-retry" onClick={controller.retry}>
+          <RefreshIcon size={13} />{tr("重试", "Try again")}
+        </button>
+      </div>}
       {state.url === UI_BROWSER_BLANK_URL && !state.loading && !state.error && <div className="browser-empty">
         <span aria-hidden="true"><GlobeIcon size={28} /></span>
         <h2>{tr("打开网页", "Open a web page")}</h2>

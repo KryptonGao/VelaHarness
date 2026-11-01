@@ -23,7 +23,7 @@ export interface BrowserTabState {
   ready: boolean;
   canGoBack: boolean;
   canGoForward: boolean;
-  error: { code: string; detail?: string } | null;
+  error: { code: string; detail?: string; url?: string } | null;
   width: number;
   height: number;
   agentCursor?: BrowserAgentCursor | null;

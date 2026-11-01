@@ -227,6 +227,11 @@ async function run() {
     assert.equal(await evaluate("!!document.querySelector('.browser-error')"), false);
     await navigate("/fail");
     await until(() => evaluate("!!document.querySelector('.browser-error') && document.querySelector('.browser-load-status').textContent === 'Load failed'"), "load failure feedback");
+    assert.equal(await evaluate("!!document.querySelector('.browser-error .browser-error-retry')"), true);
+    if (process.env.VELA_BROWSER_SMOKE_CAPTURE_DIR) {
+      await pause(150); mkdirSync(process.env.VELA_BROWSER_SMOKE_CAPTURE_DIR, { recursive: true });
+      writeFileSync(join(process.env.VELA_BROWSER_SMOKE_CAPTURE_DIR, "browser-error.png"), (await win.webContents.capturePage()).toPNG());
+    }
     await navigate("/one"); await loaded("/one", "Page One");
     for (const scheme of ["light", "dark"]) {
       await evaluate(`document.documentElement.dataset.scheme=${JSON.stringify(scheme)};document.documentElement.dataset.theme=${JSON.stringify(scheme === "light" ? "daylight" : "midnight")}`);

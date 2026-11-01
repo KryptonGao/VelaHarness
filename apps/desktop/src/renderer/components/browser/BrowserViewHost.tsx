@@ -23,7 +23,9 @@ function PersistentGuest({ tab, visible, hosted, command }: {
   const [frozen, setFrozen] = useState<{ width: number; height: number } | null>(null);
   const state = useSyncExternalStore(tab.controller.store.subscribe, tab.controller.store.getSnapshot);
   // Keep measuring the selected viewport even while its blank-page placeholder is shown.
-  const guestVisible = placement.visible && (state.url !== UI_BROWSER_BLANK_URL || state.loading);
+  // 页面出错时让出位置，露出面板里的错误页；重试后错误清除，页面自动回来。
+  const failed = !!state.error && state.error.code !== "invalid-address";
+  const guestVisible = placement.visible && !failed && (state.url !== UI_BROWSER_BLANK_URL || state.loading);
   const cleanup = useRef<(() => void) | null>(null);
   const bind = useCallback((element: HTMLElement | null) => {
     cleanup.current?.(); cleanup.current = null;

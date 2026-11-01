@@ -92,6 +92,13 @@ test('stopped or superseded navigation does not become a load error',async()=>{
   await command({type:'stop',tabId:'tab'});rejectLoad(Object.assign(new Error('ERR_FAILED'),{code:'ERR_FAILED'}));
   await navigation;assert.equal(host.state(10).tabs[0].error,null);host.dispose();
 });
+test('failed page load keeps the did-fail-load details and does not reject the UI command',async()=>{
+  const {host,guest,command}=fixture();await command({type:'activate',conversationId:'one'});
+  await command({type:'open',id:'tab'});await command({type:'bind',tabId:'tab',guestId:2});
+  guest.loadURL=async(url:string)=>{guest.emit('did-fail-load',{},-105,'ERR_NAME_NOT_RESOLVED',url,true);throw new Error("ERR_NAME_NOT_RESOLVED (-105) loading '"+url+"'");};
+  await command({type:'goto',tabId:'tab',url:'https://nope.example/'});
+  assert.deepEqual(host.state(10).tabs[0].error,{code:'load-failed',detail:'ERR_NAME_NOT_RESOLVED',url:'https://nope.example/'});host.dispose();
+});
 test('CDP detach fails the current call and a later call reattaches',async()=>{
   const {host,command,context}=fixture();await command({type:'activate',conversationId:'one'});
   await command({type:'open',id:'tab'});await command({type:'bind',tabId:'tab',guestId:2});

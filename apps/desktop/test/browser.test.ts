@@ -97,6 +97,23 @@ describe("BrowserController lifecycle and navigation", () => {
     guest.emit("did-start-loading"); assert.equal(state().error, null);
     guest.emit("render-process-gone"); assert.equal(state().error?.code, "renderer-gone");
   });
+  it("records the failed URL and retries it even if the address bar was edited", () => {
+    const { controller, guest, state } = setup();
+    guest.emit("did-fail-load", { errorCode: -105, isMainFrame: true, errorDescription: "ERR_NAME_NOT_RESOLVED", validatedURL: "https://nope.example/" });
+    assert.equal(state().error?.url, "https://nope.example/");
+    controller.setAddress("something-else.example");
+    controller.retry();
+    assert.equal(state().error, null);
+    assert.equal(state().address, "https://nope.example/");
+    assert.equal(guest.calls.at(-1), "https://nope.example/");
+  });
+  it("retries a crashed page by reloading", () => {
+    const { controller, guest, state } = setup();
+    guest.emit("render-process-gone");
+    controller.retry();
+    assert.equal(state().error, null);
+    assert.equal(guest.calls.at(-1), "reload");
+  });
   it("ignores stale promises after a new navigation, stopping or detaching", async () => {
     const { controller, guest, state } = setup();
     controller.setAddress("one.example"); controller.navigate(); const rejectFirst = guest.rejectLoad!;
