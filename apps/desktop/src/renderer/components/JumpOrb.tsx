@@ -36,7 +36,7 @@ export function JumpOrb({ activity, commandKey, running }: { activity: OrbActivi
   return (
     <>
       <span className="jump-orb-arrow" data-on={!style}><ArrowDownIcon size={18} /></span>
-      <OrbCanvas style={style} running={running} visible={Boolean(style)} />
+      <OrbCanvas style={style} running={running} visible={Boolean(style)} className={activity === "command" ? "jump-orb jump-orb-command" : "jump-orb"} />
     </>
   );
 }

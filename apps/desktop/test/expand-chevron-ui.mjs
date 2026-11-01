@@ -22,6 +22,9 @@ if (!process.versions.electron) {
         import { ToolList } from './apps/desktop/src/renderer/components/ToolCard';
         import { Thinking, CoherentThought } from './apps/desktop/src/renderer/components/Thinking';
         import { AgentPane } from './apps/desktop/src/renderer/components/AgentPane';
+        import { JumpOrb } from './apps/desktop/src/renderer/components/JumpOrb';
+        import { orbFrame, ORB_POOLS } from './apps/desktop/src/renderer/components/jump-orb';
+        window.commandOrbFrames = ORB_POOLS.command.flatMap(style => Array.from({length: 600}, (_, i) => orbFrame(style, i * 0.025)));
         import { ThinkingGroupModeContext, ThinkingModelCatalogContext } from './apps/desktop/src/renderer/components/ThinkingGroupModeContext';
         import { ThinkingSummaryContext } from './apps/desktop/src/renderer/components/ThinkingSummaryContext';
         import { AppLocaleProvider } from './apps/desktop/src/renderer/locale';
@@ -48,14 +51,16 @@ if (!process.versions.electron) {
           const summary = {enabled: true, style: 'prose', get: () => name === 'deepseekMissing' ? undefined : ({status: 'done', text: 'Summary text.'}), request: () => {}};
           const thought = <CoherentThought text={'**Review changes**\\n\\nThinking body.'} active={false} expanded={false} />;
           const raw = Array.from({length: 100}, (_, i) => 'Raw reasoning paragraph ' + i + '.').join('\\n\\n');
-          const modelCase = ['deepseek', 'deepseekMissing', 'gpt', 'gptRaw', 'legacy', 'mixed', 'gptName', 'gptNameSingle', 'idContainsGpt', 'oModel', 'otherProvider'].includes(name);
+          const modelCase = ['deepseek', 'deepseekMissing', 'gpt', 'gptMulti', 'gptRaw', 'legacy', 'mixed', 'gptName', 'gptNameSingle', 'idContainsGpt', 'oModel', 'otherProvider'].includes(name);
           const model = ['gptName', 'gptNameSingle', 'otherProvider'].includes(name) ? 'custom-alias' : name === 'idContainsGpt' ? 'myGpTalias' : name === 'oModel' ? 'o3' : name.startsWith('gpt') ? 'gpt-6.1' : name === 'legacy' ? undefined : 'deepseek-reasoner';
           const messages = [{id: 'raw', role: 'assistant', model, provider: name === 'otherProvider' ? 'other' : 'custom', thinking: (name === 'gptRaw' ? '' : '**Planning**\\n\\n') + raw, text: 'Done.', tools: []}];
+          if (name === 'gptMulti') messages[0].thinking = '**Review changes**\\n\\n**Verify the fix**';
           if (name === 'mixed') messages.push({id: 'gpt', role: 'assistant', model: 'gpt-6.1', thinking: '**GPT summary**\\n\\nShort body.', text: 'GPT done.', tools: []});
           const agent = {id: 'agent', name: 'fixture', path: '/root/fixture', kind: 'worker', status: 'completed', depth: 1, usage: {input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0}, activeMs: 0, runningSince: null};
           const content = modelCase ? <ThinkingModelCatalogContext.Provider value={[{id: 'custom-alias', provider: 'custom', name: 'My GpT Model'}, {id: 'custom-alias', provider: 'other', name: 'DeepSeek'}]}><ThinkingGroupModeContext.Provider value={name === 'gptNameSingle' ? 'single' : 'coherent'}><ThinkingSummaryContext.Provider value={summary}>
-              <AgentPane agent={agent} agents={[agent]} messages={messages} ensureMessages={() => {}} onSwitch={() => {}} onControl={() => {}} toolDisplay="compact" />
+              <AgentPane agent={agent} agents={[agent]} messages={messages} ensureMessages={() => {}} onSwitch={() => {}} onControl={() => {}} toolDisplay={display} />
             </ThinkingSummaryContext.Provider></ThinkingGroupModeContext.Provider></ThinkingModelCatalogContext.Provider>
+            : name === 'commandOrb' || name === 'thinkingOrb' ? <button className="chat-jump-latest" data-visible="true"><JumpOrb activity={name === 'commandOrb' ? 'command' : 'thinking'} running /></button>
             : name === 'coherent' ? thought
             : name === 'nested' ? <Thinking text="" active={false} showActivityIndicator={false} titled={{title: 'Read files and run commands', body: ''}} coherent>
                 {thought}<ToolList tools={[bash]} display="compact" fold="none" />
@@ -64,7 +69,7 @@ if (!process.versions.electron) {
                 <Thinking text="Thinking body." messageId="fixture" active={false} showActivityIndicator={false} />
               </ThinkingSummaryContext.Provider>
             : <ToolList tools={tools[name]} display={display} fold={name === 'group' ? 'message' : 'none'} />;
-          flushSync(() => root.render(<AppLocaleProvider locale="zh-CN"><div key={++revision} className="main-chat-view" data-tool-display="compact">{content}</div></AppLocaleProvider>));
+          flushSync(() => root.render(<AppLocaleProvider locale="zh-CN"><div key={++revision} className={modelCase ? undefined : 'main-chat-view'} data-tool-display={modelCase ? undefined : 'compact'}>{content}</div></AppLocaleProvider>));
         };
       `, resolveDir: resolve(here, "../../.."), loader: "tsx" },
       bundle: true, platform: "browser", format: "iife", jsx: "automatic",
@@ -104,6 +109,28 @@ if (!process.versions.electron) {
     const arrow = '.tool-compact-chevron, .tool-chevron, .time-spent-trigger-arrow, .thinking-prose-toggle svg, .coherent-thought-arrow';
     const opacity = () => evaluate(`getComputedStyle(document.querySelector(${JSON.stringify(arrow)})).opacity`);
     const toggle = () => evaluate(`document.querySelector(${JSON.stringify(arrow)}).closest('button').click()`);
+    const checkThoughtColor = async (token = '--text-muted') => {
+      const colors = await evaluate(`(() => {
+        const probe = document.createElement('span');
+        probe.style.color = 'var(' + ${JSON.stringify(token)} + ')';
+        document.body.append(probe);
+        const expected = getComputedStyle(probe).color;
+        probe.remove();
+        return Array.from(document.querySelectorAll('.coherent-thought-title, .coherent-thought-line')).map(title => ({actual: getComputedStyle(title).color, expected}));
+      })()`);
+      assert.ok(colors.length > 0, `${currentCase}: thought titles are present`);
+      for (const {actual, expected} of colors) assert.equal(actual, expected, `${currentCase}: thought titles use ${token}`);
+    };
+    const checkBulbAlignment = async () => {
+      const offset = await evaluate(`(() => {
+        const trigger = document.querySelector('.coherent-thought-trigger');
+        const icon = trigger.querySelector('.thinking-icon').getBoundingClientRect();
+        const title = trigger.querySelector('.coherent-thought-title, .coherent-thought-line');
+        const firstLineCenter = title.getBoundingClientRect().top + parseFloat(getComputedStyle(title).lineHeight) / 2;
+        return firstLineCenter - (icon.top + icon.height / 2);
+      })()`);
+      assert.ok(Math.abs(offset - 1) < 0.25, `${currentCase}: bulb sits 1px above the first line center (actual ${offset})`);
+    };
     try {
       await win.loadFile(join(process.env.VELA_CHEVRON_TEMP, "index.html"));
       win.webContents.debugger.attach('1.3');
@@ -111,10 +138,41 @@ if (!process.versions.electron) {
       await protocol('DOM.enable');
       await protocol('CSS.enable');
       for (const scheme of ['light', 'dark']) {
-        for (const name of ['deepseek', 'deepseekMissing', 'legacy', 'mixed', 'gpt', 'gptRaw', 'gptName', 'gptNameSingle', 'idContainsGpt', 'oModel', 'otherProvider']) {
+        for (const name of ['commandOrb', 'thinkingOrb']) {
+          currentCase = `${scheme}/${name}`;
+          await evaluate(`window.renderCase(${JSON.stringify(name)}, ${JSON.stringify(scheme)})`);
+          await until("document.querySelector('.jump-orb[data-on=\"true\"]')");
+          const geometry = await evaluate(`(() => {
+            const button = document.querySelector('.chat-jump-latest').getBoundingClientRect();
+            const svg = document.querySelector('.jump-orb').getBoundingClientRect();
+            const scale = svg.width / 30;
+            const gap = Math.min(...window.commandOrbFrames.flatMap(frame => frame.dots.map(dot =>
+              button.width / 2 - (Math.hypot(dot.x - 15, dot.y - 15) + dot.r) * scale)));
+            return {button: button.width, canvas: svg.width, centered: Math.abs(svg.x + svg.width / 2 - button.x - button.width / 2) < 0.1, gap};
+          })()`);
+          assert.equal(geometry.button, 40, `${currentCase}: click target is unchanged`);
+          assert.equal(geometry.canvas, name === 'commandOrb' ? 32 : 40, `${currentCase}: only command dots are inset`);
+          assert.ok(geometry.centered, `${currentCase}: animation stays centered`);
+          if (name === 'commandOrb') assert.ok(geometry.gap >= 6, `${currentCase}: all four-dot styles keep at least 6px from the circular border (${geometry.gap})`);
+        }
+        for (const name of ['deepseek', 'deepseekMissing', 'legacy', 'mixed', 'gpt', 'gptMulti', 'gptRaw', 'gptName', 'gptNameSingle', 'idContainsGpt', 'oModel', 'otherProvider']) {
           currentCase = scheme + '/' + name;
           await evaluate(`window.renderCase(${JSON.stringify(name)}, ${JSON.stringify(scheme)})`);
           await until("document.querySelector('.assistant-block')");
+          if (['gpt', 'gptMulti', 'gptName', 'gptNameSingle', 'idContainsGpt'].includes(name)) {
+            assert.equal(await evaluate("document.querySelector('.agent-pane').closest('.main-chat-view')"), null, 'agent fixture is independent of the main chat');
+            const icons = await evaluate("Array.from(document.querySelectorAll('.agent-pane .thinking-icon')).map(icon => ({display: getComputedStyle(icon).display, width: icon.getBoundingClientRect().width, svg: Boolean(icon.querySelector('svg')), hidden: icon.getAttribute('aria-hidden')}))");
+            assert.ok(icons.length > 0, `${currentCase}: CoT title contains a bulb`);
+            for (const icon of icons) assert.deepEqual(icon, {display: 'grid', width: 16, svg: true, hidden: 'true'}, `${currentCase}: bulb is visible and decorative`);
+          }
+          if (['gpt', 'gptMulti', 'gptName', 'idContainsGpt'].includes(name)) {
+            await checkBulbAlignment();
+            await checkThoughtColor();
+          }
+          if (name === 'gptMulti') {
+            assert.equal(await evaluate("document.querySelectorAll('.coherent-thought-line').length"), 2);
+            continue;
+          }
           if (name === 'gptNameSingle') {
             assert.equal(await evaluate("document.querySelectorAll('.coherent-flat').length"), 0);
             assert.equal(await evaluate("document.querySelector('.thinking-headline-trigger').title"), 'Planning', 'display name also enables title grouping');
@@ -136,10 +194,21 @@ if (!process.versions.electron) {
           await until("document.querySelector('.thinking-block.expanded .thinking-scroll-viewport')?.clientHeight === 280");
           assert.ok(await evaluate("(() => { const v = document.querySelector('.thinking-scroll-viewport'); return v.scrollHeight > v.clientHeight; })()"), 'long raw thinking scrolls instead of growing unbounded');
         }
+        for (const name of ['gpt', 'gptMulti', 'gptNameSingle']) {
+          currentCase = `${scheme}/card/${name}`;
+          await evaluate(`window.renderCase(${JSON.stringify(name)}, ${JSON.stringify(scheme)}, 'card')`);
+          const displays = await evaluate("Array.from(document.querySelectorAll('.agent-pane .thinking-icon')).map(icon => getComputedStyle(icon).display)");
+          assert.ok(displays.length > 0 && displays.every(display => display === 'none'), `${currentCase}: card mode keeps the existing icon policy`);
+          if (name !== 'gptNameSingle') await checkThoughtColor();
+        }
         for (const name of ['command', 'group', 'diff', 'browser', 'agent', 'generic', 'thinking', 'prose', 'coherent', 'nested']) {
           currentCase = `${scheme}/${name}`;
           await evaluate(`window.renderCase(${JSON.stringify(name)}, ${JSON.stringify(scheme)})`);
           await until(`document.querySelector(${JSON.stringify(arrow)})`);
+          if (name === 'coherent') {
+            await checkBulbAlignment();
+            await checkThoughtColor();
+          }
           assert.equal(await opacity(), '0', `${scheme}/${name}: collapsed arrow hidden without hover`);
           const { root } = await protocol('DOM.getDocument');
           // 连贯思考和正文总结的 hover 目标是按钮或整段文字,其他箭头自身也响应 hover。
@@ -147,6 +216,7 @@ if (!process.versions.electron) {
           const { nodeId } = await protocol('DOM.querySelector', { nodeId: root.nodeId, selector: hoverSelector });
           await protocol('CSS.forcePseudoState', { nodeId, forcedPseudoClasses: ['hover'] });
           await until(`Number(getComputedStyle(document.querySelector(${JSON.stringify(arrow)})).opacity) > 0`);
+          if (name === 'coherent') await checkThoughtColor('--text-secondary');
           await protocol('CSS.forcePseudoState', { nodeId, forcedPseudoClasses: [] });
           await until(`getComputedStyle(document.querySelector(${JSON.stringify(arrow)})).opacity === '0'`);
           // 浏览器调用原先没有 focus-visible 显示规则;这里只回归已有的键盘行为。
@@ -160,6 +230,7 @@ if (!process.versions.electron) {
           await toggle();
           await until(`getComputedStyle(document.querySelector(${JSON.stringify(arrow)})).opacity === ${JSON.stringify(name === 'coherent' ? '0.8' : '1')}`);
           assert.equal(await opacity(), name === 'coherent' ? '0.8' : '1', `${scheme}/${name}: expanded arrow always visible`);
+          if (name === 'coherent') await checkThoughtColor();
           if (name === 'group' || name === 'nested') {
             await until(`document.querySelectorAll(${JSON.stringify(arrow)}).length > 1`);
             const children = await evaluate(`Array.from(document.querySelectorAll(${JSON.stringify(arrow)})).slice(1).map(el => getComputedStyle(el).opacity)`);

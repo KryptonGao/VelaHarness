@@ -170,6 +170,7 @@ function VisibleAgentPane({
     <section
       ref={arrivalRef}
       className="agent-pane"
+      data-tool-display={toolDisplay ?? "card"}
       aria-label={`${tr("子代理", "Subagent")} ${agent.path}`}
     >
       <header className="agent-pane-header">

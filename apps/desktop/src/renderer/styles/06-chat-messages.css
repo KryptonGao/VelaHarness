@@ -528,7 +528,7 @@
   padding: 2px 0;
   border: 0;
   background: none;
-  color: var(--text-secondary);
+  color: var(--text-muted);
   font: inherit;
   font-size: 14px;
   font-weight: 550;
@@ -537,12 +537,14 @@
   cursor: pointer;
 }
 .coherent-thought-trigger:disabled { cursor: default; }
+/* 灯泡相对文字行框上移 1px 做视觉对齐，不改变行高和多条总结的首行定位。 */
+.coherent-thought-trigger .thinking-icon { transform: translateY(-1px); }
 /* 一次思考里的多条简短总结:不可折叠,每行与首行同一字号,排在图标右侧。 */
 .coherent-thought.is-multi .coherent-thought-trigger { align-items: flex-start; cursor: default; }
 .coherent-thought.is-multi .thinking-icon { margin-top: 3px; }
 .coherent-thought-lines { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .coherent-thought-line { min-width: 0; overflow-wrap: anywhere; }
-.coherent-thought:not(.is-multi) > .coherent-thought-trigger:not(:disabled):hover { color: var(--text-primary); }
+.coherent-thought:not(.is-multi) > .coherent-thought-trigger:not(:disabled):hover { color: var(--text-secondary); }
 .coherent-thought-trigger:focus-visible {
   outline: 2px solid var(--accent-blue);
   outline-offset: 2px;

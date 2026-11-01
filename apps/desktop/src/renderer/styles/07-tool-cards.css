@@ -286,7 +286,7 @@
 .tool-group-schedule { --tool-group-color: var(--tool-icon-schedule); }
 .tool-group-memory { --tool-group-color: var(--tool-icon-memory); }
 .thinking-icon { display: none; }
-.main-chat-view[data-tool-display="compact"] .thinking-icon {
+:is(.main-chat-view, .agent-pane)[data-tool-display="compact"] .thinking-icon {
   display: grid;
   place-items: center;
   flex: none;
