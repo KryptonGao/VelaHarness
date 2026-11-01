@@ -22,6 +22,7 @@ import { ConversationExportHost } from "./conversation-export-host";
 import { getApplicationLocale, setApplicationLocale, setDiagnosticsMenuActions, setUpdateMenuAction } from "./menu";
 import { LogService } from "./log-service";
 import { installCrashHandlers, LogHost, systemInfo } from "./log-host";
+import { StorageHost } from "./storage-host";
 import { createUpdateService, UpdateHost } from "./update-host";
 import { ReleaseNotesHost } from "./release-notes-host";
 import { allowSubframeNavigation } from "./ui-sandbox-guard";
@@ -124,6 +125,7 @@ let logHost: LogHost | null = null;
 let conversationExportHost: ConversationExportHost | null = null;
 let sideChatHost: SideChatHost | null = null;
 let updateHost: UpdateHost | null = null;
+let storageHost: StorageHost | null = null;
 let releaseNotesHost: ReleaseNotesHost | null = null;
 let uiSandboxHost: UiSandboxHost | null = null;
 
@@ -359,6 +361,17 @@ async function start(): Promise<void> {
   uiSandboxHost.register();
   updateHost = new UpdateHost(createUpdateService(home));
   updateHost.register();
+  storageHost = new StorageHost({
+    home,
+    userData: app.getPath("userData"),
+    titleOf: id => runtime.listConversations().find(conversation => conversation.id === id)?.title ?? null,
+    traceInUse: id => runtime.isTraceLoaded(id),
+    updateBusy: () => {
+      const status = updateHost?.service.getState().status;
+      return status === "downloading" || status === "ready";
+    },
+  });
+  storageHost.register();
   releaseNotesHost = new ReleaseNotesHost(join(rootDir, "release-notes.json"));
   releaseNotesHost.register();
   setUpdateMenuAction(() => { void updateHost?.checkFromMenu().catch(error => log.error("update check from menu failed", error)); });
@@ -773,6 +786,8 @@ app.on("before-quit", (event) => {
   conversationExportHost = null;
   sideChatHost?.dispose();
   sideChatHost = null;
+  storageHost?.dispose();
+  storageHost = null;
   updateHost?.dispose();
   releaseNotesHost?.dispose();
   uiSandboxHost?.dispose();

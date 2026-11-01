@@ -127,6 +127,8 @@ export const settingsEntries: readonly SettingsEntry[] = [
   { id: "usage", page: "usage", title: (c) => c.pages.usage.label, hint: (c) => c.pages.usage.description, keywords: { zh: ["用量", "Token", "统计", "请求"], en: ["usage", "tokens", "statistics", "requests", "cost"] } },
   { id: "model-pricing", page: "usage", title: (c) => c.modelPricing.title, hint: (c) => c.modelPricing.hint, keywords: { zh: ["价格", "费用", "成本", "计价", "人民币", "美元", "缓存写入", "缓存读取"], en: ["price", "pricing", "cost", "billing", "cny", "usd", "cache write", "cache read", "per million"] } },
 
+  { id: "storage-overview", page: "storage", title: (c) => c.storage.overviewTitle, hint: (c) => c.storage.overviewHint, keywords: { zh: ["存储", "磁盘", "空间", "占用", "清理", "缓存", "日志", "轨迹", "更新包", "工作树", "删除文件"], en: ["storage", "disk", "space", "size", "clean", "cleanup", "cache", "logs", "trace", "worktree", "delete files"] } },
+  { id: "storage-conversations", page: "storage", title: (c) => c.storage.conversationsTitle, hint: (c) => c.storage.conversationsHint, keywords: { zh: ["最大的对话", "删除轨迹", "运行轨迹", "占用最多"], en: ["largest conversations", "delete trace", "run trace", "biggest"] } },
   { id: "checkpoint-storage", page: "storage", title: (c) => c.storage.checkpointsTitle, hint: (c) => c.storage.checkpointsHint, keywords: { zh: ["检查点", "磁盘", "空间", "占用", "清理", "缓存", "存储"], en: ["checkpoint", "disk", "space", "storage", "clean", "cleanup", "cache", "size"] } },
 
   { id: "log-level", page: "logs", title: (c) => c.logs.levelTitle, hint: (c) => c.logs.levelHint, keywords: { zh: ["日志", "调试", "级别"], en: ["log", "debug", "level", "verbose"] } },

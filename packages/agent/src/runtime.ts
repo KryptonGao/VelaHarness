@@ -1187,6 +1187,11 @@ export class AgentRuntime {
     return new TurnCheckpoints<RewindMetadata>(join(root, entry.id), entry.snapshot.cwd, this.options.agentDir, sharedDirectory(root));
   }
 
+  /** True while this conversation's trace is held in memory and may still be written to its file. */
+  isTraceLoaded(conversationId: string): boolean {
+    return this.traces.has(conversationId);
+  }
+
   /** Disk used by file checkpoints. */
   getCheckpointStorage(): Promise<CheckpointStorageUsage> {
     return checkpointUsage(join(this.options.agentDir, "checkpoints"));

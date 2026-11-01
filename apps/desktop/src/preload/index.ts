@@ -149,6 +149,7 @@ import {
   type UiPreference,
   type UiSandboxIssueResult,
   LogsIpc,
+  StorageIpc,
   UpdatesIpc,
   ReleaseNotesIpc,
   type UpdateState,
@@ -344,6 +345,13 @@ const api: VelaApi = {
     setLevel: level => ipcRenderer.invoke(LogsIpc.setLevel, level),
     openFolder: () => ipcRenderer.invoke(LogsIpc.openFolder),
     export: options => ipcRenderer.invoke(LogsIpc.export, options),
+  },
+  storage: {
+    getDisk: () => ipcRenderer.invoke(StorageIpc.disk),
+    getOverview: () => ipcRenderer.invoke(StorageIpc.overview),
+    clean: category => ipcRenderer.invoke(StorageIpc.clean, category),
+    deleteTrace: conversationId => ipcRenderer.invoke(StorageIpc.deleteTrace, conversationId),
+    reveal: category => ipcRenderer.invoke(StorageIpc.reveal, category),
   },
   updates: {
     getState: () => ipcRenderer.invoke(UpdatesIpc.getState),

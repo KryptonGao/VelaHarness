@@ -40,6 +40,7 @@ export * from "./redaction";
 export * from "./logging";
 import type { LogsApi } from "./logging";
 export * from "./updates";
+export * from "./storage";
 export * from "./release-notes";
 export * from "./side-chat";
 export * from "./intelligent-ui";
@@ -2955,6 +2956,8 @@ export interface VelaApi extends McpApi, PluginApi {
   resident?: import("./resident-agent").ResidentAgentApi;
   /** 应用日志：写入、级别设置与诊断包导出。 */
   logs?: LogsApi;
+  /** 磁盘占用概览，以及轨迹、日志和缓存的清理。 */
+  storage?: import("./storage").StorageApi;
   /** 应用内更新：从 GitHub Release 检查、下载并校验新版本。 */
   updates?: UpdatesApi;
   /** 随安装包发布的版本说明（按界面语言），用于引导里的「新到港」。 */

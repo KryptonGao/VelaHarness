@@ -1,0 +1,61 @@
+.storage-total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.storage-total > strong { font-size: 20px; font-weight: 650; color: var(--text-primary); }
+.storage-bar {
+  display: flex;
+  height: 8px;
+  gap: 2px;
+  border-radius: 99px;
+  overflow: hidden;
+  background: var(--border-subtle);
+}
+.storage-seg { min-width: 3px; border-radius: 2px; }
+.storage-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.storage-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--border-subtle);
+  min-width: 0;
+}
+.storage-row:first-child { border-top: 0; }
+.storage-dot { flex: none; width: 8px; height: 8px; border-radius: 50%; }
+.storage-row-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.storage-row-label { font-size: 15px; color: var(--text-primary); overflow-wrap: anywhere; }
+.storage-row-hint { font-size: 13px; line-height: 1.5; color: var(--text-muted); }
+.storage-row-size { flex: none; font-size: 14px; font-variant-numeric: tabular-nums; color: var(--text-secondary); }
+.storage-row-actions { flex: none; display: flex; gap: 8px; align-items: center; min-width: 96px; justify-content: flex-end; }
+.storage-row-note { font-size: 13px; color: var(--text-muted); }
+@media (max-width: 640px) {
+  .storage-row { flex-wrap: wrap; }
+  .storage-row-actions { width: 100%; justify-content: flex-start; }
+}
+.storage-c-conversations { background: hsl(210 60% 56%); }
+.storage-c-traces { background: hsl(265 50% 62%); }
+.storage-c-subagents { background: hsl(190 55% 48%); }
+.storage-c-checkpoints { background: hsl(150 45% 46%); }
+.storage-c-skills { background: hsl(45 80% 52%); }
+.storage-c-worktrees { background: hsl(25 75% 55%); }
+.storage-c-logs { background: hsl(0 0% 58%); }
+.storage-c-updates { background: hsl(340 60% 60%); }
+.storage-c-cache { background: hsl(100 40% 50%); }
+.storage-c-other { background: hsl(220 12% 70%); }
+.storage-disk { display: flex; flex-direction: column; gap: 8px; margin-bottom: 6px; }
+.storage-disk-line > strong { font-size: 15px; font-weight: 600; color: var(--text-primary); }
+.storage-bar-disk { height: 10px; gap: 1px; }
+.storage-c-system { background: hsl(220 10% 62%); }
+.storage-c-vela { background: var(--accent-blue); }
+.storage-c-free { background: transparent; }
+.storage-pending { color: var(--text-muted); }
