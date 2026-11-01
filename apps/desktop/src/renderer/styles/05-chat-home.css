@@ -77,6 +77,10 @@
 .chat-conversation-pane[data-home] .floating-input-card { margin-right: 0; }
 /* 首页输入区在内容流中，不需要浮动 dock 的投影，避免暗色下向托盘扩散成黑晕。 */
 .chat-conversation-pane[data-home] :is(.floating-input-card, .composer-capsule) { box-shadow: none; }
+/* 膠囊只留一圈贴边的淡影(无垂直偏移、小模糊半径),让它从背景里微微浮起,又不会像 dock 那样向下晕开。 */
+.chat-conversation-pane[data-home] .composer-capsule {
+  box-shadow: 0 0 14px color-mix(in srgb, #000 6%, transparent), 0 0 2px color-mix(in srgb, #000 5%, transparent);
+}
 .chat-conversation-pane[data-home] .home-prompts { margin-bottom: auto; }
 /* 没有预设提示词时由输入框承担下方的弹性留白,并预留两行预设(14 + 46 × 2 + 8)的高度,
    让问候和输入框与有预设时停在同一高度。 */

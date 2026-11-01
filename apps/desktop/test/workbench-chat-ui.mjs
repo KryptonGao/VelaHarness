@@ -79,7 +79,11 @@ if (!process.versions.electron) {
             fixture.dataset.home = '';
             const card = fixture.firstElementChild;
             const capsule = card.firstElementChild;
-            const flat = [card, capsule].every(el => getComputedStyle(el).boxShadow === 'none');
+            const dock = getComputedStyle(root).getPropertyValue('--shadow-dock').trim();
+            const capsuleShadow = getComputedStyle(capsule).boxShadow;
+            // 卡片不投影;胶囊只有一圈贴边的淡影,不能是向下晕开的 dock 阴影。
+            const flat = getComputedStyle(card).boxShadow === 'none'
+              && capsuleShadow !== 'none' && capsuleShadow !== dock;
             const bordered = [card, capsule].every(el => getComputedStyle(el).borderTopWidth === '1px');
             delete fixture.dataset.home;
             const floating = [card, capsule].every(el => getComputedStyle(el).boxShadow !== 'none');
