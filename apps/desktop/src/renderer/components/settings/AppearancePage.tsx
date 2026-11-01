@@ -15,6 +15,7 @@ import {
   type LightTheme,
   type SelectedThemeId,
 } from "../../themes";
+import { randomThemeColors } from "../../theme-random";
 import type { SettingsCopy } from "../settings-copy";
 import { CustomThemeEditor } from "./CustomThemeEditor";
 import { Segmented, SettingsBlock } from "./primitives";
@@ -23,7 +24,7 @@ import { ThemeGroup } from "./ThemeGroup";
 export function AppearancePage({ copy, preferences }: { copy: SettingsCopy; preferences: PreferencesApi }) {
   const { appearance, theme, lightTheme, darkTheme, customThemes, fileIconTheme, setAppearance, setFileIconTheme } = preferences;
   const text = copy.appearance;
-  const [editing, setEditing] = useState<{ theme: CustomTheme; isNew: boolean } | null>(null);
+  const [editing, setEditing] = useState<{ theme: CustomTheme; isNew: boolean; randomStart?: boolean } | null>(null);
   // 固定为另一种明暗时,点选主题顺带切过去,否则点了看不到效果。
   const pickTheme = (scheme: ColorScheme, id: SelectedThemeId) => {
     if (scheme === "light") preferences.setLightTheme(id as LightTheme);
@@ -40,6 +41,14 @@ export function AppearancePage({ copy, preferences }: { copy: SettingsCopy; pref
     setEditing({
       isNew: true,
       theme: { id: createCustomThemeId(), name: "", scheme, colors: { ...(base ?? fallback) } },
+    });
+  };
+  // 随机主题只是预填一组随机配色打开编辑器:满意再保存,不满意可以在编辑器里继续抽,不会白占自定义主题的名额。
+  const startRandom = (scheme: ColorScheme) => {
+    setEditing({
+      isNew: true,
+      randomStart: true,
+      theme: { id: createCustomThemeId(), name: "", scheme, colors: randomThemeColors(scheme) },
     });
   };
   const startEdit = (id: CustomTheme["id"]) => {
@@ -82,6 +91,7 @@ export function AppearancePage({ copy, preferences }: { copy: SettingsCopy; pref
       copy={copy}
       initial={editing.theme}
       isNew={editing.isNew}
+      randomStart={editing.randomStart}
       onSave={saveTheme}
       onCancel={() => setEditing(null)}
       onDelete={() => {
@@ -108,6 +118,7 @@ export function AppearancePage({ copy, preferences }: { copy: SettingsCopy; pref
           active={theme}
           onPick={pickTheme}
           onCreate={startCreate}
+          onRandom={startRandom}
           onEdit={startEdit}
         >
           {editing?.theme.scheme === "light" ? editor : null}
@@ -123,6 +134,7 @@ export function AppearancePage({ copy, preferences }: { copy: SettingsCopy; pref
           active={theme}
           onPick={pickTheme}
           onCreate={startCreate}
+          onRandom={startRandom}
           onEdit={startEdit}
         >
           {editing?.theme.scheme === "dark" ? editor : null}

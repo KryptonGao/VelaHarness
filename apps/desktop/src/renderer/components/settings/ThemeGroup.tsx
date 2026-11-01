@@ -20,6 +20,7 @@ export function ThemeGroup({
   active,
   onPick,
   onCreate,
+  onRandom,
   onEdit,
   children,
 }: {
@@ -35,6 +36,7 @@ export function ThemeGroup({
   active: SelectedThemeId;
   onPick: (scheme: ColorScheme, id: SelectedThemeId) => void;
   onCreate: (scheme: ColorScheme) => void;
+  onRandom: (scheme: ColorScheme) => void;
   onEdit: (id: CustomTheme["id"]) => void;
   /** 渲染在卡片网格下方,编辑器借此贴在所属明暗分组里。 */
   children?: ReactNode;
@@ -98,17 +100,39 @@ export function ThemeGroup({
           </div>
         ))}
         {totalCustom < maxCustomThemes ? (
-          <button type="button" className="theme-card theme-card-new" onClick={() => onCreate(scheme)}>
-            <span className="theme-new-plus" aria-hidden="true">+</span>
-            <span className="theme-card-meta">
-              <span className="theme-card-name">{text.newCustomTheme}</span>
-              <span className="theme-card-hint">{text.newCustomThemeHint}</span>
-            </span>
-          </button>
+          <>
+            <button type="button" className="theme-card theme-card-new" onClick={() => onCreate(scheme)}>
+              <span className="theme-new-plus" aria-hidden="true">+</span>
+              <span className="theme-card-meta">
+                <span className="theme-card-name">{text.newCustomTheme}</span>
+                <span className="theme-card-hint">{text.newCustomThemeHint}</span>
+              </span>
+            </button>
+            <button type="button" className="theme-card theme-card-new" onClick={() => onRandom(scheme)}>
+              <span className="theme-new-plus" aria-hidden="true">
+                <DiceIcon />
+              </span>
+              <span className="theme-card-meta">
+                <span className="theme-card-name">{text.randomTheme}</span>
+                <span className="theme-card-hint">{text.randomThemeHint}</span>
+              </span>
+            </button>
+          </>
         ) : null}
       </div>
       {children}
     </div>
+  );
+}
+
+export function DiceIcon() {
+  return (
+    <svg viewBox="0 0 16 16" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="2" y="2" width="12" height="12" rx="3" />
+      <circle cx="5.6" cy="5.6" r="0.6" fill="currentColor" />
+      <circle cx="10.4" cy="10.4" r="0.6" fill="currentColor" />
+      <circle cx="8" cy="8" r="0.6" fill="currentColor" />
+    </svg>
   );
 }
 

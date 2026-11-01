@@ -7,8 +7,9 @@ import {
   type CustomTheme,
   type CustomThemeColorKey,
 } from "../../themes";
+import { randomThemeColors } from "../../theme-random";
 import type { SettingsCopy } from "../settings-copy";
-import { ThemePreview } from "./ThemeGroup";
+import { DiceIcon, ThemePreview } from "./ThemeGroup";
 
 /** 正文和背景低于这个对比度时给出提示(WCAG AA 的大号文字门槛)。 */
 const minReadableContrast = 3;
@@ -17,6 +18,7 @@ export function CustomThemeEditor({
   copy,
   initial,
   isNew,
+  randomStart = false,
   onSave,
   onCancel,
   onDelete,
@@ -24,12 +26,17 @@ export function CustomThemeEditor({
   copy: SettingsCopy;
   initial: CustomTheme;
   isNew: boolean;
+  /** 从「随机主题」进入:自动起名,并在每次重新抽色时同步更新。 */
+  randomStart?: boolean;
   onSave: (theme: CustomTheme) => void;
   onCancel: () => void;
   onDelete: () => void;
 }) {
   const text = copy.appearance;
-  const [name, setName] = useState(initial.name);
+  const autoName = (accent: string) => `${text.randomTheme} ${accent.slice(1).toUpperCase()}`;
+  const [name, setName] = useState(randomStart ? autoName(initial.colors.accent) : initial.name);
+  // 名称还是自动生成的(用户没改过)时,重新抽色会连名字一起换。
+  const [autoNamed, setAutoNamed] = useState(randomStart);
   const [colors, setColors] = useState(initial.colors);
   // 文本框允许输入到一半的值,合法后才写入 colors;这里记录每个字段正在输入的草稿。
   const [drafts, setDrafts] = useState<Partial<Record<CustomThemeColorKey, string>>>({});
@@ -74,6 +81,16 @@ export function CustomThemeEditor({
     clearDraft(key);
   };
 
+  const reroll = () => {
+    const next = randomThemeColors(initial.scheme);
+    setColors(next);
+    setDrafts({});
+    if (autoNamed || !name.trim()) {
+      setName(autoName(next.accent));
+      setAutoNamed(true);
+    }
+  };
+
   const trimmedName = name.trim();
   const lowContrast = contrastRatio(colors.text, colors.background) < minReadableContrast;
   const draft: CustomTheme = { ...initial, name: trimmedName, colors };
@@ -98,7 +115,10 @@ export function CustomThemeEditor({
               maxLength={maxCustomThemeNameLength}
               placeholder={text.themeNamePlaceholder}
               autoFocus
-              onChange={(event) => setName(event.target.value)}
+              onChange={(event) => {
+                setName(event.target.value);
+                setAutoNamed(false);
+              }}
             />
           </label>
           <div className="theme-editor-colors" role="group" aria-label={text.themeColors}>
@@ -140,6 +160,10 @@ export function CustomThemeEditor({
       </div>
       <div className="theme-editor-actions">
         <button className="primary-btn" type="submit" disabled={!trimmedName}>{text.saveTheme}</button>
+        <button className="settings-secondary-btn theme-editor-reroll" type="button" onClick={reroll}>
+          <DiceIcon />
+          {text.rerollColors}
+        </button>
         <button className="settings-secondary-btn" type="button" onClick={onCancel}>{text.cancelTheme}</button>
         {!isNew ? (
           <button

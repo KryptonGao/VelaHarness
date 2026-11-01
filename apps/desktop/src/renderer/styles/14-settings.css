@@ -516,6 +516,8 @@
   -webkit-app-region: no-drag;
 }
 .settings-secondary-btn:hover { background: var(--border-strong); }
+.theme-editor-reroll { display: inline-flex; align-items: center; gap: 6px; }
+.theme-editor-reroll svg { width: 15px; height: 15px; }
 .theme-editor-delete { margin-left: auto; color: var(--danger); }
 .theme-editor-delete.confirming { color: #fff; background: var(--danger); }
 @media (max-width: 760px) {

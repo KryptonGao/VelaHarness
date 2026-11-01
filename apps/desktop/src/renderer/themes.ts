@@ -135,7 +135,7 @@ function alpha(hex: string, opacity: number): string {
   return `rgba(${r}, ${g}, ${b}, ${opacity})`;
 }
 
-/** WCAG 相对亮度,用来挑选强调色上的文字颜色。 */
+/** WCAG 相对亮度,用来计算对比度。 */
 function luminance(hex: string): number {
   const [r, g, b] = toRgb(hex).map((channel) => {
     const v = channel / 255;
@@ -180,7 +180,7 @@ export function customThemeVars(theme: Pick<CustomTheme, "scheme" | "colors">): 
     "--text-dim": mix(text, background, 0.42),
     "--accent-blue": accent,
     "--accent-blue-hover": dark ? mix(accent, "#ffffff", 0.85) : mix(accent, "#000000", 0.85),
-    "--accent-contrast": luminance(accent) > 0.5 ? "#111318" : "#ffffff",
+    "--accent-contrast": contrastRatio(accent, "#ffffff") >= contrastRatio(accent, "#111318") ? "#ffffff" : "#111318",
     "--term-bg": code,
     "--term-fg": text,
     "--term-cmd": text,
