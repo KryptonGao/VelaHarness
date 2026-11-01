@@ -7,6 +7,7 @@ import type {
   AgentStreamEvent,
   AppState,
   AskUserQuestionRequest,
+  BackgroundShellItem,
   BranchConversationOptions,
   ImageAttachment,
   InteractionMode,
@@ -25,6 +26,8 @@ import { applyPlanDraft, type PlanDraft } from "../plan-draft";
 import { reconcileAgents } from "../agent-roster";
 import { localizeError, tr } from "../locale";
 import { didCompleteTask, noSound, streamNotificationSound, type NotifySound } from "../notification-sounds";
+
+const emptyShells: BackgroundShellItem[] = [];
 
 export interface UiMessage {
   id: string;
@@ -89,6 +92,8 @@ export function useSession(notify: NotifySound = noSound, fixedConversationId?: 
   const [questions, setQuestions] = useState<Record<string, AskUserQuestionRequest>>({});
   /** conversationId -> 该对话的常驻 agent 树快照。 */
   const [agents, setAgents] = useState<Record<string, AgentInfo[]>>({});
+  /** conversationId -> 该对话的后台命令快照。 */
+  const [backgroundShells, setBackgroundShells] = useState<Record<string, BackgroundShellItem[]>>({});
   /** conversationId -> 正在流式接收的 <proposed_plan> 草稿。 */
   const [planDrafts, setPlanDrafts] = useState<Record<string, PlanDraft | null>>({});
   /** 当前对话开始生成新方案时指向它，用来打开 Plan Document。 */
@@ -196,6 +201,7 @@ export function useSession(notify: NotifySound = noSound, fixedConversationId?: 
     const acceptState = (next: AppState) => {
       const id = next.activeConversationId;
       if (id && next.agents) setAgents((current) => withAgents(current, id, sanitizeAgents(next.agents!)));
+      if (id && next.backgroundShells) setBackgroundShells((current) => ({ ...current, [id]: next.backgroundShells! }));
       let completedStream = false;
       // 后台对话也需要记录完成时间，否则切回时会把离开的时间算进用时。
       for (const conversation of next.conversations) {
@@ -262,6 +268,10 @@ export function useSession(notify: NotifySound = noSound, fixedConversationId?: 
       if (event.type === "agents") {
         const next = sanitizeAgents(event.agents);
         setAgents((current) => withAgents(current, event.conversationId, next));
+        return;
+      }
+      if (event.type === "background_shells") {
+        setBackgroundShells((current) => ({ ...current, [event.conversationId]: event.shells }));
         return;
       }
       if (event.type === "agent_event") {
@@ -621,6 +631,10 @@ export function useSession(notify: NotifySound = noSound, fixedConversationId?: 
     () => (activeConversationId ? agents[activeConversationId] ?? state?.agents ?? [] : []),
     [activeConversationId, agents, state?.agents],
   );
+  const activeBackgroundShells = useMemo(
+    () => (activeConversationId ? backgroundShells[activeConversationId] ?? state?.backgroundShells ?? emptyShells : emptyShells),
+    [activeConversationId, backgroundShells, state?.backgroundShells],
+  );
   const waitingConversationIds = useMemo(() => Object.keys(questions), [questions]);
 
   return {
@@ -634,6 +648,7 @@ export function useSession(notify: NotifySound = noSound, fixedConversationId?: 
     activeConversationId,
     waitingConversationIds,
     agents: activeAgents,
+    backgroundShells: activeBackgroundShells,
     /** 当前对话正在流式生成的方案草稿；没有时为 null。 */
     planDraft: activeConversationId ? planDrafts[activeConversationId] ?? null : null,
     /** 当前对话刚开始生成新方案时指向它，用来打开 Plan Document。 */

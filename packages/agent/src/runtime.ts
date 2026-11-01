@@ -9,7 +9,7 @@ import { redactMcpDisplay, mcpConfiguredSecrets, preserveTraceModels } from "./m
 import { McpSessionBridge, isMcpTool, type McpPermission } from "./mcp-session";
 import { createScheduledTaskTools, scheduledTaskInstructions } from "./scheduled-task-tools";
 import { RecipeGenerator, parseRecipeGenerateInput } from './recipe-generator';
-import type { RaceTokens, RecipeExecution, RecipeRun, RecipeStageSubmission, RecipeSubmitResult, RecipeStageEvidence, RecipeUseDraft, ScheduledTaskInput, BackgroundShellEvents, BackgroundShellExit, ToolFactoryContext, SandboxMode, ScheduledTaskService } from "@vela/shared";
+import type { RaceTokens, RecipeExecution, RecipeRun, RecipeStageSubmission, RecipeSubmitResult, RecipeStageEvidence, RecipeUseDraft, ScheduledTaskInput, BackgroundShellEvents, BackgroundShellExit, BackgroundShellItem, BackgroundShellOutput, ToolFactoryContext, SandboxMode, ScheduledTaskService } from "@vela/shared";
 import type { McpCatalog, McpCatalogInput, McpServerInput, McpServerTarget, McpEnabledInput, McpProjectTrustInput, McpToolReadOnlyInput, McpStatusEvent, MemoryLoadReport, SideChatEvent, SideChatResult } from "@vela/shared";
 import { memoryLoadReport, modelLanguageName, type AppLocale } from "@vela/shared";
 import { browserUseInstructions, createBrowserTools, type BrowserReplService, type BrowserReplPermission } from "./browser-use";
@@ -214,6 +214,7 @@ export type RuntimeEvent =
   | { type: "tool_output"; conversationId: string; toolCallId: string; activity: ToolActivity }
   | { type: "tool_end"; conversationId: string; toolCallId: string; toolName: string; isError: boolean; activity: ToolActivity }
   | { type: "agents"; conversationId: string; agents: AgentInfo[] }
+  | { type: "background_shells"; conversationId: string; shells: BackgroundShellItem[] }
   | { type: "agent_event"; conversationId: string; agentId: string; event: AgentRuntimeStreamEvent }
   | { type: "user_message"; conversationId: string; text: string }
   | { type: "proposed_plan_start"; conversationId: string; planId: string; revision: number }
@@ -434,6 +435,7 @@ export class AgentRuntime {
   /** 本进程里创建或恢复为常驻 Agent 的会话；重启后由 options.resident 重新指认。 */
   private readonly residentIds = new Set<string>();
   private readonly stopBackgroundShells: (() => void) | null;
+  private readonly stopBackgroundShellChanges: (() => void) | null;
   /** 等待合并投递的 root 通知，按会话 id 分组。 */
   private readonly rootNotices = new Map<string, { entry: Conversation; items: RootNotice[]; firstAt: number; timer: ReturnType<typeof setTimeout> }>();
 
@@ -466,6 +468,11 @@ export class AgentRuntime {
       ...(options.resident ? { resident: { isResident: entry => this.isResident(entry.id) } } : {}),
     });
     this.stopBackgroundShells = options.backgroundShells?.subscribe((event) => this.handleBackgroundShellExit(event)) ?? null;
+    this.stopBackgroundShellChanges = options.backgroundShells?.subscribeChanges?.((conversationId) => {
+      if (this.conversations.has(conversationId)) {
+        this.emit({ type: "background_shells", conversationId, shells: this.getBackgroundShells(conversationId) });
+      }
+    }) ?? null;
     this.traces = new ConversationTraces({
       agentDir: options.agentDir,
       emit: (event) => this.emit(event),
@@ -2057,6 +2064,27 @@ export class AgentRuntime {
     return entry?.control?.list() ?? entry?.storedAgents.map(({ sessionFile: _file, ...agent }) => agent) ?? [];
   }
 
+  getBackgroundShells(conversationId: string | null): BackgroundShellItem[] {
+    if (!conversationId) return [];
+    return (this.options.backgroundShells?.list?.(conversationId) ?? []).map(({ id, command, status, exitCode, startedAt, endedAt }) => ({
+      id, command, status, exitCode, startedAt, endedAt,
+    }));
+  }
+
+  getBackgroundShellOutput(conversationId: string, shellId: string): BackgroundShellOutput | null {
+    if (!this.conversations.has(conversationId)) return null;
+    return this.options.backgroundShells?.peek?.(conversationId, shellId) ?? null;
+  }
+
+  async killBackgroundShell(conversationId: string, shellId: string): Promise<void> {
+    if (!this.conversations.has(conversationId)) return;
+    await this.options.backgroundShells?.kill?.(conversationId, shellId);
+  }
+
+  clearFinishedBackgroundShells(conversationId: string): void {
+    if (this.conversations.has(conversationId)) this.options.backgroundShells?.clearFinished?.(conversationId);
+  }
+
   subscribeMcp(listener: (event: McpStatusEvent) => void): () => void {
     this.mcpListeners.add(listener);
     return () => this.mcpListeners.delete(listener);
@@ -2423,6 +2451,7 @@ export class AgentRuntime {
     this.directory?.cancelLogin();
     this.questions.cancelAll();
     this.stopBackgroundShells?.();
+    this.stopBackgroundShellChanges?.();
     this.clearRootNotices();
     for (const entry of this.conversations.values()) {
       this.options.backgroundShells?.killConversation(entry.id);

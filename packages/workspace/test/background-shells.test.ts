@@ -33,6 +33,29 @@ const until = async (condition: () => boolean, label: string): Promise<void> => 
 };
 
 describe("BackgroundShellManager", () => {
+  it("peek returns the output even after the exit event consumed it, and clearFinished keeps running commands", async () => {
+    const { manager, cwd } = await setup();
+    const done = manager.start({ conversationId: "c1", command: "echo hello", cwd });
+    const running = manager.start({ conversationId: "c1", command: "sleep 5", cwd });
+    await until(() => manager.list("c1").find((item) => item.id === done.id)?.status === "exited", "first command to exit");
+    assert.equal(manager.peek("c1", done.id).output, "hello\n");
+    assert.equal(manager.peek("c1", done.id).output, "hello\n");
+    assert.deepEqual(manager.peek("c2", done.id), { output: "", truncated: false });
+    manager.clearFinished("c1");
+    assert.deepEqual(manager.list("c1").map((item) => item.id), [running.id]);
+    await manager.kill("c1", running.id);
+  });
+
+  it("notifies change listeners when a command starts and when it ends", async () => {
+    const { manager, cwd } = await setup();
+    const changes: string[] = [];
+    manager.subscribeChanges((conversationId) => changes.push(`${conversationId}:${manager.list(conversationId)[0]?.status}`));
+    manager.start({ conversationId: "c1", command: "true", cwd });
+    assert.deepEqual(changes, ["c1:running"]);
+    await until(() => changes.length === 2, "end notification");
+    assert.equal(changes[1], "c1:exited");
+  });
+
   it("returns immediately and notifies when the command exits", async () => {
     const { manager, cwd, exits } = await setup();
     const started = Date.now();

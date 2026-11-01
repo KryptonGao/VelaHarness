@@ -1,4 +1,4 @@
-import type { AgentControlAction, AgentInfo, ExecutionPlan, PlanExecutionContextStrategy } from "@vela/shared";
+import type { AgentControlAction, AgentInfo, BackgroundShellItem, ExecutionPlan, PlanExecutionContextStrategy } from "@vela/shared";
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import type { ProjectApi } from "../hooks/useProject";
 import type { SidebarResize } from "../hooks/useSidebarResize";
@@ -14,6 +14,7 @@ import { AgentAvatar } from "./AgentAvatar";
 import { WorkspaceChangesView } from "./WorkspaceChangesView";
 import { AcceptancePanel } from "./AcceptancePanel";
 import { RacePanel } from "./RacePanel";
+import { BackgroundTasksPanel } from "./BackgroundTasksPanel";
 import type { Race } from "@vela/shared";
 import type { AcceptanceRequest } from "./acceptance";
 import { TurnReviewView } from "./TurnReviewView";
@@ -39,6 +40,7 @@ export type WorkbenchTab =
   | { id: string; kind: "turn-review"; label: string; title?: string; review: TurnReviewRequest; target?: { path: string; requestKey: number; diffToolId?: string } }
   | { id: string; kind: "acceptance"; label: string; title?: string; acceptance: AcceptanceRequest }
   | { id: string; kind: "race"; label: string; title?: string }
+  | { id: string; kind: "background"; label: string; title?: string }
   | { id: string; kind: "agent"; label: string; title: string; agent: AgentInfo }
   | { id: string; kind: "start"; label: string; title?: string }
   | { id: string; kind: "files"; label: string; title?: string }
@@ -66,6 +68,8 @@ interface WorkbenchPanelProps {
   onAcceptanceDiff?: (request: AcceptanceRequest, path: string, diffToolId?: string) => void;
   /** 当前工作区的赛马（最新在前），以及赛马面板里的跳转。 */
   races?: readonly Race[];
+  /** 当前对话的后台命令，「后台任务」标签页展示它们。 */
+  backgroundShells?: readonly BackgroundShellItem[];
   onOpenConversation?: (conversationId: string) => void;
   onOpenAcceptance?: (request: AcceptanceRequest) => void;
   agents: readonly AgentInfo[];
@@ -104,6 +108,7 @@ function TabIcon({ tab }: { tab: WorkbenchTab }) {
   if (tab.kind === "file") return <FileTypeIcon path={tab.path} />;
   if (tab.kind === "changes" || tab.kind === "turn-review" || tab.kind === "acceptance") return <FileIcon size={12} />;
   if (tab.kind === "race") return <BranchIcon size={12} />;
+  if (tab.kind === "background") return <TerminalIcon size={12} />;
   if (tab.kind === "plan") return <PlanIcon size={12} />;
   if (tab.kind === "start") return <PlusIcon size={12} />;
   if (tab.kind === "files") return <FolderIcon size={12} />;
@@ -156,6 +161,7 @@ function WorkbenchPanelContent({
   onShowDiff,
   onAcceptanceDiff,
   races,
+  backgroundShells,
   onOpenConversation,
   onOpenAcceptance,
   agents,
@@ -582,6 +588,13 @@ function WorkbenchPanelContent({
           <WorkbenchTabPanel key={tab.id} id={tabPanelId(tab)} className="workbench-tabpanel" role="tabpanel"
             aria-labelledby={tabButtonId(tab)} tabIndex={0} hidden={activeTab?.id !== tab.id}>
             <RacePanel races={races ?? []} onOpenConversation={id => onOpenConversation?.(id)} onOpenAcceptance={request => onOpenAcceptance?.(request)} />
+          </WorkbenchTabPanel>
+        ))}
+
+        {tabs.filter((tab): tab is Extract<WorkbenchTab, { kind: "background" }> => tab.kind === "background").map(tab => (
+          <WorkbenchTabPanel key={tab.id} id={tabPanelId(tab)} className="workbench-tabpanel" role="tabpanel"
+            aria-labelledby={tabButtonId(tab)} tabIndex={0} hidden={activeTab?.id !== tab.id}>
+            <BackgroundTasksPanel conversationId={conversationId ?? null} shells={backgroundShells ?? []} />
           </WorkbenchTabPanel>
         ))}
 

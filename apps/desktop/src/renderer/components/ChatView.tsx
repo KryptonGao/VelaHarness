@@ -221,6 +221,9 @@ export interface ChatViewProps {
   onReviewTurn?: (request: TurnReviewRequest) => void;
   onOpenAcceptance?: (request: AcceptanceRequest) => void;
   planDraft?: import("../plan-draft").PlanDraft | null;
+  /** 当前对话的后台命令，信息卡片模式下显示在「后台任务」卡片里。 */
+  backgroundShells?: readonly import("@vela/shared").BackgroundShellItem[];
+  onOpenBackgroundTasks?: () => void;
   onOpenPlan?: (planId: string) => void;
 }
 
@@ -269,6 +272,8 @@ export function ChatView({
   onReviewTurn,
   onOpenAcceptance,
   planDraft = null,
+  backgroundShells = [],
+  onOpenBackgroundTasks,
   onOpenPlan,
 }: ChatViewProps) {
   const messages = useNamedThinkingMessages(sourceMessages);
@@ -792,7 +797,7 @@ export function ChatView({
       {homeLayout ? <VelaMark /> : null}
       {floatingInfo && infoCards && !emptyConversation ? (
         <InfoCardStack concealed={environmentCollapsed || infoCardsConcealed} state={state} project={project} messages={messages} planDraft={planDraft}
-          changesActive={changesActive} onOpenChanges={onOpenChanges} onOpenPlan={onOpenPlan}
+          backgroundShells={backgroundShells} onOpenBackgroundTasks={onOpenBackgroundTasks} changesActive={changesActive} onOpenChanges={onOpenChanges} onOpenPlan={onOpenPlan}
           onResumeGoal={onResumeGoal} onOpenFile={openOutputFile} />
       ) : null}
       {floatingInfo && !infoCards && !environmentCollapsed && !emptyConversation ? (

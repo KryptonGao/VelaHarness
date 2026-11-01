@@ -210,6 +210,9 @@ export const IpcChannel = {
   questionReply: "session:question-reply",
   sessionAgentMessages: "session:agent-messages",
   sessionAgentControl: "session:agent-control",
+  sessionBackgroundShellOutput: "session:background-shell-output",
+  sessionBackgroundShellKill: "session:background-shell-kill",
+  sessionBackgroundShellClear: "session:background-shell-clear",
   appPickAttachments: "app:pick-attachments",
   appHydrateAttachments: "app:hydrate-attachments",
   appListOpenTargets: "app:list-open-targets",
@@ -783,6 +786,8 @@ export interface AppState {
   activeConversationId: string | null;
   /** 当前对话的 agent 树，供重启或渲染层重载后回填。 */
   agents?: AgentInfo[];
+  /** 当前对话的后台命令，供重启或渲染层重载后回填。 */
+  backgroundShells?: BackgroundShellItem[];
 }
 
 export const subagentKinds = ["explore", "general"] as const;
@@ -1055,6 +1060,8 @@ export type AgentStreamEvent =
   | { type: "tool_end"; conversationId: string; toolCallId: string; toolName: string; isError: boolean; activity: ToolActivity }
   /** 常驻 agent 树的完整快照；每次状态、步骤或结论变化时推送。 */
   | { type: "agents"; conversationId: string; agents: AgentInfo[] }
+  /** 后台命令的完整快照；命令启动或结束时推送。 */
+  | { type: "background_shells"; conversationId: string; shells: BackgroundShellItem[] }
   /** 某个子代理自己的运行流；带 agentId，供右侧 Agent Pane 实时渲染。 */
   | { type: "agent_event"; conversationId: string; agentId: string; event: AgentRuntimeStreamEvent }
   | { type: "user_message"; conversationId: string; text: string }
@@ -2733,10 +2740,34 @@ export interface BackgroundShellExit {
   notify: boolean;
 }
 
-/** 运行时需要的后台命令能力：订阅结束事件，会话关闭时清理。 */
+/** 界面展示用的后台命令快照，不含输出。 */
+export interface BackgroundShellItem {
+  id: string;
+  command: string;
+  status: BackgroundShellStatus;
+  exitCode: number | null;
+  startedAt: number;
+  endedAt: number | null;
+}
+
+/** 后台命令输出的末尾；truncated 表示开头被截掉了。 */
+export interface BackgroundShellOutput {
+  output: string;
+  truncated: boolean;
+}
+
+/** 运行时需要的后台命令能力：订阅结束事件，会话关闭时清理；list 与 subscribeChanges 供界面展示。 */
 export interface BackgroundShellEvents {
   subscribe(listener: (event: BackgroundShellExit) => void): () => void;
   killConversation(conversationId: string): void;
+  list?(conversationId: string): BackgroundShellItem[];
+  /** 读取输出末尾，不移动主代理的读取游标。 */
+  peek?(conversationId: string, id: string): BackgroundShellOutput;
+  kill?(conversationId: string, id: string): Promise<boolean>;
+  /** 清掉已结束的命令记录；运行中的不受影响。 */
+  clearFinished?(conversationId: string): void;
+  /** 命令启动或结束时通知；监听者按 conversationId 重新读取 list。 */
+  subscribeChanges?(listener: (conversationId: string) => void): () => void;
 }
 
 /** delegate：常驻 Agent 请求在某个工作区创建后台任务。 */
@@ -3033,6 +3064,12 @@ export interface VelaApi extends McpApi, PluginApi {
   getAgentMessages(conversationId: string, agentId: string): Promise<TranscriptMessage[]>;
   /** 暂停、继续或取消单个子代理；取消会连带它派出的子代理。 */
   controlAgent(conversationId: string, agentId: string, action: AgentControlAction): Promise<void>;
+  /** 读取某个后台命令的输出末尾；命令已被清掉时为 null。 */
+  getBackgroundShellOutput(conversationId: string, shellId: string): Promise<BackgroundShellOutput | null>;
+  /** 终止一个运行中的后台命令；状态变化随 background_shells 事件回来。 */
+  killBackgroundShell(conversationId: string, shellId: string): Promise<void>;
+  /** 清掉当前对话已结束的后台命令。 */
+  clearFinishedBackgroundShells(conversationId: string): Promise<void>;
   onEvent(listener: (event: AgentStreamEvent) => void): () => void;
   getCatalog(): Promise<ModelCatalog>;
   /** 立即从 Pi 重新获取模型列表，忽略 4 小时的检查间隔。 */

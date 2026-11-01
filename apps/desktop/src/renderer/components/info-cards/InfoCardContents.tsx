@@ -1,7 +1,8 @@
 import { useState, type ReactNode } from "react";
-import { isAgentBusy, type AgentInfo, type AgentStatus, type AppState } from "@vela/shared";
+import { isAgentBusy, type AgentInfo, type AgentStatus, type AppState, type BackgroundShellItem } from "@vela/shared";
 import type { ProjectApi } from "../../hooks/useProject";
 import { useDismissable } from "../../hooks/useDismissable";
+import { useSecondClock } from "../../hooks/useSecondClock";
 import type { UiMessage } from "../../hooks/useSession";
 import { planReferenceModel, type PlanDraft } from "../../plan-draft";
 import { fileManagerName } from "../../platform";
@@ -10,11 +11,12 @@ import { BranchPickerContent } from "../composer/BranchChip";
 import { ContextUsageCard, GoalCardBody, goalStatusLabel } from "../ContextPanel";
 import { FileTypeIcon } from "../FileTypeIcon";
 import { AgentAvatar } from "../AgentAvatar";
+import { formatElapsed } from "../AgentPanel";
 import { PopoverPresence } from "../MotionPresence";
 import { RepoCardPopover } from "../RepoCardPopover";
 import { planStatusLabel } from "../PlanPanel";
 import {
-  BranchIcon, DiffIcon, FolderIcon, GithubIcon, GoalIcon, PlanIcon, StackIcon, SubagentIcon, ToolIcon, ViewGaugeIcon,
+  BranchIcon, CheckIcon, DiffIcon, FolderIcon, GithubIcon, GoalIcon, PlanIcon, StackIcon, StopSquareIcon, SubagentIcon, TerminalIcon, ToolIcon, ViewGaugeIcon,
 } from "../icons";
 import type { InfoCardId } from "./info-cards-layout";
 import type { OutputFile } from "./info-cards-data";
@@ -28,6 +30,9 @@ export interface InfoCardContext {
   outputs: readonly OutputFile[];
   planDraft: PlanDraft | null;
   agents: readonly AgentInfo[];
+  backgroundShells?: readonly BackgroundShellItem[];
+  /** 在右侧面板打开「后台任务」标签页。 */
+  onOpenBackgroundTasks?: () => void;
   changesActive: boolean;
   onOpenChanges: () => void;
   onOpenPlan?: (planId: string) => void;
@@ -230,6 +235,47 @@ function AgentsBody({ ctx }: { ctx: InfoCardContext }) {
   );
 }
 
+// ---------- 后台任务 ----------
+
+const shellsOf = (ctx: InfoCardContext) => ctx.backgroundShells ?? [];
+
+function BackgroundShellRow({ ctx, shell, now }: { ctx: InfoCardContext; shell: BackgroundShellItem; now: number }) {
+  const conversationId = ctx.state?.activeConversationId ?? null;
+  const stop = () => {
+    if (conversationId) void window.vela?.killBackgroundShell(conversationId, shell.id).catch(() => undefined);
+  };
+  return (
+    <div className="info-card-shell">
+      <button type="button" className="info-card-row" title={shell.command} disabled={!ctx.onOpenBackgroundTasks} onClick={ctx.onOpenBackgroundTasks}>
+        <TerminalIcon size={15} />
+        <span className="info-card-row-main">{shell.command}</span>
+        <span className="info-card-row-note">{formatElapsed(now - shell.startedAt)}</span>
+      </button>
+      <button type="button" className="info-card-icon-btn" title={tr("停止", "Stop")} aria-label={tr("停止后台任务", "Stop background task")} onClick={stop}>
+        <StopSquareIcon size={11} />
+      </button>
+    </div>
+  );
+}
+
+function BackgroundBody({ ctx }: { ctx: InfoCardContext }) {
+  const shells = shellsOf(ctx);
+  const running = shells.filter((shell) => shell.status === "running");
+  const finished = shells.length - running.length;
+  const now = useSecondClock(running.length > 0);
+  return (
+    <div className="info-card-rows">
+      {running.map((shell) => <BackgroundShellRow key={shell.id} ctx={ctx} shell={shell} now={now} />)}
+      {finished > 0 ? (
+        <button type="button" className="info-card-row" disabled={!ctx.onOpenBackgroundTasks} onClick={ctx.onOpenBackgroundTasks}>
+          <CheckIcon size={15} />
+          <span className="info-card-row-main">{trf("{0} 个已结束", "{0} finished", finished)}</span>
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
 // ---------- 已启用工具 ----------
 
 function ToolsBody({ ctx }: { ctx: InfoCardContext }) {
@@ -309,6 +355,16 @@ export const infoCardDefinitions: Record<InfoCardId, InfoCardDefinition> = {
       return running > 0 ? trf("{0} 运行中", "{0} running", running) : String(agents.length);
     },
     Body: AgentsBody,
+  },
+  background: {
+    Icon: ({ size }) => <TerminalIcon size={size} />,
+    title: () => tr("后台任务", "Background tasks"),
+    available: (ctx) => shellsOf(ctx).length > 0,
+    summary: (ctx) => {
+      const running = shellsOf(ctx).filter((shell) => shell.status === "running").length;
+      return running > 0 ? trf("{0} 运行中", "{0} running", running) : String(shellsOf(ctx).length);
+    },
+    Body: BackgroundBody,
   },
   tools: {
     Icon: ({ size }) => <ToolIcon size={size} />,

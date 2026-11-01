@@ -89,6 +89,7 @@ function fileTabId(workspaceKey: string, fileId: string): string {
 
 const filesTabId = "files";
 const raceTabId = "races";
+const backgroundTabId = "background-tasks";
 
 function readOnboardingComplete(): boolean {
   try {
@@ -287,6 +288,7 @@ export function App() {
   const conflicts = useConflicts();
   const [conflictsOpen, setConflictsOpen] = useState(false);
   const [raceTabOpen, setRaceTabOpen] = useState(false);
+  const [backgroundTabOpen, setBackgroundTabOpen] = useState(false);
   const lastKnownWorkspace = useRef("");
   const tabSeq = useRef(0);
   const lastOpenedPlanFocusNonce = useRef<number | null>(null);
@@ -472,6 +474,10 @@ export function App() {
       setComposerSeed({ id: crypto.randomUUID(), conversationId: moved.conversationId, text: moved.seed });
     },
   }), [conflicts.state, session.switchTo]);
+  const openBackgroundTab = useCallback(() => {
+    setBackgroundTabOpen(true);
+    setActiveWorkbenchTabId(backgroundTabId);
+  }, []);
   const raceActions = useMemo(() => ({ started: openRaceTab, open: openRaceTab, count: workspaceRaces.length }),
     [openRaceTab, workspaceRaces.length]);
   const composerSeedContext = useMemo(() => ({ seed: composerSeed, consume: consumeComposerSeed, offer: offerComposerSeed }),
@@ -522,8 +528,9 @@ export function App() {
     else if (action === "side-chat") openSideChatTab();
     else if (action === "terminal") openTerminalTab();
     else if (action === "browser") openBrowserTab();
+    else if (action === "background") openBackgroundTab();
     else openFilesTab();
-  }, [openChanges, openSideChatTab, openTerminalTab, openFilesTab, openBrowserTab, workspaceKey]);
+  }, [openChanges, openSideChatTab, openTerminalTab, openFilesTab, openBrowserTab, openBackgroundTab, workspaceKey]);
 
   const fileTabs = useMemo<WorkbenchTab[]>(() => (fileTabsByWorkspace[workspaceKey] ?? []).map((file) => ({
     id: fileTabId(workspaceKey, file.id),
@@ -567,6 +574,9 @@ export function App() {
   const filesTab = useMemo<WorkbenchTab | null>(() => filesTabOpen
     ? { id: filesTabId, kind: "files", label: tr("文件", "Files") }
     : null, [filesTabOpen]);
+  const backgroundTab = useMemo<WorkbenchTab | null>(() => backgroundTabOpen
+    ? { id: backgroundTabId, kind: "background", label: tr("后台任务", "Background tasks") }
+    : null, [backgroundTabOpen, preferences.locale]);
   const raceTab = useMemo<WorkbenchTab | null>(() => raceTabOpen
     ? { id: raceTabId, kind: "race", label: tr("赛马", "Race") }
     : null, [raceTabOpen, preferences.locale]);
@@ -592,6 +602,7 @@ export function App() {
     ...(reviewTab ? [reviewTab] : []),
     ...(acceptanceTab ? [acceptanceTab] : []),
     ...(raceTab ? [raceTab] : []),
+    ...(backgroundTab ? [backgroundTab] : []),
     ...agentTabs,
     ...(filesTab ? [filesTab] : []),
     ...terminalTabs,
@@ -599,7 +610,7 @@ export function App() {
     ...sideChatTabs,
     ...browser.tabs.map((tab): WorkbenchTab => ({ ...tab, kind: "browser", label: tr("浏览器", "Browser") })),
     ...startTabItems,
-  ], [fileTabs, planTab, changeTab, reviewTab, acceptanceTab, raceTab, agentTabs, filesTab, terminalTabs, chatTabs, sideChatTabs, browser.tabs, startTabItems]);
+  ], [fileTabs, planTab, changeTab, reviewTab, acceptanceTab, raceTab, backgroundTab, agentTabs, filesTab, terminalTabs, chatTabs, sideChatTabs, browser.tabs, startTabItems]);
   const workbenchTabs = useMemo(() => {
     const tabIdSet = new Set(unorderedTabs.map((tab) => tab.id));
     return [
@@ -697,6 +708,8 @@ export function App() {
       dismissAcceptance();
     } else if (tab.kind === "race") {
       setRaceTabOpen(false);
+    } else if (tab.kind === "background") {
+      setBackgroundTabOpen(false);
     } else if (tab.kind === "turn-review") {
       dismissTurnReview();
     } else if (tab.kind === "agent") {
@@ -1052,6 +1065,8 @@ export function App() {
                           onReviewTurn={onReviewTurn}
                           onOpenAcceptance={onOpenAcceptance}
                           planDraft={session.planDraft}
+                          backgroundShells={session.backgroundShells}
+                          onOpenBackgroundTasks={openBackgroundTab}
                           onOpenPlan={openPlan}
                         />
                       </AgentWorkspaceProvider>
@@ -1078,6 +1093,7 @@ export function App() {
                         onShowDiff={openChanges}
                         onAcceptanceDiff={onAcceptanceDiff}
                         races={workspaceRaces}
+                        backgroundShells={session.backgroundShells}
                         onOpenConversation={id => { void session.switchTo(id); }}
                         onOpenAcceptance={onOpenAcceptance}
                         agents={allAgents}

@@ -75,9 +75,9 @@ export function InfoCardStack(props: InfoCardStackProps) {
   const outputs = useMemo(() => writtenFiles(props.messages, cwd), [props.messages, cwd]);
   const ctx = useMemo<InfoCardContext>(() => ({
     state: props.state, project: props.project, messages: props.messages, outputs, planDraft: props.planDraft,
-    agents: roster, changesActive: props.changesActive, onOpenChanges: props.onOpenChanges,
+    agents: roster, backgroundShells: props.backgroundShells, onOpenBackgroundTasks: props.onOpenBackgroundTasks, changesActive: props.changesActive, onOpenChanges: props.onOpenChanges,
     onOpenPlan: props.onOpenPlan, onResumeGoal: props.onResumeGoal, onOpenAgent: openAgent, onOpenFile: props.onOpenFile,
-  }), [props.state, props.project, props.messages, outputs, props.planDraft, roster, props.changesActive,
+  }), [props.state, props.project, props.messages, outputs, props.planDraft, roster, props.backgroundShells, props.onOpenBackgroundTasks, props.changesActive,
     props.onOpenChanges, props.onOpenPlan, props.onResumeGoal, openAgent, props.onOpenFile]);
 
   const available = useMemo(

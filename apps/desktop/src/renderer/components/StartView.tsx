@@ -3,7 +3,7 @@ import { tr } from "../locale";
 import { ChatIcon, DiffIcon, FolderIcon, GlobeIcon, SparkIcon, TerminalIcon } from "./icons";
 
 /** 起始页入口;宿主据此打开对应标签页。 */
-export type StartTabAction = "chat" | "side-chat" | "changes" | "terminal" | "files" | "browser";
+export type StartTabAction = "chat" | "side-chat" | "changes" | "terminal" | "files" | "browser" | "background";
 
 function StartOption({
   icon,
@@ -93,6 +93,12 @@ export function StartView({
             title={tr("终端", "Terminal")}
             description={tr("在工作区目录运行命令", "Run commands in the workspace directory")}
             onSelect={() => onAction("terminal")}
+          />
+          <StartOption
+            icon={<TerminalIcon size={16} />}
+            title={tr("后台任务", "Background tasks")}
+            description={tr("查看后台命令及其输出", "View background commands and their output")}
+            onSelect={() => onAction("background")}
           />
           <StartOption
             icon={<FolderIcon size={16} />}

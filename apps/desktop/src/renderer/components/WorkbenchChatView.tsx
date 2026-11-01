@@ -59,7 +59,7 @@ export function WorkbenchChatView({ conversationId, preferences, project, onRena
                 onReplyQuestion={(id, answer) => session.replyQuestion(id, answer)}
                 onBranch={index => { void session.branch(index); }}
                 showNewTab={false} onNewTab={onNewTab} onOpenChanges={() => onShowDiff()} onOpenWebLink={onOpenWebLink}
-                planDraft={session.planDraft} onOpenPlan={setPlanId}
+                planDraft={session.planDraft} backgroundShells={session.backgroundShells} onOpenPlan={setPlanId}
               />
             </div>
             {planId ? <>

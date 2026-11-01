@@ -18,11 +18,11 @@ import {
   type InfoCardLayout,
 } from "../src/renderer/components/info-cards/info-cards-layout.ts";
 
-const all = new Set<InfoCardId>(["env", "goal", "plan", "context", "outputs", "changes", "agents", "tools"]);
+const all = new Set<InfoCardId>(["env", "goal", "plan", "context", "outputs", "changes", "agents", "background", "tools"]);
 
 test("default layout hides tools and collapses context", () => {
   const layout = defaultLayout();
-  assert.deepEqual(renderedCards(layout, all), ["env", "goal", "plan", "context", "outputs", "changes", "agents"]);
+  assert.deepEqual(renderedCards(layout, all), ["env", "goal", "plan", "context", "outputs", "changes", "agents", "background"]);
   assert.deepEqual(hiddenCards(layout, all), ["tools"]);
   assert.deepEqual(layout.collapsed, ["context"]);
 });
@@ -38,7 +38,7 @@ test("reorder keeps unrendered cards in their slots", () => {
   const layout = defaultLayout();
   const rendered = renderedCards(layout, new Set<InfoCardId>(["env", "plan", "changes"]));
   const next = reorderRendered(layout, rendered, ["changes", "env", "plan"]);
-  assert.deepEqual(next.order, ["changes", "goal", "env", "context", "outputs", "plan", "agents", "tools"]);
+  assert.deepEqual(next.order, ["changes", "goal", "env", "context", "outputs", "plan", "agents", "background", "tools"]);
 });
 
 test("reorder ignores a list that is not a permutation", () => {
@@ -73,7 +73,7 @@ test("sanitize drops unknown and duplicate ids and appends new cards", () => {
     collapsed: ["plan", 3, "plan"],
   } as unknown as InfoCardLayout;
   const layout = sanitizeLayout(stored);
-  assert.deepEqual(layout.order, ["plan", "env", "context", "goal", "outputs", "changes", "agents", "tools"]);
+  assert.deepEqual(layout.order, ["plan", "env", "context", "goal", "outputs", "changes", "agents", "background", "tools"]);
   assert.deepEqual(layout.hidden, ["env", "tools"]);
   assert.deepEqual(layout.collapsed, ["plan"]);
 });

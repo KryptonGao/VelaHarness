@@ -14,6 +14,7 @@ import {
   type ResidentStatus,
   type ScheduledTasksState,
   type AgentControlAction,
+  type BackgroundShellOutput,
   type AgentSettings,
   type ConversationSyncResult,
   type McpStatusEvent,
@@ -452,6 +453,12 @@ const api: VelaApi = {
     ipcRenderer.invoke(IpcChannel.sessionAgentMessages, conversationId, agentId) as Promise<TranscriptMessage[]>,
   controlAgent: (conversationId: string, agentId: string, action: AgentControlAction) =>
     ipcRenderer.invoke(IpcChannel.sessionAgentControl, conversationId, agentId, action) as Promise<void>,
+  getBackgroundShellOutput: (conversationId: string, shellId: string) =>
+    ipcRenderer.invoke(IpcChannel.sessionBackgroundShellOutput, conversationId, shellId) as Promise<BackgroundShellOutput | null>,
+  killBackgroundShell: (conversationId: string, shellId: string) =>
+    ipcRenderer.invoke(IpcChannel.sessionBackgroundShellKill, conversationId, shellId) as Promise<void>,
+  clearFinishedBackgroundShells: (conversationId: string) =>
+    ipcRenderer.invoke(IpcChannel.sessionBackgroundShellClear, conversationId) as Promise<void>,
   getCatalog: () => ipcRenderer.invoke(IpcChannel.getCatalog) as Promise<ModelCatalog>,
   refreshCatalog: () => ipcRenderer.invoke(IpcChannel.refreshCatalog) as Promise<ModelRefreshResult>,
   getUsageLimits: (provider: string) => ipcRenderer.invoke(IpcChannel.usageLimits, provider) as Promise<UsageLimits | null>,
@@ -816,6 +823,9 @@ function isStreamEvent(value: unknown): value is AgentStreamEvent {
   }
   if (type === "agents") {
     return typeof value.conversationId === "string" && Array.isArray(value.agents);
+  }
+  if (type === "background_shells") {
+    return typeof value.conversationId === "string" && Array.isArray(value.shells);
   }
   if (type === "agent_event") {
     return (

@@ -1,0 +1,32 @@
+.bg-tasks { display: flex; flex-direction: column; gap: 14px; height: 100%; padding: 12px 14px 18px; overflow-y: auto; font-size: 13px; }
+.bg-tasks-bar { display: flex; align-items: center; gap: 8px; min-height: 28px; }
+.bg-tasks-title { flex: 1; font-weight: 560; }
+.bg-tasks-clear { display: grid; place-items: center; width: 26px; height: 26px; border-radius: var(--radius-sm); color: var(--text-muted); }
+.bg-tasks-clear:hover:not(:disabled) { background: var(--bg-hover); color: var(--text-primary); }
+.bg-tasks-clear:disabled { opacity: 0.4; cursor: default; }
+.bg-tasks-empty { margin: 0; color: var(--text-muted); }
+
+.bg-section-head { display: flex; align-items: center; gap: 6px; padding: 2px 0; color: var(--text-muted); font-size: 12px; }
+.bg-section-head:hover { color: var(--text-primary); }
+.bg-section-count { font-variant-numeric: tabular-nums; }
+.bg-section-body { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
+
+.bg-task-chevron { display: grid; place-items: center; width: 14px; flex: none; transition: transform 160ms ease; transform: rotate(-90deg); }
+.bg-task-chevron[data-open] { transform: none; }
+
+.bg-task { border-radius: var(--radius-md, 10px); background: var(--bg-hover); overflow: hidden; }
+.bg-task-head { display: flex; align-items: center; gap: 8px; min-height: 34px; padding: 0 10px 0 6px; }
+.bg-task-toggle { display: flex; flex: 1; align-items: center; gap: 6px; min-width: 0; min-height: 34px; text-align: left; color: var(--text-primary); }
+.bg-task-command { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bg-task-time { flex: none; font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.bg-task-status { flex: none; font-size: 12px; color: var(--text-muted); }
+.bg-task-status.is-failed { color: var(--danger); }
+.bg-task-stop { display: grid; place-items: center; width: 22px; height: 22px; border-radius: var(--radius-sm); color: var(--text-primary); }
+.bg-task-stop:hover:not(:disabled) { background: var(--bg-active, var(--bg-hover)); color: var(--danger); }
+.bg-task-stop:disabled { opacity: 0.5; cursor: default; }
+
+.bg-task-output {
+  max-height: 320px; margin: 0; padding: 4px 14px 12px; overflow: auto; background: transparent; color: var(--text-secondary);
+  font-family: var(--font-mono); font-size: 12px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere;
+}
+.bg-task-prompt { color: var(--text-primary); }

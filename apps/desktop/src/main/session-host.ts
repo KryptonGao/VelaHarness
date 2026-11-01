@@ -237,6 +237,12 @@ export class SessionHost {
         rawAction as AgentControlAction,
       );
     });
+    ipcMain.handle(IpcChannel.sessionBackgroundShellOutput, (_event, rawConversation: unknown, rawShell: unknown) =>
+      this.runtime.getBackgroundShellOutput(parseConversationId(rawConversation, "对话"), parseId(rawShell, "后台任务")));
+    ipcMain.handle(IpcChannel.sessionBackgroundShellKill, (_event, rawConversation: unknown, rawShell: unknown) =>
+      this.runtime.killBackgroundShell(parseConversationId(rawConversation, "对话"), parseId(rawShell, "后台任务")));
+    ipcMain.handle(IpcChannel.sessionBackgroundShellClear, (_event, rawConversation: unknown) =>
+      this.runtime.clearFinishedBackgroundShells(parseConversationId(rawConversation, "对话")));
     ipcMain.handle(IpcChannel.sessionAgentMessages, (_event, rawConversation: unknown, rawAgent: unknown) => {
       return this.runtime.getAgentMessages(
         parseConversationId(rawConversation, "对话"),
@@ -352,6 +358,7 @@ export class SessionHost {
         : this.runtime.listConversations(),
       activeConversationId: activeId,
       agents: this.runtime.getAgents(activeId),
+      backgroundShells: this.runtime.getBackgroundShells(activeId),
     };
   }
 

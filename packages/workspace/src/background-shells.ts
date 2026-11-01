@@ -1,5 +1,5 @@
 import { createLocalBashOperations } from "@earendil-works/pi-coding-agent";
-import type { BackgroundShellEvents, BackgroundShellExit, BackgroundShellStatus } from "@vela/shared";
+import type { BackgroundShellEvents, BackgroundShellExit, BackgroundShellOutput, BackgroundShellStatus } from "@vela/shared";
 import { StringDecoder } from "node:string_decoder";
 
 /** 每个后台命令在内存里保留的输出上限；超出后丢弃最早的部分。 */
@@ -59,11 +59,17 @@ interface Shell extends BackgroundShellInfo {
 export class BackgroundShellManager implements BackgroundShellEvents {
   private readonly shells = new Map<string, Shell>();
   private readonly listeners = new Set<(event: BackgroundShellExit) => void>();
+  private readonly changeListeners = new Set<(conversationId: string) => void>();
   private counter = 0;
 
   subscribe(listener: (event: BackgroundShellExit) => void): () => void {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
+  }
+
+  subscribeChanges(listener: (conversationId: string) => void): () => void {
+    this.changeListeners.add(listener);
+    return () => this.changeListeners.delete(listener);
   }
 
   start(input: BackgroundShellStartInput): BackgroundShellInfo {
@@ -94,6 +100,7 @@ export class BackgroundShellManager implements BackgroundShellEvents {
     };
     this.shells.set(shell.id, shell);
     shell.done = this.run(shell, input.timeout);
+    this.notifyChanged(shell.conversationId);
     return snapshot(shell);
   }
 
@@ -112,6 +119,25 @@ export class BackgroundShellManager implements BackgroundShellEvents {
     const result = this.take(shell);
     if (shell.status !== "running") shell.exitObserved = true;
     return result;
+  }
+
+  /** 输出末尾，不动读取游标；命令已被清掉时返回空输出。 */
+  peek(conversationId: string, id: string): BackgroundShellOutput {
+    const shell = this.shells.get(id);
+    if (!shell || shell.conversationId !== conversationId) return { output: "", truncated: false };
+    const truncated = shell.bufferStart > 0 || shell.buffer.length > backgroundReadLimitChars;
+    return { output: shell.buffer.slice(-backgroundReadLimitChars), truncated };
+  }
+
+  /** 删掉已结束命令的记录；运行中的保留。 */
+  clearFinished(conversationId: string): void {
+    let removed = false;
+    for (const shell of this.forConversation(conversationId)) {
+      if (shell.status === "running") continue;
+      this.shells.delete(shell.id);
+      removed = true;
+    }
+    if (removed) this.notifyChanged(conversationId);
   }
 
   /** 终止命令及其子进程；已结束的命令返回 false。 */
@@ -140,6 +166,13 @@ export class BackgroundShellManager implements BackgroundShellEvents {
       shell.controller.abort();
     }
     this.listeners.clear();
+    this.changeListeners.clear();
+  }
+
+  private notifyChanged(conversationId: string): void {
+    for (const listener of [...this.changeListeners]) {
+      try { listener(conversationId); } catch { /* 监听者出错不能影响命令本身。 */ }
+    }
   }
 
   private forConversation(conversationId: string): Shell[] {
@@ -180,6 +213,7 @@ export class BackgroundShellManager implements BackgroundShellEvents {
     shell.status = status;
     shell.exitCode = exitCode;
     shell.endedAt = Date.now();
+    this.notifyChanged(shell.conversationId);
     for (const wake of [...shell.changed]) wake();
     // 让正在 wait 的 bash_output 先读走结果；它读到了结束状态就不再重复通知。
     await new Promise<void>((resolve) => setImmediate(resolve));

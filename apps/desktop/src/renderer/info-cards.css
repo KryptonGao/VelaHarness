@@ -144,6 +144,9 @@ button.info-card-row:hover:not(:disabled), .info-card-row.is-active { background
 .info-card-chip.is-completed, .info-card-chip.is-goal-complete { color: var(--success); background: color-mix(in srgb, var(--success) 12%, transparent); }
 .info-card-chip.is-failed { color: var(--danger); background: color-mix(in srgb, var(--danger) 12%, transparent); }
 .info-card-chip.is-paused, .info-card-chip.is-aborted, .info-card-chip.is-goal-paused { color: var(--warning); background: color-mix(in srgb, var(--warning) 12%, transparent); }
+.info-card-shell { display: flex; align-items: center; gap: 2px; }
+.info-card-shell > .info-card-row { flex: 1; width: auto; margin-right: 0; min-width: 0; }
+.info-card-shell > .info-card-icon-btn { flex: none; color: var(--text-primary); }
 .info-card-spin {
   width: 12px; height: 12px; flex: none; margin: 0 1.5px; border-radius: 50%;
   border: 2px solid var(--accent-border); border-top-color: var(--accent-blue); animation: info-card-spin 800ms linear infinite;

@@ -1,6 +1,6 @@
 /** 卡片模式右侧信息卡片的布局：顺序、用户隐藏、折叠。纯函数，便于测试。 */
 
-export const infoCardIds = ["env", "goal", "plan", "context", "outputs", "changes", "agents", "tools"] as const;
+export const infoCardIds = ["env", "goal", "plan", "context", "outputs", "changes", "agents", "background", "tools"] as const;
 
 export type InfoCardId = (typeof infoCardIds)[number];
 
