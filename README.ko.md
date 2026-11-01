@@ -163,7 +163,7 @@ pnpm test:center # 테스트 센터: Node 단위 테스트와 브라우저 UI �
 
 Vela는 [Pi Agent](https://github.com/earendil-works/pi)를 기반으로 만들어졌으며, TypeScript SDK를 통해 에이전트 런타임을 데스크톱 앱에 내장합니다. Pi가 모델 인터페이스, 세션, 도구 런타임을 제공하고, Vela가 그 위에 데스크톱 UI, 작업 모드, 권한 승인, Git 워크스페이스 통합을 구현합니다.
 
-- **기술 스택:** Electron 44, electron-vite, React 19, TypeScript. 데스크톱 앱과 공유 패키지는 pnpm workspace로 관리합니다. Pi는 `1.0.0`(`@earendil-works/pi-coding-agent`, `pi-agent-core`, `pi-ai`)으로 정확히 고정되어 있습니다. Vela는 메인 프로세스에서 `createAgentSession()`을 호출하며, Pi 명령줄 프로그램을 실행해 에이전트를 구동하지 않습니다.
+- **기술 스택:** Electron 44, electron-vite, React 19, TypeScript. 데스크톱 앱과 공유 패키지는 pnpm workspace로 관리합니다. Pi는 `1.3.0`(`@earendil-works/pi-coding-agent`, `pi-agent-core`, `pi-ai`)으로 정확히 고정되어 있습니다. Vela는 메인 프로세스에서 `createAgentSession()`을 호출하며, Pi 명령줄 프로그램을 실행해 에이전트를 구동하지 않습니다.
 - **세션과 모델:** 채팅마다 독립된 Pi `AgentSession`을 사용합니다. 메시지는 `~/.vela/sessions`에, 채팅 인덱스는 `~/.vela/conversations.json`에 저장됩니다. 제공자와 모델은 Pi의 `ModelRuntime`으로 불러오며, Vela 고유의 `~/.vela` 설정을 사용하고 로컬 Pi 설정은 읽지 않습니다.
 - **도구, 모드, 권한:** 기본 도구는 Pi의 `read`, `bash`, `edit`, `write`이며, Vela는 승인을 연결하기 위해 `bash`, `edit`, `write`를 감쌉니다. `Plan` 모드는 ToolPolicy로 편집과 쓰기를 막고 읽기 전용 명령만 허용하며, 전체 계획을 `<proposed_plan>`으로 출력합니다. 승인하면 현재 컨텍스트나 새 컨텍스트에서 실행할 수 있습니다. `Goal` 모드는 `update_goal`로 진행 상황을 기록합니다. 자세한 내용은 [docs/features/plan-mode.md](./docs/features/plan-mode.md)와 [docs/features/plan-mode-architecture.md](./docs/features/plan-mode-architecture.md)를 참고하세요.
 - **MCP:** 도구는 기본적으로 `tool_search`를 통해 필요할 때 탐색되며, 직접 제공하거나 숨기도록 설정할 수도 있습니다. 프로젝트 설정은 신뢰 확인이 필요합니다. Plan 모드와 `explore` 하위 에이전트에는 읽기 전용으로 확인된 도구만 제공됩니다.
