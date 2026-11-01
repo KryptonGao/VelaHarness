@@ -9,7 +9,7 @@ import { TaskBudgetSettingsStore } from "../src/task-budget-settings.ts";
 import { ModelPriceStore } from "../src/model-price-store.ts";
 import { TaskCostHistoryStore } from "../src/task-cost-history.ts";
 
-const on: TaskBudgetSettings = { enabled: true, maxMinutes: 10, maxTokens: 1000, maxCost: null, maxSubagents: 16, allowNestedSubagents: true };
+const on: TaskBudgetSettings = { enabled: true, maxMinutes: 10, maxTokens: 1000, maxCost: null, subagentsEnabled: true, maxSubagents: 16, allowNestedSubagents: true };
 const cny: ModelPrice = { model: "p/cny", currency: "CNY", input: 10, output: 20, cacheWrite: 0, cacheRead: 0 };
 const usd: ModelPrice = { model: "p/usd", currency: "USD", input: 10, output: 20, cacheWrite: 0, cacheRead: 0 };
 
@@ -58,7 +58,7 @@ describe("任务用量设置校验", () => {
     assert.throws(() => parseTaskBudgetSettings({ enabled: true, maxMinutes: 0, maxTokens: null }), /时间上限/);
     assert.throws(() => parseTaskBudgetSettings({ enabled: true, maxMinutes: null, maxTokens: 5 }), /Token 上限/);
     assert.throws(() => parseTaskBudgetSettings({ enabled: true, maxMinutes: null, maxTokens: null }), /至少/);
-    assert.deepEqual(parseTaskBudgetSettings({ enabled: false, maxMinutes: null, maxTokens: null }), { enabled: false, maxMinutes: null, maxTokens: null, maxCost: null, maxSubagents: 16, allowNestedSubagents: true });
+    assert.deepEqual(parseTaskBudgetSettings({ enabled: false, maxMinutes: null, maxTokens: null }), { enabled: false, maxMinutes: null, maxTokens: null, maxCost: null, subagentsEnabled: true, maxSubagents: 16, allowNestedSubagents: true });
     assert.equal(parseTaskBudgetSettings({ enabled: true, maxMinutes: 12.4, maxTokens: null }).maxMinutes, 12);
     assert.equal(parseTaskBudgetSettings({ enabled: true, maxMinutes: null, maxTokens: 10_000_000_000 }).maxTokens, 10_000_000_000);
     assert.throws(() => parseTaskBudgetSettings({ enabled: true, maxMinutes: null, maxTokens: 10_000_000_001 }), /Token 上限/);
@@ -92,11 +92,41 @@ describe("任务用量设置校验", () => {
     assert.throws(() => parseTaskBudgetSettings({ ...base, allowNestedSubagents: "no" }), /嵌套/);
   });
 
+  it("子代理开关默认开启，独立于用量开关，关闭保留数量与嵌套偏好", () => {
+    assert.equal(defaultTaskBudgetSettings.subagentsEnabled, true);
+    const base = { enabled: false, maxMinutes: null, maxTokens: null, maxSubagents: 7, allowNestedSubagents: false };
+    assert.equal(parseTaskBudgetSettings(base).subagentsEnabled, true);
+    const off = parseTaskBudgetSettings({ ...base, subagentsEnabled: false });
+    assert.deepEqual([off.enabled, off.subagentsEnabled, off.maxSubagents, off.allowNestedSubagents], [false, false, 7, false]);
+    const restored = parseTaskBudgetSettings({ ...off, subagentsEnabled: true });
+    assert.deepEqual([restored.maxSubagents, restored.allowNestedSubagents], [7, false]);
+    for (const subagentsEnabled of [null, "false", 0, 1, {}, []]) {
+      assert.throws(() => parseTaskBudgetSettings({ ...base, subagentsEnabled }), { message: "子代理开关必须是布尔值" });
+    }
+  });
+
+  it("旧配置缺省启用子代理，新配置关闭后原样持久化", () => {
+    const dir = mkdtempSync(join(tmpdir(), "vela-subagents-budget-"));
+    const file = join(dir, "task-budget-settings.json");
+    const legacy = { enabled: false, maxMinutes: null, maxTokens: null, maxSubagents: 9, allowNestedSubagents: false };
+    writeFileSync(file, JSON.stringify(legacy));
+    const store = new TaskBudgetSettingsStore(dir);
+    assert.equal(store.settings.subagentsEnabled, true);
+    const off = store.save({ ...store.settings, subagentsEnabled: false });
+    assert.equal(off.subagentsEnabled, false);
+    assert.deepEqual(new TaskBudgetSettingsStore(dir).settings, off);
+    assert.deepEqual(JSON.parse(readFileSync(file, "utf8")), off);
+    assert.throws(() => store.save({ ...off, subagentsEnabled: null }), /子代理开关必须是布尔值/);
+    assert.deepEqual(new TaskBudgetSettingsStore(dir).settings, off);
+    const restored = store.save({ ...off, subagentsEnabled: true });
+    assert.deepEqual([restored.maxSubagents, restored.allowNestedSubagents], [9, false]);
+  });
+
   it("持久化，文件损坏时回到默认（关闭）", () => {
     const dir = mkdtempSync(join(tmpdir(), "vela-budget-"));
     assert.deepEqual(new TaskBudgetSettingsStore(dir).settings, defaultTaskBudgetSettings);
     const store = new TaskBudgetSettingsStore(dir);
-    const valid: TaskBudgetSettings = { enabled: true, maxMinutes: 10, maxTokens: 50_000, maxCost: { currency: "USD", amount: 3 }, maxSubagents: 4, allowNestedSubagents: false };
+    const valid: TaskBudgetSettings = { enabled: true, maxMinutes: 10, maxTokens: 50_000, maxCost: { currency: "USD", amount: 3 }, subagentsEnabled: true, maxSubagents: 4, allowNestedSubagents: false };
     store.save(valid);
     assert.deepEqual(new TaskBudgetSettingsStore(dir).settings, valid);
     assert.throws(() => store.save({ enabled: true, maxMinutes: -1, maxTokens: null }));

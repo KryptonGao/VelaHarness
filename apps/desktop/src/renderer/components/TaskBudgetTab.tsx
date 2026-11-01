@@ -14,8 +14,11 @@ function describe(settings: TaskBudgetSettings): string {
     if (settings.maxTokens !== null) parts.push(`${formatTaskBudgetTokens(settings.maxTokens)} Token`);
     if (settings.maxCost !== null) parts.push(formatCost({ [settings.maxCost.currency]: settings.maxCost.amount }, activeIntlLocale()) ?? "");
   }
-  parts.push(trf("子代理最多 {0} 个", "up to {0} subagents", settings.maxSubagents));
-  if (!settings.allowNestedSubagents) parts.push(tr("不可嵌套", "no nesting"));
+  if (!settings.subagentsEnabled) parts.push(tr("SubAgents 已关闭", "SubAgents off"));
+  else {
+    parts.push(trf("子代理最多 {0} 个", "up to {0} subagents", settings.maxSubagents));
+    if (!settings.allowNestedSubagents) parts.push(tr("不可嵌套", "no nesting"));
+  }
   return parts.join(" · ");
 }
 
@@ -95,8 +98,8 @@ export function TaskBudgetTab({ conversationId, budget }: { conversationId: stri
     <div className="tb-inner">
       <header className="tb-header">
         <h2>{tr("用量限制", "Usage limit")}</h2>
-        <p>{tr("为当前对话设置一次任务的时间、Token 与费用上限（统计包含子代理），以及子代理的数量上限。这里的设置只对当前对话生效，不影响其他对话。",
-          "Set a time, token and cost limit for a single task in this conversation (subagents included), plus a cap on subagents. These settings apply to this conversation only.")}</p>
+        <p>{tr("为当前对话设置一次任务的时间、Token 与费用上限（统计包含子代理），以及是否启用 SubAgents、数量上限和嵌套权限。这里的设置只对当前对话生效，不影响其他对话。",
+          "Set a time, token and cost limit for a single task in this conversation (subagents included), and control whether SubAgents are enabled, their count and nesting. These settings apply to this conversation only.")}</p>
       </header>
       <section className="tb-card">
         <div className="tb-card-head"><h3>{tr("当前任务", "Current task")}</h3></div>

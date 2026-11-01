@@ -38,6 +38,8 @@ export interface TaskBudgetSettings {
    * 没登记价格的模型、登记为另一种币种的模型不计入。
    */
   maxCost: TaskBudgetCostLimit | null;
+  /** 是否允许创建子代理；关闭时有效数量上限为 0，不影响已有代理及保存的数量/嵌套设置。与 enabled 无关。 */
+  subagentsEnabled: boolean;
   /** 一个对话里所有层级子代理的总数上限；0 表示不允许创建子代理。与 enabled 无关，始终生效。 */
   maxSubagents: number;
   /** 子代理是否可以继续创建子代理；关闭后只有主代理能派生。 */
@@ -49,6 +51,7 @@ export const defaultTaskBudgetSettings: Readonly<TaskBudgetSettings> = Object.fr
   maxMinutes: 30,
   maxTokens: 20_000_000,
   maxCost: null,
+  subagentsEnabled: true,
   maxSubagents: 16,
   allowNestedSubagents: true,
 });
@@ -125,6 +128,11 @@ export function parseTaskBudgetSettings(raw: unknown): TaskBudgetSettings {
   if (input.enabled && maxMinutes === null && maxTokens === null && maxCost === null) {
     throw new Error("启用任务用量上限时至少要设置时间、Token 或费用其中一项");
   }
+  // 子代理开关缺省保持开启，兼容旧设置；关闭时不改写保存的数量与嵌套偏好。
+  if (input.subagentsEnabled !== undefined && typeof input.subagentsEnabled !== "boolean") {
+    throw new Error("子代理开关必须是布尔值");
+  }
+  const subagentsEnabled = input.subagentsEnabled ?? defaultTaskBudgetSettings.subagentsEnabled;
   // 子代理限制是后加的字段：缺省时取默认值，让旧的设置文件和旧调用方继续可用。
   const maxSubagents = input.maxSubagents === undefined
     ? defaultTaskBudgetSettings.maxSubagents
@@ -134,7 +142,7 @@ export function parseTaskBudgetSettings(raw: unknown): TaskBudgetSettings {
     throw new Error("子代理嵌套开关必须是布尔值");
   }
   const allowNestedSubagents = input.allowNestedSubagents ?? defaultTaskBudgetSettings.allowNestedSubagents;
-  return { enabled: input.enabled, maxMinutes, maxTokens, maxCost, maxSubagents, allowNestedSubagents };
+  return { enabled: input.enabled, maxMinutes, maxTokens, maxCost, subagentsEnabled, maxSubagents, allowNestedSubagents };
 }
 
 /** 读取磁盘上的设置：损坏或越界时回到默认（关闭），不会意外启用。 */

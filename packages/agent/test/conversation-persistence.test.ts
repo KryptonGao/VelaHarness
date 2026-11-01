@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { setLogSinks, type LogEntry } from "@vela/shared";
+import { defaultTaskBudgetSettings, setLogSinks, type LogEntry } from "@vela/shared";
 import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -99,6 +99,30 @@ describe("conversation persistence", () => {
     assert.equal(disk.find(chat => chat.id === selectedId)?.hasWorkspace, true);
     assert.equal(disk.find(chat => chat.id === standaloneId)?.hasWorkspace, false);
     assert.equal(disk.find(chat => chat.id === explicitId)?.hasWorkspace, false);
+  });
+
+  it("preserves the independent subagent switch through clone, save, import and legacy migration", async t => {
+    const { root, file } = await fixture(t);
+    const store = new ConversationStore(file);
+    const budget = { ...defaultTaskBudgetSettings, subagentsEnabled: false, maxSubagents: 6, allowNestedSubagents: false };
+    const source = { ...stored(), taskBudget: budget };
+    store.put(structuredClone(source));
+    store.flushSync();
+    const restored = new ConversationStore(file);
+    await restored.load();
+    assert.deepEqual(restored.get(source.id)?.taskBudget, budget);
+    restored.update(source.id, { title: "改名不影响开关" });
+    restored.flushSync();
+    assert.deepEqual(JSON.parse(await readFile(file, "utf8")).conversations[0].taskBudget, budget);
+
+    const imported = new ConversationStore(join(root, "imported.json"));
+    assert.equal(imported.importMissing([structuredClone(source)]), 1);
+    assert.deepEqual(imported.get(source.id)?.taskBudget, budget);
+    const { subagentsEnabled: _unused, ...legacyBudget } = budget;
+    await writeFile(file, JSON.stringify({ version: 2, conversations: [{ ...source, taskBudget: legacyBudget }] }));
+    const migrated = new ConversationStore(file);
+    await migrated.load();
+    assert.deepEqual(migrated.get(source.id)?.taskBudget, { ...budget, subagentsEnabled: true });
   });
 
   it("finishes a debounced write before shutdown can skip it", async t => {

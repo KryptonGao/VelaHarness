@@ -98,7 +98,7 @@ export function TaskBudgetFields({ text, value, disabled, onCommit }: {
     if (value.maxCost) setCurrency(value.maxCost.currency);
   }, [value]);
 
-  async function commit(draft: { enabled: boolean; minutes: string; tokens: string; subagents: string; nested: boolean; cost: string; currency: PricingCurrency }): Promise<void> {
+  async function commit(draft: { enabled: boolean; minutes: string; tokens: string; subagents: string; nested: boolean; cost: string; currency: PricingCurrency; subagentsEnabled?: boolean }): Promise<void> {
     const amount = readLimit(draft.cost);
     const next = {
       enabled: draft.enabled,
@@ -107,6 +107,7 @@ export function TaskBudgetFields({ text, value, disabled, onCommit }: {
       // 金额留空表示不限；不是数字时交给校验报错。
       maxCost: amount === null ? null : amount === undefined ? undefined : { currency: draft.currency, amount },
       maxSubagents: draft.subagents.trim() ? Number(draft.subagents) : undefined,
+      subagentsEnabled: draft.subagentsEnabled ?? value?.subagentsEnabled ?? true,
       allowNestedSubagents: draft.nested,
     };
     try {
@@ -117,7 +118,8 @@ export function TaskBudgetFields({ text, value, disabled, onCommit }: {
       // 没有改动就不提交，避免只是点一下滑块或失焦就把「沿用全局」的对话写成自定义。
       if (value && parsed.enabled === value.enabled && parsed.maxMinutes === value.maxMinutes && parsed.maxTokens === value.maxTokens
         && parsed.maxCost?.amount === value.maxCost?.amount && parsed.maxCost?.currency === value.maxCost?.currency
-        && parsed.maxSubagents === value.maxSubagents && parsed.allowNestedSubagents === value.allowNestedSubagents) {
+        && parsed.maxSubagents === value.maxSubagents && parsed.subagentsEnabled === value.subagentsEnabled
+        && parsed.allowNestedSubagents === value.allowNestedSubagents) {
         setError(null);
         return;
       }
@@ -131,6 +133,8 @@ export function TaskBudgetFields({ text, value, disabled, onCommit }: {
   const inactive = disabled || !value;
   const enabled = value?.enabled ?? false;
   const nested = value?.allowNestedSubagents ?? true;
+  const subagentsEnabled = value?.subagentsEnabled ?? true;
+  const subagentsInactive = inactive || !subagentsEnabled;
   return (
     <div className="tb-fields">
       <div className="tb-enable">
@@ -206,7 +210,17 @@ export function TaskBudgetFields({ text, value, disabled, onCommit }: {
         <p className="tb-limit-hint">{text.taskBudgetCostHint}</p>
       </div>
       <div className="tb-subagents">
-        <div className="tb-limit" data-disabled={inactive ? "true" : undefined}>
+        <div className="tb-enable">
+          <span>{text.taskBudgetSubagentsEnabled}</span>
+          <SettingsSwitch
+            checked={subagentsEnabled}
+            label={text.taskBudgetSubagentsEnabled}
+            disabled={inactive}
+            onChange={(next) => void commit({ enabled, minutes, tokens, subagents, nested, cost, currency, subagentsEnabled: next })}
+          />
+        </div>
+        <p className="tb-limit-hint">{text.taskBudgetSubagentsEnabledHint}</p>
+        <div className="tb-limit" data-disabled={subagentsInactive ? "true" : undefined}>
           <div className="tb-limit-head">
             <span className="tb-limit-label">{text.taskBudgetSubagents}</span>
             <label className="tb-number">
@@ -218,7 +232,7 @@ export function TaskBudgetFields({ text, value, disabled, onCommit }: {
                 max={taskBudgetLimits.maxSubagents}
                 step={1}
                 value={subagents}
-                disabled={inactive}
+                disabled={subagentsInactive}
                 onChange={(event) => setSubagents(event.target.value)}
                 onBlur={() => void commit({ enabled, minutes, tokens, subagents, nested, cost, currency })}
               />
@@ -232,7 +246,7 @@ export function TaskBudgetFields({ text, value, disabled, onCommit }: {
           <SettingsSwitch
             checked={nested}
             label={text.taskBudgetNested}
-            disabled={inactive}
+            disabled={subagentsInactive}
             onChange={(next) => void commit({ enabled, minutes, tokens, subagents, nested: next, cost, currency })}
           />
         </div>

@@ -49,6 +49,7 @@ const knownErrors: Record<string, string> = {
   "新建对话参数不正确": "Invalid new chat options.",
   "任务用量上限设置不正确": "Invalid task usage limit settings.",
   "任务用量上限开关必须是布尔值": "The task usage limit switch must be on or off.",
+  "子代理开关必须是布尔值": "The SubAgents switch must be on or off.",
   "时间上限超出范围": "The time limit is out of range (1–1440 minutes).",
   "Token 上限超出范围": "The token limit is out of range (10,000–10,000,000,000).",
   "启用任务用量上限时至少要设置时间、Token 或费用其中一项": "Set at least a time, token or cost limit to enable the task usage limit.",

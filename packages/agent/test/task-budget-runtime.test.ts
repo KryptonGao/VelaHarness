@@ -7,11 +7,15 @@ import { describe, it, type TestContext } from "node:test";
 import type { AgentSession } from "@earendil-works/pi-coding-agent";
 import type { StreamFn } from "@earendil-works/pi-agent-core";
 import { createAssistantMessageEventStream, type AssistantMessage } from "@earendil-works/pi-ai";
-import type { ModelPrice } from "@vela/shared";
+import { defaultTaskBudgetSettings, type ModelPrice, type SubagentLimits } from "@vela/shared";
 import { AgentRuntime, type RuntimeEvent } from "../src/runtime.ts";
 
 interface Internals {
-  conversations: Map<string, { session: AgentSession; budget?: { exhausted: boolean; ended: boolean } }>;
+  conversations: Map<string, {
+    session: AgentSession;
+    control: { options: { limits: () => SubagentLimits } };
+    budget?: { exhausted: boolean; ended: boolean };
+  }>;
 }
 
 /** 每次模型请求固定消耗 10,000 token（输入 8,000 + 输出 2,000）。 */
@@ -105,12 +109,37 @@ describe("AgentRuntime 任务用量上限", { timeout: 30_000 }, () => {
     assert.equal(f.requests(), before);
   });
 
+  it("子代理开关通过同一个动态回调独立限制派生，切换后保留数量与嵌套设置", async (t) => {
+    const f = await fixture(t);
+    const limits = () => (f.runtime as unknown as Internals).conversations.get(f.id)!.control.options.limits();
+    const global = { ...defaultTaskBudgetSettings, maxSubagents: 7, allowNestedSubagents: true };
+    f.runtime.setTaskBudgetSettings(global);
+    assert.deepEqual(limits(), { maxSubagents: 7, allowNested: true });
+    f.runtime.setTaskBudgetSettings({ ...global, subagentsEnabled: false });
+    assert.deepEqual(limits(), { maxSubagents: 0, allowNested: true });
+    assert.equal(f.runtime.getTaskBudgetSettings().maxSubagents, 7);
+    f.runtime.setTaskBudgetSettings(global);
+    assert.deepEqual(limits(), { maxSubagents: 7, allowNested: true });
+
+    const custom = { ...global, maxSubagents: 3, allowNestedSubagents: false, subagentsEnabled: false };
+    f.runtime.setConversationTaskBudget(f.id, custom);
+    assert.deepEqual(limits(), { maxSubagents: 0, allowNested: false });
+    assert.deepEqual(f.runtime.getConversationTaskBudget(f.id).override, custom);
+    // 全局改动不能覆盖本对话的独立开关。
+    f.runtime.setTaskBudgetSettings({ ...global, maxSubagents: 11 });
+    assert.deepEqual(limits(), { maxSubagents: 0, allowNested: false });
+    f.runtime.setConversationTaskBudget(f.id, { ...custom, subagentsEnabled: true });
+    assert.deepEqual(limits(), { maxSubagents: 3, allowNested: false });
+    f.runtime.setConversationTaskBudget(f.id, null);
+    assert.deepEqual(limits(), { maxSubagents: 11, allowNested: true });
+  });
+
   it("对话自己的上限只对该对话生效，可恢复沿用全局，并随对话保存", async (t) => {
     const f = await fixture(t);
     f.runtime.setTaskBudgetSettings({ enabled: false, maxMinutes: 30, maxTokens: 2_000_000 });
     const other = await f.runtime.createConversation(f.workspace).then(() => f.runtime.activeConversationId!);
     assert.notEqual(other, f.id);
-    const custom = { enabled: true, maxMinutes: null, maxTokens: 10_000, maxCost: null, maxSubagents: 16, allowNestedSubagents: true };
+    const custom = { enabled: true, maxMinutes: null, maxTokens: 10_000, maxCost: null, subagentsEnabled: false, maxSubagents: 16, allowNestedSubagents: true };
     const saved = f.runtime.setConversationTaskBudget(f.id, custom);
     assert.deepEqual(saved.override, custom);
     assert.deepEqual(saved.effective, custom);

@@ -13,7 +13,7 @@ const locale = params.has("en") ? "en" : "zh-CN";
 setActiveLocale(locale);
 document.documentElement.dataset.scheme = params.get("theme") ?? "light";
 
-const global: TaskBudgetSettings = { enabled: true, maxMinutes: 30, maxTokens: null, maxCost: { currency: "CNY", amount: 2 }, maxSubagents: 16, allowNestedSubagents: true };
+const global: TaskBudgetSettings = { enabled: true, maxMinutes: 30, maxTokens: null, maxCost: { currency: "CNY", amount: 2 }, maxSubagents: 16, subagentsEnabled: true, allowNestedSubagents: true };
 let override: TaskBudgetSettings | null = global;
 const conversation = (): ConversationTaskBudget => ({ global, override, effective: override ?? global });
 const forecast: TaskCostForecast = { currency: "CNY", low: 0.84, median: 1.32, high: 2.4, samples: 7, sameModel: params.get("mixed") !== "1", limit: params.get("over") === "1" ? 1.2 : 2 };

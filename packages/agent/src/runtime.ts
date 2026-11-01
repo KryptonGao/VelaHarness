@@ -2743,7 +2743,7 @@ export class AgentRuntime {
         restoredAgents: entry.storedAgents,
         limits: () => {
           const budget = this.effectiveTaskBudget(entry);
-          return { maxSubagents: budget.maxSubagents, allowNested: budget.allowNestedSubagents };
+          return { maxSubagents: budget.subagentsEnabled ? budget.maxSubagents : 0, allowNested: budget.allowNestedSubagents };
         },
         host: {
           createChildSession: (input) => this.createChildSession(entry, input),

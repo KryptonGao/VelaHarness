@@ -292,6 +292,42 @@ describe("agent 树", () => {
     assert.throws(() => control.spawn("root-id", { kind: "general", task: "x" }), /不允许创建子代理/);
   });
 
+  it("动态关闭派生同时限制根与子代理，不停止已有代理，重新开启恢复数量与嵌套限制", async (t) => {
+    const limits: SubagentLimits = { maxSubagents: 3, allowNested: true };
+    const { control, host } = createControl(() => limits);
+    t.after(() => control.dispose());
+    host.sessionFactory = () => {
+      const session = new FakeSession();
+      session.responder = async (_text, self) => {
+        await self.blockUntilReleased();
+        return "完成";
+      };
+      return session;
+    };
+    const parent = control.spawn("root-id", { kind: "general", task: "继续运行", name: "parent" });
+    await waitFor(() => control.list().find(agent => agent.id === parent.id)?.status === "running", "已有代理开始运行");
+    const session = host.sessions.get(parent.path)!;
+    limits.maxSubagents = 0;
+    assert.throws(() => control.spawn("root-id", { kind: "general", task: "不应创建" }), /不允许创建子代理/);
+    assert.throws(() => control.spawn(parent.id, { kind: "general", task: "不应创建" }), /不允许创建子代理/);
+    assert.equal(host.requests.length, 1);
+    assert.equal(control.list().find(agent => agent.id === parent.id)?.status, "running");
+    assert.equal(session.aborted, false);
+    assert.equal(session.disposed, false);
+
+    limits.maxSubagents = 3;
+    control.spawn(parent.id, { kind: "general", task: "恢复嵌套", name: "child" });
+    control.spawn("root-id", { kind: "general", task: "恢复主代理派生", name: "sibling" });
+    assert.throws(() => control.spawn("root-id", { kind: "general", task: "仍受原数量限制" }), /最多同时存在 3 个子代理/);
+    limits.maxSubagents = 0;
+    limits.allowNested = false;
+    assert.throws(() => control.spawn(parent.id, { kind: "general", task: "仍禁嵌套" }), /不允许子代理再创建子代理/);
+    limits.maxSubagents = 4;
+    assert.throws(() => control.spawn(parent.id, { kind: "general", task: "仍禁嵌套" }), /不允许子代理再创建子代理/);
+    control.spawn("root-id", { kind: "general", task: "允许主代理派生", name: "root-only" });
+    control.abortAll();
+  });
+
   it("关闭嵌套后只有主代理能创建子代理", () => {
     const limits: SubagentLimits = { maxSubagents: 16, allowNested: false };
     const { control } = createControl(() => limits);
