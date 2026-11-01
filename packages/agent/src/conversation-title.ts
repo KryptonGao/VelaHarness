@@ -63,7 +63,7 @@ export async function requestConversationTitle(
       },
       {
         maxTokens,
-        temperature: 0.2,
+        // Codex 等接口不接受 temperature，使用提供方默认值以保持兼容。
         sessionId: input.conversationId,
         headers: openCodeSessionHeaders(model, input.conversationId),
       },

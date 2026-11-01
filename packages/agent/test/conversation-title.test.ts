@@ -29,6 +29,8 @@ describe("conversation title requests", () => {
     assert.equal((calls[0]![1].messages[0] as { content: string }).content.length, 4000);
     assert.match(calls[0]![1].systemPrompt!, /return only the title/);
     assert.equal(calls[0]![2]?.maxTokens, 2048);
+    // Codex 会拒绝 temperature；独立标题请求沿用提供方默认采样参数。
+    assert.equal(calls[0]![2]?.temperature, undefined);
     assert.equal(calls[0]![2]?.sessionId, "chat-a");
     assert.equal(calls[0]![2]?.headers, undefined);
     // 标题请求不用显式关闭推理：Anthropic 适配器会把 truthy 的 "off" 当作用户要思考，
