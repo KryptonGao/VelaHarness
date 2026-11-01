@@ -16,6 +16,24 @@ export interface TranscriptSource {
   timestamp: number | null;
 }
 
+// Pi formatDimensionNote 的完整格式；不要用宽泛的 [Image: ...] 匹配吞掉用户正文。
+const imageDimensionNote = /^\[Image: original \d+x\d+, displayed at \d+x\d+\. Multiply coordinates by \d+\.\d{2} to map to original image\.\]$/;
+
+/** 仅清理展示副本；SDK 追加的坐标提示仍保留在模型消息和持久化会话里。 */
+export function userMessageDisplayText(message: AgentMessage): string {
+  const text = userMessageText(message);
+  if (message.role !== "user" || typeof message.content === "string") return text;
+  const imageCount = message.content.filter(part => part.type === "image").length;
+  if (imageCount === 0) return text;
+  // SDK 用两个换行分隔原始 prompt 与提示，一张图片至多追加一条缩放说明。
+  const start = text.lastIndexOf("\n\n");
+  if (start < 0) return text;
+  const notes = text.slice(start + 2).split("\n");
+  return notes.length <= imageCount && notes.every(note => imageDimensionNote.test(note))
+    ? text.slice(0, start)
+    : text;
+}
+
 /** 界面会渲染的消息:跳过系统代发的计划执行提示和空消息,工具结果不单独成条。 */
 export function isVisibleTranscriptMessage(message: AgentMessage): boolean {
   if (message.role === "user") {
@@ -129,7 +147,7 @@ function transcriptFromSources(sources: TranscriptSource[], plans: readonly Prop
       const parts = typeof message.content === "string"
         ? [{ type: "text" as const, text: message.content }]
         : message.content;
-      const text = userMessageText(message);
+      const text = userMessageDisplayText(message);
       const images = parts
         .filter((part) => part.type === "image")
         .map((part) => ({ type: "image" as const, data: part.data, mimeType: part.mimeType }));

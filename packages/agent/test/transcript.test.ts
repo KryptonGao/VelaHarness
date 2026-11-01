@@ -126,6 +126,61 @@ describe("assistant 模型来源", () => {
   });
 });
 
+describe("用户图片消息的展示文本", () => {
+  const note = "[Image: original 2032x1059, displayed at 2000x1042. Multiply coordinates by 1.02 to map to original image.]";
+  const secondNote = "[Image: original 4000x3000, displayed at 2000x1500. Multiply coordinates by 2.00 to map to original image.]";
+  const image = { type: "image" as const, data: "aW1hZ2U=", mimeType: "image/png" };
+  function imageUser(text: string, count = 1): AgentMessage {
+    return { role: "user", content: [{ type: "text", text }, ...Array.from({ length: count }, () => ({ ...image }))], timestamp: 0 };
+  }
+  function restore(message: AgentMessage) {
+    return [transcriptFromMessages([message]), transcriptFromProjection(projection([entry("image-user", message)]))];
+  }
+
+  it("实时和磁盘历史隐藏 SDK 缩放说明，但保留图片与模型原文", () => {
+    const text = `为什么新建子代理每次都要带入之前的对话\n\n${note}`;
+    const message = imageUser(text);
+    const original = structuredClone(message);
+    for (const restored of restore(message)) {
+      assert.equal(restored[0]?.text, "为什么新建子代理每次都要带入之前的对话");
+      assert.deepEqual(restored[0]?.images, [image]);
+    }
+    assert.deepEqual(message, original);
+  });
+
+  it("支持多张图片以及纯图片消息，不留下空文字气泡", () => {
+    for (const [message, expected] of [
+      [imageUser(`比较两张图\n\n${note}\n${secondNote}`, 2), "比较两张图"],
+      [imageUser(`\n\n${note}`), ""],
+    ] as const) {
+      for (const restored of restore(message)) {
+        assert.equal(restored.length, 1);
+        assert.equal(restored[0]?.text, expected);
+        assert.equal(restored[0]?.images?.length, message.content.length - 1);
+      }
+    }
+  });
+
+  it("保留用户正文、换行、引用和没有图片的同名说明", () => {
+    const texts = [
+      `解释这段：\n\n${note}\n\n然后继续`,
+      `\`\`\`text\n${note}\n\`\`\``,
+      `原文 ${note}`,
+      `说明\n\n[Image: original 2032x1059, displayed at 2000x1042.]`,
+      `说明\n\n${note}\n${secondNote}`, // 一张图片不应消费两条说明。
+    ];
+    for (const text of texts) {
+      for (const restored of restore(imageUser(text))) assert.equal(restored[0]?.text, text);
+    }
+    const literal = `解释这段\n\n${note}`;
+    for (const restored of restore(user(literal))) assert.equal(restored[0]?.text, literal);
+    for (const restored of restore(imageUser(`保留换行\n\n\n\n${note}`))) assert.equal(restored[0]?.text, "保留换行\n\n");
+    for (const restored of restore(imageUser(`引用：\n\n${note}\n\n问题\n\n${secondNote}`))) {
+      assert.equal(restored[0]?.text, `引用：\n\n${note}\n\n问题`);
+    }
+  });
+});
+
 describe("transcript timestamps", () => {
   it("keeps the writing time of each message's source entry", () => {
     const messages = transcriptFromProjection(projection([
