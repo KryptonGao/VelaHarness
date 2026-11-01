@@ -33,7 +33,7 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-scale));
   font-weight: 600;
   color: var(--accent-blue);
 }
@@ -41,12 +41,12 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-scale));
   color: var(--text-muted);
 }
-.plan-preview-open { font-size: 12px; }
+.plan-preview-open { font-size: calc(12px * var(--ui-scale)); }
 .plan-preview-title {
-  font-size: 15px;
+  font-size: calc(15px * var(--ui-scale));
   font-weight: 600;
   line-height: 1.4;
   color: var(--text-primary);
@@ -56,11 +56,11 @@
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-scale));
   line-height: 1.55;
   color: var(--text-secondary);
 }
-.plan-preview-overview-heading { margin-top: 4px; font-size: 13px; font-weight: 600; color: var(--text-primary); }
+.plan-preview-overview-heading { margin-top: 4px; font-size: calc(13px * var(--ui-scale)); font-weight: 600; color: var(--text-primary); }
 .plan-preview-overview.is-streaming { color: var(--accent-blue); }
 .plan-preview-sections {
   display: flex;
@@ -69,7 +69,7 @@
   margin-top: 2px;
 }
 .plan-preview-chip {
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-scale));
   padding: 1px 7px;
   border-radius: var(--radius-pill);
   background: var(--bg-surface-subtle);
@@ -107,7 +107,7 @@
   min-width: 0;
 }
 .plan-reference-title {
-  font-size: 14px;
+  font-size: calc(14px * var(--ui-scale));
   font-weight: 600;
   line-height: 1.35;
   color: var(--text-primary);
@@ -115,17 +115,17 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.plan-reference-meta { font-size: 12px; color: var(--text-muted); }
+.plan-reference-meta { font-size: calc(12px * var(--ui-scale)); color: var(--text-muted); }
 .plan-reference-progress {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-scale));
   color: var(--text-muted);
 }
 .plan-reference-open {
   align-self: flex-start;
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-scale));
   font-weight: 600;
   color: var(--accent-blue);
   padding: 2px 0;
@@ -164,7 +164,7 @@
 }
 .plan-pane-kind { color: var(--violet); display: grid; place-items: center; flex: none; }
 .plan-pane-title-text {
-  font-size: 14px;
+  font-size: calc(14px * var(--ui-scale));
   font-weight: 600;
   margin: 0;
   min-width: 0;
@@ -180,7 +180,7 @@
 }
 .plan-state {
   flex: none;
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-scale));
   font-weight: 600;
   padding: 2px 8px;
   border-radius: var(--radius-pill);
@@ -196,7 +196,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-scale));
   font-weight: 600;
   color: var(--text-secondary);
   padding: 5px 8px;
@@ -215,7 +215,7 @@
   z-index: 20;
 }
 .plan-revision-menu-title {
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-scale));
   font-weight: 700;
   color: var(--text-muted);
   text-transform: uppercase;
@@ -234,8 +234,8 @@
 }
 .plan-revision-option:hover { background: var(--bg-hover); }
 .plan-revision-option.active { background: var(--bg-hover); }
-.plan-revision-option-label { font-size: 13px; font-weight: 600; color: var(--text-primary); }
-.plan-revision-option-meta { font-size: 12px; color: var(--text-muted); }
+.plan-revision-option-label { font-size: calc(13px * var(--ui-scale)); font-weight: 600; color: var(--text-primary); }
+.plan-revision-option-meta { font-size: calc(12px * var(--ui-scale)); color: var(--text-muted); }
 
 .plan-doc-scroll {
   flex: 1;
@@ -247,12 +247,12 @@
 .plan-doc-body {
   max-width: 760px;
   margin: 0 auto;
-  font-size: 15px;
+  font-size: calc(15px * var(--ui-scale));
   line-height: 1.7;
   color: var(--text-primary);
 }
 /* 长文档的标题层级和正文字号，不复用聊天里的紧凑排版。 */
-.plan-doc-body .md-content { font-size: 15px; line-height: 1.7; }
+.plan-doc-body .md-content { font-size: calc(15px * var(--ui-scale)); line-height: 1.7; }
 .plan-doc-body .md-content h1 {
   font-size: 24px;
   font-weight: 700;
@@ -262,12 +262,12 @@
   border-bottom: 1px solid var(--border-subtle);
 }
 .plan-doc-body .md-content h2 {
-  font-size: 18px;
+  font-size: calc(18px * var(--ui-scale));
   font-weight: 650;
   letter-spacing: -0.01em;
   margin: 1.5em 0 0.45em;
 }
-.plan-doc-body .md-content h3 { font-size: 15.5px; margin: 1.2em 0 0.35em; }
+.plan-doc-body .md-content h3 { font-size: calc(15.5px * var(--ui-scale)); margin: 1.2em 0 0.35em; }
 /* h4 及以下沿用 .md-content 的比例字号。 */
 .plan-doc-body .md-content h4,
 .plan-doc-body .md-content h5,
@@ -278,15 +278,15 @@
 .plan-doc-body .md-content blockquote,
 .plan-doc-body .md-content pre,
 .plan-doc-body .md-content .md-table-scroll { margin: 0.7em 0; }
-.plan-doc-body .md-content code { font-size: 13px; }
-.plan-doc-body .md-content pre { font-size: 13px; }
+.plan-doc-body .md-content code { font-size: calc(13px * var(--code-scale)); }
+.plan-doc-body .md-content pre { font-size: calc(13px * var(--code-scale)); }
 .plan-doc-body .md-content blockquote {
   border-left: 3px solid var(--border-strong, var(--border-subtle));
   padding-left: 12px;
   color: var(--text-secondary);
 }
 .plan-doc-body .md-content .md-table-scroll { overflow-x: auto; }
-.plan-doc-body .md-content table { border-collapse: collapse; font-size: 13.5px; }
+.plan-doc-body .md-content table { border-collapse: collapse; font-size: calc(13.5px * var(--ui-scale)); }
 .plan-doc-body .md-content th,
 .plan-doc-body .md-content td {
   border: 1px solid var(--border-subtle);
@@ -308,11 +308,11 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-scale));
   color: var(--text-muted);
 }
 .plan-exec-active {
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-scale));
   color: var(--text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -329,7 +329,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-scale));
   font-weight: 600;
   padding: 7px 14px;
   border-radius: var(--radius-pill);
@@ -368,14 +368,14 @@
   text-align: left;
 }
 .plan-execute-menu button:hover { background: var(--bg-hover); }
-.plan-execute-menu-label { font-size: 13px; font-weight: 600; color: var(--text-primary); }
-.plan-execute-menu-desc { font-size: 12px; color: var(--text-muted); }
+.plan-execute-menu-label { font-size: calc(13px * var(--ui-scale)); font-weight: 600; color: var(--text-primary); }
+.plan-execute-menu-desc { font-size: calc(12px * var(--ui-scale)); color: var(--text-muted); }
 .plan-readonly-note {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-scale));
   color: var(--text-muted);
 }
 
@@ -394,7 +394,7 @@
   justify-content: space-between;
   align-items: center;
   gap: 8px;
-  font-size: 15px;
+  font-size: calc(15px * var(--ui-scale));
   font-weight: 600;
 }
 .goal-validation-status { color: var(--success); }
@@ -405,7 +405,7 @@
 .goal-validation-item > p {
   margin: 0;
   color: var(--text-muted);
-  font-size: 15px;
+  font-size: calc(15px * var(--ui-scale));
   line-height: 1.45;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -422,10 +422,10 @@
 .goal-validation-item.is-failed,
 .goal-validation-item.is-skipped { border-color: var(--warning); }
 .goal-validation-item.is-stale { opacity: 0.72; border-color: var(--warning); }
-.goal-validation-row { font-size: 15px; color: var(--text-secondary); }
+.goal-validation-row { font-size: calc(15px * var(--ui-scale)); color: var(--text-secondary); }
 .goal-validation-item code {
   color: var(--text-primary);
-  font: 14px/1.4 var(--font-mono);
+  font: calc(14px * var(--code-scale))/1.4 var(--font-mono);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }

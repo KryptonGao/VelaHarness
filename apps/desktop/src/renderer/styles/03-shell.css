@@ -257,10 +257,10 @@
   align-items: center;
   justify-content: space-between;
   padding: 4px 10px 6px;
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-scale));
   color: var(--text-muted);
 }
-.activity-group-count { font-size: 12px; font-variant-numeric: tabular-nums; }
+.activity-group-count { font-size: calc(12px * var(--ui-scale)); font-variant-numeric: tabular-nums; }
 .activity-list { display: flex; flex-direction: column; gap: 2px; }
 .activity-row { position: relative; }
 .activity-row .subchat-item { padding: 8px 10px; }
@@ -275,10 +275,10 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-scale));
   font-weight: 400;
 }
-.activity-row-detail { justify-content: space-between; font-size: 12px; font-weight: 400; color: var(--text-muted); }
+.activity-row-detail { justify-content: space-between; font-size: calc(12px * var(--ui-scale)); font-weight: 400; color: var(--text-muted); }
 .activity-status { display: flex; align-items: center; gap: 5px; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .activity-status-waiting { color: color-mix(in srgb, var(--warning) 70%, var(--text-primary)); }
 .activity-status-error { color: var(--danger); }
@@ -315,7 +315,7 @@
 }
 
 .workspace-dropdown-trigger {
-  font-size: 15px;
+  font-size: calc(15px * var(--ui-scale));
   font-weight: 600;
   padding: 3px 6px;
 }
@@ -333,7 +333,7 @@
   padding: 6px 10px;
   border-radius: var(--radius-sm);
   color: var(--text-secondary);
-  font-size: 15px;
+  font-size: calc(15px * var(--ui-scale));
 }
 .quick-action-item:hover {
   background: var(--bg-sidebar-hover);

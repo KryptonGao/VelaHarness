@@ -10,7 +10,7 @@
   border: none;
   border-radius: 6px;
   background: none;
-  font-size: 14px;
+  font-size: calc(14px * var(--ui-scale));
   line-height: 1.5;
   color: var(--text-secondary);
   text-align: left;
@@ -67,7 +67,7 @@
   border-radius: 999px;
   background: var(--bg-surface-subtle);
   box-shadow: inset 0 0 0 1px var(--border-subtle);
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-scale));
   font-weight: 500;
   color: var(--text-primary);
 }
@@ -84,7 +84,7 @@
   background: var(--success-tint);
   color: var(--success);
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: calc(12px * var(--code-scale));
   font-variant-numeric: tabular-nums;
 }
 .browser-call.open > .browser-call-head .browser-call-chevron { transform: rotate(90deg); }
@@ -110,7 +110,7 @@
   background: var(--term-bg);
   color: var(--term-fg);
   font-family: var(--font-mono);
-  font-size: 13px;
+  font-size: calc(13px * var(--code-scale));
   line-height: 1.55;
   white-space: pre-wrap;
   word-break: break-word;
@@ -123,12 +123,12 @@
 }
 .browser-call-output {
   padding: 0 2px;
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-scale));
   color: var(--text-secondary);
 }
 .browser-call-output.failed, .browser-call-output.failed .tool-markdown { color: var(--danger); }
 .browser-call-text { margin: 0; }
-.browser-call-wait { padding: 0 2px; font-size: 13px; color: var(--text-muted); }
+.browser-call-wait { padding: 0 2px; font-size: calc(13px * var(--ui-scale)); color: var(--text-muted); }
 .browser-call-frames { display: flex; flex-wrap: wrap; gap: 10px; }
 .browser-call-frame {
   margin: 0;
@@ -165,7 +165,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: calc(12px * var(--code-scale));
   font-style: normal;
   color: var(--text-muted);
 }
@@ -205,12 +205,12 @@
 }
 .tool-card-list.is-compact .tool-kind-label {
   width: auto;
-  font-size: 14px;
+  font-size: calc(14px * var(--ui-scale));
   font-weight: 500;
   color: var(--text-muted);
 }
-.tool-card-list.is-compact .tool-card-name { font-size: 14px; font-weight: 500; }
-.tool-card-list.is-compact .tool-card-dir { font-size: 13px; }
+.tool-card-list.is-compact .tool-card-name { font-size: calc(14px * var(--ui-scale)); font-weight: 500; }
+.tool-card-list.is-compact .tool-card-dir { font-size: calc(13px * var(--ui-scale)); }
 .tool-card-list.is-compact .tool-card-body { padding: 2px 0 8px; }
 
 /* 紧凑模式的文字规范:未悬停时一律灰色(含文件名、命令、目录和耗时)。
@@ -377,7 +377,7 @@
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-scale));
   line-height: 19px;
 }
 .plan-status-icon {
@@ -417,7 +417,7 @@
   align-items: baseline;
   gap: 8px;
   min-width: 0;
-  font-size: 15px;
+  font-size: calc(15px * var(--ui-scale));
   line-height: 1.45;
 }
 .task-step-name {
@@ -484,7 +484,7 @@
   height: 26px;
   padding: 0 9px;
   border-radius: 999px;
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-scale));
   white-space: nowrap;
   color: var(--text-muted);
   background: var(--bg-surface-subtle);
@@ -565,7 +565,7 @@
   border: none;
   background: none;
   font-family: var(--font-mono);
-  font-size: 14px;
+  font-size: calc(14px * var(--code-scale));
   color: var(--text-primary);
   cursor: pointer;
 }
@@ -576,7 +576,7 @@
 .agent-open-hint {
   display: block;
   margin-top: 6px;
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-scale));
   color: var(--text-muted);
 }
 .tool-card.is-openable .tool-card-head { cursor: pointer; }

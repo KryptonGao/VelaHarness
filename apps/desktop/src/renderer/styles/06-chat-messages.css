@@ -88,7 +88,7 @@
 }
 .md-content :not(pre) > code {
   font-family: var(--font-mono);
-  font-size: 14px;
+  font-size: calc(14px * var(--code-scale));
   background: var(--bg-hover);
   padding: 0.08em 0.35em;
   border-radius: 4px;
@@ -101,7 +101,7 @@
   padding: 12px 14px;
   overflow-x: auto;
   font-family: var(--font-mono);
-  font-size: 14px;
+  font-size: calc(14px * var(--code-scale));
   line-height: 1.55;
   overflow-wrap: normal;
   word-break: normal;
@@ -137,7 +137,7 @@
   width: max-content;
   min-width: 100%;
   border-collapse: collapse;
-  font-size: 15px;
+  font-size: calc(15px * var(--ui-scale));
 }
 .md-content th,
 .md-content td {
@@ -194,7 +194,7 @@
   border-radius: var(--radius-xs);
   background: transparent;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-scale));
   line-height: 1.4;
   cursor: pointer;
   transition: color var(--transition-enter), background var(--transition-enter);
@@ -215,7 +215,7 @@
   margin-left: auto;
   padding-left: 8px;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-scale));
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -225,7 +225,7 @@
   align-items: center;
   gap: 5px;
   color: var(--text-muted);
-  font-size: 15px;
+  font-size: calc(15px * var(--ui-scale));
   font-weight: 500;
   padding: 0;
   border: 0;
@@ -267,7 +267,7 @@
   gap: 8px;
   min-width: 0;
   color: var(--text-muted);
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-scale));
 }
 .thinking-summary-preview,
 .thinking-summary-action {
@@ -277,7 +277,7 @@
   padding: 3px 0;
   min-height: 28px;
   text-align: left;
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-scale));
   cursor: pointer;
 }
 .thinking-summary-preview {
@@ -291,7 +291,7 @@
 .thinking-summary-label {
   flex-shrink: 0;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-scale));
   font-weight: 500;
 }
 .thinking-summary-excerpt {
@@ -312,7 +312,7 @@
   padding-left: 14px;
   border-left: 1px solid var(--border-subtle);
   color: var(--text-primary);
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-scale));
   line-height: 1.62;
   overflow-wrap: anywhere;
 }
@@ -429,7 +429,7 @@
 }
 .thinking-text {
   color: var(--text-muted);
-  font-size: 15px;
+  font-size: calc(15px * var(--ui-scale));
   line-height: 1.65;
   padding-top: 6px;
 }
@@ -446,7 +446,7 @@
 }
 .thinking-scroll-viewport .thinking-text {
   padding: 7px 14px 9px 0;
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-scale));
   line-height: 1.62;
 }
 .thinking-scroll-viewport .md-content > p { margin: 0 0 0.85em; }
@@ -481,7 +481,7 @@
 /* 组内代码改动的增删行数:紧跟标题,不推到右边。 */
 .thinking-group-stat {
   margin-left: 3px;
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-scale));
   line-height: 1;
 }
 .thinking-group-failed {
@@ -497,7 +497,7 @@
 /* 分组标题与回复正文字体、字号、字重、行高一致,只有颜色保持灰色。 */
 .thinking-block.is-coherent .thinking-headline-trigger {
   font-family: var(--font-reply);
-  font-size: 15px;
+  font-size: calc(15px * var(--ui-scale));
   font-weight: var(--font-reply-weight);
   line-height: 1.75;
 }
@@ -530,7 +530,7 @@
   background: none;
   color: var(--text-muted);
   font: inherit;
-  font-size: 14px;
+  font-size: calc(14px * var(--ui-scale));
   font-weight: 550;
   line-height: 1.55;
   text-align: left;
@@ -575,7 +575,7 @@
 .coherent-thought-body .thinking-text,
 .thinking-scroll-viewport .coherent-thought-body .thinking-text {
   padding: 2px 0 6px;
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-scale));
   line-height: 1.62;
 }
 /* 紧凑模式下标题前有图标,正文与标题文字对齐。 */
@@ -628,7 +628,7 @@
 .process-thinking-text {
   padding-top: 0;
   color: var(--text-muted);
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-scale));
   line-height: 1.45;
 }
 .process-thinking-text .md-content > :first-child { margin-top: 0; }
@@ -644,12 +644,12 @@
   letter-spacing: 0;
 }
 /* 紧凑过程卡片里收窄层级差,再大的标题也压在这个字号区间。 */
-.process-thinking-text .md-content h1 { font-size: 15px; }
-.process-thinking-text .md-content h2 { font-size: 14px; }
-.process-thinking-text .md-content h3 { font-size: 13.5px; }
-.process-thinking-text .md-content h4 { font-size: 13px; }
-.process-thinking-text .md-content h5 { font-size: 12.5px; }
-.process-thinking-text .md-content h6 { font-size: 12px; }
+.process-thinking-text .md-content h1 { font-size: calc(15px * var(--ui-scale)); }
+.process-thinking-text .md-content h2 { font-size: calc(14px * var(--ui-scale)); }
+.process-thinking-text .md-content h3 { font-size: calc(13.5px * var(--ui-scale)); }
+.process-thinking-text .md-content h4 { font-size: calc(13px * var(--ui-scale)); }
+.process-thinking-text .md-content h5 { font-size: calc(12.5px * var(--ui-scale)); }
+.process-thinking-text .md-content h6 { font-size: calc(12px * var(--ui-scale)); }
 .thinking-text .md-content blockquote,
 .thinking-text .md-content del {
   color: inherit;
@@ -703,7 +703,7 @@
 .tool-kind-label {
   flex: none;
   width: 44px;
-  font-size: 15px;
+  font-size: calc(15px * var(--ui-scale));
   font-weight: 600;
   color: var(--tool-accent);
 }
@@ -725,7 +725,7 @@
 .tool-card-name.grow { flex: 1; }
 .tool-card-name.is-code {
   font-family: var(--font-mono);
-  font-size: 14px;
+  font-size: calc(14px * var(--code-scale));
   font-weight: 500;
 }
 .tool-card-dir {
@@ -735,7 +735,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--text-muted);
-  font-size: 15px;
+  font-size: calc(15px * var(--ui-scale));
 }
 .tool-stat,
 .tool-lines,
@@ -746,7 +746,7 @@
   display: inline-flex;
   gap: 6px;
   font-family: var(--font-sans);
-  font-size: 14px;
+  font-size: calc(14px * var(--ui-scale));
   font-weight: 400;
 }
 .tool-stat-add { color: var(--diff-stat-add-fg); }
@@ -766,7 +766,7 @@
 }
 .tool-lines {
   color: var(--text-muted);
-  font-size: 15px;
+  font-size: calc(15px * var(--ui-scale));
   font-variant-numeric: tabular-nums;
 }
 .tool-status-mark {
@@ -831,7 +831,7 @@
   border-radius: var(--radius-pill);
   background: var(--bg-hover);
   font-family: var(--font-mono);
-  font-size: 14px;
+  font-size: calc(14px * var(--code-scale));
   font-weight: 600;
   color: var(--text-muted);
 }
@@ -842,15 +842,15 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--text-secondary);
-  font-size: 15px;
+  font-size: calc(15px * var(--ui-scale));
 }
 .tool-kind-bash .tool-run-subject {
   font-family: var(--font-mono);
-  font-size: 14px;
+  font-size: calc(14px * var(--code-scale));
 }
 .tool-run-failed {
   flex: none;
-  font-size: 15px;
+  font-size: calc(15px * var(--ui-scale));
   font-weight: 600;
   color: var(--diff-del-fg);
 }
@@ -915,7 +915,7 @@ button.tool-compact-line:focus-visible > .tool-compact-chevron,
   background: none;
   text-align: left;
   cursor: pointer;
-  font-size: 14px;
+  font-size: calc(14px * var(--ui-scale));
   line-height: 1.55;
 }
 .tool-compact-summary:hover { color: var(--text-primary); }
@@ -946,7 +946,7 @@ button.tool-compact-line:focus-visible > .tool-compact-chevron,
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--text-muted);
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-scale));
 }
 .tool-compact-failed {
   flex: none;
@@ -960,7 +960,7 @@ button.tool-compact-line:focus-visible > .tool-compact-chevron,
   margin-left: auto;
   color: var(--text-secondary);
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: calc(12px * var(--code-scale));
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -1017,7 +1017,7 @@ button.tool-compact-line:focus-visible > .tool-compact-chevron,
   border: none;
   border-radius: 4px;
   background: none;
-  font-size: 14px;
+  font-size: calc(14px * var(--ui-scale));
   line-height: 1.5;
   color: var(--text-secondary);
   text-align: left;
@@ -1159,7 +1159,7 @@ button.tool-compact-line:hover .tool-compact-cmd {
   flex: 0 1 auto;
   overflow: hidden;
   color: var(--text-primary);
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-scale));
   font-weight: 550;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1169,7 +1169,7 @@ button.tool-compact-line:hover .tool-compact-cmd {
   display: inline-flex;
   gap: 6px;
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: calc(12px * var(--code-scale));
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
@@ -1197,7 +1197,7 @@ button.tool-compact-line:hover .tool-compact-cmd {
   padding: 6px 10px;
   border-bottom: 1px solid var(--border-subtle);
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-scale));
   line-height: 1.5;
 }
 .thinking-scroll-shell.compact-diff-scroll-shell {
@@ -1212,7 +1212,7 @@ button.tool-compact-line:hover .tool-compact-cmd {
 .tool-sheet.tool-sheet-compact-diff {
   border-radius: 0;
   background: var(--bg-card-surface);
-  font-size: 12px;
+  font-size: calc(12px * var(--code-scale));
   line-height: 1.65;
 }
 .tool-sheet-compact-diff .tool-code-line {

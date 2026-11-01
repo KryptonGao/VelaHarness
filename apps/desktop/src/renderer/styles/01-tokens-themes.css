@@ -25,6 +25,9 @@
   /* 回复正文和连贯模式的分组标题共用,两者字重始终一致。 */
   --font-reply-weight: 500;
   --font-mono: "SF Mono", ui-monospace, Menlo, Monaco, Consolas, monospace;
+  /* 界面/代码字号比例,由设置里的字号换算而来(见 font-size.ts);1 即原始大小。 */
+  --ui-scale: 1;
+  --code-scale: 1;
   --sidebar-left-width: 250px;
   --sidebar-right-width: 340px;
   --workbench-width: 640px;

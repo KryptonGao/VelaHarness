@@ -31,7 +31,7 @@
 }
 .usage-popover-heading {
   color: var(--text-muted);
-  font-size: 14px;
+  font-size: calc(14px * var(--ui-scale));
   line-height: 18px;
 }
 
@@ -41,11 +41,11 @@
   align-items: baseline;
   gap: 8px;
   min-width: 0;
-  font-size: 14px;
+  font-size: calc(14px * var(--ui-scale));
   line-height: 18px;
 }
 .usage-row-label { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-primary); }
-.usage-row-reset { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-muted); font-size: 13px; }
+.usage-row-reset { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-muted); font-size: calc(13px * var(--ui-scale)); }
 .usage-row-percent { flex: 0 0 auto; min-width: 2.6em; text-align: right; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
 
 .usage-bar {

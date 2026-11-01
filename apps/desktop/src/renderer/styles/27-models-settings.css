@@ -4,7 +4,7 @@
 .settings-content.fill > .settings-page-fill:not([hidden]) { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .models-page { flex: 1; min-height: 0; max-width: 900px; gap: 0; }
 .models-toolbar { flex: none; display: flex; align-items: center; gap: 10px; padding: 6px 0 16px; min-height: 52px; }
-.models-toolbar-desc { flex: 1; min-width: 0; margin: 0; color: var(--text-muted); font-size: 13.5px; }
+.models-toolbar-desc { flex: 1; min-width: 0; margin: 0; color: var(--text-muted); font-size: calc(13.5px * var(--ui-scale)); }
 .models-toolbar + .settings-note,
 .models-toolbar + .settings-error { margin: -6px 0 12px; }
 
@@ -56,11 +56,11 @@
 }
 .models-btn:hover:not(:disabled) { background: var(--bg-hover); color: var(--text-primary); }
 .models-btn:disabled { opacity: 0.5; cursor: default; }
-.models-btn.small { height: 28px; padding: 0 11px 0 9px; border-radius: var(--radius-sm); background: var(--bg-hover); color: var(--text-primary); font-size: 13px; font-weight: 550; }
+.models-btn.small { height: 28px; padding: 0 11px 0 9px; border-radius: var(--radius-sm); background: var(--bg-hover); color: var(--text-primary); font-size: calc(13px * var(--ui-scale)); font-weight: 550; }
 .models-btn.primary { background: var(--text-primary); color: var(--bg-chat); font-weight: 600; }
 .models-btn.primary:hover:not(:disabled) { background: var(--text-primary); color: var(--bg-chat); opacity: 0.86; }
 
-.models-back { display: inline-flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; -webkit-app-region: no-drag; }
+.models-back { display: inline-flex; align-items: center; gap: 8px; font-size: calc(15px * var(--ui-scale)); font-weight: 600; -webkit-app-region: no-drag; }
 .models-back:hover { color: var(--text-secondary); }
 
 /* 主从布局 */
@@ -76,7 +76,7 @@
   overflow: hidden;
 }
 .models-list-pane { border-right: 1px solid var(--border-subtle); padding: 10px 8px 12px; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; }
-.models-group-label { padding: 10px 10px 6px; font-size: 12px; color: var(--text-muted); }
+.models-group-label { padding: 10px 10px 6px; font-size: calc(12px * var(--ui-scale)); color: var(--text-muted); }
 .models-group-label:first-child { padding-top: 4px; }
 .models-provider {
   display: flex;
@@ -100,8 +100,8 @@
 
 .models-logo { width: 22px; height: 22px; display: grid; place-items: center; flex-shrink: 0; color: var(--text-secondary); }
 .models-logo.lg { width: 36px; height: 36px; }
-.models-logo.mono { border-radius: 6px; color: #fff; font-size: 13px; font-weight: 700; line-height: 1; }
-.models-logo.mono.lg { border-radius: 10px; font-size: 17px; }
+.models-logo.mono { border-radius: 6px; color: #fff; font-size: calc(13px * var(--ui-scale)); font-weight: 700; line-height: 1; }
+.models-logo.mono.lg { border-radius: 10px; font-size: calc(17px * var(--ui-scale)); }
 .models-logo.plain { border-radius: 10px; background: var(--bg-hover); }
 
 /* 详情 */
@@ -110,18 +110,18 @@
 .models-detail > * { flex-shrink: 0; }
 .models-detail > .models-models { flex: 1 1 0; min-height: 200px; }
 .models-detail-head { display: flex; align-items: center; gap: 12px; min-height: 32px; }
-.models-detail-head h3 { flex: 1; min-width: 0; margin: 0; display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 650; }
+.models-detail-head h3 { flex: 1; min-width: 0; margin: 0; display: flex; align-items: center; gap: 10px; font-size: calc(16px * var(--ui-scale)); font-weight: 650; }
 .models-detail-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .models-name-input { flex: 1; min-width: 0; padding: 4px 0; border-bottom: 1px dashed var(--border-strong); background: transparent; font: inherit; font-weight: 650; outline: none; }
 .models-name-input:focus { border-bottom-color: var(--accent-blue); }
-.models-chip { padding: 2px 8px; border-radius: var(--radius-pill); background: var(--bg-surface-subtle); color: var(--text-muted); font-size: 12px; font-weight: 550; white-space: nowrap; }
+.models-chip { padding: 2px 8px; border-radius: var(--radius-pill); background: var(--bg-surface-subtle); color: var(--text-muted); font-size: calc(12px * var(--ui-scale)); font-weight: 550; white-space: nowrap; }
 .models-chip.connected { color: var(--success); background: color-mix(in srgb, var(--success) 12%, transparent); }
 .models-chip.attention { color: var(--warning); background: color-mix(in srgb, var(--warning) 14%, transparent); }
 
 .models-form { display: flex; flex-direction: column; gap: 14px; }
 .models-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .models-field > span:first-child,
-.models-label { font-size: 13px; color: var(--text-muted); }
+.models-label { font-size: calc(13px * var(--ui-scale)); color: var(--text-muted); }
 .models-field input:not([type="checkbox"]),
 .models-field select {
   width: 100%;
@@ -139,7 +139,7 @@
 .models-field input::placeholder { color: var(--text-dim); }
 .models-field input:disabled { color: var(--text-muted); background: var(--bg-surface-subtle); }
 .models-field input.mono,
-.models-name-input.mono { font-family: var(--font-mono); font-size: 13px; }
+.models-name-input.mono { font-family: var(--font-mono); font-size: calc(13px * var(--code-scale)); }
 .models-key { position: relative; display: block; }
 .models-key input { padding-right: 40px; }
 .models-key .models-icon-btn { position: absolute; right: 4px; top: 4px; }
@@ -149,14 +149,14 @@
 .models-section { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .models-section-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .models-label { display: flex; align-items: center; gap: 10px; }
-.models-label-hint { font-size: 12px; color: var(--text-dim); }
-.models-section > .settings-hint { margin: 0; font-size: 13px; color: var(--text-muted); }
+.models-label-hint { font-size: calc(12px * var(--ui-scale)); color: var(--text-dim); }
+.models-section > .settings-hint { margin: 0; font-size: calc(13px * var(--ui-scale)); color: var(--text-muted); }
 
 /* 账号卡 */
 .models-account { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: var(--radius-md); background: var(--bg-surface-subtle); flex-wrap: wrap; }
 .models-account-copy { flex: 1; min-width: 160px; }
 .models-account-title { font-weight: 600; }
-.models-account-detail { margin-top: 1px; font-size: 13px; color: var(--text-muted); }
+.models-account-detail { margin-top: 1px; font-size: calc(13px * var(--ui-scale)); color: var(--text-muted); }
 .models-account-detail.warn { color: var(--warning); }
 .models-account-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .models-account-actions .models-btn { background: var(--bg-chat); }
@@ -164,15 +164,15 @@
 
 /* 模型列表 */
 .models-list { flex: 1; min-height: 0; overflow-y: auto; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); overflow: hidden; background: var(--bg-card-surface); }
-.models-list-empty { margin: 0; padding: 22px 12px; text-align: center; color: var(--text-muted); font-size: 13px; }
+.models-list-empty { margin: 0; padding: 22px 12px; text-align: center; color: var(--text-muted); font-size: calc(13px * var(--ui-scale)); }
 .models-row { display: flex; align-items: center; gap: 8px; min-height: 42px; padding: 6px 12px; }
 .models-row + .models-row { border-top: 1px solid var(--border-subtle); }
 .models-row-main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; }
-.models-row-id { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--font-mono); font-size: 13px; }
+.models-row-id { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--font-mono); font-size: calc(13px * var(--code-scale)); }
 .models-row.off .models-row-id { color: var(--text-muted); }
 .models-row-actions { display: flex; align-items: center; gap: 2px; margin-right: 6px; }
 .models-row-actions .models-icon-btn { width: 28px; height: 28px; }
-.models-tag { padding: 3px 6px; border: 1px solid var(--border-strong); border-radius: 5px; color: var(--text-muted); font-family: var(--font-mono); font-size: 11px; line-height: 1; white-space: nowrap; }
+.models-tag { padding: 3px 6px; border: 1px solid var(--border-strong); border-radius: 5px; color: var(--text-muted); font-family: var(--font-mono); font-size: calc(11px * var(--code-scale)); line-height: 1; white-space: nowrap; }
 .models-tag.soft { border-color: transparent; background: var(--bg-hover); font-family: inherit; }
 
 /* 行内编辑 */
@@ -184,7 +184,7 @@
 /* 添加供应商页 */
 .models-add { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .models-add-body { flex: 1; min-height: 0; overflow-y: auto; }
-.models-add-group { margin: 14px 0 8px; font-size: 13px; color: var(--text-muted); }
+.models-add-group { margin: 14px 0 8px; font-size: calc(13px * var(--ui-scale)); color: var(--text-muted); }
 .models-toolbar + .models-add-group { margin-top: 2px; }
 .models-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .models-card {
@@ -204,12 +204,12 @@
 .models-card:hover { background: var(--bg-hover); border-color: var(--border-strong); }
 .models-card-copy { flex: 1; min-width: 0; display: flex; flex-direction: column; color: var(--text-primary); }
 .models-card-title { font-weight: 550; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.models-card-sub { font-size: 12px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.models-card-sub { font-size: calc(12px * var(--ui-scale)); color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* 空状态 */
 .models-empty { margin: auto 0; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 64px 24px; text-align: center; color: var(--text-muted); border: 1px dashed var(--border-strong); border-radius: var(--radius-lg); }
-.models-empty h3 { margin: 4px 0 0; font-size: 15px; color: var(--text-primary); }
-.models-empty p { margin: 0 0 6px; max-width: 340px; font-size: 13.5px; }
+.models-empty h3 { margin: 4px 0 0; font-size: calc(15px * var(--ui-scale)); color: var(--text-primary); }
+.models-empty p { margin: 0 0 6px; max-width: 340px; font-size: calc(13.5px * var(--ui-scale)); }
 .models-empty-ring { width: 52px; height: 52px; display: grid; place-items: center; border-radius: 16px; background: var(--bg-surface-subtle); color: var(--text-secondary); }
 
 @media (max-width: 860px) {

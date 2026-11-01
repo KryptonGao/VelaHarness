@@ -20,6 +20,8 @@ import type { SettingsCopy } from "../settings-copy";
 import { CustomThemeEditor } from "./CustomThemeEditor";
 import { Segmented, SettingsBlock } from "./primitives";
 import { ThemeGroup } from "./ThemeGroup";
+import { FontSizeControl } from "./FontSizeControl";
+import { codeFontSizeRange, uiFontSizeRange } from "../../font-size";
 
 export function AppearancePage({ copy, preferences }: { copy: SettingsCopy; preferences: PreferencesApi }) {
   const { appearance, theme, lightTheme, darkTheme, customThemes, fileIconTheme, setAppearance, setFileIconTheme } = preferences;
@@ -192,6 +194,12 @@ export function AppearancePage({ copy, preferences }: { copy: SettingsCopy; pref
           <Segmented label={`${text.replyFont} · ${text.fontCjk}`} value={preferences.replyFontCjk} options={replyFontOptions} onChange={preferences.setReplyFontCjk} />
         </div>
         <p className="settings-font-note">{serifNote}</p>
+      </SettingsBlock>
+      <SettingsBlock id="ui-font-size" title={text.uiFontSize} hint={text.uiFontSizeHint}>
+        <FontSizeControl label={text.uiFontSize} range={uiFontSizeRange} value={preferences.uiFontSize} onChange={preferences.setUiFontSize} />
+      </SettingsBlock>
+      <SettingsBlock id="code-font-size" title={text.codeFontSize} hint={text.codeFontSizeHint}>
+        <FontSizeControl label={text.codeFontSize} range={codeFontSizeRange} value={preferences.codeFontSize} onChange={preferences.setCodeFontSize} />
       </SettingsBlock>
     </section>
   );

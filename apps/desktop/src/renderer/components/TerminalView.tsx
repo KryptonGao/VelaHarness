@@ -5,6 +5,7 @@ import { Terminal, type ITheme } from "@xterm/xterm";
 import { useEffect, useRef, useState } from "react";
 import "@xterm/xterm/css/xterm.css";
 import { tr } from "../locale";
+import { terminalFontSize } from "../font-size";
 
 const monoFont = 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace';
 
@@ -107,7 +108,7 @@ export function TerminalView({ sessionId, visible }: { sessionId: string; visibl
       allowProposedApi: true,
       cursorBlink: true,
       fontFamily: monoFont,
-      fontSize: 12.5,
+      fontSize: terminalFontSize(document.documentElement),
       lineHeight: 1.25,
       scrollback: 5000,
       theme: readTerminalTheme(),
@@ -184,6 +185,12 @@ export function TerminalView({ sessionId, visible }: { sessionId: string; visibl
 
     const themeObserver = new MutationObserver(() => {
       term.options.theme = readTerminalTheme();
+      // 代码字号改了:xterm 不吃 CSS 变量,改完字号要重新量出行列数并同步给 pty。
+      const fontSize = terminalFontSize(document.documentElement);
+      if (term.options.fontSize !== fontSize) {
+        term.options.fontSize = fontSize;
+        pushSize();
+      }
     });
     themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["data-scheme", "data-theme", "style"] });
 

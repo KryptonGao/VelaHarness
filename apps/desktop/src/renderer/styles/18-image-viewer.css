@@ -51,7 +51,7 @@
   display: grid;
   place-items: center;
   color: rgba(255, 255, 255, 0.72);
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-scale));
 }
 
 /* 工具栏整体不进事件,只有按钮本身接收指针,免得拖动图片时被悬浮控件挡住。 */
@@ -116,12 +116,12 @@
 .image-viewer-percent {
   min-width: 58px;
   padding: 0 10px;
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-scale));
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.01em;
 }
 .image-viewer-divider { width: 1px; height: 18px; margin: 0 4px; background: rgba(255, 255, 255, 0.16); }
-.image-viewer-counter { padding: 0 8px 0 4px; color: rgba(255, 255, 255, 0.72); font-size: 12px; font-variant-numeric: tabular-nums; }
+.image-viewer-counter { padding: 0 8px 0 4px; color: rgba(255, 255, 255, 0.72); font-size: calc(12px * var(--ui-scale)); font-variant-numeric: tabular-nums; }
 
 .image-viewer-nav {
   position: absolute;
@@ -157,7 +157,7 @@
   border-radius: var(--radius-pill);
   color: rgba(255, 255, 255, 0.62);
   background: rgba(20, 22, 28, 0.5);
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-scale));
   letter-spacing: 0.01em;
   pointer-events: none;
   transition: opacity 260ms ease;

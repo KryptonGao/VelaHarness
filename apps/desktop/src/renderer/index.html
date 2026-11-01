@@ -50,6 +50,15 @@
         root.dataset.uiFontCjk = fontFace("vela.font.ui.cjk", "sans", false);
         root.dataset.replyFontLatin = fontFace("vela.font.reply.latin", "inherit", true);
         root.dataset.replyFontCjk = fontFace("vela.font.reply.cjk", "inherit", true);
+        // 字号同理,首帧前就套上比例,避免先用默认大小渲染再跳变。
+        function fontScale(key, min, max, fallback) {
+          var raw = readPreference(key);
+          var value = typeof raw === "string" && /^\d+$/.test(raw) ? Number(raw) : fallback;
+          if (value < min || value > max) value = fallback;
+          return value / fallback;
+        }
+        root.style.setProperty("--ui-scale", String(fontScale("vela.font.ui.size", 11, 15, 15)));
+        root.style.setProperty("--code-scale", String(fontScale("vela.font.code.size", 8, 24, 14)));
         // macOS 的 vibrancy 要求整页底色透明,首帧前就标上平台,避免闪一下不透明底。
         root.className = "platform-" + ((window.vela && window.vela.platform) || "darwin");
       } catch (e) {}

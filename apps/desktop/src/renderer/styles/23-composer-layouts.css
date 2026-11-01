@@ -35,7 +35,7 @@
   border-top: 1px solid var(--border-subtle);
   background: var(--bg-surface-subtle);
   border-radius: 0 0 calc(22px - 1px) calc(22px - 1px);
-  font-size: 12.5px;
+  font-size: calc(12.5px * var(--ui-scale));
 }
 :root[data-composer-layout="calm"] .composer-stats-row > .composer-stat-context { margin-left: auto; }
 :root[data-composer-layout="calm"] .thinking-glyph { display: inline-flex; align-items: flex-end; }
@@ -122,7 +122,7 @@
   min-width: 0;
 }
 .composer-tray-sep { flex-shrink: 0; width: 1px; height: 14px; background: var(--border-subtle); }
-.composer-tray .composer-stats-row { margin: 0; padding: 0; font-size: 12.5px; }
+.composer-tray .composer-stats-row { margin: 0; padding: 0; font-size: calc(12.5px * var(--ui-scale)); }
 .composer-tray .composer-stats-row:empty { display: none; }
 .composer-tray-right .composer-stats-row { column-gap: 10px; }
 /* 托盘不换行:放不下时统计按优先级逐级隐藏(速度 → token 与缓存命中 → 占用百分比 → 占用环),模式、权限与模型始终保留。 */
@@ -151,18 +151,18 @@
 .ctx-summary { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .ctx-percent { font-size: 22px; font-weight: 650; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
 .ctx-percent.high { color: var(--warning-strong); }
-.ctx-total { color: var(--text-muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+.ctx-total { color: var(--text-muted); font-size: calc(13px * var(--ui-scale)); font-variant-numeric: tabular-nums; }
 .ctx-track { position: relative; display: flex; height: 8px; border-radius: 999px; overflow: hidden; background: color-mix(in srgb, var(--text-primary) 8%, transparent); }
 .ctx-marker { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--text-primary); opacity: 0.55; }
 .ctx-legend-note { display: flex; align-items: center; gap: 8px; margin-top: -6px; }
 .ctx-marker-sample { display: inline-block; width: 2px; height: 10px; background: var(--text-primary); opacity: 0.55; }
 .ctx-list { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; }
-.ctx-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 8px 0; font-size: 13px; border-top: 1px solid var(--border-subtle); }
+.ctx-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 8px 0; font-size: calc(13px * var(--ui-scale)); border-top: 1px solid var(--border-subtle); }
 .ctx-row:first-child { border-top: 0; padding-top: 0; }
 .ctx-row:last-child { padding-bottom: 0; }
 .ctx-row-label { display: inline-flex; align-items: center; gap: 8px; color: var(--text-secondary); }
 .ctx-row-value { display: inline-flex; align-items: baseline; gap: 10px; color: var(--text-primary); font-variant-numeric: tabular-nums; }
-.ctx-share { color: var(--text-muted); font-size: 12px; }
+.ctx-share { color: var(--text-muted); font-size: calc(12px * var(--ui-scale)); }
 .ctx-limit-control { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
 .ctx-limit-control[data-disabled="true"] { opacity: 0.6; }
 .tb-seg button:disabled { cursor: default; }

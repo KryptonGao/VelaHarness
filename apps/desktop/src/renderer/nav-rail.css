@@ -129,7 +129,7 @@
   border-radius: 8px;
   background: var(--accent-blue);
   color: var(--accent-contrast);
-  font-size: 11px;
+  font-size: calc(11px * var(--ui-scale));
   font-weight: 600;
   line-height: 16px;
   text-align: center;

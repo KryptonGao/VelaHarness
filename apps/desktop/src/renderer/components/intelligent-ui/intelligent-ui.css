@@ -14,7 +14,7 @@
   background: var(--bg-card-surface);
   box-shadow: var(--shadow-card);
   color: var(--text-primary);
-  font-size: 14px;
+  font-size: calc(14px * var(--ui-scale));
   line-height: 1.5;
   overflow-wrap: anywhere;
 }
@@ -44,9 +44,9 @@
 .iui-gap-lg { gap: var(--iui-gap-lg); }
 
 .iui-text, .iui-caption { margin: 0; white-space: pre-wrap; }
-.iui-caption, .iui-description, .iui-muted { color: var(--text-muted); font-size: 12.5px; }
+.iui-caption, .iui-description, .iui-muted { color: var(--text-muted); font-size: calc(12.5px * var(--ui-scale)); }
 .iui-heading { margin: 4px 0 0; font-weight: 600; letter-spacing: -0.01em; line-height: 1.35; }
-h3.iui-heading { font-size: 16px; } h4.iui-heading { font-size: 14.5px; } h5.iui-heading { font-size: 13.5px; }
+h3.iui-heading { font-size: calc(16px * var(--ui-scale)); } h4.iui-heading { font-size: calc(14.5px * var(--ui-scale)); } h5.iui-heading { font-size: calc(13.5px * var(--ui-scale)); }
 .iui-tone-muted { color: var(--text-muted); }
 .iui-tone-success { color: var(--success); }
 .iui-tone-warning { color: var(--warning); }
@@ -55,7 +55,7 @@ h3.iui-heading { font-size: 16px; } h4.iui-heading { font-size: 14.5px; } h5.iui
 .iui-frame a { color: var(--accent-blue); }
 .iui-code, .iui-source-view {
   margin: 0; padding: 10px 12px; max-width: 100%; overflow: auto;
-  background: var(--bg-code); border-radius: var(--radius-sm); font-family: var(--font-mono); font-size: 12.5px; line-height: 1.5;
+  background: var(--bg-code); border-radius: var(--radius-sm); font-family: var(--font-mono); font-size: calc(12.5px * var(--code-scale)); line-height: 1.5;
 }
 .iui-code code, .iui-source-view code { background: none; padding: 0; white-space: pre; }
 .iui-source-view { margin-top: 8px; max-height: 280px; }
@@ -69,11 +69,11 @@ h3.iui-heading { font-size: 16px; } h4.iui-heading { font-size: 14.5px; } h5.iui
 .iui-card.iui-tone-warning { border-color: color-mix(in srgb, var(--warning) 45%, var(--border-subtle)); }
 .iui-card.iui-tone-danger { border-color: color-mix(in srgb, var(--danger) 45%, var(--border-subtle)); }
 .iui-card.iui-tone-success, .iui-card.iui-tone-warning, .iui-card.iui-tone-danger, .iui-card.iui-tone-muted { color: var(--text-primary); }
-.iui-card-title { margin: 0; font-size: 14px; font-weight: 600; }
+.iui-card-title { margin: 0; font-size: calc(14px * var(--ui-scale)); font-weight: 600; }
 
 /* 表单 */
 .iui-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-.iui-label { font-size: 12.5px; font-weight: 600; color: var(--text-secondary); }
+.iui-label { font-size: calc(12.5px * var(--ui-scale)); font-weight: 600; color: var(--text-secondary); }
 .iui-fieldset { border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .iui-fieldset legend { padding: 0; margin-bottom: 2px; }
 .iui-input {
@@ -90,7 +90,7 @@ h3.iui-heading { font-size: 16px; } h4.iui-heading { font-size: 14.5px; } h5.iui
 .iui-input-wrap { display: flex; align-items: center; gap: 8px; }
 .iui-number { max-width: 220px; }
 .iui-unit, .iui-stat-unit { color: var(--text-muted); white-space: nowrap; }
-.iui-field-error, .iui-error-text { color: var(--danger); font-size: 12.5px; }
+.iui-field-error, .iui-error-text { color: var(--danger); font-size: calc(12.5px * var(--ui-scale)); }
 .iui-slider-row { display: flex; align-items: center; gap: 12px; }
 .iui-slider { flex: 1; min-width: 0; accent-color: var(--accent-blue); }
 .iui-slider-value { min-width: 4.5ch; text-align: right; font-variant-numeric: tabular-nums; }
@@ -111,16 +111,16 @@ h3.iui-heading { font-size: 16px; } h4.iui-heading { font-size: 14.5px; } h5.iui
 
 /* 数据 */
 .iui-stat { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.iui-stat-label { font-size: 12.5px; color: var(--text-muted); }
+.iui-stat-label { font-size: calc(12.5px * var(--ui-scale)); color: var(--text-muted); }
 .iui-stat-value { font-size: 24px; font-weight: 600; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
-.iui-stat-value .iui-error-text { font-size: 14px; font-weight: 500; letter-spacing: 0; }
-.iui-meta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 4px; font-size: 12px; color: var(--text-muted); }
+.iui-stat-value .iui-error-text { font-size: calc(14px * var(--ui-scale)); font-weight: 500; letter-spacing: 0; }
+.iui-meta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 4px; font-size: calc(12px * var(--ui-scale)); color: var(--text-muted); }
 .iui-badge { padding: 1px 8px; border-radius: var(--radius-pill); border: 1px solid var(--border-strong); }
 .iui-badge-stale { border-color: var(--warning); color: var(--warning); }
 .iui-badge-error { border-color: var(--danger); color: var(--danger); }
 .iui-unverified { font-style: italic; }
 .iui-progress { display: flex; flex-direction: column; gap: 6px; }
-.iui-progress-head { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; }
+.iui-progress-head { display: flex; justify-content: space-between; gap: 12px; font-size: calc(13px * var(--ui-scale)); }
 .iui-progress-track { height: 8px; background: var(--ctx-track, var(--border-strong)); border-radius: var(--radius-pill); overflow: hidden; }
 .iui-progress-fill { height: 100%; background: var(--accent-blue); border-radius: var(--radius-pill); }
 .iui-list { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
@@ -128,8 +128,8 @@ h3.iui-heading { font-size: 16px; } h4.iui-heading { font-size: 14.5px; } h5.iui
 .iui-table-tools { display: flex; align-items: center; gap: 8px; }
 .iui-table-tools .iui-input { max-width: 240px; }
 .iui-table-scroll { max-width: 100%; overflow-x: auto; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); }
-.iui-table { width: max-content; min-width: 100%; border-collapse: collapse; font-size: 13.5px; }
-.iui-table caption { text-align: left; padding: 8px 10px; color: var(--text-muted); font-size: 12.5px; caption-side: top; }
+.iui-table { width: max-content; min-width: 100%; border-collapse: collapse; font-size: calc(13.5px * var(--ui-scale)); }
+.iui-table caption { text-align: left; padding: 8px 10px; color: var(--text-muted); font-size: calc(12.5px * var(--ui-scale)); caption-side: top; }
 .iui-table th, .iui-table td { padding: 8px 10px; border-bottom: 1px solid var(--border-subtle); vertical-align: top; text-align: left; }
 .iui-table thead th { background: var(--bg-surface-subtle); font-weight: 600; white-space: nowrap; }
 .iui-table tbody tr:last-child td { border-bottom: 0; }
@@ -152,8 +152,8 @@ h3.iui-heading { font-size: 16px; } h4.iui-heading { font-size: 14.5px; } h5.iui
 .iui-button-primary, .iui-frame a.iui-button-primary { background: var(--accent-blue); border-color: var(--accent-blue); color: var(--accent-contrast); }
 .iui-button-primary:hover:not(:disabled) { background: var(--accent-blue-hover); }
 .iui-confirm { width: 100%; padding: 10px 12px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--bg-surface-subtle); display: flex; flex-direction: column; gap: 8px; }
-.iui-confirm-title { font-weight: 600; font-size: 13px; }
-.iui-confirm-text { margin: 0; white-space: pre-wrap; word-break: break-word; font: inherit; font-size: 13px; max-height: 200px; overflow: auto; }
+.iui-confirm-title { font-weight: 600; font-size: calc(13px * var(--ui-scale)); }
+.iui-confirm-text { margin: 0; white-space: pre-wrap; word-break: break-word; font: inherit; font-size: calc(13px * var(--ui-scale)); max-height: 200px; overflow: auto; }
 .iui-confirm-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .iui-collapsible { border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 8px 12px; min-width: 0; }
 .iui-collapsible summary { cursor: pointer; font-weight: 600; }
@@ -162,17 +162,17 @@ h3.iui-heading { font-size: 16px; } h4.iui-heading { font-size: 14.5px; } h5.iui
 /* 状态与提示 */
 .iui-notice { padding: 10px 12px; border-radius: var(--radius-sm); background: var(--bg-surface-subtle); border: 1px solid var(--border-subtle); }
 .iui-notice-error { border-color: color-mix(in srgb, var(--danger) 45%, var(--border-subtle)); }
-.iui-notice-warning { margin-top: 10px; border-color: color-mix(in srgb, var(--warning) 50%, var(--border-subtle)); font-size: 13px; }
-.iui-placeholder { padding: 6px 10px; border: 1px dashed var(--border-strong); border-radius: var(--radius-sm); color: var(--text-muted); font-size: 12.5px; }
+.iui-notice-warning { margin-top: 10px; border-color: color-mix(in srgb, var(--warning) 50%, var(--border-subtle)); font-size: calc(13px * var(--ui-scale)); }
+.iui-placeholder { padding: 6px 10px; border: 1px dashed var(--border-strong); border-radius: var(--radius-sm); color: var(--text-muted); font-size: calc(12.5px * var(--ui-scale)); }
 .iui-skeleton { position: relative; height: 56px; border-radius: var(--radius-sm); background: var(--bg-surface-subtle); overflow: hidden; }
 .iui-skeleton::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--text-primary) 6%, transparent), transparent); transform: translateX(-100%); }
-.iui-progress-note { margin-top: 8px; font-size: 12px; color: var(--text-muted); }
+.iui-progress-note { margin-top: 8px; font-size: calc(12px * var(--ui-scale)); color: var(--text-muted); }
 
 /* 工具条：始终可被键盘聚焦，鼠标悬停或聚焦时才显示 */
 .iui-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 10px; opacity: 0; transition: opacity 0.15s; }
 .iui-toolbar:has(.iui-confirm) { opacity: 1; }
 .iui-frame:hover .iui-toolbar, .iui-frame:focus-within .iui-toolbar, .iui-toolbar-visible { opacity: 1; }
-.iui-tool { border: 0; background: none; color: var(--text-muted); font: inherit; font-size: 12px; padding: 2px 6px; border-radius: var(--radius-xs); cursor: pointer; }
+.iui-tool { border: 0; background: none; color: var(--text-muted); font: inherit; font-size: calc(12px * var(--ui-scale)); padding: 2px 6px; border-radius: var(--radius-xs); cursor: pointer; }
 .iui-tool:hover { color: var(--text-primary); background: var(--bg-hover); }
 .iui-sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; padding: 0; }
 
@@ -190,14 +190,14 @@ h3.iui-heading { font-size: 16px; } h4.iui-heading { font-size: 14.5px; } h5.iui
 .iui-s1 { --c: var(--iui-s1); } .iui-s2 { --c: var(--iui-s2); } .iui-s3 { --c: var(--iui-s3); }
 .iui-s4 { --c: var(--iui-s4); } .iui-s5 { --c: var(--iui-s5); } .iui-s6 { --c: var(--iui-s6); }
 .iui-chart, .iui-diagram, .iui-media { margin: 0; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-.iui-chart-title { font-weight: 600; font-size: 13.5px; }
+.iui-chart-title { font-weight: 600; font-size: calc(13.5px * var(--ui-scale)); }
 .iui-chart-plot { max-width: 100%; border-radius: var(--radius-sm); }
 .iui-chart-plot:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 2px; }
 .iui-chart-svg, .iui-diagram-svg, .iui-plot-svg { display: block; width: 100%; height: auto; max-height: 420px; touch-action: manipulation; }
 .iui-chart-svg text, .iui-diagram-svg text, .iui-plot-svg text { font-family: inherit; }
 .iui-grid-line { stroke: var(--border-subtle); stroke-width: 1; }
 .iui-axis-line { stroke: var(--border-strong); stroke-width: 1.2; }
-.iui-axis-text { fill: var(--text-muted); font-size: 11px; }
+.iui-axis-text { fill: var(--text-muted); font-size: calc(11px * var(--ui-scale)); }
 .iui-bar { fill: var(--c); fill-opacity: 0.86; transition: fill-opacity 0.12s; }
 .iui-bar.is-active, .iui-bar:hover { fill-opacity: 1; stroke: var(--text-primary); stroke-width: 1.5; }
 .iui-line { fill: none; stroke: var(--c); stroke-width: 2.4; stroke-linejoin: round; stroke-linecap: round; }
@@ -205,14 +205,14 @@ h3.iui-heading { font-size: 16px; } h4.iui-heading { font-size: 14.5px; } h5.iui
 .iui-dot.is-active { stroke: var(--text-primary); stroke-width: 2; }
 .iui-hit { fill: transparent; }
 .iui-bar.is-draggable, g:has(> .iui-dot.is-draggable) > .iui-hit { cursor: ns-resize; }
-.iui-chart-tip { min-height: 1.5em; font-size: 12.5px; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.iui-chart-tip { min-height: 1.5em; font-size: calc(12.5px * var(--ui-scale)); color: var(--text-secondary); font-variant-numeric: tabular-nums; }
 .iui-legend { display: flex; flex-wrap: wrap; gap: 6px; }
-.iui-legend-item { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px 2px 8px; border: 1px solid var(--border-strong); border-radius: var(--radius-pill); background: transparent; color: var(--text-primary); font: inherit; font-size: 12.5px; cursor: pointer; }
+.iui-legend-item { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px 2px 8px; border: 1px solid var(--border-strong); border-radius: var(--radius-pill); background: transparent; color: var(--text-primary); font: inherit; font-size: calc(12.5px * var(--ui-scale)); cursor: pointer; }
 .iui-legend-item:hover { background: var(--bg-hover); }
 .iui-legend-item.is-off { color: var(--text-muted); text-decoration: line-through; }
 .iui-legend-item.is-off .iui-swatch { background: transparent; border: 1.5px solid var(--text-muted); }
 .iui-swatch { width: 10px; height: 10px; border-radius: 3px; background: var(--c); flex: none; display: inline-block; }
-.iui-chart-data summary { cursor: pointer; font-size: 12.5px; color: var(--text-muted); }
+.iui-chart-data summary { cursor: pointer; font-size: calc(12.5px * var(--ui-scale)); color: var(--text-muted); }
 .iui-chart-data[open] summary { margin-bottom: 6px; }
 .iui-chart-tools { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .iui-pie-layout { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; }
@@ -220,9 +220,9 @@ h3.iui-heading { font-size: 16px; } h4.iui-heading { font-size: 14.5px; } h5.iui
 .iui-slice { fill: var(--c); stroke: var(--bg-card-surface); stroke-width: 1.5; transition: transform 0.12s; transform-origin: 110px 110px; }
 .iui-slice.is-active { stroke: var(--text-primary); stroke-width: 2; }
 .iui-donut-hole { fill: var(--bg-card-surface); }
-.iui-donut-total { fill: var(--text-primary); font-size: 15px; font-weight: 600; }
+.iui-donut-total { fill: var(--text-primary); font-size: calc(15px * var(--ui-scale)); font-weight: 600; }
 .iui-pie-legend { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1 1 180px; }
-.iui-pie-legend li { display: flex; align-items: center; gap: 8px; padding: 2px 6px; border-radius: var(--radius-xs); font-size: 13px; }
+.iui-pie-legend li { display: flex; align-items: center; gap: 8px; padding: 2px 6px; border-radius: var(--radius-xs); font-size: calc(13px * var(--ui-scale)); }
 .iui-pie-legend li.is-active { background: var(--bg-hover); }
 .iui-pie-label { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .iui-pie-value { color: var(--text-secondary); font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -241,7 +241,7 @@ h3.iui-heading { font-size: 16px; } h4.iui-heading { font-size: 14.5px; } h5.iui
 .iui-hotspot.is-hover { fill: color-mix(in srgb, var(--accent-blue) 14%, transparent); stroke: var(--accent-blue); }
 .iui-hotspot.is-selected { fill: color-mix(in srgb, var(--accent-blue) 22%, transparent); stroke: var(--accent-blue); stroke-width: 3; }
 .iui-hotspot-list { display: flex; flex-wrap: wrap; gap: 6px; }
-.iui-chip { padding: 3px 12px; border: 1px solid var(--border-strong); border-radius: var(--radius-pill); background: transparent; color: var(--text-primary); font: inherit; font-size: 12.5px; cursor: pointer; }
+.iui-chip { padding: 3px 12px; border: 1px solid var(--border-strong); border-radius: var(--radius-pill); background: transparent; color: var(--text-primary); font: inherit; font-size: calc(12.5px * var(--ui-scale)); cursor: pointer; }
 .iui-chip:hover { background: var(--bg-hover); }
 .iui-chip.is-selected { background: var(--accent-blue); border-color: var(--accent-blue); color: var(--accent-contrast); }
 .iui-media-box { display: flex; gap: 12px; align-items: center; padding: 14px; border: 1px dashed var(--border-strong); border-radius: var(--radius-sm); background: var(--bg-surface-subtle); }
@@ -254,30 +254,30 @@ h3.iui-heading { font-size: 16px; } h4.iui-heading { font-size: 14.5px; } h5.iui
 .iui-timeline-item { display: flex; gap: 12px; position: relative; padding-bottom: 14px; }
 .iui-timeline-item:last-child { padding-bottom: 0; }
 .iui-timeline-item:not(:last-child)::before { content: ""; position: absolute; left: 10px; top: 24px; bottom: 2px; width: 2px; background: var(--border-strong); }
-.iui-timeline-mark { flex: none; width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; border: 2px solid var(--border-strong); background: var(--bg-card-surface); font-size: 11px; line-height: 1; }
+.iui-timeline-mark { flex: none; width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; border: 2px solid var(--border-strong); background: var(--bg-card-surface); font-size: calc(11px * var(--ui-scale)); line-height: 1; }
 .is-done .iui-timeline-mark { border-color: var(--success); color: var(--success); }
 .is-current .iui-timeline-mark { border-color: var(--accent-blue); color: var(--accent-blue); }
 .is-blocked .iui-timeline-mark { border-color: var(--danger); color: var(--danger); }
 .iui-timeline-body { min-width: 0; flex: 1; }
 .iui-timeline-head { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; }
-.iui-timeline-date { font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.iui-timeline-date { font-size: calc(12px * var(--ui-scale)); color: var(--text-muted); font-variant-numeric: tabular-nums; }
 .iui-timeline-title { font-weight: 600; }
-.iui-timeline-status { font-size: 11.5px; color: var(--text-muted); border: 1px solid var(--border-subtle); border-radius: var(--radius-pill); padding: 0 8px; }
+.iui-timeline-status { font-size: calc(11.5px * var(--ui-scale)); color: var(--text-muted); border: 1px solid var(--border-subtle); border-radius: var(--radius-pill); padding: 0 8px; }
 .iui-itinerary-day { display: flex; flex-direction: column; gap: 6px; padding-bottom: 8px; }
 .iui-itinerary-stops { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .iui-itinerary-stops li { display: flex; gap: 10px; }
-.iui-itinerary-time { flex: none; min-width: 48px; font-size: 12.5px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.iui-itinerary-time { flex: none; min-width: 48px; font-size: calc(12.5px * var(--ui-scale)); color: var(--text-muted); font-variant-numeric: tabular-nums; }
 .iui-itinerary-name { font-weight: 600; }
 .iui-coords { font-variant-numeric: tabular-nums; }
 .iui-itinerary-plot { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
 .iui-itinerary-plot figure { margin: 0; width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 6px; padding: 8px; border: 1px dashed var(--border-strong); border-radius: var(--radius-sm); }
 .iui-plot-route { fill: none; stroke-width: 2; stroke-dasharray: 5 4; opacity: 0.7; }
 .iui-plot-dot { stroke: var(--bg-card-surface); stroke-width: 1.5; }
-.iui-plot-num { fill: var(--accent-contrast); font-size: 9px; font-weight: 700; }
-.iui-plot-legend { margin: 0; padding-left: 20px; font-size: 12.5px; color: var(--text-secondary); }
-.iui-diff-head { display: flex; gap: 10px; align-items: center; font-size: 12.5px; }
+.iui-plot-num { fill: var(--accent-contrast); font-size: calc(9px * var(--ui-scale)); font-weight: 700; }
+.iui-plot-legend { margin: 0; padding-left: 20px; font-size: calc(12.5px * var(--ui-scale)); color: var(--text-secondary); }
+.iui-diff-head { display: flex; gap: 10px; align-items: center; font-size: calc(12.5px * var(--ui-scale)); }
 .iui-diff-add { color: var(--diff-stat-add-fg); font-weight: 600; } .iui-diff-del { color: var(--diff-stat-del-fg); font-weight: 600; }
-.iui-diff { max-height: 420px; overflow: auto; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); background: var(--bg-code); font-family: var(--font-mono); font-size: 12.5px; line-height: 1.5; }
+.iui-diff { max-height: 420px; overflow: auto; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); background: var(--bg-code); font-family: var(--font-mono); font-size: calc(12.5px * var(--code-scale)); line-height: 1.5; }
 .iui-diff-line { display: grid; grid-template-columns: 3.4ch 3.4ch 2ch minmax(0, 1fr); gap: 0 6px; min-width: max-content; padding: 0 8px 0 4px; }
 .iui-diff-no { text-align: right; color: var(--text-muted); user-select: none; font-variant-numeric: tabular-nums; }
 .iui-diff-sign { text-align: center; user-select: none; }
@@ -292,7 +292,7 @@ h3.iui-heading { font-size: 16px; } h4.iui-heading { font-size: 14.5px; } h5.iui
 .iui-badge-loading { border-color: var(--accent-blue); color: var(--accent-blue); }
 .iui-badge-empty { color: var(--text-muted); }
 .iui-badge-app { border-color: var(--warning); color: var(--warning); }
-.iui-provenance code { font-size: 11.5px; }
+.iui-provenance code { font-size: calc(11.5px * var(--code-scale)); }
 .iui-subject { max-width: 28ch; display: inline-block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; }
 
 /* ---------- 沙盒微应用（IUI-14） ---------- */
@@ -301,11 +301,11 @@ h3.iui-heading { font-size: 16px; } h4.iui-heading { font-size: 14.5px; } h5.iui
 .iui-app-frame { display: block; width: 100%; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--bg-elevated); color-scheme: normal; }
 
 /* ---------- 开发检查器与指标（IUI-13） ---------- */
-.iui-inspector { margin-top: 10px; border-top: 1px dashed var(--border-subtle); padding-top: 8px; font-size: 12.5px; }
+.iui-inspector { margin-top: 10px; border-top: 1px dashed var(--border-subtle); padding-top: 8px; font-size: calc(12.5px * var(--ui-scale)); }
 .iui-inspector summary { cursor: pointer; color: var(--text-muted); }
 .iui-inspector-tabs { display: flex; flex-wrap: wrap; gap: 4px; margin: 8px 0 0; }
 .iui-inspector .iui-source-view { max-height: 320px; }
-.iui-metrics { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0 0 12px; font-size: 14px; }
+.iui-metrics { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0 0 12px; font-size: calc(14px * var(--ui-scale)); }
 .iui-metrics dt { color: var(--text-muted); } .iui-metrics dd { margin: 0; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 
 @media (forced-colors: active) {

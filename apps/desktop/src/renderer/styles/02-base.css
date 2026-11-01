@@ -18,7 +18,7 @@ body,
   background: var(--bg-chat);
   color: var(--text-primary);
   font-family: var(--font-sans);
-  font-size: 15px;
+  font-size: calc(15px * var(--ui-scale));
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
   /* 界面文字默认不可拖选;内容区域在下方白名单里单独放开。 */

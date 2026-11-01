@@ -55,6 +55,7 @@ const suites = {
     { name: "pr-review-response-electron-smoke", runner: "node" },
     { name: "notification-sounds-electron-smoke", runner: "electron" },
     { name: "settings-electron-smoke", runner: "electron" },
+    { name: "font-size-electron-smoke", runner: "electron" },
     { name: "thinking-blur-electron-smoke", runner: "electron" },
   ],
 };

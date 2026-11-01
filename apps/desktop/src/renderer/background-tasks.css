@@ -1,4 +1,4 @@
-.bg-tasks { display: flex; flex-direction: column; gap: 14px; height: 100%; padding: 12px 14px 18px; overflow-y: auto; font-size: 13px; }
+.bg-tasks { display: flex; flex-direction: column; gap: 14px; height: 100%; padding: 12px 14px 18px; overflow-y: auto; font-size: calc(13px * var(--ui-scale)); }
 .bg-tasks-bar { display: flex; align-items: center; gap: 8px; min-height: 28px; }
 .bg-tasks-title { flex: 1; font-weight: 560; }
 .bg-tasks-clear { display: grid; place-items: center; width: 26px; height: 26px; border-radius: var(--radius-sm); color: var(--text-muted); }
@@ -6,7 +6,7 @@
 .bg-tasks-clear:disabled { opacity: 0.4; cursor: default; }
 .bg-tasks-empty { margin: 0; color: var(--text-muted); }
 
-.bg-section-head { display: flex; align-items: center; gap: 6px; padding: 2px 0; color: var(--text-muted); font-size: 12px; }
+.bg-section-head { display: flex; align-items: center; gap: 6px; padding: 2px 0; color: var(--text-muted); font-size: calc(12px * var(--ui-scale)); }
 .bg-section-head:hover { color: var(--text-primary); }
 .bg-section-count { font-variant-numeric: tabular-nums; }
 .bg-section-body { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
@@ -18,8 +18,8 @@
 .bg-task-head { display: flex; align-items: center; gap: 8px; min-height: 34px; padding: 0 10px 0 6px; }
 .bg-task-toggle { display: flex; flex: 1; align-items: center; gap: 6px; min-width: 0; min-height: 34px; text-align: left; color: var(--text-primary); }
 .bg-task-command { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.bg-task-time { flex: none; font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
-.bg-task-status { flex: none; font-size: 12px; color: var(--text-muted); }
+.bg-task-time { flex: none; font-size: calc(12px * var(--ui-scale)); color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.bg-task-status { flex: none; font-size: calc(12px * var(--ui-scale)); color: var(--text-muted); }
 .bg-task-status.is-failed { color: var(--danger); }
 .bg-task-stop { display: grid; place-items: center; width: 22px; height: 22px; border-radius: var(--radius-sm); color: var(--text-primary); }
 .bg-task-stop:hover:not(:disabled) { background: var(--bg-active, var(--bg-hover)); color: var(--danger); }
@@ -27,6 +27,6 @@
 
 .bg-task-output {
   max-height: 320px; margin: 0; padding: 4px 14px 12px; overflow: auto; background: transparent; color: var(--text-secondary);
-  font-family: var(--font-mono); font-size: 12px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere;
+  font-family: var(--font-mono); font-size: calc(12px * var(--code-scale)); line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere;
 }
 .bg-task-prompt { color: var(--text-primary); }

@@ -71,7 +71,7 @@ body.info-card-dragging, body.info-card-dragging * { cursor: grabbing !important
 .info-card-ico { display: grid; place-items: center; color: var(--text-muted); }
 .info-card-title {
   display: flex; flex: 1; align-items: center; gap: 6px; min-width: 0; height: 40px;
-  font-size: 13px; font-weight: 600; text-align: left; color: inherit;
+  font-size: calc(13px * var(--ui-scale)); font-weight: 600; text-align: left; color: inherit;
 }
 .info-card-title:focus-visible, .info-card-icon-btn:focus-visible, .info-card-row:focus-visible,
 .info-card-add:focus-visible, .info-card-tray-chip:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 2px; }
@@ -80,7 +80,7 @@ body.info-card-dragging, body.info-card-dragging * { cursor: grabbing !important
 
 /* 折叠后的摘要；悬停时让位给右上角的操作按钮。 */
 .info-card-meta {
-  display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 12px; color: var(--text-muted);
+  display: flex; align-items: center; gap: 8px; min-width: 0; font-size: calc(12px * var(--ui-scale)); color: var(--text-muted);
   white-space: nowrap; font-variant-numeric: tabular-nums; opacity: 0; transition: opacity 150ms ease;
 }
 .info-card[data-collapsed] .info-card-meta { opacity: 1; }
@@ -112,7 +112,7 @@ body.info-card-dragging, body.info-card-dragging * { cursor: grabbing !important
 .info-card[data-collapsed] .info-card-body { grid-template-rows: 0fr; }
 /* 定位后才能裁住内部的绝对定位元素（如待办里的 .sr-only），否则它们越过折叠的卡片把栈撑出滚动高度。 */
 .info-card-inner { position: relative; min-height: 0; overflow: hidden; }
-.info-card-content { padding: 0 14px 14px 16px; font-size: 13px; }
+.info-card-content { padding: 0 14px 14px 16px; font-size: calc(13px * var(--ui-scale)); }
 
 /* ---- 内容 ---- */
 .info-card-rows { display: flex; flex-direction: column; gap: 2px; }
@@ -124,22 +124,22 @@ button.info-card-row:hover:not(:disabled), .info-card-row.is-active { background
 .info-card-row:disabled { cursor: default; }
 .info-card-row > svg { flex: none; color: var(--text-muted); }
 .info-card-row-main { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.info-card-row-note { flex: none; max-width: 48%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--text-muted); }
+.info-card-row-note { flex: none; max-width: 48%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: calc(12px * var(--ui-scale)); color: var(--text-muted); }
 .info-card-file-icon { display: grid; place-items: center; width: 16px; height: 16px; flex: none; }
 .info-card-file-icon img, .info-card-file-icon svg { width: 16px; height: 16px; }
 .info-card-branch { position: relative; }
-.info-card-empty { margin: 4px 0; font-size: 12px; color: var(--text-muted); }
+.info-card-empty { margin: 4px 0; font-size: calc(12px * var(--ui-scale)); color: var(--text-muted); }
 .info-card-spacer { flex: 1; }
 .info-card-stat { display: flex; align-items: center; gap: 10px; min-height: 30px; margin-bottom: 4px; }
 .info-card-stat-link { display: inline-flex; align-items: center; gap: 10px; min-width: 0; margin: 0 -6px; padding: 4px 6px; border-radius: var(--radius-sm); }
 .info-card-stat-link:hover, .info-card-stat-link.is-active { background: var(--bg-hover); }
-.info-card-added { color: var(--diff-stat-add-fg, var(--success)); font-variant-numeric: tabular-nums; font-size: 12px; }
-.info-card-deleted { color: var(--diff-stat-del-fg, var(--danger)); font-variant-numeric: tabular-nums; font-size: 12px; }
-.info-card-pill { padding: 3px 11px; border-radius: var(--radius-sm); background: var(--bg-hover); font-size: 12.5px; font-weight: 520; }
+.info-card-added { color: var(--diff-stat-add-fg, var(--success)); font-variant-numeric: tabular-nums; font-size: calc(12px * var(--ui-scale)); }
+.info-card-deleted { color: var(--diff-stat-del-fg, var(--danger)); font-variant-numeric: tabular-nums; font-size: calc(12px * var(--ui-scale)); }
+.info-card-pill { padding: 3px 11px; border-radius: var(--radius-sm); background: var(--bg-hover); font-size: calc(12.5px * var(--ui-scale)); font-weight: 520; }
 .info-card-pill:hover { background: color-mix(in srgb, var(--accent-blue) 12%, var(--bg-hover)); }
-.info-card-more { align-self: flex-start; margin-top: 4px; font-size: 12px; color: var(--text-muted); }
+.info-card-more { align-self: flex-start; margin-top: 4px; font-size: calc(12px * var(--ui-scale)); color: var(--text-muted); }
 .info-card-more:hover { color: var(--text-primary); }
-.info-card-chip { flex: none; padding: 1px 8px; border-radius: var(--radius-pill); background: var(--bg-hover); color: var(--text-secondary); font-size: 12px; white-space: nowrap; }
+.info-card-chip { flex: none; padding: 1px 8px; border-radius: var(--radius-pill); background: var(--bg-hover); color: var(--text-secondary); font-size: calc(12px * var(--ui-scale)); white-space: nowrap; }
 .info-card-chip.is-running, .info-card-chip.is-goal-active { color: var(--accent-blue); background: var(--accent-tint); }
 .info-card-chip.is-completed, .info-card-chip.is-goal-complete { color: var(--success); background: color-mix(in srgb, var(--success) 12%, transparent); }
 .info-card-chip.is-failed { color: var(--danger); background: color-mix(in srgb, var(--danger) 12%, transparent); }
@@ -159,21 +159,21 @@ button.info-card-row:hover:not(:disabled), .info-card-row.is-active { background
 .info-card-mini.is-done i { background: var(--success); }
 
 .info-card-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
-.info-card-chips li { padding: 2px 8px; border-radius: var(--radius-xs); background: var(--bg-code); color: var(--text-secondary); font-family: var(--font-mono); font-size: 12px; }
+.info-card-chips li { padding: 2px 8px; border-radius: var(--radius-xs); background: var(--bg-code); color: var(--text-secondary); font-family: var(--font-mono); font-size: calc(12px * var(--code-scale)); }
 
 /* 上下文用量沿用原组件，去掉它作为底部固定条的外观，并为信息卡片收紧行高。 */
 .info-card-context .context-usage { margin: 0; padding: 0; border-top: 0; }
 .info-card-context .context-usage-title { display: none; }
-.info-card-context .context-usage-percent { font-size: 15px; }
-.info-card-context .context-usage-total { font-size: 13px; }
+.info-card-context .context-usage-percent { font-size: calc(15px * var(--ui-scale)); }
+.info-card-context .context-usage-total { font-size: calc(13px * var(--ui-scale)); }
 .info-card-context .context-usage-track { margin-top: 8px; }
-.info-card-context .context-usage-row { padding: 5px 0; font-size: 13.5px; }
+.info-card-context .context-usage-row { padding: 5px 0; font-size: calc(13.5px * var(--ui-scale)); }
 .info-card-context .context-usage-share { min-width: 3.4em; }
 
 /* ---- 找回隐藏的卡片 ---- */
 .info-card-add {
   pointer-events: auto; align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; margin-top: 10px;
-  height: 30px; padding: 0 12px 0 10px; font-size: 12px; color: var(--text-muted); border-radius: var(--radius-pill);
+  height: 30px; padding: 0 12px 0 10px; font-size: calc(12px * var(--ui-scale)); color: var(--text-muted); border-radius: var(--radius-pill);
   border: 1.5px dashed var(--border-strong); background: color-mix(in srgb, var(--bg-chat) 82%, transparent); backdrop-filter: blur(6px);
 }
 .info-card-add:hover, .info-card-add[aria-expanded="true"] { color: var(--accent-blue); border-color: var(--accent-border); }
@@ -181,14 +181,14 @@ button.info-card-row:hover:not(:disabled), .info-card-row.is-active { background
   pointer-events: auto; margin-top: 8px; padding: 12px; border: 1px solid var(--border-subtle); border-radius: var(--radius-md);
   background: var(--bg-card-surface); box-shadow: var(--shadow-dock); animation: info-card-in 240ms cubic-bezier(0.16, 1, 0.3, 1);
 }
-.info-card-tray-title { margin-bottom: 8px; font-size: 12px; font-weight: 600; color: var(--text-muted); }
+.info-card-tray-title { margin-bottom: 8px; font-size: calc(12px * var(--ui-scale)); font-weight: 600; color: var(--text-muted); }
 .info-card-tray-list { display: flex; flex-wrap: wrap; gap: 6px; }
 .info-card-tray-chip {
-  display: inline-flex; align-items: center; gap: 5px; height: 28px; padding: 0 10px 0 8px; font-size: 12px;
+  display: inline-flex; align-items: center; gap: 5px; height: 28px; padding: 0 10px 0 8px; font-size: calc(12px * var(--ui-scale));
   border: 1px solid var(--border-strong); border-radius: var(--radius-pill); background: var(--bg-card-surface);
 }
 .info-card-tray-chip:hover { color: var(--accent-blue); border-color: var(--accent-border); background: var(--accent-tint); }
-.info-card-reset { margin-top: 10px; font-size: 12px; color: var(--text-muted); }
+.info-card-reset { margin-top: 10px; font-size: calc(12px * var(--ui-scale)); color: var(--text-muted); }
 .info-card-reset:hover { color: var(--text-primary); }
 
 .info-card-stack .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }

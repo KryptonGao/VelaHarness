@@ -23,7 +23,7 @@
   box-sizing: border-box;
   background: var(--accent-blue);
   color: #fff;
-  font-size: 11px;
+  font-size: calc(11px * var(--ui-scale));
   font-weight: 700;
   line-height: 18px;
   text-align: center;
@@ -44,7 +44,7 @@
   background: color-mix(in srgb, var(--bg-elevated) 92%, transparent);
   border: 1px solid var(--border-subtle);
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-scale));
   box-shadow: 0 2px 8px rgb(0 0 0 / 14%);
 }
 .annotation-popover {
@@ -66,7 +66,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 12px;
+  font-size: calc(12px * var(--code-scale));
   color: var(--text-secondary);
 }
 .annotation-popover-levels { flex: none; display: flex; gap: 2px; }
@@ -75,7 +75,7 @@
   height: 24px;
   border-radius: 6px;
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-scale));
 }
 .annotation-popover-levels button:hover:not(:disabled) { background: var(--bg-hover); color: var(--text-primary); }
 .annotation-popover-levels button:disabled { opacity: 0.35; cursor: default; }
@@ -89,18 +89,18 @@
   background: var(--bg-surface-subtle);
   color: var(--text-primary);
   font: inherit;
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-scale));
   line-height: 1.45;
 }
 .annotation-popover textarea:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 1px; }
-.annotation-popover-note { margin: 0; font-size: 12px; color: var(--danger); }
+.annotation-popover-note { margin: 0; font-size: calc(12px * var(--ui-scale)); color: var(--danger); }
 .annotation-popover-actions { display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
-.annotation-popover-actions span { flex: 1; min-width: 0; font-size: 11px; color: var(--text-muted); }
+.annotation-popover-actions span { flex: 1; min-width: 0; font-size: calc(11px * var(--ui-scale)); color: var(--text-muted); }
 .annotation-popover-actions button {
   padding: 4px 10px;
   border: 1px solid var(--border-strong);
   border-radius: 8px;
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-scale));
   color: var(--text-primary);
 }
 .annotation-popover-actions button:hover { background: var(--bg-hover); }
@@ -120,7 +120,7 @@
 }
 .changes-filter-trigger > span { display: flex; align-items: center; gap: 7px; min-width: 0; white-space: nowrap; }
 .changes-filter-trigger svg { flex: none; }
-.changes-filter-detail { max-width: 110px; overflow: hidden; text-overflow: ellipsis; color: var(--text-muted); font-size: 11px; }
+.changes-filter-detail { max-width: 110px; overflow: hidden; text-overflow: ellipsis; color: var(--text-muted); font-size: calc(11px * var(--ui-scale)); }
 .changes-filter-trigger:hover { background: var(--bg-hover); }
 .changes-filter-menu {
   position: absolute; top: calc(100% + 6px); left: 0; z-index: 10;
@@ -141,9 +141,9 @@
 .changes-filter-options { max-height: min(360px, 55vh); overflow-y: auto; }
 .changes-filter-commit { display: flex; flex-direction: column; gap: 2px; }
 .changes-filter-commit > span { overflow: hidden; text-overflow: ellipsis; }
-.changes-filter-commit small { color: var(--text-muted); font-size: 11px; }
+.changes-filter-commit small { color: var(--text-muted); font-size: calc(11px * var(--ui-scale)); }
 .changes-filter-empty { padding: 14px 10px; color: var(--text-muted); }
-.changes-filter-notice { padding: 10px 14px; color: var(--text-secondary); background: var(--bg-surface-subtle); font-size: 12px; }
+.changes-filter-notice { padding: 10px 14px; color: var(--text-secondary); background: var(--bg-surface-subtle); font-size: calc(12px * var(--ui-scale)); }
 .changes-filter-retry { margin-left: 8px; color: var(--accent-blue); cursor: pointer; }
 .turn-review-view.is-compact .changes-filter-detail { max-width: 64px; }
 

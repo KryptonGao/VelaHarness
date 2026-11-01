@@ -5,7 +5,7 @@
   gap: 12px;
   flex-wrap: wrap;
 }
-.storage-total > strong { font-size: 20px; font-weight: 650; color: var(--text-primary); }
+.storage-total > strong { font-size: calc(20px * var(--ui-scale)); font-weight: 650; color: var(--text-primary); }
 .storage-bar {
   display: flex;
   height: 8px;
@@ -33,11 +33,11 @@
 .storage-row:first-child { border-top: 0; }
 .storage-dot { flex: none; width: 8px; height: 8px; border-radius: 50%; }
 .storage-row-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.storage-row-label { font-size: 15px; color: var(--text-primary); overflow-wrap: anywhere; }
-.storage-row-hint { font-size: 13px; line-height: 1.5; color: var(--text-muted); }
-.storage-row-size { flex: none; font-size: 14px; font-variant-numeric: tabular-nums; color: var(--text-secondary); }
+.storage-row-label { font-size: calc(15px * var(--ui-scale)); color: var(--text-primary); overflow-wrap: anywhere; }
+.storage-row-hint { font-size: calc(13px * var(--ui-scale)); line-height: 1.5; color: var(--text-muted); }
+.storage-row-size { flex: none; font-size: calc(14px * var(--ui-scale)); font-variant-numeric: tabular-nums; color: var(--text-secondary); }
 .storage-row-actions { flex: none; display: flex; gap: 8px; align-items: center; min-width: 96px; justify-content: flex-end; }
-.storage-row-note { font-size: 13px; color: var(--text-muted); }
+.storage-row-note { font-size: calc(13px * var(--ui-scale)); color: var(--text-muted); }
 @media (max-width: 640px) {
   .storage-row { flex-wrap: wrap; }
   .storage-row-actions { width: 100%; justify-content: flex-start; }
@@ -53,7 +53,7 @@
 .storage-c-cache { background: hsl(100 40% 50%); }
 .storage-c-other { background: hsl(220 12% 70%); }
 .storage-disk { display: flex; flex-direction: column; gap: 8px; margin-bottom: 6px; }
-.storage-disk-line > strong { font-size: 15px; font-weight: 600; color: var(--text-primary); }
+.storage-disk-line > strong { font-size: calc(15px * var(--ui-scale)); font-weight: 600; color: var(--text-primary); }
 .storage-bar-disk { height: 10px; gap: 1px; }
 .storage-c-system { background: hsl(220 10% 62%); }
 .storage-c-vela { background: var(--accent-blue); }

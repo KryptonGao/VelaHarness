@@ -26,6 +26,13 @@ import {
 import { isAppLocale, type AppLocale, type ThinkingSummaryModel } from "@vela/shared";
 import { isConversationLinkTarget, type ConversationLinkTarget } from "../browser/conversation-link-policy";
 import { soundEffectsKey } from "../notification-sounds";
+import {
+  applyFontSizes,
+  clampFontSize,
+  codeFontSizeRange,
+  parseFontSize,
+  uiFontSizeRange,
+} from "../font-size";
 
 export type InfoLayout = "sidebar" | "floating" | "cards";
 export type Appearance = "system" | "light" | "dark";
@@ -90,6 +97,8 @@ const uiFontLatinKey = "vela.font.ui.latin";
 const uiFontCjkKey = "vela.font.ui.cjk";
 const replyFontLatinKey = "vela.font.reply.latin";
 const replyFontCjkKey = "vela.font.reply.cjk";
+const uiFontSizeKey = "vela.font.ui.size";
+const codeFontSizeKey = "vela.font.code.size";
 const hiddenModelsKey = "vela.hiddenModels";
 const darkQuery = "(prefers-color-scheme: dark)";
 
@@ -198,6 +207,10 @@ function isFileIconTheme(value: unknown): value is FileIconTheme {
 
 function isSendButtonIcon(value: unknown): value is SendButtonIcon {
   return value === "paper-plane" || value === "arrow-up";
+}
+
+function isString(value: unknown): value is string {
+  return typeof value === "string";
 }
 
 function isUiFontFace(value: unknown): value is UiFontFace {
@@ -327,6 +340,14 @@ export function usePreferences() {
   const [replyFontCjk, setReplyFontCjk] = useState<ReplyFontFace>(() =>
     readStored(replyFontCjkKey, isReplyFontFace, "inherit"),
   );
+  const [uiFontSize, setUiFontSizeState] = useState(() =>
+    parseFontSize(uiFontSizeRange, readStored(uiFontSizeKey, isString, "")),
+  );
+  const [codeFontSize, setCodeFontSizeState] = useState(() =>
+    parseFontSize(codeFontSizeRange, readStored(codeFontSizeKey, isString, "")),
+  );
+  const setUiFontSize = useCallback((size: number) => setUiFontSizeState(clampFontSize(uiFontSizeRange, size)), []);
+  const setCodeFontSize = useCallback((size: number) => setCodeFontSizeState(clampFontSize(codeFontSizeRange, size)), []);
 
   const isModelHidden = useCallback(
     (provider: string, id: string) => hiddenModels.includes(modelKey(provider, id)),
@@ -490,6 +511,11 @@ export function usePreferences() {
     writeStored(replyFontCjkKey, replyFontCjk);
   }, [replyFontCjk]);
   useEffect(() => {
+    applyFontSizes(document.documentElement, uiFontSize, codeFontSize);
+    writeStored(uiFontSizeKey, String(uiFontSize));
+    writeStored(codeFontSizeKey, String(codeFontSize));
+  }, [uiFontSize, codeFontSize]);
+  useEffect(() => {
     document.documentElement.dataset.composerCapsules = String(composerCapsules);
     writeStored(composerCapsulesKey, String(composerCapsules));
   }, [composerCapsules]);
@@ -564,6 +590,10 @@ export function usePreferences() {
     setReplyFontLatin,
     replyFontCjk,
     setReplyFontCjk,
+    uiFontSize,
+    setUiFontSize,
+    codeFontSize,
+    setCodeFontSize,
     isModelHidden,
     setModelHidden,
     showAllModels,

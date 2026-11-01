@@ -21,10 +21,10 @@
   flex-direction: column;
   gap: 6px;
 }
-.update-version { font-size: 16px; font-weight: 650; color: var(--text-primary); }
-.update-status { font-size: 15px; color: var(--text-secondary); line-height: 1.5; }
+.update-version { font-size: calc(16px * var(--ui-scale)); font-weight: 650; color: var(--text-primary); }
+.update-status { font-size: calc(15px * var(--ui-scale)); color: var(--text-secondary); line-height: 1.5; }
 .update-status.error { color: var(--danger); }
-.update-sub { font-size: 14px; color: var(--text-muted); line-height: 1.5; }
+.update-sub { font-size: calc(14px * var(--ui-scale)); color: var(--text-muted); line-height: 1.5; }
 .update-detail { overflow-wrap: anywhere; }
 .update-progress {
   height: 4px;
@@ -40,12 +40,12 @@
   background: var(--accent-blue);
   transition: width var(--transition-smooth);
 }
-.update-notes summary { cursor: pointer; font-size: 15px; color: var(--text-secondary); }
+.update-notes summary { cursor: pointer; font-size: calc(15px * var(--ui-scale)); color: var(--text-secondary); }
 .update-notes-body {
   margin-top: 10px;
   max-height: 320px;
   overflow: auto;
-  font-size: 15px;
+  font-size: calc(15px * var(--ui-scale));
 }
 
 .update-notice {
@@ -65,8 +65,8 @@
   animation: update-notice-in var(--transition-enter) both;
 }
 .update-notice-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-.update-notice-text strong { font-size: 15px; font-weight: 650; color: var(--text-primary); }
-.update-notice-text span { font-size: 14px; color: var(--text-muted); line-height: 1.5; }
+.update-notice-text strong { font-size: calc(15px * var(--ui-scale)); font-weight: 650; color: var(--text-primary); }
+.update-notice-text span { font-size: calc(14px * var(--ui-scale)); color: var(--text-muted); line-height: 1.5; }
 .update-notice-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 @keyframes update-notice-in {
   from { opacity: 0; transform: translateY(8px); }

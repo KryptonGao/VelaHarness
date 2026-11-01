@@ -213,7 +213,7 @@
   border-radius: var(--radius-pill);
   background: var(--bg-hover);
   color: var(--text-primary);
-  font-size: 14px;
+  font-size: calc(14px * var(--ui-scale));
   text-align: center;
   text-overflow: ellipsis;
 }
@@ -227,7 +227,7 @@
 .browser-address[aria-invalid="true"] { border-color: var(--danger); }
 /* Title and load status stay in the DOM for assistive tech; the tab label already shows the title. */
 .browser-page-info { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-.browser-notice { flex: none; padding: 8px 14px; font-size: 12px; color: var(--danger); background: var(--danger-tint); overflow-wrap: anywhere; }
+.browser-notice { flex: none; padding: 8px 14px; font-size: calc(12px * var(--ui-scale)); color: var(--danger); background: var(--danger-tint); overflow-wrap: anywhere; }
 /* 加载中的细进度条，贴在工具栏下沿；webview 浮在 viewport 上，所以放在 viewport 之外。 */
 .browser-progress { position: relative; flex: none; height: 2px; margin-top: -2px; overflow: hidden; opacity: 0; pointer-events: none; transition: opacity 160ms ease; z-index: 1; }
 .browser-progress[data-active] { opacity: 1; }
@@ -250,8 +250,8 @@
   overflow: auto;
 }
 .browser-error-icon { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; color: var(--danger); background: var(--danger-tint); }
-.browser-error h2 { margin: 4px 0 0; font-size: 17px; font-weight: 550; color: var(--text-primary); }
-.browser-error p { margin: 0; max-width: 320px; font-size: 13px; line-height: 1.5; }
+.browser-error h2 { margin: 4px 0 0; font-size: calc(17px * var(--ui-scale)); font-weight: 550; color: var(--text-primary); }
+.browser-error p { margin: 0; max-width: 320px; font-size: calc(13px * var(--ui-scale)); line-height: 1.5; }
 .browser-error-url {
   max-width: min(100%, 360px);
   overflow: hidden;
@@ -259,11 +259,11 @@
   border-radius: 6px;
   background: var(--bg-surface-subtle);
   color: var(--text-secondary);
-  font: 12px var(--font-mono);
+  font: calc(12px * var(--code-scale)) var(--font-mono);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.browser-error-code { font: 11px var(--font-mono); color: var(--text-muted); user-select: text; }
+.browser-error-code { font: calc(11px * var(--code-scale)) var(--font-mono); color: var(--text-muted); user-select: text; }
 .browser-error-retry {
   display: inline-flex;
   align-items: center;
@@ -274,7 +274,7 @@
   border-radius: 8px;
   background: var(--bg-surface-subtle);
   color: var(--text-primary);
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-scale));
   cursor: pointer;
 }
 .browser-error-retry:hover { border-color: var(--accent-blue); }
@@ -317,7 +317,7 @@
   padding: 10px 6px 8px;
   border-radius: var(--radius-md);
   color: var(--text-primary);
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-scale));
 }
 .browser-favorite-open:hover { background: var(--bg-hover); }
 .browser-favorite-icon {
@@ -344,8 +344,8 @@
 }
 .browser-favorite-item:hover .browser-favorite-remove, .browser-favorite-remove:focus-visible { display: grid; }
 .browser-favorite-remove:hover { background: var(--bg-hover); color: var(--text-primary); }
-.browser-empty h2 { margin: 0; font-size: 17px; font-weight: 550; color: var(--text-primary); }
-.browser-empty p { margin: 0; font-size: 13px; text-align: center; }
+.browser-empty h2 { margin: 0; font-size: calc(17px * var(--ui-scale)); font-weight: 550; color: var(--text-primary); }
+.browser-empty p { margin: 0; font-size: calc(13px * var(--ui-scale)); text-align: center; }
 
 /* ---------- 新标签页起始页 ---------- */
 
@@ -366,13 +366,13 @@
 }
 .start-view-header h2 {
   margin: 0;
-  font-size: 19px;
+  font-size: calc(19px * var(--ui-scale));
   font-weight: 600;
   color: var(--text-primary);
 }
 .start-view-header p {
   margin: 6px 0 0;
-  font-size: 14px;
+  font-size: calc(14px * var(--ui-scale));
   color: var(--text-muted);
 }
 .start-options {
@@ -420,10 +420,10 @@
   gap: 3px;
   min-width: 0;
 }
-.start-option-title { font-size: 15px; font-weight: 550; }
-.start-option-description { font-size: 13px; color: var(--text-muted); line-height: 1.45; }
+.start-option-title { font-size: calc(15px * var(--ui-scale)); font-weight: 550; }
+.start-option-description { font-size: calc(13px * var(--ui-scale)); color: var(--text-muted); line-height: 1.45; }
 
-.start-error { margin: 0; color: var(--danger); font-size: 13px; line-height: 1.5; }
+.start-error { margin: 0; color: var(--danger); font-size: calc(13px * var(--ui-scale)); line-height: 1.5; }
 .panel-chat-container, .panel-chat-conversation {
   display: flex;
   flex-direction: column;
@@ -439,7 +439,7 @@
 .left-collapsed:not(.platform-darwin) .panel-chat-view .main-chat-header { padding-left: 16px; }
 .panel-chat-view .conversation-view-tabs { padding-inline: 12px; }
 .panel-chat-view .conversation-view-tabs.chat-view-tabs { padding-inline: 6px; }
-.panel-chat-plan-toolbar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; font-size: 13px; }
+.panel-chat-plan-toolbar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; font-size: calc(13px * var(--ui-scale)); }
 @container chat (max-width: 520px) {
   .panel-chat-view .dock-controls-row { flex-direction: column; align-items: stretch; }
   .panel-chat-view .dock-controls-left { flex: none; }
@@ -473,7 +473,7 @@
   align-items: center;
   gap: 8px;
   min-width: 0;
-  font-size: 12.5px;
+  font-size: calc(12.5px * var(--ui-scale));
   color: var(--text-muted);
 }
 .terminal-subbar-path strong { flex: none; color: var(--text-secondary); font-weight: 550; }
@@ -487,7 +487,7 @@
 .terminal-action {
   padding: 3px 8px;
   border-radius: 6px;
-  font-size: 12.5px;
+  font-size: calc(12.5px * var(--ui-scale));
   color: var(--text-muted);
   transition: background var(--transition-smooth), color var(--transition-smooth);
 }
@@ -514,7 +514,7 @@
   border-radius: var(--radius-md);
   color: var(--danger);
   background: var(--danger-tint);
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-scale));
   line-height: 1.5;
 }
 

@@ -6,7 +6,7 @@
   border-radius: 9px;
   background: var(--accent-blue);
   color: var(--accent-contrast);
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-scale));
   font-weight: 600;
   line-height: 18px;
   text-align: center;
@@ -63,7 +63,7 @@
   min-width: 0;
   padding: 4px;
   font: inherit;
-  font-size: 16px;
+  font-size: calc(16px * var(--ui-scale));
   color: var(--text-primary);
   background: transparent;
 }
@@ -79,7 +79,7 @@
 }
 .conversation-search-close:hover { color: var(--text-primary); background: var(--bg-sidebar-hover); }
 .conversation-search-content { padding: 10px 8px; }
-.conversation-search-section-label { padding: 8px 12px; font-size: 12px; color: var(--text-muted); }
+.conversation-search-section-label { padding: 8px 12px; font-size: calc(12px * var(--ui-scale)); color: var(--text-muted); }
 .conversation-search-results { max-height: min(380px, calc(100vh - 270px)); overflow-y: auto; }
 .conversation-search-result,
 .conversation-search-new {
@@ -90,7 +90,7 @@
   min-height: 42px;
   padding: 10px 14px;
   border-radius: var(--radius-md);
-  font-size: 14px;
+  font-size: calc(14px * var(--ui-scale));
   text-align: left;
 }
 .conversation-search-result:hover,
@@ -108,20 +108,20 @@
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-scale));
   color: var(--text-muted);
 }
 .conversation-search-current {
   flex: none;
   padding: 1px 6px;
   border-radius: var(--radius-sm);
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-scale));
   color: var(--text-muted);
   background: var(--bg-sidebar-hover);
 }
-.conversation-search-empty { padding: 24px 12px; color: var(--text-muted); font-size: 14px; }
+.conversation-search-empty { padding: 24px 12px; color: var(--text-muted); font-size: calc(14px * var(--ui-scale)); }
 .conversation-search-new svg { flex: none; color: var(--text-muted); }
-.conversation-search-footer { padding: 10px 20px; border-top: 1px solid var(--border-subtle); color: var(--text-muted); font-size: 12px; }
+.conversation-search-footer { padding: 10px 20px; border-top: 1px solid var(--border-subtle); color: var(--text-muted); font-size: calc(12px * var(--ui-scale)); }
 .conversation-search-dialog :focus-visible,
 .subchat-rename:focus-visible,
 .chat-title-rename:focus-visible,
@@ -129,7 +129,7 @@
 .conversation-search-header input:focus-visible { outline: none; }
 
 .sidebar-section-title {
-  font-size: 15px;
+  font-size: calc(15px * var(--ui-scale));
   font-weight: 600;
   color: var(--text-muted);
   padding: 4px 8px;
@@ -188,7 +188,7 @@
   gap: 6px;
   padding: 6px 10px;
   border-radius: var(--radius-md);
-  font-size: 15px;
+  font-size: calc(15px * var(--ui-scale));
   color: var(--text-secondary);
   position: relative;
   text-align: left;
@@ -263,7 +263,7 @@
   gap: 5px;
   padding: 4px 8px;
   border-radius: var(--radius-xs);
-  font-size: 15px;
+  font-size: calc(15px * var(--ui-scale));
   font-weight: 600;
   color: var(--text-muted);
   cursor: pointer;
@@ -327,7 +327,7 @@
   padding: 6px 10px;
   border-radius: var(--radius-md);
   color: var(--text-muted);
-  font-size: 15px;
+  font-size: calc(15px * var(--ui-scale));
   text-align: left;
   cursor: pointer;
 }
@@ -347,7 +347,7 @@
   white-space: nowrap;
 }
 .session-group-count {
-  font-size: 15px;
+  font-size: calc(15px * var(--ui-scale));
   font-weight: 500;
   color: var(--text-muted);
 }
@@ -384,7 +384,7 @@
   background: var(--bg-elevated);
   color: var(--text-primary);
   box-shadow: var(--shadow-dock);
-  font-size: 15px;
+  font-size: calc(15px * var(--ui-scale));
   opacity: 1;
   transition: opacity 120ms ease;
 }
@@ -435,7 +435,7 @@
 
 .sidebar-empty-hint {
   padding: 10px 8px;
-  font-size: 15px;
+  font-size: calc(15px * var(--ui-scale));
   color: var(--text-muted);
 }
 
@@ -469,7 +469,7 @@
 }
 
 .user-name-text {
-  font-size: 15px;
+  font-size: calc(15px * var(--ui-scale));
   font-weight: 500;
   color: var(--text-secondary);
 }
@@ -479,7 +479,7 @@
 }
 .sidebar-shortcut-hint {
   margin-left: auto;
-  font-size: 15px;
+  font-size: calc(15px * var(--ui-scale));
   color: var(--text-muted);
 }
 
@@ -533,7 +533,7 @@
 .chat-active-title {
   display: block;
   max-width: 420px;
-  font-size: 15px;
+  font-size: calc(15px * var(--ui-scale));
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
@@ -542,7 +542,7 @@
 
 /* 各页面顶栏左上角的页面标题：与主页的对话标题（.chat-active-title）同一套字号字重。 */
 .page-topbar-title {
-  font-size: 15px;
+  font-size: calc(15px * var(--ui-scale));
   font-weight: 600;
   white-space: nowrap;
 }
@@ -577,8 +577,8 @@
   overflow: auto;
 }
 .rename-conversation-dialog::backdrop { background: rgba(0, 0, 0, 0.35); }
-.rename-conversation-dialog h2 { margin: 0 0 20px; font-size: 18px; font-weight: 600; }
-.rename-conversation-dialog label { display: block; margin-bottom: 8px; font-size: 13px; }
+.rename-conversation-dialog h2 { margin: 0 0 20px; font-size: calc(18px * var(--ui-scale)); font-weight: 600; }
+.rename-conversation-dialog label { display: block; margin-bottom: 8px; font-size: calc(13px * var(--ui-scale)); }
 .rename-conversation-dialog input {
   width: 100%;
   padding: 9px 10px;
@@ -586,12 +586,12 @@
   border-radius: var(--radius-md);
   background: var(--bg-chat);
   color: var(--text-primary);
-  font-size: 14px;
+  font-size: calc(14px * var(--ui-scale));
 }
-.rename-conversation-hint { margin: 8px 0 0; font-size: 12px; color: var(--text-muted); }
-.rename-conversation-error { margin: 8px 0 0; font-size: 13px; color: var(--danger); }
+.rename-conversation-hint { margin: 8px 0 0; font-size: calc(12px * var(--ui-scale)); color: var(--text-muted); }
+.rename-conversation-error { margin: 8px 0 0; font-size: calc(13px * var(--ui-scale)); color: var(--danger); }
 .rename-conversation-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 24px; }
-.rename-conversation-actions button { padding: 8px 16px; border-radius: var(--radius-md); background: var(--bg-sidebar-hover); font-size: 13px; }
+.rename-conversation-actions button { padding: 8px 16px; border-radius: var(--radius-md); background: var(--bg-sidebar-hover); font-size: calc(13px * var(--ui-scale)); }
 .rename-conversation-actions .rename-conversation-save { color: white; background: var(--accent-blue); }
 .rename-conversation-actions button:hover { filter: brightness(0.95); }
 .rename-conversation-actions button:disabled { opacity: 0.5; cursor: default; }
@@ -616,13 +616,13 @@
   padding: 9px 12px;
   border-radius: var(--radius-sm);
   color: var(--text-primary);
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-scale));
   text-align: left;
 }
 .chat-actions-menu button:hover, .chat-actions-menu button:focus-visible { background: var(--bg-sidebar-hover); }
 .chat-actions-menu button:focus-visible, .chat-actions-anchor > button:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 2px; }
 .chat-actions-menu button[aria-disabled="true"] { color: var(--text-muted); cursor: default; }
-.chat-actions-error { margin: 4px 10px 6px; max-width: 240px; font-size: 12px; line-height: 1.4; color: var(--danger); }
+.chat-actions-error { margin: 4px 10px 6px; max-width: 240px; font-size: calc(12px * var(--ui-scale)); line-height: 1.4; color: var(--danger); }
 .chat-project-context {
   display: inline-flex;
   align-items: center;
@@ -630,7 +630,7 @@
   min-width: 0;
   max-width: 260px;
   color: var(--text-muted);
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-scale));
 }
 .chat-project-name,
 .chat-project-branch {
@@ -714,7 +714,7 @@
   gap: 9px;
   padding: 7px 9px;
   border-radius: var(--radius-md);
-  font-size: 15px;
+  font-size: calc(15px * var(--ui-scale));
   color: var(--text-secondary);
   text-align: left;
 }
@@ -790,7 +790,7 @@
   color: var(--text-secondary);
 }
 .empty-state h1 {
-  font-size: 15px;
+  font-size: calc(15px * var(--ui-scale));
   font-weight: 600;
   letter-spacing: -0.03em;
   color: var(--text-primary);
