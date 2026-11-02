@@ -1,149 +1,149 @@
 {
-  "version": "1.2.18",
+  "version": "1.2.19",
   "locales": {
     "en": {
-      "summary": "Vela 1.2.18 redesigns the models and accounts settings, adds disk usage cleanup and a background tasks card, and polishes the built-in browser.",
+      "summary": "Vela 1.2.19 adds custom interface and code font sizes, a new minimal logo and a Codex-style thinking group mode, and makes the composer adapt to narrow windows.",
       "highlights": [
         {
-          "title": "Models and accounts, redesigned",
-          "body": "Settings now lists connected and custom providers on the left and shows the account, endpoint and model list for the selected one on the right, with a separate add-provider view and bundled provider icons."
+          "title": "Custom font sizes",
+          "body": "Settings → Appearance now has separate sizes for the interface (11–15px) and for code (8–24px). Code blocks, diffs, commands and the terminal follow the code size, and the choice is applied before the first paint."
         },
         {
-          "title": "Storage usage and cleanup",
-          "body": "The storage page shows disk capacity and Vela’s usage by category, and lets you clean run traces, logs, update packages and cache, or delete a single conversation’s trace. Traces in use are always kept."
+          "title": "A new minimal logo",
+          "body": "The app icon is now a white tile with a black arm-and-sail V and no text, and the sidebar header shows the mark with a geometric VELΛ wordmark that follows the theme color."
         },
         {
-          "title": "Background tasks card",
-          "body": "A new info card and right-panel tab list the background shell commands that a conversation has started, so you can see what is still running."
+          "title": "Codex-style thinking groups",
+          "body": "A new thinking group mode shows only the tool calls, without a guide line, for a lighter and more compact view of what the agent did."
         },
         {
-          "title": "A better built-in browser",
-          "body": "Failed pages now show a full error page with retry, loading shows a progress bar, tabs display site favicons, and the blank page offers favorites shortcuts."
+          "title": "Composer fits narrow windows",
+          "body": "When the window gets narrow, the composer tray collapses step by step instead of overflowing, so the model, sandbox and other controls stay reachable."
         }
       ],
       "improvements": [
-        "SubAgents have their own enable switch, globally and per conversation. Turning it off blocks new subagents without stopping running ones or losing your count and nesting preferences.",
-        "Onboarding now has nine steps, including thinking summary and input prediction switches, info card and composer layout diagrams, and Settings → About & updates can redo it.",
-        "A new style setting controls the weight and color of chain-of-thought summary titles.",
-        "Drag across the trace timeline to select a span and jump to it in the event list.",
-        "The random theme generator follows readability rules and picks the better accent text color; compact tool-call text stays gray until you hover a clickable part.",
-        "Image scaling notes added by the SDK no longer appear in your own messages, and thinking indicators and command dots are better aligned."
+        "Serif reply text is slightly heavier, with a faint stroke for CJK serif fonts so that thin strokes stay readable.",
+        "The capsule composer on the start page has a faint edge shadow that lifts it off the background.",
+        "File type icons in workbench tabs are larger and easier to recognize.",
+        "Conversation titles are generated again with models that reject the temperature parameter, because it is no longer sent in title requests.",
+        "Font sizes across the interface scale from a single setting, so every panel follows the interface size you choose.",
+        "New interface text is available in all five interface languages."
       ]
     },
     "zh-CN": {
-      "summary": "Vela 1.2.18 重新设计了模型与账号设置，新增磁盘占用清理和后台任务卡片，并打磨了内置浏览器。",
+      "summary": "Vela 1.2.19 新增自定义界面和代码字号、极简新 Logo 与 Codex 风格的思考分组模式，并让输入框更好地适应窄窗口。",
       "highlights": [
         {
-          "title": "模型与账号全新设计",
-          "body": "设置页左侧列出已连接和自定义的提供商，右侧显示所选提供商的账号、端点和模型列表，并提供独立的添加提供商页面和内置的提供商图标。"
+          "title": "自定义字号",
+          "body": "设置 → 外观 新增界面字号（11–15px）和代码字号（8–24px）。代码块、差异、命令和终端跟随代码字号，且在首次绘制前就会生效。"
         },
         {
-          "title": "存储占用与清理",
-          "body": "存储页会显示磁盘容量和 Vela 按类别的占用，可清理运行轨迹、日志、更新包和缓存，也可删除单个对话的轨迹。正在使用的轨迹始终会保留。"
+          "title": "全新的极简 Logo",
+          "body": "应用图标改为白色底板上一个黑色的桅帆 V、不带文字；侧边栏顶部显示该标志和几何风格的 VELΛ 字标，并跟随主题颜色。"
         },
         {
-          "title": "后台任务卡片",
-          "body": "新增信息卡片和右侧面板标签页，列出对话启动的后台 shell 命令，方便查看哪些仍在运行。"
+          "title": "Codex 风格的思考分组",
+          "body": "新增思考分组模式，只显示工具调用，不带引导线，让代理做过的事看起来更轻量、更紧凑。"
         },
         {
-          "title": "更好用的内置浏览器",
-          "body": "页面加载失败时显示完整的错误页并可重试，加载时有进度条，标签页显示网站图标，空白页提供收藏夹快捷入口。"
+          "title": "输入框适配窄窗口",
+          "body": "窗口变窄时，输入框托盘会逐级折叠而不是溢出，模型、沙盒等控件始终可以点到。"
         }
       ],
       "improvements": [
-        "子代理新增独立的启用开关，可全局或按对话设置。关闭后不再启动新的子代理，但不会中断运行中的子代理，也不会丢失数量和嵌套偏好。",
-        "新手引导扩展为九步，包含思考摘要和输入预测开关、信息卡片与输入框布局示意图，并可在 设置 → 关于与更新 中重新引导。",
-        "新增样式设置，可调整思维链摘要标题的字重和颜色。",
-        "在轨迹时间线上拖选一段范围，即可跳转到事件列表中对应位置。",
-        "随机主题生成遵循可读性规则并选取更合适的强调色文字颜色；紧凑的工具调用文字在悬停可点击部分前保持灰色。",
-        "SDK 添加的图片缩放提示不再出现在你发送的消息中，思考指示器和命令圆点的对齐也更好。"
+        "衬线回复文字略微加粗，中文衬线字体还加了一层很淡的描边，让细笔画更清晰。",
+        "起始页的胶囊输入框增加了一圈很淡的边缘阴影，与背景更好地区分。",
+        "工作台标签页中的文件类型图标更大，更容易辨认。",
+        "会话标题请求不再发送不受支持的 temperature 参数，拒绝该参数的模型也能正常生成标题。",
+        "整个界面的字号由同一项设置统一缩放，所有面板都会跟随你选择的界面字号。",
+        "新增的界面文字提供全部五种界面语言。"
       ]
     },
     "zh-TW": {
-      "summary": "Vela 1.2.18 重新設計了模型與帳號設定，新增磁碟用量清理和背景任務卡片，並打磨了內建瀏覽器。",
+      "summary": "Vela 1.2.19 新增自訂介面與程式碼字級、極簡的新 Logo 與 Codex 風格的思考分組模式，並讓輸入框更能適應窄視窗。",
       "highlights": [
         {
-          "title": "模型與帳號全新設計",
-          "body": "設定頁左側列出已連線和自訂的供應商，右側顯示所選供應商的帳號、端點和模型清單，並提供獨立的新增供應商頁面和內建的供應商圖示。"
+          "title": "自訂字級",
+          "body": "設定 → 外觀 新增介面字級（11–15px）和程式碼字級（8–24px）。程式碼區塊、差異、指令和終端機跟隨程式碼字級，且在首次繪製前就會生效。"
         },
         {
-          "title": "儲存用量與清理",
-          "body": "儲存頁會顯示磁碟容量和 Vela 依類別的用量，可清理執行軌跡、記錄檔、更新包和快取，也可刪除單一對話的軌跡。使用中的軌跡一律保留。"
+          "title": "全新的極簡 Logo",
+          "body": "應用程式圖示改為白色底板上一個黑色的桅帆 V、不帶文字；側邊欄頂部顯示該標誌和幾何風格的 VELΛ 字標，並跟隨主題顏色。"
         },
         {
-          "title": "背景任務卡片",
-          "body": "新增資訊卡片和右側面板分頁，列出對話啟動的背景 shell 指令，方便查看哪些仍在執行。"
+          "title": "Codex 風格的思考分組",
+          "body": "新增思考分組模式，只顯示工具呼叫，不帶引導線，讓代理做過的事看起來更輕量、更緊湊。"
         },
         {
-          "title": "更好用的內建瀏覽器",
-          "body": "頁面載入失敗時顯示完整的錯誤頁並可重試，載入時有進度條，分頁顯示網站圖示，空白頁提供我的最愛捷徑。"
+          "title": "輸入框適配窄視窗",
+          "body": "視窗變窄時，輸入框托盤會逐級收合而不是溢出，模型、沙盒等控制項始終可以點到。"
         }
       ],
       "improvements": [
-        "子代理新增獨立的啟用開關，可全域或依對話設定。關閉後不再啟動新的子代理，但不會中斷執行中的子代理，也不會遺失數量和巢狀偏好。",
-        "新手引導擴充為九步，包含思考摘要和輸入預測開關、資訊卡片與輸入框版面示意圖，並可在 設定 → 關於與更新 中重新引導。",
-        "新增樣式設定，可調整思維鏈摘要標題的字重和顏色。",
-        "在軌跡時間軸上拖選一段範圍，即可跳到事件清單中對應位置。",
-        "隨機主題產生器遵循可讀性規則並選取更合適的強調色文字顏色；精簡的工具呼叫文字在懸停可點擊部分前維持灰色。",
-        "SDK 加入的圖片縮放提示不再出現在你送出的訊息中，思考指示器和指令圓點的對齊也更好。"
+        "襯線回覆文字略微加粗，中文襯線字體還加了一層很淡的描邊，讓細筆畫更清晰。",
+        "起始頁的膠囊輸入框增加了一圈很淡的邊緣陰影，與背景更好地區分。",
+        "工作台分頁中的檔案類型圖示更大，更容易辨認。",
+        "對話標題請求不再傳送不支援的 temperature 參數，拒絕該參數的模型也能正常產生標題。",
+        "整個介面的字級由同一項設定統一縮放，所有面板都會跟隨你選擇的介面字級。",
+        "新增的介面文字提供全部五種介面語言。"
       ]
     },
     "ja": {
-      "summary": "Vela 1.2.18 では、モデルとアカウントの設定を刷新し、ディスク使用量のクリーンアップとバックグラウンドタスクカードを追加し、内蔵ブラウザーを磨き上げました。",
+      "summary": "Vela 1.2.19 では、インターフェースとコードの文字サイズを自由に変えられるようになり、ミニマルな新ロゴと Codex 風の思考グループ表示を追加し、入力欄が狭いウィンドウにも対応しました。",
       "highlights": [
         {
-          "title": "モデルとアカウントを刷新",
-          "body": "設定の左側に接続済みとカスタムのプロバイダーを並べ、右側に選択したプロバイダーのアカウント、エンドポイント、モデル一覧を表示します。プロバイダー追加は別画面になり、プロバイダーアイコンも同梱しました。"
+          "title": "文字サイズを自由に設定",
+          "body": "設定 → 外観に、インターフェース（11～15px）とコード（8～24px）の文字サイズを追加しました。コードブロック、差分、コマンド、ターミナルはコードのサイズに従い、最初の描画の前から反映されます。"
         },
         {
-          "title": "ストレージ使用量とクリーンアップ",
-          "body": "ストレージのページにディスク容量と Vela のカテゴリ別使用量を表示し、実行トレース、ログ、更新パッケージ、キャッシュを削除したり、1 つの会話のトレースだけを削除したりできます。使用中のトレースは常に保持されます。"
+          "title": "ミニマルな新ロゴ",
+          "body": "アプリアイコンは、白いタイルに黒い帆の V だけを置いた文字なしのデザインになりました。サイドバー上部にはこのマークと幾何学的な VELΛ のロゴタイプが表示され、テーマの色に追従します。"
         },
         {
-          "title": "バックグラウンドタスクカード",
-          "body": "新しい情報カードと右パネルのタブに、会話が起動したバックグラウンドのシェルコマンドが一覧表示され、実行中のものがわかります。"
+          "title": "Codex 風の思考グループ",
+          "body": "ガイド線なしでツール呼び出しだけを表示する思考グループ表示を追加しました。エージェントの作業を軽く、コンパクトに確認できます。"
         },
         {
-          "title": "内蔵ブラウザーを改善",
-          "body": "読み込みに失敗したページには再試行付きのエラーページを表示し、読み込み中は進捗バーを表示します。タブにはサイトのファビコンが表示され、空白ページにはお気に入りのショートカットが並びます。"
+          "title": "入力欄が狭い幅に対応",
+          "body": "ウィンドウが狭くなると、入力欄のトレイがはみ出さずに段階的に折りたたまれ、モデルやサンドボックスなどの操作に常に手が届きます。"
         }
       ],
       "improvements": [
-        "サブエージェントに独立した有効化スイッチを追加しました。全体でも会話ごとでも設定でき、オフにしても実行中のサブエージェントは止まらず、数やネストの設定も保持されます。",
-        "オンボーディングが 9 ステップになり、思考サマリーと入力予測のスイッチ、情報カードと入力欄のレイアウト図が加わりました。設定 → アプリ情報とアップデート からやり直せます。",
-        "思考の連鎖サマリーのタイトルの太さと色を変える外観設定を追加しました。",
-        "トレースのタイムラインをドラッグして範囲を選ぶと、イベント一覧の該当位置にジャンプできます。",
-        "ランダムテーマ生成が可読性のルールに従い、より読みやすいアクセント文字色を選ぶようになりました。コンパクトなツール呼び出しのテキストは、クリックできる部分にホバーするまでグレーのままです。",
-        "SDK が付ける画像縮小の注記が自分のメッセージに表示されなくなり、思考インジケーターとコマンドのドットの位置も整いました。"
+        "セリフ体の返信テキストをわずかに太くし、日本語のセリフ体にはごく薄い縁取りを加えて、細い線も読みやすくしました。",
+        "開始ページのカプセル型入力欄に、ごく薄い縁の影を加えて背景から浮かせました。",
+        "ワークベンチのタブにあるファイル種別アイコンを大きくし、見分けやすくしました。",
+        "会話タイトルのリクエストでサポートされない temperature を送らなくなり、このパラメーターを拒否するモデルでもタイトルが生成されます。",
+        "インターフェース全体の文字サイズを 1 つの設定でまとめて拡大縮小するため、すべてのパネルが選択したサイズに従います。",
+        "新しい画面テキストは 5 つの表示言語すべてで利用できます。"
       ]
     },
     "ko": {
-      "summary": "Vela 1.2.18은 모델 및 계정 설정을 새로 디자인하고, 디스크 사용량 정리와 백그라운드 작업 카드를 추가했으며, 내장 브라우저를 다듬었습니다.",
+      "summary": "Vela 1.2.19는 인터페이스와 코드 글꼴 크기를 직접 정할 수 있게 하고, 미니멀한 새 로고와 Codex 스타일 생각 그룹 모드를 추가했으며, 입력창이 좁은 창에도 맞게 조절됩니다.",
       "highlights": [
         {
-          "title": "모델 및 계정 새 디자인",
-          "body": "설정 왼쪽에 연결된 제공자와 사용자 지정 제공자를 나열하고, 오른쪽에 선택한 제공자의 계정, 엔드포인트, 모델 목록을 보여 줍니다. 제공자 추가는 별도 화면이며 제공자 아이콘도 포함되어 있습니다."
+          "title": "글꼴 크기 직접 설정",
+          "body": "설정 → 모양에 인터페이스(11~15px)와 코드(8~24px) 글꼴 크기가 추가되었습니다. 코드 블록, 차이점, 명령, 터미널은 코드 크기를 따르며 첫 화면이 그려지기 전에 적용됩니다."
         },
         {
-          "title": "저장 공간 사용량과 정리",
-          "body": "저장 공간 페이지에 디스크 용량과 Vela의 범주별 사용량이 표시되며, 실행 트레이스, 로그, 업데이트 패키지, 캐시를 정리하거나 한 대화의 트레이스만 삭제할 수 있습니다. 사용 중인 트레이스는 항상 유지됩니다."
+          "title": "미니멀한 새 로고",
+          "body": "앱 아이콘은 흰색 타일 위에 검은 돛 모양 V만 있는 글자 없는 디자인으로 바뀌었습니다. 사이드바 상단에는 이 마크와 기하학적인 VELΛ 워드마크가 표시되며 테마 색을 따릅니다."
         },
         {
-          "title": "백그라운드 작업 카드",
-          "body": "새 정보 카드와 오른쪽 패널 탭에 대화가 시작한 백그라운드 셸 명령이 나열되어 아직 실행 중인 작업을 확인할 수 있습니다."
+          "title": "Codex 스타일 생각 그룹",
+          "body": "안내선 없이 도구 호출만 보여 주는 생각 그룹 모드가 추가되어 에이전트가 한 일을 더 가볍고 간결하게 볼 수 있습니다."
         },
         {
-          "title": "더 나아진 내장 브라우저",
-          "body": "불러오기에 실패한 페이지는 다시 시도 버튼이 있는 전체 오류 페이지로 표시되고, 로딩 중에는 진행 막대가 나타납니다. 탭에 사이트 파비콘이 표시되며 빈 페이지에는 즐겨찾기 바로가기가 있습니다."
+          "title": "좁은 창에 맞는 입력창",
+          "body": "창이 좁아지면 입력창 트레이가 넘치지 않고 단계적으로 접혀, 모델과 샌드박스 등의 컨트롤을 항상 누를 수 있습니다."
         }
       ],
       "improvements": [
-        "하위 에이전트에 독립적인 사용 스위치가 생겼습니다. 전체 또는 대화별로 설정할 수 있으며, 꺼도 실행 중인 에이전트는 멈추지 않고 개수와 중첩 설정도 유지됩니다.",
-        "온보딩이 9단계로 늘어 생각 요약 및 입력 예측 스위치, 정보 카드와 입력창 레이아웃 그림이 추가되었습니다. 설정 → 정보 및 업데이트에서 다시 진행할 수 있습니다.",
-        "생각의 사슬 요약 제목의 굵기와 색을 조정하는 스타일 설정이 추가되었습니다.",
-        "트레이스 타임라인을 드래그해 구간을 선택하면 이벤트 목록의 해당 위치로 이동합니다.",
-        "무작위 테마 생성기가 가독성 규칙을 따르며 더 읽기 좋은 강조색 글자색을 고릅니다. 간결한 도구 호출 텍스트는 클릭할 수 있는 부분에 마우스를 올리기 전까지 회색으로 유지됩니다.",
-        "SDK가 붙이는 이미지 축소 안내가 내 메시지에 더 이상 표시되지 않으며, 생각 표시기와 명령 점의 정렬도 개선되었습니다."
+        "세리프 답변 글자가 약간 굵어졌고, 한중일 세리프 글꼴에는 아주 옅은 윤곽선을 더해 가는 획도 또렷하게 보입니다.",
+        "시작 페이지의 캡슐형 입력창에 아주 옅은 가장자리 그림자를 더해 배경과 구분되게 했습니다.",
+        "작업 공간 탭의 파일 형식 아이콘이 더 커져 알아보기 쉬워졌습니다.",
+        "대화 제목 요청에서 지원되지 않는 temperature를 더 이상 보내지 않아, 이 매개변수를 거부하는 모델에서도 제목이 생성됩니다.",
+        "인터페이스 전체의 글꼴 크기가 하나의 설정으로 함께 조절되어 모든 패널이 선택한 인터페이스 크기를 따릅니다.",
+        "새 인터페이스 텍스트는 5개 인터페이스 언어를 모두 지원합니다."
       ]
     }
   }
