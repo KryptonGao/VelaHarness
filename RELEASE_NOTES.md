@@ -1,24 +1,20 @@
-# Vela 1.2.18
+# Vela 1.2.19
 
-Vela 1.2.18 redesigns the models and accounts settings, adds storage usage cleanup and a background tasks card, and polishes the built-in browser, onboarding and appearance options.
+Vela 1.2.19 adds custom interface and code font sizes, a new minimal logo and a Codex-style thinking group mode, and makes the composer adapt to narrow windows.
 
 ## New
 
-- **Redesigned models and accounts settings**: connected built-in providers and custom providers are listed on the left, with the account, endpoint and model list of the selected provider on the right. Adding a provider has its own view, provider icons are bundled, and model vision support is shown.
-- **Storage usage and cleanup**: the storage settings page shows disk capacity immediately and Vela’s usage by category (conversations, run traces, subagents, checkpoints, skills, worktrees, logs, updates, cache). Traces, logs, update packages and app cache can be cleaned, and a single conversation’s trace can be deleted. Traces in use are always kept.
-- **Background tasks card**: a new info card and right-panel tab list the background shell commands started by a conversation.
-- **Built-in browser**: failed pages show a full error page with retry, a loading bar shows progress, tabs display site favicons, and the blank page offers favorites shortcuts. The address bar has a subtler focus state and a larger font.
-- **Independent SubAgents switch**: SubAgents can be enabled or disabled globally and per conversation. Disabling blocks new subagents without stopping running ones, and count and nesting preferences are preserved.
-- **Style setting for thinking titles**: choose the weight and color of chain-of-thought summary titles.
-- **Trace timeline selection**: drag across the trace timeline to select a span and jump to it in the event list.
-- **Random theme generator**: generates themes under readability rules and picks the better accent text color.
+- **Custom font sizes**: **Settings → Appearance** now has separate sizes for the interface (11–15px) and for code (8–24px). Font sizes across the interface scale from these two settings, monospace text (code blocks, diffs, commands and the terminal) follows the code size, and the choice is applied before the first paint.
+- **New minimal logo**: the app icon is now a white tile with a black arm-and-sail V and no text. The sidebar header shows the mark with a geometric VELΛ wordmark that follows the theme color.
+- **Codex-style thinking groups**: a new thinking group mode shows only the tool calls, without a guide line, for a lighter and more compact view of what the agent did.
+- **Composer fits narrow windows**: the composer tray now collapses step by step on narrow widths instead of overflowing, so the model, sandbox and other controls stay reachable.
 
 ## Improved
 
-- **Onboarding**: now nine steps, with thinking summary and input prediction switches, info card layout, composer layout diagrams and the interactive UI preference. **Settings → About & updates** can redo onboarding.
-- **Compact tool calls**: compact tool-call text stays gray until a clickable segment is hovered, status colors stay gray until row hover, and monospace is used for command text only.
-- **Thinking indicators**: compact thinking bulbs now appear in standalone subagent panes, bulbs are aligned, thought-title colors are softer, and command animation dots are inset without changing the click target.
-- **Cleaner messages**: image scaling notes added by the SDK no longer appear in the displayed text of your messages.
+- **Serif reply text**: slightly heavier, with a faint stroke for CJK serif fonts so that thin strokes stay readable.
+- **Start page**: the capsule composer has a faint edge shadow that lifts it off the background.
+- **Workbench tabs**: file type icons are larger and easier to recognize.
+- **Conversation titles**: title requests no longer send an unsupported `temperature` parameter, so titles are generated again with models that reject it.
 - New interface text is available in all five interface languages.
 
 ## Upgrade
@@ -33,17 +29,17 @@ The macOS build is not notarized and uses an ad-hoc signature. If macOS blocks f
 
 | File | Platform |
 | --- | --- |
-| `Vela-1.2.18-arm64.dmg` | macOS Apple Silicon installer |
-| `Vela-1.2.18-arm64.zip` | macOS Apple Silicon application bundle (`.app`); also the package used by in-app updates |
+| `Vela-1.2.19-arm64.dmg` | macOS Apple Silicon installer |
+| `Vela-1.2.19-arm64.zip` | macOS Apple Silicon application bundle (`.app`); also the package used by in-app updates |
 | `SHA256SUMS.txt` | SHA-256 checksums for both packages |
 | `SHA256SUMS.txt.sig` | Ed25519 signature of `SHA256SUMS.txt`, verified by the in-app updater |
 
-Package version: `1.2.18`. macOS bundle and download version: `1.2.18`.
+Package version: `1.2.19`. macOS bundle and download version: `1.2.19`.
 
 ## Validation
 
-- Release metadata verified: all package and macOS bundle version fields are `1.2.18`; all five in-app release-note languages contain four highlights and six improvements.
+- Release metadata verified: all package and macOS bundle version fields are `1.2.19`; all five in-app release-note languages contain four highlights and six improvements.
 - Production build and macOS arm64 packaging completed (`pnpm package:mac`); bundled in-app release notes match the source file.
-- The application bundle reports version `1.2.18` and identifier `com.vela.desktop`. The ZIP was extracted and contains a single `Vela.app` at version `1.2.18`; the DMG checksum verified.
+- The application bundle reports version `1.2.19` and identifier `com.vela.desktop`. The ZIP was extracted and contains a single `Vela.app` at version `1.2.19`; the DMG checksum verified.
 - Signed SHA-256 checksums were generated (`pnpm sign:release`). The signature was verified using the application’s `verifySignature` function and built-in `updatePublicKeys`, and both package hashes were recomputed and match.
 - The automated test suites were not run for this release.
