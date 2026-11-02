@@ -506,6 +506,7 @@
   font-family: var(--font-reply);
   font-size: calc(15px * var(--ui-scale));
   font-weight: var(--font-reply-weight);
+  -webkit-text-stroke: var(--font-reply-stroke) currentColor;
   line-height: 1.75;
 }
 /* 标题左边的灰色图标:折叠后按汇总的首个动作变化,进行中是思考图标;不随工具图标配色开关变色。 */

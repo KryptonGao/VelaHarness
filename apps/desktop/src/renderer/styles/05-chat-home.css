@@ -337,6 +337,7 @@
   color: var(--text-primary);
   font-size: calc(15px * var(--ui-scale));
   font-weight: var(--font-reply-weight);
+  -webkit-text-stroke: var(--font-reply-stroke) currentColor;
   line-height: 1.75;
 }
 

@@ -24,6 +24,7 @@
   --font-reply: var(--font-reply-latin), var(--font-reply-cjk), system-ui, "Segoe UI", sans-serif;
   /* 回复正文和连贯模式的分组标题共用,两者字重始终一致。 */
   --font-reply-weight: 500;
+  --font-reply-stroke: 0;
   --font-mono: "SF Mono", ui-monospace, Menlo, Monaco, Consolas, monospace;
   /* 界面/代码字号比例,由设置里的字号换算而来(见 font-size.ts);1 即原始大小。 */
   --ui-scale: 1;
@@ -58,6 +59,15 @@
 :root[data-reply-font-latin="serif"] { --font-reply-latin: var(--font-latin-serif); }
 :root[data-reply-font-cjk="sans"] { --font-reply-cjk: var(--font-cjk-sans); }
 :root[data-reply-font-cjk="serif"] { --font-reply-cjk: var(--font-cjk-serif); }
+/*
+ * 明体偏细,回复正文再加粗一点:西文用 Anthropic Serif 的 Semibold(没装则 Georgia 的 Bold,较重,
+ * 可接受)。明体中文(宋体/明朝)只有 Regular 和 Bold 两档,600 会直接跳到 Bold,
+ * 所以含明体中文时字重保持 500,改用极细的描边补出半档粗细。回复字体选「沿用界面」时看界面字体。
+ */
+:root[data-reply-font-latin="serif"],
+:root[data-reply-font-latin="inherit"][data-ui-font-latin="serif"] { --font-reply-weight: 600; }
+:root[data-reply-font-cjk="serif"],
+:root[data-reply-font-cjk="inherit"][data-ui-font-cjk="serif"] { --font-reply-weight: 500; --font-reply-stroke: 0.3px; }
 
 /*
  * 主题:data-scheme 决定明暗基底,data-theme 在基底上覆盖配色。
