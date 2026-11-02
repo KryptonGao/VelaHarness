@@ -125,6 +125,7 @@ export function ConversationDisplayPage({
   const thinkingGroupModeOptions: { id: ThinkingGroupMode; label: string }[] = [
     { id: "single", label: text.thinkingGroupModeSingle },
     { id: "coherent", label: text.thinkingGroupModeCoherent },
+    { id: "codex", label: text.thinkingGroupModeCodex },
   ];
   const thinkingSummaryStyleOptions: { id: ThinkingSummaryStyle; label: string }[] = [
     { id: "inline", label: text.thinkingSummaryStyleInline },

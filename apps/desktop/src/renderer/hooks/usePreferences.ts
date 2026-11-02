@@ -46,8 +46,8 @@ export type ToolFold = "message" | "position" | "none";
 export type ToolIconColor = "color" | "theme" | "gray";
 /** 思考总结的展示方式:跟在“思考”后面、替换“思考”作为标题、或跟随回复正文样式。 */
 export type ThinkingSummaryStyle = "inline" | "headline" | "prose";
-/** 思考分组方式:每次 CoT 总结自成一组(默认),或以正式回复为界、回复之间的过程合成一组。 */
-export type ThinkingGroupMode = "single" | "coherent";
+/** 思考分组方式:每次 CoT 总结自成一组(默认),或以正式回复为界、回复之间的过程合成一组;codex 在连贯分组的基础上不展示 CoT 总结正文,也没有引导线。 */
+export type ThinkingGroupMode = "single" | "coherent" | "codex";
 /** 思考总结标题的字重与颜色:黑色跟随主题正文色,灰色是默认的弱化色。 */
 export type ThinkingTitleStyle = "bold-dark" | "bold-muted" | "normal-dark" | "normal-muted";
 /** 半透明玻璃上叠的颜色:当前主题色、按明暗固定的白/黑、或不叠色。 */
@@ -178,7 +178,7 @@ function isToolFold(value: unknown): value is ToolFold {
 }
 
 function isThinkingGroupMode(value: unknown): value is ThinkingGroupMode {
-  return value === "single" || value === "coherent";
+  return value === "single" || value === "coherent" || value === "codex";
 }
 
 function isThinkingTitleStyle(value: unknown): value is ThinkingTitleStyle {

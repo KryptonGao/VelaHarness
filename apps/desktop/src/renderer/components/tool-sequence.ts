@@ -166,6 +166,11 @@ export function isFlatCoherentGroup(entries: readonly CoherentEntry[]): boolean 
   return entries.filter((entry) => entry.type === "tool").length <= COHERENT_FLAT_MAX;
 }
 
+/** Codex 风格不展示思考总结,分组里没有工具时展开后没有内容,结束后不必保留标题。 */
+export function hasCoherentTools(entries: readonly CoherentEntry[]): boolean {
+  return entries.some((entry) => entry.type === "tool");
+}
+
 export function coherentActions(entries: readonly CoherentEntry[]): CoherentAction[] {
   const found = new Set<CoherentAction>();
   for (const entry of entries) {

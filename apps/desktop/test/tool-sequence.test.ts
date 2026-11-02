@@ -10,6 +10,7 @@ import {
   groupAgentStream,
   groupCoherentItems,
   groupProcessItems,
+  hasCoherentTools,
   isFlatCoherentGroup,
   latestThoughtId,
   shouldFoldRun,
@@ -369,6 +370,14 @@ describe("coherentActions", () => {
     assert.equal(isFlatCoherentGroup(entriesOf(0)), true);
     assert.equal(isFlatCoherentGroup(entriesOf(3)), true);
     assert.equal(isFlatCoherentGroup(entriesOf(4)), false);
+  });
+
+  it("tells whether a group has any tool call to show", () => {
+    const entriesOf = (count: number) => groupCoherentItems(buildTurnItems([
+      message("m", { thinking: "**Plan**\n\nx", tools: Array.from({ length: count }, (_, index) => tool("read", `r${index}`)) }),
+    ])).flatMap((node) => node.type === "group" ? node.entries : []);
+    assert.equal(hasCoherentTools(entriesOf(0)), false);
+    assert.equal(hasCoherentTools(entriesOf(1)), true);
   });
 });
 

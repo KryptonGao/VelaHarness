@@ -37,6 +37,7 @@ export function Thinking({
   stat = null,
   forceOpen = false,
   coherent = false,
+  codex = false,
   leadingIcon,
   children,
 }: {
@@ -56,6 +57,8 @@ export function Thinking({
   forceOpen?: boolean;
   /** 连贯模式:标题是整组的汇总而不是某段思考的标题,前面不放思考图标,内容全部由 children 提供。 */
   coherent?: boolean;
+  /** Codex 风格:展开后只有工具调用,不画左侧引导线。 */
+  codex?: boolean;
   /** 连贯模式标题左边的灰色图标,随汇总的首个动作变化。 */
   leadingIcon?: ReactNode;
   children?: ReactNode;
@@ -336,7 +339,7 @@ export function Thinking({
     </div>
   ) : null;
   return (
-    <div className={`time-spent-collapsible thinking-block${open ? " expanded" : ""}${coherent ? " is-coherent" : ""}`}>
+    <div className={`time-spent-collapsible thinking-block${open ? " expanded" : ""}${coherent ? " is-coherent" : ""}${codex ? " is-codex" : ""}`}>
       {groupHeader ?? headline ?? prose ?? (
         <div className="thinking-header">
           <button className={`time-spent-trigger${showActivity ? " is-running" : ""}`} type="button" aria-expanded={open} aria-controls={bodyId} onClick={toggle}>
@@ -515,12 +518,15 @@ export function CoherentGroup({
   live,
   showActivityIndicator,
   forceOpen,
+  codex = false,
   children,
 }: {
   entries: readonly CoherentEntry[];
   live: boolean;
   showActivityIndicator: boolean;
   forceOpen?: boolean;
+  /** Codex 风格:思考总结只出现在进行中的标题上,展开后没有引导线。 */
+  codex?: boolean;
   children?: ReactNode;
 }) {
   const locale = useAppLocale();
@@ -540,6 +546,7 @@ export function CoherentGroup({
       live={live}
       forceOpen={forceOpen}
       coherent
+      codex={codex}
     >
       {children}
     </Thinking>

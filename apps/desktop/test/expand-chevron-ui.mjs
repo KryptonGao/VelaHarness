@@ -51,13 +51,14 @@ if (!process.versions.electron) {
           const summary = {enabled: true, style: 'prose', get: () => name === 'deepseekMissing' ? undefined : ({status: 'done', text: 'Summary text.'}), request: () => {}};
           const thought = <CoherentThought text={'**Review changes**\\n\\nThinking body.'} active={false} expanded={false} />;
           const raw = Array.from({length: 100}, (_, i) => 'Raw reasoning paragraph ' + i + '.').join('\\n\\n');
-          const modelCase = ['deepseek', 'deepseekMissing', 'gpt', 'gptMulti', 'gptRaw', 'legacy', 'mixed', 'gptName', 'gptNameSingle', 'idContainsGpt', 'oModel', 'otherProvider'].includes(name);
+          const modelCase = ['deepseek', 'deepseekMissing', 'gpt', 'gptMulti', 'gptRaw', 'legacy', 'mixed', 'gptName', 'gptNameSingle', 'idContainsGpt', 'gptCodex', 'oModel', 'otherProvider'].includes(name);
           const model = ['gptName', 'gptNameSingle', 'otherProvider'].includes(name) ? 'custom-alias' : name === 'idContainsGpt' ? 'myGpTalias' : name === 'oModel' ? 'o3' : name.startsWith('gpt') ? 'gpt-6.1' : name === 'legacy' ? undefined : 'deepseek-reasoner';
           const messages = [{id: 'raw', role: 'assistant', model, provider: name === 'otherProvider' ? 'other' : 'custom', thinking: (name === 'gptRaw' ? '' : '**Planning**\\n\\n') + raw, text: 'Done.', tools: []}];
+          if (name === 'gptCodex') messages[0].tools = Array.from({length: 4}, (_, i) => ({...bash, id: 'codex-' + i}));
           if (name === 'gptMulti') messages[0].thinking = '**Review changes**\\n\\n**Verify the fix**';
           if (name === 'mixed') messages.push({id: 'gpt', role: 'assistant', model: 'gpt-6.1', thinking: '**GPT summary**\\n\\nShort body.', text: 'GPT done.', tools: []});
           const agent = {id: 'agent', name: 'fixture', path: '/root/fixture', kind: 'worker', status: 'completed', depth: 1, usage: {input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0}, activeMs: 0, runningSince: null};
-          const content = modelCase ? <ThinkingModelCatalogContext.Provider value={[{id: 'custom-alias', provider: 'custom', name: 'My GpT Model'}, {id: 'custom-alias', provider: 'other', name: 'DeepSeek'}]}><ThinkingGroupModeContext.Provider value={name === 'gptNameSingle' ? 'single' : 'coherent'}><ThinkingSummaryContext.Provider value={summary}>
+          const content = modelCase ? <ThinkingModelCatalogContext.Provider value={[{id: 'custom-alias', provider: 'custom', name: 'My GpT Model'}, {id: 'custom-alias', provider: 'other', name: 'DeepSeek'}]}><ThinkingGroupModeContext.Provider value={name === 'gptNameSingle' ? 'single' : name === 'gptCodex' ? 'codex' : 'coherent'}><ThinkingSummaryContext.Provider value={summary}>
               <AgentPane agent={agent} agents={[agent]} messages={messages} ensureMessages={() => {}} onSwitch={() => {}} onControl={() => {}} toolDisplay={display} />
             </ThinkingSummaryContext.Provider></ThinkingGroupModeContext.Provider></ThinkingModelCatalogContext.Provider>
             : name === 'commandOrb' || name === 'thinkingOrb' ? <button className="chat-jump-latest" data-visible="true"><JumpOrb activity={name === 'commandOrb' ? 'command' : 'thinking'} running /></button>
@@ -155,10 +156,22 @@ if (!process.versions.electron) {
           assert.ok(geometry.centered, `${currentCase}: animation stays centered`);
           if (name === 'commandOrb') assert.ok(geometry.gap >= 6, `${currentCase}: all four-dot styles keep at least 6px from the circular border (${geometry.gap})`);
         }
-        for (const name of ['deepseek', 'deepseekMissing', 'legacy', 'mixed', 'gpt', 'gptMulti', 'gptRaw', 'gptName', 'gptNameSingle', 'idContainsGpt', 'oModel', 'otherProvider']) {
+        for (const name of ['deepseek', 'deepseekMissing', 'legacy', 'mixed', 'gpt', 'gptMulti', 'gptRaw', 'gptName', 'gptNameSingle', 'idContainsGpt', 'gptCodex', 'oModel', 'otherProvider']) {
           currentCase = scheme + '/' + name;
           await evaluate(`window.renderCase(${JSON.stringify(name)}, ${JSON.stringify(scheme)})`);
           await until("document.querySelector('.assistant-block')");
+          if (name === 'gptCodex') {
+            assert.equal(await evaluate("document.querySelectorAll('.coherent-thought, .coherent-flat').length"), 0, 'Codex style shows no per-thought summaries and never flattens');
+            assert.equal(await evaluate("document.querySelector('.thinking-headline-trigger').title"), '运行了命令', 'finished group title sums up the actions');
+            await evaluate("document.querySelector('.thinking-headline-trigger').click()");
+            await until("document.querySelector('.thinking-block.is-codex.expanded .thinking-group-rail')");
+            assert.equal(await evaluate("getComputedStyle(document.querySelector('.thinking-group-rail')).borderLeftWidth"), '0px', 'Codex style draws no guide line');
+            assert.equal(await evaluate("document.querySelector('.thinking-group-rail').textContent.includes('Planning')"), false, 'expanded group has no summary text');
+            const lefts = await evaluate("(() => { const edge = (selector, side) => document.querySelector(selector).getBoundingClientRect()[side]; return {left: [edge('.thinking-headline-trigger', 'left'), edge('.thinking-group-rail .tool-card-list', 'left')], right: [edge('.thinking-headline-trigger', 'right'), edge('.thinking-group-rail .tool-card-list', 'right')]}; })()");
+            assert.ok(Math.abs(lefts.left[0] - lefts.left[1]) < 1, `${currentCase}: tool list starts at the title's left edge (${lefts.left})`);
+            assert.ok(Math.abs(lefts.right[0] - lefts.right[1]) < 1, `${currentCase}: tool list spans to the title's right edge (${lefts.right})`);
+            continue;
+          }
           if (['gpt', 'gptMulti', 'gptName', 'gptNameSingle', 'idContainsGpt'].includes(name)) {
             assert.equal(await evaluate("document.querySelector('.agent-pane').closest('.main-chat-view')"), null, 'agent fixture is independent of the main chat');
             const icons = await evaluate("Array.from(document.querySelectorAll('.agent-pane .thinking-icon')).map(icon => ({display: getComputedStyle(icon).display, width: icon.getBoundingClientRect().width, svg: Boolean(icon.querySelector('svg')), hidden: icon.getAttribute('aria-hidden')}))");

@@ -16,11 +16,11 @@ import {
 import { Markdown } from "./Markdown";
 import { AssistantMarkdown } from "./intelligent-ui/AssistantMarkdown";
 import { CoherentGroup, CoherentThought, ThinkingGroup } from "./Thinking";
-import { useNamedThinkingMessages, useThinkingGroupMode } from "./ThinkingGroupModeContext";
+import { groupsByReply, useNamedThinkingMessages, useThinkingGroupMode } from "./ThinkingGroupModeContext";
 import { partitionThinkingGroups, supportsThinkingGroups } from "../thinking-model";
 import { CompactToolGroup, CompactToolLine, ToolCard, ToolList, ToolRunGroup } from "./ToolCard";
 import { toolCompactKind } from "./tool-compact";
-import { attachFollowerTools, buildTurnItems, groupAgentStream, groupCoherentItems, groupProcessItems, isFlatCoherentGroup, latestThoughtId, type CoherentNode, type ProcessNode } from "./tool-sequence";
+import { attachFollowerTools, buildTurnItems, groupAgentStream, groupCoherentItems, groupProcessItems, hasCoherentTools, isFlatCoherentGroup, latestThoughtId, type CoherentNode, type ProcessNode } from "./tool-sequence";
 import { BranchIcon } from "./icons";
 import { JumpOrb } from "./JumpOrb";
 import type { OrbActivity } from "./jump-orb";
@@ -78,7 +78,7 @@ function VisibleAgentPane({
 }: AgentPaneProps & { follow: MutableRefObject<AgentFollow> }) {
   const storedMessages = useMessages(messageStore, conversationId, agent.id);
   const messages = useNamedThinkingMessages(messageStore ? storedMessages : providedMessages ?? emptyMessages);
-  const coherent = useThinkingGroupMode() === "coherent" && messages.some(supportsThinkingGroups);
+  const coherent = groupsByReply(useThinkingGroupMode()) && messages.some(supportsThinkingGroups);
   const positional = toolFold === "position" || coherent;
   // 按位置折叠或连贯模式时由 AgentProcessSequence 自己归组;否则把没有思考的后续几轮的工具并进前一段标题思考。
   const units = useMemo(() => positional ? null : attachFollowerTools(messages), [messages, positional]);
@@ -437,7 +437,7 @@ const AgentStreamMessage = memo(function AgentStreamMessage({
  * 相邻工具跨消息合并成一组;思考、可见正文和不可折叠的工具都会打断分组。
  */
 const AgentProcessSequence = memo(function AgentProcessSequence(props: Omit<Parameters<typeof ModelAgentProcessSequence>[0], "coherent">) {
-  const enabled = useThinkingGroupMode() === "coherent";
+  const enabled = groupsByReply(useThinkingGroupMode());
   const sections = useMemo(() => partitionThinkingGroups(props.messages, enabled), [props.messages, enabled]);
   return <>{sections.map(section => (
     <ModelAgentProcessSequence {...props} key={section.id} messages={section.messages} coherent={section.coherent}
@@ -458,6 +458,7 @@ function ModelAgentProcessSequence({
 }) {
   const display = toolDisplay ?? "card";
   const compact = display === "compact";
+  const codex = useThinkingGroupMode() === "codex";
   const items = useMemo(() => buildTurnItems(messages), [messages]);
   const nodes = useMemo(() => coherent ? [] : groupProcessItems(items, display), [coherent, items, display]);
   const coherentNodes = useMemo(() => coherent ? groupCoherentItems(items) : [], [coherent, items]);
@@ -492,6 +493,8 @@ function ModelAgentProcessSequence({
     const tools = node.entries.flatMap((entry) => entry.type === "tool" ? [entry.tool] : []);
     const activeMessage = streamingId ? messageById.get(streamingId) : undefined;
     const live = Boolean(streamingId && (tools.some((tool) => tool.status === "running") || (last && !activeMessage?.text)));
+    // Codex 风格:总结只出现在进行中的标题上,没有工具的分组结束后不再保留。
+    if (codex && !live && !hasCoherentTools(node.entries)) return null;
     const latestId = latestThoughtId(node.entries);
     const content: ReactNode[] = [];
     let run: Extract<ProcessNode, { type: "tool" }>[] = [];
@@ -505,6 +508,7 @@ function ModelAgentProcessSequence({
         run.push(entry);
         continue;
       }
+      if (codex) continue;
       flushRun();
       const message = messageById.get(entry.messageId);
       content.push(
@@ -519,12 +523,12 @@ function ModelAgentProcessSequence({
     }
     flushRun();
     // 步骤很少的分组没必要折叠,思考和工具直接平铺。
-    if (isFlatCoherentGroup(node.entries)) {
+    if (!codex && isFlatCoherentGroup(node.entries)) {
       return <div key={`group:${node.id}`} className="coherent-flat" data-arrival-key={`${node.messageId}:thinking`}>{content}</div>;
     }
     return (
       <div key={`group:${node.id}`} data-arrival-key={`${node.messageId}:thinking`}>
-        <CoherentGroup entries={node.entries} live={live} showActivityIndicator={compact}>
+        <CoherentGroup entries={node.entries} live={live} showActivityIndicator={compact} codex={codex}>
           {content}
         </CoherentGroup>
       </div>

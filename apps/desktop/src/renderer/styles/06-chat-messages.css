@@ -478,6 +478,13 @@
   );
 }
 .thinking-group-rail > .tool-card-list { margin: 0; }
+/* Codex 风格:展开后只有工具行,不画左侧引导线,也不再缩进;左右边缘都与标题行对齐,宽度向两侧撑满。 */
+.thinking-block.is-codex .thinking-group-rail {
+  margin-left: 0;
+  padding-left: 0;
+  padding-right: 0;
+  border-left: 0;
+}
 /* 组内代码改动的增删行数:紧跟标题,不推到右边。 */
 .thinking-group-stat {
   margin-left: 3px;

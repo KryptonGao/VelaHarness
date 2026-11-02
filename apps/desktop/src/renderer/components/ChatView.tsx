@@ -34,13 +34,13 @@ import { SideChatLauncherContext } from "./selection-actions";
 import { replyStore, useReplyCards } from "../browser/reply-store";
 import { OpenInAppButton } from "./OpenInAppButton";
 import { CoherentGroup, CoherentThought, ThinkingGroup } from "./Thinking";
-import { useNamedThinkingMessages, useThinkingGroupMode } from "./ThinkingGroupModeContext";
+import { groupsByReply, useNamedThinkingMessages, useThinkingGroupMode } from "./ThinkingGroupModeContext";
 import { partitionThinkingGroups, supportsThinkingGroups } from "../thinking-model";
 import { ThinkingSummaryContext } from "./ThinkingSummaryContext";
 import type { ThinkingSummariesApi } from "../hooks/useThinkingSummaries";
 import { ToolCard, ToolList, CompactToolGroup, CompactToolLine, ToolRunGroup, type QuestionLookup } from "./ToolCard";
 import { toolCompactKind } from "./tool-compact";
-import { attachFollowerTools, buildTurnItems, groupCoherentItems, groupProcessItems, isFlatCoherentGroup, latestThoughtId, type CoherentNode, type ProcessNode } from "./tool-sequence";
+import { attachFollowerTools, buildTurnItems, groupCoherentItems, groupProcessItems, hasCoherentTools, isFlatCoherentGroup, latestThoughtId, type CoherentNode, type ProcessNode } from "./tool-sequence";
 import { formatDuration, readToolDuration } from "./tool-duration";
 import { foldSequenceId } from "./tool-fold-state";
 import { selectFinalReplies } from "./final-replies";
@@ -895,7 +895,7 @@ export function ChatView({
                 ) : turn.assistants.length > 0 ? (
                   <div className="assistant-live-turn">
                     {liveStartedAt !== undefined ? <TurnProgressHeader startedAt={liveStartedAt} /> : null}
-                    {toolFold === "position" || (thinkingGroupMode === "coherent" && turn.assistants.some(supportsThinkingGroups)) ? (
+                    {toolFold === "position" || (groupsByReply(thinkingGroupMode) && turn.assistants.some(supportsThinkingGroups)) ? (
                       <article className="assistant-block">
                         <ToolSequence
                           messages={turn.assistants}
@@ -1260,7 +1260,7 @@ function AssistantMessageContent({
 
 /** 位置关系折叠:整轮拍平成序列后合并相邻工具;思考、可见正文和交互卡片都会打断。 */
 function ToolSequence(props: Omit<Parameters<typeof ModelToolSequence>[0], "coherent">) {
-  const enabled = useThinkingGroupMode() === "coherent";
+  const enabled = groupsByReply(useThinkingGroupMode());
   const sections = useMemo(() => partitionThinkingGroups(props.messages, enabled), [props.messages, enabled]);
   return <>{sections.map(section => (
     <ModelToolSequence {...props} key={section.id} messages={section.messages} coherent={section.coherent}
@@ -1287,6 +1287,7 @@ function ModelToolSequence({
   getQuestion: QuestionLookup;
   onReplyQuestion: QuestionReplyHandler;
 }) {
+  const codex = useThinkingGroupMode() === "codex";
   const items = useMemo(() => buildTurnItems(messages, { includeText }), [messages, includeText]);
   const nodes = useMemo(() => coherent ? [] : groupProcessItems(items, toolDisplay), [coherent, items, toolDisplay]);
   const coherentNodes = useMemo(() => coherent ? groupCoherentItems(items) : [], [coherent, items]);
@@ -1334,6 +1335,8 @@ function ModelToolSequence({
     const tools = node.entries.flatMap((entry) => entry.type === "tool" ? [entry.tool] : []);
     const activeMessage = activeAssistantId ? messageById.get(activeAssistantId) : undefined;
     const live = Boolean(activeAssistantId && (tools.some((tool) => tool.status === "running") || (last && !activeMessage?.text)));
+    // Codex 风格:总结只出现在进行中的标题上,没有工具的分组结束后不再保留。
+    if (codex && !live && !hasCoherentTools(node.entries)) return null;
     const latestId = latestThoughtId(node.entries);
     const content: ReactNode[] = [];
     let run: Extract<ProcessNode, { type: "tool" }>[] = [];
@@ -1347,6 +1350,7 @@ function ModelToolSequence({
         run.push(entry);
         continue;
       }
+      if (codex) continue;
       flushRun();
       const message = messageById.get(entry.messageId);
       content.push(
@@ -1361,7 +1365,7 @@ function ModelToolSequence({
     }
     flushRun();
     // 步骤很少的分组没必要折叠,思考和工具直接平铺。
-    if (isFlatCoherentGroup(node.entries)) {
+    if (!codex && isFlatCoherentGroup(node.entries)) {
       return withEnter(node.id, node.messageId, <div className="coherent-flat">{content}</div>);
     }
     return withEnter(
@@ -1372,6 +1376,7 @@ function ModelToolSequence({
         live={live}
         showActivityIndicator={compact}
         forceOpen={tools.some((tool) => getQuestion(tool.id) !== null)}
+        codex={codex}
       >
         {content}
       </CoherentGroup>,
@@ -1519,7 +1524,7 @@ const CompletedAssistantTurn = memo(function CompletedAssistantTurn({
         <div id={processId} className="time-spent-body" aria-hidden={!expanded} inert={!expanded}>
           <div className="time-spent-body-inner">
             <LazyMount open={expanded}>{() => <>
-            {toolFold === "position" || (thinkingGroupMode === "coherent" && messages.some(supportsThinkingGroups)) ? (
+            {toolFold === "position" || (groupsByReply(thinkingGroupMode) && messages.some(supportsThinkingGroups)) ? (
               <article className="assistant-block assistant-turn-process-item">
                 <ToolSequence
                   messages={messages}

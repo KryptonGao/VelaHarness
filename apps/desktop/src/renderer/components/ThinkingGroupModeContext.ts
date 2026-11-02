@@ -10,6 +10,11 @@ export function useThinkingGroupMode(): ThinkingGroupMode {
   return useContext(ThinkingGroupModeContext);
 }
 
+/** 连贯分组(含 Codex 风格):以正式回复为界,回复之间的思考和工具合成一组。 */
+export function groupsByReply(mode: ThinkingGroupMode): boolean {
+  return mode !== "single";
+}
+
 export const ThinkingModelCatalogContext = createContext<readonly ThinkingModelLabel[]>([]);
 
 /** 为主对话和子代理补充各自来源模型的显示名，并保留未变化消息的引用。 */
