@@ -39,6 +39,7 @@ export function SandboxPill({ project, conversationMode }: { project: ProjectApi
         type="button"
         className={`sandbox-pill sandbox-${mode}`}
         title={modeDescription(mode)}
+        aria-label={modeLabel(mode)}
         aria-haspopup="true"
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}

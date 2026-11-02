@@ -39,6 +39,7 @@ const suites = {
     { name: "task-budget-ui", runner: "node" },
     { name: "nav-rail-ui", runner: "node" },
     { name: "info-cards-ui", runner: "node" },
+    { name: "composer-tray-ui", runner: "node" },
   ],
   smoke: [
     { name: "pi-sdk-electron-smoke", runner: "node" },

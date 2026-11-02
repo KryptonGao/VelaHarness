@@ -192,7 +192,7 @@ export function ModelControls(props: ModelControlsProps) {
         <button
           className="model-choice-pill"
           type="button"
-          title={thinkingChoices.length < 2 ? tr("当前模型不支持调整思考强度", "The current model does not support adjustable reasoning") : tr("思考强度", "Reasoning effort")}
+          title={thinkingChoices.length < 2 ? tr("当前模型不支持调整思考强度", "The current model does not support adjustable reasoning") : `${tr("思考强度", "Reasoning effort")}: ${thinkingLabel(shownThinking)}`}
           aria-controls={thinkingPopoverId}
           aria-expanded={menu === "thinking"}
           disabled={props.disabled || thinkingChoices.length < 2}
