@@ -85,6 +85,7 @@
   transition: width var(--transition-smooth), background var(--transition-smooth), color var(--transition-smooth);
 }
 .workbench-tab > .tool-activity-loader { margin-left: 0; }
+.workbench-tab > .file-type-icon { width: 20px; height: 20px; }
 .workbench-tab:hover { background: var(--bg-hover); color: var(--text-primary); }
 /* 降低动效偏好下不做宽度动画 */
 @media (prefers-reduced-motion: reduce) {
