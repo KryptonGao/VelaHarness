@@ -21,7 +21,6 @@ import {
   type SideChatEvent,
   type PluginStatusEvent,
   type AppLocale,
-  type AgentStreamEvent,
   type AppState,
   type AiTextRequest,
   type AiTextResult,
@@ -163,6 +162,7 @@ import {
   type WorkspaceUpdateInput,
 } from "@vela/shared";
 import { contextBridge, ipcRenderer, webUtils, type IpcRendererEvent } from "electron";
+import { isStreamEvent } from "./stream-event";
 
 const api: VelaApi = {
   prInbox: {
@@ -810,40 +810,6 @@ function isModelEvent(value: unknown): value is ModelAuthEvent {
   if (!isRecord(value)) return false;
   const type = value.type;
   return type === "notice" || type === "prompt" || type === "cleared" || type === "catalog";
-}
-
-function isStreamEvent(value: unknown): value is AgentStreamEvent {
-  if (!isRecord(value)) return false;
-  const type = value.type;
-  if (type === "trace") {
-    return typeof value.conversationId === "string" && typeof value.version === "number" && Array.isArray(value.nodes) && Array.isArray(value.requests);
-  }
-  if (type === "user_message") {
-    return typeof value.conversationId === "string" && typeof value.text === "string";
-  }
-  if (type === "agents") {
-    return typeof value.conversationId === "string" && Array.isArray(value.agents);
-  }
-  if (type === "background_shells") {
-    return typeof value.conversationId === "string" && Array.isArray(value.shells);
-  }
-  if (type === "agent_event") {
-    return (
-      typeof value.conversationId === "string" &&
-      typeof value.agentId === "string" &&
-      isObject(value.event)
-    );
-  }
-  return (
-    type === "state" ||
-    type === "text_delta" ||
-    type === "thinking_delta" ||
-    type === "assistant_start" ||
-    type === "tool_start" ||
-    type === "tool_output" ||
-    type === "tool_end" ||
-    type === "error"
-  );
 }
 
 function isWorkspaceEvent(value: unknown): value is WorkspaceEvent {

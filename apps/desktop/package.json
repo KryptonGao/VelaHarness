@@ -23,7 +23,7 @@
     "test:production-sync": "node --import ../../packages/agent/test/register-ts.mjs --experimental-transform-types --experimental-test-module-mocks --test test/production-conversation-sync.test.ts test/production-sync.test.ts test/development-host.test.ts test/dev-tools.test.ts",
     "test:logging": "node --import ../../packages/agent/test/register-ts.mjs --experimental-transform-types --experimental-test-module-mocks --test test/logging.test.ts test/log-service.test.ts test/log-export.test.ts test/log-host.test.ts",
     "test:ui-storage": "node --import ../../packages/agent/test/register-ts.mjs --experimental-transform-types --test test/ui-storage.test.ts",
-    "test:plan": "node --import ../../packages/agent/test/register-ts.mjs --experimental-transform-types --test test/plan-draft.test.ts test/plan-document.test.ts",
+    "test:plan": "node --import ../../packages/agent/test/register-ts.mjs --experimental-transform-types --test test/plan-draft.test.ts test/plan-document.test.ts test/stream-event-guard.test.ts",
     "test:diff": "node --import ../../packages/agent/test/register-ts.mjs --experimental-transform-types --test test/diff-rows.test.ts",
     "test:turn-review": "node --import ../../packages/agent/test/register-ts.mjs --experimental-transform-types --test test/tool-diff.test.ts test/turn-review-state.test.ts test/turn-changes.test.ts test/diff-rows.test.ts test/final-replies.test.ts",
     "test:version-control": "node --import ../../packages/agent/test/register-ts.mjs --experimental-transform-types --test test/version-control-graph.test.ts test/version-control-hunks.test.ts test/version-control-p2.test.ts test/diff-rows.test.ts",
