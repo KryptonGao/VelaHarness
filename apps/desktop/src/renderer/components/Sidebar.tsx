@@ -6,6 +6,7 @@ import { tr, trf, useAppLocale } from "../locale";
 import type { SidebarResize } from "../hooks/useSidebarResize";
 import { MotionList } from "./BatchMotion";
 import { SidebarResizeHandle } from "./SidebarResizeHandle";
+import { VelaLogoLockup } from "./VelaLogo";
 import { groupActiveConversations, searchActiveConversations, workspaceName } from "./conversation-search";
 import {
   activityDay,
@@ -261,7 +262,7 @@ export function Sidebar({
         </div>
         <div className="workspace-title-row">
           <div className="workspace-dropdown-trigger">
-            <span>Vela</span>
+            <VelaLogoLockup />
           </div>
           <div className="sidebar-header-actions">
             {railMode && items.newChat ? <button className="icon-btn-ghost sidebar-new-chat-trigger" type="button"

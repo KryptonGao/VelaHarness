@@ -319,6 +319,9 @@
   font-weight: 600;
   padding: 3px 6px;
 }
+/* 标的左缘与下方列表(文件夹图标、分组标题)的内容列对齐;图形有硬边,比文字更容易看出错位。 */
+.vela-lockup { display: inline-flex; align-items: center; gap: 9px; margin-left: -3px; position: relative; top: 3px; color: var(--text-primary); }
+.vela-lockup svg { flex: none; }
 
 .sidebar-quick-actions,
 .sidebar-scroll-area {
