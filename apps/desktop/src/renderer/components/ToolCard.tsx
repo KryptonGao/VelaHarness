@@ -791,6 +791,12 @@ export function CompactToolLine({
 }) {
   const preview = useFilePreview();
   const [open, setOpen] = useToolExpanded(foldRowId(tool.id));
+  // 流式写入期间用户主动折叠 diff;流式结束后清除,下次再写入时重新自动展开。
+  const [streamCollapsed, setStreamCollapsed] = useState(false);
+  const streamActive = tool.status === "running" && Boolean(tool.activity?.streaming);
+  useEffect(() => {
+    if (!streamActive) setStreamCollapsed(false);
+  }, [streamActive]);
   const kind = toolKind(tool.name);
   const skillRead = isSkillRead(tool);
   if (tool.name === "browser_repl") return <BrowserReplCard tool={tool} compact />;
@@ -804,7 +810,12 @@ export function CompactToolLine({
   const hasCompactDiff = hasFileDetails && Boolean(activity.diff) && !failed;
   // 参数还在流式生成时自动展开 diff，让内容边写边出现；用户折叠过则尊重折叠。
   const streamingNow = running && Boolean(activity.streaming);
-  const detailOpen = open || (streamingNow && hasCompactDiff);
+  const detailOpen = streamingNow && hasCompactDiff ? !streamCollapsed : open;
+  // 流式期间 detailOpen 不一定等于 open,所以按当前实际显示的状态取反。
+  const toggleDetail = (): void => {
+    setOpen(!detailOpen);
+    setStreamCollapsed(detailOpen);
+  };
   const isDiffPreview = hasCompactDiff && detailOpen;
   const previewPath = kind === "bash" ? null : activity.path?.trim() || null;
   const fileIconPath = kind === "bash" ? null : previewPath ?? subject.name;
@@ -871,7 +882,7 @@ export function CompactToolLine({
               className="tool-compact-text-toggle tool-compact-action-toggle"
               type="button"
               aria-expanded={detailOpen}
-              onClick={() => setOpen((value) => !value)}
+              onClick={toggleDetail}
             >
               <span className="tool-compact-action">{compactAction(kind, running && Boolean(activity.streaming), skillRead)}</span>
             </button>
@@ -898,7 +909,7 @@ export function CompactToolLine({
             type="button"
             aria-expanded={detailOpen}
             title={subject.dir}
-            onClick={() => setOpen((value) => !value)}
+            onClick={toggleDetail}
           >
             <span className="tool-compact-dir">{subject.dir}</span>
           </button>
@@ -917,9 +928,9 @@ export function CompactToolLine({
             className="tool-compact-detail-toggle"
             type="button"
             aria-expanded={detailOpen}
-            aria-label={open ? tr("收起文件差异", "Hide file diff") : tr("展开文件差异", "Show file diff")}
-            title={open ? tr("收起差异", "Hide diff") : tr("查看差异", "View diff")}
-            onClick={() => setOpen((value) => !value)}
+            aria-label={detailOpen ? tr("收起文件差异", "Hide file diff") : tr("展开文件差异", "Show file diff")}
+            title={detailOpen ? tr("收起差异", "Hide diff") : tr("查看差异", "View diff")}
+            onClick={toggleDetail}
           >
             <svg
               className="tool-compact-chevron"
