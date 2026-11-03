@@ -21,8 +21,9 @@ import {
   type ThinkingLevel,
 } from "@vela/shared";
 import { randomUUID } from "node:crypto";
+import { constants } from "node:fs";
 import { clampThinkingLevelFor, thinkingLevelsFor } from "./thinking-level";
-import { chmod, mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { chmod, copyFile, mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
 const defaultThinkingLevel: ThinkingLevel = "medium";
@@ -73,8 +74,31 @@ interface ModelRecord {
   [key: string]: unknown;
 }
 
+/**
+ * 把「模型配置」与「运行数据」分开：auth.json / models.json / selection.json 从 configDir 读取，
+ * 模型目录缓存写进独立的 cacheDir。默认不提供时与桌面行为一致（全部在同一个目录）。
+ */
+export interface ModelDirectoryOptions {
+  configDir: string;
+  cacheDir?: string;
+  /** 禁止修改模型定义、默认选择以及手动登录 / 登出；OAuth 自动刷新仍可更新 auth.json。 */
+  readOnlyConfig?: boolean;
+  /** 启动时是否异步刷新远程模型目录；默认 true。 */
+  refreshCatalogOnStart?: boolean;
+}
+
+export class ModelConfigReadOnlyError extends Error {
+  constructor() {
+    super("模型配置为只读，不能修改");
+    this.name = "ModelConfigReadOnlyError";
+  }
+}
+
 export class ModelDirectory {
   readonly runtime: ModelRuntime;
+  /** 为 false 时 refreshCatalogFromNetwork 不联网。 */
+  readonly refreshOnStart: boolean;
+  private readonly readOnly: boolean;
   selection: ModelSelection = {
     provider: null,
     modelId: null,
@@ -96,18 +120,34 @@ export class ModelDirectory {
   private constructor(
     private readonly dir: string,
     runtime: ModelRuntime,
+    options: Pick<ModelDirectoryOptions, "readOnlyConfig" | "refreshCatalogOnStart"> = {},
   ) {
     this.runtime = runtime;
+    this.readOnly = options.readOnlyConfig === true;
+    this.refreshOnStart = options.refreshCatalogOnStart !== false;
   }
 
-  static async open(dir: string): Promise<ModelDirectory> {
-    await mkdir(dir, { recursive: true });
+  static async open(dir: string, options?: ModelDirectoryOptions): Promise<ModelDirectory> {
+    const configDir = options?.configDir ?? dir;
+    const cacheDir = options?.cacheDir;
+    // 只读配置不由我们创建目录；目录缺失时 Pi 的凭据存储会补一个空的 auth.json（{}），
+    // 其余配置文件（models.json / selection.json）不会被创建或改动。
+    if (!options?.readOnlyConfig) await mkdir(configDir, { recursive: true });
+    let modelsStorePath: string | undefined;
+    if (cacheDir) {
+      await mkdir(cacheDir, { recursive: true, mode: 0o700 });
+      modelsStorePath = join(cacheDir, "models-store.json");
+      // 源目录里已有的模型缓存复制一份到独立目录，离线也能使用；之后的写入只落在 cacheDir。
+      try { await copyFile(join(configDir, "models-store.json"), modelsStorePath, constants.COPYFILE_EXCL); }
+      catch { /* 没有源缓存，或缓存已存在 */ }
+    }
     const runtime = await ModelRuntime.create({
-      authPath: join(dir, "auth.json"),
-      modelsPath: join(dir, "models.json"),
+      authPath: join(configDir, "auth.json"),
+      modelsPath: join(configDir, "models.json"),
+      ...(modelsStorePath ? { modelsStorePath } : {}),
       allowModelNetwork: false,
     });
-    const directory = new ModelDirectory(dir, runtime);
+    const directory = new ModelDirectory(configDir, runtime, options);
     const stored = await directory.readSelection();
     directory.selection = stored.selection;
     directory.lastUsed = stored.lastUsed;
@@ -121,6 +161,7 @@ export class ModelDirectory {
    * 由宿主在订阅完事件后调用，避免刷新完成早于订阅时丢掉通知。
    */
   refreshCatalogFromNetwork(): void {
+    if (!this.refreshOnStart) return;
     // PI_OFFLINE 是 Pi 的全局离线开关，设了就完全不联网。
     if (process.env.PI_OFFLINE !== undefined) return;
     void this.runtime
@@ -258,6 +299,7 @@ export class ModelDirectory {
       return;
     }
     this.lastUsed = { provider, modelId, thinkingLevel };
+    if (this.readOnly) return;
     await this.writeSelection();
   }
 
@@ -277,6 +319,7 @@ export class ModelDirectory {
   }
 
   async select(providerId: string, modelId: string): Promise<Model<Api>> {
+    this.assertWritable();
     const model = this.runtime.getModel(providerId, modelId);
     if (!model) throw new Error("找不到这个模型");
     if (!this.isAvailable(model)) throw new Error("这个模型还不能使用，请先登录或填写密钥");
@@ -291,6 +334,7 @@ export class ModelDirectory {
   }
 
   async setThinkingLevel(level: ThinkingLevel, model: Model<Api> | undefined): Promise<ThinkingLevel> {
+    this.assertWritable();
     const next = model ? clampLevel(model, level) : level;
     this.selection = { ...this.selection, thinkingLevel: next };
     await this.writeSelection();
@@ -309,6 +353,7 @@ export class ModelDirectory {
 
   /** 写入新建对话的默认值,不改已经打开的会话。 */
   async saveSettings(input: AgentSettings): Promise<AgentSettings> {
+    this.assertWritable();
     if (!isThinkingLevel(input.thinkingLevel)) throw new Error("不支持这个思考强度");
     const newConversationSelection = isNewConversationSelection(input.newConversationSelection)
       ? input.newConversationSelection
@@ -343,6 +388,7 @@ export class ModelDirectory {
   }
 
   async addCustom(input: CustomModelInput): Promise<{ providerId: string; modelId: string }> {
+    this.assertWritable();
     const providerId = parseProviderId(input.providerId);
     const modelId = parseModelId(input.modelId);
     const baseUrl = parseHttpUrl(input.baseUrl);
@@ -389,6 +435,7 @@ export class ModelDirectory {
   }
 
   async removeCustom(providerId: string, modelId: string): Promise<void> {
+    this.assertWritable();
     const file = await this.readModelsFile();
     const current = file.providers[providerId];
     const models = current?.models ?? [];
@@ -409,10 +456,12 @@ export class ModelDirectory {
   }
 
   async logout(providerId: string): Promise<void> {
+    this.assertWritable();
     await this.runtime.logout(providerId);
   }
 
   async login(providerId: string, type: AuthType): Promise<"ok" | "cancelled"> {
+    this.assertWritable();
     if (this.loginAbort) throw new Error("已有一个登录在进行");
     const provider = this.runtime.getProvider(providerId);
     if (!provider) throw new Error("找不到这个提供方");
@@ -575,6 +624,10 @@ export class ModelDirectory {
 
   private async writeModelsFile(file: ModelsFile): Promise<void> {
     await writePrivateJson(this.modelsPath, { ...file.rest, providers: file.providers });
+  }
+
+  private assertWritable(): void {
+    if (this.readOnly) throw new ModelConfigReadOnlyError();
   }
 
   private get selectionPath(): string {

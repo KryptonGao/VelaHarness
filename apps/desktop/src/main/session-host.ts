@@ -61,19 +61,25 @@ export class SessionHost {
   /** 工具事件触发的状态广播做尾部节流，状态/错误变化仍立即广播。 */
   private readonly stateThrottle = new StateThrottle(() => this.broadcast({ type: "state", state: this.currentState() }));
 
+  /** Runtime 的生命周期归 RuntimeHost；这里只持有自己的订阅，dispose 时取消。 */
+  private readonly unsubscribers: (() => void)[];
+  private disposed = false;
+
   constructor(
     private readonly runtime: AgentRuntime,
     private readonly hooks: SessionHostHooks,
   ) {
-    this.runtime.subscribe((event) => {
-      this.onRuntimeEvent(event);
-    });
-    this.runtime.subscribeAuth((event) => {
-      this.onModelEvent(event);
-    });
-    this.runtime.subscribeQuestions((event) => {
-      this.broadcastQuestion(event);
-    });
+    this.unsubscribers = [
+      this.runtime.subscribe((event) => {
+        this.onRuntimeEvent(event);
+      }),
+      this.runtime.subscribeAuth((event) => {
+        this.onModelEvent(event);
+      }),
+      this.runtime.subscribeQuestions((event) => {
+        this.broadcastQuestion(event);
+      }),
+    ];
   }
 
   register(): void {
@@ -342,10 +348,13 @@ export class SessionHost {
     });
   }
 
-  dispose(): Promise<void> {
+  /** 只释放自身的订阅、节流和事件传输；Runtime 由创建它的 RuntimeHost 关闭。幂等。 */
+  dispose(): void {
+    if (this.disposed) return;
+    this.disposed = true;
+    for (const unsubscribe of this.unsubscribers) unsubscribe();
     this.stateThrottle.cancel();
     this.coalescer.flush();
-    return this.runtime.dispose();
   }
 
   currentState(conversationId?: string): AppState {
@@ -365,8 +374,7 @@ export class SessionHost {
   private onRuntimeEvent(event: RuntimeEvent): void {
     // 这两类事件只给主进程里的收件箱用，不广播给渲染层。
     if (event.type === "prompt_end" || event.type === "task_budget") return;
-    // 流式参数阶段的 tool_start 只是提前亮出卡片，同一个调用开始执行时才会再发一次并计数。
-    if (event.type === "tool_start" && !event.activity.streaming) this.runtime.addUsage(event.conversationId, 0, 1);
+    // 工具调用计数由 Runtime 在真实开始执行时记录，这里只负责转发。
 
     if (event.type === "status") {
       this.stateThrottle.now();

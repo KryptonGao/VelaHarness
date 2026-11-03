@@ -16,6 +16,7 @@
   },
   "scripts": {
     "test:plugins": "node --import ./test/register-ts.mjs --experimental-transform-types --test test/plugin-system.test.ts",
+    "test:runner": "node --import ./test/register-ts.mjs --experimental-transform-types --experimental-test-module-mocks --test test/runtime-idle.test.ts test/model-directory-isolation.test.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "node --import ./test/register-ts.mjs --experimental-transform-types --experimental-test-module-mocks --test 'test/*.test.ts'",
     "test:mcp": "node --import ./test/register-ts.mjs --experimental-transform-types --test test/mcp-config.test.ts test/mcp-pi.test.ts test/mcp-redaction.test.ts test/mcp-runtime.test.ts"

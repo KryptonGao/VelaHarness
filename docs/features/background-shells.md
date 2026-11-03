@@ -25,7 +25,7 @@
 - `packages/workspace/src/background-shells.ts` 的 `BackgroundShellManager`：进程表、输出游标、结束事件。命令通过 Pi 的 `createLocalBashOperations` 执行，终止时杀整个进程树。
 - `packages/workspace/src/background-shell-tools.ts`：`withBackgroundOption`（给 `bash` 加参数）与 `bash_output` / `bash_kill`；`packages/workspace/src/sandbox-tools.ts` 的 `createSandboxedToolDefinitions` 在传入 `background` 时装配它们。
 - `packages/agent/src/runtime.ts`：`backgroundShells` 选项、`handleBackgroundShellExit` 与 `deliverRootMessage`；`packages/agent/src/runtime-tools.ts` 的 `ToolLoadout` 决定哪些模式激活这两个工具。
-- `apps/desktop/src/main/index.ts` 创建 `BackgroundShellManager` 并只给根会话的工具工厂开启 `background`。
+- `packages/runner/src/runtime-host.ts` 的 `createRuntimeHost` 创建 `BackgroundShellManager` 并只给根会话的工具工厂开启 `background`；桌面（`apps/desktop/src/main/index.ts`）和 Headless Runner 共用它。`BackgroundShellManager.drain` 在关闭时终止命令并有界地等它们退出。Headless 下 `AgentRuntime.waitForIdle` 会等运行中的后台命令及其唤醒的主代理回复，见 [guides/headless-runner.md](../guides/headless-runner.md)。
 
 ## 验证
 

@@ -2,7 +2,7 @@
 
 把仓库里的 Node 单测和浏览器 UI 检查收进同一个本地看板:一条命令启动服务,浏览器里运行、观察和重跑,失败直接展开看错误与输出。
 
-- **Node 单测**:`packages/agent/test`、`packages/workspace/test`、`apps/desktop/test` 下的全部 `*.test.ts`,一个 `node --test` 批次运行,按文件实时汇报。
+- **Node 单测**:`packages/agent/test`、`packages/workspace/test`、`packages/runner/test`、`apps/runner/test`、`apps/desktop/test` 下的全部 `*.test.ts`,一个 `node --test` 批次运行,按文件实时汇报。
 - **浏览器 UI 检查**:`apps/desktop/test` 里带 `?checks=1` 的预览页,由 Electron 驱动隐藏窗口逐个运行,自动收集 PASS/FAIL。
 - **Agent 鼠标**:「Agent 鼠标 · 界面与动效」检查生产组件的持续显示、坐标、动作反馈、无文字标签、连续平滑移动、点击透传和隐藏/停止状态；「Agent 鼠标 · Electron 网页操作」先构建当前代码，再运行真实 App/CDP/webview 冒烟，包含空闲时保留指针、输入、滚动、减少动画、页面保留和导航。两项都归入 UI 和 `browser` 功能分组。
 - 运行结果落盘到 `.runs/last-run.json`,刷新页面或重启服务后仍能看到上次结果。
@@ -38,6 +38,7 @@ node apps/desktop/test-center/server.mjs --run ui:browser-agent-cursor,ui:browse
 | --- | --- |
 | Agent 运行时 | `packages/agent/test/*.test.ts` |
 | Workspace 与 Git | `packages/workspace/test/*.test.ts` |
+| Headless Runner 与 CLI | `packages/runner/test/*.test.ts`、`apps/runner/test/*.test.ts` |
 | 桌面 · 渲染层 | 引用 `src/renderer` 的桌面测试 |
 | 桌面 · 主进程 | 引用 `src/main` 的桌面测试 |
 | 桌面 · 跨层 | 同时涉及主进程与渲染层的测试(如 IPC 装配检查) |

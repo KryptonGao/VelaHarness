@@ -159,6 +159,26 @@ export class BackgroundShellManager implements BackgroundShellEvents {
     }
   }
 
+  /**
+   * 终止全部运行中的命令并等它们真正结束，最长等 timeoutMs。
+   * 返回超时后仍未结束的命令数；调用方据此决定是否报告清理失败。
+   */
+  async drain(timeoutMs = 5000): Promise<number> {
+    const running = [...this.shells.values()].filter((shell) => shell.status === "running");
+    for (const shell of running) {
+      shell.silent = true;
+      shell.controller.abort();
+    }
+    if (running.length === 0) return 0;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    await Promise.race([
+      Promise.allSettled(running.map((shell) => shell.done)),
+      new Promise<void>((resolve) => { timer = setTimeout(resolve, timeoutMs); }),
+    ]);
+    clearTimeout(timer);
+    return running.filter((shell) => shell.status === "running").length;
+  }
+
   dispose(): void {
     for (const shell of this.shells.values()) {
       if (shell.status !== "running") continue;

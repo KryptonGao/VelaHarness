@@ -9,7 +9,7 @@ import { browserFixtures, previewPage } from "./fixtures.mjs";
 
 export const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 export const desktopDir = join(repoRoot, "apps/desktop");
-export const nodeTestRoots = ["packages/agent/test", "packages/workspace/test", "apps/desktop/test"];
+export const nodeTestRoots = ["packages/agent/test", "packages/workspace/test", "packages/runner/test", "apps/runner/test", "apps/desktop/test"];
 
 /** test:* 脚本后缀到界面标签;未列出的用原始后缀。 */
 const featureTitles = {
@@ -30,6 +30,7 @@ const featureTitles = {
 const groupOrder = [
   { id: "agent", title: "Agent 运行时" },
   { id: "workspace", title: "Workspace 与 Git" },
+  { id: "runner", title: "Headless Runner 与 CLI" },
   { id: "desktop-renderer", title: "桌面 · 渲染层" },
   { id: "desktop-main", title: "桌面 · 主进程" },
   { id: "desktop-cross", title: "桌面 · 跨层" },
@@ -61,6 +62,7 @@ function layerGroupId(task) {
   if (task.kind === "ui") return "ui";
   if (task.package === "agent") return "agent";
   if (task.package === "workspace") return "workspace";
+  if (task.package === "runner") return "runner";
   return `desktop-${task.layer}`;
 }
 
@@ -71,6 +73,7 @@ function toPosix(path) {
 function packageOf(path) {
   if (path.startsWith("packages/agent/")) return "agent";
   if (path.startsWith("packages/workspace/")) return "workspace";
+  if (path.startsWith("packages/runner/") || path.startsWith("apps/runner/")) return "runner";
   return "desktop";
 }
 

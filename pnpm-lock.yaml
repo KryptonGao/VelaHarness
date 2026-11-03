@@ -32,6 +32,9 @@ importers:
       '@vela/agent':
         specifier: workspace:*
         version: link:../../packages/agent
+      '@vela/runner':
+        specifier: workspace:*
+        version: link:../../packages/runner
       '@vela/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -115,6 +118,15 @@ importers:
         specifier: ^7.3.6
         version: 7.3.6(@types/node@26.6.2)(jiti@2.7.0)(yaml@2.9.0)
 
+  apps/runner:
+    dependencies:
+      '@vela/runner':
+        specifier: workspace:*
+        version: link:../../packages/runner
+      '@vela/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
+
   packages/agent:
     dependencies:
       '@earendil-works/pi-agent-core':
@@ -135,6 +147,18 @@ importers:
       typebox:
         specifier: 1.3.27
         version: 1.3.27
+
+  packages/runner:
+    dependencies:
+      '@vela/agent':
+        specifier: workspace:*
+        version: link:../agent
+      '@vela/shared':
+        specifier: workspace:*
+        version: link:../shared
+      '@vela/workspace':
+        specifier: workspace:*
+        version: link:../workspace
 
   packages/shared: {}
 

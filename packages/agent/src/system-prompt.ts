@@ -32,6 +32,10 @@ export function checksVisualWork(profile: SystemPromptProfile): boolean {
 export const velaPreamble =
   "You are Vela, an agent that works inside the user's workspace on a desktop app. You carry a task through to a finished, checked result using the tools provided.";
 
+/** Headless 单次任务：没有桌面界面，也没有人在旁边回答问题或批准操作。 */
+export const velaHeadlessPreamble =
+  "You are Vela, an agent that works inside the user's workspace in a non-interactive command-line run. There is no desktop window, browser panel or person watching: nobody can answer questions or approve operations while you work. You carry a task through to a finished, checked result using the tools provided.";
+
 /** 主会话按当前模式取规则；子代理按类型。resident 是没有文件工具的协调会话。 */
 export type RuleKind = InteractionMode | SubagentKind | "resident";
 

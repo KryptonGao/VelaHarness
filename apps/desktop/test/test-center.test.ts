@@ -40,7 +40,7 @@ describe("测试中心 · 发现", () => {
       assert.ok(!seen.has(task.id), `任务 id 重复: ${task.id}`);
       seen.add(task.id);
       if (task.kind === "node") {
-        assert.ok(["agent", "workspace", "renderer", "main", "cross", "other"].includes(task.layer), `未知分层 ${task.layer}`);
+        assert.ok(["agent", "workspace", "runner", "renderer", "main", "cross", "other"].includes(task.layer), `未知分层 ${task.layer}`);
         assert.ok(existsSync(join(repoRoot, task.path)), `文件不存在 ${task.path}`);
       } else {
         assert.equal(task.layer, "ui");

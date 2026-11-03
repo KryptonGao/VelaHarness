@@ -1,4 +1,19 @@
-export { AgentRuntime, type AgentRuntimeOptions, type BackgroundExecution, type LaneRequest, type LaneResult, type RuntimeEvent } from "./runtime";
+export {
+  AgentRuntime,
+  RunConversationError,
+  type AgentRuntimeOptions,
+  type BackgroundExecution,
+  type LaneRequest,
+  type LaneResult,
+  type RunConversationErrorCode,
+  type RunConversationInfo,
+  type RunConversationInput,
+  type RunReport,
+  type RunTokenUsage,
+  type RuntimeEvent,
+  type WaitForIdleOptions,
+} from "./runtime";
+export { ModelConfigReadOnlyError, type ModelDirectoryOptions } from "./model-directory";
 export {
   MemoryError,
   MemoryService,

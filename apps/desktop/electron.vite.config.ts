@@ -9,12 +9,14 @@ const shared = resolve(root, "../../packages/shared/src/index.ts");
 const agent = resolve(root, "../../packages/agent/src/index.ts");
 const tools = resolve(root, "../../packages/tools/src/index.ts");
 const workspace = resolve(root, "../../packages/workspace/src/index.ts");
+const runner = resolve(root, "../../packages/runner/src/index.ts");
 
 const workspaceAlias = {
   "@vela/shared": shared,
   "@vela/agent": agent,
   "@vela/tools": tools,
   "@vela/workspace": workspace,
+  "@vela/runner": runner,
 };
 
 export default defineConfig({
@@ -40,7 +42,7 @@ export default defineConfig({
         output: { format: "es", entryFileNames: "[name].mjs" },
       },
       externalizeDeps: {
-        exclude: ["@vela/shared", "@vela/agent", "@vela/tools", "@vela/workspace"],
+        exclude: ["@vela/shared", "@vela/agent", "@vela/tools", "@vela/workspace", "@vela/runner"],
         include: ["@earendil-works/pi-coding-agent", "@earendil-works/pi-ai"],
       },
     },

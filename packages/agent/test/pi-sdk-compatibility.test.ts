@@ -48,11 +48,8 @@ async function fixture(t: TestContext) {
   const session = internals.conversations.get(id)!.session;
   assert.ok(session.extensionRunner.hasHandlers("input"), "fixture input extension must be loaded");
   const events: RuntimeEvent[] = [];
-  runtime.subscribe(event => {
-    events.push(event);
-    // SessionHost owns the existing desktop tool-call counter.
-    if (event.type === "tool_start") runtime.addUsage(event.conversationId, 0, 1);
-  });
+  // The runtime itself counts real tool executions; hosts no longer do.
+  runtime.subscribe(event => { events.push(event); });
   const requests: Context[] = [];
   function script(replies: Array<string | ToolCall[]>, target = session) {
     let invocation = 0;

@@ -16,6 +16,7 @@ export interface ToolLoadoutConversation {
   snapshot: { mode: InteractionMode; executionPlan: unknown };
   recipeExecution?: unknown;
   scheduledTaskConversation?: boolean;
+  backgroundExecution?: boolean;
   recipeStageSideEffect?: RecipeStageSubmission["sideEffect"];
 }
 
@@ -38,7 +39,7 @@ export interface ToolLoadoutOptions {
 const residentTools = ["ask_user_question", ...residentToolNames];
 const residentDenial = "常驻 Agent 不能读写文件或执行命令；请用 delegate_workspace_task 在工作区里创建后台任务";
 
-const memoryUpdateDenial = "当前模式或执行环境不允许写入长期记忆（Plan、子代理、定时任务和配方执行只能读取）";
+const memoryUpdateDenial = "当前模式或执行环境不允许写入长期记忆（Plan、子代理、定时任务、后台执行和配方执行只能读取）";
 
 const isAgentTool = (name: string) => (agentToolNames as readonly string[]).includes(name);
 const isMemoryTool = (name: string) => (memoryToolNames as readonly string[]).includes(name);
@@ -72,12 +73,12 @@ export class ToolLoadout {
 
   /** 定时任务和配方执行没有人盯着界面,不要求待办清单。 */
   private runViewFor(entry?: ToolLoadoutConversation): boolean {
-    return this.options.runView?.() === true && !(entry?.scheduledTaskConversation || entry?.recipeExecution);
+    return this.options.runView?.() === true && !(entry?.scheduledTaskConversation || entry?.backgroundExecution || entry?.recipeExecution);
   }
 
   /** 推荐操作只给有人看着的主代理对话；定时任务和配方执行没有人点按钮。 */
   private recommendedActionsFor(mode: InteractionMode, entry?: ToolLoadoutConversation): boolean {
-    return this.options.recommendedActions?.() === true && mode !== "plan" && !(entry?.scheduledTaskConversation || entry?.recipeExecution);
+    return this.options.recommendedActions?.() === true && mode !== "plan" && !(entry?.scheduledTaskConversation || entry?.backgroundExecution || entry?.recipeExecution);
   }
 
   /** 模式决定的原生工具；传入对话时附带它可用的记忆工具。 */
@@ -145,7 +146,7 @@ export class ToolLoadout {
   /** 只有主代理在非 Plan 且非后台执行的环境里可以写入长期记忆。 */
   canUpdateMemory(entry: ToolLoadoutConversation): boolean {
     if (!this.options.memoryEnabled()) return false;
-    return !(entry.snapshot.mode === "plan" || entry.recipeExecution || entry.scheduledTaskConversation);
+    return !(entry.snapshot.mode === "plan" || entry.recipeExecution || entry.scheduledTaskConversation || entry.backgroundExecution);
   }
 
   /** 根会话执行工具前的最后一道闸。 */

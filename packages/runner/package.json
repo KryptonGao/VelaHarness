@@ -1,0 +1,18 @@
+{
+  "name": "@vela/runner",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@vela/agent": "workspace:*",
+    "@vela/shared": "workspace:*",
+    "@vela/workspace": "workspace:*"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --import ../agent/test/register-ts.mjs --experimental-transform-types --experimental-test-module-mocks --test 'test/*.test.ts'"
+  }
+}

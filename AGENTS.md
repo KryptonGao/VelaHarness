@@ -18,6 +18,8 @@ pnpm build               # 生产构建，冒烟测试依赖它
 pnpm test:smoke          # 真实 Electron 冒烟测试（先 pnpm build）
 pnpm test:ui             # 真实 Electron 的渲染层检查
 pnpm --filter @vela/desktop test:updates     # 应用内更新相关测试
+pnpm runner run --help   # 构建并运行 Headless CLI（不需要 Electron），说明见 docs/guides/headless-runner.md
+pnpm test:runner         # Headless Runner、CLI 及其依赖的 Runtime 能力
 pnpm package:mac         # 打包 dmg 和 zip 到 apps/desktop/dist
 pnpm sign:release        # 给更新包生成并签名 SHA256SUMS.txt
 ```

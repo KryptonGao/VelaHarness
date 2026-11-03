@@ -1,4 +1,5 @@
-import { AgentRuntime, systemPromptProfileFrom } from "@vela/agent";
+import { systemPromptProfileFrom } from "@vela/agent";
+import { createRuntimeHost, type RuntimeHost } from "@vela/runner";
 import {
   ExecutionEnvironmentManager,
   GitOperationLog,
@@ -8,8 +9,6 @@ import {
   sandboxApprovalTimeoutMs,
   WorkspaceFileService,
   WorkspaceManager,
-  BackgroundShellManager,
-  createSandboxedToolDefinitions,
   createWorktree, removeWorktree,
 } from "@vela/workspace";
 import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, nativeTheme, Notification, powerMonitor, session, shell, Tray, webContents } from "electron";
@@ -116,6 +115,8 @@ let races: RaceService | null = null;
 let conflictHost: ConflictHost | null = null;
 let conflicts: ConflictService | null = null;
 let host: SessionHost | null = null;
+/** Runtime 的所有者：退出时先停业务入口和订阅，再由它关闭 Runtime 与后台命令。 */
+let runtimeHost: RuntimeHost | null = null;
 let browserHost: BrowserHost | null = null;
 let browserRepl: BrowserReplManager | null = null;
 let project: ProjectHost | null = null;
@@ -377,8 +378,9 @@ async function start(): Promise<void> {
   setUpdateMenuAction(() => { void updateHost?.checkFromMenu().catch(error => log.error("update check from menu failed", error)); });
   // 开发版只提供手动检查，不在后台联网，也不会替换 Electron 开发二进制。
   if (app.isPackaged) updateHost.service.start();
-  const backgroundShells = new BackgroundShellManager();
-  const runtime = new AgentRuntime({
+  runtimeHost = createRuntimeHost({
+    sandbox,
+    onCleanupIssue: message => log.warn("runtime shutdown", message),
     locale: getApplicationLocale,
     // 常驻 Agent 的工具只读取 Supervisor 的真实记录；Supervisor 在运行时之后创建，所以这里延迟取用。
     resident: {
@@ -394,31 +396,18 @@ async function start(): Promise<void> {
     pluginCredentialStore: new SecureCredentialStore(join(home, "integrations-auth.enc.json")),
     browserRepl,
     mcpOpenUrl: (url) => { void shell.openExternal(url).catch(() => undefined); },
-    mcpPermission: { request: (input) => sandbox.request({ ...input, workspace: input.cwd }) },
-    browserReplPermission: { request: (input) => sandbox.request({ ...input, workspace: input.cwd }) },
-    memoryPermission: { request: (input) => sandbox.request({ ...input, workspace: input.workspace ?? input.cwd }) },
-    webPermission: { request: (input) => sandbox.request({ ...input, workspace: input.cwd }) },
     webToolsCredentialStore: new SecureCredentialStore(join(home, "web-tools-auth.enc.json")),
     cwd: fallbackCwd,
     workspaceFolders: cwd => workspaceManager.foldersOf(cwd),
     isWorkspaceCwd: (cwd) => (cwd !== fallbackCwd && cwd !== legacyFallbackCwd) || workspaceManager.getState().recents.some(recent => recent.path === cwd),
     agentDir: home,
-    backgroundShells,
-    toolFactory: (cwd, { background, ...context } = {}) =>
-      createSandboxedToolDefinitions({
-        cwd,
-        workspace: cwd,
-        extraRoots: () => workspaceManager.foldersOf(cwd),
-        permission: sandbox,
-        ...context,
-        ...(background ? { background: backgroundShells } : {}),
-      }),
     onRecipeStop: id => taskRecipes?.stopConversation(id),
     // 系统提示档位：v2（默认）、v1（Pi 原有基础段）、v2-visual。
     systemPromptProfile: systemPromptProfileFrom(process.env.VELA_SYSTEM_PROMPT),
     // 激活会话变化时让工作区跟随,保证输入区与仓库卡片显示的目录即会话目录。
     onActiveCwd: (cwd, hasWorkspace) => void project?.syncConversationWorkspace(cwd, hasWorkspace),
   });
+  const runtime = runtimeHost.runtime;
   // 已登记工作区：当前选择、最近使用和已有会话的工作目录，供配方与记忆管理共用。
   const registeredWorkspaces = () => [...new Set([
     workspaceManager.getState().current,
@@ -518,8 +507,7 @@ async function start(): Promise<void> {
       if (dir) conflictService.record(event.conversationId, dir, event.event.activity.path);
     }
   });
-  // 「帮我批准」模式下由当前对话选择的模型判断操作风险。
-  sandbox.setRiskEvaluator((input) => runtime.evaluateSandboxRisk(input));
+  // 「帮我批准」模式下的风险判断由 RuntimeHost 接线（runtime.evaluateSandboxRisk）。
 
   // Agent Inbox 与常驻 Agent 运行在 main process，窗口隐藏或关闭时仍然接收审批、问题和任务结果。
   try {
@@ -814,7 +802,10 @@ app.on("before-quit", (event) => {
   memoryHost = null;
   webToolsHost?.dispose();
   webToolsHost = null;
-  const closing = host?.dispose();
+  // 先停业务入口和订阅，再关闭 RuntimeHost（Runtime 与后台命令），最后等调度服务收尾。
+  host?.dispose();
+  const closing = runtimeHost?.dispose();
+  runtimeHost = null;
   browserRepl?.dispose();
   browserRepl = null;
   browserHost?.dispose();

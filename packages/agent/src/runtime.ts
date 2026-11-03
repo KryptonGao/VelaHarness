@@ -106,7 +106,7 @@ import {
   type GoalValidationDraft,
   type GoalValidationEvidence,
 } from "./goal-validation";
-import { ModelDirectory } from "./model-directory";
+import { ModelDirectory, type ModelDirectoryOptions } from "./model-directory";
 import { MemoryService } from "./memory";
 import { MemorySettings } from "./memory-settings";
 import { MemoryCredentialStore } from "./mcp/credentials";
@@ -119,7 +119,7 @@ import { ModelPriceStore } from "./model-price-store";
 import { TaskCostHistoryStore } from "./task-cost-history";
 import { IntelligentUiSettings } from "./intelligent-ui-settings";
 import { intelligentUiInstructions } from "./intelligent-ui-prompt";
-import { browserVisualCheckNote, checksVisualWork, defaultSystemPromptProfile, intelligentUiScopeNote, usesVelaPrompt, velaPreamble, velaRules, type RuleKind, type SystemPromptProfile } from "./system-prompt";
+import { browserVisualCheckNote, checksVisualWork, defaultSystemPromptProfile, intelligentUiScopeNote, usesVelaPrompt, velaHeadlessPreamble, velaPreamble, velaRules, type RuleKind, type SystemPromptProfile } from "./system-prompt";
 import { createResidentTools, residentInstructions, type ResidentToolHost } from "./resident-tools";
 import { createMemoryContextExtension, memoryTargetsFor } from "./memory-context";
 import { workspaceFoldersInstructions } from "./workspace-folders";
@@ -259,6 +259,55 @@ export interface AgentRuntimeOptions {
   systemPromptProfile?: SystemPromptProfile;
   /** 当前界面语言；每轮读取，用作提示里「用户语言不明时」的默认写作语言。 */
   locale?: () => AppLocale;
+  /** 模型配置与运行数据分离：配置（登录、模型定义、默认选择）读自 configDir，缓存写进 cacheDir。缺省保持桌面行为。 */
+  modelDirectory?: Omit<ModelDirectoryOptions, "configDir"> & { configDir: string };
+  /** 宿主身份：headless 关闭 Intelligent UI，并在提示里如实说明没有桌面界面。默认 desktop。 */
+  hostProfile?: "desktop" | "headless";
+}
+
+/** createRunConversation 的入参：一次无人值守的单次任务所需的全部选择。 */
+export interface RunConversationInput {
+  cwd: string;
+  mode?: "agent" | "plan";
+  /** 显式模型：不可用时失败，不替换成其他模型。 */
+  model?: { provider: string; id: string };
+  /** 显式思考强度：所选模型不支持时失败，不静默收敛。 */
+  thinkingLevel?: ThinkingLevel;
+  sandboxMode: SandboxMode;
+}
+
+export interface RunConversationInfo {
+  conversationId: string;
+  model: { provider: string; id: string } | null;
+  thinkingLevel: ThinkingLevel;
+}
+
+export type RunConversationErrorCode = "model_unavailable" | "thinking_unsupported" | "start_failed";
+
+export class RunConversationError extends Error {
+  constructor(readonly code: RunConversationErrorCode, message: string) {
+    super(message);
+    this.name = "RunConversationError";
+  }
+}
+
+export interface RunTokenUsage { input: number; output: number; cacheRead: number; total: number }
+
+export interface RunReport {
+  /** 最后一次主代理回复的文本；没有时为 null。 */
+  finalText: string | null;
+  /** 最新的 Proposed Plan；Plan 模式用，不自动批准。 */
+  plan: { id: string; revision: number; markdown: string } | null;
+  tokens: { root: RunTokenUsage; subagents: (RunTokenUsage & { agentId: string; path: string })[]; total: RunTokenUsage };
+  /** 结束时仍处于失败状态的子代理。 */
+  subagentFailures: { agentId: string; path: string; task: string; error: string | null }[];
+  budgetExhausted: boolean;
+}
+
+export interface WaitForIdleOptions {
+  signal?: AbortSignal;
+  /** 也等待运行中的后台命令结束（以及它们唤醒主代理后的回复）。 */
+  includeBackgroundShells?: boolean;
 }
 
 interface RewindMetadata {
@@ -286,6 +335,8 @@ interface Conversation {
   scheduledSandboxMode?: SandboxMode | null;
   /** 定时任务后台会话：只读记忆，不提供 memory_update。 */
   scheduledTaskConversation?: boolean;
+  /** 通用「后台执行」标记（Headless 单次任务等）：不写长期记忆、不要求待办清单与推荐操作，但不冒充定时任务。 */
+  backgroundExecution?: boolean;
   recipeExecution?: RecipeExecution;
   recipeRunId?: string;
   recipeWorkflowActive?: boolean;
@@ -438,6 +489,12 @@ export class AgentRuntime {
   private readonly stopBackgroundShellChanges: (() => void) | null;
   /** 等待合并投递的 root 通知，按会话 id 分组。 */
   private readonly rootNotices = new Map<string, { entry: Conversation; items: RootNotice[]; firstAt: number; timer: ReturnType<typeof setTimeout> }>();
+  /** 已从通知表取出、但主代理还没处理完的 root 投递数；填补「已删除但尚未启动主代理」的空窗。 */
+  private readonly rootDeliveries = new Map<string, number>();
+  /** 任何会话活动都会递增；waitForIdle 靠它确认空闲判断期间没有新活动。 */
+  private activityVersion = 0;
+  private readonly activityWaiters = new Set<() => void>();
+  private disposing: Promise<void> | null = null;
 
   constructor(private readonly options: AgentRuntimeOptions) {
     this.currentCwd = options.cwd;
@@ -834,6 +891,149 @@ export class AgentRuntime {
       total.cacheRead += agent.usage.cacheRead; total.total += agent.usage.total;
     }
     return total;
+  }
+
+  /**
+   * 单次无人值守任务（Headless / CI）：创建一个不激活的持久会话。
+   * 不改应用默认模型和当前工作区，不请求模型生成标题，只按通用「后台执行」标记限制长期记忆写入。
+   * 显式模型不可用、显式思考强度不被所选模型支持时失败，不做替换或收敛。
+   */
+  async createRunConversation(input: RunConversationInput): Promise<RunConversationInfo> {
+    return this.exclusive(async () => {
+      await this.ready();
+      const directory = await this.readyDirectory();
+      const selection = this.runSelection(directory, input);
+      const entry = this.addEntry(input.cwd, { activate: false, hasWorkspace: true, mode: input.mode ?? "agent", instructions: "" });
+      entry.scheduledSandboxMode = input.sandboxMode;
+      entry.backgroundExecution = true;
+      entry.titleManuallySet = true;
+      entry.titleGenerationStarted = true;
+      try {
+        await this.startInternal(entry, selection);
+      } catch (error) {
+        this.patchEntry(entry, { status: "error", error: error instanceof Error ? error.message : "无法启动任务会话" });
+        throw new RunConversationError("start_failed", error instanceof Error ? error.message : "无法启动任务会话");
+      }
+      if (!entry.session || entry.snapshot.status === "error") throw new RunConversationError("start_failed", entry.snapshot.error ?? "无法启动任务会话");
+      this.store.flushSync(true);
+      return {
+        conversationId: entry.id,
+        model: entry.session.model ? { provider: entry.session.model.provider, id: entry.session.model.id } : null,
+        thinkingLevel: entry.ultra ? "ultra" : entry.session.thinkingLevel,
+      };
+    });
+  }
+
+  private runSelection(directory: ModelDirectory, input: RunConversationInput): { model: Model<Api>; thinkingLevel: ThinkingLevel } {
+    const defaults = this.conversationSelection(directory);
+    let model = defaults.model;
+    if (input.model) {
+      const found = directory.runtime.getModel(input.model.provider, input.model.id);
+      if (!found || !directory.isAvailable(found)) {
+        throw new RunConversationError("model_unavailable", `模型 ${input.model.provider}/${input.model.id} 不可用：未找到，或尚未登录 / 配置密钥`);
+      }
+      model = found;
+    }
+    if (!model) throw new RunConversationError("model_unavailable", "没有可用的模型：请在配置目录中登录或配置密钥，或显式指定 provider 与 model");
+    let thinkingLevel = clampToModel(model, defaults.thinkingLevel);
+    if (input.thinkingLevel) {
+      if (!levelsFor(model).includes(input.thinkingLevel)) {
+        throw new RunConversationError("thinking_unsupported", `模型 ${model.provider}/${model.id} 不支持思考强度 ${input.thinkingLevel}`);
+      }
+      thinkingLevel = input.thinkingLevel;
+    }
+    return { model, thinkingLevel };
+  }
+
+  /** 会话当前是否仍有活动：主代理、子代理、待合并通知、进行中的投递，以及可选的后台命令。 */
+  private conversationBusy(entry: Conversation, includeBackgroundShells: boolean): boolean {
+    const session = entry.session;
+    if (entry.driving || session?.isStreaming || session?.isCompacting) return true;
+    if (entry.pendingInstructions.length > 0) return true;
+    if (session && (session.getSteeringMessages().length > 0 || session.getFollowUpMessages().length > 0)) return true;
+    if (entry.control?.list().some(agent => agent.kind !== "root" && isAgentBusy(agent.status))) return true;
+    if (this.rootNotices.has(entry.id) || (this.rootDeliveries.get(entry.id) ?? 0) > 0) return true;
+    if (includeBackgroundShells && (this.options.backgroundShells?.list?.(entry.id) ?? []).some(shell => shell.status === "running")) return true;
+    return false;
+  }
+
+  /**
+   * 等到这个会话真正空闲：prompt() 返回不代表任务结束，子代理、后台命令及合并通知还可能再唤醒主代理。
+   * 空闲判断要在下一次事件循环之后、活动版本未变的前提下再成立一次，不用固定睡眠代替完成条件。
+   */
+  async waitForIdle(conversationId: string, options: WaitForIdleOptions = {}): Promise<void> {
+    const { signal, includeBackgroundShells = false } = options;
+    for (;;) {
+      if (signal?.aborted) throw new Error("等待已取消");
+      if (this.disposed) throw new Error("Vela runtime has closed");
+      const entry = this.conversations.get(conversationId);
+      if (!entry) throw new Error("对话不存在或已结束");
+      if (this.conversationBusy(entry, includeBackgroundShells)) {
+        await this.nextActivity(signal);
+        continue;
+      }
+      const version = this.activityVersion;
+      await new Promise<void>(resolve => setImmediate(resolve));
+      if (version === this.activityVersion && !this.disposed && this.conversations.get(conversationId) === entry
+        && !this.conversationBusy(entry, includeBackgroundShells)) return;
+    }
+  }
+
+  /** 等下一次会话活动；没有事件源的情形（后台命令自然结束等）靠短轮询兜底。 */
+  private nextActivity(signal?: AbortSignal): Promise<void> {
+    return new Promise<void>(resolve => {
+      const done = (): void => {
+        clearTimeout(timer);
+        this.activityWaiters.delete(done);
+        signal?.removeEventListener("abort", done);
+        resolve();
+      };
+      const timer = setTimeout(done, 250);
+      this.activityWaiters.add(done);
+      signal?.addEventListener("abort", done, { once: true });
+    });
+  }
+
+  /** 一次任务结束后提取结果所需的事实：最后一次主代理回复、最新计划、用量与子代理失败。 */
+  getRunReport(conversationId: string): RunReport {
+    const entry = this.requireConversation(conversationId);
+    const messages = entry.session?.agent.state.messages ?? [];
+    let finalText: string | null = null;
+    for (let index = messages.length - 1; index >= 0; index -= 1) {
+      const message = messages[index];
+      if (message?.role !== "assistant") continue;
+      const text = message.content.filter(part => part.type === "text").map(part => part.text).join("").trim();
+      if (text) { finalText = text; break; }
+    }
+    const agents = entry.control?.list() ?? [];
+    const rootTokens = (() => {
+      try { return entry.session?.getSessionStats().tokens; } catch { return undefined; }
+    })();
+    const usage = (tokens: { input: number; output: number; cacheRead: number; total: number } | undefined): RunTokenUsage =>
+      ({ input: tokens?.input ?? 0, output: tokens?.output ?? 0, cacheRead: tokens?.cacheRead ?? 0, total: tokens?.total ?? 0 });
+    const subagents = agents.filter(agent => agent.kind !== "root");
+    const plan = latestPlan(entry.plans);
+    return {
+      finalText,
+      plan: plan ? { id: plan.id, revision: plan.revision, markdown: plan.markdown } : null,
+      tokens: {
+        root: usage(rootTokens),
+        subagents: subagents.map(agent => ({ agentId: agent.id, path: agent.path, ...usage(agent.usage) })),
+        total: usage(this.getLaneStats(conversationId) ?? rootTokens),
+      },
+      subagentFailures: subagents.filter(agent => agent.status === "failed")
+        .map(agent => ({ agentId: agent.id, path: agent.path, task: agent.task, error: agent.error })),
+      budgetExhausted: entry.budget?.exhausted === true,
+    };
+  }
+
+  /**
+   * 严格持久化：把会话索引与轨迹写到磁盘，任何写盘失败都抛出，而不是静默返回成功。
+   * Headless 在 dispose() 之前调用，使 CLI 能感知写盘失败。
+   */
+  async persistStrict(): Promise<void> {
+    this.store.flushSync(true);
+    this.traces.flushStrict();
   }
 
   /** 显式指定的模型与思考强度优先；缺省的部分沿用新对话的选择，强度按所选模型支持的档位收敛。 */
@@ -2433,7 +2633,13 @@ export class AgentRuntime {
   }
 
   dispose(): Promise<void> {
+    this.disposing ??= this.disposeOnce();
+    return this.disposing;
+  }
+
+  private disposeOnce(): Promise<void> {
     this.disposed = true;
+    this.touch();
     if (this.checkpointSweep) clearTimeout(this.checkpointSweep);
     this.checkpointSweep = null;
     if (this.mcpPoll) clearInterval(this.mcpPoll);
@@ -2453,6 +2659,7 @@ export class AgentRuntime {
     this.stopBackgroundShells?.();
     this.stopBackgroundShellChanges?.();
     this.clearRootNotices();
+    this.rootDeliveries.clear();
     for (const entry of this.conversations.values()) {
       this.options.backgroundShells?.killConversation(entry.id);
       closing.push(this.detachEntry(entry));
@@ -2475,9 +2682,16 @@ export class AgentRuntime {
 
   private async initialize(): Promise<void> {
     await this.store.load();
+    // dispose() 在初始化途中发生时不再建立任何状态。
+    if (this.disposed) return;
     this.restoreConversations();
     this.store.flushSync();
-    const directory = await ModelDirectory.open(this.options.agentDir);
+    // 配置与运行数据分离时，缓存默认落在运行数据目录，绝不写回配置目录。
+    const modelOptions = this.options.modelDirectory
+      ? { ...this.options.modelDirectory, cacheDir: this.options.modelDirectory.cacheDir ?? join(this.options.agentDir, "model-cache") }
+      : undefined;
+    const directory = await ModelDirectory.open(this.options.agentDir, modelOptions);
+    if (this.disposed) { directory.cancelLogin(); return; }
     directory.subscribeAuth((event) => {
       for (const listener of this.authListeners) listener(event);
     });
@@ -2716,8 +2930,8 @@ export class AgentRuntime {
           factory: createModeExtension(() => ({
             mode: entry.snapshot.mode,
             hasExecutionPlan: entry.snapshot.executionPlan !== null,
-            runView: this.runView && !this.isResident(entry.id) && !entry.scheduledTaskConversation && !entry.recipeExecution,
-            recommendedActions: this.recommendedActions && !this.isResident(entry.id) && !entry.scheduledTaskConversation && !entry.recipeExecution,
+            runView: this.runView && !this.isResident(entry.id) && !entry.scheduledTaskConversation && !entry.backgroundExecution && !entry.recipeExecution,
+            recommendedActions: this.recommendedActions && !this.isResident(entry.id) && !entry.scheduledTaskConversation && !entry.backgroundExecution && !entry.recipeExecution,
           }), {
             availableTools: (mode, plan) => this.tools.native(mode, plan, entry),
             authorizeCall: call => this.tools.authorize(call, entry),
@@ -2728,6 +2942,7 @@ export class AgentRuntime {
           hidden: true,
           factory: ((pi) => { pi.on("before_agent_start", event => {
             // 每轮读取当前偏好，设置切换后下一轮立即生效。
+            if (this.options.hostProfile === "headless") return;
             const extra = intelligentUiInstructions(this.intelligentUiSettings.preference, entry.snapshot.mode, { microApps: this.intelligentUiSettings.microApps,
               scopeNote: checksVisualWork(this.promptProfile) ? intelligentUiScopeNote : undefined });
             if (!extra) return;
@@ -3049,6 +3264,8 @@ export class AgentRuntime {
       }
       this.toolStreams.get(conversationId)?.executed(event.toolCallId);
       this.toolArgs.set(event.toolCallId, event.args);
+      // 真实开始执行才计数；流式参数阶段提前亮出的卡片不算。根会话口径，子代理不计入。
+      this.addUsage(conversationId, 0, 1);
       if (entry && (event.toolName === "edit" || event.toolName === "write" || event.toolName === "bash")) {
         this.toolTurnContexts.set(event.toolCallId, entry.turnToolEvidence);
       }
@@ -3383,7 +3600,17 @@ export class AgentRuntime {
     })) }));
   }
 
+  /** 记一次会话活动并唤醒 waitForIdle。 */
+  private touch(): void {
+    this.activityVersion += 1;
+    if (this.activityWaiters.size === 0) return;
+    const waiters = [...this.activityWaiters];
+    this.activityWaiters.clear();
+    for (const wake of waiters) wake();
+  }
+
   private emit(event: RuntimeEvent): void {
+    this.touch();
     if (event.type === "trace") event = this.redactTraceForConversation(event.conversationId, event);
     for (const listener of this.listeners) listener(event);
   }
@@ -3747,9 +3974,21 @@ export class AgentRuntime {
     const timer = setTimeout(() => {
       const batch = this.rootNotices.get(entry.id);
       this.rootNotices.delete(entry.id);
-      if (batch) void this.deliverRootNotices(batch.entry, batch.items);
+      if (batch) this.trackRootDelivery(batch.entry, batch.items);
     }, delay);
     this.rootNotices.set(entry.id, { entry, items: [...(pending?.items ?? []), notice], firstAt, timer });
+    this.touch();
+  }
+
+  /** 登记进行中的投递（同步，紧接在通知表删除之后），结束时再递减。 */
+  private trackRootDelivery(entry: Conversation, items: RootNotice[]): void {
+    this.rootDeliveries.set(entry.id, (this.rootDeliveries.get(entry.id) ?? 0) + 1);
+    void this.deliverRootNotices(entry, items).catch(() => undefined).finally(() => {
+      const left = (this.rootDeliveries.get(entry.id) ?? 1) - 1;
+      if (left > 0) this.rootDeliveries.set(entry.id, left);
+      else this.rootDeliveries.delete(entry.id);
+      this.touch();
+    });
   }
 
   private clearRootNotices(): void {
@@ -3837,7 +4076,7 @@ export class AgentRuntime {
 
   /** v2 起用 Vela 的身份句替换 Pi 的基础段；工作区或资料目录的 SYSTEM.md 仍优先。 */
   private preambleOverride(): { systemPromptOverride?: (base: string | undefined) => string | undefined } {
-    return usesVelaPrompt(this.promptProfile) ? { systemPromptOverride: base => base ?? velaPreamble } : {};
+    return usesVelaPrompt(this.promptProfile) ? { systemPromptOverride: base => base ?? (this.options.hostProfile === "headless" ? velaHeadlessPreamble : velaPreamble) } : {};
   }
 
   /**

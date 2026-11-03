@@ -19,7 +19,10 @@
     "test:ui": "pnpm --filter @vela/desktop test:ui",
     "test:smoke": "pnpm build && pnpm --filter @vela/desktop test:smoke",
     "test:mcp": "pnpm --filter @vela/agent test:mcp && pnpm --filter @vela/desktop test:mcp && pnpm --filter @vela/desktop test:mcp:ui && pnpm --filter @vela/desktop test:mcp:electron",
-    "test:center": "pnpm --filter @vela/desktop test:center"
+    "test:center": "pnpm --filter @vela/desktop test:center",
+    "runner": "pnpm build:runner && node apps/runner/out/cli.mjs",
+    "build:runner": "pnpm --filter @vela/runner-cli build",
+    "test:runner": "pnpm --filter @vela/agent test:runner && pnpm --filter @vela/runner test && pnpm --filter @vela/runner-cli test"
   },
   "devDependencies": {
     "typescript": "^7.0.2"

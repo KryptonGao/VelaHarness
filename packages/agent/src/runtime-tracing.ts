@@ -39,6 +39,15 @@ export class ConversationTraces {
   dispose(): void {
     for (const recorder of this.recorders.values()) recorder.dispose();
   }
+
+  /** 把全部轨迹写盘；记录器把写盘失败记成 warning，这里把它变成异常。 */
+  flushStrict(): void {
+    for (const recorder of this.recorders.values()) {
+      recorder.flush();
+      const warning = recorder.snapshot().warning;
+      if (warning?.startsWith("轨迹保存失败：")) throw new Error(warning);
+    }
+  }
 }
 
 /**

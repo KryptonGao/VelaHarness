@@ -23,6 +23,7 @@
 | [guides/development.md](./guides/development.md) | 开发者 | 开发版与安装版的资料目录、同步正式版资料、开发工具，以及界面设置与会话记录的保存位置。 |
 | [guides/updates.md](./guides/updates.md) | 使用者与维护者 | 应用内更新：仅依赖 GitHub Release 的检查、自动下载、Ed25519 验签、退出时替换应用，以及发版签名步骤与限制。 |
 | [guides/model-catalog.md](./guides/model-catalog.md) | 使用者与开发者 | 模型列表的自动与手动刷新、Pi 的 4 小时检查间隔、按 Pi 版本过滤模型目录，以及升级 Pi 后的验收步骤。 |
+| [guides/headless-runner.md](./guides/headless-runner.md) | 使用者与开发者 | Headless Runner：不启动 Electron 的单次任务 CLI（`vela-runner`）与 `runHeadless` API；文本 / JSONL 输出与退出码、无人值守的审批与提问、后台任务收尾、运行目录与模型配置隔离，以及与桌面共用的 `RuntimeHost`。 |
 | [guides/logging.md](./guides/logging.md) | 使用者与开发者 | 日志位置与格式、级别、轮转与脱敏、未捕获错误记录，以及诊断包导出的内容与隐私边界。 |
 
 ### 功能说明
