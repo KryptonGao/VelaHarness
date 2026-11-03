@@ -1,6 +1,7 @@
 import { BrowserIpc, type BrowserWindowState } from "../../../../packages/shared/src/browser";
 import {
   IpcChannel,
+  isMenuAction,
   PrInboxIpc,
   TaskRecipesIpc,
   RaceIpc,
@@ -777,7 +778,7 @@ const api: VelaApi = {
   },
   onMenuAction: (listener) => {
     const wrapped = (_event: IpcRendererEvent, action: unknown) => {
-      if (action !== "new-chat" && action !== "toggle-settings") return;
+      if (!isMenuAction(action)) return;
       listener(action);
     };
     ipcRenderer.on(IpcChannel.appMenuAction, wrapped);

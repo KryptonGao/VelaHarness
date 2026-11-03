@@ -79,6 +79,8 @@ export function installApplicationMenu(): void {
       label: text("文件", "File"),
       submenu: [
         { label: text("新建会话", "New Chat"), accelerator: "CmdOrCtrl+N", click: () => sendMenuAction("new-chat") },
+        { label: text("新建标签页", "New Tab"), accelerator: "CmdOrCtrl+T", click: () => sendMenuAction("new-tab") },
+        { type: "separator" },
         { label: text("设置…", "Settings…"), accelerator: "CmdOrCtrl+,", click: () => sendMenuAction("toggle-settings") },
         { type: "separator" },
         { role: "close", label: text("关闭窗口", "Close Window") },
@@ -99,6 +101,9 @@ export function installApplicationMenu(): void {
     {
       label: text("显示", "View"),
       submenu: [
+        { label: text("切换侧边栏", "Toggle Sidebar"), accelerator: "CmdOrCtrl+B", click: () => sendMenuAction("toggle-sidebar") },
+        { label: text("切换信息面板", "Toggle Info Panel"), accelerator: "CmdOrCtrl+J", click: () => sendMenuAction("toggle-info") },
+        { type: "separator" },
         { role: "reload", label: text("重新加载", "Reload") },
         { role: "forceReload", label: text("强制重新加载", "Force Reload") },
         { role: "toggleDevTools", label: text("开发者工具", "Developer Tools") },
@@ -108,6 +113,29 @@ export function installApplicationMenu(): void {
         { role: "zoomOut", label: text("缩小", "Zoom Out") },
         { type: "separator" },
         { role: "togglefullscreen", label: text("进入全屏", "Toggle Full Screen") },
+      ],
+    },
+    {
+      label: text("前往", "Go"),
+      submenu: [
+        // 非 macOS 的 Alt+←/→ 在输入框里要留给文本编辑,所以只在 macOS 注册快捷键,其余平台由渲染层按焦点处理。
+        { label: text("返回", "Back"), ...(isMac ? { accelerator: "Cmd+[" } : {}), click: () => sendMenuAction("go-back") },
+        { label: text("前进", "Forward"), ...(isMac ? { accelerator: "Cmd+]" } : {}), click: () => sendMenuAction("go-forward") },
+        { type: "separator" },
+        { label: text("主页", "Home"), click: () => sendMenuAction("go-home") },
+        { label: text("定时任务", "Scheduled Tasks"), click: () => sendMenuAction("open-scheduled-tasks") },
+        { label: text("任务配方", "Task Recipes"), click: () => sendMenuAction("open-recipes") },
+        { label: text("Agent 收件箱", "Agent Inbox"), click: () => sendMenuAction("open-agent-inbox") },
+        { label: "Pull Request", click: () => sendMenuAction("open-pr-inbox") },
+      ],
+    },
+    {
+      label: text("工作台", "Workbench"),
+      submenu: [
+        { label: text("终端", "Terminal"), click: () => sendMenuAction("open-terminal") },
+        { label: text("文件", "Files"), click: () => sendMenuAction("open-files") },
+        { label: text("浏览器", "Browser"), click: () => sendMenuAction("open-browser") },
+        { label: text("变更", "Changes"), click: () => sendMenuAction("open-changes") },
       ],
     },
     { role: "windowMenu", label: text("窗口", "Window") },

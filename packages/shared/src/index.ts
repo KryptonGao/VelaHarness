@@ -2861,7 +2861,18 @@ export interface PromptInput {
 export type AttachmentPickKind = "file" | "image";
 
 /** 应用菜单里指向渲染层的动作;主进程通过 app:menu-action 转发。 */
-export type MenuAction = "new-chat" | "toggle-settings";
+export const MENU_ACTIONS = [
+  "new-chat", "new-tab", "toggle-settings",
+  "toggle-sidebar", "toggle-info",
+  "go-back", "go-forward", "go-home",
+  "open-scheduled-tasks", "open-recipes", "open-agent-inbox", "open-pr-inbox",
+  "open-terminal", "open-files", "open-browser", "open-changes",
+] as const;
+export type MenuAction = (typeof MENU_ACTIONS)[number];
+
+export function isMenuAction(value: unknown): value is MenuAction {
+  return typeof value === "string" && (MENU_ACTIONS as readonly string[]).includes(value);
+}
 
 export interface FileAttachmentPayload {
   path: string;

@@ -3,7 +3,7 @@ import { AgentInboxPage } from "./components/AgentInboxPage";
 import { useAgentInbox } from "./hooks/useAgentInbox";
 import { uiStorage } from "./ui-storage";
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState, type ContextType } from "react";
-import { type AgentInboxNavigation, type ReleaseNotes, type TaskRecipe } from "@vela/shared";
+import { type AgentInboxNavigation, type MenuAction, type ReleaseNotes, type TaskRecipe } from "@vela/shared";
 import { AgentWorkspaceProvider } from "./components/AgentPanel";
 import { SessionChatView } from "./components/SessionChatView";
 import { ContextPanel } from "./components/ContextPanel";
@@ -221,6 +221,7 @@ export function App() {
   const navCategory: NavCategory = settingsOpen ? "settings" : scheduledTasksOpen ? "scheduledTasks" : recipesOpen ? "recipes"
     : agentInboxOpen ? "agentInbox" : prInboxOpen ? "prInbox" : "home";
   const navActions = useRef({ back: () => {}, forward: () => {} });
+  const menuActionHandler = useRef<(action: MenuAction) => void>(() => {});
   const workspaceKey = project.workspace?.current ?? "";
   const conversationKey = session.activeConversationId ?? "";
   const { review: turnReview, tabId: turnReviewTabId, open: showTurnReview, close: dismissTurnReview } = useTurnReview(workspaceKey, conversationKey);
@@ -806,16 +807,11 @@ export function App() {
   useEffect(() => {
     const vela = window.vela;
     if (!vela) return;
-    // 应用菜单的「新建会话/设置」经主进程转发到这里,行为与侧边栏按钮一致。
+    // 应用菜单的动作经主进程转发到这里,行为与侧边栏、图标栏的按钮一致;处理函数在渲染末尾更新。
     return vela.onMenuAction((action) => {
-      if (!onboardingComplete) return;
-      if (action === "new-chat") {
-        leaveRecipes(() => { setPrInboxOpen(false); setAgentInboxOpen(false); setScheduledTasksOpen(false); setSettingsOpen(false); void session.newChat(); });
-      } else {
-        leaveRecipes(() => { setPrInboxOpen(false); setAgentInboxOpen(false); setScheduledTasksOpen(false); setSettingsOpen((open) => !open); });
-      }
+      if (onboardingComplete) menuActionHandler.current(action);
     });
-  }, [onboardingComplete, session.newChat, leaveRecipes]);
+  }, [onboardingComplete]);
 
   useEffect(() => {
     window.vela?.setLocale(preferences.locale);
@@ -888,6 +884,31 @@ export function App() {
   const goBack = () => { const entry = navHistory.back(navEntryValid); if (entry) showNavEntry(entry); };
   const goForward = () => { const entry = navHistory.forward(navEntryValid); if (entry) showNavEntry(entry); };
   navActions.current = { back: goBack, forward: goForward };
+  // 工作台标签只在主页上可见:先离开设置、收件箱等页面再打开。
+  const showHomeThen = (action: () => void) => leaveRecipes(() => {
+    setSettingsOpen(false); setPrInboxOpen(false); setAgentInboxOpen(false); setScheduledTasksOpen(false);
+    action();
+  });
+  menuActionHandler.current = (action) => {
+    switch (action) {
+      case "new-chat": showHomeThen(() => { void session.newChat(); }); break;
+      case "new-tab": showHomeThen(openStartTab); break;
+      case "toggle-settings": toggleSettings(); break;
+      case "toggle-sidebar": setLeftCollapsed(value => !value); break;
+      case "toggle-info": toggleInfo(); break;
+      case "go-back": goBack(); break;
+      case "go-forward": goForward(); break;
+      case "go-home": goHome(); break;
+      case "open-scheduled-tasks": openScheduledTasks(); break;
+      case "open-recipes": openRecipes(); break;
+      case "open-agent-inbox": openAgentInbox(); break;
+      case "open-pr-inbox": openPrInbox(); break;
+      case "open-terminal": showHomeThen(openTerminalTab); break;
+      case "open-files": showHomeThen(openFilesTab); break;
+      case "open-browser": showHomeThen(() => openBrowserTab()); break;
+      case "open-changes": showHomeThen(() => openChanges()); break;
+    }
+  };
   const selectNavCategory = (category: NavCategory) => {
     if (category === navCategory) return;
     switch (category) {
