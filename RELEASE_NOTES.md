@@ -1,20 +1,21 @@
-# Vela 1.2.19
+# Vela 1.2.20
 
-Vela 1.2.19 adds custom interface and code font sizes, a new minimal logo and a Codex-style thinking group mode, and makes the composer adapt to narrow windows.
+Vela 1.2.20 adds an experimental draggable split view to the workbench, a much fuller application menu, and a headless runner for running a Vela task without Electron. It also renders browser snapshots as a readable list and fixes several streaming-output annoyances.
 
 ## New
 
-- **Custom font sizes**: **Settings → Appearance** now has separate sizes for the interface (11–15px) and for code (8–24px). Font sizes across the interface scale from these two settings, monospace text (code blocks, diffs, commands and the terminal) follows the code size, and the choice is applied before the first paint.
-- **New minimal logo**: the app icon is now a white tile with a black arm-and-sail V and no text. The sidebar header shows the mark with a geometric VELΛ wordmark that follows the theme color.
-- **Codex-style thinking groups**: a new thinking group mode shows only the tool calls, without a guide line, for a lighter and more compact view of what the agent did.
-- **Composer fits narrow windows**: the composer tray now collapses step by step on narrow widths instead of overflowing, so the model, sandbox and other controls stay reachable.
+- **Workbench split view (experimental)**: turn on **Settings → Interface → Workbench split view (experimental)** to drag tabs in the workbench and split it into up to four panes shown side by side. Drop a tab on a pane edge to split, on another pane's tab strip to move it, or on a pane's middle to swap pages. Dividers can be dragged or nudged with the arrow keys, a pane can be maximized, and closing a pane keeps its tabs. It is off by default; turning it off merges existing splits back into one pane without closing any tab.
+- **Fuller application menu**: the menu bar now has New Tab, Toggle Sidebar and Toggle Info Panel, a **Go** menu (Back, Forward, Home, Scheduled Tasks, Task Recipes, Agent Inbox, Pull Request) and a **Workbench** menu (Terminal, Files, Browser, Changes).
+- **Headless runner**: `pnpm runner run` executes a single Vela task without starting Electron, with text or JSONL output, exit codes that tell results apart, and per-run session, trace and result directories that leave the desktop app's sessions and settings untouched. The same flow is available as the `runHeadless` Node API.
+- **Readable browser snapshots**: the result of a browser snapshot is now shown as a list of elements instead of raw text.
 
 ## Improved
 
-- **Serif reply text**: slightly heavier, with a faint stroke for CJK serif fonts so that thin strokes stay readable.
-- **Start page**: the capsule composer has a faint edge shadow that lifts it off the background.
-- **Workbench tabs**: file type icons are larger and easier to recognize.
-- **Conversation titles**: title requests no longer send an unsupported `temperature` parameter, so titles are generated again with models that reject it.
+- **Streaming output**: a streamed reply no longer keeps pulling the view down once you scroll up to read earlier output.
+- **File diffs**: you can collapse a file diff while it is still streaming.
+- **Created files**: the dot marking a created file is smaller and always blue.
+- **Serif reply text**: uses a thin stroke instead of a heavier weight, so text looks lighter and cleaner.
+- **Pull request inbox**: fixed a crash where the cache read the clock with a detached `Date.now`.
 - New interface text is available in all five interface languages.
 
 ## Upgrade
@@ -29,17 +30,15 @@ The macOS build is not notarized and uses an ad-hoc signature. If macOS blocks f
 
 | File | Platform |
 | --- | --- |
-| `Vela-1.2.19-arm64.dmg` | macOS Apple Silicon installer |
-| `Vela-1.2.19-arm64.zip` | macOS Apple Silicon application bundle (`.app`); also the package used by in-app updates |
+| `Vela-1.2.20-arm64.dmg` | macOS Apple Silicon installer |
+| `Vela-1.2.20-arm64.zip` | macOS Apple Silicon application bundle (`.app`); also the package used by in-app updates |
 | `SHA256SUMS.txt` | SHA-256 checksums for both packages |
 | `SHA256SUMS.txt.sig` | Ed25519 signature of `SHA256SUMS.txt`, verified by the in-app updater |
 
-Package version: `1.2.19`. macOS bundle and download version: `1.2.19`.
+Package version: `1.2.20`. macOS bundle and download version: `1.2.20`.
 
 ## Validation
 
-- Release metadata verified: all package and macOS bundle version fields are `1.2.19`; all five in-app release-note languages contain four highlights and six improvements.
-- Production build and macOS arm64 packaging completed (`pnpm package:mac`); bundled in-app release notes match the source file.
-- The application bundle reports version `1.2.19` and identifier `com.vela.desktop`. The ZIP was extracted and contains a single `Vela.app` at version `1.2.19`; the DMG checksum verified.
-- Signed SHA-256 checksums were generated (`pnpm sign:release`). The signature was verified using the application’s `verifySignature` function and built-in `updatePublicKeys`, and both package hashes were recomputed and match.
+- Release metadata verified: all package and macOS bundle version fields are `1.2.20`; all five in-app release-note languages contain four highlights and six improvements.
+- Production build and macOS arm64 packaging completed (`pnpm package:mac`).
 - The automated test suites were not run for this release.
