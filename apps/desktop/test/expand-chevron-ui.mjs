@@ -286,7 +286,7 @@ if (!process.versions.electron) {
             const created = name === 'created' || name === 'createdRoot';
             assert.equal(Boolean(before.dot), created, `${currentCase}: blue dot only on completed writes`);
             if (created) {
-              assert.equal(before.dot.width, 6, `${currentCase}: small dot`);
+              assert.equal(before.dot.width, 4, `${currentCase}: small dot`);
               assert.equal(before.dot.opacity, '1', `${currentCase}: dot always visible`);
             }
             const { root } = await protocol('DOM.getDocument');

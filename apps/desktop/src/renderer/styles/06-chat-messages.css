@@ -993,10 +993,10 @@ button.tool-compact-line:focus-visible > .tool-compact-chevron,
 }
 .tool-file-created-dot {
   flex: none;
-  width: 6px;
-  height: 6px;
+  width: 4px;
+  height: 4px;
   border-radius: 50%;
-  background: color-mix(in srgb, var(--accent-blue) 65%, white);
+  background: var(--accent-blue);
 }
 .tool-compact-chevron {
   flex: none;
