@@ -43,7 +43,7 @@ export class PrInboxCache {
   readonly getVersion = () => this.version;
   silenceRequest(requestId: string) { this.idleRequests.add(requestId); }
 
-  constructor(source: PrInboxApi, private readonly now = Date.now, private readonly uuid = () => crypto.randomUUID()) {
+  constructor(source: PrInboxApi, private readonly now = () => Date.now(), private readonly uuid = () => crypto.randomUUID()) {
     this.api = {
       ...source,
       list: (query, options) => this.read(queryKey(query), null, options.requestId,
