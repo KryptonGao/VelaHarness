@@ -117,6 +117,14 @@ export function InterfacePage({
           onChange={(value) => setComposerCapsules(value === "on")}
         />
       </SettingsBlock>
+      <SettingsBlock id="workbench-split" title={text.workbenchSplit} hint={text.workbenchSplitHint}>
+        <Segmented
+          label={text.workbenchSplit}
+          value={preferences.workbenchSplit ? "on" : "off"}
+          options={[{ id: "off", label: text.workbenchSplitOff }, { id: "on", label: text.workbenchSplitOn }]}
+          onChange={value => preferences.setWorkbenchSplit(value === "on")}
+        />
+      </SettingsBlock>
       <SettingsBlock id="send-button-icon" title={text.sendButtonIcon}>
         <Segmented
           label={text.sendButtonIcon}

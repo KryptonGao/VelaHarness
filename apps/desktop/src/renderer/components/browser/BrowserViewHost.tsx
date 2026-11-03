@@ -8,16 +8,18 @@ import { BrowserAnnotationLayer } from "./BrowserAnnotationLayer";
 
 interface Placement { left: number; top: number; width: number; height: number; visible: boolean }
 /** Stable parent and keys: panel lifecycles never detach or recreate guests. */
-export function BrowserViewHost({ tabs, activeTabId, visible, hosted, command }: {
-  tabs: RendererBrowserTab[]; activeTabId: string | null; visible: boolean; hosted: boolean;
-  command: (command: BrowserUiCommand) => void;
+export function BrowserViewHost({ tabs, activeTabId, visibleTabIds, visible, hosted, command, onFocusTab }: {
+  tabs: RendererBrowserTab[]; activeTabId: string | null; visibleTabIds?: readonly string[]; visible: boolean; hosted: boolean;
+  command: (command: BrowserUiCommand) => void; onFocusTab?: (id: string) => void;
 }) {
   return <div className="browser-view-host">{tabs.map(tab => <PersistentGuest key={tab.id}
-    tab={tab} visible={visible && tab.id === activeTabId} hosted={hosted} command={command} />)}</div>;
+    tab={tab} visible={visible && (visibleTabIds ? visibleTabIds.includes(tab.id) : tab.id === activeTabId)} hosted={hosted} command={command} onFocusTab={onFocusTab} />)}</div>;
 }
-function PersistentGuest({ tab, visible, hosted, command }: {
-  tab: RendererBrowserTab; visible: boolean; hosted: boolean; command: (command: BrowserUiCommand) => void;
+function PersistentGuest({ tab, visible, hosted, command, onFocusTab }: {
+  tab: RendererBrowserTab; visible: boolean; hosted: boolean; command: (command: BrowserUiCommand) => void; onFocusTab?: (id: string) => void;
 }) {
+  const focusCallback = useRef(onFocusTab);
+  focusCallback.current = onFocusTab;
   const [placement, setPlacement] = useState<Placement>({ left: -10000, top: 0, width: tab.width || 1024, height: tab.height || 768, visible: false });
   // 拖动面板分隔条期间,网页内部尺寸冻结在起拖时的大小,外框只负责裁切;否则每帧都会让网页重新排版。
   const [frozen, setFrozen] = useState<{ width: number; height: number } | null>(null);
@@ -31,6 +33,8 @@ function PersistentGuest({ tab, visible, hosted, command }: {
     cleanup.current?.(); cleanup.current = null;
     if (!element) return;
     element.setAttribute("allowpopups", "");
+    const focus = () => focusCallback.current?.(tab.id);
+    element.addEventListener("focus", focus);
     if (hosted) {
       let boundGuestId: number | null = null;
       const ready = () => {
@@ -40,10 +44,10 @@ function PersistentGuest({ tab, visible, hosted, command }: {
         command({ type: "bind", tabId: tab.id, guestId });
       };
       element.addEventListener("dom-ready", ready);
-      cleanup.current = () => element.removeEventListener("dom-ready", ready);
+      cleanup.current = () => { element.removeEventListener("dom-ready", ready); element.removeEventListener("focus", focus); };
     } else {
       tab.controller.attach(element as unknown as BrowserView);
-      cleanup.current = () => tab.controller.detach();
+      cleanup.current = () => { element.removeEventListener("focus", focus); tab.controller.detach(); };
     }
     if (!element.hasAttribute("src")) element.setAttribute("src", UI_BROWSER_BLANK_URL);
   }, [tab.id, tab.controller, hosted, command]);
@@ -86,6 +90,7 @@ function PersistentGuest({ tab, visible, hosted, command }: {
     if (annotating && !guestVisible) command({ type: "annotate-mode", tabId: tab.id, enabled: false });
   }, [annotating, guestVisible, tab.id, command]);
   return <div className="browser-guest-frame" aria-hidden={!guestVisible} inert={!guestVisible}
+    onPointerDownCapture={() => focusCallback.current?.(tab.id)}
     style={{ position: "fixed", left: guestVisible ? placement.left : -10000, top: placement.top, width: placement.width, height: placement.height,
       visibility: guestVisible ? "visible" : "hidden", pointerEvents: guestVisible ? "auto" : "none" }}>
     <webview ref={bind} className="browser-webview" style={pinned ? { position: "absolute", top: 0, right: 0, width: pinned.width, height: pinned.height } : undefined} partition={UI_BROWSER_PARTITION}

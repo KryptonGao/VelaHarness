@@ -43,7 +43,7 @@ export interface FilePreviewContextValue {
   closeTab(id: string): void;
   setActiveTab(id: string): void;
   closePreview(): void;
-  consumeJump(): void;
+  consumeJump(id?: string): void;
   setTabScroll(id: string, scrollTop: number): void;
   getTabScroll(id: string): number;
   ensureFileList(): void;
@@ -202,9 +202,9 @@ export function FilePreviewProvider({
     scrollPositions.current.clear();
   }, []);
 
-  const consumeJump = useCallback(() => {
+  const consumeJump = useCallback((id?: string) => {
     setTabs((current) =>
-      current.map((tab) => (tab.jumpLine != null ? { ...tab, jumpLine: null } : tab)),
+      current.map((tab) => (tab.jumpLine != null && (id === undefined || tab.id === id) ? { ...tab, jumpLine: null } : tab)),
     );
   }, []);
 
@@ -401,5 +401,36 @@ export function FilePreviewProvider({
     ],
   );
 
+  return <FilePreviewContext.Provider value={value}>{children}</FilePreviewContext.Provider>;
+}
+
+/** 每个文件标签独立读取与滚动；共享文件树、路径解析及宿主标签管理。 */
+export function FilePreviewScope({ path, visible, children }: { path: string; visible: boolean; children: ReactNode }) {
+  const parent = useFilePreview();
+  const [cached, setCached] = useState<{ revision: number; content: WorkspaceFileContent } | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const shared = parent?.activeTab?.id === path;
+  const sharedContent = shared ? parent.activeContent : null;
+  const revision = parent?.revision ?? 0;
+  useEffect(() => {
+    if (!visible || !parent || cached?.revision === revision || !window.vela) return;
+    let live = true;
+    setLoading(true); setError(null);
+    void window.vela.readWorkspaceFile(path).then(content => {
+      if (live) setCached(current => ({ revision, content: sameFileContent(current?.content ?? null, content) ? current!.content : content }));
+    }).catch(reason => {
+      if (live) setError(reason instanceof Error ? reason.message : "读取失败");
+    }).finally(() => { if (live) setLoading(false); });
+    return () => { live = false; };
+  }, [path, visible, revision, cached?.revision, !!parent]);
+  if (!parent) return null;
+  const value: FilePreviewContextValue = {
+    ...parent, activeTab: parent.tabs.find(tab => tab.id === path) ?? null,
+    activeContent: cached?.content ?? sharedContent ?? null,
+    contentLoading: loading || (!cached && !sharedContent && !error),
+    contentError: error,
+    consumeJump: () => parent.consumeJump(path),
+  };
   return <FilePreviewContext.Provider value={value}>{children}</FilePreviewContext.Provider>;
 }

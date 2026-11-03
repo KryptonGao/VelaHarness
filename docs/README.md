@@ -41,6 +41,7 @@
 | [features/memory.md](./features/memory.md) | 使用者与开发者 | 项目记忆与全局记忆的目录、作用域、加载与刷新时机、写入权限、设置页管理、worktree 行为与验证。 |
 | [features/web-tools.md](./features/web-tools.md) | 使用者与开发者 | 网页搜索与抓取：与模型提供商分开的可自定义提供商（内置 DeepSeek 预设 + 通用 HTTP 适配器）、加密密钥存储、`web_search`/`web_fetch` 工具、审批策略、不可信内容与安全边界、设置页与验证。 |
 | [features/background-shells.md](./features/background-shells.md) | 使用者与开发者 | 后台命令：`bash` 的 `run_in_background`、`bash_output` / `bash_kill`、结束后唤醒主代理、权限与 Plan/子代理限制、输出保留与已知限制。 |
+| [features/workbench-split.md](./features/workbench-split.md) | 使用者与开发者 | 右侧工作面板的拖动分屏：最多四窗口、强调色落点、独立标签、内容保留、内外调宽、键盘替代操作及验证。 |
 | [features/side-chat.md](./features/side-chat.md) | 使用者与开发者 | 侧边聊天：工作面板里不带工具的轻量对话，带入全局与项目记忆，可单独选择模型与推理强度；模型与记忆的选择、历史与停止、实现位置与验证。 |
 | [features/built-in-mcp-plugins.md](./features/built-in-mcp-plugins.md) | 使用者与开发者 | Notion 内置插件、通用 OAuth、安全凭证、插件扩展与验证边界。 |
 | [features/scheduled-tasks.md](./features/scheduled-tasks.md) | 使用者与开发者 | 定时任务的时间格式、执行与权限、错过与并发策略、存储与恢复、实现与验证。 |

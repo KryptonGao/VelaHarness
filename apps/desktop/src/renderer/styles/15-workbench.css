@@ -185,6 +185,60 @@
 /* Folding hides boxes only: mounted guests keep history, forms and scroll positions. */
 .vela-window .workbench-panel.is-collapsed { display: none; }
 
+/* ---------- 拖动分屏：标签组与内容保持各自稳定的 DOM 父节点 ---------- */
+.workbench-canvas { flex: 1; min-height: 0; overflow: hidden; z-index: auto; }
+/* 白色纸面伪元素位于 z-index:0；内容须在其上，分隔线仍可独立抬到 guest 之上。 */
+.workbench-canvas > .workbench-tabpanel { z-index: 1; background: var(--bg-chat); container-type: inline-size; container-name: workbench-pane; }
+.workbench-canvas .preview-explorer-pane { width: min(40%, 224px); min-width: min(40%, 224px); }
+@container workbench-pane (max-width: 440px) {
+  .preview-subbar { height: auto; min-height: 38px; flex-wrap: wrap; gap: 6px; padding: 6px 10px; }
+  .preview-breadcrumbs-text { flex-basis: 100%; }
+  .preview-actions-group { max-width: 100%; overflow-x: auto; }
+  .browser-toolbar { overflow-x: auto; }
+  .browser-address-form { min-width: 90px; }
+}
+.workbench-canvas.is-split { background: transparent; }
+.workbench-group { position: absolute; min-width: 0; min-height: 0; pointer-events: none; z-index: 3; container-type: inline-size; container-name: workbench-group; }
+/* 窄窗格:次要按钮(放大、关闭窗口)改走「窗口操作」菜单,把宽度还给标签 */
+@container workbench-group (max-width: 340px) {
+  .workbench-group-action.is-secondary { display: none; }
+}
+.workbench-group[hidden] { display: none; }
+.workbench-group .workbench-tabbar { pointer-events: auto; }
+/* 顶部沿用原来 52px 玻璃顶栏、胶囊与留白；不再为了分屏压缩标签栏。 */
+.workbench-group .workbench-tablist { -webkit-app-region: no-drag; }
+.workbench-group .workbench-tab { touch-action: none; user-select: none; -webkit-user-drag: none; }
+.workbench-group[data-top-row="true"] .workbench-tabbar { background: transparent; }
+.workbench-group[data-top-row="false"] .workbench-tabbar { background: var(--glass-fill); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); }
+.workbench-group-action { display: grid; place-items: center; flex: none; width: 24px; height: 26px; border-radius: 5px; color: var(--text-muted); -webkit-app-region: no-drag; }
+.workbench-group-action:hover { color: var(--text-primary); background: var(--bg-hover); }
+.workbench-group-action:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: -2px; }
+.workbench-split-handle { position: absolute; z-index: 26; touch-action: none; }
+.workbench-split-handle:focus-visible { outline: none; }
+.workbench-split-handle::before { content: ""; position: absolute; background: var(--border-strong); pointer-events: none; transition: background var(--transition-smooth); }
+.workbench-split-handle.axis-x { cursor: col-resize; }
+.workbench-split-handle.axis-x::before { top: 0; bottom: 0; left: 2px; width: 1px; }
+.workbench-split-handle.axis-y { cursor: row-resize; }
+.workbench-split-handle.axis-y::before { left: 0; right: 0; top: 2px; height: 1px; }
+/* 与侧栏分隔条一致:悬停、拖动、键盘聚焦时只点亮中间那条线,不涂整条命中区 */
+.workbench-split-handle:hover::before, .workbench-split-handle:active::before, .workbench-split-handle:focus-visible::before { background: var(--accent-blue); }
+.workbench-drag-surface { position: fixed; z-index: 40; -webkit-app-region: no-drag; }
+.workbench-drag-surface[data-placing] { cursor: crosshair; }
+.workbench-drag-surface:not([data-placing]) { cursor: grabbing; }
+/* 被拖动的标签留在原处但变淡,和落点预览对应起来 */
+.workbench-tab[data-dragging] { opacity: 0.45; }
+/* 分屏时没有焦点的窗口把选中标签降一级,聚焦窗口一眼可辨("+"和快捷键作用于聚焦窗口) */
+.workbench-canvas.is-split .workbench-group:not(.is-focused) .workbench-tab[aria-selected="true"] { color: var(--text-secondary); background: transparent; }
+.workbench-drop-preview { position: absolute; pointer-events: none; border: 2px solid var(--accent-blue); border-radius: 7px; background: color-mix(in srgb, var(--accent-blue) 17%, transparent); }
+.workbench-drop-marker { position: absolute; pointer-events: none; border-radius: 1px; background: var(--accent-blue); }
+.workbench-drop-preview[data-edge="center"] { background: color-mix(in srgb, var(--accent-blue) 9%, transparent); }
+.workbench-pane-menu { position: fixed; z-index: 60; display: grid; width: 220px; max-height: calc(100vh - 16px); overflow-y: auto; padding: 5px; border: 1px solid var(--border-strong); border-radius: 9px; background: var(--bg-elevated); box-shadow: var(--shadow-popover); }
+.workbench-pane-menu button { padding: 8px; border-radius: 5px; text-align: left; font: inherit; font-size: calc(12px * var(--ui-scale)); }
+.workbench-pane-menu button:hover { background: var(--bg-hover); }
+.workbench-sr-status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+:root[data-resizing="true"] .workbench-split-handle, :root[data-resizing="true"] .workbench-tabpanel { transition: none; }
+:root[data-workbench-dragging="true"] .browser-guest-frame { pointer-events: none !important; }
+
 /* ---------- 手动浏览器 ---------- */
 .browser-panel { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
 .browser-toolbar {
@@ -354,12 +408,12 @@
   flex: 1;
   min-height: 0;
   display: flex;
-  align-items: center;
-  justify-content: center;
   overflow: auto;
   padding: 32px 28px 56px;
 }
 .start-view-inner {
+  /* margin:auto 在有余量时居中,内容超高时从顶部起排,不会像 align-items:center 那样把顶部裁掉、滚不上去 */
+  margin: auto;
   width: min(520px, 100%);
   display: flex;
   flex-direction: column;

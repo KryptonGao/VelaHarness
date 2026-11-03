@@ -130,7 +130,8 @@
 .workbench-panel > .sidebar-resize-handle::after { background: var(--border-strong); }
 .sidebar-resize-handle:hover::after,
 .sidebar-resize-handle:focus-visible::after,
-:root[data-resizing="true"] .sidebar-resize-handle::after {
+/* 分屏分隔条(data-pane-resizing)拖动时只亮它自己，不连带点亮侧栏/面板边缘的手柄 */
+:root[data-resizing="true"]:not([data-pane-resizing]) .sidebar-resize-handle::after {
   background: var(--accent-blue);
 }
 .sidebar-resize-handle:focus-visible {

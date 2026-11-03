@@ -239,6 +239,7 @@ export function App() {
   const planDocument = planDocuments[conversationKey] ?? emptyPlanDocumentState;
   const [tabOrder, setTabOrder] = useState<string[]>([]);
   const [activeWorkbenchTabId, setActiveWorkbenchTabId] = useState<string | null>(null);
+  const [visibleWorkbenchTabIds, setVisibleWorkbenchTabIds] = useState<string[]>([]);
   const [workbenchCollapsed, setWorkbenchCollapsed] = useState(false);
   useEffect(() => { setWorkbenchCollapsed(false); }, [activeWorkbenchTabId]);
   const [startTabState, setStartTabState] = useState<{ id: string }[]>([]);
@@ -941,7 +942,8 @@ export function App() {
         <SideChatLauncherContext.Provider value={openSideChatTab}>
         <div className="app-screens">
           <ButtonTooltip />
-          <BrowserViewHost tabs={browser.allTabs}
+          <BrowserViewHost tabs={browser.allTabs} visibleTabIds={visibleWorkbenchTabIds}
+            onFocusTab={id => { if (id !== activeWorkbenchTabId) { browser.select(id); setActiveWorkbenchTabId(id); } }}
             activeTabId={browser.tabs.some(tab => tab.id === activeWorkbenchTabId) ? activeWorkbenchTabId : null}
             visible={onboardingComplete && !settingsOpen && !scheduledTasksOpen && !recipesOpen && !prInboxOpen && !agentInboxOpen && !workbenchCollapsed} hosted={browser.hosted} command={browser.command} />
           <ScreenPresence present={!onboardingComplete} className="app-screen-onboarding">
@@ -1092,6 +1094,9 @@ export function App() {
                         />
                       </AgentWorkspaceProvider>
                       <WorkbenchPanel
+                        layoutKey={workspaceKey}
+                        splitEnabled={preferences.workbenchSplit}
+                        onVisibleTabsChange={setVisibleWorkbenchTabIds}
                         browserOperating={browser.state.operating.includes(conversationKey)}
                         tabs={workbenchTabs}
                         collapsed={workbenchCollapsed}
