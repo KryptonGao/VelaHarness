@@ -60,14 +60,14 @@
 :root[data-reply-font-cjk="sans"] { --font-reply-cjk: var(--font-cjk-sans); }
 :root[data-reply-font-cjk="serif"] { --font-reply-cjk: var(--font-cjk-serif); }
 /*
- * 明体偏细,回复正文再加粗一点:西文用 Anthropic Serif 的 Semibold(没装则 Georgia 的 Bold,较重,
- * 可接受)。明体中文(宋体/明朝)只有 Regular 和 Bold 两档,600 会直接跳到 Bold,
- * 所以含明体中文时字重保持 500,改用极细的描边补出半档粗细。回复字体选「沿用界面」时看界面字体。
+ * 明体偏细,回复正文再补一点:Anthropic Serif 的 Medium 到 Semibold 一步太大,
+ * 明体中文(宋体/明朝)只有 Regular 和 Bold 两档,所以字重不动,统一用极细描边补出半档粗细。
+ * 回复字体选「沿用界面」时看界面字体。
  */
 :root[data-reply-font-latin="serif"],
-:root[data-reply-font-latin="inherit"][data-ui-font-latin="serif"] { --font-reply-weight: 600; }
+:root[data-reply-font-latin="inherit"][data-ui-font-latin="serif"],
 :root[data-reply-font-cjk="serif"],
-:root[data-reply-font-cjk="inherit"][data-ui-font-cjk="serif"] { --font-reply-weight: 500; --font-reply-stroke: 0.3px; }
+:root[data-reply-font-cjk="inherit"][data-ui-font-cjk="serif"] { --font-reply-stroke: 0.2px; }
 
 /*
  * 主题:data-scheme 决定明暗基底,data-theme 在基底上覆盖配色。
