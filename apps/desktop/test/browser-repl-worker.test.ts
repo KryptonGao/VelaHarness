@@ -49,6 +49,13 @@ test('browser RPC identity, frames, screenshots and stale callbacks', async t =>
   await f.run('await new Promise(resolve => setTimeout(resolve, 100)); "done"');
   assert.equal(f.calls.length, 2);
 });
+test('plain objects are written as JSON, not inspect fragments', async t => {
+  const f = fixture(); t.after(() => f.worker.terminate());
+  const result = await f.run('nodeRepl.write({ text: "[r1] h2 a\\n[r2] button b", n: 1 }); [1, 2]');
+  assert.deepEqual(JSON.parse(result[0].text), { text: '[r1] h2 a\n[r2] button b', n: 1 });
+  assert.deepEqual(JSON.parse(result[1].text), [1, 2]);
+  assert.deepEqual(await f.run('new Map([[1, 2]])'), [{ type: 'text', text: 'Map(1) { 1 => 2 }' }]);
+});
 test('bounded text output and rebuild notice', async t => {
   const f = fixture(); t.after(() => f.worker.terminate());
   const result = await f.run('for (let i=0;i<200;i++) nodeRepl.write("x".repeat(100000)); undefined', { rebuilt: true });

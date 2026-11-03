@@ -117,3 +117,41 @@ export function firstCodeLine(code: string | undefined): string {
   }
   return "";
 }
+
+export interface PageSnapshotNode {
+  ref: string;
+  role: string;
+  name: string;
+}
+
+export interface PageSnapshot {
+  title: string;
+  url: string;
+  nodes: PageSnapshotNode[];
+  /** 不符合 `[ref] role name` 的行原样保留,避免静默丢内容。 */
+  extra: string[];
+}
+
+const snapshotLine = /^\[([^\]\s]+)\]\s+(\S+)(?:\s+(.*))?$/;
+
+/** `tab.snapshot()` 的结果:带 text(每行 `[ref] role name`)的对象。不是这种形状就返回 undefined。 */
+export function parsePageSnapshot(value: unknown): PageSnapshot | undefined {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const record = value as Record<string, unknown>;
+  if (typeof record.text !== "string") return undefined;
+  const nodes: PageSnapshotNode[] = [];
+  const extra: string[] = [];
+  for (const line of record.text.split("\n")) {
+    if (!line.trim()) continue;
+    const match = snapshotLine.exec(line.trim());
+    if (match) nodes.push({ ref: match[1]!, role: match[2]!, name: match[3] ?? "" });
+    else extra.push(line);
+  }
+  if (nodes.length === 0) return undefined;
+  return {
+    title: typeof record.title === "string" ? record.title : "",
+    url: typeof record.url === "string" ? record.url : "",
+    nodes,
+    extra,
+  };
+}

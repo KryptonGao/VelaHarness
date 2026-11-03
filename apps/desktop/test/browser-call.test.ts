@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import {
   firstCodeLine,
   lastBrowserUrl,
+  parsePageSnapshot,
   shortenUrl,
   splitBrowserBody,
   summarizeBrowserCode,
@@ -48,5 +49,28 @@ describe("browser helpers", () => {
 
   it("finds the first code line", () => {
     assert.equal(firstCodeLine("\n// note\n  const x = 1;\n"), "const x = 1;");
+  });
+});
+
+describe("parsePageSnapshot", () => {
+  it("splits snapshot text into ref, role and name", () => {
+    const snapshot = parsePageSnapshot({
+      title: "Vela",
+      url: "http://localhost:5173/",
+      text: "[B6FF:6:1] h2 主对话\n[B6FF:6:2] separator 调整工作面板宽度\n\n[B6FF:6:3] button",
+    });
+    assert.equal(snapshot?.title, "Vela");
+    assert.deepEqual(snapshot?.nodes, [
+      { ref: "B6FF:6:1", role: "h2", name: "主对话" },
+      { ref: "B6FF:6:2", role: "separator", name: "调整工作面板宽度" },
+      { ref: "B6FF:6:3", role: "button", name: "" },
+    ]);
+  });
+
+  it("keeps unrecognised lines and rejects other shapes", () => {
+    assert.deepEqual(parsePageSnapshot({ text: "[r1] p hi\nstray" })?.extra, ["stray"]);
+    assert.equal(parsePageSnapshot({ text: "no refs here" }), undefined);
+    assert.equal(parsePageSnapshot(["[r1] p hi"]), undefined);
+    assert.equal(parsePageSnapshot({ ok: true }), undefined);
   });
 });

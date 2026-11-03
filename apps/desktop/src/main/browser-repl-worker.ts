@@ -22,7 +22,16 @@ export function attachBrowserRepl(port: WorkerPort) {
     if (content.length >= 100 || bytes + size > 8 * 1024 * 1024) return;
     bytes += size; content.push(item);
   };
-  const text = (value: unknown) => append({ type: 'text', text: typeof value === 'string' ? value.slice(0, 65536) : inspect(value, { depth: 5, maxArrayLength: 100 }).slice(0, 65536) });
+  // Plain objects and arrays go out as JSON: inspect() would split a multi-line snapshot into `'a\n' +` fragments the panel cannot parse.
+  const format = (value: unknown) => {
+    if (typeof value === 'string') return value;
+    // Objects built inside the REPL context have another realm's prototype, so compare the tag rather than Object.prototype.
+    if (Array.isArray(value) || Object.prototype.toString.call(value) === '[object Object]') {
+      try { const json = JSON.stringify(value, null, 2); if (json !== undefined) return json; } catch { /* circular or BigInt: fall back to inspect */ }
+    }
+    return inspect(value, { depth: 5, maxArrayLength: 100 });
+  };
+  const text = (value: unknown) => append({ type: 'text', text: format(value).slice(0, 65536) });
   let failure: ((error: unknown) => void) | undefined;
   const output = new Writable({ write(chunk, _encoding, callback) {
     // Node 24 routes evaluator/domain failures to REPL output, not its callback.

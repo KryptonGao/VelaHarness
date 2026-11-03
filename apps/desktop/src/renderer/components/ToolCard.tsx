@@ -39,7 +39,7 @@ import {
 } from "./tool-compact";
 import { bashIntentDisplay } from "./bash-intent-label";
 import { shouldFoldRun } from "./tool-sequence";
-import { firstCodeLine, lastBrowserUrl, splitBrowserBody, summarizeBrowserCode, type BrowserStep } from "./browser-call";
+import { firstCodeLine, lastBrowserUrl, parsePageSnapshot, splitBrowserBody, summarizeBrowserCode, type BrowserStep } from "./browser-call";
 import { foldRowId, foldSequenceId } from "./tool-fold-state";
 import { DurationLabel, ToolDurationLabel, useToolExpanded, useToolProcessDetails, useToolsDuration } from "./ToolProcessContext";
 import type { ToolDisplay, ToolFold } from "../hooks/usePreferences";
@@ -481,6 +481,29 @@ function browserStepLabel(step: BrowserStep): string {
   }
 }
 
+/** `tab.snapshot()` 的结果:页面标题和地址在上,下面一行一个元素(角色 + 名称),引用编号只作弱提示。 */
+function BrowserSnapshotView({ snapshot }: { snapshot: NonNullable<ReturnType<typeof parsePageSnapshot>> }) {
+  return (
+    <div className="browser-snapshot">
+      {snapshot.title || snapshot.url ? (
+        <div className="browser-snapshot-head">
+          {snapshot.title ? <strong>{snapshot.title}</strong> : null}
+          {snapshot.url ? <span>{snapshot.url}</span> : null}
+        </div>
+      ) : null}
+      <ul className="browser-snapshot-list" aria-label={trf("页面元素，共 {0} 个", "Page elements, {0} total", snapshot.nodes.length)}>
+        {snapshot.nodes.map((node, index) => (
+          <li key={index} title={node.ref}>
+            <code className="browser-snapshot-role">{node.role}</code>
+            <span className="browser-snapshot-name">{node.name}</span>
+          </li>
+        ))}
+      </ul>
+      {snapshot.extra.length > 0 ? <pre className="browser-snapshot-extra">{snapshot.extra.join("\n")}</pre> : null}
+    </div>
+  );
+}
+
 /**
  * Browser REPL 专属样式:不再显示一行 `browser_repl`,而是把代码归纳成「打开 → 截图」这样的动作芯片,
  * 展开后是 REPL 代码、文字输出和带地址栏的截图缩略图。
@@ -496,6 +519,7 @@ function BrowserReplCard({ tool, compact = false }: { tool: ToolTrace; compact?:
   const structuredOutput = useMemo(() => activity.presentation?.kind === "json"
     ? { value: activity.presentation.value, truncated: activity.presentation.truncated }
     : completeResultJson(output), [activity.presentation, output]);
+  const snapshot = useMemo(() => parsePageSnapshot(structuredOutput?.value), [structuredOutput]);
   const url = useMemo(() => lastBrowserUrl(activity.command), [activity.command]);
   const preview = firstCodeLine(activity.command);
 
@@ -543,7 +567,7 @@ function BrowserReplCard({ tool, compact = false }: { tool: ToolTrace; compact?:
             {output || structuredOutput ? (
               <div className={`browser-call-output${failed ? " failed" : ""}`}>
                 <ScrollFade className="tool-details-scroll" ariaLabel={tr("浏览器输出，可在区域内滚动", "Browser output, scrollable")}>
-                  {structuredOutput && !failed ? <ToolResultDetails activity={{ ...activity, body: output || undefined, presentation: activity.presentation?.kind === "json" ? activity.presentation : { version: 1, source: "result", kind: "json", ...structuredOutput } }} status={tool.status} toolName={tool.name} /> : <ToolMarkdown text={output || tr("执行失败", "Execution failed")} className="browser-call-text" />}
+                  {snapshot && !failed ? <BrowserSnapshotView snapshot={snapshot} /> : structuredOutput && !failed ? <ToolResultDetails activity={{ ...activity, body: output || undefined, presentation: activity.presentation?.kind === "json" ? activity.presentation : { version: 1, source: "result", kind: "json", ...structuredOutput } }} status={tool.status} toolName={tool.name} /> : <ToolMarkdown text={output || tr("执行失败", "Execution failed")} className="browser-call-text" />}
                 </ScrollFade>
               </div>
             ) : running ? (
