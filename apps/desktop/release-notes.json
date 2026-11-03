@@ -1,148 +1,148 @@
 {
-  "version": "1.2.19",
+  "version": "1.2.20",
   "locales": {
     "en": {
-      "summary": "Vela 1.2.19 adds custom interface and code font sizes, a new minimal logo and a Codex-style thinking group mode, and makes the composer adapt to narrow windows.",
+      "summary": "Vela 1.2.20 adds an experimental draggable split view to the workbench, a much fuller application menu and a headless runner, and shows browser snapshots as a readable list.",
       "highlights": [
         {
-          "title": "Custom font sizes",
-          "body": "Settings → Appearance now has separate sizes for the interface (11–15px) and for code (8–24px). Code blocks, diffs, commands and the terminal follow the code size, and the choice is applied before the first paint."
+          "title": "Workbench split view (experimental)",
+          "body": "Turn it on in Settings → Interface, then drag tabs in the workbench to split it into up to four panes side by side. Dividers can be dragged, panes can be maximized, and closing a pane keeps its tabs. It is off by default."
         },
         {
-          "title": "A new minimal logo",
-          "body": "The app icon is now a white tile with a black arm-and-sail V and no text, and the sidebar header shows the mark with a geometric VELΛ wordmark that follows the theme color."
+          "title": "A fuller application menu",
+          "body": "The menu bar now has New Tab, Toggle Sidebar and Toggle Info Panel, a Go menu (Back, Forward, Home, Scheduled Tasks, Task Recipes, Agent Inbox, Pull Request) and a Workbench menu (Terminal, Files, Browser, Changes)."
         },
         {
-          "title": "Codex-style thinking groups",
-          "body": "A new thinking group mode shows only the tool calls, without a guide line, for a lighter and more compact view of what the agent did."
+          "title": "Headless runner",
+          "body": "pnpm runner run executes a single Vela task without starting Electron, with text or JSONL output and exit codes that tell results apart. Every run keeps its own session, trace and result, and leaves the desktop app untouched."
         },
         {
-          "title": "Composer fits narrow windows",
-          "body": "When the window gets narrow, the composer tray collapses step by step instead of overflowing, so the model, sandbox and other controls stay reachable."
+          "title": "Readable browser snapshots",
+          "body": "The result of a browser snapshot is now shown as a list of elements instead of raw text, so it is much easier to see what the page contains."
         }
       ],
       "improvements": [
-        "Serif reply text is slightly heavier, with a faint stroke for CJK serif fonts so that thin strokes stay readable.",
-        "The capsule composer on the start page has a faint edge shadow that lifts it off the background.",
-        "File type icons in workbench tabs are larger and easier to recognize.",
-        "Conversation titles are generated again with models that reject the temperature parameter, because it is no longer sent in title requests.",
-        "Font sizes across the interface scale from a single setting, so every panel follows the interface size you choose.",
+        "A streamed reply no longer keeps pulling the view down once you scroll up to read earlier output.",
+        "You can collapse a file diff while it is still streaming.",
+        "The dot marking a created file is smaller and always blue.",
+        "Serif reply text uses a thin stroke instead of a heavier weight, so it looks lighter and cleaner.",
+        "Fixed an error in the pull request inbox cache caused by reading the clock with a detached Date.now.",
         "New interface text is available in all five interface languages."
       ]
     },
     "zh-CN": {
-      "summary": "Vela 1.2.19 新增自定义界面和代码字号、极简新 Logo 与 Codex 风格的思考分组模式，并让输入框更好地适应窄窗口。",
+      "summary": "Vela 1.2.20 为工作台新增可拖拽的实验性分屏，补全应用菜单并加入无界面运行器，浏览器快照也改为易读的元素列表。",
       "highlights": [
         {
-          "title": "自定义字号",
-          "body": "设置 → 外观 新增界面字号（11–15px）和代码字号（8–24px）。代码块、差异、命令和终端跟随代码字号，且在首次绘制前就会生效。"
+          "title": "工作台分屏（实验性）",
+          "body": "在 设置 → 界面 中开启后，可拖动工作台里的标签，把工作台拆成最多四个并排的窗口。分隔线可拖动，窗口可放大，关闭窗口不会丢失标签。默认关闭。"
         },
         {
-          "title": "全新的极简 Logo",
-          "body": "应用图标改为白色底板上一个黑色的桅帆 V、不带文字；侧边栏顶部显示该标志和几何风格的 VELΛ 字标，并跟随主题颜色。"
+          "title": "更完整的应用菜单",
+          "body": "菜单栏新增新建标签页、切换侧边栏和切换信息面板，以及「前往」菜单（返回、前进、主页、定时任务、任务配方、Agent 收件箱、Pull Request）和「工作台」菜单（终端、文件、浏览器、变更）。"
         },
         {
-          "title": "Codex 风格的思考分组",
-          "body": "新增思考分组模式，只显示工具调用，不带引导线，让代理做过的事看起来更轻量、更紧凑。"
+          "title": "无界面运行器",
+          "body": "pnpm runner run 可以不启动 Electron 就执行一次 Vela 任务，支持文本或 JSONL 输出，并用退出码区分结果。每次运行都有独立的会话、trace 和结果，不影响桌面应用。"
         },
         {
-          "title": "输入框适配窄窗口",
-          "body": "窗口变窄时，输入框托盘会逐级折叠而不是溢出，模型、沙盒等控件始终可以点到。"
+          "title": "更易读的浏览器快照",
+          "body": "浏览器快照的结果现在以元素列表显示，不再是一整段原始文本，页面里有什么一目了然。"
         }
       ],
       "improvements": [
-        "衬线回复文字略微加粗，中文衬线字体还加了一层很淡的描边，让细笔画更清晰。",
-        "起始页的胶囊输入框增加了一圈很淡的边缘阴影，与背景更好地区分。",
-        "工作台标签页中的文件类型图标更大，更容易辨认。",
-        "会话标题请求不再发送不受支持的 temperature 参数，拒绝该参数的模型也能正常生成标题。",
-        "整个界面的字号由同一项设置统一缩放，所有面板都会跟随你选择的界面字号。",
+        "流式回复时，向上滚动查看之前的内容后，视图不会再被持续拉回底部。",
+        "文件差异还在流式输出时也可以折叠。",
+        "标记新建文件的圆点更小，并且始终为蓝色。",
+        "衬线回复文字改用细描边而不是加粗，看起来更轻盈清爽。",
+        "修复了 Pull Request 收件箱缓存因脱离对象调用 Date.now 而出错的问题。",
         "新增的界面文字提供全部五种界面语言。"
       ]
     },
     "zh-TW": {
-      "summary": "Vela 1.2.19 新增自訂介面與程式碼字級、極簡的新 Logo 與 Codex 風格的思考分組模式，並讓輸入框更能適應窄視窗。",
+      "summary": "Vela 1.2.20 為工作台新增可拖曳的實驗性分割畫面，補全應用程式選單並加入無介面執行器，瀏覽器快照也改為易讀的元素清單。",
       "highlights": [
         {
-          "title": "自訂字級",
-          "body": "設定 → 外觀 新增介面字級（11–15px）和程式碼字級（8–24px）。程式碼區塊、差異、指令和終端機跟隨程式碼字級，且在首次繪製前就會生效。"
+          "title": "工作台分割畫面（實驗性）",
+          "body": "在 設定 → 介面 中開啟後，可拖曳工作台裡的分頁，把工作台拆成最多四個並排的視窗。分隔線可拖曳，視窗可放大，關閉視窗不會遺失分頁。預設關閉。"
         },
         {
-          "title": "全新的極簡 Logo",
-          "body": "應用程式圖示改為白色底板上一個黑色的桅帆 V、不帶文字；側邊欄頂部顯示該標誌和幾何風格的 VELΛ 字標，並跟隨主題顏色。"
+          "title": "更完整的應用程式選單",
+          "body": "選單列新增新增分頁、切換側邊欄和切換資訊面板，以及「前往」選單（返回、前進、首頁、排程任務、任務配方、Agent 收件匣、Pull Request）和「工作台」選單（終端機、檔案、瀏覽器、變更）。"
         },
         {
-          "title": "Codex 風格的思考分組",
-          "body": "新增思考分組模式，只顯示工具呼叫，不帶引導線，讓代理做過的事看起來更輕量、更緊湊。"
+          "title": "無介面執行器",
+          "body": "pnpm runner run 可以不啟動 Electron 就執行一次 Vela 任務，支援文字或 JSONL 輸出，並用結束代碼區分結果。每次執行都有獨立的工作階段、trace 和結果，不影響桌面應用程式。"
         },
         {
-          "title": "輸入框適配窄視窗",
-          "body": "視窗變窄時，輸入框托盤會逐級收合而不是溢出，模型、沙盒等控制項始終可以點到。"
+          "title": "更易讀的瀏覽器快照",
+          "body": "瀏覽器快照的結果現在以元素清單顯示，不再是一整段原始文字，頁面裡有什麼一目了然。"
         }
       ],
       "improvements": [
-        "襯線回覆文字略微加粗，中文襯線字體還加了一層很淡的描邊，讓細筆畫更清晰。",
-        "起始頁的膠囊輸入框增加了一圈很淡的邊緣陰影，與背景更好地區分。",
-        "工作台分頁中的檔案類型圖示更大，更容易辨認。",
-        "對話標題請求不再傳送不支援的 temperature 參數，拒絕該參數的模型也能正常產生標題。",
-        "整個介面的字級由同一項設定統一縮放，所有面板都會跟隨你選擇的介面字級。",
+        "串流回覆時，向上捲動查看先前內容後，檢視不會再被持續拉回底部。",
+        "檔案差異還在串流輸出時也可以收合。",
+        "標記新建檔案的圓點更小，並且始終為藍色。",
+        "襯線回覆文字改用細描邊而不是加粗，看起來更輕盈清爽。",
+        "修正了 Pull Request 收件匣快取因脫離物件呼叫 Date.now 而出錯的問題。",
         "新增的介面文字提供全部五種介面語言。"
       ]
     },
     "ja": {
-      "summary": "Vela 1.2.19 では、インターフェースとコードの文字サイズを自由に変えられるようになり、ミニマルな新ロゴと Codex 風の思考グループ表示を追加し、入力欄が狭いウィンドウにも対応しました。",
+      "summary": "Vela 1.2.20 では、ワークベンチにドラッグで操作できる実験的な分割表示を追加し、アプリケーションメニューを拡充してヘッドレスランナーを導入しました。ブラウザーのスナップショットも読みやすい一覧で表示されます。",
       "highlights": [
         {
-          "title": "文字サイズを自由に設定",
-          "body": "設定 → 外観に、インターフェース（11～15px）とコード（8～24px）の文字サイズを追加しました。コードブロック、差分、コマンド、ターミナルはコードのサイズに従い、最初の描画の前から反映されます。"
+          "title": "ワークベンチの分割表示（実験的）",
+          "body": "設定 → インターフェースでオンにすると、ワークベンチのタブをドラッグして最大 4 つのペインを並べて表示できます。仕切りはドラッグで調整でき、ペインを拡大でき、ペインを閉じてもタブは失われません。既定ではオフです。"
         },
         {
-          "title": "ミニマルな新ロゴ",
-          "body": "アプリアイコンは、白いタイルに黒い帆の V だけを置いた文字なしのデザインになりました。サイドバー上部にはこのマークと幾何学的な VELΛ のロゴタイプが表示され、テーマの色に追従します。"
+          "title": "充実したアプリケーションメニュー",
+          "body": "メニューバーに、新規タブ、サイドバーの切り替え、情報パネルの切り替えを追加しました。さらに「移動」メニュー（戻る、進む、ホーム、スケジュールタスク、タスクレシピ、エージェント受信トレイ、Pull Request）と「ワークベンチ」メニュー（ターミナル、ファイル、ブラウザー、変更）も加わりました。"
         },
         {
-          "title": "Codex 風の思考グループ",
-          "body": "ガイド線なしでツール呼び出しだけを表示する思考グループ表示を追加しました。エージェントの作業を軽く、コンパクトに確認できます。"
+          "title": "ヘッドレスランナー",
+          "body": "pnpm runner run を使うと、Electron を起動せずに Vela のタスクを 1 回実行できます。テキストまたは JSONL で出力し、終了コードで結果を区別できます。実行ごとに独立したセッション、トレース、結果を持ち、デスクトップアプリには影響しません。"
         },
         {
-          "title": "入力欄が狭い幅に対応",
-          "body": "ウィンドウが狭くなると、入力欄のトレイがはみ出さずに段階的に折りたたまれ、モデルやサンドボックスなどの操作に常に手が届きます。"
+          "title": "読みやすいブラウザースナップショット",
+          "body": "ブラウザーのスナップショットの結果を、生のテキストではなく要素の一覧として表示します。ページの内容がひと目で分かります。"
         }
       ],
       "improvements": [
-        "セリフ体の返信テキストをわずかに太くし、日本語のセリフ体にはごく薄い縁取りを加えて、細い線も読みやすくしました。",
-        "開始ページのカプセル型入力欄に、ごく薄い縁の影を加えて背景から浮かせました。",
-        "ワークベンチのタブにあるファイル種別アイコンを大きくし、見分けやすくしました。",
-        "会話タイトルのリクエストでサポートされない temperature を送らなくなり、このパラメーターを拒否するモデルでもタイトルが生成されます。",
-        "インターフェース全体の文字サイズを 1 つの設定でまとめて拡大縮小するため、すべてのパネルが選択したサイズに従います。",
+        "ストリーミング中の返信は、上にスクロールして以前の出力を読んでいる間、表示が下へ引き戻されなくなりました。",
+        "ストリーミング中でも、ファイルの差分を折りたためるようになりました。",
+        "作成されたファイルを示すドットを小さくし、常に青で表示するようにしました。",
+        "セリフ体の返信テキストは、太くする代わりに細い縁取りを使い、より軽くすっきり見えるようになりました。",
+        "Pull Request 受信トレイのキャッシュで、Date.now を切り離して呼び出していたために起きるエラーを修正しました。",
         "新しい画面テキストは 5 つの表示言語すべてで利用できます。"
       ]
     },
     "ko": {
-      "summary": "Vela 1.2.19는 인터페이스와 코드 글꼴 크기를 직접 정할 수 있게 하고, 미니멀한 새 로고와 Codex 스타일 생각 그룹 모드를 추가했으며, 입력창이 좁은 창에도 맞게 조절됩니다.",
+      "summary": "Vela 1.2.20은 워크벤치에 끌어서 쓰는 실험적 분할 보기를 추가하고, 애플리케이션 메뉴를 확충했으며 헤드리스 러너를 도입했습니다. 브라우저 스냅샷도 읽기 쉬운 목록으로 보여 줍니다.",
       "highlights": [
         {
-          "title": "글꼴 크기 직접 설정",
-          "body": "설정 → 모양에 인터페이스(11~15px)와 코드(8~24px) 글꼴 크기가 추가되었습니다. 코드 블록, 차이점, 명령, 터미널은 코드 크기를 따르며 첫 화면이 그려지기 전에 적용됩니다."
+          "title": "워크벤치 분할 보기(실험적)",
+          "body": "설정 → 인터페이스에서 켜면 워크벤치의 탭을 끌어 최대 네 개의 창을 나란히 놓을 수 있습니다. 구분선을 끌어 조절하고, 창을 확대할 수 있으며, 창을 닫아도 탭은 사라지지 않습니다. 기본값은 꺼짐입니다."
         },
         {
-          "title": "미니멀한 새 로고",
-          "body": "앱 아이콘은 흰색 타일 위에 검은 돛 모양 V만 있는 글자 없는 디자인으로 바뀌었습니다. 사이드바 상단에는 이 마크와 기하학적인 VELΛ 워드마크가 표시되며 테마 색을 따릅니다."
+          "title": "더 충실해진 애플리케이션 메뉴",
+          "body": "메뉴 막대에 새 탭, 사이드바 전환, 정보 패널 전환이 추가되었고, 이동 메뉴(뒤로, 앞으로, 홈, 예약 작업, 작업 레시피, 에이전트 받은편지함, Pull Request)와 워크벤치 메뉴(터미널, 파일, 브라우저, 변경 사항)도 생겼습니다."
         },
         {
-          "title": "Codex 스타일 생각 그룹",
-          "body": "안내선 없이 도구 호출만 보여 주는 생각 그룹 모드가 추가되어 에이전트가 한 일을 더 가볍고 간결하게 볼 수 있습니다."
+          "title": "헤드리스 러너",
+          "body": "pnpm runner run으로 Electron을 실행하지 않고도 Vela 작업을 한 번 실행할 수 있습니다. 텍스트 또는 JSONL로 출력하고 종료 코드로 결과를 구분합니다. 실행마다 자체 세션, 트레이스, 결과를 가지며 데스크톱 앱에는 영향을 주지 않습니다."
         },
         {
-          "title": "좁은 창에 맞는 입력창",
-          "body": "창이 좁아지면 입력창 트레이가 넘치지 않고 단계적으로 접혀, 모델과 샌드박스 등의 컨트롤을 항상 누를 수 있습니다."
+          "title": "읽기 쉬운 브라우저 스냅샷",
+          "body": "브라우저 스냅샷 결과를 원문 텍스트 대신 요소 목록으로 보여 주어, 페이지에 무엇이 있는지 한눈에 알 수 있습니다."
         }
       ],
       "improvements": [
-        "세리프 답변 글자가 약간 굵어졌고, 한중일 세리프 글꼴에는 아주 옅은 윤곽선을 더해 가는 획도 또렷하게 보입니다.",
-        "시작 페이지의 캡슐형 입력창에 아주 옅은 가장자리 그림자를 더해 배경과 구분되게 했습니다.",
-        "작업 공간 탭의 파일 형식 아이콘이 더 커져 알아보기 쉬워졌습니다.",
-        "대화 제목 요청에서 지원되지 않는 temperature를 더 이상 보내지 않아, 이 매개변수를 거부하는 모델에서도 제목이 생성됩니다.",
-        "인터페이스 전체의 글꼴 크기가 하나의 설정으로 함께 조절되어 모든 패널이 선택한 인터페이스 크기를 따릅니다.",
+        "스트리밍 중인 답변은 위로 스크롤해 이전 출력을 읽는 동안 화면이 아래로 끌려가지 않습니다.",
+        "스트리밍 중에도 파일 차이점을 접을 수 있습니다.",
+        "새로 만든 파일을 나타내는 점이 더 작아지고 항상 파란색으로 표시됩니다.",
+        "세리프 답변 글자는 굵게 하는 대신 얇은 윤곽선을 사용해 더 가볍고 깔끔하게 보입니다.",
+        "Pull Request 받은편지함 캐시에서 Date.now를 분리해 호출하여 생기던 오류를 수정했습니다.",
         "새 인터페이스 텍스트는 5개 인터페이스 언어를 모두 지원합니다."
       ]
     }
