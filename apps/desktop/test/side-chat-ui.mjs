@@ -1,5 +1,6 @@
 /** 真实 App 的侧边聊天：node apps/desktop/test/side-chat-ui.mjs（VELA_SIDE_CHAT_CAPTURE=目录 时保存截图） */
 import assert from "node:assert/strict";
+import { providerIconsPlugin } from "./provider-icons-plugin.mjs";
 import { spawn } from "node:child_process";
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
@@ -13,7 +14,7 @@ if (!process.versions.electron) {
   const temporary = mkdtempSync(join(tmpdir(), "vela-side-chat-"));
   try {
     const { build } = await import("esbuild");
-    await build({ entryPoints: [join(here, "side-chat-preview.tsx")], bundle: true, platform: "browser", format: "iife", jsx: "automatic",
+    await build({ plugins: [providerIconsPlugin], entryPoints: [join(here, "side-chat-preview.tsx")], bundle: true, platform: "browser", format: "iife", jsx: "automatic",
       outfile: join(temporary, "ui.js"), loader: { ".svg": "dataurl", ".png": "dataurl", ".woff2": "dataurl", ".ttf": "dataurl" },
       define: { "process.env.NODE_ENV": '"development"' }, logLevel: "error" });
     writeFileSync(join(temporary, "index.html"), '<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="ui.css"></head><body><div id="root"></div><script src="ui.js"></script></body></html>');
@@ -109,6 +110,8 @@ if (!process.versions.electron) {
       assert.equal(await text(view + " .side-chat-meta .side-chat-chip:nth-child(2)"), "已带入全局与项目记忆");
       await evaluate("sideChatFixture.delta('同时保留推断出的更窄类型。'); sideChatFixture.finish()");
       await until(`document.querySelector(${JSON.stringify(view + " .send")})`);
+      // 流式 Markdown 会批量刷新；发送按钮恢复不代表最后一段文本已提交到 DOM。
+      await until(`document.querySelector(${JSON.stringify(view + " .side-chat-assistant")})?.textContent.includes('同时保留推断出的更窄类型。')`);
       assert.ok((await text(view + " .side-chat-assistant")).includes("同时保留推断出的更窄类型。"));
       // 主对话不受影响：没有任何 prompt 调用。
       assert.equal(await evaluate("chatFixture.calls.filter(c => c.name === 'prompt').length"), 0);

@@ -1,5 +1,6 @@
 /** 真实 App 的聊天标签与会话隔离：node apps/desktop/test/workbench-chat-ui.mjs */
 import assert from "node:assert/strict";
+import { providerIconsPlugin } from "./provider-icons-plugin.mjs";
 import { spawn } from "node:child_process";
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
@@ -13,7 +14,7 @@ if (!process.versions.electron) {
   const temporary = mkdtempSync(join(tmpdir(), "vela-workbench-chat-"));
   try {
     const { build } = await import("esbuild");
-    await build({ entryPoints: [join(here, "workbench-chat-preview.tsx")], bundle: true, platform: "browser", format: "iife", jsx: "automatic",
+    await build({ plugins: [providerIconsPlugin], entryPoints: [join(here, "workbench-chat-preview.tsx")], bundle: true, platform: "browser", format: "iife", jsx: "automatic",
       outfile: join(temporary, "ui.js"), loader: { ".svg": "dataurl", ".png": "dataurl", ".woff2": "dataurl", ".ttf": "dataurl" },
       define: { "process.env.NODE_ENV": '"development"' }, logLevel: "error" });
     writeFileSync(join(temporary, "index.html"), '<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="ui.css"></head><body><div id="root"></div><script src="ui.js"></script></body></html>');
