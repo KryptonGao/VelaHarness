@@ -1,4 +1,5 @@
-import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useLayoutEffect, useRef, useState, type ReactNode, type TouchEvent, type WheelEvent } from "react";
+import { nextStreamFollow, releasesStreamFollow } from "./chat-scroll";
 import { ScrollFadeShell } from "./ScrollFadeShell";
 import { thinkingEdges } from "./thinking-edges";
 
@@ -30,6 +31,48 @@ export function ScrollFade({
 
   const followEndRef = useRef(followEnd);
   followEndRef.current = followEnd;
+  // 只有用户停在底部时才跟随;向上滚动后保持当前位置,滚回底部再恢复。
+  const follow = useRef({ pinned: true, lastScrollTop: 0 });
+  const touchY = useRef(0);
+
+  const scrollToEnd = (viewport: HTMLElement): void => {
+    viewport.scrollTop = viewport.scrollHeight;
+    // 记录程序化滚动后的位置,避免随后触发的 scroll 事件被误判为用户滚离底部。
+    follow.current.lastScrollTop = viewport.scrollTop;
+  };
+
+  const handleScroll = (): void => {
+    const viewport = scrollRef.current;
+    if (viewport) {
+      follow.current.pinned = nextStreamFollow({
+        following: follow.current.pinned,
+        scrollTop: viewport.scrollTop,
+        previousScrollTop: follow.current.lastScrollTop,
+        distanceFromBottom: viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight,
+      });
+      follow.current.lastScrollTop = viewport.scrollTop;
+    }
+    sync();
+  };
+
+  // 在滚动真正发生前就解除跟随,避免输出恰好插入时把视口又拉回底部。
+  const releaseFollow = (towardEarlier: boolean): void => {
+    const viewport = scrollRef.current;
+    if (viewport && releasesStreamFollow(viewport.scrollTop, towardEarlier)) follow.current.pinned = false;
+  };
+
+  const handleWheel = (event: WheelEvent<HTMLDivElement>): void => releaseFollow(event.deltaY < 0);
+
+  const handleTouchStart = (event: TouchEvent<HTMLDivElement>): void => {
+    touchY.current = event.touches[0]?.clientY ?? touchY.current;
+  };
+
+  const handleTouchMove = (event: TouchEvent<HTMLDivElement>): void => {
+    const y = event.touches[0]?.clientY;
+    if (y == null) return;
+    releaseFollow(y > touchY.current + 2);
+    touchY.current = y;
+  };
 
   const sync = (): void => {
     const viewport = scrollRef.current;
@@ -46,9 +89,9 @@ export function ScrollFade({
     const content = contentRef.current;
     if (!viewport) return;
     sync();
-    // 只在内容长高时跟随到底部，用户自己滚动（onScroll）不被拉回去。
+    // 只在内容长高且用户仍贴底时跟随到底部，向上滚动后不再拉回去。
     const observer = new ResizeObserver(() => {
-      if (followEndRef.current) viewport.scrollTop = viewport.scrollHeight;
+      if (followEndRef.current && follow.current.pinned) scrollToEnd(viewport);
       sync();
     });
     observer.observe(viewport);
@@ -61,7 +104,10 @@ export function ScrollFade({
       <div
         className="thinking-scroll-viewport"
         ref={scrollRef}
-        onScroll={sync}
+        onScroll={handleScroll}
+        onWheel={handleWheel}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
         role="region"
         aria-label={ariaLabel}
         tabIndex={0}
