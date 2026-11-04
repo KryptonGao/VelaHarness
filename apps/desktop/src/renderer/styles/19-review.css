@@ -69,12 +69,26 @@
 .turn-review-view .diff-split-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 .turn-review-view .diff-split-cell { display: flex; padding: 0; border-right: 1px solid var(--border-subtle); min-width: 0; }
 .turn-review-view .diff-split-cell:last-child { border-right: none; }
+/* 所有空白单元格裁切同一差异正文坐标下的纹理，避免逐行重画造成斜线断缝。 */
+.turn-review-view .diff-split { position: relative; }
+.turn-review-view .diff-split-empty { background: none; clip-path: inset(0); }
+.turn-review-view .diff-split-empty::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  /* 16px 方形贴片加大斜线间距；按比例缩小色带占比，保持原来的线宽。 */
+  --diff-gap-line: color-mix(in srgb, var(--text-muted) 10%, transparent);
+  background: linear-gradient(135deg, var(--diff-gap-line) 0 4.6875%, transparent 4.6875% 50%, var(--diff-gap-line) 50% 54.6875%, transparent 54.6875% 100%) 0 0 / 16px 16px repeat, var(--bg-surface-subtle);
+}
 /* 新建文件没有旧内容可对照,整幅铺开而不是留一半空白。 */
 .turn-review-view .diff-split-single .diff-split-row { grid-template-columns: minmax(0, 1fr); }
 .turn-review-view .diff-line-number { width: 5ch; flex: none; padding-right: 6px; text-align: right; color: var(--text-muted); user-select: none; font-variant-numeric: tabular-nums; }
 .turn-review-view .diff-code { flex: 1; min-width: 0; padding-right: 8px; white-space: pre-wrap; overflow-wrap: anywhere; word-break: normal; }
 .turn-review-view .diff-sign { width: 1ch; }
 .turn-review-view .diff-split-full { display: block; padding: 5px 12px; background: var(--bg-surface-subtle); font-family: var(--font-sans); font-size: calc(12px * var(--ui-scale)); font-style: normal; }
+/* 隐藏 Git 区块头，保留解析得到的区块边界、行号及省略/截断提示。 */
+.turn-review-view .diff-line.hunk { display: none; }
 .turn-review-view .diff-line.add { box-shadow: inset 3px 0 var(--diff-add-fg); }
 .turn-review-view .diff-line.del { box-shadow: inset 3px 0 var(--diff-del-fg); }
 

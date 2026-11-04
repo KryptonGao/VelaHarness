@@ -66,6 +66,7 @@ const tsDiff = [
   "+  ${app.getVersion()}",
   " `;",
   " ",
+  "-// Removed legacy initialization with a long explanation that wraps across several lines in a narrow changes panel.",
   " // 一段注释",
   "-function start() {",
   "+function start(options: { port: number }) {",
