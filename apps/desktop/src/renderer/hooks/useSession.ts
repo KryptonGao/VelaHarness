@@ -46,6 +46,8 @@ export interface UiMessage {
   planIds?: string[];
   turnStartedAt?: number;
   turnCompletedAt?: number;
+  /** 用户中途停止了这一轮。 */
+  turnStopped?: boolean;
   /** 这条消息写入会话文件的时间;实时消息在完成时补上。 */
   timestamp?: number;
   /** 历史恢复的消息不能被当成新完成的思考再次自动总结。 */
@@ -107,6 +109,7 @@ export function useSession(notify: NotifySound = noSound, fixedConversationId?: 
   const statusesRef = useRef<Record<string, AppState["session"]["status"]>>({});
   const turnStartedAtRef = useRef<Record<string, number>>({});
   const completionBlockedRef = useRef<Record<string, boolean>>({});
+  const stoppedRef = useRef<Record<string, boolean>>({});
   activeIdRef.current = activeConversationId;
   questionsRef.current = questions;
 
@@ -217,19 +220,22 @@ export function useSession(notify: NotifySound = noSound, fixedConversationId?: 
           const startedAt = timing.turnStartedAt ?? Date.now();
           turnStartedAtRef.current[conversationId] = startedAt;
           completionBlockedRef.current[conversationId] = false;
+          stoppedRef.current[conversationId] = false;
           setBuckets((current) => updateLastAssistant(current, conversationId, { startedAt }));
         } else if (previous === "streaming" && status !== "streaming") {
           completedStream = true;
-          if (status === "ready" && !completionBlockedRef.current[conversationId]) {
+          const stopped = Boolean(stoppedRef.current[conversationId]);
+          if (status === "ready" && (!completionBlockedRef.current[conversationId] || stopped)) {
             const completedAt = timing.turnCompletedAt ?? Date.now();
             const startedAt = timing.turnStartedAt ?? turnStartedAtRef.current[conversationId] ?? completedAt;
-            setBuckets((current) => updateLastAssistant(current, conversationId, { startedAt, completedAt }));
+            setBuckets((current) => updateLastAssistant(current, conversationId, { startedAt, completedAt, stopped }));
           } else if (status === "ready") {
             // 中止或失败也要留下回复时间,操作行右侧才有值可显示。
             setBuckets((current) => updateLastAssistant(current, conversationId, { timestamp: timing.turnCompletedAt ?? Date.now() }));
           }
           delete turnStartedAtRef.current[conversationId];
           delete completionBlockedRef.current[conversationId];
+          delete stoppedRef.current[conversationId];
         }
         statusesRef.current[conversationId] = status;
       }
@@ -387,6 +393,7 @@ export function useSession(notify: NotifySound = noSound, fixedConversationId?: 
     const id = activeIdRef.current;
     if (!api || !id) return;
     completionBlockedRef.current[id] = true;
+    stoppedRef.current[id] = true;
     const next = await api.abort(id);
     setState(next);
   }, []);
@@ -709,6 +716,7 @@ export function toUiMessage(message: TranscriptMessage): UiMessage {
     timestamp: message.timestamp ?? undefined,
     turnStartedAt: message.turnStartedAt,
     turnCompletedAt: message.turnCompletedAt,
+    ...(message.turnStopped ? { turnStopped: true } : {}),
     historical: true,
   };
 }
@@ -740,7 +748,7 @@ export function attachPlanToLastAssistant(
 function updateLastAssistant(
   buckets: MessageBuckets,
   id: string,
-  timing: { startedAt?: number; completedAt?: number; timestamp?: number },
+  timing: { startedAt?: number; completedAt?: number; timestamp?: number; stopped?: boolean },
 ): MessageBuckets {
   const messages = buckets[id] ?? [];
   const next = stampLastAssistant(messages, timing);
@@ -749,7 +757,7 @@ function updateLastAssistant(
 
 function stampLastAssistant(
   messages: UiMessage[],
-  timing: { startedAt?: number; completedAt?: number; timestamp?: number },
+  timing: { startedAt?: number; completedAt?: number; timestamp?: number; stopped?: boolean },
 ): UiMessage[] {
   for (let index = messages.length - 1; index >= 0; index -= 1) {
     const message = messages[index];
@@ -762,6 +770,7 @@ function stampLastAssistant(
       ...(timing.completedAt !== undefined
         ? { turnCompletedAt: timing.completedAt, timestamp: timing.completedAt }
         : {}),
+      ...(timing.stopped ? { turnStopped: true } : {}),
       ...(timing.timestamp !== undefined ? { timestamp: timing.timestamp } : {}),
     };
     return [...messages.slice(0, index), next, ...messages.slice(index + 1)];

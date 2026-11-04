@@ -3509,7 +3509,7 @@ export class AgentRuntime {
       const start = leafId ? branch.findIndex(item => item.id === leafId) + 1 : 0;
       const assistant = branch.slice(start).findLast(item => item.type === "message" &&
         item.message.role === "assistant" && isVisibleTranscriptMessage(item.message as AgentMessage));
-      if (assistant) manager?.appendCustomEntry(turnTimingEntryType, { assistantEntryId: assistant.id, startedAt, completedAt });
+      if (assistant) manager?.appendCustomEntry(turnTimingEntryType, { assistantEntryId: assistant.id, startedAt, completedAt, ...(entry.stopRequested ? { stopped: true } : {}) });
       entry.activeTurn = undefined;
       patch = { ...patch, turnCompletedAt: completedAt };
     }

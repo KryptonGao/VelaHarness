@@ -41,7 +41,7 @@ import type { ThinkingSummariesApi } from "../hooks/useThinkingSummaries";
 import { ToolCard, ToolList, CompactToolGroup, CompactToolLine, ToolRunGroup, type QuestionLookup } from "./ToolCard";
 import { toolCompactKind } from "./tool-compact";
 import { attachFollowerTools, buildTurnItems, groupCoherentItems, groupProcessItems, hasCoherentTools, isFlatCoherentGroup, latestThoughtId, type CoherentNode, type ProcessNode } from "./tool-sequence";
-import { formatDuration, readToolDuration } from "./tool-duration";
+import { readToolDuration } from "./tool-duration";
 import { foldSequenceId } from "./tool-fold-state";
 import { selectFinalReplies } from "./final-replies";
 import { useToolExpanded, useToolProcessDetails, useToolsDuration } from "./ToolProcessContext";
@@ -139,7 +139,12 @@ function joinReplyText(replies: UiMessage[]): string {
 
 function formatElapsedTime(startedAt: number | undefined, completedAt: number | undefined): string | null {
   if (startedAt === undefined || completedAt === undefined) return null;
-  const totalSeconds = Math.max(0, Math.floor((completedAt - startedAt) / 1000));
+  return formatWholeSeconds(completedAt - startedAt);
+}
+
+/** 只显示整秒,不带小数。 */
+function formatWholeSeconds(ms: number): string {
+  const totalSeconds = Math.max(0, Math.floor((Number.isFinite(ms) ? ms : 0) / 1000));
   if (totalSeconds < 1) return tr("不到 1 秒", "<1 sec");
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
@@ -1486,7 +1491,9 @@ const CompletedAssistantTurn = memo(function CompletedAssistantTurn({
   const startedAt = messages.find(message => message.turnStartedAt !== undefined)?.turnStartedAt;
   const completedAt = messages[messages.length - 1]?.turnCompletedAt;
   const turnDuration = details && toolDisplay === "compact" ? readToolDuration({ startedAt, completedAt }) ?? toolsDuration : null;
-  const displayedElapsed = turnDuration === null ? elapsed : formatDuration(turnDuration);
+  const stopped = messages[messages.length - 1]?.turnStopped === true;
+  // 用户停止时报告墙钟时间(“多少秒后停止”),不用工具耗时之和。
+  const displayedElapsed = turnDuration === null || stopped ? elapsed : formatWholeSeconds(turnDuration);
   const processId = useId();
   const isFinalReply = (message: UiMessage) => finalReplies.some((reply) => reply.id === message.id);
   const hasProcess = messages.some((message) => (
@@ -1494,7 +1501,7 @@ const CompletedAssistantTurn = memo(function CompletedAssistantTurn({
   )) || finalReplies.some((message) => Boolean(message.thinking || message.tools.length > 0));
   const triggerContent = (
     <>
-      <span>{displayedElapsed ? trf("用时 {0}", "Took {0}", displayedElapsed) : tr("查看过程", "View process")}</span>
+      <span>{!displayedElapsed ? tr("查看过程", "View process") : stopped ? trf("你在 {0}后停止了", "You stopped after {0}", displayedElapsed) : trf("用时 {0}", "Took {0}", displayedElapsed)}</span>
       {hasProcess ? (
         <svg className="time-spent-trigger-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
           <polyline points="9 18 15 12 9 6" />

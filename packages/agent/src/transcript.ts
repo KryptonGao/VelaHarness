@@ -191,7 +191,7 @@ function transcriptFromSources(sources: TranscriptSource[], plans: readonly Prop
         tools,
         ...(planIds.length > 0 ? { planIds } : {}),
         timestamp: source.timestamp,
-        ...(timing ? { turnStartedAt: timing.startedAt, turnCompletedAt: timing.completedAt } : {}),
+        ...(timing ? { turnStartedAt: timing.startedAt, turnCompletedAt: timing.completedAt, ...(timing.stopped ? { turnStopped: true } : {}) } : {}),
       });
       continue;
     }

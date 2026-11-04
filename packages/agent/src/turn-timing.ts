@@ -6,6 +6,8 @@ export interface TurnTiming {
   assistantEntryId: string;
   startedAt: number;
   completedAt: number;
+  /** 用户中途停止了这一轮。 */
+  stopped?: boolean;
 }
 
 /** Timing metadata follows the selected branch and never enters model context. */
@@ -17,7 +19,12 @@ export function readTurnTimings(entries: readonly SessionEntry[]): Map<string, T
     if (!data || typeof data.assistantEntryId !== "string" || !data.assistantEntryId ||
       typeof data.startedAt !== "number" || !Number.isFinite(data.startedAt) || data.startedAt < 0 ||
       typeof data.completedAt !== "number" || !Number.isFinite(data.completedAt) || data.completedAt < data.startedAt) continue;
-    timings.set(data.assistantEntryId, data as TurnTiming);
+    timings.set(data.assistantEntryId, {
+      assistantEntryId: data.assistantEntryId,
+      startedAt: data.startedAt,
+      completedAt: data.completedAt,
+      ...(data.stopped === true ? { stopped: true } : {}),
+    });
   }
   return timings;
 }

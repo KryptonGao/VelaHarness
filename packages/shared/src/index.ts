@@ -953,6 +953,8 @@ export interface TranscriptMessage {
   /** 主进程记录并持久化的整轮处理时间。 */
   turnStartedAt?: number;
   turnCompletedAt?: number;
+  /** 用户中途停止了这一轮。 */
+  turnStopped?: boolean;
 }
 
 /** 回到某个检查点（撤销其后各轮）能否安全执行，以及会影响什么。 */

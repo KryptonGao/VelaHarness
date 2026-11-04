@@ -30,6 +30,22 @@ async function fixture(t: TestContext) {
 }
 
 describe("persisted turn timing", () => {
+  it("marks a turn the user stopped and restores the flag from the transcript", async t => {
+    const { entry, runtime, id, start, finish, reply } = await fixture(t);
+    t.mock.timers.enable({ apis: ["Date"], now: 1000 });
+    start();
+    entry.sessionManager.appendMessage({ role: "user", content: "go", timestamp: 1000 });
+    reply();
+    t.mock.timers.tick(56_000);
+    (entry as unknown as { stopRequested: boolean }).stopRequested = true;
+    finish();
+    const timings = [...readTurnTimings(entry.sessionManager.getBranch()).values()];
+    assert.equal(timings.length, 1);
+    assert.equal(timings[0]!.stopped, true);
+    const messages = await runtime.getMessages(id);
+    assert.equal(messages.findLast(message => message.role === "assistant")?.turnStopped, true);
+  });
+
   it("records in the host and restores exactly the same duration after restart", async t => {
     const { root, cwd, runtime, runtimes, id, entry, start, finish, reply } = await fixture(t);
     t.mock.timers.enable({ apis: ["Date"], now: 1000 });
