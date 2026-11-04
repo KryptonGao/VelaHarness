@@ -5,6 +5,7 @@ import type { AppLocale, InfoLayout, PreferencesApi } from "../../hooks/usePrefe
 import type { ConversationLinkTarget } from "../../browser/conversation-link-policy";
 import { notificationSoundKinds, type NotifySound } from "../../notification-sounds";
 import type { SettingsCopy } from "../settings-copy";
+import { setMinimalStart, useMinimalStart } from "../../hooks/useMinimalStart";
 import { composerLayouts, setComposerLayout, useComposerLayout, type ComposerLayout } from "../../hooks/useComposerLayout";
 import { Segmented, SettingsBlock, SettingsSwitch } from "./primitives";
 
@@ -31,6 +32,7 @@ export function InterfacePage({
   } = preferences;
   const text = copy.appearance;
   const composerLayout = useComposerLayout();
+  const minimalStart = useMinimalStart();
   const composerLayoutLabels: Record<ComposerLayout, string> = {
     classic: text.composerLayoutClassic,
     calm: text.composerLayoutCalm,
@@ -97,6 +99,14 @@ export function InterfacePage({
             />
           </div>
         ))}
+      </SettingsBlock>
+      <SettingsBlock id="minimal-start" title={text.minimalStart} hint={text.minimalStartHint}>
+        <Segmented
+          label={text.minimalStart}
+          value={minimalStart ? "on" : "off"}
+          options={[{ id: "off", label: text.minimalStartOff }, { id: "on", label: text.minimalStartOn }]}
+          onChange={value => setMinimalStart(value === "on")}
+        />
       </SettingsBlock>
       <SettingsBlock id="composer-layout" title={text.composerLayout} hint={text.composerLayoutHint}>
         <Segmented

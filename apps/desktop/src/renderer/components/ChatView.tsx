@@ -24,6 +24,7 @@ import { JumpOrb } from "./JumpOrb";
 import type { OrbActivity } from "./jump-orb";
 import { ContextTab } from "./ContextTab";
 import { NewChatGreeting, NewChatPrompts, VelaMark } from "./NewChatHome";
+import { useMinimalStart } from "../hooks/useMinimalStart";
 import { TaskBudgetTab } from "./TaskBudgetTab";
 import { useContentArrival } from "./BatchMotion";
 import { Markdown } from "./Markdown";
@@ -349,7 +350,9 @@ export function ChatView({
         : undefined;
   const title = session?.title || tr("新对话", "New chat");
   // 空对话用「首页」布局:问候、输入框、预设整体居中,而不是输入框贴底。
-  const homeLayout = !embedded && messages.length === 0;
+  // 极简起始页:不用首页布局,空对话只剩贴底的输入框。
+  const minimalStart = useMinimalStart();
+  const homeLayout = !embedded && messages.length === 0 && !minimalStart;
   const hasProjectWorkspace = Boolean(project.workspace?.current);
   const modelMissing = session?.status === "ready" && !session.modelReady;
   const scrollerRef = useRef<HTMLDivElement>(null);
@@ -838,6 +841,7 @@ export function ChatView({
             workspace={project.workspace?.current ?? null}
             modelMissing={modelMissing}
             mode={session?.mode ?? "agent"}
+            minimal={minimalStart && !embedded}
           />
         ) : (
           turns.map((turn, index) => {
@@ -1051,16 +1055,22 @@ function EmptyState({
   workspace,
   modelMissing,
   mode,
+  minimal = false,
 }: {
   workspace: string | null;
   modelMissing: boolean;
   mode: InteractionMode;
+  minimal?: boolean;
 }) {
   const hint = modelMissing
     ? tr("还没有可用的模型。点输入框右下角的模型按钮登录提供方，或添加一个兼容接口。", "No models are available yet. Use the model button at the bottom right to sign in to a provider or add a compatible API.")
     : workspace
       ? tr(modeHints[mode][0], modeHints[mode][1])
       : tr("点输入框上方的工作区晶片，选择要处理的项目。", "Pick a project with the workspace chip above the input.");
+  if (minimal) {
+    // 极简起始页只在缺前置条件时留一行提示,其余什么都不显示。
+    return modelMissing || !workspace ? <p className="home-hint minimal-start-hint">{hint}</p> : null;
+  }
   return <NewChatGreeting mode={mode} hint={hint} />;
 }
 

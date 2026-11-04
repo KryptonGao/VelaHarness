@@ -20,7 +20,7 @@ window.vela = {
   listSkills: async () => ({ skills: [] }),
   getAgentSettings: async () => ({ provider: null, modelId: null, thinkingLevel: "medium", newConversationSelection: "default", instructions: "" }),
   onWorkspaceEvent: noopSubscription, onGitEvent: noopSubscription,
-  pickAttachments: async () => [], hydrateAttachments: async () => [],
+  pickAttachments: async () => [], hydrateAttachments: async () => [], estimateTaskCost: async () => null,
 } as unknown as VelaApi;
 const models = {
   catalog: { models: [], providers: [] }, login: { active: false }, select() {}, setThinking() {},
@@ -63,7 +63,7 @@ function Fixture() {
       onToggle={() => {}} onOpenSettings={() => {}} onNewChat={() => {}} onSwitchConversation={setActiveId}
       onArchiveConversation={id => setConversations(items => items.map(item => item.id === id ? { ...item, archivedAt: Date.now() } : item))}
       onRenameConversation={openRename} />
-    <ChatView messages={[
+    <ChatView messages={params.has("empty") ? [] : [
       { id: "u", role: "user", text: "先做侧边栏搜索和手动改名。", images: [], thinking: "", tools: [], timestamp: 1, planIds: [] },
       { id: "r", role: "assistant", text: "可以按标题和工作区检索会话，也可以给会话设置便于识别的名称。", images: [], thinking: "", tools: [], timestamp: 2, planIds: [] },
     ] as never} state={state} project={project} sendError={null} platform="darwin" leftCollapsed={false} rightCollapsed
