@@ -105,6 +105,7 @@ import catppuccinTypescriptReact from "../assets/catppuccin-icons/typescript-rea
 import catppuccinVue from "../assets/catppuccin-icons/vue.svg";
 import catppuccinXml from "../assets/catppuccin-icons/xml.svg";
 import catppuccinYaml from "../assets/catppuccin-icons/yaml.svg";
+import skillFile from "../assets/skill-file.svg";
 import type { ColorScheme } from "../themes";
 import type { FileIconTheme } from "../hooks/usePreferences";
 import {
@@ -303,6 +304,8 @@ export function FileTypeIcon({ path }: { path: string }) {
   const { theme, scheme } = useContext(FileIconThemeContext);
   const fileName = path.split(/[\\/]/).filter(Boolean).at(-1)?.toLowerCase() ?? "";
   const extension = fileName.includes(".") ? fileName.slice(fileName.lastIndexOf(".") + 1) : fileName;
+  // SKILL.md 是技能入口文件，不随文件图标主题变化，始终用专属彩色图标。
+  if (fileName === "skill.md") return <img className="file-type-icon" src={skillFile} alt="" aria-hidden="true" />;
   let icon: string | undefined;
   switch (theme) {
     case "catppuccin":

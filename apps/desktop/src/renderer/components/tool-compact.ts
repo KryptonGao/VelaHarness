@@ -16,6 +16,12 @@ export function isSkillRead(tool: Pick<ToolTrace, "name" | "activity">): boolean
   return path?.split("/").pop()?.toLowerCase() === "skill.md";
 }
 
+/** 技能名取 SKILL.md 所在目录名,如 ~/.vela/skills/ui-ux-pro-max/SKILL.md → ui-ux-pro-max。 */
+export function skillNameOf(tool: Pick<ToolTrace, "activity">): string {
+  const parts = tool.activity?.path?.trim().replaceAll("\\", "/").split("/").filter(Boolean) ?? [];
+  return parts.length >= 2 ? parts[parts.length - 2]! : "";
+}
+
 /** 摘要里的一段动作统计,如「已编辑 2 个文件」。 */
 export interface CompactSummaryPart {
   kind: CompactKind;

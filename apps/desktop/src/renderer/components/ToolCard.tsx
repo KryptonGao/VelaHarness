@@ -33,6 +33,7 @@ import {
   splitPath,
   totalDiffStat,
   isSkillRead,
+  skillNameOf,
   toolCompactKind,
   type CompactLabelPart,
   type DisplayDiffRow,
@@ -41,7 +42,7 @@ import { bashIntentDisplay } from "./bash-intent-label";
 import { shouldFoldRun } from "./tool-sequence";
 import { firstCodeLine, lastBrowserUrl, parsePageSnapshot, splitBrowserBody, summarizeBrowserCode, type BrowserStep } from "./browser-call";
 import { foldRowId, foldSequenceId } from "./tool-fold-state";
-import { DurationLabel, ToolDurationLabel, useToolExpanded, useToolProcessDetails, useToolsDuration } from "./ToolProcessContext";
+import { DurationLabel, ToolDurationLabel, useToolDuration, useToolExpanded, useToolProcessDetails, useToolsDuration } from "./ToolProcessContext";
 import type { ToolDisplay, ToolFold } from "../hooks/usePreferences";
 import { localizeError, tr, trf } from "../locale";
 import { cardToolGroup } from "./tool-groups";
@@ -392,7 +393,8 @@ function GenericToolCard({ tool, compact = false }: ToolCardProps) {
   const mcp = activity.mcp;
   const kind = mcp ? "other" : toolKind(tool.name);
   const skillRead = !mcp && isSkillRead(tool);
-  const subject = mcp ? { name: mcp.tool, dir: "" } : subjectOf(kind, activity, tool.name);
+  const skillName = skillRead ? skillNameOf(tool) : "";
+  const subject = mcp ? { name: mcp.tool, dir: "" } : skillName ? { name: skillName, dir: "" } : subjectOf(kind, activity, tool.name);
   const group = mcp ? null : cardToolGroup(tool.name);
   const planFirst = (tool.name === "update_todos" ? todoFocus(activity.plan) : activity.plan?.[0]) ?? null;
   const stat = diffStat(activity.diff) ?? streamingStat(activity);
@@ -797,12 +799,16 @@ export function CompactToolLine({
   useEffect(() => {
     if (!streamActive) setStreamCollapsed(false);
   }, [streamActive]);
+  const toolDuration = useToolDuration(tool);
   const kind = toolKind(tool.name);
   const skillRead = isSkillRead(tool);
+  const skillName = skillRead ? skillNameOf(tool) : "";
   if (tool.name === "browser_repl") return <BrowserReplCard tool={tool} compact />;
   const activity = tool.activity ?? {};
   const subject = subjectOf(kind, activity, tool.name);
   const bashIntent = kind === "bash" ? bashIntentDisplay(activity.command) : null;
+  // 后台启动的 bash 返回的是 shell 快照，不是命令输出。
+  const backgroundStart = kind === "bash" && activity.presentation?.kind === "shell";
   const stat = diffStat(activity.diff) ?? streamingStat(activity);
   const running = tool.status === "running";
   const failed = tool.status === "error";
@@ -837,7 +843,7 @@ export function CompactToolLine({
               <KindIcon kind={kind} command={activity.command} />
             </span>
           ) : null}
-          {!hideAction ? <span className="tool-compact-action">{bashIntent?.action ?? tr("已运行", "Ran")}</span> : null}
+          {!hideAction ? <span className="tool-compact-action">{backgroundStart ? tr("已在后台运行", "Ran in background") : bashIntent?.action ?? ranAction(toolDuration)}</span> : null}
           <span className={`tool-compact-cmd${subjectIsCode(kind, activity) ? "" : " is-plain"}`}>{subject.name}</span>
           {subject.dir ? <span className="tool-compact-dir">{subject.dir}</span> : null}
           <svg
@@ -886,10 +892,10 @@ export function CompactToolLine({
               aria-expanded={detailOpen}
               onClick={toggleDetail}
             >
-              <span className="tool-compact-action">{compactAction(kind, running && Boolean(activity.streaming), skillRead)}</span>
+              <span className="tool-compact-action">{compactAction(kind, running && Boolean(activity.streaming), skillRead, skillName)}</span>
             </button>
           ) : (
-            <span className="tool-compact-action">{compactAction(kind, running && Boolean(activity.streaming), skillRead)}</span>
+            <span className="tool-compact-action">{compactAction(kind, running && Boolean(activity.streaming), skillRead, skillName)}</span>
           )
         ) : null}
         {fileIconPath ? <FileTypeIcon path={fileIconPath} /> : null}
@@ -900,12 +906,13 @@ export function CompactToolLine({
             title={`${tr("预览", "Preview")} ${previewPath ?? ""}`}
             onClick={() => preview?.openFile(previewPath ?? "")}
           >
-            {subject.name}
+            {skillName || subject.name}
           </button>
         ) : (
-          <span className="tool-compact-name is-static">{subject.name}</span>
+          <span className="tool-compact-name is-static">{skillName || subject.name}</span>
         )}
-        {hasFileDetails && subject.dir ? (
+        {skillName ? <span className="tool-compact-action">{skillActionParts().after}</span> : null}
+        {skillName ? null : hasFileDetails && subject.dir ? (
           <button
             className="tool-compact-text-toggle tool-compact-path-toggle"
             type="button"
@@ -983,8 +990,21 @@ function streamingStat(activity: ToolActivity): { added: number; removed: number
   return streaming;
 }
 
-function compactAction(kind: ToolKind, streaming = false, skill = false): string {
-  if (skill) return tr("已读取技能", "Read skill");
+/** 普通命令耗时超过 3 秒时，把耗时（四舍五入到秒）写进动作文案。 */
+function ranAction(durationMs: number | null): string {
+  if (durationMs === null || durationMs <= 3000) return tr("已运行", "Ran");
+  return trf("已在 {0} 秒内运行", "Ran in {0}s", Math.round(durationMs / 1000));
+}
+
+/** 「已读取 {技能名} 技能」拆成技能名前后两段,技能名本身单独渲染成可点击的文件名。 */
+function skillActionParts(): { before: string; after: string } {
+  const marker = "\u0000";
+  const [before = "", after = ""] = trf("已读取 {0} 技能", "Read {0} skill", marker).split(marker);
+  return { before: before.trim(), after: after.trim() };
+}
+
+function compactAction(kind: ToolKind, streaming = false, skill = false, skillName = ""): string {
+  if (skill) return skillName ? skillActionParts().before : tr("已读取技能", "Read skill");
   if (streaming && kind === "write") return tr("正在创建", "Creating");
   if (streaming && kind === "edit") return tr("正在编辑", "Editing");
   if (kind === "write") return tr("已创建", "Created");

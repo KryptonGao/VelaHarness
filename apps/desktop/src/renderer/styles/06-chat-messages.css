@@ -976,6 +976,10 @@ button.tool-compact-line:focus-visible > .tool-compact-chevron,
   min-width: 7ch;
   text-align: right;
 }
+/* 没有耗时可显示时是个空 span(仍需 margin-left:auto 把状态图标推到最右),不能再预留 7ch,否则命令文字会被无故提前截断。 */
+.tool-duration[aria-hidden="true"] {
+  min-width: 0;
+}
 .tool-duration.is-failed {
   color: var(--danger);
 }

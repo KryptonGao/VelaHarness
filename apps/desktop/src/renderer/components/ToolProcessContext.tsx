@@ -50,6 +50,13 @@ export function useToolsDuration(tools: readonly ToolTrace[]): number | null {
   return readTurnDuration(tools.map(tool => tool.status === "running" ? tool : context?.timings.get(tool.id) ?? tool));
 }
 
+/** 单个工具的耗时(毫秒);未完成或没有记录时为 null。 */
+export function useToolDuration(tool: ToolTrace): number | null {
+  const context = useContext(ToolProcessContext);
+  if (!context || tool.status === "running") return null;
+  return readToolDuration(context.timings.get(tool.id) ?? tool);
+}
+
 export function ToolDurationLabel({ tool }: { tool: ToolTrace }) {
   const context = useContext(ToolProcessContext);
   if (!context) return null;
