@@ -3,6 +3,8 @@ export const thinkingGroupHeightStops = [160, 200, 240, 280, 320, 360, 400, 480,
 export const toolDetailHeightStops = [120, 160, 200, 240, 280, 320, 400] as const;
 export const defaultThinkingGroupHeight = 280;
 export const defaultToolDetailHeight = 200;
+export const commandDetailHeightStops = toolDetailHeightStops;
+export const defaultCommandDetailHeight = 200;
 
 /** 展开详情时保留两项上限之差;不缩小原分组,也不突破分组上限。多个详情取最高的一项。 */
 export function expandedThinkingGroupHeight(

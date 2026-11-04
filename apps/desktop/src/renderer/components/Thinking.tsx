@@ -14,7 +14,7 @@ import type { ToolTrace } from "@vela/shared";
 import { ThinkingSummaryContext } from "./ThinkingSummaryContext";
 import { ScrollFadeShell } from "./ScrollFadeShell";
 import { thinkingEdges } from "./thinking-edges";
-import { defaultThinkingGroupHeight, defaultToolDetailHeight, expandedThinkingGroupHeight } from "../thinking-group-height";
+import { defaultCommandDetailHeight, defaultThinkingGroupHeight, defaultToolDetailHeight, expandedThinkingGroupHeight } from "../thinking-group-height";
 
 /** 分组展开详情时高度封顶的下限。 */
 const GROUP_LOCK_MIN_HEIGHT = 220;
@@ -209,7 +209,7 @@ export function Thinking({
     const observed = new Set<Element>();
     // 只联动命令、编辑和写入详情,不受文件预览、普通读取等开合影响。
     const selector = ["bash", "edit", "write"].map((kind) =>
-      `.tool-kind-${kind} .tool-details-scroll > .thinking-scroll-viewport, .tool-kind-${kind} .compact-diff-scroll-shell > .thinking-scroll-viewport`,
+      `.tool-kind-${kind} .tool-details-scroll > .thinking-scroll-viewport, .tool-kind-${kind} .compact-diff-scroll-shell > .thinking-scroll-viewport, .tool-kind-${kind} .tool-terminal-scroll > .thinking-scroll-viewport`,
     ).join(", ");
     const resize = new ResizeObserver(() => sync());
     const sync = () => {
@@ -232,7 +232,8 @@ export function Thinking({
       const contents = new Set(details.flatMap((detail) => detail.firstElementChild ? [detail.firstElementChild] : []));
       for (const node of observed) if (!contents.has(node)) { resize.unobserve(node); observed.delete(node); }
       for (const node of contents) if (!observed.has(node)) { resize.observe(node); observed.add(node); }
-      const heights = details.filter((detail) => !detail.closest("[inert]")).map((detail) => detail.scrollHeight);
+      const visible = details.filter((detail) => !detail.closest("[inert]"));
+      const heights = visible.map((detail) => detail.scrollHeight);
       if (!heights.length) {
         viewport.style.removeProperty("--thinking-group-expanded-height");
         baseHeight = viewport.clientHeight;
@@ -240,8 +241,12 @@ export function Thinking({
       }
       const styles = getComputedStyle(root);
       const groupLimit = Number.parseFloat(styles.getPropertyValue("--thinking-group-height")) || defaultThinkingGroupHeight;
-      const detailLimit = Number.parseFloat(styles.getPropertyValue("--tool-detail-height")) || defaultToolDetailHeight;
-      const height = expandedThinkingGroupHeight(baseHeight, heights, groupLimit, detailLimit);
+      const editLimit = Number.parseFloat(styles.getPropertyValue("--tool-detail-height")) || defaultToolDetailHeight;
+      const commandLimit = Number.parseFloat(styles.getPropertyValue("--command-detail-height")) || defaultCommandDetailHeight;
+      // 命令和编辑各有自己的上限;每个详情按自己的上限算,取最高的分组高度。
+      const height = Math.max(...visible.map((detail, index) =>
+        expandedThinkingGroupHeight(baseHeight, [heights[index]!], groupLimit, detail.closest(".tool-kind-bash") ? commandLimit : editLimit),
+      ));
       viewport.style.setProperty("--thinking-group-expanded-height", `${height}px`);
     };
     const mutations = new MutationObserver(sync);

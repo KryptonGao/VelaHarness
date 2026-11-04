@@ -5,7 +5,7 @@ import type { SettingsCopy } from "../settings-copy";
 import { groupAvailable, modelValue, parseModelValue } from "./model-helpers";
 import { Segmented, SettingsBlock, SettingsSwitch } from "./primitives";
 import { HeightLimitControl } from "./HeightLimitControl";
-import { thinkingGroupHeightStops, toolDetailHeightStops } from "../../thinking-group-height";
+import { commandDetailHeightStops, thinkingGroupHeightStops, toolDetailHeightStops } from "../../thinking-group-height";
 import { IntelligentUiSetting } from "../intelligent-ui/IntelligentUiSetting";
 import {
   ConversationPreview,
@@ -36,6 +36,7 @@ export function ConversationDisplayPage({
     thinkingGroupMode,
     thinkingGroupHeight,
     toolDetailHeight,
+    commandDetailHeight,
     toolDetailHeightScale,
     thinkingGroupHeightGrow,
     thinkingTitleStyle,
@@ -57,6 +58,7 @@ export function ConversationDisplayPage({
     setThinkingGroupMode,
     setThinkingGroupHeight,
     setToolDetailHeight,
+    setCommandDetailHeight,
     setToolDetailHeightScale,
     setThinkingGroupHeightGrow,
     setReplyFade,
@@ -285,6 +287,12 @@ export function ConversationDisplayPage({
           stops={thinkingGroupHeightStops}
           value={thinkingGroupHeight}
           onChange={setThinkingGroupHeight}
+        />
+        <HeightLimitControl
+          label={text.thinkingGroupHeightCommand}
+          stops={commandDetailHeightStops}
+          value={commandDetailHeight}
+          onChange={setCommandDetailHeight}
         />
         <HeightLimitControl
           label={text.thinkingGroupHeightDetail}

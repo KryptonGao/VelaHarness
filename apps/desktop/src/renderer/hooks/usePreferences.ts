@@ -1,6 +1,8 @@
 import {
   clampHeight,
   defaultThinkingGroupHeight,
+  commandDetailHeightStops,
+  defaultCommandDetailHeight,
   defaultToolDetailHeight,
   thinkingGroupHeightStops,
   toolDetailHeightStops,
@@ -76,6 +78,7 @@ const toolIconColorKey = "vela.toolIconColor";
 const thinkingGroupModeKey = "vela.thinkingGroupMode";
 const thinkingGroupHeightKey = "vela.thinkingGroupHeight";
 const toolDetailHeightKey = "vela.toolDetailHeight";
+const commandDetailHeightKey = "vela.commandDetailHeight";
 const toolDetailHeightScaleKey = "vela.toolDetailHeightScale";
 const thinkingGroupHeightGrowKey = "vela.thinkingGroupHeightGrow";
 const replyFadeKey = "vela.replyFade";
@@ -313,6 +316,15 @@ export function usePreferences() {
   const [toolDetailHeight, setToolDetailHeightState] = useState(() =>
     readStoredHeight(toolDetailHeightKey, toolDetailHeightStops, defaultToolDetailHeight),
   );
+  // 命令详情单独设置;未设置过时沿用此前共用的「命令与编辑详情」高度,升级后外观不变。
+  const [commandDetailHeight, setCommandDetailHeightState] = useState(() =>
+    readStoredHeight(
+      commandDetailHeightKey,
+      commandDetailHeightStops,
+      readStoredHeight(toolDetailHeightKey, toolDetailHeightStops, defaultCommandDetailHeight),
+    ),
+  );
+  const setCommandDetailHeight = useCallback((value: number) => setCommandDetailHeightState(clampHeight(commandDetailHeightStops, value)), []);
   const setThinkingGroupHeight = useCallback((value: number) => setThinkingGroupHeightState(clampHeight(thinkingGroupHeightStops, value)), []);
   const setToolDetailHeight = useCallback((value: number) => setToolDetailHeightState(clampHeight(toolDetailHeightStops, value)), []);
   /** 分组实际高度不足设定值时,详情高度按「详情上限 ÷ 分组上限」同比缩小。默认开启。 */
@@ -465,8 +477,13 @@ export function usePreferences() {
     writeStored(toolDetailHeightKey, String(toolDetailHeight));
   }, [toolDetailHeight]);
   useEffect(() => {
+    document.documentElement.style.setProperty("--command-detail-height", `${commandDetailHeight}px`);
+    writeStored(commandDetailHeightKey, String(commandDetailHeight));
+  }, [commandDetailHeight]);
+  useEffect(() => {
     document.documentElement.style.setProperty("--tool-detail-ratio", (toolDetailHeight / thinkingGroupHeight).toFixed(4));
-  }, [thinkingGroupHeight, toolDetailHeight]);
+    document.documentElement.style.setProperty("--command-detail-ratio", (commandDetailHeight / thinkingGroupHeight).toFixed(4));
+  }, [thinkingGroupHeight, toolDetailHeight, commandDetailHeight]);
   useEffect(() => {
     document.documentElement.dataset.toolDetailScale = String(toolDetailHeightScale);
     writeStored(toolDetailHeightScaleKey, String(toolDetailHeightScale));
@@ -564,6 +581,7 @@ export function usePreferences() {
     thinkingGroupMode,
     thinkingGroupHeight,
     toolDetailHeight,
+    commandDetailHeight,
     toolDetailHeightScale,
     thinkingGroupHeightGrow,
     thinkingTitleStyle,
@@ -616,6 +634,7 @@ export function usePreferences() {
     setThinkingGroupMode,
     setThinkingGroupHeight,
     setToolDetailHeight,
+    setCommandDetailHeight,
     setToolDetailHeightScale,
     setThinkingGroupHeightGrow,
     setReplyFade,

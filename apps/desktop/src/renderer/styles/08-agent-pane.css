@@ -218,9 +218,81 @@
   color: var(--term-fg);
 }
 .tool-terminal-cmd + .tool-terminal-out,
-.tool-terminal-cmd + .tool-terminal-wait {
+.tool-terminal-cmd + .tool-terminal-wait,
+.tool-terminal-cmd + .tool-terminal-scroll {
   border-top: 1px solid var(--border-subtle);
 }
+/* 命令运行块:命令最多两行(点击展开),悬停右侧出现复制;输出限高,上下渐隐模糊。 */
+.tool-terminal.is-boxed {
+  border: 1px solid var(--border-subtle);
+}
+.tool-terminal.is-boxed .tool-terminal-cmd {
+  position: relative;
+  align-items: flex-start;
+  padding-right: 34px;
+}
+.tool-terminal-cmd-text {
+  min-width: 0;
+  flex: 1;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.tool-terminal-cmd.is-expanded .tool-terminal-cmd-text {
+  display: block;
+  -webkit-line-clamp: unset;
+}
+.tool-terminal-cmd.is-toggle .tool-terminal-cmd-text { cursor: pointer; }
+.tool-terminal-cmd-text:focus-visible {
+  outline: 2px solid var(--accent, currentColor);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.tool-terminal-copy {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--transition-enter), color var(--transition-enter), background var(--transition-enter);
+}
+.tool-terminal-cmd:hover .tool-terminal-copy,
+.tool-terminal-copy:focus-visible { opacity: 1; }
+.tool-terminal-copy:hover { color: var(--text-primary); background: var(--bg-hover); }
+.thinking-scroll-shell.tool-terminal-scroll { --scroll-fade-background: var(--term-bg); }
+.tool-terminal-scroll > .thinking-scroll-viewport { max-height: 168px; }
+/* 分组里命令详情用自己的高度上限(与编辑详情分开设置),按比例缩小时用命令自己的比例。 */
+.thinking-group-rail .tool-terminal-scroll > .thinking-scroll-viewport,
+.thinking-group-rail .tool-kind-bash .tool-details-scroll > .thinking-scroll-viewport {
+  max-height: var(--command-detail-height, 200px);
+}
+:root[data-tool-detail-scale="true"]:not([data-thinking-group-grow="true"]) .thinking-group-rail .tool-terminal-scroll > .thinking-scroll-viewport,
+:root[data-tool-detail-scale="true"]:not([data-thinking-group-grow="true"]) .thinking-group-rail .tool-kind-bash .tool-details-scroll > .thinking-scroll-viewport {
+  max-height: min(
+    var(--command-detail-height, 200px),
+    calc(var(--thinking-group-live-height, var(--thinking-group-height, 280px)) * var(--command-detail-ratio, 0.7143))
+  );
+}
+.tool-terminal-scroll .thinking-text.tool-terminal-out-content {
+  padding: 0;
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+}
+.tool-terminal-scroll .tool-terminal-out { padding: 10px 14px 10px 10px; }
 .tool-terminal-wait { color: color-mix(in srgb, var(--term-fg) 62%, transparent); }
 .tool-sheet {
   border-radius: 8px;

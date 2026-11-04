@@ -7,7 +7,7 @@ import type { UiMessage } from "../src/renderer/hooks/useSession";
 import { CoherentGroup, CoherentThought, ThinkingGroup } from "../src/renderer/components/Thinking";
 import { ThinkingGroupModeContext } from "../src/renderer/components/ThinkingGroupModeContext";
 import { HeightLimitControl } from "../src/renderer/components/settings/HeightLimitControl";
-import { defaultThinkingGroupHeight, defaultToolDetailHeight, thinkingGroupHeightStops, toolDetailHeightStops } from "../src/renderer/thinking-group-height";
+import { commandDetailHeightStops, defaultCommandDetailHeight, defaultThinkingGroupHeight, defaultToolDetailHeight, thinkingGroupHeightStops, toolDetailHeightStops } from "../src/renderer/thinking-group-height";
 import { ToolList } from "../src/renderer/components/ToolCard";
 import type { ToolDisplay } from "../src/renderer/hooks/usePreferences";
 import "../src/renderer/styles.css";
@@ -75,10 +75,13 @@ function App() {
   const [live, setLive] = useState(true);
   const [groupHeight, setGroupHeight] = useState(defaultThinkingGroupHeight);
   const [detailHeight, setDetailHeight] = useState(defaultToolDetailHeight);
+  const [commandHeight, setCommandHeight] = useState(defaultCommandDetailHeight);
   const [scale, setScale] = useState(true);
   const [grow, setGrow] = useState(false);
   document.documentElement.style.setProperty("--thinking-group-height", `${groupHeight}px`);
   document.documentElement.style.setProperty("--tool-detail-height", `${detailHeight}px`);
+  document.documentElement.style.setProperty("--command-detail-height", `${commandHeight}px`);
+  document.documentElement.style.setProperty("--command-detail-ratio", (commandHeight / groupHeight).toFixed(4));
   document.documentElement.style.setProperty("--tool-detail-ratio", (detailHeight / groupHeight).toFixed(4));
   document.documentElement.dataset.toolDetailScale = String(scale);
   document.documentElement.dataset.thinkingGroupGrow = String(grow);
@@ -88,7 +91,8 @@ function App() {
       <section className="settings-block" style={{ marginBottom: 16 }}>
         <div className="tb-fields">
           <HeightLimitControl label="Group height limit" stops={thinkingGroupHeightStops} value={groupHeight} onChange={setGroupHeight} />
-          <HeightLimitControl label="Detail height limit" stops={toolDetailHeightStops} value={detailHeight} onChange={setDetailHeight} />
+          <HeightLimitControl label="Command height limit" stops={commandDetailHeightStops} value={commandHeight} onChange={setCommandHeight} />
+          <HeightLimitControl label="Edit height limit" stops={toolDetailHeightStops} value={detailHeight} onChange={setDetailHeight} />
           <label><input type="checkbox" checked={scale} onChange={(event) => setScale(event.target.checked)} />Scale details down</label>
           <label><input type="checkbox" checked={grow} onChange={(event) => setGrow(event.target.checked)} />Grow group with details</label>
         </div>

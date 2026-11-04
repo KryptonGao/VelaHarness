@@ -455,7 +455,7 @@ function GenericToolCard({ tool, compact = false }: ToolCardProps) {
       <ToolCollapse open={open}>
         {() => <>
         <div className="tool-card-body">
-          {mcp ? <McpToolDetails tool={tool} /> : <ScrollFade
+          {mcp ? <McpToolDetails tool={tool} /> : kind === "bash" && !activity.presentation ? <ToolBody kind={kind} activity={activity} status={tool.status} toolName={tool.name} /> : <ScrollFade
             className="tool-details-scroll"
             ariaLabel={tr("工具详情，可在区域内滚动", "Tool details, scrollable")}
           >
@@ -858,9 +858,11 @@ export function CompactToolLine({
         <ToolCollapse open={open}>
         {() => <>
           <div className="tool-compact-out">
-            <ScrollFade className="tool-details-scroll" ariaLabel={tr("命令和输出，可在区域内滚动", "Command and output, scrollable")}>
-              {activity.presentation ? <ToolResultDetails activity={activity} status={tool.status} toolName={tool.name} /> : <BashView command={activity.command} output={activity.body} running={running} failed={failed} />}
-            </ScrollFade>
+            {activity.presentation ? (
+              <ScrollFade className="tool-details-scroll" ariaLabel={tr("命令和输出，可在区域内滚动", "Command and output, scrollable")}>
+                <ToolResultDetails activity={activity} status={tool.status} toolName={tool.name} />
+              </ScrollFade>
+            ) : <BashView command={activity.command} output={activity.body} running={running} failed={failed} />}
           </div>
           </>}
       </ToolCollapse>
@@ -1216,16 +1218,68 @@ export function BashView({
   running: boolean;
   failed: boolean;
 }) {
+  const [expanded, setExpanded] = useState(false);
+  const [overflowing, setOverflowing] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const cmdRef = useRef<HTMLSpanElement>(null);
+  // 命令默认只显示两行;只有被截断时才可点击展开。
+  useLayoutEffect(() => {
+    const el = cmdRef.current;
+    if (!el) return;
+    const measure = (): void => {
+      if (!expanded) setOverflowing(el.scrollHeight > el.clientHeight + 1);
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [command, expanded]);
+  const canToggle = overflowing || expanded;
   return (
-    <div className={`tool-terminal${failed ? " failed" : ""}`}>
+    <div className={`tool-terminal is-boxed${failed ? " failed" : ""}`}>
       {command ? (
-        <div className="tool-terminal-cmd">
+        <div className={`tool-terminal-cmd${canToggle ? " is-toggle" : ""}${expanded ? " is-expanded" : ""}`}>
           <span className="tool-terminal-prompt">$</span>
-          <span>{command}</span>
+          <span
+            ref={cmdRef}
+            className="tool-terminal-cmd-text"
+            role={canToggle ? "button" : undefined}
+            tabIndex={canToggle ? 0 : undefined}
+            aria-expanded={canToggle ? expanded : undefined}
+            onClick={canToggle ? () => setExpanded((value) => !value) : undefined}
+            onKeyDown={canToggle ? (event) => {
+              if (event.key !== "Enter" && event.key !== " ") return;
+              event.preventDefault();
+              setExpanded((value) => !value);
+            } : undefined}
+          >{command}</span>
+          <button
+            className="tool-terminal-copy"
+            type="button"
+            aria-label={copied ? tr("已复制命令", "Command copied") : tr("复制命令", "Copy command")}
+            title={copied ? tr("已复制", "Copied") : tr("复制命令", "Copy command")}
+            onClick={() => {
+              void navigator.clipboard.writeText(command).then(
+                () => {
+                  setCopied(true);
+                  window.setTimeout(() => setCopied(false), 1400);
+                },
+                () => setCopied(false),
+              );
+            }}
+          >
+            {copied ? <CheckIcon size={13} /> : <CopyIcon size={13} />}
+          </button>
         </div>
       ) : null}
       {output ? (
-        <pre className="tool-terminal-out">{output}</pre>
+        <ScrollFade
+          className="tool-terminal-scroll"
+          contentClassName="tool-terminal-out-content"
+          ariaLabel={tr("命令输出，可在区域内滚动", "Command output, scrollable")}
+        >
+          <pre className="tool-terminal-out">{output}</pre>
+        </ScrollFade>
       ) : (
         <div className="tool-terminal-wait">{running ? tr("运行中", "Running") : tr("无输出", "No output")}</div>
       )}
