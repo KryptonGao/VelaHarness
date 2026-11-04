@@ -75,9 +75,14 @@ button {
 /*
  * 浏览器会在鼠标点过之后再按 Esc、快捷键等时让已聚焦的按钮匹配 :focus-visible，
  * 所以只在用户按过 Tab 时才画焦点环（focus-modality.ts 打 data-keyboard-focus，鼠标按下清除）。
- * 文本输入类控件除外（光标本来就在里面）。
+ * 文本输入类控件（光标本来就在里面）无论如何都不画 outline。
  */
-html:not([data-keyboard-focus]) :focus-visible:not(input, textarea, select, [contenteditable="true"]) {
+html:not([data-keyboard-focus]) :focus-visible {
+  outline: none !important;
+}
+input:not([type="checkbox"], [type="radio"], [type="range"], [type="button"], [type="submit"], [type="file"]):focus-visible,
+textarea:focus-visible,
+[contenteditable="true"]:focus-visible {
   outline: none !important;
 }
 

@@ -113,7 +113,6 @@
 .models-detail-head h3 { flex: 1; min-width: 0; margin: 0; display: flex; align-items: center; gap: 10px; font-size: calc(16px * var(--ui-scale)); font-weight: 650; }
 .models-detail-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .models-name-input { flex: 1; min-width: 0; padding: 4px 0; border-bottom: 1px dashed var(--border-strong); background: transparent; font: inherit; font-weight: 650; outline: none; }
-.models-name-input:focus { border-bottom-color: var(--accent-blue); }
 .models-chip { padding: 2px 8px; border-radius: var(--radius-pill); background: var(--bg-surface-subtle); color: var(--text-muted); font-size: calc(12px * var(--ui-scale)); font-weight: 550; white-space: nowrap; }
 .models-chip.connected { color: var(--success); background: color-mix(in srgb, var(--success) 12%, transparent); }
 .models-chip.attention { color: var(--warning); background: color-mix(in srgb, var(--warning) 14%, transparent); }
@@ -134,8 +133,6 @@
   font: inherit;
   outline: none;
 }
-.models-field input:focus,
-.models-field select:focus { border-color: var(--accent-blue); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-blue) 16%, transparent); }
 .models-field input::placeholder { color: var(--text-dim); }
 .models-field input:disabled { color: var(--text-muted); background: var(--bg-surface-subtle); }
 .models-field input.mono,

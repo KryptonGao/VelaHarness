@@ -123,7 +123,7 @@
   color: var(--text-muted);
   -webkit-app-region: no-drag;
 }
-.settings-search:focus-within { box-shadow: 0 0 0 2px var(--accent-blue); color: var(--text-secondary); }
+.settings-search:focus-within { color: var(--text-secondary); }
 .settings-search-input {
   flex: 1;
   min-width: 0;
@@ -485,7 +485,7 @@
   box-shadow: 0 0 0 1px var(--border-subtle);
 }
 .theme-editor .settings-input { background: var(--bg-chat); box-shadow: 0 0 0 1px var(--border-subtle); }
-.theme-editor .settings-input:focus-visible { box-shadow: 0 0 0 2px var(--accent-blue), 0 0 0 5px var(--accent-ring); outline: none; }
+.theme-editor .settings-input:focus-visible { outline: none; }
 .theme-editor-title { margin: 0; font-size: calc(16px * var(--ui-scale)); font-weight: 600; color: var(--text-primary); }
 .theme-editor-body { display: grid; grid-template-columns: minmax(0, 1fr) 220px; gap: 18px; align-items: start; }
 .theme-editor-fields { display: flex; flex-direction: column; gap: 12px; min-width: 0; }

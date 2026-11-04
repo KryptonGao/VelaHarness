@@ -222,7 +222,7 @@
   font-size: calc(15px * var(--ui-scale));
   color: var(--text-primary);
 }
-.question-custom-input:focus { outline: none; border-color: var(--accent-blue); }
+.question-custom-input:focus { outline: none; }
 .question-custom-send {
   padding: 6px 14px;
   border-radius: var(--radius-pill);

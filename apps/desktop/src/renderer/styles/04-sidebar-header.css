@@ -68,7 +68,6 @@
   background: transparent;
 }
 .conversation-search-header input::placeholder { color: var(--text-muted); }
-.conversation-search-header:has(input:focus-visible) { box-shadow: inset 0 -2px 0 var(--accent-blue); }
 .conversation-search-close {
   width: 28px;
   height: 28px;

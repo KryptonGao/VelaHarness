@@ -197,7 +197,6 @@
   border: 1px solid var(--border-subtle); background: var(--bg-card-surface); color: var(--text-muted); font-size: calc(12px * var(--ui-scale));
   transition: border-color 140ms, box-shadow 140ms;
 }
-.tb-number:focus-within { border-color: var(--accent-blue); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-blue) 16%, transparent); }
 .tb-number input { width: 100px; border: 0; padding: 0; background: transparent; color: var(--text-primary); font: inherit; font-size: calc(13px * var(--ui-scale)); text-align: right; font-variant-numeric: tabular-nums; outline: none; -moz-appearance: textfield; }
 .tb-number input::-webkit-outer-spin-button, .tb-number input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .tb-number input::placeholder { color: var(--text-dim); }

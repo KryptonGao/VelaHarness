@@ -268,8 +268,6 @@
 
 .vc-input:focus {
   outline: none;
-  border-color: var(--accent-blue);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-blue) 18%, transparent);
 }
 
 .vc-select {
@@ -293,12 +291,6 @@
   background: var(--bg-surface-subtle);
   color: var(--text-muted);
   transition: border-color 120ms var(--motion-ease-enter), background 120ms var(--motion-ease-enter);
-}
-
-.vc-search:focus-within {
-  border-color: var(--accent-blue);
-  background: var(--bg-elevated);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-blue) 16%, transparent);
 }
 
 .vc-search input {
@@ -1872,11 +1864,6 @@
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   overflow: hidden;
-}
-
-.vc-description-wrap:focus-within {
-  border-color: var(--accent-blue);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-blue) 16%, transparent);
 }
 
 .vc-md-bar {

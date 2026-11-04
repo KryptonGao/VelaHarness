@@ -181,7 +181,6 @@
   background: var(--bg-chat);
   color: var(--text-muted);
 }
-.workspace-settings-name:focus-within { border-color: var(--accent-blue); box-shadow: 0 0 0 1px var(--accent-blue); }
 .workspace-settings-name input {
   flex: 1;
   min-width: 0;

@@ -447,8 +447,6 @@
 }
 .explorer-search-input:focus {
   outline: none;
-  border-color: var(--accent-blue);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-blue) 18%, transparent);
 }
 .explorer-search-input::placeholder {
   color: var(--text-muted);
