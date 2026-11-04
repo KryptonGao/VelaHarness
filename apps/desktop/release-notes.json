@@ -1,148 +1,148 @@
 {
-  "version": "1.2.20",
+  "version": "1.2.21",
   "locales": {
     "en": {
-      "summary": "Vela 1.2.20 adds an experimental draggable split view to the workbench, a much fuller application menu and a headless runner, and shows browser snapshots as a readable list.",
+      "summary": "Vela 1.2.21 adds an optional minimal start page, restyles command blocks and skill reads, reports how long a turn took more clearly, and stops clicked buttons and text inputs from drawing stray focus outlines.",
       "highlights": [
         {
-          "title": "Workbench split view (experimental)",
-          "body": "Turn it on in Settings → Interface, then drag tabs in the workbench to split it into up to four panes side by side. Dividers can be dragged, panes can be maximized, and closing a pane keeps its tabs. It is off by default."
+          "title": "Minimal start page",
+          "body": "Turn it on in Settings → Interface and a new chat shows only the composer, without the greeting, suggested prompts or background mark. It is off by default."
         },
         {
-          "title": "A fuller application menu",
-          "body": "The menu bar now has New Tab, Toggle Sidebar and Toggle Info Panel, a Go menu (Back, Forward, Home, Scheduled Tasks, Task Recipes, Agent Inbox, Pull Request) and a Workbench menu (Terminal, Files, Browser, Changes)."
+          "title": "Cleaner command blocks",
+          "body": "Commands now sit in a bordered block: the command is clamped to two lines (click to expand), a copy button appears on hover, and the command and its output share one height limit. Command and edit detail height limits are now separate settings."
         },
         {
-          "title": "Headless runner",
-          "body": "pnpm runner run executes a single Vela task without starting Electron, with text or JSONL output and exit codes that tell results apart. Every run keeps its own session, trace and result, and leaves the desktop app untouched."
+          "title": "Skill reads you can open",
+          "body": "When the agent reads a skill, the row now says \"Read <skill> skill\" with a flat SKILL.md icon, and clicking the skill name opens SKILL.md in the preview pane."
         },
         {
-          "title": "Readable browser snapshots",
-          "body": "The result of a browser snapshot is now shown as a list of elements instead of raw text, so it is much easier to see what the page contains."
+          "title": "Clearer turn timing",
+          "body": "Turn time is shown in whole seconds, and a turn you stop yourself now reads \"You stopped after Xs\" instead of a total of tool times."
         }
       ],
       "improvements": [
-        "A streamed reply no longer keeps pulling the view down once you scroll up to read earlier output.",
-        "You can collapse a file diff while it is still streaming.",
-        "The dot marking a created file is smaller and always blue.",
-        "Serif reply text uses a thin stroke instead of a heavier weight, so it looks lighter and cleaner.",
-        "Fixed an error in the pull request inbox cache caused by reading the clock with a detached Date.now.",
+        "Focus outlines on buttons and rows now appear only after you press Tab, so a clicked button no longer gets a blue box on later keypresses.",
+        "Text inputs no longer draw an outline or a blue border and glow when focused; the caret is the indicator.",
+        "Changes diff headers are simpler, and rows without a counterpart on the other side are hatched.",
+        "The undo button on a turn's changes is now labelled \"Undo\".",
+        "Compact tool rows show how long each tool took.",
         "New interface text is available in all five interface languages."
       ]
     },
     "zh-CN": {
-      "summary": "Vela 1.2.20 为工作台新增可拖拽的实验性分屏，补全应用菜单并加入无界面运行器，浏览器快照也改为易读的元素列表。",
+      "summary": "Vela 1.2.21 新增可选的极简起始页，重新设计命令块和技能读取的显示，更清楚地报告每一轮的用时，并且点击后的按钮和文本输入框不再出现多余的焦点轮廓。",
       "highlights": [
         {
-          "title": "工作台分屏（实验性）",
-          "body": "在 设置 → 界面 中开启后，可拖动工作台里的标签，把工作台拆成最多四个并排的窗口。分隔线可拖动，窗口可放大，关闭窗口不会丢失标签。默认关闭。"
+          "title": "极简起始页",
+          "body": "在 设置 → 界面 中开启后，新对话只显示输入框，不显示问候语、预设提示词和背景图案。默认关闭。"
         },
         {
-          "title": "更完整的应用菜单",
-          "body": "菜单栏新增新建标签页、切换侧边栏和切换信息面板，以及「前往」菜单（返回、前进、主页、定时任务、任务配方、Agent 收件箱、Pull Request）和「工作台」菜单（终端、文件、浏览器、变更）。"
+          "title": "更清爽的命令块",
+          "body": "命令现在显示在带边框的区块里：命令限制为两行（点击可展开），悬停时出现复制按钮，命令与输出共用同一个高度上限。命令详情与编辑详情的高度上限也分成了两个独立设置。"
         },
         {
-          "title": "无界面运行器",
-          "body": "pnpm runner run 可以不启动 Electron 就执行一次 Vela 任务，支持文本或 JSONL 输出，并用退出码区分结果。每次运行都有独立的会话、trace 和结果，不影响桌面应用。"
+          "title": "可以打开的技能读取",
+          "body": "Agent 读取技能时，这一行会显示「已读取 <技能> 技能」并配有扁平的 SKILL.md 图标，点击技能名称即可在预览面板中打开 SKILL.md。"
         },
         {
-          "title": "更易读的浏览器快照",
-          "body": "浏览器快照的结果现在以元素列表显示，不再是一整段原始文本，页面里有什么一目了然。"
+          "title": "更清楚的用时显示",
+          "body": "每一轮的用时以整秒显示；由你自己停止的一轮会显示「你在 X 秒后停止了」，不再是各工具耗时的总和。"
         }
       ],
       "improvements": [
-        "流式回复时，向上滚动查看之前的内容后，视图不会再被持续拉回底部。",
-        "文件差异还在流式输出时也可以折叠。",
-        "标记新建文件的圆点更小，并且始终为蓝色。",
-        "衬线回复文字改用细描边而不是加粗，看起来更轻盈清爽。",
-        "修复了 Pull Request 收件箱缓存因脱离对象调用 Date.now 而出错的问题。",
+        "按钮和列表行的焦点轮廓现在只在按下 Tab 后才出现，点击过的按钮不会再在之后按键时冒出蓝色方框。",
+        "文本输入框获得焦点时不再显示轮廓，也没有蓝色边框和光晕，以光标作为提示。",
+        "变更中的差异标题更简洁，另一侧没有对应内容的行会用斜线填充。",
+        "一轮变更上的撤销按钮现在标为「撤销」。",
+        "紧凑的工具行会显示每个工具的耗时。",
         "新增的界面文字提供全部五种界面语言。"
       ]
     },
     "zh-TW": {
-      "summary": "Vela 1.2.20 為工作台新增可拖曳的實驗性分割畫面，補全應用程式選單並加入無介面執行器，瀏覽器快照也改為易讀的元素清單。",
+      "summary": "Vela 1.2.21 新增可選的極簡起始頁，重新設計命令區塊和技能讀取的顯示，更清楚地回報每一輪的用時，並且點擊後的按鈕和文字輸入框不再出現多餘的焦點外框。",
       "highlights": [
         {
-          "title": "工作台分割畫面（實驗性）",
-          "body": "在 設定 → 介面 中開啟後，可拖曳工作台裡的分頁，把工作台拆成最多四個並排的視窗。分隔線可拖曳，視窗可放大，關閉視窗不會遺失分頁。預設關閉。"
+          "title": "極簡起始頁",
+          "body": "在 設定 → 介面 中開啟後，新對話只顯示輸入框，不顯示問候語、預設提示詞和背景圖案。預設關閉。"
         },
         {
-          "title": "更完整的應用程式選單",
-          "body": "選單列新增新增分頁、切換側邊欄和切換資訊面板，以及「前往」選單（返回、前進、首頁、排程任務、任務配方、Agent 收件匣、Pull Request）和「工作台」選單（終端機、檔案、瀏覽器、變更）。"
+          "title": "更清爽的命令區塊",
+          "body": "命令現在顯示在有邊框的區塊裡：命令限制為兩行（點擊可展開），滑過時出現複製按鈕，命令與輸出共用同一個高度上限。命令詳情與編輯詳情的高度上限也分成了兩個獨立設定。"
         },
         {
-          "title": "無介面執行器",
-          "body": "pnpm runner run 可以不啟動 Electron 就執行一次 Vela 任務，支援文字或 JSONL 輸出，並用結束代碼區分結果。每次執行都有獨立的工作階段、trace 和結果，不影響桌面應用程式。"
+          "title": "可以開啟的技能讀取",
+          "body": "Agent 讀取技能時，這一列會顯示「已讀取 <技能> 技能」並配有扁平的 SKILL.md 圖示，點擊技能名稱即可在預覽面板中開啟 SKILL.md。"
         },
         {
-          "title": "更易讀的瀏覽器快照",
-          "body": "瀏覽器快照的結果現在以元素清單顯示，不再是一整段原始文字，頁面裡有什麼一目了然。"
+          "title": "更清楚的用時顯示",
+          "body": "每一輪的用時以整秒顯示；由你自己停止的一輪會顯示「你在 X 秒後停止了」，不再是各工具耗時的總和。"
         }
       ],
       "improvements": [
-        "串流回覆時，向上捲動查看先前內容後，檢視不會再被持續拉回底部。",
-        "檔案差異還在串流輸出時也可以收合。",
-        "標記新建檔案的圓點更小，並且始終為藍色。",
-        "襯線回覆文字改用細描邊而不是加粗，看起來更輕盈清爽。",
-        "修正了 Pull Request 收件匣快取因脫離物件呼叫 Date.now 而出錯的問題。",
+        "按鈕和列表列的焦點外框現在只在按下 Tab 後才出現，點擊過的按鈕不會再在之後按鍵時冒出藍色方框。",
+        "文字輸入框取得焦點時不再顯示外框，也沒有藍色邊框和光暈，以游標作為提示。",
+        "變更中的差異標題更簡潔，另一側沒有對應內容的列會用斜線填滿。",
+        "一輪變更上的復原按鈕現在標為「撤銷」。",
+        "精簡的工具列會顯示每個工具的耗時。",
         "新增的介面文字提供全部五種介面語言。"
       ]
     },
     "ja": {
-      "summary": "Vela 1.2.20 では、ワークベンチにドラッグで操作できる実験的な分割表示を追加し、アプリケーションメニューを拡充してヘッドレスランナーを導入しました。ブラウザーのスナップショットも読みやすい一覧で表示されます。",
+      "summary": "Vela 1.2.21 では、任意で使えるミニマルなスタートページを追加し、コマンドブロックとスキル読み取りの表示を一新しました。ターンの所要時間の表示も分かりやすくなり、クリックしたボタンやテキスト入力に余計なフォーカス枠が出なくなりました。",
       "highlights": [
         {
-          "title": "ワークベンチの分割表示（実験的）",
-          "body": "設定 → インターフェースでオンにすると、ワークベンチのタブをドラッグして最大 4 つのペインを並べて表示できます。仕切りはドラッグで調整でき、ペインを拡大でき、ペインを閉じてもタブは失われません。既定ではオフです。"
+          "title": "ミニマルなスタートページ",
+          "body": "設定 → インターフェースでオンにすると、新しいチャットには入力欄だけが表示され、あいさつ、提案プロンプト、背景のマークは表示されません。既定ではオフです。"
         },
         {
-          "title": "充実したアプリケーションメニュー",
-          "body": "メニューバーに、新規タブ、サイドバーの切り替え、情報パネルの切り替えを追加しました。さらに「移動」メニュー（戻る、進む、ホーム、スケジュールタスク、タスクレシピ、エージェント受信トレイ、Pull Request）と「ワークベンチ」メニュー（ターミナル、ファイル、ブラウザー、変更）も加わりました。"
+          "title": "すっきりしたコマンドブロック",
+          "body": "コマンドは枠付きのブロックに表示されます。コマンドは 2 行までに収められ（クリックで展開）、ホバーするとコピーボタンが現れ、コマンドと出力は 1 つの高さ上限を共有します。コマンド詳細と編集詳細の高さ上限は別々の設定になりました。"
         },
         {
-          "title": "ヘッドレスランナー",
-          "body": "pnpm runner run を使うと、Electron を起動せずに Vela のタスクを 1 回実行できます。テキストまたは JSONL で出力し、終了コードで結果を区別できます。実行ごとに独立したセッション、トレース、結果を持ち、デスクトップアプリには影響しません。"
+          "title": "開けるスキルの読み取り",
+          "body": "エージェントがスキルを読み取ると、その行には「<スキル> スキルを読み取りました」とフラットな SKILL.md アイコンが表示され、スキル名をクリックするとプレビューペインで SKILL.md が開きます。"
         },
         {
-          "title": "読みやすいブラウザースナップショット",
-          "body": "ブラウザーのスナップショットの結果を、生のテキストではなく要素の一覧として表示します。ページの内容がひと目で分かります。"
+          "title": "分かりやすい所要時間",
+          "body": "ターンの所要時間は秒単位で表示され、自分で止めたターンは各ツールの時間の合計ではなく「X 秒後に停止しました」と表示されます。"
         }
       ],
       "improvements": [
-        "ストリーミング中の返信は、上にスクロールして以前の出力を読んでいる間、表示が下へ引き戻されなくなりました。",
-        "ストリーミング中でも、ファイルの差分を折りたためるようになりました。",
-        "作成されたファイルを示すドットを小さくし、常に青で表示するようにしました。",
-        "セリフ体の返信テキストは、太くする代わりに細い縁取りを使い、より軽くすっきり見えるようになりました。",
-        "Pull Request 受信トレイのキャッシュで、Date.now を切り離して呼び出していたために起きるエラーを修正しました。",
+        "ボタンや行のフォーカス枠は Tab キーを押したあとだけ表示されるようになり、クリックしたボタンに後のキー入力で青い枠が出ることがなくなりました。",
+        "テキスト入力はフォーカス時に枠線も青い境界線や光彩も表示せず、カーソルで状態を示します。",
+        "変更の差分ヘッダーをシンプルにし、反対側に対応する内容がない行は斜線で表示します。",
+        "ターンの変更にある元に戻すボタンの表示を「元に戻す」にしました。",
+        "コンパクトなツール行に、各ツールの所要時間を表示します。",
         "新しい画面テキストは 5 つの表示言語すべてで利用できます。"
       ]
     },
     "ko": {
-      "summary": "Vela 1.2.20은 워크벤치에 끌어서 쓰는 실험적 분할 보기를 추가하고, 애플리케이션 메뉴를 확충했으며 헤드리스 러너를 도입했습니다. 브라우저 스냅샷도 읽기 쉬운 목록으로 보여 줍니다.",
+      "summary": "Vela 1.2.21은 선택적으로 쓸 수 있는 미니멀 시작 페이지를 추가하고, 명령 블록과 스킬 읽기 표시를 새로 다듬었습니다. 턴 소요 시간도 더 분명하게 보여 주며, 클릭한 버튼과 텍스트 입력에 불필요한 포커스 테두리가 생기지 않습니다.",
       "highlights": [
         {
-          "title": "워크벤치 분할 보기(실험적)",
-          "body": "설정 → 인터페이스에서 켜면 워크벤치의 탭을 끌어 최대 네 개의 창을 나란히 놓을 수 있습니다. 구분선을 끌어 조절하고, 창을 확대할 수 있으며, 창을 닫아도 탭은 사라지지 않습니다. 기본값은 꺼짐입니다."
+          "title": "미니멀 시작 페이지",
+          "body": "설정 → 인터페이스에서 켜면 새 대화에 입력창만 표시되고, 인사말, 추천 프롬프트, 배경 무늬는 표시되지 않습니다. 기본값은 꺼짐입니다."
         },
         {
-          "title": "더 충실해진 애플리케이션 메뉴",
-          "body": "메뉴 막대에 새 탭, 사이드바 전환, 정보 패널 전환이 추가되었고, 이동 메뉴(뒤로, 앞으로, 홈, 예약 작업, 작업 레시피, 에이전트 받은편지함, Pull Request)와 워크벤치 메뉴(터미널, 파일, 브라우저, 변경 사항)도 생겼습니다."
+          "title": "더 깔끔한 명령 블록",
+          "body": "명령이 테두리가 있는 블록에 표시됩니다. 명령은 두 줄로 제한되고(클릭하면 펼쳐짐), 마우스를 올리면 복사 버튼이 나타나며, 명령과 출력이 하나의 높이 제한을 공유합니다. 명령 상세와 편집 상세의 높이 제한은 이제 별도 설정입니다."
         },
         {
-          "title": "헤드리스 러너",
-          "body": "pnpm runner run으로 Electron을 실행하지 않고도 Vela 작업을 한 번 실행할 수 있습니다. 텍스트 또는 JSONL로 출력하고 종료 코드로 결과를 구분합니다. 실행마다 자체 세션, 트레이스, 결과를 가지며 데스크톱 앱에는 영향을 주지 않습니다."
+          "title": "열어 볼 수 있는 스킬 읽기",
+          "body": "에이전트가 스킬을 읽으면 해당 줄에 \"<스킬> 스킬 읽음\"과 평면 SKILL.md 아이콘이 표시되며, 스킬 이름을 클릭하면 미리보기 창에서 SKILL.md가 열립니다."
         },
         {
-          "title": "읽기 쉬운 브라우저 스냅샷",
-          "body": "브라우저 스냅샷 결과를 원문 텍스트 대신 요소 목록으로 보여 주어, 페이지에 무엇이 있는지 한눈에 알 수 있습니다."
+          "title": "더 분명한 소요 시간",
+          "body": "턴 소요 시간을 초 단위로 보여 주고, 직접 중지한 턴은 각 도구 시간의 합계 대신 \"X초 후 중지함\"으로 표시됩니다."
         }
       ],
       "improvements": [
-        "스트리밍 중인 답변은 위로 스크롤해 이전 출력을 읽는 동안 화면이 아래로 끌려가지 않습니다.",
-        "스트리밍 중에도 파일 차이점을 접을 수 있습니다.",
-        "새로 만든 파일을 나타내는 점이 더 작아지고 항상 파란색으로 표시됩니다.",
-        "세리프 답변 글자는 굵게 하는 대신 얇은 윤곽선을 사용해 더 가볍고 깔끔하게 보입니다.",
-        "Pull Request 받은편지함 캐시에서 Date.now를 분리해 호출하여 생기던 오류를 수정했습니다.",
+        "버튼과 행의 포커스 테두리는 Tab 키를 누른 뒤에만 나타나므로, 클릭한 버튼에 이후 키 입력으로 파란 상자가 생기지 않습니다.",
+        "텍스트 입력은 포커스를 받아도 윤곽선, 파란 테두리, 빛 번짐이 없으며 커서가 상태를 알려 줍니다.",
+        "변경 사항의 차이점 머리글을 단순하게 만들었고, 반대쪽에 대응하는 내용이 없는 행은 사선 무늬로 표시합니다.",
+        "턴 변경 사항의 되돌리기 버튼 이름을 \"되돌리기\"로 줄였습니다.",
+        "간략한 도구 행에 각 도구의 소요 시간을 표시합니다.",
         "새 인터페이스 텍스트는 5개 인터페이스 언어를 모두 지원합니다."
       ]
     }
