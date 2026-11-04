@@ -73,6 +73,15 @@ button {
 }
 
 /*
+ * 浏览器会在鼠标点过之后再按 Esc、快捷键等时让已聚焦的按钮匹配 :focus-visible，
+ * 所以只在用户按过 Tab 时才画焦点环（focus-modality.ts 打 data-keyboard-focus，鼠标按下清除）。
+ * 文本输入类控件除外（光标本来就在里面）。
+ */
+html:not([data-keyboard-focus]) :focus-visible:not(input, textarea, select, [contenteditable="true"]) {
+  outline: none !important;
+}
+
+/*
  * 可拖选白名单:只有内容本身(对话、思考、代码、命令输出、终端、预览)
  * 以及输入控件允许选中,按钮、标签、列表等界面文字保持不可选。
  */

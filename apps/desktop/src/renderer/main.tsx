@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { installFocusModality } from "./focus-modality";
 import { installRendererLogging } from "./logger";
 import { syncModelPrices } from "./model-prices";
 import "./styles.css";
@@ -14,6 +15,7 @@ import "./selection-actions.css";
 import "./info-cards.css";
 
 installRendererLogging();
+installFocusModality();
 void syncModelPrices();
 
 const root = document.getElementById("root");
