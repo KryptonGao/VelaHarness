@@ -1701,7 +1701,7 @@ function TurnChangesCard({ turnId, changes, onOpenChanges, onReviewTurn, canMana
             disabled={!canManageChanges}
             onClick={onOpenChanges}
           >
-            {tr("在变更中撤销…", "Revert in Changes…")} <UndoIcon />
+            {tr("撤销", "Undo")} <UndoIcon />
           </button>
           <button
             type="button"
