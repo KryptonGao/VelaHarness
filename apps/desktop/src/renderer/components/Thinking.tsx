@@ -229,11 +229,20 @@ export function Thinking({
       // 清除旧模式在点击时写入的封顶值;关闭开关时恢复它。
       viewport.style.maxHeight = "";
       const details = Array.from(viewport.querySelectorAll<HTMLElement>(selector));
-      const contents = new Set(details.flatMap((detail) => detail.firstElementChild ? [detail.firstElementChild] : []));
+      // 命令行展开收起会改变整块命令的高度,一并观察。
+      const contents = new Set(details.flatMap((detail) => [
+        ...(detail.firstElementChild ? [detail.firstElementChild] : []),
+        ...[detail.closest(".tool-terminal")?.querySelector(".tool-terminal-cmd")].filter((node): node is Element => Boolean(node)),
+      ]));
       for (const node of observed) if (!contents.has(node)) { resize.unobserve(node); observed.delete(node); }
       for (const node of contents) if (!observed.has(node)) { resize.observe(node); observed.add(node); }
       const visible = details.filter((detail) => !detail.closest("[inert]"));
-      const heights = visible.map((detail) => detail.scrollHeight);
+      // 命令块的上限含命令行,高度要把滚动区之外的命令行和边框算上。
+      const heights = visible.map((detail) => {
+        const terminal = detail.closest<HTMLElement>(".tool-terminal");
+        const shell = detail.parentElement;
+        return terminal && shell ? detail.scrollHeight + terminal.offsetHeight - shell.offsetHeight : detail.scrollHeight;
+      });
       if (!heights.length) {
         viewport.style.removeProperty("--thinking-group-expanded-height");
         baseHeight = viewport.clientHeight;

@@ -273,13 +273,44 @@
 .tool-terminal-copy:focus-visible { opacity: 1; }
 .tool-terminal-copy:hover { color: var(--text-primary); background: var(--bg-hover); }
 .thinking-scroll-shell.tool-terminal-scroll { --scroll-fade-background: var(--term-bg); }
-.tool-terminal-scroll > .thinking-scroll-viewport { max-height: 168px; }
-/* 分组里命令详情用自己的高度上限(与编辑详情分开设置),按比例缩小时用命令自己的比例。 */
-.thinking-group-rail .tool-terminal-scroll > .thinking-scroll-viewport,
+/* 高度上限是整块(命令 + 输出)的总高度:命令行按自身高度排,输出区拿剩下的并在内部滚动。 */
+.tool-terminal.is-boxed {
+  --terminal-cap: 220px;
+  --terminal-out-min: 56px;
+  display: flex;
+  flex-direction: column;
+  max-height: var(--terminal-cap);
+}
+.tool-terminal.is-boxed .tool-terminal-cmd { flex: none; }
+/* 命令展开得很长时,给输出区留出最小高度,命令自己滚动。 */
+.tool-terminal-cmd.is-expanded .tool-terminal-cmd-text {
+  max-height: calc(var(--terminal-cap) - var(--terminal-out-min) - 24px);
+  overflow-y: auto;
+}
+.tool-terminal.is-boxed .tool-terminal-wait { flex: none; }
+.thinking-scroll-shell.tool-terminal-scroll {
+  flex: 1 1 auto;
+  min-height: var(--terminal-out-min);
+  display: flex;
+  flex-direction: column;
+}
+.tool-terminal-scroll > .thinking-scroll-viewport {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+}
+/* 分组里命令块用自己的高度上限(与编辑详情分开设置),按比例缩小时用命令自己的比例。 */
+.thinking-group-rail .tool-terminal.is-boxed { --terminal-cap: var(--command-detail-height, 200px); }
+:root[data-tool-detail-scale="true"]:not([data-thinking-group-grow="true"]) .thinking-group-rail .tool-terminal.is-boxed {
+  --terminal-cap: min(
+    var(--command-detail-height, 200px),
+    calc(var(--thinking-group-live-height, var(--thinking-group-height, 280px)) * var(--command-detail-ratio, 0.7143))
+  );
+}
+/* 有结构化展示的命令(后台命令等)仍走外层滚动。 */
 .thinking-group-rail .tool-kind-bash .tool-details-scroll > .thinking-scroll-viewport {
   max-height: var(--command-detail-height, 200px);
 }
-:root[data-tool-detail-scale="true"]:not([data-thinking-group-grow="true"]) .thinking-group-rail .tool-terminal-scroll > .thinking-scroll-viewport,
 :root[data-tool-detail-scale="true"]:not([data-thinking-group-grow="true"]) .thinking-group-rail .tool-kind-bash .tool-details-scroll > .thinking-scroll-viewport {
   max-height: min(
     var(--command-detail-height, 200px),

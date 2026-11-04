@@ -47,7 +47,7 @@
 .acceptance-evidence .tool-terminal.is-boxed { border: 0; }
 .acceptance-evidence .tool-terminal { border: 0; margin: 0; border-radius: 0; }
 .acceptance-evidence .tool-terminal-cmd > span:last-child { min-width: 0; overflow-wrap: anywhere; }
-.acceptance-evidence .tool-terminal-scroll > .thinking-scroll-viewport { max-height: 360px; }
+.acceptance-evidence .tool-terminal.is-boxed { --terminal-cap: 360px; }
 .acceptance-confirmations { margin: 0; padding-left: 18px; color: var(--text-secondary); line-height: 1.6; overflow-wrap: anywhere; }
 .acceptance-confirmations li + li { margin-top: 6px; }
 .acceptance-empty { margin: 0; color: var(--text-muted); font-size: calc(12px * var(--ui-scale)); line-height: 1.5; }
