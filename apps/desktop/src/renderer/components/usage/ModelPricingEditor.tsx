@@ -5,6 +5,7 @@ import {
 } from "@vela/shared";
 import { saveModelPrices, useModelPrices } from "../../model-prices";
 import { tr, trf } from "../../locale";
+import { SettingsSelect } from "../settings/SettingsSelect";
 
 export interface PriceableModel {
   /** `provider/model`，与用量记录里的模型标识一致。 */
@@ -89,22 +90,27 @@ export function ModelPricingEditor({ candidates }: { candidates: readonly Pricea
       "Register the price of each model per 1M tokens and usage statistics will calculate costs from it. Prices stay on this device. CNY and USD are never converted and are totalled separately. Models without a price are left out of costs rather than shown as 0.")}</p>
     <form className="pricing-form" onSubmit={event => { event.preventDefault(); submit(); }} noValidate>
       <label className="pricing-model">{tr("模型", "Model")}
-        <select value={draft.model} onChange={event => update({ model: event.target.value })}>
-          <option value="">{tr("选择模型", "Choose a model")}</option>
-          {[...groups].map(([group, items]) => <optgroup key={group} label={group}>
-            {items.map(item => <option key={item.key} value={item.key}>{item.label}</option>)}
-          </optgroup>)}
-          {orphans.length ? <optgroup label={tr("已登记价格", "Registered prices")}>
-            {orphans.map(price => <option key={price.model} value={price.model}>{price.model}</option>)}
-          </optgroup> : null}
-        </select>
+        <SettingsSelect
+          label={tr("模型", "Model")}
+          value={draft.model}
+          onChange={next => update({ model: next })}
+          options={[
+            { value: "", label: tr("选择模型", "Choose a model") },
+            ...[...groups].flatMap(([group, items]) => items.map(item => ({ value: item.key, label: item.label, group }))),
+            ...orphans.map(price => ({ value: price.model, label: price.model, group: tr("已登记价格", "Registered prices") })),
+          ]}
+        />
       </label>
       <label className="pricing-currency">{tr("币种", "Currency")}
-        <select value={draft.currency} onChange={event => update({ currency: event.target.value as PricingCurrency })}>
-          {pricingCurrencies.map(currency => <option key={currency} value={currency}>
-            {currency === "CNY" ? tr("人民币 (¥)", "CNY (¥)") : tr("美元 ($)", "USD ($)")}
-          </option>)}
-        </select>
+        <SettingsSelect
+          label={tr("币种", "Currency")}
+          value={draft.currency}
+          onChange={next => update({ currency: next as PricingCurrency })}
+          options={pricingCurrencies.map(currency => ({
+            value: currency,
+            label: currency === "CNY" ? tr("人民币 (¥)", "CNY (¥)") : tr("美元 ($)", "USD ($)"),
+          }))}
+        />
       </label>
       {priceFields.map(field => <label key={field} className="pricing-number">
         {fieldLabels[field]()}

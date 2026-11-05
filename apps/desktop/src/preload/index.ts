@@ -392,6 +392,7 @@ const api: VelaApi = {
   },
   setLocale: (locale: AppLocale) => ipcRenderer.send(IpcChannel.appSetLocale, locale),
   setAppearance: (appearance) => ipcRenderer.send(IpcChannel.appSetAppearance, appearance),
+  setShortcuts: (accelerators) => ipcRenderer.send(IpcChannel.appSetShortcuts, accelerators),
   isWindowFocused: () => ipcRenderer.sendSync(IpcChannel.appWindowFocus) === true,
   onWindowFocusChange: listener => {
     const handler = (_event: IpcRendererEvent, focused: boolean) => listener(focused);

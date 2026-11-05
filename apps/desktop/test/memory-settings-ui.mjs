@@ -278,12 +278,10 @@ if (!process.versions.electron) {
       console.log("PASS delete removes the file after confirmation");
 
       // 项目选择器：显式选择已登记但目录失效的工作区时显示可操作错误。
-      await until("!!document.querySelector('.memory-project select')");
-      await evaluate(
-        "(() => { const select = document.querySelector('.memory-project select');" +
-        "Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set.call(select,'/workspace/gone');" +
-        "select.dispatchEvent(new Event('change',{bubbles:true})); })()",
-      );
+      await until("!!document.querySelector('.memory-project button.settings-select-trigger')");
+      await evaluate("document.querySelector('.memory-project button.settings-select-trigger').click()");
+      await until("!!document.querySelector('.settings-menu')");
+      await evaluate("[...document.querySelectorAll('.settings-menu [role=option]')].find(option => option.textContent.includes('/workspace/gone')).click()");
       await until("!!document.querySelector('[role=tabpanel] .settings-error')");
       assert.ok((await evaluate("document.querySelector('[role=tabpanel] .settings-error').textContent")).includes("unavailable"));
       console.log("PASS selecting an unavailable workspace shows the failed state");

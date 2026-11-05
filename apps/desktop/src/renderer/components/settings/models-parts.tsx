@@ -3,6 +3,7 @@ import { useState } from "react";
 import { CubeIcon, EyeIcon, EyeOffIcon } from "../icons";
 import type { SettingsCopy } from "../settings-copy";
 import { providerMonogram } from "./models-view";
+import { SettingsSelect } from "./SettingsSelect";
 import { isColorIcon, monoIconTint, providerIconName } from "./provider-icons";
 
 /** 随包的供应商图标,按文件名索引。彩色版直接用 <img>,单色版用 mask 绘制,颜色跟随主题。 */
@@ -122,11 +123,12 @@ export function ApiSelect({ copy, value, onChange }: { copy: SettingsCopy["model
   return (
     <label className="models-field">
       <span>{copy.api}</span>
-      <select value={value} onChange={(event) => onChange(event.target.value as CustomModelApi)}>
-        {customModelApis.map((api) => (
-          <option key={api} value={api}>{copy.apis[api]}</option>
-        ))}
-      </select>
+      <SettingsSelect
+        label={copy.api}
+        value={value}
+        onChange={(next) => onChange(next as CustomModelApi)}
+        options={customModelApis.map((api) => ({ value: api, label: copy.apis[api] }))}
+      />
     </label>
   );
 }

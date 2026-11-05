@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import type { AppLocale } from "../../hooks/usePreferences";
 import { tr } from "../../locale";
 import type { SettingsCopy } from "../settings-copy";
-import { SettingsBlock } from "./primitives";
+import { SettingsBlock, SettingsGroup } from "./primitives";
 
 /** 已归档对话:搜索、取消归档。列表数据来自 AppState.conversations 的归档子集。 */
 export function ArchivedPage({
@@ -49,6 +49,7 @@ export function ArchivedPage({
 
   return (
     <section className="settings-section">
+<SettingsGroup>
       <SettingsBlock id="archived" title={text.title} hint={text.hint}>
         <input
           className="settings-input"
@@ -80,6 +81,7 @@ export function ArchivedPage({
         </div>
         {notice ? <p className="settings-saved">{notice}</p> : null}
       </SettingsBlock>
+</SettingsGroup>
     </section>
   );
 }

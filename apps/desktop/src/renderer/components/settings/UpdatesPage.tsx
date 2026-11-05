@@ -3,7 +3,7 @@ import { useState } from "react";
 import { fillTemplate, useUpdates } from "../../hooks/useUpdates";
 import { Markdown } from "../Markdown";
 import type { SettingsCopy } from "../settings-copy";
-import { SettingsBlock, SettingsSwitch } from "./primitives";
+import { SettingsBlock, SettingsGroup, SettingsSwitch } from "./primitives";
 
 function percent(state: UpdateState): number | null {
   const progress = state.progress;
@@ -37,6 +37,7 @@ export function UpdatesPage({ copy, locale, onReplayIntro, onRestartOnboarding }
   }
 
   return <section className="settings-section" aria-busy={working}>
+<SettingsGroup>
     <SettingsBlock id="update-status" title={text.title}>
       <div className="update-card">
         <div className="update-card-head">
@@ -69,14 +70,15 @@ export function UpdatesPage({ copy, locale, onReplayIntro, onRestartOnboarding }
         </details> : null}
       </div>
     </SettingsBlock>
-    <SettingsBlock id="update-auto" title={text.autoTitle} hint={text.autoHint}>
+    <SettingsBlock id="update-auto" title={text.autoTitle} hint={text.autoHint} layout="inline">
       <SettingsSwitch checked={state.autoUpdate} label={text.autoTitle} onChange={next => void act(() => api.setAutoUpdate(next))} />
     </SettingsBlock>
-    {onReplayIntro ? <SettingsBlock id="update-intro" title={text.replayTitle} hint={text.replayHint}>
+    {onReplayIntro ? <SettingsBlock id="update-intro" title={text.replayTitle} hint={text.replayHint} layout="inline">
       <button className="settings-secondary" type="button" onClick={onReplayIntro}>{text.replayAction}</button>
     </SettingsBlock> : null}
-    {onRestartOnboarding ? <SettingsBlock id="update-onboarding" title={text.onboardingTitle} hint={text.onboardingHint}>
+    {onRestartOnboarding ? <SettingsBlock id="update-onboarding" title={text.onboardingTitle} hint={text.onboardingHint} layout="inline">
       <button className="settings-secondary" type="button" onClick={onRestartOnboarding}>{text.onboardingAction}</button>
     </SettingsBlock> : null}
+</SettingsGroup>
   </section>;
 }

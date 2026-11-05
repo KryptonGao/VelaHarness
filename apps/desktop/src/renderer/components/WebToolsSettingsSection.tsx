@@ -8,6 +8,7 @@ import type { AppLocale } from "../hooks/usePreferences";
 import { localizeError } from "../locale";
 import { settingsCopy, type SettingsCopy } from "./settings-copy";
 import { Field, SettingsBlock, SettingsSwitch } from "./settings/primitives";
+import { SettingsSelect } from "./settings/SettingsSelect";
 import {
   draftFromProvider, emptyDraft, providerFromDraft,
   type EndpointDraftBase, type FetchDraft, type ProviderDraft, type SearchDraft,
@@ -182,28 +183,28 @@ export function WebToolsSettingsSection({ locale }: { locale: AppLocale }) {
       <SettingsBlock title={copy.selectionTitle} hint={copy.selectionHint}>
         <div className="settings-form">
           <Field label={copy.searchProvider}>
-            <select
+            <SettingsSelect
+              label={copy.searchProvider}
               value={state?.searchProviderId ?? ""}
               disabled={!state || busy}
-              onChange={(event) => select("search", event.target.value || null)}
-            >
-              <option value="">{copy.providerNone}</option>
-              {providers.filter(provider => provider.search).map(provider => (
-                <option key={provider.id} value={provider.id}>{optionLabel(provider)}</option>
-              ))}
-            </select>
+              onChange={(value) => select("search", value || null)}
+              options={[
+                { value: "", label: copy.providerNone },
+                ...providers.filter(provider => provider.search).map(provider => ({ value: provider.id, label: optionLabel(provider) })),
+              ]}
+            />
           </Field>
           <Field label={copy.fetchProvider}>
-            <select
+            <SettingsSelect
+              label={copy.fetchProvider}
               value={state?.fetchProviderId ?? ""}
               disabled={!state || busy}
-              onChange={(event) => select("fetch", event.target.value || null)}
-            >
-              <option value="">{copy.providerNone}</option>
-              {providers.filter(provider => provider.fetch).map(provider => (
-                <option key={provider.id} value={provider.id}>{optionLabel(provider)}</option>
-              ))}
-            </select>
+              onChange={(value) => select("fetch", value || null)}
+              options={[
+                { value: "", label: copy.providerNone },
+                ...providers.filter(provider => provider.fetch).map(provider => ({ value: provider.id, label: optionLabel(provider) })),
+              ]}
+            />
           </Field>
         </div>
       </SettingsBlock>
@@ -395,15 +396,20 @@ function EndpointFields({ copy, value, bodyHint, onChange }: {
       </Field>
       <div className="web-tools-grid">
         <Field label={copy.fieldMethod}>
-          <select value={value.method} onChange={(event) => onChange({ method: event.target.value as "GET" | "POST" })}>
-            <option value="POST">POST</option>
-            <option value="GET">GET</option>
-          </select>
+          <SettingsSelect
+            label={copy.fieldMethod}
+            value={value.method}
+            onChange={(next) => onChange({ method: next as "GET" | "POST" })}
+            options={[{ value: "POST", label: "POST" }, { value: "GET", label: "GET" }]}
+          />
         </Field>
         <Field label={copy.fieldAuth}>
-          <select value={value.authType} onChange={(event) => onChange({ authType: event.target.value as WebAuthType })}>
-            {authOptions.map(option => <option key={option.id} value={option.id}>{option.label}</option>)}
-          </select>
+          <SettingsSelect
+            label={copy.fieldAuth}
+            value={value.authType}
+            onChange={(next) => onChange({ authType: next as WebAuthType })}
+            options={authOptions.map(option => ({ value: option.id, label: option.label }))}
+          />
         </Field>
         {value.authType === "header" || value.authType === "query" ? (
           <Field label={copy.fieldAuthName}>

@@ -9,7 +9,7 @@ import {
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { localizeError } from "../../locale";
 import type { SettingsCopy } from "../settings-copy";
-import { SettingsBlock } from "./primitives";
+import { SettingsBlock, SettingsGroup } from "./primitives";
 
 type Busy = "preview" | "sync" | "devtools" | "reload" | "restart" | `rollback:${string}` | null;
 
@@ -75,6 +75,7 @@ export function DevelopmentPage({ copy, development, onRestartOnboarding }: {
   const scopeRow = useMemo(() => new Map(current?.categories.map(item => [item.category, item])), [current]);
 
   return <section className="settings-section" aria-busy={busy !== null}>
+    <SettingsGroup>
     <SettingsBlock id="dev-sync" title={text.title} hint={text.hint}>
       <fieldset className="dev-sync-scopes">
         <legend className="settings-note">{text.scopeLabel}</legend>
@@ -216,5 +217,6 @@ export function DevelopmentPage({ copy, development, onRestartOnboarding }: {
         </div>
       </> : <p className="settings-note">{text.infoLoading}</p>}
     </SettingsBlock>
+</SettingsGroup>
   </section>;
 }

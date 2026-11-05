@@ -50,7 +50,10 @@ import { routeConversationLink } from "./browser/conversation-link-policy";
 import { useModels } from "./hooks/useModels";
 import { usePreferences } from "./hooks/usePreferences";
 import { useNotificationSounds } from "./hooks/useNotificationSounds";
-import { isBoolean, useStoredState } from "./hooks/useStoredState";
+import { isBoolean, isBooleanRecord, readStoredState, useStoredState } from "./hooks/useStoredState";
+import { actionForEvent, acceleratorMap, isShortcutRecording, resolveBindings, useShortcutOverrides, useShortcutRecording } from "./shortcuts";
+import { adjacentConversation, nextAttentionConversation, sidebarConversationOrder } from "./conversation-nav";
+import { isSidebarView } from "./components/conversation-activity";
 import { useProject } from "./hooks/useProject";
 import { usePrInboxBackgroundRefresh } from "./hooks/usePrInboxCache";
 import { useSidebarItems } from "./hooks/useSidebarItems";
@@ -301,6 +304,15 @@ export function App() {
   // 刚走完引导的这一次不再弹「新到港」：引导里已经看过了。
   const skipWhatsNew = useRef(false);
   const platform = window.vela?.platform ?? "darwin";
+  const shortcutOverrides = useShortcutOverrides();
+  const shortcutRecording = useShortcutRecording();
+  const shortcutBindings = useMemo(() => resolveBindings(shortcutOverrides, platform), [shortcutOverrides, platform]);
+  const shortcutBindingsRef = useRef(shortcutBindings);
+  shortcutBindingsRef.current = shortcutBindings;
+  // 应用菜单的加速键跟随用户设置;录入新快捷键时全部停用,免得组合键被直接执行。
+  useEffect(() => {
+    window.vela?.setShortcuts(shortcutRecording ? {} : acceleratorMap(shortcutBindings, platform));
+  }, [shortcutBindings, shortcutRecording, platform]);
   const toggleLeft = useCallback(() => setLeftCollapsed(value => !value), [setLeftCollapsed]);
   const resumeGoal = useCallback(() => { void session.resumeGoal(); }, [session.resumeGoal]);
   const replyQuestion = useCallback((id: string, answer: string | null) => session.replyQuestion(id, answer), [session.replyQuestion]);
@@ -746,7 +758,7 @@ export function App() {
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (!onboardingComplete) return;
+      if (!onboardingComplete || isShortcutRecording()) return;
       if (document.querySelector(".rename-conversation-dialog[open], .conversation-search-dialog[open]")) return;
       if (event.key === "Escape") {
         // 对话框和输入框各自处理 Esc,只有停在设置页本身时才关闭设置。
@@ -755,34 +767,15 @@ export function App() {
         setSettingsOpen(false);
         return;
       }
-      // 前进/后退：macOS 用 ⌘[ / ⌘]，其他平台用 Alt+←/→（在输入框里 Alt+←/→ 留给文本编辑）。
-      if (platform === "darwin" ? event.metaKey && !event.altKey && !event.ctrlKey : event.altKey && !event.ctrlKey && !event.metaKey) {
-        const inField = event.target instanceof HTMLElement && event.target.closest("input, textarea, select, [contenteditable='true']");
-        const direction = platform === "darwin"
-          ? event.code === "BracketLeft" ? "back" : event.code === "BracketRight" ? "forward" : null
-          : !inField && event.key === "ArrowLeft" ? "back" : !inField && event.key === "ArrowRight" ? "forward" : null;
-        if (direction) {
-          event.preventDefault();
-          navActions.current[direction]();
-          return;
-        }
-      }
-      const mod = platform === "darwin" ? event.metaKey : event.ctrlKey;
-      if (!mod) return;
-      const key = event.key.toLowerCase();
-      if (key === "b") {
-        event.preventDefault();
-        setLeftCollapsed((value) => !value);
-      } else if (key === "j") {
-        event.preventDefault();
-        toggleInfo();
-      } else if (key === "t") {
-        event.preventDefault();
-        leaveRecipes(() => { setPrInboxOpen(false); setAgentInboxOpen(false); setScheduledTasksOpen(false); openStartTab(); });
-      } else if (event.code === "Comma") {
-        event.preventDefault();
-        leaveRecipes(() => { setPrInboxOpen(false); setAgentInboxOpen(false); setScheduledTasksOpen(false); setSettingsOpen((open) => !open); });
-      }
+      if (event.isComposing) return;
+      // 所有快捷键(含自定义)统一走菜单动作的处理函数;输入框里不带 ⌘/Ctrl 的组合(如 Alt+←)留给文本编辑。
+      const inField = event.target instanceof HTMLElement && Boolean(event.target.closest("input, textarea, select, [contenteditable='true']"));
+      const action = actionForEvent(event, shortcutBindingsRef.current, platform, inField);
+      if (!action) return;
+      event.preventDefault();
+      // 归档不可逆,按住不放不能连续归档。
+      if (event.repeat && action === "archive-chat") return;
+      menuActionHandler.current(action);
     };
     // 鼠标侧键（第 4/5 键）同样前进/后退。
     const onMouseUp = (event: MouseEvent) => {
@@ -796,7 +789,7 @@ export function App() {
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("mouseup", onMouseUp);
     };
-  }, [onboardingComplete, platform, openStartTab, toggleInfo, leaveRecipes]);
+  }, [onboardingComplete, platform]);
 
   useEffect(() => {
     // <proposed_plan> 开始生成时自动打开 Plan Document，正文实时填入。
@@ -890,6 +883,33 @@ export function App() {
     setSettingsOpen(false); setPrInboxOpen(false); setAgentInboxOpen(false); setScheduledTasksOpen(false);
     action();
   });
+  const cycleWorkbenchTab = (step: 1 | -1) => {
+    const count = workbenchTabs.length;
+    if (count === 0) return;
+    showHomeThen(() => {
+      const index = workbenchTabs.findIndex(tab => tab.id === activeWorkbenchTabId);
+      const next = workbenchTabs[index === -1 ? (step === 1 ? 0 : count - 1) : (index + step + count) % count];
+      setWorkbenchCollapsed(false);
+      if (next.kind === "browser") browser.select(next.id);
+      setActiveWorkbenchTabId(next.id);
+    });
+  };
+  // 侧边栏的排序与优先级存在界面存储里,这里按按键时刻的状态读取。
+  const sidebarOrder = () => sidebarConversationOrder(
+    session.conversations,
+    readStoredState("vela.sidebarView", "activity", isSidebarView),
+    { priorityConversations: readStoredState<Record<string, boolean>>("vela.priorityConversations", {}, isBooleanRecord), waitingConversationIds: session.waitingConversationIds },
+    tr("新对话", "New chat"),
+  );
+  const openConversationFromShortcut = (id: string) => showHomeThen(() => { void session.switchTo(id); });
+  const switchChatBy = (step: 1 | -1) => {
+    const target = adjacentConversation(sidebarOrder(), session.activeConversationId, step);
+    if (target) openConversationFromShortcut(target.id);
+  };
+  const switchToAttentionChat = () => {
+    const target = nextAttentionConversation(sidebarOrder(), session.activeConversationId, { waitingConversationIds: session.waitingConversationIds });
+    if (target) openConversationFromShortcut(target.id);
+  };
   menuActionHandler.current = (action) => {
     switch (action) {
       case "new-chat": showHomeThen(() => { void session.newChat(); }); break;
@@ -908,6 +928,13 @@ export function App() {
       case "open-files": showHomeThen(openFilesTab); break;
       case "open-browser": showHomeThen(() => openBrowserTab()); break;
       case "open-changes": showHomeThen(() => openChanges()); break;
+      case "archive-chat": if (navCategory === "home" && session.activeConversationId) void session.archive(session.activeConversationId); break;
+      case "side-chat": showHomeThen(() => openSideChatTab()); break;
+      case "next-tab": cycleWorkbenchTab(1); break;
+      case "prev-tab": cycleWorkbenchTab(-1); break;
+      case "next-chat": switchChatBy(1); break;
+      case "prev-chat": switchChatBy(-1); break;
+      case "next-attention-chat": switchToAttentionChat(); break;
     }
   };
   const selectNavCategory = (category: NavCategory) => {

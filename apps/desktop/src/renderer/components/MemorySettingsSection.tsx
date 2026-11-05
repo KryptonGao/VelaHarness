@@ -8,6 +8,7 @@ import { memoryFileMaxBytes, type MemoryCatalog, type MemoryCatalogEntry, type M
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import type { AppLocale } from "../hooks/usePreferences";
 import { settingsCopy } from "./settings-copy";
+import { SettingsSelect } from "./settings/SettingsSelect";
 import {
   clearMemoryDraft,
   memoryBytes,
@@ -415,13 +416,16 @@ export function MemorySettingsSection({ locale, conversationId }: MemorySettings
         <p className="settings-hint">{copy.projectHint}</p>
         <label className="memory-project">
           <span>{copy.projectLabel}</span>
-          <select value={activeProject ?? ""} disabled={busy} onChange={(event) => setProject(event.target.value)}>
-            {catalog.workspaces.map((entry) => (
-              <option key={entry.workspace} value={entry.workspace}>
-                {entry.name} · {entry.workspace}{entry.available ? "" : ` · ${copy.statusFailed}`}
-              </option>
-            ))}
-          </select>
+          <SettingsSelect
+            label={copy.projectLabel}
+            value={activeProject ?? ""}
+            disabled={busy}
+            onChange={setProject}
+            options={catalog.workspaces.map((entry) => ({
+              value: entry.workspace,
+              label: `${entry.name} · ${entry.workspace}${entry.available ? "" : ` · ${copy.statusFailed}`}`,
+            }))}
+          />
         </label>
         {renderEditorBody()}
       </div>

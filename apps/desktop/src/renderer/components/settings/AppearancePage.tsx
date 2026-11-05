@@ -18,7 +18,7 @@ import {
 import { randomThemeColors } from "../../theme-random";
 import type { SettingsCopy } from "../settings-copy";
 import { CustomThemeEditor } from "./CustomThemeEditor";
-import { Segmented, SettingsBlock } from "./primitives";
+import { Segmented, SettingsBlock, SettingsGroup } from "./primitives";
 import { ThemeGroup } from "./ThemeGroup";
 import { FontSizeControl } from "./FontSizeControl";
 import { codeFontSizeRange, uiFontSizeRange } from "../../font-size";
@@ -105,7 +105,8 @@ export function AppearancePage({ copy, preferences }: { copy: SettingsCopy; pref
 
   return (
     <section className="settings-section">
-      <SettingsBlock id="theme" title={text.theme}>
+      <SettingsGroup title={copy.sections.colors}>
+      <SettingsBlock id="theme" title={text.theme} layout="inline">
         <Segmented label={text.theme} value={appearance} options={themes} onChange={setAppearance} />
       </SettingsBlock>
       <SettingsBlock id="palette" title={text.palette} hint={text.paletteHint}>
@@ -142,8 +143,9 @@ export function AppearancePage({ copy, preferences }: { copy: SettingsCopy; pref
           {editing?.theme.scheme === "dark" ? editor : null}
         </ThemeGroup>
       </SettingsBlock>
-      <SettingsBlock id="glass-tint" title={text.glassTint} hint={text.glassTintHint}>
+      <SettingsBlock id="glass-tint" title={text.glassTint} hint={text.glassTintHint} layout="inline">
         <Segmented
+          menu
           label={text.glassTint}
           value={preferences.glassTint}
           options={[
@@ -154,7 +156,7 @@ export function AppearancePage({ copy, preferences }: { copy: SettingsCopy; pref
           onChange={preferences.setGlassTint}
         />
       </SettingsBlock>
-      <SettingsBlock id="sidebar-card-glass" title={text.sidebarCardGlass} hint={text.sidebarCardGlassHint}>
+      <SettingsBlock id="sidebar-card-glass" title={text.sidebarCardGlass} hint={text.sidebarCardGlassHint} layout="inline">
         <Segmented
           label={text.sidebarCardGlass}
           value={preferences.sidebarCardGlass ? "glass" : "solid"}
@@ -165,42 +167,46 @@ export function AppearancePage({ copy, preferences }: { copy: SettingsCopy; pref
           onChange={(value) => preferences.setSidebarCardGlass(value === "glass")}
         />
       </SettingsBlock>
-      <SettingsBlock id="file-icon-theme" title={text.fileIconTheme} hint={text.fileIconThemeHint}>
+      </SettingsGroup>
+      <SettingsGroup title={copy.sections.textAndIcons}>
+      <SettingsBlock id="file-icon-theme" title={text.fileIconTheme} hint={text.fileIconThemeHint} layout="inline">
         <Segmented
+          menu
           label={text.fileIconTheme}
           value={fileIconTheme}
           options={fileIconThemeOptions}
           onChange={setFileIconTheme}
         />
       </SettingsBlock>
-      <SettingsBlock id="ui-font" title={text.uiFont} hint={text.uiFontHint}>
+      <SettingsBlock id="ui-font" title={text.uiFont} hint={text.uiFontHint} layout="inline">
         <div className="settings-font-row">
           <span className="settings-font-label">{text.fontLatin}</span>
-          <Segmented label={`${text.uiFont} · ${text.fontLatin}`} value={preferences.uiFontLatin} options={uiFontOptions} onChange={preferences.setUiFontLatin} />
+          <Segmented menu label={`${text.uiFont} · ${text.fontLatin}`} value={preferences.uiFontLatin} options={uiFontOptions} onChange={preferences.setUiFontLatin} />
         </div>
         <div className="settings-font-row">
           <span className="settings-font-label">{text.fontCjk}</span>
-          <Segmented label={`${text.uiFont} · ${text.fontCjk}`} value={preferences.uiFontCjk} options={uiFontOptions} onChange={preferences.setUiFontCjk} />
+          <Segmented menu label={`${text.uiFont} · ${text.fontCjk}`} value={preferences.uiFontCjk} options={uiFontOptions} onChange={preferences.setUiFontCjk} />
         </div>
         <p className="settings-font-note">{serifNote}</p>
       </SettingsBlock>
-      <SettingsBlock id="reply-font" title={text.replyFont} hint={text.replyFontHint}>
+      <SettingsBlock id="reply-font" title={text.replyFont} hint={text.replyFontHint} layout="inline">
         <div className="settings-font-row">
           <span className="settings-font-label">{text.fontLatin}</span>
-          <Segmented label={`${text.replyFont} · ${text.fontLatin}`} value={preferences.replyFontLatin} options={replyFontOptions} onChange={preferences.setReplyFontLatin} />
+          <Segmented menu label={`${text.replyFont} · ${text.fontLatin}`} value={preferences.replyFontLatin} options={replyFontOptions} onChange={preferences.setReplyFontLatin} />
         </div>
         <div className="settings-font-row">
           <span className="settings-font-label">{text.fontCjk}</span>
-          <Segmented label={`${text.replyFont} · ${text.fontCjk}`} value={preferences.replyFontCjk} options={replyFontOptions} onChange={preferences.setReplyFontCjk} />
+          <Segmented menu label={`${text.replyFont} · ${text.fontCjk}`} value={preferences.replyFontCjk} options={replyFontOptions} onChange={preferences.setReplyFontCjk} />
         </div>
         <p className="settings-font-note">{serifNote}</p>
       </SettingsBlock>
-      <SettingsBlock id="ui-font-size" title={text.uiFontSize} hint={text.uiFontSizeHint}>
+      <SettingsBlock id="ui-font-size" title={text.uiFontSize} hint={text.uiFontSizeHint} layout="inline">
         <FontSizeControl label={text.uiFontSize} range={uiFontSizeRange} value={preferences.uiFontSize} onChange={preferences.setUiFontSize} />
       </SettingsBlock>
-      <SettingsBlock id="code-font-size" title={text.codeFontSize} hint={text.codeFontSizeHint}>
+      <SettingsBlock id="code-font-size" title={text.codeFontSize} hint={text.codeFontSizeHint} layout="inline">
         <FontSizeControl label={text.codeFontSize} range={codeFontSizeRange} value={preferences.codeFontSize} onChange={preferences.setCodeFontSize} />
       </SettingsBlock>
+      </SettingsGroup>
     </section>
   );
 }

@@ -91,7 +91,10 @@ try {
   assert.equal((await ev("window.vela.getAgentSettings()")).instructions, "Prefer concise answers.");
   assert.match(await ev("document.querySelector('.settings-autosave').textContent"), /Saved/);
   console.log("PASS instructions auto-save after typing stops");
-  await ev(`[...document.querySelectorAll('[aria-label="Default thinking level"] [role=radio]')].find(b => b.textContent === 'High').click()`);
+  // 思考强度档位多时是下拉框(点开后在 body 下的列表里选),少时是单选按钮组
+  await ev(`(() => { const g = document.querySelector('[aria-label="Default thinking level"]'); if (g.getAttribute('role') === 'combobox') g.click(); else [...g.querySelectorAll('[role=radio]')].find(b => b.textContent === 'High').click(); })()`);
+  await pause(200);
+  await ev(`(() => { const o = [...document.querySelectorAll('.settings-menu [role=option]')].find(b => b.textContent.trim() === 'High'); if (o) o.click(); })()`);
   await until(async () => (await ev("window.vela.getAgentSettings()")).thinkingLevel === "high", "thinking saved");
   console.log("PASS thinking level saves immediately");
 

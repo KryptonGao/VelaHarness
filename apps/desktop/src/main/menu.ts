@@ -1,5 +1,5 @@
 import { app, BrowserWindow, Menu, shell, type MenuItemConstructorOptions } from "electron";
-import { IpcChannel, localizeZh, type AppLocale, type MenuAction } from "@vela/shared";
+import { IpcChannel, isMenuAction, localizeZh, type AppLocale, type MenuAction } from "@vela/shared";
 import desktopPackage from "../../package.json";
 
 const repoUrl = "https://github.com/KryptonGao/VelaHarness";
@@ -42,6 +42,45 @@ export function setUpdateMenuAction(action: () => void): void {
   installApplicationMenu();
 }
 
+/** 渲染层同步过来的加速键;null 表示还没收到,沿用内置默认值。 */
+let customAccelerators: Partial<Record<MenuAction, string>> | null = null;
+const ACCELERATOR_PATTERN = /^[A-Za-z0-9+\[\],.;'`\\=\/-]{1,40}$/;
+
+/** 用户在设置里改了快捷键,或正在录入新快捷键(空表)时,重建菜单。 */
+export function setMenuAccelerators(value: unknown): void {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return;
+  const next: Partial<Record<MenuAction, string>> = {};
+  for (const [action, accelerator] of Object.entries(value)) {
+    if (isMenuAction(action) && typeof accelerator === "string" && ACCELERATOR_PATTERN.test(accelerator)) next[action] = accelerator;
+  }
+  customAccelerators = next;
+  installApplicationMenu();
+}
+
+const defaultAccelerators: Partial<Record<MenuAction, string>> = {
+  "new-chat": "CmdOrCtrl+N",
+  "new-tab": "CmdOrCtrl+T",
+  "toggle-settings": "CmdOrCtrl+,",
+  "toggle-sidebar": "CmdOrCtrl+B",
+  "toggle-info": "CmdOrCtrl+J",
+  "archive-chat": "CmdOrCtrl+Shift+A",
+  "side-chat": "CmdOrCtrl+Alt+S",
+  "next-tab": "CmdOrCtrl+Shift+]",
+  "prev-tab": "CmdOrCtrl+Shift+[",
+  "next-chat": "CmdOrCtrl+Alt+]",
+  "prev-chat": "CmdOrCtrl+Alt+[",
+  "next-attention-chat": "CmdOrCtrl+Alt+A",
+  "open-changes": "Ctrl+Shift+G",
+  "open-files": "CmdOrCtrl+Shift+E",
+  // macOS 上才注册返回/前进;其余平台的 Alt+←/→ 在输入框里要留给文本编辑,由渲染层按焦点处理。
+  ...(process.platform === "darwin" ? { "go-back": "Cmd+[", "go-forward": "Cmd+]" } : {}),
+};
+
+function accelerator(action: MenuAction): { accelerator?: string } {
+  const value = (customAccelerators ?? defaultAccelerators)[action];
+  return value ? { accelerator: value } : {};
+}
+
 function sendMenuAction(action: MenuAction): void {
   const win = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0];
   win?.webContents.send(IpcChannel.appMenuAction, action);
@@ -78,10 +117,11 @@ export function installApplicationMenu(): void {
     {
       label: text("文件", "File"),
       submenu: [
-        { label: text("新建会话", "New Chat"), accelerator: "CmdOrCtrl+N", click: () => sendMenuAction("new-chat") },
-        { label: text("新建标签页", "New Tab"), accelerator: "CmdOrCtrl+T", click: () => sendMenuAction("new-tab") },
+        { label: text("新建会话", "New Chat"), ...accelerator("new-chat"), click: () => sendMenuAction("new-chat") },
+        { label: text("新建标签页", "New Tab"), ...accelerator("new-tab"), click: () => sendMenuAction("new-tab") },
+        { label: text("归档聊天", "Archive Chat"), ...accelerator("archive-chat"), click: () => sendMenuAction("archive-chat") },
         { type: "separator" },
-        { label: text("设置…", "Settings…"), accelerator: "CmdOrCtrl+,", click: () => sendMenuAction("toggle-settings") },
+        { label: text("设置…", "Settings…"), ...accelerator("toggle-settings"), click: () => sendMenuAction("toggle-settings") },
         { type: "separator" },
         { role: "close", label: text("关闭窗口", "Close Window") },
       ],
@@ -101,8 +141,8 @@ export function installApplicationMenu(): void {
     {
       label: text("显示", "View"),
       submenu: [
-        { label: text("切换侧边栏", "Toggle Sidebar"), accelerator: "CmdOrCtrl+B", click: () => sendMenuAction("toggle-sidebar") },
-        { label: text("切换信息面板", "Toggle Info Panel"), accelerator: "CmdOrCtrl+J", click: () => sendMenuAction("toggle-info") },
+        { label: text("切换侧边栏", "Toggle Sidebar"), ...accelerator("toggle-sidebar"), click: () => sendMenuAction("toggle-sidebar") },
+        { label: text("切换信息面板", "Toggle Info Panel"), ...accelerator("toggle-info"), click: () => sendMenuAction("toggle-info") },
         { type: "separator" },
         { role: "reload", label: text("重新加载", "Reload") },
         { role: "forceReload", label: text("强制重新加载", "Force Reload") },
@@ -118,9 +158,12 @@ export function installApplicationMenu(): void {
     {
       label: text("前往", "Go"),
       submenu: [
-        // 非 macOS 的 Alt+←/→ 在输入框里要留给文本编辑,所以只在 macOS 注册快捷键,其余平台由渲染层按焦点处理。
-        { label: text("返回", "Back"), ...(isMac ? { accelerator: "Cmd+[" } : {}), click: () => sendMenuAction("go-back") },
-        { label: text("前进", "Forward"), ...(isMac ? { accelerator: "Cmd+]" } : {}), click: () => sendMenuAction("go-forward") },
+        { label: text("返回", "Back"), ...accelerator("go-back"), click: () => sendMenuAction("go-back") },
+        { label: text("前进", "Forward"), ...accelerator("go-forward"), click: () => sendMenuAction("go-forward") },
+        { type: "separator" },
+        { label: text("下一个聊天", "Next Chat"), ...accelerator("next-chat"), click: () => sendMenuAction("next-chat") },
+        { label: text("上一个聊天", "Previous Chat"), ...accelerator("prev-chat"), click: () => sendMenuAction("prev-chat") },
+        { label: text("下一个需关注的聊天", "Next Chat Needing Attention"), ...accelerator("next-attention-chat"), click: () => sendMenuAction("next-attention-chat") },
         { type: "separator" },
         { label: text("主页", "Home"), click: () => sendMenuAction("go-home") },
         { label: text("定时任务", "Scheduled Tasks"), click: () => sendMenuAction("open-scheduled-tasks") },
@@ -132,10 +175,14 @@ export function installApplicationMenu(): void {
     {
       label: text("工作台", "Workbench"),
       submenu: [
-        { label: text("终端", "Terminal"), click: () => sendMenuAction("open-terminal") },
-        { label: text("文件", "Files"), click: () => sendMenuAction("open-files") },
-        { label: text("浏览器", "Browser"), click: () => sendMenuAction("open-browser") },
-        { label: text("变更", "Changes"), click: () => sendMenuAction("open-changes") },
+        { label: text("下一个标签页", "Next Tab"), ...accelerator("next-tab"), click: () => sendMenuAction("next-tab") },
+        { label: text("上一个标签页", "Previous Tab"), ...accelerator("prev-tab"), click: () => sendMenuAction("prev-tab") },
+        { type: "separator" },
+        { label: text("终端", "Terminal"), ...accelerator("open-terminal"), click: () => sendMenuAction("open-terminal") },
+        { label: text("文件", "Files"), ...accelerator("open-files"), click: () => sendMenuAction("open-files") },
+        { label: text("浏览器", "Browser"), ...accelerator("open-browser"), click: () => sendMenuAction("open-browser") },
+        { label: text("变更", "Changes"), ...accelerator("open-changes"), click: () => sendMenuAction("open-changes") },
+        { label: text("侧边聊天", "Side Chat"), ...accelerator("side-chat"), click: () => sendMenuAction("side-chat") },
       ],
     },
     { role: "windowMenu", label: text("窗口", "Window") },
@@ -163,5 +210,12 @@ export function installApplicationMenu(): void {
     },
   ];
 
-  Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+  try {
+    Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+  } catch (error) {
+    // 个别加速键 Electron 不认时,退回内置默认值,保证菜单始终可用。
+    if (customAccelerators === null) throw error;
+    customAccelerators = null;
+    installApplicationMenu();
+  }
 }

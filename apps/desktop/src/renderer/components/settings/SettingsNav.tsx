@@ -3,6 +3,7 @@ import { useAutoHideScrollbar } from "../../hooks/useAutoHideScrollbar";
 import type { SettingsCopy } from "../settings-copy";
 import { CloseIcon, SearchIcon } from "../icons";
 import { groupOfPage, settingsGroups, type SettingsPageId } from "./settings-registry";
+import { SettingsPageIcon } from "./settings-icons";
 import type { SettingsSearchResult } from "./settings-search";
 
 interface SettingsNavProps {
@@ -30,6 +31,7 @@ export function SettingsNav({ copy, page, pages, onPage, query, onQuery, results
 
   return (
     <nav className="settings-nav autohide-scrollbar" ref={navRef} aria-label={copy.title}>
+      <h1 className="settings-nav-title">{copy.title}</h1>
       <div className="settings-search">
         <SearchIcon size={14} />
         <input
@@ -127,7 +129,8 @@ export function SettingsNav({ copy, page, pages, onPage, query, onQuery, results
                   aria-current={page === id ? "page" : undefined}
                   onClick={() => onPage(id)}
                 >
-                  {copy.pages[id].label}
+                  <SettingsPageIcon page={id} />
+                  <span>{copy.pages[id].label}</span>
                 </button>
               ))}
             </div>

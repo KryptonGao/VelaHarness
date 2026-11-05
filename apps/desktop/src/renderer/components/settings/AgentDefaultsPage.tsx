@@ -4,7 +4,8 @@ import type { ProjectApi } from "../../hooks/useProject";
 import { localizeError } from "../../locale";
 import type { SettingsCopy } from "../settings-copy";
 import { clampChoice, groupAvailable, levelsFor, modelValue, parseModelValue } from "./model-helpers";
-import { Segmented, SettingsBlock } from "./primitives";
+import { Segmented, SettingsBlock, SettingsGroup } from "./primitives";
+import { SettingsSelect } from "./SettingsSelect";
 import { ContextLimitBlock } from "./ContextLimitBlock";
 import { TaskBudgetBlock } from "./TaskBudgetBlock";
 
@@ -141,15 +142,26 @@ export function AgentDefaultsPage({
         {error ? <span className="settings-error">{localizeError(error)}</span> : null}
       </div>
 
-      <SettingsBlock id="default-model" title={text.model} hint={text.modelHint}>
+      <SettingsGroup title={copy.sections.model}>
+      <SettingsBlock id="default-model" title={text.model} hint={text.modelHint} layout="inline">
         {groups.length === 0 && !selectedMissing ? <p className="settings-note">{text.modelMissing}</p> : null}
-        <select
-          className="settings-select"
-          aria-label={text.model}
+        <SettingsSelect
+          label={text.model}
           value={settings?.provider && settings.modelId ? modelValue(settings.provider, settings.modelId) : ""}
           disabled={!settings}
-          onChange={(event) => {
-            const parsed = parseModelValue(event.target.value);
+          options={[
+            { value: "", label: text.modelEmpty },
+            ...(selectedMissing && settings?.provider && settings.modelId
+              ? [{ value: modelValue(settings.provider, settings.modelId), label: text.modelUnavailable }]
+              : []),
+            ...groups.flatMap((group) => group.models.map((model) => ({
+              value: modelValue(model.provider, model.id),
+              label: model.name,
+              group: group.name,
+            }))),
+          ]}
+          onChange={(value) => {
+            const parsed = parseModelValue(value);
             const nextChoices = levelsFor(catalog, parsed.provider, parsed.modelId);
             persist({
               provider: parsed.provider,
@@ -157,24 +169,19 @@ export function AgentDefaultsPage({
               thinkingLevel: clampChoice(nextChoices, settings?.thinkingLevel ?? "medium"),
             });
           }}
-        >
-          <option value="">{text.modelEmpty}</option>
-          {selectedMissing && settings?.provider && settings.modelId ? (
-            <option value={modelValue(settings.provider, settings.modelId)}>{text.modelUnavailable}</option>
-          ) : null}
-          {groups.map((group) => (
-            <optgroup key={group.provider} label={group.name}>
-              {group.models.map((model) => (
-                <option key={modelValue(model.provider, model.id)} value={modelValue(model.provider, model.id)}>
-                  {model.name}
-                </option>
-              ))}
-            </optgroup>
-          ))}
-        </select>
+        />
       </SettingsBlock>
 
-      <SettingsBlock id="default-thinking" title={text.thinking} hint={text.thinkingHint}>
+      <SettingsBlock id="default-thinking" title={text.thinking} hint={text.thinkingHint} layout="inline">
+        {choices.length > 4 ? (
+          <SettingsSelect
+            label={text.thinking}
+            value={thinking}
+            disabled={!settings}
+            options={choices.map((level) => ({ value: level, label: text.levels[level] }))}
+            onChange={(value) => persist({ thinkingLevel: value as ThinkingLevel })}
+          />
+        ) : (
         <div className="settings-choice-row" role="radiogroup" aria-label={text.thinking}>
           {choices.map((level) => (
             <button
@@ -190,9 +197,10 @@ export function AgentDefaultsPage({
             </button>
           ))}
         </div>
+        )}
       </SettingsBlock>
 
-      <SettingsBlock id="new-conversation" title={text.newConversation} hint={text.newConversationHint}>
+      <SettingsBlock id="new-conversation" title={text.newConversation} hint={text.newConversationHint} layout="inline">
         <Segmented
           label={text.newConversation}
           value={settings?.newConversationSelection ?? "default"}
@@ -201,6 +209,9 @@ export function AgentDefaultsPage({
         />
       </SettingsBlock>
 
+      </SettingsGroup>
+
+      <SettingsGroup title={copy.sections.instructionsPermissions}>
       <SettingsBlock id="instructions" title={text.instructions} hint={text.instructionsHint}>
         <textarea
           className="settings-textarea"
@@ -241,8 +252,12 @@ export function AgentDefaultsPage({
         {project.error ? <p className="settings-error">{localizeError(project.error)}</p> : null}
       </SettingsBlock>
 
-      <ContextLimitBlock copy={copy} />
-      <TaskBudgetBlock copy={copy} />
+      </SettingsGroup>
+
+      <SettingsGroup title={copy.sections.limits}>
+        <ContextLimitBlock copy={copy} />
+        <TaskBudgetBlock copy={copy} />
+      </SettingsGroup>
     </section>
   );
 }

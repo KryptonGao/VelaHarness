@@ -220,6 +220,7 @@ export const IpcChannel = {
   appMenuAction: "app:menu-action",
   appSetLocale: "app:set-locale",
   appSetAppearance: "app:set-appearance",
+  appSetShortcuts: "app:set-shortcuts",
   appUiStorageGet: "app:ui-storage-get",
   appUiStorageSet: "app:ui-storage-set",
   appIsDevelopment: "app:is-development",
@@ -2869,6 +2870,7 @@ export const MENU_ACTIONS = [
   "go-back", "go-forward", "go-home",
   "open-scheduled-tasks", "open-recipes", "open-agent-inbox", "open-pr-inbox",
   "open-terminal", "open-files", "open-browser", "open-changes",
+  "archive-chat", "side-chat", "next-tab", "prev-tab", "next-chat", "prev-chat", "next-attention-chat",
 ] as const;
 export type MenuAction = (typeof MENU_ACTIONS)[number];
 
@@ -3017,6 +3019,8 @@ export interface VelaApi extends McpApi, PluginApi {
   setLocale(locale: AppLocale): void;
   /** 把应用的明暗选择同步给系统外观,让原生毛玻璃材质与界面明暗一致。 */
   setAppearance(appearance: "system" | "light" | "dark"): void;
+  /** 把用户自定义的菜单加速键(动作 → Electron 加速键)同步给主进程;空对象表示暂时全部停用。 */
+  setShortcuts(accelerators: Partial<Record<MenuAction, string>>): void;
   /** 本窗口当前是否为系统的活动窗口;焦点在内嵌浏览器里时仍算活动。 */
   isWindowFocused?(): boolean;
   /** 窗口得到或失去系统焦点时回调,返回取消订阅函数。 */

@@ -5,7 +5,6 @@ import type { PreferencesApi } from "../hooks/usePreferences";
 import type { ProjectApi } from "../hooks/useProject";
 import { useAutoHideScrollbar } from "../hooks/useAutoHideScrollbar";
 import { useStoredState } from "../hooks/useStoredState";
-import { modKeyLabel } from "../platform";
 import type { NotifySound } from "../notification-sounds";
 import { LoginDialog } from "./ModelControls";
 import { SheetPresence } from "./Presence";
@@ -71,7 +70,6 @@ export function SettingsView({
 }: SettingsViewProps) {
   const { locale } = preferences;
   const copy = settingsCopy(locale);
-  const mod = modKeyLabel(platform);
   const development = window.vela?.development;
   const pages = useMemo(
     () => settingsPageIds.filter((id) => id !== "development" || development),
@@ -127,7 +125,6 @@ export function SettingsView({
   return (
     <main className="settings-view">
       <header className="settings-header">
-        <h1>{copy.title}</h1>
         <button className="settings-done" type="button" onClick={onClose}>
           {copy.done}
         </button>
@@ -148,7 +145,6 @@ export function SettingsView({
           {pagesWithOwnHeader.has(page) ? null : (
             <header className="settings-page-header">
               <h2>{pageMeta.label}</h2>
-              <p>{pageMeta.description}</p>
             </header>
           )}
           {page === "integrations" ? <IntegrationsSection locale={locale} workspacePath={workspacePath} conversationId={conversationDetached ? null : conversationId} /> : null}
@@ -163,7 +159,7 @@ export function SettingsView({
             <InterfacePage copy={copy} preferences={preferences} onPreviewSound={onPreviewSound} />
           </div>
           <div hidden={page !== "shortcuts"}>
-            <ShortcutsPage copy={copy} mod={mod} />
+            <ShortcutsPage copy={copy} platform={platform} />
           </div>
           {page === "updates" ? <UpdatesPage copy={copy} locale={locale} onReplayIntro={onReplayIntro} onRestartOnboarding={onRestartOnboarding} /> : null}
           <div hidden={page !== "defaults"}>

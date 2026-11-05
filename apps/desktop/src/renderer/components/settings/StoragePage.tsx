@@ -8,7 +8,7 @@ import { fillTemplate } from "../../hooks/useUpdates";
 import { localizeError } from "../../locale";
 import "../../storage.css";
 import type { SettingsCopy } from "../settings-copy";
-import { SettingsBlock, SettingsSwitch } from "./primitives";
+import { SettingsBlock, SettingsGroup, SettingsSwitch } from "./primitives";
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -104,6 +104,7 @@ export function StoragePage({ copy }: { copy: SettingsCopy }) {
   const shown = categories.filter(category => category.bytes > 0);
 
   return <section className="settings-section" aria-busy={busy || overviewBusy}>
+    <SettingsGroup>
     {storage ? <>
       <SettingsBlock id="storage-overview" title={text.overviewTitle} hint={text.overviewHint}>
         {disk ? <div className="storage-disk">
@@ -212,6 +213,7 @@ export function StoragePage({ copy }: { copy: SettingsCopy }) {
       </div>
       {notice ? <p className="settings-saved" role="status">{notice}</p> : null}
     </SettingsBlock>
+    </SettingsGroup>
     {error ? <p className="settings-error" role="alert">{error}</p> : null}
   </section>;
 }

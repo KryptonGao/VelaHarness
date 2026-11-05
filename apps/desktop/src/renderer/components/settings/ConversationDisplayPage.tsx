@@ -3,7 +3,8 @@ import type { ModelCatalog } from "@vela/shared";
 import type { PreferencesApi, ThinkingGroupMode, ThinkingSummaryStyle, ThinkingTitleStyle, ToolDisplay, ToolFold, ToolIconColor } from "../../hooks/usePreferences";
 import type { SettingsCopy } from "../settings-copy";
 import { groupAvailable, modelValue, parseModelValue } from "./model-helpers";
-import { Segmented, SettingsBlock, SettingsSwitch } from "./primitives";
+import { Segmented, SettingsBlock, SettingsGroup, SettingsSwitch } from "./primitives";
+import { SettingsSelect } from "./SettingsSelect";
 import { HeightLimitControl } from "./HeightLimitControl";
 import { commandDetailHeightStops, thinkingGroupHeightStops, toolDetailHeightStops } from "../../thinking-group-height";
 import { IntelligentUiSetting } from "../intelligent-ui/IntelligentUiSetting";
@@ -137,6 +138,7 @@ export function ConversationDisplayPage({
   return (
     <section className="settings-section">
       <ConversationPreview settings={view} previewing={hover !== null && previewing(hover.key)} />
+      <SettingsGroup title={copy.sections.toolCalls}>
       <SettingsBlock
         id="tool-display"
         title={text.toolDisplay}
@@ -184,28 +186,14 @@ export function ConversationDisplayPage({
           onPreview={peek("toolProcessDetails")}
         />
       </SettingsBlock>
-      <SettingsBlock id="run-view" title={text.runView} hint={text.runViewHint}>
-        <Segmented
-          label={text.runView}
-          value={onOff(runView)}
-          options={[
-            { id: "off", label: text.runViewOff },
-            { id: "on", label: text.runViewOn },
-          ]}
-          onChange={(value) => setRunView(value === "on")}
-        />
+      <SettingsBlock id="run-view" title={text.runView} hint={text.runViewHint} layout="inline">
+        <SettingsSwitch label={text.runView} checked={runView} onChange={setRunView} />
       </SettingsBlock>
-      <SettingsBlock id="recommended-actions" title={text.recommendedActions} hint={text.recommendedActionsHint}>
-        <Segmented
-          label={text.recommendedActions}
-          value={onOff(recommendedActions)}
-          options={[
-            { id: "off", label: text.recommendedActionsOff },
-            { id: "on", label: text.recommendedActionsOn },
-          ]}
-          onChange={(value) => setRecommendedActions(value === "on")}
-        />
+      <SettingsBlock id="recommended-actions" title={text.recommendedActions} hint={text.recommendedActionsHint} layout="inline">
+        <SettingsSwitch label={text.recommendedActions} checked={recommendedActions} onChange={setRecommendedActions} />
       </SettingsBlock>
+      </SettingsGroup>
+      <SettingsGroup title={copy.sections.thinking}>
       <SettingsBlock
         id="thinking-summary"
         title={text.thinkingSummary}
@@ -230,32 +218,26 @@ export function ConversationDisplayPage({
         />
       </SettingsBlock>
       <SettingsBlock id="thinking-summary-model" title={text.thinkingSummaryModel} hint={text.thinkingSummaryModelHint}>
-        <select
-          className="settings-select"
-          aria-label={text.thinkingSummaryModel}
-          aria-describedby="thinking-summary-model-hint"
+        <SettingsSelect
+          label={text.thinkingSummaryModel}
+          describedBy="thinking-summary-model-hint"
           value={thinkingSummaryModel ? modelValue(thinkingSummaryModel.provider, thinkingSummaryModel.id) : ""}
-          onChange={(event) => {
-            const { provider, modelId } = parseModelValue(event.target.value);
+          options={[
+            { value: "", label: text.thinkingSummaryModelCurrent },
+            ...(summaryModelMissing && thinkingSummaryModel
+              ? [{ value: modelValue(thinkingSummaryModel.provider, thinkingSummaryModel.id), label: `${thinkingSummaryModel.provider} / ${thinkingSummaryModel.id} — ${text.thinkingSummaryModelUnavailable}`, disabled: true }]
+              : []),
+            ...summaryModelGroups.flatMap((group) => group.models.map((model) => ({
+              value: modelValue(model.provider, model.id),
+              label: model.name,
+              group: group.name,
+            }))),
+          ]}
+          onChange={(value) => {
+            const { provider, modelId } = parseModelValue(value);
             setThinkingSummaryModel(provider && modelId ? { provider, id: modelId } : null);
           }}
-        >
-          <option value="">{text.thinkingSummaryModelCurrent}</option>
-          {summaryModelMissing && thinkingSummaryModel ? (
-            <option value={modelValue(thinkingSummaryModel.provider, thinkingSummaryModel.id)} disabled>
-              {thinkingSummaryModel.provider} / {thinkingSummaryModel.id} — {text.thinkingSummaryModelUnavailable}
-            </option>
-          ) : null}
-          {summaryModelGroups.map((group) => (
-            <optgroup key={group.provider} label={group.name}>
-              {group.models.map((model) => (
-                <option key={modelValue(model.provider, model.id)} value={modelValue(model.provider, model.id)}>
-                  {model.name}
-                </option>
-              ))}
-            </optgroup>
-          ))}
-        </select>
+        />
         <p className="settings-note" id="thinking-summary-model-hint">
           {summaryModelMissing ? text.thinkingSummaryModelMissing : text.thinkingSummaryModelConfigure}
         </p>
@@ -274,11 +256,11 @@ export function ConversationDisplayPage({
           onPreview={peek("thinkingSummaryStyle")}
         />
       </SettingsBlock>
-      <SettingsBlock id="thinking-group-mode" title={text.thinkingGroupMode} hint={text.thinkingGroupModeHint}>
-        <Segmented label={text.thinkingGroupMode} value={thinkingGroupMode} options={thinkingGroupModeOptions} onChange={setThinkingGroupMode} />
+      <SettingsBlock id="thinking-group-mode" title={text.thinkingGroupMode} hint={text.thinkingGroupModeHint} layout="inline">
+        <Segmented menu label={text.thinkingGroupMode} value={thinkingGroupMode} options={thinkingGroupModeOptions} onChange={setThinkingGroupMode} />
       </SettingsBlock>
-      <SettingsBlock id="thinking-title-style" title={text.thinkingTitleStyle} hint={text.thinkingTitleStyleHint}>
-        <Segmented label={text.thinkingTitleStyle} value={thinkingTitleStyle} options={thinkingTitleStyleOptions} onChange={setThinkingTitleStyle} />
+      <SettingsBlock id="thinking-title-style" title={text.thinkingTitleStyle} hint={text.thinkingTitleStyleHint} layout="inline">
+        <Segmented menu label={text.thinkingTitleStyle} value={thinkingTitleStyle} options={thinkingTitleStyleOptions} onChange={setThinkingTitleStyle} />
       </SettingsBlock>
       <SettingsBlock id="thinking-group-height" title={text.thinkingGroupHeight} hint={text.thinkingGroupHeightHint}>
         <div className="tb-fields">
@@ -322,56 +304,26 @@ export function ConversationDisplayPage({
         <p className="tb-limit-hint">{text.thinkingGroupHeightGrowHint}</p>
         </div>
       </SettingsBlock>
-<SettingsBlock id="reply-animation" title={text.replyAnimation} hint={text.replyAnimationHint}>
+      </SettingsGroup>
+      <SettingsGroup title={copy.sections.replyInput}>
+      <SettingsBlock id="reply-animation" title={text.replyAnimation} hint={text.replyAnimationHint} layout="inline">
         <div className="settings-font-row">
           <span className="settings-font-label">{text.animationFade}</span>
-          <Segmented
-            label={`${text.replyAnimation} · ${text.animationFade}`}
-            value={onOff(replyFade)}
-            options={[
-              { id: "off", label: text.animationOff },
-              { id: "on", label: text.animationOn },
-            ]}
-            onChange={(value) => setReplyFade(value === "on")}
-          />
+          <SettingsSwitch label={`${text.replyAnimation} · ${text.animationFade}`} checked={replyFade} onChange={setReplyFade} />
         </div>
         <div className="settings-font-row">
           <span className="settings-font-label">{text.animationPop}</span>
-          <Segmented
-            label={`${text.replyAnimation} · ${text.animationPop}`}
-            value={onOff(replyPop)}
-            options={[
-              { id: "off", label: text.animationOff },
-              { id: "on", label: text.animationOn },
-            ]}
-            onChange={(value) => setReplyPop(value === "on")}
-          />
+          <SettingsSwitch label={`${text.replyAnimation} · ${text.animationPop}`} checked={replyPop} onChange={setReplyPop} />
         </div>
       </SettingsBlock>
-      <SettingsBlock id="thinking-animation" title={text.thinkingAnimation} hint={text.thinkingAnimationHint}>
+      <SettingsBlock id="thinking-animation" title={text.thinkingAnimation} hint={text.thinkingAnimationHint} layout="inline">
         <div className="settings-font-row">
           <span className="settings-font-label">{text.animationFade}</span>
-          <Segmented
-            label={`${text.thinkingAnimation} · ${text.animationFade}`}
-            value={onOff(thinkingFade)}
-            options={[
-              { id: "off", label: text.animationOff },
-              { id: "on", label: text.animationOn },
-            ]}
-            onChange={(value) => setThinkingFade(value === "on")}
-          />
+          <SettingsSwitch label={`${text.thinkingAnimation} · ${text.animationFade}`} checked={thinkingFade} onChange={setThinkingFade} />
         </div>
         <div className="settings-font-row">
           <span className="settings-font-label">{text.animationPop}</span>
-          <Segmented
-            label={`${text.thinkingAnimation} · ${text.animationPop}`}
-            value={onOff(thinkingPop)}
-            options={[
-              { id: "off", label: text.animationOff },
-              { id: "on", label: text.animationOn },
-            ]}
-            onChange={(value) => setThinkingPop(value === "on")}
-          />
+          <SettingsSwitch label={`${text.thinkingAnimation} · ${text.animationPop}`} checked={thinkingPop} onChange={setThinkingPop} />
         </div>
       </SettingsBlock>
       <SettingsBlock
@@ -392,37 +344,34 @@ export function ConversationDisplayPage({
         />
       </SettingsBlock>
       <SettingsBlock id="input-prediction-model" title={text.inputPredictionModel} hint={text.inputPredictionModelHint}>
-        <select
-          className="settings-select"
-          aria-label={text.inputPredictionModel}
-          aria-describedby="input-prediction-model-hint"
+        <SettingsSelect
+          label={text.inputPredictionModel}
+          describedBy="input-prediction-model-hint"
           value={inputPredictionModel ? modelValue(inputPredictionModel.provider, inputPredictionModel.id) : ""}
-          onChange={(event) => {
-            const { provider, modelId } = parseModelValue(event.target.value);
+          options={[
+            { value: "", label: text.thinkingSummaryModelCurrent },
+            ...(predictionModelMissing && inputPredictionModel
+              ? [{ value: modelValue(inputPredictionModel.provider, inputPredictionModel.id), label: `${inputPredictionModel.provider} / ${inputPredictionModel.id} — ${text.thinkingSummaryModelUnavailable}`, disabled: true }]
+              : []),
+            ...summaryModelGroups.flatMap((group) => group.models.map((model) => ({
+              value: modelValue(model.provider, model.id),
+              label: model.name,
+              group: group.name,
+            }))),
+          ]}
+          onChange={(value) => {
+            const { provider, modelId } = parseModelValue(value);
             setInputPredictionModel(provider && modelId ? { provider, id: modelId } : null);
           }}
-        >
-          <option value="">{text.thinkingSummaryModelCurrent}</option>
-          {predictionModelMissing && inputPredictionModel ? (
-            <option value={modelValue(inputPredictionModel.provider, inputPredictionModel.id)} disabled>
-              {inputPredictionModel.provider} / {inputPredictionModel.id} — {text.thinkingSummaryModelUnavailable}
-            </option>
-          ) : null}
-          {summaryModelGroups.map((group) => (
-            <optgroup key={group.provider} label={group.name}>
-              {group.models.map((model) => (
-                <option key={modelValue(model.provider, model.id)} value={modelValue(model.provider, model.id)}>
-                  {model.name}
-                </option>
-              ))}
-            </optgroup>
-          ))}
-        </select>
+        />
         <p className="settings-note" id="input-prediction-model-hint">
           {predictionModelMissing ? text.thinkingSummaryModelMissing : text.thinkingSummaryModelConfigure}
         </p>
       </SettingsBlock>
-      <IntelligentUiSetting />
+      </SettingsGroup>
+      <SettingsGroup title={copy.sections.intelligentUi}>
+        <IntelligentUiSetting />
+      </SettingsGroup>
     </section>
   );
 }

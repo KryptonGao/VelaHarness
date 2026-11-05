@@ -3,7 +3,8 @@ import { useEffect, useState } from "react";
 import { applyRendererLogLevel } from "../../logger";
 import { localizeError } from "../../locale";
 import type { SettingsCopy } from "../settings-copy";
-import { SettingsBlock } from "./primitives";
+import { SettingsBlock, SettingsGroup } from "./primitives";
+import { SettingsSelect } from "./SettingsSelect";
 
 export function LogsPage({ copy }: { copy: SettingsCopy }) {
   const text = copy.logs;
@@ -32,19 +33,18 @@ export function LogsPage({ copy }: { copy: SettingsCopy }) {
   }
   if (!api) return <section className="settings-section"><p className="settings-note">{text.unavailable}</p></section>;
   return <section className="settings-section" aria-busy={busy}>
-    <SettingsBlock id="log-level" title={text.levelTitle} hint={settings?.locked ? text.locked : text.levelHint}>
-      <select
-        className="settings-select"
-        aria-label={text.levelTitle}
+    <SettingsGroup>
+    <SettingsBlock id="log-level" title={text.levelTitle} hint={settings?.locked ? text.locked : text.levelHint} layout="inline">
+      <SettingsSelect
+        label={text.levelTitle}
         value={settings?.level ?? "info"}
         disabled={!settings || settings.locked || busy}
-        onChange={event => {
-          const level = event.target.value as LogLevel;
+        options={logLevels.map(level => ({ value: level, label: text.levels[level] }))}
+        onChange={value => {
+          const level = value as LogLevel;
           void run(async () => { const next = await api.setLevel(level); setSettings(next); applyRendererLogLevel(next.level); });
         }}
-      >
-        {logLevels.map(level => <option key={level} value={level}>{text.levels[level]}</option>)}
-      </select>
+      />
     </SettingsBlock>
     <SettingsBlock id="log-folder" title={text.folderTitle} hint={text.folderHint}>
       {settings ? <p className="settings-note"><code>{settings.dir}</code></p> : null}
@@ -67,6 +67,7 @@ export function LogsPage({ copy }: { copy: SettingsCopy }) {
       </div>
       {notice ? <p className="settings-saved" role="status">{notice}</p> : null}
     </SettingsBlock>
+    </SettingsGroup>
     {error ? <p className="settings-error" role="alert">{error}</p> : null}
   </section>;
 }

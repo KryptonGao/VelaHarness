@@ -132,7 +132,24 @@ if (!process.versions.electron) {
           "Object.getOwnPropertyDescriptor(" + proto + ".prototype,'value').set.call(control," + JSON.stringify(value) + ");" +
           "control.dispatchEvent(new Event(" + JSON.stringify(proto === "HTMLSelectElement" ? "change" : "input") + ",{bubbles:true}));return control.value; })()",
         );
-      const selects = () => "document.querySelectorAll('.web-tools-settings .settings-form select')";
+      // 提供商选择是自绘下拉:点开触发按钮,选项在 body 下的 .settings-menu 里。
+      const selects = () => "document.querySelectorAll('.web-tools-settings .settings-form button.settings-select-trigger')";
+      const openSelect = async index => {
+        await evaluate(selects() + "[" + index + "].click()");
+        await until("!!document.querySelector('.settings-menu')");
+      };
+      const pickOption = async (index, text) => {
+        await openSelect(index);
+        await evaluate("[...document.querySelectorAll('.settings-menu [role=option]')].find(option => option.textContent.includes(" + JSON.stringify(text) + ")).click()");
+        await until("!document.querySelector('.settings-menu')");
+      };
+      const menuText = async index => {
+        await openSelect(index);
+        const text = await evaluate("document.querySelector('.settings-menu').textContent");
+        await evaluate(selects() + "[" + index + "].click()");
+        await until("!document.querySelector('.settings-menu')");
+        return text;
+      };
       const saves = () => evaluate("fixture.calls.filter(call => call.method === 'save')");
 
       // 初始：关闭，DeepSeek 内置且没有密钥，密钥输入框是密码框。
@@ -156,9 +173,9 @@ if (!process.versions.electron) {
       console.log("PASS saving a key is write-only and clears the field");
 
       // 选择提供商，再打开总开关。
-      await setValue(selects() + "[0]", "deepseek", "HTMLSelectElement");
+      await pickOption(0, "DeepSeek");
       await until("fixture.config.searchProviderId === 'deepseek'");
-      await setValue(selects() + "[1]", "deepseek", "HTMLSelectElement");
+      await pickOption(1, "DeepSeek");
       await until("fixture.config.fetchProviderId === 'deepseek'");
       await evaluate("document.querySelector('[role=switch]').click()");
       await until("fixture.config.enabled === true && document.querySelector('[role=switch]').getAttribute('aria-checked') === 'true'");
@@ -211,11 +228,11 @@ if (!process.versions.electron) {
       await until("document.querySelectorAll('.web-tools-provider').length === 2");
       const customId = added.providers[0].id;
       // 没有密钥的自定义提供商在选择框里带「无密钥」标记，且只出现在搜索选择框。
-      assert.ok((await evaluate(selects() + "[0].textContent")).includes("My Search (no key)"));
-      assert.ok(!(await evaluate(selects() + "[1].textContent")).includes("My Search"));
+      assert.ok((await menuText(0)).includes("My Search (no key)"));
+      assert.ok(!(await menuText(1)).includes("My Search"));
       console.log("PASS custom provider is validated, saved and offered only for its capability");
 
-      await setValue(selects() + "[0]", customId, "HTMLSelectElement");
+      await pickOption(0, "My Search");
       await until("fixture.config.searchProviderId === " + JSON.stringify(customId));
       await evaluate("Array.from(document.querySelectorAll('.web-tools-provider')[1].querySelectorAll('button')).find(node => node.textContent === 'Delete').click()");
       await until("Array.from(document.querySelectorAll('button')).some(node => node.textContent === 'Confirm delete')");

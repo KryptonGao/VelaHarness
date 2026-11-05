@@ -29,6 +29,7 @@ const suites = {
     { name: "workbench-chat-ui", runner: "node" },
     { name: "workbench-split-ui", runner: "node" },
     { name: "nav-history-ui", runner: "node" },
+    { name: "shortcuts-ui", runner: "node" },
     { name: "side-chat-ui", runner: "node" },
     { name: "acceptance-ui", runner: "node" },
     { name: "race-ui", runner: "node" },

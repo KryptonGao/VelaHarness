@@ -3,7 +3,7 @@ import { useState } from "react";
 import type { ProjectApi } from "../../hooks/useProject";
 import { localizeError } from "../../locale";
 import type { SettingsCopy } from "../settings-copy";
-import { SettingsBlock } from "./primitives";
+import { SettingsBlock, SettingsGroup } from "./primitives";
 
 export function WorkspacePage({ copy, project }: { copy: SettingsCopy; project: ProjectApi }) {
   const text = copy.workspace;
@@ -36,6 +36,7 @@ export function WorkspacePage({ copy, project }: { copy: SettingsCopy; project: 
 
   return (
     <section className="settings-section">
+<SettingsGroup>
       <SettingsBlock id="workspace-current" title={text.current}>
         <div className="settings-path" title={current ?? undefined}>
           {current ?? text.empty}
@@ -114,6 +115,7 @@ export function WorkspacePage({ copy, project }: { copy: SettingsCopy; project: 
         </div>
       </SettingsBlock>
       {project.error ? <p className="settings-error">{localizeError(project.error)}</p> : null}
+</SettingsGroup>
     </section>
   );
 }

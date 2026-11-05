@@ -8,6 +8,7 @@ import type {
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import type { AppLocale } from "../hooks/usePreferences";
 import { settingsCopy, type SettingsCopy } from "./settings-copy";
+import { SettingsSelect } from "./settings/SettingsSelect";
 import {
   credentialUpdate,
   McpFormError,
@@ -211,30 +212,28 @@ function ServerForm({
             />
           </Field>
           <Field label={text.scope}>
-            <select
+            <SettingsSelect
+              label={text.scope}
               value={targetScope}
               disabled={editing}
-              onChange={(event) =>
-                setScope(event.target.value as "global" | "project")
-              }
-            >
-              <option value="global">{text.global}</option>
-              <option value="project" disabled={!cwd}>
-                {text.project}
-              </option>
-            </select>
+              onChange={(next) => setScope(next as "global" | "project")}
+              options={[
+                { value: "global", label: text.global },
+                { value: "project", label: text.project, disabled: !cwd },
+              ]}
+            />
           </Field>
         </div>
         <Field label={text.transport}>
-          <select
+          <SettingsSelect
+            label={text.transport}
             value={transport}
-            onChange={(event) =>
-              setTransport(event.target.value as "stdio" | "http")
-            }
-          >
-            <option value="stdio">{text.stdio}</option>
-            <option value="http">{text.http}</option>
-          </select>
+            onChange={(next) => setTransport(next as "stdio" | "http")}
+            options={[
+              { value: "stdio", label: text.stdio },
+              { value: "http", label: text.http },
+            ]}
+          />
         </Field>
         {transport === "stdio" ? (
           <>
@@ -330,16 +329,12 @@ function ServerForm({
           </>
         )}
         <Field label={text.exposure} hint={text.exposureHint}>
-          <select
+          <SettingsSelect
+            label={text.exposure}
             value={exposure}
-            onChange={(event) => setExposure(event.target.value as McpExposure)}
-          >
-            {(["deferred", "direct", "hidden"] as const).map((value) => (
-              <option key={value} value={value}>
-                {text[value]}
-              </option>
-            ))}
-          </select>
+            onChange={(next) => setExposure(next as McpExposure)}
+            options={(["deferred", "direct", "hidden"] as const).map((value) => ({ value, label: text[value] }))}
+          />
         </Field>
         <label className="mcp-check">
           <input
@@ -1128,18 +1123,16 @@ function McpSettingsContent({
             </p>
           ) : null}
           <Field label={text.scope}>
-            <select
+            <SettingsSelect
+              label={text.scope}
               value={importScope}
               disabled={Boolean(busy)}
-              onChange={(event) =>
-                setImportScope(event.target.value as "global" | "project")
-              }
-            >
-              <option value="global">{text.global}</option>
-              <option value="project" disabled={!cwd}>
-                {text.project}
-              </option>
-            </select>
+              onChange={(next) => setImportScope(next as "global" | "project")}
+              options={[
+                { value: "global", label: text.global },
+                { value: "project", label: text.project, disabled: !cwd },
+              ]}
+            />
           </Field>
           <Field label={text.importTitle}>
             <textarea

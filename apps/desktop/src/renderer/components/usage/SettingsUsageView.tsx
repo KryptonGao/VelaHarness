@@ -4,6 +4,7 @@ import { useUsageHistory } from "../../hooks/useUsageHistory";
 import { tr, trf } from "../../locale";
 import { ModelPricingEditor, type PriceableModel } from "./ModelPricingEditor";
 import { UsageReport } from "./UsageView";
+import { SettingsSelect } from "../settings/SettingsSelect";
 import { filterUsageRequests, requestDate, summarizeUsage, usageDateKey } from "./usage-model";
 
 type Range = "all" | "30" | "7" | "custom";
@@ -51,12 +52,15 @@ export function SettingsUsageView({ conversations, providers, models = [] }: {
     </div>
     <div className="usage-filters">
       <label className="usage-provider-filter">{tr("提供方", "Provider")}
-        <select value={provider} onChange={event => setProvider(event.target.value)}>
-          <option value="">{tr("全部", "All")}</option>
-          {available.filter(item => item.provider).map(item => <option key={item.provider} value={item.provider}>
-            {providerNames.get(item.provider) ?? item.provider}
-          </option>)}
-        </select>
+        <SettingsSelect
+          label={tr("提供方", "Provider")}
+          value={provider}
+          onChange={setProvider}
+          options={[
+            { value: "", label: tr("全部", "All") },
+            ...available.filter(item => item.provider).map(item => ({ value: item.provider, label: providerNames.get(item.provider) ?? item.provider })),
+          ]}
+        />
       </label>
       <div className="usage-range" role="group" aria-label={tr("时间范围", "Date range")}>
         {([ ["all", tr("可用历史", "All history")], ["30", tr("30 天", "30 days")],

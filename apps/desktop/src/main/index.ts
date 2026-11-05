@@ -18,7 +18,7 @@ import { existsSync, readFileSync, statSync, watch as fsWatch, writeFileSync } f
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { ConversationExportHost } from "./conversation-export-host";
-import { getApplicationLocale, setApplicationLocale, setDiagnosticsMenuActions, setUpdateMenuAction } from "./menu";
+import { getApplicationLocale, setApplicationLocale, setDiagnosticsMenuActions, setMenuAccelerators, setUpdateMenuAction } from "./menu";
 import { LogService } from "./log-service";
 import { installCrashHandlers, LogHost, systemInfo } from "./log-host";
 import { StorageHost } from "./storage-host";
@@ -730,6 +730,7 @@ app.whenReady().then(async () => {
   ipcMain.on(IpcChannel.appSetAppearance, (_event, appearance: unknown) => {
     if (appearance === "system" || appearance === "light" || appearance === "dark") nativeTheme.themeSource = appearance;
   });
+  ipcMain.on(IpcChannel.appSetShortcuts, (_event, accelerators: unknown) => setMenuAccelerators(accelerators));
   setApplicationLocale("zh-CN");
 
   log.info("app started", systemInfo());
