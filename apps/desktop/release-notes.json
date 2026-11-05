@@ -1,148 +1,143 @@
 {
-  "version": "1.2.21",
+  "version": "1.2.22",
   "locales": {
     "en": {
-      "summary": "Vela 1.2.21 adds an optional minimal start page, restyles command blocks and skill reads, reports how long a turn took more clearly, and stops clicked buttons and text inputs from drawing stray focus outlines.",
+      "summary": "Vela 1.2.22 reorganizes Settings into grouped cards, adds customizable app shortcuts, and makes it easier to move between chats and workbench tabs.",
       "highlights": [
         {
-          "title": "Minimal start page",
-          "body": "Turn it on in Settings → Interface and a new chat shows only the composer, without the greeting, suggested prompts or background mark. It is off by default."
+          "title": "Settings in grouped cards",
+          "body": "Settings now use rounded cards with controls alongside each option, icon-led navigation, clearer page titles, and consistent switches and segmented controls. Theme and conversation previews stay as they are."
         },
         {
-          "title": "Cleaner command blocks",
-          "body": "Commands now sit in a bordered block: the command is clamped to two lines (click to expand), a copy button appears on hover, and the command and its output share one height limit. Command and edit detail height limits are now separate settings."
+          "title": "Make shortcuts your own",
+          "body": "In Settings → Shortcuts, click a binding to change it or add up to three per app action. Clear bindings, check conflicts, or restore individual actions or all defaults. Changes are saved and apply immediately."
         },
         {
-          "title": "Skill reads you can open",
-          "body": "When the agent reads a skill, the row now says \"Read <skill> skill\" with a flat SKILL.md icon, and clicking the skill name opens SKILL.md in the preview pane."
+          "title": "Move between chats and tabs",
+          "body": "Switch to the next or previous chat or workbench tab, or jump to the next other chat waiting for input or reporting an error. These actions are available from shortcuts and the app menus."
         },
         {
-          "title": "Clearer turn timing",
-          "body": "Turn time is shown in whole seconds, and a turn you stop yourself now reads \"You stopped after Xs\" instead of a total of tool times."
+          "title": "Consistent settings dropdowns",
+          "body": "Settings dropdowns now share a custom menu with a checkmark for the selected option and keyboard navigation. Menus support arrow keys, Enter to choose, and Escape to dismiss."
         }
       ],
       "improvements": [
-        "Focus outlines on buttons and rows now appear only after you press Tab, so a clicked button no longer gets a blue box on later keypresses.",
-        "Text inputs no longer draw an outline or a blue border and glow when focused; the caret is the indicator.",
-        "Changes diff headers are simpler, and rows without a counterpart on the other side are hatched.",
-        "The undo button on a turn's changes is now labelled \"Undo\".",
-        "Compact tool rows show how long each tool took.",
+        "App menus add entries for archiving the current chat, opening side chat, and switching chats and workbench tabs.",
+        "Related app-menu accelerators follow your customized shortcut settings.",
+        "Shortcut recording warns about conflicts and reserved system or editing combinations; search, send, newline and Escape remain fixed.",
+        "Shortcut matching uses physical key positions so Option-modified characters do not change the recognized combination.",
         "New interface text is available in all five interface languages."
       ]
     },
     "zh-CN": {
-      "summary": "Vela 1.2.21 新增可选的极简起始页，重新设计命令块和技能读取的显示，更清楚地报告每一轮的用时，并且点击后的按钮和文本输入框不再出现多余的焦点轮廓。",
+      "summary": "Vela 1.2.22 将设置重新整理为分组卡片，新增可自定义的应用快捷键，并让聊天和工作台标签之间的切换更方便。",
       "highlights": [
         {
-          "title": "极简起始页",
-          "body": "在 设置 → 界面 中开启后，新对话只显示输入框，不显示问候语、预设提示词和背景图案。默认关闭。"
+          "title": "分组卡片式设置",
+          "body": "设置改用圆角分组卡片，控件与选项并排显示，导航增加图标，页面标题更清楚，开关与分段控件也统一了样式。主题和对话显示预览保持原样。"
         },
         {
-          "title": "更清爽的命令块",
-          "body": "命令现在显示在带边框的区块里：命令限制为两行（点击可展开），悬停时出现复制按钮，命令与输出共用同一个高度上限。命令详情与编辑详情的高度上限也分成了两个独立设置。"
+          "title": "自定义快捷键",
+          "body": "在 设置 → 快捷键 中点击已有组合即可修改，每个应用动作最多可设置三个快捷键。支持清除、冲突提示、单项恢复及全部恢复默认，改动会保存并立即生效。"
         },
         {
-          "title": "可以打开的技能读取",
-          "body": "Agent 读取技能时，这一行会显示「已读取 <技能> 技能」并配有扁平的 SKILL.md 图标，点击技能名称即可在预览面板中打开 SKILL.md。"
+          "title": "切换聊天与标签页",
+          "body": "可切换到上一个或下一个聊天、工作台标签页，也可跳到下一个等待输入或出错的其他聊天。这些动作都可从快捷键和应用菜单触发。"
         },
         {
-          "title": "更清楚的用时显示",
-          "body": "每一轮的用时以整秒显示；由你自己停止的一轮会显示「你在 X 秒后停止了」，不再是各工具耗时的总和。"
+          "title": "统一的设置下拉菜单",
+          "body": "设置中的下拉选项改用统一的自定义菜单，当前选项带有勾选标记，并支持键盘操作：方向键移动、Enter 选择、Escape 关闭。"
         }
       ],
       "improvements": [
-        "按钮和列表行的焦点轮廓现在只在按下 Tab 后才出现，点击过的按钮不会再在之后按键时冒出蓝色方框。",
-        "文本输入框获得焦点时不再显示轮廓，也没有蓝色边框和光晕，以光标作为提示。",
-        "变更中的差异标题更简洁，另一侧没有对应内容的行会用斜线填充。",
-        "一轮变更上的撤销按钮现在标为「撤销」。",
-        "紧凑的工具行会显示每个工具的耗时。",
+        "应用菜单新增归档当前聊天、打开侧边聊天及切换聊天和工作台标签页的入口。",
+        "相关应用菜单的快捷键会跟随你的自定义设置更新。",
+        "录入快捷键时会提示组合冲突及系统或编辑功能占用；搜索、发送、换行和 Escape 仍为固定快捷键。",
+        "快捷键按物理键位匹配，Option 改变字符时也能识别原来的组合。",
         "新增的界面文字提供全部五种界面语言。"
       ]
     },
     "zh-TW": {
-      "summary": "Vela 1.2.21 新增可選的極簡起始頁，重新設計命令區塊和技能讀取的顯示，更清楚地回報每一輪的用時，並且點擊後的按鈕和文字輸入框不再出現多餘的焦點外框。",
+      "summary": "Vela 1.2.22 將設定重新整理為分組卡片，新增可自訂的應用程式快捷鍵，並讓聊天和工作台分頁之間的切換更方便。",
       "highlights": [
         {
-          "title": "極簡起始頁",
-          "body": "在 設定 → 介面 中開啟後，新對話只顯示輸入框，不顯示問候語、預設提示詞和背景圖案。預設關閉。"
+          "title": "分組卡片式設定",
+          "body": "設定改用圓角分組卡片，控制項與選項並排顯示，導覽增加圖示，頁面標題更清楚，開關與分段控制項也統一了樣式。主題和對話顯示預覽維持原樣。"
         },
         {
-          "title": "更清爽的命令區塊",
-          "body": "命令現在顯示在有邊框的區塊裡：命令限制為兩行（點擊可展開），滑過時出現複製按鈕，命令與輸出共用同一個高度上限。命令詳情與編輯詳情的高度上限也分成了兩個獨立設定。"
+          "title": "自訂快捷鍵",
+          "body": "在 設定 → 快捷鍵 中點擊已有組合即可修改，每個應用程式動作最多可設定三個快捷鍵。支援清除、衝突提示、單項還原及全部還原預設值，改動會儲存並立即生效。"
         },
         {
-          "title": "可以開啟的技能讀取",
-          "body": "Agent 讀取技能時，這一列會顯示「已讀取 <技能> 技能」並配有扁平的 SKILL.md 圖示，點擊技能名稱即可在預覽面板中開啟 SKILL.md。"
+          "title": "切換聊天與分頁",
+          "body": "可切換到上一個或下一個聊天、工作台分頁，也可跳到下一個等待輸入或發生錯誤的其他聊天。這些動作都可透過快捷鍵和應用程式選單觸發。"
         },
         {
-          "title": "更清楚的用時顯示",
-          "body": "每一輪的用時以整秒顯示；由你自己停止的一輪會顯示「你在 X 秒後停止了」，不再是各工具耗時的總和。"
+          "title": "統一的設定下拉選單",
+          "body": "設定中的下拉選項改用統一的自訂選單，目前選項帶有勾選標記，並支援鍵盤操作：方向鍵移動、Enter 選取、Escape 關閉。"
         }
       ],
       "improvements": [
-        "按鈕和列表列的焦點外框現在只在按下 Tab 後才出現，點擊過的按鈕不會再在之後按鍵時冒出藍色方框。",
-        "文字輸入框取得焦點時不再顯示外框，也沒有藍色邊框和光暈，以游標作為提示。",
-        "變更中的差異標題更簡潔，另一側沒有對應內容的列會用斜線填滿。",
-        "一輪變更上的復原按鈕現在標為「撤銷」。",
-        "精簡的工具列會顯示每個工具的耗時。",
+        "應用程式選單新增封存目前聊天、開啟側邊聊天及切換聊天和工作台分頁的入口。",
+        "相關應用程式選單的快捷鍵會隨你的自訂設定更新。",
+        "錄入快捷鍵時會提示組合衝突及系統或編輯功能占用；搜尋、傳送、換行和 Escape 仍為固定快捷鍵。",
+        "快捷鍵依實體鍵位比對，Option 改變字元時也能辨識原來的組合。",
         "新增的介面文字提供全部五種介面語言。"
       ]
     },
     "ja": {
-      "summary": "Vela 1.2.21 では、任意で使えるミニマルなスタートページを追加し、コマンドブロックとスキル読み取りの表示を一新しました。ターンの所要時間の表示も分かりやすくなり、クリックしたボタンやテキスト入力に余計なフォーカス枠が出なくなりました。",
+      "summary": "Vela 1.2.22 では、設定をグループ別のカードに整理し、アプリのショートカットをカスタマイズできるようにしました。チャットやワークベンチのタブも切り替えやすくなりました。",
       "highlights": [
         {
-          "title": "ミニマルなスタートページ",
-          "body": "設定 → インターフェースでオンにすると、新しいチャットには入力欄だけが表示され、あいさつ、提案プロンプト、背景のマークは表示されません。既定ではオフです。"
+          "title": "カード形式の設定",
+          "body": "設定を角丸のカードにまとめ、各項目の横に操作部を配置しました。ナビゲーションにアイコンを追加し、ページタイトル、スイッチ、セグメント切り替えの表示を統一しました。テーマと会話表示のプレビューはそのままです。"
         },
         {
-          "title": "すっきりしたコマンドブロック",
-          "body": "コマンドは枠付きのブロックに表示されます。コマンドは 2 行までに収められ（クリックで展開）、ホバーするとコピーボタンが現れ、コマンドと出力は 1 つの高さ上限を共有します。コマンド詳細と編集詳細の高さ上限は別々の設定になりました。"
+          "title": "ショートカットをカスタマイズ",
+          "body": "設定 → ショートカットでキーの組み合わせをクリックして変更でき、アプリの各操作に最大 3 つまで登録できます。削除、競合の確認、個別または一括での既定値への復元に対応し、変更は保存されてすぐに反映されます。"
         },
         {
-          "title": "開けるスキルの読み取り",
-          "body": "エージェントがスキルを読み取ると、その行には「<スキル> スキルを読み取りました」とフラットな SKILL.md アイコンが表示され、スキル名をクリックするとプレビューペインで SKILL.md が開きます。"
+          "title": "チャットとタブを切り替え",
+          "body": "前後のチャットやワークベンチのタブに切り替えたり、入力待ちまたはエラーのある次の別のチャットに移動したりできます。ショートカットとアプリメニューの両方から操作できます。"
         },
         {
-          "title": "分かりやすい所要時間",
-          "body": "ターンの所要時間は秒単位で表示され、自分で止めたターンは各ツールの時間の合計ではなく「X 秒後に停止しました」と表示されます。"
+          "title": "統一された設定ドロップダウン",
+          "body": "設定のドロップダウンを共通のカスタムメニューにしました。選択中の項目にチェックを表示し、矢印キーで移動、Enter で選択、Escape で閉じる操作に対応します。"
         }
       ],
       "improvements": [
-        "ボタンや行のフォーカス枠は Tab キーを押したあとだけ表示されるようになり、クリックしたボタンに後のキー入力で青い枠が出ることがなくなりました。",
-        "テキスト入力はフォーカス時に枠線も青い境界線や光彩も表示せず、カーソルで状態を示します。",
-        "変更の差分ヘッダーをシンプルにし、反対側に対応する内容がない行は斜線で表示します。",
-        "ターンの変更にある元に戻すボタンの表示を「元に戻す」にしました。",
-        "コンパクトなツール行に、各ツールの所要時間を表示します。",
+        "アプリメニューに、現在のチャットのアーカイブ、サイドチャットの表示、チャットとワークベンチタブの切り替えを追加しました。",
+        "関連するアプリメニューのショートカットもカスタマイズ内容に合わせて更新されます。",
+        "ショートカットの登録時に競合やシステム・編集機能で予約された組み合わせを通知します。検索、送信、改行、Escape は固定のままです。",
+        "ショートカットは物理キーの位置で判定するため、Option で入力文字が変わっても組み合わせを認識できます。",
         "新しい画面テキストは 5 つの表示言語すべてで利用できます。"
       ]
     },
     "ko": {
-      "summary": "Vela 1.2.21은 선택적으로 쓸 수 있는 미니멀 시작 페이지를 추가하고, 명령 블록과 스킬 읽기 표시를 새로 다듬었습니다. 턴 소요 시간도 더 분명하게 보여 주며, 클릭한 버튼과 텍스트 입력에 불필요한 포커스 테두리가 생기지 않습니다.",
+      "summary": "Vela 1.2.22는 설정을 그룹별 카드로 정리하고 앱 단축키 사용자 지정을 추가했습니다. 대화와 워크벤치 탭 사이를 이동하기도 더 편해졌습니다.",
       "highlights": [
         {
-          "title": "미니멀 시작 페이지",
-          "body": "설정 → 인터페이스에서 켜면 새 대화에 입력창만 표시되고, 인사말, 추천 프롬프트, 배경 무늬는 표시되지 않습니다. 기본값은 꺼짐입니다."
+          "title": "카드로 정리한 설정",
+          "body": "설정을 둥근 카드로 묶고 각 옵션 옆에 컨트롤을 배치했습니다. 탐색 아이콘과 더 명확한 페이지 제목을 추가하고 스위치와 분할 컨트롤을 통일했습니다. 테마와 대화 표시 미리보기는 그대로 유지됩니다."
         },
         {
-          "title": "더 깔끔한 명령 블록",
-          "body": "명령이 테두리가 있는 블록에 표시됩니다. 명령은 두 줄로 제한되고(클릭하면 펼쳐짐), 마우스를 올리면 복사 버튼이 나타나며, 명령과 출력이 하나의 높이 제한을 공유합니다. 명령 상세와 편집 상세의 높이 제한은 이제 별도 설정입니다."
+          "title": "단축키 사용자 지정",
+          "body": "설정 → 단축키에서 기존 조합을 클릭해 변경하고 앱 동작마다 최대 3개까지 등록할 수 있습니다. 삭제, 충돌 안내, 개별 또는 전체 기본값 복원을 지원하며 변경 사항은 저장되고 즉시 적용됩니다."
         },
         {
-          "title": "열어 볼 수 있는 스킬 읽기",
-          "body": "에이전트가 스킬을 읽으면 해당 줄에 \"<스킬> 스킬 읽음\"과 평면 SKILL.md 아이콘이 표시되며, 스킬 이름을 클릭하면 미리보기 창에서 SKILL.md가 열립니다."
+          "title": "대화와 탭 전환",
+          "body": "이전 또는 다음 대화나 워크벤치 탭으로 전환하고, 입력을 기다리거나 오류가 발생한 다음 다른 대화로 이동할 수 있습니다. 단축키와 앱 메뉴에서 모두 사용할 수 있습니다."
         },
         {
-          "title": "더 분명한 소요 시간",
-          "body": "턴 소요 시간을 초 단위로 보여 주고, 직접 중지한 턴은 각 도구 시간의 합계 대신 \"X초 후 중지함\"으로 표시됩니다."
+          "title": "통일된 설정 드롭다운",
+          "body": "설정 드롭다운에 공통 사용자 지정 메뉴를 사용합니다. 선택한 항목에 체크 표시가 나타나며 방향키로 이동, Enter로 선택, Escape로 닫기를 지원합니다."
         }
       ],
       "improvements": [
-        "버튼과 행의 포커스 테두리는 Tab 키를 누른 뒤에만 나타나므로, 클릭한 버튼에 이후 키 입력으로 파란 상자가 생기지 않습니다.",
-        "텍스트 입력은 포커스를 받아도 윤곽선, 파란 테두리, 빛 번짐이 없으며 커서가 상태를 알려 줍니다.",
-        "변경 사항의 차이점 머리글을 단순하게 만들었고, 반대쪽에 대응하는 내용이 없는 행은 사선 무늬로 표시합니다.",
-        "턴 변경 사항의 되돌리기 버튼 이름을 \"되돌리기\"로 줄였습니다.",
-        "간략한 도구 행에 각 도구의 소요 시간을 표시합니다.",
+        "앱 메뉴에 현재 대화 보관, 사이드 채팅 열기, 대화 및 워크벤치 탭 전환 항목을 추가했습니다.",
+        "관련 앱 메뉴의 단축키도 사용자 지정 설정에 맞게 업데이트됩니다.",
+        "단축키 등록 시 충돌과 시스템 또는 편집 기능에 예약된 조합을 알려 줍니다. 검색, 전송, 줄 바꿈, Escape는 고정 단축키로 유지됩니다.",
+        "물리적 키 위치로 단축키를 인식하므로 Option으로 입력 문자가 바뀌어도 원래 조합을 인식합니다.",
         "새 인터페이스 텍스트는 5개 인터페이스 언어를 모두 지원합니다."
       ]
     }
