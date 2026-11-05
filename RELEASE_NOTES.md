@@ -1,19 +1,18 @@
-# Vela 1.2.21
+# Vela 1.2.22
 
-Vela 1.2.21 adds an optional minimal start page, restyles command blocks and skill reads, and reports how long a turn took more clearly. It also stops clicked buttons and text inputs from drawing stray focus outlines.
+Vela 1.2.22 reorganizes Settings into grouped cards, adds customizable app shortcuts, and makes it easier to move between chats and workbench tabs.
 
 ## New
 
-- **Minimal start page**: turn on **Settings → Interface → Minimal start page** and a new chat shows only the composer, without the greeting, suggested prompts or background mark. It is off by default.
-- **Restyled command blocks**: command output now sits in a bordered block. The command is clamped to two lines (click to expand), a copy button appears on hover, and the command line and its output share a single height limit, with the output scrolling inside the remaining space. The thinking-group **Command detail height limit** and **Edit detail height limit** are now separate settings; the command limit falls back to the previous shared value.
-- **Skill reads you can open**: reading a skill now shows as "Read <skill> skill" with a flat SKILL.md icon, and clicking the skill name opens SKILL.md in the preview pane.
-- **Clearer turn timing**: turn time is shown in whole seconds, and a turn you stop yourself reads "You stopped after Xs" (wall-clock time) instead of a sum of tool durations. Compact tool rows also show how long each tool took.
+- **Customizable app shortcuts**: in **Settings → Shortcuts**, click a binding to change it, add up to three bindings per supported app action, or clear a binding. Conflicting combinations and reserved system or editing shortcuts are flagged. Changes are saved and apply immediately; restore one action or all defaults whenever needed. Search, send, newline and Escape remain fixed.
+- **Chat and tab navigation**: switch to the next or previous chat or workbench tab, with wraparound, or jump to the next other chat waiting for input or reporting an error. On macOS, the default shortcuts are **⌘⌥] / ⌘⌥[** for chats, **⌘⇧] / ⌘⇧[** (also **⌃Tab / ⌃⇧Tab**) for tabs, and **⌘⌥A** for the next chat needing attention.
+- **More app-menu actions**: archive the current chat, open the existing side chat, or switch chats and workbench tabs from the app menus. Related menu accelerators follow your customized shortcut settings.
 
 ## Improved
 
-- **Focus outlines**: outlines on buttons and rows now appear only after you press Tab, so a button you clicked no longer gets a blue box on later keypresses.
-- **Text inputs**: they no longer draw an outline or a blue border and glow when focused; the caret is the indicator.
-- **Changes view**: diff headers are simpler, rows without a counterpart on the other side are hatched, and the turn's undo button is labelled "Undo".
+- **Grouped settings cards**: rounded cards keep each setting and its controls on one row, with icon-led navigation, clearer page titles and centered content. Switches, segmented controls and buttons share consistent styling. Theme and conversation-display previews stay as they are.
+- **Consistent settings dropdowns**: custom dropdown menus show a checkmark for the selected option and support arrow keys, Enter to select, and Escape to dismiss.
+- **Keyboard-layout handling**: app shortcuts match physical key positions, so Option-modified characters do not change the recognized combination.
 - New interface text is available in all five interface languages.
 
 ## Upgrade
@@ -28,15 +27,18 @@ The macOS build is not notarized and uses an ad-hoc signature. If macOS blocks f
 
 | File | Platform |
 | --- | --- |
-| `Vela-1.2.21-arm64.dmg` | macOS Apple Silicon installer |
-| `Vela-1.2.21-arm64.zip` | macOS Apple Silicon application bundle (`.app`); also the package used by in-app updates |
+| `Vela-1.2.22-arm64.dmg` | macOS Apple Silicon installer |
+| `Vela-1.2.22-arm64.zip` | macOS Apple Silicon application bundle (`.app`); also the package used by in-app updates |
 | `SHA256SUMS.txt` | SHA-256 checksums for both packages |
 | `SHA256SUMS.txt.sig` | Ed25519 signature of `SHA256SUMS.txt`, verified by the in-app updater |
 
-Package version: `1.2.21`. macOS bundle and download version: `1.2.21`.
+Package version: `1.2.22`. macOS bundle and download version: `1.2.22`.
 
 ## Validation
 
-- Release metadata verified: all package and macOS bundle version fields are `1.2.21`; all five in-app release-note languages contain four highlights and six improvements.
-- Production build and macOS arm64 packaging completed (`pnpm package:mac`).
-- The automated test suites were not run for this release.
+- Release metadata verified: all package and macOS bundle version fields are `1.2.22`; all five in-app release-note languages contain four highlights and five improvements.
+- Production build and macOS arm64 packaging completed (`pnpm package:mac`), followed by ad-hoc signing of `Vela.app` and regeneration of the DMG and ZIP from the signed bundle.
+- The local app, app extracted from the ZIP, and app in the mounted DMG all passed strict code-signature verification and bundle version / identifier checks. The ZIP has a single top-level `Vela.app` and passed archive-integrity verification.
+- Both package SHA-256 checksums and the Ed25519 checksum signature were verified with the application's trusted public keys.
+
+The automated test suites were not run for this release, as requested.
