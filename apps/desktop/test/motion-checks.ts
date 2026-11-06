@@ -81,7 +81,7 @@ export async function runMotionChecks(setReducedMotion: (value: boolean) => void
   });
   await check("real menu selection and Escape close via shared presence", async () => {
     await evaluate("document.querySelector('.mode-pill').click()"); await wait(220);
-    await evaluate("document.querySelectorAll('.mode-option')[1].click()");
+    await evaluate("document.querySelectorAll('.mode-option')[3].click()");
     assert.equal(await evaluate("document.querySelector('.mode-pill').textContent"), "Plan");
     assert.equal(await evaluate("document.querySelector('.mode-popover').parentElement.inert"), true);
     await wait(180);

@@ -6,6 +6,7 @@ import type { ConversationLinkTarget } from "../../browser/conversation-link-pol
 import { notificationSoundKinds, type NotifySound } from "../../notification-sounds";
 import type { SettingsCopy } from "../settings-copy";
 import { setMinimalStart, useMinimalStart } from "../../hooks/useMinimalStart";
+import { setCombinedModePicker, useCombinedModePicker } from "../../hooks/useCombinedModePicker";
 import { composerLayouts, setComposerLayout, useComposerLayout, type ComposerLayout } from "../../hooks/useComposerLayout";
 import { Segmented, SettingsBlock, SettingsGroup, SettingsSwitch } from "./primitives";
 import { SettingsSelect } from "./SettingsSelect";
@@ -33,6 +34,7 @@ export function InterfacePage({
   } = preferences;
   const text = copy.appearance;
   const composerLayout = useComposerLayout();
+  const combinedModePicker = useCombinedModePicker();
   const minimalStart = useMinimalStart();
   const composerLayoutLabels: Record<ComposerLayout, string> = {
     classic: text.composerLayoutClassic,
@@ -123,6 +125,9 @@ export function InterfacePage({
             options={composerLayouts.map(id => ({ id, label: composerLayoutLabels[id] }))}
             onChange={setComposerLayout}
           />
+        </SettingsBlock>
+        <SettingsBlock id="combined-mode-picker" title={text.combinedModePicker} hint={text.combinedModePickerHint} layout="inline">
+          <SettingsSwitch label={text.combinedModePicker} checked={combinedModePicker} onChange={setCombinedModePicker} />
         </SettingsBlock>
         <SettingsBlock id="composer-capsules" title={text.composerCapsules} hint={text.composerCapsulesHint} layout="inline">
           <SettingsSwitch label={text.composerCapsules} checked={composerCapsules} onChange={setComposerCapsules} />

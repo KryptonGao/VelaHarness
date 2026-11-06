@@ -19,8 +19,7 @@ if (!process.versions.electron) {
         import React from 'react';
         import { createRoot } from 'react-dom/client';
         import { flushSync } from 'react-dom';
-        import { ModeChip } from './apps/desktop/src/renderer/components/composer/ModeChip';
-        import { SandboxPill } from './apps/desktop/src/renderer/components/composer/SandboxPill';
+        import { ModePicker } from './apps/desktop/src/renderer/components/composer/ModePicker';
         import { ComposerStatsRow } from './apps/desktop/src/renderer/components/composer/ComposerStatsRow';
         import { ModelControls } from './apps/desktop/src/renderer/components/ModelControls';
         import { AppLocaleProvider, setActiveLocale } from './apps/desktop/src/renderer/locale';
@@ -43,8 +42,7 @@ if (!process.versions.electron) {
                   <div className="composer-tray">
                     <div className="composer-tray-left">
                       <div className="composer-tray-chips">
-                        <ModeChip mode="agent" disabled={false} onChange={() => {}} />
-                        <SandboxPill project={{sandboxMode: sandbox, setSandboxMode: noop}} />
+                        <ModePicker mode="agent" sandboxMode={sandbox} disabled={false} onMode={() => {}} onSandboxMode={noop} race={{ onStart: () => {}, onShow: () => {}, count: 2 }} />
                       </div>
                     </div>
                     <div className="composer-tray-right">
@@ -72,7 +70,7 @@ if (!process.versions.electron) {
           const tray = document.querySelector('.composer-tray');
           const style = getComputedStyle(tray);
           const bounds = tray.getBoundingClientRect();
-          const controls = [...tray.querySelectorAll('.mode-pill, .sandbox-pill, .composer-stats-row, .model-choice-pill, .usage-ring-button')]
+          const controls = [...tray.querySelectorAll('.mode-pill, .composer-stats-row, .model-choice-pill, .usage-ring-button')]
             .filter(visible)
             .map(el => ({name: el.className.toString().split(' ').slice(0, 2).join(' '), ...rect(el)}));
           const label = document.querySelector('.model-pill-label');
@@ -81,7 +79,7 @@ if (!process.versions.electron) {
             trayRight: bounds.right - parseFloat(style.paddingRight),
             controls,
             modelLabelWidth: visible(label) ? label.getBoundingClientRect().width : 0,
-            sandboxText: visible(document.querySelector('.sandbox-pill > span')),
+            sandboxText: visible(document.querySelector('.mode-pill > span')),
             thinkingText: visible(document.querySelector('.thinking-label')),
             statsVisible: visible(document.querySelector('.composer-stats-row')),
             overflowed: label ? label.scrollWidth > label.clientWidth : false,
@@ -148,17 +146,27 @@ if (!process.versions.electron) {
       await settle();
       const wide = await evaluate("window.measure()");
       assert.ok(wide.sandboxText && wide.thinkingText && wide.statsVisible, "宽托盘应保留全部文字");
-      assert.equal(await evaluate("document.querySelector('.sandbox-pill').getAttribute('aria-label')"), "完全访问", "权限芯片需要可读名称");
+      assert.equal(await evaluate("document.querySelector('.mode-pill').getAttribute('aria-label')"), "完全访问", "权限芯片需要可读名称");
       assert.match(await evaluate("document.querySelector('.model-choice-pill').title"), /高/, "思考强度提示需要包含当前档位");
       // 只剩图标时仍然打得开菜单。
       await evaluate("window.setWidth(300)");
       await settle();
       const narrow = await evaluate("window.measure()");
       assert.ok(!narrow.sandboxText && !narrow.thinkingText, "窄托盘应收起权限和思考强度文字");
-      await evaluate("document.querySelector('.sandbox-pill').click()");
+      await evaluate("document.querySelector('.mode-pill').click()");
       const sandboxOpen = Date.now() + 2000;
-      while (Date.now() < sandboxOpen && !(await evaluate("Boolean(document.querySelector('.sandbox-popover'))"))) await new Promise(done => setTimeout(done, 20));
-      assert.ok(await evaluate("Boolean(document.querySelector('.sandbox-popover'))"), "收起文字后权限菜单仍可打开");
+      while (Date.now() < sandboxOpen && !(await evaluate("Boolean(document.querySelector('.mode-popover'))"))) await new Promise(done => setTimeout(done, 20));
+      assert.ok(await evaluate("Boolean(document.querySelector('.mode-popover'))"), "收起文字后权限菜单仍可打开");
+      assert.equal(await evaluate("document.querySelectorAll('.mode-popover .mode-option').length"), 7, "合并后的模式菜单应有 5 个模式加 2 个赛马入口");
+      assert.equal(await evaluate("[...document.querySelectorAll('.mode-popover .mode-option')].every(row => row.querySelector('.mode-option-name') && row.querySelector('.mode-option-key'))"), true, "每一行都要有名称和数字键");
+      assert.equal(await evaluate("(() => { const p = document.querySelector('.mode-popover'); return p.scrollHeight <= p.clientHeight + 1; })()"), true, "窗口高度足够时，模式菜单不应出现滚动");
+      // 菜单内容超出限高时必须在菜单内滚动，不能溢出到菜单外盖住页面。
+      assert.deepEqual(await evaluate("(() => { const s = getComputedStyle(document.querySelector('.mode-popover')); return [s.overflowY, s.maxHeight !== 'none']; })()"), ["auto", true], "模式菜单需要限高并在内部滚动");
+      if (shots) {
+        await evaluate("window.setWidth(800)");
+        await new Promise(done => setTimeout(done, 400));
+        writeFileSync(join(shots, "mode-popover.png"), (await win.webContents.capturePage()).toPNG());
+      }
       assert.deepEqual(failures, []);
       assert.deepEqual(errors, []);
       console.log(`PASS: 托盘 ${widths.length} 档宽度 × 6 组语言/权限/强度无重叠、无溢出，模型名可见`);

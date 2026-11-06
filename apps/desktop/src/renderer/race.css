@@ -85,7 +85,5 @@
 .race-confirm p { flex: 1 1 100%; margin: 0; color: var(--text-secondary); font-size: calc(12px * var(--ui-scale)); line-height: 1.5; }
 @media (prefers-reduced-motion: no-preference) { .race-lane { transition: border-color var(--transition-enter), opacity var(--transition-enter); } }
 
-/* 模式菜单里的「赛马」入口：它不是对话模式，所以样式放在这里而不是模式色表里。 */
-.mode-option-icon.mode-race { background: var(--bg-surface-subtle); color: var(--success); }
+/* 模式菜单里，对话模式与「赛马」启动动作之间的分隔线。 */
 .mode-popover-divider { height: 1px; margin: 4px 8px; background: var(--border-subtle); }
-.mode-option-secondary { padding-top: 4px; padding-bottom: 4px; }

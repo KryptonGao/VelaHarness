@@ -119,7 +119,7 @@ if (!process.versions.electron) {
       await click(`#${first}`);
       await until(`document.querySelector(${JSON.stringify(panel + ' .rich-input')})?.textContent === '保留这段草稿'`);
       // 模式、模型和思考强度都必须使用该标签绑定的 ID。
-      await click(panel + " .mode-pill"); await click(panel + " .mode-option:nth-of-type(2)");
+      await click(panel + " .mode-pill"); await click(panel + " .mode-option:nth-of-type(4)");
       await until("chatFixture.state('panel-1').session.mode === 'plan'");
       assert.equal(await evaluate("chatFixture.state('main-chat').session.mode"), "agent");
       await click(panel + " .model-pill");

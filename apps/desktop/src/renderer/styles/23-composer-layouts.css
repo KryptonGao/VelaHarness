@@ -147,7 +147,8 @@
   .composer-tray-right .composer-stat-context .composer-stat-text { display: none; }
 }
 @container composer-tray (max-width: 520px) {
-  .sandbox-pill > span { display: none; }
+  .sandbox-pill > span,
+  .mode-pill.mode-combined > span { display: none; }
 }
 @container composer-tray (max-width: 420px) {
   .composer-tray-right .composer-stats-row { display: none; }

@@ -403,6 +403,7 @@ button.environment-row:not(:disabled):hover { background: var(--bg-surface-subtl
 .mode-pill {
   display: inline-flex;
   align-items: center;
+  gap: 5px;
   padding: 4px 10px;
   border-radius: var(--radius-pill);
   font-size: calc(15px * var(--ui-scale));
@@ -414,7 +415,16 @@ button.environment-row:not(:disabled):hover { background: var(--bg-surface-subtl
 .mode-pill.mode-agent { color: var(--text-secondary); }
 .mode-pill.mode-plan { color: var(--accent-blue); }
 .mode-pill.mode-goal { color: var(--violet); }
-.mode-popover { width: 320px; }
+/* 合并后的模式：「手动」是安全的默认值,用中性色;「自动」靠模型判断,用强调色;「完全访问」跳过审批,用警示色提醒。 */
+.mode-pill.mode-manual { color: var(--text-secondary); }
+.mode-pill.mode-manual:hover { color: var(--text-primary); }
+.mode-pill.mode-auto { color: var(--accent-blue); }
+.mode-pill.mode-full { color: var(--warning-strong); }
+/* .composer-popover 把 overflow 设成 visible，超过 .dock-popover 的 max-height 时内容会溢出到菜单外，所以这里显式限高并滚动。 */
+.mode-popover { width: 360px; max-height: min(600px, calc(100vh - 96px)); overflow-y: auto; overscroll-behavior: contain; }
+.mode-popover > * { flex-shrink: 0; }
+.mode-popover .mode-option { padding-top: 7px; padding-bottom: 7px; }
+.mode-popover .mode-option-desc { font-size: calc(13.5px * var(--ui-scale)); line-height: 1.4; }
 .mode-option {
   width: 100%;
   display: flex;
@@ -443,6 +453,33 @@ button.environment-row:not(:disabled):hover { background: var(--bg-surface-subtl
 .mode-option-name { font-size: calc(15px * var(--ui-scale)); font-weight: 600; }
 .mode-option-desc { font-size: calc(15px * var(--ui-scale)); color: var(--text-muted); line-height: 1.45; }
 .mode-option > svg:last-child { color: var(--accent-blue); flex-shrink: 0; }
+.mode-option:disabled { opacity: 0.5; cursor: default; }
+.mode-option:disabled:hover { background: transparent; }
+.mode-option-name { display: flex; align-items: center; gap: 8px; }
+.mode-option-badge {
+  padding: 0 7px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-pill);
+  font-size: calc(12px * var(--ui-scale));
+  font-weight: 500;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+/* Plan / Goal / 赛马：紧凑的单行，说明只留一句提示，完整说明放在气泡提示里。 */
+.mode-popover .mode-option-compact { padding-top: 5px; padding-bottom: 5px; gap: 8px; }
+.mode-option-compact .mode-option-icon { width: 20px; height: 20px; border-radius: 6px; background: var(--bg-surface-subtle); color: var(--text-secondary); }
+.mode-option-compact .mode-option-name { flex-shrink: 0; }
+.mode-option-hint {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: calc(13.5px * var(--ui-scale));
+  color: var(--text-muted);
+}
+.mode-option-check { flex-shrink: 0; width: 16px; display: grid; place-items: center; color: var(--accent-blue); }
+.mode-option-key { flex-shrink: 0; min-width: 1ch; text-align: right; color: var(--text-muted); font-variant-numeric: tabular-nums; }
 
 .mode-card {
   background: var(--bg-card-surface);

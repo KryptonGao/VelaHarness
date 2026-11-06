@@ -47,7 +47,7 @@
 - `packages/agent/src/runtime.ts` 的 `runLane` 与 `getLaneStats`：创建后台赛道对话并等到包括子代理在内全部空闲。
 - `packages/workspace/src/git-squash.ts`：提交 worktree 改动、统计 diff、`squashMergeBranch`。
 - `apps/desktop/src/main/race-service.ts`、`race-host.ts`、`race-verify.ts`：编排、IPC、统一验证。
-- 渲染层：`RaceSetupDialog.tsx`、`RacePanel.tsx`、`race.css`、`hooks/useRaces.ts`、`composer/ModeChip.tsx`。
+- 渲染层：`RaceSetupDialog.tsx`、`RacePanel.tsx`、`race.css`、`hooks/useRaces.ts`、`composer/ModePicker.tsx`。
 
 ## 验证
 

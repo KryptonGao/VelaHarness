@@ -26,7 +26,9 @@ import { BranchChip } from "./composer/BranchChip";
 import { ComposerStatsRow } from "./composer/ComposerStatsRow";
 import { EnvironmentChip } from "./composer/EnvironmentChip";
 import { ModeChip } from "./composer/ModeChip";
+import { ModePicker } from "./composer/ModePicker";
 import { SandboxPill } from "./composer/SandboxPill";
+import { useCombinedModePicker } from "../hooks/useCombinedModePicker";
 import { SkillMenu } from "./composer/SkillMenu";
 import { WorkspaceChip } from "./composer/WorkspaceChip";
 import {
@@ -825,13 +827,23 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
     <AttachMenu onAttachments={addAttachments} disabled={disabled} />
   );
 
-  const modeChip = (
-    <ModeChip mode={mode} disabled={disabled || streaming || recipeActive} onChange={onMode}
-      race={raceActions && workspacePath && window.vela?.races && modelReady ? { onStart: () => setRaceOpen(true), onShow: raceActions.open, count: raceActions.count } : undefined} />
-  );
-
-  const sandboxPill = (
-    <SandboxPill project={project} conversationMode={sandboxMode} />
+  const combinedModePicker = useCombinedModePicker();
+  const raceMenu = raceActions && workspacePath && window.vela?.races && modelReady ? { onStart: () => setRaceOpen(true), onShow: raceActions.open, count: raceActions.count } : undefined;
+  const modePicker = combinedModePicker ? (
+    <ModePicker
+      mode={mode}
+      sandboxMode={sandboxMode ?? project.sandboxMode}
+      sandboxLocked={Boolean(sandboxMode)}
+      disabled={disabled || streaming || recipeActive}
+      onMode={onMode}
+      onSandboxMode={project.setSandboxMode}
+      race={raceMenu}
+    />
+  ) : (
+    <>
+      <ModeChip mode={mode} disabled={disabled || streaming || recipeActive} onChange={onMode} race={raceMenu} />
+      <SandboxPill project={project} conversationMode={sandboxMode} />
+    </>
   );
 
   const modelControls = (
@@ -964,8 +976,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
             <div className="composer-tray">
               <div className="composer-tray-left">
                 <div className="composer-tray-chips">
-                  {modeChip}
-                  {sandboxPill}
+                  {modePicker}
                 </div>
               </div>
               <div className="composer-tray-right">
@@ -981,8 +992,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
             <div className="dock-controls-row">
               <div className="dock-controls-left">
                 {attachMenu}
-                {modeChip}
-                {sandboxPill}
+                {modePicker}
               </div>
               <div className="dock-controls-right">
                 {modelControls}

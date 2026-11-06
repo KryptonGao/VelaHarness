@@ -6,7 +6,7 @@ import { PopoverPresence, ScreenPresence, WorkbenchTabPanel } from "../src/rende
 import { WorkbenchPanel, type WorkbenchTab } from "../src/renderer/components/WorkbenchPanel";
 import { RepoCardPopover } from "../src/renderer/components/RepoCardPopover";
 import { AttachMenu } from "../src/renderer/components/composer/AttachMenu";
-import { ModeChip } from "../src/renderer/components/composer/ModeChip";
+import { ModePicker } from "../src/renderer/components/composer/ModePicker";
 import { ContextUsageTrigger } from "../src/renderer/components/ContextUsagePopover";
 import type { ProjectApi } from "../src/renderer/hooks/useProject";
 import type { SidebarResize } from "../src/renderer/hooks/useSidebarResize";
@@ -62,7 +62,7 @@ function Fixture() {
       <button ref={anchor} onClick={() => setRepoOpen((value) => !value)}>Repo menu</button>
       <PopoverPresence present={repoOpen}><RepoCardPopover anchor={anchor} className="test-repo" label="Repository"><input defaultValue="repo" /></RepoCardPopover></PopoverPresence>
       <AttachMenu onAttachments={() => {}} disabled={false} />
-      <ModeChip mode={mode} disabled={false} onChange={setMode} />
+      <ModePicker mode={mode} sandboxMode="ask" disabled={false} onMode={setMode} onSandboxMode={() => undefined} />
       <ContextUsageTrigger usage={null} high={false}>Context</ContextUsageTrigger>
     </div>
     <div className="app-screens">
