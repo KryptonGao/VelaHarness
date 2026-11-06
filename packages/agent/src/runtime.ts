@@ -2908,6 +2908,16 @@ export class AgentRuntime {
         thinkingLevel: entry.recipeExecution.thinkingLevel,
       } : this.conversationSelection(directory));
       const cwd = entry.snapshot.cwd;
+      // 模型在这里就已确定,不必等技能 / MCP / 资源加载完才显示;modelReady 仍待会话就绪后再置真。
+      if (chosen) {
+        this.patchEntry(entry, {
+          model: directory.displayName(chosen) ?? modelLabel(chosen),
+          modelProvider: chosen.provider,
+          modelId: chosen.id,
+          thinkingLevel: isThinkingLevel(thinkingLevel) ? thinkingLevel : "medium",
+          thinkingLevels: levelsFor(chosen),
+        });
+      }
       // 新对话:登记时已建或此处新建;恢复的对话:按文件打开以接续历史。
       const sessionManager = entry.sessionManager
         ?? (entry.sessionFile

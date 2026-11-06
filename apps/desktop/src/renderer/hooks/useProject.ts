@@ -15,6 +15,7 @@ import type {
 import { useCallback, useEffect, useRef, useState } from "react";
 import { tr } from "../locale";
 import { noSound, type NotifySound } from "../notification-sounds";
+import { readGitHint, writeGitHint } from "../startup-hint";
 
 export type ProjectApi = ReturnType<typeof useProject>;
 
@@ -46,6 +47,8 @@ export function useProject(notify: NotifySound = noSound) {
   const [environment, setEnvironmentState] = useState<ExecutionEnvironment | null>(null);
   const [environments, setEnvironments] = useState<ExecutionEnvironment[]>([]);
   const [git, setGit] = useState<GitStatusSnapshot | null>(null);
+  // 冷启动时主进程还没查完 Git,先用上次的快照占位;真实快照到达或工作区切换后即丢弃。
+  const [gitHint, setGitHint] = useState(readGitHint);
   const [branches, setBranches] = useState<BranchSummary[]>([]);
   const [pr, setPr] = useState<PullRequestInfo | null>(null);
   const [sandboxMode, setSandboxModeState] = useState<SandboxMode>("ask");
@@ -85,8 +88,14 @@ export function useProject(notify: NotifySound = noSound) {
     let active = true;
 
     void (async () => {
+      // 工作区只读本地记录,很快就返回;Git / 分支 / PR 要跑子进程或联网,可能慢得多。
+      // 工作区单独先落地,避免启动时先显示空工作区、等 Git 查完才跳到上次的工作区。
+      const workspaceRequest = api.getWorkspaceState().catch(() => null);
+      void workspaceRequest.then((value) => {
+        if (active && value) setWorkspace(value);
+      });
       const [nextWorkspace, nextEnv, nextEnvs, nextGit, nextBranches, nextPr, nextMode] = await Promise.all([
-        api.getWorkspaceState().catch(() => null),
+        workspaceRequest,
         api.getEnvironment().catch(() => null),
         api.listEnvironments().catch(() => [] as ExecutionEnvironment[]),
         api.getGitStatus().catch(() => null),
@@ -106,6 +115,7 @@ export function useProject(notify: NotifySound = noSound) {
     })();
 
     const offWorkspace = api.onWorkspaceEvent((event) => {
+      setGitHint(null);
       setWorkspace(event.workspace);
       setEnvironmentState(event.environment);
       void api
@@ -136,6 +146,16 @@ export function useProject(notify: NotifySound = noSound) {
       offApproval();
     };
   }, [loadGit]);
+
+  const currentWorkspace = workspace?.current ?? null;
+  useEffect(() => {
+    if (!git || !currentWorkspace) return;
+    setGitHint(null);
+    // Git 事件频繁(文件监听),合并写盘。
+    const timer = setTimeout(() => writeGitHint(currentWorkspace, git), 800);
+    return () => clearTimeout(timer);
+  }, [git, currentWorkspace]);
+  const shownGit = git ?? (gitHint && gitHint.workspace === currentWorkspace ? gitHint.snapshot : null);
 
   const openWorkspaceDialog = useCallback(
     () => guarded(() => getApi().openWorkspaceDialog()),
@@ -244,7 +264,7 @@ export function useProject(notify: NotifySound = noSound) {
     workspace,
     environment,
     environments,
-    git,
+    git: shownGit,
     branches,
     pr,
     sandboxMode,

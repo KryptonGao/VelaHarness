@@ -7,6 +7,7 @@ import { isAgentBusy, type AppState, type AskUserQuestionRequest, type Interacti
 import { Fragment, memo, useCallback, useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useAgentWorkspace } from "./AgentPanel";
 import { modKeyLabel } from "../platform";
+import { readModelHint, writeModelHint } from "../startup-hint";
 import { useSecondClock } from "../hooks/useSecondClock";
 import { ArrowLeftIcon, BranchIcon, CheckIcon, CopyIcon, HistoryIcon, PlusIcon, StackIcon } from "./icons";
 import { trackEnteredMessages, type EnterTrack } from "./message-motion";
@@ -320,6 +321,19 @@ export function ChatView({
   );
   const pendingInteraction = Boolean(project.approval) || hasPendingQuestion;
   const session = state?.session;
+  // 冷启动时会话还没就绪,先用上次的模型占位;禁用状态和 modelReady 仍以真实会话为准。
+  const [modelHint] = useState(readModelHint);
+  const hintModel = !embedded && !session?.modelProvider ? modelHint : null;
+  useEffect(() => {
+    if (embedded || session?.status !== "ready" || !session.modelReady || !session.model || !session.modelProvider || !session.modelId) return;
+    writeModelHint({
+      label: session.model,
+      provider: session.modelProvider,
+      id: session.modelId,
+      thinkingLevel: session.thinkingLevel,
+      thinkingLevels: session.thinkingLevels,
+    });
+  }, [embedded, session?.status, session?.modelReady, session?.model, session?.modelProvider, session?.modelId, session?.thinkingLevel, session?.thinkingLevels]);
   const streaming = session?.status === "streaming";
   // 末条是已结束的助手回复时，它的 id 就是这一轮预测的依据；其余情况不预测。
   const lastMessage = messages[messages.length - 1];
@@ -1007,12 +1021,12 @@ export function ChatView({
         platform={platform}
         instructions={state?.session.pendingInstructions ?? []}
         showSetupControls={!embedded && messages.length === 0 && !streaming && (state?.context.turnCount ?? 0) === 0}
-        model={session?.model}
-        modelProvider={session?.modelProvider ?? null}
-        modelId={session?.modelId ?? null}
+        model={session?.model ?? hintModel?.label}
+        modelProvider={session?.modelProvider ?? hintModel?.provider ?? null}
+        modelId={session?.modelId ?? hintModel?.id ?? null}
         modelReady={session?.modelReady ?? false}
-        thinkingLevel={session?.thinkingLevel ?? "medium"}
-        thinkingLevels={session?.thinkingLevels ?? ["off"]}
+        thinkingLevel={session?.modelProvider ? session.thinkingLevel : hintModel?.thinkingLevel ?? session?.thinkingLevel ?? "medium"}
+        thinkingLevels={session?.modelProvider ? session.thinkingLevels : hintModel?.thinkingLevels ?? session?.thinkingLevels ?? ["off"]}
         hiddenModels={hiddenModels}
         sendButtonIcon={sendButtonIcon}
         predictionEnabled={predictionEnabled}

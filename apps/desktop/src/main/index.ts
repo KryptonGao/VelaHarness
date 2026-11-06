@@ -699,8 +699,12 @@ async function start(): Promise<void> {
 
   // 初始工作区:显式环境变量 > 上次使用的工作区 > 无。
   await envManager.setWorkspace(workspace.current);
-  await git.attach(workspace.current);
-  const snapshot = await runtime.switchWorkspace(workspace.current ?? fallbackCwd, workspace.current !== null);
+  // Git 状态(跑 git 子进程)与会话启动(加载技能、MCP)互不依赖,并行做,分支和模型更早出现在界面上。
+  // 会话的 cwd 就是 workspace.current,onActiveCwd 不会再触发工作区切换,不会与 attach 竞争。
+  const [, snapshot] = await Promise.all([
+    git.attach(workspace.current),
+    runtime.switchWorkspace(workspace.current ?? fallbackCwd, workspace.current !== null),
+  ]);
   scheduler.start();
   const detail = snapshot.error ?? snapshot.model ?? "未选择模型";
   log.info(`session ${snapshot.status}: ${detail}`, { cwd: workspace.current ?? fallbackCwd });
