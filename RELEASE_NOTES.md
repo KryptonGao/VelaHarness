@@ -1,19 +1,19 @@
-# Vela 1.2.22
+# Vela 1.2.23
 
-Vela 1.2.22 reorganizes Settings into grouped cards, adds customizable app shortcuts, and makes it easier to move between chats and workbench tabs.
+Vela 1.2.23 brings chat modes and execution permissions into one menu, shows workspace and model information earlier at startup, and refines the composer and file preview layout.
 
 ## New
 
-- **Customizable app shortcuts**: in **Settings → Shortcuts**, click a binding to change it, add up to three bindings per supported app action, or clear a binding. Conflicting combinations and reserved system or editing shortcuts are flagged. Changes are saved and apply immediately; restore one action or all defaults whenever needed. Search, send, newline and Escape remain fixed.
-- **Chat and tab navigation**: switch to the next or previous chat or workbench tab, with wraparound, or jump to the next other chat waiting for input or reporting an error. On macOS, the default shortcuts are **⌘⌥] / ⌘⌥[** for chats, **⌘⇧] / ⌘⇧[** (also **⌃Tab / ⌃⇧Tab**) for tabs, and **⌘⌥A** for the next chat needing attention.
-- **More app-menu actions**: archive the current chat, open the existing side chat, or switch chats and workbench tabs from the app menus. Related menu accelerators follow your customized shortcut settings.
+- **Combined mode menu**: choose **Auto**, **Manual**, **Full access**, **Plan** or **Goal** from one composer control, with **Race** and previous race results available when supported. Permission choices include descriptions, Auto is marked as recommended, and number keys select entries while the menu is open.
+- **Keep separate controls if you prefer**: the combined menu is enabled by default. Turn off **Settings → Interface → Combined mode menu** to restore the individual chat-mode and execution-permission controls. Choosing Plan or Goal keeps the current permissions, which remain visible in the menu; recipe-locked permissions stay protected.
 
 ## Improved
 
-- **Grouped settings cards**: rounded cards keep each setting and its controls on one row, with icon-led navigation, clearer page titles and centered content. Switches, segmented controls and buttons share consistent styling. Theme and conversation-display previews stay as they are.
-- **Consistent settings dropdowns**: custom dropdown menus show a checkmark for the selected option and support arrow keys, Enter to select, and Escape to dismiss.
-- **Keyboard-layout handling**: app shortcuts match physical key positions, so Option-modified characters do not change the recognized combination.
-- New interface text is available in all five interface languages.
+- **Earlier startup information**: the last workspace appears without waiting for Git and pull-request queries. When available, saved branch and model hints fill the initial display until live information arrives. Git attachment and session startup run in parallel, and the selected model appears before skills and MCP resources finish loading. These display hints do not bypass session-readiness checks for sending messages.
+- **Compact reasoning controls**: the effort label, icon and arrow sit together without reserving space for the longest label. The English **Extra high** label is now **Extra**, and the capsule composer brings the reasoning-effort and model controls closer together.
+- **Cleaner file previews**: the file browser no longer shows a placeholder icon or instructions when no file is open. The preview container no longer has an outer margin, rounded corners or a card shadow.
+- **Optional structured outcomes**: agent guidance now treats `submit_outcome` as optional rather than requiring it before every final reply after changes or verification. Completing a Goal still requires a validation record.
+- The new combined-menu text and setting are available in all five interface languages.
 
 ## Upgrade
 
@@ -27,18 +27,19 @@ The macOS build is not notarized and uses an ad-hoc signature. If macOS blocks f
 
 | File | Platform |
 | --- | --- |
-| `Vela-1.2.22-arm64.dmg` | macOS Apple Silicon installer |
-| `Vela-1.2.22-arm64.zip` | macOS Apple Silicon application bundle (`.app`); also the package used by in-app updates |
+| `Vela-1.2.23-arm64.dmg` | macOS Apple Silicon installer |
+| `Vela-1.2.23-arm64.zip` | macOS Apple Silicon application bundle (`.app`); also the package used by in-app updates |
 | `SHA256SUMS.txt` | SHA-256 checksums for both packages |
 | `SHA256SUMS.txt.sig` | Ed25519 signature of `SHA256SUMS.txt`, verified by the in-app updater |
 
-Package version: `1.2.22`. macOS bundle and download version: `1.2.22`.
+Package version: `1.2.23`. macOS bundle and download version: `1.2.23`.
 
 ## Validation
 
-- Release metadata verified: all package and macOS bundle version fields are `1.2.22`; all five in-app release-note languages contain four highlights and five improvements.
-- Production build and macOS arm64 packaging completed (`pnpm package:mac`), followed by ad-hoc signing of `Vela.app` and regeneration of the DMG and ZIP from the signed bundle.
-- The local app, app extracted from the ZIP, and app in the mounted DMG all passed strict code-signature verification and bundle version / identifier checks. The ZIP has a single top-level `Vela.app` and passed archive-integrity verification.
-- Both package SHA-256 checksums and the Ed25519 checksum signature were verified with the application's trusted public keys.
+- Release metadata verified: all package and macOS bundle version fields are `1.2.23`; all five in-app release-note languages contain four highlights and five improvements.
+- Production build and macOS arm64 packaging completed, followed by ad-hoc signing of `Vela.app` and regeneration of the DMG and ZIP from the signed bundle.
+- The local app, app extracted from the ZIP, and app in the mounted DMG all passed strict code-signature verification and bundle version / identifier checks. Their application archives are identical and contain the final in-app release notes.
+- The ZIP has a single top-level `Vela.app` and passed archive-integrity verification. The DMG passed checksum verification and mounted successfully.
+- Both package SHA-256 checksums and the Ed25519 checksum signature were verified using the application's `verifySignature` and trusted update public keys; the packaged app contains the trusted key.
 
 The automated test suites were not run for this release, as requested.
