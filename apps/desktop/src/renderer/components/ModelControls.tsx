@@ -27,7 +27,7 @@ const thinkingLabelsEn: Record<ThinkingLevel, string> = {
   low: "Low",
   medium: "Medium",
   high: "High",
-  xhigh: "Extra high",
+  xhigh: "Extra",
   max: "Max",
   ultra: "Ultra",
 };
@@ -199,11 +199,11 @@ export function ModelControls(props: ModelControlsProps) {
             setMenu("thinking");
           }}
         >
-          <ThinkingGlyph choices={thinkingChoices} level={shownThinking} />
-          {/* 标签位按最宽档位占宽（隐藏的占位项叠在同一格里），当前档位靠左、箭头紧跟文字：切换强度时左侧图标不会移位，文字两侧也没有多余空白。 */}
+          {/* 文字、标记、箭头按顺序紧挨着排，不预留空位；按钮宽度随当前档位的文字变化。 */}
           <span className="thinking-label">
-            {thinkingChoices.map(level => <span key={level} className="thinking-label-sizer" data-label={thinkingLabel(level)} aria-hidden="true" />)}
-            <span className="thinking-label-current">{thinkingLabel(shownThinking)}<Chevron /></span>
+            <span className="thinking-label-text">{thinkingLabel(shownThinking)}</span>
+            <ThinkingGlyph choices={thinkingChoices} level={shownThinking} />
+            <span className="thinking-chevron"><Chevron /></span>
           </span>
         </button>
         <PopoverPresence present={menu === "thinking"}>

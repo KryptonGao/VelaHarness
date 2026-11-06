@@ -364,7 +364,7 @@ const en: Widen<typeof zh> = {
     low: "Low",
     medium: "Medium",
     high: "High",
-    xhigh: "Extra high",
+    xhigh: "Extra",
     max: "Max",
     ultra: "Ultra",
   },

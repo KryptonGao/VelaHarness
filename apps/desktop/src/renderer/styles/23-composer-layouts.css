@@ -40,7 +40,6 @@
 :root[data-composer-layout="calm"] .composer-stats-row > .composer-stat-context { margin-left: auto; }
 :root[data-composer-layout="calm"] .thinking-glyph { display: inline-flex; align-items: flex-end; }
 :root[data-composer-layout="calm"] .thinking-dial { display: none; }
-:root[data-composer-layout="calm"] .model-choice-pill:has(.thinking-glyph) { gap: 7px; }
 :root[data-composer-layout="calm"] .thinking-label { --thinking-chevron-gap: 7px; }
 
 /* capsule:输入收成一条膠囊,模式、权限和统计挪到下方托盘。 */
@@ -99,10 +98,13 @@
 .composer-tray .model-choice-pill.model-pill { max-width: min(200px, 100%); }
 /* 百分比的 max-width 在算外层宽度时不生效，外层会按完整模型名撑宽，在思考强度和模型之间留出空白；外层也用同一上限，两者就紧挨着。 */
 .composer-tray .model-controls .dock-menu:has(.model-pill) { max-width: 200px; }
-.composer-tray .model-choice-pill:has(.thinking-glyph) { gap: 5px; padding-left: 6px; }
 .composer-tray .thinking-label { --thinking-chevron-gap: 5px; }
 .composer-tray .thinking-glyph { display: inline-flex; align-items: center; }
 .composer-tray .thinking-bars { display: none; }
+/* 思考强度和模型名两个胶囊之间只留一小段间距：缩小控件间距，并去掉两侧胶囊靠在一起的内边距。 */
+.composer-tray .model-controls { gap: 2px; }
+.composer-tray .model-choice-pill:has(.thinking-glyph) { padding-right: 4px; }
+.composer-tray .model-choice-pill.model-pill { padding-left: 4px; }
 /* 两组托盘:左侧模式/权限加轮步与速度,右侧用量、上下文占用与模型,两端对齐,中间留白。 */
 .composer-tray {
   display: flex;
@@ -155,7 +157,7 @@
 }
 @container composer-tray (max-width: 380px) {
   .model-choice-pill:has(.thinking-glyph) { padding-right: 6px; }
-  .model-choice-pill:has(.thinking-glyph) > :is(.thinking-label, svg) { display: none; }
+  .model-choice-pill:has(.thinking-glyph) :is(.thinking-label-text, .thinking-chevron) { display: none; }
 }
 @container composer-tray (max-width: 260px) {
   .model-pill > svg { display: none; }

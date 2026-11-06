@@ -80,7 +80,7 @@ if (!process.versions.electron) {
             controls,
             modelLabelWidth: visible(label) ? label.getBoundingClientRect().width : 0,
             sandboxText: visible(document.querySelector('.mode-pill > span')),
-            thinkingText: visible(document.querySelector('.thinking-label')),
+            thinkingText: visible(document.querySelector('.thinking-label-text')),
             statsVisible: visible(document.querySelector('.composer-stats-row')),
             overflowed: label ? label.scrollWidth > label.clientWidth : false,
           };
