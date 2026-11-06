@@ -399,7 +399,12 @@
   color: var(--text-secondary);
 }
 .model-choice-pill svg { flex-shrink: 0; }
-.thinking-label { display: inline-block; text-align: center; white-space: nowrap; }
+/* 所有档位的标签叠在同一格，宽度取最宽的一项；当前档位靠左，箭头紧跟文字。 */
+.thinking-label { --thinking-chevron-gap: 4px; display: inline-grid; white-space: nowrap; }
+.thinking-label > * { grid-area: 1 / 1; }
+.thinking-label-sizer { height: 0; overflow: hidden; visibility: hidden; padding-right: calc(12px + var(--thinking-chevron-gap)); }
+.thinking-label-sizer::before { content: attr(data-label); }
+.thinking-label-current { display: inline-flex; align-items: center; justify-self: start; gap: var(--thinking-chevron-gap); }
 .model-choice-pill:disabled { opacity: 0.55; cursor: default; }
 .model-choice-pill.model-pill {
   min-width: 0;

@@ -41,6 +41,7 @@
 :root[data-composer-layout="calm"] .thinking-glyph { display: inline-flex; align-items: flex-end; }
 :root[data-composer-layout="calm"] .thinking-dial { display: none; }
 :root[data-composer-layout="calm"] .model-choice-pill:has(.thinking-glyph) { gap: 7px; }
+:root[data-composer-layout="calm"] .thinking-label { --thinking-chevron-gap: 7px; }
 
 /* capsule:输入收成一条膠囊,模式、权限和统计挪到下方托盘。 */
 .floating-input-card.layout-capsule {
@@ -99,6 +100,7 @@
 /* 百分比的 max-width 在算外层宽度时不生效，外层会按完整模型名撑宽，在思考强度和模型之间留出空白；外层也用同一上限，两者就紧挨着。 */
 .composer-tray .model-controls .dock-menu:has(.model-pill) { max-width: 200px; }
 .composer-tray .model-choice-pill:has(.thinking-glyph) { gap: 5px; padding-left: 6px; }
+.composer-tray .thinking-label { --thinking-chevron-gap: 5px; }
 .composer-tray .thinking-glyph { display: inline-flex; align-items: center; }
 .composer-tray .thinking-bars { display: none; }
 /* 两组托盘:左侧模式/权限加轮步与速度,右侧用量、上下文占用与模型,两端对齐,中间留白。 */

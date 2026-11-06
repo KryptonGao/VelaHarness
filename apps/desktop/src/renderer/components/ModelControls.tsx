@@ -36,12 +36,6 @@ export function thinkingLabel(level: ThinkingLevel): string {
   return tr(thinkingLevelLabel[level], thinkingLabelsEn[level]);
 }
 
-/** 当前模型所有档位里最宽的标签宽度（em，西文按 0.6em 估算）：按钮里的标签固定这个宽度，切换强度时图标不会移位。 */
-function thinkingLabelWidth(levels: ThinkingLevel[]): number {
-  const widths = levels.map(level => Array.from(thinkingLabel(level)).reduce((sum, char) => sum + (char.charCodeAt(0) > 0x2e80 ? 1 : 0.6), 0));
-  return Math.max(0, ...widths);
-}
-
 interface ModelControlsProps {
   modelLabel: string | null;
   modelProvider: string | null;
@@ -206,8 +200,11 @@ export function ModelControls(props: ModelControlsProps) {
           }}
         >
           <ThinkingGlyph choices={thinkingChoices} level={shownThinking} />
-          <span className="thinking-label" style={{ minWidth: `${thinkingLabelWidth(thinkingChoices)}em` }}>{thinkingLabel(shownThinking)}</span>
-          <Chevron />
+          {/* 标签位按最宽档位占宽（隐藏的占位项叠在同一格里），当前档位靠左、箭头紧跟文字：切换强度时左侧图标不会移位，文字两侧也没有多余空白。 */}
+          <span className="thinking-label">
+            {thinkingChoices.map(level => <span key={level} className="thinking-label-sizer" data-label={thinkingLabel(level)} aria-hidden="true" />)}
+            <span className="thinking-label-current">{thinkingLabel(shownThinking)}<Chevron /></span>
+          </span>
         </button>
         <PopoverPresence present={menu === "thinking"}>
           <div id={thinkingPopoverId} className="dock-popover thinking-popover" role="group" aria-label={tr("思考强度", "Reasoning effort")}>
