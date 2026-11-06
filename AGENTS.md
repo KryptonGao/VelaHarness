@@ -1,100 +1,100 @@
-# Vela 开发与发版指引
+# Vela Development and Release Guide
 
-给在本仓库工作的 AI 代理和开发者。文档正文用简体中文；命令、文件名和符号保持英文。
+For AI agents and developers working in this repository. Write document prose in English; keep commands, filenames, and identifiers in their original form.
 
-## 项目概览
+## Project Overview
 
-- pnpm 工作区：`apps/desktop`（Electron 应用，主进程在 `src/main`，渲染层在 `src/renderer`）、`packages/{agent,shared,tools,workspace}`。
-- 只发布 macOS Apple Silicon（arm64）版本，应用未公证，使用 ad-hoc 签名。
-- 更多专题文档见 [docs/README.md](docs/README.md)。应用内更新的原理见 [docs/guides/updates.md](docs/guides/updates.md)。
+- pnpm workspace: `apps/desktop` (Electron app; main process in `src/main`, renderer in `src/renderer`) and `packages/{agent,shared,tools,workspace}`.
+- Only macOS Apple Silicon (arm64) releases are published. The app is not notarized and uses ad-hoc signing.
+- See [docs/README.md](docs/README.md) for more topic-specific documentation. The in-app update mechanism is described in [docs/guides/updates.md](docs/guides/updates.md).
 
-## 常用命令
+## Common Commands
 
 ```bash
 pnpm install
-pnpm dev                 # 开发版，资料目录 ~/.vela-dev
-pnpm test                # typecheck + 全部单元测试（PR 和发版前必须通过）
-pnpm build               # 生产构建，冒烟测试依赖它
-pnpm test:smoke          # 真实 Electron 冒烟测试（先 pnpm build）
-pnpm test:ui             # 真实 Electron 的渲染层检查
-pnpm --filter @vela/desktop test:updates     # 应用内更新相关测试
-pnpm runner run --help   # 构建并运行 Headless CLI（不需要 Electron），说明见 docs/guides/headless-runner.md
-pnpm test:runner         # Headless Runner、CLI 及其依赖的 Runtime 能力
-pnpm package:mac         # 打包 dmg 和 zip 到 apps/desktop/dist
-pnpm sign:release        # 给更新包生成并签名 SHA256SUMS.txt
+pnpm dev                 # Development build; data directory: ~/.vela-dev
+pnpm test                # Typecheck + all unit tests (must pass before PRs and releases)
+pnpm build               # Production build; required before smoke tests
+pnpm test:smoke          # Smoke tests in the real Electron app (run pnpm build first)
+pnpm test:ui             # Renderer checks in the real Electron app
+pnpm --filter @vela/desktop test:updates     # In-app update tests
+pnpm runner run --help   # Build and run the Headless CLI (no Electron required); see docs/guides/headless-runner.md
+pnpm test:runner         # Headless Runner, CLI, and the Runtime capabilities they depend on
+pnpm package:mac         # Package dmg and zip files into apps/desktop/dist
+pnpm sign:release        # Generate and sign SHA256SUMS.txt for the update packages
 ```
 
-## 发版流程
+## Release Process
 
-应用内更新只依赖 GitHub Release：已安装的 Vela 读取 `releases/latest`，下载 zip，用内置公钥验证 `SHA256SUMS.txt.sig`，再校验哈希。**所以 Release 的资产名、签名和「最新」状态都是产品行为的一部分，不能随意改动。**
+In-app updates rely exclusively on GitHub Releases: installed copies of Vela read `releases/latest`, download the zip, verify `SHA256SUMS.txt.sig` with a public key bundled in the app, and then check the hash. **Therefore, release asset names, signatures, and latest-release status are all part of product behavior and must not be changed casually.**
 
-推送代码、创建或修改 Release 都是对外可见的操作：每一步先向用户确认，得到明确同意后再执行，一次同意不覆盖后续步骤。
+Pushing code and creating or modifying a Release are externally visible actions. Ask the user for confirmation before each step, and proceed only after explicit approval. Approval for one step does not cover later steps.
 
-### 1. 确定版本号并统一修改
+### 1. Set and Synchronize the Version
 
-版本号遵循 semver（`X.Y.Z`）。以下 5 处必须一致，缺一会让更新器拒绝安装（解压出的 `CFBundleShortVersionString` 必须等于 Release 版本）：
+Versions follow semver (`X.Y.Z`). The following five fields must match; if any differ, the updater will reject the installation (the extracted `CFBundleShortVersionString` must equal the Release version):
 
-| 文件 | 字段 |
+| File | Fields |
 | --- | --- |
-| `apps/desktop/package.json` | `version`、`shortVersion` |
-| `apps/desktop/electron-builder.yml` | `buildVersion`、`mac.bundleShortVersion`、`mac.bundleVersion` |
+| `apps/desktop/package.json` | `version`, `shortVersion` |
+| `apps/desktop/electron-builder.yml` | `buildVersion`, `mac.bundleShortVersion`, `mac.bundleVersion` |
 
-另外 `apps/desktop/release-notes.json` 的 `version` 也必须等于这个版本（见下一步）。
+Also set `version` in `apps/desktop/release-notes.json` to the same version (see the next section).
 
-不要改 `artifactName`（`Vela-${shortVersion}-${arch}.${ext}`），更新器按 `Vela-<版本>-arm64.zip` 查找。
+Do not change `artifactName` (`Vela-${shortVersion}-${arch}.${ext}`); the updater looks for `Vela-<version>-arm64.zip`.
 
-### 2. 写发布说明
+### 2. Write the Release Notes
 
-重写根目录 `RELEASE_NOTES.md`（英文），沿用现有结构：`# Vela X.Y.Z` 与一段概述，`## New`、`## Improved`、`## Upgrade`、`## Download`、`## Validation`。
+Rewrite the root `RELEASE_NOTES.md` in English, following the existing structure: `# Vela X.Y.Z` and a summary paragraph, followed by `## New`, `## Improved`, `## Upgrade`, `## Download`, and `## Validation`.
 
-- `## Download` 表格列出全部四个文件：`.dmg`、`.zip`、`SHA256SUMS.txt`、`SHA256SUMS.txt.sig`，并写明包版本。
-- `## Validation` 只写实际执行过并通过的检查，不写没跑过的。
-- 这份文件会原样作为 GitHub Release 的正文，更新器会把它显示给用户。
+- The `## Download` table must list all four files: `.dmg`, `.zip`, `SHA256SUMS.txt`, and `SHA256SUMS.txt.sig`, and state the package version.
+- Under `## Validation`, list only checks that were actually run and passed. Do not list checks that were not run.
+- This file is used verbatim as the GitHub Release body, and the updater displays it to users.
 
-### 2b. 更新应用内发布说明
+### 2b. Update the In-App Release Notes
 
-应用里引导的「新到港」和更新后的提示卡读取 `apps/desktop/release-notes.json`，它随安装包发布（构建时输出到 `out/main/release-notes.json`），**与根目录 `RELEASE_NOTES.md` 互不相关**：后者只是 GitHub Release 的正文，应用不会读取。
+The in-app “What’s New” onboarding and post-update notification card read `apps/desktop/release-notes.json`. It is shipped with the app (built to `out/main/release-notes.json`) and is **entirely separate from the root `RELEASE_NOTES.md`**: the latter is only the GitHub Release body and is not read by the app.
 
-- 把 `version` 改成本次版本，并为 `en`、`zh-CN`、`zh-TW`、`ja`、`ko` 五种语言各写一份 `summary`、`highlights`（`title` + `body`，界面最多显示 4 条）和 `improvements`；各语言条数保持一致。
-- `en` 必须存在；其他语言缺失或格式有误时会退回英文。
-- 版本号与安装包不一致时，应用会整页略过「新到港」，不会显示旧版本的内容。
-- `pnpm --filter @vela/desktop test` 里的 `release-notes.test.ts` 会检查五种语言齐全、数量一致、版本等于 `package.json`。
+- Set `version` to the release version. Provide `summary`, `highlights` (`title` + `body`; the UI displays at most four), and `improvements` for each of the five locales: `en`, `zh-CN`, `zh-TW`, `ja`, and `ko`. Keep the number of entries consistent across locales.
+- `en` is required. If another locale is missing or malformed, the app falls back to English.
+- If the version does not match the app package, the app skips the entire “What’s New” page rather than showing content from an older version.
+- `release-notes.test.ts`, included in `pnpm --filter @vela/desktop test`, checks that all five locales are present, their entry counts match, and the version matches `package.json`.
 
-### 3. 验证
+### 3. Validate
 
 ```bash
-pnpm test                                    # 必须全绿
-pnpm build && pnpm test:smoke                # 真实 Electron 冒烟测试
+pnpm test                                    # Must pass completely
+pnpm build && pnpm test:smoke                # Smoke tests in the real Electron app
 pnpm --filter @vela/desktop test:updates
 ```
 
-### 4. 提交
+### 4. Commit
 
-在 `main` 上提交，信息格式沿用历史：`feat: <变更概述>, release X.Y.Z`（修复类用 `fix:`）。提交信息末尾带上会话给出的 Co-Authored-By 署名。推送前先问用户。
+Commit on `main`, following the historical commit message format: `feat: <change summary>, release X.Y.Z` (use `fix:` for fixes). Add the session-provided `Co-Authored-By` attribution at the end of the commit message. Ask the user before pushing.
 
-### 5. 打包并核对产物
+### 5. Package and Inspect the Artifacts
 
 ```bash
 pnpm package:mac
 ```
 
-在 `apps/desktop/dist` 得到 `Vela-X.Y.Z-arm64.dmg` 和 `Vela-X.Y.Z-arm64.zip`。核对：
+This produces `Vela-X.Y.Z-arm64.dmg` and `Vela-X.Y.Z-arm64.zip` in `apps/desktop/dist`. Verify that:
 
-- `plutil -extract CFBundleShortVersionString raw -o - apps/desktop/dist/mac-arm64/Vela.app/Contents/Info.plist` 等于 `X.Y.Z`，`CFBundleIdentifier` 为 `com.vela.desktop`。
-- zip 解开后顶层只有一个 `Vela.app`；dmg 能正常挂载。
+- `plutil -extract CFBundleShortVersionString raw -o - apps/desktop/dist/mac-arm64/Vela.app/Contents/Info.plist` equals `X.Y.Z`, and `CFBundleIdentifier` is `com.vela.desktop`.
+- The zip contains only one top-level item, `Vela.app`, and the dmg mounts successfully.
 
-### 6. 签名
+### 6. Sign
 
 ```bash
 pnpm sign:release
 ```
 
-生成 `SHA256SUMS.txt` 和 `SHA256SUMS.txt.sig`，并打印 `gh release upload` 命令。脚本会拒绝使用未内置到应用里的私钥。
+This generates `SHA256SUMS.txt` and `SHA256SUMS.txt.sig`, and prints a `gh release upload` command. The script rejects private keys whose corresponding public key is not bundled in the app.
 
-- 私钥在 `~/.vela-release/update-signing.key`（可用 `VELA_UPDATE_KEY` 指定）。**绝不提交、绝不打印、绝不上传。** 找不到私钥时停下来告诉用户，不要自己重新生成：新密钥对应的公钥没有随旧版本发布，旧版本将无法验证更新。
-- 密钥轮换见 [docs/guides/updates.md](docs/guides/updates.md)。
+- The private key is at `~/.vela-release/update-signing.key` (or at the path specified by `VELA_UPDATE_KEY`). **Never commit, print, or upload it.** If the key is unavailable, stop and tell the user; do not generate a replacement. The public key corresponding to a new key would not be present in older releases, so those versions could no longer verify updates.
+- See [docs/guides/updates.md](docs/guides/updates.md) for key rotation.
 
-### 7. 创建 Release
+### 7. Create the Release
 
 ```bash
 gh release create vX.Y.Z --target main --title "VelaHarness vX.Y.Z" --notes-file RELEASE_NOTES.md \
@@ -104,27 +104,27 @@ gh release create vX.Y.Z --target main --title "VelaHarness vX.Y.Z" --notes-file
   apps/desktop/dist/SHA256SUMS.txt.sig
 ```
 
-要求：
+Requirements:
 
-- 标签必须是 `vX.Y.Z`，且是 semver 最高的正式版本。
-- **不要**加 `--draft` 或 `--prerelease`，也不要把旧版本标为 latest：更新器读取的 `releases/latest` 会忽略草稿和预发布版本。
-- 四个文件缺一不可。缺少签名文件的 Release 会让所有用户的更新失败并提示「缺少签名文件」。
-- 创建后若要补传或替换文件，用 `gh release upload ... --clobber`，并重新核对下一步。
+- The tag must be `vX.Y.Z` and must be the highest semver stable release.
+- **Do not** pass `--draft` or `--prerelease`, and do not mark an older release as latest. The updater reads `releases/latest`, which ignores drafts and prereleases.
+- All four files are required. A Release without the signature file will cause updates to fail for all users with a “signature file missing” error.
+- To add or replace files after creation, use `gh release upload ... --clobber`, then repeat the verification steps below.
 
-### 8. 发布后核对
+### 8. Verify After Release
 
 ```bash
 gh release view vX.Y.Z --json assets,isDraft,isPrerelease --jq '{draft:.isDraft, pre:.isPrerelease, assets:[.assets[].name]}'
-gh release list --limit 1        # 应显示 Latest
+gh release list --limit 1        # Should show Latest
 ```
 
-- 资产恰好是上述四个，`draft` 与 `pre` 均为 false。
-- 从 Release 下载 `SHA256SUMS.txt` 和 `.sig`，用应用内的 `verifySignature` 与 `updatePublicKeys` 验证通过（参考 `apps/desktop/test/update-verify.test.ts`）。
-- 条件允许时，用上一个已安装的版本实际走一遍更新：设置 → 关于与更新 → 检查更新，确认下载、提示重启并升级成功；失败时看 `~/.vela/updates/installer.log`。
+- There must be exactly the four assets listed above, with `draft` and `pre` both false.
+- Download `SHA256SUMS.txt` and `.sig` from the Release and verify them using the app’s `verifySignature` and `updatePublicKeys` (see `apps/desktop/test/update-verify.test.ts`).
+- When possible, test the full update flow from the previous installed version: Settings → About & Updates → Check for Updates. Confirm that it downloads, prompts for a restart, and upgrades successfully. If it fails, check `~/.vela/updates/installer.log`.
 
-## 约定
+## Conventions
 
-- 不要提交 `~/.vela-release` 下的任何文件，也不要把私钥内容写进代码、文档、日志或对话。
-- 修改更新相关逻辑（`apps/desktop/src/main/update-*.ts`）后跑 `pnpm --filter @vela/desktop test:updates` 和 `test:updates:ui`。
-- 新增界面文案要同时提供 zh-CN、en，并在 `packages/shared/src/i18n-messages/` 补齐 zh-TW、ja、ko 译文，缺失的会退回英文。
-- 版本 1.0.5 及更早的安装没有更新器，第一个带更新器的版本需要用户手动安装一次。
+- Do not commit any files from `~/.vela-release`, and never put private key contents in code, documentation, logs, or conversation.
+- After changing update-related logic (`apps/desktop/src/main/update-*.ts`), run `pnpm --filter @vela/desktop test:updates` and `test:updates:ui`.
+- New UI copy must be provided in both `zh-CN` and `en`. Add translations for `zh-TW`, `ja`, and `ko` under `packages/shared/src/i18n-messages/`; missing translations fall back to English.
+- Installations at version 1.0.5 and earlier do not have an updater. The first version that includes the updater must be installed manually by users.
