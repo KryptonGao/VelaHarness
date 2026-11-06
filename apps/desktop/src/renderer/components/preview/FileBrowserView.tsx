@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { tr } from "../../locale";
-import { ChevronRightIcon, FileIcon } from "../icons";
+import { ChevronRightIcon } from "../icons";
 import { ExplorerPane } from "./ExplorerPane";
 import { useFilePreview } from "./FilePreviewContext";
 
@@ -29,13 +29,7 @@ export function FileBrowserView() {
         </nav>
       </div>
       <div className="preview-main-split">
-        <div className="file-browser-empty">
-          <span className="file-browser-empty-icon" aria-hidden="true">
-            <FileIcon size={20} />
-          </span>
-          <p>{tr("还没有打开的文件", "No file is open yet")}</p>
-          <span>{tr("在右侧文件树中选择文件，会在新标签页里打开预览", "Pick a file from the tree to open its preview in a new tab")}</span>
-        </div>
+        <div className="file-browser-empty" />
         <ExplorerPane />
       </div>
     </div>
