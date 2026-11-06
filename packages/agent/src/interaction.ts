@@ -24,7 +24,7 @@ import { webToolNames } from "./web-tools";
 import type { GoalValidationDraft } from "./goal-validation";
 
 export const goalContinuePrompt =
-  "Continue working on the current goal. If it is already complete, first call record_goal_validation to record the checks, then call submit_outcome for this turn's changes or verification, and finally call update_goal to set the status to complete. If it is not complete, go straight to the next step and do not repeat what has already been done.";
+  "Continue working on the current goal. If it is already complete, first call record_goal_validation to record the checks, then optionally call submit_outcome to summarize this turn's changes or verification, and finally call update_goal to set the status to complete. If it is not complete, go straight to the next step and do not repeat what has already been done.";
 
 /** 旧英文续跑提示仍要识别为系统代发，避免重载时变成用户需求。 */
 const legacyEnglishGoalContinuePrompt =
@@ -88,9 +88,9 @@ After each item finishes, call ${updateTodosToolName} again with the full list: 
 const todoPromptWithPlan =
   "The user is in Run View: the interface shows the execution checklist live above the input, so keep it current with update_plan: submit it before you run any command or edit any file, and update it after each item finishes. bash, edit, and write are blocked until it has been submitted this turn.";
 
-const outcomePrompt = `If you modified files or ran verification in this turn, call submit_outcome before writing your final reply. Submit one item per user requirement, with its actual completion status and any risks, assumptions, or decisions still needing confirmation.
+const outcomePrompt = `If you modified files or ran verification in this turn, consider calling submit_outcome before writing your final reply. This is optional: a suggestion, not a requirement, and you may skip it when the change is small or a plain summary in your reply is enough. If you do submit, submit one item per user requirement, with its actual completion status and any risks, assumptions, or decisions still needing confirmation.
 Only cite files changed by completed edit/write calls and bash tool call ids completed in this turn. Leave verificationIds empty if you did not run verification; never invent files, ids, or results. If submission is rejected, correct the invalid references and retry before finishing.
-In Goal mode, call record_goal_validation before submit_outcome, then update_goal to complete when appropriate. Pure questions and answers with no changes or verification do not require an outcome submission.`;
+In Goal mode, call record_goal_validation before submit_outcome (record_goal_validation is still required to complete the goal; submit_outcome is not), then update_goal to complete when appropriate. Pure questions and answers with no changes or verification need no outcome submission.`;
 
 const recommendedActionsPrompt = `When you finish the user's request and there is a clear, useful next step the user would probably want (for example committing the changes, running a broader check, or continuing with a follow-up task), call ${recommendedActionsToolName} as the very last step, after your final reply text. The UI shows it as a dismissible card under your reply with one button per action; clicking a button sends that action's prompt to you as the user's next message.
 Give 1-${recommendedActionLimits.maxActions} actions. Each prompt must be complete and self-contained, written from the user's point of view as an instruction to you, because it is sent verbatim. Do not call it when the request was a plain question, when you are still working or blocked on the user, or when there is no natural next step; it is optional, and never use it to repeat your reply. After it returns, end your turn without writing anything more.`;
@@ -266,7 +266,7 @@ export function createModeTools(host: ModeToolHost): ToolDefinition[] {
     name: "submit_outcome",
     label: "提交成果验收",
     description:
-      "Submit one outcome item per user requirement before the final reply when this turn changed files or ran verification. Attribute only files changed by completed edit/write calls and completed bash tool call ids from this turn. The runtime validates references; correct rejected references and retry. In Goal mode, record_goal_validation must come first. Do not fabricate evidence; leave verificationIds empty when no verification was run.",
+      "Optionally submit one outcome item per user requirement before the final reply when this turn changed files or ran verification; skipping it is fine. Attribute only files changed by completed edit/write calls and completed bash tool call ids from this turn. The runtime validates references; correct rejected references and retry. In Goal mode, record_goal_validation must come first. Do not fabricate evidence; leave verificationIds empty when no verification was run.",
     promptSnippet: "Submit requirement outcomes, changed files, completed bash ids, and items to confirm",
     executionMode: "sequential",
     parameters: Type.Object({

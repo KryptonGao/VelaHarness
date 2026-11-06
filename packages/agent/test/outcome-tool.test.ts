@@ -102,6 +102,7 @@ describe("submit_outcome 工具契约", () => {
     for (const plan of [false, true]) {
       assert.match(modeSystemPrompt("agent", plan), /submit_outcome before writing your final reply/);
       assert.match(modeSystemPrompt("agent", plan), /Leave verificationIds empty/);
+      assert.match(modeSystemPrompt("agent", plan), /optional: a suggestion, not a requirement/);
     }
     assert.match(modeSystemPrompt("goal", false), /record_goal_validation before submit_outcome/);
     assert.match(goalContinuePrompt, /record_goal_validation.*submit_outcome.*update_goal/);
