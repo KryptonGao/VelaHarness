@@ -1,144 +1,144 @@
 {
-  "version": "1.2.22",
+  "version": "1.2.23",
   "locales": {
     "en": {
-      "summary": "Vela 1.2.22 reorganizes Settings into grouped cards, adds customizable app shortcuts, and makes it easier to move between chats and workbench tabs.",
+      "summary": "Vela 1.2.23 brings chat modes and execution permissions into one menu, shows workspace and model information earlier at startup, and refines the composer and file preview layout.",
       "highlights": [
         {
-          "title": "Settings in grouped cards",
-          "body": "Settings now use rounded cards with controls alongside each option, icon-led navigation, clearer page titles, and consistent switches and segmented controls. Theme and conversation previews stay as they are."
+          "title": "One menu for modes and permissions",
+          "body": "Choose Auto, Manual, Full access, Plan or Goal from a combined menu, with Race actions when available. It is enabled by default; turn off Combined mode menu in Settings → Interface to restore the separate controls."
         },
         {
-          "title": "Make shortcuts your own",
-          "body": "In Settings → Shortcuts, click a binding to change it or add up to three per app action. Clear bindings, check conflicts, or restore individual actions or all defaults. Changes are saved and apply immediately."
+          "title": "Startup information appears earlier",
+          "body": "The last workspace appears without waiting for Git and pull-request queries. When available, saved branch and model hints fill in the startup display until live information arrives; sending still waits for the session to be ready."
         },
         {
-          "title": "Move between chats and tabs",
-          "body": "Switch to the next or previous chat or workbench tab, or jump to the next other chat waiting for input or reporting an error. These actions are available from shortcuts and the app menus."
+          "title": "A more compact reasoning control",
+          "body": "The reasoning-effort label, icon and arrow sit together without space reserved for the longest label. The English Extra high label is now Extra, and the capsule layout brings the effort and model controls closer together."
         },
         {
-          "title": "Consistent settings dropdowns",
-          "body": "Settings dropdowns now share a custom menu with a checkmark for the selected option and keyboard navigation. Menus support arrow keys, Enter to choose, and Escape to dismiss."
+          "title": "Cleaner file previews",
+          "body": "The file browser no longer shows an empty-state icon or instructions when no file is open. The preview container no longer has an outer margin, rounded corners or a card shadow."
         }
       ],
       "improvements": [
-        "App menus add entries for archiving the current chat, opening side chat, and switching chats and workbench tabs.",
-        "Related app-menu accelerators follow your customized shortcut settings.",
-        "Shortcut recording warns about conflicts and reserved system or editing combinations; search, send, newline and Escape remain fixed.",
-        "Shortcut matching uses physical key positions so Option-modified characters do not change the recognized combination.",
-        "New interface text is available in all five interface languages."
+        "The combined menu supports number-key selection while open, explains each permission level, and marks Auto as recommended.",
+        "Choosing Plan or Goal keeps the current execution permissions visible in the menu; recipe-locked permissions remain protected.",
+        "Git attachment and session startup run in parallel, and the selected model is shown before skills and MCP resources finish loading.",
+        "Agent guidance makes structured outcome submission optional; Goal completion still requires a validation record.",
+        "The new combined-menu text and setting are available in all five interface languages."
       ]
     },
     "zh-CN": {
-      "summary": "Vela 1.2.22 将设置重新整理为分组卡片，新增可自定义的应用快捷键，并让聊天和工作台标签之间的切换更方便。",
+      "summary": "Vela 1.2.23 将对话模式和执行权限合并到同一个菜单，启动时更早显示工作区和模型信息，并调整了输入框与文件预览的布局。",
       "highlights": [
         {
-          "title": "分组卡片式设置",
-          "body": "设置改用圆角分组卡片，控件与选项并排显示，导航增加图标，页面标题更清楚，开关与分段控件也统一了样式。主题和对话显示预览保持原样。"
+          "title": "模式与权限合为一个菜单",
+          "body": "在同一菜单中选择自动、手动、完全访问、Plan 或 Goal，条件满足时也可使用赛马入口。此菜单默认开启；在 设置 → 界面 关闭「合并模式菜单」即可恢复两个独立控件。"
         },
         {
-          "title": "自定义快捷键",
-          "body": "在 设置 → 快捷键 中点击已有组合即可修改，每个应用动作最多可设置三个快捷键。支持清除、冲突提示、单项恢复及全部恢复默认，改动会保存并立即生效。"
+          "title": "更早显示启动信息",
+          "body": "上次使用的工作区不再等待 Git 和 Pull Request 查询完成才显示。已有可用缓存时，会在实时数据到达前显示保存的分支与模型提示；发送消息仍需等待会话就绪。"
         },
         {
-          "title": "切换聊天与标签页",
-          "body": "可切换到上一个或下一个聊天、工作台标签页，也可跳到下一个等待输入或出错的其他聊天。这些动作都可从快捷键和应用菜单触发。"
+          "title": "更紧凑的思考强度控件",
+          "body": "思考强度的文字、图标和箭头紧邻排列，不再按最长标签预留空位。英文 Extra high 缩短为 Extra，胶囊布局中的思考强度与模型控件也靠得更近。"
         },
         {
-          "title": "统一的设置下拉菜单",
-          "body": "设置中的下拉选项改用统一的自定义菜单，当前选项带有勾选标记，并支持键盘操作：方向键移动、Enter 选择、Escape 关闭。"
+          "title": "更简洁的文件预览",
+          "body": "没有打开文件时，文件浏览器不再显示占位图标和操作提示。预览容器移除了外边距、圆角和卡片阴影。"
         }
       ],
       "improvements": [
-        "应用菜单新增归档当前聊天、打开侧边聊天及切换聊天和工作台标签页的入口。",
-        "相关应用菜单的快捷键会跟随你的自定义设置更新。",
-        "录入快捷键时会提示组合冲突及系统或编辑功能占用；搜索、发送、换行和 Escape 仍为固定快捷键。",
-        "快捷键按物理键位匹配，Option 改变字符时也能识别原来的组合。",
-        "新增的界面文字提供全部五种界面语言。"
+        "合并菜单展开时支持数字键选择，提供各档执行权限的说明，并将自动标为推荐项。",
+        "选择 Plan 或 Goal 时保留当前执行权限并在菜单中显示；配方锁定的权限仍受保护。",
+        "Git 连接与会话启动并行执行，所选模型可在技能和 MCP 资源加载完成前显示。",
+        "Agent 提示将结构化成果提交改为可选；完成 Goal 仍需记录验证结果。",
+        "合并菜单及其设置的新增文字提供全部五种界面语言。"
       ]
     },
     "zh-TW": {
-      "summary": "Vela 1.2.22 將設定重新整理為分組卡片，新增可自訂的應用程式快捷鍵，並讓聊天和工作台分頁之間的切換更方便。",
+      "summary": "Vela 1.2.23 將對話模式和執行權限合併到同一個選單，啟動時更早顯示工作區和模型資訊，並調整了輸入框與檔案預覽的版面。",
       "highlights": [
         {
-          "title": "分組卡片式設定",
-          "body": "設定改用圓角分組卡片，控制項與選項並排顯示，導覽增加圖示，頁面標題更清楚，開關與分段控制項也統一了樣式。主題和對話顯示預覽維持原樣。"
+          "title": "模式與權限合為一個選單",
+          "body": "在同一選單中選擇自動、手動、完全訪問、Plan 或 Goal，條件滿足時也可使用賽馬入口。此選單預設開啟；在 設定 → 界面 關閉「合併模式選單」即可恢復兩個獨立控制項。"
         },
         {
-          "title": "自訂快捷鍵",
-          "body": "在 設定 → 快捷鍵 中點擊已有組合即可修改，每個應用程式動作最多可設定三個快捷鍵。支援清除、衝突提示、單項還原及全部還原預設值，改動會儲存並立即生效。"
+          "title": "更早顯示啟動資訊",
+          "body": "上次使用的工作區不再等待 Git 和 Pull Request 查詢完成才顯示。已有可用快取時，會在即時資料到達前顯示儲存的分支與模型提示；傳送訊息仍需等待會話就緒。"
         },
         {
-          "title": "切換聊天與分頁",
-          "body": "可切換到上一個或下一個聊天、工作台分頁，也可跳到下一個等待輸入或發生錯誤的其他聊天。這些動作都可透過快捷鍵和應用程式選單觸發。"
+          "title": "更緊湊的思考強度控制項",
+          "body": "思考強度的文字、圖示和箭頭緊鄰排列，不再依最長標籤預留空位。英文 Extra high 縮短為 Extra，膠囊版面中的思考強度與模型控制項也靠得更近。"
         },
         {
-          "title": "統一的設定下拉選單",
-          "body": "設定中的下拉選項改用統一的自訂選單，目前選項帶有勾選標記，並支援鍵盤操作：方向鍵移動、Enter 選取、Escape 關閉。"
+          "title": "更簡潔的檔案預覽",
+          "body": "沒有開啟檔案時，檔案瀏覽器不再顯示佔位圖示和操作提示。預覽容器移除了外距、圓角和卡片陰影。"
         }
       ],
       "improvements": [
-        "應用程式選單新增封存目前聊天、開啟側邊聊天及切換聊天和工作台分頁的入口。",
-        "相關應用程式選單的快捷鍵會隨你的自訂設定更新。",
-        "錄入快捷鍵時會提示組合衝突及系統或編輯功能占用；搜尋、傳送、換行和 Escape 仍為固定快捷鍵。",
-        "快捷鍵依實體鍵位比對，Option 改變字元時也能辨識原來的組合。",
-        "新增的介面文字提供全部五種介面語言。"
+        "合併選單展開時支援數字鍵選取，提供各級執行權限的說明，並將自動標為推薦項。",
+        "選擇 Plan 或 Goal 時保留目前執行權限並在選單中顯示；配方鎖定的權限仍受保護。",
+        "Git 連線與會話啟動並行執行，所選模型可在技能和 MCP 資源載入完成前顯示。",
+        "Agent 提示將結構化成果提交改為可選；完成 Goal 仍需記錄驗證結果。",
+        "合併選單及其設定的新增文字提供全部五種介面語言。"
       ]
     },
     "ja": {
-      "summary": "Vela 1.2.22 では、設定をグループ別のカードに整理し、アプリのショートカットをカスタマイズできるようにしました。チャットやワークベンチのタブも切り替えやすくなりました。",
+      "summary": "Vela 1.2.23 では、会話モードと実行権限を 1 つのメニューにまとめました。起動時のワークスペースとモデル情報をより早く表示し、入力欄とファイルプレビューのレイアウトも調整しました。",
       "highlights": [
         {
-          "title": "カード形式の設定",
-          "body": "設定を角丸のカードにまとめ、各項目の横に操作部を配置しました。ナビゲーションにアイコンを追加し、ページタイトル、スイッチ、セグメント切り替えの表示を統一しました。テーマと会話表示のプレビューはそのままです。"
+          "title": "モードと権限を 1 つのメニューに",
+          "body": "自動、手動、フルアクセス、Plan、Goal を共通メニューで選べます。利用可能な場合はレースの操作も表示されます。既定で有効です。設定 → インターフェースで「統合モードメニュー」を無効にすると、別々の操作部に戻せます。"
         },
         {
-          "title": "ショートカットをカスタマイズ",
-          "body": "設定 → ショートカットでキーの組み合わせをクリックして変更でき、アプリの各操作に最大 3 つまで登録できます。削除、競合の確認、個別または一括での既定値への復元に対応し、変更は保存されてすぐに反映されます。"
+          "title": "起動時の情報をより早く表示",
+          "body": "Git と Pull Request の取得を待たずに、前回のワークスペースを表示します。保存済みの情報がある場合は、最新情報が届くまでブランチとモデルの情報を表示します。メッセージの送信は引き続きセッションの準備完了後に可能になります。"
         },
         {
-          "title": "チャットとタブを切り替え",
-          "body": "前後のチャットやワークベンチのタブに切り替えたり、入力待ちまたはエラーのある次の別のチャットに移動したりできます。ショートカットとアプリメニューの両方から操作できます。"
+          "title": "推論強度の表示をコンパクトに",
+          "body": "推論強度のラベル、アイコン、矢印を並べ、最長ラベル用の余白をなくしました。英語の Extra high 表記は Extra に短縮し、カプセル形式では推論強度とモデルの操作部の間隔も狭めました。"
         },
         {
-          "title": "統一された設定ドロップダウン",
-          "body": "設定のドロップダウンを共通のカスタムメニューにしました。選択中の項目にチェックを表示し、矢印キーで移動、Enter で選択、Escape で閉じる操作に対応します。"
+          "title": "すっきりしたファイルプレビュー",
+          "body": "ファイルが開かれていないときのアイコンと操作案内を非表示にしました。プレビューコンテナーの外側の余白、角丸、カードの影を取り除きました。"
         }
       ],
       "improvements": [
-        "アプリメニューに、現在のチャットのアーカイブ、サイドチャットの表示、チャットとワークベンチタブの切り替えを追加しました。",
-        "関連するアプリメニューのショートカットもカスタマイズ内容に合わせて更新されます。",
-        "ショートカットの登録時に競合やシステム・編集機能で予約された組み合わせを通知します。検索、送信、改行、Escape は固定のままです。",
-        "ショートカットは物理キーの位置で判定するため、Option で入力文字が変わっても組み合わせを認識できます。",
-        "新しい画面テキストは 5 つの表示言語すべてで利用できます。"
+        "統合メニューを開いている間は数字キーで選択できます。各権限の説明を表示し、自動には推奨マークが付きます。",
+        "Plan または Goal を選んでも現在の実行権限を維持し、メニューに表示します。レシピで固定された権限も保護されます。",
+        "Git の接続とセッションの起動を並行して行い、スキルと MCP リソースの読み込み完了前に選択したモデルを表示します。",
+        "Agent への指示では構造化された成果の提出を任意にしました。Goal の完了には引き続き検証記録が必要です。",
+        "統合メニューとその設定の新しいテキストを、5 つの表示言語すべてに追加しました。"
       ]
     },
     "ko": {
-      "summary": "Vela 1.2.22는 설정을 그룹별 카드로 정리하고 앱 단축키 사용자 지정을 추가했습니다. 대화와 워크벤치 탭 사이를 이동하기도 더 편해졌습니다.",
+      "summary": "Vela 1.2.23은 대화 모드와 실행 권한을 하나의 메뉴로 통합하고, 시작 시 워크스페이스와 모델 정보를 더 일찍 표시합니다. 입력창과 파일 미리보기 레이아웃도 다듬었습니다.",
       "highlights": [
         {
-          "title": "카드로 정리한 설정",
-          "body": "설정을 둥근 카드로 묶고 각 옵션 옆에 컨트롤을 배치했습니다. 탐색 아이콘과 더 명확한 페이지 제목을 추가하고 스위치와 분할 컨트롤을 통일했습니다. 테마와 대화 표시 미리보기는 그대로 유지됩니다."
+          "title": "모드와 권한을 하나의 메뉴로",
+          "body": "자동, 수동, 전체 접근, Plan, Goal을 하나의 메뉴에서 선택할 수 있으며, 사용 가능한 경우 레이스 작업도 표시됩니다. 기본으로 켜져 있습니다. 설정 → 인터페이스에서 '통합 모드 메뉴'를 끄면 두 개의 별도 컨트롤로 돌아갑니다."
         },
         {
-          "title": "단축키 사용자 지정",
-          "body": "설정 → 단축키에서 기존 조합을 클릭해 변경하고 앱 동작마다 최대 3개까지 등록할 수 있습니다. 삭제, 충돌 안내, 개별 또는 전체 기본값 복원을 지원하며 변경 사항은 저장되고 즉시 적용됩니다."
+          "title": "시작 정보를 더 일찍 표시",
+          "body": "Git과 Pull Request 조회가 끝날 때까지 기다리지 않고 마지막 워크스페이스를 표시합니다. 저장된 정보가 있는 경우 실시간 정보가 도착하기 전까지 브랜치와 모델 정보를 보여 줍니다. 메시지 전송은 여전히 세션 준비가 완료된 후에 가능합니다."
         },
         {
-          "title": "대화와 탭 전환",
-          "body": "이전 또는 다음 대화나 워크벤치 탭으로 전환하고, 입력을 기다리거나 오류가 발생한 다음 다른 대화로 이동할 수 있습니다. 단축키와 앱 메뉴에서 모두 사용할 수 있습니다."
+          "title": "더 간결한 추론 강도 컨트롤",
+          "body": "추론 강도 라벨, 아이콘, 화살표를 나란히 배치하고 가장 긴 라벨을 위한 빈 공간을 없앴습니다. 영어 Extra high 표기는 Extra로 줄였으며, 캡슐 레이아웃에서 추론 강도와 모델 컨트롤 사이의 간격도 좁혔습니다."
         },
         {
-          "title": "통일된 설정 드롭다운",
-          "body": "설정 드롭다운에 공통 사용자 지정 메뉴를 사용합니다. 선택한 항목에 체크 표시가 나타나며 방향키로 이동, Enter로 선택, Escape로 닫기를 지원합니다."
+          "title": "더 깔끔한 파일 미리보기",
+          "body": "열린 파일이 없을 때 표시하던 아이콘과 안내 문구를 제거했습니다. 미리보기 컨테이너의 바깥 여백, 둥근 모서리, 카드 그림자를 제거했습니다."
         }
       ],
       "improvements": [
-        "앱 메뉴에 현재 대화 보관, 사이드 채팅 열기, 대화 및 워크벤치 탭 전환 항목을 추가했습니다.",
-        "관련 앱 메뉴의 단축키도 사용자 지정 설정에 맞게 업데이트됩니다.",
-        "단축키 등록 시 충돌과 시스템 또는 편집 기능에 예약된 조합을 알려 줍니다. 검색, 전송, 줄 바꿈, Escape는 고정 단축키로 유지됩니다.",
-        "물리적 키 위치로 단축키를 인식하므로 Option으로 입력 문자가 바뀌어도 원래 조합을 인식합니다.",
-        "새 인터페이스 텍스트는 5개 인터페이스 언어를 모두 지원합니다."
+        "통합 메뉴가 열려 있을 때 숫자 키로 선택할 수 있습니다. 각 권한 수준에 설명을 제공하고 자동에는 추천 표시를 붙였습니다.",
+        "Plan이나 Goal을 선택해도 현재 실행 권한을 유지하고 메뉴에 표시합니다. 레시피에서 고정한 권한도 보호됩니다.",
+        "Git 연결과 세션 시작을 병렬로 진행하며, 스킬과 MCP 리소스 로딩이 끝나기 전에 선택한 모델을 표시합니다.",
+        "Agent 지침에서 구조화된 결과 제출을 선택 사항으로 바꿨습니다. Goal 완료에는 여전히 검증 기록이 필요합니다.",
+        "통합 메뉴와 관련 설정의 새 문구를 5개 인터페이스 언어에 모두 추가했습니다."
       ]
     }
   }
