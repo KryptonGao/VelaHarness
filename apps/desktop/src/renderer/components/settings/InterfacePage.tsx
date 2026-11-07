@@ -56,6 +56,11 @@ export function InterfacePage({
   ];
   const conversationLinkOptions: { id: ConversationLinkTarget; label: string }[] = [
     { id: "embedded", label: text.linkEmbedded },
+  const infoLayoutHints: Record<InfoLayout, string> = {
+    sidebar: text.infoLayoutSidebarHint,
+    floating: text.infoLayoutFloatingHint,
+    cards: text.infoLayoutCardsHint,
+  };
     { id: "external", label: text.linkExternal },
   ];
 
@@ -97,9 +102,8 @@ export function InterfacePage({
           <Segmented label={text.navLayout} value={navLayout}
             options={navLayouts.map(id => ({ id, label: navLayoutLabels[id] }))} onChange={setNavLayout} />
         </SettingsBlock>
-        <SettingsBlock id="info-layout" title={text.infoLayout} hint={text.infoLayoutHint} layout="inline">
+        <SettingsBlock id="info-layout" title={text.infoLayout} hint={text.infoLayoutHint} extraHint={infoLayoutHints[infoLayout]} layout="inline">
           <Segmented menu label={text.infoLayout} value={infoLayout} options={infoLayoutOptions} onChange={setInfoLayout} />
-          {infoLayout === "cards" ? <p className="settings-hint">{text.infoLayoutCardsHint}</p> : null}
         </SettingsBlock>
         <SettingsBlock id="sidebar-items" title={text.sidebarItems} hint={text.sidebarItemsHint}>
           {sidebarItemIds.map(id => (

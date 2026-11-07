@@ -6,6 +6,8 @@ interface SettingsBlockProps {
   id?: string;
   title: string;
   hint?: string;
+  /** 跟在 hint 之后、随当前选项变化的补充说明;排在文字列里,不挤右侧控件。 */
+  extraHint?: string;
   /** 给出后渲染成可折叠区块;搜索跳转会自动展开祖先 <details>。 */
   collapsible?: { defaultOpen?: boolean };
   /** 与文字同行、排在右侧的装饰内容(如选项预览动画);窄屏时落到文字下方。 */
@@ -28,7 +30,7 @@ export function SettingsGroup({ title, children }: { title?: string; children: R
   );
 }
 
-export function SettingsBlock({ id, title, hint, collapsible, aside, layout = "stacked", children }: SettingsBlockProps) {
+export function SettingsBlock({ id, title, hint, extraHint, collapsible, aside, layout = "stacked", children }: SettingsBlockProps) {
   if (collapsible) {
     return (
       <details className="settings-block settings-collapsible" data-setting-id={id} open={collapsible.defaultOpen}>
@@ -57,6 +59,7 @@ export function SettingsBlock({ id, title, hint, collapsible, aside, layout = "s
       <div className="settings-block-text">
         <h3>{title}</h3>
         {hint ? <p className="settings-hint">{hint}</p> : null}
+        {extraHint ? <p className="settings-hint">{extraHint}</p> : null}
       </div>
       <div className="settings-block-body">{children}</div>
     </section>
