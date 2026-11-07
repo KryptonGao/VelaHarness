@@ -43,6 +43,11 @@ export function InterfacePage({
     calm: text.composerLayoutCalm,
     capsule: text.composerLayoutCapsule,
   };
+  const composerLayoutHints: Record<ComposerLayout, string> = {
+    classic: text.composerLayoutClassicHint,
+    calm: text.composerLayoutCalmHint,
+    capsule: text.composerLayoutCapsuleHint,
+  };
   const sidebarItems = useSidebarItems();
   const navLayout = useNavLayout();
   const navLayoutLabels: Record<NavLayout, string> = { classic: text.navLayoutClassic, rail: text.navLayoutRail };
@@ -127,7 +132,7 @@ export function InterfacePage({
         </SettingsBlock>
       </SettingsGroup>
       <SettingsGroup title={copy.sections.composer}>
-        <SettingsBlock id="composer-layout" title={text.composerLayout} hint={text.composerLayoutHint} layout="inline">
+        <SettingsBlock id="composer-layout" title={text.composerLayout} hint={text.composerLayoutHint} extraHint={composerLayoutHints[composerLayout]} layout="inline">
           <Segmented
             label={text.composerLayout}
             value={composerLayout}
