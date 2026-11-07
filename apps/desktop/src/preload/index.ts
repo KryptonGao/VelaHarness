@@ -136,6 +136,7 @@ import {
   type SkillCatalog,
   type SkillMigrationResult,
   type TerminalCreateOptions,
+  type TerminalCloseStatus,
   type TerminalEvent,
   type TerminalSessionInfo,
   type TranscriptMessage,
@@ -744,6 +745,8 @@ const api: VelaApi = {
   resizeTerminal: (id: string, cols: number, rows: number) => {
     ipcRenderer.send(IpcChannel.terminalResize, id, cols, rows);
   },
+  getTerminalCloseStatus: (id: string) =>
+    ipcRenderer.invoke(IpcChannel.terminalCloseStatus, id) as Promise<TerminalCloseStatus>,
   closeTerminal: (id: string) => {
     ipcRenderer.send(IpcChannel.terminalClose, id);
   },

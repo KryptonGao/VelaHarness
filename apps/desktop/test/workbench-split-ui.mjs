@@ -308,7 +308,90 @@ if (!process.versions.electron) {
         assert.equal(await js("document.querySelectorAll('.layout-switch,.layout-button').length"), 0);
         if (process.env.VELA_WORKBENCH_SPLIT_CAPTURE) { await pause(); writeFileSync(`${process.env.VELA_WORKBENCH_SPLIT_CAPTURE}-${scheme}.png`, (await win.webContents.capturePage()).toPNG()); }
       }
-      assert.deepEqual(errors, []); console.log("PASS 折叠保留布局、深浅色及无控制台错误"); app.exit(0);
+      console.log("PASS 折叠保留布局、深浅色");
+      // Terminal close uses the real compact in-app dialog, not a native OS alert.
+      await reset("terminal"); await drop("Terminal", "A", "right");
+      const closeTerminal = () => js(`(()=>{const b=document.querySelector('.workbench-tab-close[aria-label="关闭 Terminal"]');b.focus();b.click()})()`);
+      const prompt = async () => { await closeTerminal(); await js("splitFixture.resolveTerminalClose('busy')"); await until("document.querySelector('.terminal-close-dialog[open]')"); };
+      const press = async keyCode => {
+        win.webContents.sendInputEvent({ type: "keyDown", keyCode });
+        if (keyCode === "Enter") win.webContents.sendInputEvent({ type: "char", keyCode: "\r" });
+        win.webContents.sendInputEvent({ type: "keyUp", keyCode }); await pause();
+      };
+      await js("splitFixture.terminalCloseChecks=[];splitFixture.terminalCloses=[];splitFixture.closeRequests=[];window.savedTerminal=document.querySelector('.terminal-xterm')");
+      await closeTerminal(); await closeTerminal(); await pause();
+      assert.deepEqual(await js("splitFixture.terminalCloseChecks"), ["session-1"], "重复关闭不能重复检查");
+      assert.deepEqual(await js("splitFixture.closeRequests"), []);
+      assert.deepEqual(await js("splitFixture.terminalCloses"), []);
+      assert.equal(await count(), 2);
+      assert.equal(await js("document.querySelector('.workbench-panel').classList.contains('is-closing')"), false);
+      await js("splitFixture.resolveTerminalClose('busy')"); await until("document.querySelector('.terminal-close-dialog[open]')");
+      await closeTerminal();
+      assert.equal(await js("document.querySelectorAll('.terminal-close-dialog').length"), 1);
+      assert.equal(await js("document.activeElement.className"), "terminal-close-cancel");
+      assert.equal(await js("document.querySelector('.terminal-close-dialog').getAttribute('role')"), "alertdialog");
+      assert.equal(await js("document.querySelector('.terminal-close-dialog').querySelectorAll('button').length"), 2);
+      // Theme tokens, original compact spacing and left-aligned buttons match the supplied card.
+      const dialogBackgrounds = [];
+      for (const scheme of ["light", "dark"]) {
+        await js(`document.documentElement.dataset.scheme=${JSON.stringify(scheme)}`);
+        const style = await js("(()=>{const d=document.querySelector('.terminal-close-dialog'),s=getComputedStyle(d),b=d.querySelector('button'),r=d.getBoundingClientRect();return {width:r.width,height:r.height,padding:s.padding,border:s.borderRadius,background:s.backgroundColor,cancel:getComputedStyle(b).backgroundColor,buttonHeight:b.getBoundingClientRect().height,left:b.getBoundingClientRect().left-r.left}})()");
+        assert.equal(style.width, 552); assert.ok(style.height < 140); assert.equal(style.padding, "12px 14px");
+        assert.equal(style.border, "8px"); assert.equal(style.buttonHeight, 32); assert.equal(style.left, 15);
+        assert.notEqual(style.cancel, style.background); dialogBackgrounds.push(style.background);
+      }
+      assert.notEqual(dialogBackgrounds[0], dialogBackgrounds[1], "卡片随深浅主题切换");
+      if (process.env.VELA_TERMINAL_CLOSE_CAPTURE) {
+        await js("splitFixture.setLocale('zh-TW');document.documentElement.dataset.replyFontCjk='serif'"); await pause();
+        const rect = await js("(()=>{const r=document.querySelector('.terminal-close-dialog').getBoundingClientRect();return {x:Math.floor(r.x),y:Math.floor(r.y),width:Math.ceil(r.width),height:Math.ceil(r.height)}})()");
+        writeFileSync(process.env.VELA_TERMINAL_CLOSE_CAPTURE, (await win.webContents.capturePage(rect)).toPNG());
+        await js("splitFixture.setLocale('zh-CN');delete document.documentElement.dataset.replyFontCjk");
+      }
+      win.setSize(480, 700); await pause();
+      assert.equal(await js("(()=>{const d=document.querySelector('.terminal-close-dialog').getBoundingClientRect();return d.left>=14&&d.right<=innerWidth-14&&d.width===innerWidth-28})()"), true, "窄窗口仍完整显示卡片");
+      win.setSize(1600, 1000); await pause();
+      await press("Tab"); assert.equal(await js("document.activeElement.textContent"), "终止命令并关闭");
+      await press("Tab"); assert.equal(await js("document.activeElement.className"), "terminal-close-cancel", "焦点不能离开弹窗");
+      await press("Enter"); await until("!document.querySelector('.terminal-close-dialog')");
+      assert.equal(await js("document.activeElement.getAttribute('aria-label')"), "关闭 Terminal", "取消后恢复焦点");
+      assert.equal(await js("window.savedTerminal.isConnected && document.querySelector('.terminal-xterm')===window.savedTerminal"), true);
+      assert.deepEqual(await names(), ["A", "Terminal"]);
+      assert.deepEqual(await js("splitFixture.terminalCloses"), []);
+      await prompt(); await press("Escape"); await until("!document.querySelector('.terminal-close-dialog')");
+      assert.deepEqual(await js("splitFixture.terminalCloses"), []);
+      await closeTerminal(); await js("splitFixture.rejectTerminalClose()"); await pause();
+      assert.deepEqual(await names(), ["A", "Terminal"], "检查失败不能关闭命令");
+      assert.equal(await js("Boolean(document.querySelector('.terminal-close-dialog'))"), false);
+      await closeTerminal(); await js("splitFixture.resolveTerminalClose('unavailable')"); await pause();
+      assert.deepEqual(await names(), ["A", "Terminal"]);
+      await prompt(); await click(".terminal-close-actions button:last-child");
+      await until("splitFixture.terminalCloses.length===1");
+      assert.deepEqual(await names(), ["A"]); assert.equal(await count(), 1);
+      assert.deepEqual(await js("splitFixture.closeRequests"), ["terminal-1"]);
+      assert.deepEqual(await js("splitFixture.terminalCloses"), ["session-1"]);
+      // Last-tab animation starts only after explicit approval.
+      await reset("terminal-only"); await js("splitFixture.terminalCloses=[];splitFixture.closeRequests=[]");
+      await prompt(); await pause();
+      assert.equal(await js("document.querySelector('.workbench-panel').classList.contains('is-closing')"), false);
+      await click(".terminal-close-cancel"); await pause();
+      assert.deepEqual(await js("splitFixture.terminalCloses"), []);
+      await prompt(); await click(".terminal-close-actions button:last-child");
+      await until("!document.querySelector('.workbench-panel')");
+      assert.deepEqual(await js("splitFixture.terminalCloses"), ["session-1"]);
+      // Idle/exited terminals close without a prompt.
+      await reset("terminal-only"); await js("splitFixture.terminalCloses=[]");
+      await closeTerminal(); await js("splitFixture.resolveTerminalClose('idle')");
+      await until("!document.querySelector('.workbench-panel')");
+      assert.deepEqual(await js("splitFixture.terminalCloses"), ["session-1"]);
+      // Late inspection results and open prompts cannot leak across workspace scopes.
+      await reset("terminal-only"); await closeTerminal(); await reset("terminal-only");
+      await js("splitFixture.terminalCloses=[];splitFixture.closeRequests=[];splitFixture.resolveTerminalClose('busy')"); await pause();
+      assert.deepEqual(await names(), ["Terminal"]);
+      assert.equal(await js("Boolean(document.querySelector('.terminal-close-dialog'))"), false);
+      await prompt(); await reset("terminal-only"); await pause();
+      assert.equal(await js("Boolean(document.querySelector('.terminal-close-dialog'))"), false);
+      console.log("PASS 应用内终端关闭卡片：深浅色、紧凑布局、默认取消、Enter/Escape、焦点循环与恢复、取消保留进程及 DOM、确认关闭、空闲直关及旧请求隔离");
+      assert.deepEqual(errors, []); console.log("PASS 无控制台错误"); app.exit(0);
     } catch (error) { console.error(error); console.error(errors.join("\n")); app.exit(1); }
   });
 }

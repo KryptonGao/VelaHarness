@@ -32,7 +32,7 @@
     "test:image-viewer": "node --import ../../packages/agent/test/register-ts.mjs --experimental-transform-types --test test/image-viewer.test.ts",
     "test:browser": "node --import ../../packages/agent/test/register-ts.mjs --experimental-transform-types --test test/browser-host.test.ts test/browser-cdp.test.ts test/browser.test.ts test/browser-error.test.ts test/browser-security.test.ts test/browser-webauthn.test.ts test/browser-annotations.test.ts test/browser-annotation.test.ts test/reply-store.test.ts test/conversation-links.test.ts",
     "test:trace:preview": "node test/trace-preview-server.mjs",
-    "test:workbench": "node --import ../../packages/agent/test/register-ts.mjs --experimental-transform-types --test test/workbench-layout.test.ts test/sidebar-resize.test.ts",
+    "test:workbench": "node --import ../../packages/agent/test/register-ts.mjs --experimental-transform-types --test test/workbench-layout.test.ts test/sidebar-resize.test.ts test/terminal-close.test.ts",
     "test:workbench:ui": "node test/workbench-split-ui.mjs",
     "test:info-cards": "node --import ../../packages/agent/test/register-ts.mjs --experimental-transform-types --test test/chat-lane.test.ts test/info-cards-layout.test.ts",
     "test:info-cards:ui": "node test/info-cards-ui.mjs",

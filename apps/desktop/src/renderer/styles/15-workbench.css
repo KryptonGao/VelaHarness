@@ -573,3 +573,56 @@
   line-height: 1.5;
 }
 
+/* Compact confirmation card, matching the message preview rather than an OS alert. */
+.terminal-close-dialog {
+  box-sizing: border-box;
+  width: 552px;
+  max-width: calc(100vw - 28px);
+  max-height: calc(100vh - 28px);
+  margin: auto;
+  padding: 12px 14px;
+  overflow: auto;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface-subtle);
+  color: var(--text-primary);
+  font-family: var(--font-reply);
+  font-size: calc(14px * var(--ui-scale));
+  font-weight: var(--font-reply-weight);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  -webkit-app-region: no-drag;
+}
+.terminal-close-dialog[open] { display: flex; flex-direction: column; gap: 8px; }
+.terminal-close-dialog::backdrop { background: var(--overlay); }
+.terminal-close-dialog h2 {
+  margin: 4px 0 0;
+  font-size: calc(13.5px * var(--ui-scale));
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.35;
+}
+.terminal-close-dialog p { margin: 0; }
+.terminal-close-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.terminal-close-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  padding: 0 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  font: inherit;
+  cursor: pointer;
+}
+.terminal-close-actions button:hover { background: var(--bg-hover); }
+.terminal-close-actions .terminal-close-cancel {
+  background: var(--accent-blue);
+  border-color: var(--accent-blue);
+  color: var(--accent-contrast);
+}
+.terminal-close-actions .terminal-close-cancel:hover { background: var(--accent-blue-hover); }
+.terminal-close-actions button:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 2px; }
+

@@ -27,6 +27,7 @@ import { PlanDocumentPane } from "./PlanPanel";
 import { SidebarResizeHandle } from "./SidebarResizeHandle";
 import { StartView, type StartTabAction } from "./StartView";
 import { TerminalView } from "./TerminalView";
+import { TerminalCloseDialog } from "./TerminalCloseDialog";
 import { BrowserPanel, BrowserTabIcon, BrowserTabLabel } from "./browser/BrowserPanel";
 import type { BrowserController } from "../browser/browser-controller";
 import { BranchIcon, ChatIcon, FileIcon, FolderIcon, PlanIcon, PlusIcon, SparkIcon, TerminalIcon } from "./icons";
@@ -230,7 +231,39 @@ function WorkbenchPanelContent(props: WorkbenchPanelProps & { closing: boolean; 
     const pane = layoutRef.current.panes.find(p => p.id === paneId), tab = tabs.find(t => t.id === pane?.selected);
     if (tab && (layoutRef.current.focused !== paneId || activeTabId !== tab.id)) activateTab(tab);
   }
+  const terminalCloseRequests = useRef(new Set<string>());
+  const [terminalClosePrompt, setTerminalClosePrompt] = useState<{ scope: string; tab: Extract<WorkbenchTab, { kind: "terminal" }> } | null>(null);
+  const terminalPromptVisible = terminalClosePrompt?.scope === scope && !closing && !collapsed && tabs.some(tab =>
+    tab.kind === "terminal" && tab.id === terminalClosePrompt.tab.id && tab.sessionId === terminalClosePrompt.tab.sessionId);
+  useLayoutEffect(() => {
+    if (terminalClosePrompt && !terminalPromptVisible) setTerminalClosePrompt(null);
+  }, [terminalClosePrompt, terminalPromptVisible]);
+  const closeContext = useRef<{ scope: string; tabs: WorkbenchTab[]; close: (tab: WorkbenchTab) => void } | null>(null);
+  useLayoutEffect(() => {
+    closeContext.current = { scope, tabs, close: tab => {
+      const current = tabs.find(candidate => candidate.id === tab.id);
+      if (current?.kind === "terminal" && tab.kind === "terminal" && current.sessionId === tab.sessionId) finishClose(current);
+    } };
+    return () => { closeContext.current = null; };
+  });
   function closeTab(tab: WorkbenchTab) {
+    if (closing || collapsed) return;
+    if (tab.kind !== "terminal") { finishClose(tab); return; }
+    if (terminalCloseRequests.current.size || terminalClosePrompt) return;
+    const api = window.vela;
+    if (!api) return;
+    terminalCloseRequests.current.add(tab.id);
+    void api.getTerminalCloseStatus(tab.sessionId).then(status => {
+      // Process inspection is asynchronous: never apply an old result to a different workspace or tab.
+      const context = closeContext.current;
+      if (context?.scope !== scope || !context.tabs.some(current => current.kind === "terminal" && current.id === tab.id && current.sessionId === tab.sessionId)) return;
+      if (status === "idle") context.close(tab);
+      else if (status === "busy") setTerminalClosePrompt({ scope, tab });
+    }).catch(() => {
+      // Failure to check must never terminate the command.
+    }).finally(() => terminalCloseRequests.current.delete(tab.id));
+  }
+  function finishClose(tab: WorkbenchTab) {
     if (closing) return;
     props.onTabCloseRequested?.(tab);
     const owner = ownerOf(tab.id), index = owner?.tabs.indexOf(tab.id) ?? -1;
@@ -402,6 +435,11 @@ function WorkbenchPanelContent(props: WorkbenchPanelProps & { closing: boolean; 
           if (keys.includes(event.key) || event.key === "Home") { event.preventDefault(); mutate(current => resizeWorkbenchDivider(current, divider.id, event.key === "Home" ? 0.5 : divider.ratio + (event.key === keys[0] ? -0.02 : 0.02), dividerBounds(divider))); } }} />)}
     </div>
     <span className="workbench-sr-status" role="status">{announcement}</span>
+    {terminalPromptVisible && terminalClosePrompt && createPortal(<TerminalCloseDialog
+      onCancel={() => setTerminalClosePrompt(null)} onConfirm={() => {
+        setTerminalClosePrompt(null);
+        if (closeContext.current?.scope === terminalClosePrompt.scope) closeContext.current.close(terminalClosePrompt.tab);
+      }} />, document.body)}
     {drag && canvasBounds && !collapsed && createPortal(<div className="workbench-drag-surface" data-placing={drag.placing || undefined}
       style={{ left: canvasBounds.left, top: canvasBounds.top, width: canvasBounds.width, height: canvasBounds.height }}
       onPointerMove={event => { if (drag.placing) updateDrop(event.clientX, event.clientY); }} onPointerLeave={() => setDrop(null)}

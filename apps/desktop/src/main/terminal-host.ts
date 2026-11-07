@@ -3,6 +3,7 @@ import { ipcMain, type WebContents } from "electron";
 import { existsSync } from "node:fs";
 import { isAbsolute } from "node:path";
 import { spawn, type IPty } from "node-pty";
+import { probeTerminalCommand, TerminalCloseCheck } from "./terminal-close";
 
 const maxIdLength = 128;
 const maxInputLength = 64 * 1024;
@@ -23,6 +24,10 @@ export class TerminalHost {
   private readonly sessions = new Map<string, TerminalSession>();
   private readonly watchedWebContents = new Set<number>();
   private readonly cwdProvider: () => string | null;
+  private readonly closeCheck = new TerminalCloseCheck<TerminalSession>({
+    getSession: id => this.sessions.get(id),
+    probe: session => probeTerminalCommand(session.pty.pid, session.info.shell),
+  });
 
   constructor(cwdProvider: () => string | null) {
     this.cwdProvider = cwdProvider;
@@ -50,6 +55,13 @@ export class TerminalHost {
         session.pty.resize(clampDimension(rawCols), clampDimension(rawRows));
       } catch {
         // PTY 已退出时忽略尺寸变化。
+      }
+    });
+    ipcMain.handle(IpcChannel.terminalCloseStatus, (event, rawId: unknown) => {
+      try {
+        return this.closeCheck.request(parseId(rawId), event.sender.id);
+      } catch {
+        return "unavailable";
       }
     });
     ipcMain.on(IpcChannel.terminalClose, (event, rawId: unknown) => {

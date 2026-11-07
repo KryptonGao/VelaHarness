@@ -270,6 +270,7 @@ export const IpcChannel = {
   terminalWrite: "terminal:write",
   terminalResize: "terminal:resize",
   terminalClose: "terminal:close",
+  terminalCloseStatus: "terminal:close-status",
   terminalEvent: "terminal:event",
   memoryList: "memory:list",
   memorySetEnabled: "memory:set-enabled",
@@ -2314,6 +2315,9 @@ export interface TerminalSessionInfo {
   cwd: string;
 }
 
+/** idle 可直接关闭；busy 需渲染层确认；unavailable 不可关闭或询问。 */
+export type TerminalCloseStatus = "idle" | "busy" | "unavailable";
+
 /** 终端输出与退出事件,经 terminal:event 推送到渲染层。 */
 export type TerminalEvent =
   | { type: "output"; id: string; data: string }
@@ -3299,6 +3303,8 @@ export interface VelaApi extends McpApi, PluginApi {
   writeTerminal(id: string, data: string): void;
   /** 面板尺寸变化时同步 PTY 窗口大小。 */
   resizeTerminal(id: string, cols: number, rows: number): void;
+  /** 仅检测关闭状态，不弹窗或结束会话；探测失败保守返回 busy。 */
+  getTerminalCloseStatus(id: string): Promise<TerminalCloseStatus>;
   /** 关闭终端并结束 shell 进程。 */
   closeTerminal(id: string): void;
   onTerminalEvent(listener: (event: TerminalEvent) => void): () => void;
