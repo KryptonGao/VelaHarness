@@ -58,50 +58,54 @@ export function TraceIcon({
   kind: TraceKind;
   size?: number;
 }) {
+  // 16px grid, round caps, at most one small filled accent per icon.
   const paths: Record<TraceKind, ReactNode> = {
     user: (
       <>
-        <circle cx="8" cy="5" r="2.5" />
-        <path d="M3 14v-2a5 5 0 0 1 10 0v2" />
-      </>
-    ),
-    thinking: (
-      <>
-        <path d="m8 1 1.8 4.8L15 8l-5.2 1.8L8 15l-1.8-5.2L1 8l5.2-2.2Z" />
-        <path d="M13 1v3M11.5 2.5h3" />
+        <circle cx="8" cy="5.4" r="2.6" />
+        <path d="M2.9 13.6c.5-2.6 2.5-4 5.1-4s4.6 1.4 5.1 4" />
       </>
     ),
     assistant: (
       <>
-        <path d="M2 2h12v9H8l-4 3v-3H2Z" />
-        <path d="M5 5h6M5 8h4" />
+        <path d="M3.5 2.5h9a1.5 1.5 0 0 1 1.5 1.5v6a1.5 1.5 0 0 1-1.5 1.5H8.2L5 14.2v-2.7H3.5A1.5 1.5 0 0 1 2 10V4a1.5 1.5 0 0 1 1.5-1.5Z" />
+        <path d="M8 4.5 8.8 6.4 10.7 7.2 8.8 8 8 9.9 7.2 8 5.3 7.2 7.2 6.4Z" fill="currentColor" strokeWidth="1" />
       </>
     ),
-    system: (
+    thinking: (
       <>
-        <path d="m6 1-1 2-2 .5L1 6l1.5 2L1 10l2 2.5 2 .5 1 2h4l1-2 2-.5 2-2.5-1.5-2L15 6l-2-2.5-2-.5-1-2Z" />
-        <circle cx="8" cy="8" r="2.5" />
+        <path d="M4.6 10.2A2.9 2.9 0 0 1 4.2 4.5a3.4 3.4 0 0 1 6.4-.5 2.7 2.7 0 0 1 1.5 5.2 2.9 2.9 0 0 1-2 1H5.8a1.7 1.7 0 0 1-1.2-.1Z" />
+        <circle cx="4.3" cy="13" r="1.1" fill="currentColor" stroke="none" />
+        <circle cx="2.2" cy="14.7" r=".7" fill="currentColor" stroke="none" />
       </>
     ),
     "tool-call": (
-      <path d="M14 2a4 4 0 0 1-5 5L3.5 14a2 2 0 0 1-2.8-2.8L7 5a4 4 0 0 1 5-4L9 4l3 1Z" />
+      <path d="M10.3 2.3a3.5 3.5 0 0 0-3.2 4.8L2.8 11.4a1.5 1.5 0 0 0 2.1 2.1l4.3-4.3a3.5 3.5 0 0 0 4.8-3.2l-2.1 2.1-1.9-.4-.4-1.9 2.1-2.1a3.5 3.5 0 0 0-1.4-.4Z" />
     ),
     "tool-result": (
       <>
-        <path d="M3 2h10v12H3Z" />
-        <path d="m5 7 2 2 4-4" />
-      </>
-    ),
-    state: (
-      <>
-        <circle cx="8" cy="8" r="6" />
-        <path d="M8 4v4l3 2" />
+        <path d="M13 3.5V8a2 2 0 0 1-2 2H3.5" />
+        <path d="m6.3 6.9-2.9 3.1 2.9 3.1" />
       </>
     ),
     error: (
       <>
-        <circle cx="8" cy="8" r="6" />
-        <path d="M8 4v5M8 11v1" />
+        <path d="M6.9 2.9 1.9 11.6a1.3 1.3 0 0 0 1.1 2h10a1.3 1.3 0 0 0 1.1-2L9.1 2.9a1.3 1.3 0 0 0-2.2 0Z" />
+        <path d="M8 6.3v2.9" />
+        <circle cx="8" cy="11.5" r=".8" fill="currentColor" stroke="none" />
+      </>
+    ),
+    system: (
+      <>
+        <path d="M2.5 4.5h4M10.5 4.5h3M2.5 11.5h2M8.5 11.5h5" />
+        <circle cx="8.5" cy="4.5" r="1.8" />
+        <circle cx="6.5" cy="11.5" r="1.8" />
+      </>
+    ),
+    state: (
+      <>
+        <circle cx="8" cy="8" r="5.6" />
+        <circle cx="8" cy="8" r="1.9" fill="currentColor" stroke="none" />
       </>
     ),
   };
@@ -112,7 +116,7 @@ export function TraceIcon({
       viewBox="0 0 16 16"
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.2"
+      strokeWidth="1.4"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"

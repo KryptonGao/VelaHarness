@@ -341,6 +341,8 @@
 .trace-lane-label { position: sticky; left: 0; width: 46px; height: 100%; display: flex; align-items: flex-start; padding: 4px 6px; background: var(--bg-chat); z-index: 2; color: var(--text-muted); font-size: calc(11px * var(--ui-scale)); border-right: 1px solid var(--border-subtle); }
 .trace-bar { position: absolute; height: 9px; border: 0; border-radius: 1px; background: currentColor; padding: 0; opacity: .85; }
 .trace-bar:hover { opacity: 1; filter: brightness(.9); }
+/* Bars from different events can touch in the time-based views; a hairline in the canvas colour keeps them readable as separate blocks. */
+.trace-timeline:not(.trace-timeline-sequence) .trace-bar { box-shadow: inset -1px 0 0 var(--bg-chat); }
 .trace-bar.selected { outline: 1px solid var(--trace-selected); outline-offset: 2px; opacity: 1; }
 .trace-bar.failed { color: var(--danger); }
 .trace-bar.interrupted { opacity: .55; background: repeating-linear-gradient(135deg,currentColor 0 3px,transparent 3px 5px); }
@@ -364,17 +366,52 @@
 .trace-system-row.selected, .trace-row.selected { border-left-color: var(--trace-selected); background: color-mix(in srgb, var(--trace-selected) 8%, var(--bg-chat)); }
 .trace-list { min-height: 0; flex: 1; overflow: auto; position: relative; outline: none; }
 .trace-list-spacer { position: relative; width: 100%; }
-.trace-row { position: absolute; left: 0; right: 0; height: 30px; display: flex; align-items: center; gap: 8px; padding: 0 9px 0 0; border-bottom: 1px solid var(--border-subtle); border-left: 3px solid transparent; cursor: pointer; }
+.trace-row { --c: var(--text-muted); --rail: color-mix(in srgb, var(--c) 55%, transparent); position: absolute; left: 0; right: 0; height: 34px; display: flex; align-items: center; gap: 8px; padding: 0 10px 0 0; border-bottom: 1px solid var(--border-subtle); border-left: 3px solid var(--rail); cursor: pointer; }
+.trace-row-user { --c: var(--trace-user); background: color-mix(in srgb, var(--trace-user) 5%, var(--bg-chat)); }
+.trace-row-thinking, .trace-row-assistant { --c: var(--trace-model); }
+.trace-row-tool-call, .trace-row-tool-result { --c: var(--trace-tool); }
+.trace-row-tool-result { --rail: color-mix(in srgb, var(--c) 22%, transparent); }
+.trace-row-error, .trace-row.failed { --c: var(--danger); background: color-mix(in srgb, var(--danger) 6%, var(--bg-chat)); }
 .trace-row:hover { background: var(--bg-hover); }
+.trace-row-user:hover { background: color-mix(in srgb, var(--trace-user) 9%, var(--bg-chat)); }
+.trace-row-error:hover, .trace-row.failed:hover { background: color-mix(in srgb, var(--danger) 10%, var(--bg-chat)); }
 .trace-row.in-range { background: color-mix(in srgb, var(--trace-selected) 7%, var(--bg-chat)); border-left-color: color-mix(in srgb, var(--trace-selected) 55%, transparent); }
-.trace-row.selected:hover { background: color-mix(in srgb, var(--trace-selected) 10%, var(--bg-chat)); }
-.trace-sequence { width: 23px; flex: 0 0 23px; text-align: center; color: var(--text-muted); font: calc(9px * var(--code-scale)) var(--font-mono); }
-.trace-row > .trace-kind { width: 20px; height: 20px; display: grid; place-items: center; background: color-mix(in srgb,currentColor 8%,transparent); border-radius: 3px; }
-.trace-row-content { display: flex; align-items: center; min-width: 0; gap: 9px; flex: 1; white-space: nowrap; }
-.trace-row-content strong { font-weight: 500; flex-shrink: 0; font-size: calc(12px * var(--ui-scale)); color: var(--text-secondary); }
-.trace-row-content > span { overflow: hidden; text-overflow: ellipsis; color: var(--text-primary); }
-.trace-row-content.mono { font-family: var(--font-mono); font-size: calc(12px * var(--code-scale)); }
-.trace-row-duration { flex: 0 0 50px; text-align: right; color: var(--text-muted); font: calc(10px * var(--code-scale)) var(--font-mono); }
+.trace-row.selected, .trace-row.selected:hover { background: color-mix(in srgb, var(--trace-selected) 9%, var(--bg-chat)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--trace-selected) 28%, transparent); }
+.trace-sequence { width: 26px; flex: 0 0 26px; text-align: center; color: var(--text-muted); font: calc(10px * var(--code-scale)) var(--font-mono); }
+.trace-sequence.first { color: var(--text-secondary); font-weight: 600; }
+.trace-type { flex: 0 0 82px; height: 20px; padding: 0 7px 0 5px; gap: 5px; border-radius: 4px; background: color-mix(in srgb, var(--c) 12%, transparent); font-size: calc(11px * var(--ui-scale)); font-weight: 600; white-space: nowrap; }
+.trace-type > span { overflow: hidden; text-overflow: ellipsis; }
+.trace-type > svg { flex: 0 0 auto; }
+.trace-row-tool-result .trace-type { background: transparent; border: 1px dashed color-mix(in srgb, var(--c) 40%, transparent); font-weight: 500; }
+.trace-row-main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+.trace-row-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--text-primary); }
+.trace-row-user .trace-row-text { font-weight: 500; }
+.trace-row-thinking .trace-row-text { color: var(--text-secondary); font-style: italic; }
+.trace-tool { flex: 0 0 auto; padding: 1px 6px; border-radius: 4px; background: color-mix(in srgb, var(--trace-tool) 14%, transparent); color: var(--text-primary); font: 600 calc(12px * var(--code-scale)) var(--font-mono); }
+.trace-tool.mcp::before { content: "MCP"; margin-right: 5px; padding: 1px 3px; border-radius: 2px; background: var(--trace-tool); color: var(--bg-chat); font: 700 8.5px var(--font-ui, sans-serif); letter-spacing: .04em; vertical-align: 1px; }
+.trace-args { min-width: 0; display: flex; gap: 10px; font: calc(11.5px * var(--code-scale)) var(--font-mono); color: var(--text-secondary); }
+.trace-args-primary { min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--text-primary); }
+.trace-arg { flex: 0 0 auto; color: var(--text-muted); }
+.trace-arg b { font-weight: 400; opacity: .8; }
+.trace-row-tool-result .trace-row-main, .trace-row-tool-result .trace-row-text { color: var(--text-muted); font-family: var(--font-mono); font-size: calc(12px * var(--code-scale)); }
+.trace-row-tool-result .trace-row-text { color: var(--text-secondary); }
+.trace-row-tool-result .trace-tool, .trace-row-tool-result .trace-tool.mcp { padding-left: 0; background: transparent; color: var(--text-muted); font-weight: 500; }
+.trace-row-tool-result .trace-tool::before, .trace-row-tool-result .trace-tool.mcp::before { content: "↳"; margin: 0 5px 0 0; padding: 0; background: none; color: var(--text-muted); font: inherit; letter-spacing: 0; vertical-align: baseline; }
+.trace-row-duration { flex: 0 0 62px; text-align: right; color: var(--text-muted); font: calc(10.5px * var(--code-scale)) var(--font-mono); }
+.trace-row-duration.slow { color: var(--warning); font-weight: 600; }
+.trace-row .trace-status { height: 18px; padding: 0 7px; border-radius: 9px; font-size: calc(11px * var(--ui-scale)); font-weight: 600; background: var(--bg-hover); }
+.trace-row .trace-status-failed { background: color-mix(in srgb, var(--danger) 12%, transparent); }
+.trace-row .trace-status-running { background: color-mix(in srgb, var(--trace-model) 12%, transparent); }
+.trace-filters { flex: 0 0 auto; display: flex; align-items: center; gap: 4px; padding: 6px 10px; border-bottom: 1px solid var(--border-subtle); overflow-x: auto; }
+.trace-filter { --c: var(--text-primary); display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 8px; border: 1px solid transparent; border-radius: 11px; background: transparent; color: var(--text-secondary); white-space: nowrap; }
+.trace-filter i { width: 7px; height: 7px; border-radius: 2px; background: var(--c); }
+.trace-filter em { font: normal calc(10px * var(--code-scale)) var(--font-mono); color: var(--text-muted); }
+.trace-filter:hover { background: var(--bg-hover); }
+.trace-filter[aria-pressed="true"] { color: var(--text-primary); background: color-mix(in srgb, var(--c) 13%, transparent); border-color: color-mix(in srgb, var(--c) 30%, transparent); }
+.trace-filter-user { --c: var(--trace-user); }
+.trace-filter-assistant, .trace-filter-thinking { --c: var(--trace-model); }
+.trace-filter-tool { --c: var(--trace-tool); }
+.trace-filter-error { --c: var(--danger); }
 .trace-status { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; font-size: calc(12px * var(--ui-scale)); color: var(--text-secondary); }
 .trace-status-failed { color: var(--danger); }
 .trace-status-running { color: var(--trace-model); }
@@ -428,7 +465,7 @@
 .trace-summary { min-height: 30px; flex: 0 0 auto; display: flex; align-items: center; flex-wrap: wrap; gap: 6px 15px; padding: 5px 12px; border-top: 1px solid var(--border-strong); color: var(--text-muted); font: calc(10px * var(--code-scale))/1.5 var(--font-mono); background: var(--bg-surface-subtle); }
 .trace-summary > span { white-space: nowrap; }
 .trace-summary button { background: none; border: 0; margin-left: auto; color: var(--text-secondary); font-size: calc(11px * var(--ui-scale)); }
-@container trace (max-width: 800px) { .trace-inspector { width: 320px; flex-basis: 320px; } .trace-system-row .trace-muted { display: none; } .trace-row-duration { flex-basis: 38px; } }
+@container trace (max-width: 800px) { .trace-inspector { width: 320px; flex-basis: 320px; } .trace-system-row .trace-muted { display: none; } .trace-row-duration { flex-basis: 52px; } .trace-type { flex-basis: 24px; padding: 0; justify-content: center; } .trace-type > span:last-child { display: none; } .trace-arg { display: none; } }
 @container trace (max-width: 639px) { .trace-inspector { position: absolute; inset: 0 0 0 auto; z-index: 5; width: min(380px,100%); box-shadow: -8px 0 18px var(--overlay); } .trace-scale-hint { display: none; } .trace-scale-input { width: 64px; } .trace-inspector-tabs { gap: 12px; } }
 @keyframes trace-spin { to { transform: rotate(360deg); } }
 @keyframes trace-pulse { 50% { opacity: .45; } }

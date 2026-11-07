@@ -11,7 +11,11 @@ import {
   traceTimeline,
   slowestTraceNode,
   traceRangeRows,
+  parseToolSummary,
+  matchesTraceFilter,
+  traceFilters,
   type TimelineMode,
+  type TraceFilter,
   type TraceRange,
 } from "./trace-model";
 import {
@@ -23,13 +27,59 @@ import {
   timeLabel,
 } from "./TraceInspector";
 
-const rowHeight = 30;
+const rowHeight = 34;
 // Reserve the lane labels (52px) and the right gutter (8px) outside the scale.
 const timelinePadding = 60;
 // Pointer travel before a press on the timeline turns into a range drag, so
 // plain clicks on bars keep selecting events.
 const dragThreshold = 4;
 const timelineGutter = 52;
+// Short type names for the event rows; the inspector keeps the long forms.
+const rowKindLabel = (kind: TraceNode["kind"]) =>
+  ({
+    system: tr("系统", "System"),
+    user: tr("用户", "User"),
+    thinking: tr("思考", "Thinking"),
+    assistant: tr("助手", "Assistant"),
+    "tool-call": tr("工具", "Tool"),
+    "tool-result": tr("结果", "Result"),
+    error: tr("异常", "Error"),
+    state: tr("状态", "State"),
+  })[kind];
+const filterLabel = (filter: TraceFilter) =>
+  ({
+    all: tr("全部", "All"),
+    user: tr("用户", "User"),
+    assistant: tr("助手", "Assistant"),
+    thinking: tr("思考", "Thinking"),
+    tool: tr("工具", "Tools"),
+    error: tr("异常", "Errors"),
+  })[filter];
+// Steps at or above this duration are called out in the row.
+const slowStepMs = 1000;
+function TraceRowMain({ node }: { node: TraceNode }) {
+  const tool = node.mcp?.tool ?? node.toolName;
+  const args = node.kind === "tool-call" ? parseToolSummary(node.summary) : null;
+  return (
+    <span className="trace-row-main">
+      {tool ? (
+        <span className={`trace-tool${node.mcp ? " mcp" : ""}`}>{tool}</span>
+      ) : null}
+      {args ? (
+        <span className="trace-args">
+          <span className="trace-args-primary">{args.primary}</span>
+          {args.rest.slice(0, 2).map((arg) => (
+            <span className="trace-arg" key={arg.key}>
+              <b>{arg.key}</b> {arg.value}
+            </span>
+          ))}
+        </span>
+      ) : (
+        <span className="trace-row-text">{node.summary}</span>
+      )}
+    </span>
+  );
+}
 const zoomLabel = (zoom: number) =>
   `${Number.isInteger(zoom) ? zoom : zoom.toFixed(1)}×`;
 export function TraceView({
@@ -47,7 +97,8 @@ export function TraceView({
   const { trace, loading, error } = useTrace(conversationId);
   const [selected, setSelected] = useState<string | null>(null),
     [inspector, setInspector] = useState(true),
-    [mode, setMode] = useState<TimelineMode>("sequence");
+    [mode, setMode] = useState<TimelineMode>("sequence"),
+    [filter, setFilter] = useState<TraceFilter>("all");
   const [scroll, setScroll] = useState({ top: 0, height: 500 }),
     [timelineWindow, setTimelineWindow] = useState({ left: 0, width: 900 }),
     [follow, setFollow] = useState(true),
@@ -75,9 +126,21 @@ export function TraceView({
     () => trace.nodes.filter((n) => n.id !== initialSystem?.id),
     [trace.nodes, initialSystem?.id],
   );
-  const indexById = useMemo(
-    () => new Map(nodes.map((n, i) => [n.id, i])),
+  const rows = useMemo(
+    () =>
+      filter === "all" ? nodes : nodes.filter((n) => matchesTraceFilter(n, filter)),
+    [nodes, filter],
+  );
+  const filterCounts = useMemo(
+    () =>
+      Object.fromEntries(
+        traceFilters.map((f) => [f, nodes.filter((n) => matchesTraceFilter(n, f)).length]),
+      ) as Record<TraceFilter, number>,
     [nodes],
+  );
+  const indexById = useMemo(
+    () => new Map(rows.map((n, i) => [n.id, i])),
+    [rows],
   );
   const geometry = useMemo(
     () => traceTimeline(
@@ -87,9 +150,9 @@ export function TraceView({
     [trace.nodes, trace.requests, mode, now, zoom, timelineWindow.width],
   );
   const arrivalKeys = useMemo(() => [
-    ...nodes.map((node) => `row:${node.id}`),
+    ...rows.map((node) => `row:${node.id}`),
     ...geometry.bars.map((bar) => `bar:${bar.node.id}`),
-  ], [nodes, geometry.bars]);
+  ], [rows, geometry.bars]);
   const rangeRows = useMemo(
     () =>
       range
@@ -207,7 +270,7 @@ export function TraceView({
   useLayoutEffect(() => {
     if (followRef.current && list.current)
       list.current.scrollTop = list.current.scrollHeight;
-  }, [nodes.length, trace.version]);
+  }, [rows.length, trace.version]);
   const choose = (node: TraceNode) => {
     selectionPause.current = true;
     setSelected(node.id);
@@ -236,7 +299,7 @@ export function TraceView({
   };
   const start = Math.max(0, Math.floor(scroll.top / rowHeight) - 8),
     end = Math.min(
-      nodes.length,
+      rows.length,
       Math.ceil((scroll.top + scroll.height) / rowHeight) + 8,
     );
   const turns = trace.nodes.reduce((max, n) => Math.max(max, n.turn), 0),
@@ -533,6 +596,29 @@ export function TraceView({
       ) : null}
       <div className="trace-body">
         <div className="trace-list-pane">
+          {nodes.length ? (
+            <div
+              className="trace-filters"
+              role="group"
+              aria-label={tr("筛选事件", "Filter events")}
+            >
+              {traceFilters.map((f) => (
+                <button
+                  key={f}
+                  className={`trace-filter trace-filter-${f}`}
+                  aria-pressed={filter === f}
+                  onClick={() => {
+                    setFilter(f);
+                    setRange(null);
+                  }}
+                >
+                  {f !== "all" ? <i aria-hidden="true" /> : null}
+                  {filterLabel(f)}
+                  <em>{filterCounts[f]}</em>
+                </button>
+              ))}
+            </div>
+          ) : null}
           <button
             className={`trace-system-row${selectedNode?.id === initialSystem?.id ? " selected" : ""}`}
             disabled={!initialSystem}
@@ -575,15 +661,15 @@ export function TraceView({
                 e.key === "Home"
                   ? 0
                   : e.key === "End"
-                    ? nodes.length - 1
+                    ? rows.length - 1
                     : Math.max(
                         0,
                         Math.min(
-                          nodes.length - 1,
+                          rows.length - 1,
                           index + (e.key === "ArrowDown" ? 1 : -1),
                         ),
                       );
-              if (nodes[next]) choose(nodes[next]!);
+              if (rows[next]) choose(rows[next]!);
             }}
             onScroll={(e) => {
               const el = e.currentTarget;
@@ -632,54 +718,77 @@ export function TraceView({
                   {tr("到对话中开始任务", "Start a task in conversation")}
                 </button>
               </div>
+            ) : !rows.length ? (
+              <div className="trace-empty">
+                {tr("没有符合条件的事件", "No matching events")}
+              </div>
             ) : (
               <div
                 className="trace-list-spacer"
-                style={{ height: nodes.length * rowHeight }}
+                style={{ height: rows.length * rowHeight }}
               >
-                {nodes.slice(start, end).map((node, i) => (
-                  <div
-                    id={`trace-row-${node.id}`}
-                    key={node.id}
-                    data-arrival-key={`row:${node.id}`}
-                    role="option"
-                    aria-selected={selectedNode?.id === node.id}
-                    aria-posinset={start + i + 1}
-                    aria-setsize={nodes.length}
-                    className={`trace-row${selectedNode?.id === node.id ? " selected" : ""}${
-                      rangeRows && start + i >= rangeRows.first && start + i <= rangeRows.last
-                        ? " in-range"
-                        : ""
-                    }`}
-                    style={{ top: (start + i) * rowHeight }}
-                    onClick={() => choose(node)}
-                  >
-                    <span className="trace-sequence">
-                      {node.turn > 0 ? `#${node.turn}` : ""}
-                    </span>
-                    <span className={`trace-kind trace-kind-${node.kind}`}>
-                      <TraceIcon kind={node.kind} />
-                    </span>
-                    <span
-                      className={`trace-row-content${node.kind === "tool-call" || node.kind === "tool-result" ? " mono" : ""}`}
+                {rows.slice(start, end).map((node, i) => {
+                  const index = start + i;
+                  const firstOfTurn =
+                    node.turn > 0 && rows[index - 1]?.turn !== node.turn;
+                  const failed = node.status === "Failed" || node.kind === "error";
+                  const slow =
+                    node.kind !== "tool-result" &&
+                    node.durationMs !== null &&
+                    node.durationMs >= slowStepMs;
+                  const showDuration =
+                    node.kind !== "user" &&
+                    node.durationMs !== 0 &&
+                    !(node.kind === "tool-result" && node.durationMs === null);
+                  return (
+                    <div
+                      id={`trace-row-${node.id}`}
+                      key={node.id}
+                      data-arrival-key={`row:${node.id}`}
+                      role="option"
+                      aria-selected={selectedNode?.id === node.id}
+                      aria-posinset={index + 1}
+                      aria-setsize={rows.length}
+                      className={`trace-row trace-row-${node.kind}${failed ? " failed" : ""}${
+                        selectedNode?.id === node.id ? " selected" : ""
+                      }${
+                        rangeRows && index >= rangeRows.first && index <= rangeRows.last
+                          ? " in-range"
+                          : ""
+                      }`}
+                      style={{ top: index * rowHeight }}
+                      onClick={() => choose(node)}
                     >
-                      <strong>{node.toolName ?? kindLabel(node.kind)}</strong>
-                      <span>{node.summary}</span>
-                    </span>
-                    {node.status !== "Completed" ? (
-                      <TraceStatusBadge node={node} />
-                    ) : null}
-                    <span className="trace-row-duration">
-                      {node.durationMs === null
-                        ? "—"
-                        : durationLabel(node.durationMs)}
-                    </span>
-                  </div>
-                ))}
+                      <span className={`trace-sequence${firstOfTurn ? " first" : ""}`}>
+                        {firstOfTurn ? `#${node.turn}` : ""}
+                      </span>
+                      <span
+                        className={`trace-kind trace-type trace-kind-${node.kind}`}
+                        title={kindLabel(node.kind)}
+                      >
+                        <TraceIcon kind={node.kind} />
+                        <span>{rowKindLabel(node.kind)}</span>
+                      </span>
+                      <TraceRowMain node={node} />
+                      {node.status !== "Completed" ? (
+                        <TraceStatusBadge node={node} />
+                      ) : null}
+                      {showDuration ? (
+                        <span className={`trace-row-duration${slow ? " slow" : ""}`}>
+                          {node.durationMs === null
+                            ? "—"
+                            : durationLabel(node.durationMs)}
+                        </span>
+                      ) : (
+                        <span className="trace-row-duration" />
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
-          {!follow && nodes.length ? (
+          {!follow && rows.length ? (
             <button
               className="trace-follow"
               onClick={() => {

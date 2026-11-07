@@ -59,12 +59,14 @@ export interface TraceBar {
 const minBarWidth = 10;
 const sequenceBarWidth = 36;
 const sequenceBarGap = 2;
+/** Smallest visible gap between neighbouring sequence bars, in pixels. */
+const minSequenceGapPx = 2;
 /**
  * Fitting compresses at most to this fraction of the natural width. Longer
  * traces keep this floor scale and scroll horizontally instead of shrinking
  * bars below a readable size.
  */
-const minFitScale = 0.25;
+const minFitScale = 0.5;
 /**
  * `zoom` multiplies the horizontal scale, starting at `viewportWidth` when given.
  * Insets and minimum bar widths scale with it so fitting preserves proportions.
@@ -205,11 +207,15 @@ export function traceTimeline(
       Number(sourceNodeIds.has(b.id)) - Number(sourceNodeIds.has(a.id)),
     );
     const pitch = (sequenceBarWidth + sequenceBarGap) * scale;
+    // The gap shrinks with the scale, but neighbours in the same lane (a tool
+    // call followed by its result) must stay visibly separate, so it never drops
+    // below a couple of pixels; it also never takes more than 40% of a slot.
+    const gap = Math.min(Math.max(sequenceBarGap * scale, minSequenceGapPx), pitch * 0.4);
     const bars: TraceBar[] = ordered.map((node, index) => ({
       node,
       sourceNodeId: sourceNodeIds.get(node.id),
       x: index * pitch,
-      width: sequenceBarWidth * scale,
+      width: pitch - gap,
       lane: node.kind === "system" || node.kind === "user"
         ? 0
         : node.kind === "tool-call" || node.kind === "tool-result" ? 2 : 1,
@@ -410,4 +416,80 @@ export function traceCodePages(
     start = end;
   }
   return pages.length ? pages : [{ text: "", firstLine: 1, lastLine: 1 }];
+}
+
+export type TraceFilter = "all" | "user" | "assistant" | "thinking" | "tool" | "error";
+export const traceFilters: TraceFilter[] = ["all", "user", "assistant", "thinking", "tool", "error"];
+export function matchesTraceFilter(node: TraceNode, filter: TraceFilter): boolean {
+  switch (filter) {
+    case "all":
+      return true;
+    case "tool":
+      return node.kind === "tool-call" || node.kind === "tool-result";
+    case "error":
+      return node.kind === "error" || node.status === "Failed";
+    default:
+      return node.kind === filter;
+  }
+}
+
+export interface TraceToolSummary {
+  /** The argument that best identifies the call, shown prominently. */
+  primary: string;
+  /** Remaining non-empty arguments, shown dimmed. */
+  rest: { key: string; value: string }[];
+}
+const primaryArgumentKeys = ["command", "path", "file_path", "pattern", "query", "url"];
+const pairStart = /\s*,?\s*"((?:[^"\\]|\\.)*)"\s*:\s*/y;
+const quoted = /"((?:[^"\\]|\\.)*)"?/y;
+const scalar = /[^,}\s]+/y;
+/**
+ * Reads the leading `"key": value` pairs of a tool-call summary. Summaries are
+ * whitespace-collapsed and cut at a fixed length, so they are often invalid
+ * JSON; this scans leniently and stops at the first nested value. Returns null
+ * when the text is not an argument object.
+ */
+export function parseToolSummary(summary: string): TraceToolSummary | null {
+  const text = summary.trim();
+  if (!text.startsWith("{")) return null;
+  const entries: { key: string; value: string }[] = [];
+  let pos = 1;
+  while (pos < text.length) {
+    pairStart.lastIndex = pos;
+    const pair = pairStart.exec(text);
+    if (!pair) break;
+    pos = pairStart.lastIndex;
+    let value: string;
+    if (text[pos] === '"') {
+      quoted.lastIndex = pos;
+      const match = quoted.exec(text)!;
+      pos = quoted.lastIndex;
+      try {
+        value = JSON.parse(`"${match[1]}"`);
+      } catch {
+        value = match[1]!;
+      }
+    } else if (text[pos] === "{" || text[pos] === "[") {
+      entries.push({ key: pair[1]!, value: text.slice(pos).replace(/\s*}\s*$/, "") });
+      break;
+    } else {
+      scalar.lastIndex = pos;
+      const match = scalar.exec(text);
+      if (!match) break;
+      value = match[0];
+      pos = scalar.lastIndex;
+    }
+    entries.push({ key: pair[1]!, value });
+  }
+  if (!entries.length) return null;
+  const primary =
+    entries.find((e) => primaryArgumentKeys.includes(e.key) && e.value !== "") ??
+    entries.find((e) => e.value !== "null" && e.value !== "") ??
+    entries[0]!;
+  return {
+    primary: primary.value,
+    rest: entries.filter(
+      (e) => e !== primary && e.value !== "null" && e.value !== "false" && e.value !== "",
+    ),
+  };
 }

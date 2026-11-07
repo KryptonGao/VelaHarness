@@ -9,6 +9,8 @@ import {
   slowestTraceNode,
   traceCodePages,
   traceRangeRows,
+  parseToolSummary,
+  matchesTraceFilter,
 } from "../src/renderer/components/trace/trace-model.ts";
 const node = (
   id: string,
@@ -431,7 +433,7 @@ describe("trace renderer model", () => {
         const natural = traceTimeline(nodes, [request()], mode, 15000000);
         for (const width of [260, 840, 1600]) {
           const fitted = traceTimeline(nodes, [request()], mode, 15000000, 1, width);
-          assert.equal(fitted.width, Math.max(width, natural.width * 0.25), mode);
+          assert.equal(fitted.width, Math.max(width, natural.width * 0.5), mode);
           assert.deepEqual(fitted.bars.map((b) => b.node.id), natural.bars.map((b) => b.node.id));
           assert.ok(fitted.bars.every((b) =>
             b.x >= 0 && b.width > 0 && b.x + b.width <= fitted.width + 1e-9), mode);
@@ -446,15 +448,16 @@ describe("trace renderer model", () => {
     const natural = traceTimeline(events, [], "sequence", 61000);
     for (const width of [400, 2000]) {
       const floored = traceTimeline(events, [], "sequence", 61000, 1, width);
-      assert.equal(floored.width, natural.width * 0.25);
+      assert.equal(floored.width, natural.width * 0.5);
       assert.ok(floored.width > width);
-      assert.ok(floored.bars.every((b) => b.width >= 36 * 0.25 - 1e-9));
+      // Slot width is fixed by the scale; the visible gap (2px minimum) comes out of the bar.
+      assert.ok(floored.bars.every((b) => b.width >= 36 * 0.5 - 2 - 1e-9));
       assert.ok(floored.bars.every((b, i, bars) => i === 0 ||
         bars[i - 1]!.x + bars[i - 1]!.width < b.x));
     }
     assert.equal(
       traceTimeline(events, [], "sequence", 61000, 2, 400).width,
-      natural.width * 0.5,
+      natural.width,
     );
   });
   it("keeps the full trace fitted as events arrive and zooms relative to the viewport", () => {
@@ -598,5 +601,49 @@ describe("traceRangeRows", () => {
   });
   it("returns null when nothing overlaps", () => {
     assert.equal(traceRangeRows([bar("x", 0, 10)], 400, { from: 0.5, to: 0.9 }, index), null);
+  });
+});
+
+describe("tool summaries and filters", () => {
+  it("picks the identifying argument and keeps the rest dimmed", () => {
+    assert.deepEqual(
+      parseToolSummary('{ "command": "git status", "timeout": 10, "run_in_background": false, "cwd": null }'),
+      { primary: "git status", rest: [{ key: "timeout", value: "10" }] },
+    );
+    assert.equal(parseToolSummary('{ "path": "a.ts", "offset": null, "limit": null }')?.primary, "a.ts");
+  });
+  it("reads summaries that were cut mid-string or hold nested values", () => {
+    assert.equal(parseToolSummary('{ "command": "pnpm test && pnpm bu')?.primary, "pnpm test && pnpm bu");
+    assert.equal(parseToolSummary('{ "todos": [ { "step": "read", "status": "pending" } ] }')?.primary, '[ { "step": "read", "status": "pending" } ]');
+  });
+  it("returns null for text that is not an argument object", () => {
+    assert.equal(parseToolSummary("Command exited with code 1"), null);
+    assert.equal(parseToolSummary("{}"), null);
+  });
+  it("filters by event family and surfaces failures under errors", () => {
+    assert.equal(matchesTraceFilter(node("a", 1, { kind: "tool-result" }), "tool"), true);
+    assert.equal(matchesTraceFilter(node("b", 2, { kind: "assistant" }), "tool"), false);
+    assert.equal(matchesTraceFilter(node("c", 3, { kind: "tool-result", status: "Failed" }), "error"), true);
+    assert.equal(matchesTraceFilter(node("d", 4, { kind: "thinking" }), "thinking"), true);
+  });
+});
+
+describe("sequence timeline gaps", () => {
+  it("keeps neighbouring bars visibly apart even at the minimum fit scale", () => {
+    const events = Array.from({ length: 400 }, (_, i) =>
+      node(`n${i}`, i + 1, { kind: i % 2 ? "tool-result" : "tool-call" }));
+    for (const viewport of [200, 600, 2000]) {
+      const t = traceTimeline(events, [], "sequence", 1000000, 1, viewport);
+      for (let i = 1; i < t.bars.length; i++) {
+        const gap = t.bars[i]!.x - (t.bars[i - 1]!.x + t.bars[i - 1]!.width);
+        assert.ok(gap >= 1.9, `gap ${gap} at viewport ${viewport}`);
+        assert.ok(t.bars[i]!.width > 4);
+      }
+    }
+  });
+  it("leaves the unscaled layout unchanged", () => {
+    const t = traceTimeline([node("a", 1), node("b", 2)], [], "sequence", 1000000);
+    assert.equal(t.bars[0]!.width, 36);
+    assert.equal(t.bars[1]!.x - t.bars[0]!.x, 38);
   });
 });
