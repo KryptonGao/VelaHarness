@@ -1,3 +1,4 @@
+import { displayConversationTitle } from "./conversation-title";
 import { QuestionContext } from "./QuestionContext";
 import { LazyMount } from "./LazyMount";
 import { VersionControlView } from "./version-control/VersionControlView";
@@ -362,7 +363,7 @@ export function ChatView({
       : !activeAssistant.text
         ? "thinking"
         : undefined;
-  const title = session?.title || tr("新对话", "New chat");
+  const title = displayConversationTitle(session?.title);
   // 空对话用「首页」布局:问候、输入框、预设整体居中,而不是输入框贴底。
   // 极简起始页:不用首页布局,空对话只剩贴底的输入框。
   const minimalStart = useMinimalStart();

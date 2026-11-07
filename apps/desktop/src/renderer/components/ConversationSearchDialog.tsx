@@ -1,3 +1,4 @@
+import { displayConversationTitle } from "./conversation-title";
 import type { ConversationSummary } from "@vela/shared";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -99,11 +100,11 @@ export function ConversationSearchDialog({ id, conversations, activeConversation
               role="option"
               aria-selected={index === selectedIndex}
               className={`conversation-search-result${index === selectedIndex ? " selected" : ""}`}
-              title={conversation.hasWorkspace === false ? conversation.title || untitledLabel : `${conversation.title || untitledLabel}\n${conversation.cwd}`}
+              title={conversation.hasWorkspace === false ? displayConversationTitle(conversation.title, untitledLabel) : `${displayConversationTitle(conversation.title, untitledLabel)}\n${conversation.cwd}`}
               onFocus={() => setSelectedId(conversation.id)}
               onClick={() => openConversation(conversation.id)}
             >
-              <span className="conversation-search-result-title">{conversation.title || untitledLabel}</span>
+              <span className="conversation-search-result-title">{displayConversationTitle(conversation.title, untitledLabel)}</span>
               {conversation.hasWorkspace !== false ? <span className="conversation-search-workspace">{workspaceName(conversation.cwd)}</span> : null}
               {conversation.id === activeConversationId ? <span className="conversation-search-current">{tr("当前", "Current")}</span> : null}
             </button>

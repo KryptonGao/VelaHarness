@@ -1,3 +1,4 @@
+import { displayConversationTitle } from "./conversation-title";
 import { overlapsForConversation, type ConversationSummary, type WorkspaceRecent } from "@vela/shared";
 import { useContext, useEffect, useId, useMemo, useRef, useState } from "react";
 import { isBoolean, isBooleanRecord, useStoredState } from "../hooks/useStoredState";
@@ -458,7 +459,7 @@ function ConversationRow({ conversation, active, activity, reason, priority, loc
   priority: boolean; locale: string; today: number; onSelect: (id: string) => void;
   onTogglePriority: (id: string) => void; onRename?: (id: string) => void; onArchive: (id: string) => void;
 }) {
-  const title = conversation.title || tr("新对话", "New chat");
+  const title = displayConversationTitle(conversation.title);
   const conflictState = useContext(ConflictContext).state;
   const conflictCount = useMemo(() => overlapsForConversation(conflictState, conversation.id).length, [conflictState, conversation.id]);
   const conflictLabel = conflictCount > 0 ? trf("与其他对话改了同一处（{0} 个文件）", "Edits the same files as another chat ({0})", conflictCount) : "";

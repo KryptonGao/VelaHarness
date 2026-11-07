@@ -1,8 +1,8 @@
+import { displayConversationTitle } from "../conversation-title";
 import { intlLocale } from "@vela/shared";
 import type { ConversationSummary } from "@vela/shared";
 import { useMemo, useState } from "react";
 import type { AppLocale } from "../../hooks/usePreferences";
-import { tr } from "../../locale";
 import type { SettingsCopy } from "../settings-copy";
 import { SettingsBlock, SettingsGroup } from "./primitives";
 
@@ -43,7 +43,7 @@ export function ArchivedPage({
   );
 
   function unarchive(conversation: ConversationSummary): void {
-    setNotice(`${conversation.title || tr("新对话", "New chat")} · ${text.unarchived}`);
+    setNotice(`${displayConversationTitle(conversation.title)} · ${text.unarchived}`);
     onUnarchive(conversation.id);
   }
 
@@ -64,7 +64,7 @@ export function ArchivedPage({
           {matches.map((conversation) => (
             <div className="settings-recent" key={conversation.id}>
               <div className="settings-recent-main" title={conversation.cwd}>
-                <span className="settings-recent-name">{conversation.title || tr("新对话", "New chat")}</span>
+                <span className="settings-recent-name">{displayConversationTitle(conversation.title)}</span>
                 <span className="settings-recent-path">
                   {`${workspaceName(conversation.cwd)} · ${formatter.format(conversation.archivedAt ?? conversation.updatedAt)}`}
                 </span>

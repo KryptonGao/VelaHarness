@@ -1,3 +1,4 @@
+import { PLACEHOLDER_CONVERSATION_TITLE, displayConversationTitle } from "./components/conversation-title";
 import { PrInboxPage } from "./components/PrInboxPage";
 import { AgentInboxPage } from "./components/AgentInboxPage";
 import { useAgentInbox } from "./hooks/useAgentInbox";
@@ -137,7 +138,7 @@ export function App() {
   const [renamingConversation, setRenamingConversation] = useState<{ id: string; title: string } | null>(null);
   const openRenameConversation = useCallback((id: string) => {
     const conversation = session.conversations.find(item => item.id === id);
-    if (conversation) setRenamingConversation({ id, title: conversation.title });
+    if (conversation) setRenamingConversation({ id, title: conversation.title === PLACEHOLDER_CONVERSATION_TITLE ? "" : conversation.title });
   }, [session.conversations]);
   /** 检查点时间轴：打开时记录对话和预先选中的轮次。 */
   const [checkpoints, setCheckpoints] = useState<{ conversationId: string; turnIndex: number | null } | null>(null);
@@ -602,7 +603,7 @@ export function App() {
   const chatTabs = useMemo<WorkbenchTab[]>(() => chatTabState.map(tab => ({
     ...tab,
     kind: "chat",
-    label: session.conversations.find(item => item.id === tab.conversationId)?.title || tr("聊天", "Chat"),
+    label: session.conversations.find(item => item.id === tab.conversationId)?.title ? displayConversationTitle(session.conversations.find(item => item.id === tab.conversationId)?.title) : tr("聊天", "Chat"),
   })), [chatTabState, session.conversations, preferences.locale]);
   const sideChatTabs = useMemo<WorkbenchTab[]>(() => sideChatTabState.filter((tab) => tab.workspace === workspaceKey).map((tab) => ({
     id: tab.id,
