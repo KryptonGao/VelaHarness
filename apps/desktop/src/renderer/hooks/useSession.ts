@@ -696,11 +696,16 @@ function hasAgentHistory(messages: readonly UiMessage[] | undefined): boolean {
 /**
  * 把子代理历史接到实时消息前面。窗口重开时子代理往往还在跑,实时事件会先于历史读取到达,
  * 桶里只有重开之后的片段;历史只含已结束的消息,不会和仍在流式的那条重复。
+ * user 消息一送出就已结束并落盘,实时流开头那条会和历史末尾的同一条重复,这里丢掉实时那份。
  * 已经回填过返回 null,调用方保持原样。
  */
 export function mergeAgentHistory(live: readonly UiMessage[] | undefined, history: readonly UiMessage[]): UiMessage[] | null {
   if (hasAgentHistory(live)) return null;
-  return [...history, ...(live ?? [])];
+  const pending = live ?? [];
+  const first = pending[0];
+  const lastUser = history.findLast((message) => message.role === "user");
+  const duplicated = first?.role === "user" && lastUser?.text === first.text;
+  return [...history, ...(duplicated ? pending.slice(1) : pending)];
 }
 
 export function toUiMessage(message: TranscriptMessage): UiMessage {

@@ -250,6 +250,19 @@ describe("MCP renderer activity", () => {
     assert.deepEqual(merged?.map((message) => message.text), ["审查 runtime", "已读完", "继续检查"]);
   });
 
+  it("实时流开头的 user 消息已在历史里时不重复显示任务文字", () => {
+    const live = reduce([{ type: "user_message", text: "审查 runtime" }, { type: "assistant_start" }, { type: "text_delta", delta: "继续检查" }]);
+    const history = [toUiMessage({ id: "h1", role: "user", text: "审查 runtime", thinking: "", tools: [] })];
+    const merged = mergeAgentHistory(live, history);
+    assert.deepEqual(merged?.map((message) => `${message.role}:${message.text}`), ["user:审查 runtime", "assistant:继续检查"]);
+  });
+
+  it("实时 user 消息与历史最后一条 user 不同时保留", () => {
+    const live = reduce([{ type: "user_message", text: "补充要求" }]);
+    const history = [toUiMessage({ id: "h1", role: "user", text: "审查 runtime", thinking: "", tools: [] })];
+    assert.equal(mergeAgentHistory(live, history)?.length, 2);
+  });
+
   it("没有实时消息时直接用历史,已回填过则不再合并", () => {
     const history = [toUiMessage({ id: "h1", role: "assistant", text: "done", thinking: "", tools: [] })];
     const restored = mergeAgentHistory(undefined, history);
