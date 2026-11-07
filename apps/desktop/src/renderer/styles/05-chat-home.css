@@ -75,11 +75,13 @@
 .chat-conversation-pane[data-home] .chat-dock-wrapper::before,
 .chat-conversation-pane[data-home] .chat-dock-wrapper::after { display: none; }
 .chat-conversation-pane[data-home] .floating-input-card { margin-right: 0; }
-/* 首页输入区在内容流中，不需要浮动 dock 的投影，避免暗色下向托盘扩散成黑晕。 */
-.chat-conversation-pane[data-home] :is(.floating-input-card, .composer-capsule) { box-shadow: none; }
-/* 膠囊只留一圈贴边的淡影(无垂直偏移、小模糊半径),让它从背景里微微浮起,又不会像 dock 那样向下晕开。 */
-.chat-conversation-pane[data-home] .composer-capsule {
-  box-shadow: 0 0 14px color-mix(in srgb, #000 6%, transparent), 0 0 2px color-mix(in srgb, #000 5%, transparent);
+/* 首页输入区在内容流中，不用浮动 dock 的向下投影（暗色下会向托盘扩散成黑晕），
+   改用一层柔和的环境影加一层贴边细影，让输入框明显浮起。经典/静谧布局的阴影在卡片上，
+   胶囊布局的卡片透明，阴影在内层胶囊上。 */
+.chat-conversation-pane[data-home] :is(.floating-input-card:not(.layout-capsule), .composer-capsule) {
+  box-shadow:
+    0 4px 24px color-mix(in srgb, #1e2a50 12%, transparent),
+    0 1px 4px color-mix(in srgb, #000 8%, transparent);
 }
 .chat-conversation-pane[data-home] .home-prompts { margin-bottom: auto; }
 /* 没有预设提示词时由输入框承担下方的弹性留白,并预留两行预设(14 + 46 × 2 + 8)的高度,

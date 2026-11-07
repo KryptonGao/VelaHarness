@@ -65,7 +65,7 @@ if (!process.versions.electron) {
     try {
       await win.loadFile(join(temporary, "index.html"));
       await until("document.querySelector('.chat-active-title')?.textContent === '主聊天'");
-      // 首页的卡片与胶囊都不投影；对话页仍保留浮动 dock 的层次。
+      // 首页的卡片与胶囊都只用柔和的环境影，不用 dock 的向下投影；对话页仍保留浮动 dock 的层次。
       assert.deepEqual(await evaluate(`(() => {
         const root = document.documentElement;
         const previous = { scheme: root.dataset.scheme, theme: root.dataset.theme };
@@ -82,9 +82,9 @@ if (!process.versions.electron) {
             const capsule = card.firstElementChild;
             const dock = getComputedStyle(root).getPropertyValue('--shadow-dock').trim();
             const capsuleShadow = getComputedStyle(capsule).boxShadow;
-            // 卡片不投影;胶囊只有一圈贴边的淡影,不能是向下晕开的 dock 阴影。
-            const flat = getComputedStyle(card).boxShadow === 'none'
-              && capsuleShadow !== 'none' && capsuleShadow !== dock;
+            // 卡片与胶囊都有柔和的环境影,不能是向下晕开的 dock 阴影。
+            const cardShadow = getComputedStyle(card).boxShadow;
+            const flat = [cardShadow, capsuleShadow].every(value => value !== 'none' && value !== dock);
             const bordered = [card, capsule].every(el => getComputedStyle(el).borderTopWidth === '1px');
             delete fixture.dataset.home;
             const floating = [card, capsule].every(el => getComputedStyle(el).boxShadow !== 'none');
