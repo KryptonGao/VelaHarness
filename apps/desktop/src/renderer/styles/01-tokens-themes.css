@@ -60,14 +60,13 @@
 :root[data-reply-font-cjk="sans"] { --font-reply-cjk: var(--font-cjk-sans); }
 :root[data-reply-font-cjk="serif"] { --font-reply-cjk: var(--font-cjk-serif); }
 /*
- * 明体偏细,回复正文再补一点:Anthropic Serif 的 Medium 到 Semibold 一步太大,
- * 明体中文(宋体/明朝)只有 Regular 和 Bold 两档,所以字重不动,统一用极细描边补出半档粗细。
- * 回复字体选「沿用界面」时看界面字体。
+ * 明体回复使用原生 Regular 字重,不额外描边加粗。
+ * 回复字体选「沿用界面」时看界面字体;无衬线回复保留默认字重。
  */
 :root[data-reply-font-latin="serif"],
 :root[data-reply-font-latin="inherit"][data-ui-font-latin="serif"],
 :root[data-reply-font-cjk="serif"],
-:root[data-reply-font-cjk="inherit"][data-ui-font-cjk="serif"] { --font-reply-stroke: 0.2px; }
+:root[data-reply-font-cjk="inherit"][data-ui-font-cjk="serif"] { --font-reply-weight: 400; }
 
 /*
  * 主题:data-scheme 决定明暗基底,data-theme 在基底上覆盖配色。

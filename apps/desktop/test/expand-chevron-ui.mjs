@@ -139,6 +139,49 @@ if (!process.versions.electron) {
       await protocol('DOM.enable');
       await protocol('CSS.enable');
       for (const scheme of ['light', 'dark']) {
+        await evaluate(`window.renderCase('nested', ${JSON.stringify(scheme)})`);
+        const typographyCases = await evaluate(`(() => {
+          const root = document.documentElement;
+          const prose = document.createElement('div');
+          prose.className = 'agent-reply-prose';
+          prose.textContent = 'Regular serif reply — 明体正文';
+          document.querySelector('.main-chat-view').append(prose);
+          const headline = document.querySelector('.thinking-block.is-coherent .thinking-headline-trigger');
+          const results = [];
+          const keys = ['uiFontLatin', 'uiFontCjk', 'replyFontLatin', 'replyFontCjk'];
+          const saved = keys.map(key => root.dataset[key]);
+          try {
+            for (const uiLatin of ['sans', 'serif'])
+            for (const uiCjk of ['sans', 'serif'])
+            for (const replyLatin of ['inherit', 'sans', 'serif'])
+            for (const replyCjk of ['inherit', 'sans', 'serif']) {
+              const values = [uiLatin, uiCjk, replyLatin, replyCjk];
+              keys.forEach((key, i) => root.dataset[key] = values[i]);
+              const serif = (replyLatin === 'inherit' ? uiLatin : replyLatin) === 'serif'
+                || (replyCjk === 'inherit' ? uiCjk : replyCjk) === 'serif';
+              results.push({
+                fonts: values.join('/'), expected: serif ? '400' : '500',
+                styles: [prose, headline].map(node => {
+                  const style = getComputedStyle(node);
+                  return {weight: style.fontWeight, stroke: style.webkitTextStrokeWidth};
+                }),
+              });
+            }
+          } finally {
+            keys.forEach((key, i) => {
+              if (saved[i] === undefined) delete root.dataset[key];
+              else root.dataset[key] = saved[i];
+            });
+            prose.remove();
+          }
+          return results;
+        })()`);
+        for (const {fonts, expected, styles} of typographyCases) {
+          for (const style of styles) {
+            assert.equal(style.weight, expected, `${scheme}/${fonts}: reply and coherent headline share regular serif weight`);
+            assert.equal(style.stroke, '0px', `${scheme}/${fonts}: no artificial text stroke`);
+          }
+        }
         for (const name of ['commandOrb', 'thinkingOrb']) {
           currentCase = `${scheme}/${name}`;
           await evaluate(`window.renderCase(${JSON.stringify(name)}, ${JSON.stringify(scheme)})`);
@@ -309,6 +352,7 @@ if (!process.versions.electron) {
         assert.equal(await opacity(), '1', `${scheme}: auto-expanded streaming diff arrow visible`);
       }
       win.webContents.debugger.detach();
+      console.log('Reply typography: 36 Latin/CJK interface/reply font combinations × light/dark; serif regular weight, no stroke, matching coherent headlines and unchanged sans weight passed');
       console.log('Thinking model UI: GPT, DeepSeek, unknown history, mixed models, cached/missing summaries and bounded raw thinking passed in light/dark');
       console.log('Expand chevron UI: 11 arrow cases + 8 file summary cases × light/dark; visibility, hover/focus, nested isolation, UI fonts, count order and persistent creation dots passed');
       app.exit(0);
