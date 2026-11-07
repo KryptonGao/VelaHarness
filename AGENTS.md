@@ -124,6 +124,7 @@ gh release list --limit 1        # Should show Latest
 
 ## Conventions
 
+- Avoid unnecessary secondary labels and descriptions. Let the layout do the explaining.
 - Do not commit any files from `~/.vela-release`, and never put private key contents in code, documentation, logs, or conversation.
 - After changing update-related logic (`apps/desktop/src/main/update-*.ts`), run `pnpm --filter @vela/desktop test:updates` and `test:updates:ui`.
 - New UI copy must be provided in both `zh-CN` and `en`. Add translations for `zh-TW`, `ja`, and `ko` under `packages/shared/src/i18n-messages/`; missing translations fall back to English.
