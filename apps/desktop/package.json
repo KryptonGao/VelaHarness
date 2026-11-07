@@ -1,7 +1,7 @@
 {
   "name": "@vela/desktop",
-  "version": "1.2.24",
-  "shortVersion": "1.2.24",
+  "version": "1.2.25",
+  "shortVersion": "1.2.25",
   "private": true,
   "main": "./out/main/index.mjs",
   "scripts": {

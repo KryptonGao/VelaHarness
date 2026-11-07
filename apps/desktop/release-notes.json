@@ -1,139 +1,139 @@
 {
-  "version": "1.2.24",
+  "version": "1.2.25",
   "locales": {
     "en": {
-      "summary": "Vela 1.2.24 adds a switch for suggested prompts, fixes the permission display at startup and untitled chat labels, and refines composer feedback and pinned workspace animations.",
+      "summary": "Vela 1.2.25 redesigns the trace event list, asks before closing a terminal that is still running a command, and stops idle agents from replying again when background work succeeds.",
       "highlights": [
         {
-          "title": "Choose whether to show suggested prompts",
-          "body": "Turn Suggested prompts off in Settings → Interface to hide prompt cards on the new chat start page without hiding the greeting or background. Cards remain enabled by default."
+          "title": "A clearer trace event list",
+          "body": "Trace events now appear as typed rows with new icons, and you can filter the list by event type. The inspector shows the selected event in the same structure."
         },
         {
-          "title": "Your permission choice appears at startup",
-          "body": "The permission control uses a saved startup hint, then reads your actual setting without waiting for Git or pull-request queries. It no longer starts by displaying Manual when another permission level was saved."
+          "title": "Confirm before closing a busy terminal",
+          "body": "Closing a terminal tab that may still be running a command now asks first, and ending it terminates the command. Idle terminals still close immediately."
         },
         {
-          "title": "Clearer composer feedback",
-          "body": "Classic, Calm and Capsule composers have a visible start-page shadow. Text controls use consistent hover colors, round icon buttons use a gray hover background, and the combined mode menu drops its icons and mode-specific button colors."
+          "title": "Idle agents stay quiet after background success",
+          "body": "When a background command or subagent finishes successfully after the agent has already replied, the result is recorded in context without starting another reply. Failures and timeouts still wake the agent."
         },
         {
-          "title": "Smoother pinned workspaces",
-          "body": "The Pinned section expands and collapses with the same transition as workspace groups. Pinning or unpinning moves a workspace between sections without briefly showing duplicate rows or animating neighboring rows."
+          "title": "Live highlighting for file edits",
+          "body": "File edit details are syntax-highlighted while they stream, instead of appearing as plain text until the edit completes."
         }
       ],
       "improvements": [
-        "Untitled chats use the current interface language in chat headers, the sidebar, tabs, search and archived chats, without changing saved titles.",
-        "Renaming an untitled chat starts with an empty field rather than its stored placeholder title.",
-        "Information layout settings now show a general introduction and a description of the selected sidebar, floating-information or info-card layout in the same column.",
-        "Composer layout settings now separate the general introduction from the selected Classic, Calm or Capsule layout description."
+        "Serif replies use the font's regular weight without extra outlining.",
+        "The docked right-side panel no longer adds a second sidebar tint, and the paper's shadow stays off the transparent panel.",
+        "A subagent's task message is no longer shown twice when saved history is merged with the live stream.",
+        "Ask for a result after the turn ends by passing notify_on_exit to a background command, or notify_on_finish to a subagent."
       ]
     },
     "zh-CN": {
-      "summary": "Vela 1.2.24 新增预设提示词开关，修正启动时的权限显示和未命名对话标题，并调整输入框反馈与置顶工作区动画。",
+      "summary": "Vela 1.2.25 重新设计追踪事件列表，关闭仍在运行命令的终端前先确认，并让空闲的代理在后台任务成功后不再重复回复。",
       "highlights": [
         {
-          "title": "自行选择是否显示预设提示词",
-          "body": "在 设置 → 界面 关闭「预设提示词」，即可隐藏新对话起始页的提示词卡片，同时保留问候与背景。卡片默认开启。"
+          "title": "更清晰的追踪事件列表",
+          "body": "追踪事件以分类行显示，配有新图标，并可按事件类型筛选。检视面板以同样的结构展示所选事件。"
         },
         {
-          "title": "启动时显示已保存的权限选择",
-          "body": "权限控件先使用已保存的启动提示，再读取实际设置，无需等待 Git 或 Pull Request 查询；保存了其他权限档位时，不再先显示为手动。"
+          "title": "关闭忙碌终端前先确认",
+          "body": "关闭可能仍在运行命令的终端标签页时会先询问，确认后会终止该命令。空闲的终端仍会立即关闭。"
         },
         {
-          "title": "更一致的输入框反馈",
-          "body": "经典、静谧与胶囊布局的起始页输入框都有清晰可见的阴影。文字控件统一悬停颜色，圆形图标按钮使用灰色悬停背景；合并模式菜单移除图标，按钮也不再按模式着色。"
+          "title": "后台任务成功后，空闲代理不再重复回复",
+          "body": "代理已经回复完毕后，若后台命令或子代理成功结束，结果只记录进上下文，不再另开一轮回复；失败或超时仍会唤醒代理。"
         },
         {
-          "title": "更平顺的置顶工作区",
-          "body": "置顶分区使用与工作区分组相同的展开、收起过渡。置顶或取消置顶时，工作区直接在分区间移动，不再短暂显示重复行，也不触发相邻行的位移动画。"
+          "title": "文件编辑详情实时高亮",
+          "body": "文件编辑的详情在流式输出时就带有语法高亮，不再以纯文本显示到编辑完成。"
         }
       ],
       "improvements": [
-        "未命名对话在标题、侧栏、标签页、搜索与已归档列表中使用当前界面语言，不修改已保存的标题。",
-        "重命名未命名对话时，输入框从空白开始，不再填入持久化的占位标题。",
-        "右侧信息布局设置在同一列展示整体说明，以及当前所选半透明边栏、悬浮信息或信息卡片的介绍。",
-        "输入框布局设置将整体说明与当前所选经典、静谧或胶囊布局的介绍分开展示。"
+        "明体回复使用字体原生的常规字重，不再额外描边加粗。",
+        "停靠的右侧面板不再叠加第二层侧栏底色，纸面阴影也不会落在透明面板上。",
+        "已保存的历史与实时流合并时，子代理的任务消息不再显示两次。",
+        "需要在回合结束后收到结果时，可给后台命令传 notify_on_exit，或给子代理传 notify_on_finish。"
       ]
     },
     "zh-TW": {
-      "summary": "Vela 1.2.24 新增預設提示詞開關，修正啟動時的權限顯示和未命名對話標題，並調整輸入框回饋與置頂工作區動畫。",
+      "summary": "Vela 1.2.25 重新設計追蹤事件清單，關閉仍在執行指令的終端機前先確認，並讓閒置的代理在背景任務成功後不再重複回覆。",
       "highlights": [
         {
-          "title": "自行選擇是否顯示預設提示詞",
-          "body": "在 設定 → 界面 關閉「預設提示詞」，即可隱藏新對話起始頁的提示詞卡片，同時保留問候與背景。卡片預設開啟。"
+          "title": "更清晰的追蹤事件清單",
+          "body": "追蹤事件以分類列顯示，配有新圖示，並可依事件類型篩選。檢視面板以相同的結構展示所選事件。"
         },
         {
-          "title": "啟動時顯示已儲存的權限選擇",
-          "body": "權限控制項先使用已儲存的啟動提示，再讀取實際設定，無需等待 Git 或 Pull Request 查詢；儲存了其他權限等級時，不再先顯示為手動。"
+          "title": "關閉忙碌終端機前先確認",
+          "body": "關閉可能仍在執行指令的終端機分頁時會先詢問，確認後會終止該指令。閒置的終端機仍會立即關閉。"
         },
         {
-          "title": "更一致的輸入框回饋",
-          "body": "經典、靜謐與膠囊版面的起始頁輸入框都有清晰可見的陰影。文字控制項統一懸停顏色，圓形圖示按鈕使用灰色懸停背景；合併模式選單移除圖示，按鈕也不再依模式著色。"
+          "title": "背景任務成功後，閒置代理不再重複回覆",
+          "body": "代理已經回覆完畢後，若背景指令或子代理成功結束，結果只記錄進上下文，不再另開一輪回覆；失敗或逾時仍會喚醒代理。"
         },
         {
-          "title": "更平順的置頂工作區",
-          "body": "置頂區段使用與工作區群組相同的展開、收合過渡。置頂或取消置頂時，工作區直接在區段間移動，不再短暫顯示重複列，也不觸發相鄰列的位移動畫。"
+          "title": "檔案編輯詳情即時高亮",
+          "body": "檔案編輯的詳情在串流輸出時就帶有語法高亮，不再以純文字顯示到編輯完成。"
         }
       ],
       "improvements": [
-        "未命名對話在標題、側欄、分頁、搜尋與已封存清單中使用目前介面語言，不修改已儲存的標題。",
-        "重新命名未命名對話時，輸入欄從空白開始，不再填入持久化的佔位標題。",
-        "右側資訊版面設定在同一欄展示整體說明，以及目前所選半透明側欄、懸浮資訊或資訊卡片的介紹。",
-        "輸入框版面設定將整體說明與目前所選經典、靜謐或膠囊版面的介紹分開展示。"
+        "明體回覆使用字型原生的一般字重，不再額外描邊加粗。",
+        "停靠的右側面板不再疊加第二層側欄底色，紙面陰影也不會落在透明面板上。",
+        "已儲存的歷史與即時串流合併時，子代理的任務訊息不再顯示兩次。",
+        "需要在回合結束後收到結果時，可為背景指令傳入 notify_on_exit，或為子代理傳入 notify_on_finish。"
       ]
     },
     "ja": {
-      "summary": "Vela 1.2.24 では提案プロンプトの表示切り替えを追加し、起動時の権限表示と無題の会話名を修正しました。入力欄のフィードバックとピン留めしたワークスペースのアニメーションも調整しました。",
+      "summary": "Vela 1.2.25 ではトレースのイベント一覧を刷新し、コマンド実行中のターミナルを閉じる前に確認するようにしました。バックグラウンド処理が成功したとき、待機中のエージェントが重ねて返信しないようにも修正しました。",
       "highlights": [
         {
-          "title": "提案プロンプトの表示を選択",
-          "body": "設定 → インターフェースで提案プロンプトをオフにすると、挨拶と背景を残したまま、新しい会話の開始ページからプロンプトカードを非表示にできます。カードは既定で有効です。"
+          "title": "見やすくなったトレースのイベント一覧",
+          "body": "トレースのイベントを種類別の行と新しいアイコンで表示し、イベントの種類で絞り込めます。インスペクターも同じ構成で選択中のイベントを表示します。"
         },
         {
-          "title": "起動時に保存済みの権限を表示",
-          "body": "権限の操作部は保存済みの起動時情報を表示した後、Git や Pull Request の取得を待たずに実際の設定を読み込みます。別の権限を保存していた場合に、最初に手動と表示される問題を修正しました。"
+          "title": "実行中のターミナルは閉じる前に確認",
+          "body": "コマンドが実行中の可能性があるターミナルのタブを閉じる前に確認を表示し、閉じるとコマンドを終了します。待機中のターミナルはこれまでどおりすぐに閉じます。"
         },
         {
-          "title": "入力欄の反応を統一",
-          "body": "クラシック、カーム、カプセルの開始ページの入力欄に見やすい影を付けました。文字の操作部はホバー時の色を統一し、丸いアイコンボタンには灰色の背景を表示します。統合モードメニューのアイコンと、ボタンのモード別の色を取り除きました。"
+          "title": "バックグラウンド成功後は待機中のエージェントが静かに",
+          "body": "エージェントが返信を終えた後でバックグラウンドのコマンドやサブエージェントが成功しても、結果はコンテキストに記録するだけで、新たな返信は始めません。失敗やタイムアウトでは引き続きエージェントを起こします。"
         },
         {
-          "title": "ピン留めしたワークスペースを滑らかに",
-          "body": "ピン留めセクションを、ワークスペースグループと同じ動きで展開・折りたたみます。ピン留めの切り替えではセクション間を直接移動し、一時的な行の重複や隣接行の移動アニメーションをなくしました。"
+          "title": "ファイル編集の詳細をリアルタイムで強調表示",
+          "body": "ファイル編集の詳細を、ストリーミング中からシンタックスハイライト付きで表示します。編集が完了するまでプレーンテキストになることはありません。"
         }
       ],
       "improvements": [
-        "無題の会話は保存済みのタイトルを変更せず、見出し、サイドバー、タブ、検索、アーカイブ一覧で現在の表示言語を使用します。",
-        "無題の会話の名前を変更するときは、保存された仮タイトルではなく空欄から入力できます。",
-        "右側の情報レイアウト設定では、全体の説明と、選択中の半透明サイドバー、フローティング情報、情報カードの説明を同じ列に表示します。",
-        "入力欄のレイアウト設定では、全体の説明と、選択中のクラシック、カーム、カプセルの説明を分けて表示します。"
+        "明朝系の返信は、追加の縁取りなしでフォント本来のレギュラーウェイトで表示します。",
+        "右側に固定したパネルでサイドバーの色が二重にならず、紙面の影が透明なパネルにかからなくなりました。",
+        "保存済みの履歴とライブストリームを統合したとき、サブエージェントのタスクメッセージが二重に表示されなくなりました。",
+        "ターンの終了後に結果を受け取りたいときは、バックグラウンドコマンドに notify_on_exit を、サブエージェントに notify_on_finish を指定します。"
       ]
     },
     "ko": {
-      "summary": "Vela 1.2.24는 추천 프롬프트 표시 스위치를 추가하고, 시작 시 권한 표시와 제목 없는 대화 이름을 수정했습니다. 입력창 피드백과 고정한 워크스페이스의 애니메이션도 다듬었습니다.",
+      "summary": "Vela 1.2.25는 추적 이벤트 목록을 새로 디자인하고, 명령이 실행 중인 터미널을 닫기 전에 확인하며, 백그라운드 작업이 성공했을 때 대기 중인 에이전트가 다시 답하지 않도록 수정했습니다.",
       "highlights": [
         {
-          "title": "추천 프롬프트 표시 선택",
-          "body": "설정 → 인터페이스에서 추천 프롬프트를 끄면 인사말과 배경을 유지한 채 새 대화 시작 페이지의 프롬프트 카드를 숨길 수 있습니다. 카드는 기본으로 켜져 있습니다."
+          "title": "더 알아보기 쉬운 추적 이벤트 목록",
+          "body": "추적 이벤트를 유형별 행과 새 아이콘으로 표시하고 이벤트 유형으로 필터링할 수 있습니다. 인스펙터도 같은 구조로 선택한 이벤트를 보여 줍니다."
         },
         {
-          "title": "시작 시 저장된 권한 표시",
-          "body": "권한 컨트롤은 저장된 시작 정보를 먼저 표시한 다음 Git이나 Pull Request 조회를 기다리지 않고 실제 설정을 읽습니다. 다른 권한 수준을 저장했는데도 처음에 수동으로 표시되던 문제를 수정했습니다."
+          "title": "실행 중인 터미널은 닫기 전에 확인",
+          "body": "명령이 아직 실행 중일 수 있는 터미널 탭을 닫기 전에 먼저 물어보며, 닫으면 해당 명령이 종료됩니다. 대기 중인 터미널은 전과 같이 바로 닫힙니다."
         },
         {
-          "title": "일관된 입력창 피드백",
-          "body": "클래식, 차분한, 캡슐 레이아웃의 시작 페이지 입력창에 눈에 띄는 그림자를 적용했습니다. 텍스트 컨트롤의 호버 색상을 통일하고 원형 아이콘 버튼에는 회색 호버 배경을 사용합니다. 통합 모드 메뉴의 아이콘과 버튼의 모드별 색상을 제거했습니다."
+          "title": "백그라운드 성공 후 대기 중인 에이전트는 조용히",
+          "body": "에이전트가 답변을 마친 뒤 백그라운드 명령이나 서브에이전트가 성공해도 결과는 컨텍스트에만 기록하고 새 답변을 시작하지 않습니다. 실패나 시간 초과는 계속 에이전트를 깨웁니다."
         },
         {
-          "title": "더 부드러운 워크스페이스 고정",
-          "body": "고정 섹션을 워크스페이스 그룹과 같은 전환 효과로 펼치고 접습니다. 고정하거나 해제할 때 워크스페이스가 섹션 사이를 바로 이동하므로 행이 잠깐 중복되거나 이웃 행에 이동 애니메이션이 생기지 않습니다."
+          "title": "파일 편집 상세를 실시간으로 강조 표시",
+          "body": "파일 편집 상세가 스트리밍되는 동안에도 구문 강조가 적용되며, 편집이 끝날 때까지 일반 텍스트로 보이지 않습니다."
         }
       ],
       "improvements": [
-        "제목 없는 대화는 저장된 제목을 바꾸지 않고 대화 헤더, 사이드바, 탭, 검색, 보관 목록에서 현재 인터페이스 언어로 표시됩니다.",
-        "제목 없는 대화의 이름을 변경할 때 저장된 임시 제목 대신 빈 입력란에서 시작합니다.",
-        "오른쪽 정보 레이아웃 설정은 전체 설명과 선택한 반투명 사이드바, 플로팅 정보 또는 정보 카드 설명을 같은 열에 표시합니다.",
-        "입력창 레이아웃 설정은 전체 설명과 선택한 클래식, 차분한 또는 캡슐 레이아웃의 설명을 나누어 표시합니다."
+        "명조 계열 답변은 추가 외곽선 없이 글꼴 본래의 레귤러 굵기로 표시합니다.",
+        "오른쪽에 고정한 패널에서 사이드바 색이 이중으로 겹치지 않으며, 종이의 그림자가 투명한 패널에 드리우지 않습니다.",
+        "저장된 기록과 실시간 스트림을 합칠 때 서브에이전트의 작업 메시지가 두 번 표시되지 않습니다.",
+        "턴이 끝난 뒤 결과를 받으려면 백그라운드 명령에 notify_on_exit를, 서브에이전트에 notify_on_finish를 지정하세요."
       ]
     }
   }
