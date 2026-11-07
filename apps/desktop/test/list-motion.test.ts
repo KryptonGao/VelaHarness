@@ -27,3 +27,10 @@ test("updates refresh live item data and preserve the payload needed by an outgo
   assert.equal(rows[0].item.title, "updated");
   assert.equal(rows[1].item, original[1]);
 });
+
+test("items moving to another list leave and arrive without exit or enter animation", () => {
+  const source = reconcileMotionItems(seed(["a", "b"]), [{ id: "b" }], keyOf, new Set(["a"]));
+  assert.deepEqual(source.map((row) => row.key), ["b"]);
+  const target = reconcileMotionItems(seed(["c"]), [{ id: "a" }, { id: "c" }], keyOf, new Set(["a"]));
+  assert.equal(target.find((row) => row.key === "a")?.entering, false);
+});

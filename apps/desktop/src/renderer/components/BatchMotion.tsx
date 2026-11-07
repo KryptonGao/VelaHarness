@@ -44,16 +44,21 @@ export function useContentArrival(key: string, duration = 150, offset = 2) {
   return ref;
 }
 
-export function MotionList<T>({ items, keyOf, children, className = "", horizontal = false }: {
+export function MotionList<T>({ items, keyOf, children, className = "", horizontal = false, instantKeys }: {
   items: readonly T[]; keyOf: (item: T) => string; children: (item: T) => ReactNode;
   className?: string; horizontal?: boolean;
+  /** Keys moving to another list: skip their exit and enter animations. */
+  instantKeys?: ReadonlySet<string>;
 }) {
   const reduced = useReducedMotion();
   const [source, setSource] = useState(items);
   const [entries, setEntries] = useState<MotionEntry<T>[]>(() => items.map((item) => ({ key: keyOf(item), item, present: true, entering: false })));
+  // A row moving to/from another list changes this list's height instantly; sliding its neighbours would look like a ghost row collapsing.
+  const skipShift = useRef(false);
   if (source !== items) {
     setSource(items);
-    setEntries((current) => reconcileMotionItems(current, items, keyOf));
+    if (instantKeys?.size && (items.some((item) => instantKeys.has(keyOf(item))) || entries.some((entry) => instantKeys.has(entry.key)))) skipShift.current = true;
+    setEntries((current) => reconcileMotionItems(current, items, keyOf, instantKeys));
   }
   const root = useRef<HTMLDivElement>(null);
   const lastHeight = useRef(0);
@@ -66,7 +71,8 @@ export function MotionList<T>({ items, keyOf, children, className = "", horizont
     const order = JSON.stringify(entries.filter((entry) => entry.present).map((entry) => entry.key));
     // Pruning a collapsed exit must not replay the movement that already happened.
     const changed = order !== layout.current.order;
-    const resized = Math.abs((rootBox?.width ?? 0) - layout.current.width) > 1;
+    const resized = Math.abs((rootBox?.width ?? 0) - layout.current.width) > 1 || skipShift.current;
+    skipShift.current = false;
     layout.current = { order, width: rootBox?.width ?? 0 };
     const nodes = [...(root.current?.children ?? [])] as HTMLElement[];
     // Read all layout/active translations first, then write animations (FLIP).

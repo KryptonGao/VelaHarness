@@ -181,12 +181,18 @@ export function Sidebar({
   );
   const pinnedGroups = useMemo(() => groups.filter(group => pinnedWorkspaces[group.cwd]), [groups, pinnedWorkspaces]);
   const otherGroups = useMemo(() => groups.filter(group => !pinnedWorkspaces[group.cwd]), [groups, pinnedWorkspaces]);
-  const togglePinnedWorkspace = (cwd: string) => setPinnedWorkspaces(current => {
-    const next = { ...current };
-    if (next[cwd]) delete next[cwd];
-    else next[cwd] = true;
-    return next;
-  });
+  // 置顶/取消置顶时工作区在两个列表之间移动:它在原列表里立即消失、在新列表里直接出现,避免短暂地同时显示两份。
+  const movedWorkspaces = useRef(new Set<string>());
+  useEffect(() => { movedWorkspaces.current.clear(); }, [pinnedWorkspaces]);
+  const togglePinnedWorkspace = (cwd: string) => {
+    movedWorkspaces.current.add(cwd);
+    setPinnedWorkspaces(current => {
+      const next = { ...current };
+      if (next[cwd]) delete next[cwd];
+      else next[cwd] = true;
+      return next;
+    });
+  };
   const activeWorkspace = allConversations.find(
     (item) => item.id === activeConversationId && item.archivedAt === null,
   )?.cwd ?? null;
@@ -332,15 +338,20 @@ export function Sidebar({
         </div> : <>
           {pinnedGroups.length > 0 ? <section className="sidebar-pinned-workspaces" aria-label={tr("置顶", "Pinned")}>
             <button className="sidebar-section-title sidebar-section-toggle" type="button"
-              aria-expanded={!pinnedSectionCollapsed}
+              aria-expanded={!pinnedSectionCollapsed} aria-controls={`${searchId}-pinned`}
               onClick={() => setPinnedSectionCollapsed(current => !current)}>
               <span>{tr("置顶", "Pinned")}</span>
               <span className={`sidebar-section-chevron${pinnedSectionCollapsed ? " collapsed" : ""}`} aria-hidden="true"><ChevronDownIcon /></span>
             </button>
-            {pinnedSectionCollapsed ? null : <MotionList className="session-groups" items={pinnedGroups} keyOf={(group) => group.cwd}>{renderGroup}</MotionList>}
+            <div id={`${searchId}-pinned`} className={`session-group-content${pinnedSectionCollapsed ? "" : " is-open"}`}
+              inert={pinnedSectionCollapsed} aria-hidden={pinnedSectionCollapsed || undefined}>
+              <div className="session-group-content-inner">
+                <MotionList className="session-groups" items={pinnedGroups} keyOf={(group) => group.cwd} instantKeys={movedWorkspaces.current}>{renderGroup}</MotionList>
+              </div>
+            </div>
           </section> : null}
           {pinnedGroups.length > 0 && otherGroups.length > 0 ? <div className="sidebar-section-title sidebar-workspaces-title">{tr("工作区", "Workspaces")}</div> : null}
-          <MotionList className="session-groups" items={otherGroups} keyOf={(group) => group.cwd}>{renderGroup}</MotionList>
+          <MotionList className="session-groups" items={otherGroups} keyOf={(group) => group.cwd} instantKeys={movedWorkspaces.current}>{renderGroup}</MotionList>
           {recentConversations.length > 0 ? (
             <section className="sidebar-recent-chats" aria-label={tr("最近", "Recent")}>
               <div className="sidebar-section-title">{tr("最近", "Recent")}</div>
