@@ -58,6 +58,12 @@ if (!process.versions.electron) {
                     </div>
                   </div>
                 </form>
+                <div id="hover-probe" style={{display: 'flex', gap: '12px', padding: '12px'}}>
+                  <button type="button" className="composer-chip"><span>Workspace</span></button>
+                  <button type="button" className="attach-btn">+</button>
+                  <button type="button" className="mode-pill mode-manual"><span>Manual</span></button>
+                  <button type="button" className="mode-pill mode-plan"><span>Plan</span></button>
+                </div>
               </div>
             </AppLocaleProvider>
           ));
@@ -148,6 +154,43 @@ if (!process.versions.electron) {
       assert.ok(wide.sandboxText && wide.thinkingText && wide.statsVisible, "宽托盘应保留全部文字");
       assert.equal(await evaluate("document.querySelector('.mode-pill').getAttribute('aria-label')"), "完全访问", "权限芯片需要可读名称");
       assert.match(await evaluate("document.querySelector('.model-choice-pill').title"), /高/, "思考强度提示需要包含当前档位");
+      // 输入框周围可点控件的 hover 只有两条规则：
+      // 带文字的控件只把文字变成 --text-primary，不加底色、不降低不透明度；带色状态保持色相、向 --text-primary 加深；
+      // 纯图标的圆形按钮（加号、额度圆环）圆形底色变 --bg-hover，图标颜色不变。
+      const readStyle = selector => evaluate(`(() => { const s = getComputedStyle(document.querySelector(${JSON.stringify(selector)})); return {bg: s.backgroundColor, color: s.color, opacity: s.opacity}; })()`);
+      const hoverState = async selector => {
+        const rect = await evaluate(`(() => { const r = document.querySelector(${JSON.stringify(selector)}).getBoundingClientRect(); return {x: r.left + r.width / 2, y: r.top + r.height / 2}; })()`);
+        win.webContents.sendInputEvent({ type: "mouseMove", x: Math.round(rect.x), y: Math.round(rect.y) });
+        await new Promise(done => setTimeout(done, 350));
+        if (shots) writeFileSync(join(shots, `hover-${selector.replace(/[^a-z]+/gi, "-")}.png`), (await win.webContents.capturePage()).toPNG());
+        return readStyle(selector);
+      };
+      const restState = async selector => {
+        win.webContents.sendInputEvent({ type: "mouseMove", x: 2, y: 2 });
+        await new Promise(done => setTimeout(done, 350));
+        return readStyle(selector);
+      };
+      const resolved = await evaluate(`(() => { const probe = document.createElement('i'); document.body.append(probe); probe.style.background = 'var(--bg-hover)'; probe.style.color = 'var(--text-primary)'; const s = getComputedStyle(probe); const out = {bg: s.backgroundColor, color: s.color}; probe.remove(); return out; })()`);
+      for (const selector of ["#hover-probe .composer-chip", "#hover-probe .mode-manual", ".model-choice-pill:not(.model-pill)", ".model-choice-pill.model-pill"]) {
+        const rest = await restState(selector);
+        const state = await hoverState(selector);
+        assert.equal(state.color, resolved.color, `${selector} hover 文字应为 --text-primary`);
+        assert.equal(state.bg, rest.bg, `${selector} hover 不应改变底色`);
+        assert.equal(state.opacity, "1", `${selector} hover 不应降低不透明度`);
+      }
+      const tintedRest = await restState("#hover-probe .mode-plan");
+      const tinted = await hoverState("#hover-probe .mode-plan");
+      assert.notEqual(tinted.color, tintedRest.color, "带色状态 hover 文字应加深");
+      assert.notEqual(tinted.color, resolved.color, "带色状态 hover 文字应保持自己的色相");
+      assert.equal(tinted.bg, tintedRest.bg, "带色状态 hover 不应改变底色");
+      for (const selector of ["#hover-probe .attach-btn", ".usage-ring-button"]) {
+        const rest = await restState(selector);
+        const state = await hoverState(selector);
+        assert.notEqual(rest.bg, resolved.bg, `${selector} 静止时不应已有 hover 底色`);
+        assert.equal(state.bg, resolved.bg, `${selector} hover 圆形底色应为 --bg-hover`);
+        assert.equal(state.color, rest.color, `${selector} hover 图标颜色不变`);
+      }
+      win.webContents.sendInputEvent({ type: "mouseMove", x: 2, y: 2 });
       // 只剩图标时仍然打得开菜单。
       await evaluate("window.setWidth(300)");
       await settle();

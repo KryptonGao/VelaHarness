@@ -368,7 +368,20 @@
 }
 .dock-controls-left,
 .dock-controls-right { column-gap: 8px; row-gap: 8px; min-width: 0; }
-.dock-controls-row :is(.attach-btn, .mode-pill, .sandbox-pill, .model-choice-pill):hover:not(:disabled) { opacity: 0.8; }
+/* 输入框周围可点控件的 hover 规则，只有两条：
+   1. 带文字的控件（状态栏 chip、模式、权限、思考强度、模型）：文字变 --text-primary，不加底色、不改透明度；
+      带色状态（计划/自动/目标/完全访问）保持自己的色相，向 --text-primary 加深一档。
+   2. 纯图标的圆形按钮（加号、额度圆环）：圆形底色变 --bg-hover，图标颜色不变。 */
+:is(.composer-chip, .model-choice-pill, .mode-pill, .sandbox-pill):hover:not(:disabled) { color: var(--text-primary); }
+:is(.mode-pill.mode-plan, .mode-pill.mode-auto, .sandbox-pill.sandbox-smart):hover:not(:disabled) {
+  color: color-mix(in srgb, var(--accent-blue) 70%, var(--text-primary));
+}
+.mode-pill.mode-goal:hover:not(:disabled) { color: color-mix(in srgb, var(--violet) 70%, var(--text-primary)); }
+:is(.mode-pill.mode-full, .sandbox-pill.sandbox-full):hover:not(:disabled) {
+  color: color-mix(in srgb, var(--warning-strong) 70%, var(--text-primary));
+}
+.attach-btn:hover:not(:disabled) { background: var(--bg-hover); }
+:is(.attach-btn, .model-choice-pill) { transition: background-color 180ms cubic-bezier(0.2, 0, 0, 1), color 180ms cubic-bezier(0.2, 0, 0, 1); }
 .dock-controls-left { flex: 1 1 auto; }
 .dock-controls-left > * { flex-shrink: 0; }
 .dock-controls-right {

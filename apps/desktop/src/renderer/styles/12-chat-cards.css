@@ -8,7 +8,6 @@
   color: var(--text-secondary);
   background: transparent;
 }
-.attach-btn:hover:not(:disabled) { color: var(--text-primary); }
 .attach-btn:disabled { opacity: 0.5; cursor: default; }
 
 /* 输入框选项的胶囊背景由外观设置控制,默认关闭。 */
@@ -19,10 +18,10 @@
 :root[data-composer-capsules="true"] .dock-controls-row .mode-goal { background: var(--violet-tint); }
 :root[data-composer-capsules="true"] .dock-controls-row .sandbox-full { background: var(--warning-tint); }
 :root[data-composer-capsules="true"] .dock-controls-row .mode-combined { background: var(--bg-surface-subtle); }
-:root[data-composer-capsules="true"] .dock-controls-row :is(.attach-btn, .mode-pill, .sandbox-pill, .model-choice-pill):hover:not(:disabled) { opacity: 1; }
-:root[data-composer-capsules="true"] .dock-controls-row :is(.attach-btn, .sandbox-ask):hover:not(:disabled) { background: var(--bg-hover); }
-:root[data-composer-capsules="true"] .dock-controls-row .sandbox-smart:hover { background: var(--accent-tint-strong); }
-:root[data-composer-capsules="true"] .dock-controls-row .sandbox-full:hover { background: var(--warning-tint-strong); }
+/* 胶囊背景的静止规则特异性更高，会盖住 hover 底色；开启胶囊背景后控件本身就是胶囊，hover 时底色加深一档，文字照常变色。 */
+:root[data-composer-capsules="true"] .dock-controls-row :is(.attach-btn, .model-choice-pill, .mode-agent, .mode-combined, .sandbox-ask):hover:not(:disabled) { background: var(--bg-hover); }
+:root[data-composer-capsules="true"] .dock-controls-row :is(.mode-plan, .sandbox-smart):hover:not(:disabled) { background: var(--accent-tint-strong); }
+:root[data-composer-capsules="true"] .dock-controls-row .sandbox-full:hover:not(:disabled) { background: var(--warning-tint-strong); }
 
 .attach-menu { width: 240px; }
 .attach-menu-row {
