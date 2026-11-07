@@ -21,6 +21,8 @@ if (!process.versions.electron) {
         import { Sidebar } from './apps/desktop/src/renderer/components/Sidebar';
         import { NavRail } from './apps/desktop/src/renderer/components/NavRail';
         import { AppLocaleProvider, setActiveLocale } from './apps/desktop/src/renderer/locale';
+        import { installFocusModality } from './apps/desktop/src/renderer/focus-modality';
+        installFocusModality();
         localStorage.setItem('vela.sidebarView', JSON.stringify('workspaces'));
         const now = Date.now();
         const conversations = ['Respond to greeting', '增加变更分类筛选', '统一界面设计'].map((title, index) =>
@@ -253,7 +255,92 @@ if (!process.versions.electron) {
       assert.deepEqual(await paperCorners(), ["12px", "12px", "12px", "12px"], "Classic layout keeps all four rounded corners");
       assert.equal(await evaluate("getComputedStyle(document.querySelector('.main-chat-view')).maskImage"), "none", "Classic layout has no corner mask");
       assert.equal(await evaluate("getComputedStyle(document.querySelector('.main-stage'), '::before').boxShadow"), "none", "Classic layout has no category paper shadow");
-      console.log("Passed nav rail checks: category items, badge, sidebar header actions, away collapse, home restore.");
+      // Exercise the right sidebar's real CSS in both the docked and narrow overlay layouts.
+      await evaluate(`(() => {
+        const sidebar = document.createElement('aside');
+        sidebar.className = 'sidebar-right';
+        document.querySelector('.main-stage-pane:not(.is-hidden)').append(sidebar);
+        document.querySelector('.vela-window').classList.remove('right-collapsed');
+      })()`);
+      for (const width of [1280, 1000]) {
+        win.setContentSize(width, 640);
+        await until(`window.innerWidth === ${width}`);
+        for (const scheme of ["light", "dark"]) for (const tint of ["theme", "neutral", "none"]) for (const focused of [true, false]) {
+          await evaluate(`(() => {
+            const root = document.documentElement;
+            root.dataset.scheme = '${scheme}';
+            root.dataset.glassTint = '${tint}';
+            root.dataset.windowFocused = '${focused}';
+            document.querySelector('.vela-window').classList.add('nav-rail-layout');
+          })()`);
+          const material = await evaluate(`(() => {
+            const sidebar = document.querySelector('.sidebar-right');
+            const style = getComputedStyle(sidebar), before = getComputedStyle(sidebar, '::before');
+            const box = sidebar.getBoundingClientRect();
+            return { background: style.backgroundColor, blur: style.backdropFilter,
+              before: before.content,
+              x: Math.floor(box.left + box.width / 2), y: Math.floor(box.top + box.height / 2) };
+          })()`);
+          const label = `${width}px ${scheme}/${tint}, focused=${focused}`;
+          assert.equal(material.background, "rgba(0, 0, 0, 0)", `No second right-sidebar tint: ${label}`);
+          const paperRight = await evaluate("document.querySelector('.main-chat-view').getBoundingClientRect().right");
+          assert.equal((await shadowBounds()).right, paperRight, `Paper shadow stops before the docked context sidebar: ${label}`);
+          if (width > 1100) {
+            assert.equal(material.blur, "none", `No second docked-sidebar blur: ${label}`);
+            assert.equal(material.before, "none", `No docked-sidebar tint layer: ${label}`);
+            await evaluate("new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+            const image = await win.webContents.capturePage();
+            const bitmap = image.toBitmap({ scaleFactor: 1 });
+            const pixel = (x, y) => {
+              const index = (y * image.getSize().width + x) * 4;
+              return [...bitmap.subarray(index, index + 3)];
+            };
+            const sharedGlass = pixel(26, material.y);
+            for (const y of [material.y, 26]) {
+              const actual = pixel(material.x, y);
+              const difference = Math.max(...actual.map((value, channel) => Math.abs(value - sharedGlass[channel])));
+              assert.ok(difference <= 2, `Right sidebar/titlebar matches shared glass: ${label}, y=${y}, actual=${actual}, shared=${sharedGlass}`);
+            }
+            if (scheme === "light" && tint === "neutral" && focused) {
+              await evaluate("(() => { const style = document.createElement('style'); style.id = 'disable-paper-shadow'; style.textContent = '.nav-rail-layout .main-stage::before { box-shadow: none !important; }'; document.head.append(style); })()");
+              await evaluate("new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+              const withoutShadow = (await win.webContents.capturePage()).toBitmap({ scaleFactor: 1 });
+              for (const y of [50, 53]) for (let x = Math.ceil(paperRight) + 16; x < width - 16; x += 16) {
+                const index = (y * width + x) * 4;
+                assert.deepEqual([...bitmap.subarray(index, index + 3)], [...withoutShadow.subarray(index, index + 3)], `No paper shadow above/inside the context sidebar: ${x},${y}`);
+              }
+              const index = (50 * width + Math.floor(paperRight - 20)) * 4;
+              assert.ok([...bitmap.subarray(index, index + 3)].some((value, channel) => value < withoutShadow[index + channel]), "Paper keeps its top shadow");
+              await evaluate("document.querySelector('#disable-paper-shadow').remove()");
+              if (screenshot) writeFileSync(screenshot, image.toPNG());
+            }
+          } else {
+            assert.notEqual(material.blur, "none", `Narrow overlay still blurs the chat behind it: ${label}`);
+            assert.equal(material.before, '\"\"', `Narrow overlay retains its own glass surface: ${label}`);
+          }
+          await evaluate("document.querySelector('.vela-window').classList.remove('nav-rail-layout')");
+          assert.notEqual(await evaluate("getComputedStyle(document.querySelector('.sidebar-right')).backdropFilter"), "none", `Classic layout retains its own glass: ${label}`);
+        }
+      }
+      // Resizing and hiding context panels must not leave a shadow over the glass.
+      win.setContentSize(1280, 640);
+      await until("window.innerWidth === 1280");
+      await evaluate("document.querySelector('.vela-window').classList.add('nav-rail-layout'); document.querySelector('.sidebar-right').style.transition = 'none'");
+      const paperEdge = () => evaluate("document.querySelector('.main-chat-view').getBoundingClientRect().right");
+      for (const rightWidth of [280, 420]) {
+        await evaluate(`document.querySelector('.vela-window').style.setProperty('--sidebar-right-width', '${rightWidth}px')`);
+        assert.equal((await shadowBounds()).right, await paperEdge(), `Shadow follows the ${rightWidth}px context panel`);
+      }
+      await evaluate("document.querySelector('.sidebar-right').classList.add('collapsed'); document.querySelector('.vela-window').classList.add('right-collapsed')");
+      assert.equal((await shadowBounds()).right, await paperEdge(), "Collapsed context panel restores the full paper shadow");
+      await evaluate(`(() => {
+        const sidebar = document.querySelector('.sidebar-right');
+        sidebar.classList.remove('collapsed');
+        document.querySelector('.vela-window').classList.remove('right-collapsed');
+        document.querySelector('.main-stage-pane.is-hidden').append(sidebar);
+      })()`);
+      assert.equal((await shadowBounds()).right, await paperEdge(), "Context panels in hidden panes do not shorten the active paper shadow");
+      console.log("Passed nav rail checks: categories, sidebar motion, corners, focus, right-sidebar glass (24 combinations), shadow bounds, resize/collapse, hidden panes, and shadow pixels.");
       app.exit(0);
     } catch (error) { console.error(error); app.exit(1); }
   });

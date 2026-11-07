@@ -22,6 +22,18 @@
   /* 卡片垫在侧栏自己的层叠上下文里（原先靠 backdrop-filter 建立），现在显式建立。 */
   isolation: isolate;
 }
+/* Docked context panels share the window glass; narrow overlays still need glass over the chat. */
+@media (min-width: 1101px) {
+  .nav-rail-layout .sidebar-right {
+    background: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  /* Keep the paper's outer shadow off the transparent context sidebar. */
+  .nav-rail-layout .main-stage:has(> .main-stage-pane:not(.is-hidden) > .sidebar-right:not(.collapsed))::before {
+    right: calc(var(--stage-right-inset) + var(--sidebar-right-width));
+  }
+}
 .nav-rail-layout .main-stage { background: none; }
 /* 侧栏卡片和主纸面共用一圈轻微外阴影，只落在四周玻璃上，不在内部接缝投影。
  * 左缘抵消纸面的滑动位移，收起侧栏时仍贴着整块不透明区域的外轮廓。
