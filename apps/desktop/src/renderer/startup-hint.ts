@@ -1,4 +1,4 @@
-import type { GitStatusSnapshot, ThinkingLevel } from "@vela/shared";
+import type { GitStatusSnapshot, SandboxMode, ThinkingLevel } from "@vela/shared";
 import { thinkingLevels } from "@vela/shared";
 import { uiStorage } from "./ui-storage";
 
@@ -9,6 +9,7 @@ import { uiStorage } from "./ui-storage";
 
 const gitKey = "vela.startup.git";
 const modelKey = "vela.startup.model";
+const sandboxKey = "vela.startup.sandbox";
 /** Git 快照含改动文件列表,过大就不缓存,避免每次写盘都很重。 */
 const maxGitHintBytes = 256 * 1024;
 
@@ -68,4 +69,13 @@ export function writeModelHint(hint: ModelHint): void {
   const previous = readModelHint();
   if (previous && JSON.stringify(previous) === JSON.stringify(hint)) return;
   writeJson(modelKey, hint);
+}
+
+export function readSandboxHint(): SandboxMode | null {
+  const value = readJson(sandboxKey);
+  return value === "ask" || value === "smart" || value === "full" ? value : null;
+}
+
+export function writeSandboxHint(mode: SandboxMode): void {
+  if (readSandboxHint() !== mode) writeJson(sandboxKey, mode);
 }

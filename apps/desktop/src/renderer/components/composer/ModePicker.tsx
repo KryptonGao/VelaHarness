@@ -1,8 +1,8 @@
 import { PopoverPresence } from "../MotionPresence";
 import type { InteractionMode, SandboxMode } from "@vela/shared";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { useDismissable } from "../../hooks/useDismissable";
-import { CheckIcon, GoalIcon, PlanIcon, RaceIcon, ShieldIcon } from "../icons";
+import { CheckIcon } from "../icons";
 import { tr, trf } from "../../locale";
 import {
   combinedModeChange,
@@ -33,14 +33,6 @@ const hints: Partial<Record<CombinedModeId, [string, string]>> = {
   goal: ["围绕目标持续执行直到完成", "Keep working until the goal is met"],
 };
 
-const icons: Record<CombinedModeId, ReactNode> = {
-  auto: <ShieldIcon size={14} />,
-  manual: <ShieldIcon size={14} />,
-  plan: <PlanIcon size={14} />,
-  goal: <GoalIcon size={14} />,
-  full: <ShieldIcon size={14} />,
-};
-
 const sandboxNames: Record<SandboxMode, CombinedModeId> = { smart: "auto", ask: "manual", full: "full" };
 
 function label(id: CombinedModeId): string {
@@ -63,7 +55,6 @@ interface CompactRow {
   name: string;
   hint: string;
   title: string;
-  icon: ReactNode;
   active: boolean;
   run: () => void;
 }
@@ -125,7 +116,6 @@ export function ModePicker({
         name: label(option.id),
         hint: tr(...(hints[option.id] ?? ["", ""])),
         title: description(option.id),
-        icon: icons[option.id],
         active: option.id === current,
         run: () => select(option.id),
       })),
@@ -136,7 +126,6 @@ export function ModePicker({
             name: tr("赛马", "Race"),
             hint: tr("多个模型并行尝试，比较结果", "Try several models in parallel"),
             title: tr("同一个任务在 2–4 个独立工作区里用不同模型并行尝试，再并排比较结果。", "Try one task with different models in 2–4 isolated workspaces, then compare the results side by side."),
-            icon: <RaceIcon size={14} />,
             active: false,
             run: () => run(race.onStart),
           },
@@ -146,8 +135,7 @@ export function ModePicker({
                 name: trf("查看赛马记录（{0}）", "View races ({0})", race.count),
                 hint: "",
                 title: tr("回看、比较或采用之前的赛马结果。", "Review, compare or adopt the results of earlier races."),
-                icon: <RaceIcon size={14} />,
-                active: false,
+                    active: false,
                 run: () => run(race.onShow),
               }]
             : []),
@@ -185,7 +173,6 @@ export function ModePicker({
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
       >
-        {icons[current]}
         <span>{label(current)}</span>
       </button>
       <PopoverPresence present={open}>
@@ -224,7 +211,6 @@ export function ModePicker({
               aria-keyshortcuts={String(firstCompactKey + index)}
               onClick={row.run}
             >
-              <span className="mode-option-icon">{row.icon}</span>
               <span className="mode-option-name">{row.name}</span>
               <span className="mode-option-hint">{row.hint}</span>
               <span className="mode-option-check" aria-hidden="true">{row.active ? <CheckIcon /> : null}</span>

@@ -420,6 +420,9 @@ button.environment-row:not(:disabled):hover { background: var(--bg-surface-subtl
 .mode-pill.mode-manual:hover { color: var(--text-primary); }
 .mode-pill.mode-auto { color: var(--accent-blue); }
 .mode-pill.mode-full { color: var(--warning-strong); }
+/* 合并后的模式按钮不按模式着色。 */
+.mode-pill.mode-combined { color: var(--text-secondary); }
+.mode-pill.mode-combined:hover:not(:disabled) { color: var(--text-primary); }
 /* .composer-popover 把 overflow 设成 visible，超过 .dock-popover 的 max-height 时内容会溢出到菜单外，所以这里显式限高并滚动。 */
 .mode-popover { width: 360px; max-height: min(600px, calc(100vh - 96px)); overflow-y: auto; overscroll-behavior: contain; }
 .mode-popover > * { flex-shrink: 0; }
@@ -467,7 +470,6 @@ button.environment-row:not(:disabled):hover { background: var(--bg-surface-subtl
 }
 /* Plan / Goal / 赛马：紧凑的单行，说明只留一句提示，完整说明放在气泡提示里。 */
 .mode-popover .mode-option-compact { padding-top: 5px; padding-bottom: 5px; gap: 8px; }
-.mode-option-compact .mode-option-icon { width: 20px; height: 20px; border-radius: 6px; background: var(--bg-surface-subtle); color: var(--text-secondary); }
 .mode-option-compact .mode-option-name { flex-shrink: 0; }
 .mode-option-hint {
   flex: 1;

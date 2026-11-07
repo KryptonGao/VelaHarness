@@ -15,7 +15,7 @@ import type {
 import { useCallback, useEffect, useRef, useState } from "react";
 import { tr } from "../locale";
 import { noSound, type NotifySound } from "../notification-sounds";
-import { readGitHint, writeGitHint } from "../startup-hint";
+import { readGitHint, readSandboxHint, writeGitHint, writeSandboxHint } from "../startup-hint";
 
 export type ProjectApi = ReturnType<typeof useProject>;
 
@@ -51,7 +51,7 @@ export function useProject(notify: NotifySound = noSound) {
   const [gitHint, setGitHint] = useState(readGitHint);
   const [branches, setBranches] = useState<BranchSummary[]>([]);
   const [pr, setPr] = useState<PullRequestInfo | null>(null);
-  const [sandboxMode, setSandboxModeState] = useState<SandboxMode>("ask");
+  const [sandboxMode, setSandboxModeState] = useState<SandboxMode>(() => readSandboxHint() ?? "ask");
   const [approval, setApproval] = useState<SandboxApprovalRequest | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -94,14 +94,17 @@ export function useProject(notify: NotifySound = noSound) {
       void workspaceRequest.then((value) => {
         if (active && value) setWorkspace(value);
       });
-      const [nextWorkspace, nextEnv, nextEnvs, nextGit, nextBranches, nextPr, nextMode] = await Promise.all([
+      // 执行权限同样只读本地设置,单独先落地,不必等 Git / 分支 / PR。
+      void api.getSandboxMode().then((value) => {
+        if (active) setSandboxModeState(value);
+      }).catch(() => undefined);
+      const [nextWorkspace, nextEnv, nextEnvs, nextGit, nextBranches, nextPr] = await Promise.all([
         workspaceRequest,
         api.getEnvironment().catch(() => null),
         api.listEnvironments().catch(() => [] as ExecutionEnvironment[]),
         api.getGitStatus().catch(() => null),
         api.listBranches().catch(() => [] as BranchSummary[]),
         api.getPullRequest().catch(() => null),
-        api.getSandboxMode().catch(() => "ask" as SandboxMode),
       ]);
       if (!active) return;
       setWorkspace(nextWorkspace);
@@ -111,7 +114,6 @@ export function useProject(notify: NotifySound = noSound) {
       branchRef.current = nextGit?.branch ?? null;
       setBranches(nextBranches);
       setPr(nextPr);
-      setSandboxModeState(nextMode);
     })();
 
     const offWorkspace = api.onWorkspaceEvent((event) => {
@@ -146,6 +148,10 @@ export function useProject(notify: NotifySound = noSound) {
       offApproval();
     };
   }, [loadGit]);
+
+  useEffect(() => {
+    writeSandboxHint(sandboxMode);
+  }, [sandboxMode]);
 
   const currentWorkspace = workspace?.current ?? null;
   useEffect(() => {

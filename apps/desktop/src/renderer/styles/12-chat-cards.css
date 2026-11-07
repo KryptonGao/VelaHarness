@@ -18,6 +18,7 @@
 :root[data-composer-capsules="true"] .dock-controls-row :is(.mode-plan, .sandbox-smart) { background: var(--accent-tint); }
 :root[data-composer-capsules="true"] .dock-controls-row .mode-goal { background: var(--violet-tint); }
 :root[data-composer-capsules="true"] .dock-controls-row .sandbox-full { background: var(--warning-tint); }
+:root[data-composer-capsules="true"] .dock-controls-row .mode-combined { background: var(--bg-surface-subtle); }
 :root[data-composer-capsules="true"] .dock-controls-row :is(.attach-btn, .mode-pill, .sandbox-pill, .model-choice-pill):hover:not(:disabled) { opacity: 1; }
 :root[data-composer-capsules="true"] .dock-controls-row :is(.attach-btn, .sandbox-ask):hover:not(:disabled) { background: var(--bg-hover); }
 :root[data-composer-capsules="true"] .dock-controls-row .sandbox-smart:hover { background: var(--accent-tint-strong); }
