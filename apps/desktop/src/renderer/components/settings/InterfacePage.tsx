@@ -6,6 +6,7 @@ import type { ConversationLinkTarget } from "../../browser/conversation-link-pol
 import { notificationSoundKinds, type NotifySound } from "../../notification-sounds";
 import type { SettingsCopy } from "../settings-copy";
 import { setMinimalStart, useMinimalStart } from "../../hooks/useMinimalStart";
+import { setHomePrompts, useHomePrompts } from "../../hooks/useHomePrompts";
 import { setCombinedModePicker, useCombinedModePicker } from "../../hooks/useCombinedModePicker";
 import { composerLayouts, setComposerLayout, useComposerLayout, type ComposerLayout } from "../../hooks/useComposerLayout";
 import { Segmented, SettingsBlock, SettingsGroup, SettingsSwitch } from "./primitives";
@@ -36,6 +37,7 @@ export function InterfacePage({
   const composerLayout = useComposerLayout();
   const combinedModePicker = useCombinedModePicker();
   const minimalStart = useMinimalStart();
+  const homePrompts = useHomePrompts();
   const composerLayoutLabels: Record<ComposerLayout, string> = {
     classic: text.composerLayoutClassic,
     calm: text.composerLayoutCalm,
@@ -54,13 +56,13 @@ export function InterfacePage({
     { id: "floating", label: text.infoLayoutFloating },
     { id: "cards", label: text.infoLayoutCards },
   ];
-  const conversationLinkOptions: { id: ConversationLinkTarget; label: string }[] = [
-    { id: "embedded", label: text.linkEmbedded },
   const infoLayoutHints: Record<InfoLayout, string> = {
     sidebar: text.infoLayoutSidebarHint,
     floating: text.infoLayoutFloatingHint,
     cards: text.infoLayoutCardsHint,
   };
+  const conversationLinkOptions: { id: ConversationLinkTarget; label: string }[] = [
+    { id: "embedded", label: text.linkEmbedded },
     { id: "external", label: text.linkExternal },
   ];
 
@@ -119,6 +121,9 @@ export function InterfacePage({
         </SettingsBlock>
         <SettingsBlock id="minimal-start" title={text.minimalStart} hint={text.minimalStartHint} layout="inline">
           <SettingsSwitch label={text.minimalStart} checked={minimalStart} onChange={setMinimalStart} />
+        </SettingsBlock>
+        <SettingsBlock id="home-prompts" title={text.homePrompts} hint={text.homePromptsHint} layout="inline">
+          <SettingsSwitch label={text.homePrompts} checked={homePrompts} onChange={setHomePrompts} />
         </SettingsBlock>
       </SettingsGroup>
       <SettingsGroup title={copy.sections.composer}>

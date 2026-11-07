@@ -27,6 +27,7 @@ import type { OrbActivity } from "./jump-orb";
 import { ContextTab } from "./ContextTab";
 import { NewChatGreeting, NewChatPrompts, VelaMark } from "./NewChatHome";
 import { useMinimalStart } from "../hooks/useMinimalStart";
+import { useHomePrompts } from "../hooks/useHomePrompts";
 import { TaskBudgetTab } from "./TaskBudgetTab";
 import { useContentArrival } from "./BatchMotion";
 import { Markdown } from "./Markdown";
@@ -367,9 +368,11 @@ export function ChatView({
   // 空对话用「首页」布局:问候、输入框、预设整体居中,而不是输入框贴底。
   // 极简起始页:不用首页布局,空对话只剩贴底的输入框。
   const minimalStart = useMinimalStart();
+  const homePromptsEnabled = useHomePrompts();
   const homeLayout = !embedded && messages.length === 0 && !minimalStart;
   const hasProjectWorkspace = Boolean(project.workspace?.current);
   const modelMissing = session?.status === "ready" && !session.modelReady;
+  const showHomePrompts = homeLayout && hasProjectWorkspace && !modelMissing && homePromptsEnabled;
   const scrollerRef = useRef<HTMLDivElement>(null);
   const dockRef = useRef<HTMLDivElement>(null);
   const followRef = useRef<FollowState>({
@@ -816,7 +819,7 @@ export function ChatView({
         onAbort={onAbort}
         onOpenFile={(absolutePath) => void project.openFile(absolutePath)}
       /> : null}
-      <div className="chat-conversation-pane" role="tabpanel" id={conversationPanelId(tabIdPrefix, "chat")} aria-labelledby={conversationTabId(tabIdPrefix, "chat")} data-home={homeLayout ? "true" : undefined} data-prompts={homeLayout && hasProjectWorkspace && !modelMissing ? "true" : undefined} hidden={view !== "chat"} inert={view !== "chat" ? true : undefined}>
+      <div className="chat-conversation-pane" role="tabpanel" id={conversationPanelId(tabIdPrefix, "chat")} aria-labelledby={conversationTabId(tabIdPrefix, "chat")} data-home={homeLayout ? "true" : undefined} data-prompts={showHomePrompts ? "true" : undefined} hidden={view !== "chat"} inert={view !== "chat" ? true : undefined}>
       {homeLayout ? <VelaMark /> : null}
       {floatingInfo && infoCards && !emptyConversation ? (
         <InfoCardStack concealed={environmentCollapsed || infoCardsConcealed} state={state} project={project} messages={messages} planDraft={planDraft}
@@ -1050,7 +1053,7 @@ export function ChatView({
         onAbort={onAbort}
         onMode={onMode}
       />
-      {homeLayout && hasProjectWorkspace && !modelMissing ? <NewChatPrompts hasGit={Boolean(project.git?.repo)} /> : null}
+      {showHomePrompts ? <NewChatPrompts hasGit={Boolean(project.git?.repo)} /> : null}
       </div>
       {imageView ? <ImageViewer request={imageView} onClose={() => setImageView(null)} /> : null}
     </main>
