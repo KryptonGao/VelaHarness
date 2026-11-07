@@ -63,6 +63,8 @@ export interface AgentRootMessage {
   agentKind: SubagentKind;
   status?: Exclude<AgentStatus, "idle" | "running" | "paused">;
   text: string;
+  /** 派生时要求成功完成也唤醒空闲的主代理；默认只记录进上下文，失败才唤醒。 */
+  notify?: boolean;
 }
 
 export interface AgentControlHost {
@@ -122,6 +124,8 @@ interface ManagedAgent {
   /** abortAll 递增；旧代际的排队任务不再执行。 */
   generation: number;
   fork: ContextFork;
+  /** 成功完成时也唤醒空闲的主代理。 */
+  notify: boolean;
   sessionFile: string | null;
 }
 
@@ -141,7 +145,7 @@ export class AgentControl {
       this.agents.set(info.id, {
         info, sessionFile, session: null, sessionPromise: null, unsubscribe: null,
         queue: [], processing: false, running: false, aborted: false,
-        disposed: false, paused: false, slot: false, resumeWaiters: [], generation: 0, fork: "none",
+        disposed: false, paused: false, slot: false, resumeWaiters: [], generation: 0, fork: "none", notify: false,
       });
     }
   }
@@ -184,6 +188,7 @@ export class AgentControl {
       resumeWaiters: [],
       generation: 0,
       fork: "none",
+      notify: false,
       sessionFile: null,
     });
     this.emit();
@@ -220,7 +225,7 @@ export class AgentControl {
       name: spawnAgentToolName,
       label: "派生子代理",
       description:
-        "Start a persistent subagent; it returns the agent id and path immediately without waiting for the result. agent is explore (read-only) or general (can modify files). name is used as the last segment of the path (such as backend); fork decides how much of the parent context is inherited: none (default), all, or the most recent N turns. When the subagent finishes, its conclusion is delivered back to you automatically; use followup_task when you need to wait for the result.",
+        "Start a persistent subagent; it returns the agent id and path immediately without waiting for the result. agent is explore (read-only) or general (can modify files). name is used as the last segment of the path (such as backend); fork decides how much of the parent context is inherited: none (default), all, or the most recent N turns. When the subagent fails, you are woken automatically; a successful conclusion is only recorded and you see it on your next turn. Set notify_on_finish to true when you will end your turn and want to be woken to report its result; use followup_task when you need to wait for the result.",
       promptSnippet: "Start a persistent subagent (explore = read-only / general = can modify files); returns the agent id immediately",
       parameters: Type.Object({
         agent: Type.Union([Type.Literal("explore"), Type.Literal("general")], {
@@ -235,6 +240,9 @@ export class AgentControl {
             description: "Parent context to inherit: none inherits nothing (default), all inherits everything, a number means the most recent N turns",
           }),
         ),
+        notify_on_finish: Type.Optional(
+          Type.Boolean({ description: "Also wake you when the subagent finishes successfully while you are idle. Default false; failures always wake you." }),
+        ),
       }),
       execute: async (_toolCallId, params) => {
         const info = this.spawn(callerId, {
@@ -242,6 +250,7 @@ export class AgentControl {
           task: params.task,
           name: params.name,
           fork: params.fork,
+          notify: params.notify_on_finish,
         });
         return {
           content: [{ type: "text", text: spawnText(info, params.fork ?? "none") }],
@@ -312,7 +321,7 @@ export class AgentControl {
   /** 创建一个子代理节点并立刻返回；会话创建和首个任务在后台完成。 */
   spawn(
     callerId: string,
-    input: { kind: SubagentKind; task: string; name?: string; fork?: ContextFork },
+    input: { kind: SubagentKind; task: string; name?: string; fork?: ContextFork; notify?: boolean },
   ): AgentInfo {
     const caller = this.requireAgent(callerId);
     const kind = input.kind;
@@ -373,6 +382,7 @@ export class AgentControl {
       resumeWaiters: [],
       generation: 0,
       fork: input.fork ?? "none",
+      notify: input.notify === true,
       sessionFile: null,
     };
     this.agents.set(info.id, agent);
@@ -897,6 +907,7 @@ export class AgentControl {
           agentKind: agent.info.kind as SubagentKind,
           status: outcome.status,
           text: outcome.text,
+          notify: agent.notify,
         },
       });
       return;
@@ -997,7 +1008,7 @@ function stoppedOutcome(): AgentTaskOutcome {
 function spawnText(info: AgentInfo, fork: ContextFork): string {
   return [
     `已启动子代理 ${info.path}（${info.kind}，fork=${String(fork)}）。`,
-    "它在后台独立执行，完成后结论会自动投递给你；需要等结果时用 followup_task，补充要求用 send_message。",
+    "它在后台独立执行；失败会唤醒你，成功的结论只记入上下文（传 notify_on_finish 才会唤醒）。需要等结果时用 followup_task，补充要求用 send_message。",
   ].join("\n");
 }
 

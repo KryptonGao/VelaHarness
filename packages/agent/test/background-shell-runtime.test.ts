@@ -78,7 +78,7 @@ describe("background shells in the agent runtime", () => {
     const f = await fixture(t);
     assert.ok(f.session.getActiveToolNames().includes("bash_output"));
     assert.ok(f.session.getActiveToolNames().includes("bash_kill"));
-    f.script([[call("start", "bash", { command: "sleep 0.5; echo build-ok", run_in_background: true })], "Started it; carrying on.", "The build finished."]);
+    f.script([[call("start", "bash", { command: "sleep 0.5; echo build-ok", run_in_background: true, notify_on_exit: true })], "Started it; carrying on.", "The build finished."]);
     const started = Date.now();
     await f.runtime.prompt(f.id, "run the build in the background");
     // 回合在命令结束前就结束了：主代理没有被命令阻塞。
@@ -102,11 +102,30 @@ describe("background shells in the agent runtime", () => {
     assert.equal(f.requests.length, 2);
   });
 
+  it("records a clean exit that has output without waking an idle agent unless asked", { timeout: 20_000 }, async (t) => {
+    const f = await fixture(t);
+    f.script([[call("start", "bash", { command: "sleep 0.3; echo tests-passed", run_in_background: true })], "Started it."]);
+    await f.runtime.prompt(f.id, "run the tests in the background");
+    assert.equal(f.requests.length, 2);
+    await until(() => f.shells.list(f.id)[0]?.status === "exited", "command exit");
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+    assert.equal(f.requests.length, 2);
+  });
+
+  it("wakes an idle agent when a background command fails", { timeout: 20_000 }, async (t) => {
+    const f = await fixture(t);
+    f.script([[call("start", "bash", { command: "sleep 0.3; echo boom; exit 3", run_in_background: true })], "Started it.", "It failed."]);
+    await f.runtime.prompt(f.id, "run the build in the background");
+    await until(() => f.requests.length === 3, "failure wake-up turn");
+    assert.match(text(f.requests[2]!), /exited with code 3/);
+    await until(() => f.runtime.getSnapshot().status === "ready", "wake-up turn to settle");
+  });
+
   it("wakes the agent once for commands that finish close together", { timeout: 20_000 }, async (t) => {
     const f = await fixture(t);
     f.script([
-      [call("a", "bash", { command: "sleep 0.3; echo first-done", run_in_background: true }),
-        call("b", "bash", { command: "sleep 0.4; echo second-done", run_in_background: true })],
+      [call("a", "bash", { command: "sleep 0.3; echo first-done", run_in_background: true, notify_on_exit: true }),
+        call("b", "bash", { command: "sleep 0.4; echo second-done", run_in_background: true, notify_on_exit: true })],
       "Started both.",
       "Both finished.",
     ]);

@@ -3940,8 +3940,11 @@ export class AgentRuntime {
    * 进度消息只进上下文，下次回合自然看到，不单独触发一轮回复。
    */
   private deliverAgentMessage(entry: Conversation, message: AgentRootMessage): void {
+    const isResult = message.kind === "result";
     this.queueRootNotice(entry, {
-      wake: message.kind === "result",
+      wake: isResult,
+      // 主代理已回复完毕、处于空闲时：成功的结论只记录，要它回报需派生时显式 notify_on_finish；失败照常唤醒。
+      wakeIdle: isResult && (this.wakesOnSuccess(message.notify === true) || message.status !== "completed"),
       payload: {
         customType: message.kind === "result" ? "vela_agent_result" : "vela_agent_message",
         content: formatAgentRootMessage(message),
@@ -3956,13 +3959,20 @@ export class AgentRuntime {
     });
   }
 
+  /** 成功结束的后台任务是否唤醒空闲的主代理：Headless 没有下一轮用户输入，一律唤醒；交互宿主只看主代理是否要求回报。 */
+  private wakesOnSuccess(requested: boolean): boolean {
+    return requested || this.options.hostProfile === "headless";
+  }
+
   /** 后台命令结束：主动终止或会话已被移除时不打扰主代理；正常退出且没有未读输出的也只记录，不唤醒。 */
   private handleBackgroundShellExit(event: BackgroundShellExit): void {
     if (!event.notify) return;
     const entry = this.conversations.get(event.conversationId);
     if (!entry?.session) return;
+    const failed = !(event.status === "exited" && event.exitCode === 0);
     this.queueRootNotice(entry, {
       wake: !(event.status === "exited" && event.exitCode === 0 && !event.output),
+      wakeIdle: failed || this.wakesOnSuccess(event.wakeOnExit),
       payload: {
         customType: "vela_background_shell",
         content: formatBackgroundShellExit(event),
@@ -4008,7 +4018,9 @@ export class AgentRuntime {
 
   private async deliverRootNotices(entry: Conversation, items: RootNotice[]): Promise<void> {
     if (!entry.session || this.conversations.get(entry.id) !== entry) return;
-    const lastWake = entry.stopRequested ? -1 : items.findLastIndex(item => item.wake);
+    // 主代理正在回合里时，通知作为 follow-up 并入当前回合；已空闲时只有要求唤醒或失败的才另开一轮。
+    const idle = !entry.driving && !entry.session.isStreaming;
+    const lastWake = entry.stopRequested ? -1 : items.findLastIndex(item => (idle ? item.wakeIdle : item.wake));
     for (const [index, item] of items.entries()) {
       await this.deliverRootMessage(entry, item.payload, index === lastWake);
     }
@@ -4884,6 +4896,8 @@ function isPotentialGoalMutation(toolName: string, args: unknown): boolean {
 /** 等待投递给主代理的一条通知；wake 为假时只记录进上下文，不单独触发回合。 */
 interface RootNotice {
   wake: boolean;
+  /** 主代理空闲时是否值得另开一轮；成功结束且没要求回报的通知为假，只写进上下文。 */
+  wakeIdle: boolean;
   payload: { customType: string; content: string; display: false; details: Record<string, unknown> };
 }
 

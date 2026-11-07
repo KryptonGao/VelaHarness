@@ -34,6 +34,8 @@ export interface BackgroundShellStartInput {
   cwd: string;
   /** 秒；到点会终止命令，状态为 timed_out。 */
   timeout?: number;
+  /** 命令成功结束时也唤醒空闲的主代理；默认只记录进上下文，失败才唤醒。 */
+  wakeOnExit?: boolean;
 }
 
 interface Shell extends BackgroundShellInfo {
@@ -45,6 +47,8 @@ interface Shell extends BackgroundShellInfo {
   readOffset: number;
   /** 主动终止或会话关闭：结束时不需要唤醒主代理。 */
   silent: boolean;
+  /** 主代理要求成功结束也被唤醒。 */
+  wakeOnExit: boolean;
   /** 主代理已经通过 bash_output 拿到了结束状态，不必再通知。 */
   exitObserved: boolean;
   changed: Set<() => void>;
@@ -94,6 +98,7 @@ export class BackgroundShellManager implements BackgroundShellEvents {
       bufferStart: 0,
       readOffset: 0,
       silent: false,
+      wakeOnExit: input.wakeOnExit === true,
       exitObserved: false,
       changed: new Set(),
       done: Promise.resolve(),
@@ -249,6 +254,7 @@ export class BackgroundShellManager implements BackgroundShellEvents {
       output: read.output,
       truncated: read.truncated,
       notify,
+      wakeOnExit: shell.wakeOnExit,
     };
     for (const listener of [...this.listeners]) {
       try { listener(event); } catch { /* 监听者出错不能影响其他监听者。 */ }

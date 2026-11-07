@@ -2741,6 +2741,8 @@ export interface BackgroundShellExit {
   /** 输出因超出保留上限或读取上限被截掉了开头。 */
   truncated: boolean;
   notify: boolean;
+  /** 主代理启动时要求结束后被唤醒；未要求时，空闲的主代理只在命令失败时才被唤醒。 */
+  wakeOnExit: boolean;
 }
 
 /** 界面展示用的后台命令快照，不含输出。 */

@@ -3,7 +3,7 @@ import { Type } from "typebox";
 import { backgroundReadLimitChars, type BackgroundShellInfo, type BackgroundShellManager } from "./background-shells";
 
 const backgroundGuidance =
-  "Set run_in_background to true for commands that run long or never exit (dev servers, watchers, long builds or test suites): it returns a shell id immediately and the command keeps running while you continue other work. Read new output with bash_output and stop it with bash_kill. You are woken automatically with the result when it exits, so do not poll in a loop.";
+  "Set run_in_background to true for commands that run long or never exit (dev servers, watchers, long builds or test suites): it returns a shell id immediately and the command keeps running while you continue other work. Read new output with bash_output and stop it with bash_kill. A failed exit wakes you automatically; a successful exit is only recorded and you see it on your next turn. Set notify_on_exit to true when you will end your turn and want to be woken to report a successful result, and do not poll in a loop.";
 
 /**
  * 给 bash 加上 run_in_background：前台调用原样走 Pi 的实现，后台调用先过同一道权限门，
@@ -23,19 +23,23 @@ export function withBackgroundOption(
     parameters: Type.Object({
       ...base.properties,
       run_in_background: Type.Optional(Type.Boolean({ description: "Run the command in the background and return a shell id immediately" })),
+      notify_on_exit: Type.Optional(Type.Boolean({
+        description: "With run_in_background: also wake you when the command exits successfully while you are idle. Default false; failures always wake you.",
+      })),
     }),
     // 后台启动的结果没有退出码和耗时，不满足原有的结构化输出约定。
     outputSchema: undefined,
     async execute(toolCallId, params, signal, onUpdate, ctx) {
-      const { run_in_background: background, ...rest } = params as { command: string; timeout?: number; run_in_background?: boolean };
+      const { run_in_background: background, notify_on_exit: notifyOnExit, ...rest } =
+        params as { command: string; timeout?: number; run_in_background?: boolean; notify_on_exit?: boolean };
       if (!background) return tool.execute(toolCallId, rest, signal, onUpdate, ctx);
       const workingDirectory = ctx.cwd || cwd;
       await authorize(rest.command, workingDirectory, signal);
-      const info = manager.start({ conversationId, command: rest.command, cwd: workingDirectory, ...(rest.timeout ? { timeout: rest.timeout } : {}) });
+      const info = manager.start({ conversationId, command: rest.command, cwd: workingDirectory, ...(rest.timeout ? { timeout: rest.timeout } : {}), ...(notifyOnExit ? { wakeOnExit: true } : {}) });
       return {
         content: [{
           type: "text",
-          text: `Started background shell ${info.id}. It keeps running while you continue.\nUse bash_output with shell_id "${info.id}" to read new output, and bash_kill to stop it. You will be notified automatically when it exits.`,
+          text: `Started background shell ${info.id}. It keeps running while you continue.\nUse bash_output with shell_id "${info.id}" to read new output, and bash_kill to stop it. ${notifyOnExit ? "You will be woken when it exits." : "You are woken only if it fails; use bash_output with wait to collect a successful result."}`,
         }],
         details: { backgroundShell: info },
       };

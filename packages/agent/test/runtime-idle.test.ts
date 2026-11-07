@@ -103,7 +103,7 @@ describe("waitForIdle", () => {
 
   it("waits for a background command and the main agent's follow-up reply when asked to", { timeout: 20_000 }, async (t) => {
     const f = await fixture(t);
-    f.script([[call("start", "bash", { command: "sleep 0.8; echo build-ok", run_in_background: true })], "Started it.", "The build finished."]);
+    f.script([[call("start", "bash", { command: "sleep 0.8; echo build-ok", run_in_background: true, notify_on_exit: true })], "Started it.", "The build finished."]);
     await f.runtime.prompt(f.id, "run the build in the background");
     const started = Date.now();
     await f.runtime.waitForIdle(f.id, { includeBackgroundShells: true });
@@ -116,8 +116,8 @@ describe("waitForIdle", () => {
   it("merges commands that finish close together into one wake-up turn and waits for it", { timeout: 20_000 }, async (t) => {
     const f = await fixture(t);
     f.script([
-      [call("a", "bash", { command: "sleep 0.3; echo first-done", run_in_background: true }),
-        call("b", "bash", { command: "sleep 0.5; echo second-done", run_in_background: true })],
+      [call("a", "bash", { command: "sleep 0.3; echo first-done", run_in_background: true, notify_on_exit: true }),
+        call("b", "bash", { command: "sleep 0.5; echo second-done", run_in_background: true, notify_on_exit: true })],
       "Started both.",
       "Both finished.",
     ]);
