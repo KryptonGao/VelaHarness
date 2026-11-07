@@ -27,6 +27,8 @@ if (!process.versions.electron) {
           const [streaming, setStreaming] = useState(false);
           const [extra, setExtra] = useState(0);
           const [statCase, setStatCase] = useState(null);
+          const [syntaxCase, setSyntaxCase] = useState(null);
+          window.setSyntaxCase = value => { setSyntaxCase(value); setKind('stream'); setExtra(0); setStreaming(true); };
           window.setStatCase = setStatCase;
           const [, refresh] = useState(0);
           window.setCase = kind => { setKind(kind); setExtra(0); setStreaming(kind === 'stream'); };
@@ -37,11 +39,15 @@ if (!process.versions.electron) {
             ...context, ...(kind === 'del' ? ['-89 const removed = true'] : []), ...changes,
             ...Array.from({length: extra}, (_, i) => '+' + (117 + i) + ' const extra = ' + i),
           ];
-          const tool = {id: kind, name: kind === 'new' ? 'write' : 'edit', status: streaming ? 'running' : 'done', activity: {
-            path: 'apps/example.txt', diff: rows.join('\\n'), ...(streaming ? {streaming: {added: rows.length, removed: 0}} : {}),
+          const syntaxRows = syntaxCase?.path.endsWith('.css')
+            ? ['-1 .old { color: red; }', '+1 .new { color: blue; }']
+            : [...(syntaxCase?.name === 'write' ? [] : ['-1 const previous = "old";']), '+1 const current = "new";',
+              ...Array.from({length: extra}, (_, i) => '+' + (2 + i) + ' const extra = ' + i)];
+          const tool = {id: syntaxCase?.path ?? kind, name: syntaxCase?.name ?? (kind === 'new' ? 'write' : 'edit'), status: streaming ? 'running' : 'done', activity: {
+            path: syntaxCase?.path ?? 'apps/example.txt', diff: (syntaxCase ? syntaxRows : rows).join('\\n'), ...(streaming ? {streaming: {added: rows.length, removed: 0}} : {}),
           }};
           return <AppLocaleProvider locale="zh-CN"><div className="thinking-group-rail" style={{width: 620, margin: 24, '--tool-detail-height': '180px'}}>
-            <ToolList key={statCase ? statCase.display + statCase.fold : kind}
+            <ToolList key={statCase ? statCase.display + statCase.fold : syntaxCase?.path ?? kind}
               tools={statCase ? Array.from({length: 3}, (_, i) => ({...tool, id: 'stat-' + i, status: 'done', activity: {path: 'apps/example' + i + '.txt', diff: '-1 old\\n+1 new'}})) : [tool]}
               display={statCase?.display ?? 'compact'} fold={statCase?.fold ?? 'none'} />
           </div></AppLocaleProvider>;
@@ -71,7 +77,9 @@ if (!process.versions.electron) {
   void app.whenReady().then(async () => {
     const win = new BrowserWindow({ show: false, width: 760, height: 640,
       webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false, backgroundThrottling: false } });
-    const evaluate = code => win.webContents.executeJavaScript(code);
+    const evaluate = code => win.webContents.executeJavaScript(code).catch(error => {
+      throw new Error(`Renderer evaluation failed: ${code}`, {cause: error});
+    });
     const until = async code => {
       const deadline = Date.now() + 5000;
       while (Date.now() < deadline) {
@@ -125,16 +133,48 @@ if (!process.versions.electron) {
         if (kind === "del") assert.ok((await checkAnchor()).first.includes("del"));
         if (kind === "new" || kind === "context") assert.equal((await snapshot()).top, 0);
         if (kind === "stream") {
-          // 用户显式保持展开后，流式结束仍显示详情。
+          // Explicitly collapse and reopen so details stay open after streaming finishes.
           await evaluate("document.querySelector('.tool-compact-detail-toggle').click()");
+          await until("!document.querySelector('.tool-sheet-compact-diff')");
+          await open();
           await evaluate("window.grow()");
-          await until("document.querySelector('.tool-sheet-compact-diff').textContent.includes('extra = 9')");
+          await until("document.querySelector('.tool-sheet-compact-diff')?.textContent.includes('extra = 9')");
           await until("(() => { const v = document.querySelector('.compact-diff-scroll-shell .thinking-scroll-viewport'); return v.scrollHeight - v.clientHeight - v.scrollTop <= 1; })()");
           await evaluate("window.finish()");
           await until("(() => { const v = document.querySelector('.compact-diff-scroll-shell .thinking-scroll-viewport'); const c = v?.querySelector('.add'); return c && Math.abs(c.getBoundingClientRect().top - v.getBoundingClientRect().top - 22) <= 1; })()");
           await checkAnchor();
         }
       }
+      // Streaming diffs must tokenize both sides before the tool finishes, including newly received lines.
+      const hasTokens = selector => `document.querySelector(${JSON.stringify(selector + ' .tool-code-text span[style*="--syntax-"]')})`;
+      for (const syntaxCase of [
+        {path: 'apps/stream-edit.mjs', name: 'edit'},
+        {path: 'apps/stream-write.ts', name: 'write'},
+        {path: 'apps/stream-style.css', name: 'edit'},
+      ]) {
+        await evaluate(`window.setSyntaxCase(${JSON.stringify(syntaxCase)})`);
+        await until(`document.querySelector('.tool-compact-name').textContent === ${JSON.stringify(syntaxCase.path.split('/').pop())} && document.querySelector('.tool-sheet-compact-diff')`);
+        await until(hasTokens('.tool-diff-line.add'));
+        if (syntaxCase.name === 'edit') await until(hasTokens('.tool-diff-line.del'));
+        assert.ok(await evaluate("!!document.querySelector('.tool-compact-item .compact.is-running')"), 'Highlighting must be visible while still streaming');
+        // Explicitly reopen so details stay open after completion.
+        await evaluate("document.querySelector('.tool-compact-detail-toggle').click()");
+        await until("!document.querySelector('.tool-sheet-compact-diff')");
+        await evaluate("document.querySelector('.tool-compact-detail-toggle').click()");
+        await until("document.querySelector('.tool-sheet-compact-diff')");
+        if (!syntaxCase.path.endsWith('.css')) {
+          await evaluate('window.grow()');
+          await until("document.querySelector('.tool-diff-line:last-child .tool-code-text').textContent === 'const extra = 9'");
+          await until(hasTokens('.tool-diff-line:last-child'));
+          assert.ok(await evaluate("Array.from(document.querySelectorAll('.tool-diff-line:last-child .tool-code-text span')).some(el => el.textContent === '9' && el.style.color === 'var(--syntax-number)')"), 'New streamed content must receive syntax colors');
+        }
+        await evaluate('window.finish()');
+        await until("!!document.querySelector('.tool-compact-item .compact.is-done')");
+        await until(hasTokens('.tool-diff-line.add'));
+      }
+      await evaluate("window.setSyntaxCase({path: 'apps/stream-plain.txt', name: 'edit'})");
+      await until("document.querySelector('.tool-compact-name').textContent === 'stream-plain.txt' && document.querySelector('.tool-diff-line.add .tool-code-text')?.textContent === 'const current = \"new\";'");
+      assert.equal(await evaluate("document.querySelectorAll('.tool-code-text span').length"), 0, 'Unsupported languages must remain readable plain text');
       // 在真实 Chromium 中强制行级 hover，验证移出恢复及相邻行隔离。
       win.webContents.debugger.attach('1.3');
       const protocol = (method, params = {}) => win.webContents.debugger.sendCommand(method, params);
@@ -175,7 +215,7 @@ if (!process.versions.electron) {
         }
       }
       win.webContents.debugger.detach();
-      console.log("Compact diff UI: diff anchoring, scrolling, streaming and row-only stat hover (compact/card, grouped/ungrouped) passed");
+      console.log("Compact diff UI: diff anchoring, scrolling, streaming syntax highlighting (edit/write, growth, completion, plain-text fallback) and row-only stat hover (compact/card, grouped/ungrouped) passed");
       app.exit(0);
     } catch (error) {
       console.error(error);

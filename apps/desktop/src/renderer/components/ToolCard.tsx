@@ -965,7 +965,7 @@ export function CompactToolLine({
             {hasCompactDiff && activity.diff ? (
               <CompactDiffCard
                 fileName={subject.name}
-                filePath={streamingNow ? undefined : previewPath ?? undefined}
+                filePath={previewPath ?? undefined}
                 diff={activity.diff}
                 note={activity.body}
                 streaming={streamingNow}
