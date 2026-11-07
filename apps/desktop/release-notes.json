@@ -1,144 +1,139 @@
 {
-  "version": "1.2.23",
+  "version": "1.2.24",
   "locales": {
     "en": {
-      "summary": "Vela 1.2.23 brings chat modes and execution permissions into one menu, shows workspace and model information earlier at startup, and refines the composer and file preview layout.",
+      "summary": "Vela 1.2.24 adds a switch for suggested prompts, fixes the permission display at startup and untitled chat labels, and refines composer feedback and pinned workspace animations.",
       "highlights": [
         {
-          "title": "One menu for modes and permissions",
-          "body": "Choose Auto, Manual, Full access, Plan or Goal from a combined menu, with Race actions when available. It is enabled by default; turn off Combined mode menu in Settings → Interface to restore the separate controls."
+          "title": "Choose whether to show suggested prompts",
+          "body": "Turn Suggested prompts off in Settings → Interface to hide prompt cards on the new chat start page without hiding the greeting or background. Cards remain enabled by default."
         },
         {
-          "title": "Startup information appears earlier",
-          "body": "The last workspace appears without waiting for Git and pull-request queries. When available, saved branch and model hints fill in the startup display until live information arrives; sending still waits for the session to be ready."
+          "title": "Your permission choice appears at startup",
+          "body": "The permission control uses a saved startup hint, then reads your actual setting without waiting for Git or pull-request queries. It no longer starts by displaying Manual when another permission level was saved."
         },
         {
-          "title": "A more compact reasoning control",
-          "body": "The reasoning-effort label, icon and arrow sit together without space reserved for the longest label. The English Extra high label is now Extra, and the capsule layout brings the effort and model controls closer together."
+          "title": "Clearer composer feedback",
+          "body": "Classic, Calm and Capsule composers have a visible start-page shadow. Text controls use consistent hover colors, round icon buttons use a gray hover background, and the combined mode menu drops its icons and mode-specific button colors."
         },
         {
-          "title": "Cleaner file previews",
-          "body": "The file browser no longer shows an empty-state icon or instructions when no file is open. The preview container no longer has an outer margin, rounded corners or a card shadow."
+          "title": "Smoother pinned workspaces",
+          "body": "The Pinned section expands and collapses with the same transition as workspace groups. Pinning or unpinning moves a workspace between sections without briefly showing duplicate rows or animating neighboring rows."
         }
       ],
       "improvements": [
-        "The combined menu supports number-key selection while open, explains each permission level, and marks Auto as recommended.",
-        "Choosing Plan or Goal keeps the current execution permissions visible in the menu; recipe-locked permissions remain protected.",
-        "Git attachment and session startup run in parallel, and the selected model is shown before skills and MCP resources finish loading.",
-        "Agent guidance makes structured outcome submission optional; Goal completion still requires a validation record.",
-        "The new combined-menu text and setting are available in all five interface languages."
+        "Untitled chats use the current interface language in chat headers, the sidebar, tabs, search and archived chats, without changing saved titles.",
+        "Renaming an untitled chat starts with an empty field rather than its stored placeholder title.",
+        "Information layout settings now show a general introduction and a description of the selected sidebar, floating-information or info-card layout in the same column.",
+        "Composer layout settings now separate the general introduction from the selected Classic, Calm or Capsule layout description."
       ]
     },
     "zh-CN": {
-      "summary": "Vela 1.2.23 将对话模式和执行权限合并到同一个菜单，启动时更早显示工作区和模型信息，并调整了输入框与文件预览的布局。",
+      "summary": "Vela 1.2.24 新增预设提示词开关，修正启动时的权限显示和未命名对话标题，并调整输入框反馈与置顶工作区动画。",
       "highlights": [
         {
-          "title": "模式与权限合为一个菜单",
-          "body": "在同一菜单中选择自动、手动、完全访问、Plan 或 Goal，条件满足时也可使用赛马入口。此菜单默认开启；在 设置 → 界面 关闭「合并模式菜单」即可恢复两个独立控件。"
+          "title": "自行选择是否显示预设提示词",
+          "body": "在 设置 → 界面 关闭「预设提示词」，即可隐藏新对话起始页的提示词卡片，同时保留问候与背景。卡片默认开启。"
         },
         {
-          "title": "更早显示启动信息",
-          "body": "上次使用的工作区不再等待 Git 和 Pull Request 查询完成才显示。已有可用缓存时，会在实时数据到达前显示保存的分支与模型提示；发送消息仍需等待会话就绪。"
+          "title": "启动时显示已保存的权限选择",
+          "body": "权限控件先使用已保存的启动提示，再读取实际设置，无需等待 Git 或 Pull Request 查询；保存了其他权限档位时，不再先显示为手动。"
         },
         {
-          "title": "更紧凑的思考强度控件",
-          "body": "思考强度的文字、图标和箭头紧邻排列，不再按最长标签预留空位。英文 Extra high 缩短为 Extra，胶囊布局中的思考强度与模型控件也靠得更近。"
+          "title": "更一致的输入框反馈",
+          "body": "经典、静谧与胶囊布局的起始页输入框都有清晰可见的阴影。文字控件统一悬停颜色，圆形图标按钮使用灰色悬停背景；合并模式菜单移除图标，按钮也不再按模式着色。"
         },
         {
-          "title": "更简洁的文件预览",
-          "body": "没有打开文件时，文件浏览器不再显示占位图标和操作提示。预览容器移除了外边距、圆角和卡片阴影。"
+          "title": "更平顺的置顶工作区",
+          "body": "置顶分区使用与工作区分组相同的展开、收起过渡。置顶或取消置顶时，工作区直接在分区间移动，不再短暂显示重复行，也不触发相邻行的位移动画。"
         }
       ],
       "improvements": [
-        "合并菜单展开时支持数字键选择，提供各档执行权限的说明，并将自动标为推荐项。",
-        "选择 Plan 或 Goal 时保留当前执行权限并在菜单中显示；配方锁定的权限仍受保护。",
-        "Git 连接与会话启动并行执行，所选模型可在技能和 MCP 资源加载完成前显示。",
-        "Agent 提示将结构化成果提交改为可选；完成 Goal 仍需记录验证结果。",
-        "合并菜单及其设置的新增文字提供全部五种界面语言。"
+        "未命名对话在标题、侧栏、标签页、搜索与已归档列表中使用当前界面语言，不修改已保存的标题。",
+        "重命名未命名对话时，输入框从空白开始，不再填入持久化的占位标题。",
+        "右侧信息布局设置在同一列展示整体说明，以及当前所选半透明边栏、悬浮信息或信息卡片的介绍。",
+        "输入框布局设置将整体说明与当前所选经典、静谧或胶囊布局的介绍分开展示。"
       ]
     },
     "zh-TW": {
-      "summary": "Vela 1.2.23 將對話模式和執行權限合併到同一個選單，啟動時更早顯示工作區和模型資訊，並調整了輸入框與檔案預覽的版面。",
+      "summary": "Vela 1.2.24 新增預設提示詞開關，修正啟動時的權限顯示和未命名對話標題，並調整輸入框回饋與置頂工作區動畫。",
       "highlights": [
         {
-          "title": "模式與權限合為一個選單",
-          "body": "在同一選單中選擇自動、手動、完全訪問、Plan 或 Goal，條件滿足時也可使用賽馬入口。此選單預設開啟；在 設定 → 界面 關閉「合併模式選單」即可恢復兩個獨立控制項。"
+          "title": "自行選擇是否顯示預設提示詞",
+          "body": "在 設定 → 界面 關閉「預設提示詞」，即可隱藏新對話起始頁的提示詞卡片，同時保留問候與背景。卡片預設開啟。"
         },
         {
-          "title": "更早顯示啟動資訊",
-          "body": "上次使用的工作區不再等待 Git 和 Pull Request 查詢完成才顯示。已有可用快取時，會在即時資料到達前顯示儲存的分支與模型提示；傳送訊息仍需等待會話就緒。"
+          "title": "啟動時顯示已儲存的權限選擇",
+          "body": "權限控制項先使用已儲存的啟動提示，再讀取實際設定，無需等待 Git 或 Pull Request 查詢；儲存了其他權限等級時，不再先顯示為手動。"
         },
         {
-          "title": "更緊湊的思考強度控制項",
-          "body": "思考強度的文字、圖示和箭頭緊鄰排列，不再依最長標籤預留空位。英文 Extra high 縮短為 Extra，膠囊版面中的思考強度與模型控制項也靠得更近。"
+          "title": "更一致的輸入框回饋",
+          "body": "經典、靜謐與膠囊版面的起始頁輸入框都有清晰可見的陰影。文字控制項統一懸停顏色，圓形圖示按鈕使用灰色懸停背景；合併模式選單移除圖示，按鈕也不再依模式著色。"
         },
         {
-          "title": "更簡潔的檔案預覽",
-          "body": "沒有開啟檔案時，檔案瀏覽器不再顯示佔位圖示和操作提示。預覽容器移除了外距、圓角和卡片陰影。"
+          "title": "更平順的置頂工作區",
+          "body": "置頂區段使用與工作區群組相同的展開、收合過渡。置頂或取消置頂時，工作區直接在區段間移動，不再短暫顯示重複列，也不觸發相鄰列的位移動畫。"
         }
       ],
       "improvements": [
-        "合併選單展開時支援數字鍵選取，提供各級執行權限的說明，並將自動標為推薦項。",
-        "選擇 Plan 或 Goal 時保留目前執行權限並在選單中顯示；配方鎖定的權限仍受保護。",
-        "Git 連線與會話啟動並行執行，所選模型可在技能和 MCP 資源載入完成前顯示。",
-        "Agent 提示將結構化成果提交改為可選；完成 Goal 仍需記錄驗證結果。",
-        "合併選單及其設定的新增文字提供全部五種介面語言。"
+        "未命名對話在標題、側欄、分頁、搜尋與已封存清單中使用目前介面語言，不修改已儲存的標題。",
+        "重新命名未命名對話時，輸入欄從空白開始，不再填入持久化的佔位標題。",
+        "右側資訊版面設定在同一欄展示整體說明，以及目前所選半透明側欄、懸浮資訊或資訊卡片的介紹。",
+        "輸入框版面設定將整體說明與目前所選經典、靜謐或膠囊版面的介紹分開展示。"
       ]
     },
     "ja": {
-      "summary": "Vela 1.2.23 では、会話モードと実行権限を 1 つのメニューにまとめました。起動時のワークスペースとモデル情報をより早く表示し、入力欄とファイルプレビューのレイアウトも調整しました。",
+      "summary": "Vela 1.2.24 では提案プロンプトの表示切り替えを追加し、起動時の権限表示と無題の会話名を修正しました。入力欄のフィードバックとピン留めしたワークスペースのアニメーションも調整しました。",
       "highlights": [
         {
-          "title": "モードと権限を 1 つのメニューに",
-          "body": "自動、手動、フルアクセス、Plan、Goal を共通メニューで選べます。利用可能な場合はレースの操作も表示されます。既定で有効です。設定 → インターフェースで「統合モードメニュー」を無効にすると、別々の操作部に戻せます。"
+          "title": "提案プロンプトの表示を選択",
+          "body": "設定 → インターフェースで提案プロンプトをオフにすると、挨拶と背景を残したまま、新しい会話の開始ページからプロンプトカードを非表示にできます。カードは既定で有効です。"
         },
         {
-          "title": "起動時の情報をより早く表示",
-          "body": "Git と Pull Request の取得を待たずに、前回のワークスペースを表示します。保存済みの情報がある場合は、最新情報が届くまでブランチとモデルの情報を表示します。メッセージの送信は引き続きセッションの準備完了後に可能になります。"
+          "title": "起動時に保存済みの権限を表示",
+          "body": "権限の操作部は保存済みの起動時情報を表示した後、Git や Pull Request の取得を待たずに実際の設定を読み込みます。別の権限を保存していた場合に、最初に手動と表示される問題を修正しました。"
         },
         {
-          "title": "推論強度の表示をコンパクトに",
-          "body": "推論強度のラベル、アイコン、矢印を並べ、最長ラベル用の余白をなくしました。英語の Extra high 表記は Extra に短縮し、カプセル形式では推論強度とモデルの操作部の間隔も狭めました。"
+          "title": "入力欄の反応を統一",
+          "body": "クラシック、カーム、カプセルの開始ページの入力欄に見やすい影を付けました。文字の操作部はホバー時の色を統一し、丸いアイコンボタンには灰色の背景を表示します。統合モードメニューのアイコンと、ボタンのモード別の色を取り除きました。"
         },
         {
-          "title": "すっきりしたファイルプレビュー",
-          "body": "ファイルが開かれていないときのアイコンと操作案内を非表示にしました。プレビューコンテナーの外側の余白、角丸、カードの影を取り除きました。"
+          "title": "ピン留めしたワークスペースを滑らかに",
+          "body": "ピン留めセクションを、ワークスペースグループと同じ動きで展開・折りたたみます。ピン留めの切り替えではセクション間を直接移動し、一時的な行の重複や隣接行の移動アニメーションをなくしました。"
         }
       ],
       "improvements": [
-        "統合メニューを開いている間は数字キーで選択できます。各権限の説明を表示し、自動には推奨マークが付きます。",
-        "Plan または Goal を選んでも現在の実行権限を維持し、メニューに表示します。レシピで固定された権限も保護されます。",
-        "Git の接続とセッションの起動を並行して行い、スキルと MCP リソースの読み込み完了前に選択したモデルを表示します。",
-        "Agent への指示では構造化された成果の提出を任意にしました。Goal の完了には引き続き検証記録が必要です。",
-        "統合メニューとその設定の新しいテキストを、5 つの表示言語すべてに追加しました。"
+        "無題の会話は保存済みのタイトルを変更せず、見出し、サイドバー、タブ、検索、アーカイブ一覧で現在の表示言語を使用します。",
+        "無題の会話の名前を変更するときは、保存された仮タイトルではなく空欄から入力できます。",
+        "右側の情報レイアウト設定では、全体の説明と、選択中の半透明サイドバー、フローティング情報、情報カードの説明を同じ列に表示します。",
+        "入力欄のレイアウト設定では、全体の説明と、選択中のクラシック、カーム、カプセルの説明を分けて表示します。"
       ]
     },
     "ko": {
-      "summary": "Vela 1.2.23은 대화 모드와 실행 권한을 하나의 메뉴로 통합하고, 시작 시 워크스페이스와 모델 정보를 더 일찍 표시합니다. 입력창과 파일 미리보기 레이아웃도 다듬었습니다.",
+      "summary": "Vela 1.2.24는 추천 프롬프트 표시 스위치를 추가하고, 시작 시 권한 표시와 제목 없는 대화 이름을 수정했습니다. 입력창 피드백과 고정한 워크스페이스의 애니메이션도 다듬었습니다.",
       "highlights": [
         {
-          "title": "모드와 권한을 하나의 메뉴로",
-          "body": "자동, 수동, 전체 접근, Plan, Goal을 하나의 메뉴에서 선택할 수 있으며, 사용 가능한 경우 레이스 작업도 표시됩니다. 기본으로 켜져 있습니다. 설정 → 인터페이스에서 '통합 모드 메뉴'를 끄면 두 개의 별도 컨트롤로 돌아갑니다."
+          "title": "추천 프롬프트 표시 선택",
+          "body": "설정 → 인터페이스에서 추천 프롬프트를 끄면 인사말과 배경을 유지한 채 새 대화 시작 페이지의 프롬프트 카드를 숨길 수 있습니다. 카드는 기본으로 켜져 있습니다."
         },
         {
-          "title": "시작 정보를 더 일찍 표시",
-          "body": "Git과 Pull Request 조회가 끝날 때까지 기다리지 않고 마지막 워크스페이스를 표시합니다. 저장된 정보가 있는 경우 실시간 정보가 도착하기 전까지 브랜치와 모델 정보를 보여 줍니다. 메시지 전송은 여전히 세션 준비가 완료된 후에 가능합니다."
+          "title": "시작 시 저장된 권한 표시",
+          "body": "권한 컨트롤은 저장된 시작 정보를 먼저 표시한 다음 Git이나 Pull Request 조회를 기다리지 않고 실제 설정을 읽습니다. 다른 권한 수준을 저장했는데도 처음에 수동으로 표시되던 문제를 수정했습니다."
         },
         {
-          "title": "더 간결한 추론 강도 컨트롤",
-          "body": "추론 강도 라벨, 아이콘, 화살표를 나란히 배치하고 가장 긴 라벨을 위한 빈 공간을 없앴습니다. 영어 Extra high 표기는 Extra로 줄였으며, 캡슐 레이아웃에서 추론 강도와 모델 컨트롤 사이의 간격도 좁혔습니다."
+          "title": "일관된 입력창 피드백",
+          "body": "클래식, 차분한, 캡슐 레이아웃의 시작 페이지 입력창에 눈에 띄는 그림자를 적용했습니다. 텍스트 컨트롤의 호버 색상을 통일하고 원형 아이콘 버튼에는 회색 호버 배경을 사용합니다. 통합 모드 메뉴의 아이콘과 버튼의 모드별 색상을 제거했습니다."
         },
         {
-          "title": "더 깔끔한 파일 미리보기",
-          "body": "열린 파일이 없을 때 표시하던 아이콘과 안내 문구를 제거했습니다. 미리보기 컨테이너의 바깥 여백, 둥근 모서리, 카드 그림자를 제거했습니다."
+          "title": "더 부드러운 워크스페이스 고정",
+          "body": "고정 섹션을 워크스페이스 그룹과 같은 전환 효과로 펼치고 접습니다. 고정하거나 해제할 때 워크스페이스가 섹션 사이를 바로 이동하므로 행이 잠깐 중복되거나 이웃 행에 이동 애니메이션이 생기지 않습니다."
         }
       ],
       "improvements": [
-        "통합 메뉴가 열려 있을 때 숫자 키로 선택할 수 있습니다. 각 권한 수준에 설명을 제공하고 자동에는 추천 표시를 붙였습니다.",
-        "Plan이나 Goal을 선택해도 현재 실행 권한을 유지하고 메뉴에 표시합니다. 레시피에서 고정한 권한도 보호됩니다.",
-        "Git 연결과 세션 시작을 병렬로 진행하며, 스킬과 MCP 리소스 로딩이 끝나기 전에 선택한 모델을 표시합니다.",
-        "Agent 지침에서 구조화된 결과 제출을 선택 사항으로 바꿨습니다. Goal 완료에는 여전히 검증 기록이 필요합니다.",
-        "통합 메뉴와 관련 설정의 새 문구를 5개 인터페이스 언어에 모두 추가했습니다."
+        "제목 없는 대화는 저장된 제목을 바꾸지 않고 대화 헤더, 사이드바, 탭, 검색, 보관 목록에서 현재 인터페이스 언어로 표시됩니다.",
+        "제목 없는 대화의 이름을 변경할 때 저장된 임시 제목 대신 빈 입력란에서 시작합니다.",
+        "오른쪽 정보 레이아웃 설정은 전체 설명과 선택한 반투명 사이드바, 플로팅 정보 또는 정보 카드 설명을 같은 열에 표시합니다.",
+        "입력창 레이아웃 설정은 전체 설명과 선택한 클래식, 차분한 또는 캡슐 레이아웃의 설명을 나누어 표시합니다."
       ]
     }
   }

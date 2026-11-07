@@ -1,19 +1,19 @@
-# Vela 1.2.23
+# Vela 1.2.24
 
-Vela 1.2.23 brings chat modes and execution permissions into one menu, shows workspace and model information earlier at startup, and refines the composer and file preview layout.
+Vela 1.2.24 adds a switch for suggested prompts, fixes the permission display at startup and untitled chat labels, and refines composer feedback and pinned workspace animations.
 
 ## New
 
-- **Combined mode menu**: choose **Auto**, **Manual**, **Full access**, **Plan** or **Goal** from one composer control, with **Race** and previous race results available when supported. Permission choices include descriptions, Auto is marked as recommended, and number keys select entries while the menu is open.
-- **Keep separate controls if you prefer**: the combined menu is enabled by default. Turn off **Settings → Interface → Combined mode menu** to restore the individual chat-mode and execution-permission controls. Choosing Plan or Goal keeps the current permissions, which remain visible in the menu; recipe-locked permissions stay protected.
+- **Suggested prompt visibility**: turn off **Settings → Interface → Suggested prompts** to hide prompt cards on the new chat start page while keeping the greeting and background. Cards remain enabled by default; this preference is separate from Minimal start page.
 
 ## Improved
 
-- **Earlier startup information**: the last workspace appears without waiting for Git and pull-request queries. When available, saved branch and model hints fill the initial display until live information arrives. Git attachment and session startup run in parallel, and the selected model appears before skills and MCP resources finish loading. These display hints do not bypass session-readiness checks for sending messages.
-- **Compact reasoning controls**: the effort label, icon and arrow sit together without reserving space for the longest label. The English **Extra high** label is now **Extra**, and the capsule composer brings the reasoning-effort and model controls closer together.
-- **Cleaner file previews**: the file browser no longer shows a placeholder icon or instructions when no file is open. The preview container no longer has an outer margin, rounded corners or a card shadow.
-- **Optional structured outcomes**: agent guidance now treats `submit_outcome` as optional rather than requiring it before every final reply after changes or verification. Completing a Goal still requires a validation record.
-- The new combined-menu text and setting are available in all five interface languages.
+- **Correct permission display at startup**: the permission control uses a saved startup hint, then loads the actual setting without waiting for Git, branch or pull-request queries. A previously selected permission level no longer initially appears as Manual. Startup hints affect the display, not runtime permission enforcement.
+- **Localized untitled chats**: placeholder titles use the current interface language in chat headers, the sidebar, tabs, search and archived chats without rewriting stored titles. Renaming an untitled chat starts with an empty field instead of the stored placeholder.
+- **Consistent composer feedback**: text controls share hover-color behavior, round icon buttons use a gray hover background, and controls with capsule backgrounds retain appropriate hover feedback. The combined mode menu no longer shows icons or mode-specific button colors.
+- **Visible start-page shadows**: Classic, Calm and Capsule composers use a soft shadow that separates the input from the background without the floating dock's downward shadow.
+- **Clearer layout settings**: Information layout and Composer layout each show a general introduction and a separate description of the selected option. Right-side layout descriptions use the same column layout for all three choices.
+- **Smoother pinned workspaces**: the Pinned section expands and collapses with the same transition as workspace groups. Pinning or unpinning moves a workspace directly between sections without briefly showing duplicate rows or animating neighboring rows.
 
 ## Upgrade
 
@@ -27,19 +27,19 @@ The macOS build is not notarized and uses an ad-hoc signature. If macOS blocks f
 
 | File | Platform |
 | --- | --- |
-| `Vela-1.2.23-arm64.dmg` | macOS Apple Silicon installer |
-| `Vela-1.2.23-arm64.zip` | macOS Apple Silicon application bundle (`.app`); also the package used by in-app updates |
+| `Vela-1.2.24-arm64.dmg` | macOS Apple Silicon installer |
+| `Vela-1.2.24-arm64.zip` | macOS Apple Silicon application bundle (`.app`); also the package used by in-app updates |
 | `SHA256SUMS.txt` | SHA-256 checksums for both packages |
 | `SHA256SUMS.txt.sig` | Ed25519 signature of `SHA256SUMS.txt`, verified by the in-app updater |
 
-Package version: `1.2.23`. macOS bundle and download version: `1.2.23`.
+Package version: `1.2.24`. macOS bundle and download version: `1.2.24`.
 
 ## Validation
 
-- Release metadata verified: all package and macOS bundle version fields are `1.2.23`; all five in-app release-note languages contain four highlights and five improvements.
+- Release metadata verified: all package and macOS bundle version fields are `1.2.24`; all five in-app release-note languages contain four highlights and four improvements.
 - Production build and macOS arm64 packaging completed, followed by ad-hoc signing of `Vela.app` and regeneration of the DMG and ZIP from the signed bundle.
-- The local app, app extracted from the ZIP, and app in the mounted DMG all passed strict code-signature verification and bundle version / identifier checks. Their application archives are identical and contain the final in-app release notes.
+- The local app, app extracted from the ZIP, and app in the mounted DMG all passed strict code-signature verification and bundle version / identifier checks. Their application archives are identical, contain the final in-app release notes, and include the trusted update public key.
 - The ZIP has a single top-level `Vela.app` and passed archive-integrity verification. The DMG passed checksum verification and mounted successfully.
-- Both package SHA-256 checksums and the Ed25519 checksum signature were verified using the application's `verifySignature` and trusted update public keys; the packaged app contains the trusted key.
+- Both package SHA-256 checksums and the Ed25519 checksum signature were verified using the application's `verifySignature` and trusted update public keys.
 
 The automated test suites were not run for this release, as requested.
