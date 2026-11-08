@@ -29,6 +29,17 @@ export function readToolDuration(tool: ToolDurationSource): number | null {
     : null;
 }
 
+/** Whole seconds a call has been running; null until it passes one second. */
+export function runningSeconds(elapsedMs: number): number | null {
+  return Number.isFinite(elapsedMs) && elapsedMs >= 1000 ? Math.floor(elapsedMs / 1000) : null;
+}
+
+/** Recorded start of a running call; unlike finished durations, an unusable value means "unknown". */
+export function readRunningStart(tool: ToolDurationSource | undefined, now: number): number | null {
+  const start = tool?.executionStartedAt ?? tool?.startedAt;
+  return valid(start) && start > 0 && start <= now ? start : null;
+}
+
 /** A partial sum must not be presented as the total for an old or running turn. */
 export function readTurnDuration(items: readonly (ToolDurationSource | ProcessItem)[]): number | null {
   let total = 0;

@@ -24,6 +24,7 @@ import { createMessageStore, emptyMessages, messageScope, type MessageStore } fr
 import { uiStateStore } from "../components/intelligent-ui/ui-state-instance";
 import { applyPlanDraft, type PlanDraft } from "../plan-draft";
 import { reconcileAgents } from "../agent-roster";
+import { noteToolStart } from "../components/tool-running-clock";
 import { localizeError, tr } from "../locale";
 import { didCompleteTask, noSound, streamNotificationSound, type NotifySound } from "../notification-sounds";
 
@@ -822,6 +823,7 @@ function applyToMessages(messages: UiMessage[], event: StreamUpdate, startedAt?:
   } else if (event.type === "thinking_delta") {
     last.thinking += event.delta;
   } else if (event.type === "tool_start") {
+    noteToolStart(event.toolCallId);
     // edit / write 在参数流式生成时就会先报一次，开始执行时同一个调用再报一次：原位替换，不重复建卡片。
     const started: ToolTrace = {
       id: event.toolCallId,
@@ -893,6 +895,7 @@ function applyAgentToMessages(messages: UiMessage[], event: AgentRuntimeStreamEv
   } else if (event.type === "thinking_delta") {
     last.thinking += event.delta;
   } else if (event.type === "tool_start") {
+    noteToolStart(event.toolCallId);
     // edit / write 在参数流式生成时就会先报一次，开始执行时同一个调用再报一次：原位替换，不重复建卡片。
     const started: ToolTrace = {
       id: event.toolCallId,

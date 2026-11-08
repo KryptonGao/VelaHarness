@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { TraceNode } from "@vela/shared";
-import { formatDuration, indexToolDurations, readToolDuration, readTurnDuration } from "../src/renderer/components/tool-duration.ts";
+import { formatDuration, indexToolDurations, readRunningStart, readToolDuration, readTurnDuration, runningSeconds } from "../src/renderer/components/tool-duration.ts";
 
 describe("tool durations", () => {
   it("formats boundaries without rounding seconds into the next unit", () => {
@@ -24,6 +24,20 @@ describe("tool durations", () => {
       { durationMs: Infinity }, { startedAt: -10, completedAt: 0 }, { startedAt: 2, completedAt: 1 },
       { status: "running", durationMs: 300 }, { status: "Running", startedAt: 0, completedAt: 100 }]) {
       assert.equal(readToolDuration(source), null);
+    }
+  });
+
+  it("shows whole running seconds only after the first second", () => {
+    for (const [ms, expected] of [[0, null], [999, null], [1000, 1], [1999, 1], [5400, 5], [NaN, null], [-5, null]] as const) {
+      assert.equal(runningSeconds(ms), expected);
+    }
+  });
+
+  it("reads a usable running start, preferring execution start", () => {
+    assert.equal(readRunningStart({ startedAt: 100, executionStartedAt: 400 }, 1000), 400);
+    assert.equal(readRunningStart({ startedAt: 100 }, 1000), 100);
+    for (const tool of [undefined, {}, { startedAt: 0 }, { startedAt: -1 }, { startedAt: 2000 }]) {
+      assert.equal(readRunningStart(tool, 1000), null);
     }
   });
 

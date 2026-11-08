@@ -2,8 +2,9 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, u
 import type { ToolTrace } from "@vela/shared";
 import { useTrace } from "../hooks/useTrace";
 import { tr, trf } from "../locale";
-import { formatDuration, indexToolDurations, readToolDuration, readTurnDuration, type ToolDurationSource } from "./tool-duration";
+import { formatDuration, indexToolDurations, readRunningStart, readToolDuration, readTurnDuration, runningSeconds, type ToolDurationSource } from "./tool-duration";
 import type { ToolFoldStore } from "./tool-fold-state";
+import { forgetToolStart, toolStart } from "./tool-running-clock";
 
 const ToolProcessContext = createContext<{ store: ToolFoldStore; timings: Map<string, ToolDurationSource> } | null>(null);
 const noopSubscribe = () => () => {};
@@ -55,6 +56,29 @@ export function useToolDuration(tool: ToolTrace): number | null {
   const context = useContext(ToolProcessContext);
   if (!context || tool.status === "running") return null;
   return readToolDuration(context.timings.get(tool.id) ?? tool);
+}
+
+/** 运行中工具已用的整秒数,每半秒校准一次;不在运行或不足 1 秒时为 null。 */
+export function useRunningSeconds(tool: ToolTrace): number | null {
+  const context = useContext(ToolProcessContext);
+  const running = tool.status === "running";
+  const recordedStart = running ? readRunningStart(context?.timings.get(tool.id), Date.now()) : null;
+  const [seconds, setSeconds] = useState<number | null>(null);
+  const id = tool.id;
+  useEffect(() => {
+    if (!running) {
+      forgetToolStart(id);
+      setSeconds(null);
+      return;
+    }
+    // 没有主进程记录的起点时,用渲染层第一次收到 tool_start 的时间;切换会话再回来行会重建,起点不能随行丢失。
+    const start = recordedStart ?? toolStart(id);
+    const tick = () => setSeconds(runningSeconds(Date.now() - start));
+    tick();
+    const timer = window.setInterval(tick, 500);
+    return () => window.clearInterval(timer);
+  }, [running, recordedStart, id]);
+  return running ? seconds : null;
 }
 
 export function ToolDurationLabel({ tool }: { tool: ToolTrace }) {
