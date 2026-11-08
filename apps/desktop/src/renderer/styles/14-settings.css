@@ -54,7 +54,7 @@
   position: relative;
   z-index: 1;
 }
-.settings-view { --settings-nav-width: 244px; }
+.settings-view { --settings-nav-width: calc(244px * max(1, var(--ui-scale))); }
 /* 内容纸面从导航右侧(减去垫在下面的 12px)开始铺,导航后面是窗口玻璃而不是白纸,
  * 这样半透明的侧栏卡片和主页一样叠在玻璃上,颜色才一致。 */
 .settings-view::after { left: calc(var(--settings-nav-width) - 12px); }
@@ -121,7 +121,9 @@
   font-size: calc(15px * var(--ui-scale));
   font-weight: 400;
 }
-.settings-nav-icon { color: var(--text-secondary); }
+.settings-nav-icon { color: var(--text-secondary); flex-shrink: 0; }
+/* 标签永远单行:放不下时省略,而不是折成两行把图标挤变形 */
+.settings-nav-item > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* 与主页侧栏的条目同一套:悬停淡底,当前项是浮起的白色块 */
 .settings-nav-item:hover { background: var(--bg-sidebar-hover); color: var(--text-primary); }
 .settings-nav-item.active {
