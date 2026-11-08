@@ -1,139 +1,139 @@
 {
-  "version": "1.2.25",
+  "version": "1.2.26",
   "locales": {
     "en": {
-      "summary": "Vela 1.2.25 redesigns the trace event list, asks before closing a terminal that is still running a command, and stops idle agents from replying again when background work succeeds.",
+      "summary": "Vela 1.2.26 adds a copy button for command output and a running-seconds clock on tool lines, unifies todo list styling with the run view, and makes the edge blur follow scrolling without lag.",
       "highlights": [
         {
-          "title": "A clearer trace event list",
-          "body": "Trace events now appear as typed rows with new icons, and you can filter the list by event type. The inspector shows the selected event in the same structure."
+          "title": "Copy command output",
+          "body": "Hover over a command's output to show a button that copies it to the clipboard."
         },
         {
-          "title": "Confirm before closing a busy terminal",
-          "body": "Closing a terminal tab that may still be running a command now asks first, and ending it terminates the command. Idle terminals still close immediately."
+          "title": "Running-seconds clock on tool lines",
+          "body": "Tool calls that are still running now show how many seconds they have been going, like command lines already did. The count keeps its start time when you switch sessions and come back."
         },
         {
-          "title": "Idle agents stay quiet after background success",
-          "body": "When a background command or subagent finishes successfully after the agent has already replied, the result is recorded in context without starting another reply. Failures and timeouts still wake the agent."
+          "title": "One look for todo lists",
+          "body": "Todo lists in tool cards use the same marks as the run view. An item left in progress when its task ends shows a solid ring with three dots, and the run view's todo list stays below the conversation after the run ends."
         },
         {
-          "title": "Live highlighting for file edits",
-          "body": "File edit details are syntax-highlighted while they stream, instead of appearing as plain text until the edit completes."
+          "title": "Edge blur that keeps up with scrolling",
+          "body": "The soft blur at the top and bottom of scrolling areas now follows the scroll position directly, instead of appearing a few frames after text has already moved under the edge."
         }
       ],
       "improvements": [
-        "Serif replies use the font's regular weight without extra outlining.",
-        "The docked right-side panel no longer adds a second sidebar tint, and the paper's shadow stays off the transparent panel.",
-        "A subagent's task message is no longer shown twice when saved history is merged with the live stream.",
-        "Ask for a result after the turn ends by passing notify_on_exit to a background command, or notify_on_finish to a subagent."
+        "Remaining pill-shaped buttons across cards, panels, and settings now use the rounded-rectangle button style.",
+        "The run view's todo list no longer shows a status bar once the run has ended.",
+        "The edge blur only runs while content actually overflows, and reaches full strength after 8 px of scrolling.",
+        "Saved and live tool timings are reconciled so a running tool's clock starts from its real start."
       ]
     },
     "zh-CN": {
-      "summary": "Vela 1.2.25 重新设计追踪事件列表，关闭仍在运行命令的终端前先确认，并让空闲的代理在后台任务成功后不再重复回复。",
+      "summary": "Vela 1.2.26 为命令输出新增复制按钮，并在工具行显示运行秒数；待办列表与运行视图样式统一，边缘模糊也不再滞后于滚动。",
       "highlights": [
         {
-          "title": "更清晰的追踪事件列表",
-          "body": "追踪事件以分类行显示，配有新图标，并可按事件类型筛选。检视面板以同样的结构展示所选事件。"
+          "title": "复制命令输出",
+          "body": "悬停在命令输出上会出现按钮，可一键将输出复制到剪贴板。"
         },
         {
-          "title": "关闭忙碌终端前先确认",
-          "body": "关闭可能仍在运行命令的终端标签页时会先询问，确认后会终止该命令。空闲的终端仍会立即关闭。"
+          "title": "工具行显示运行秒数",
+          "body": "仍在运行的工具调用现在会像命令行一样显示已运行的秒数。切换会话再回来时，计时的起点不会丢失。"
         },
         {
-          "title": "后台任务成功后，空闲代理不再重复回复",
-          "body": "代理已经回复完毕后，若后台命令或子代理成功结束，结果只记录进上下文，不再另开一轮回复；失败或超时仍会唤醒代理。"
+          "title": "统一的待办列表外观",
+          "body": "工具卡片中的待办列表改用与运行视图相同的标记。任务结束时仍处于进行中的项目显示为带三个点的实心圆环，运行视图的待办列表在运行结束后仍保留在对话下方。"
         },
         {
-          "title": "文件编辑详情实时高亮",
-          "body": "文件编辑的详情在流式输出时就带有语法高亮，不再以纯文本显示到编辑完成。"
+          "title": "跟得上滚动的边缘模糊",
+          "body": "滚动区域顶部和底部的柔和模糊现在直接跟随滚动位置，不再等文字已滚到边缘下方几帧后才出现。"
         }
       ],
       "improvements": [
-        "明体回复使用字体原生的常规字重，不再额外描边加粗。",
-        "停靠的右侧面板不再叠加第二层侧栏底色，纸面阴影也不会落在透明面板上。",
-        "已保存的历史与实时流合并时，子代理的任务消息不再显示两次。",
-        "需要在回合结束后收到结果时，可给后台命令传 notify_on_exit，或给子代理传 notify_on_finish。"
+        "卡片、面板和设置中残留的胶囊按钮，统一改为圆角矩形按钮样式。",
+        "运行结束后，运行视图的待办列表不再显示状态栏。",
+        "边缘模糊只在内容确实溢出时运行，滚动 8 px 后即达到最大强度。",
+        "已保存的与实时的工具计时会相互校准，运行中工具的计时从真实的开始时间算起。"
       ]
     },
     "zh-TW": {
-      "summary": "Vela 1.2.25 重新設計追蹤事件清單，關閉仍在執行指令的終端機前先確認，並讓閒置的代理在背景任務成功後不再重複回覆。",
+      "summary": "Vela 1.2.26 為指令輸出新增複製按鈕，並在工具列顯示執行秒數；待辦清單與執行檢視樣式統一，邊緣模糊也不再落後於捲動。",
       "highlights": [
         {
-          "title": "更清晰的追蹤事件清單",
-          "body": "追蹤事件以分類列顯示，配有新圖示，並可依事件類型篩選。檢視面板以相同的結構展示所選事件。"
+          "title": "複製指令輸出",
+          "body": "將游標停在指令輸出上會出現按鈕，可一鍵將輸出複製到剪貼簿。"
         },
         {
-          "title": "關閉忙碌終端機前先確認",
-          "body": "關閉可能仍在執行指令的終端機分頁時會先詢問，確認後會終止該指令。閒置的終端機仍會立即關閉。"
+          "title": "工具列顯示執行秒數",
+          "body": "仍在執行的工具呼叫現在會像指令列一樣顯示已執行的秒數。切換工作階段再回來時，計時的起點不會遺失。"
         },
         {
-          "title": "背景任務成功後，閒置代理不再重複回覆",
-          "body": "代理已經回覆完畢後，若背景指令或子代理成功結束，結果只記錄進上下文，不再另開一輪回覆；失敗或逾時仍會喚醒代理。"
+          "title": "統一的待辦清單外觀",
+          "body": "工具卡片中的待辦清單改用與執行檢視相同的標記。任務結束時仍處於進行中的項目會顯示為帶三個點的實心圓環，執行檢視的待辦清單在執行結束後仍保留在對話下方。"
         },
         {
-          "title": "檔案編輯詳情即時高亮",
-          "body": "檔案編輯的詳情在串流輸出時就帶有語法高亮，不再以純文字顯示到編輯完成。"
+          "title": "跟得上捲動的邊緣模糊",
+          "body": "捲動區域頂部和底部的柔和模糊現在直接跟隨捲動位置，不再等文字已捲到邊緣下方幾格影格後才出現。"
         }
       ],
       "improvements": [
-        "明體回覆使用字型原生的一般字重，不再額外描邊加粗。",
-        "停靠的右側面板不再疊加第二層側欄底色，紙面陰影也不會落在透明面板上。",
-        "已儲存的歷史與即時串流合併時，子代理的任務訊息不再顯示兩次。",
-        "需要在回合結束後收到結果時，可為背景指令傳入 notify_on_exit，或為子代理傳入 notify_on_finish。"
+        "卡片、面板和設定中殘留的膠囊按鈕，統一改為圓角矩形按鈕樣式。",
+        "執行結束後，執行檢視的待辦清單不再顯示狀態列。",
+        "邊緣模糊只在內容確實溢出時運作，捲動 8 px 後即達到最大強度。",
+        "已儲存的與即時的工具計時會相互校準，執行中工具的計時從真實的開始時間算起。"
       ]
     },
     "ja": {
-      "summary": "Vela 1.2.25 ではトレースのイベント一覧を刷新し、コマンド実行中のターミナルを閉じる前に確認するようにしました。バックグラウンド処理が成功したとき、待機中のエージェントが重ねて返信しないようにも修正しました。",
+      "summary": "Vela 1.2.26 ではコマンド出力のコピーボタンとツール行の実行秒数表示を追加し、ToDo リストの見た目を実行ビューに統一しました。端のぼかしもスクロールに遅れなくなりました。",
       "highlights": [
         {
-          "title": "見やすくなったトレースのイベント一覧",
-          "body": "トレースのイベントを種類別の行と新しいアイコンで表示し、イベントの種類で絞り込めます。インスペクターも同じ構成で選択中のイベントを表示します。"
+          "title": "コマンド出力をコピー",
+          "body": "コマンドの出力にカーソルを重ねると表示されるボタンで、出力をクリップボードにコピーできます。"
         },
         {
-          "title": "実行中のターミナルは閉じる前に確認",
-          "body": "コマンドが実行中の可能性があるターミナルのタブを閉じる前に確認を表示し、閉じるとコマンドを終了します。待機中のターミナルはこれまでどおりすぐに閉じます。"
+          "title": "ツール行に実行秒数を表示",
+          "body": "実行中のツール呼び出しにも、コマンド行と同じように経過秒数を表示します。セッションを切り替えて戻っても、計測の開始時刻は失われません。"
         },
         {
-          "title": "バックグラウンド成功後は待機中のエージェントが静かに",
-          "body": "エージェントが返信を終えた後でバックグラウンドのコマンドやサブエージェントが成功しても、結果はコンテキストに記録するだけで、新たな返信は始めません。失敗やタイムアウトでは引き続きエージェントを起こします。"
+          "title": "統一された ToDo リストの見た目",
+          "body": "ツールカード内の ToDo リストは実行ビューと同じマークを使います。タスク終了時に進行中のまま残った項目は、三つの点が入った塗りつぶしのリングで表示され、実行ビューの ToDo リストは実行終了後も会話の下に残ります。"
         },
         {
-          "title": "ファイル編集の詳細をリアルタイムで強調表示",
-          "body": "ファイル編集の詳細を、ストリーミング中からシンタックスハイライト付きで表示します。編集が完了するまでプレーンテキストになることはありません。"
+          "title": "スクロールに追従する端のぼかし",
+          "body": "スクロール領域の上端と下端のやわらかなぼかしがスクロール位置に直接連動し、文字が端の下へ入ってから数フレーム遅れて現れることがなくなりました。"
         }
       ],
       "improvements": [
-        "明朝系の返信は、追加の縁取りなしでフォント本来のレギュラーウェイトで表示します。",
-        "右側に固定したパネルでサイドバーの色が二重にならず、紙面の影が透明なパネルにかからなくなりました。",
-        "保存済みの履歴とライブストリームを統合したとき、サブエージェントのタスクメッセージが二重に表示されなくなりました。",
-        "ターンの終了後に結果を受け取りたいときは、バックグラウンドコマンドに notify_on_exit を、サブエージェントに notify_on_finish を指定します。"
+        "カード、パネル、設定に残っていた丸薬形のボタンを、角丸の長方形スタイルに統一しました。",
+        "実行が終了すると、実行ビューの ToDo リストにステータスバーは表示されません。",
+        "端のぼかしはコンテンツが実際にあふれているときだけ動作し、8 px のスクロールで最大の強さになります。",
+        "保存済みとライブのツール計時を突き合わせ、実行中ツールの計時を実際の開始時刻から数えます。"
       ]
     },
     "ko": {
-      "summary": "Vela 1.2.25는 추적 이벤트 목록을 새로 디자인하고, 명령이 실행 중인 터미널을 닫기 전에 확인하며, 백그라운드 작업이 성공했을 때 대기 중인 에이전트가 다시 답하지 않도록 수정했습니다.",
+      "summary": "Vela 1.2.26은 명령 출력 복사 버튼과 도구 줄의 실행 초 표시를 추가하고, 할 일 목록을 실행 보기와 같은 모양으로 통일했으며, 가장자리 흐림이 스크롤을 지연 없이 따라가도록 개선했습니다.",
       "highlights": [
         {
-          "title": "더 알아보기 쉬운 추적 이벤트 목록",
-          "body": "추적 이벤트를 유형별 행과 새 아이콘으로 표시하고 이벤트 유형으로 필터링할 수 있습니다. 인스펙터도 같은 구조로 선택한 이벤트를 보여 줍니다."
+          "title": "명령 출력 복사",
+          "body": "명령 출력 위에 마우스를 올리면 나타나는 버튼으로 출력을 클립보드에 복사할 수 있습니다."
         },
         {
-          "title": "실행 중인 터미널은 닫기 전에 확인",
-          "body": "명령이 아직 실행 중일 수 있는 터미널 탭을 닫기 전에 먼저 물어보며, 닫으면 해당 명령이 종료됩니다. 대기 중인 터미널은 전과 같이 바로 닫힙니다."
+          "title": "도구 줄에 실행 초 표시",
+          "body": "실행 중인 도구 호출에도 명령 줄처럼 경과 시간(초)이 표시됩니다. 세션을 전환했다가 돌아와도 측정 시작 시각은 유지됩니다."
         },
         {
-          "title": "백그라운드 성공 후 대기 중인 에이전트는 조용히",
-          "body": "에이전트가 답변을 마친 뒤 백그라운드 명령이나 서브에이전트가 성공해도 결과는 컨텍스트에만 기록하고 새 답변을 시작하지 않습니다. 실패나 시간 초과는 계속 에이전트를 깨웁니다."
+          "title": "통일된 할 일 목록 모양",
+          "body": "도구 카드의 할 일 목록이 실행 보기와 같은 표시를 사용합니다. 작업이 끝날 때 진행 중으로 남은 항목은 점 세 개가 있는 채워진 링으로 표시되고, 실행 보기의 할 일 목록은 실행이 끝난 뒤에도 대화 아래에 남습니다."
         },
         {
-          "title": "파일 편집 상세를 실시간으로 강조 표시",
-          "body": "파일 편집 상세가 스트리밍되는 동안에도 구문 강조가 적용되며, 편집이 끝날 때까지 일반 텍스트로 보이지 않습니다."
+          "title": "스크롤을 따라가는 가장자리 흐림",
+          "body": "스크롤 영역 위아래의 부드러운 흐림이 스크롤 위치에 직접 연동되어, 글자가 가장자리 아래로 들어간 뒤 몇 프레임 늦게 나타나는 일이 없어졌습니다."
         }
       ],
       "improvements": [
-        "명조 계열 답변은 추가 외곽선 없이 글꼴 본래의 레귤러 굵기로 표시합니다.",
-        "오른쪽에 고정한 패널에서 사이드바 색이 이중으로 겹치지 않으며, 종이의 그림자가 투명한 패널에 드리우지 않습니다.",
-        "저장된 기록과 실시간 스트림을 합칠 때 서브에이전트의 작업 메시지가 두 번 표시되지 않습니다.",
-        "턴이 끝난 뒤 결과를 받으려면 백그라운드 명령에 notify_on_exit를, 서브에이전트에 notify_on_finish를 지정하세요."
+        "카드, 패널, 설정에 남아 있던 알약형 버튼을 모두 둥근 사각형 버튼 스타일로 바꿨습니다.",
+        "실행이 끝나면 실행 보기의 할 일 목록에 상태 표시줄이 더 이상 나타나지 않습니다.",
+        "가장자리 흐림은 콘텐츠가 실제로 넘칠 때만 동작하며, 8 px 스크롤하면 최대 강도에 도달합니다.",
+        "저장된 도구 시간과 실시간 도구 시간을 맞춰, 실행 중인 도구의 시계가 실제 시작 시각부터 계산됩니다."
       ]
     }
   }
