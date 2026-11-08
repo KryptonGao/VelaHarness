@@ -30,7 +30,7 @@
   -webkit-app-region: no-drag;
 }
 .settings-done {
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-md);
   padding: 5px 12px;
   background: var(--bg-surface-subtle);
   color: var(--text-secondary);

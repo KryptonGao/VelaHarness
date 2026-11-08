@@ -115,7 +115,7 @@
 .changes-filter { position: relative; min-width: 0; }
 .changes-filter-trigger {
   display: flex; align-items: center; gap: 8px; max-width: 100%; min-height: 30px;
-  padding: 4px 10px; border: 1px solid var(--border-subtle); border-radius: var(--radius-pill);
+  padding: 4px 10px; border: 1px solid var(--border-subtle); border-radius: var(--radius-md);
   background: var(--bg-elevated); color: var(--text-primary); font: inherit; cursor: pointer;
 }
 .changes-filter-trigger > span { display: flex; align-items: center; gap: 7px; min-width: 0; white-space: nowrap; }

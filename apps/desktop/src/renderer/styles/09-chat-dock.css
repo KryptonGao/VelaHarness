@@ -929,7 +929,7 @@
 .thinking-ultra-tip button {
   padding: 3px 9px;
   border: 1px solid var(--border-strong);
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-md);
   background: transparent;
   color: var(--accent-blue);
   font: inherit;
@@ -1011,7 +1011,7 @@
 .menu-footer-btn,
 .sheet-close,
 .primary-btn {
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-md);
   padding: 6px 12px;
   background: var(--bg-surface-subtle);
 }

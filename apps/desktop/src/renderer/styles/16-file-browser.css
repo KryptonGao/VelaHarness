@@ -171,7 +171,7 @@
   gap: 5px;
   border: none;
   padding: 4px 10px;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-md);
   font-size: calc(15px * var(--ui-scale));
   color: var(--accent-blue);
   background: var(--bg-card-blue);
@@ -300,7 +300,7 @@
 .code-notice-action {
   border: none;
   padding: 4px 14px;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-md);
   background: var(--bg-card-blue);
   color: var(--accent-blue);
   font-size: calc(15px * var(--ui-scale));

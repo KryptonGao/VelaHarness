@@ -140,7 +140,7 @@
 .pr-activity-composer textarea:focus-visible { outline:2px solid var(--accent-blue); border-radius:4px; }
 .pr-activity-composer textarea::placeholder { color:var(--text-muted); }
 .pr-activity-composer-actions { display:flex; align-items:center; flex-wrap:wrap; gap:10px; margin-top:8px; }
-.pr-activity-composer-actions button { padding:3px 12px; border-radius:14px; font-size:calc(12px * var(--ui-scale)); background:var(--text-primary); color:var(--bg-chat); }
+.pr-activity-composer-actions button { padding:3px 12px; border-radius:var(--radius-md); font-size:calc(12px * var(--ui-scale)); background:var(--text-primary); color:var(--bg-chat); }
 .pr-activity-composer-actions span { color:var(--text-muted); font-size:calc(11px * var(--ui-scale)); }
 .pr-activity-submit-error { color:var(--danger,#b84141); font-size:calc(12px * var(--ui-scale)); line-height:1.6; margin-top:10px; overflow-wrap:anywhere; }
 .pr-activity-submit-notice { color:var(--success,#267046); font-size:calc(12px * var(--ui-scale)); margin-top:10px; }

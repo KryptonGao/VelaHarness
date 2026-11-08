@@ -161,7 +161,7 @@
   word-break: break-all;
 }
 .approval-banner-actions { display: flex; gap: 8px; justify-content: flex-end; }
-.approval-btn { padding: 6px 14px; border-radius: var(--radius-pill); font-size: calc(15px * var(--ui-scale)); font-weight: 600; }
+.approval-btn { padding: 6px 14px; border-radius: var(--radius-md); font-size: calc(15px * var(--ui-scale)); font-weight: 600; }
 .approval-btn.allow { background: var(--accent-blue); color: var(--accent-contrast); box-shadow: var(--shadow-btn-blue); }
 .approval-btn.allow:hover { background: var(--accent-blue-hover); }
 .approval-btn.deny { background: var(--bg-elevated); color: var(--text-secondary); }
@@ -225,7 +225,7 @@
 .question-custom-input:focus { outline: none; }
 .question-custom-send {
   padding: 6px 14px;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-md);
   font-size: calc(15px * var(--ui-scale));
   font-weight: 600;
   background: var(--accent-blue);

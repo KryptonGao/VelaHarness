@@ -164,7 +164,7 @@
   align-items: center;
   gap: 5px;
   padding: 4px 10px;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-md);
   font-size: calc(12px * var(--ui-scale));
   color: var(--text-primary);
   background: var(--bg-hover);

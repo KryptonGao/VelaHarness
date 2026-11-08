@@ -173,7 +173,7 @@ button.info-card-row:hover:not(:disabled), .info-card-row.is-active { background
 /* ---- 找回隐藏的卡片 ---- */
 .info-card-add {
   pointer-events: auto; align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; margin-top: 10px;
-  height: 30px; padding: 0 12px 0 10px; font-size: calc(12px * var(--ui-scale)); color: var(--text-muted); border-radius: var(--radius-pill);
+  height: 30px; padding: 0 12px 0 10px; font-size: calc(12px * var(--ui-scale)); color: var(--text-muted); border-radius: var(--radius-md);
   border: 1.5px dashed var(--border-strong); background: color-mix(in srgb, var(--bg-chat) 82%, transparent); backdrop-filter: blur(6px);
 }
 .info-card-add:hover, .info-card-add[aria-expanded="true"] { color: var(--accent-blue); border-color: var(--accent-border); }

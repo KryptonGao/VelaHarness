@@ -494,7 +494,7 @@
   gap: 6px;
   height: 26px;
   padding: 0 9px;
-  border-radius: 999px;
+  border-radius: var(--radius-md);
   font-size: calc(13px * var(--ui-scale));
   white-space: nowrap;
   color: var(--text-muted);

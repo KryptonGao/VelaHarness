@@ -332,7 +332,7 @@
   font-size: calc(13px * var(--ui-scale));
   font-weight: 600;
   padding: 7px 14px;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-md);
   transition: background var(--transition-smooth), opacity var(--transition-smooth);
 }
 .plan-action-secondary {

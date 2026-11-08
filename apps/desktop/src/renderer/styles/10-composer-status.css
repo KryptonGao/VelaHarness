@@ -217,7 +217,7 @@
 .workspace-settings-promote {
   flex-shrink: 0;
   padding: 3px 12px;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-md);
   font-size: calc(13px * var(--ui-scale));
   font-weight: 500;
 }
@@ -566,7 +566,7 @@ button.environment-row:not(:disabled):hover { background: var(--bg-surface-subtl
   margin-top: 2px;
   width: 100%;
   padding: 7px 10px;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-md);
   background: var(--accent-blue);
   color: var(--accent-contrast);
   font-size: calc(15px * var(--ui-scale));
