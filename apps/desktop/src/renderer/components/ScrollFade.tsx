@@ -1,7 +1,6 @@
 import { useLayoutEffect, useRef, useState, type ReactNode, type TouchEvent, type WheelEvent } from "react";
 import { nextStreamFollow, releasesStreamFollow } from "./chat-scroll";
 import { ScrollFadeShell } from "./ScrollFadeShell";
-import { thinkingEdges } from "./thinking-edges";
 
 /**
  * 限高滚动容器：内容超过高度时上下显示渐进模糊，和思考内容展开使用同一套视觉。
@@ -26,8 +25,8 @@ export function ScrollFade({
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
-  const [edges, setEdges] = useState({ top: 0, bottom: 0 });
   const [viewportHeight, setViewportHeight] = useState(0);
+  const [overflowing, setOverflowing] = useState(false);
 
   const followEndRef = useRef(followEnd);
   followEndRef.current = followEnd;
@@ -52,7 +51,6 @@ export function ScrollFade({
       });
       follow.current.lastScrollTop = viewport.scrollTop;
     }
-    sync();
   };
 
   // 在滚动真正发生前就解除跟随,避免输出恰好插入时把视口又拉回底部。
@@ -78,10 +76,7 @@ export function ScrollFade({
     const viewport = scrollRef.current;
     if (!viewport) return;
     setViewportHeight(viewport.clientHeight);
-    const next = thinkingEdges(viewport.scrollTop, viewport.scrollHeight, viewport.clientHeight);
-    setEdges((current) =>
-      current.top === next.top && current.bottom === next.bottom ? current : next,
-    );
+    setOverflowing(viewport.scrollHeight > viewport.clientHeight);
   };
 
   useLayoutEffect(() => {
@@ -100,7 +95,7 @@ export function ScrollFade({
   }, []);
 
   return (
-    <ScrollFadeShell className={className} edges={edges} height={viewportHeight} enabled={fade}>
+    <ScrollFadeShell className={className} height={viewportHeight} overflowing={overflowing} enabled={fade}>
       <div
         className="thinking-scroll-viewport"
         ref={scrollRef}

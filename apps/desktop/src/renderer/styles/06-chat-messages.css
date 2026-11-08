@@ -597,6 +597,10 @@
   border-radius: var(--radius-pill);
   background: var(--scrollbar-thumb);
 }
+/* 上下漸進模糊:背景渐隐和 SVG 滤镜的强度都由视口自己的滚动时间轴驱动,
+   不经过 JS 和 React,滚动一动就跟着变(没有状态更新延迟)。 */
+.thinking-scroll-shell.has-content-edge-blur { timeline-scope: --scroll-edge; --edge-reveal: 8px; }
+.thinking-scroll-shell.has-content-edge-blur > .thinking-scroll-viewport { scroll-timeline: --scroll-edge y; }
 .thinking-scroll-fade {
   position: absolute;
   z-index: 1;
@@ -605,12 +609,22 @@
   height: var(--thinking-edge-height, 66px);
   opacity: 0;
   pointer-events: none;
-  /* 背景和滤镜使用同一滚动距离权重。 */
 }
 .thinking-edge-filter { position: absolute; pointer-events: none; }
-.thinking-scroll-shell.has-content-edge-blur > .thinking-scroll-viewport {
-  filter: var(--scroll-edge-filter);
+.thinking-edge-filter feFlood { flood-opacity: 0; }
+/* 只有内容溢出时才启用;时间轴未激活时动画会停在终点,等于满强度。 */
+.has-overflow > .thinking-scroll-viewport { filter: var(--scroll-edge-filter); }
+.has-overflow > .thinking-scroll-fade,
+.has-overflow > .thinking-edge-filter feFlood {
+  animation-duration: auto !important; /* 滚动时间轴不使用时长;不被 reduced-motion 的 0.01ms 覆盖 */
+  animation-timing-function: linear;
+  animation-fill-mode: both;
+  animation-timeline: --scroll-edge;
 }
+.has-overflow > .thinking-scroll-fade-top { animation-name: scroll-edge-in; animation-range: 0px var(--edge-reveal); }
+.has-overflow > .thinking-scroll-fade-bottom { animation-name: scroll-edge-out; animation-range: calc(100% - var(--edge-reveal)) 100%; }
+.has-overflow > .thinking-edge-filter .edge-flood-top { animation-name: scroll-flood-in; animation-range: 0px var(--edge-reveal); }
+.has-overflow > .thinking-edge-filter .edge-flood-bottom { animation-name: scroll-flood-out; animation-range: calc(100% - var(--edge-reveal)) 100%; }
 .thinking-scroll-fade-top {
   top: 0;
   background: linear-gradient(
@@ -633,6 +647,10 @@
   -webkit-mask-image: linear-gradient(to top, #000 0%, transparent 100%);
   mask-image: linear-gradient(to top, #000 0%, transparent 100%);
 }
+@keyframes scroll-flood-in { from { flood-opacity: 0; } to { flood-opacity: 1; } }
+@keyframes scroll-flood-out { from { flood-opacity: 1; } to { flood-opacity: 0; } }
+@keyframes scroll-edge-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes scroll-edge-out { from { opacity: 1; } to { opacity: 0; } }
 .process-thinking-text {
   padding-top: 0;
   color: var(--text-muted);

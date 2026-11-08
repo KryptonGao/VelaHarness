@@ -3,11 +3,13 @@ import { SCROLL_EDGE_HEIGHT as EDGE_HEIGHT } from "./thinking-edges";
 
 const BLUR_STAGES = [1, 2, 3];
 
-/** Native filter masks avoid decoding a new feImage during scroll/resize updates. */
-export function ThinkingEdgeBlur({ id, top, bottom, height }: {
+/**
+ * Native filter masks avoid decoding a new feImage during scroll/resize updates.
+ * The flood strengths are animated by the viewport's scroll timeline (06-chat-messages.css),
+ * so they track the scroll offset without a React update.
+ */
+export function ThinkingEdgeBlur({ id, height }: {
   id: string;
-  top: number;
-  bottom: number;
   height: number;
 }) {
   const viewportHeight = Math.max(height, 1);
@@ -22,8 +24,8 @@ export function ThinkingEdgeBlur({ id, top, bottom, height }: {
             const input = index === 0 ? "SourceGraphic" : `stage-${index - 1}`;
             return (
               <Fragment key={radius}>
-                <feFlood x="0" y={-EDGE_HEIGHT} width="100%" height={EDGE_HEIGHT + band / 3} floodColor="white" floodOpacity={top} result={`top-${index}`} />
-                <feFlood x="0" y={viewportHeight - band / 3} width="100%" height={EDGE_HEIGHT + band / 3} floodColor="white" floodOpacity={bottom} result={`bottom-${index}`} />
+                <feFlood x="0" y={-EDGE_HEIGHT} width="100%" height={EDGE_HEIGHT + band / 3} floodColor="white" className="edge-flood-top" result={`top-${index}`} />
+                <feFlood x="0" y={viewportHeight - band / 3} width="100%" height={EDGE_HEIGHT + band / 3} floodColor="white" className="edge-flood-bottom" result={`bottom-${index}`} />
                 <feComposite in={`top-${index}`} in2={`bottom-${index}`} operator="over" result={`edges-${index}`} />
                 <feGaussianBlur in={`edges-${index}`} stdDeviation={`0 ${band / 3}`} x="0" y="0" width="100%" height={viewportHeight} result={`mask-${index}`} />
                 <feGaussianBlur in={input} stdDeviation={radius} edgeMode="duplicate" x="0" y="0" width="100%" height={viewportHeight} result={`blur-${index}`} />

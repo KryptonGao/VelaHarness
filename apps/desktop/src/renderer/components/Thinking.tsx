@@ -13,7 +13,6 @@ import { coherentActions, countFailedTools, type CoherentAction, type CoherentEn
 import type { ToolTrace } from "@vela/shared";
 import { ThinkingSummaryContext } from "./ThinkingSummaryContext";
 import { ScrollFadeShell } from "./ScrollFadeShell";
-import { thinkingEdges } from "./thinking-edges";
 import { defaultCommandDetailHeight, defaultThinkingGroupHeight, defaultToolDetailHeight, expandedThinkingGroupHeight } from "../thinking-group-height";
 
 /** 分组展开详情时高度封顶的下限。 */
@@ -78,8 +77,8 @@ export function Thinking({
   };
   const [open, setOpen] = useState(expandSignal);
   const [revealed, setRevealed] = useState(expandSignal);
-  const [fadeEdges, setFadeEdges] = useState({ top: 0, bottom: 0 });
   const [viewportHeight, setViewportHeight] = useState(280);
+  const [overflowing, setOverflowing] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const prevActive = useRef(expandSignal);
@@ -88,14 +87,11 @@ export function Thinking({
   const touchY = useRef(0);
   const layout = thinkingSummaryLayout(summaries?.style ?? "inline", summary, open);
 
-  const syncFadeEdges = () => {
+  const syncViewportHeight = () => {
     const element = scrollRef.current;
     if (!element) return;
     setViewportHeight(element.clientHeight);
-    const next = thinkingEdges(element.scrollTop, element.scrollHeight, element.clientHeight);
-    setFadeEdges((current) =>
-      current.top === next.top && current.bottom === next.bottom ? current : next,
-    );
+    setOverflowing(element.scrollHeight > element.clientHeight);
   };
 
   const scrollToEnd = () => {
@@ -119,7 +115,6 @@ export function Thinking({
       });
       follow.current.lastScrollTop = scrollTop;
     }
-    syncFadeEdges();
   };
 
   // 在滚动真正发生前就解除跟随,避免输出恰好插入时把视口又拉回底部。
@@ -175,21 +170,21 @@ export function Thinking({
   useLayoutEffect(() => {
     if (!open || !revealed || !follow.current.pinned) return;
     scrollToEnd();
-    syncFadeEdges();
+    syncViewportHeight();
   }, [text, open, revealed]);
 
   useLayoutEffect(() => {
     const scrollElement = scrollRef.current;
     const contentElement = contentRef.current;
     if (!open || !revealed || !scrollElement || !contentElement) {
-      setFadeEdges({ top: 0, bottom: 0 });
+      setOverflowing(false);
       return;
     }
 
     // 流式追加、Markdown 异步渲染或展开动画都会改变高度,贴底时持续跟随到底部。
     const sync = () => {
       if (follow.current.pinned) scrollToEnd();
-      syncFadeEdges();
+      syncViewportHeight();
     };
     sync();
     const observer = new ResizeObserver(sync);
@@ -393,7 +388,7 @@ export function Thinking({
               ) : <p className="thinking-summary-failed">{localizeError(summary.error)}</p>}
             </aside>
           ) : null}
-          <ScrollFadeShell edges={fadeEdges} height={viewportHeight} className={titled ? "thinking-group-shell" : undefined}>
+          <ScrollFadeShell height={viewportHeight} overflowing={overflowing} className={titled ? "thinking-group-shell" : undefined}>
             <div
               className="thinking-scroll-viewport"
               ref={scrollRef}

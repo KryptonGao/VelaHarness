@@ -35,8 +35,8 @@ export async function checkMcpToolDetails({ win, evaluate, until, captureDir }) 
   assert.equal(await evaluate("document.querySelector('[role=tab][aria-selected=true]').textContent"), "Results");
   assert.equal(await evaluate("document.querySelector('.mcp-result-title').textContent"), results.results[0].title);
   assert.equal(await evaluate("document.querySelector('.mcp-result-title').getAttribute('href')"), results.results[0].url);
-  await until("Number(document.querySelector('.mcp-detail-scroll .thinking-scroll-fade-bottom').style.opacity)>0");
-  assert.equal(await evaluate("Number(document.querySelector('.mcp-detail-scroll .thinking-scroll-fade-top').style.opacity)"), 0);
+  await until("Number(getComputedStyle(document.querySelector('.mcp-detail-scroll .thinking-scroll-fade-bottom')).opacity)>0");
+  assert.equal(await evaluate("Number(getComputedStyle(document.querySelector('.mcp-detail-scroll .thinking-scroll-fade-top')).opacity)"), 0);
   assert.equal(await evaluate("document.querySelector('.mcp-result-source').open"), false);
   await until("!!document.querySelector('.mcp-search-result > button')");
   await evaluate("document.querySelector('.mcp-search-result > button').click()");
@@ -44,17 +44,17 @@ export async function checkMcpToolDetails({ win, evaluate, until, captureDir }) 
   assert.equal(await evaluate("document.querySelector('.mcp-result-snippet').textContent"), results.results[0].highlight.replaceAll("**", ""));
   assert.equal(await evaluate("document.querySelector('.mcp-result-snippet strong').textContent"), "原计划");
   await evaluate("(() => {const v=document.querySelector('.mcp-detail-scroll .thinking-scroll-viewport');v.scrollTop=(v.scrollHeight-v.clientHeight)/2;v.dispatchEvent(new Event('scroll'));})()");
-  await until("Number(document.querySelector('.mcp-detail-scroll .thinking-scroll-fade-top').style.opacity)>0 && Number(document.querySelector('.mcp-detail-scroll .thinking-scroll-fade-bottom').style.opacity)>0");
+  await until("Number(getComputedStyle(document.querySelector('.mcp-detail-scroll .thinking-scroll-fade-top')).opacity)>0 && Number(getComputedStyle(document.querySelector('.mcp-detail-scroll .thinking-scroll-fade-bottom')).opacity)>0");
   await evaluate("(() => {const v=document.querySelector('.mcp-detail-scroll .thinking-scroll-viewport');v.scrollTop=v.scrollHeight;v.dispatchEvent(new Event('scroll'));})()");
-  await until("Number(document.querySelector('.mcp-detail-scroll .thinking-scroll-fade-bottom').style.opacity)===0");
-  assert.ok(await evaluate("Number(document.querySelector('.mcp-detail-scroll .thinking-scroll-fade-top').style.opacity)>0"));
+  await until("Number(getComputedStyle(document.querySelector('.mcp-detail-scroll .thinking-scroll-fade-bottom')).opacity)===0");
+  assert.ok(await evaluate("Number(getComputedStyle(document.querySelector('.mcp-detail-scroll .thinking-scroll-fade-top')).opacity)>0"));
   await evaluate("document.querySelector('.mcp-search-result > button').click();document.querySelector('.mcp-result-source').open=true");
   assert.ok((await evaluate("document.querySelector('.mcp-result-source').textContent")).includes(results.results[0].id));
   await evaluate("document.querySelector('.mcp-result-source').open=false");
   console.log("PASS search hierarchy, safe links, full excerpts and source details");
 
   await tab(1);
-  await until("Array.from(document.querySelectorAll('.mcp-detail-scroll .thinking-scroll-fade')).every(node=>Number(node.style.opacity)===0)");
+  await until("Array.from(document.querySelectorAll('.mcp-detail-scroll .thinking-scroll-fade')).every(node=>Number(getComputedStyle(node).opacity)===0)");
   assert.ok((await evaluate("document.querySelector('.mcp-call-fields').textContent")).includes("builtin_notion"));
   assert.ok((await evaluate("document.querySelector('.mcp-call-fields').textContent")).includes("Completed"));
   await evaluate("document.querySelector('[aria-selected=true]').dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}))");
