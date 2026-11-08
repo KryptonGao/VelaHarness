@@ -369,7 +369,9 @@
 .plan-checklist-item .run-todo-mark { width: 14px; height: 14px; }
 .plan-status-icon { flex: none; }
 /* 24-run-view.css 里的 .run-todo-mark 之后加载,这里要提高优先级才能保持行内。 */
-.tool-card-name .plan-status-inline { display: inline-grid; justify-self: auto; width: 13px; height: 13px; vertical-align: -2px; margin-right: 8px; }
+.tool-card-name.has-plan-icon { display: flex; align-items: center; }
+.tool-card-name-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.tool-card-name .plan-status-inline { display: grid; flex: none; justify-self: auto; width: 13px; height: 13px; margin-right: 8px; }
 .task-steps {
   display: flex;
   flex-direction: column;

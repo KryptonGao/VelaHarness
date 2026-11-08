@@ -421,9 +421,9 @@ function GenericToolCard({ tool, compact = false }: ToolCardProps) {
           </span>
           <span className="tool-kind-label">{mcp ? "MCP" : skillRead ? tr("技能", "Skill") : bashIntent?.label ?? toolLabel(tool.name, kind)}</span>
           <span className="tool-card-main">
-            <span className={`tool-card-name${subject.dir ? "" : " grow"}${subjectIsCode(kind, activity) ? " is-code" : ""}`}>
+            <span className={`tool-card-name${subject.dir ? "" : " grow"}${subjectIsCode(kind, activity) ? " is-code" : ""}${planFirst ? " has-plan-icon" : ""}`}>
               {planFirst ? <PlanStatusIcon status={planFirst.status} ended={planEnded} className="plan-status-inline" /> : null}
-              {subject.name}
+              {planFirst ? <span className="tool-card-name-text">{subject.name}</span> : subject.name}
             </span>
             {subject.dir ? <span className="tool-card-dir">{subject.dir}</span> : null}
           </span>
