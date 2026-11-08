@@ -8,6 +8,16 @@ export const builtInPlugins: readonly BuiltInPlugin[] = [{
   id: "notion", name: "Notion", description: "Search, read and edit your Notion workspace",
   icon: "notion", mcpUrl: "https://mcp.notion.com/mcp", transport: "streamable-http", authType: "oauth2",
   toolPolicy: { approval: "existing-mcp-policy", access: "read-write" },
+}, {
+  // Linear's hosted MCP server supports OAuth 2.1 with dynamic client registration and PKCE.
+  id: "linear", name: "Linear", description: "Find, create and update Linear issues, projects and comments",
+  icon: "linear", mcpUrl: "https://mcp.linear.app/mcp", transport: "streamable-http", authType: "oauth2",
+  toolPolicy: { approval: "existing-mcp-policy", access: "read-write" },
+}, {
+  // DeepWiki's hosted MCP server is public: Streamable HTTP, no authentication, read-only wiki tools.
+  id: "deepwiki", name: "DeepWiki", description: "Browse and ask questions about the documentation of public GitHub repositories",
+  icon: "deepwiki", mcpUrl: "https://mcp.deepwiki.com/mcp", transport: "streamable-http", authType: "none",
+  toolPolicy: { approval: "existing-mcp-policy", access: "read-only" },
 }];
 
 /** Built-ins are virtual, preconfigured MCP entries; user mcp.json stays user-owned. */

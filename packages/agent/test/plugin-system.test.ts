@@ -115,6 +115,106 @@ async function provider(t: TestContext) {
   };
 }
 
+it("PluginRegistry ships Linear as an OAuth Streamable HTTP plugin that is disabled until connected", async t => {
+  const f = temporary(t);
+  const registry = new PluginRegistry(join(f.agentDir, "integrations.json"));
+  const linear = registry.get("linear");
+  assert.equal(linear.mcpUrl, "https://mcp.linear.app/mcp");
+  assert.equal(linear.authType, "oauth2");
+  assert.equal(linear.transport, "streamable-http");
+  assert.equal(Object.hasOwn(linear.oauth ?? {}, "clientSecret"), false);
+  assert.equal(registry.serverName("linear"), "builtin_linear");
+  assert.equal(registry.isEnabled("linear"), false);
+  const entry = registry.entries().find(item => item.name === "builtin_linear")!;
+  assert.equal(entry.source, "builtin:linear");
+  assert.equal(entry.config.enabled, false);
+  registry.setEnabled("linear", true);
+  assert.equal(registry.isEnabled("linear"), true);
+  assert.equal(registry.isEnabled("notion"), false);
+  assert.equal(registry.entries().find(item => item.name === "builtin_linear")!.config.enabled, true);
+});
+
+it("PluginRegistry ships DeepWiki as a public Streamable HTTP plugin without OAuth", async t => {
+  const f = temporary(t);
+  const registry = new PluginRegistry(join(f.agentDir, "integrations.json"));
+  const deepwiki = registry.get("deepwiki");
+  assert.equal(deepwiki.mcpUrl, "https://mcp.deepwiki.com/mcp");
+  assert.equal(deepwiki.authType, "none");
+  assert.equal(deepwiki.transport, "streamable-http");
+  assert.equal(registry.serverName("deepwiki"), "builtin_deepwiki");
+  assert.equal(registry.isEnabled("deepwiki"), false);
+  const entry = registry.entries().find(item => item.name === "builtin_deepwiki")!;
+  assert.equal(entry.source, "builtin:deepwiki");
+  assert.equal(entry.config.enabled, false);
+  assert.equal(Object.hasOwn(entry.config, "oauth"), false);
+  registry.setEnabled("deepwiki", true);
+  assert.equal(registry.entries().find(item => item.name === "builtin_deepwiki")!.config.enabled, true);
+  assert.equal(registry.isEnabled("linear"), false);
+});
+
+it("a no-auth built-in plugin connects without OAuth, lists tools and disconnects", async t => {
+  const f = temporary(t);
+  const methods: string[] = []; const authorization: (string | undefined)[] = []; let wellKnown = 0;
+  const server = createServer(async (req, res) => {
+    const url = new URL(req.url!, "http://127.0.0.1");
+    if (url.pathname.startsWith("/.well-known/")) { wellKnown++; res.writeHead(404); return res.end(); }
+    let body = ""; for await (const chunk of req) body += chunk;
+    if (req.method !== "POST") { res.writeHead(req.method === "DELETE" ? 204 : 405); return res.end(); }
+    const rpc = JSON.parse(body); methods.push(rpc.method); authorization.push(req.headers.authorization);
+    if (rpc.id === undefined) { res.writeHead(202); return res.end(); }
+    const result = (value: unknown) => { res.writeHead(200, { "content-type": "application/json" }); res.end(JSON.stringify({ jsonrpc: "2.0", id: rpc.id, result: value })); };
+    if (rpc.method === "initialize") return result({ protocolVersion: rpc.params.protocolVersion, serverInfo: { name: "wiki", version: "1" }, capabilities: { tools: {} } });
+    if (rpc.method === "tools/list") return result({ tools: ["read_wiki_structure", "read_wiki_contents", "ask_question"].map(name => ({
+      name, description: name, inputSchema: { type: "object", properties: {} }, annotations: { readOnlyHint: true } })) });
+    result({});
+  });
+  await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve));
+  t.after(() => new Promise<void>(resolve => { server.close(() => resolve()); server.closeAllConnections(); }));
+  const url = `http://127.0.0.1:${(server.address() as { port: number }).port}/mcp`;
+  let opened = 0;
+  const runtime = new AgentRuntime({ ...f, pluginCredentialStore: new MemoryCredentialStore(), mcpOpenUrl: () => { opened++; },
+    builtInPlugins: [{ ...plugin(url, "wiki"), authType: "none" }] });
+  t.after(() => runtime.dispose());
+  const connected = await runtime.connectPlugin({ cwd: f.cwd, id: "wiki" });
+  assert.equal(connected.plugins[0].status, "connected");
+  assert.equal(connected.plugins[0].toolCount, 3);
+  assert.equal(opened, 0); assert.equal(wellKnown, 0);
+  assert.ok(methods.includes("initialize")); assert.ok(methods.includes("tools/list"));
+  assert.ok(authorization.every(value => value === undefined));
+  const disconnected = await runtime.disconnectPlugin({ cwd: f.cwd, id: "wiki" });
+  assert.equal(disconnected.plugins[0].status, "disconnected");
+  assert.equal(disconnected.plugins[0].toolCount, 0);
+});
+
+it("opening integrations after a restart reports an enabled plugin as connected, not as a transient connecting", async t => {
+  const f = temporary(t);
+  let slow = false;
+  const server = createServer(async (req, res) => {
+    let body = ""; for await (const chunk of req) body += chunk;
+    if (req.method !== "POST") { res.writeHead(req.method === "DELETE" ? 204 : 405); return res.end(); }
+    const rpc = JSON.parse(body);
+    if (rpc.id === undefined) { res.writeHead(202); return res.end(); }
+    if (slow && rpc.method === "initialize") await delay(300);
+    const result = (value: unknown) => { res.writeHead(200, { "content-type": "application/json" }); res.end(JSON.stringify({ jsonrpc: "2.0", id: rpc.id, result: value })); };
+    if (rpc.method === "initialize") return result({ protocolVersion: rpc.params.protocolVersion, serverInfo: { name: "wiki", version: "1" }, capabilities: { tools: {} } });
+    if (rpc.method === "tools/list") return result({ tools: [{ name: "ask_question", description: "ask", inputSchema: { type: "object", properties: {} } }] });
+    result({});
+  });
+  await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve));
+  t.after(() => new Promise<void>(resolve => { server.close(() => resolve()); server.closeAllConnections(); }));
+  const url = `http://127.0.0.1:${(server.address() as { port: number }).port}/mcp`;
+  const options = { ...f, pluginCredentialStore: new MemoryCredentialStore(), builtInPlugins: [{ ...plugin(url, "wiki"), authType: "none" as const }] };
+  const first = new AgentRuntime(options);
+  assert.equal((await first.connectPlugin({ cwd: f.cwd, id: "wiki" })).plugins[0].status, "connected");
+  await first.dispose();
+  slow = true;
+  const second = new AgentRuntime(options);
+  t.after(() => second.dispose());
+  const opened = await second.getPlugins({ cwd: f.cwd });
+  assert.equal(opened.plugins[0].status, "connected");
+  assert.equal(opened.plugins[0].toolCount, 1);
+});
+
 it("PluginRegistry registers Notion, persists enablement, merges user servers and reserves namespaces", async t => {
   const f = temporary(t);
   const registry = new PluginRegistry(join(f.agentDir, "integrations.json"));
@@ -126,11 +226,11 @@ it("PluginRegistry registers Notion, persists enablement, merges user servers an
   assert.throws(() => registry.register(plugin("https://example.com", "notion")));
   assert.throws(() => registry.register(plugin("https://example.com", "../bad")));
   const user = { name: "custom", source: "user", config: { url: "https://example.com" } };
-  assert.deepEqual(registry.merge([user]).map(entry => entry.name), ["custom", "builtin_notion"]);
+  assert.deepEqual(registry.merge([user]).map(entry => entry.name), ["custom", "builtin_notion", "builtin_linear", "builtin_deepwiki"]);
   const config = new McpConfigService({ agentDir: f.agentDir, plugins: registry });
   writeFileSync(join(f.agentDir, "mcp.json"), JSON.stringify({ mcpServers: { builtin_notion: { url: "https://hostile.example/mcp" } } }));
   assert.equal((config.loadConfigSync(f.cwd).servers[0].config as { url: string }).url, "https://mcp.notion.com/mcp");
-  assert.equal(config.listSync(f.cwd).servers.filter(server => server.effective).length, 1);
+  assert.deepEqual(config.listSync(f.cwd).servers.filter(server => server.effective).map(server => server.name).sort(), ["builtin_deepwiki", "builtin_linear", "builtin_notion"]);
   await assert.rejects(config.save({ cwd: f.cwd, scope: "global", name: "builtin-notion", config: { url: "https://hostile.example" } }));
 });
 

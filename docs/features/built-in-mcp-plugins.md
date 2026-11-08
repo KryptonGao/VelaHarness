@@ -1,6 +1,6 @@
 # Built-in MCP Plugin System
 
-设置 → Integrations（集成）显示内置应用。Notion 卡片提供 Connect、连接中 Cancel、连接后 Disconnect，以及可重试的错误状态。用户无需填写 URL、Token 或 JSON。连接为当前 Vela 配置目录中的全局个人连接；所有工作区、现有与未来的 Agent 会话使用同一账号。
+设置 → Integrations（集成）显示内置应用（Notion、Linear、DeepWiki）。每张卡片提供 Connect、连接中 Cancel、连接后 Disconnect，以及可重试的错误状态。用户无需填写 URL、Token 或 JSON。连接为当前 Vela 配置目录中的全局个人连接；所有工作区、现有与未来的 Agent 会话使用同一账号。
 
 ## 架构与文件
 
@@ -52,7 +52,7 @@
 
 所有工具仍走 `McpSessionBridge` 的现有工具调用链、MCP 审批和 Plan/explore 只读过滤。服务端 `readOnlyHint` 仅是提示；只有与工作区、服务器 config digest 和原始工具 digest 绑定的明确授权才被当作只读。Notion 的名称和工具名不参与 Runtime 特殊分支。服务端回显的凭证也会在进入 Renderer 前脱敏。
 
-## Notion 注册与第二个插件
+## Notion、Linear、DeepWiki 注册与新增插件
 
 `packages/agent/src/mcp/plugin-registry.ts` 的 `builtInPlugins` 声明 Notion：
 
@@ -71,7 +71,41 @@
 
 Pi 内部把 Streamable HTTP 称为 `type: "http"`，注册表负责这个配置映射，未创建新的 transport。Endpoint 与 [Notion 官方连接文档](https://developers.notion.com/guides/mcp/get-started-with-mcp) 一致。
 
-新增第二个 OAuth MCP 插件时，在同一数组追加配置：
+Linear 使用同一机制，声明位于 Notion 之后：
+
+```ts
+{
+  id: "linear",
+  name: "Linear",
+  description: "Find, create and update Linear issues, projects and comments",
+  icon: "linear",
+  mcpUrl: "https://mcp.linear.app/mcp",
+  transport: "streamable-http",
+  authType: "oauth2",
+  toolPolicy: { approval: "existing-mcp-policy", access: "read-write" },
+}
+```
+
+Endpoint 与 [Linear MCP 官方文档](https://linear.app/docs/mcp) 一致，服务端支持 OAuth 2.1、Dynamic Client Registration 与 PKCE，因此无需预注册 client ID。工具注册为 `mcp__builtin_linear__<tool>`，默认 `deferred`。Linear 没有专用 Adapter 或 Runtime 分支；图标映射在 `IntegrationsSection.tsx`，工具结果里的 `linear.app` 链接来源显示为 “Linear”。真实 Linear OAuth 尚未用用户账号联调，仅验证了注册表、生命周期与本地 provider 测试。
+
+DeepWiki 是无需登录的公共 MCP 服务，同样只是一条注册声明：
+
+```ts
+{
+  id: "deepwiki",
+  name: "DeepWiki",
+  description: "Browse and ask questions about the documentation of public GitHub repositories",
+  icon: "deepwiki",
+  mcpUrl: "https://mcp.deepwiki.com/mcp",
+  transport: "streamable-http",
+  authType: "none",
+  toolPolicy: { approval: "existing-mcp-policy", access: "read-only" },
+}
+```
+
+Endpoint 与 [DeepWiki MCP 官方文档](https://docs.devin.ai/work-with-devin/deepwiki-mcp) 一致，只提供 `read_wiki_structure`、`read_wiki_contents`、`ask_question` 三个读取类工具，仅覆盖公开仓库。`authType: "none"` 时注册表不生成 `oauth` 配置，`activatePlugin` 在 initialize 成功后直接完成连接，不触发 discovery、DCR 或浏览器，也不写入凭证；Disconnect 仍会禁用服务器、关闭所有会话连接。`access: "read-only"` 只是声明，不会自动授予 Plan/explore 的只读授权，仍使用现有 MCP 审批与 `setMcpToolReadOnly`。工具注册为 `mcp__builtin_deepwiki__<tool>`，默认 `deferred`；图标是从 deepwiki.com 取得的官方 Logo（单色路径，随主题着色），工具结果里的 `deepwiki.com` 链接来源显示为 “DeepWiki”。真实 DeepWiki 服务尚未联调，只用本地无认证 MCP provider 验证了连接、工具列表与断开。
+
+新增更多 OAuth MCP 插件时，在同一数组追加配置：
 
 ```ts
 {
