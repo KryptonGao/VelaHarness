@@ -276,6 +276,7 @@
   font-size: calc(14px * var(--ui-scale));
   font-weight: 500;
   line-height: 1.5;
+  color: var(--text-secondary);
 }
 .question-compact-answer { align-items: stretch; }
 .question-compact-guide {
