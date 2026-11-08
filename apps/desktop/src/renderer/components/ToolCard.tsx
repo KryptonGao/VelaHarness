@@ -43,7 +43,7 @@ import { shouldFoldRun } from "./tool-sequence";
 import { firstCodeLine, lastBrowserUrl, parsePageSnapshot, splitBrowserBody, summarizeBrowserCode, type BrowserStep } from "./browser-call";
 import { foldRowId, foldSequenceId } from "./tool-fold-state";
 import { usePlanEnded } from "./PlanLiveContext";
-import { DurationLabel, ToolDurationLabel, useToolDuration, useToolExpanded, useToolProcessDetails, useToolsDuration } from "./ToolProcessContext";
+import { DurationLabel, ToolDurationLabel, useRunningSeconds, useToolDuration, useToolExpanded, useToolProcessDetails, useToolsDuration } from "./ToolProcessContext";
 import type { ToolDisplay, ToolFold } from "../hooks/usePreferences";
 import { localizeError, tr, trf } from "../locale";
 import { cardToolGroup } from "./tool-groups";
@@ -802,6 +802,7 @@ export function CompactToolLine({
     if (!streamActive) setStreamCollapsed(false);
   }, [streamActive]);
   const toolDuration = useToolDuration(tool);
+  const elapsedSeconds = useRunningSeconds(tool);
   const kind = toolKind(tool.name);
   const skillRead = isSkillRead(tool);
   const skillName = skillRead ? skillNameOf(tool) : "";
@@ -845,7 +846,7 @@ export function CompactToolLine({
               <KindIcon kind={kind} command={activity.command} />
             </span>
           ) : null}
-          {!hideAction ? <span className="tool-compact-action">{backgroundStart ? tr("已在后台运行", "Ran in background") : bashIntent?.action ?? ranAction(toolDuration)}</span> : null}
+          {!hideAction ? <span className="tool-compact-action">{backgroundStart ? tr("已在后台运行", "Ran in background") : elapsedSeconds !== null ? trf("命令已运行 {0} 秒", "Command running for {0}s", elapsedSeconds) : bashIntent?.action ?? ranAction(toolDuration)}</span> : null}
           <span className={`tool-compact-cmd${subjectIsCode(kind, activity) ? "" : " is-plain"}`}>{subject.name}</span>
           {subject.dir ? <span className="tool-compact-dir">{subject.dir}</span> : null}
           <svg
@@ -1258,7 +1259,6 @@ export function BashView({
 }) {
   const [expanded, setExpanded] = useState(false);
   const [overflowing, setOverflowing] = useState(false);
-  const [copied, setCopied] = useState(false);
   const cmdRef = useRef<HTMLSpanElement>(null);
   // 命令默认只显示两行;只有被截断时才可点击展开。
   useLayoutEffect(() => {
@@ -1273,55 +1273,76 @@ export function BashView({
     return () => observer.disconnect();
   }, [command, expanded]);
   const canToggle = overflowing || expanded;
+  const commandText = (
+    <span
+      ref={cmdRef}
+      className="tool-terminal-cmd-text"
+      role={canToggle ? "button" : undefined}
+      tabIndex={canToggle ? 0 : undefined}
+      aria-expanded={canToggle ? expanded : undefined}
+      onClick={canToggle ? () => setExpanded((value) => !value) : undefined}
+      onKeyDown={canToggle ? (event) => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        setExpanded((value) => !value);
+      } : undefined}
+    >{command}</span>
+  );
   return (
     <div className={`tool-terminal is-boxed${failed ? " failed" : ""}`}>
       {command ? (
         <div className={`tool-terminal-cmd${canToggle ? " is-toggle" : ""}${expanded ? " is-expanded" : ""}`}>
           <span className="tool-terminal-prompt">$</span>
-          <span
-            ref={cmdRef}
-            className="tool-terminal-cmd-text"
-            role={canToggle ? "button" : undefined}
-            tabIndex={canToggle ? 0 : undefined}
-            aria-expanded={canToggle ? expanded : undefined}
-            onClick={canToggle ? () => setExpanded((value) => !value) : undefined}
-            onKeyDown={canToggle ? (event) => {
-              if (event.key !== "Enter" && event.key !== " ") return;
-              event.preventDefault();
-              setExpanded((value) => !value);
-            } : undefined}
-          >{command}</span>
-          <button
-            className="tool-terminal-copy"
-            type="button"
-            aria-label={copied ? tr("已复制命令", "Command copied") : tr("复制命令", "Copy command")}
-            title={copied ? tr("已复制", "Copied") : tr("复制命令", "Copy command")}
-            onClick={() => {
-              void navigator.clipboard.writeText(command).then(
-                () => {
-                  setCopied(true);
-                  window.setTimeout(() => setCopied(false), 1400);
-                },
-                () => setCopied(false),
-              );
-            }}
-          >
-            {copied ? <CheckIcon size={13} /> : <CopyIcon size={13} />}
-          </button>
+          {expanded ? (
+            <ScrollFade
+              className="tool-terminal-cmd-scroll"
+              contentClassName="tool-terminal-cmd-content"
+              ariaLabel={tr("完整命令，可在区域内滚动", "Full command, scrollable")}
+            >
+              {commandText}
+            </ScrollFade>
+          ) : commandText}
+          <TerminalCopyButton text={command} label={tr("复制命令", "Copy command")} doneLabel={tr("已复制命令", "Command copied")} />
         </div>
       ) : null}
       {output ? (
-        <ScrollFade
-          className="tool-terminal-scroll"
-          contentClassName="tool-terminal-out-content"
-          ariaLabel={tr("命令输出，可在区域内滚动", "Command output, scrollable")}
-        >
-          <pre className="tool-terminal-out">{output}</pre>
-        </ScrollFade>
+        <div className="tool-terminal-output">
+          <ScrollFade
+            className="tool-terminal-scroll"
+            contentClassName="tool-terminal-out-content"
+            ariaLabel={tr("命令输出，可在区域内滚动", "Command output, scrollable")}
+          >
+            <pre className="tool-terminal-out">{output}</pre>
+          </ScrollFade>
+          <TerminalCopyButton text={output} label={tr("复制输出", "Copy output")} doneLabel={tr("已复制输出", "Output copied")} />
+        </div>
       ) : (
         <div className="tool-terminal-wait">{running ? tr("运行中", "Running") : tr("无输出", "No output")}</div>
       )}
     </div>
+  );
+}
+
+function TerminalCopyButton({ text, label, doneLabel }: { text: string; label: string; doneLabel: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      className="tool-terminal-copy"
+      type="button"
+      aria-label={copied ? doneLabel : label}
+      title={copied ? tr("已复制", "Copied") : label}
+      onClick={() => {
+        void navigator.clipboard.writeText(text).then(
+          () => {
+            setCopied(true);
+            window.setTimeout(() => setCopied(false), 1400);
+          },
+          () => setCopied(false),
+        );
+      }}
+    >
+      {copied ? <CheckIcon size={13} /> : <CopyIcon size={13} />}
+    </button>
   );
 }
 

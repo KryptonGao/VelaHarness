@@ -217,11 +217,6 @@
   font: inherit;
   color: var(--term-fg);
 }
-.tool-terminal-cmd + .tool-terminal-out,
-.tool-terminal-cmd + .tool-terminal-wait,
-.tool-terminal-cmd + .tool-terminal-scroll {
-  border-top: 1px solid var(--border-subtle);
-}
 /* 命令运行块:命令最多两行(点击展开),悬停右侧出现复制;输出限高,上下渐隐模糊。 */
 .tool-terminal.is-boxed {
   border: 1px solid var(--border-subtle);
@@ -229,7 +224,6 @@
 .tool-terminal.is-boxed .tool-terminal-cmd {
   position: relative;
   align-items: flex-start;
-  padding-right: 34px;
 }
 .tool-terminal-cmd-text {
   min-width: 0;
@@ -270,8 +264,26 @@
   transition: opacity var(--transition-enter), color var(--transition-enter), background var(--transition-enter);
 }
 .tool-terminal-cmd:hover .tool-terminal-copy,
+.tool-terminal-output:hover .tool-terminal-copy,
 .tool-terminal-copy:focus-visible { opacity: 1; }
 .tool-terminal-copy:hover { color: var(--text-primary); background: var(--bg-hover); }
+/* 输出区:按钮浮在渐隐层之上,用终端底色垫住,避免文字透出。 */
+.tool-terminal-output {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: var(--terminal-out-min, 0);
+  display: flex;
+  flex-direction: column;
+}
+.tool-terminal-cmd .tool-terminal-copy,
+.tool-terminal-output .tool-terminal-copy {
+  z-index: 5;
+  background: var(--term-bg);
+}
+.tool-terminal-cmd .tool-terminal-copy:hover,
+.tool-terminal-output .tool-terminal-copy:hover {
+  background: color-mix(in srgb, var(--term-bg), var(--text-primary) 10%);
+}
 .thinking-scroll-shell.tool-terminal-scroll { --scroll-fade-background: var(--term-bg); }
 /* 高度上限是整块(命令 + 输出)的总高度:命令行按自身高度排,输出区拿剩下的并在内部滚动。 */
 .tool-terminal.is-boxed {
@@ -282,10 +294,20 @@
   max-height: var(--terminal-cap);
 }
 .tool-terminal.is-boxed .tool-terminal-cmd { flex: none; }
-/* 命令展开得很长时,给输出区留出最小高度,命令自己滚动。 */
-.tool-terminal-cmd.is-expanded .tool-terminal-cmd-text {
-  max-height: calc(var(--terminal-cap) - var(--terminal-out-min) - 24px);
-  overflow-y: auto;
+/* 命令展开得很长时,最多占整块高度的一半(上下 1:1),在自己的区域内滚动并上下渐隐模糊。 */
+.thinking-scroll-shell.tool-terminal-cmd-scroll {
+  --scroll-fade-background: var(--term-bg);
+  flex: 1;
+  min-width: 0;
+}
+.tool-terminal-cmd-scroll > .thinking-scroll-viewport {
+  max-height: calc(var(--terminal-cap) / 2 - 18px);
+}
+.tool-terminal-cmd-scroll .thinking-text.tool-terminal-cmd-content {
+  padding: 0;
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
 }
 .tool-terminal.is-boxed .tool-terminal-wait { flex: none; }
 .thinking-scroll-shell.tool-terminal-scroll {
