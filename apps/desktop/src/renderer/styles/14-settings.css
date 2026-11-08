@@ -209,6 +209,21 @@
 /* 自动保存状态挂在页面标题那一行的右端,不占正文的位置 */
 .settings-section { position: relative; }
 .settings-section:has(> .settings-group) > .settings-autosave { position: absolute; top: -46px; right: 0; }
+/* 集成列表按页面自身宽度在单列与双列之间切换;用容器查询,因为设置页宽度随侧栏和窗口一起变 */
+.integrations-section { container-type: inline-size; container-name: integrations; }
+.integrations-search { position: relative; display: block; }
+.integrations-search > svg { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted); pointer-events: none; }
+.integrations-search input {
+  width: 100%; box-sizing: border-box; min-height: 40px; padding: 0 14px 0 38px;
+  border: 0; border-radius: var(--radius-pill); outline: none;
+  background: var(--bg-elevated); box-shadow: inset 0 0 0 1px var(--border-subtle);
+  font: inherit; font-size: calc(15px * var(--ui-scale)); color: var(--text-primary);
+}
+.integrations-search input::placeholder { color: var(--text-muted); }
+.integrations-search input:focus-visible { box-shadow: inset 0 0 0 1px var(--border-subtle), 0 0 0 2px var(--text-muted); }
+.integrations-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+.integrations-grid:empty { display: none; }
+@container integrations (min-width: 640px) { .integrations-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .integration-card { display: flex; align-items: flex-start; gap: 16px; padding: 20px; border-radius: var(--radius-lg); background: var(--bg-surface-subtle); min-width: 0; flex-wrap: wrap; }
 .integration-icon { width: 44px; height: 44px; display: grid; place-items: center; flex-shrink: 0; color: var(--text-primary); }
 .integration-icon svg { width: 36px; height: 36px; }

@@ -18,6 +18,12 @@ export const builtInPlugins: readonly BuiltInPlugin[] = [{
   id: "deepwiki", name: "DeepWiki", description: "Browse and ask questions about the documentation of public GitHub repositories",
   icon: "deepwiki", mcpUrl: "https://mcp.deepwiki.com/mcp", transport: "streamable-http", authType: "none",
   toolPolicy: { approval: "existing-mcp-policy", access: "read-only" },
+}, {
+  // Cloudflare's hosted MCP server uses OAuth 2.1 with DCR and PKCE. No scope is preconfigured: the server's
+  // 401 challenge supplies the baseline and the user picks the permissions to grant on Cloudflare's consent screen.
+  id: "cloudflare", name: "Cloudflare", description: "Manage Cloudflare accounts, zones, Workers and other resources through the Cloudflare API",
+  icon: "cloudflare", mcpUrl: "https://mcp.cloudflare.com/mcp", transport: "streamable-http", authType: "oauth2",
+  toolPolicy: { approval: "existing-mcp-policy", access: "read-write" },
 }];
 
 /** Built-ins are virtual, preconfigured MCP entries; user mcp.json stays user-owned. */

@@ -43,7 +43,7 @@
 | [features/background-shells.md](./features/background-shells.md) | 使用者与开发者 | 后台命令：`bash` 的 `run_in_background`、`bash_output` / `bash_kill`、结束后唤醒主代理、权限与 Plan/子代理限制、输出保留与已知限制。 |
 | [features/workbench-split.md](./features/workbench-split.md) | 使用者与开发者 | 右侧工作面板的拖动分屏：最多四窗口、强调色落点、独立标签、内容保留、内外调宽、键盘替代操作及验证。 |
 | [features/side-chat.md](./features/side-chat.md) | 使用者与开发者 | 侧边聊天：工作面板里不带工具的轻量对话，带入全局与项目记忆，可单独选择模型与推理强度；模型与记忆的选择、历史与停止、实现位置与验证。 |
-| [features/built-in-mcp-plugins.md](./features/built-in-mcp-plugins.md) | 使用者与开发者 | Notion、Linear、DeepWiki 内置插件、通用 OAuth、安全凭证、插件扩展与验证边界。 |
+| [features/built-in-mcp-plugins.md](./features/built-in-mcp-plugins.md) | 使用者与开发者 | Notion、Linear、DeepWiki、Cloudflare 内置插件、通用 OAuth、安全凭证、插件扩展与验证边界。 |
 | [features/scheduled-tasks.md](./features/scheduled-tasks.md) | 使用者与开发者 | 定时任务的时间格式、执行与权限、错过与并发策略、存储与恢复、实现与验证。 |
 | [features/pr-inbox.md](./features/pr-inbox.md) | 使用者与开发者 | Pull Request 中心的已实现能力、gh/IPC/缓存结构、针对性验证和第一期边界，以及让 Agent 回应审阅意见（工作树修改、确认后推送并回复）。 |
 | [features/task-cost-guard.md](./features/task-cost-guard.md) | 使用者与开发者 | 任务费用护栏：按人民币/美元设置任务费用上限、币种与未登记价格的处理、逼近上限时的收件箱提醒、按同类历史任务的开跑前预估、价格同步、实现位置与限制。 |

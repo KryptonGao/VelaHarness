@@ -1,6 +1,6 @@
 # Built-in MCP Plugin System
 
-设置 → Integrations（集成）显示内置应用（Notion、Linear、DeepWiki）。每张卡片提供 Connect、连接中 Cancel、连接后 Disconnect，以及可重试的错误状态。用户无需填写 URL、Token 或 JSON。连接为当前 Vela 配置目录中的全局个人连接；所有工作区、现有与未来的 Agent 会话使用同一账号。
+设置 → Integrations（集成）显示内置应用（Notion、Linear、DeepWiki、Cloudflare）。每张卡片提供 Connect、连接中 Cancel、连接后 Disconnect，以及可重试的错误状态。用户无需填写 URL、Token 或 JSON。连接为当前 Vela 配置目录中的全局个人连接；所有工作区、现有与未来的 Agent 会话使用同一账号。
 
 ## 架构与文件
 
@@ -52,7 +52,7 @@
 
 所有工具仍走 `McpSessionBridge` 的现有工具调用链、MCP 审批和 Plan/explore 只读过滤。服务端 `readOnlyHint` 仅是提示；只有与工作区、服务器 config digest 和原始工具 digest 绑定的明确授权才被当作只读。Notion 的名称和工具名不参与 Runtime 特殊分支。服务端回显的凭证也会在进入 Renderer 前脱敏。
 
-## Notion、Linear、DeepWiki 注册与新增插件
+## Notion、Linear、DeepWiki、Cloudflare 注册与新增插件
 
 `packages/agent/src/mcp/plugin-registry.ts` 的 `builtInPlugins` 声明 Notion：
 
@@ -104,6 +104,23 @@ DeepWiki 是无需登录的公共 MCP 服务，同样只是一条注册声明：
 ```
 
 Endpoint 与 [DeepWiki MCP 官方文档](https://docs.devin.ai/work-with-devin/deepwiki-mcp) 一致，只提供 `read_wiki_structure`、`read_wiki_contents`、`ask_question` 三个读取类工具，仅覆盖公开仓库。`authType: "none"` 时注册表不生成 `oauth` 配置，`activatePlugin` 在 initialize 成功后直接完成连接，不触发 discovery、DCR 或浏览器，也不写入凭证；Disconnect 仍会禁用服务器、关闭所有会话连接。`access: "read-only"` 只是声明，不会自动授予 Plan/explore 的只读授权，仍使用现有 MCP 审批与 `setMcpToolReadOnly`。工具注册为 `mcp__builtin_deepwiki__<tool>`，默认 `deferred`；图标是从 deepwiki.com 取得的官方 Logo（单色路径，随主题着色），工具结果里的 `deepwiki.com` 链接来源显示为 “DeepWiki”。真实 DeepWiki 服务尚未联调，只用本地无认证 MCP provider 验证了连接、工具列表与断开。
+
+Cloudflare 同样只是一条 OAuth 声明，位于 DeepWiki 之后：
+
+```ts
+{
+  id: "cloudflare",
+  name: "Cloudflare",
+  description: "Manage Cloudflare accounts, zones, Workers and other resources through the Cloudflare API",
+  icon: "cloudflare",
+  mcpUrl: "https://mcp.cloudflare.com/mcp",
+  transport: "streamable-http",
+  authType: "oauth2",
+  toolPolicy: { approval: "existing-mcp-policy", access: "read-write" },
+}
+```
+
+Endpoint 与 [Cloudflare MCP 官方文档](https://developers.cloudflare.com/agents/model-context-protocol/mcp-servers-for-cloudflare/) 一致。只读探测确认 `https://mcp.cloudflare.com/.well-known/oauth-authorization-server` 提供 DCR（`/register`）、PKCE S256 与公开 client（`token_endpoint_auth_methods_supported` 含 `none`），未授权请求返回带 `resource_metadata` 与基线 `scope="user:read account:read"` 的 401 挑战，因此无需预注册 client ID。**权限由用户在授权时选择**：Vela 不预置 `oauth.scope`，也不在应用内维护 Cloudflare 权限清单，用户在 Cloudflare 的授权页面勾选要授予的账号与权限，Vela 仅保存最终返回的令牌。需要更多权限时，先 Disconnect 再重新 Connect 并在授权页选择。工具注册为 `mcp__builtin_cloudflare__<tool>`，默认 `deferred`，写类操作仍走现有 MCP 审批；图标取自 Simple Icons（CC0）路径并拆成两段上品牌色（橙 #F6821F、琥珀 #FBAD41），不随主题变色，工具结果里 `cloudflare.com` 及其子域链接来源显示为 “Cloudflare”。真实 Cloudflare OAuth 尚未用用户账号联调，只验证了注册表声明、生命周期与本地 provider 测试。
 
 新增更多 OAuth MCP 插件时，在同一数组追加配置：
 

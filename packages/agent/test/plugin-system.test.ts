@@ -134,6 +134,28 @@ it("PluginRegistry ships Linear as an OAuth Streamable HTTP plugin that is disab
   assert.equal(registry.entries().find(item => item.name === "builtin_linear")!.config.enabled, true);
 });
 
+it("PluginRegistry ships Cloudflare as an OAuth Streamable HTTP plugin that leaves scope selection to the consent screen", async t => {
+  const f = temporary(t);
+  const registry = new PluginRegistry(join(f.agentDir, "integrations.json"));
+  const cloudflare = registry.get("cloudflare");
+  assert.equal(cloudflare.mcpUrl, "https://mcp.cloudflare.com/mcp");
+  assert.equal(cloudflare.authType, "oauth2");
+  assert.equal(cloudflare.transport, "streamable-http");
+  assert.equal(cloudflare.oauth, undefined);
+  assert.equal(registry.serverName("cloudflare"), "builtin_cloudflare");
+  assert.equal(registry.isEnabled("cloudflare"), false);
+  const entry = registry.entries().find(item => item.name === "builtin_cloudflare")!;
+  assert.equal(entry.source, "builtin:cloudflare");
+  assert.equal(entry.config.enabled, false);
+  const oauth = (entry.config as { oauth: Record<string, unknown> }).oauth;
+  assert.equal(oauth.clientName, "VelaHarness");
+  assert.equal(Object.hasOwn(oauth, "scope"), false);
+  assert.equal(Object.hasOwn(oauth, "clientSecret"), false);
+  registry.setEnabled("cloudflare", true);
+  assert.equal(registry.entries().find(item => item.name === "builtin_cloudflare")!.config.enabled, true);
+  assert.equal(registry.isEnabled("linear"), false);
+});
+
 it("PluginRegistry ships DeepWiki as a public Streamable HTTP plugin without OAuth", async t => {
   const f = temporary(t);
   const registry = new PluginRegistry(join(f.agentDir, "integrations.json"));
@@ -226,11 +248,11 @@ it("PluginRegistry registers Notion, persists enablement, merges user servers an
   assert.throws(() => registry.register(plugin("https://example.com", "notion")));
   assert.throws(() => registry.register(plugin("https://example.com", "../bad")));
   const user = { name: "custom", source: "user", config: { url: "https://example.com" } };
-  assert.deepEqual(registry.merge([user]).map(entry => entry.name), ["custom", "builtin_notion", "builtin_linear", "builtin_deepwiki"]);
+  assert.deepEqual(registry.merge([user]).map(entry => entry.name), ["custom", "builtin_notion", "builtin_linear", "builtin_deepwiki", "builtin_cloudflare"]);
   const config = new McpConfigService({ agentDir: f.agentDir, plugins: registry });
   writeFileSync(join(f.agentDir, "mcp.json"), JSON.stringify({ mcpServers: { builtin_notion: { url: "https://hostile.example/mcp" } } }));
   assert.equal((config.loadConfigSync(f.cwd).servers[0].config as { url: string }).url, "https://mcp.notion.com/mcp");
-  assert.deepEqual(config.listSync(f.cwd).servers.filter(server => server.effective).map(server => server.name).sort(), ["builtin_deepwiki", "builtin_linear", "builtin_notion"]);
+  assert.deepEqual(config.listSync(f.cwd).servers.filter(server => server.effective).map(server => server.name).sort(), ["builtin_cloudflare", "builtin_deepwiki", "builtin_linear", "builtin_notion"]);
   await assert.rejects(config.save({ cwd: f.cwd, scope: "global", name: "builtin-notion", config: { url: "https://hostile.example" } }));
 });
 

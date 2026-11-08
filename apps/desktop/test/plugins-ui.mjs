@@ -19,7 +19,7 @@ if (!process.versions.electron) {
       import React from 'react'; import { createRoot } from 'react-dom/client';
       import { IntegrationsSection } from './apps/desktop/src/renderer/components/IntegrationsSection';
       const f = window.fixture = { calls: [], pluginListener: null, mcpListener: null, resolveConnect: null, fail: false,
-        catalog: {cwd:'/workspace',pendingApply:false,plugins:[{id:'notion',name:'Notion',description:'Search, read and edit your Notion workspace',icon:'notion',mcpUrl:'https://mcp.notion.com/mcp',transport:'streamable-http',authType:'oauth2',serverName:'builtin_notion',status:'disconnected',toolCount:0}]}};
+        catalog: {cwd:'/workspace',pendingApply:false,plugins:[{id:'notion',name:'Notion',description:'Search, read and edit your Notion workspace',icon:'notion',mcpUrl:'https://mcp.notion.com/mcp',transport:'streamable-http',authType:'oauth2',serverName:'builtin_notion',status:'disconnected',toolCount:0},{id:'linear',name:'Linear',description:'Manage issues and projects',icon:'linear',mcpUrl:'https://mcp.linear.app/mcp',transport:'streamable-http',authType:'oauth2',serverName:'builtin_linear',status:'disconnected',toolCount:0}]}};
       window.vela = {
         getState: async()=>({session:{cwd:'/fallback'}}),
         getPlugins: async input=>{f.calls.push({method:'list',input}); return structuredClone(f.catalog);},
@@ -67,7 +67,16 @@ if (!process.versions.electron) {
         writeFileSync(join(process.env.VELA_PLUGIN_UI_CAPTURE, name + ".png"), (await window.webContents.capturePage()).toPNG());
       };
       await until("document.querySelector('.integration-status')?.textContent==='Not connected'");
-      assert.equal(await evaluate("document.querySelectorAll('input,textarea').length"), 0);
+      assert.equal(await evaluate("document.querySelectorAll('input,textarea').length"), 1);
+      const columns = () => evaluate("getComputedStyle(document.querySelector('.integrations-grid')).gridTemplateColumns.split(' ').length");
+      assert.equal(await columns(), 2, "wide settings page lays integrations out in two columns");
+      await evaluate("document.getElementById('root').style.maxWidth='480px'");
+      await until("getComputedStyle(document.querySelector('.integrations-grid')).gridTemplateColumns.split(' ').length===1");
+      await evaluate("document.getElementById('root').style.maxWidth='800px'");
+      const search = value => evaluate(`(()=>{const input=document.querySelector('.integrations-search input');Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,${JSON.stringify(value)});input.dispatchEvent(new Event('input',{bubbles:true}));})()`);
+      await search("issues"); await until("document.querySelectorAll('.integration-card').length===1 && document.querySelector('.integration-card h3').textContent==='Linear'");
+      await search("zzz"); await until("document.querySelectorAll('.integration-card').length===0 && document.body.textContent.includes('No matching integrations')");
+      await search("");  await until("document.querySelectorAll('.integration-card').length===2");
       await capture("integrations-disconnected");
       await click("Connect"); await until("document.querySelector('.integration-status')?.textContent==='Connecting…'");
       assert.deepEqual(await evaluate("fixture.calls.find(call=>call.method==='connect').input"), {cwd:"/workspace",conversationId:null,id:"notion"});
