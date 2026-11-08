@@ -3,7 +3,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { activeIntlLocale, localizeError, tr, trf, useAppLocale } from "../locale";
 import { Markdown } from "./Markdown";
 import { StructuredValue } from "./StructuredValue";
-import { resultHttpUrl, resultPageSize, resultRecord, resultText, resultTimestamp, processFailed } from "./tool-result-model";
+import { humanizeMcpNames, resultHttpUrl, resultPageSize, resultRecord, resultText, resultTimestamp, processFailed } from "./tool-result-model";
 import { isScheduledStatus, isTaskSchedule, scheduledScheduleText, scheduledStatusText } from "./scheduled-task-format";
 import "./tool-result-details.css";
 
@@ -127,8 +127,8 @@ function ScheduleResult({ value }: { value: Presentation<"schedule"> }) {
 }
 
 function DiscoveryResult({ value }: { value: Presentation<"discovery"> }) {
-  return <><Fields fields={[[tr("查询", "Query"), value.query], [tr("加载工具数", "Loaded tools"), value.source === "request" ? undefined : value.tools.length]]} />
-    <PagedList items={value.tools} empty={value.source === "request" ? tr("等待执行结果", "Waiting for execution result") : tr("未找到匹配工具", "No matching tools found")}  render={tool => <><h4 className="tool-result-item-title"><code>{tool.name}</code></h4>{tool.description ? <p>{tool.description}</p> : null}</>} />
+  return <><Fields fields={[[tr("查询", "Query"), value.query === undefined ? undefined : humanizeMcpNames(value.query)], [tr("加载工具数", "Loaded tools"), value.source === "request" ? undefined : value.tools.length]]} />
+    <PagedList items={value.tools} empty={value.source === "request" ? tr("等待执行结果", "Waiting for execution result") : tr("未找到匹配工具", "No matching tools found")}  render={tool => <><h4 className="tool-result-item-title"><code>{humanizeMcpNames(tool.name)}</code></h4>{tool.description ? <p>{tool.description}</p> : null}</>} />
   </>;
 }
 

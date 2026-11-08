@@ -15,6 +15,29 @@ export function needsRawResultFallback(name: string | undefined, status: string,
   return !hasPresentation && status !== "running" && name !== undefined && structuredResultTools.has(name);
 }
 
+/**
+ * tool_search queries and results carry raw registered names (`+mcp__server__tool`).
+ * Show `server · tool` instead; the query operators `+`/`-` are search syntax, not content.
+ */
+export function humanizeMcpNames(text: string): string {
+  return text
+    .replace(/[+-]?mcp__([A-Za-z0-9_-]+?)__([A-Za-z0-9_-]+)/g, "$1 · $2")
+    .replace(/[+-]?mcp__([A-Za-z0-9_-]+)/g, "$1");
+}
+
+const mcpDiscoveryTools = new Set(["tool_search", "list_mcp_resources", "list_mcp_resource_templates", "read_mcp_resource"]);
+
+/** Searching or reading MCP resources is part of MCP, not a generic tool. */
+export function isMcpDiscoveryTool(name: string): boolean { return mcpDiscoveryTools.has(name); }
+
+/** Split a tool_search query into the MCP server it targets and the remaining search text. */
+export function splitMcpQuery(query: string): { server?: string; text: string } {
+  const match = /[+-]?mcp__([A-Za-z0-9_-]+?)(?:__([A-Za-z0-9_-]+))?(?=[\s,]|$)/.exec(query);
+  if (!match) return { text: humanizeMcpNames(query).trim() };
+  const rest = query.replace(match[0], match[2] ?? "").replace(/^select:/, "").replace(/\s+/g, " ").trim();
+  return { server: match[1]!, text: humanizeMcpNames(rest) || match[1]! };
+}
+
 export function resultRecord(value: unknown): value is Record<string, JsonValue> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }

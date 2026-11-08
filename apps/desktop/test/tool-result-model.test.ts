@@ -2,6 +2,9 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   completeResultJson,
+  humanizeMcpNames,
+  isMcpDiscoveryTool,
+  splitMcpQuery,
   processFailed,
   resultHttpUrl,
   resultNumber,
@@ -72,5 +75,26 @@ describe("tool result model: display values and shell semantics", () => {
     assert.equal(processFailed("timed_out", null), true);
     assert.equal(processFailed("failed", undefined), true);
     for (const [status, code] of [["exited", 0], ["exited", null], ["running", null], ["killed", null], [undefined, undefined]] as const) assert.equal(processFailed(status, code), false);
+  });
+
+  it("strips the mcp__ prefix from tool_search queries and names", () => {
+    assert.equal(humanizeMcpNames("+mcp__builtin_notion search"), "builtin_notion search");
+    assert.equal(humanizeMcpNames("+mcp__builtin_cloudflare list accounts"), "builtin_cloudflare list accounts");
+    assert.equal(humanizeMcpNames("mcp__builtin_notion__notion_search"), "builtin_notion · notion_search");
+    assert.equal(humanizeMcpNames("select:mcp__a__b,mcp__c__d"), "select:a · b,c · d");
+    assert.equal(humanizeMcpNames("read file"), "read file");
+  });
+
+  it("splits the targeted MCP server out of a tool_search query", () => {
+    assert.deepEqual(splitMcpQuery("+mcp__builtin_notion search pages workspace"), { server: "builtin_notion", text: "search pages workspace" });
+    assert.deepEqual(splitMcpQuery("+mcp__builtin_cloudflare list accounts"), { server: "builtin_cloudflare", text: "list accounts" });
+    assert.deepEqual(splitMcpQuery("select:mcp__a__b"), { server: "a", text: "b" });
+    assert.deepEqual(splitMcpQuery("+mcp__a"), { server: "a", text: "a" });
+    assert.deepEqual(splitMcpQuery("read file"), { text: "read file" });
+  });
+
+  it("treats tool_search and MCP resource tools as MCP", () => {
+    for (const name of ["tool_search", "list_mcp_resources", "list_mcp_resource_templates", "read_mcp_resource"]) assert.equal(isMcpDiscoveryTool(name), true);
+    assert.equal(isMcpDiscoveryTool("bash"), false);
   });
 });

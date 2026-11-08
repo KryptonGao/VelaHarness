@@ -9,7 +9,7 @@ import { AgentAvatar } from "./AgentAvatar";
 import { Markdown } from "./Markdown";
 import { McpToolDetails } from "./McpToolDetails";
 import { ToolResultDetails } from "./ToolResultDetails";
-import { completeResultJson, needsRawResultFallback } from "./tool-result-model";
+import { completeResultJson, isMcpDiscoveryTool, needsRawResultFallback, splitMcpQuery } from "./tool-result-model";
 import { ScrollFade } from "./ScrollFade";
 import {
   AgentStatusMark,
@@ -392,6 +392,8 @@ function GenericToolCard({ tool, compact = false }: ToolCardProps) {
   const showTiming = useToolProcessDetails();
   const activity = tool.activity ?? {};
   const mcp = activity.mcp;
+  const discovery = !mcp && isMcpDiscoveryTool(tool.name);
+  const discoveryServer = discovery ? mcpDiscoveryServer(activity.presentation) : undefined;
   const kind = mcp ? "other" : toolKind(tool.name);
   const skillRead = !mcp && isSkillRead(tool);
   const skillName = skillRead ? skillNameOf(tool) : "";
@@ -407,7 +409,7 @@ function GenericToolCard({ tool, compact = false }: ToolCardProps) {
   const bashIntent = !mcp && kind === "bash" ? bashIntentDisplay(activity.command) : null;
 
   return (
-    <article className={`tool-card tool-kind-${kind}${mcp ? " is-mcp" : ""}${webTool ? " is-web" : ""}${bashIntent ? " is-intent" : ""}${group ? ` tool-group-${group}` : ""} is-${tool.status}${open ? " open" : ""}`}>
+    <article className={`tool-card tool-kind-${kind}${mcp || discovery ? " is-mcp" : ""}${webTool ? " is-web" : ""}${bashIntent ? " is-intent" : ""}${group ? ` tool-group-${group}` : ""} is-${tool.status}${open ? " open" : ""}`}>
       <div className="tool-card-top">
         <button
           className="tool-card-head"
@@ -417,9 +419,9 @@ function GenericToolCard({ tool, compact = false }: ToolCardProps) {
           onClick={() => setOpen((value) => !value)}
         >
           <span className="tool-card-icon" aria-hidden="true">
-            {mcp ? <McpIcon size={13} /> : webTool ? <WebToolIcon name={tool.name} /> : <GroupIcon name={tool.name} fallback={<KindIcon kind={kind} command={activity.command} skill={skillRead} />} />}
+            {mcp || discovery ? <McpIcon size={13} /> : webTool ? <WebToolIcon name={tool.name} /> : <GroupIcon name={tool.name} fallback={<KindIcon kind={kind} command={activity.command} skill={skillRead} />} />}
           </span>
-          <span className="tool-kind-label">{mcp ? "MCP" : skillRead ? tr("技能", "Skill") : bashIntent?.label ?? toolLabel(tool.name, kind)}</span>
+          <span className="tool-kind-label">{mcp || discovery ? "MCP" : skillRead ? tr("技能", "Skill") : bashIntent?.label ?? toolLabel(tool.name, kind)}</span>
           <span className="tool-card-main">
             <span className={`tool-card-name${subject.dir ? "" : " grow"}${subjectIsCode(kind, activity) ? " is-code" : ""}${planFirst ? " has-plan-icon" : ""}`}>
               {planFirst ? <PlanStatusIcon status={planFirst.status} ended={planEnded} className="plan-status-inline" /> : null}
@@ -427,7 +429,7 @@ function GenericToolCard({ tool, compact = false }: ToolCardProps) {
             </span>
             {subject.dir ? <span className="tool-card-dir">{subject.dir}</span> : null}
           </span>
-          {mcp ? <span className="tool-mcp-source" aria-label={trf("MCP 服务器：{0}", "MCP server: {0}", mcp.server)}>{mcp.server}</span> : null}
+          {mcp || discoveryServer ? <span className="tool-mcp-source" aria-label={trf("MCP 服务器：{0}", "MCP server: {0}", (mcp?.server ?? discoveryServer)!)}>{mcp?.server ?? discoveryServer}</span> : null}
           {stat ? (
             <span className="tool-stat">
               {stat.added > 0 ? <span className="tool-stat-add">+{stat.added}</span> : null}
@@ -1553,10 +1555,15 @@ function toolKind(name: string): ToolKind {
   return "other";
 }
 
+function mcpDiscoveryServer(presentation: ToolActivity["presentation"]): string | undefined {
+  if (presentation?.kind === "discovery") return presentation.query ? splitMcpQuery(presentation.query).server : undefined;
+  return presentation?.kind === "resource" && typeof presentation.server === "string" && presentation.server ? presentation.server : undefined;
+}
+
 function subjectOf(kind: ToolKind, activity: ToolActivity, name: string): { name: string; dir: string } {
   const presentation = activity.presentation;
   if (presentation?.kind === "shell") return { name: presentation.shell.command || presentation.shell.id, dir: "" };
-  if (presentation?.kind === "discovery" && presentation.query) return { name: presentation.query, dir: "" };
+  if (presentation?.kind === "discovery" && presentation.query) return { name: splitMcpQuery(presentation.query).text, dir: "" };
   if (presentation?.kind === "resource") return { name: presentation.uri || presentation.server || name, dir: "" };
   if (presentation?.kind === "schedule" && presentation.tasks.length === 1) {
     const task = presentation.tasks[0];
