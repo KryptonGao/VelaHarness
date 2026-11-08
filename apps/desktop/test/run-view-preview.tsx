@@ -92,7 +92,7 @@ function App() {
           {params.has("en") ? "Replay" : "重播"}
         </button>
         <div ref={dockRef}>
-          <RunViewDock key={replayKey} messages={messages} />
+          <RunViewDock key={replayKey} messages={messages} streaming />
         </div>
       </div>
     </AppLocaleProvider>

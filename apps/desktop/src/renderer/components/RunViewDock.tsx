@@ -18,6 +18,7 @@ import {
 } from "../run-view";
 import { ActivityIndicator } from "./ActivityIndicator";
 import { CheckIcon } from "./icons";
+import { PlanEndedDots } from "./ToolCard";
 
 function stepLabel(kind: RunStepKind): string {
   switch (kind) {
@@ -34,10 +35,14 @@ function stepLabel(kind: RunStepKind): string {
   }
 }
 
-/** 待办清单:圆角卡片,待办是虚线圈、进行中转圈、完成是实心勾。点右上角的计数折叠到只剩当前项。 */
-function RunTodoCard({ items }: { items: ToolPlanItem[] }) {
+/**
+ * 待办清单:圆角卡片,待办是虚线圈、进行中转圈、完成是实心勾;这一轮结束时停在进行中的那项是实线圈加三点。
+ * 点右上角的计数折叠到只剩当前项。
+ */
+function RunTodoCard({ items, ended }: { items: ToolPlanItem[]; ended: boolean }) {
   const [open, setOpen] = useState(true);
   const done = items.filter((item) => item.status === "completed").length;
+  const markOf = (item: ToolPlanItem) => (ended && item.status === "in_progress" ? "stopped" : item.status);
   const shown = open ? items : items.filter((item) => item.status === "in_progress");
   return (
     <section className="run-todo" aria-label={tr("待办清单", "Todo list")}>
@@ -50,9 +55,9 @@ function RunTodoCard({ items }: { items: ToolPlanItem[] }) {
       >{done} / {items.length}</button>
       <ul className="run-todo-list">
         {shown.map((item, index) => (
-          <li key={`${index}:${item.text}`} data-status={item.status}>
-            <span className="run-todo-mark" aria-hidden="true">
-              {item.status === "completed" ? <CheckIcon size={9} /> : null}
+          <li key={`${index}:${item.text}`} data-status={markOf(item)}>
+            <span className="run-todo-mark" data-status={markOf(item)} aria-hidden="true">
+              {item.status === "completed" ? <CheckIcon size={9} /> : markOf(item) === "stopped" ? <PlanEndedDots /> : null}
             </span>
             <span className="run-todo-text">{item.text}</span>
             <span className="sr-only">{item.status === "completed" ? tr("已完成", "Completed") : item.status === "in_progress" ? tr("进行中", "In progress") : tr("待办", "Pending")}</span>
@@ -111,15 +116,17 @@ function RunStatusBar({ messages }: { messages: UiMessage[] }) {
 }
 
 /**
- * 运行视图:本轮运行中紧跟在过程之后、随对话滚动的待办清单和状态条。
+ * 运行视图:紧跟在本轮过程之后、随对话滚动的待办清单和状态条;运行结束后只保留待办清单。
  * 模型步骤仍是上方对话里原有的消息与工具行,这里不重复渲染。
  */
-export function RunViewDock({ messages }: { messages: UiMessage[] }) {
+export function RunViewDock({ messages, streaming }: { messages: UiMessage[]; streaming: boolean }) {
   const todos = latestTodos(messages);
+  // 本轮结束后待办清单继续留在最下方,只有状态条随运行结束消失。
+  if (!streaming && !todos) return null;
   return (
     <div className="run-dock" aria-label={tr("运行状态", "Run status")}>
-      {todos ? <RunTodoCard items={todos} /> : null}
-      <RunStatusBar messages={messages} />
+      {todos ? <RunTodoCard items={todos} ended={!streaming} /> : null}
+      {streaming ? <RunStatusBar messages={messages} /> : null}
     </div>
   );
 }

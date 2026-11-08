@@ -1,4 +1,4 @@
-import type { ToolPlanItem } from "@vela/shared";
+import type { ToolPlanItem, ToolTrace } from "@vela/shared";
 import type { OrbActivity } from "./components/jump-orb";
 import type { UiMessage } from "./hooks/useSession";
 
@@ -33,18 +33,23 @@ export function currentTurnAssistants(messages: readonly UiMessage[]): UiMessage
   return messages.slice(start).filter((message) => message.role === "assistant");
 }
 
-/** 本轮最近一次提交的待办清单;还没提交时为 null。 */
-export function latestTodos(messages: readonly UiMessage[]): ToolPlanItem[] | null {
+/** 本轮最近一次提交待办清单的工具;还没提交时为 null。 */
+export function latestTodoTool(messages: readonly UiMessage[]): ToolTrace | null {
   const assistants = currentTurnAssistants(messages);
   for (let index = assistants.length - 1; index >= 0; index--) {
     const tools = assistants[index]!.tools;
     for (let toolIndex = tools.length - 1; toolIndex >= 0; toolIndex--) {
       const tool = tools[toolIndex]!;
-      const plan = todoTools.has(tool.name) ? tool.activity.plan : undefined;
-      if (plan && plan.length > 0) return plan;
+      const plan = todoTools.has(tool.name) ? tool.activity?.plan : undefined;
+      if (plan && plan.length > 0) return tool;
     }
   }
   return null;
+}
+
+/** 本轮最近一次提交的待办清单;还没提交时为 null。 */
+export function latestTodos(messages: readonly UiMessage[]): ToolPlanItem[] | null {
+  return latestTodoTool(messages)?.activity?.plan ?? null;
 }
 
 /** 本轮开始时间:第一条带 turnStartedAt 的助手消息。 */

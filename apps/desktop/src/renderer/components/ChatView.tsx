@@ -22,6 +22,8 @@ import { TaskBudgetBanner } from "./TaskBudgetBanner";
 import { ConflictBanner } from "./ConflictBanner";
 import { TaskCostForecastHint } from "./TaskCostForecastHint";
 import { RunViewDock } from "./RunViewDock";
+import { PlanLiveContext } from "./PlanLiveContext";
+import { latestTodoTool } from "../run-view";
 import { JumpOrb } from "./JumpOrb";
 import type { OrbActivity } from "./jump-orb";
 import { ContextTab } from "./ContextTab";
@@ -337,6 +339,9 @@ export function ChatView({
     });
   }, [embedded, session?.status, session?.modelReady, session?.model, session?.modelProvider, session?.modelId, session?.thinkingLevel, session?.thinkingLevels]);
   const streaming = session?.status === "streaming";
+  // 只有正在运行的这一轮里最新一次提交的待办还在进行;已结束的轮次和被取代的待办都算已结束。
+  const liveTodoId = streaming ? latestTodoTool(messages)?.id ?? null : null;
+  const planLive = useMemo(() => ({ liveToolId: liveTodoId }), [liveTodoId]);
   // 末条是已结束的助手回复时，它的 id 就是这一轮预测的依据；其余情况不预测。
   const lastMessage = messages[messages.length - 1];
   const predictionKey = lastMessage?.role === "assistant" && !streaming && lastMessage.text.trim() ? `${lastMessage.id}:${lastMessage.text.length}` : null;
@@ -834,6 +839,7 @@ export function ChatView({
             onToggle={onToggleRight} />
         </div>
       ) : null}
+      <PlanLiveContext.Provider value={planLive}>
       <ConversationLinkContext.Provider value={onOpenWebLink ?? null}>
       <div className="chat-scroll-area" ref={scrollerRef}>
         <div
@@ -993,11 +999,12 @@ export function ChatView({
           />
         ) : null}
         {/* 运行视图:待办清单和状态条是对话内容的一部分,紧跟在本轮过程之后,随对话一起滚动。 */}
-        {runView && streaming && view === "chat" && messages.length > 0 ? <RunViewDock messages={messages} /> : null}
+        {runView && view === "chat" && messages.length > 0 ? <RunViewDock messages={messages} streaming={Boolean(streaming)} /> : null}
         </div>
       </div>
 
       </ConversationLinkContext.Provider>
+      </PlanLiveContext.Provider>
       <SelectionActions containerRef={scrollerRef} onSideChat={startSideChat}
         onReply={(quote, text) => replyStore.addText(replyKey, quote, text)} />
       <button

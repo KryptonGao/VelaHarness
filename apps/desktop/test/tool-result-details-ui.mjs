@@ -359,7 +359,7 @@ if (!process.versions.electron) {
         assert.match(await visibleText(), /执行上下文已重置，页面与登录状态保留/);
         await openCase("checklist", display);
         assert.equal(await evaluate("document.querySelectorAll('.plan-checklist-item').length"), 3);
-        assert.equal(await evaluate("document.querySelectorAll('.plan-checklist-item.is-in_progress').length"), 1);
+        assert.equal(await evaluate("document.querySelectorAll('.plan-checklist-item[data-status=in_progress]').length"), 1);
         await openCase("diff", display);
         await until("document.querySelectorAll('.tool-diff-line').length >= 2");
         assert.match(await visibleText(), /newValue/);

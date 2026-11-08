@@ -24,7 +24,7 @@ import type { ThemedToken } from "./preview/highlighter";
 import { QuestionCard, type QuestionReplyHandler } from "./QuestionCard";
 import { FileTypeIcon } from "./FileTypeIcon";
 import { tokenStyle, useDiffHighlight, type HighlightedDiff } from "./diff-highlight";
-import { ArrowRightIcon, CheckIcon, CircleIcon, EditFileIcon, ExternalIcon, EyeIcon, FilePlusIcon, FolderIcon, GlobeIcon, McpIcon, ReadFileIcon, SearchIcon, SkillIcon, StackIcon, TerminalIcon, ToolIcon, WebFetchIcon, WebSearchIcon } from "./icons";
+import { ArrowRightIcon, CheckIcon, EditFileIcon, ExternalIcon, EyeIcon, FilePlusIcon, FolderIcon, GlobeIcon, McpIcon, ReadFileIcon, SearchIcon, SkillIcon, StackIcon, TerminalIcon, ToolIcon, WebFetchIcon, WebSearchIcon } from "./icons";
 import {
   compactLabelParts,
   compactSummaryParts,
@@ -42,6 +42,7 @@ import { bashIntentDisplay } from "./bash-intent-label";
 import { shouldFoldRun } from "./tool-sequence";
 import { firstCodeLine, lastBrowserUrl, parsePageSnapshot, splitBrowserBody, summarizeBrowserCode, type BrowserStep } from "./browser-call";
 import { foldRowId, foldSequenceId } from "./tool-fold-state";
+import { usePlanEnded } from "./PlanLiveContext";
 import { DurationLabel, ToolDurationLabel, useToolDuration, useToolExpanded, useToolProcessDetails, useToolsDuration } from "./ToolProcessContext";
 import type { ToolDisplay, ToolFold } from "../hooks/usePreferences";
 import { localizeError, tr, trf } from "../locale";
@@ -396,6 +397,7 @@ function GenericToolCard({ tool, compact = false }: ToolCardProps) {
   const skillName = skillRead ? skillNameOf(tool) : "";
   const subject = mcp ? { name: mcp.tool, dir: "" } : skillName ? { name: skillName, dir: "" } : subjectOf(kind, activity, tool.name);
   const group = mcp ? null : cardToolGroup(tool.name);
+  const planEnded = usePlanEnded(tool.id);
   const planFirst = (tool.name === "update_todos" ? todoFocus(activity.plan) : activity.plan?.[0]) ?? null;
   const stat = diffStat(activity.diff) ?? streamingStat(activity);
   const lines = kind === "read" ? readLineCount(activity.body) : null;
@@ -420,7 +422,7 @@ function GenericToolCard({ tool, compact = false }: ToolCardProps) {
           <span className="tool-kind-label">{mcp ? "MCP" : skillRead ? tr("技能", "Skill") : bashIntent?.label ?? toolLabel(tool.name, kind)}</span>
           <span className="tool-card-main">
             <span className={`tool-card-name${subject.dir ? "" : " grow"}${subjectIsCode(kind, activity) ? " is-code" : ""}`}>
-              {planFirst ? <PlanStatusIcon status={planFirst.status} className="plan-status-inline" /> : null}
+              {planFirst ? <PlanStatusIcon status={planFirst.status} ended={planEnded} className="plan-status-inline" /> : null}
               {subject.name}
             </span>
             {subject.dir ? <span className="tool-card-dir">{subject.dir}</span> : null}
@@ -457,11 +459,11 @@ function GenericToolCard({ tool, compact = false }: ToolCardProps) {
       <ToolCollapse open={open}>
         {() => <>
         <div className="tool-card-body">
-          {mcp ? <McpToolDetails tool={tool} /> : kind === "bash" && !activity.presentation ? <ToolBody kind={kind} activity={activity} status={tool.status} toolName={tool.name} /> : <ScrollFade
+          {mcp ? <McpToolDetails tool={tool} /> : kind === "bash" && !activity.presentation ? <ToolBody kind={kind} activity={activity} status={tool.status} toolName={tool.name} toolId={tool.id} /> : <ScrollFade
             className="tool-details-scroll"
             ariaLabel={tr("工具详情，可在区域内滚动", "Tool details, scrollable")}
           >
-            <ToolBody kind={kind} activity={activity} status={tool.status} toolName={tool.name} />
+            <ToolBody kind={kind} activity={activity} status={tool.status} toolName={tool.name} toolId={tool.id} />
           </ScrollFade>}
         </div>
         </>}
@@ -972,7 +974,7 @@ export function CompactToolLine({
               />
             ) : (
               <ScrollFade className="tool-details-scroll" ariaLabel={tr("工具详情，可在区域内滚动", "Tool details, scrollable")}>
-                <ToolBody kind={kind} activity={activity} status={tool.status} toolName={tool.name} />
+                <ToolBody kind={kind} activity={activity} status={tool.status} toolName={tool.name} toolId={tool.id} />
               </ScrollFade>
             )}
           </div>
@@ -1100,32 +1102,45 @@ function CompactDiffView({ diff, path, followEnd = false }: { diff: string; path
   );
 }
 
-/** 执行项的图标标记：完成对勾、进行中箭头、待办空心圆。 */
-function PlanStatusIcon({ status, className }: { status: ExecutionItemStatus; className?: string }) {
+/** 任务结束时停在进行中的那一项:实线外圈,中间三个点;还没开始的待办保持虚线圈。 */
+type PlanMarkStatus = ExecutionItemStatus | "stopped";
+
+function planMarkStatus(status: ExecutionItemStatus, ended: boolean): PlanMarkStatus {
+  return ended && status === "in_progress" ? "stopped" : status;
+}
+
+/** 执行项的标记,与运行视图待办清单一致:待办虚线圈、进行中转圈、完成实心勾、结束时停在进行中的实线圈加三点。 */
+export function PlanStatusIcon({ status, ended = false, className }: { status: ExecutionItemStatus; ended?: boolean; className?: string }) {
+  const mark = planMarkStatus(status, ended);
   return (
     <span
-      className={`plan-status-icon is-${status}${className ? ` ${className}` : ""}`}
+      className={`run-todo-mark plan-status-icon${className ? ` ${className}` : ""}`}
+      data-status={mark}
       aria-hidden="true"
     >
-      {status === "completed" ? (
-        <CheckIcon size={11} />
-      ) : status === "in_progress" ? (
-        <ArrowRightIcon size={11} />
-      ) : (
-        <CircleIcon size={11} />
-      )}
+      {mark === "completed" ? <CheckIcon size={9} /> : mark === "stopped" ? <PlanEndedDots /> : null}
     </span>
   );
 }
 
-/** update_plan 展开后的清单：左侧一条竖向引导线把各项状态串起来。 */
-function PlanChecklist({ items }: { items: ToolPlanItem[] }) {
+export function PlanEndedDots() {
   return (
-    <div className="plan-checklist" role="list">
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true">
+      <circle cx="3" cy="6" r="0.9" />
+      <circle cx="6" cy="6" r="0.9" />
+      <circle cx="9" cy="6" r="0.9" />
+    </svg>
+  );
+}
+
+/** update_plan / update_todos 展开后的清单:与运行视图待办清单同一套标记和文字样式。 */
+function PlanChecklist({ items, ended }: { items: ToolPlanItem[]; ended: boolean }) {
+  return (
+    <div className="plan-checklist run-todo-list" role="list">
       {items.map((item, index) => (
-        <div className={`plan-checklist-item is-${item.status}`} role="listitem" key={`${index}-${item.text}`}>
-          <PlanStatusIcon status={item.status} className="plan-checklist-icon" />
-          <span className="plan-checklist-text">{item.text}</span>
+        <div className="plan-checklist-item" data-status={planMarkStatus(item.status, ended)} role="listitem" key={`${index}-${item.text}`}>
+          <PlanStatusIcon status={item.status} ended={ended} />
+          <span className="plan-checklist-text run-todo-text">{item.text}</span>
         </div>
       ))}
     </div>
@@ -1141,12 +1156,15 @@ function ToolBody({
   activity,
   status,
   toolName,
+  toolId,
 }: {
   kind: ToolKind;
   activity: ToolActivity;
   status: ToolTrace["status"];
   toolName?: string;
+  toolId?: string;
 }) {
+  const planEnded = usePlanEnded(toolId);
   if (activity.presentation) return <ToolResultDetails activity={activity} status={status} toolName={toolName} />;
   if (needsRawResultFallback(toolName, status, Boolean(activity.presentation))) return <section className="tool-result-details tool-result-fallback">
     <p className="tool-result-muted" role="status">{tr("无法完整解析此记录，显示原始响应", "This record could not be fully parsed. Showing the original response.")}</p>
@@ -1176,7 +1194,7 @@ function ToolBody({
   if (status === "error") {
     return <ToolMarkdown className="tool-error" text={activity.body ? localizeError(activity.body) : tr("执行失败", "Execution failed")} />;
   }
-  if (activity.plan && activity.plan.length > 0) return <PlanChecklist items={activity.plan} />;
+  if (activity.plan && activity.plan.length > 0) return <PlanChecklist items={activity.plan} ended={planEnded} />;
   if (kind === "read") return <ReadView body={activity.body} running={status === "running"} />;
   if (kind === "edit" || kind === "write") {
     return (

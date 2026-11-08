@@ -250,9 +250,6 @@
 /* 原则:紧凑模式里的彩色(待办状态图标)只在悬停所在行时显示,平时一律灰色;文件类型图标除外;
    展开后的内容(如待办清单)不受限,可以保持彩色。新建文件圆点是状态标记,始终保持蓝色,不随悬停变化。
    失败的红色是警示,运行中的转圈是进度,都不受此限。 */
-.tool-card-list.is-compact :is(.tool-card-head, .tool-compact-line, .tool-compact-summary) .plan-status-icon:is(.is-completed, .is-in_progress) { color: var(--text-muted); }
-.tool-card-list.is-compact :is(.tool-card-head, .tool-compact-line, .tool-compact-summary):hover .plan-status-icon.is-completed { color: var(--success); }
-.tool-card-list.is-compact :is(.tool-card-head, .tool-compact-line, .tool-compact-summary):hover .plan-status-icon.is-in_progress { color: var(--accent-blue); }
 
 /* 紧凑模式的工具图标配色:设置 → 对话显示 → 工具图标配色,关闭时保持统一灰色。
    Browser REPL 的图标有自己的蓝色底,不在这里处理。 */
@@ -366,55 +363,13 @@
 
 /* ---------- 执行清单（update_plan）展开视图 ---------- */
 
-.plan-checklist {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-  padding: 2px 0 2px 2px;
-}
-/* 竖向引导线：从第一个图标中心连到最后一个图标中心。 */
-.plan-checklist::before {
-  content: "";
-  position: absolute;
-  left: 8px;
-  top: 10px;
-  bottom: 10px;
-  width: 1px;
-  background: var(--border-subtle);
-}
-.plan-checklist-item {
-  position: relative;
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  font-size: calc(13px * var(--ui-scale));
-  line-height: 19px;
-}
-.plan-status-icon {
-  display: inline-grid;
-  place-items: center;
-  flex: none;
-}
-.plan-status-icon.is-completed { color: var(--success); }
-.plan-status-icon.is-in_progress { color: var(--accent-blue); }
-.plan-status-icon.is-pending { color: var(--text-muted); }
-/* 图标压在引导线上，用卡片底色遮出一段间隔，形成节点效果。 */
-.plan-checklist-icon {
-  position: relative;
-  z-index: 1;
-  width: 13px;
-  height: 19px;
-  background: var(--bg-surface-subtle);
-}
-.plan-checklist-text {
-  min-width: 0;
-  overflow-wrap: anywhere;
-  color: var(--text-secondary);
-}
-.plan-checklist-item.is-completed .plan-checklist-text { color: var(--text-muted); }
-.plan-checklist-item.is-in_progress .plan-checklist-text { color: var(--text-primary); font-weight: 600; }
-.plan-status-inline { vertical-align: -2px; margin-right: 6px; }
+/* 标记与文字沿用运行视图待办清单（24-run-view.css），这里只去掉卡片内边距。 */
+.plan-checklist.run-todo-list { padding: 2px 0; gap: 8px; }
+.plan-checklist-item { font-size: calc(13px * var(--ui-scale)); }
+.plan-checklist-item .run-todo-mark { width: 14px; height: 14px; }
+.plan-status-icon { flex: none; }
+/* 24-run-view.css 里的 .run-todo-mark 之后加载,这里要提高优先级才能保持行内。 */
+.tool-card-name .plan-status-inline { display: inline-grid; justify-self: auto; width: 13px; height: 13px; vertical-align: -2px; margin-right: 8px; }
 .task-steps {
   display: flex;
   flex-direction: column;
