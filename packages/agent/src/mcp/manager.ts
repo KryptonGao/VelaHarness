@@ -22,6 +22,8 @@ export class PluginMCPManager {
       try { listener(event); } catch { /* Observers cannot interrupt connection or credential cleanup. */ }
     }
   }
+  /** True while a user-driven connect or disconnect is in flight. */
+  get busy(): boolean { return this.operations.size > 0; }
   snapshots(catalog: McpCatalog): PluginSnapshot[] {
     return this.registry.list().map(plugin => {
       const serverName = this.registry.serverName(plugin.id);

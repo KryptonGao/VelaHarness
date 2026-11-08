@@ -202,6 +202,18 @@ export class McpSessionBridge {
       readOnly: this.options.config.isReadOnlySync(this.options.cwd, server, raw) };
   }
 
+  /** Resolves once no server is still handshaking, or after timeoutMs; a slow server must not block the caller. */
+  settled(timeoutMs: number): Promise<void> {
+    const controller = this.controller;
+    const pending = () => controller?.getSnapshot().some(server => server.state === "connecting") ?? false;
+    if (!controller || !pending()) return Promise.resolve();
+    return new Promise(resolve => {
+      const done = () => { clearTimeout(timer); off(); resolve(); };
+      const off = controller.subscribe(() => { if (!pending()) done(); });
+      const timer = setTimeout(done, timeoutMs);
+    });
+  }
+
   refresh(): void {
     if (this.refreshing || this.closing) return;
     this.refreshing = true;

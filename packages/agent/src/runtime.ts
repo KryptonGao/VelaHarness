@@ -2355,6 +2355,10 @@ export class AgentRuntime {
   }
 
   async getPlugins(input: McpCatalogInput): Promise<PluginCatalog> {
+    await this.ready();
+    // A freshly created management session is still handshaking with already-connected servers; report their
+    // settled state instead of a transient "connecting". User-driven connects keep their own live status.
+    if (!this.pluginManager.busy) await (await this.mcpBridgeFor({ cwd: input.cwd, conversationId: null })).settled(5000);
     const catalog = await this.getMcpCatalog({ cwd: input.cwd, conversationId: null });
     const pendingApply = [...this.mcpPending].some(session => this.mcpBridges.get(session)?.options.cwd === catalog.cwd);
     return { cwd: catalog.cwd, plugins: this.pluginManager.snapshots(catalog), pendingApply };
@@ -2699,6 +2703,11 @@ export class AgentRuntime {
     directory.refreshCatalogFromNetwork();
     const active = this.activeConversation();
     if (active) this.syncFromSession(active);
+    // Warm the management session so enabled integrations are connected before Settings is first opened.
+    const cwd = active?.snapshot.cwd;
+    if (cwd && this.plugins.list().some(plugin => this.plugins.isEnabled(plugin.id))) {
+      void this.mcpBridgeFor({ cwd, conversationId: null }).catch(() => undefined);
+    }
   }
 
   private restoreConversations(): void {
