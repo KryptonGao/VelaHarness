@@ -434,10 +434,6 @@ export function MemorySettingsSection({ locale, conversationId }: MemorySettings
 
   return (
     <section className="settings-section memory-settings">
-      <div className="settings-block">
-        <h2>{copy.title}</h2>
-        <p className="settings-hint">{copy.hint}</p>
-      </div>
       <div className="settings-block memory-toggle-block" data-setting-id="memory-enabled">
         <div className="memory-toggle-row">
           <span id="memory-enabled-label">{copy.enabledLabel}</span>

@@ -700,8 +700,6 @@ function McpSettingsContent({
       aria-busy={Boolean(busy)}
     >
       <div className="settings-block" data-setting-id="mcp-servers">
-        <h2>{text.title}</h2>
-        <p className="settings-hint">{text.hint}</p>
         {cwd ? (
           <p className="settings-path">{cwd}</p>
         ) : (

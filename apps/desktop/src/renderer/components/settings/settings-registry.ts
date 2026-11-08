@@ -35,7 +35,7 @@ export function groupOfPage(page: SettingsPageId): SettingsGroupId {
 }
 
 /** 这些页面自带标题栏(含刷新/添加等操作),外壳不再重复画页标题。 */
-export const pagesWithOwnHeader: ReadonlySet<SettingsPageId> = new Set(["models", "integrations", "mcp", "memory", "usage"]);
+export const pagesWithOwnHeader: ReadonlySet<SettingsPageId> = new Set(["models"]);
 
 export interface SettingsEntry {
   /** 与页面里 data-setting-id 一一对应;单测会校验两边一致。 */

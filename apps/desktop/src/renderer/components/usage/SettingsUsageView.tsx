@@ -1,4 +1,4 @@
-import { useId, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { ConversationSummary, ModelSummary, ProviderSummary } from "@vela/shared";
 import { useUsageHistory } from "../../hooks/useUsageHistory";
 import { tr, trf } from "../../locale";
@@ -19,7 +19,6 @@ export function SettingsUsageView({ conversations, providers, models = [] }: {
   const [provider, setProvider] = useState("");
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
-  const id = useId();
   const today = usageDateKey(new Date());
   const firstDay = new Date(`${today}T12:00:00`);
   firstDay.setDate(firstDay.getDate() - (range === "7" ? 6 : 29));
@@ -41,9 +40,9 @@ export function SettingsUsageView({ conversations, providers, models = [] }: {
     .filter(model => loggedIn.has(model.provider))
     .map(model => ({ key: `${model.provider}/${model.id}`, group: model.providerName, label: model.name })),
   [models, providers]);
-  return <section className="settings-usage" data-setting-id="usage" aria-labelledby={`${id}-title`}>
+  return <section className="settings-usage" data-setting-id="usage" aria-label={tr("使用统计", "Usage statistics")}>
     <div className="usage-heading">
-      <div><h2 id={`${id}-title`}>{tr("使用统计", "Usage statistics")}</h2>
+      <div>
         <p className="usage-note">{tr("汇总本地所有对话（含归档）的模型请求与 Token 用量。缺失的用量不会显示为零。", "Model requests and token usage across all local conversations, including archived chats. Missing usage is never shown as zero.")}</p>
       </div>
       <button type="button" className="settings-secondary" onClick={history.refresh} disabled={history.loading}>

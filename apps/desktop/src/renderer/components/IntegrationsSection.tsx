@@ -4,8 +4,8 @@ import type { PluginCatalog, PluginSnapshot } from "@vela/shared";
 import type { AppLocale } from "../hooks/usePreferences";
 
 const copy = {
-  en: { title: "Integrations", hint: "Connect your workspace apps to Vela.", connect: "Connect", disconnect: "Disconnect", cancel: "Cancel", retry: "Try again", loading: "Loading integrations…", failed: "Unable to update integrations. Please try again.", pending: "Tools will become available in the current chat after its turn finishes.", states: { disconnected: "Not connected", connecting: "Connecting…", connected: "Connected", error: "Connection failed" } },
-  zh: { title: "集成", hint: "将你的工作应用连接到 Vela。", connect: "连接", disconnect: "断开连接", cancel: "取消", retry: "重试", loading: "正在加载集成…", failed: "无法更新集成，请重试。", pending: "当前对话将在本轮结束后启用新工具。", states: { disconnected: "未连接", connecting: "正在连接…", connected: "已连接", error: "连接失败" } },
+  en: { title: "Integrations", connect: "Connect", disconnect: "Disconnect", cancel: "Cancel", retry: "Try again", loading: "Loading integrations…", failed: "Unable to update integrations. Please try again.", pending: "Tools will become available in the current chat after its turn finishes.", states: { disconnected: "Not connected", connecting: "Connecting…", connected: "Connected", error: "Connection failed" } },
+  zh: { title: "集成", connect: "连接", disconnect: "断开连接", cancel: "取消", retry: "重试", loading: "正在加载集成…", failed: "无法更新集成，请重试。", pending: "当前对话将在本轮结束后启用新工具。", states: { disconnected: "未连接", connecting: "正在连接…", connected: "已连接", error: "连接失败" } },
 };
 
 // Notion and Linear marks are from Simple Icons (CC0); the DeepWiki mark is its official logo from deepwiki.com.
@@ -71,8 +71,7 @@ export function IntegrationsSection({ locale, workspacePath, conversationId }: {
     finally { if (revision === context.current && sequence === action.current) setBusy(null); }
   }
 
-  return <section className="settings-section integrations-section" aria-label={text.title}>
-    <div className="settings-block" data-setting-id="integrations"><h2>{text.title}</h2><p className="settings-hint">{text.hint}</p></div>
+  return <section className="settings-section integrations-section" aria-label={text.title} data-setting-id="integrations">
     {error ? <div className="settings-block"><p role="alert">{text.failed}</p><button className="settings-secondary" onClick={() => setReload(value => value + 1)}>{text.retry}</button></div> : null}
     {!catalog && !error ? <p role="status" className="settings-hint">{text.loading}</p> : null}
     {catalog?.plugins.map(plugin => <article className="integration-card" key={plugin.id}>

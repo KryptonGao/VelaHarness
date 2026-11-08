@@ -85,7 +85,7 @@
 .settings-usage { max-width: 1140px; min-width: 0; padding: 8px 0; }
 .usage-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 22px; }
 .usage-heading h2 { font-size: calc(20px * var(--ui-scale)); font-weight: 650; margin: 0; }
-.usage-heading .usage-note { margin-top: 8px; font-size: calc(13px * var(--ui-scale)); }
+.usage-heading .usage-note { margin-top: 0; font-size: calc(13px * var(--ui-scale)); }
 .usage-heading button { flex-shrink: 0; }
 .usage-heading button:disabled { opacity: .5; cursor: default; }
 .usage-filters { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
