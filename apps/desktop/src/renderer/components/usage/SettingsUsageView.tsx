@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import type { ConversationSummary, ModelSummary, ProviderSummary } from "@vela/shared";
 import { useUsageHistory } from "../../hooks/useUsageHistory";
 import { tr, trf } from "../../locale";
@@ -14,6 +14,7 @@ export function SettingsUsageView({ conversations, providers, models = [] }: {
   providers: Pick<ProviderSummary, "id" | "name" | "authenticated">[];
   models?: Pick<ModelSummary, "provider" | "providerName" | "id" | "name">[];
 }) {
+  const id = useId();
   const history = useUsageHistory(conversations);
   const [range, setRange] = useState<Range>("30");
   const [provider, setProvider] = useState("");
