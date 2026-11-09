@@ -64,7 +64,7 @@ import {
   shouldResumeFollowForMessages,
   shouldShowJumpToLatest,
 } from "./chat-scroll";
-import { acceptanceCounts, outcomeByFinalMessage, type AcceptanceRequest } from "./acceptance";
+import { outcomeByFinalMessage, type AcceptanceRequest } from "./acceptance";
 import { summarizeTurnChanges, type TurnChanges, type TurnReviewRequest } from "./turn-changes";
 import { chatLaneDefaultMaxWidth, planChatLane, planInfoCardLane } from "../chat-lane";
 import { ConversationViewTabs, conversationPanelId, conversationTabId, isEmptyConversationView, type ConversationViewKey } from "./ConversationViewTabs";
@@ -923,6 +923,8 @@ export function ChatView({
                     replyTime={finalReply.timestamp ?? lastAssistant.timestamp ?? lastAssistant.turnCompletedAt ?? null}
                     onBranch={onBranch}
                     onCheckpoints={onOpenCheckpoints}
+                    acceptance={acceptance}
+                    onOpenAcceptance={onOpenAcceptance}
                     deferred={!isCurrentTurn}
                   />
                 ) : turn.assistants.length > 0 ? (
@@ -969,19 +971,21 @@ export function ChatView({
                       ))
                     )}
                     <PlanPreviewList planIds={collectPlanIds(turn.assistants)} />
-                    {finalReply ? (
+                    {finalReply || acceptance ? (
                       <ReplyActions
                         text={joinReplyText(finalReplies)}
-                        timestamp={finalReply.timestamp ?? null}
+                        replyless={!finalReply}
+                        timestamp={finalReply?.timestamp ?? null}
                         branchTurn={branchTurn}
                         branchDisabled={session?.status !== "ready"}
                         onBranch={onBranch}
                         onCheckpoints={onOpenCheckpoints}
+                        acceptance={acceptance}
+                        onOpenAcceptance={onOpenAcceptance}
                       />
                     ) : null}
                   </div>
                 ) : null}
-                {acceptance ? <AcceptanceCard request={acceptance} onOpen={onOpenAcceptance} /> : null}
               </Fragment>
             );
           })
@@ -1500,6 +1504,8 @@ const CompletedAssistantTurn = memo(function CompletedAssistantTurn({
   replyTime,
   onBranch,
   onCheckpoints,
+  acceptance,
+  onOpenAcceptance,
   deferred,
 }: {
   messages: UiMessage[];
@@ -1517,6 +1523,8 @@ const CompletedAssistantTurn = memo(function CompletedAssistantTurn({
   replyTime: number | null;
   onBranch: (turnIndex: number) => void;
   onCheckpoints?: (turnIndex?: number) => void;
+  acceptance: AcceptanceRequest | null;
+  onOpenAcceptance?: (request: AcceptanceRequest) => void;
   deferred: boolean;
 }) {
   const thinkingGroupMode = useThinkingGroupMode();
@@ -1615,6 +1623,8 @@ const CompletedAssistantTurn = memo(function CompletedAssistantTurn({
         branchDisabled={branchTurn === null}
         onBranch={onBranch}
         onCheckpoints={onCheckpoints}
+        acceptance={acceptance}
+        onOpenAcceptance={onOpenAcceptance}
       />
       {changes ? <TurnChangesCard turnId={messages[messages.length - 1].id} changes={changes} onOpenChanges={onOpenChanges} onReviewTurn={onReviewTurn} canManageChanges={canManageChanges} /> : null}
     </article>
@@ -1624,18 +1634,25 @@ const CompletedAssistantTurn = memo(function CompletedAssistantTurn({
 /** 回复下方的操作行:左侧复制与分支,右侧显示回复完成的时间点。 */
 function ReplyActions({
   text,
+  replyless = false,
   timestamp,
   branchTurn,
   branchDisabled,
   onBranch,
   onCheckpoints,
+  acceptance,
+  onOpenAcceptance,
 }: {
   text: string;
+  /** 本轮没有最终回复文本时，只保留验收入口。 */
+  replyless?: boolean;
   timestamp: number | null;
   branchTurn: number | null;
   branchDisabled: boolean;
   onBranch: (turnIndex: number) => void;
   onCheckpoints?: (turnIndex?: number) => void;
+  acceptance?: AcceptanceRequest | null;
+  onOpenAcceptance?: (request: AcceptanceRequest) => void;
 }) {
   const [copied, setCopied] = useState(false);
   const time = formatReplyTime(timestamp);
@@ -1651,6 +1668,7 @@ function ReplyActions({
 
   return (
     <div className="reply-actions">
+      {!replyless ? <>
       <button
         className="reply-action"
         type="button"
@@ -1685,6 +1703,20 @@ function ReplyActions({
         >
           <HistoryIcon size={13} />
           <span>{tr("检查点", "Checkpoint")}</span>
+        </button>
+      ) : null}
+      </>: null}
+      {acceptance ? (
+        <button
+          className="reply-action reply-action-acceptance"
+          type="button"
+          title={tr("验收", "Acceptance")}
+          aria-label={tr("验收", "Acceptance")}
+          disabled={!onOpenAcceptance}
+          onClick={() => onOpenAcceptance?.(acceptance)}
+        >
+          <CheckIcon size={13} />
+          <span>{tr("验收", "Acceptance")}</span>
         </button>
       ) : null}
       {time && timestamp !== null ? (
@@ -1847,11 +1879,3 @@ function PanelIcon() {
   );
 }
 
-/** 完成状态来自 agent，只有没有待确认且证据通过的需求计入通过。 */
-function AcceptanceCard({ request, onOpen }: { request: AcceptanceRequest; onOpen?: (request: AcceptanceRequest) => void }) {
-  const { passed, pending } = acceptanceCounts(request.outcome);
-  return <button type="button" className="acceptance-card" disabled={!onOpen} onClick={() => onOpen?.(request)}>
-    <strong>{tr("验收", "Acceptance")}</strong>
-    <span>{trf("通过 {0} · 待确认 {1}", "Passed {0} · To confirm {1}", passed, pending)}</span>
-  </button>;
-}

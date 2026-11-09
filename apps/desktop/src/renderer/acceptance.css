@@ -1,7 +1,5 @@
 /* 成果验收复用工作台颜色、字体和动效变量。 */
-.acceptance-card { width: calc(min(100%, var(--chat-lane-max, 760px)) - var(--chat-lane-shrink, 0px)); margin: 0 0 0; margin-right: calc(var(--chat-lane-shift, 0px) * 2); display: flex; align-items: center; gap: 8px; padding: 10px 14px; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); background: var(--bg-chat); color: var(--text-secondary); font-size: calc(12px * var(--ui-scale)); }
-.acceptance-card:hover { background: var(--bg-surface-subtle); border-color: var(--border-strong); }
-.acceptance-card:focus-visible, .acceptance-panel button:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: -2px; }
+.acceptance-panel button:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: -2px; }
 .acceptance-panel { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; color: var(--text-primary); background: var(--bg-chat); container-type: inline-size; font-size: calc(13px * var(--ui-scale)); }
 .acceptance-toolbar { flex: none; display: flex; align-items: center; gap: 8px; min-height: 46px; padding: 8px 14px; border-bottom: 1px solid var(--border-subtle); }
 .acceptance-toolbar strong { font-weight: 600; }
@@ -61,5 +59,5 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .acceptance-detail { animation: none; }
-  .acceptance-panel button, .acceptance-evidence-toggle > svg:last-child, .acceptance-card { transition: none; }
+  .acceptance-panel button, .acceptance-evidence-toggle > svg:last-child { transition: none; }
 }

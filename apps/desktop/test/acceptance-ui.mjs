@@ -42,7 +42,7 @@ if (!process.versions.electron) {
   };
   const click = async selector => { await evaluate(`document.querySelector(${JSON.stringify(selector)}).click()`); };
   const open = async index => {
-    await evaluate(`document.querySelectorAll('.acceptance-card')[${index}].click()`);
+    await evaluate(`document.querySelectorAll('.reply-action-acceptance')[${index}].click()`);
     await until("Boolean(document.querySelector('.acceptance-panel')) && !document.querySelector('.acceptance-panel').closest('[role=tabpanel]').hidden");
   };
   const capture = async name => {
@@ -53,9 +53,8 @@ if (!process.versions.electron) {
   };
   try {
     await win.loadFile(join(process.env.VELA_ACCEPTANCE_TEMP, "index.html"));
-    await until("document.querySelectorAll('.acceptance-card').length === 2");
-    assert.equal(await evaluate("document.querySelector('.acceptance-card').textContent.includes('验收')"), true);
-    assert.equal(await evaluate("document.querySelector('.acceptance-card').textContent.includes('待确认')"), true);
+    await until("document.querySelectorAll('.reply-action-acceptance').length === 2");
+    assert.equal(await evaluate("document.querySelector('.reply-action-acceptance').textContent.includes('验收')"), true);
 
     // 回合边界、无改动问答、checkpoint 磁盘改动与最后一次成功提交。
     assert.deepEqual(await evaluate(`(() => {
@@ -112,11 +111,11 @@ if (!process.versions.electron) {
 
     for (const display of ["card", "compact"]) for (const fold of ["message", "position"]) for (const noReply of [false, true]) {
       await evaluate(`acceptanceFixture.variant(${JSON.stringify(display)},${JSON.stringify(fold)},${noReply})`);
-      await until("document.querySelectorAll('.acceptance-card').length === 2");
+      await until("document.querySelectorAll('.reply-action-acceptance').length === 2");
       await open(0);
     }
-    await evaluate("acceptanceFixture.streaming(true)"); await until("document.querySelectorAll('.acceptance-card').length === 1");
-    await evaluate("acceptanceFixture.streaming(false)"); await until("document.querySelectorAll('.acceptance-card').length === 2");
+    await evaluate("acceptanceFixture.streaming(true)"); await until("document.querySelectorAll('.reply-action-acceptance').length === 1");
+    await evaluate("acceptanceFixture.streaming(false)"); await until("document.querySelectorAll('.reply-action-acceptance').length === 2");
     await open(0); await click(".acceptance-requirement:first-child");
     await evaluate("document.documentElement.dataset.scheme='dark'"); await capture("acceptance-dark");
     await evaluate("acceptanceFixture.width(420)");
