@@ -130,7 +130,6 @@ body {
   border-color: transparent;
   background: var(--accent-blue);
   color: var(--accent-contrast);
-  box-shadow: var(--shadow-btn-blue);
 }
 
 .tc-button-primary:hover:not(:disabled) {

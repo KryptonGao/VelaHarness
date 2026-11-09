@@ -207,7 +207,6 @@
   --accent-tint-strong: color-mix(in srgb, var(--accent-blue) var(--tint-strong), transparent);
   --accent-border: color-mix(in srgb, var(--accent-blue) 32%, transparent);
   --accent-ring: color-mix(in srgb, var(--accent-blue) 14%, transparent);
-  --shadow-btn-blue: 0 4px 14px color-mix(in srgb, var(--accent-blue) 35%, transparent);
   --success-tint: color-mix(in srgb, var(--success) var(--tint), transparent);
   --danger-tint: color-mix(in srgb, var(--danger) var(--tint), transparent);
   --warning-tint: color-mix(in srgb, var(--warning) var(--tint), transparent);

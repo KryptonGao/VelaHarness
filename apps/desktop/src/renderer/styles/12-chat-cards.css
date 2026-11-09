@@ -162,7 +162,7 @@
 }
 .approval-banner-actions { display: flex; gap: 8px; justify-content: flex-end; }
 .approval-btn { padding: 6px 14px; border-radius: var(--radius-md); font-size: calc(15px * var(--ui-scale)); font-weight: 600; }
-.approval-btn.allow { background: var(--accent-blue); color: var(--accent-contrast); box-shadow: var(--shadow-btn-blue); }
+.approval-btn.allow { background: var(--accent-blue); color: var(--accent-contrast); }
 .approval-btn.allow:hover { background: var(--accent-blue-hover); }
 .approval-btn.deny { background: var(--bg-elevated); color: var(--text-secondary); }
 .approval-btn.deny:hover { background: var(--bg-hover); }
@@ -230,7 +230,6 @@
   font-weight: 600;
   background: var(--accent-blue);
   color: var(--accent-contrast);
-  box-shadow: var(--shadow-btn-blue);
 }
 .question-custom-send:hover { background: var(--accent-blue-hover); }
 .question-custom-send:disabled { opacity: 0.45; cursor: default; }

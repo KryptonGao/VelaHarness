@@ -438,15 +438,14 @@
   height: 32px;
   border-radius: 50%;
   background: var(--accent-blue);
-  box-shadow: var(--shadow-btn-blue);
   color: var(--accent-contrast);
   display: grid;
   place-items: center;
   flex-shrink: 0;
 }
 .send-action-blue-btn:hover:not(:disabled) { background: var(--accent-blue-hover); }
-.send-action-blue-btn:disabled { opacity: 0.45; cursor: default; box-shadow: none; }
-.send-action-blue-btn.stop { background: var(--text-primary); box-shadow: none; }
+.send-action-blue-btn:disabled { opacity: 0.45; cursor: default; }
+.send-action-blue-btn.stop { background: var(--text-primary); }
 .stop-square {
   width: 10px;
   height: 10px;
@@ -1019,9 +1018,8 @@
 .primary-btn {
   background: var(--accent-blue);
   color: var(--accent-contrast);
-  box-shadow: var(--shadow-btn-blue);
 }
-.primary-btn:disabled { opacity: 0.5; box-shadow: none; }
+.primary-btn:disabled { opacity: 0.5; }
 
 .sheet-backdrop {
   position: fixed;
