@@ -71,7 +71,7 @@ const fixtures = {
   "browser-shot": [tool("browser_repl", undefined, `Browser fixture output\n\n![Browser screenshot](data:image/png;base64,${image})`, "done", { command: "await tab.screenshot()" })],
   "browser-reset": [tool("browser_repl_reset", presentation("notice", { code: "browser-reset" }), "Browser REPL context reset; pages retained.")],
   diff: [tool("edit", undefined, undefined, "done", { path: "fixture.ts", diff: "-1 const oldValue = 1;\n+1 const newValue = 2;" })],
-  checklist: [tool("update_todos", undefined, "Fixture checklist", "done", { plan: [{ text: "Completed fixture step", status: "completed" }, { text: "Active fixture step", status: "in_progress" }, { text: "Pending fixture step", status: "pending" }] })],
+  checklist: [tool("update_todos", undefined, "Fixture checklist", "done", { plan: [{ text: "Completed fixture step", status: "completed" }, { text: "定位起始页问好文案及其多语言配置", status: "in_progress" }, { text: "Pending fixture step", status: "pending" }] })],
 };
 
 if (!process.versions.electron) {
@@ -360,6 +360,20 @@ if (!process.versions.electron) {
         await openCase("checklist", display);
         assert.equal(await evaluate("document.querySelectorAll('.plan-checklist-item').length"), 3);
         assert.equal(await evaluate("document.querySelectorAll('.plan-checklist-item[data-status=in_progress]').length"), 1);
+        for (const scale of [0.85, 1, 1.25]) {
+          await evaluate(`document.documentElement.style.setProperty('--ui-scale', '${scale}')`);
+          const centers = await evaluate(`(() => {
+            const head = document.querySelector('.tool-card-head');
+            const mark = head.querySelector('.plan-status-inline');
+            mark.style.animation = 'none';
+            const center = element => { const rect = element.getBoundingClientRect(); return rect.top + rect.height / 2; };
+            return { mark: center(mark), text: center(head.querySelector('.tool-card-name-text')), label: center(head.querySelector('.tool-kind-label')) };
+          })()`);
+          // Optical alignment: the glyphs sit slightly above the center of their line boxes.
+          assert.ok(Math.abs(centers.mark + scale - centers.text) <= 0.5, `${display}/${scale}: todo mark optically aligns with its text ${JSON.stringify(centers)}`);
+          assert.ok(Math.abs(centers.mark + scale - centers.label) <= 0.5, `${display}/${scale}: todo mark optically aligns with the tool label ${JSON.stringify(centers)}`);
+        }
+        await evaluate("document.documentElement.style.removeProperty('--ui-scale')");
         await openCase("diff", display);
         await until("document.querySelectorAll('.tool-diff-line').length >= 2");
         assert.match(await visibleText(), /newValue/);
@@ -378,6 +392,9 @@ if (!process.versions.electron) {
       assert.deepEqual(rendererFailures, [], "Renderer did not crash");
       assert.deepEqual(externalRequests, [], "All data is local; no model/service/remote image request was made");
       if (process.env.VELA_TOOL_RESULTS_CAPTURE) {
+        await openCase("checklist", "compact", "light", 720, "en");
+        await evaluate("document.querySelector('.plan-status-inline').style.animation = 'none'");
+        writeFileSync(join(process.env.VELA_TOOL_RESULTS_CAPTURE, "tool-result-checklist-light.png"), (await win.webContents.capturePage()).toPNG());
         await openCase("shell", "compact", "dark", 360);
         writeFileSync(join(process.env.VELA_TOOL_RESULTS_CAPTURE, "tool-result-shell-dark-narrow.png"), (await win.webContents.capturePage()).toPNG());
         await openCase("schedule", "card", "light", 720);
