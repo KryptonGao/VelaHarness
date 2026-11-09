@@ -24,6 +24,18 @@ export const builtInPlugins: readonly BuiltInPlugin[] = [{
   id: "cloudflare", name: "Cloudflare", description: "Manage Cloudflare accounts, zones, Workers and other resources through the Cloudflare API",
   icon: "cloudflare", mcpUrl: "https://mcp.cloudflare.com/mcp", transport: "streamable-http", authType: "oauth2",
   toolPolicy: { approval: "existing-mcp-policy", access: "read-write" },
+}, {
+  // Supabase's hosted MCP server uses OAuth 2.1 with DCR and PKCE (authorization server api.supabase.com). No scope is
+  // preconfigured: the user chooses the organization and permissions on Supabase's consent screen.
+  id: "supabase", name: "Supabase", description: "Manage Supabase projects, databases, migrations, Edge Functions and storage",
+  icon: "supabase", mcpUrl: "https://mcp.supabase.com/mcp", transport: "streamable-http", authType: "oauth2",
+  toolPolicy: { approval: "existing-mcp-policy", access: "read-write" },
+}, {
+  // PostHog's hosted MCP server uses OAuth 2.1 with DCR and PKCE (authorization server oauth.posthog.com, public clients
+  // allowed). No scope is preconfigured: the user chooses the project and permissions on PostHog's consent screen.
+  id: "posthog", name: "PostHog", description: "Query product analytics, insights, feature flags, experiments and error tracking in PostHog",
+  icon: "posthog", mcpUrl: "https://mcp.posthog.com/mcp", transport: "streamable-http", authType: "oauth2",
+  toolPolicy: { approval: "existing-mcp-policy", access: "read-write" },
 }];
 
 /** Built-ins are virtual, preconfigured MCP entries; user mcp.json stays user-owned. */

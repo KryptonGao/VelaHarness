@@ -1,6 +1,6 @@
 # Built-in MCP Plugin System
 
-设置 → Integrations（集成）显示内置应用（Notion、Linear、DeepWiki、Cloudflare）。每张卡片提供 Connect、连接中 Cancel、连接后 Disconnect，以及可重试的错误状态。用户无需填写 URL、Token 或 JSON。连接为当前 Vela 配置目录中的全局个人连接；所有工作区、现有与未来的 Agent 会话使用同一账号。
+设置 → Integrations（集成）显示内置应用（Notion、Linear、DeepWiki、Cloudflare、Supabase、PostHog）。每张卡片提供 Connect、连接中 Cancel、连接后 Disconnect，以及可重试的错误状态。用户无需填写 URL、Token 或 JSON。连接为当前 Vela 配置目录中的全局个人连接；所有工作区、现有与未来的 Agent 会话使用同一账号。
 
 ## 架构与文件
 
@@ -52,7 +52,7 @@
 
 所有工具仍走 `McpSessionBridge` 的现有工具调用链、MCP 审批和 Plan/explore 只读过滤。服务端 `readOnlyHint` 仅是提示；只有与工作区、服务器 config digest 和原始工具 digest 绑定的明确授权才被当作只读。Notion 的名称和工具名不参与 Runtime 特殊分支。服务端回显的凭证也会在进入 Renderer 前脱敏。
 
-## Notion、Linear、DeepWiki、Cloudflare 注册与新增插件
+## Notion、Linear、DeepWiki、Cloudflare、Supabase、PostHog 注册与新增插件
 
 `packages/agent/src/mcp/plugin-registry.ts` 的 `builtInPlugins` 声明 Notion：
 
@@ -121,6 +121,40 @@ Cloudflare 同样只是一条 OAuth 声明，位于 DeepWiki 之后：
 ```
 
 Endpoint 与 [Cloudflare MCP 官方文档](https://developers.cloudflare.com/agents/model-context-protocol/mcp-servers-for-cloudflare/) 一致。只读探测确认 `https://mcp.cloudflare.com/.well-known/oauth-authorization-server` 提供 DCR（`/register`）、PKCE S256 与公开 client（`token_endpoint_auth_methods_supported` 含 `none`），未授权请求返回带 `resource_metadata` 与基线 `scope="user:read account:read"` 的 401 挑战，因此无需预注册 client ID。**权限由用户在授权时选择**：Vela 不预置 `oauth.scope`，也不在应用内维护 Cloudflare 权限清单，用户在 Cloudflare 的授权页面勾选要授予的账号与权限，Vela 仅保存最终返回的令牌。需要更多权限时，先 Disconnect 再重新 Connect 并在授权页选择。工具注册为 `mcp__builtin_cloudflare__<tool>`，默认 `deferred`，写类操作仍走现有 MCP 审批；图标取自 Simple Icons（CC0）路径并拆成两段上品牌色（橙 #F6821F、琥珀 #FBAD41），不随主题变色，工具结果里 `cloudflare.com` 及其子域链接来源显示为 “Cloudflare”。真实 Cloudflare OAuth 尚未用用户账号联调，只验证了注册表声明、生命周期与本地 provider 测试。
+
+Supabase 同样只是一条 OAuth 声明，位于 Cloudflare 之后：
+
+```ts
+{
+  id: "supabase",
+  name: "Supabase",
+  description: "Manage Supabase projects, databases, migrations, Edge Functions and storage",
+  icon: "supabase",
+  mcpUrl: "https://mcp.supabase.com/mcp",
+  transport: "streamable-http",
+  authType: "oauth2",
+  toolPolicy: { approval: "existing-mcp-policy", access: "read-write" },
+}
+```
+
+Endpoint 与 [Supabase MCP 官方文档](https://supabase.com/docs/guides/getting-started/mcp) 一致。只读探测确认：未授权请求返回带 `resource_metadata` 的 401 挑战，授权服务器为 `https://api.supabase.com`，公布 DCR（`/platform/oauth/apps/register`）、PKCE S256 与 `organizations:read`、`projects:*`、`database:*`、`edge_functions:*`、`storage:*` 等 scope。因此无需预注册 client ID，Vela 不预置 `oauth.scope`，授权的组织与权限由用户在 Supabase 授权页选择；需要更多权限时先 Disconnect 再重新 Connect。该服务的 token endpoint 只公布 `client_secret_basic` / `client_secret_post`，DCR 为每个动态注册的 client 返回其自己的 secret，仍只保存在主进程凭证存储中，不是产品预置的 secret。工具注册为 `mcp__builtin_supabase__<tool>`，默认 `deferred`；其中执行 SQL、应用迁移、部署 Edge Function 等写类工具仍走现有 MCP 审批，`access: "read-write"` 不会自动授予 Plan/explore 的只读授权。图标取自 devicon 的 Supabase 标志，渐变改为两段纯色（#3ECF8E、#249361），不随主题变色，工具结果里 `supabase.com` 及其子域、`supabase.co` 子域的链接来源显示为 “Supabase”。真实 Supabase OAuth（含 DCR 返回 secret 的 token 交换）尚未用用户账号联调，只验证了注册表声明与生命周期测试，以及上述只读 metadata 探测。
+
+PostHog 同样只是一条 OAuth 声明，位于 Supabase 之后：
+
+```ts
+{
+  id: "posthog",
+  name: "PostHog",
+  description: "Query product analytics, insights, feature flags, experiments and error tracking in PostHog",
+  icon: "posthog",
+  mcpUrl: "https://mcp.posthog.com/mcp",
+  transport: "streamable-http",
+  authType: "oauth2",
+  toolPolicy: { approval: "existing-mcp-policy", access: "read-write" },
+}
+```
+
+Endpoint 与 [PostHog MCP 官方文档](https://posthog.com/docs/model-context-protocol) 一致。只读探测确认：未授权请求返回带 `resource_metadata` 的 401 挑战，授权服务器为 `https://oauth.posthog.com`，公布 DCR（`/oauth/register/`）、PKCE S256 与公开 client（`token_endpoint_auth_methods_supported` 含 `none`），受保护资源元数据列出 `insight:read`、`feature_flag:write` 等细粒度 scope。因此无需预注册 client ID，Vela 不预置 `oauth.scope`，授权的项目与权限由用户在 PostHog 授权页选择；需要更多权限时先 Disconnect 再重新 Connect。工具注册为 `mcp__builtin_posthog__<tool>`，默认 `deferred`；创建或修改 Feature Flag、实验等写类工具仍走现有 MCP 审批，`access: "read-write"` 不会自动授予 Plan/explore 的只读授权。图标取自 Simple Icons（CC0）的 PostHog 标志，单色跟随主题，工具结果里 `posthog.com` 及其子域的链接来源显示为 “PostHog”。**区域限制**：内置端点固定为美国区 `mcp.posthog.com`；欧盟区账号使用 `mcp-eu.posthog.com`（已确认其 401 挑战存在），目前 Vela 不提供区域选择，欧盟区用户暂时无法通过内置卡片连接，如需支持应另行设计区域选项。真实 PostHog OAuth 尚未用用户账号联调，也未验证未预置 scope 时授权页的默认勾选行为，只验证了注册表声明与生命周期测试，以及上述只读 metadata 探测。
 
 新增更多 OAuth MCP 插件时，在同一数组追加配置：
 
