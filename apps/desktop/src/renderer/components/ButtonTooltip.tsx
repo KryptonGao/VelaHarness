@@ -119,6 +119,35 @@ export function ButtonTooltip() {
     };
   }, []);
 
+  // 其余带 title 的元素(文字按钮、被排除区域里的按钮、截断文字等)不让 Chromium 弹原生气泡:悬停期间摘掉 title,离开后写回。
+  useEffect(() => {
+    let suppressed: HTMLElement | null = null;
+    let stashed: string | null = null;
+    const restore = () => {
+      if (suppressed && stashed !== null && suppressed.getAttribute("title") === null) suppressed.setAttribute("title", stashed);
+      suppressed = null;
+      stashed = null;
+    };
+    const onPointerOver = (event: PointerEvent) => {
+      const target = event.target instanceof Element ? (event.target as HTMLElement) : null;
+      const holder = target?.closest<HTMLElement>("[title]") ?? null;
+      if (holder === suppressed) return;
+      restore();
+      if (!holder) return;
+      // 自定义提示接管的按钮由 ButtonTooltip 自己处理 title。
+      const button = findTooltipButton(target);
+      if (button === holder && tooltipSource(button)) return;
+      suppressed = holder;
+      stashed = holder.getAttribute("title");
+      holder.removeAttribute("title");
+    };
+    document.addEventListener("pointerover", onPointerOver);
+    return () => {
+      restore();
+      document.removeEventListener("pointerover", onPointerOver);
+    };
+  }, []);
+
   useLayoutEffect(() => {
     const node = ref.current;
     if (!anchor || !node) return;
