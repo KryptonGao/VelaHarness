@@ -1,139 +1,134 @@
 {
-  "version": "1.2.26",
+  "version": "1.2.27",
   "locales": {
     "en": {
-      "summary": "Vela 1.2.26 adds a copy button for command output and a running-seconds clock on tool lines, unifies todo list styling with the run view, and makes the edge blur follow scrolling without lag.",
+      "summary": "Vela 1.2.27 adds built-in DeepWiki, Linear, and Cloudflare connectors with search on the Integrations page, shows MCP tool results more clearly, and shows connector status without a transient \"connecting\" state.",
       "highlights": [
         {
-          "title": "Copy command output",
-          "body": "Hover over a command's output to show a button that copies it to the clipboard."
+          "title": "DeepWiki connector",
+          "body": "Connect DeepWiki from Integrations with no sign-in or stored credentials."
         },
         {
-          "title": "Running-seconds clock on tool lines",
-          "body": "Tool calls that are still running now show how many seconds they have been going, like command lines already did. The count keeps its start time when you switch sessions and come back."
+          "title": "Linear connector",
+          "body": "Connect Linear from Integrations through the standard OAuth sign-in."
         },
         {
-          "title": "One look for todo lists",
-          "body": "Todo lists in tool cards use the same marks as the run view. An item left in progress when its task ends shows a solid ring with three dots, and the run view's todo list stays below the conversation after the run ends."
+          "title": "Cloudflare connector",
+          "body": "Connect Cloudflare from Integrations, with a search box to find connectors quickly."
         },
         {
-          "title": "Edge blur that keeps up with scrolling",
-          "body": "The soft blur at the top and bottom of scrolling areas now follows the scroll position directly, instead of appearing a few frames after text has already moved under the edge."
+          "title": "Settled connector status",
+          "body": "Enabled connectors now report their real state when Settings opens, instead of briefly showing \"connecting\"."
         }
       ],
       "improvements": [
-        "Remaining pill-shaped buttons across cards, panels, and settings now use the rounded-rectangle button style.",
-        "The run view's todo list no longer shows a status bar once the run has ended.",
-        "The edge blur only runs while content actually overflows, and reaches full strength after 8 px of scrolling.",
-        "Saved and live tool timings are reconciled so a running tool's clock starts from its real start."
+        "Tool search and MCP resource tools are labeled as MCP, and the mcp__ prefix is no longer shown in tool names.",
+        "Integrations, MCP, Memory, and Usage settings now use the shared page title.",
+        "The todo status icon in tool card headers is vertically centered, settings navigation labels stay on one line, and compact question text is shown in gray."
       ]
     },
     "zh-CN": {
-      "summary": "Vela 1.2.26 为命令输出新增复制按钮，并在工具行显示运行秒数；待办列表与运行视图样式统一，边缘模糊也不再滞后于滚动。",
+      "summary": "Vela 1.2.27 新增内置 DeepWiki、Linear 和 Cloudflare 连接器，并为“集成”页面加入搜索；MCP 工具结果显示更清晰，连接器状态也不再出现短暂的“连接中”。",
       "highlights": [
         {
-          "title": "复制命令输出",
-          "body": "悬停在命令输出上会出现按钮，可一键将输出复制到剪贴板。"
+          "title": "DeepWiki 连接器",
+          "body": "在“集成”中即可连接 DeepWiki，无需登录，也不保存任何凭据。"
         },
         {
-          "title": "工具行显示运行秒数",
-          "body": "仍在运行的工具调用现在会像命令行一样显示已运行的秒数。切换会话再回来时，计时的起点不会丢失。"
+          "title": "Linear 连接器",
+          "body": "在“集成”中通过标准 OAuth 登录连接 Linear。"
         },
         {
-          "title": "统一的待办列表外观",
-          "body": "工具卡片中的待办列表改用与运行视图相同的标记。任务结束时仍处于进行中的项目显示为带三个点的实心圆环，运行视图的待办列表在运行结束后仍保留在对话下方。"
+          "title": "Cloudflare 连接器",
+          "body": "在“集成”中连接 Cloudflare，并可通过搜索框快速找到连接器。"
         },
         {
-          "title": "跟得上滚动的边缘模糊",
-          "body": "滚动区域顶部和底部的柔和模糊现在直接跟随滚动位置，不再等文字已滚到边缘下方几帧后才出现。"
+          "title": "稳定的连接器状态",
+          "body": "打开设置时，已启用的连接器会直接显示真实状态，不再短暂显示“连接中”。"
         }
       ],
       "improvements": [
-        "卡片、面板和设置中残留的胶囊按钮，统一改为圆角矩形按钮样式。",
-        "运行结束后，运行视图的待办列表不再显示状态栏。",
-        "边缘模糊只在内容确实溢出时运行，滚动 8 px 后即达到最大强度。",
-        "已保存的与实时的工具计时会相互校准，运行中工具的计时从真实的开始时间算起。"
+        "tool_search 和 MCP 资源工具现在标记为 MCP，工具名称也不再显示 mcp__ 前缀。",
+        "集成、MCP、记忆和用量设置统一使用共享的页面标题。",
+        "工具卡片标题中的待办状态图标垂直居中，设置导航标签保持单行，精简提问文字改为灰色显示。"
       ]
     },
     "zh-TW": {
-      "summary": "Vela 1.2.26 為指令輸出新增複製按鈕，並在工具列顯示執行秒數；待辦清單與執行檢視樣式統一，邊緣模糊也不再落後於捲動。",
+      "summary": "Vela 1.2.27 新增內建 DeepWiki、Linear 和 Cloudflare 連接器，並為「整合」頁面加入搜尋；MCP 工具結果顯示更清晰，連接器狀態也不再出現短暫的「連線中」。",
       "highlights": [
         {
-          "title": "複製指令輸出",
-          "body": "將游標停在指令輸出上會出現按鈕，可一鍵將輸出複製到剪貼簿。"
+          "title": "DeepWiki 連接器",
+          "body": "在「整合」中即可連接 DeepWiki，無需登入，也不儲存任何憑證。"
         },
         {
-          "title": "工具列顯示執行秒數",
-          "body": "仍在執行的工具呼叫現在會像指令列一樣顯示已執行的秒數。切換工作階段再回來時，計時的起點不會遺失。"
+          "title": "Linear 連接器",
+          "body": "在「整合」中透過標準 OAuth 登入連接 Linear。"
         },
         {
-          "title": "統一的待辦清單外觀",
-          "body": "工具卡片中的待辦清單改用與執行檢視相同的標記。任務結束時仍處於進行中的項目會顯示為帶三個點的實心圓環，執行檢視的待辦清單在執行結束後仍保留在對話下方。"
+          "title": "Cloudflare 連接器",
+          "body": "在「整合」中連接 Cloudflare，並可透過搜尋框快速找到連接器。"
         },
         {
-          "title": "跟得上捲動的邊緣模糊",
-          "body": "捲動區域頂部和底部的柔和模糊現在直接跟隨捲動位置，不再等文字已捲到邊緣下方幾格影格後才出現。"
+          "title": "穩定的連接器狀態",
+          "body": "開啟設定時，已啟用的連接器會直接顯示真實狀態，不再短暫顯示「連線中」。"
         }
       ],
       "improvements": [
-        "卡片、面板和設定中殘留的膠囊按鈕，統一改為圓角矩形按鈕樣式。",
-        "執行結束後，執行檢視的待辦清單不再顯示狀態列。",
-        "邊緣模糊只在內容確實溢出時運作，捲動 8 px 後即達到最大強度。",
-        "已儲存的與即時的工具計時會相互校準，執行中工具的計時從真實的開始時間算起。"
+        "tool_search 和 MCP 資源工具現在標示為 MCP，工具名稱也不再顯示 mcp__ 前綴。",
+        "整合、MCP、記憶和用量設定統一使用共用的頁面標題。",
+        "工具卡片標題中的待辦狀態圖示垂直置中，設定導覽標籤保持單行，精簡提問文字改為灰色顯示。"
       ]
     },
     "ja": {
-      "summary": "Vela 1.2.26 ではコマンド出力のコピーボタンとツール行の実行秒数表示を追加し、ToDo リストの見た目を実行ビューに統一しました。端のぼかしもスクロールに遅れなくなりました。",
+      "summary": "Vela 1.2.27 では DeepWiki、Linear、Cloudflare のコネクタを内蔵し、連携ページに検索を追加しました。MCP ツール結果の表示も見やすくなり、コネクタの状態に一瞬の「接続中」が出なくなりました。",
       "highlights": [
         {
-          "title": "コマンド出力をコピー",
-          "body": "コマンドの出力にカーソルを重ねると表示されるボタンで、出力をクリップボードにコピーできます。"
+          "title": "DeepWiki コネクタ",
+          "body": "連携ページからサインインや認証情報の保存なしで DeepWiki に接続できます。"
         },
         {
-          "title": "ツール行に実行秒数を表示",
-          "body": "実行中のツール呼び出しにも、コマンド行と同じように経過秒数を表示します。セッションを切り替えて戻っても、計測の開始時刻は失われません。"
+          "title": "Linear コネクタ",
+          "body": "連携ページから標準の OAuth サインインで Linear に接続できます。"
         },
         {
-          "title": "統一された ToDo リストの見た目",
-          "body": "ツールカード内の ToDo リストは実行ビューと同じマークを使います。タスク終了時に進行中のまま残った項目は、三つの点が入った塗りつぶしのリングで表示され、実行ビューの ToDo リストは実行終了後も会話の下に残ります。"
+          "title": "Cloudflare コネクタ",
+          "body": "連携ページから Cloudflare に接続できます。検索ボックスでコネクタをすばやく探せます。"
         },
         {
-          "title": "スクロールに追従する端のぼかし",
-          "body": "スクロール領域の上端と下端のやわらかなぼかしがスクロール位置に直接連動し、文字が端の下へ入ってから数フレーム遅れて現れることがなくなりました。"
+          "title": "安定したコネクタ状態",
+          "body": "設定を開いたときに、有効なコネクタが実際の状態を表示し、一瞬「接続中」と出ることがなくなりました。"
         }
       ],
       "improvements": [
-        "カード、パネル、設定に残っていた丸薬形のボタンを、角丸の長方形スタイルに統一しました。",
-        "実行が終了すると、実行ビューの ToDo リストにステータスバーは表示されません。",
-        "端のぼかしはコンテンツが実際にあふれているときだけ動作し、8 px のスクロールで最大の強さになります。",
-        "保存済みとライブのツール計時を突き合わせ、実行中ツールの計時を実際の開始時刻から数えます。"
+        "tool_search と MCP リソースツールが MCP として表示され、ツール名の mcp__ プレフィックスは表示されなくなりました。",
+        "連携、MCP、メモリ、使用量の設定で共通のページタイトルを使うようにしました。",
+        "ツールカード見出しの ToDo ステータスアイコンを縦中央に揃え、設定ナビのラベルを 1 行に保ち、簡易質問のテキストをグレーで表示します。"
       ]
     },
     "ko": {
-      "summary": "Vela 1.2.26은 명령 출력 복사 버튼과 도구 줄의 실행 초 표시를 추가하고, 할 일 목록을 실행 보기와 같은 모양으로 통일했으며, 가장자리 흐림이 스크롤을 지연 없이 따라가도록 개선했습니다.",
+      "summary": "Vela 1.2.27은 DeepWiki, Linear, Cloudflare 커넥터를 기본 제공하고 통합 페이지에 검색을 추가했으며, MCP 도구 결과를 더 명확하게 보여 주고 커넥터 상태에 잠깐 나타나던 '연결 중'을 없앴습니다.",
       "highlights": [
         {
-          "title": "명령 출력 복사",
-          "body": "명령 출력 위에 마우스를 올리면 나타나는 버튼으로 출력을 클립보드에 복사할 수 있습니다."
+          "title": "DeepWiki 커넥터",
+          "body": "통합 페이지에서 로그인이나 저장된 자격 증명 없이 DeepWiki에 연결할 수 있습니다."
         },
         {
-          "title": "도구 줄에 실행 초 표시",
-          "body": "실행 중인 도구 호출에도 명령 줄처럼 경과 시간(초)이 표시됩니다. 세션을 전환했다가 돌아와도 측정 시작 시각은 유지됩니다."
+          "title": "Linear 커넥터",
+          "body": "통합 페이지에서 표준 OAuth 로그인으로 Linear에 연결할 수 있습니다."
         },
         {
-          "title": "통일된 할 일 목록 모양",
-          "body": "도구 카드의 할 일 목록이 실행 보기와 같은 표시를 사용합니다. 작업이 끝날 때 진행 중으로 남은 항목은 점 세 개가 있는 채워진 링으로 표시되고, 실행 보기의 할 일 목록은 실행이 끝난 뒤에도 대화 아래에 남습니다."
+          "title": "Cloudflare 커넥터",
+          "body": "통합 페이지에서 Cloudflare에 연결할 수 있으며, 검색 상자로 커넥터를 빠르게 찾을 수 있습니다."
         },
         {
-          "title": "스크롤을 따라가는 가장자리 흐림",
-          "body": "스크롤 영역 위아래의 부드러운 흐림이 스크롤 위치에 직접 연동되어, 글자가 가장자리 아래로 들어간 뒤 몇 프레임 늦게 나타나는 일이 없어졌습니다."
+          "title": "안정적인 커넥터 상태",
+          "body": "설정을 열면 사용 중인 커넥터가 실제 상태를 바로 표시하며, 잠깐 '연결 중'으로 보이지 않습니다."
         }
       ],
       "improvements": [
-        "카드, 패널, 설정에 남아 있던 알약형 버튼을 모두 둥근 사각형 버튼 스타일로 바꿨습니다.",
-        "실행이 끝나면 실행 보기의 할 일 목록에 상태 표시줄이 더 이상 나타나지 않습니다.",
-        "가장자리 흐림은 콘텐츠가 실제로 넘칠 때만 동작하며, 8 px 스크롤하면 최대 강도에 도달합니다.",
-        "저장된 도구 시간과 실시간 도구 시간을 맞춰, 실행 중인 도구의 시계가 실제 시작 시각부터 계산됩니다."
+        "tool_search와 MCP 리소스 도구가 MCP로 표시되고, 도구 이름에 mcp__ 접두사가 더 이상 표시되지 않습니다.",
+        "통합, MCP, 메모리, 사용량 설정이 공통 페이지 제목을 사용합니다.",
+        "도구 카드 헤더의 할 일 상태 아이콘을 세로 가운데로 맞추고, 설정 탐색 라벨을 한 줄로 유지하며, 간단한 질문 텍스트를 회색으로 표시합니다."
       ]
     }
   }
