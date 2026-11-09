@@ -12,22 +12,37 @@ const greetings: Record<"morning" | "noon" | "afternoon" | "evening" | "night", 
   morning: [
     ["早上好，今天想做点什么？", "Good morning. What shall we work on?"],
     ["早安，从哪里开始？", "Morning. Where do we start?"],
+    ["早安，今天有什么新想法？", "Morning. Any new ideas today?"],
+    ["早上好，先从一件小事开始？", "Good morning. Start with something small?"],
+    ["新的一天，想先解决什么？", "A new day. What should we tackle first?"],
   ],
   noon: [
     ["中午好，来处理点什么？", "Good afternoon. What's on the list?"],
     ["午安，有什么要我帮忙的？", "Hello there. How can I help?"],
+    ["中午好，有什么想一起琢磨的？", "Hello. Anything to think through together?"],
+    ["午安，来把一个想法变成现实？", "Hello. Shall we bring an idea to life?"],
+    ["中午好，接下来想做什么？", "Hello. What would you like to do next?"],
   ],
   afternoon: [
     ["下午好，今天想做点什么？", "Good afternoon. What shall we work on?"],
     ["下午好，来推进哪件事？", "Afternoon. What should we move forward?"],
+    ["下午好，有什么难题要一起看看？", "Good afternoon. Any puzzles to work through?"],
+    ["午后好，想试试什么新点子？", "Afternoon. Any new ideas to try?"],
+    ["下午好，从你最想做的开始。", "Good afternoon. Let's start with what you have in mind."],
   ],
   evening: [
     ["晚上好，今天想做点什么？", "Good evening. What shall we work on?"],
     ["晚上好，还有什么要收尾的？", "Evening. Anything left to wrap up?"],
+    ["晚上好，有什么想法想聊聊？", "Good evening. Any ideas to talk through?"],
+    ["晚上好，来理一理今天的思路？", "Evening. Shall we sort through today's ideas?"],
+    ["忙了一天，有什么我能帮忙的？", "A busy day. How can I help?"],
   ],
   night: [
     ["夜深了，还在忙什么？", "Burning the midnight oil? What are we doing?"],
     ["这么晚了，来点轻量的任务？", "Late night. Something quick?"],
+    ["夜深了，想记下什么灵感？", "Late-night inspiration. Anything to jot down?"],
+    ["夜里安静，来慢慢理理思路？", "A quiet night. Shall we think things through?"],
+    ["还没休息？有什么我能搭把手的？", "Still up? Anything I can lend a hand with?"],
   ],
 };
 
