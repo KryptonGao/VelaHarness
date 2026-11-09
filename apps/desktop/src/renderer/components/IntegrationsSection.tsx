@@ -31,6 +31,10 @@ function PluginIcon({ plugin }: { plugin: PluginSnapshot }) {
     <svg viewBox={brandViewBox[plugin.icon] ?? "0 0 24 24"} fill="currentColor"><path d={brand} /></svg> : plugin.name.slice(0, 1)}</span>;
 }
 
+// Last catalog per workspace. Re-entering the page paints this immediately while a fresh one loads, so a slow
+// "connecting" handshake never leaves the page on a spinner; the fresh result replaces it once it settles.
+const catalogCache = new Map<string, PluginCatalog>();
+
 export function IntegrationsSection({ locale, workspacePath, conversationId }: { locale: AppLocale; workspacePath: string | null; conversationId?: string | null }) {
   const text = localizeCopy(locale, copy.zh, copy.en);
   const [catalog, setCatalog] = useState<PluginCatalog | null>(null);
@@ -47,12 +51,14 @@ export function IntegrationsSection({ locale, workspacePath, conversationId }: {
     if (!api) { setError(true); return; }
     const revision = ++context.current;
     let cwd = workspacePath;
-    setCatalog(null); setError(false); setBusy(null);
+    const cacheKey = workspacePath ?? "";
+    setCatalog(catalogCache.get(cacheKey) ?? null); setError(false); setBusy(null);
     const load = async () => {
       const sequence = ++request.current;
       try {
         cwd ??= (await api.getState()).session.cwd;
         const next = await api.getPlugins({ cwd, conversationId });
+        catalogCache.set(cacheKey, next);
         if (revision === context.current && sequence === request.current) { setCatalog(next); setError(false); }
       } catch { if (revision === context.current && sequence === request.current) setError(true); }
     };
@@ -75,6 +81,7 @@ export function IntegrationsSection({ locale, workspacePath, conversationId }: {
     if (!disconnect) setCatalog({ ...catalog, plugins: catalog.plugins.map(item => item.id === plugin.id ? { ...item, status: "connecting", error: undefined } : item) });
     try {
       const next = await (disconnect ? api.disconnectPlugin : api.connectPlugin)({ cwd: catalog.cwd, conversationId, id: plugin.id });
+      catalogCache.set(workspacePath ?? "", next);
       if (revision === context.current && sequence === action.current) { request.current++; setCatalog(next); }
     } catch { if (revision === context.current && sequence === action.current) setError(true); }
     finally { if (revision === context.current && sequence === action.current) setBusy(null); }

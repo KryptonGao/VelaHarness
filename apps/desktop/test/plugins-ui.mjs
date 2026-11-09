@@ -22,13 +22,14 @@ if (!process.versions.electron) {
         catalog: {cwd:'/workspace',pendingApply:false,plugins:[{id:'notion',name:'Notion',description:'Search, read and edit your Notion workspace',icon:'notion',mcpUrl:'https://mcp.notion.com/mcp',transport:'streamable-http',authType:'oauth2',serverName:'builtin_notion',status:'disconnected',toolCount:0},{id:'linear',name:'Linear',description:'Manage issues and projects',icon:'linear',mcpUrl:'https://mcp.linear.app/mcp',transport:'streamable-http',authType:'oauth2',serverName:'builtin_linear',status:'disconnected',toolCount:0}]}};
       window.vela = {
         getState: async()=>({session:{cwd:'/fallback'}}),
-        getPlugins: async input=>{f.calls.push({method:'list',input}); return structuredClone(f.catalog);},
+        getPlugins: async input=>{f.calls.push({method:'list',input}); if(f.hold) await new Promise(resolve=>{f.release=resolve;}); return structuredClone(f.catalog);},
         connectPlugin: input=>{f.calls.push({method:'connect',input}); return new Promise(resolve=>{f.resolveConnect=()=>{f.catalog.plugins[0].status=f.fail?'error':'connected';f.catalog.plugins[0].toolCount=f.fail?0:12; resolve(structuredClone(f.catalog));};});},
         disconnectPlugin: async input=>{f.calls.push({method:'disconnect',input});f.catalog.plugins[0].status='disconnected';f.resolveConnect?.();f.catalog.plugins[0].status='disconnected'; return structuredClone(f.catalog);},
         onPluginStatus: listener=>{f.pluginListener=listener;return()=>{f.pluginListener=null;}},
         onMcpStatus: listener=>{f.mcpListener=listener;return()=>{f.mcpListener=null;}}
       };
       const root=createRoot(document.getElementById('root'));
+      window.unmount=()=>root.render(null);
       window.render=(locale='en',cwd='/workspace')=>root.render(<IntegrationsSection locale={locale} workspacePath={cwd} conversationId={null}/>);
       window.render();`, resolveDir: resolve(here, "../../.."), loader: "tsx" }, bundle: true, platform: "browser", format: "iife", jsx: "automatic", outfile: join(temporary, "ui.js"), define: { "process.env.NODE_ENV": '"development"' } });
     await build({ entryPoints: [join(here, "../src/main/plugin-credentials.ts")], bundle: true, platform: "node", format: "esm", outfile: join(temporary, "secure.mjs"), external: ["electron", piEntry], alias: { "@earendil-works/pi-coding-agent": piEntry } });
@@ -90,6 +91,16 @@ if (!process.versions.electron) {
       await click("Disconnect"); await until("document.querySelector('.integration-status')?.textContent==='Not connected'");
       await evaluate("fixture.fail=false"); await click("Connect"); await until("document.querySelector('.integration-status')?.textContent==='Connecting…'");
       await click("Cancel"); await until("document.querySelector('.integration-status')?.textContent==='Not connected'");
+      // Re-entering the page paints the last catalog at once while a slow refresh is pending, then swaps in the fresh one.
+      await evaluate("fixture.hold=true;window.unmount()"); await until("document.querySelectorAll('.integration-card').length===0");
+      await evaluate("window.render('en')");
+      await until("document.querySelectorAll('.integration-card').length===2 && document.querySelector('.integration-status')?.textContent==='Not connected'");
+      assert.equal(await evaluate("document.body.textContent.includes('Loading integrations')"), false, "cached catalog replaces the loading state");
+      await until("typeof fixture.release==='function'");
+      await evaluate("fixture.catalog.plugins[0].status='connected';fixture.hold=false;fixture.release()");
+      await until("document.querySelector('.integration-status')?.textContent==='Connected'");
+      await evaluate("fixture.catalog.plugins[0].status='disconnected'");
+      await evaluate("window.unmount()"); await until("document.querySelectorAll('.integration-card').length===0");
       await evaluate("document.documentElement.dataset.scheme='dark';window.render('zh-CN')");
       await until("document.querySelector('.integration-status')?.textContent==='未连接'");
       await capture("integrations-dark-zh");
