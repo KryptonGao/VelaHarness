@@ -139,7 +139,11 @@ const fixture = { calls: [] as string[], closed: 0, failDiff: false, commitSha: 
 const messageStore = createMessageStore();
 messageStore.publish(messageScope("fixture"), [
   { id: "user", role: "user", tools: [] },
-  { id: "reply", role: "assistant", tools: [{ id: "edit", name: "edit", status: "done", activity: { path: "last-turn.ts", diff: "-1 old\n+1 new" } }] },
+  { id: "reply", role: "assistant", tools: [
+    { id: "edit", name: "edit", status: "done", activity: { path: "last-turn.ts", diff: "-1 old\n+1 new" } },
+    { id: "delete", name: "edit", status: "done", activity: { path: "removed.ts", diff: "-8 const removed = true;\n-9 " } },
+    { id: "add", name: "write", status: "done", activity: { path: "created.ts", diff: "+1 const created = true;\n+2 " } },
+  ] },
 ] as unknown as UiMessage[]);
 messageStore.flush();
 

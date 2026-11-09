@@ -1,7 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { useEscapeKey } from "../hooks/useDismissable";
 import { tr, trf } from "../locale";
-import { DiffPane, isAddedOnlyDiff } from "./DiffPane";
+import { DiffPane, isSingleSidedDiff } from "./DiffPane";
 import { FileTypeIcon } from "./FileTypeIcon";
 import { FileIcon, FolderIcon, SearchIcon } from "./icons";
 import { FileTree } from "./preview/ExplorerPane";
@@ -213,7 +213,7 @@ export function TurnReviewView({ review, visible, onClose, target, title, filesL
           <FileTypeIcon path={file.path} /><strong title={file.path}>{file.path}</strong>
           <ChangeStats added={file.added} removed={file.removed} />
         </header>
-        {file.diffs.some(diff => diff && !isAddedOnlyDiff(diff, file.format ?? "tool"))
+        {file.diffs.some(diff => diff && !isSingleSidedDiff(diff, file.format ?? "tool"))
           ? <div className="turn-review-side-labels"><span>{tr("编辑前", "Before")}</span><span>{tr("编辑后", "After")}</span></div> : null}
         {index >= mountedCount && file.path !== target?.path
           ? <div className="turn-review-pending" style={{ height: placeholderHeight(file.diffs) }} aria-hidden="true" />

@@ -160,12 +160,15 @@ export function splitDiffRows(rows: DiffRow[]): SplitDiffRow[] {
   return result;
 }
 
-/** 新建文件的差异:只有新增行,没有可对照的旧内容,并排显示时整幅铺开。 */
-export function isAddedOnly(rows: DiffRow[]): boolean {
-  let added = false;
+/** Return the full-width side for a pure addition/deletion; context or mixed changes need both sides. */
+export function singleDiffSide(rows: DiffRow[]): "old" | "new" | null {
+  let side: "old" | "new" | null = null;
   for (const row of rows) {
-    if (row.kind === "add") added = true;
-    else if (row.kind === "del" || row.kind === "ctx") return false;
+    if (row.kind === "ctx") return null;
+    if (row.kind !== "add" && row.kind !== "del") continue;
+    const next = row.kind === "add" ? "new" : "old";
+    if (side && side !== next) return null;
+    side = next;
   }
-  return added;
+  return side;
 }

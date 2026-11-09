@@ -81,7 +81,7 @@
   --diff-gap-line: color-mix(in srgb, var(--text-muted) 10%, transparent);
   background: linear-gradient(135deg, var(--diff-gap-line) 0 4.6875%, transparent 4.6875% 50%, var(--diff-gap-line) 50% 54.6875%, transparent 54.6875% 100%) 0 0 / 16px 16px repeat, var(--bg-surface-subtle);
 }
-/* 新建文件没有旧内容可对照,整幅铺开而不是留一半空白。 */
+/* Pure additions/deletions span the full width instead of leaving an empty half. */
 .turn-review-view .diff-split-single .diff-split-row { grid-template-columns: minmax(0, 1fr); }
 .turn-review-view .diff-line-number { width: 5ch; flex: none; padding-right: 6px; text-align: right; color: var(--text-muted); user-select: none; font-variant-numeric: tabular-nums; }
 .turn-review-view .diff-code { flex: 1; min-width: 0; padding-right: 8px; white-space: pre-wrap; overflow-wrap: anywhere; word-break: normal; }

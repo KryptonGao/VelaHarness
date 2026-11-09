@@ -189,6 +189,24 @@ if (!process.versions.electron) {
     assert.equal(await evaluate("document.querySelectorAll('.turn-review-file:first-child .turn-review-edit').length"), 1);
     await choose("上一轮");
     await until("document.querySelector('.turn-review-file-header strong')?.textContent==='last-turn.ts'");
+    for (const [path, kind, lineNumber, sign] of [["removed.ts", "del", "8", "-"], ["created.ts", "add", "1", "+"]]) {
+      const state = await evaluate(`(() => {
+        const section = document.querySelector('.turn-review-file[aria-label="${path}"]');
+        const cell = section.querySelector('.diff-split-cell');
+        const row = cell.parentElement;
+        return { single: !!section.querySelector('.diff-split-single'),
+          labels: section.querySelectorAll('.turn-review-side-labels').length,
+          gaps: section.querySelectorAll('.diff-split-empty').length,
+          cells: row.children.length, kind: cell.classList.contains('${kind}'),
+          lineNumber: cell.querySelector('.diff-line-number').textContent,
+          sign: cell.querySelector('.diff-sign').textContent,
+          fullWidth: Math.abs(cell.getBoundingClientRect().width - row.getBoundingClientRect().width) < 1,
+          lines: section.querySelectorAll('.diff-line.${kind}').length };
+      })()`);
+      assert.deepEqual(state, { single: true, labels: 0, gaps: 0, cells: 1, kind: true,
+        lineNumber, sign, fullWidth: true, lines: 2 }, `${path} spans both columns and preserves its change type and line numbers`);
+    }
+    assert.equal(await evaluate("document.querySelectorAll('.turn-review-file[aria-label=\"last-turn.ts\"] .turn-review-side-labels span').length"), 2, "Mixed changes keep before/after labels");
     await choose("已提交");
     await until("document.querySelector('.changes-filter-commit')");
     await capture("commits-light");

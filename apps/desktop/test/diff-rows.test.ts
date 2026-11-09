@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { isAddedOnly, parseUnifiedDiff, splitDiffRows } from "../src/renderer/components/diff-rows.ts";
+import { singleDiffSide, parseUnifiedDiff, splitDiffRows } from "../src/renderer/components/diff-rows.ts";
 
 describe("parseUnifiedDiff", () => {
   it("区分元信息、hunk、上下文、增删行并记录两侧行索引", () => {
@@ -120,12 +120,25 @@ describe("remote PR hunk coordinates", () => {
   });
 });
 
-describe("isAddedOnly", () => {
-  it("只有新增行(新建文件)时为 true,有删除或上下文行时为 false", () => {
+describe("singleDiffSide", () => {
+  it("uses the new side for pure additions and the old side for pure deletions", () => {
     const created = ["diff --git a/n.ts b/n.ts", "new file mode 100644", "--- /dev/null", "+++ b/n.ts", "@@ -0,0 +1,2 @@", "+a", "+b", ""].join("\n");
-    assert.equal(isAddedOnly(parseUnifiedDiff(created).rows), true);
-    assert.equal(isAddedOnly(parseUnifiedDiff("@@ -1 +1 @@\n-a\n+b\n").rows), false);
-    assert.equal(isAddedOnly(parseUnifiedDiff("@@ -1,2 +1,3 @@\n same\n+b\n").rows), false);
-    assert.equal(isAddedOnly(parseUnifiedDiff("").rows), false);
+    const deleted = ["diff --git a/n.ts b/n.ts", "deleted file mode 100644", "--- a/n.ts", "+++ /dev/null", "@@ -1,2 +0,0 @@", "-a", "-", "\\ No newline at end of file", ""].join("\n");
+    assert.equal(singleDiffSide(parseUnifiedDiff(created).rows), "new");
+    assert.equal(singleDiffSide(parseUnifiedDiff(deleted).rows), "old");
+  });
+
+  it("keeps both sides for mixed changes, context, empty and metadata-only diffs", () => {
+    for (const diff of [
+      "@@ -1 +1 @@\n-a\n+b\n",
+      "@@ -1 +1 @@\n+a\n-b\n",
+      "@@ -1,2 +1,3 @@\n same\n+b\n",
+      "@@ -1,2 +1 @@\n same\n-b\n",
+      "@@ -1 +1 @@\n same\n",
+      "Binary files a/image.png and b/image.png differ\n",
+      "",
+    ]) {
+      assert.equal(singleDiffSide(parseUnifiedDiff(diff).rows), null, diff);
+    }
   });
 });

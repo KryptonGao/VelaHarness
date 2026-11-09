@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { isAddedOnly, parseUnifiedDiff, splitDiffRows, type DiffRow } from "./diff-rows";
+import { singleDiffSide, parseUnifiedDiff, splitDiffRows, type DiffRow } from "./diff-rows";
 import { tokenStyle, useDiffHighlight, type HighlightedDiff } from "./diff-highlight";
 import type { ThemedToken } from "./preview/highlighter";
 import { parseToolDiff } from "./tool-diff";
@@ -8,9 +8,9 @@ import { tr } from "../locale";
 /** mode 只影响展示:unified 单列,split 并排;不改变任何提交内容。 */
 export type DiffViewMode = "unified" | "split";
 
-/** 与 DiffPane 使用同一套解析,供外部判断某段差异会不会并排显示。 */
-export function isAddedOnlyDiff(diff: string, format: "unified" | "tool" = "unified"): boolean {
-  return isAddedOnly((format === "tool" ? parseToolDiff(diff) : parseUnifiedDiff(diff)).rows);
+/** Use the same parsing as DiffPane to determine whether a diff spans the full width. */
+export function isSingleSidedDiff(diff: string, format: "unified" | "tool" = "unified"): boolean {
+  return singleDiffSide((format === "tool" ? parseToolDiff(diff) : parseUnifiedDiff(diff)).rows) !== null;
 }
 
 export function DiffPane({
@@ -51,7 +51,7 @@ export function DiffPane({
 
 function SplitDiff({ rows, highlight, showLineNumbers }: { rows: DiffRow[]; highlight: HighlightedDiff | null; showLineNumbers: boolean }) {
   const split = useMemo(() => splitDiffRows(rows), [rows]);
-  const single = useMemo(() => isAddedOnly(rows), [rows]);
+  const single = useMemo(() => singleDiffSide(rows), [rows]);
   return (
     <pre className={`changes-diff-body diff-content-enter diff-split${single ? " diff-split-single" : ""}`}>
       {split.map((row, index) => {
@@ -64,8 +64,8 @@ function SplitDiff({ rows, highlight, showLineNumbers }: { rows: DiffRow[]; high
         }
         return (
           <div key={index} className="diff-split-row">
-            {single ? null : <SplitCell row={row.left} highlight={highlight} side="old" showLineNumbers={showLineNumbers} />}
-            <SplitCell row={row.right} highlight={highlight} side="new" showLineNumbers={showLineNumbers} />
+            {single !== "new" ? <SplitCell row={row.left} highlight={highlight} side="old" showLineNumbers={showLineNumbers} /> : null}
+            {single !== "old" ? <SplitCell row={row.right} highlight={highlight} side="new" showLineNumbers={showLineNumbers} /> : null}
           </div>
         );
       })}
