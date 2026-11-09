@@ -8,10 +8,11 @@ import { localizeError, tr, trf, useAppLocale } from "../locale";
 import { thinkingSummaryLayout } from "../thinking-summary";
 import { supportsThinkingGroups } from "../thinking-model";
 import { splitThinkingSummaries, splitThinkingTitle, type ThinkingTitle } from "../thinking-title";
-import { totalDiffStat, type DiffStat } from "./tool-compact";
+import { ToolHeadlineDetails, ToolHeadlineIcon } from "./ToolHeadline";
 import { coherentActions, countFailedTools, type CoherentAction, type CoherentEntry } from "./tool-sequence";
 import type { ToolTrace } from "@vela/shared";
 import { ThinkingSummaryContext } from "./ThinkingSummaryContext";
+import { thinkingActivity, type ThinkingActivity } from "./thinking-activity";
 import { ScrollFadeShell } from "./ScrollFadeShell";
 import { defaultCommandDetailHeight, defaultThinkingGroupHeight, defaultToolDetailHeight, expandedThinkingGroupHeight } from "../thinking-group-height";
 
@@ -33,11 +34,11 @@ export function Thinking({
   titled,
   live = false,
   failedCount = 0,
-  stat = null,
   forceOpen = false,
   coherent = false,
   codex = false,
   leadingIcon,
+  toolActivity = null,
   children,
 }: {
   text: string;
@@ -50,8 +51,6 @@ export function Thinking({
   live?: boolean;
   /** 组内失败的工具数,折叠时在标题后用红点提示。 */
   failedCount?: number;
-  /** 组内所有编辑的增删行数总计,显示在标题右边,与标题左对齐连在一起。 */
-  stat?: DiffStat | null;
   /** 组内有等待用户回答的卡片时,保持展开。 */
   forceOpen?: boolean;
   /** 连贯模式:标题是整组的汇总而不是某段思考的标题,前面不放思考图标,内容全部由 children 提供。 */
@@ -60,6 +59,8 @@ export function Thinking({
   codex?: boolean;
   /** 连贯模式标题左边的灰色图标,随汇总的首个动作变化。 */
   leadingIcon?: ReactNode;
+  /** Current running tool replaces the group headline until it finishes. */
+  toolActivity?: ThinkingActivity | null;
   children?: ReactNode;
 }) {
   const summaries = useContext(ThinkingSummaryContext);
@@ -288,22 +289,22 @@ export function Thinking({
       {arrow}
     </>
   );
+  const groupTitle = toolActivity?.title ?? titled?.title;
   const groupHeader = titled ? (
     <div className="thinking-header">
-      <button className={`time-spent-trigger thinking-headline-trigger${coherent ? "" : " thinking-cot-title"}${showActivity ? " is-running" : ""}`} type="button" aria-expanded={open} aria-controls={bodyId} onClick={toggle} title={titled.title}>
-        {coherent ? leadingIcon : icon}
-        <span className="thinking-summary-excerpt">{titled.title}</span>
-        {stat ? (
-          <span className="tool-compact-stat thinking-group-stat">
-            {stat.added > 0 ? <span className="tool-stat-add">+{stat.added}</span> : null}
-            {stat.removed > 0 ? <span className="tool-stat-del">−{stat.removed}</span> : null}
+      <button className={`time-spent-trigger thinking-headline-trigger${coherent || toolActivity ? "" : " thinking-cot-title"}${toolActivity ? ` has-tool-activity tool-kind-${toolActivity.kind === "tools" ? "other" : toolActivity.kind}` : ""}${showActivity ? " is-running" : ""}`} type="button" aria-expanded={open} aria-controls={bodyId} onClick={toggle} title={groupTitle}>
+        {toolActivity ? <span className="tool-compact-icon" aria-hidden="true"><ToolHeadlineIcon tool={toolActivity.tool} /></span> : coherent ? leadingIcon : icon}
+        {toolActivity ? (
+          <span className="thinking-summary-excerpt thinking-tool-activity">
+            <span className="tool-compact-action">{toolActivity.label}</span>
+            <ToolHeadlineDetails tool={toolActivity.tool} />
           </span>
-        ) : null}
+        ) : <span className="thinking-summary-excerpt">{groupTitle}</span>}
         {failedCount > 0 && !open ? (
           <span className="thinking-group-failed" role="img" aria-label={trf("{0} 个工具失败", "{0} tools failed", failedCount)} title={trf("{0} 个工具失败", "{0} tools failed", failedCount)} />
         ) : null}
         {arrow}
-        {showActivity ? <ActivityIndicator activity="thinking" /> : null}
+        {showActivity ? <ActivityIndicator activity={toolActivity ? "command" : "thinking"} label={toolActivity?.title} /> : null}
       </button>
     </div>
   ) : null;
@@ -454,7 +455,6 @@ export function ThinkingGroup({
 }) {
   const titled = supportsThinkingGroups({ model, modelName }) ? splitThinkingTitle(text, active) : null;
   const failedCount = tools ? countFailedTools(tools) : 0;
-  const stat = tools ? totalDiffStat([...tools]) : null;
   return (
     <>
       <Thinking
@@ -465,8 +465,8 @@ export function ThinkingGroup({
         titled={titled}
         live={live}
         failedCount={failedCount}
-        stat={stat}
         forceOpen={forceOpen}
+        toolActivity={tools ? thinkingActivity(tools, live) : null}
       >
         {titled ? children : null}
       </Thinking>
@@ -539,7 +539,8 @@ export function CoherentGroup({
   children?: ReactNode;
 }) {
   const locale = useAppLocale();
-  // 进行中标题是最新思考的标题,配思考图标;结束后图标跟着汇总的第一个动作。
+  // Running tools take precedence over the latest thought; completed groups keep their action summary.
+  const toolActivity = thinkingActivity(entries.flatMap((entry) => entry.type === "tool" ? [entry.tool] : []), live);
   const firstAction = live ? undefined : coherentActions(entries)[0];
   return (
     <Thinking
@@ -556,6 +557,7 @@ export function CoherentGroup({
       forceOpen={forceOpen}
       coherent
       codex={codex}
+      toolActivity={toolActivity}
     >
       {children}
     </Thinking>

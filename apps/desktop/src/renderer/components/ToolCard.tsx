@@ -24,7 +24,7 @@ import type { ThemedToken } from "./preview/highlighter";
 import { QuestionCard, type QuestionReplyHandler } from "./QuestionCard";
 import { FileTypeIcon } from "./FileTypeIcon";
 import { tokenStyle, useDiffHighlight, type HighlightedDiff } from "./diff-highlight";
-import { ArrowRightIcon, CheckIcon, EditFileIcon, ExternalIcon, EyeIcon, FilePlusIcon, FolderIcon, GlobeIcon, McpIcon, ReadFileIcon, SearchIcon, SkillIcon, StackIcon, TerminalIcon, ToolIcon, WebFetchIcon, WebSearchIcon } from "./icons";
+import { CheckIcon, ExternalIcon, EyeIcon, GlobeIcon, McpIcon, StackIcon, ToolIcon, WebFetchIcon, WebSearchIcon } from "./icons";
 import {
   compactLabelParts,
   compactSummaryParts,
@@ -40,7 +40,7 @@ import {
 } from "./tool-compact";
 import { bashIntentDisplay } from "./bash-intent-label";
 import { shouldFoldRun } from "./tool-sequence";
-import { firstCodeLine, lastBrowserUrl, parsePageSnapshot, splitBrowserBody, summarizeBrowserCode, type BrowserStep } from "./browser-call";
+import { firstCodeLine, lastBrowserUrl, parsePageSnapshot, splitBrowserBody, summarizeBrowserCode } from "./browser-call";
 import { foldRowId, foldSequenceId } from "./tool-fold-state";
 import { usePlanEnded } from "./PlanLiveContext";
 import { DurationLabel, ToolDurationLabel, useRunningSeconds, useToolDuration, useToolExpanded, useToolProcessDetails, useToolsDuration } from "./ToolProcessContext";
@@ -49,7 +49,7 @@ import { localizeError, tr, trf } from "../locale";
 import { cardToolGroup } from "./tool-groups";
 import { toolNameIcon } from "./tool-name-icon";
 
-type ToolKind = "browser" | "bash" | "read" | "edit" | "write" | "other";
+import { AgentHeadlineIcon, BashSubject, BrowserHeadlineSteps, KindIcon, subjectOf, subjectIsCode, taskTitle, todoFocus, toolKind, type ToolKind } from "./ToolHeadline";
 
 const kindLabels: Record<ToolKind, string> = {
   browser: "Browser REPL",
@@ -272,7 +272,7 @@ function AgentToolCard({ tool, compact = false }: { tool: ToolTrace; compact?: b
             aria-label={summaryLabel}
           >
             <span className="tool-compact-icon" aria-hidden="true">
-              {avatarId ? <AgentAvatar agentId={avatarId} size={18} /> : toolNameIcon(tool.name) ?? <ToolIcon size={13} />}
+              <AgentHeadlineIcon avatarId={avatarId} name={tool.name} />
             </span>
             <span className="tool-compact-action">{label}</span>
           </button>
@@ -374,11 +374,6 @@ function AgentToolCard({ tool, compact = false }: { tool: ToolTrace; compact?: b
   );
 }
 
-function taskTitle(body: string | undefined): string {
-  const line = body?.split("\n").find((item) => item.trim())?.replace(/\s+/g, " ").trim();
-  return line || tr("子代理", "Subagent");
-}
-
 function taskReport(body: string | undefined): string {
   if (!body) return "";
   const split = body.indexOf("\n");
@@ -474,19 +469,6 @@ function GenericToolCard({ tool, compact = false }: ToolCardProps) {
   );
 }
 
-function browserStepLabel(step: BrowserStep): string {
-  switch (step.kind) {
-    case "open": return step.target ? trf("打开 {0}", "Open {0}", step.target) : tr("打开页面", "Open page");
-    case "screenshot": return tr("截图", "Screenshot");
-    case "click": return step.target ? trf("点击「{0}」", "Click “{0}”", step.target) : tr("点击", "Click");
-    case "input": return tr("输入文字", "Type text");
-    case "snapshot": return tr("读取页面", "Read page");
-    case "inspect": return tr("检查页面", "Inspect page");
-    case "connect": return tr("连接浏览器", "Connect browser");
-    default: return tr("运行脚本", "Run script");
-  }
-}
-
 /** `tab.snapshot()` 的结果:页面标题和地址在上,下面一行一个元素(角色 + 名称),引用编号只作弱提示。 */
 function BrowserSnapshotView({ snapshot }: { snapshot: NonNullable<ReturnType<typeof parsePageSnapshot>> }) {
   return (
@@ -542,14 +524,7 @@ function BrowserReplCard({ tool, compact = false }: { tool: ToolTrace; compact?:
         <span className="browser-call-badge" aria-hidden="true">
           <GlobeIcon size={13} />
         </span>
-        <span className="browser-call-steps">
-          {steps.map((step, index) => (
-            <span className="browser-call-step-wrap" key={index}>
-              {index > 0 ? <ArrowRightIcon size={10} /> : null}
-              <span className={`browser-call-step is-${step.kind}`}>{browserStepLabel(step)}</span>
-            </span>
-          ))}
-        </span>
+        <BrowserHeadlineSteps steps={steps} />
         {screenshots.length > 0 ? (
           <span className="browser-call-shots" aria-label={trf("{0} 张截图", "{0} screenshots", screenshots.length)}>
             <EyeIcon size={11} />
@@ -849,8 +824,7 @@ export function CompactToolLine({
             </span>
           ) : null}
           {!hideAction ? <span className="tool-compact-action">{backgroundStart ? tr("已在后台运行", "Ran in background") : elapsedSeconds !== null ? trf("命令已运行 {0} 秒", "Command running for {0}s", elapsedSeconds) : bashIntent?.action ?? ranAction(toolDuration)}</span> : null}
-          <span className={`tool-compact-cmd${subjectIsCode(kind, activity) ? "" : " is-plain"}`}>{subject.name}</span>
-          {subject.dir ? <span className="tool-compact-dir">{subject.dir}</span> : null}
+          <BashSubject activity={activity} />
           <svg
             className="tool-compact-chevron"
             width="12"
@@ -1489,33 +1463,6 @@ function GroupIcon({ name, fallback }: { name: string; fallback: ReactNode }): R
   return toolNameIcon(name) ?? fallback;
 }
 
-/** 没有路径或正文可显示时,按工具名给出一个短动作名,避免把原始工具名当标题。 */
-function toolActionName(name: string): string | null {
-  if (name === "create_scheduled_task") return tr("创建", "Create");
-  if (name === "list_scheduled_tasks") return tr("查询", "List");
-  if (name === "update_scheduled_task") return tr("修改", "Update");
-  if (name === "delete_scheduled_task") return tr("删除", "Delete");
-  if (name === "memory_read") return tr("读取", "Read");
-  if (name === "memory_update") return tr("更新", "Update");
-  return null;
-}
-
-function KindIcon({ kind, command, skill = false }: { kind: ToolKind; command?: string; skill?: boolean }): ReactNode {
-  if (skill) return <SkillIcon size={13} />;
-  if (kind === "other") return <ToolIcon size={13} />;
-  if (kind === "bash") {
-    const intent = bashIntentDisplay(command)?.kind;
-    if (intent === "list") return <FolderIcon size={13} />;
-    if (intent === "read") return <ReadFileIcon size={13} />;
-    if (intent === "search" || intent === "find") return <SearchIcon size={13} />;
-    return <TerminalIcon size={13} />;
-  }
-  if (kind === "read") return <ReadFileIcon size={13} />;
-  if (kind === "edit") return <EditFileIcon size={13} />;
-  if (kind === "write") return <FilePlusIcon size={13} />;
-  return <TerminalIcon size={13} />;
-}
-
 function toolLabel(name: string, kind: ToolKind): string {
   if (name === "submit_plan") return tr("计划", "Plan");
   if (name === "update_plan") return tr("执行清单", "Execution");
@@ -1534,81 +1481,14 @@ function toolLabel(name: string, kind: ToolKind): string {
   return toolKindLabel(kind);
 }
 
-/** 待办清单的焦点项:优先进行中的一项,其次第一项未完成的,全部完成时取最后一项。 */
-function todoFocus(plan: ToolActivity["plan"]): NonNullable<ToolActivity["plan"]>[number] | null {
-  if (!plan?.length) return null;
-  return (
-    plan.find((item) => item.status === "in_progress") ??
-    plan.find((item) => item.status === "pending") ??
-    plan[plan.length - 1]!
-  );
-}
-
 function toolKindLabel(kind: ToolKind): string {
   if (kind === "other") return tr("工具", "Tool");
   return kindLabels[kind];
 }
 
-function toolKind(name: string): ToolKind {
-  if (name === "browser_repl" || name === "browser_repl_reset") return "browser";
-  if (name === "bash" || name === "read" || name === "edit" || name === "write") return name;
-  return "other";
-}
-
 function mcpDiscoveryServer(presentation: ToolActivity["presentation"]): string | undefined {
   if (presentation?.kind === "discovery") return presentation.query ? splitMcpQuery(presentation.query).server : undefined;
   return presentation?.kind === "resource" && typeof presentation.server === "string" && presentation.server ? presentation.server : undefined;
-}
-
-function subjectOf(kind: ToolKind, activity: ToolActivity, name: string): { name: string; dir: string } {
-  const presentation = activity.presentation;
-  if (presentation?.kind === "shell") return { name: presentation.shell.command || presentation.shell.id, dir: "" };
-  if (presentation?.kind === "discovery" && presentation.query) return { name: splitMcpQuery(presentation.query).text, dir: "" };
-  if (presentation?.kind === "resource") return { name: presentation.uri || presentation.server || name, dir: "" };
-  if (presentation?.kind === "schedule" && presentation.tasks.length === 1) {
-    const task = presentation.tasks[0];
-    if (task && typeof task === "object" && !Array.isArray(task) && typeof task.title === "string") return { name: task.title, dir: "" };
-  }
-  if (kind === "bash") {
-    const intent = bashIntentDisplay(activity.command);
-    if (intent) return { name: intent.name, dir: intent.dir };
-    const command = activity.command?.replace(/\s+/g, " ").trim();
-    return { name: command || tr("命令", "Command"), dir: "" };
-  }
-  const path = activity.path?.trim();
-  if (!path) {
-    if (name === "update_plan" && activity.plan?.length) {
-      return { name: activity.plan[0]!.text, dir: "" };
-    }
-    if (name === "update_todos" && activity.plan?.length) {
-      return { name: todoFocus(activity.plan)!.text, dir: "" };
-    }
-    if (
-      name === "submit_plan" ||
-      name === "update_plan" ||
-      name === "record_goal_validation" ||
-      name === "update_goal" ||
-      name === "complete_step" ||
-      name === "submit_outcome" ||
-      name === "recommend_actions"
-    ) {
-      const line = activity.body?.split("\n").find((item) => item.trim())?.trim();
-      return { name: line || name, dir: "" };
-    }
-    return { name: toolActionName(name) ?? name, dir: "" };
-  }
-  const normalized = path.replaceAll("\\", "/");
-  const index = normalized.lastIndexOf("/");
-  if (index <= 0) return { name: path, dir: "" };
-  return splitPath(path);
-}
-
-/** 主体是命令或脚本(含后台命令的输出行)时用等宽字体;读取、列目录、查找文件等意图的主体是路径,不算。 */
-function subjectIsCode(kind: ToolKind, activity: ToolActivity): boolean {
-  if (activity.presentation?.kind === "shell") return true;
-  if (kind !== "bash") return false;
-  const intent = bashIntentDisplay(activity.command);
-  return !intent || intent.kind === "script" || intent.kind === "search";
 }
 
 function readLineCount(body: string | undefined): number | null {
