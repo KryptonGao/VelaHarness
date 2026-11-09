@@ -1,134 +1,134 @@
 {
-  "version": "1.2.27",
+  "version": "1.2.28",
   "locales": {
     "en": {
-      "summary": "Vela 1.2.27 adds built-in DeepWiki, Linear, and Cloudflare connectors with search on the Integrations page, shows MCP tool results more clearly, and shows connector status without a transient \"connecting\" state.",
+      "summary": "Vela 1.2.28 adds built-in PostHog and Supabase connectors, shows live tool details in thinking headlines, opens Integrations instantly from a cached catalog, and moves the acceptance entry into the reply action row.",
       "highlights": [
         {
-          "title": "DeepWiki connector",
-          "body": "Connect DeepWiki from Integrations with no sign-in or stored credentials."
+          "title": "PostHog and Supabase connectors",
+          "body": "Connect PostHog and Supabase from Integrations through the standard OAuth sign-in; the provider's consent screen decides the scopes."
         },
         {
-          "title": "Linear connector",
-          "body": "Connect Linear from Integrations through the standard OAuth sign-in."
+          "title": "Live tool details in thinking",
+          "body": "The thinking group headline now shows what the running tool is doing, such as the command or file in progress."
         },
         {
-          "title": "Cloudflare connector",
-          "body": "Connect Cloudflare from Integrations, with a search box to find connectors quickly."
+          "title": "Instant Integrations page",
+          "body": "Integrations shows the last known connectors immediately and swaps in fresh results once they settle, instead of a loading state."
         },
         {
-          "title": "Settled connector status",
-          "body": "Enabled connectors now report their real state when Settings opens, instead of briefly showing \"connecting\"."
+          "title": "Acceptance in the reply row",
+          "body": "The acceptance entry now sits in the reply action row, next to the other actions on each reply."
         }
       ],
       "improvements": [
-        "Tool search and MCP resource tools are labeled as MCP, and the mcp__ prefix is no longer shown in tool names.",
-        "Integrations, MCP, Memory, and Usage settings now use the shared page title.",
-        "The todo status icon in tool card headers is vertically centered, settings navigation labels stay on one line, and compact question text is shown in gray."
+        "The start page offers more time-of-day greetings, and MCP tool results from the new connectors show their source link.",
+        "Pure deletions in Changes review now fill the full width, and todo status icons line up with their text.",
+        "Native title tooltips no longer appear outside the custom button tooltip, and accent buttons and the Integrations search box lose the colored glow and focus ring."
       ]
     },
     "zh-CN": {
-      "summary": "Vela 1.2.27 新增内置 DeepWiki、Linear 和 Cloudflare 连接器，并为“集成”页面加入搜索；MCP 工具结果显示更清晰，连接器状态也不再出现短暂的“连接中”。",
+      "summary": "Vela 1.2.28 新增内置 PostHog 和 Supabase 连接器，思考标题中实时显示工具详情，“集成”页面基于缓存即时打开，并把验收入口移入回复操作栏。",
       "highlights": [
         {
-          "title": "DeepWiki 连接器",
-          "body": "在“集成”中即可连接 DeepWiki，无需登录，也不保存任何凭据。"
+          "title": "PostHog 和 Supabase 连接器",
+          "body": "在“集成”中通过标准 OAuth 登录连接 PostHog 和 Supabase，授权范围由服务方的授权页面决定。"
         },
         {
-          "title": "Linear 连接器",
-          "body": "在“集成”中通过标准 OAuth 登录连接 Linear。"
+          "title": "思考中的实时工具详情",
+          "body": "思考分组的标题现在会显示正在运行的工具在做什么，例如正在执行的命令或处理的文件。"
         },
         {
-          "title": "Cloudflare 连接器",
-          "body": "在“集成”中连接 Cloudflare，并可通过搜索框快速找到连接器。"
+          "title": "即时打开的集成页面",
+          "body": "“集成”会立即显示上次的连接器列表，并在最新结果就绪后替换，不再显示加载状态。"
         },
         {
-          "title": "稳定的连接器状态",
-          "body": "打开设置时，已启用的连接器会直接显示真实状态，不再短暂显示“连接中”。"
+          "title": "回复栏中的验收入口",
+          "body": "验收入口现在位于回复操作栏，与每条回复的其他操作并排。"
         }
       ],
       "improvements": [
-        "tool_search 和 MCP 资源工具现在标记为 MCP，工具名称也不再显示 mcp__ 前缀。",
-        "集成、MCP、记忆和用量设置统一使用共享的页面标题。",
-        "工具卡片标题中的待办状态图标垂直居中，设置导航标签保持单行，精简提问文字改为灰色显示。"
+        "开始页新增更多按时段变化的问候语，新连接器的 MCP 工具结果会显示来源链接。",
+        "“更改”审阅中的纯删除内容现在占满整行宽度，待办状态图标与文字对齐。",
+        "自定义按钮提示之外不再出现系统原生 title 提示，强调色按钮和集成搜索框不再带有彩色光晕与聚焦环。"
       ]
     },
     "zh-TW": {
-      "summary": "Vela 1.2.27 新增內建 DeepWiki、Linear 和 Cloudflare 連接器，並為「整合」頁面加入搜尋；MCP 工具結果顯示更清晰，連接器狀態也不再出現短暫的「連線中」。",
+      "summary": "Vela 1.2.28 新增內建 PostHog 和 Supabase 連接器，思考標題中即時顯示工具詳情，「整合」頁面以快取即時開啟，並把驗收入口移入回覆操作列。",
       "highlights": [
         {
-          "title": "DeepWiki 連接器",
-          "body": "在「整合」中即可連接 DeepWiki，無需登入，也不儲存任何憑證。"
+          "title": "PostHog 和 Supabase 連接器",
+          "body": "在「整合」中透過標準 OAuth 登入連接 PostHog 和 Supabase，授權範圍由服務方的授權頁面決定。"
         },
         {
-          "title": "Linear 連接器",
-          "body": "在「整合」中透過標準 OAuth 登入連接 Linear。"
+          "title": "思考中的即時工具詳情",
+          "body": "思考群組的標題現在會顯示執行中的工具正在做什麼，例如進行中的指令或處理的檔案。"
         },
         {
-          "title": "Cloudflare 連接器",
-          "body": "在「整合」中連接 Cloudflare，並可透過搜尋框快速找到連接器。"
+          "title": "即時開啟的整合頁面",
+          "body": "「整合」會立即顯示上次的連接器清單，並在最新結果就緒後替換，不再顯示載入狀態。"
         },
         {
-          "title": "穩定的連接器狀態",
-          "body": "開啟設定時，已啟用的連接器會直接顯示真實狀態，不再短暫顯示「連線中」。"
+          "title": "回覆列中的驗收入口",
+          "body": "驗收入口現在位於回覆操作列，與每則回覆的其他操作並排。"
         }
       ],
       "improvements": [
-        "tool_search 和 MCP 資源工具現在標示為 MCP，工具名稱也不再顯示 mcp__ 前綴。",
-        "整合、MCP、記憶和用量設定統一使用共用的頁面標題。",
-        "工具卡片標題中的待辦狀態圖示垂直置中，設定導覽標籤保持單行，精簡提問文字改為灰色顯示。"
+        "開始頁新增更多依時段變化的問候語，新連接器的 MCP 工具結果會顯示來源連結。",
+        "「變更」審閱中的純刪除內容現在佔滿整行寬度，待辦狀態圖示與文字對齊。",
+        "自訂按鈕提示之外不再出現系統原生 title 提示，強調色按鈕和整合搜尋框不再帶有彩色光暈與聚焦框。"
       ]
     },
     "ja": {
-      "summary": "Vela 1.2.27 では DeepWiki、Linear、Cloudflare のコネクタを内蔵し、連携ページに検索を追加しました。MCP ツール結果の表示も見やすくなり、コネクタの状態に一瞬の「接続中」が出なくなりました。",
+      "summary": "Vela 1.2.28 では PostHog と Supabase のコネクタを内蔵し、思考の見出しにツールの詳細をリアルタイム表示します。連携ページはキャッシュから即座に開き、受け入れの入口は返信のアクション行に移りました。",
       "highlights": [
         {
-          "title": "DeepWiki コネクタ",
-          "body": "連携ページからサインインや認証情報の保存なしで DeepWiki に接続できます。"
+          "title": "PostHog と Supabase のコネクタ",
+          "body": "連携ページから標準の OAuth サインインで PostHog と Supabase に接続できます。権限の範囲は提供元の同意画面で決まります。"
         },
         {
-          "title": "Linear コネクタ",
-          "body": "連携ページから標準の OAuth サインインで Linear に接続できます。"
+          "title": "思考中のツール詳細をリアルタイム表示",
+          "body": "思考グループの見出しに、実行中のコマンドや処理中のファイルなど、ツールの動作が表示されます。"
         },
         {
-          "title": "Cloudflare コネクタ",
-          "body": "連携ページから Cloudflare に接続できます。検索ボックスでコネクタをすばやく探せます。"
+          "title": "すぐ開く連携ページ",
+          "body": "連携ページは前回のコネクタ一覧を即座に表示し、最新の結果がそろい次第入れ替えます。読み込み状態は表示されません。"
         },
         {
-          "title": "安定したコネクタ状態",
-          "body": "設定を開いたときに、有効なコネクタが実際の状態を表示し、一瞬「接続中」と出ることがなくなりました。"
+          "title": "返信行の受け入れ入口",
+          "body": "受け入れの入口が返信のアクション行に移り、各返信の他の操作と並びます。"
         }
       ],
       "improvements": [
-        "tool_search と MCP リソースツールが MCP として表示され、ツール名の mcp__ プレフィックスは表示されなくなりました。",
-        "連携、MCP、メモリ、使用量の設定で共通のページタイトルを使うようにしました。",
-        "ツールカード見出しの ToDo ステータスアイコンを縦中央に揃え、設定ナビのラベルを 1 行に保ち、簡易質問のテキストをグレーで表示します。"
+        "スタートページの時間帯別あいさつを増やし、新しいコネクタの MCP ツール結果にソースリンクを表示します。",
+        "変更レビューで削除のみの行を全幅で表示し、ToDo のステータスアイコンをテキストに揃えました。",
+        "カスタムボタンのツールチップ以外でネイティブの title ツールチップを表示しないようにし、アクセントボタンと連携の検索ボックスから色付きのグローとフォーカスリングをなくしました。"
       ]
     },
     "ko": {
-      "summary": "Vela 1.2.27은 DeepWiki, Linear, Cloudflare 커넥터를 기본 제공하고 통합 페이지에 검색을 추가했으며, MCP 도구 결과를 더 명확하게 보여 주고 커넥터 상태에 잠깐 나타나던 '연결 중'을 없앴습니다.",
+      "summary": "Vela 1.2.28은 PostHog와 Supabase 커넥터를 기본 제공하고, 생각 헤드라인에 실행 중인 도구 상세를 실시간으로 보여 주며, 통합 페이지를 캐시로 즉시 열고, 수락 진입점을 답변 작업 행으로 옮겼습니다.",
       "highlights": [
         {
-          "title": "DeepWiki 커넥터",
-          "body": "통합 페이지에서 로그인이나 저장된 자격 증명 없이 DeepWiki에 연결할 수 있습니다."
+          "title": "PostHog 및 Supabase 커넥터",
+          "body": "통합 페이지에서 표준 OAuth 로그인으로 PostHog와 Supabase에 연결할 수 있으며, 권한 범위는 제공업체의 동의 화면에서 결정됩니다."
         },
         {
-          "title": "Linear 커넥터",
-          "body": "통합 페이지에서 표준 OAuth 로그인으로 Linear에 연결할 수 있습니다."
+          "title": "생각 중 실시간 도구 상세",
+          "body": "생각 그룹 헤드라인에 실행 중인 명령이나 처리 중인 파일 등 도구가 하는 일이 표시됩니다."
         },
         {
-          "title": "Cloudflare 커넥터",
-          "body": "통합 페이지에서 Cloudflare에 연결할 수 있으며, 검색 상자로 커넥터를 빠르게 찾을 수 있습니다."
+          "title": "즉시 열리는 통합 페이지",
+          "body": "통합 페이지가 이전 커넥터 목록을 바로 보여 주고 최신 결과가 준비되면 교체하므로 로딩 상태가 나타나지 않습니다."
         },
         {
-          "title": "안정적인 커넥터 상태",
-          "body": "설정을 열면 사용 중인 커넥터가 실제 상태를 바로 표시하며, 잠깐 '연결 중'으로 보이지 않습니다."
+          "title": "답변 행의 수락 진입점",
+          "body": "수락 진입점이 답변 작업 행으로 옮겨져 각 답변의 다른 작업과 나란히 표시됩니다."
         }
       ],
       "improvements": [
-        "tool_search와 MCP 리소스 도구가 MCP로 표시되고, 도구 이름에 mcp__ 접두사가 더 이상 표시되지 않습니다.",
-        "통합, MCP, 메모리, 사용량 설정이 공통 페이지 제목을 사용합니다.",
-        "도구 카드 헤더의 할 일 상태 아이콘을 세로 가운데로 맞추고, 설정 탐색 라벨을 한 줄로 유지하며, 간단한 질문 텍스트를 회색으로 표시합니다."
+        "시작 페이지의 시간대별 인사말을 늘렸고, 새 커넥터의 MCP 도구 결과에 출처 링크가 표시됩니다.",
+        "변경 검토에서 삭제만 있는 줄이 전체 너비로 표시되고, 할 일 상태 아이콘이 텍스트와 정렬됩니다.",
+        "사용자 지정 버튼 툴팁 외에는 기본 title 툴팁이 나타나지 않으며, 강조 버튼과 통합 검색 상자에서 색상 글로와 포커스 링이 사라졌습니다."
       ]
     }
   }
