@@ -223,14 +223,14 @@
 .integrations-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
 .integrations-grid:empty { display: none; }
 @container integrations (min-width: 640px) { .integrations-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-.integration-card { display: flex; align-items: flex-start; gap: 16px; padding: 20px; border-radius: var(--radius-lg); background: var(--bg-surface-subtle); min-width: 0; flex-wrap: wrap; }
+.integration-card { display: flex; align-items: flex-start; gap: 16px; padding: 20px; border-radius: var(--radius-lg); background: var(--bg-surface-subtle); min-width: 0; }
 .integration-icon { width: 44px; height: 44px; display: grid; place-items: center; flex-shrink: 0; color: var(--text-primary); }
 .integration-icon svg { width: 36px; height: 36px; }
-.integration-content { flex: 1; min-width: 160px; overflow-wrap: anywhere; }
+.integration-content { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .integration-content h3 { font-size: calc(16px * var(--ui-scale)); font-weight: 600; margin-bottom: 6px; }
 .integration-status { font-size: calc(14px * var(--ui-scale)); color: var(--text-secondary); margin-top: 12px; }
 .integration-status.connected { color: var(--text-primary); font-weight: 600; }
-.integration-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.integration-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; flex-shrink: 0; margin-left: auto; }
 .integration-actions button { min-height: 44px; }
 .settings-block {
   display: flex;
