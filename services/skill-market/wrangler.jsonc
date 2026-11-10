@@ -3,6 +3,9 @@
   "name": "vela-skill-market",
   "main": "src/worker.ts",
   "compatibility_date": "2026-11-01",
+  "workers_dev": true,
+  // 预览地址会带着同一组 D1 绑定对外开放，没有用处，显式关闭。
+  "preview_urls": false,
   "assets": {
     "directory": "./public",
     "binding": "ASSETS",

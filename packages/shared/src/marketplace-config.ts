@@ -7,8 +7,8 @@ export const marketplacePublicKeys: readonly string[] = ["HXZsjCa/DDzw+YeazwCUn3
 
 /**
  * 云端服务地址，不带末尾斜杠，路径统一以 /v1 开头。
- * 首次部署后到 Cloudflare 控制台的 Worker 页面复制 workers.dev 地址填在这里；
+ * 换成自定义域名时改这里，老版本 App 仍指向 workers.dev，所以旧地址要继续保留一段时间。
  * 留空时客户端视为云端不可用：目录回退到内置目录，安装会提示稍后重试。
  * 开发和测试可以用环境变量 VELA_MARKET_URL 覆盖。
  */
-export const marketplaceCloudUrl = "";
+export const marketplaceCloudUrl = "https://vela-skill-market.devchenkai.workers.dev";

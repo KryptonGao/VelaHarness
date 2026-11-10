@@ -15,7 +15,7 @@ Skill 市场的目录与 Skill 内容由 Cloudflare Worker 分发，客户端验
 | `packages/shared/src/marketplace-builtin.ts` | 内置目录，由建置脚本生成，不要手改；云端不可用时使用。 |
 | `packages/agent/src/skill-marketplace.ts` | 客户端：加载目录与安装次数、验签安装。 |
 
-服务目录是独立的 npm 项目（有自己的 `package-lock.json`），不在 pnpm workspace 里，这样 Workers Builds 在该目录只安装 wrangler，不会装整个 monorepo（含 Electron）。类型检查与测试仍由根目录的 `pnpm test` 覆盖（`typecheck:market`、`test:market`）。
+服务目录是独立的 npm 项目（有自己的 `package-lock.json`），不在 pnpm workspace 里，本地调试用 `npm ci`。类型检查与测试由根目录的 `pnpm test` 覆盖（`typecheck:market`、`test:market`）。Workers Builds 会按仓库根目录的 `pnpm-lock.yaml` 安装整个 workspace（含 Electron 的 postinstall，约 25 秒，不影响结果），部署时再用 `npx wrangler` 临时取 wrangler。
 
 ## 信任链
 
@@ -58,22 +58,21 @@ git diff services/skill-market/public   # 审核上游改了什么，满意再�
 
 1. 创建 D1 数据库，`database_id` 已写在 `wrangler.jsonc`。
 2. Workers & Pages → Import a repository，授权 GitHub 并选择本仓库。
-3. Worker 名称 `vela-skill-market`（必须与 `wrangler.jsonc` 的 `name` 一致）；Root directory `services/skill-market`；Build watch paths `services/skill-market/*`；Deploy command `npx wrangler d1 migrations apply DB --remote && npx wrangler deploy`。
-4. 首次部署成功后，把 Worker 页面上的 `workers.dev` 地址（不带末尾斜杠）填进 `packages/shared/src/marketplace-config.ts` 的 `marketplaceCloudUrl`。
+3. Worker 名称 `vela-skill-market`（必须与 `wrangler.jsonc` 的 `name` 一致）；Root directory `services/skill-market`；Build watch paths `services/skill-market/*`；Deploy command `npx wrangler d1 migrations apply DB --remote && npx wrangler deploy`（想固定版本可写成 `npx wrangler@4.160.0 ...`，否则每次取最新的 wrangler）。
+4. 首次部署成功后，把 `workers.dev` 地址（不带末尾斜杠）填进 `packages/shared/src/marketplace-config.ts` 的 `marketplaceCloudUrl`。当前线上地址是 `https://vela-skill-market.devchenkai.workers.dev`，已填入。
 
 本地调试：`cd services/skill-market && npm ci && npx wrangler dev`。
 
-**发版顺序**：`marketplaceCloudUrl` 为空时客户端只能用内置目录，安装会提示稍后重试（不再有直连 GitHub 的安装路径）。先部署并确认服务可用、填好地址，再发布带这项改动的 App。
+**发版顺序**：`marketplaceCloudUrl` 为空或服务不可用时，客户端只能用内置目录，安装会提示稍后重试（不再有直连 GitHub 的安装路径）。发布带这项改动的 App 之前，先确认线上服务可用。
 
 ## 安装统计
 
 - 只有安装流程会请求 `manifest.json`，Worker 在回传时给该 Skill 在 D1 的计数加 1；浏览目录、HEAD 请求、不存在的 Skill 都不计数。
 - 表里只有 Skill id 与次数，不写 IP、设备或使用者信息。速率限制只用 Cloudflare 的限流计数器（每个来源每分钟最多计 20 次，超出时照常回传 manifest，只是不再计数）。
-- `stats.json` 不签名，仅用于展示，边缘缓存 5 分钟；客户端取不到就不显示次数。
+- `stats.json` 不签名，仅用于展示，边缘缓存 5 分钟（缓存键只看路径，不受查询串影响）；客户端取不到就不显示次数，所以刚安装完看到的次数可能晚几分钟才更新。
 - 安装失败或重试也可能被计入，数字只反映受欢迎程度。
 
 ## 已知限制
 
-- Worker 的边缘缓存（Cache API）只对自定义域名生效；在 `workers.dev` 上 `stats.json` 每次都会读 D1。
 - 客户端不记住已见过的最高目录版本，拿到 Cloudflare 权限的攻击者可以回放旧的、仍然有效签名的目录。目录对 manifest 的哈希钉住了同一时刻的内容，因此回放只会退回到曾经审核过的旧版本。
 - 公钥泄露无碍，私钥泄露需要汰除该公钥并发布新版 App。

@@ -48,8 +48,10 @@ async function countInstall(env: Env, id: string, request: Request): Promise<voi
 }
 
 async function stats(request: Request, env: Env, ctx: WorkerContext): Promise<Response> {
+  // 缓存键只看路径：带不同查询串的请求共用同一份缓存，没法借此绕过缓存反复读 D1。
+  const cacheKey = new Request(`${new URL(request.url).origin}/v1/stats.json`);
   const edgeCache = (globalThis as { caches?: { default?: { match(r: Request): Promise<Response | undefined>; put(r: Request, v: Response): Promise<void> } } }).caches?.default;
-  const cached = await edgeCache?.match(request).catch(() => undefined);
+  const cached = await edgeCache?.match(cacheKey).catch(() => undefined);
   if (cached) return cached;
   let results: { skill_id: string; count: number }[];
   try {
@@ -68,7 +70,7 @@ async function stats(request: Request, env: Env, ctx: WorkerContext): Promise<Re
       "cache-control": `public, max-age=${statsCacheSeconds}`,
     },
   });
-  if (edgeCache) ctx.waitUntil(edgeCache.put(request, response.clone()).catch(() => undefined));
+  if (edgeCache) ctx.waitUntil(edgeCache.put(cacheKey, response.clone()).catch(() => undefined));
   return response;
 }
 
