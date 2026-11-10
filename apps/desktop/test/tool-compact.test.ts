@@ -84,6 +84,32 @@ describe("parseDisplayDiff", () => {
     assert.deepEqual(parsed.newLines, ["a", "b"]);
   });
 
+  it("shows post-edit context numbers after insertions without changing highlight indices", () => {
+    const parsed = parseDisplayDiff(" 30 before\n+31 inserted\n+32 another\n 31 after");
+    assert.deepEqual(parsed.rows.map(row => row.gutter), ["30", "31", "32", "33"]);
+    assert.deepEqual(parsed.rows.at(-1), { kind: "ctx", gutter: "33", text: "after", oldIndex: 1, newIndex: 3 });
+  });
+
+  it("carries positive and negative offsets across omitted unchanged regions", () => {
+    const parsed = parseDisplayDiff("    ...\n 10 start\n-11 one\n-12 two\n+11 replacement\n 13 tail\n    ...\n 50 far\n+50 inserted\n+51 second\n 51 end");
+    assert.deepEqual(parsed.rows.filter(row => row.kind === "ctx").map(row => row.gutter), ["10", "12", "49", "52"]);
+    assert.deepEqual(parsed.rows.filter(row => row.kind === "del").map(row => row.gutter), ["11", "12"]);
+    assert.deepEqual(parsed.rows.filter(row => row.kind === "add").map(row => row.gutter), ["11", "50", "51"]);
+  });
+
+  it("does not infer context positions after truncated or unknown records", () => {
+    for (const unknown of ["… 内容过长，已截断", "+incomplete"]) {
+      const parsed = parseDisplayDiff(`-1 old\n+1 new\n${unknown}\n 4 known\n+5 shown`);
+      assert.equal(parsed.rows[3]?.gutter, "");
+      assert.equal(parsed.rows[4]?.gutter, "5");
+    }
+  });
+
+  it("starts each edit with its own offset", () => {
+    assert.equal(parseDisplayDiff("-4 old\n+4 new\n+5 inserted\n 5 tail").rows.at(-1)?.gutter, "6");
+    assert.equal(parseDisplayDiff(" 6 tail\n-7 next\n+7 final").rows[0]?.gutter, "6");
+  });
+
   it("兼容没有行号前缀的裸行与空 diff", () => {
     const parsed = parseDisplayDiff(["+plain", "-old", " ctx"].join("\n"));
     assert.deepEqual(parsed.rows.map((row) => row.kind), ["add", "del", "ctx"]);

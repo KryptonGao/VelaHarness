@@ -948,6 +948,7 @@ export function CompactToolLine({
                 diff={activity.diff}
                 note={activity.body}
                 streaming={streamingNow}
+                showLineNumbers={kind !== "edit" || !activity.streaming}
               />
             ) : (
               <ScrollFade className="tool-details-scroll" ariaLabel={tr("工具详情，可在区域内滚动", "Tool details, scrollable")}>
@@ -1026,7 +1027,7 @@ function CopyIcon({ size = 13 }: { size?: number }) {
   );
 }
 
-function CompactDiffCard({ fileName, filePath, diff, note, streaming = false }: { fileName: string; filePath?: string; diff: string; note?: string; streaming?: boolean }) {
+function CompactDiffCard({ fileName, filePath, diff, note, streaming = false, showLineNumbers = true }: { fileName: string; filePath?: string; diff: string; note?: string; streaming?: boolean; showLineNumbers?: boolean }) {
   const [copied, setCopied] = useState(false);
   const stat = diffStat(diff);
 
@@ -1059,13 +1060,13 @@ function CompactDiffCard({ fileName, filePath, diff, note, streaming = false }: 
         </button>
       </header>
       {note ? <ToolMarkdown text={note} className="compact-diff-card-note" /> : null}
-      <CompactDiffView diff={diff} path={filePath} followEnd={streaming} />
+      <CompactDiffView diff={diff} path={filePath} followEnd={streaming} showLineNumbers={showLineNumbers} />
     </section>
   );
 }
 
 /** 紧凑 diff 保留改动附近的上下文,长段未改内容自动折叠。 */
-function CompactDiffView({ diff, path, followEnd = false }: { diff: string; path?: string; followEnd?: boolean }) {
+function CompactDiffView({ diff, path, followEnd = false, showLineNumbers = true }: { diff: string; path?: string; followEnd?: boolean; showLineNumbers?: boolean }) {
   return (
     <ScrollFade
       followEnd={followEnd}
@@ -1074,7 +1075,7 @@ function CompactDiffView({ diff, path, followEnd = false }: { diff: string; path
       contentClassName="compact-diff-scroll-content"
       ariaLabel={tr("文件差异，可在区域内滚动", "File diff, scrollable")}
     >
-      <DiffView diff={diff} path={path} compact focusFirstChange={!followEnd} />
+      <DiffView diff={diff} path={path} compact focusFirstChange={!followEnd} showLineNumbers={showLineNumbers} />
     </ScrollFade>
   );
 }
@@ -1178,7 +1179,7 @@ function ToolBody({
       <>
         {activity.body && activity.diff ? <ToolMarkdown text={activity.body} /> : null}
         {activity.diff ? (
-          <DiffView diff={activity.diff} path={activity.path} />
+          <DiffView diff={activity.diff} path={activity.path} showLineNumbers={kind !== "edit" || !activity.streaming} />
         ) : activity.body ? (
           <ToolMarkdown text={activity.body} />
         ) : status === "running" ? (
@@ -1340,7 +1341,7 @@ function ReadView({ body, running }: { body?: string; running: boolean }) {
   );
 }
 
-function DiffView({ diff, path, compact = false, focusFirstChange = false }: { diff: string; path?: string; compact?: boolean; focusFirstChange?: boolean }) {
+function DiffView({ diff, path, compact = false, focusFirstChange = false, showLineNumbers = true }: { diff: string; path?: string; compact?: boolean; focusFirstChange?: boolean; showLineNumbers?: boolean }) {
   const sheetRef = useRef<HTMLDivElement>(null);
   const parsed = useMemo(() => parseDisplayDiff(diff), [diff]);
   const rows = useMemo(() => (compact ? collapseDiffContext(parsed.rows) : parsed.rows), [parsed, compact]);
@@ -1372,7 +1373,8 @@ function DiffView({ diff, path, compact = false, focusFirstChange = false }: { d
           <div className={`tool-code-line tool-diff-line ${row.kind}`} key={index}>
             <span className="tool-gutter">
               <span className="tool-sign">{row.kind === "add" ? "+" : row.kind === "del" ? "−" : ""}</span>
-              {row.gutter}
+              {/* Streamed edit numbers are fragment-local, not file positions (even after interruption). */}
+              {showLineNumbers ? row.gutter : null}
             </span>
             <span className="tool-code-text">
               {tokens

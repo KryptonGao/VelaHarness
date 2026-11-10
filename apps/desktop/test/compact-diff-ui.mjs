@@ -20,6 +20,7 @@ if (!process.versions.electron) {
         import { createRoot } from 'react-dom/client';
         import { ToolList } from './apps/desktop/src/renderer/components/ToolCard';
         import { AppLocaleProvider } from './apps/desktop/src/renderer/locale';
+        import { streamedFileActivity } from './packages/agent/src/tool-stream';
         const context = Array.from({length: 6}, (_, i) => ' ' + (83 + i) + ' const unchanged = ' + 'long_context_'.repeat(14));
         const changes = Array.from({length: 28}, (_, i) => '+' + (89 + i) + ' const added = ' + i);
         function Fixture() {
@@ -28,6 +29,9 @@ if (!process.versions.electron) {
           const [extra, setExtra] = useState(0);
           const [statCase, setStatCase] = useState(null);
           const [syntaxCase, setSyntaxCase] = useState(null);
+          const [numberCase, setNumberCase] = useState(null);
+          window.setNumberCase = value => { setNumberCase(value); setExtra(0); };
+          window.setNumberStage = stage => setNumberCase(value => ({...value, stage}));
           window.setSyntaxCase = value => { setSyntaxCase(value); setKind('stream'); setExtra(0); setStreaming(true); };
           window.setStatCase = setStatCase;
           const [, refresh] = useState(0);
@@ -46,10 +50,23 @@ if (!process.versions.electron) {
           const tool = {id: syntaxCase?.path ?? kind, name: syntaxCase?.name ?? (kind === 'new' ? 'write' : 'edit'), status: streaming ? 'running' : 'done', activity: {
             path: syntaxCase?.path ?? 'apps/example.txt', diff: (syntaxCase ? syntaxRows : rows).join('\\n'), ...(streaming ? {streaming: {added: rows.length, removed: 0}} : {}),
           }};
+          const numberPreview = numberCase && streamedFileActivity(numberCase.name, JSON.stringify({
+            path: 'apps/numbering.ts', content: Array.from({length: 32 + extra}, (_, i) => 'const line' + i + ' = ' + i).join('\\n'),
+            edits: [
+              {oldText: '', newText: Array.from({length: 32}, (_, i) => 'const line' + i + ' = ' + i).join('\\n')},
+              {oldText: 'const timeout = 180000;', newText: 'const timeout = 60000;'},
+              {oldText: 'const old = true;\\nconst previous = 1;', newText: 'const next = true;\\nconst current = 2;' + '\\nconst extra = 3;'.repeat(extra)},
+            ],
+          }));
+          const numberTool = numberCase && {id: 'number-' + numberCase.display + numberCase.name, name: numberCase.name,
+            status: numberCase.stage === 'done' || numberCase.stage === 'interrupted' ? 'done' : 'running',
+            activity: numberCase.stage === 'stream' || numberCase.stage === 'interrupted' ? numberPreview
+              : {path: 'apps/numbering.ts', diff: numberCase.diff ?? '-73 const previous = 1;\\n+73 const current = 2;\\n+74 const extra = 3;\\n 74 const tail = 4;'},
+          };
           return <AppLocaleProvider locale="zh-CN"><div className="thinking-group-rail" style={{width: 620, margin: 24, '--tool-detail-height': '180px'}}>
-            <ToolList key={statCase ? statCase.display + statCase.fold : syntaxCase?.path ?? kind}
-              tools={statCase ? Array.from({length: 3}, (_, i) => ({...tool, id: 'stat-' + i, status: 'done', activity: {path: 'apps/example' + i + '.txt', diff: '-1 old\\n+1 new'}})) : [tool]}
-              display={statCase?.display ?? 'compact'} fold={statCase?.fold ?? 'none'} />
+            <ToolList key={numberCase ? 'number-' + numberCase.display + numberCase.name : statCase ? statCase.display + statCase.fold : syntaxCase?.path ?? kind}
+              tools={numberTool ? [numberTool] : statCase ? Array.from({length: 3}, (_, i) => ({...tool, id: 'stat-' + i, status: 'done', activity: {path: 'apps/example' + i + '.txt', diff: '-1 old\\n+1 new'}})) : [tool]}
+              display={numberCase?.display ?? statCase?.display ?? 'compact'} fold={numberCase ? 'none' : statCase?.fold ?? 'none'} />
           </div></AppLocaleProvider>;
         }
         createRoot(document.getElementById('root')).render(<Fixture />);
@@ -175,6 +192,57 @@ if (!process.versions.electron) {
       await evaluate("window.setSyntaxCase({path: 'apps/stream-plain.txt', name: 'edit'})");
       await until("document.querySelector('.tool-compact-name').textContent === 'stream-plain.txt' && document.querySelector('.tool-diff-line.add .tool-code-text')?.textContent === 'const current = \"new\";'");
       assert.equal(await evaluate("document.querySelectorAll('.tool-code-text span').length"), 0, 'Unsupported languages must remain readable plain text');
+      // Streamed edit fragments restart at 1: never present those offsets as file line numbers.
+      const gutters = () => evaluate("Array.from(document.querySelectorAll('.tool-diff-line .tool-gutter'), el => el.textContent.trim())");
+      const checkNumberPreview = async name => {
+        const values = await gutters();
+        assert.ok(values.length >= 32, 'All replacement fragments must remain visible');
+        if (name === 'edit') {
+          assert.ok(values.every(value => value === '+' || value === '−'), 'Edit previews keep signs without invented file positions');
+          assert.ok(await evaluate("Array.from(document.querySelectorAll('.tool-code-text'), el => el.textContent).includes('const timeout = 60000;')"), 'Hiding numbers must not remove code');
+        } else {
+          assert.equal(values[0], '+1', 'New files have known line numbers during streaming');
+          assert.ok(values.includes('+32'));
+        }
+      };
+      for (const display of ['compact', 'card']) {
+        for (const name of ['edit', 'write']) {
+          await evaluate(`window.setNumberCase(${JSON.stringify({display, name, stage: 'stream'})})`);
+          await until("document.querySelector('.tool-compact-name, .tool-card-name')?.textContent === 'numbering.ts'");
+          if (!await evaluate("!!document.querySelector('.tool-diff-line')")) {
+            await evaluate(`document.querySelector(${JSON.stringify(display === 'compact' ? '.tool-compact-detail-toggle' : '.tool-card-head')}).click()`);
+          }
+          await until("document.querySelectorAll('.tool-diff-line').length >= 32");
+          await checkNumberPreview(name);
+          if (display === 'compact') {
+            // Pin auto-opened details so the interrupted/finished preview remains visible.
+            await evaluate("document.querySelector('.tool-compact-detail-toggle').click()");
+            await until("!document.querySelector('.tool-diff-line')");
+            await evaluate("document.querySelector('.tool-compact-detail-toggle').click()");
+            await until("document.querySelector('.tool-diff-line')");
+          }
+          const previousCount = (await gutters()).length;
+          await evaluate('window.grow()');
+          await until(`document.querySelectorAll('.tool-diff-line').length > ${previousCount}`);
+          await checkNumberPreview(name);
+          await evaluate("window.setNumberStage('interrupted')");
+          await until("document.querySelector('.tool-compact-item .compact.is-done, .tool-card.is-done')");
+          await checkNumberPreview(name);
+          await evaluate("window.setNumberStage('executing')");
+          await until("document.querySelectorAll('.tool-diff-line').length === 4");
+          assert.deepEqual(await gutters(), ['−73', '+73', '+74', '75'], 'Real diff positions appear as soon as the tool supplies them, with post-edit context numbers');
+          await evaluate("window.setNumberStage('done')");
+          await until("document.querySelector('.tool-compact-item .compact.is-done, .tool-card.is-done')");
+          assert.deepEqual(await gutters(), ['−73', '+73', '+74', '75']);
+          if (name === 'edit') {
+            await evaluate(`window.setNumberCase(${JSON.stringify({display, name, stage: 'done', diff: ' 10 start\n-11 one\n-12 two\n+11 replacement\n 13 tail\n    ...\n 50 far\n+50 inserted\n+51 second\n 51 end'})})`);
+            await until("document.querySelectorAll('.tool-diff-line').length === 9");
+            assert.deepEqual(await gutters(), ['10', '−11', '−12', '+11', '12', '49', '+50', '+51', '52']);
+          }
+        }
+      }
+      await evaluate('window.setNumberCase(null)');
+      await until("document.querySelector('.tool-compact-name')?.textContent === 'stream-plain.txt'");
       // 在真实 Chromium 中强制行级 hover，验证移出恢复及相邻行隔离。
       win.webContents.debugger.attach('1.3');
       const protocol = (method, params = {}) => win.webContents.debugger.sendCommand(method, params);
@@ -215,7 +283,7 @@ if (!process.versions.electron) {
         }
       }
       win.webContents.debugger.detach();
-      console.log("Compact diff UI: diff anchoring, scrolling, streaming syntax highlighting (edit/write, growth, completion, plain-text fallback) and row-only stat hover (compact/card, grouped/ungrouped) passed");
+      console.log("Compact diff UI: diff anchoring, scrolling, streaming syntax highlighting, edit/write numbering (compact/card, growth, interruption, execution, completion) and row-only stat hover (compact/card, grouped/ungrouped) passed");
       app.exit(0);
     } catch (error) {
       console.error(error);

@@ -117,7 +117,7 @@ export function diffStat(diff: string | undefined): DiffStat | null {
 /** 展示 diff 的一行;gap 是省略的上下文,不占两侧内容索引。 */
 export interface DisplayDiffRow {
   kind: "add" | "del" | "ctx" | "gap";
-  /** 行号列;gap 行为空串。 */
+  /** 新增/上下文显示编辑后行号，删除显示原始行号；未知位置或 gap 为空串。 */
   gutter: string;
   text: string;
   /** 该行在旧文件中的索引;不存在时为 -1。 */
@@ -145,6 +145,8 @@ export function parseDisplayDiff(diff: string): ParsedDisplayDiff {
 
   const lines = diff.split("\n");
   if (lines[lines.length - 1] === "") lines.pop();
+  let offset = 0;
+  let canInfer = true;
 
   const pushAdd = (text: string, gutter = "") => {
     rows.push({ kind: "add", gutter, text, oldIndex: -1, newIndex: newLines.length });
@@ -167,17 +169,28 @@ export function parseDisplayDiff(diff: string): ParsedDisplayDiff {
     }
     if (line.startsWith("…") || line.startsWith("@@")) {
       rows.push({ kind: "gap", gutter: "", text: line, oldIndex: -1, newIndex: -1 });
+      canInfer = false;
       continue;
     }
     const matched = displayDiffLine.exec(line);
     if (matched) {
       const text = matched[3] ?? "";
       const gutter = matched[2] ?? "";
-      if (matched[1] === "+") pushAdd(text, gutter);
-      else if (matched[1] === "-") pushDel(text, gutter);
-      else pushCtx(text, gutter);
+      if (matched[1] === "+") {
+        pushAdd(text, gutter);
+        offset += 1;
+      } else if (matched[1] === "-") {
+        pushDel(text, gutter);
+        offset -= 1;
+      } else {
+        // Saved context numbers refer to the old file; omitted unchanged regions keep the offset.
+        const number = Number(gutter) + offset;
+        pushCtx(text, canInfer && Number.isSafeInteger(number) && number > 0 ? String(number) : "");
+      }
       continue;
     }
+    // Unknown or truncated records may hide edits, so subsequent context positions are uncertain.
+    canInfer = false;
     if (line.startsWith("+") && !line.startsWith("+++")) pushAdd(line.slice(1));
     else if (line.startsWith("-") && !line.startsWith("---")) pushDel(line.slice(1));
     else if (line.startsWith(" ")) pushCtx(line.slice(1));
