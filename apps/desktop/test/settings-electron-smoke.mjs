@@ -28,6 +28,7 @@ try {
   await until(() => ev("!!document.querySelector('.sidebar-user-pill')"), "renderer");
   await ev("document.querySelector('.sidebar-user-pill').click()");
   await until(() => ev("!!document.querySelector('.settings-nav-item')"), "settings");
+  assert.equal(await ev("document.querySelector('.settings-header button')"), null, "settings header has no Done button");
   const labels = await ev("[...document.querySelectorAll('.settings-nav-group-label')].map(n => n.textContent)");
   const development = await ev("Boolean(window.vela.development)");
   assert.deepEqual(labels, ["General", "Agent", "Models & extensions", "Data & workspace", ...(development ? ["Development"] : [])]);
@@ -99,7 +100,8 @@ try {
   console.log("PASS thinking level saves immediately");
 
   // remembered page
-  await ev("document.querySelector('.settings-done').click()"); await pause(500);
+  await ev("document.querySelector('.nav-history-buttons button:first-child').click()");
+  await until(() => ev("!document.querySelector('.settings-view')"), "back leaves settings");
   await ev("document.querySelector('.sidebar-user-pill').click()");
   await until(() => ev("!!document.querySelector('.settings-nav-item')"), "reopen");
   assert.equal(await ev("document.querySelector('.settings-nav-item.active').textContent"), "Defaults & permissions");

@@ -60,7 +60,8 @@ async function run() {
     assert.equal(new Set(await evaluate("window.soundStarts")).size, 4);
     console.log("PASS four distinct native Web Audio previews");
 
-    await evaluate("document.querySelector('.settings-done').click()");
+    await evaluate("document.querySelector('.nav-history-buttons button:first-child').click()");
+    await until(() => evaluate("!document.querySelector('.settings-view')"), "back leaves settings");
     let base = await evaluate("window.vela.getState()");
     if (!base.activeConversationId) base = await evaluate("window.vela.createConversation()");
     const id = base.activeConversationId;

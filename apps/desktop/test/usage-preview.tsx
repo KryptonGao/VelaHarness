@@ -95,7 +95,7 @@ function Fixture() {
       conversations={[
         { id: "sample", title: "Sample", cwd: "/projects/VelaHarness", createdAt: Date.now(), updatedAt: Date.now(), status: "ready", archivedAt: null },
         { id: "archived", title: "Archived", cwd: "/projects/VelaHarness", createdAt: Date.now(), updatedAt: Date.now(), status: "ready", archivedAt: Date.now() },
-      ]} onUnarchiveConversation={() => {}} onClose={() => {}} /> : <ChatView messages={[]} state={state} project={project} sendError={null} platform="darwin" leftCollapsed rightCollapsed
+      ]} onUnarchiveConversation={() => {}} /> : <ChatView messages={[]} state={state} project={project} sendError={null} platform="darwin" leftCollapsed rightCollapsed
       models={models} onToggleLeft={() => {}} onToggleRight={() => {}} onSend={async () => {}} onAbort={async () => {}}
       onMode={() => {}} getQuestion={() => null} onReplyQuestion={() => {}} onBranch={() => {}}
       showNewTab={false} onNewTab={() => {}} onOpenChanges={() => {}} />}

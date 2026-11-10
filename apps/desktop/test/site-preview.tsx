@@ -72,7 +72,7 @@ function Fixture() {
       onSwitchConversation={noop} onArchiveConversation={noop} onRenameConversation={noop} />
     <div className="main-stage"><div className="main-stage-pane">
       <SettingsView onPreviewSound={(() => {}) as never} preferences={preferences} platform="darwin" models={models} project={project}
-        conversations={conversations} conversationId="demo-0" onUnarchiveConversation={noop} onClose={noop} />
+        conversations={conversations} conversationId="demo-0" onUnarchiveConversation={noop} />
     </div></div>
   </div>;
 }

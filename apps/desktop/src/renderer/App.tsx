@@ -1247,7 +1247,6 @@ export function App() {
                     conversations={session.conversations}
                     conversationId={session.activeConversationId}
                     onUnarchiveConversation={(id) => void session.unarchive(id)}
-                    onClose={() => setSettingsOpen(false)}
                     onReplayIntro={() => setIntroReplay(true)}
                     onRestartOnboarding={() => {
                       // 开发版：回到引导的第一页（语言），不清除任何已保存的设置。

@@ -70,7 +70,7 @@ function Fixture() {
   }));
   return (
     <AppLocaleProvider locale={preferences.locale}>
-      {settings ? <SettingsView preferences={preferences} platform="darwin" models={models} project={project} conversations={[]} onUnarchiveConversation={() => {}} onClose={() => setSettings(false)} /> : null}
+      {settings ? <SettingsView preferences={preferences} platform="darwin" models={models} project={project} conversations={[]} onUnarchiveConversation={() => {}} /> : null}
       <div hidden={settings} style={{ padding: 32, background: "var(--bg-chat)", minHeight: "100vh" }}>
         <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginBottom: 32 }}>
           <label><input type="checkbox" checked={preferences.thinkingSummary} onChange={(event) => preferences.setThinkingSummary(event.target.checked)} />自动总结</label>

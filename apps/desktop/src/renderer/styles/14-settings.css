@@ -19,7 +19,6 @@
   -webkit-app-region: drag;
   transition: padding-left var(--transition-sidebar);
 }
-.settings-done,
 .settings-nav-item,
 .settings-choice,
 .settings-segment-item,
@@ -29,13 +28,6 @@
 .settings-recent-remove {
   -webkit-app-region: no-drag;
 }
-.settings-done {
-  border-radius: var(--radius-md);
-  padding: 5px 12px;
-  background: var(--bg-surface-subtle);
-  color: var(--text-secondary);
-}
-.settings-done:hover { background: var(--bg-hover); color: var(--text-primary); }
 /*
  * 新样式:纸面上左边是一列略深的导航,右边是白色内容,中间一条细线;
  * 外缘不再单独描边或留边框,圆角由纸面本身(.settings-body 的裁切)提供。

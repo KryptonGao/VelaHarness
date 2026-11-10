@@ -106,7 +106,7 @@ function Fixture() {
     {params.has("checks") || params.has("settings") ? (
       <div className="fixture-settings" style={params.has("settings") ? undefined : { display: "none" }}>
         <SettingsView preferences={preferences} platform="darwin" models={models} project={project}
-          conversations={state.conversations} onUnarchiveConversation={noop} onClose={noop} />
+          conversations={state.conversations} onUnarchiveConversation={noop} />
       </div>
     ) : null}
   </>;

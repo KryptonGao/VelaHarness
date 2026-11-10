@@ -48,7 +48,6 @@ interface SettingsViewProps {
   conversations: ConversationSummary[];
   conversationId?: string | null;
   onUnarchiveConversation: (id: string) => void;
-  onClose: () => void;
   /** 重新播放引导里的介绍（不改动任何设置）。 */
   onReplayIntro?: () => void;
   /** 开发版：回到引导的第一页重新走一遍，不清除已保存的设置。 */
@@ -64,7 +63,6 @@ export function SettingsView({
   conversations,
   conversationId,
   onUnarchiveConversation,
-  onClose,
   onReplayIntro,
   onRestartOnboarding,
 }: SettingsViewProps) {
@@ -124,11 +122,7 @@ export function SettingsView({
 
   return (
     <main className="settings-view">
-      <header className="settings-header">
-        <button className="settings-done" type="button" onClick={onClose}>
-          {copy.done}
-        </button>
-      </header>
+      <header className="settings-header" />
       <div className="settings-body">
         <SettingsNav
           copy={copy}
