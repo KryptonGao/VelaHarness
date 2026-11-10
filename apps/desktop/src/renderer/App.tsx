@@ -11,6 +11,7 @@ import { ContextPanel } from "./components/ContextPanel";
 import { useMessagesEmpty } from "./hooks/useMessages";
 import { FileIconThemeProvider } from "./components/FileTypeIcon";
 import { ThinkingGroupModeContext, ThinkingModelCatalogContext } from "./components/ThinkingGroupModeContext";
+import { ThinkingActivityDelayContext } from "./hooks/useDelayedThinkingActivity";
 import { OnboardingView } from "./components/OnboardingView";
 import { PlanDocumentProvider } from "./components/PlanPanel";
 import { ScreenPresence } from "./components/MotionPresence";
@@ -960,6 +961,7 @@ export function App() {
 
   return (
     <ThinkingGroupModeContext.Provider value={preferences.thinkingGroupMode}>
+    <ThinkingActivityDelayContext.Provider value={preferences.thinkingActivityDelayEnabled ? preferences.thinkingActivityDelayMs : 0}>
     <ThinkingModelCatalogContext.Provider value={models.catalog?.models ?? []}>
     <FileIconThemeProvider value={preferences.fileIconTheme} scheme={preferences.scheme}>
       <AppLocaleProvider locale={preferences.locale}>
@@ -1318,6 +1320,7 @@ export function App() {
       </AppLocaleProvider>
     </FileIconThemeProvider>
     </ThinkingModelCatalogContext.Provider>
+    </ThinkingActivityDelayContext.Provider>
     </ThinkingGroupModeContext.Provider>
   );
 }

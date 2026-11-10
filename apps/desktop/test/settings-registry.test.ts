@@ -90,6 +90,22 @@ test("search finds settings across languages through keywords", () => {
   }
 });
 
+test("tool headline delay is searchable and localized in all five languages", () => {
+  for (const locale of ["zh-CN", "en", "zh-TW", "ja", "ko"] as const) {
+    const copy = settingsCopy(locale);
+    const entries = resolveSettingsEntries(copy);
+    for (const query of ["门槛", "延迟", "threshold", "flicker"]) {
+      assert.ok(searchSettings(query, entries).some((result) => result.entry.id === "thinking-activity-delay"), `${locale}: ${query}`);
+    }
+    assert.ok(copy.appearance.thinkingActivityDelay);
+    assert.ok(copy.appearance.thinkingActivityDelayHint);
+    assert.ok(copy.appearance.thinkingActivityDelayThreshold);
+    if (locale !== "en") {
+      assert.notEqual(copy.appearance.thinkingActivityDelay, settingsCopy("en").appearance.thinkingActivityDelay, locale);
+    }
+  }
+});
+
 test("search requires every word, normalizes case and width, and ranks title hits first", () => {
   const en = resolveSettingsEntries(settingsCopy("en"));
   assert.deepEqual(searchSettings("   ", en), []);

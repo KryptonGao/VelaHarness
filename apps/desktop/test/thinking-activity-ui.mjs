@@ -23,17 +23,18 @@ if (!process.versions.electron) {
           import { flushSync } from 'react-dom';
           import { ThinkingGroup, CoherentGroup } from './apps/desktop/src/renderer/components/Thinking';
           import { ToolList } from './apps/desktop/src/renderer/components/ToolCard';
-          import { THINKING_ACTIVITY_DELAY_MS } from './apps/desktop/src/renderer/hooks/useDelayedThinkingActivity';
+          import { ThinkingActivityDelayContext } from './apps/desktop/src/renderer/hooks/useDelayedThinkingActivity';
+          import { defaultThinkingActivityDelayMs } from './apps/desktop/src/renderer/thinking-activity-delay';
           import { AppLocaleProvider, setActiveLocale } from './apps/desktop/src/renderer/locale';
           // Control only the headline delay; leave animations and unrelated timers real.
-          window.activityDelay = THINKING_ACTIVITY_DELAY_MS;
+          window.activityDelay = defaultThinkingActivityDelayMs;
           const realSetTimeout = window.setTimeout.bind(window);
           const realClearTimeout = window.clearTimeout.bind(window);
           const activityTimers = new Map();
           let clock = 0;
           let nextTimerId = -1;
           window.setTimeout = (callback, delay, ...args) => {
-            if (delay !== THINKING_ACTIVITY_DELAY_MS || typeof callback !== 'function') {
+            if (delay !== window.activityDelay || typeof callback !== 'function') {
               return realSetTimeout(callback, delay, ...args);
             }
             const id = nextTimerId--;
@@ -59,11 +60,12 @@ if (!process.versions.electron) {
           const thought = '**Planning the change**\\n\\nInspect files, then update and verify.';
           let revision = 0;
           let state;
-          function Fixture({mode, locale, tools, live}) {
+          function Fixture({mode, locale, tools, live, delayMs}) {
             const children = <div data-tool-body><ToolList tools={tools} display="compact" fold="none" /></div>;
             const entries = [{type: 'thinking', id: 'thought', messageId: 'message', text: thought},
               ...tools.map(tool => ({type: 'tool', id: tool.id, messageId: 'message', tool}))];
             return <AppLocaleProvider locale={locale}>
+              <ThinkingActivityDelayContext.Provider value={delayMs}>
               <main className="main-chat-view" data-tool-display="compact" style={{width: 390, padding: 20}}>
                 <article className="assistant-block">
                   {mode === 'single'
@@ -74,15 +76,17 @@ if (!process.versions.electron) {
                       </CoherentGroup>}
                 </article>
               </main>
+              </ThinkingActivityDelayContext.Provider>
             </AppLocaleProvider>;
           }
           function paint() {
             setActiveLocale(state.locale);
+            window.activityDelay = state.delayMs;
             flushSync(() => root.render(<Fixture key={revision} {...state} />));
           }
           window.beginCase = (mode, locale, tools = [], live = true) => {
             revision += 1;
-            state = {mode, locale, tools, live};
+            state = {mode, locale, tools, live, delayMs: defaultThinkingActivityDelayMs};
             paint();
           };
           window.updateCase = patch => { state = {...state, ...patch}; paint(); };
@@ -272,6 +276,30 @@ if (!process.versions.electron) {
           await expectSummary("Planning the change");
           await evaluate(`window.savedHeadline = document.querySelector(${JSON.stringify(headline)}); window.savedBlock = document.querySelector('.thinking-block')`);
 
+          for (const delayMs of [100, 1200, 5000]) {
+            await update({tools: [tool("edit", "custom-delay-" + delayMs, {path})], delayMs});
+            await expectSummary("Planning the change");
+            await evaluate(`window.advanceActivityTime(${delayMs - 1})`);
+            await expectSummary("Planning the change");
+            await evaluate("window.advanceActivityTime(1)");
+            await expectActivity(label.edit, path);
+          }
+          // A changed threshold invalidates the old visible state; disabling it is immediate.
+          await update({delayMs: 1200});
+          await expectSummary("Planning the change");
+          await evaluate("window.advanceActivityTime(1199)");
+          await expectSummary("Planning the change");
+          await update({delayMs: 0});
+          await expectActivity(label.edit, path);
+          assert.equal(await evaluate("window.pendingActivityTimers()"), 0, `${currentCase}: disabling cancels the delay timer`);
+          await update({tools: [tool("read", "no-delay", {path})]});
+          await expectActivity(label.read, path);
+          await update({delayMs: 1200});
+          await expectSummary("Planning the change");
+          await expectActivity(label.read, path);
+          await update({tools: [], delayMs: 500});
+          await expectSummary("Planning the change");
+
           for (const name of ["read", "edit", "write"]) {
             await update({ tools: [tool(name, name, { path })] });
             await expectActivity(label[name], path);
@@ -415,7 +443,7 @@ if (!process.versions.electron) {
         }
       }
       assert.deepEqual(errors, [], "No renderer console errors");
-      console.log("Thinking activity UI: single/coherent/codex × zh-CN/en; delayed headlines, quick-call suppression, timer cancellation/replacement, uninterrupted streaming, shared rich file/skill/bash/generic/MCP/agent/browser details, code fonts, statistics isolation, no nested controls, stable nodes, parallel fallback, stale completion, truncation/tooltips and disclosure passed");
+      console.log("Thinking activity UI: single/coherent/codex × zh-CN/en; configurable delays, immediate activity when disabled, delayed headlines, quick-call suppression, timer cancellation/replacement, uninterrupted streaming, shared rich file/skill/bash/generic/MCP/agent/browser details, code fonts, statistics isolation, no nested controls, stable nodes, parallel fallback, stale completion, truncation/tooltips and disclosure passed");
       app.exit(0);
     } catch (error) {
       console.error(error);

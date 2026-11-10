@@ -7,6 +7,7 @@ import { Segmented, SettingsBlock, SettingsGroup, SettingsSwitch } from "./primi
 import { SettingsSelect } from "./SettingsSelect";
 import { HeightLimitControl } from "./HeightLimitControl";
 import { commandDetailHeightStops, thinkingGroupHeightStops, toolDetailHeightStops } from "../../thinking-group-height";
+import { clampThinkingActivityDelayMs, maxThinkingActivityDelayMs, minThinkingActivityDelayMs } from "../../thinking-activity-delay";
 import { IntelligentUiSetting } from "../intelligent-ui/IntelligentUiSetting";
 import {
   ConversationPreview,
@@ -35,6 +36,8 @@ export function ConversationDisplayPage({
     recommendedActions,
     toolIconColor,
     thinkingGroupMode,
+    thinkingActivityDelayEnabled,
+    thinkingActivityDelayMs,
     thinkingGroupHeight,
     toolDetailHeight,
     commandDetailHeight,
@@ -57,6 +60,8 @@ export function ConversationDisplayPage({
     setRecommendedActions,
     setToolIconColor,
     setThinkingGroupMode,
+    setThinkingActivityDelayEnabled,
+    setThinkingActivityDelayMs,
     setThinkingGroupHeight,
     setToolDetailHeight,
     setCommandDetailHeight,
@@ -74,6 +79,15 @@ export function ConversationDisplayPage({
     setInputPredictionModel,
   } = preferences;
   const text = copy.appearance;
+  const [activityDelayDraft, setActivityDelayDraft] = useState<string | null>(null);
+  const commitActivityDelay = () => {
+    if (activityDelayDraft === null) return;
+    const value = Number(activityDelayDraft);
+    if (activityDelayDraft.trim() && Number.isFinite(value)) {
+      setThinkingActivityDelayMs(clampThinkingActivityDelayMs(value));
+    }
+    setActivityDelayDraft(null);
+  };
   const onOff = (value: boolean) => (value ? "on" : "off");
   const selected: Record<string, string> = {
     toolDisplay,
@@ -258,6 +272,36 @@ export function ConversationDisplayPage({
       </SettingsBlock>
       <SettingsBlock id="thinking-group-mode" title={text.thinkingGroupMode} hint={text.thinkingGroupModeHint} layout="inline">
         <Segmented menu label={text.thinkingGroupMode} value={thinkingGroupMode} options={thinkingGroupModeOptions} onChange={setThinkingGroupMode} />
+      </SettingsBlock>
+      <SettingsBlock id="thinking-activity-delay" title={text.thinkingActivityDelay} hint={text.thinkingActivityDelayHint} layout="inline">
+        <div className="settings-font-row">
+          <SettingsSwitch
+            label={text.thinkingActivityDelay}
+            checked={thinkingActivityDelayEnabled}
+            onChange={setThinkingActivityDelayEnabled}
+          />
+          <div className="tb-limit" data-disabled={!thinkingActivityDelayEnabled ? "true" : undefined}>
+            <label className="tb-number">
+              <span>{text.thinkingActivityDelayThreshold}</span>
+              <input
+                type="number"
+                aria-label={text.thinkingActivityDelayThreshold}
+                inputMode="numeric"
+                min={minThinkingActivityDelayMs}
+                max={maxThinkingActivityDelayMs}
+                step={100}
+                value={activityDelayDraft ?? String(thinkingActivityDelayMs)}
+                disabled={!thinkingActivityDelayEnabled}
+                onChange={(event) => setActivityDelayDraft(event.target.value)}
+                onBlur={commitActivityDelay}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") commitActivityDelay();
+                  if (event.key === "Escape") setActivityDelayDraft(null);
+                }}
+              />
+            </label>
+          </div>
+        </div>
       </SettingsBlock>
       <SettingsBlock id="thinking-title-style" title={text.thinkingTitleStyle} hint={text.thinkingTitleStyleHint} layout="inline">
         <Segmented menu label={text.thinkingTitleStyle} value={thinkingTitleStyle} options={thinkingTitleStyleOptions} onChange={setThinkingTitleStyle} />

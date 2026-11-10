@@ -8,6 +8,7 @@ import {
   toolDetailHeightStops,
 } from "../thinking-group-height";
 import { uiStorage } from "../ui-storage";
+import { clampThinkingActivityDelayMs, defaultThinkingActivityDelayMs } from "../thinking-activity-delay";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   customThemeVars,
@@ -76,6 +77,8 @@ const runViewKey = "vela.runView";
 const recommendedActionsKey = "vela.recommendedActions";
 const toolIconColorKey = "vela.toolIconColor";
 const thinkingGroupModeKey = "vela.thinkingGroupMode";
+const thinkingActivityDelayEnabledKey = "vela.thinkingActivityDelayEnabled";
+const thinkingActivityDelayMsKey = "vela.thinkingActivityDelayMs";
 const thinkingGroupHeightKey = "vela.thinkingGroupHeight";
 const toolDetailHeightKey = "vela.toolDetailHeight";
 const commandDetailHeightKey = "vela.commandDetailHeight";
@@ -310,6 +313,11 @@ export function usePreferences() {
   const [thinkingGroupMode, setThinkingGroupMode] = useState<ThinkingGroupMode>(() =>
     readStored(thinkingGroupModeKey, isThinkingGroupMode, "single"),
   );
+  const [thinkingActivityDelayEnabled, setThinkingActivityDelayEnabled] = useState(() => readStoredFlag(thinkingActivityDelayEnabledKey, true));
+  const [thinkingActivityDelayMs, setThinkingActivityDelayMsState] = useState(() => clampThinkingActivityDelayMs(Number(
+    readStored(thinkingActivityDelayMsKey, (raw): raw is string => typeof raw === "string" && /^\d+$/.test(raw), String(defaultThinkingActivityDelayMs)),
+  )));
+  const setThinkingActivityDelayMs = useCallback((value: number) => setThinkingActivityDelayMsState(clampThinkingActivityDelayMs(value)), []);
   const [thinkingGroupHeight, setThinkingGroupHeightState] = useState(() =>
     readStoredHeight(thinkingGroupHeightKey, thinkingGroupHeightStops, defaultThinkingGroupHeight),
   );
@@ -443,6 +451,8 @@ export function usePreferences() {
   useEffect(() => writeStored(toolDisplayKey, toolDisplay), [toolDisplay]);
   useEffect(() => writeStored(toolFoldKey, toolFold), [toolFold]);
   useEffect(() => writeStored(thinkingGroupModeKey, thinkingGroupMode), [thinkingGroupMode]);
+  useEffect(() => writeStored(thinkingActivityDelayEnabledKey, String(thinkingActivityDelayEnabled)), [thinkingActivityDelayEnabled]);
+  useEffect(() => writeStored(thinkingActivityDelayMsKey, String(thinkingActivityDelayMs)), [thinkingActivityDelayMs]);
   useEffect(() => writeStored(toolProcessDetailsKey, String(toolProcessDetails)), [toolProcessDetails]);
   useEffect(() => {
     writeStored(runViewKey, String(runView));
@@ -579,6 +589,8 @@ export function usePreferences() {
     recommendedActions,
     toolIconColor,
     thinkingGroupMode,
+    thinkingActivityDelayEnabled,
+    thinkingActivityDelayMs,
     thinkingGroupHeight,
     toolDetailHeight,
     commandDetailHeight,
@@ -632,6 +644,8 @@ export function usePreferences() {
     setRecommendedActions,
     setToolIconColor,
     setThinkingGroupMode,
+    setThinkingActivityDelayEnabled,
+    setThinkingActivityDelayMs,
     setThinkingGroupHeight,
     setToolDetailHeight,
     setCommandDetailHeight,
