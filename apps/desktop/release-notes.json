@@ -1,134 +1,129 @@
 {
-  "version": "1.2.28",
+  "version": "1.2.29",
   "locales": {
     "en": {
-      "summary": "Vela 1.2.28 adds built-in PostHog and Supabase connectors, shows live tool details in thinking headlines, opens Integrations instantly from a cached catalog, and moves the acceptance entry into the reply action row.",
+      "summary": "Vela 1.2.29 adds a skill marketplace for installing curated skills from GitHub, lets you tune when running-tool details appear in thinking headlines, and fixes diff line numbers and integration card actions.",
       "highlights": [
         {
-          "title": "PostHog and Supabase connectors",
-          "body": "Connect PostHog and Supabase from Integrations through the standard OAuth sign-in; the provider's consent screen decides the scopes."
+          "title": "Skill marketplace",
+          "body": "Browse a curated catalog in Settings → Skills, read each skill's details, and install it from GitHub with one click."
         },
         {
-          "title": "Live tool details in thinking",
-          "body": "The thinking group headline now shows what the running tool is doing, such as the command or file in progress."
+          "title": "Calmer thinking headlines",
+          "body": "A running tool appears in the thinking group headline only once the operation is no longer short, so quick calls no longer flash."
         },
         {
-          "title": "Instant Integrations page",
-          "body": "Integrations shows the last known connectors immediately and swaps in fresh results once they settle, instead of a loading state."
+          "title": "Configurable headline delay",
+          "body": "Turn the delay on or off and set the threshold in Settings → Conversation display."
         },
         {
-          "title": "Acceptance in the reply row",
-          "body": "The acceptance entry now sits in the reply action row, next to the other actions on each reply."
+          "title": "Accurate diff line numbers",
+          "body": "Context lines point at their post-edit positions, and streaming edits no longer show line numbers that do not match the file."
         }
       ],
       "improvements": [
-        "The start page offers more time-of-day greetings, and MCP tool results from the new connectors show their source link.",
-        "Pure deletions in Changes review now fill the full width, and todo status icons line up with their text.",
-        "Native title tooltips no longer appear outside the custom button tooltip, and accent buttons and the Integrations search box lose the colored glow and focus ring."
+        "The marketplace checks file paths and size limits before installing, and its copy is localized in all five languages.",
+        "Integration card actions stay in a fixed top-right slot, so they no longer shift between cards."
       ]
     },
     "zh-CN": {
-      "summary": "Vela 1.2.28 新增内置 PostHog 和 Supabase 连接器，思考标题中实时显示工具详情，“集成”页面基于缓存即时打开，并把验收入口移入回复操作栏。",
+      "summary": "Vela 1.2.29 新增技能市场，可从 GitHub 安装精选技能；思考标题中运行中工具的出现时机可自行调节；同时修复了差异行号和集成卡片操作的位置问题。",
       "highlights": [
         {
-          "title": "PostHog 和 Supabase 连接器",
-          "body": "在“集成”中通过标准 OAuth 登录连接 PostHog 和 Supabase，授权范围由服务方的授权页面决定。"
+          "title": "技能市场",
+          "body": "在“设置 → 技能”中浏览精选目录，查看每个技能的详情，并一键从 GitHub 安装。"
         },
         {
-          "title": "思考中的实时工具详情",
-          "body": "思考分组的标题现在会显示正在运行的工具在做什么，例如正在执行的命令或处理的文件。"
+          "title": "更平稳的思考标题",
+          "body": "只有当操作不再短暂时，运行中的工具才会出现在思考分组标题中，短促的调用不再一闪而过。"
         },
         {
-          "title": "即时打开的集成页面",
-          "body": "“集成”会立即显示上次的连接器列表，并在最新结果就绪后替换，不再显示加载状态。"
+          "title": "可调的标题延迟",
+          "body": "可在“设置 → 对话显示”中开关该延迟并设置阈值。"
         },
         {
-          "title": "回复栏中的验收入口",
-          "body": "验收入口现在位于回复操作栏，与每条回复的其他操作并排。"
+          "title": "准确的差异行号",
+          "body": "上下文行号现在指向编辑后的位置，流式编辑过程中也不再显示与文件不符的行号。"
         }
       ],
       "improvements": [
-        "开始页新增更多按时段变化的问候语，新连接器的 MCP 工具结果会显示来源链接。",
-        "“更改”审阅中的纯删除内容现在占满整行宽度，待办状态图标与文字对齐。",
-        "自定义按钮提示之外不再出现系统原生 title 提示，强调色按钮和集成搜索框不再带有彩色光晕与聚焦环。"
+        "技能市场在安装前会检查文件路径和大小限制，界面文案已提供五种语言。",
+        "集成卡片的操作固定在右上角，不会在不同卡片之间错位。"
       ]
     },
     "zh-TW": {
-      "summary": "Vela 1.2.28 新增內建 PostHog 和 Supabase 連接器，思考標題中即時顯示工具詳情，「整合」頁面以快取即時開啟，並把驗收入口移入回覆操作列。",
+      "summary": "Vela 1.2.29 新增技能市集，可從 GitHub 安裝精選技能；思考標題中執行中工具的出現時機可自行調整；同時修正了差異行號和整合卡片操作的位置問題。",
       "highlights": [
         {
-          "title": "PostHog 和 Supabase 連接器",
-          "body": "在「整合」中透過標準 OAuth 登入連接 PostHog 和 Supabase，授權範圍由服務方的授權頁面決定。"
+          "title": "技能市集",
+          "body": "在「設定 → 技能」中瀏覽精選目錄，查看每個技能的詳情，並一鍵從 GitHub 安裝。"
         },
         {
-          "title": "思考中的即時工具詳情",
-          "body": "思考群組的標題現在會顯示執行中的工具正在做什麼，例如進行中的指令或處理的檔案。"
+          "title": "更平穩的思考標題",
+          "body": "只有當操作不再短暫時，執行中的工具才會出現在思考群組標題中，短促的呼叫不再一閃而過。"
         },
         {
-          "title": "即時開啟的整合頁面",
-          "body": "「整合」會立即顯示上次的連接器清單，並在最新結果就緒後替換，不再顯示載入狀態。"
+          "title": "可調整的標題延遲",
+          "body": "可在「設定 → 對話顯示」中開關該延遲並設定門檻。"
         },
         {
-          "title": "回覆列中的驗收入口",
-          "body": "驗收入口現在位於回覆操作列，與每則回覆的其他操作並排。"
+          "title": "準確的差異行號",
+          "body": "上下文行號現在指向編輯後的位置，串流編輯過程中也不再顯示與檔案不符的行號。"
         }
       ],
       "improvements": [
-        "開始頁新增更多依時段變化的問候語，新連接器的 MCP 工具結果會顯示來源連結。",
-        "「變更」審閱中的純刪除內容現在佔滿整行寬度，待辦狀態圖示與文字對齊。",
-        "自訂按鈕提示之外不再出現系統原生 title 提示，強調色按鈕和整合搜尋框不再帶有彩色光暈與聚焦框。"
+        "技能市集在安裝前會檢查檔案路徑和大小限制，介面文案已提供五種語言。",
+        "整合卡片的操作固定在右上角，不會在不同卡片之間錯位。"
       ]
     },
     "ja": {
-      "summary": "Vela 1.2.28 では PostHog と Supabase のコネクタを内蔵し、思考の見出しにツールの詳細をリアルタイム表示します。連携ページはキャッシュから即座に開き、受け入れの入口は返信のアクション行に移りました。",
+      "summary": "Vela 1.2.29 では、GitHub から厳選スキルをインストールできるスキルマーケットプレイスを追加し、思考の見出しに実行中ツールが表示されるタイミングを調整できるようにしました。差分の行番号と連携カードの操作位置も修正しています。",
       "highlights": [
         {
-          "title": "PostHog と Supabase のコネクタ",
-          "body": "連携ページから標準の OAuth サインインで PostHog と Supabase に接続できます。権限の範囲は提供元の同意画面で決まります。"
+          "title": "スキルマーケットプレイス",
+          "body": "設定 → スキルで厳選カタログを閲覧し、各スキルの詳細を確認して、GitHub からワンクリックでインストールできます。"
         },
         {
-          "title": "思考中のツール詳細をリアルタイム表示",
-          "body": "思考グループの見出しに、実行中のコマンドや処理中のファイルなど、ツールの動作が表示されます。"
+          "title": "落ち着いた思考の見出し",
+          "body": "実行中のツールは、処理が短時間で終わらなくなってから思考グループの見出しに表示されるため、短い呼び出しで一瞬ちらつくことがなくなりました。"
         },
         {
-          "title": "すぐ開く連携ページ",
-          "body": "連携ページは前回のコネクタ一覧を即座に表示し、最新の結果がそろい次第入れ替えます。読み込み状態は表示されません。"
+          "title": "見出しの遅延を設定可能",
+          "body": "設定 → 会話の表示で、遅延のオン／オフとしきい値を設定できます。"
         },
         {
-          "title": "返信行の受け入れ入口",
-          "body": "受け入れの入口が返信のアクション行に移り、各返信の他の操作と並びます。"
+          "title": "正確な差分の行番号",
+          "body": "コンテキスト行は編集後の位置を指すようになり、ストリーミング中の編集でもファイルと一致しない行番号は表示されません。"
         }
       ],
       "improvements": [
-        "スタートページの時間帯別あいさつを増やし、新しいコネクタの MCP ツール結果にソースリンクを表示します。",
-        "変更レビューで削除のみの行を全幅で表示し、ToDo のステータスアイコンをテキストに揃えました。",
-        "カスタムボタンのツールチップ以外でネイティブの title ツールチップを表示しないようにし、アクセントボタンと連携の検索ボックスから色付きのグローとフォーカスリングをなくしました。"
+        "マーケットプレイスはインストール前にファイルパスとサイズ上限を検査し、表示文言は 5 言語に対応しています。",
+        "連携カードの操作は右上の固定位置に配置され、カードごとにずれなくなりました。"
       ]
     },
     "ko": {
-      "summary": "Vela 1.2.28은 PostHog와 Supabase 커넥터를 기본 제공하고, 생각 헤드라인에 실행 중인 도구 상세를 실시간으로 보여 주며, 통합 페이지를 캐시로 즉시 열고, 수락 진입점을 답변 작업 행으로 옮겼습니다.",
+      "summary": "Vela 1.2.29는 GitHub에서 엄선된 스킬을 설치할 수 있는 스킬 마켓플레이스를 추가하고, 생각 헤드라인에 실행 중인 도구가 나타나는 시점을 조정할 수 있게 했으며, diff 줄 번호와 통합 카드 작업 위치를 수정했습니다.",
       "highlights": [
         {
-          "title": "PostHog 및 Supabase 커넥터",
-          "body": "통합 페이지에서 표준 OAuth 로그인으로 PostHog와 Supabase에 연결할 수 있으며, 권한 범위는 제공업체의 동의 화면에서 결정됩니다."
+          "title": "스킬 마켓플레이스",
+          "body": "설정 → 스킬에서 엄선된 목록을 살펴보고 각 스킬의 상세를 확인한 뒤 GitHub에서 한 번에 설치할 수 있습니다."
         },
         {
-          "title": "생각 중 실시간 도구 상세",
-          "body": "생각 그룹 헤드라인에 실행 중인 명령이나 처리 중인 파일 등 도구가 하는 일이 표시됩니다."
+          "title": "더 차분한 생각 헤드라인",
+          "body": "실행 중인 도구는 작업이 더 이상 짧지 않을 때에만 생각 그룹 헤드라인에 나타나므로, 짧은 호출이 깜빡이지 않습니다."
         },
         {
-          "title": "즉시 열리는 통합 페이지",
-          "body": "통합 페이지가 이전 커넥터 목록을 바로 보여 주고 최신 결과가 준비되면 교체하므로 로딩 상태가 나타나지 않습니다."
+          "title": "헤드라인 지연 설정",
+          "body": "설정 → 대화 표시에서 지연을 켜거나 끄고 임계값을 설정할 수 있습니다."
         },
         {
-          "title": "답변 행의 수락 진입점",
-          "body": "수락 진입점이 답변 작업 행으로 옮겨져 각 답변의 다른 작업과 나란히 표시됩니다."
+          "title": "정확한 diff 줄 번호",
+          "body": "컨텍스트 줄이 편집 후 위치를 가리키며, 스트리밍 중인 편집에도 파일과 맞지 않는 줄 번호가 표시되지 않습니다."
         }
       ],
       "improvements": [
-        "시작 페이지의 시간대별 인사말을 늘렸고, 새 커넥터의 MCP 도구 결과에 출처 링크가 표시됩니다.",
-        "변경 검토에서 삭제만 있는 줄이 전체 너비로 표시되고, 할 일 상태 아이콘이 텍스트와 정렬됩니다.",
-        "사용자 지정 버튼 툴팁 외에는 기본 title 툴팁이 나타나지 않으며, 강조 버튼과 통합 검색 상자에서 색상 글로와 포커스 링이 사라졌습니다."
+        "마켓플레이스는 설치 전에 파일 경로와 크기 제한을 검사하며, 화면 문구는 다섯 가지 언어로 제공됩니다.",
+        "통합 카드의 작업이 오른쪽 위 고정 위치에 놓여 카드마다 밀리지 않습니다."
       ]
     }
   }
