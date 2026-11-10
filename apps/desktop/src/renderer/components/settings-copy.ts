@@ -474,7 +474,7 @@ const zh = {
     skillsHint: "把包含 SKILL.md 的目录放在下方路径。新对话会按名称和描述决定是否读取全文。在输入框输入 / 可以选择 Skill，也可以直接发送 /skill:名称。每个 Skill 都能单独停用；Vela 目录里的 Skill 还可以删除。",
     skillsTabManage: "管理",
     skillsTabMarket: "市场",
-    skillsMarketHint: "来自上游仓库的 Skill。安装会把最新版本下载到 Vela 的 Skill 目录，之后可以随时停用或卸载。第三方 Skill 可能带有脚本，使用前建议先审阅。",
+    skillsMarketHint: "来自上游仓库、经维护者审核并签名的 Skill。安装会把审核过的版本下载到 Vela 的 Skill 目录，之后可以随时停用或卸载。第三方 Skill 可能带有脚本，使用前建议先审阅。",
     skillsMarketCategories: {
       office: "办公文档",
       agent: "Agent 核心与工具扩展",
@@ -512,6 +512,7 @@ const zh = {
     skillsMarketInstall: "安装",
     skillsMarketInstalling: "正在安装…",
     skillsMarketInstalled: "已安装",
+    skillsMarketInstallCount: "安装次数",
     skillsMarketUninstall: "卸载",
     skillsMarketUninstallConfirm: "确认卸载",
     skillsMarketDetailIntro: "简介",
@@ -1412,7 +1413,7 @@ const en: typeof zh = {
     skillsHint: "Place a directory containing SKILL.md at the path below. New conversations see each skill’s name and description, then read the full file when it applies. Type / in the composer to choose a skill, or send /skill:name. Each skill can be disabled on its own; skills in Vela’s folder can also be deleted.",
     skillsTabManage: "Manage",
     skillsTabMarket: "Marketplace",
-    skillsMarketHint: "Skills from upstream repositories. Installing downloads the latest version into Vela’s skills folder; you can disable or uninstall it any time. Third-party skills may include scripts, so review them before use.",
+    skillsMarketHint: "Skills from upstream repositories, reviewed and signed by the maintainers. Installing downloads the reviewed version into Vela’s skills folder; you can disable or uninstall it any time. Third-party skills may include scripts, so review them before use.",
     skillsMarketCategories: {
       office: "Office documents",
       agent: "Agent core and tools",
@@ -1450,6 +1451,7 @@ const en: typeof zh = {
     skillsMarketInstall: "Install",
     skillsMarketInstalling: "Installing…",
     skillsMarketInstalled: "Installed",
+    skillsMarketInstallCount: "Installs",
     skillsMarketUninstall: "Uninstall",
     skillsMarketUninstallConfirm: "Confirm uninstall",
     skillsMarketDetailIntro: "About",

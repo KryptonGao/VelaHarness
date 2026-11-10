@@ -20,7 +20,7 @@ import {
   isInteractionMode,
   isRuntimeInstructionMode,
   isUiPreference,
-  marketplaceSkills,
+  isMarketplaceId,
   type ModelAuthEvent,
   type NewConversationSelection,
   type PlanExecutionContextStrategy,
@@ -322,10 +322,11 @@ export class SessionHost {
       return this.runtime.deleteSkill(this.hooks.currentCwd(), parseSkillName(rawName), parseSkillLocation(rawLocation));
     });
     ipcMain.handle(IpcChannel.installMarketplaceSkill, (_event, rawId: unknown) => {
-      const entry = marketplaceSkills.find((item) => item.id === rawId);
-      if (!entry) throw new Error("Skill 不正确");
-      return this.runtime.installMarketplaceSkill(this.hooks.currentCwd(), entry.id);
+      // 目录由云端提供，新上架的 Skill 不在内置目录里；这里只校验 id 的格式，存在与否由安装时的签名 manifest 决定。
+      if (!isMarketplaceId(rawId)) throw new Error("Skill 不正确");
+      return this.runtime.installMarketplaceSkill(this.hooks.currentCwd(), rawId);
     });
+    ipcMain.handle(IpcChannel.loadMarketplace, () => this.runtime.loadMarketplace());
     ipcMain.handle(IpcChannel.openSkillsDir, async () => {
       const error = await shell.openPath(this.runtime.skillsDirectory());
       if (error) throw new Error(error);

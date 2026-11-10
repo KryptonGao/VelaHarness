@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "id": "find-skills",
+  "skill": "find-skills",
+  "version": "26dc8e4",
+  "source": "vercel-labs/skills",
+  "commit": "26dc8e4755a11fea22ed788256c3db50001b013d",
+  "upstreamPath": "skills/find-skills",
+  "files": [
+    {
+      "path": "SKILL.md",
+      "size": 5472,
+      "sha256": "c00eeea0e13e74fe4a9d84ba0a8542205a1b736d65f13134fe1a6647eb14976f"
+    }
+  ]
+}

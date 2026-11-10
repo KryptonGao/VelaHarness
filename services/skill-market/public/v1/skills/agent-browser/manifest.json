@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "id": "agent-browser",
+  "skill": "agent-browser",
+  "version": "e751995",
+  "source": "vercel-labs/agent-browser",
+  "commit": "e7519957b9067c541825afa21a792fbe1f483047",
+  "upstreamPath": "skills/agent-browser",
+  "files": [
+    {
+      "path": "SKILL.md",
+      "size": 3220,
+      "sha256": "ef7c2da16e25e86b78396bd9a2fd112e23c42cdd2de435197a920b9fc646d1c2"
+    }
+  ]
+}

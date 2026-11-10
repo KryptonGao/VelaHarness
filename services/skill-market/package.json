@@ -1,0 +1,13 @@
+{
+  "name": "vela-skill-market",
+  "private": true,
+  "type": "module",
+  "description": "Vela Skill Market: signed catalog, manifests and skill files on Cloudflare Workers",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler d1 migrations apply DB --remote && wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}

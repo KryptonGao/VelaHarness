@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "id": "executing-plans",
+  "skill": "executing-plans",
+  "version": "22f0b46",
+  "source": "obra/superpowers",
+  "commit": "22f0b463e7a5e579904dd6211a520321035526f7",
+  "upstreamPath": "skills/executing-plans",
+  "files": [
+    {
+      "path": "SKILL.md",
+      "size": 18364,
+      "sha256": "deaf176fa179827e80f2ea3101db3ea90fdf562ebef340eba761e4687940f5f5"
+    },
+    {
+      "path": "scripts/task-done",
+      "size": 1900,
+      "sha256": "ac0b5ebafc7d471507b7e94d88da77a11f187ba277c8d48fefaf8ff3e4fee50e"
+    },
+    {
+      "path": "scripts/task-start",
+      "size": 1185,
+      "sha256": "4ae7ce3b6777c3240af786197836a6b4bbf3b0ee831c25f147c149ea8db54a21"
+    }
+  ]
+}

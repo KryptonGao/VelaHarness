@@ -1,4 +1,6 @@
 {
   "extends": "../../tsconfig.base.json",
-  "include": ["src"]
+  "include": ["src"],
+  // 依赖 node:crypto，由引用它的包（agent、desktop）带着 Node 类型一起检查。
+  "exclude": ["src/signature.ts"]
 }

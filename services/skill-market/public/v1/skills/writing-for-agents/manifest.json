@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "id": "writing-for-agents",
+  "skill": "writing-for-agents",
+  "version": "4ae2317",
+  "source": "mattpocock/skills",
+  "commit": "4ae2317ddb22b046e26455e4f9c9b3aaaf62212d",
+  "upstreamPath": "skills/productivity/writing-for-agents",
+  "files": [
+    {
+      "path": "SKILL-MECHANICS.md",
+      "size": 2629,
+      "sha256": "c768e6307c7c10728c401c213f2c4ba71c542127eeb7ad2956aabd15a0fa0059"
+    },
+    {
+      "path": "SKILL.md",
+      "size": 10886,
+      "sha256": "551adca942227b44192edba88acd4e8db911f0121ce58ad16944ccf6a896a74a"
+    },
+    {
+      "path": "agents/openai.yaml",
+      "size": 102,
+      "sha256": "eacb24b2a618cfb81dacb0416f4fdd75ddf3a8060f8ddb99aae1b1e301907e4b"
+    }
+  ]
+}

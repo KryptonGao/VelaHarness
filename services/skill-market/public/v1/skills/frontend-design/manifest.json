@@ -1,0 +1,21 @@
+{
+  "schema": 1,
+  "id": "frontend-design",
+  "skill": "frontend-design",
+  "version": "2c5958e",
+  "source": "anthropics/skills",
+  "commit": "2c5958ecac7cee2b583967a2c4981d0f4a75c579",
+  "upstreamPath": "skills/frontend-design",
+  "files": [
+    {
+      "path": "LICENSE.txt",
+      "size": 10174,
+      "sha256": "0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594"
+    },
+    {
+      "path": "SKILL.md",
+      "size": 9390,
+      "sha256": "d91970639e9f5c37682ac7ab60094d35f1c7c1f38d731bd56396563aee10c1d3"
+    }
+  ]
+}

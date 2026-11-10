@@ -67,12 +67,13 @@ export function MarketplaceDetail({
   copy,
   entry,
   error,
+  installs,
   onBack,
   ...action
-}: Omit<MarketplaceActionProps, never> & { error: string | null; onBack: () => void }) {
+}: MarketplaceActionProps & { error: string | null; installs: number | null; onBack: () => void }) {
   const [copied, setCopied] = useState(false);
   const name = copy.skillsMarketNames[entry.id] ?? entry.skill;
-  const description = copy.skillsMarketDescriptions[entry.id] ?? "";
+  const description = copy.skillsMarketDescriptions[entry.id] ?? entry.description ?? "";
   const command = marketplaceSkillCommand(entry);
   const homepage = marketplaceHomepage(entry);
 
@@ -152,6 +153,12 @@ export function MarketplaceDetail({
             <dt>{copy.skillsMarketCategory}</dt>
             <dd>{copy.skillsMarketCategories[entry.category]}</dd>
           </div>
+          {installs === null ? null : (
+            <div className="market-detail-row">
+              <dt>{copy.skillsMarketInstallCount}</dt>
+              <dd>{installs.toLocaleString()}</dd>
+            </div>
+          )}
           <div className="market-detail-row">
             <dt>{copy.skillsMarketHomepage}</dt>
             <dd>

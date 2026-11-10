@@ -1,0 +1,173 @@
+{
+  "skills": [
+    {
+      "id": "docx",
+      "source": "anthropics/skills",
+      "skill": "docx",
+      "category": "office",
+      "commit": "2c5958ecac7cee2b583967a2c4981d0f4a75c579"
+    },
+    {
+      "id": "xlsx",
+      "source": "anthropics/skills",
+      "skill": "xlsx",
+      "category": "office",
+      "commit": "2c5958ecac7cee2b583967a2c4981d0f4a75c579"
+    },
+    {
+      "id": "pptx",
+      "source": "anthropics/skills",
+      "skill": "pptx",
+      "category": "office",
+      "commit": "2c5958ecac7cee2b583967a2c4981d0f4a75c579"
+    },
+    {
+      "id": "pdf",
+      "source": "anthropics/skills",
+      "skill": "pdf",
+      "category": "office",
+      "commit": "2c5958ecac7cee2b583967a2c4981d0f4a75c579"
+    },
+    {
+      "id": "find-skills",
+      "source": "vercel-labs/skills",
+      "skill": "find-skills",
+      "category": "agent",
+      "commit": "26dc8e4755a11fea22ed788256c3db50001b013d"
+    },
+    {
+      "id": "skill-creator",
+      "source": "anthropics/skills",
+      "skill": "skill-creator",
+      "category": "agent",
+      "commit": "2c5958ecac7cee2b583967a2c4981d0f4a75c579"
+    },
+    {
+      "id": "agent-browser",
+      "source": "vercel-labs/agent-browser",
+      "skill": "agent-browser",
+      "category": "agent",
+      "commit": "e7519957b9067c541825afa21a792fbe1f483047"
+    },
+    {
+      "id": "mcp-builder",
+      "source": "anthropics/skills",
+      "skill": "mcp-builder",
+      "category": "agent",
+      "commit": "2c5958ecac7cee2b583967a2c4981d0f4a75c579"
+    },
+    {
+      "id": "grill-me",
+      "source": "mattpocock/skills",
+      "skill": "grill-me",
+      "category": "agent",
+      "commit": "4ae2317ddb22b046e26455e4f9c9b3aaaf62212d"
+    },
+    {
+      "id": "handoff",
+      "source": "mattpocock/skills",
+      "skill": "handoff",
+      "category": "agent",
+      "commit": "4ae2317ddb22b046e26455e4f9c9b3aaaf62212d"
+    },
+    {
+      "id": "writing-for-agents",
+      "source": "mattpocock/skills",
+      "skill": "writing-for-agents",
+      "category": "agent",
+      "commit": "4ae2317ddb22b046e26455e4f9c9b3aaaf62212d"
+    },
+    {
+      "id": "doc-coauthoring",
+      "source": "anthropics/skills",
+      "skill": "doc-coauthoring",
+      "category": "docs",
+      "commit": "2c5958ecac7cee2b583967a2c4981d0f4a75c579"
+    },
+    {
+      "id": "web-artifacts-builder",
+      "source": "anthropics/skills",
+      "skill": "web-artifacts-builder",
+      "category": "docs",
+      "commit": "2c5958ecac7cee2b583967a2c4981d0f4a75c579"
+    },
+    {
+      "id": "frontend-design",
+      "source": "anthropics/skills",
+      "skill": "frontend-design",
+      "category": "frontend",
+      "commit": "2c5958ecac7cee2b583967a2c4981d0f4a75c579"
+    },
+    {
+      "id": "web-design-guidelines",
+      "source": "vercel-labs/agent-skills",
+      "skill": "web-design-guidelines",
+      "category": "frontend",
+      "commit": "1a2c79d4e6c4a2283dc2c614b6538cbe1ed5ca62"
+    },
+    {
+      "id": "vercel-react-best-practices",
+      "source": "vercel-labs/agent-skills",
+      "skill": "vercel-react-best-practices",
+      "dir": "react-best-practices",
+      "category": "frontend",
+      "commit": "1a2c79d4e6c4a2283dc2c614b6538cbe1ed5ca62"
+    },
+    {
+      "id": "webapp-testing",
+      "source": "anthropics/skills",
+      "skill": "webapp-testing",
+      "category": "engineering",
+      "commit": "2c5958ecac7cee2b583967a2c4981d0f4a75c579"
+    },
+    {
+      "id": "improve-codebase-architecture",
+      "source": "mattpocock/skills",
+      "skill": "improve-codebase-architecture",
+      "category": "engineering",
+      "commit": "4ae2317ddb22b046e26455e4f9c9b3aaaf62212d"
+    },
+    {
+      "id": "tdd",
+      "source": "mattpocock/skills",
+      "skill": "tdd",
+      "category": "engineering",
+      "commit": "4ae2317ddb22b046e26455e4f9c9b3aaaf62212d"
+    },
+    {
+      "id": "systematic-debugging",
+      "source": "obra/superpowers",
+      "skill": "systematic-debugging",
+      "category": "engineering",
+      "commit": "22f0b463e7a5e579904dd6211a520321035526f7"
+    },
+    {
+      "id": "writing-plans",
+      "source": "obra/superpowers",
+      "skill": "writing-plans",
+      "category": "engineering",
+      "commit": "22f0b463e7a5e579904dd6211a520321035526f7"
+    },
+    {
+      "id": "verification-before-completion",
+      "source": "obra/superpowers",
+      "skill": "verification-before-completion",
+      "category": "engineering",
+      "commit": "22f0b463e7a5e579904dd6211a520321035526f7"
+    },
+    {
+      "id": "brainstorming",
+      "source": "obra/superpowers",
+      "skill": "brainstorming",
+      "category": "engineering",
+      "commit": "22f0b463e7a5e579904dd6211a520321035526f7"
+    },
+    {
+      "id": "executing-plans",
+      "source": "obra/superpowers",
+      "skill": "executing-plans",
+      "category": "engineering",
+      "commit": "22f0b463e7a5e579904dd6211a520321035526f7"
+    }
+  ]
+}

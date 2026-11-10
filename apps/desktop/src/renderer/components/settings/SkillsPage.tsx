@@ -1,5 +1,6 @@
 import {
   marketplaceCategories,
+  type MarketplaceListing,
   type MarketplaceSkillEntry,
   marketplaceSkills,
   type SkillCatalog,
@@ -50,6 +51,23 @@ export function SkillsPage({ copy, workspacePath }: { copy: SettingsCopy; worksp
   const [marketDetail, setMarketDetail] = useState<string | null>(null);
   const [installing, setInstalling] = useState<string | null>(null);
   const [installError, setInstallError] = useState<string | null>(null);
+  // 先用内置目录立刻有内容，进入市场后再换成云端目录与安装次数。
+  const [listing, setListing] = useState<MarketplaceListing>(() => ({ skills: [...marketplaceSkills], source: "builtin", installs: null }));
+
+  useEffect(() => {
+    const api = window.vela;
+    if (view !== "market" || !api) return;
+    let active = true;
+    void api.loadMarketplace().then(
+      (next) => {
+        if (active) setListing(next);
+      },
+      () => undefined,
+    );
+    return () => {
+      active = false;
+    };
+  }, [view]);
 
   useEffect(() => {
     const api = window.vela;
@@ -156,7 +174,7 @@ export function SkillsPage({ copy, workspacePath }: { copy: SettingsCopy; worksp
     [skills, filter, needle],
   );
   const installedByName = useMemo(() => new Map(skills.map((skill) => [skill.name, skill])), [skills]);
-  const marketDetailEntry = marketDetail ? marketplaceSkills.find((entry) => entry.id === marketDetail) ?? null : null;
+  const marketDetailEntry = marketDetail ? listing.skills.find((entry) => entry.id === marketDetail) ?? null : null;
   const detail = detailLocation ? skills.find((skill) => skill.location === detailLocation) ?? null : null;
   const enabledCount = skills.filter((skill) => skill.enabled).length;
   const diagnostics = catalog?.diagnostics ?? [];
@@ -181,6 +199,7 @@ export function SkillsPage({ copy, workspacePath }: { copy: SettingsCopy; worksp
           <MarketplaceDetail
             copy={text}
             entry={marketDetailEntry}
+            installs={listing.installs ? listing.installs[marketDetailEntry.id] ?? 0 : null}
             skill={installedByName.get(marketDetailEntry.skill)}
             busy={installing !== null || pending !== null}
             installing={installing}
@@ -196,6 +215,8 @@ export function SkillsPage({ copy, workspacePath }: { copy: SettingsCopy; worksp
         ) : (
           <SkillsMarketplace
             copy={text}
+            entries={listing.skills}
+            installs={listing.installs}
             installed={installedByName}
             busy={installing !== null || pending !== null}
             installing={installing}
@@ -325,6 +346,8 @@ export function SkillsPage({ copy, workspacePath }: { copy: SettingsCopy; worksp
 
 function SkillsMarketplace({
   copy,
+  entries,
+  installs,
   installed,
   busy,
   installing,
@@ -335,6 +358,8 @@ function SkillsMarketplace({
   onUninstall,
 }: {
   copy: SettingsCopy["agent"];
+  entries: readonly MarketplaceEntry[];
+  installs: Record<string, number> | null;
   installed: Map<string, SkillItem>;
   busy: boolean;
   installing: string | null;
@@ -346,10 +371,10 @@ function SkillsMarketplace({
 }) {
   const [query, setQuery] = useState("");
   const needle = query.trim().toLowerCase();
-  const visible = marketplaceSkills.filter((entry) => {
+  const visible = entries.filter((entry) => {
     if (!needle) return true;
     const name = copy.skillsMarketNames[entry.id] ?? entry.skill;
-    return `${entry.skill} ${name} ${copy.skillsMarketDescriptions[entry.id] ?? ""}`.toLowerCase().includes(needle);
+    return `${entry.skill} ${name} ${copy.skillsMarketDescriptions[entry.id] ?? entry.description ?? ""}`.toLowerCase().includes(needle);
   });
 
   return (
@@ -379,7 +404,7 @@ function SkillsMarketplace({
             <div className="market-grid">
               {items.map((entry) => {
                 const name = copy.skillsMarketNames[entry.id] ?? entry.skill;
-                const description = copy.skillsMarketDescriptions[entry.id] ?? "";
+                const description = copy.skillsMarketDescriptions[entry.id] ?? entry.description ?? "";
                 const skill = installed.get(entry.skill);
                 return (
                   <article className="market-item" key={entry.id}>
@@ -388,6 +413,9 @@ function SkillsMarketplace({
                       <span className="market-item-text">
                         <span className="market-item-name">{name}</span>
                         <span className="market-item-desc" title={description}>{description}</span>
+                        {installs ? (
+                          <span className="market-item-installs">{copy.skillsMarketInstallCount} {(installs[entry.id] ?? 0).toLocaleString()}</span>
+                        ) : null}
                       </span>
                     </button>
                     <MarketplaceAction

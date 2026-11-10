@@ -1,0 +1,41 @@
+{
+  "schema": 1,
+  "id": "webapp-testing",
+  "skill": "webapp-testing",
+  "version": "2c5958e",
+  "source": "anthropics/skills",
+  "commit": "2c5958ecac7cee2b583967a2c4981d0f4a75c579",
+  "upstreamPath": "skills/webapp-testing",
+  "files": [
+    {
+      "path": "LICENSE.txt",
+      "size": 11345,
+      "sha256": "bc6b3af2f331cbc7fb0da1344efb2cbe5877a31498b4d70dbc7000f3405a1362"
+    },
+    {
+      "path": "SKILL.md",
+      "size": 3913,
+      "sha256": "51b7349e77ec63b7744a6f63647e7566a0b4d2e301121cc10e8c2113af6556a2"
+    },
+    {
+      "path": "examples/console_logging.py",
+      "size": 1027,
+      "sha256": "ea46877289acb82da7e7ce59d0bc37c8977cd57e2a006d0c88d7a1c625bf95da"
+    },
+    {
+      "path": "examples/element_discovery.py",
+      "size": 1463,
+      "sha256": "d63c89604a22f8845d724e95dda45db49b1bf57c25ce0a83afbb7b8da3d402f0"
+    },
+    {
+      "path": "examples/static_html_automation.py",
+      "size": 953,
+      "sha256": "9d533aafb875ee3ab8b8ebf8f5b9003ac8d999da3d09b285cce252e623140064"
+    },
+    {
+      "path": "scripts/with_server.py",
+      "size": 3693,
+      "sha256": "b0dcf4918935b795f4eda9821579b9902119235ff4447f687a30286e7d0925fd"
+    }
+  ]
+}

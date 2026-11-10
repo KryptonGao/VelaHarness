@@ -11,7 +11,11 @@ const tools = resolve(root, "../../packages/tools/src/index.ts");
 const workspace = resolve(root, "../../packages/workspace/src/index.ts");
 const runner = resolve(root, "../../packages/runner/src/index.ts");
 
+const sharedSignature = resolve(root, "../../packages/shared/src/signature.ts");
+
+// 更具体的子路径必须排在 @vela/shared 之前，否则会被前缀替换成入口文件下的路径。
 const workspaceAlias = {
+  "@vela/shared/signature": sharedSignature,
   "@vela/shared": shared,
   "@vela/agent": agent,
   "@vela/tools": tools,

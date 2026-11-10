@@ -13,16 +13,20 @@
     "package:mac": "pnpm --filter @vela/desktop dist:mac",
     "sign:release": "node scripts/sign-release.mjs",
     "update:keygen": "node scripts/update-keygen.mjs",
-    "typecheck": "pnpm -r --if-present typecheck",
+    "typecheck": "pnpm -r --if-present typecheck && pnpm typecheck:market",
     "test": "pnpm typecheck && pnpm test:unit",
-    "test:unit": "pnpm -r --if-present test",
+    "test:unit": "pnpm -r --if-present test && pnpm test:market",
     "test:ui": "pnpm --filter @vela/desktop test:ui",
     "test:smoke": "pnpm build && pnpm --filter @vela/desktop test:smoke",
     "test:mcp": "pnpm --filter @vela/agent test:mcp && pnpm --filter @vela/desktop test:mcp && pnpm --filter @vela/desktop test:mcp:ui && pnpm --filter @vela/desktop test:mcp:electron",
     "test:center": "pnpm --filter @vela/desktop test:center",
     "runner": "pnpm build:runner && node apps/runner/out/cli.mjs",
     "build:runner": "pnpm --filter @vela/runner-cli build",
-    "test:runner": "pnpm --filter @vela/agent test:runner && pnpm --filter @vela/runner test && pnpm --filter @vela/runner-cli test"
+    "test:runner": "pnpm --filter @vela/agent test:runner && pnpm --filter @vela/runner test && pnpm --filter @vela/runner-cli test",
+    "market:keygen": "node --experimental-transform-types services/skill-market/scripts/keygen.ts",
+    "market:build": "node --experimental-transform-types services/skill-market/scripts/build.ts",
+    "test:market": "node --import ./packages/agent/test/register-ts.mjs --experimental-transform-types --test 'services/skill-market/test/*.test.ts'",
+    "typecheck:market": "tsc -p services/skill-market/tsconfig.json --noEmit"
   },
   "devDependencies": {
     "typescript": "^7.0.2"

@@ -1,0 +1,21 @@
+{
+  "schema": 1,
+  "id": "grill-me",
+  "skill": "grill-me",
+  "version": "4ae2317",
+  "source": "mattpocock/skills",
+  "commit": "4ae2317ddb22b046e26455e4f9c9b3aaaf62212d",
+  "upstreamPath": "skills/productivity/grill-me",
+  "files": [
+    {
+      "path": "SKILL.md",
+      "size": 157,
+      "sha256": "caaf8b8de1684f96e26b28f3c29189db5c89cce4b73e1c93d86164f66ef88637"
+    },
+    {
+      "path": "agents/openai.yaml",
+      "size": 137,
+      "sha256": "c061e39c3e0f9d865fb1b97556d485704af2a8a58f4b8221a8917a5c2074a32b"
+    }
+  ]
+}

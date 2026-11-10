@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "id": "improve-codebase-architecture",
+  "skill": "improve-codebase-architecture",
+  "version": "4ae2317",
+  "source": "mattpocock/skills",
+  "commit": "4ae2317ddb22b046e26455e4f9c9b3aaaf62212d",
+  "upstreamPath": "skills/engineering/improve-codebase-architecture",
+  "files": [
+    {
+      "path": "HTML-REPORT.md",
+      "size": 6641,
+      "sha256": "581e8bb5a521e46bbda8ca7e19b15948bed882187108092ebb90c62513b77528"
+    },
+    {
+      "path": "SKILL.md",
+      "size": 6028,
+      "sha256": "35b03a3db61e0f5aa333ea59b54963e45a3d2ace6649b2ef4f9576603e2582a6"
+    },
+    {
+      "path": "agents/openai.yaml",
+      "size": 166,
+      "sha256": "c8cb20f68ebf0edb4e497bc11ae5fcaa196004e661cd189015b04f4109ced7f1"
+    }
+  ]
+}

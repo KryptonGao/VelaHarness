@@ -1,0 +1,66 @@
+{
+  "schema": 1,
+  "id": "mcp-builder",
+  "skill": "mcp-builder",
+  "version": "2c5958e",
+  "source": "anthropics/skills",
+  "commit": "2c5958ecac7cee2b583967a2c4981d0f4a75c579",
+  "upstreamPath": "skills/mcp-builder",
+  "files": [
+    {
+      "path": "LICENSE.txt",
+      "size": 11345,
+      "sha256": "bc6b3af2f331cbc7fb0da1344efb2cbe5877a31498b4d70dbc7000f3405a1362"
+    },
+    {
+      "path": "SKILL.md",
+      "size": 11129,
+      "sha256": "b483b56d6673134497e45489c317f26ae0f1429c194db0297e43073e17e6748c"
+    },
+    {
+      "path": "reference/evaluation.md",
+      "size": 21663,
+      "sha256": "8c99479f8a2d22a636c38e274537aac3610879e26f34e0709825077c4576f427"
+    },
+    {
+      "path": "reference/mcp_best_practices.md",
+      "size": 7330,
+      "sha256": "80fb4369a349447cf18ecdd7494fe7938b6065377e9f08c077cec411093a3007"
+    },
+    {
+      "path": "reference/node_mcp_server.md",
+      "size": 28745,
+      "sha256": "ee3c95d812e450f6168b734390d0c9ef6f8ebeef041d73a122c972dfbd4d476a"
+    },
+    {
+      "path": "reference/node_mcp_server_v2.md",
+      "size": 35171,
+      "sha256": "49b2fe48f33910b743ae3a56353fffa5d5f252f531053f24f2da4e5914c0d3aa"
+    },
+    {
+      "path": "reference/python_mcp_server.md",
+      "size": 25099,
+      "sha256": "2da52f77e675191014ca2e146a4b95aa04d0ca7dd7e2b100322df15ade685e80"
+    },
+    {
+      "path": "scripts/connections.py",
+      "size": 4875,
+      "sha256": "9403668a2041568772082a8b334122c1f88daf0541fb393af4522d0094a47a6e"
+    },
+    {
+      "path": "scripts/evaluation.py",
+      "size": 12579,
+      "sha256": "49ed1d17cdce5da101b210197740713f49b935c29d4f339542a14b132658e6f7"
+    },
+    {
+      "path": "scripts/example_evaluation.xml",
+      "size": 1194,
+      "sha256": "9272b348ddcc4b06ba562367ccd0770e018158c0068ac5116d5e34aaeff8777a"
+    },
+    {
+      "path": "scripts/requirements.txt",
+      "size": 29,
+      "sha256": "d5d7558b2368ecea9dfeed7d1fbc71ee9e0750bebd1282faa527d528a344c3c7"
+    }
+  ]
+}

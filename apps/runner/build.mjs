@@ -16,7 +16,10 @@ for (const name of workspacePackages) {
   for (const dependency of Object.keys(manifest.dependencies ?? {})) if (!dependency.startsWith("@vela/")) external.add(dependency);
 }
 
-const alias = Object.fromEntries(workspacePackages.map((name) => [`@vela/${name}`, resolve(repo, "packages", name, "src/index.ts")]));
+const alias = {
+  ...Object.fromEntries(workspacePackages.map((name) => [`@vela/${name}`, resolve(repo, "packages", name, "src/index.ts")])),
+  "@vela/shared/signature": resolve(repo, "packages/shared/src/signature.ts"),
+};
 const outfile = resolve(root, "out/cli.mjs");
 
 await build({

@@ -1,0 +1,21 @@
+{
+  "schema": 1,
+  "id": "handoff",
+  "skill": "handoff",
+  "version": "4ae2317",
+  "source": "mattpocock/skills",
+  "commit": "4ae2317ddb22b046e26455e4f9c9b3aaaf62212d",
+  "upstreamPath": "skills/productivity/handoff",
+  "files": [
+    {
+      "path": "SKILL.md",
+      "size": 940,
+      "sha256": "4cbb043950dad2ffd3662ff1a5a0b51ae676004b5cae10e3787e8ee7a4ee69d3"
+    },
+    {
+      "path": "agents/openai.yaml",
+      "size": 141,
+      "sha256": "5c479fd562c691851690e8b18c8501045bef0943c10743d636b2fae26add1d28"
+    }
+  ]
+}

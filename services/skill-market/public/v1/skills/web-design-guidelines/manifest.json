@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "id": "web-design-guidelines",
+  "skill": "web-design-guidelines",
+  "version": "1a2c79d",
+  "source": "vercel-labs/agent-skills",
+  "commit": "1a2c79d4e6c4a2283dc2c614b6538cbe1ed5ca62",
+  "upstreamPath": "skills/web-design-guidelines",
+  "files": [
+    {
+      "path": "SKILL.md",
+      "size": 1231,
+      "sha256": "f4647ca866a3accf763777f83e7682954f0187cd6bea7eea0399796652414e8f"
+    }
+  ]
+}

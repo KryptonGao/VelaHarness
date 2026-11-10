@@ -2,7 +2,7 @@
  * Real SkillsPage with an in-memory skills API. Open manually (optionally with ?locale=<id>, ?appearance=dark).
  * Install adds the skill to the in-memory catalog; nothing touches real files.
  */
-import type { SkillCatalog } from "@vela/shared";
+import { marketplaceSkills, type SkillCatalog } from "@vela/shared";
 import React from "react";
 import { createRoot } from "react-dom/client";
 import { settingsCopy } from "../src/renderer/components/settings-copy";
@@ -34,8 +34,14 @@ const catalog: SkillCatalog = {
     catalog.skills = catalog.skills.filter(skill => skill.name !== name);
     return { ...catalog, skills: [...catalog.skills] };
   },
+  // ?nostats 模拟云端取不到安装次数；默认模拟云端目录带次数。
+  loadMarketplace: async () => {
+    await wait(null);
+    const installs = Object.fromEntries(marketplaceSkills.map((entry, index) => [entry.id, Math.max(0, 1800 - index * 83)]));
+    return { skills: [...marketplaceSkills], source: "cloud" as const, installs: params.has("nostats") ? null : installs };
+  },
   installMarketplaceSkill: async (id: string) => {
-    if (params.has("fail")) { await wait(null); throw new Error("无法连接 GitHub，请检查网络后重试"); }
+    if (params.has("fail")) { await wait(null); throw new Error("无法连接市场服务，请检查网络后重试"); }
     await wait(null);
     catalog.skills.push({ name: id, description: `${id} skill`, location: `/Users/me/.vela/skills/${id}/SKILL.md`, origin: "user", disableModelInvocation: false, enabled: true, canDelete: true });
     return { ...catalog, skills: [...catalog.skills] };

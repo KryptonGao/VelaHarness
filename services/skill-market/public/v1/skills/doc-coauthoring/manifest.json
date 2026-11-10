@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "id": "doc-coauthoring",
+  "skill": "doc-coauthoring",
+  "version": "2c5958e",
+  "source": "anthropics/skills",
+  "commit": "2c5958ecac7cee2b583967a2c4981d0f4a75c579",
+  "upstreamPath": "skills/doc-coauthoring",
+  "files": [
+    {
+      "path": "SKILL.md",
+      "size": 15815,
+      "sha256": "2e47d78846faeea4a56e9809c52700087a15a2155a3f293a3efbaded81398ef4"
+    }
+  ]
+}

@@ -1,0 +1,270 @@
+{
+  "schema": 1,
+  "skills": [
+    {
+      "id": "docx",
+      "source": "anthropics/skills",
+      "skill": "docx",
+      "category": "office",
+      "version": "2c5958e",
+      "commit": "2c5958ecac7cee2b583967a2c4981d0f4a75c579",
+      "manifestSha256": "1f79e2e4ab27abb3965aab92774777fbf451ed2bbfc50fb93bd15c77c5f85eb1",
+      "fileCount": 61,
+      "totalBytes": 1138571
+    },
+    {
+      "id": "xlsx",
+      "source": "anthropics/skills",
+      "skill": "xlsx",
+      "category": "office",
+      "version": "2c5958e",
+      "commit": "2c5958ecac7cee2b583967a2c4981d0f4a75c579",
+      "manifestSha256": "49abca7784883ed02dcbcb65096dccb40de7da01e35ac5ada5df500ea747c2df",
+      "fileCount": 53,
+      "totalBytes": 1112769
+    },
+    {
+      "id": "pptx",
+      "source": "anthropics/skills",
+      "skill": "pptx",
+      "category": "office",
+      "version": "2c5958e",
+      "commit": "2c5958ecac7cee2b583967a2c4981d0f4a75c579",
+      "manifestSha256": "31122121c1a7a9a0aac6f481a7d777163750d0c8cf2f1d98bc538891a254d48f",
+      "fileCount": 56,
+      "totalBytes": 1149051
+    },
+    {
+      "id": "pdf",
+      "source": "anthropics/skills",
+      "skill": "pdf",
+      "category": "office",
+      "version": "2c5958e",
+      "commit": "2c5958ecac7cee2b583967a2c4981d0f4a75c579",
+      "manifestSha256": "fe49ee8d3d132c974d3b78c2f5275eb6aeeffca3e7c851f6149ac42c3b4ccc37",
+      "fileCount": 12,
+      "totalBytes": 68568
+    },
+    {
+      "id": "find-skills",
+      "source": "vercel-labs/skills",
+      "skill": "find-skills",
+      "category": "agent",
+      "version": "26dc8e4",
+      "commit": "26dc8e4755a11fea22ed788256c3db50001b013d",
+      "manifestSha256": "973ff4d98124b15b780bbfe0d39c261bc92dbf035d12bc9474cd45730a0e1814",
+      "fileCount": 1,
+      "totalBytes": 5472
+    },
+    {
+      "id": "skill-creator",
+      "source": "anthropics/skills",
+      "skill": "skill-creator",
+      "category": "agent",
+      "version": "2c5958e",
+      "commit": "2c5958ecac7cee2b583967a2c4981d0f4a75c579",
+      "manifestSha256": "9445ece47b93331b5b92dc4a0cd706c7455527b5c556bdc4eeaa8322d73b2d66",
+      "fileCount": 18,
+      "totalBytes": 224992
+    },
+    {
+      "id": "agent-browser",
+      "source": "vercel-labs/agent-browser",
+      "skill": "agent-browser",
+      "category": "agent",
+      "version": "e751995",
+      "commit": "e7519957b9067c541825afa21a792fbe1f483047",
+      "manifestSha256": "eebc53bd75aadfa2188dfe80150f4cece91417d97b8d4999087e726d7753f7f8",
+      "fileCount": 1,
+      "totalBytes": 3220
+    },
+    {
+      "id": "mcp-builder",
+      "source": "anthropics/skills",
+      "skill": "mcp-builder",
+      "category": "agent",
+      "version": "2c5958e",
+      "commit": "2c5958ecac7cee2b583967a2c4981d0f4a75c579",
+      "manifestSha256": "4cb4174d3cfe55f39b3cc05584706ce28bee46837b245e67ae586ee69aaba44c",
+      "fileCount": 11,
+      "totalBytes": 159159
+    },
+    {
+      "id": "grill-me",
+      "source": "mattpocock/skills",
+      "skill": "grill-me",
+      "category": "agent",
+      "version": "4ae2317",
+      "commit": "4ae2317ddb22b046e26455e4f9c9b3aaaf62212d",
+      "manifestSha256": "bf817168c3e55ed5a1b034e3b4b023d664fb8c80625a88d0681d56c898058822",
+      "fileCount": 2,
+      "totalBytes": 294
+    },
+    {
+      "id": "handoff",
+      "source": "mattpocock/skills",
+      "skill": "handoff",
+      "category": "agent",
+      "version": "4ae2317",
+      "commit": "4ae2317ddb22b046e26455e4f9c9b3aaaf62212d",
+      "manifestSha256": "1e0f06b1158b8148ce9e65714d893f57a918ea97b5837e3f512af70ae25d91a5",
+      "fileCount": 2,
+      "totalBytes": 1081
+    },
+    {
+      "id": "writing-for-agents",
+      "source": "mattpocock/skills",
+      "skill": "writing-for-agents",
+      "category": "agent",
+      "version": "4ae2317",
+      "commit": "4ae2317ddb22b046e26455e4f9c9b3aaaf62212d",
+      "manifestSha256": "1ce1fc27fd6ffc7cd070470594e9b1a13e109d3c841a7ec0327a245bbc1e9e80",
+      "fileCount": 3,
+      "totalBytes": 13617
+    },
+    {
+      "id": "doc-coauthoring",
+      "source": "anthropics/skills",
+      "skill": "doc-coauthoring",
+      "category": "docs",
+      "version": "2c5958e",
+      "commit": "2c5958ecac7cee2b583967a2c4981d0f4a75c579",
+      "manifestSha256": "4fc53921386d08081d2a396b9b702ebbdc1ee9221b51ef16f447062c11bc1691",
+      "fileCount": 1,
+      "totalBytes": 15815
+    },
+    {
+      "id": "web-artifacts-builder",
+      "source": "anthropics/skills",
+      "skill": "web-artifacts-builder",
+      "category": "docs",
+      "version": "2c5958e",
+      "commit": "2c5958ecac7cee2b583967a2c4981d0f4a75c579",
+      "manifestSha256": "0f7dee29da0e4c8991d44faf9f843b23b2455464b8cf9821d1aebeee561ff771",
+      "fileCount": 5,
+      "totalBytes": 45840
+    },
+    {
+      "id": "frontend-design",
+      "source": "anthropics/skills",
+      "skill": "frontend-design",
+      "category": "frontend",
+      "version": "2c5958e",
+      "commit": "2c5958ecac7cee2b583967a2c4981d0f4a75c579",
+      "manifestSha256": "b451e96fc3f2dabcb00ab1280a83dcf99d12c0572f6856eb1b74ef8ffa2ac536",
+      "fileCount": 2,
+      "totalBytes": 19564
+    },
+    {
+      "id": "web-design-guidelines",
+      "source": "vercel-labs/agent-skills",
+      "skill": "web-design-guidelines",
+      "category": "frontend",
+      "version": "1a2c79d",
+      "commit": "1a2c79d4e6c4a2283dc2c614b6538cbe1ed5ca62",
+      "manifestSha256": "81736dcb145cc1c5532e85701c9718a22a4bec1a5a0d98c694ab0b46a42dcf2d",
+      "fileCount": 1,
+      "totalBytes": 1231
+    },
+    {
+      "id": "vercel-react-best-practices",
+      "source": "vercel-labs/agent-skills",
+      "skill": "vercel-react-best-practices",
+      "category": "frontend",
+      "dir": "react-best-practices",
+      "version": "1a2c79d",
+      "commit": "1a2c79d4e6c4a2283dc2c614b6538cbe1ed5ca62",
+      "manifestSha256": "0fcda1e31bc7fd0dc64eccac7243cbab9a4681f1a6d5d932b6721c22c497ebef",
+      "fileCount": 76,
+      "totalBytes": 230383
+    },
+    {
+      "id": "webapp-testing",
+      "source": "anthropics/skills",
+      "skill": "webapp-testing",
+      "category": "engineering",
+      "version": "2c5958e",
+      "commit": "2c5958ecac7cee2b583967a2c4981d0f4a75c579",
+      "manifestSha256": "8411b835eb86ace8e5d805b34749fedf2f05a443595ac4f1ebc177dff64cc828",
+      "fileCount": 6,
+      "totalBytes": 22394
+    },
+    {
+      "id": "improve-codebase-architecture",
+      "source": "mattpocock/skills",
+      "skill": "improve-codebase-architecture",
+      "category": "engineering",
+      "version": "4ae2317",
+      "commit": "4ae2317ddb22b046e26455e4f9c9b3aaaf62212d",
+      "manifestSha256": "f8a8d99dfc1c472d4ffdcbe812fadd27d7c013c61093cd6275b550495eea963b",
+      "fileCount": 3,
+      "totalBytes": 12835
+    },
+    {
+      "id": "tdd",
+      "source": "mattpocock/skills",
+      "skill": "tdd",
+      "category": "engineering",
+      "version": "4ae2317",
+      "commit": "4ae2317ddb22b046e26455e4f9c9b3aaaf62212d",
+      "manifestSha256": "97efe2421b0dbd50919f1ebc7af7e718e00839b826557816d419603ad42d5ff8",
+      "fileCount": 4,
+      "totalBytes": 7411
+    },
+    {
+      "id": "systematic-debugging",
+      "source": "obra/superpowers",
+      "skill": "systematic-debugging",
+      "category": "engineering",
+      "version": "22f0b46",
+      "commit": "22f0b463e7a5e579904dd6211a520321035526f7",
+      "manifestSha256": "ff6af86d81fa393c71a440528ac0a896458826cf75d18d6f56d435c9579975ad",
+      "fileCount": 6,
+      "totalBytes": 29057
+    },
+    {
+      "id": "writing-plans",
+      "source": "obra/superpowers",
+      "skill": "writing-plans",
+      "category": "engineering",
+      "version": "22f0b46",
+      "commit": "22f0b463e7a5e579904dd6211a520321035526f7",
+      "manifestSha256": "1c3e9a8900f390f3d1843584a0cf749eaad40bcfa2ab8b78b7fbe428b1dc60f5",
+      "fileCount": 1,
+      "totalBytes": 10335
+    },
+    {
+      "id": "verification-before-completion",
+      "source": "obra/superpowers",
+      "skill": "verification-before-completion",
+      "category": "engineering",
+      "version": "22f0b46",
+      "commit": "22f0b463e7a5e579904dd6211a520321035526f7",
+      "manifestSha256": "82a136ba12cbdd8b276b432493dbbd2de055437957158ff0874b107f2f607fcb",
+      "fileCount": 1,
+      "totalBytes": 3646
+    },
+    {
+      "id": "brainstorming",
+      "source": "obra/superpowers",
+      "skill": "brainstorming",
+      "category": "engineering",
+      "version": "22f0b46",
+      "commit": "22f0b463e7a5e579904dd6211a520321035526f7",
+      "manifestSha256": "80bda0719ee6656828fe213a139b4933fc20bb67b14ab76f4002170e605c6291",
+      "fileCount": 8,
+      "totalBytes": 79470
+    },
+    {
+      "id": "executing-plans",
+      "source": "obra/superpowers",
+      "skill": "executing-plans",
+      "category": "engineering",
+      "version": "22f0b46",
+      "commit": "22f0b463e7a5e579904dd6211a520321035526f7",
+      "manifestSha256": "9437321e8ff61523a95400077f8b1b2024b07f7816e3c6801a1adb9d25f4c038",
+      "fileCount": 3,
+      "totalBytes": 21449
+    }
+  ]
+}

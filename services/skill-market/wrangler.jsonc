@@ -1,0 +1,31 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "vela-skill-market",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-11-01",
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    // 不要让 Static Assets 改写 .html 路径，也不要把缺失文件回退成别的页面。
+    "html_handling": "none",
+    "not_found_handling": "none",
+    // 只有 manifest 与统计经过 Worker；其余静态文件直接由边缘回应。
+    "run_worker_first": ["/v1/skills/*/manifest.json", "/v1/stats.json"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "vela-skill-market",
+      "database_id": "74203024-29e3-440c-a6e6-a84ac249f310",
+      "migrations_dir": "migrations"
+    }
+  ],
+  // 计数端点的速率限制：同一来源每分钟最多计 20 次安装；超出时照常回传 manifest，只是不再计数。
+  "ratelimits": [
+    {
+      "name": "INSTALL_LIMIT",
+      "namespace_id": "1001",
+      "simple": { "limit": 20, "period": 60 }
+    }
+  ]
+}

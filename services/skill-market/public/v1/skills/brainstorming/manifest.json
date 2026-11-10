@@ -1,0 +1,51 @@
+{
+  "schema": 1,
+  "id": "brainstorming",
+  "skill": "brainstorming",
+  "version": "22f0b46",
+  "source": "obra/superpowers",
+  "commit": "22f0b463e7a5e579904dd6211a520321035526f7",
+  "upstreamPath": "skills/brainstorming",
+  "files": [
+    {
+      "path": "SKILL.md",
+      "size": 15190,
+      "sha256": "2c9ca71f94886f9ca9f4aef055f7cafb3e1a9bdf3aeebf8f4cb547c69405d207"
+    },
+    {
+      "path": "builder-check-prompt.md",
+      "size": 881,
+      "sha256": "36d51a4723d6f0a3ce5811a0ea3b3a8424f07533947e1355f5d8cb8cce40c55e"
+    },
+    {
+      "path": "scripts/frame-template.html",
+      "size": 8094,
+      "sha256": "6a8a4e58bd6a44b904e2e3c57de774481d909204597e1498de53f1b2fecc4c4e"
+    },
+    {
+      "path": "scripts/helper.js",
+      "size": 5615,
+      "sha256": "43c6d69954a46ec34a2a262bcc62a9a7e83e839c739f199cb72646d397c686e3"
+    },
+    {
+      "path": "scripts/server.cjs",
+      "size": 25699,
+      "sha256": "763abf96510e0b892a1141397b31aa82ef900cf87ed34dde94bc8782baf4a7ca"
+    },
+    {
+      "path": "scripts/start-server.sh",
+      "size": 7315,
+      "sha256": "314dd68dc00e8dd94c7491aca8a5f004c7fddffc161e2b07482f29f48d13659a"
+    },
+    {
+      "path": "scripts/stop-server.sh",
+      "size": 3263,
+      "sha256": "0b5ccbbd57f62d3ed88993f7940b5ee0e5c0fc9b21c550c623da4f6292e47daf"
+    },
+    {
+      "path": "visual-companion.md",
+      "size": 13413,
+      "sha256": "6ffcb038b53254bd31debaa15e12dcd4ff24bd63d690e0b644ac6396701cf2e2"
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "id": "verification-before-completion",
+  "skill": "verification-before-completion",
+  "version": "22f0b46",
+  "source": "obra/superpowers",
+  "commit": "22f0b463e7a5e579904dd6211a520321035526f7",
+  "upstreamPath": "skills/verification-before-completion",
+  "files": [
+    {
+      "path": "SKILL.md",
+      "size": 3646,
+      "sha256": "2befe7fc55bcadaa3d97dd9e8efeb633d2561c0ebe74c5a8b17c4d9e7e4520b3"
+    }
+  ]
+}

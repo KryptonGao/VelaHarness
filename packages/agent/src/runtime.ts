@@ -62,6 +62,7 @@ import {
   type SessionSnapshot,
   type SessionStatus,
   type ContextUsage,
+  type MarketplaceListing,
   type MarketplaceSkillId,
   type SkillCatalog,
   type SkillMigrationResult,
@@ -1866,6 +1867,11 @@ export class AgentRuntime {
   /** 删除 Vela 用户 Skill 目录里的 Skill；已打开的对话会在下次发言前重新加载资源。 */
   deleteSkill(cwd: string, name: string, location: string): Promise<SkillCatalog> {
     return this.exclusive(() => this.skills.delete(cwd, name, location));
+  }
+
+  /** 市场目录与各 Skill 的安装次数；云端不可用时回退到内置目录。 */
+  loadMarketplace(): Promise<MarketplaceListing> {
+    return this.skills.loadMarketplace();
   }
 
   /** 从市场把 Skill 下载到 Vela 用户 Skill 目录；已打开的对话会在下次发言前重新加载资源。 */
