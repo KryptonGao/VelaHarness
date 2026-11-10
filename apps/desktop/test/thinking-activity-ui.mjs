@@ -23,7 +23,38 @@ if (!process.versions.electron) {
           import { flushSync } from 'react-dom';
           import { ThinkingGroup, CoherentGroup } from './apps/desktop/src/renderer/components/Thinking';
           import { ToolList } from './apps/desktop/src/renderer/components/ToolCard';
+          import { THINKING_ACTIVITY_DELAY_MS } from './apps/desktop/src/renderer/hooks/useDelayedThinkingActivity';
           import { AppLocaleProvider, setActiveLocale } from './apps/desktop/src/renderer/locale';
+          // Control only the headline delay; leave animations and unrelated timers real.
+          window.activityDelay = THINKING_ACTIVITY_DELAY_MS;
+          const realSetTimeout = window.setTimeout.bind(window);
+          const realClearTimeout = window.clearTimeout.bind(window);
+          const activityTimers = new Map();
+          let clock = 0;
+          let nextTimerId = -1;
+          window.setTimeout = (callback, delay, ...args) => {
+            if (delay !== THINKING_ACTIVITY_DELAY_MS || typeof callback !== 'function') {
+              return realSetTimeout(callback, delay, ...args);
+            }
+            const id = nextTimerId--;
+            activityTimers.set(id, {at: clock + delay, fire: () => callback(...args)});
+            return id;
+          };
+          window.clearTimeout = id => {
+            if (!activityTimers.delete(id)) realClearTimeout(id);
+          };
+          window.pendingActivityTimers = () => activityTimers.size;
+          window.advanceActivityTime = ms => {
+            const target = clock + ms;
+            while (true) {
+              const next = [...activityTimers].sort((a, b) => a[1].at - b[1].at)[0];
+              if (!next || next[1].at > target) break;
+              clock = next[1].at;
+              activityTimers.delete(next[0]);
+              flushSync(next[1].fire);
+            }
+            clock = target;
+          };
           const root = createRoot(document.getElementById('root'));
           const thought = '**Planning the change**\\n\\nInspect files, then update and verify.';
           let revision = 0;
@@ -126,6 +157,7 @@ if (!process.versions.electron) {
       await assertHeaderIsolation();
     };
     const expectActivity = async (label, detail) => {
+      await evaluate("window.advanceActivityTime(window.activityDelay)");
       const full = label + (detail ? ` · ${detail}` : "");
       await until(`document.querySelector(${JSON.stringify(rich)})?.querySelector('.tool-compact-action')?.textContent === ${JSON.stringify(label)}`);
       assert.equal(await evaluate(`document.querySelector(${JSON.stringify(headline)}).title`), full,
@@ -187,6 +219,59 @@ if (!process.versions.electron) {
           await evaluate(`window.savedHeadline = document.querySelector(${JSON.stringify(headline)}); window.savedBlock = document.querySelector('.thinking-block')`);
           const path = "/workspace/apps/desktop/src/renderer/components/Thinking.tsx";
           const dir = "/workspace/apps/desktop/src/renderer/components";
+
+          // Fast completed/failed calls must never replace the thought, even after their old deadline.
+          const quick = await evaluate(`(() => {
+            const titles = [];
+            const capture = () => titles.push(document.querySelector(${JSON.stringify(headline)}).title);
+            for (const [index, name] of ['read', 'edit', 'write', 'bash'].entries()) {
+              const call = {id: 'quick-' + name, name, status: 'running', activity: {path: 'quick.ts', command: 'pnpm test'}};
+              window.updateCase({tools: [call]});
+              capture();
+              window.advanceActivityTime(window.activityDelay - 1);
+              capture();
+              window.updateCase({tools: [{...call, status: index === 1 ? 'error' : 'done'}]});
+              window.advanceActivityTime(window.activityDelay + 1);
+              capture();
+            }
+            return {titles, pending: window.pendingActivityTimers()};
+          })()`);
+          assert.ok(quick.titles.every(title => title === "Planning the change"), `${currentCase}: quick calls never flash a tool headline`);
+          assert.equal(quick.pending, 0, `${currentCase}: quick calls leave no stale timers`);
+          await expectSummary("Planning the change");
+
+          // Replacing a pending call starts a fresh delay; updates to that same call do not.
+          const pending = await evaluate(`(() => {
+            const first = {id: 'pending-first', name: 'read', status: 'running', activity: {path: 'first.ts'}};
+            const second = {id: 'pending-second', name: 'edit', status: 'running', activity: {path: 'before.ts'}};
+            window.updateCase({tools: [first]});
+            window.advanceActivityTime(window.activityDelay * 0.4);
+            window.updateCase({tools: [second]});
+            window.advanceActivityTime(window.activityDelay * 0.7);
+            const beforeThreshold = document.querySelector(${JSON.stringify(excerpt)}).textContent;
+            const timersAfterReplacement = window.pendingActivityTimers();
+            window.updateCase({tools: [{...second, activity: {path: 'after.ts'}}]});
+            window.advanceActivityTime(window.activityDelay * 0.3 - 1);
+            const beforeBoundary = document.querySelector(${JSON.stringify(excerpt)}).textContent;
+            window.advanceActivityTime(1);
+            return {beforeThreshold, beforeBoundary, timersAfterReplacement,
+              title: document.querySelector(${JSON.stringify(headline)}).title};
+          })()`);
+          assert.equal(pending.beforeThreshold, "Planning the change", `${currentCase}: each new call waits its own full delay`);
+          assert.equal(pending.timersAfterReplacement, 1, `${currentCase}: replacing a pending call cancels its timer`);
+          assert.equal(pending.beforeBoundary, "Planning the change", `${currentCase}: the thought remains until the exact delay boundary`);
+          assert.equal(pending.title, label.edit + " · after.ts", `${currentCase}: streaming updates keep the original timer and show fresh details`);
+          await update({tools: []});
+          await expectSummary("Planning the change");
+
+          // Unmounting the group cancels its pending activity timer.
+          await update({tools: [tool("read", "unmounted", {path: "stale.ts"})]});
+          await evaluate(`window.beginCase(${JSON.stringify(mode)}, ${JSON.stringify(locale)})`);
+          assert.equal(await evaluate("window.pendingActivityTimers()"), 0, `${currentCase}: unmount cancels the pending timer`);
+          await evaluate("window.advanceActivityTime(window.activityDelay + 1)");
+          await expectSummary("Planning the change");
+          await evaluate(`window.savedHeadline = document.querySelector(${JSON.stringify(headline)}); window.savedBlock = document.querySelector('.thinking-block')`);
+
           for (const name of ["read", "edit", "write"]) {
             await update({ tools: [tool(name, name, { path })] });
             await expectActivity(label[name], path);
@@ -330,7 +415,7 @@ if (!process.versions.electron) {
         }
       }
       assert.deepEqual(errors, [], "No renderer console errors");
-      console.log("Thinking activity UI: single/coherent/codex × zh-CN/en; shared rich file/skill/bash/generic/MCP/agent/browser details, code fonts, statistics isolation, no nested controls, stable nodes, parallel fallback, stale completion, truncation/tooltips and disclosure passed");
+      console.log("Thinking activity UI: single/coherent/codex × zh-CN/en; delayed headlines, quick-call suppression, timer cancellation/replacement, uninterrupted streaming, shared rich file/skill/bash/generic/MCP/agent/browser details, code fonts, statistics isolation, no nested controls, stable nodes, parallel fallback, stale completion, truncation/tooltips and disclosure passed");
       app.exit(0);
     } catch (error) {
       console.error(error);

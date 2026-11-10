@@ -3,6 +3,7 @@ import { ActivityIndicator } from "./ActivityIndicator";
 import { EditFileIcon, ReadFileIcon, TerminalIcon, ThinkingIcon, ToolIcon } from "./icons";
 import { Markdown } from "./Markdown";
 import { usePacedText } from "../hooks/usePacedText";
+import { useDelayedThinkingActivity } from "../hooks/useDelayedThinkingActivity";
 import { nextStreamFollow, releasesStreamFollow } from "./chat-scroll";
 import { localizeError, tr, trf, useAppLocale } from "../locale";
 import { thinkingSummaryLayout } from "../thinking-summary";
@@ -38,7 +39,7 @@ export function Thinking({
   coherent = false,
   codex = false,
   leadingIcon,
-  toolActivity = null,
+  toolActivity: pendingToolActivity = null,
   children,
 }: {
   text: string;
@@ -59,12 +60,13 @@ export function Thinking({
   codex?: boolean;
   /** 连贯模式标题左边的灰色图标,随汇总的首个动作变化。 */
   leadingIcon?: ReactNode;
-  /** Current running tool replaces the group headline until it finishes. */
+  /** Running tools replace the group headline only after the short-operation delay. */
   toolActivity?: ThinkingActivity | null;
   children?: ReactNode;
 }) {
   const summaries = useContext(ThinkingSummaryContext);
   const locale = useAppLocale();
+  const toolActivity = useDelayedThinkingActivity(pendingToolActivity);
   // 分组模式下标题已经是总结,不再另行请求总结;展开状态跟随整个分组而不只是思考文字的流式输出。
   const expandSignal = titled ? live : active;
   const summaryAvailable = !titled && !active && summaries?.enabled && messageId !== undefined;
