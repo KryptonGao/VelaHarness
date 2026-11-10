@@ -9,7 +9,7 @@ import { localizeError, tr, trf, useAppLocale } from "../locale";
 import { thinkingSummaryLayout } from "../thinking-summary";
 import { supportsThinkingGroups } from "../thinking-model";
 import { splitThinkingSummaries, splitThinkingTitle, type ThinkingTitle } from "../thinking-title";
-import { ToolHeadlineDetails, ToolHeadlineIcon } from "./ToolHeadline";
+import { ToolHeadlineIcon } from "./ToolHeadline";
 import { coherentActions, countFailedTools, type CoherentAction, type CoherentEntry } from "./tool-sequence";
 import type { ToolTrace } from "@vela/shared";
 import { ThinkingSummaryContext } from "./ThinkingSummaryContext";
@@ -275,6 +275,7 @@ export function Thinking({
     setRevealed(true);
     setOpen((value) => !value);
   };
+  // The title sweep follows the live group even when card mode hides the trailing indicator.
   const showActivity = expandSignal && showActivityIndicator;
 
   const arrow = (
@@ -294,14 +295,9 @@ export function Thinking({
   const groupTitle = toolActivity?.title ?? titled?.title;
   const groupHeader = titled ? (
     <div className="thinking-header">
-      <button className={`time-spent-trigger thinking-headline-trigger${coherent || toolActivity ? "" : " thinking-cot-title"}${toolActivity ? ` has-tool-activity tool-kind-${toolActivity.kind === "tools" ? "other" : toolActivity.kind}` : ""}${showActivity ? " is-running" : ""}`} type="button" aria-expanded={open} aria-controls={bodyId} onClick={toggle} title={groupTitle}>
+      <button className={`time-spent-trigger thinking-headline-trigger${coherent ? "" : " thinking-cot-title"}${toolActivity ? ` has-tool-activity tool-kind-${toolActivity.kind === "tools" ? "other" : toolActivity.kind}` : ""}${expandSignal ? " is-running" : ""}`} type="button" aria-expanded={open} aria-controls={bodyId} onClick={toggle} title={groupTitle}>
         {toolActivity ? <span className="tool-compact-icon" aria-hidden="true"><ToolHeadlineIcon tool={toolActivity.tool} /></span> : coherent ? leadingIcon : icon}
-        {toolActivity ? (
-          <span className="thinking-summary-excerpt thinking-tool-activity">
-            <span className="tool-compact-action">{toolActivity.label}</span>
-            <ToolHeadlineDetails tool={toolActivity.tool} />
-          </span>
-        ) : <span className="thinking-summary-excerpt">{groupTitle}</span>}
+        <span className={`thinking-summary-excerpt${toolActivity ? " thinking-tool-activity" : ""}`}>{groupTitle}</span>
         {failedCount > 0 && !open ? (
           <span className="thinking-group-failed" role="img" aria-label={trf("{0} 个工具失败", "{0} tools failed", failedCount)} title={trf("{0} 个工具失败", "{0} tools failed", failedCount)} />
         ) : null}

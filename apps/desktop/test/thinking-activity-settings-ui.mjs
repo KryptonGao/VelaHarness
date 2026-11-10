@@ -176,21 +176,28 @@ if (!process.versions.electron) {
       await expectPreference(true, 1200);
 
       currentCase = "turning delay off preserves threshold and makes new calls immediate";
+      await evaluate("window.flushFixture(() => window.fixturePreferences.setLocale('en'))");
       await clickToggle();
       await expectPreference(false, 1200);
       const immediate = await evaluate(`(() => {
         window.nextSampleCall();
         const headline = document.querySelector(${JSON.stringify(sampleHeadline)});
-        return {rich: !!headline.querySelector('.thinking-tool-activity'), title: headline.title,
+        const activity = headline.querySelector('.thinking-tool-activity');
+        return {text: activity?.textContent, children: activity?.childElementCount, title: headline.title,
+          marked: headline.classList.contains('has-tool-activity'), icon: !!headline.querySelector('.tool-compact-icon'),
           saved: window.fixturePreferences.thinkingActivityDelayMs};
       })()`);
-      assert.equal(immediate.rich, true, "a new call has rich activity in the same turn without advancing a timer");
-      assert.ok(immediate.title.includes("src/sample.ts"), "immediate activity contains the current call details");
-      assert.equal(immediate.saved, 1200, "disabling delay does not overwrite the saved threshold");
+      assert.deepEqual(immediate, {text: "Editing files", children: 0, title: "Editing files", marked: true, icon: true, saved: 1200},
+        "a new call immediately shows only the generic operation and tooltip, keeps its icon and preserves the saved threshold");
       currentCase = "reload restores disabled delay and retained threshold";
       await reloadFixture();
       await expectPreference(false, 1200);
-      assert.equal(await evaluate(`!!document.querySelector(${JSON.stringify(sampleHeadline)})?.querySelector('.thinking-tool-activity')`), true);
+      assert.deepEqual(await evaluate(`(() => {
+        const headline = document.querySelector(${JSON.stringify(sampleHeadline)});
+        const activity = headline.querySelector('.thinking-tool-activity');
+        return {text: activity?.textContent, children: activity?.childElementCount, title: headline.title};
+      })()`), {text: "Editing files", children: 0, title: "Editing files"},
+        "reloading with delay disabled restores the same plain generic operation without file details");
       currentCase = "turning delay on restores 1200ms";
       await clickToggle();
       await expectPreference(true, 1200);

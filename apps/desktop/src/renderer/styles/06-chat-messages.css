@@ -326,7 +326,7 @@
 .thinking-headline-trigger .thinking-summary-excerpt { min-width: 0; }
 .thinking-headline-trigger .time-spent-trigger-arrow { flex-shrink: 0; }
 /* 进行中的标题:一道高光从左到右反复划过文字,停顿一拍再来下一道。 */
-.thinking-headline-trigger.is-running .thinking-summary-excerpt:not(.thinking-tool-activity) {
+.thinking-headline-trigger.is-running .thinking-summary-excerpt {
   --shimmer-base: var(--text-muted);
   --shimmer-glow: #fff;
   background-image: linear-gradient(
@@ -351,14 +351,14 @@
 }
 /* 窗口失焦时暂停纯装饰的无限动画。文字高光每帧都要重绘，运行中的思考块一多就是持续的主线程开销。
    转圈这类表示“正在进行”的动画不动，失焦后仍能看出任务在跑。 */
-:root[data-window-focused="false"] .thinking-headline-trigger.is-running .thinking-summary-excerpt:not(.thinking-tool-activity),
+:root[data-window-focused="false"] .thinking-headline-trigger.is-running .thinking-summary-excerpt,
 :root[data-window-focused="false"] .thinking-particle,
 :root[data-window-focused="false"] .home-logo-float,
 :root[data-window-focused="false"] .home-spark {
   animation-play-state: paused;
 }
 @media (prefers-reduced-motion: reduce) {
-  .thinking-headline-trigger.is-running .thinking-summary-excerpt:not(.thinking-tool-activity) {
+  .thinking-headline-trigger.is-running .thinking-summary-excerpt {
     animation: none;
     background-image: none;
     color: inherit;
@@ -508,20 +508,6 @@
   font-weight: var(--font-reply-weight);
   -webkit-text-stroke: var(--font-reply-stroke) currentColor;
   line-height: 1.75;
-}
-/* Live tool headlines use the same typography, detail colors and truncation as compact tool rows. */
-.thinking-block .thinking-headline-trigger.has-tool-activity {
-  gap: 6px;
-  font-family: var(--font-sans);
-  font-size: calc(14px * var(--ui-scale));
-  font-weight: 400;
-  -webkit-text-stroke: 0;
-  line-height: 1.5;
-}
-.thinking-tool-activity {
-  display: flex;
-  align-items: center;
-  gap: 6px;
 }
 /* 标题左边的灰色图标:折叠后按汇总的首个动作变化,进行中是思考图标;不随工具图标配色开关变色。 */
 .coherent-group-icon {
