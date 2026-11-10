@@ -20,6 +20,7 @@ import {
   isInteractionMode,
   isRuntimeInstructionMode,
   isUiPreference,
+  marketplaceSkills,
   type ModelAuthEvent,
   type NewConversationSelection,
   type PlanExecutionContextStrategy,
@@ -319,6 +320,11 @@ export class SessionHost {
     });
     ipcMain.handle(IpcChannel.deleteSkill, (_event, rawName: unknown, rawLocation: unknown) => {
       return this.runtime.deleteSkill(this.hooks.currentCwd(), parseSkillName(rawName), parseSkillLocation(rawLocation));
+    });
+    ipcMain.handle(IpcChannel.installMarketplaceSkill, (_event, rawId: unknown) => {
+      const entry = marketplaceSkills.find((item) => item.id === rawId);
+      if (!entry) throw new Error("Skill 不正确");
+      return this.runtime.installMarketplaceSkill(this.hooks.currentCwd(), entry.id);
     });
     ipcMain.handle(IpcChannel.openSkillsDir, async () => {
       const error = await shell.openPath(this.runtime.skillsDirectory());

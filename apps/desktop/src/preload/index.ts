@@ -511,6 +511,8 @@ const api: VelaApi = {
     ipcRenderer.invoke(IpcChannel.setSkillEnabled, name, enabled) as Promise<SkillCatalog>,
   deleteSkill: (name, location) =>
     ipcRenderer.invoke(IpcChannel.deleteSkill, name, location) as Promise<SkillCatalog>,
+  installMarketplaceSkill: (id) =>
+    ipcRenderer.invoke(IpcChannel.installMarketplaceSkill, id) as Promise<SkillCatalog>,
   removeModel: (provider, id) => ipcRenderer.invoke(IpcChannel.removeModel, provider, id) as Promise<AppState>,
   logout: (providerId) => ipcRenderer.invoke(IpcChannel.logout, providerId) as Promise<AppState>,
   login: (providerId, type: AuthMethodType) => ipcRenderer.invoke(IpcChannel.login, providerId, type) as Promise<LoginResult>,

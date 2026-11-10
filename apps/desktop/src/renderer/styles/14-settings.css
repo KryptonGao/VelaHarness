@@ -966,6 +966,51 @@ button.settings-radio:hover:not(:disabled) { background: var(--bg-hover); }
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.market-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); column-gap: 8px; row-gap: 4px; }
+.market-search { max-width: none; flex: none; }
+.market-item { display: flex; align-items: center; gap: 12px; padding-right: 14px; min-width: 0; border-radius: var(--radius-lg); transition: background 0.12s ease; }
+.market-item:hover { background: var(--bg-hover); }
+.market-item-main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 14px; padding: 12px 0 12px 14px; text-align: left; border-radius: var(--radius-lg); }
+.market-item-main:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: -2px; }
+.market-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--market-tone) 16%, var(--bg-surface-subtle));
+}
+.market-item-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.market-item-name { font-size: calc(15px * var(--ui-scale)); font-weight: 600; color: var(--text-primary); }
+.market-item-desc {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: calc(14px * var(--ui-scale));
+  color: var(--text-muted);
+}
+.market-install { flex: none; }
+.market-detail { display: flex; flex-direction: column; gap: 18px; }
+.market-back { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px 4px 4px; border-radius: var(--radius-md); color: var(--text-muted); font-size: calc(14px * var(--ui-scale)); }
+.market-back:hover { background: var(--bg-hover); color: var(--text-primary); }
+.market-detail-head { display: flex; align-items: center; gap: 14px; }
+.market-detail-head h2 { flex: 1; min-width: 0; margin: 0; font-size: calc(20px * var(--ui-scale)); font-weight: 650; overflow-wrap: anywhere; }
+.market-detail section > .skills-group-head { margin-bottom: 8px; }
+.market-detail-row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; min-width: 0; }
+.market-detail-row + .market-detail-row { border-top: 1px solid var(--border-subtle); }
+.market-detail-skill .skills-row-copy { flex: 1; }
+.market-wrap { white-space: normal; }
+.market-chip { flex: none; padding: 2px 8px; border-radius: var(--radius-pill); background: var(--bg-hover); font-family: var(--font-mono); font-size: calc(12.5px * var(--code-scale)); color: var(--text-muted); user-select: text; }
+.market-info { margin: 0; }
+.market-info dt { flex: none; width: 88px; color: var(--text-muted); font-size: calc(14px * var(--ui-scale)); }
+.market-info dd { margin: 0; flex: 1; min-width: 0; font-size: calc(14px * var(--ui-scale)); color: var(--text-primary); overflow-wrap: anywhere; user-select: text; }
+.market-link { display: inline-flex; align-items: center; gap: 4px; color: var(--accent-blue); text-decoration: none; }
+.market-link:hover { text-decoration: underline; }
+.market-command-value { display: flex; align-items: center; gap: 6px; }
+.market-command-value code { min-width: 0; font-family: var(--font-mono); font-size: calc(12.5px * var(--code-scale)); color: var(--text-muted); overflow-wrap: anywhere; }
+.market-install.confirm { background: var(--danger-tint); color: var(--danger); }
+.market-installed { flex: none; display: inline-flex; align-items: center; gap: 4px; color: var(--text-muted); font-size: calc(13px * var(--ui-scale)); }
 .skill-detail-card { width: min(560px, 100%); }
 .skill-detail-header { padding-bottom: 12px; border-bottom: 1px solid var(--border-subtle); }
 .skill-detail-body { display: flex; flex-direction: column; gap: 18px; padding: 16px; overflow: auto; }

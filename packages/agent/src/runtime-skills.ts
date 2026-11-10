@@ -1,4 +1,4 @@
-import type { ExternalSkillScan, SkillCatalog, SkillMigrationResult } from "@vela/shared";
+import type { ExternalSkillScan, MarketplaceSkillId, SkillCatalog, SkillMigrationResult } from "@vela/shared";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { loadSkillCatalog } from "./skill-catalog";
@@ -7,6 +7,7 @@ import {
   readDisabledSkills,
   setSkillEnabled as storeSkillEnabled,
 } from "./skill-management";
+import { installMarketplaceSkill } from "./skill-marketplace";
 import { migrateExternalSkills, scanExternalSkills as scanExternalSkillSources } from "./skill-migration";
 
 /**
@@ -44,6 +45,13 @@ export class SkillLibrary {
   /** 删除 Vela 用户 Skill 目录里的 Skill。 */
   async delete(cwd: string, name: string, location: string): Promise<SkillCatalog> {
     await deleteSkillFiles({ agentDir: this.agentDir, name, location });
+    await this.changed();
+    return this.list(cwd);
+  }
+
+  /** 从市场下载一个 Skill 到用户 Skill 目录。 */
+  async installMarketplace(cwd: string, id: MarketplaceSkillId): Promise<SkillCatalog> {
+    await installMarketplaceSkill({ agentDir: this.agentDir, id });
     await this.changed();
     return this.list(cwd);
   }

@@ -265,6 +265,7 @@ export const IpcChannel = {
   migrateSkills: "skills:migrate",
   setSkillEnabled: "skills:set-enabled",
   deleteSkill: "skills:delete",
+  installMarketplaceSkill: "skills:install-marketplace",
   registerModel: "models:register",
   terminalCreate: "terminal:create",
   terminalWrite: "terminal:write",
@@ -342,6 +343,80 @@ export interface SkillSummary {
   enabled: boolean;
   /** 为真时可以从设置里删除；只有 Vela 用户 Skill 目录内的 Skill 可删。 */
   canDelete: boolean;
+}
+
+export const marketplaceCategories = ["office", "agent", "docs", "frontend", "engineering"] as const;
+
+export type MarketplaceCategory = (typeof marketplaceCategories)[number];
+
+export type MarketplaceSkillId = string;
+
+export interface MarketplaceSkillEntry {
+  id: MarketplaceSkillId;
+  /** 上游 GitHub 仓库，即 `npx skills add` 的第一个参数。 */
+  source: string;
+  /** Skill 名称（SKILL.md 里的 name），也是安装后的目录名，对应 `--skill`。 */
+  skill: string;
+  /** 上游目录名与 Skill 名称不同时填写。 */
+  dir?: string;
+  category: MarketplaceCategory;
+  /** 这个 Skill 自带或依赖的 MCP Server；没有就不填，详情页也就不显示 MCP 一栏。 */
+  mcp?: readonly { name: string; description: string }[];
+}
+
+const marketplaceDevelopers: Record<string, string> = {
+  anthropics: "Anthropic",
+  "vercel-labs": "Vercel",
+  mattpocock: "Matt Pocock",
+  obra: "obra",
+};
+
+/** 开发者名称：取上游仓库所有者，已知的换成通用写法。 */
+export function marketplaceDeveloper(entry: { source: string }): string {
+  const owner = entry.source.split("/")[0] ?? entry.source;
+  return marketplaceDevelopers[owner] ?? owner;
+}
+
+export function marketplaceHomepage(entry: { source: string }): string {
+  return `https://github.com/${entry.source}`;
+}
+
+/** 市场里的 Skill。source 与 skill 对应 `npx skills add <source> --skill <skill>`。 */
+export const marketplaceSkills: readonly MarketplaceSkillEntry[] = [
+  { id: "docx", source: "anthropics/skills", skill: "docx", category: "office" },
+  { id: "xlsx", source: "anthropics/skills", skill: "xlsx", category: "office" },
+  { id: "pptx", source: "anthropics/skills", skill: "pptx", category: "office" },
+  { id: "pdf", source: "anthropics/skills", skill: "pdf", category: "office" },
+  { id: "find-skills", source: "vercel-labs/skills", skill: "find-skills", category: "agent" },
+  { id: "skill-creator", source: "anthropics/skills", skill: "skill-creator", category: "agent" },
+  { id: "agent-browser", source: "vercel-labs/agent-browser", skill: "agent-browser", category: "agent" },
+  { id: "mcp-builder", source: "anthropics/skills", skill: "mcp-builder", category: "agent" },
+  { id: "grill-me", source: "mattpocock/skills", skill: "grill-me", category: "agent" },
+  { id: "handoff", source: "mattpocock/skills", skill: "handoff", category: "agent" },
+  { id: "writing-for-agents", source: "mattpocock/skills", skill: "writing-for-agents", category: "agent" },
+  { id: "doc-coauthoring", source: "anthropics/skills", skill: "doc-coauthoring", category: "docs" },
+  { id: "web-artifacts-builder", source: "anthropics/skills", skill: "web-artifacts-builder", category: "docs" },
+  { id: "frontend-design", source: "anthropics/skills", skill: "frontend-design", category: "frontend" },
+  { id: "web-design-guidelines", source: "vercel-labs/agent-skills", skill: "web-design-guidelines", category: "frontend" },
+  {
+    id: "vercel-react-best-practices",
+    source: "vercel-labs/agent-skills",
+    skill: "vercel-react-best-practices",
+    dir: "react-best-practices",
+    category: "frontend",
+  },
+  { id: "webapp-testing", source: "anthropics/skills", skill: "webapp-testing", category: "engineering" },
+  { id: "improve-codebase-architecture", source: "mattpocock/skills", skill: "improve-codebase-architecture", category: "engineering" },
+  { id: "tdd", source: "mattpocock/skills", skill: "tdd", category: "engineering" },
+  { id: "systematic-debugging", source: "obra/superpowers", skill: "systematic-debugging", category: "engineering" },
+  { id: "writing-plans", source: "obra/superpowers", skill: "writing-plans", category: "engineering" },
+  { id: "verification-before-completion", source: "obra/superpowers", skill: "verification-before-completion", category: "engineering" },
+  { id: "brainstorming", source: "obra/superpowers", skill: "brainstorming", category: "engineering" },
+  { id: "executing-plans", source: "obra/superpowers", skill: "executing-plans", category: "engineering" },
+];
+
+export function marketplaceSkillCommand(entry: { source: string; skill: string }): string {
+  return `npx skills add ${entry.source} --skill ${entry.skill}`;
 }
 
 export interface SkillDiagnostic {
@@ -3147,6 +3222,8 @@ export interface VelaApi extends McpApi, PluginApi {
   setSkillEnabled(name: string, enabled: boolean): Promise<SkillCatalog>;
   /** 删除 Vela 用户 Skill 目录里的一个 Skill，返回更新后的目录。 */
   deleteSkill(name: string, location: string): Promise<SkillCatalog>;
+  /** 从市场把一个 Skill 下载到 Vela 用户 Skill 目录，返回更新后的目录。 */
+  installMarketplaceSkill(id: MarketplaceSkillId): Promise<SkillCatalog>;
   logout(providerId: string): Promise<AppState>;
   login(providerId: string, type: AuthMethodType): Promise<LoginResult>;
   replyLogin(promptId: string, value: string | null): Promise<void>;

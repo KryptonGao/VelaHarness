@@ -62,6 +62,7 @@ import {
   type SessionSnapshot,
   type SessionStatus,
   type ContextUsage,
+  type MarketplaceSkillId,
   type SkillCatalog,
   type SkillMigrationResult,
   type ExternalSkillScan,
@@ -1865,6 +1866,12 @@ export class AgentRuntime {
   /** 删除 Vela 用户 Skill 目录里的 Skill；已打开的对话会在下次发言前重新加载资源。 */
   deleteSkill(cwd: string, name: string, location: string): Promise<SkillCatalog> {
     return this.exclusive(() => this.skills.delete(cwd, name, location));
+  }
+
+  /** 从市场把 Skill 下载到 Vela 用户 Skill 目录；已打开的对话会在下次发言前重新加载资源。 */
+  installMarketplaceSkill(cwd: string, id: MarketplaceSkillId): Promise<SkillCatalog> {
+    // 下载可能耗时数十秒，不占用 exclusive 队列，免得挡住新对话；替换目录本身是原子的。
+    return this.skills.installMarketplace(cwd, id);
   }
 
   /** 列出 Codex 与 Claude Code 中可复制到 Vela 的 Skill。 */

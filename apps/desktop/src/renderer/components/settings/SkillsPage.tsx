@@ -1,4 +1,10 @@
-import type { SkillCatalog, SkillMigrationResult } from "@vela/shared";
+import {
+  marketplaceCategories,
+  type MarketplaceSkillEntry,
+  marketplaceSkills,
+  type SkillCatalog,
+  type SkillMigrationResult,
+} from "@vela/shared";
 import { useEffect, useMemo, useState } from "react";
 import { localizeError } from "../../locale";
 import { SheetPresence } from "../Presence";
@@ -15,10 +21,14 @@ import {
   TrashIcon,
 } from "../icons";
 import type { SettingsCopy } from "../settings-copy";
+import { MarketplaceAction, MarketplaceDetail } from "./MarketplaceDetail";
+import { MarketplaceIcon } from "./MarketplaceIcon";
 import { Segmented, SettingsSwitch } from "./primitives";
 
 type SkillItem = SkillCatalog["skills"][number];
 type SkillFilter = "all" | "enabled" | "disabled";
+type SkillsView = "manage" | "market";
+type MarketplaceEntry = MarketplaceSkillEntry;
 
 const originOrder: SkillItem["origin"][] = ["user", "project", "agents"];
 
@@ -36,6 +46,10 @@ export function SkillsPage({ copy, workspacePath }: { copy: SettingsCopy; worksp
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<SkillFilter>("all");
   const [detailLocation, setDetailLocation] = useState<string | null>(null);
+  const [view, setViewState] = useState<SkillsView>("manage");
+  const [marketDetail, setMarketDetail] = useState<string | null>(null);
+  const [installing, setInstalling] = useState<string | null>(null);
+  const [installError, setInstallError] = useState<string | null>(null);
 
   useEffect(() => {
     const api = window.vela;
@@ -110,6 +124,26 @@ export function SkillsPage({ copy, workspacePath }: { copy: SettingsCopy; worksp
     }
   }
 
+  function setView(next: SkillsView): void {
+    setViewState(next);
+    setMarketDetail(null);
+    setConfirmingDelete(null);
+  }
+
+  async function installSkill(entry: MarketplaceEntry): Promise<void> {
+    const api = window.vela;
+    if (!api || installing) return;
+    setInstalling(entry.id);
+    setInstallError(null);
+    try {
+      setCatalog(await api.installMarketplaceSkill(entry.id));
+    } catch (caught) {
+      setInstallError(caught instanceof Error ? caught.message : text.skillsLoadError);
+    } finally {
+      setInstalling(null);
+    }
+  }
+
   const skills = catalog?.skills ?? [];
   const needle = query.trim().toLowerCase();
   const visible = useMemo(
@@ -121,6 +155,8 @@ export function SkillsPage({ copy, workspacePath }: { copy: SettingsCopy; worksp
     }),
     [skills, filter, needle],
   );
+  const installedByName = useMemo(() => new Map(skills.map((skill) => [skill.name, skill])), [skills]);
+  const marketDetailEntry = marketDetail ? marketplaceSkills.find((entry) => entry.id === marketDetail) ?? null : null;
   const detail = detailLocation ? skills.find((skill) => skill.location === detailLocation) ?? null : null;
   const enabledCount = skills.filter((skill) => skill.enabled).length;
   const diagnostics = catalog?.diagnostics ?? [];
@@ -129,6 +165,49 @@ export function SkillsPage({ copy, workspacePath }: { copy: SettingsCopy; worksp
 
   return (
     <section className="skills-page" data-setting-id="skills">
+      {marketDetailEntry ? null : (
+        <Segmented<SkillsView>
+          label={text.skills}
+          value={view}
+          onChange={setView}
+          options={[
+            { id: "manage", label: text.skillsTabManage },
+            { id: "market", label: text.skillsTabMarket },
+          ]}
+        />
+      )}
+      {view === "market" ? (
+        marketDetailEntry ? (
+          <MarketplaceDetail
+            copy={text}
+            entry={marketDetailEntry}
+            skill={installedByName.get(marketDetailEntry.skill)}
+            busy={installing !== null || pending !== null}
+            installing={installing}
+            confirmingUninstall={confirmingDelete}
+            error={installError ?? (actionError ? localizeError(actionError) : null)}
+            onBack={() => {
+              setMarketDetail(null);
+              setConfirmingDelete(null);
+            }}
+            onInstall={(entry) => void installSkill(entry)}
+            onUninstall={(skill) => void deleteSkill(skill)}
+          />
+        ) : (
+          <SkillsMarketplace
+            copy={text}
+            installed={installedByName}
+            busy={installing !== null || pending !== null}
+            installing={installing}
+            confirmingUninstall={confirmingDelete}
+            error={installError ?? actionError}
+            onOpen={(entry) => setMarketDetail(entry.id)}
+            onInstall={(entry) => void installSkill(entry)}
+            onUninstall={(skill) => void deleteSkill(skill)}
+          />
+        )
+      ) : (
+      <>
       <p className="settings-hint">{text.skillsHint}</p>
       <div className="skills-toolbar">
         <Segmented<SkillFilter>
@@ -235,10 +314,101 @@ export function SkillsPage({ copy, workspacePath }: { copy: SettingsCopy; worksp
         <p className="settings-note">{text.skillDeleteNote}</p>
       ) : null}
       {error ? <p className="settings-error">{error}</p> : null}
+      </>
+      )}
       <SheetPresence present={detail !== null}>
         {detail ? <SkillDetailDialog skill={detail} copy={text} onClose={() => setDetailLocation(null)} /> : null}
       </SheetPresence>
     </section>
+  );
+}
+
+function SkillsMarketplace({
+  copy,
+  installed,
+  busy,
+  installing,
+  confirmingUninstall,
+  error,
+  onOpen,
+  onInstall,
+  onUninstall,
+}: {
+  copy: SettingsCopy["agent"];
+  installed: Map<string, SkillItem>;
+  busy: boolean;
+  installing: string | null;
+  confirmingUninstall: string | null;
+  error: string | null;
+  onOpen: (entry: MarketplaceEntry) => void;
+  onInstall: (entry: MarketplaceEntry) => void;
+  onUninstall: (skill: SkillItem) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const needle = query.trim().toLowerCase();
+  const visible = marketplaceSkills.filter((entry) => {
+    if (!needle) return true;
+    const name = copy.skillsMarketNames[entry.id] ?? entry.skill;
+    return `${entry.skill} ${name} ${copy.skillsMarketDescriptions[entry.id] ?? ""}`.toLowerCase().includes(needle);
+  });
+
+  return (
+    <>
+      <p className="settings-hint">{copy.skillsMarketHint}</p>
+      <label className="settings-search skills-search market-search">
+        <SearchIcon size={14} />
+        <input
+          className="settings-search-input"
+          type="search"
+          value={query}
+          placeholder={copy.skillsSearch}
+          aria-label={copy.skillsSearch}
+          onChange={(event) => setQuery(event.target.value)}
+        />
+      </label>
+      {visible.length === 0 ? <p className="settings-note">{copy.skillsNoMatch}</p> : null}
+      {marketplaceCategories.map((category) => {
+        const items = visible.filter((entry) => entry.category === category);
+        if (items.length === 0) return null;
+        return (
+          <section key={category} className="skills-group" aria-label={copy.skillsMarketCategories[category]}>
+            <h3 className="skills-group-head">
+              {copy.skillsMarketCategories[category]}
+              <span className="skills-group-count">{items.length}</span>
+            </h3>
+            <div className="market-grid">
+              {items.map((entry) => {
+                const name = copy.skillsMarketNames[entry.id] ?? entry.skill;
+                const description = copy.skillsMarketDescriptions[entry.id] ?? "";
+                const skill = installed.get(entry.skill);
+                return (
+                  <article className="market-item" key={entry.id}>
+                    <button type="button" className="market-item-main" onClick={() => onOpen(entry)}>
+                      <MarketplaceIcon entry={entry} />
+                      <span className="market-item-text">
+                        <span className="market-item-name">{name}</span>
+                        <span className="market-item-desc" title={description}>{description}</span>
+                      </span>
+                    </button>
+                    <MarketplaceAction
+                      copy={copy}
+                      entry={entry}
+                      skill={skill}
+                      busy={busy}
+                      installing={installing}
+                      confirmingUninstall={confirmingUninstall}
+                      onInstall={onInstall}
+                      onUninstall={onUninstall}
+                    />
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+        );
+      })}
+      {error ? <p className="settings-error">{localizeError(error)}</p> : null}
+    </>
   );
 }
 
