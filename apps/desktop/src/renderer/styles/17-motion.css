@@ -266,6 +266,9 @@
 /* 四点的方形轨迹更接近圆形边框,单独内收 4px;按钮点击区与思考动效保持不变。 */
 .jump-orb-command { inset: 3px; width: calc(100% - 6px); height: calc(100% - 6px); }
 .jump-orb[data-on="false"] { opacity: 0; }
+/* Reveal the scroll action on hover or keyboard focus without resetting the activity animation. */
+.chat-jump-latest:is(:hover, :focus-visible) .jump-orb-arrow { opacity: 1; transform: none; }
+.chat-jump-latest:is(:hover, :focus-visible) .jump-orb { opacity: 0; }
 .jump-orb path { fill: none; stroke: currentColor; stroke-width: .9; stroke-linecap: round; stroke-linejoin: round; }
 .jump-orb circle { fill: currentColor; }
 @media (prefers-reduced-motion: reduce) {

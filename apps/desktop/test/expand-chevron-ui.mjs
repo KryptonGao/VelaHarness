@@ -61,7 +61,7 @@ if (!process.versions.electron) {
           const content = modelCase ? <ThinkingModelCatalogContext.Provider value={[{id: 'custom-alias', provider: 'custom', name: 'My GpT Model'}, {id: 'custom-alias', provider: 'other', name: 'DeepSeek'}]}><ThinkingGroupModeContext.Provider value={name === 'gptNameSingle' ? 'single' : name === 'gptCodex' ? 'codex' : 'coherent'}><ThinkingSummaryContext.Provider value={summary}>
               <AgentPane agent={agent} agents={[agent]} messages={messages} ensureMessages={() => {}} onSwitch={() => {}} onControl={() => {}} toolDisplay={display} />
             </ThinkingSummaryContext.Provider></ThinkingGroupModeContext.Provider></ThinkingModelCatalogContext.Provider>
-            : name === 'commandOrb' || name === 'thinkingOrb' ? <button className="chat-jump-latest" data-visible="true"><JumpOrb activity={name === 'commandOrb' ? 'command' : 'thinking'} running /></button>
+            : ['commandOrb', 'thinkingOrb', 'idleOrb'].includes(name) ? <button className="chat-jump-latest" data-visible="true" onClick={() => window.jumpClicks = (window.jumpClicks ?? 0) + 1}><JumpOrb activity={name === 'idleOrb' ? undefined : name === 'commandOrb' ? 'command' : 'thinking'} running /></button>
             : name === 'coherent' ? thought
             : name === 'nested' ? <Thinking text="" active={false} showActivityIndicator={false} titled={{title: 'Read files and run commands', body: ''}} coherent>
                 {thought}<ToolList tools={[bash]} display="compact" fold="none" />
@@ -199,6 +199,30 @@ if (!process.versions.electron) {
           assert.ok(geometry.centered, `${currentCase}: animation stays centered`);
           if (name === 'commandOrb') assert.ok(geometry.gap >= 6, `${currentCase}: all four-dot styles keep at least 6px from the circular border (${geometry.gap})`);
         }
+        for (const reducedMotion of [false, true]) {
+          await protocol('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: reducedMotion ? 'reduce' : 'no-preference' }] });
+          for (const name of ['commandOrb', 'thinkingOrb', 'idleOrb']) {
+            currentCase = `${scheme}/${name}/reduced-motion=${reducedMotion}`;
+            await evaluate(`window.renderCase(${JSON.stringify(name)}, ${JSON.stringify(scheme)})`);
+            const idle = name === 'idleOrb';
+            const visibleLayers = (arrow, orb) => `getComputedStyle(document.querySelector('.jump-orb-arrow')).opacity === '${arrow}' && getComputedStyle(document.querySelector('.jump-orb')).opacity === '${orb}'`;
+            await until(visibleLayers(idle ? 1 : 0, idle ? 0 : 1));
+            const { root } = await protocol('DOM.getDocument');
+            const { nodeId } = await protocol('DOM.querySelector', { nodeId: root.nodeId, selector: '.chat-jump-latest' });
+            for (const pseudo of ['hover', 'focus-visible']) {
+              await protocol('CSS.forcePseudoState', { nodeId, forcedPseudoClasses: [pseudo] });
+              await until(visibleLayers(1, 0));
+              assert.equal(await evaluate("getComputedStyle(document.querySelector('.jump-orb-arrow')).transform"), 'none', `${currentCase}/${pseudo}: arrow matches the idle size`);
+              if (!idle) assert.equal(await evaluate("document.querySelector('.jump-orb').dataset.on"), 'true', `${currentCase}/${pseudo}: activity stays active underneath`);
+              if (reducedMotion) assert.ok(await evaluate("parseFloat(getComputedStyle(document.querySelector('.jump-orb-arrow')).transitionDuration) <= 0.00001"), `${currentCase}/${pseudo}: transition is effectively instant with reduced motion`);
+              await protocol('CSS.forcePseudoState', { nodeId, forcedPseudoClasses: [] });
+              await until(visibleLayers(idle ? 1 : 0, idle ? 0 : 1));
+            }
+            await evaluate("window.jumpClicks = 0; document.querySelector('.chat-jump-latest').click()");
+            assert.equal(await evaluate('window.jumpClicks'), 1, `${currentCase}: click action is preserved`);
+          }
+        }
+        await protocol('Emulation.setEmulatedMedia', { features: [] });
         for (const name of ['deepseek', 'deepseekMissing', 'legacy', 'mixed', 'gpt', 'gptMulti', 'gptRaw', 'gptName', 'gptNameSingle', 'idContainsGpt', 'gptCodex', 'oModel', 'otherProvider']) {
           currentCase = scheme + '/' + name;
           await evaluate(`window.renderCase(${JSON.stringify(name)}, ${JSON.stringify(scheme)})`);
