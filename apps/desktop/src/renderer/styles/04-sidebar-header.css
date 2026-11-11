@@ -769,7 +769,8 @@
 }
 .chat-scroll-area > .user-msg-container,
 .chat-scroll-area > .assistant-block,
-.chat-scroll-area > .chat-error-card {
+.chat-scroll-area > .chat-error-card,
+.chat-scroll-area > .provider-error-card {
   width: min(100%, 760px);
 }
 .chat-scroll-area > .empty-state { width: min(100%, 460px); }

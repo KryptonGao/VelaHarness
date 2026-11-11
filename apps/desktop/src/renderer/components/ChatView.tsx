@@ -76,6 +76,8 @@ import { ChatActionsMenu } from "./ChatActionsMenu";
 import { UserMessageFrame } from "./UserMessageFrame";
 import { ImageViewer, type ImageViewerRequest } from "./ImageViewer";
 import { localizeError, tr, trf, activeIntlLocale } from "../locale";
+import { ProviderErrorCard } from "./ProviderErrorCard";
+import { parseProviderError } from "./provider-error";
 
 interface FollowState {
   pinned: boolean;
@@ -339,6 +341,8 @@ export function ChatView({
     });
   }, [embedded, session?.status, session?.modelReady, session?.model, session?.modelProvider, session?.modelId, session?.thinkingLevel, session?.thinkingLevels]);
   const streaming = session?.status === "streaming";
+  // 服务限额类报错在对话流里显示成卡片,输入框上方不再重复一行红字。
+  const providerError = useMemo(() => parseProviderError(sendError), [sendError]);
   // 只有正在运行的这一轮里最新一次提交的待办还在进行;已结束的轮次和被取代的待办都算已结束。
   const liveTodoId = streaming ? latestTodoTool(messages)?.id ?? null : null;
   const planLive = useMemo(() => ({ liveToolId: liveTodoId }), [liveTodoId]);
@@ -1004,6 +1008,7 @@ export function ChatView({
         ) : null}
         {/* 运行视图:待办清单和状态条是对话内容的一部分,紧跟在本轮过程之后,随对话一起滚动。 */}
         {runView && view === "chat" && messages.length > 0 ? <RunViewDock messages={messages} streaming={Boolean(streaming)} /> : null}
+        {providerError && sendError ? <ProviderErrorCard error={providerError} raw={localizeError(sendError)} /> : null}
         </div>
       </div>
 
@@ -1050,7 +1055,7 @@ export function ChatView({
         conversationId={state?.activeConversationId ?? null}
         models={models}
         mode={session?.mode ?? "agent"}
-        sendError={sendError}
+        sendError={providerError ? null : sendError}
         usage={state?.context ?? null}
         contextPopover={floatingInfo}
         project={project}

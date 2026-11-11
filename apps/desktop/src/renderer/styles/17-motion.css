@@ -674,6 +674,7 @@ html[data-thinking-fade="false"][data-thinking-pop="false"] .fade-thinking .md-f
 .chat-message-surface > .user-msg-container,
 .chat-message-surface > .assistant-block,
 .chat-message-surface > .chat-error-card,
+.chat-message-surface > .provider-error-card,
 .chat-message-surface > .recommended-actions {
   width: calc(min(100%, var(--chat-lane-max, 760px)) - var(--chat-lane-shrink, 0px));
   margin-right: calc(var(--chat-lane-shift, 0px) * 2);
