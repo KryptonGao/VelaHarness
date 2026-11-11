@@ -12,7 +12,7 @@ const server = await createServer({
       "@vela/shared": resolve(desktop, "../../packages/shared/src/index.ts"),
     },
   },
-  optimizeDeps: { entries: ["test/trace-preview.html", "test/changes-preview.html", "test/image-viewer-preview.html", "test/version-control-preview.html", "test/run-view-preview.html", "test/thinking-group-preview.html", "test/usage-limit-preview.html"] },
+  optimizeDeps: { entries: ["test/trace-preview.html", "test/changes-preview.html", "test/image-viewer-preview.html", "test/version-control-preview.html", "test/run-view-preview.html", "test/thinking-group-preview.html", "test/coherent-heavy-preview.html","test/usage-limit-preview.html"] },
   server: { port: 5179, host: "127.0.0.1" },
 });
 await server.listen();

@@ -2,7 +2,7 @@
  * 差异高亮的共享逻辑:按文件语言分别对旧/新两侧整体分词,再把 token 贴回每一行。
  * 单个差异过大时跳过高亮,只渲染纯文本,避免一次创建过多 DOM。
  */
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { highlightSnippet, languageForPath, type ThemedToken } from "./preview/highlighter";
 
 const maxHighlightChars = 400_000;
@@ -15,41 +15,99 @@ export interface HighlightedDiff {
   new: TokenLines | null;
 }
 
+/** 流式增长的差异最多隔这么久整体重新分词一次。 */
+export const STREAMING_HIGHLIGHT_INTERVAL_MS = 300;
+
+interface HighlightInput {
+  path: string | null | undefined;
+  oldLines: string[];
+  newLines: string[];
+  oldText: string;
+  newText: string;
+}
+
+/** 旧/新两侧各自整体分词;语言不支持或内容过大时返回 null。 */
+async function highlightDiff({ path, oldLines, newLines, oldText, newText }: HighlightInput): Promise<HighlightedDiff | null> {
+  const lang = languageForPath(path ?? "");
+  if (!lang) return null;
+  if (oldText.length + newText.length > maxHighlightChars) return null;
+  const wrap = markupFragmentWrapper(lang, `${oldText}\n${newText}`);
+  const highlightSide = (text: string): Promise<TokenLines | null> =>
+    wrap ? highlightSnippet(lang, wrap + text).then((lines) => lines?.slice(1) ?? null) : highlightSnippet(lang, text);
+  const [old, next] = await Promise.all([
+    oldLines.length > 0 ? highlightSide(oldText) : Promise.resolve(null),
+    newLines.length > 0 ? highlightSide(newText) : Promise.resolve(null),
+  ]);
+  const alignedOld = alignTokens(old, oldLines.length);
+  const alignedNew = alignTokens(next, newLines.length);
+  return alignedOld || alignedNew ? { old: alignedOld, new: alignedNew } : null;
+}
+
 /**
  * 高亮一段差异的旧/新两侧;语言不支持、内容过大或行数对不齐时对应侧为 null,
  * 调用方退回纯文本渲染。
+ *
+ * throttleMs > 0 用于流式增长的差异:每次增量都整体重新分词会占满主线程,所以最多每 throttleMs 做一次,
+ * 期间保留上一次的结果(调用方按行文本校验后再使用,新增或变化的行先显示纯文本)。
  */
 export function useDiffHighlight(
   path: string | null | undefined,
   oldLines: string[],
   newLines: string[],
+  throttleMs = 0,
 ): HighlightedDiff | null {
   const oldText = useMemo(() => oldLines.join("\n"), [oldLines]);
   const newText = useMemo(() => newLines.join("\n"), [newLines]);
   const [highlight, setHighlight] = useState<HighlightedDiff | null>(null);
+  const throttled = throttleMs > 0;
+  const latest = useRef<HighlightInput>({ path, oldLines, newLines, oldText, newText });
+  latest.current = { path, oldLines, newLines, oldText, newText };
+  const state = useRef<{ seq: number; lastStart: number; timer: number | undefined; done: HighlightInput | null }>({ seq: 0, lastStart: 0, timer: undefined, done: null });
 
+  // 一次性的完整高亮:内容不再流式增长时,每次变化立即重新分词。
   useEffect(() => {
+    if (throttled) return;
+    const run = state.current;
+    window.clearTimeout(run.timer);
+    run.timer = undefined;
+    const seq = ++run.seq;
+    const input = latest.current;
+    // 流式结束时内容没变,节流期间算出的结果已经对得上,不必清空再重算。
+    const done = run.done;
+    if (done && done.path === input.path && done.oldText === input.oldText && done.newText === input.newText) return;
     setHighlight(null);
-    const lang = languageForPath(path ?? "");
-    if (!lang) return;
-    if (oldText.length + newText.length > maxHighlightChars) return;
-    let active = true;
-    const wrap = markupFragmentWrapper(lang, `${oldText}\n${newText}`);
-    const highlightSide = (text: string): Promise<TokenLines | null> =>
-      wrap ? highlightSnippet(lang, wrap + text).then((lines) => lines?.slice(1) ?? null) : highlightSnippet(lang, text);
-    void Promise.all([
-      oldLines.length > 0 ? highlightSide(oldText) : Promise.resolve(null),
-      newLines.length > 0 ? highlightSide(newText) : Promise.resolve(null),
-    ]).then(([old, next]) => {
-      if (!active) return;
-      const alignedOld = alignTokens(old, oldLines.length);
-      const alignedNew = alignTokens(next, newLines.length);
-      setHighlight(alignedOld || alignedNew ? { old: alignedOld, new: alignedNew } : null);
+    void highlightDiff(input).then((result) => {
+      if (seq !== run.seq) return;
+      run.done = input;
+      setHighlight(result);
     });
-    return () => {
-      active = false;
-    };
-  }, [path, oldText, newText, oldLines.length, newLines.length]);
+  }, [throttled, path, oldText, newText, oldLines.length, newLines.length]);
+
+  // 流式增长:已有定时器时它会读取最新内容,不重复排队,也不会被连续的增量一直推迟。
+  useEffect(() => {
+    if (!throttled) return;
+    const run = state.current;
+    if (run.timer !== undefined) return;
+    const wait = Math.max(0, run.lastStart + throttleMs - performance.now());
+    run.timer = window.setTimeout(() => {
+      run.timer = undefined;
+      run.lastStart = performance.now();
+      const seq = ++run.seq;
+      const input = latest.current;
+      void highlightDiff(input).then((result) => {
+        if (seq !== run.seq) return;
+        run.done = input;
+        setHighlight(result);
+      });
+    }, wait);
+  }, [throttled, throttleMs, path, oldText, newText]);
+
+  useEffect(() => () => {
+    const run = state.current;
+    window.clearTimeout(run.timer);
+    run.timer = undefined;
+    run.seq += 1;
+  }, []);
 
   return highlight;
 }

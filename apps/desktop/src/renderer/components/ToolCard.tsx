@@ -23,7 +23,7 @@ import { useFilePreview } from "./preview/FilePreviewContext";
 import type { ThemedToken } from "./preview/highlighter";
 import { QuestionCard, type QuestionReplyHandler } from "./QuestionCard";
 import { FileTypeIcon } from "./FileTypeIcon";
-import { tokenStyle, useDiffHighlight, type HighlightedDiff } from "./diff-highlight";
+import { STREAMING_HIGHLIGHT_INTERVAL_MS, tokenStyle, useDiffHighlight, type HighlightedDiff } from "./diff-highlight";
 import { CheckIcon, ExternalIcon, EyeIcon, GlobeIcon, McpIcon, StackIcon, ToolIcon, WebFetchIcon, WebSearchIcon } from "./icons";
 import {
   compactLabelParts,
@@ -583,8 +583,13 @@ function BrowserReplCard({ tool, compact = false }: { tool: ToolTrace; compact?:
   );
 }
 
+/** 分组节点每次渲染都会新建 tools 数组;内容没变(同长度、同一批工具对象)时不必重渲染整组。 */
+function sameTools(previous: readonly ToolTrace[], next: readonly ToolTrace[]): boolean {
+  return previous === next || (previous.length === next.length && previous.every((tool, index) => tool === next[index]));
+}
+
 /** 一组连续工具的折叠卡片,展开后内部还是原来的 ToolCard。 */
-export function ToolRunGroup({ tools }: { tools: ToolTrace[] }) {
+export const ToolRunGroup = memo(function ToolRunGroup({ tools }: { tools: ToolTrace[] }) {
   const [open, setOpen] = useState(false);
   // 折叠时跟踪最新一个还在跑(或最后一个)的工具,让标题行保持实时。
   const current =
@@ -657,10 +662,10 @@ export function ToolRunGroup({ tools }: { tools: ToolTrace[] }) {
       </ToolCollapse>
     </article>
   );
-}
+}, (previous, next) => sameTools(previous.tools, next.tools));
 
 /** 紧凑模式:同一段超过 1 个工具时折叠成一行摘要,点击展开逐行明细。 */
-export function CompactToolGroup({ tools, sequenceId = tools[0]?.id }: { tools: ToolTrace[]; sequenceId?: string }) {
+export const CompactToolGroup = memo(function CompactToolGroup({ tools, sequenceId = tools[0]?.id }: { tools: ToolTrace[]; sequenceId?: string }) {
   const [open, setOpen] = useToolExpanded(foldSequenceId(sequenceId));
   const details = useToolProcessDetails();
   const duration = useToolsDuration(tools);
@@ -748,7 +753,7 @@ export function CompactToolGroup({ tools, sequenceId = tools[0]?.id }: { tools: 
       </ToolCollapse>
     </div>
   );
-}
+}, (previous, next) => previous.sequenceId === next.sequenceId && sameTools(previous.tools, next.tools));
 
 function compactPartLabel({ kind, count }: CompactLabelPart): string {
   if (kind === "list") return trf("已列出 {0} 个目录", count === 1 ? "Listed {0} directory" : "Listed {0} directories", count);
@@ -761,7 +766,7 @@ function compactPartLabel({ kind, count }: CompactLabelPart): string {
 }
 
 /** 紧凑模式的一行:文件类点击文件名在右侧预览,bash 点击整行内联展开输出。 */
-export function CompactToolLine({
+export const CompactToolLine = memo(function CompactToolLine({
   tool,
   hideAction = false,
   hideIcon = false,
@@ -961,7 +966,7 @@ export function CompactToolLine({
       ) : null}
     </div>
   );
-}
+});
 
 /** 参数还在流式生成时的行数：+新增 −删除，随内容增长，完成后由真实 diff 取代。 */
 function streamingStat(activity: ToolActivity): { added: number; removed: number } | null {
@@ -1075,7 +1080,7 @@ function CompactDiffView({ diff, path, followEnd = false, showLineNumbers = true
       contentClassName="compact-diff-scroll-content"
       ariaLabel={tr("文件差异，可在区域内滚动", "File diff, scrollable")}
     >
-      <DiffView diff={diff} path={path} compact focusFirstChange={!followEnd} showLineNumbers={showLineNumbers} />
+      <DiffView diff={diff} path={path} compact focusFirstChange={!followEnd} showLineNumbers={showLineNumbers} streaming={followEnd} />
     </ScrollFade>
   );
 }
@@ -1179,7 +1184,7 @@ function ToolBody({
       <>
         {activity.body && activity.diff ? <ToolMarkdown text={activity.body} /> : null}
         {activity.diff ? (
-          <DiffView diff={activity.diff} path={activity.path} showLineNumbers={kind !== "edit" || !activity.streaming} />
+          <DiffView diff={activity.diff} path={activity.path} showLineNumbers={kind !== "edit" || !activity.streaming} streaming={status === "running" && Boolean(activity.streaming)} />
         ) : activity.body ? (
           <ToolMarkdown text={activity.body} />
         ) : status === "running" ? (
@@ -1341,11 +1346,11 @@ function ReadView({ body, running }: { body?: string; running: boolean }) {
   );
 }
 
-function DiffView({ diff, path, compact = false, focusFirstChange = false, showLineNumbers = true }: { diff: string; path?: string; compact?: boolean; focusFirstChange?: boolean; showLineNumbers?: boolean }) {
+function DiffView({ diff, path, compact = false, focusFirstChange = false, showLineNumbers = true, streaming = false }: { diff: string; path?: string; compact?: boolean; focusFirstChange?: boolean; showLineNumbers?: boolean; /** 差异还在流式增长:语法高亮改为节流,并按行文本校验沿用的旧结果。 */ streaming?: boolean }) {
   const sheetRef = useRef<HTMLDivElement>(null);
   const parsed = useMemo(() => parseDisplayDiff(diff), [diff]);
   const rows = useMemo(() => (compact ? collapseDiffContext(parsed.rows) : parsed.rows), [parsed, compact]);
-  const highlight = useDiffHighlight(path, parsed.oldLines, parsed.newLines);
+  const highlight = useDiffHighlight(path, parsed.oldLines, parsed.newLines, streaming ? STREAMING_HIGHLIGHT_INTERVAL_MS : 0);
   useLayoutEffect(() => {
     if (!compact || !focusFirstChange) return;
     const sheet = sheetRef.current;
@@ -1360,45 +1365,58 @@ function DiffView({ diff, path, compact = false, focusFirstChange = false, showL
   if (rows.length === 0) return <p className="tool-wait">{tr("没有差异", "No diff")}</p>;
   return (
     <div ref={sheetRef} className={`tool-sheet${compact ? " tool-sheet-compact-diff" : ""}`}>
-      {rows.map((row, index) => {
-        if (row.kind === "gap") {
-          return (
-            <div className={`tool-diff-gap${compact ? " is-compact" : ""}`} key={index}>
-              {compact ? null : row.text}
-            </div>
-          );
-        }
-        const tokens = rowTokens(row, highlight);
-        return (
-          <div className={`tool-code-line tool-diff-line ${row.kind}`} key={index}>
-            <span className="tool-gutter">
-              <span className="tool-sign">{row.kind === "add" ? "+" : row.kind === "del" ? "−" : ""}</span>
-              {/* Streamed edit numbers are fragment-local, not file positions (even after interruption). */}
-              {showLineNumbers ? row.gutter : null}
-            </span>
-            <span className="tool-code-text">
-              {tokens
-                ? tokens.map((token, tokenIndex) => (
-                    <span key={tokenIndex} style={tokenStyle(token)}>
-                      {token.content}
-                    </span>
-                  ))
-                : row.text || " "}
-            </span>
-          </div>
-        );
-      })}
+      {rows.map((row, index) => (
+        <DiffLine key={index} row={row} compact={compact} showLineNumbers={showLineNumbers} tokens={rowTokens(row, highlight, streaming)} />
+      ))}
     </div>
   );
 }
 
+/** 流式写入时每次增量都会重新解析出全新的行对象;内容没变的行跳过重渲染,只有新增和变化的行更新。 */
+const DiffLine = memo(function DiffLine({ row, compact, showLineNumbers, tokens }: { row: DisplayDiffRow; compact: boolean; showLineNumbers: boolean; tokens: ThemedToken[] | null }) {
+  if (row.kind === "gap") {
+    return (
+      <div className={`tool-diff-gap${compact ? " is-compact" : ""}`}>
+        {compact ? null : row.text}
+      </div>
+    );
+  }
+  return (
+    <div className={`tool-code-line tool-diff-line ${row.kind}`}>
+      <span className="tool-gutter">
+        <span className="tool-sign">{row.kind === "add" ? "+" : row.kind === "del" ? "−" : ""}</span>
+        {/* Streamed edit numbers are fragment-local, not file positions (even after interruption). */}
+        {showLineNumbers ? row.gutter : null}
+      </span>
+      <span className="tool-code-text">
+        {tokens
+          ? tokens.map((token, tokenIndex) => (
+              <span key={tokenIndex} style={tokenStyle(token)}>
+                {token.content}
+              </span>
+            ))
+          : row.text || " "}
+      </span>
+    </div>
+  );
+}, (previous, next) =>
+  previous.tokens === next.tokens
+  && previous.compact === next.compact
+  && previous.showLineNumbers === next.showLineNumbers
+  && previous.row.kind === next.row.kind
+  && previous.row.text === next.row.text
+  && previous.row.gutter === next.row.gutter);
+
 /** 上下文行取新侧 token;两侧内容一致,缺哪侧用哪侧兜底。 */
-function rowTokens(row: DisplayDiffRow, highlight: HighlightedDiff | null): ThemedToken[] | null {
+function rowTokens(row: DisplayDiffRow, highlight: HighlightedDiff | null, verify = false): ThemedToken[] | null {
   if (!highlight) return null;
-  if (row.kind === "add") return highlight.new?.[row.newIndex] ?? null;
-  if (row.kind === "del") return highlight.old?.[row.oldIndex] ?? null;
-  if (row.kind === "ctx") return highlight.new?.[row.newIndex] ?? highlight.old?.[row.oldIndex] ?? null;
-  return null;
+  const tokens = row.kind === "add" ? highlight.new?.[row.newIndex] ?? null
+    : row.kind === "del" ? highlight.old?.[row.oldIndex] ?? null
+    : row.kind === "ctx" ? highlight.new?.[row.newIndex] ?? highlight.old?.[row.oldIndex] ?? null
+    : null;
+  // 流式增长时高亮结果可能比内容旧:文字对不上的行(新到的、还在变的)先显示纯文本。
+  if (verify && tokens && tokens.map((token) => token.content).join("") !== row.text) return null;
+  return tokens;
 }
 
 /** 长上下文只显示靠近两侧改动的行,并以细分隔带代表折叠内容。 */

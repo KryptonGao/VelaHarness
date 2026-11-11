@@ -1,4 +1,4 @@
-import { useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent, type ReactNode, type TouchEvent, type WheelEvent } from "react";
+import { memo, useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent, type ReactNode, type TouchEvent, type WheelEvent } from "react";
 import { ActivityIndicator } from "./ActivityIndicator";
 import { EditFileIcon, ReadFileIcon, TerminalIcon, ThinkingIcon, ToolIcon } from "./icons";
 import { Markdown } from "./Markdown";
@@ -566,7 +566,7 @@ export function CoherentGroup({
  * 连贯模式组内的一次思考总结:加粗首行作标题,正文缩进在下面,可单独开合。
  * expanded 是默认状态:分组进行中只有最新一段展开,更早的和分组结束后的都折叠;手动开合过就不再跟随。
  */
-export function CoherentThought({ text, messageId, active, expanded }: { text: string; messageId?: string; active: boolean; expanded: boolean }) {
+export const CoherentThought = memo(function CoherentThought({ text, messageId, active, expanded }: { text: string; messageId?: string; active: boolean; expanded: boolean }) {
   useAppLocale();
   const [manual, setManual] = useState<boolean | null>(null);
   const open = manual ?? expanded;
@@ -616,4 +616,4 @@ export function CoherentThought({ text, messageId, active, expanded }: { text: s
       ) : null}
     </div>
   );
-}
+});
