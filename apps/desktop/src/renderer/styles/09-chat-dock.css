@@ -1,7 +1,6 @@
-/* 顶部改用向上渐进模糊:上方几乎不模糊,越靠近输入框越模糊,底部再压一层聊天底色
-   自然接到不透明的输入区,滚动中的正文不会再被一条白色硬边切掉。 */
-.chat-dock-wrapper::before,
-.chat-dock-wrapper::after {
+/* 输入框上方只做渐隐:正文从上到下逐渐淡入聊天底色,自然接到不透明的输入区,
+   滚动中的正文不会再被一条白色硬边切掉。不要加 backdrop-filter 模糊:整条 dock 宽的模糊层每帧都要重算。 */
+.chat-dock-wrapper::before {
   content: "";
   position: absolute;
   left: 0;
@@ -9,21 +8,12 @@
   bottom: 100%;
   height: 52px;
   pointer-events: none;
-}
-/* 轻模糊打底,让过渡从大致清晰逐渐进入模糊。 */
-.chat-dock-wrapper::before {
-  -webkit-backdrop-filter: blur(3px);
-  backdrop-filter: blur(3px);
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.55) 50%, #000 100%);
-  mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.55) 50%, #000 100%);
-}
-/* 重模糊叠加在下半段,靠近输入框的地方最模糊;最后一段融进聊天底色。 */
-.chat-dock-wrapper::after {
-  background: linear-gradient(to bottom, transparent 50%, var(--bg-chat) 96%);
-  -webkit-backdrop-filter: blur(16px);
-  backdrop-filter: blur(16px);
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, transparent 45%, rgba(0, 0, 0, 0.55) 74%, #000 100%);
-  mask-image: linear-gradient(to bottom, transparent 0%, transparent 45%, rgba(0, 0, 0, 0.55) 74%, #000 100%);
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    color-mix(in srgb, var(--bg-chat) 55%, transparent) 55%,
+    var(--bg-chat) 100%
+  );
 }
 @container chat (max-width: 720px) {
   .chat-dock-wrapper,

@@ -750,7 +750,7 @@
      不会越过同级、绝对定位的输入框 dock 画到输入框上面。 */
   isolation: isolate;
   /* 底部留白放在滚动内容里而不是 margin:正文才能滑到输入框下方,
-     交给输入框上方的渐进模糊接管;滚动到底时最后一条消息依然完整可见。 */
+     交给输入框上方的渐隐接管;滚动到底时最后一条消息依然完整可见。 */
   padding: 20px 24px var(--composer-clearance);
   display: flex;
   align-items: center;

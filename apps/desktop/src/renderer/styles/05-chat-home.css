@@ -72,8 +72,7 @@
   background: transparent;
   border-radius: 0;
 }
-.chat-conversation-pane[data-home] .chat-dock-wrapper::before,
-.chat-conversation-pane[data-home] .chat-dock-wrapper::after { display: none; }
+.chat-conversation-pane[data-home] .chat-dock-wrapper::before { display: none; }
 .chat-conversation-pane[data-home] .floating-input-card { margin-right: 0; }
 /* 首页输入区在内容流中，不用浮动 dock 的向下投影（暗色下会向托盘扩散成黑晕），
    改用一层柔和的环境影加一层贴边细影，让输入框明显浮起。经典/静谧布局的阴影在卡片上，

@@ -39,7 +39,8 @@ async function run() {
       document.querySelector('.blur-summary-compact .agent-compact-toggle').click()`);
     await pause(300);
     assert.equal(await evaluate("document.querySelectorAll('.thinking-scroll-viewport').length"), 5);
-    assert.equal(await evaluate("document.querySelectorAll('.thinking-edge-filter feImage').length"), 0);
+    // Edges only fade: an SVG filter on a scroller re-rasterizes it every frame, and stacked backdrop blur layers leave rows half sharp.
+    assert.equal(await evaluate("document.querySelectorAll('.thinking-edge-filter, .thinking-scroll-shell filter, .thinking-scroll-blur').length"), 0);
     const scroll = async (index, position) => {
       await evaluate(`(() => {
         const v = document.querySelectorAll('.thinking-scroll-viewport')[${index}];
@@ -58,16 +59,13 @@ async function run() {
     };
     const state = (index) => evaluate(`(() => {
       const v = document.querySelectorAll('.thinking-scroll-viewport')[${index}], shell = v.parentElement;
-      const floods = shell.querySelectorAll('feFlood');
       const opacity = (selector) => Number(getComputedStyle(shell.querySelector(selector)).opacity);
       return { top: opacity('.thinking-scroll-fade-top'), bottom: opacity('.thinking-scroll-fade-bottom'),
-        maskTop: Number(getComputedStyle(floods[0]).floodOpacity), maskBottom: Number(getComputedStyle(floods[1]).floodOpacity),
         filter: getComputedStyle(v).filter, position: v.scrollTop, max: v.scrollHeight - v.clientHeight,
         height: v.clientHeight, background: getComputedStyle(shell).getPropertyValue('--scroll-fade-background').trim() };
     })()`);
     for (let i = 0; i < 5; i++) {
-      const originalFilter = (await state(i)).filter;
-      assert.notEqual(originalFilter, "none");
+      assert.equal((await state(i)).filter, "none");
       await scroll(i, 0);
       assert.equal((await state(i)).top, 0);
       assert.equal((await state(i)).bottom, 1);
@@ -77,13 +75,11 @@ async function run() {
       await scroll(i, 4);
       const middle = await state(i);
       assert.ok(Math.abs(middle.top - 0.5) < 0.05);
-      assert.equal(middle.maskTop, middle.top);
-      assert.equal(middle.maskBottom, middle.bottom);
       await scroll(i, 12);
       assert.equal((await state(i)).top, 1);
       await scroll(i, "end");
       assert.equal((await state(i)).bottom, 0);
-      assert.equal((await state(i)).filter, originalFilter);
+      assert.equal((await state(i)).filter, "none");
     }
     assert.equal((await state(0)).height, 280);
     assert.equal((await state(3)).height, 320);
@@ -157,8 +153,7 @@ async function run() {
     assert.equal((await state(0)).bottom, 1);
     console.log("PASS short content, width changes and collapse/reopen keep correct edges and reading position");
 
-    // Pixel checks ensure the filter really paints blur, and keep central text sharp.
-    await evaluate("document.querySelectorAll('.thinking-scroll-fade').forEach(e => e.style.visibility = 'hidden')");
+    // Pixel checks ensure the edge fade really paints, and keep central text untouched.
     for (const index of [0, 3, 4]) {
       // macOS may cap the window to the screen height: expose each region before capture.
       await evaluate(`document.querySelectorAll('.thinking-scroll-viewport')[${index}].scrollIntoView({ block: 'center', behavior: 'instant' })`);
@@ -172,7 +167,7 @@ async function run() {
       // Prime the hidden window's backing surface after scrolling.
       await win.webContents.capturePage();
       const blurred = await win.webContents.capturePage(rect);
-      await evaluate(`document.querySelectorAll('.thinking-scroll-viewport')[${index}].style.filter = 'none'`);
+      await evaluate(`document.querySelectorAll('.thinking-scroll-fade').forEach(e => e.style.visibility = 'hidden')`);
       await pause(50);
       await win.webContents.capturePage();
       const clear = await win.webContents.capturePage(rect);
@@ -189,14 +184,14 @@ async function run() {
         writeFileSync(`${process.env.VELA_BLUR_SCREENSHOT}.${index}.clear.png`, clear.toPNG());
         console.log(`Pixel differences ${index}:`, difference(0, 0.15), difference(0.4, 0.6), difference(0.85, 1));
       }
-      assert.ok(difference(0, 0.15) > 0.1, `viewport ${index}: top filter did not paint`);
-      assert.ok(difference(0.85, 1) > 0.1, `viewport ${index}: bottom filter did not paint`);
+      assert.ok(difference(0, 0.15) > 0.1, `viewport ${index}: top fade did not paint`);
+      assert.ok(difference(0.85, 1) > 0.1, `viewport ${index}: bottom fade did not paint`);
       assert.ok(difference(0.4, 0.6) < 0.05, `viewport ${index}: central reading area was blurred`);
       if (index === 0 && process.env.VELA_BLUR_SCREENSHOT) writeFileSync(process.env.VELA_BLUR_SCREENSHOT, blurred.toPNG());
-      await evaluate(`document.querySelectorAll('.thinking-scroll-viewport')[${index}].style.removeProperty('filter')`);
+      await evaluate(`document.querySelectorAll('.thinking-scroll-fade').forEach(e => e.style.removeProperty('visibility'))`);
     }
     assert.deepEqual(errors, []);
-    console.log("PASS main chat and card/compact summary pixels blur both edges while keeping the center sharp; no renderer errors");
+    console.log("PASS main chat and card/compact summary pixels fade both edges while keeping the center untouched; no renderer errors");
     win.destroy();
   } catch (error) {
     console.error(error);

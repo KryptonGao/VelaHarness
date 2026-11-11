@@ -41,7 +41,7 @@
 | 紧凑模式 | `.tool-card-list.is-compact`、`.tool-compact-*`、`.compact-diff-card*`、`.tool-sheet-compact-diff`、执行清单 `.plan-checklist*`、子代理 `.agent-compact*`、`.agent-summary*`、图标配色（`--tool-icon-*` 与 `:root[data-tool-icon-color]` 规则、`.thinking-icon`，见 5.11）。 |
 | 终端与代码表 | `.tool-terminal*`、`.tool-sheet`、`.tool-code-line`、`.tool-diff-line`、`.tool-diff-gap`、`tool-spin` / `tool-pulse` 关键帧。 |
 | 回合收尾 | `.turn-changes*`（本轮文件统计卡）、`.md-content .code-file-ref`。 |
-| 输入框 | `.chat-dock-wrapper`（含顶部渐进模糊）、`.floating-input-card`、`.composer-stats-row`、`.input-textarea`、`.dock-controls-*`、`.model-choice-pill`、`.mode-pill`、`.send-action-blue-btn`、`.composer-action-slot`。 |
+| 输入框 | `.chat-dock-wrapper`（含顶部渐隐）、`.floating-input-card`、`.composer-stats-row`、`.input-textarea`、`.dock-controls-*`、`.model-choice-pill`、`.mode-pill`、`.send-action-blue-btn`、`.composer-action-slot`。 |
 | 动效 | `.message-enter`、`prefers-reduced-motion`、`.md-block`、`.content-swap*`、`.tool-status-swap*`、`tool-card-in`。 |
 
 **没有提取、HTML 里也没有的部分**（需要时回到源码）：
@@ -49,7 +49,7 @@
 - 会话标签条 `ConversationViewTabs`（对话 / 轨迹 / 用量 / 预算 / 版本控制）。
 - 提问卡片 `QuestionCard`、审批条 `ApprovalSlot`、计划预览卡 `PlanPreviewList`、验收卡 `AcceptanceCard`。
 - 思考总结（`thinking-summary-*`，需要总结模型；HTML 只实现默认的「思考」折叠标题）。
-- 内容边缘的 SVG 渐进模糊滤镜 `ThinkingEdgeBlur`：HTML 只保留上下渐隐渐变，没有 `--scroll-edge-filter` 模糊。
+- 内容边缘的滚动驱动渐隐（`ScrollFadeShell` 的 `.thinking-scroll-fade`，由滚动时间轴控制强度）：HTML 只放静态渐变。边缘不做模糊：SVG 滤镜和 backdrop-filter 叠层都试过，前者拖垮 GPU，后者会让同一行半糊半清。
 - 文件类型图标（真实应用用 devicon / material-icon-theme；HTML 用按扩展名着色的 14px 徽标代替）。
 - 点阵加载动画的真实实现（canvas 回放 `dot-motion-loader.json`；HTML 用纯 CSS 近似，见 5.7）。
 - 玻璃侧栏、悬浮环境卡片、对话车道让位（`--chat-lane-shift` / `--chat-lane-shrink`，默认值为 0，不让位）。
@@ -131,10 +131,10 @@ main.main-chat-view[data-tool-display="compact"]      ← container-type: inline
 
 - **车道宽度**：消息与输入框共用 `width: calc(min(100%, var(--chat-lane-max, 760px)) - var(--chat-lane-shrink, 0px))`，并带 `margin-right: calc(var(--chat-lane-shift, 0px) * 2)`。`shift` / `shrink` 默认 0，只在悬浮环境卡片遮挡时由 JS 写入；复刻时可以先去掉这两项。
 - **消息间距**：`.chat-scroll-area` 与 `.chat-message-surface` 都是 `gap: 22px`；一轮之内的 `.assistant-block` 是 `gap: 10px`；`.assistant-live-turn` 是 `gap: 12px`。
-- **滚动区留白**：`padding: 20px 24px var(--composer-clearance)`。`--composer-clearance` 由 JS 用 `ResizeObserver` 量输入框高度后写入（`高度 + 36px`，初值 220px），正文因此可以滑到输入框下方、由顶部渐进模糊接管。
+- **滚动区留白**：`padding: 20px 24px var(--composer-clearance)`。`--composer-clearance` 由 JS 用 `ResizeObserver` 量输入框高度后写入（`高度 + 36px`，初值 220px），正文因此可以滑到输入框下方、由顶部渐隐接管。
 - **窄屏**：`@container chat (max-width: 720px)` 下滚动区与 dock 的左右边距从 24px 降到 16px。
 - **滚动条**：5px 宽；平时颜色是 `transparent`，滚动时加 `.is-scrolling` 变成 `--scrollbar-thumb`，800ms 后淡出。颜色用 `@property --chat-scrollbar-color`（`<color>`、可继承）做过渡，滚动条宽度和拖动命中区始终保留。
-- **dock 渐进模糊**：`.chat-dock-wrapper` 自身不透明（`background: var(--bg-chat)`），`::before` / `::after` 在其上方 52px 叠两层 `backdrop-filter`（3px 与 16px，用 `mask-image` 做渐进），最后一段渐变融进 `--bg-chat`。
+- **dock 渐隐**：`.chat-dock-wrapper` 自身不透明（`background: var(--bg-chat)`），`::before` 在其上方 52px 铺一段从透明到 `--bg-chat` 的渐变。不使用 `backdrop-filter` 模糊。
 - **回到最新**：`.chat-jump-latest` 定位在 `bottom: calc(var(--composer-clearance) - 24px)`；水平位置跟输入框同一条车道，`left: calc(50% - var(--chat-lane-shift, 0px) - var(--chat-scrollbar-width, 0px) / 2)`，悬浮信息卡片让列左移时圆球跟着左移，始终停在输入框正上方的中央。出现/消失用 `opacity` + 6px 位移 + `visibility`，`data-visible="true"` 控制。
 
 ### 4.3 各块规格
@@ -515,7 +515,7 @@ HTML 里用 36 个 `<i>` + CSS 关键帧近似（`.dot-loader`，每个 `i` 的 
 | 点阵加载动画 | canvas 回放 JSON | 纯 CSS 近似 |
 | 文件类型图标 | devicon / material-icon-theme | 按扩展名着色的徽标 |
 | 语法着色 | shiki 分词 | 8 行正则 |
-| 滚动边缘 | 渐隐 + SVG 渐进模糊 | 仅渐隐 |
+| 滚动边缘 | 滚动时间轴驱动强度的渐隐 | 静态渐变 |
 | 折叠记忆 | 仅 `toolProcessDetails` 开启时持久化，按会话存储 | 始终记在内存里，不持久化 |
 | 重绘 | React 协调，只更新变化的节点 | 每步整体重建，靠 `.no-enter` 避免重复入场动画 |
 | Markdown | `react-markdown` 分块、流式增量、文件引用点击 | 约 40 行的极简解析 |

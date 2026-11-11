@@ -3,7 +3,7 @@ import { nextStreamFollow, releasesStreamFollow } from "./chat-scroll";
 import { ScrollFadeShell } from "./ScrollFadeShell";
 
 /**
- * 限高滚动容器：内容超过高度时上下显示渐进模糊，和思考内容展开使用同一套视觉。
+ * 限高滚动容器：内容超过高度时上下渐隐，和思考内容展开使用同一套视觉。
  * 内容保持挂载；Markdown 异步渲染或内容高度变化由 ResizeObserver 重新计算边缘状态。
  */
 export function ScrollFade({
@@ -20,7 +20,7 @@ export function ScrollFade({
   ariaLabel?: string;
   /** 内容在增长时（流式写入）视口跟着滚到底部。 */
   followEnd?: boolean;
-  /** 是否在滚动区域上下显示渐进模糊和渐隐遮罩。 */
+  /** 是否在滚动区域上下显示渐隐遮罩。 */
   fade?: boolean;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
