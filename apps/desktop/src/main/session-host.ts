@@ -3,9 +3,7 @@ import {
   IpcChannel,
   agentControlActions,
   customModelApis,
-  thinkingLevels,
   type AgentControlAction,
-  type AgentSettings,
   type AgentStreamEvent,
   type AppState,
   type AskUserQuestionEvent,
@@ -22,12 +20,11 @@ import {
   isUiPreference,
   isMarketplaceId,
   type ModelAuthEvent,
-  type NewConversationSelection,
   type PlanExecutionContextStrategy,
   type PromptInput,
-  type ThinkingLevel,
 } from "@vela/shared";
 import { BrowserWindow, ipcMain, shell } from "electron";
+import { parseAgentSettings, parseId, parseThinkingLevel } from "./agent-settings";
 import { StateThrottle } from "./state-throttle";
 import { StreamCoalescer } from "./stream-coalescer";
 
@@ -460,12 +457,6 @@ function openLoginUrl(url: string): void {
   }
 }
 
-function parseId(value: unknown, label: string): string {
-  if (typeof value !== "string") throw new Error(`${label}不正确`);
-  const text = value.trim();
-  if (!text || text.length > 200) throw new Error(`${label}不正确`);
-  return text;
-}
 
 function parseConversationId(value: unknown, label: string): string {
   const text = parseId(value, label);
@@ -497,40 +488,8 @@ function parsePlanExecutionStrategy(value: unknown): PlanExecutionContextStrateg
   throw new Error("不支持的计划执行方式");
 }
 
-function parseThinkingLevel(value: unknown): ThinkingLevel {
-  if (typeof value !== "string" || !(thinkingLevels as readonly string[]).includes(value)) {
-    throw new Error("不支持这个思考强度");
-  }
-  return value as ThinkingLevel;
-}
 
-function parseAgentSettings(raw: unknown): AgentSettings {
-  if (!raw || typeof raw !== "object") throw new Error("设置不正确");
-  const record = raw as Record<string, unknown>;
-  const provider = record.provider === null || record.provider === undefined || record.provider === ""
-    ? null
-    : parseId(record.provider, "模型");
-  const modelId = record.modelId === null || record.modelId === undefined || record.modelId === ""
-    ? null
-    : parseId(record.modelId, "模型");
-  if (Boolean(provider) !== Boolean(modelId)) throw new Error("需要同时选择提供方和模型");
-  const instructions = typeof record.instructions === "string" ? record.instructions : "";
-  if (instructions.length > 4000) throw new Error("额外指令过长");
-  return {
-    provider,
-    modelId,
-    thinkingLevel: parseThinkingLevel(record.thinkingLevel),
-    newConversationSelection: parseNewConversationSelection(record.newConversationSelection),
-    instructions,
-  };
-}
 
-function parseNewConversationSelection(value: unknown): NewConversationSelection {
-  // 旧版本没有这个字段,按「设置默认」处理。
-  if (value === undefined || value === null || value === "") return "default";
-  if (value === "default" || value === "lastUsed") return value;
-  throw new Error("新对话的默认选择不正确");
-}
 
 function parseSkillIds(raw: unknown): string[] {
   if (!Array.isArray(raw) || raw.length === 0 || raw.length > 200) throw new Error("请选择要迁移的 Skill");
