@@ -1,5 +1,6 @@
-import type { TraceNode, TraceRequest, TraceSnapshot, TraceSummaryRequest } from "@vela/shared";
+import type { TraceAgentRequest, TraceNode, TraceRequest, TraceSnapshot, TraceSummaryRequest } from "@vela/shared";
 export interface TraceState extends TraceSnapshot {
+  agentRequests: TraceAgentRequest[];
   requestVersions: Record<string, number>;
   resetVersion?: number;
 }
@@ -8,6 +9,7 @@ export const emptyTrace: TraceState = {
   nodes: [],
   requests: [],
   summaries: [],
+  agentRequests: [],
   warning: null,
   requestVersions: {},
 };
@@ -33,13 +35,14 @@ export function mergeTrace(
     nodes: [...nodes.values()].sort((a, b) => a.sequence - b.sequence),
     requests: [...requests.values()].sort((a, b) => a.number - b.number),
     summaries: mergeSummaries(current.summaries, next.summaries),
+    agentRequests: mergeSummaries(current.agentRequests, next.agentRequests ?? []),
     requestVersions,
     resetVersion: current.resetVersion,
     warning: next.version >= current.version ? next.warning : current.warning,
   };
 }
 /** Summary usage records are append-only; incoming copies replace same-id entries. */
-function mergeSummaries(current: TraceSummaryRequest[], next: TraceSummaryRequest[]): TraceSummaryRequest[] {
+function mergeSummaries<T extends TraceSummaryRequest>(current: T[], next: T[]): T[] {
   if (next.length === 0) return current;
   const summaries = new Map(current.map((summary) => [summary.id, summary]));
   for (const summary of next) summaries.set(summary.id, summary);

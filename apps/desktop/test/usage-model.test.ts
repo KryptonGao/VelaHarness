@@ -4,7 +4,7 @@ import type { TraceRequest } from "@vela/shared";
 import {
   formatUsageNumber, formatUsagePercent, summarizeUsage,
   usageCacheHitRate, usageCoverage, usageInputTokens,
-  collectUsageRequests, filterUsageRequests, requestDate, usageCalendar, usageDateKey,
+  collectUsageRequests, filterUsageRequests, latestTaskAgentRequests, requestDate, usageCalendar, usageDateKey,
 } from "../src/renderer/components/usage/usage-model.ts";
 import { emptyTrace, mergeTrace } from "../src/renderer/components/trace/trace-model.ts";
 
@@ -181,5 +181,35 @@ describe("settings usage history", () => {
     assert.equal(stats.days.get(usageDateKey(new Date(firstDay)))?.metered, 0);
     assert.equal(stats.days.get(usageDateKey(new Date(secondDay)))?.metered, 1);
     assert.equal(stats.activeDays, 2);
+  });
+});
+
+describe("subagent requests in usage", () => {
+  const record = (id: string, model: string, completedAt: number | null, total = 100) => ({
+    id, model, startedAt: null, completedAt,
+    usage: { input: total, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: total },
+  });
+
+  it("counts them with the main agent's requests under their own model", () => {
+    const stats = summarizeUsage([record("r1", "a/main", 10), record("c1", "b/cheap", 20, 50)]);
+    assert.equal(stats.totals.requests, 2);
+    assert.deepEqual(stats.models.map(item => item.key).sort(), ["a/main", "b/cheap"]);
+    assert.deepEqual(stats.providers.map(item => item.provider).sort(), ["a", "b"]);
+  });
+
+  it("limits the latest task to subagent requests at or after its first main request", () => {
+    const latest = [record("r1", "a/main", 1000), record("r2", "a/main", 3000)];
+    const agents = [record("old", "b/cheap", 900), record("c1", "b/cheap", 1500), record("c2", "b/cheap", 4000), record("none", "b/cheap", null)];
+    assert.deepEqual(latestTaskAgentRequests(latest, agents).map(item => item.id), ["c1", "c2"]);
+    assert.deepEqual(latestTaskAgentRequests([], agents), []);
+  });
+
+  it("merges live subagent request updates by id and tolerates snapshots without them", () => {
+    const first = { id: "agent-1", agentPath: "/root/a", model: "b/cheap", status: "Completed" as const, startedAt: 1, completedAt: 2, durationMs: null, usage: null };
+    const base = { version: 1, nodes: [], requests: [], summaries: [], warning: null };
+    const merged = mergeTrace(emptyTrace, { ...base, agentRequests: [first] });
+    assert.equal(merged.agentRequests.length, 1);
+    assert.equal(mergeTrace(merged, { ...base, version: 2 }).agentRequests.length, 1);
+    assert.equal(mergeTrace(merged, { ...base, version: 3, agentRequests: [{ ...first, completedAt: 9 }] }).agentRequests[0]?.completedAt, 9);
   });
 });

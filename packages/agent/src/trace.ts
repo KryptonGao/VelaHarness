@@ -20,6 +20,7 @@ import type {
   TraceSnapshot,
   TraceStatus,
   TraceSummaryRequest,
+  TraceAgentRequest,
   TraceUpdate,
   TraceUsage,
 } from "@vela/shared";
@@ -44,6 +45,7 @@ type RecordEntry =
   | { type: "request"; value: StoredRequest }
   | { type: "context"; value: TraceContextSnapshot }
   | { type: "summary"; value: TraceSummaryRequest }
+  | { type: "agentRequest"; value: TraceAgentRequest }
   | { type: "reset"; value: { version: number; turn: number; sequence: number } };
 const clone = <T>(value: T): T =>
   value === undefined ? value : (JSON.parse(JSON.stringify(value)) as T);
@@ -90,10 +92,12 @@ export class TraceRecorder {
   private nodes = new Map<string, StoredNode>();
   private requests = new Map<string, StoredRequest>();
   private summaries = new Map<string, TraceSummaryRequest>();
+  private agentRequests = new Map<string, TraceAgentRequest>();
   private contexts = new Map<string, TraceContextSnapshot>();
   private dirtyNodes = new Set<string>();
   private dirtyRequests = new Set<string>();
   private dirtySummaries = new Set<string>();
+  private dirtyAgentRequests = new Set<string>();
   private dirtyContexts = new Set<string>();
   private timer: ReturnType<typeof setTimeout> | null = null;
   private version = 0;
@@ -138,6 +142,8 @@ export class TraceRecorder {
             this.contexts.set(record.value.id, record.value);
           else if (record.type === "summary")
             this.summaries.set(record.value.id, record.value);
+          else if (record.type === "agentRequest")
+            this.agentRequests.set(record.value.id, record.value);
           else if (record.type === "reset") {
             this.version = record.value.version;
             this.turn = record.value.turn;
@@ -177,6 +183,7 @@ export class TraceRecorder {
         .sort((a, b) => a.sequence - b.sequence),
       requests: [...this.requests.values()].map((s) => clone(s.request)),
       summaries: [...this.summaries.values()].map((s) => clone(s)),
+      agentRequests: [...this.agentRequests.values()].map((s) => clone(s)),
       warning: this.warning,
     };
   }
@@ -211,6 +218,23 @@ export class TraceRecorder {
     const id = `summary-${this.summaries.size + 1}`;
     this.summaries.set(id, { id, ...entry });
     this.dirtySummaries.add(id);
+    this.version++;
+    this.flush();
+  }
+  /** Records a model request made by a subagent so its tokens and cost count toward usage. */
+  recordAgentRequest(agentPath: string, message: AssistantMessage): void {
+    const id = `agent-${this.agentRequests.size + 1}`;
+    this.agentRequests.set(id, {
+      id,
+      agentPath,
+      model: `${message.provider}/${message.model}`,
+      status: message.stopReason === "error" || message.stopReason === "aborted" ? "Failed" : "Completed",
+      startedAt: Number.isFinite(message.timestamp) ? message.timestamp : null,
+      completedAt: Date.now(),
+      durationMs: null,
+      usage: usageOf(message),
+    });
+    this.dirtyAgentRequests.add(id);
     this.version++;
     this.flush();
   }
@@ -281,6 +305,7 @@ export class TraceRecorder {
         nodes: [],
         requests: [],
         summaries: [],
+        agentRequests: [],
         warning: this.warning,
       });
     }
@@ -814,6 +839,7 @@ export class TraceRecorder {
       ...[...this.nodes.values()].map(value => ({ type: "node" as const, value })),
       ...[...this.requests.values()].map(value => ({ type: "request" as const, value })),
       ...[...this.summaries.values()].map(value => ({ type: "summary" as const, value })),
+      ...[...this.agentRequests.values()].map(value => ({ type: "agentRequest" as const, value })),
     ];
     mkdirSync(dirname(this.file), { recursive: true });
     writeFileSync(`${this.file}.tmp`, records.map(record => JSON.stringify(record)).join("\n") + "\n");
@@ -858,7 +884,8 @@ export class TraceRecorder {
       !this.dirtyNodes.size &&
       !this.dirtyRequests.size &&
       !this.dirtyContexts.size &&
-      !this.dirtySummaries.size
+      !this.dirtySummaries.size &&
+      !this.dirtyAgentRequests.size
     )
       return;
     const changed = [...this.dirtyNodes].map((id) => this.nodes.get(id)!);
@@ -868,6 +895,9 @@ export class TraceRecorder {
     const summaries = [...this.dirtySummaries].map(
       (id) => this.summaries.get(id)!,
     );
+    const agentRequests = [...this.dirtyAgentRequests].map(
+      (id) => this.agentRequests.get(id)!,
+    );
     const records: RecordEntry[] = [
       ...[...this.dirtyContexts].map((id) => ({
         type: "context" as const,
@@ -876,11 +906,13 @@ export class TraceRecorder {
       ...changed.map((value) => ({ type: "node" as const, value })),
       ...requests.map((value) => ({ type: "request" as const, value })),
       ...summaries.map((value) => ({ type: "summary" as const, value })),
+      ...agentRequests.map((value) => ({ type: "agentRequest" as const, value })),
     ];
     this.dirtyNodes.clear();
     this.dirtyRequests.clear();
     this.dirtyContexts.clear();
     this.dirtySummaries.clear();
+    this.dirtyAgentRequests.clear();
     try {
       mkdirSync(dirname(this.file), { recursive: true });
       appendFileSync(
@@ -896,6 +928,7 @@ export class TraceRecorder {
       changed.forEach((s) => this.dirtyNodes.add(s.node.id));
       requests.forEach((r) => this.dirtyRequests.add(r.request.id));
       summaries.forEach((s) => this.dirtySummaries.add(s.id));
+      agentRequests.forEach((r) => this.dirtyAgentRequests.add(r.id));
       records.forEach((r) => {
         if (r.type === "context") this.dirtyContexts.add(r.value.id);
       });
@@ -907,6 +940,7 @@ export class TraceRecorder {
       nodes: changed.map((s) => ({ ...s.node })),
       requests: requests.map((r) => clone(r.request)),
       summaries: summaries.map((s) => clone(s)),
+      agentRequests: agentRequests.map((r) => clone(r)),
       warning: this.warning,
     });
   }

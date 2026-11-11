@@ -32,7 +32,10 @@ export function SettingsUsageView({ conversations, providers, models = [] }: {
   const summaryRequests = useMemo(() => invalidRange ? [] : filterUsageRequests(history.summaryRequests, {
     provider, start: filterStart, end: filterEnd,
   }), [history.summaryRequests, provider, filterStart, filterEnd, invalidRange]);
-  const available = useMemo(() => summarizeUsage([...history.requests, ...history.summaryRequests]).providers, [history.requests, history.summaryRequests]);
+  const agentRequests = useMemo(() => invalidRange ? [] : filterUsageRequests(history.agentRequests, {
+    provider, start: filterStart, end: filterEnd,
+  }), [history.agentRequests, provider, filterStart, filterEnd, invalidRange]);
+  const available = useMemo(() => summarizeUsage([...history.requests, ...history.agentRequests, ...history.summaryRequests]).providers, [history.requests, history.agentRequests, history.summaryRequests]);
   const missingDates = history.requests.filter(request => requestDate(request) === null).length;
   const providerNames = new Map(providers.map(item => [item.id, item.name]));
   // 只列出已登录供应商的可用模型；已登记价格但不在其中的模型由编辑器自己补上。
@@ -83,7 +86,7 @@ export function SettingsUsageView({ conversations, providers, models = [] }: {
     {missingDates > 0 && (filterStart || filterEnd) ? <p className="usage-note">
       {trf("{0} 个请求缺少日期，未纳入日期筛选；可在「可用历史」中查看。", "{0} undated requests are excluded from date filters. Select All history to include them.", missingDates)}
     </p> : null}
-    <UsageReport requests={requests} summaries={summaryRequests} providers={providers} loading={history.loading} settings
+    <UsageReport requests={requests} agentRequests={agentRequests} summaries={summaryRequests} providers={providers} loading={history.loading} settings
       start={filterStart} end={filterEnd} />
     <ModelPricingEditor candidates={priceable} />
   </section>;

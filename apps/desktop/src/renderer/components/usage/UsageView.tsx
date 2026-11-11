@@ -1,11 +1,11 @@
 import { useId, useMemo, useState } from "react";
-import { formatCost, hasCost, type CostByCurrency, type ProviderSummary, type TraceRequest, type TraceSummaryRequest } from "@vela/shared";
+import { formatCost, hasCost, type CostByCurrency, type ProviderSummary, type TraceAgentRequest, type TraceRequest, type TraceSummaryRequest } from "@vela/shared";
 import { useTrace } from "../../hooks/useTrace";
 import { useModelPrices } from "../../model-prices";
 import { localizeError, tr, trf, activeIntlLocale, getActiveLocale } from "../../locale";
 import { useSlidingTabIndicator } from "../useSlidingTabIndicator";
 import {
-  formatUsageNumber, formatUsagePercent, latestTaskRequests, summarizeCost, summarizeUsage, usageCacheHitRate,
+  formatUsageNumber, formatUsagePercent, latestTaskAgentRequests, latestTaskRequests, summarizeCost, summarizeUsage, usageCacheHitRate,
   usageCalendar, usageCoverage, usageInputTokens, type CostSummary, type ModelCost, type UsageTotals,
 } from "./usage-model";
 import "./usage.css";
@@ -79,11 +79,13 @@ export function UsageView({ conversationId, providers }: {
   providers: Pick<ProviderSummary, "id" | "name">[];
 }) {
   const { trace, loading, error } = useTrace(conversationId);
-  return <UsageReport requests={trace.requests} summaries={trace.summaries} providers={providers} loading={loading} error={error} warning={trace.warning} />;
+  return <UsageReport requests={trace.requests} agentRequests={trace.agentRequests} summaries={trace.summaries} providers={providers} loading={loading} error={error} warning={trace.warning} />;
 }
 
-export function UsageReport({ requests, summaries = [], providers, loading = false, error = null, warning = null, settings = false, start = "", end = "" }: {
+export function UsageReport({ requests, agentRequests = [], summaries = [], providers, loading = false, error = null, warning = null, settings = false, start = "", end = "" }: {
   requests: TraceRequest[];
+  /** 子代理的请求：与主代理请求一起计入模型、提供方和费用统计。 */
+  agentRequests?: TraceAgentRequest[];
   summaries?: TraceSummaryRequest[];
   providers: Pick<ProviderSummary, "id" | "name">[];
   loading?: boolean;
@@ -93,11 +95,15 @@ export function UsageReport({ requests, summaries = [], providers, loading = fal
   start?: string;
   end?: string;
 }) {
-  const stats = useMemo(() => summarizeUsage(requests), [requests]);
+  const stats = useMemo(() => summarizeUsage([...requests, ...agentRequests]), [requests, agentRequests]);
   const prices = useModelPrices();
   const cost = useMemo(() => summarizeCost(stats.models, prices), [stats.models, prices]);
   // 只有单个对话的视图才有「最近一次任务」；设置页汇总了所有对话，没有这个概念。
-  const taskCost = useMemo(() => settings ? null : summarizeCost(summarizeUsage(latestTaskRequests(requests)).models, prices), [requests, prices, settings]);
+  const taskCost = useMemo(() => {
+    if (settings) return null;
+    const latest = latestTaskRequests(requests);
+    return summarizeCost(summarizeUsage([...latest, ...latestTaskAgentRequests(latest, agentRequests)]).models, prices);
+  }, [requests, agentRequests, prices, settings]);
   const summaryStats = useMemo(() => summarizeUsage(summaries), [summaries]);
   const providerNames = useMemo(() => new Map(providers.map(provider => [provider.id, provider.name])), [providers]);
   const providerName = (id: string) => providerNames.get(id) ?? (id || tr("未知提供方", "Unknown provider"));

@@ -230,6 +230,43 @@ describe("AgentRuntime 费用上限", { timeout: 60_000 }, () => {
     assert.deepEqual([state?.phase, state?.costUsed, state?.uncountedModels], ["ok", 0, 1]);
   });
 
+  it("子代理用了池里的另一个模型时，费用按各自模型的价格计入", async (t) => {
+    const f = await fixture(t);
+    f.runtime.setModelPrices([fixturePrice, { ...fixturePrice, model: "budget-fixture/child-model", input: 300, output: 300 }]);
+    f.runtime.setTaskBudgetSettings(costBudget(100));
+    f.script();
+    await f.runtime.prompt(f.id, "任务");
+    assert.equal(f.runtime.getSnapshot().taskBudget?.costUsed, 1);
+
+    // 子代理会话的消息走 handleAgentPiEvent，按消息自带的 provider/model 记账，而不是父代理的模型。
+    const childReply = (model: string): AssistantMessage => ({
+      role: "assistant", api: "openai-completions", provider: "budget-fixture", model,
+      content: [{ type: "text", text: "完成" }], stopReason: "stop", timestamp: Date.now(),
+      usage: { input: 8000, output: 2000, cacheRead: 0, cacheWrite: 0, totalTokens: 10_000, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } },
+    });
+    const finish = (model: string) => (f.runtime as unknown as { handleAgentPiEvent(id: string, agentId: string, event: unknown): void })
+      .handleAgentPiEvent(f.id, "child-agent", { type: "message_end", message: childReply(model) });
+    const cost = () => f.runtime.getSnapshot().taskBudget;
+
+    finish("child-model");
+    assert.ok(Math.abs((cost()?.costUsed ?? 0) - 4) < 1e-9, `父 ¥1 + 子 ¥3，实际 ${cost()?.costUsed}`);
+    assert.equal(cost()?.uncountedModels, 0);
+
+    finish("fixture-model");
+    assert.ok(Math.abs((cost()?.costUsed ?? 0) - 5) < 1e-9);
+
+    // 池里的模型没登记价格：不计入金额，但要标出「未计入」，界面才会提示实际花费可能更高。
+    finish("unpriced-model");
+    assert.ok(Math.abs((cost()?.costUsed ?? 0) - 5) < 1e-9);
+    assert.equal(cost()?.uncountedModels, 1);
+
+    // 同样的请求也要进用量统计（设置里的「使用统计」页读的就是这份），模型按各自的实际模型记。
+    const usage = await f.runtime.getTraceUsage(f.id);
+    assert.deepEqual((usage.agentRequests ?? []).map(item => item.model),
+      ["budget-fixture/child-model", "budget-fixture/fixture-model", "budget-fixture/unpriced-model"]);
+    assert.equal(usage.agentRequests?.[0]?.usage?.totalTokens, 10_000);
+  });
+
   it("价格改动立即作用于进行中的任务，并随进程重启保留", async (t) => {
     const f = await fixture(t);
     assert.equal(f.runtime.getModelPrices(), null);

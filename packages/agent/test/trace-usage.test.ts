@@ -38,6 +38,18 @@ describe("readTraceUsage", () => {
     assert.equal(result.damaged, false);
   });
 
+  it("reads subagent requests next to turn requests and summaries", async () => {
+    const file = join(dir, "agents.jsonl");
+    writeFileSync(file, [
+      line({ type: "request", value: { request: request(1, 10), blocks: [] } }),
+      line({ type: "agentRequest", value: { id: "agent-1", agentPath: "/root/scan", model: "anthropic/claude-haiku", status: "Completed", startedAt: 5, completedAt: 6, durationMs: null, usage: usage(30) } }),
+      line({ type: "agentRequest", value: { id: "agent-1", agentPath: "/root/scan", model: "anthropic/claude-haiku", status: "Completed", startedAt: 5, completedAt: 6, durationMs: null, usage: usage(31) } }),
+    ].join("\n"));
+    const result = await readTraceUsage(file);
+    assert.equal(result.requests.length, 1);
+    assert.deepEqual(result.agentRequests.map(item => [item.id, item.agentPath, item.usage?.input]), [["agent-1", "/root/scan", 31]]);
+  });
+
   it("matches what a TraceRecorder restores from the same file, including a torn last line", async () => {
     const file = join(dir, "b.jsonl");
     writeFileSync(file, [

@@ -2052,8 +2052,8 @@ export class AgentRuntime {
   async getTraceUsage(conversationId: string): Promise<TraceSnapshot> {
     if (!this.conversations.has(conversationId)) throw new Error("对话不存在或已结束");
     const live = () => {
-      const { version, requests, summaries, warning } = this.getTrace(conversationId);
-      return { version, nodes: [], requests, summaries, warning };
+      const { version, requests, summaries, agentRequests, warning } = this.getTrace(conversationId);
+      return { version, nodes: [], requests, summaries, agentRequests, warning };
     };
     if (this.traces.has(conversationId)) return live();
     const file = this.traces.file(conversationId);
@@ -2070,12 +2070,20 @@ export class AgentRuntime {
     if (this.traces.has(conversationId)) return live();
     const { records } = cached;
     return {
-      version: 0, nodes: [], requests: records.requests, summaries: records.summaries,
+      version: 0, nodes: [], requests: records.requests, summaries: records.summaries, agentRequests: records.agentRequests,
       warning: records.damaged ? "轨迹文件部分记录无法读取；已保留可恢复内容。" : null,
     };
   }
 
   /** Trace bookkeeping must never block a summary; narrow test harnesses may omit the traces. */
+  /** 子代理的每次模型请求也进用量统计；轨迹只记录主代理，所以单独登记。 */
+  private recordAgentUsage(entry: Conversation, agentId: string, message: Extract<AgentMessage, { role: "assistant" }>): void {
+    if (!this.traces) return;
+    const path = entry.control?.list().find(agent => agent.id === agentId)?.path ?? `/root/${agentId}`;
+    try { this.trace(entry.id).recordAgentRequest(path, message); }
+    catch (error) { log.debug("agent usage trace failed", error); }
+  }
+
   private recordSummaryUsage(conversationId: string, summary: Omit<TraceSummaryRequest, "id">): void {
     if (!this.traces) return;
     this.trace(conversationId).recordSummary(summary);
@@ -3448,6 +3456,7 @@ export class AgentRuntime {
         const owner = this.conversations.get(conversationId);
         if (owner) {
           this.recordTaskUsage(owner, message);
+          this.recordAgentUsage(owner, agentId, message);
           this.checkTaskBudget(owner);
         }
         this.settleToolStreams(`${conversationId}:${agentId}`, message, emit);
@@ -3671,7 +3680,7 @@ export class AgentRuntime {
     } catch { return value; }
   }
 
-  private redactTraceForConversation<T extends { requests?: { model: string }[]; summaries?: { model: string }[] }>(conversationId: string, trace: T): T {
+  private redactTraceForConversation<T extends { requests?: { model: string }[]; summaries?: { model: string }[]; agentRequests?: { model: string }[] }>(conversationId: string, trace: T): T {
     const redacted = this.redactMcpForConversation(conversationId, trace);
     return redacted === trace ? trace : preserveTraceModels(redacted, trace);
   }

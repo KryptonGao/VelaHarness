@@ -3,7 +3,7 @@ import { redactSensitive } from "@vela/shared";
 /** Scrub credential-bearing parameters and diagnostics before IPC, approvals and Trace display. */
 export const redactMcpDisplay = redactSensitive;
 
-interface ModelRecords { requests?: { model: string }[]; summaries?: { model: string }[] }
+interface ModelRecords { requests?: { model: string }[]; summaries?: { model: string }[]; agentRequests?: { model: string }[] }
 
 /**
  * 追踪里的模型标识（provider/model）不是密钥，必须原样保留：MCP 密钥恰好是它的子串时
@@ -14,7 +14,8 @@ export function preserveTraceModels<T extends ModelRecords>(redacted: T, origina
     masked && source?.length === masked.length ? masked.map((item, index) => ({ ...item, model: source[index]!.model })) : masked;
   const requests = keep(redacted.requests, original.requests);
   const summaries = keep(redacted.summaries, original.summaries);
-  return { ...redacted, ...(requests ? { requests } : {}), ...(summaries ? { summaries } : {}) };
+  const agentRequests = keep(redacted.agentRequests, original.agentRequests);
+  return { ...redacted, ...(requests ? { requests } : {}), ...(summaries ? { summaries } : {}), ...(agentRequests ? { agentRequests } : {}) };
 }
 const sensitive = /(?:authorization|cookie|password|passwd|secret|token|api[_-]?key|access[_-]?key|credential)/i;
 export function mcpConfiguredSecrets(configs: readonly unknown[]): string[] {

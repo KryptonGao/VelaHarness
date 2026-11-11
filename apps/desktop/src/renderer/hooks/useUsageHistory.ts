@@ -54,9 +54,14 @@ export function useUsageHistory(conversations: ConversationSummary[]) {
     ? Object.entries(history.traces).flatMap(([id, trace]) =>
         trace.summaries.map(summary => ({ ...summary, id: `${id}/${summary.id}` })))
     : [], [history.traces, history.scope, scope]);
+  const agentRequests = useMemo(() => history.scope === scope
+    ? Object.entries(history.traces).flatMap(([id, trace]) =>
+        trace.agentRequests.map(request => ({ ...request, id: `${id}/${request.id}` })))
+    : [], [history.traces, history.scope, scope]);
   return {
     requests,
     summaryRequests,
+    agentRequests,
     loading: history.scope !== scope || history.loading,
     failed: history.scope === scope ? history.failed : 0,
     warnings: history.scope === scope ? Object.values(history.traces).filter(trace => trace.warning).length : 0,

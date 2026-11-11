@@ -180,6 +180,20 @@ export function summarizeCost(models: readonly (UsageTotals & { key: string })[]
 }
 
 /** 一次任务从用户发出消息开始，对应追踪里编号最大的那一轮。 */
+/**
+ * 最近一次任务里子代理的请求：子代理在主代理发出派生请求之后才开始，
+ * 所以取完成时间不早于该任务最早一次主代理请求的那些。没有主代理请求或缺少时间时视为没有。
+ */
+export function latestTaskAgentRequests<T extends UsageRecord>(
+  latest: readonly UsageRecord[],
+  agentRequests: readonly T[],
+): T[] {
+  const times = latest.map(request => request.startedAt ?? request.completedAt).filter((time): time is number => time !== null && Number.isFinite(time));
+  if (times.length === 0) return [];
+  const since = Math.min(...times);
+  return agentRequests.filter(request => request.completedAt !== null && request.completedAt >= since);
+}
+
 export function latestTaskRequests<T extends { turn: number }>(requests: readonly T[]): T[] {
   const turn = requests.reduce((max, request) => Math.max(max, request.turn), 0);
   return turn > 0 ? requests.filter(request => request.turn === turn) : [];

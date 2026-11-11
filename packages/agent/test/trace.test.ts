@@ -566,3 +566,28 @@ it("keeps standalone summary usage across reopen and rewind", () => {
   assert.equal(reopened.snapshot().summaries.length, 1);
   assert.equal(reopened.snapshot().summaries[0]?.usage?.cacheRead, 6400);
 });
+
+it("keeps subagent requests across reopen and rewind, tagged with the agent path", () => {
+  const { r: recorder, file, events } = fixture();
+  recorder.restoreHistory([
+    { type: "message", id: "u1", parentId: null, timestamp: new Date(1000).toISOString(), message: { role: "user", content: "first", timestamp: 1000 } },
+    { type: "message", id: "u2", parentId: "u1", timestamp: new Date(2000).toISOString(), message: { role: "user", content: "second", timestamp: 2000 } },
+  ] as SessionEntry[]);
+  recorder.recordAgentRequest("/root/scan", {
+    role: "assistant", api: "openai-completions", provider: "anthropic", model: "claude-haiku",
+    content: [], stopReason: "stop", timestamp: 1700000001000,
+    usage: { input: 800, output: 100, cacheRead: 50, cacheWrite: 0, totalTokens: 950, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } },
+  } as never);
+  const [request] = recorder.snapshot().agentRequests ?? [];
+  assert.deepEqual([request?.id, request?.agentPath, request?.model, request?.status], ["agent-1", "/root/scan", "anthropic/claude-haiku", "Completed"]);
+  assert.equal(request?.usage?.totalTokens, 950);
+  assert.equal(events.at(-1)?.agentRequests?.length, 1);
+  // 子代理请求不进主代理的轮次，也不混进思考总结。
+  assert.equal(recorder.snapshot().requests.length, 0);
+  assert.equal(recorder.snapshot().summaries.length, 0);
+  recorder.rewindTo(1);
+  assert.equal(recorder.snapshot().agentRequests?.length, 1);
+  const reopened = new TraceRecorder("conv", file, () => {});
+  recorders.push(reopened);
+  assert.equal(reopened.snapshot().agentRequests?.[0]?.usage?.input, 800);
+});

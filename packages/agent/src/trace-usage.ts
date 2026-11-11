@@ -1,18 +1,19 @@
 import { createReadStream } from "node:fs";
-import type { TraceRequest, TraceSummaryRequest } from "@vela/shared";
+import type { TraceAgentRequest, TraceRequest, TraceSummaryRequest } from "@vela/shared";
 
 export interface TraceUsageRecords {
   requests: TraceRequest[];
   summaries: TraceSummaryRequest[];
+  agentRequests: TraceAgentRequest[];
   /** 有无法解析的记录时为 true，调用方据此提示统计可能不完整。 */
   damaged: boolean;
 }
 
-const wanted = [Buffer.from('{"type":"request"'), Buffer.from('{"type":"summary"')];
+const wanted = [Buffer.from('{"type":"request"'), Buffer.from('{"type":"summary"'), Buffer.from('{"type":"agentRequest"')];
 const prefixLength = Math.max(...wanted.map(prefix => prefix.length));
 const matches = (head: Buffer) => wanted.some(prefix => head.subarray(0, prefix.length).equals(prefix));
 
-/** 逐行扫描，只把 request / summary 行解码成字符串；node、context 行（占文件绝大部分）按字节前缀直接跳过。 */
+/** 逐行扫描，只把 request / summary / agentRequest 行解码成字符串；node、context 行（占文件绝大部分）按字节前缀直接跳过。 */
 async function scanLines(file: string, onLine: (line: string) => void): Promise<void> {
   let parts: Buffer[] = [];
   let length = 0;
@@ -60,12 +61,14 @@ function parseRecord(line: string): unknown {
 export async function readTraceUsage(file: string): Promise<TraceUsageRecords> {
   const requests = new Map<string, TraceRequest>();
   const summaries = new Map<string, TraceSummaryRequest>();
+  const agentRequests = new Map<string, TraceAgentRequest>();
   let damaged = false;
   await scanLines(file, line => {
     try {
-      const record = parseRecord(line) as { type: string; value: { request?: TraceRequest } & TraceSummaryRequest };
+      const record = parseRecord(line) as { type: string; value: { request?: TraceRequest } & TraceAgentRequest };
       if (record.type === "request" && record.value.request) requests.set(record.value.request.id, record.value.request);
       else if (record.type === "summary") summaries.set(record.value.id, record.value);
+      else if (record.type === "agentRequest") agentRequests.set(record.value.id, record.value);
     } catch {
       damaged = true;
     }
@@ -73,6 +76,7 @@ export async function readTraceUsage(file: string): Promise<TraceUsageRecords> {
   return {
     requests: [...requests.values()].sort((a, b) => a.number - b.number),
     summaries: [...summaries.values()],
+    agentRequests: [...agentRequests.values()],
     damaged,
   };
 }

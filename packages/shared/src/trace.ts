@@ -52,6 +52,11 @@ export interface TraceSummaryRequest {
   durationMs: number | null;
   usage: TraceUsage | null;
 }
+/** A model request made by a subagent session; counted in usage but not part of the main turn flow. */
+export interface TraceAgentRequest extends TraceSummaryRequest {
+  /** Tree path of the subagent that made the request, such as /root/backend. */
+  agentPath: string;
+}
 export interface TraceNode {
   mcp?: { server: string; tool: string };
   id: string;
@@ -87,6 +92,8 @@ export interface TraceSnapshot {
   nodes: TraceNode[];
   requests: TraceRequest[];
   summaries: TraceSummaryRequest[];
+  /** Subagent requests; absent in snapshots from before subagent usage was recorded. */
+  agentRequests?: TraceAgentRequest[];
   warning: string | null;
 }
 export interface TraceUpdate extends TraceSnapshot {
