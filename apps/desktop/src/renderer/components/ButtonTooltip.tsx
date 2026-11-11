@@ -120,31 +120,40 @@ export function ButtonTooltip() {
   }, []);
 
   // 其余带 title 的元素(文字按钮、被排除区域里的按钮、截断文字等)不让 Chromium 弹原生气泡:悬停期间摘掉 title,离开后写回。
+  // Chromium 取气泡文字时会沿祖先往上找第一个非空 title,所以要摘掉整条祖先链,不能只摘最近的一个;
+  // 指针移动时也重新检查,React 在悬停期间重写 title(流式更新)后同样要再摘掉。
   useEffect(() => {
-    let suppressed: HTMLElement | null = null;
-    let stashed: string | null = null;
-    const restore = () => {
-      if (suppressed && stashed !== null && suppressed.getAttribute("title") === null) suppressed.setAttribute("title", stashed);
-      suppressed = null;
-      stashed = null;
+    const stashed = new Map<HTMLElement, string>();
+    const restore = (keep?: Set<HTMLElement>) => {
+      for (const [element, title] of stashed) {
+        if (keep?.has(element)) continue;
+        if (element.getAttribute("title") === null) element.setAttribute("title", title);
+        stashed.delete(element);
+      }
     };
-    const onPointerOver = (event: PointerEvent) => {
+    const strip = (event: Event) => {
       const target = event.target instanceof Element ? (event.target as HTMLElement) : null;
-      const holder = target?.closest<HTMLElement>("[title]") ?? null;
-      if (holder === suppressed) return;
-      restore();
-      if (!holder) return;
-      // 自定义提示接管的按钮由 ButtonTooltip 自己处理 title。
-      const button = findTooltipButton(target);
-      if (button === holder && tooltipSource(button)) return;
-      suppressed = holder;
-      stashed = holder.getAttribute("title");
-      holder.removeAttribute("title");
+      const chain = new Set<HTMLElement>();
+      for (let node: HTMLElement | null = target; node; node = node.parentElement) {
+        if (node.getAttribute("title") === null && !stashed.has(node)) continue;
+        // 自定义提示接管的按钮由 ButtonTooltip 自己处理 title。
+        if (node === findTooltipButton(target) && tooltipSource(node)) continue;
+        chain.add(node);
+      }
+      restore(chain);
+      for (const node of chain) {
+        const title = node.getAttribute("title");
+        if (title === null) continue;
+        stashed.set(node, title);
+        node.removeAttribute("title");
+      }
     };
-    document.addEventListener("pointerover", onPointerOver);
+    document.addEventListener("pointerover", strip, true);
+    document.addEventListener("pointermove", strip, true);
     return () => {
       restore();
-      document.removeEventListener("pointerover", onPointerOver);
+      document.removeEventListener("pointerover", strip, true);
+      document.removeEventListener("pointermove", strip, true);
     };
   }, []);
 
