@@ -685,7 +685,9 @@ html[data-thinking-fade="false"][data-thinking-pop="false"] .fade-thinking .md-f
 .chat-message-surface > .empty-state { width: min(100%, 460px); }
 
 /* 已结束的旧轮次离屏时跳过样式、布局和绘制,长对话的成本不再随轮数线性增长。
-   `auto` 让浏览器记住渲染过的真实高度,滚动回来时不会因估算值而跳动;当前轮不加这个类。 */
+   `auto` 让浏览器记住渲染过的真实高度,滚动回来时不会因估算值而跳动;当前轮不加这个类。
+   只作用于已完成的轮次:单个很长的轮次(例如数百个工具步骤)享受不到离屏跳过,
+   只能靠 ToolSequence 自身的 memo。基准测试显示这条路径目前没有问题。 */
 .turn-deferred {
   content-visibility: auto;
   contain-intrinsic-size: auto 160px;
