@@ -1,19 +1,20 @@
-# Vela 1.2.30
+# Vela 1.2.31
 
-Vela 1.2.30 adds an optional review layout for version control, a tint opacity setting for translucent window edges, and provider error cards in the chat stream. The skill marketplace now comes from a signed cloud catalog, and large conversations stream more smoothly.
+Vela 1.2.31 lets you choose whether files open in a new tab or replace the current preview, and opens the full-screen viewer from images in the right preview panel. Long conversations and streaming diffs stay smoother, and the composer keeps its usage stats visible whenever they fit.
 
 ## New
 
-- **Version control review layout**: Settings → Interface lets you choose Review, which puts the file list and commit composer in one rail with more room for diffs. Classic remains the default, and your choice is remembered across sessions.
-- **Provider errors as cards**: usage-limit, rate-limit, overloaded, authentication, and context-length errors from Codex, OpenAI, Anthropic, and Google now appear as a card in the chat stream, with the plan and wait time when the provider reports them. The composer no longer repeats them as a red line.
-- **Tint opacity**: Settings → Appearance has a 0–100% slider that sets how strongly the translucent window edges are tinted, with a reset action. It is disabled for the light-mode "None" tint, which has no tint layer.
+- **File opening mode**: Settings → Interface has a File opening choice: New tab or Current tab. Current tab replaces only file previews, and both modes reuse a Files tab that is not yet displaying a file. Tab positions, split panes, and search line jumps are preserved.
+- **Full-screen image viewer from the preview panel**: clicking an image in the right preview panel now opens the full-screen viewer.
 
 ## Improved
 
-- **Signed skill marketplace**: the catalog and skill files now come from a Cloudflare service instead of being hard-coded in the app. The app verifies catalog and manifest signatures and every file's size and SHA-256 before installing, shows install counts, and falls back to a built-in catalog when the service is unreachable.
-- **Smoother large conversations**: large thinking groups and streaming file diffs re-render far less, and diff syntax highlighting is throttled while streaming, so long outputs stay responsive.
-- **Simpler thinking headlines**: thinking activity headlines show short localized operation labels while tool details stay in their rows, and compact and card modes share the same typography and shimmer.
-- **Tidier settings**: theme grids show three rows with edge-blur scrolling, the Done button is removed, and the glass tint copy is now translated for Traditional Chinese, Japanese, and Korean.
+- **Smoother streaming diffs**: syntax highlighting now tokenizes only the lines appended to a streaming diff, in short slices, instead of re-tokenizing the whole diff on every pass. The view no longer blanks or stalls while scrolling during long edits.
+- **Faster long conversations**: completed turns no longer re-render on every streaming frame, so the cost of each update no longer grows with the length of the history.
+- **Composer stats**: the tray measures its real content and keeps speed, token totals, and context usage visible whenever they fit, collapsing them in priority order only when space runs out.
+- **Jump to latest**: the arrow appears on hover and keyboard focus.
+- **Cleaner tool operations**: tool operations no longer end with a trailing failure cross.
+- **Plan markers**: status glyphs stay centered in every plan marker size.
 
 ## Upgrade
 
@@ -27,18 +28,18 @@ The macOS build is not notarized and uses an ad-hoc signature. If macOS blocks f
 
 | File | Platform |
 | --- | --- |
-| `Vela-1.2.30-arm64.dmg` | macOS Apple Silicon installer |
-| `Vela-1.2.30-arm64.zip` | macOS Apple Silicon application bundle (`.app`); also the package used by in-app updates |
+| `Vela-1.2.31-arm64.dmg` | macOS Apple Silicon installer |
+| `Vela-1.2.31-arm64.zip` | macOS Apple Silicon application bundle (`.app`); also the package used by in-app updates |
 | `SHA256SUMS.txt` | SHA-256 checksums for both packages |
 | `SHA256SUMS.txt.sig` | Ed25519 signature of `SHA256SUMS.txt`, verified by the in-app updater |
 
-Package version: `1.2.30`. macOS bundle and download version: `1.2.30`.
+Package version: `1.2.31`. macOS bundle and download version: `1.2.31`.
 
 ## Validation
 
-- Release metadata verified: all package and macOS bundle version fields are `1.2.30`; all five in-app release-note languages contain four highlights and three improvements.
+- Release metadata verified: all package and macOS bundle version fields are `1.2.31`; all five in-app release-note languages contain four highlights and three improvements.
 - Production build and macOS arm64 packaging completed, followed by ad-hoc signing of `Vela.app` and regeneration of the DMG and ZIP from the signed bundle.
-- The app extracted from the ZIP and the app in the mounted DMG passed strict code-signature verification and bundle version / identifier checks. The packaged app contains the final in-app release notes (`1.2.30`).
+- The app extracted from the ZIP and the app in the mounted DMG passed strict code-signature verification and bundle version checks; the bundle identifier is `com.vela.desktop`. The packaged app contains the final in-app release notes (`1.2.31`).
 - The ZIP has a single top-level `Vela.app` and passed archive-integrity verification. The DMG passed checksum verification and mounted successfully.
 - The Ed25519 checksum signature was verified using the application's `verifySignature` and trusted update public keys, and both package SHA-256 checksums match `SHA256SUMS.txt`.
 
