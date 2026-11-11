@@ -746,6 +746,8 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  /* 滚动条占位是常驻的(空闲时只是透明):内容刚好溢出或回落时,居中的正文列不会因滚动条出现/消失而左右跳动。 */
+  scrollbar-gutter: stable;
   /* 自成层叠上下文:卡片内部的定位子元素(如紧凑差异的行文字 z-index: 3)
      不会越过同级、绝对定位的输入框 dock 画到输入框上面。 */
   isolation: isolate;
