@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { modeSystemPrompt, toolNamesFor } from "../src/interaction.ts";
 import type { ToolStep } from "@vela/shared";
-import { exploreCommandAllowed, formatAgentReport, rememberStep } from "../src/subagent.ts";
+import { agentKindPrompt, exploreCommandAllowed, formatAgentReport, rememberStep, subagentModelsPrompt } from "../src/subagent.ts";
 import { activityFromCall, activityFromExecution } from "../src/tool-activity.ts";
 
 const agentTools = ["spawn_agent", "send_message", "followup_task"];
@@ -17,6 +17,19 @@ describe("agent 树工具开关", () => {
     for (const name of agentTools) {
       assert.equal(toolNamesFor("plan", false).includes(name), false);
       assert.equal(toolNamesFor("plan", true).includes(name), false);
+    }
+  });
+
+  it("提示词要求默认自己做，只有大而可拆的工作才派子代理", () => {
+    for (const mode of ["agent", "goal"] as const) {
+      const prompt = modeSystemPrompt(mode, false);
+      assert.match(prompt, /Subagents are expensive/);
+      assert.match(prompt, /Do the work yourself by default/);
+      assert.match(prompt, /at most three in parallel/);
+      assert.match(prompt, /When in doubt, do not spawn/);
+    }
+    for (const kind of ["explore", "general"] as const) {
+      assert.match(agentKindPrompt(kind), /Do not spawn further subagents unless/);
     }
   });
 
@@ -51,6 +64,22 @@ describe("agent 工具活动", () => {
     assert.equal(activity.agentPath, "/root/title");
     assert.match(activity.body ?? "", /改标题/);
     assert.match(activity.body ?? "", /已启动子代理/);
+  });
+
+  it("spawn_agent 选了池里的模型时，活动里带上它；没选或格式不对就没有", () => {
+    const run = (model: unknown) => activityFromExecution(
+      "spawn_agent",
+      { agent: "explore", task: "扫一遍", model: "anthropic/claude-haiku" },
+      {
+        content: [{ type: "text", text: "已启动子代理 /root/scan。" }],
+        details: { agentId: "agent-2", path: "/root/scan", kind: "explore", status: "idle", model },
+      },
+      false,
+    );
+    assert.deepEqual(run({ provider: "anthropic", modelId: "claude-haiku" }).model, { provider: "anthropic", modelId: "claude-haiku" });
+    assert.equal(run(null).model, undefined);
+    assert.equal(run({ provider: "anthropic" }).model, undefined);
+    assert.equal(run("anthropic/claude-haiku").model, undefined);
   });
 
   it("followup_task 结束后保留步骤和改动标记", () => {
@@ -123,5 +152,21 @@ describe("子代理结论", () => {
     for (let index = 0; index < 100; index += 1) rememberStep(steps, { id: `t${index}`, name: "read", summary: "read", status: "done" });
     assert.equal(steps.length, 100);
     assert.equal(steps[0]?.id, "t0");
+  });
+});
+
+describe("子代理模型池提示", () => {
+  it("池为空时不提这回事", () => {
+    assert.equal(subagentModelsPrompt([]), null);
+  });
+
+  it("列出可选模型和特性，并说明默认不选", () => {
+    const prompt = subagentModelsPrompt([
+      { provider: "anthropic", modelId: "claude-haiku", name: "Haiku", reasoning: false, vision: true, contextWindow: 200000 },
+      { provider: "openai", modelId: "gpt-5", name: "GPT-5", reasoning: true },
+    ]) ?? "";
+    assert.match(prompt, /anthropic\/claude-haiku \(Haiku; vision, 200K context\)/);
+    assert.match(prompt, /openai\/gpt-5 \(GPT-5; reasoning\)/);
+    assert.match(prompt, /Omit it to use your own model/);
   });
 });

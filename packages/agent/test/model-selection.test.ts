@@ -27,6 +27,7 @@ describe("new conversation selection settings", () => {
       thinkingLevel: "medium",
       newConversationSelection: "default",
       instructions: "",
+      subagentModels: [],
     });
 
     await directory.saveSettings({
@@ -115,5 +116,58 @@ describe("same-named models from different providers", () => {
     await directory.removeCustom("alpha", "shared-id");
     assert.equal(directory.runtime.getModel("beta", "shared-id")?.provider, "beta");
     assert.equal(directory.displayName(directory.runtime.getModel("beta", "shared-id")!), "Shared Model");
+  });
+});
+
+describe("subagent model pool settings", () => {
+  const base = { provider: null, modelId: null, thinkingLevel: "medium" as const, newConversationSelection: "default" as const, instructions: "" };
+
+  it("persists the pool, dedupes it, and keeps it when a save omits the field", async () => {
+    const dir = await tempDir();
+    const directory = await ModelDirectory.open(dir);
+    const saved = await directory.saveSettings({
+      ...base,
+      subagentModels: [
+        { provider: "anthropic", modelId: "claude-haiku" },
+        { provider: "anthropic", modelId: "claude-haiku" },
+        { provider: "openrouter", modelId: "anthropic/claude-sonnet" },
+      ],
+    });
+    assert.deepEqual(saved.subagentModels, [
+      { provider: "anthropic", modelId: "claude-haiku" },
+      { provider: "openrouter", modelId: "anthropic/claude-sonnet" },
+    ]);
+
+    const raw = JSON.parse(await readFile(join(dir, "selection.json"), "utf8")) as Record<string, unknown>;
+    assert.equal((raw.subagentModels as unknown[]).length, 2);
+
+    // 引导页等不关心模型池的调用方保存时不带这个字段,不能把它清空。
+    await directory.saveSettings({ ...base, instructions: "Be brief" });
+    assert.equal(directory.getSettings().subagentModels?.length, 2);
+
+    const reopened = await ModelDirectory.open(dir);
+    assert.equal(reopened.getSettings().subagentModels?.length, 2);
+
+    await directory.saveSettings({ ...base, subagentModels: [] });
+    const cleared = JSON.parse(await readFile(join(dir, "selection.json"), "utf8")) as Record<string, unknown>;
+    assert.equal("subagentModels" in cleared, false);
+  });
+
+  it("rejects malformed or oversized pools from the UI but tolerates a damaged file", async () => {
+    const dir = await tempDir();
+    const directory = await ModelDirectory.open(dir);
+    await assert.rejects(directory.saveSettings({ ...base, subagentModels: [{ provider: "x", modelId: "" }] }), /格式不正确/);
+    const many = Array.from({ length: 33 }, (_, index) => ({ provider: "p", modelId: `m${index}` }));
+    await assert.rejects(directory.saveSettings({ ...base, subagentModels: many }), /太多/);
+
+    await writeFile(join(dir, "selection.json"), JSON.stringify({ subagentModels: [{ provider: "ok", modelId: "m" }, { provider: 1 }, "x"] }));
+    const reopened = await ModelDirectory.open(dir);
+    assert.deepEqual(reopened.getSettings().subagentModels, [{ provider: "ok", modelId: "m" }]);
+  });
+
+  it("only offers pool models that are still available", async () => {
+    const directory = await ModelDirectory.open(await tempDir());
+    await directory.saveSettings({ ...base, subagentModels: [{ provider: "ghost", modelId: "missing" }] });
+    assert.deepEqual(directory.availableSubagentModels(), []);
   });
 });

@@ -11,7 +11,7 @@ import { tr, trf } from "../locale";
 import { ActivityIndicator } from "./ActivityIndicator";
 import { AgentAvatar } from "./AgentAvatar";
 import {
-  AgentControls, AgentRunStats, AgentStatusMark, agentKindLabel, agentStateText, formatTokenCount, useAgentClock,
+  AgentControls, AgentModelTag, AgentRunStats, AgentStatusMark, agentKindLabel, agentStateText, formatTokenCount, useAgentClock,
 } from "./AgentPanel";
 import { Markdown } from "./Markdown";
 import { AssistantMarkdown } from "./intelligent-ui/AssistantMarkdown";
@@ -179,6 +179,7 @@ function VisibleAgentPane({
           <AgentStatusMark status={agent.status} />
           <AgentBreadcrumb agent={agent} agents={agents} onSwitch={onSwitch} />
           <span className="agent-kind">{agentKindLabel(agent.kind)}</span>
+          <AgentModelTag model={agent.model} />
           <span className={`agent-state is-${agent.status}`}>{agentStateText(agent)}</span>
         </div>
         <div className="agent-pane-actions">
@@ -367,6 +368,7 @@ function AgentRosterMenu({
                 <AgentStatusMark status={item.status} />
                 <span className="agent-roster-menu-path">{item.path}</span>
                 <span className="agent-roster-menu-meta">{agentKindLabel(item.kind)}</span>
+                <AgentModelTag model={item.model} />
               </button>
               <div className="agent-roster-row-detail">
                 <span className={`agent-state is-${item.status}`}>{agentStateText(item)}</span>

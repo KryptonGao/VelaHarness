@@ -1,4 +1,4 @@
-import { parseOutcomeSubmission, parseRecommendedActions, recommendedActionsToolName, type SubagentKind, type ToolActivity, type ToolPlanItem, type ToolStep } from "@vela/shared";
+import { parseOutcomeSubmission, parseRecommendedActions, recommendedActionsToolName, type ModelRef, type SubagentKind, type ToolActivity, type ToolPlanItem, type ToolStep } from "@vela/shared";
 import { followupTaskToolName, sendMessageToolName, spawnAgentToolName } from "./subagent";
 import { presentationFromCall, presentationFromExecution } from "./tool-presentation";
 
@@ -163,6 +163,7 @@ function agentExecutionActivity(
   const agentId = readString(details, "agentId");
   const path = readString(details, "path");
   const agent = readAgent(details) ?? readAgent(args);
+  const model = readModel(details);
   const steps = readSteps(details);
   const mutated = readMutated(details);
   const text = textOf(result);
@@ -173,6 +174,7 @@ function agentExecutionActivity(
     ...(agent ? { agent } : {}),
     ...(agentId ? { agentId } : {}),
     ...(path ? { agentPath: path } : {}),
+    ...(model ? { model } : {}),
     ...(steps ? { steps } : {}),
     ...(mutated ? { mutated } : {}),
     body,
@@ -199,6 +201,14 @@ function readAgent(source: unknown): SubagentKind | undefined {
   if (!source || typeof source !== "object") return undefined;
   const agent = (source as { agent?: unknown }).agent;
   return agent === "explore" || agent === "general" ? agent : undefined;
+}
+
+function readModel(details: unknown): ModelRef | undefined {
+  if (!details || typeof details !== "object") return undefined;
+  const value = (details as { model?: unknown }).model;
+  if (!value || typeof value !== "object") return undefined;
+  const { provider, modelId } = value as { provider?: unknown; modelId?: unknown };
+  return typeof provider === "string" && provider && typeof modelId === "string" && modelId ? { provider, modelId } : undefined;
 }
 
 function readSteps(details: unknown): ToolStep[] | undefined {

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { AgentMessage } from "@earendil-works/pi-agent-core";
 import type { AgentSession, AgentSessionEvent } from "@earendil-works/pi-coding-agent";
-import type { SubagentLimits } from "@vela/shared";
+import type { ModelRef, SubagentLimits } from "@vela/shared";
 import {
   AgentControl,
   maxConcurrentAgents,
@@ -105,9 +105,9 @@ async function waitFor(predicate: () => boolean, label: string): Promise<void> {
   throw new Error(`等待超时: ${label}`);
 }
 
-function createControl(limits?: () => SubagentLimits): { control: AgentControl; host: FakeHost; root: FakeSession } {
+function createControl(limits?: () => SubagentLimits, modelPool?: () => ModelRef[]): { control: AgentControl; host: FakeHost; root: FakeSession } {
   const host = new FakeHost();
-  const control = new AgentControl({ conversationId: "root-id", host, ...(limits ? { limits } : {}) });
+  const control = new AgentControl({ conversationId: "root-id", host, ...(limits ? { limits } : {}), ...(modelPool ? { modelPool } : {}) });
   const root = new FakeSession();
   control.registerRoot(root.asSession());
   return { control, host, root };
@@ -620,5 +620,55 @@ describe("单个子代理的暂停、继续与取消", () => {
     assert.ok(done.activeMs >= 20, `耗时应覆盖运行片段，实际 ${done.activeMs}`);
     assert.equal(done.runningSince, null);
     assert.equal(control.storedAgents().find((item) => item.id === agent.id)?.usage.total, 4070);
+  });
+});
+
+describe("子代理模型池", () => {
+  const pool: ModelRef[] = [
+    { provider: "anthropic", modelId: "claude-haiku" },
+    { provider: "openrouter", modelId: "anthropic/claude-sonnet" },
+  ];
+
+  it("从池里选的模型写进节点并交给宿主建会话", async () => {
+    const { control, host } = createControl(undefined, () => pool);
+    const agent = control.spawn("root-id", { kind: "explore", task: "查一下", name: "scan", model: "anthropic/claude-haiku" });
+    assert.deepEqual(agent.model, pool[0]);
+    await waitFor(() => host.requests.length === 1, "建会话");
+    assert.deepEqual(host.requests[0]?.model, pool[0]);
+    await waitFor(() => control.list().find((item) => item.id === agent.id)?.status === "completed", "完成");
+    assert.deepEqual(control.storedAgents().find((item) => item.id === agent.id)?.model, pool[0]);
+  });
+
+  it("模型 id 里带斜杠也能匹配，唯一的纯 modelId 也行", async () => {
+    const { control } = createControl(undefined, () => pool);
+    assert.deepEqual(control.spawn("root-id", { kind: "explore", task: "a", model: "openrouter/anthropic/claude-sonnet" }).model, pool[1]);
+    assert.deepEqual(control.spawn("root-id", { kind: "explore", task: "b", model: "claude-haiku" }).model, pool[0]);
+  });
+
+  it("没写 model 就沿用父代理，不记录模型", async () => {
+    const { control, host } = createControl(undefined, () => pool);
+    const agent = control.spawn("root-id", { kind: "explore", task: "查", name: "plain" });
+    assert.equal(agent.model, null);
+    await waitFor(() => host.requests.length === 1, "建会话");
+    assert.equal(host.requests[0]?.model, null);
+  });
+
+  it("不在池里、或池为空时报错并列出可选项", () => {
+    const { control } = createControl(undefined, () => pool);
+    assert.throws(
+      () => control.spawn("root-id", { kind: "explore", task: "x", model: "openai/gpt-5" }),
+      /不在允许的子代理模型池里.*anthropic\/claude-haiku/,
+    );
+    const { control: closed } = createControl();
+    assert.throws(() => closed.spawn("root-id", { kind: "explore", task: "x", model: "anthropic/claude-haiku" }), /没有开放子代理模型选择/);
+    assert.equal(closed.list().length, 1);
+  });
+
+  it("每次派生前重新读取池子，设置改动立即生效", () => {
+    let current: ModelRef[] = [];
+    const { control } = createControl(undefined, () => current);
+    assert.throws(() => control.spawn("root-id", { kind: "explore", task: "x", model: "anthropic/claude-haiku" }), /没有开放/);
+    current = pool;
+    assert.deepEqual(control.spawn("root-id", { kind: "explore", task: "x", model: "anthropic/claude-haiku" }).model, pool[0]);
   });
 });

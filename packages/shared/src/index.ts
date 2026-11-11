@@ -462,6 +462,15 @@ export interface SkillMigrationResult {
 /** 新建对话取用设置里的默认模型,还是沿用上一次在对话中使用的模型与思考强度。 */
 export type NewConversationSelection = "default" | "lastUsed";
 
+/** 一个模型的引用：提供方 id + 模型 id。 */
+export interface ModelRef {
+  provider: string;
+  modelId: string;
+}
+
+/** 子代理模型池最多放这么多个模型。 */
+export const maxSubagentModels = 32;
+
 /** 新建对话使用的模型、思考强度和额外指令。不影响已经打开的对话。 */
 export interface AgentSettings {
   provider: string | null;
@@ -469,6 +478,11 @@ export interface AgentSettings {
   thinkingLevel: ThinkingLevel;
   newConversationSelection: NewConversationSelection;
   instructions: string;
+  /**
+   * 允许模型在派生子代理时自行选择的模型池；空表示不开放选择，子代理沿用父代理的模型。
+   * 保存时缺省表示保持原值。
+   */
+  subagentModels?: ModelRef[];
 }
 
 export const customModelApis = [
@@ -911,6 +925,8 @@ export interface AgentInfo {
   runningSince: number | null;
   /** 已请求暂停但当前模型输出还没结束；到下一次工具调用前才会真正停下。 */
   pauseRequested: boolean;
+  /** 派生时从模型池里选定的模型；缺省表示沿用父代理的模型。 */
+  model?: ModelRef | null;
   createdAt: number;
   updatedAt: number;
 }
@@ -953,6 +969,8 @@ export interface ToolActivity {
   /** 常驻子代理的 id 和路径，供界面把卡片关联到 agent 列表。 */
   agentId?: string;
   agentPath?: string;
+  /** spawn_agent 时从模型池选定的模型；没选（沿用父代理）时缺省。 */
+  model?: ModelRef;
   /** task 子代理已经跑过的工具步骤 */
   steps?: ToolStep[];
   /** task 是否可能改动了工作区，供 Git 刷新判断 */

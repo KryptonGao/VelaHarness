@@ -428,6 +428,18 @@
   background: var(--bg-surface-subtle);
   color: var(--text-muted);
 }
+.agent-model {
+  flex: none;
+  max-width: 14em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0 5px;
+  border-radius: 5px;
+  background: var(--bg-surface-subtle);
+  color: var(--text-muted);
+}
+.agent-summary .agent-model, .agent-summary-text .agent-model { display: inline-block; margin-bottom: 4px; }
 .agent-state { flex: none; color: var(--text-muted); }
 .agent-state.is-running { color: var(--tool-accent); }
 .agent-state.is-paused { color: var(--warning); }

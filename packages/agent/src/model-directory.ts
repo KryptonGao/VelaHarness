@@ -16,7 +16,9 @@ import {
   type UsageLimits,
   type UsageLimitWindow,
   type ModelSummary,
+  type ModelRef,
   type NewConversationSelection,
+  maxSubagentModels,
   type ProviderSummary,
   type ThinkingLevel,
 } from "@vela/shared";
@@ -34,6 +36,8 @@ export interface ModelSelection {
   thinkingLevel: ThinkingLevel;
   newConversationSelection: NewConversationSelection;
   instructions: string;
+  /** 允许模型派生子代理时自行选择的模型池。 */
+  subagentModels: ModelRef[];
 }
 
 /** 上一次在对话中使用过的模型与思考强度,供「沿用上次使用」的新对话取用。 */
@@ -105,6 +109,7 @@ export class ModelDirectory {
     thinkingLevel: defaultThinkingLevel,
     newConversationSelection: "default",
     instructions: "",
+    subagentModels: [],
   };
 
   private lastUsed: LastUsedSelection = {
@@ -348,7 +353,18 @@ export class ModelDirectory {
       thinkingLevel: this.selection.thinkingLevel,
       newConversationSelection: this.selection.newConversationSelection,
       instructions: this.selection.instructions,
+      subagentModels: this.selection.subagentModels.map((ref) => ({ ...ref })),
     };
+  }
+
+  /** 模型池里当前仍然可用的模型（按池内顺序）；子代理派生时只能从这里选。 */
+  availableSubagentModels(): Model<Api>[] {
+    const result: Model<Api>[] = [];
+    for (const ref of this.selection.subagentModels) {
+      const model = this.runtime.getModel(ref.provider, ref.modelId);
+      if (model && this.isAvailable(model)) result.push(model);
+    }
+    return result;
   }
 
   /** 写入新建对话的默认值,不改已经打开的会话。 */
@@ -375,7 +391,10 @@ export class ModelDirectory {
       thinkingLevel = clampLevel(model, input.thinkingLevel);
     }
 
-    this.selection = { provider, modelId, thinkingLevel, newConversationSelection, instructions };
+    const subagentModels = input.subagentModels === undefined
+      ? this.selection.subagentModels
+      : normalizeModelRefs(input.subagentModels, true);
+    this.selection = { provider, modelId, thinkingLevel, newConversationSelection, instructions, subagentModels };
     await this.writeSelection();
     return this.getSettings();
   }
@@ -567,7 +586,11 @@ export class ModelDirectory {
           ? record.newConversationSelection
           : "default";
       return {
-        selection: { provider, modelId, thinkingLevel, newConversationSelection, instructions: readInstructions(record.instructions) },
+        selection: {
+          provider, modelId, thinkingLevel, newConversationSelection,
+          instructions: readInstructions(record.instructions),
+          subagentModels: normalizeModelRefs(record.subagentModels, false),
+        },
         lastUsed: readLastUsed(record.lastUsed),
       };
     } catch {
@@ -581,6 +604,7 @@ export class ModelDirectory {
       newConversationSelection: this.selection.newConversationSelection,
       instructions: this.selection.instructions,
     };
+    if (this.selection.subagentModels.length > 0) body.subagentModels = this.selection.subagentModels;
     if (this.selection.provider && this.selection.modelId) {
       body.provider = this.selection.provider;
       body.modelId = this.selection.modelId;
@@ -681,6 +705,34 @@ function readLastUsed(value: unknown): LastUsedSelection {
     ? record.thinkingLevel
     : defaultThinkingLevel;
   return { provider, modelId, thinkingLevel };
+}
+
+/** 读取模型池：去重、丢弃格式不对的项。strict 时（来自界面的保存）格式不对或超过上限直接报错。 */
+function normalizeModelRefs(value: unknown, strict: boolean): ModelRef[] {
+  if (!Array.isArray(value)) {
+    if (strict) throw new Error("子代理模型池格式不正确");
+    return [];
+  }
+  const seen = new Set<string>();
+  const result: ModelRef[] = [];
+  for (const item of value) {
+    const record = item && typeof item === "object" ? item as Record<string, unknown> : null;
+    const provider = typeof record?.provider === "string" ? record.provider : "";
+    const modelId = typeof record?.modelId === "string" ? record.modelId : "";
+    if (!provider || !modelId) {
+      if (strict) throw new Error("子代理模型池格式不正确");
+      continue;
+    }
+    const key = modelKey({ provider, id: modelId });
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push({ provider, modelId });
+  }
+  if (result.length > maxSubagentModels) {
+    if (strict) throw new Error("子代理模型池里的模型太多");
+    return result.slice(0, maxSubagentModels);
+  }
+  return result;
 }
 
 function readInstructions(value: unknown): string {

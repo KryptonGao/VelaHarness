@@ -18,10 +18,12 @@ const agents: AgentInfo[] = ["research", "frontend", "tests"].map((name, index) 
   mutated: false, finalText: "使用固定种子，同一代理在不同位置保持同一个头像。", error: null,
   usage: { input: 2000, output: 1000, cacheRead: 0, cacheWrite: 0, total: 3000 },
   activeMs: 42000, runningSince: null, pauseRequested: false, createdAt: index, updatedAt: index,
+  // 只有派生时从模型池选了模型的子代理才带 model；第一个沿用主代理的模型。
+  ...(index === 1 ? { model: { provider: "anthropic", modelId: "claude-haiku" } } : index === 2 ? { model: { provider: "openrouter", modelId: "anthropic/claude-sonnet-4.5-20250929" } } : {}),
 }));
 const tools: ToolTrace[] = agents.map(agent => ({
   id: `spawn-${agent.id}`, name: "spawn_agent", status: "done",
-  activity: { agentId: agent.id, agentPath: agent.path, agent: agent.kind === "explore" ? "explore" : "general", body: agent.task },
+  activity: { agentId: agent.id, agentPath: agent.path, agent: agent.kind === "explore" ? "explore" : "general", body: agent.task, ...(agent.model ? { model: agent.model } : {}) },
 }));
 
 function Preview() {

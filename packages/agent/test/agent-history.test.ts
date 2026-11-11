@@ -18,6 +18,19 @@ function agent(overrides: Partial<StoredAgent> = {}): StoredAgent {
     pauseRequested: false, ...overrides };
 }
 
+describe("子代理模型的持久化", () => {
+  it("保留派生时选的模型，丢弃格式不对的", () => {
+    const [kept, bad, none] = normalizeStoredAgents([
+      agent({ id: "a", path: "/root/a", model: { provider: "anthropic", modelId: "claude-haiku" } }),
+      { ...agent({ id: "b", path: "/root/b" }), model: { provider: "anthropic" } },
+      agent({ id: "c", path: "/root/c" }),
+    ]);
+    assert.deepEqual(kept?.model, { provider: "anthropic", modelId: "claude-haiku" });
+    assert.equal(bad?.model, null);
+    assert.equal(none?.model, null);
+  });
+});
+
 describe("SDK assistant 来源事件", () => {
   for (const scope of ["main", "child"] as const) {
     it(`${scope}: 更新补齐实际模型，重复 token 不额外发送来源事件`, () => {

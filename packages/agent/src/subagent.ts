@@ -11,12 +11,12 @@ export { agentToolNames };
 
 const explorePrompt = `You are a read-only investigation subagent. You may only read files and run inspection commands; you must not modify files.
 The user message is the task to investigate. When done, reply with a concise conclusion: what you found, the relevant file paths, and the key facts. Do not paste whole files.
-You can use spawn_agent to hand parts of the investigation to further read-only subagents; use send_message / followup_task to communicate with other agents in the agent tree.
+Do the investigation yourself with your own tools. Do not spawn further subagents unless the work is large and clearly separable into independent parts; each subagent adds cost, so never spawn one for a few reads or searches or to double-check something. Use send_message / followup_task to communicate with other agents in the agent tree.
 You cannot see the parent conversation, and you must not ask the user questions.`;
 
 const generalPrompt = `You are an execution subagent. You can read, edit, and run commands, with the same permissions as the current session.
 The user message is the task to complete. When done, reply with a concise conclusion: what you did, which files you changed, and what remains unfinished.
-You can use spawn_agent to hand work to further subagents, and send_message / followup_task to communicate with other agents in the agent tree.
+Do the work yourself with your own tools. Do not spawn further subagents unless the work is large and clearly separable into independent parts; each subagent adds cost, so never spawn one for a few edits or reads or to double-check something. Use send_message / followup_task to communicate with other agents in the agent tree.
 You cannot see the parent conversation, and you must not ask the user questions.`;
 
 export function agentKindPrompt(kind: SubagentKind): string {
@@ -128,4 +128,30 @@ function readString(source: unknown, key: string): string | undefined {
   if (!source || typeof source !== "object") return undefined;
   const value = (source as Record<string, unknown>)[key];
   return typeof value === "string" && value.trim() ? value : undefined;
+}
+
+export interface SubagentModelOption {
+  provider: string;
+  modelId: string;
+  name: string;
+  reasoning?: boolean;
+  vision?: boolean;
+  contextWindow?: number;
+}
+
+/** 告诉模型派生子代理时可以选哪些模型；池为空时返回 null，不提这回事。 */
+export function subagentModelsPrompt(options: readonly SubagentModelOption[]): string | null {
+  if (options.length === 0) return null;
+  const lines = options.map((option) => {
+    const traits = [
+      option.reasoning ? "reasoning" : null,
+      option.vision ? "vision" : null,
+      option.contextWindow ? `${Math.round(option.contextWindow / 1000)}K context` : null,
+    ].filter(Boolean).join(", ");
+    return `- ${option.provider}/${option.modelId} (${option.name}${traits ? `; ${traits}` : ""})`;
+  });
+  return [
+    "Allowed subagent models. spawn_agent takes an optional model argument (provider/modelId); you may only choose from this list, which the user set up. Omit it to use your own model, which is the right default. Choose a different one only when it clearly fits: a cheaper or faster model for simple, mechanical or read-only work, a stronger one for hard reasoning or risky edits.",
+    ...lines,
+  ].join("\n");
 }

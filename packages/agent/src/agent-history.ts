@@ -1,9 +1,15 @@
 import type { AgentMessage } from "@earendil-works/pi-agent-core";
-import { agentStatuses, emptyAgentUsage, type AgentInfo, type AgentUsage, type TranscriptMessage } from "@vela/shared";
+import { agentStatuses, emptyAgentUsage, type AgentInfo, type AgentUsage, type ModelRef, type TranscriptMessage } from "@vela/shared";
 
 /** 子代理索引；完整消息保存在独立的 Pi JSONL 会话里。 */
 export interface StoredAgent extends AgentInfo {
   sessionFile: string | null;
+}
+
+function modelRef(value: unknown): ModelRef | null {
+  const record = object(value);
+  if (!record || typeof record.provider !== "string" || typeof record.modelId !== "string") return null;
+  return record.provider && record.modelId ? { provider: record.provider, modelId: record.modelId } : null;
 }
 
 export function normalizeStoredAgents(value: unknown): StoredAgent[] {
@@ -44,6 +50,7 @@ export function normalizeStoredAgents(value: unknown): StoredAgent[] {
       // 进程退出时的运行片段不再续计。
       runningSince: null,
       pauseRequested: false,
+      model: modelRef(record.model),
       createdAt: finiteNumber(record.createdAt),
       updatedAt: finiteNumber(record.updatedAt),
       sessionFile: typeof record.sessionFile === "string" ? record.sessionFile : null,

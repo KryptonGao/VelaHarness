@@ -189,6 +189,8 @@ import {
   createAgentPauseExtension,
   createExploreGuardExtension,
   spawnAgentToolName,
+  subagentModelsPrompt,
+  type SubagentModelOption,
 } from "./subagent";
 import { createLogger } from "@vela/shared";
 
@@ -3045,6 +3047,10 @@ export class AgentRuntime {
             const current = event.systemPromptOptions.appendSystemPrompt.trim();
             event.systemPromptOptions.appendSystemPrompt = current ? `${current}\n\n${ultraInstructions}` : ultraInstructions;
           }); }) as ExtensionFactory,
+        }, {
+          name: "vela-subagent-models",
+          hidden: true,
+          factory: this.subagentModelsExtension(),
         }, ...(this.options.scheduledTasks ? [{ name: "vela-scheduled-tasks-clock", hidden: true,
           factory: ((pi) => { pi.on("before_agent_start", event => {
             event.systemPromptOptions.appendSystemPrompt += `\n\nTask time context: ${new Date().toISOString()}; local time zone: ${Intl.DateTimeFormat().resolvedOptions().timeZone}`;
@@ -3067,6 +3073,7 @@ export class AgentRuntime {
           const budget = this.effectiveTaskBudget(entry);
           return { maxSubagents: budget.subagentsEnabled ? budget.maxSubagents : 0, allowNested: budget.allowNestedSubagents };
         },
+        modelPool: () => this.subagentModelOptions().map(({ provider, modelId }) => ({ provider, modelId })),
         host: {
           createChildSession: (input) => this.createChildSession(entry, input),
           disposeChildSession: (session) => this.closeSession(session),
@@ -3904,14 +3911,42 @@ export class AgentRuntime {
    * 为 agent 树创建子会话：独立 Pi 会话、独立上下文，继承父会话的模型、思考强度、
    * 沙箱工具和指令；explore 追加只读守卫并只保留只读工具。
    */
+  /** 模型池里当前可用的模型，附带提示用的名称与特性；每次现读，设置改动立即生效。 */
+  private subagentModelOptions(): SubagentModelOption[] {
+    return (this.directory?.availableSubagentModels() ?? []).map((model) => ({
+      provider: model.provider,
+      modelId: model.id,
+      name: model.name,
+      reasoning: model.reasoning,
+      vision: model.input.includes("image"),
+      contextWindow: model.contextWindow,
+    }));
+  }
+
+  /** 每轮把允许的子代理模型列给模型看；池为空时什么都不加。 */
+  private subagentModelsExtension(): ExtensionFactory {
+    return ((pi) => { pi.on("before_agent_start", event => {
+      const extra = subagentModelsPrompt(this.subagentModelOptions());
+      if (!extra) return;
+      const current = event.systemPromptOptions.appendSystemPrompt.trim();
+      event.systemPromptOptions.appendSystemPrompt = current ? `${current}\n\n${extra}` : extra;
+    }); }) as ExtensionFactory;
+  }
+
   private async createChildSession(entry: Conversation, input: AgentSessionRequest): Promise<AgentSession> {
     if (entry.budget?.exhausted) throw new Error("任务用量已到上限，不能再创建子代理。");
     const directory = await this.readyDirectory();
     const parentSession = input.parentSession;
-    const model = parentSession.model;
-    if (!model || !directory.isAvailable(model)) {
+    const parentModel = parentSession.model;
+    if (!parentModel || !directory.isAvailable(parentModel)) {
       throw new Error("先选择一个已登录或已配置密钥的模型");
     }
+    // 子代理用派生时选的模型；它已不在模型池里或不可用了（比如用户后来改了设置）就退回父代理的模型。
+    const chosen = input.model
+      ? directory.availableSubagentModels().find((item) => item.provider === input.model!.provider && item.id === input.model!.modelId)
+      : undefined;
+    const model = chosen ?? parentModel;
+    const childThinking = chosen ? modelThinkingLevel(chosen, parentSession.thinkingLevel) : parentSession.thinkingLevel;
     const cwd = entry.snapshot.cwd;
     const childNativeTools = () => this.tools.child(input.kind);
     const settingsManager = SettingsManager.inMemory({ defaultTools: childNativeTools() });
@@ -3930,6 +3965,7 @@ export class AgentRuntime {
       extensionFactories: [
         ...(input.kind === "explore" ? [{ name: "vela-explore", hidden: true, factory: createExploreGuardExtension() }] : []),
         { name: "vela-task-budget", hidden: true, factory: createTaskBudgetExtension(() => entry.budget?.exhausted === true) },
+        { name: "vela-subagent-models", hidden: true, factory: this.subagentModelsExtension() },
         ...(input.beforeToolCall ? [{ name: "vela-agent-pause", hidden: true, factory: createAgentPauseExtension(input.beforeToolCall) }] : []),
         { name: "vela-hooks", hidden: true, factory: this.hooksExtension(entry, input.agentId, input.kind) },
         { name: "vela-memory", hidden: true, factory: this.memoryExtension(entry, input.agentId) },
@@ -3967,7 +4003,7 @@ export class AgentRuntime {
       cwd,
       agentDir: this.options.agentDir,
       model,
-      thinkingLevel: parentSession.thinkingLevel,
+      thinkingLevel: childThinking,
       modelRuntime: directory.runtime,
       sessionManager,
       settingsManager,

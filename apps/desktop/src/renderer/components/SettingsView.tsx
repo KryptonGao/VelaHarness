@@ -23,6 +23,7 @@ import { DevelopmentPage } from "./settings/DevelopmentPage";
 import { InterfacePage } from "./settings/InterfacePage";
 import { LogsPage } from "./settings/LogsPage";
 import { StoragePage } from "./settings/StoragePage";
+import { SubagentModelsPage } from "./settings/SubagentModelsPage";
 import { ModelsPage } from "./settings/ModelsPage";
 import { SettingsNav } from "./settings/SettingsNav";
 import { ShortcutsPage } from "./settings/ShortcutsPage";
@@ -160,6 +161,9 @@ export function SettingsView({
           {page === "updates" ? <UpdatesPage copy={copy} locale={locale} onReplayIntro={onReplayIntro} onRestartOnboarding={onRestartOnboarding} /> : null}
           <div hidden={page !== "defaults"}>
             <AgentDefaultsPage copy={copy} catalog={models.catalog} project={project} />
+          </div>
+          <div hidden={page !== "subagents"}>
+            <SubagentModelsPage copy={copy} catalog={models.catalog} hiddenModels={preferences.hiddenModels} />
           </div>
           <div hidden={page !== "display"}>
             <ConversationDisplayPage copy={copy} preferences={preferences} catalog={models.catalog} />

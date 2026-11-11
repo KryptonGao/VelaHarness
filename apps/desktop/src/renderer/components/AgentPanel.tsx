@@ -1,4 +1,4 @@
-import { agentElapsedMs, isAgentBusy, type AgentControlAction, type AgentInfo, type SubagentKind } from "@vela/shared";
+import { agentElapsedMs, isAgentBusy, type AgentControlAction, type AgentInfo, type ModelRef, type SubagentKind } from "@vela/shared";
 import { createContext, useContext, useMemo, type ReactNode } from "react";
 import { useSecondClock } from "../hooks/useSecondClock";
 import { ActivityIndicator } from "./ActivityIndicator";
@@ -175,6 +175,16 @@ export function agentKindLabel(kind: AgentInfo["kind"] | SubagentKind | undefine
   if (kind === "general") return tr("执行", "General");
   if (kind === "root") return tr("主代理", "Root");
   return tr("子代理", "Subagent");
+}
+
+/** 派生时从模型池选了模型的子代理才显示;没选的沿用主代理的模型,不加标签。 */
+export function AgentModelTag({ model }: { model: ModelRef | null | undefined }) {
+  if (!model) return null;
+  return (
+    <span className="agent-model" title={`${tr("模型", "Model")}: ${model.provider}/${model.modelId}`}>
+      {model.modelId}
+    </span>
+  );
 }
 
 /** 单条 agent 的状态标记：运行中转圈，其余用小圆点。 */
