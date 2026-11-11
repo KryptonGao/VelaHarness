@@ -5,7 +5,7 @@ import { tr, trf } from "../locale";
 import { AgentAvatar } from "./AgentAvatar";
 import { agentKindLabel, findAgentInfo, useAgentRoster } from "./AgentPanel";
 import { FileTypeIcon } from "./FileTypeIcon";
-import { ArrowRightIcon, EditFileIcon, FilePlusIcon, FolderIcon, GlobeIcon, McpIcon, ReadFileIcon, SearchIcon, SkillIcon, TerminalIcon, ToolIcon, WebFetchIcon, WebSearchIcon } from "./icons";
+import { ArrowRightIcon, EditFileIcon, FilePlusIcon, FolderIcon, GlobeIcon, McpIcon, ReadFileIcon, SearchIcon, SkillReadIcon, TerminalIcon, ToolIcon, WebFetchIcon, WebSearchIcon } from "./icons";
 import { bashIntentDisplay } from "./bash-intent-label";
 import { summarizeBrowserCode, type BrowserStep } from "./browser-call";
 import { isSkillRead, skillNameOf, splitPath } from "./tool-compact";
@@ -21,7 +21,7 @@ export function toolKind(name: string): ToolKind {
 }
 
 export function KindIcon({ kind, command, skill = false }: { kind: ToolKind; command?: string; skill?: boolean }): ReactNode {
-  if (skill) return <SkillIcon size={13} />;
+  if (skill) return <SkillReadIcon size={13} />;
   if (kind === "other") return <ToolIcon size={13} />;
   if (kind === "bash") {
     const intent = bashIntentDisplay(command)?.kind;

@@ -587,6 +587,16 @@ export function SkillIcon({ size = 14 }: IconProps) {
   );
 }
 
+/** 读取技能：书签里一颗火花——存下来的知识 + 被唤起的能力。和技能入口的 SkillIcon（层叠）区分开。 */
+export function SkillReadIcon({ size = 13 }: IconProps) {
+  return (
+    <svg {...base(size)}>
+      <path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4.5L5 21V4a1 1 0 0 1 1-1Z" />
+      <path d="M12 6.5l1.1 2.7 2.7 1.1-2.7 1.1L12 14.1l-1.1-2.7-2.7-1.1 2.7-1.1Z" />
+    </svg>
+  );
+}
+
 /** 斜线命令图标：终端提示符 `>_`。 */
 export function CommandIcon({ size = 14 }: IconProps) {
   return (
