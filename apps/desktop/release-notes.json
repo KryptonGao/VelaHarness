@@ -1,89 +1,144 @@
 {
-  "version": "1.2.32",
+  "version": "1.2.33",
   "locales": {
     "en": {
-      "summary": "Vela 1.2.32 lets final replies embed local images and removes the lag when several command outputs are expanded.",
+      "summary": "Vela 1.2.33 adds command lifecycle Hooks, a sharper compact diff view, and a shortcut to restore the default window size.",
       "highlights": [
         {
-          "title": "Local images in replies",
-          "body": "Replies can embed workspace, absolute, and file:// images with ![alt](path), with clear loading and missing states."
+          "title": "Command lifecycle Hooks",
+          "body": "Run your own commands on PreToolUse, PostToolUse, Stop, SessionStart, and PreCommit, configured globally or per project in the new Hooks settings page."
         },
         {
-          "title": "No more lag expanding commands",
-          "body": "Scroll edges and composer docks now fade to the background instead of blurring, so opening several command outputs stays smooth."
+          "title": "Sharper compact diffs",
+          "body": "Changed words are highlighted inside edited lines, long lines stay on one row with horizontal scrolling, and the file name reveals the file in Finder."
+        },
+        {
+          "title": "Restore default window size",
+          "body": "Press Cmd+Option+0 or use the Window menu to return to 1280 x 840, even from full screen or maximized."
+        },
+        {
+          "title": "Elastic scrolling (experimental)",
+          "body": "An optional setting, off by default, lets inner scroll areas rubber-band past their edges."
         }
       ],
       "improvements": [
-        "Skill-read rows now have their own bookmark-spark icon.",
-        "Rows no longer look half sharp and half blurred near scroll edges."
+        "Syntax highlighting uses one shared palette across all themes and colors only function names.",
+        "Bold text and inline code in replies are lighter.",
+        "The chat column no longer shifts sideways when a group opens or closes.",
+        "The top edge fade stays visible while a thinking group collapses.",
+        "Native tooltips no longer appear over hovered controls."
       ]
     },
     "zh-CN": {
-      "summary": "Vela 1.2.32 支持在最终回复中嵌入本地图片，并消除了同时展开多个命令输出时的卡顿。",
+      "summary": "Vela 1.2.33 新增命令生命周期 Hooks、更清晰的紧凑 Diff 视图，以及恢复默认窗口大小的快捷键。",
       "highlights": [
         {
-          "title": "回复中的本地图片",
-          "body": "回复可通过 ![alt](path) 嵌入工作区相对路径、绝对路径和 file:// 图片，并提供清晰的加载中与缺失状态。"
+          "title": "命令生命周期 Hooks",
+          "body": "可在 PreToolUse、PostToolUse、Stop、SessionStart 和 PreCommit 时运行自己的命令，在新的 Hooks 设置页中按全局或项目配置。"
         },
         {
-          "title": "展开命令不再卡顿",
-          "body": "滚动边缘和输入框停靠区现在以渐隐过渡到背景，不再使用模糊，同时展开多个命令输出也保持流畅。"
+          "title": "更清晰的紧凑 Diff",
+          "body": "被修改的行内会高亮变更的词，长行保持单行并可横向滚动，点击文件名即可在 Finder 中显示该文件。"
+        },
+        {
+          "title": "恢复默认窗口大小",
+          "body": "按 Cmd+Option+0 或使用“窗口”菜单即可回到 1280 x 840，全屏或最大化时同样有效。"
+        },
+        {
+          "title": "弹性滚动（实验性）",
+          "body": "新增默认关闭的可选设置，让内部滚动区域在到达边缘后产生橡皮筋回弹效果。"
         }
       ],
       "improvements": [
-        "读取技能的行现在使用专属的书签星光图标。",
-        "滚动边缘附近的行不再出现一半清晰一半模糊的情况。"
+        "所有主题共用同一套语法高亮配色，且只为函数名着色。",
+        "回复中的粗体和行内代码更轻。",
+        "展开或收起分组时，聊天栏不再向侧边偏移。",
+        "思考分组收起过程中，顶部边缘渐隐保持可见。",
+        "悬停控件时不再出现系统原生提示。"
       ]
     },
     "zh-TW": {
-      "summary": "Vela 1.2.32 支援在最終回覆中嵌入本機圖片，並消除了同時展開多個命令輸出時的卡頓。",
+      "summary": "Vela 1.2.33 新增命令生命週期 Hooks、更清晰的精簡 Diff 檢視，以及還原預設視窗大小的快速鍵。",
       "highlights": [
         {
-          "title": "回覆中的本機圖片",
-          "body": "回覆可透過 ![alt](path) 嵌入工作區相對路徑、絕對路徑和 file:// 圖片，並提供清楚的載入中與遺失狀態。"
+          "title": "命令生命週期 Hooks",
+          "body": "可在 PreToolUse、PostToolUse、Stop、SessionStart 和 PreCommit 時執行自己的命令，並在新的 Hooks 設定頁中依全域或專案設定。"
         },
         {
-          "title": "展開命令不再卡頓",
-          "body": "捲動邊緣和輸入框停靠區現在以漸隱過渡到背景，不再使用模糊，同時展開多個命令輸出也保持流暢。"
+          "title": "更清晰的精簡 Diff",
+          "body": "被修改的行內會醒目標示變更的詞，長行保持單行並可橫向捲動，點擊檔名即可在 Finder 中顯示該檔案。"
+        },
+        {
+          "title": "還原預設視窗大小",
+          "body": "按 Cmd+Option+0 或使用「視窗」選單即可回到 1280 x 840，全螢幕或最大化時同樣有效。"
+        },
+        {
+          "title": "彈性捲動（實驗性）",
+          "body": "新增預設關閉的選用設定，讓內部捲動區域到達邊緣後產生橡皮筋回彈效果。"
         }
       ],
       "improvements": [
-        "讀取技能的列現在使用專屬的書籤星光圖示。",
-        "捲動邊緣附近的列不再出現一半清晰一半模糊的情況。"
+        "所有主題共用同一套語法醒目標示配色，且只為函式名稱上色。",
+        "回覆中的粗體和行內程式碼更輕。",
+        "展開或收合群組時，聊天欄不再向側邊偏移。",
+        "思考群組收合過程中，頂部邊緣漸隱保持可見。",
+        "游標停留在控制項上時不再出現系統原生提示。"
       ]
     },
     "ja": {
-      "summary": "Vela 1.2.32 では、最終返信にローカル画像を埋め込めるようになり、複数のコマンド出力を展開したときの遅延も解消しました。",
+      "summary": "Vela 1.2.33 では、コマンドのライフサイクル Hooks、見やすくなったコンパクト Diff、既定のウィンドウサイズに戻すショートカットを追加しました。",
       "highlights": [
         {
-          "title": "返信内のローカル画像",
-          "body": "返信では ![alt](path) でワークスペース相対パス、絶対パス、file:// の画像を埋め込め、読み込み中と見つからない場合の状態も表示されます。"
+          "title": "コマンドライフサイクル Hooks",
+          "body": "PreToolUse、PostToolUse、Stop、SessionStart、PreCommit のタイミングで独自のコマンドを実行でき、新しい Hooks 設定ページでグローバルまたはプロジェクトごとに設定できます。"
         },
         {
-          "title": "コマンド展開の遅延を解消",
-          "body": "スクロール端と入力欄のドックはぼかしではなく背景へのフェードになり、複数のコマンド出力を開いても滑らかです。"
+          "title": "見やすいコンパクト Diff",
+          "body": "変更された行内の語がハイライトされ、長い行は 1 行のまま横スクロールでき、ファイル名から Finder で表示できます。"
+        },
+        {
+          "title": "既定のウィンドウサイズに戻す",
+          "body": "Cmd+Option+0 または「ウインドウ」メニューで、全画面や最大化からでも 1280 x 840 に戻せます。"
+        },
+        {
+          "title": "弾性スクロール（試験的）",
+          "body": "既定でオフのオプション設定で、内側のスクロール領域が端を越えてゴムのように弾みます。"
         }
       ],
       "improvements": [
-        "スキルを読み取る行に専用のブックマークスパークアイコンが付きました。",
-        "スクロール端付近で行が半分だけぼやけて見える問題を解消しました。"
+        "すべてのテーマで共通のシンタックスカラーを使い、関数名のみに色を付けます。",
+        "返信内の太字とインラインコードが軽くなりました。",
+        "グループの開閉時にチャット列が横にずれなくなりました。",
+        "思考グループを閉じる間も上端のフェードが保たれます。",
+        "ホバー中のコントロールにネイティブのツールチップが表示されなくなりました。"
       ]
     },
     "ko": {
-      "summary": "Vela 1.2.32는 최종 답변에 로컬 이미지를 삽입할 수 있게 하고, 여러 명령 출력을 펼칠 때 생기던 지연을 없앴습니다.",
+      "summary": "Vela 1.2.33은 명령 수명 주기 Hooks, 더 또렷해진 간결한 Diff 보기, 기본 창 크기로 되돌리는 단축키를 추가했습니다.",
       "highlights": [
         {
-          "title": "답변 속 로컬 이미지",
-          "body": "답변에서 ![alt](path)로 워크스페이스 상대 경로, 절대 경로, file:// 이미지를 삽입할 수 있으며 로딩 중과 누락 상태도 표시됩니다."
+          "title": "명령 수명 주기 Hooks",
+          "body": "PreToolUse, PostToolUse, Stop, SessionStart, PreCommit 시점에 원하는 명령을 실행할 수 있으며, 새 Hooks 설정 페이지에서 전역 또는 프로젝트별로 구성합니다."
         },
         {
-          "title": "명령 펼침 지연 해소",
-          "body": "스크롤 가장자리와 입력창 독이 흐림 대신 배경으로 페이드되어, 여러 명령 출력을 열어도 부드럽게 동작합니다."
+          "title": "더 또렷한 간결한 Diff",
+          "body": "수정된 줄 안에서 바뀐 단어가 강조되고, 긴 줄은 한 줄로 유지되며 가로로 스크롤되고, 파일 이름으로 Finder에서 파일을 표시할 수 있습니다."
+        },
+        {
+          "title": "기본 창 크기로 복원",
+          "body": "Cmd+Option+0 또는 창 메뉴로 전체 화면이나 최대화 상태에서도 1280 x 840으로 되돌릴 수 있습니다."
+        },
+        {
+          "title": "탄성 스크롤(실험적)",
+          "body": "기본값이 꺼짐인 선택 설정으로, 내부 스크롤 영역이 가장자리를 넘어 고무줄처럼 늘어납니다."
         }
       ],
       "improvements": [
-        "스킬을 읽는 행에 전용 북마크 스파크 아이콘이 생겼습니다.",
-        "스크롤 가장자리 근처의 행이 절반만 흐리게 보이던 문제가 사라졌습니다."
+        "모든 테마가 하나의 구문 강조 팔레트를 공유하며 함수 이름에만 색을 입힙니다.",
+        "답변의 굵은 글씨와 인라인 코드가 더 가벼워졌습니다.",
+        "그룹을 펼치거나 접을 때 채팅 열이 옆으로 밀리지 않습니다.",
+        "생각 그룹이 접히는 동안에도 상단 가장자리 페이드가 유지됩니다.",
+        "마우스를 올린 컨트롤에 기본 툴팁이 더 이상 나타나지 않습니다."
       ]
     }
   }
