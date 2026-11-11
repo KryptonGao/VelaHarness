@@ -72,6 +72,7 @@ export const settingsEntries: readonly SettingsEntry[] = [
   { id: "combined-mode-picker", page: "interface", title: (c) => c.appearance.combinedModePicker, hint: (c) => c.appearance.combinedModePickerHint, keywords: { zh: ["模式", "对话模式", "执行权限", "权限", "合并", "自动", "手动", "完全访问"], en: ["mode", "chat mode", "permissions", "execution permissions", "combined", "auto", "manual", "full access"] } },
   { id: "composer-capsules", page: "interface", title: (c) => c.appearance.composerCapsules, hint: (c) => c.appearance.composerCapsulesHint, keywords: { zh: ["输入框", "胶囊", "背景"], en: ["composer", "capsule", "input", "background"] } },
   { id: "workbench-split", page: "interface", title: (c) => c.appearance.workbenchSplit, hint: (c) => c.appearance.workbenchSplitHint, keywords: { zh: ["分屏", "实验性", "拆分", "窗口", "工作面板", "标签"], en: ["split", "experimental", "panes", "workbench", "tabs", "drag"] } },
+  { id: "elastic-scroll", page: "interface", title: (c) => c.appearance.elasticScroll, hint: (c) => c.appearance.elasticScrollHint, keywords: { zh: ["弹性", "滚动", "皮筋", "回弹", "实验性", "嵌套", "外层"], en: ["elastic", "scroll", "rubber band", "bounce", "experimental", "nested", "overscroll"] } },
   { id: "file-preview-open-mode", page: "interface", title: (c) => c.appearance.filePreviewOpenMode, hint: (c) => c.appearance.filePreviewOpenModeHint, keywords: { zh: ["文件打开方式", "文件预览", "新标签页", "当前标签页", "文件树", "复用"], en: ["file opening", "file preview", "new tab", "current tab", "file tree", "reuse"] } },
   { id: "send-button-icon", page: "interface", title: (c) => c.appearance.sendButtonIcon, keywords: { zh: ["发送", "纸飞机", "箭头"], en: ["send", "paper plane", "arrow"] } },
 
@@ -121,10 +122,10 @@ export const settingsEntries: readonly SettingsEntry[] = [
 
   { id: "integrations", page: "integrations", title: (c) => c.pages.integrations.label, hint: (c) => c.pages.integrations.description, keywords: { zh: ["集成", "插件", "连接", "Notion"], en: ["integration", "plugin", "connect", "notion"] } },
 
-  { id: "mcp-servers", page: "mcp", title: (c) => c.mcp.title, hint: (c) => c.mcp.hint, keywords: { zh: ["MCP", "服务器", "添加服务器", "工具"], en: ["mcp", "server", "model context protocol", "tools", "add server"] } },
   { id: "hooks-config", page: "hooks", title: c => c.pages.hooks.label, hint: c => c.pages.hooks.description, keywords: { zh: ["钩子", "自动化", "生命周期", "命令", "工具前后"], en: ["hooks", "lifecycle", "automation", "PreToolUse", "PostToolUse", "Stop", "PreCommit"] } },
   { id: "hooks-trust", page: "hooks", title: c => c.mcp.trustTitle, keywords: { zh: ["Hooks", "授权", "信任"], en: ["hooks", "authorize", "trust"] } },
   { id: "hooks-history", page: "hooks", title: c => c.pages.hooks.label, keywords: { zh: ["Hooks", "运行记录", "耗时"], en: ["hooks", "history", "duration"] } },
+  { id: "mcp-servers", page: "mcp", title: (c) => c.mcp.title, hint: (c) => c.mcp.hint, keywords: { zh: ["MCP", "服务器", "添加服务器", "工具"], en: ["mcp", "server", "model context protocol", "tools", "add server"] } },
   { id: "mcp-trust", page: "mcp", title: (c) => c.mcp.trustTitle, hint: (c) => c.mcp.trustHint, keywords: { zh: ["信任", "项目信任"], en: ["trust", "project trust"] } },
   { id: "mcp-import", page: "mcp", title: (c) => c.mcp.importTitle, hint: (c) => c.mcp.importHint, keywords: { zh: ["导入", "JSON", "mcpServers"], en: ["import", "json", "mcpServers"] } },
 

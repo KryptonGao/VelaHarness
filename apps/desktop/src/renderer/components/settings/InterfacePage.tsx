@@ -119,6 +119,9 @@ export function InterfacePage({
         <SettingsBlock id="workbench-split" title={text.workbenchSplit} hint={text.workbenchSplitHint} layout="inline">
           <SettingsSwitch label={text.workbenchSplit} checked={preferences.workbenchSplit} onChange={preferences.setWorkbenchSplit} />
         </SettingsBlock>
+        <SettingsBlock id="elastic-scroll" title={text.elasticScroll} hint={text.elasticScrollHint} layout="inline">
+          <SettingsSwitch label={text.elasticScroll} checked={preferences.elasticScroll} onChange={preferences.setElasticScroll} />
+        </SettingsBlock>
       </SettingsGroup>
       <SettingsGroup title={copy.sections.navLayout}>
         <SettingsBlock id="nav-layout" title={text.navLayout} hint={text.navLayoutHint} layout="inline">

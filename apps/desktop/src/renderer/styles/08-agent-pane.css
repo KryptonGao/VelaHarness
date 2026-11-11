@@ -386,9 +386,16 @@
 .tool-diff-line.add { background: var(--diff-add-bg); }
 .tool-diff-line.del { background: var(--diff-del-bg); }
 .tool-diff-line.add .tool-code-text,
+.tool-diff-line.del .tool-code-text { color: var(--text-primary); }
 .tool-diff-line.add .tool-gutter { color: var(--diff-add-fg); }
-.tool-diff-line.del .tool-code-text,
 .tool-diff-line.del .tool-gutter { color: var(--diff-del-fg); }
+.tool-diff-word {
+  border-radius: 3px;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+.tool-diff-line.add .tool-diff-word { background: color-mix(in srgb, var(--diff-add-fg) var(--diff-word-opacity), transparent); }
+.tool-diff-line.del .tool-diff-word { background: color-mix(in srgb, var(--diff-del-fg) var(--diff-word-opacity), transparent); }
 .tool-diff-gap {
   padding: 2px 12px;
   color: var(--text-dim);

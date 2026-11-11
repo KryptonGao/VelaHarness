@@ -220,8 +220,12 @@
   --tool-other-tint: color-mix(in srgb, var(--tool-other) var(--tint), transparent);
   --diff-add-fg: #00a240;
   --diff-del-fg: #e02e2a;
-  --diff-add-bg: color-mix(in srgb, var(--diff-add-fg) var(--tint), transparent);
-  --diff-del-bg: color-mix(in srgb, var(--diff-del-fg) var(--tint), transparent);
+  /* Shared tints over the actual theme surface: whole line, gutter block, changed words. */
+  --diff-bg-opacity: 7%;
+  --diff-gutter-opacity: 15%;
+  --diff-word-opacity: 14%;
+  --diff-add-bg: color-mix(in srgb, var(--diff-add-fg) var(--diff-bg-opacity), transparent);
+  --diff-del-bg: color-mix(in srgb, var(--diff-del-fg) var(--diff-bg-opacity), transparent);
   --diff-stat-add-fg: var(--diff-add-fg);
   --diff-stat-del-fg: var(--diff-del-fg);
 }

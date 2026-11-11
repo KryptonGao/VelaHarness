@@ -95,6 +95,7 @@ const thinkingSummaryStyleKey = "vela.thinkingSummaryStyle";
 const thinkingSummaryModelKey = "vela.thinkingSummaryModel";
 const inputPredictionKey = "vela.inputPrediction";
 const workbenchSplitKey = "vela.workbenchSplit";
+const elasticScrollKey = "vela.elasticScroll";
 const inputPredictionModelKey = "vela.inputPredictionModel";
 const fileIconThemeKey = "vela.fileIconTheme";
 const composerCapsulesKey = "vela.composerCapsules";
@@ -297,6 +298,8 @@ export function usePreferences() {
   );
   /** 工作面板分屏（实验性）：默认关闭，关闭时工作面板只有一个窗口，也不能拖动标签。 */
   const [workbenchSplit, setWorkbenchSplit] = useState(() => readStoredFlag(workbenchSplitKey, false));
+  /** 弹性滚动（实验性）：默认关闭。开启后 diff 等内层滚动区滚到头可以越界拉出皮筋，并在满足条件时带动外层容器；关闭时内层滚动永远不会带动外层。 */
+  const [elasticScroll, setElasticScroll] = useState(() => readStoredFlag(elasticScrollKey, false));
   /** 输入预测：默认关闭，开启后每轮回复结束会额外请求一次模型。 */
   const [inputPrediction, setInputPrediction] = useState(() =>
     readStored(inputPredictionKey, (value): value is string => value === "true", "false") === "true",
@@ -478,6 +481,10 @@ export function usePreferences() {
   useEffect(() => writeStored(thinkingSummaryModelKey, JSON.stringify(thinkingSummaryModel)), [thinkingSummaryModel]);
   useEffect(() => writeStored(inputPredictionKey, String(inputPrediction)), [inputPrediction]);
   useEffect(() => writeStored(workbenchSplitKey, String(workbenchSplit)), [workbenchSplit]);
+  useEffect(() => {
+    document.documentElement.dataset.elasticScroll = String(elasticScroll);
+    writeStored(elasticScrollKey, String(elasticScroll));
+  }, [elasticScroll]);
   useEffect(() => writeStored(inputPredictionModelKey, JSON.stringify(inputPredictionModel)), [inputPredictionModel]);
   useEffect(() => writeStored(fileIconThemeKey, fileIconTheme), [fileIconTheme]);
   useEffect(() => writeStored(sendButtonIconKey, sendButtonIcon), [sendButtonIcon]);
@@ -622,6 +629,8 @@ export function usePreferences() {
     inputPredictionModel,
     workbenchSplit,
     setWorkbenchSplit,
+    elasticScroll,
+    setElasticScroll,
     fileIconTheme,
     hiddenModels,
     composerCapsules,

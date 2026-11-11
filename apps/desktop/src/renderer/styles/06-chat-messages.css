@@ -935,7 +935,7 @@ button.tool-compact-line:focus-visible > .tool-compact-chevron,
   background: none;
   text-align: left;
   cursor: pointer;
-  font-size: calc(14px * var(--ui-scale));
+  font-size: calc(15px * var(--ui-scale));
   line-height: 1.55;
 }
 .tool-compact-summary:hover { color: var(--text-primary); }
@@ -966,7 +966,7 @@ button.tool-compact-line:focus-visible > .tool-compact-chevron,
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--text-muted);
-  font-size: calc(13px * var(--ui-scale));
+  font-size: calc(14px * var(--ui-scale));
 }
 .tool-compact-failed {
   flex: none;
@@ -1041,7 +1041,7 @@ button.tool-compact-line:focus-visible > .tool-compact-chevron,
   border: none;
   border-radius: 4px;
   background: none;
-  font-size: calc(14px * var(--ui-scale));
+  font-size: calc(15px * var(--ui-scale));
   line-height: 1.5;
   color: var(--text-secondary);
   text-align: left;
@@ -1182,11 +1182,15 @@ button.tool-compact-line:hover .tool-compact-cmd {
   min-width: 0;
   flex: 0 1 auto;
   overflow: hidden;
-  color: var(--text-primary);
+  color: var(--text-muted);
   font-size: calc(12px * var(--ui-scale));
-  font-weight: 550;
+  font-weight: 400;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.compact-diff-card-name:hover {
+  color: var(--text-primary);
+  text-decoration: underline;
 }
 .compact-diff-card-stat {
   flex: none;
@@ -1233,45 +1237,81 @@ button.tool-compact-line:hover .tool-compact-cmd {
   padding: 0;
 }
 .compact-diff-scroll-content { min-width: 0; }
+/* 越界时内容被拉开,露出的空白沿用离它最近那一行的颜色:白(上下文)、绿(新增)、红(删除),行号列也一并延续。 */
+.compact-diff-scroll-shell .thinking-scroll-viewport[data-pull-edge] {
+  background:
+    linear-gradient(to right, var(--pull-gutter-bg, var(--bg-card-surface)) calc(var(--pull-gutter, 0px) - 3px), var(--bg-card-surface) 0 var(--pull-gutter, 0px), transparent 0),
+    linear-gradient(var(--pull-row-bg, transparent), var(--pull-row-bg, transparent)),
+    var(--bg-card-surface);
+}
+.compact-diff-scroll-shell .thinking-scroll-viewport[data-pull-edge="add"] {
+  --pull-row-bg: var(--diff-add-bg);
+  --pull-gutter-bg: color-mix(in srgb, var(--diff-add-fg) var(--diff-gutter-opacity), var(--bg-card-surface));
+}
+.compact-diff-scroll-shell .thinking-scroll-viewport[data-pull-edge="del"] {
+  --pull-row-bg: var(--diff-del-bg);
+  --pull-gutter-bg: color-mix(in srgb, var(--diff-del-fg) var(--diff-gutter-opacity), var(--bg-card-surface));
+}
+/* 横向滚到头不再触发浏览器的手势后退;纵向是否带动外层由脚本决定,见 wheel-axis.ts。 */
+.compact-diff-scroll-shell .thinking-scroll-viewport { overscroll-behavior-x: contain; }
 .tool-sheet.tool-sheet-compact-diff {
+  /* 不换行:长行在视口内横向滚动,每个行号只对应一行;行号列 sticky,所以这里不能裁剪溢出。 */
+  width: max-content;
+  min-width: 100%;
   border-radius: 0;
+  overflow: visible;
   background: var(--bg-card-surface);
-  font-size: calc(12px * var(--code-scale));
-  line-height: 1.65;
+  font-size: calc(13px * var(--code-scale));
+  line-height: 1.75;
 }
 .tool-sheet-compact-diff .tool-code-line {
-  min-height: 22px;
+  min-height: 23px;
   padding-right: 8px;
 }
+/* 行号列不透明且固定在左侧,横向滚动时代码从它下面滑过;改动行的行号列比整行底色深一阶,左缘 3px 色条。 */
 .tool-sheet-compact-diff .tool-gutter {
-  position: relative;
+  position: sticky;
+  left: 0;
   z-index: 3;
   display: flex;
   align-self: stretch;
   align-items: baseline;
   justify-content: flex-end;
   min-width: 4.5em;
-  margin-right: 9px;
-  border-right: 1px solid var(--border-subtle);
+  /* 向下多伸出 1px 压住下一行的顶边:行高不是整数像素、或 sticky 层滚动到半像素位置时,相邻两行的色块之间不会漏出白缝;
+     下一行的行号列在 DOM 里更靠后,会盖在这 1px 之上,颜色不同的相邻行互不串色。
+     紧挨分隔带或排在最后的行不伸出,否则会盖掉分隔带最上面那 1px,让左侧行号区的分隔线比右侧的细。 */
+  margin-bottom: -1px;
+  /* 行号列与代码区之间是一条卡片底色(浅色模式白、深色模式深色)的竖条,不画灰线。 */
+  border-right: 3px solid var(--bg-card-surface);
+  background: var(--bg-card-surface);
+  color: var(--text-muted);
 }
-.tool-sheet-compact-diff .tool-code-text { position: relative; z-index: 3; }
+.tool-sheet-compact-diff .tool-diff-line:last-child .tool-gutter,
+.tool-sheet-compact-diff .tool-diff-line:has(+ .tool-diff-gap) .tool-gutter { margin-bottom: 0; }
+.tool-sheet-compact-diff .tool-diff-line.add .tool-gutter {
+  background: color-mix(in srgb, var(--diff-add-fg) var(--diff-gutter-opacity), var(--bg-card-surface));
+  box-shadow: inset 3px 0 0 var(--diff-add-fg);
+  color: var(--diff-add-fg);
+}
+.tool-sheet-compact-diff .tool-diff-line.del .tool-gutter {
+  background: color-mix(in srgb, var(--diff-del-fg) var(--diff-gutter-opacity), var(--bg-card-surface));
+  box-shadow: inset 3px 0 0 var(--diff-del-fg);
+  color: var(--diff-del-fg);
+}
+.tool-sheet-compact-diff .tool-code-text {
+  position: relative;
+  z-index: 1;
+  padding-left: 10px;
+  white-space: pre;
+  overflow-wrap: normal;
+}
 .tool-sheet-compact-diff .tool-sign { display: none; }
 .tool-sheet-compact-diff .tool-diff-line { position: relative; }
-.tool-sheet-compact-diff .tool-diff-line.add::before,
-.tool-sheet-compact-diff .tool-diff-line.del::before {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  width: 3px;
-  content: "";
-}
-.tool-sheet-compact-diff .tool-diff-line.add::before { background: var(--diff-add-fg); }
-.tool-sheet-compact-diff .tool-diff-line.del::before { background: var(--diff-del-fg); }
 .tool-sheet-compact-diff .tool-diff-gap.is-compact {
-  height: 7px;
+  height: 8px;
   padding: 0;
-  border-top: 1px solid var(--border-subtle);
+  border-top: 3px solid var(--border-subtle);
   background: var(--bg-card-surface);
 }
 .tool-compact-out { margin: 0 8px 4px; }

@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, useState, type ReactNode, type TouchEvent, type WheelEvent } from "react";
 import { nextStreamFollow, releasesStreamFollow } from "./chat-scroll";
 import { ScrollFadeShell } from "./ScrollFadeShell";
+import { useAxisLockedWheel } from "./wheel-axis";
 
 /**
  * 限高滚动容器：内容超过高度时上下渐隐，和思考内容展开使用同一套视觉。
@@ -13,6 +14,7 @@ export function ScrollFade({
   ariaLabel,
   followEnd = false,
   fade = true,
+  lockAxis = false,
 }: {
   children: ReactNode;
   className?: string;
@@ -22,11 +24,14 @@ export function ScrollFade({
   followEnd?: boolean;
   /** 是否在滚动区域上下显示渐隐遮罩。 */
   fade?: boolean;
+  /** 区域能横向滚动时,一次手势只沿上下或左右一个方向滚动。 */
+  lockAxis?: boolean;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const [viewportHeight, setViewportHeight] = useState(0);
   const [overflowing, setOverflowing] = useState(false);
+  useAxisLockedWheel(scrollRef, lockAxis);
 
   const followEndRef = useRef(followEnd);
   followEndRef.current = followEnd;

@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { ToolTrace } from "@vela/shared";
 import {
+  adaptiveContextLines,
+  collapseDiffContext,
   compactLabelParts,
   compactSummaryParts,
   diffStat,
@@ -158,5 +160,46 @@ describe("isSkillRead", () => {
       tool("read", { path: "/skills/a/SKILL.md" }),
     ]);
     assert.deepEqual(parts, [{ kind: "skill", count: 1 }, { kind: "read", count: 1 }]);
+  });
+});
+
+describe("collapseDiffContext", () => {
+  const row = (kind: "add" | "del" | "ctx" | "gap", text = "x") => ({ kind, gutter: "", text, oldIndex: -1, newIndex: -1 });
+  const ctx = (count: number) => Array.from({ length: count }, () => row("ctx"));
+  const kinds = (rows: Array<{ kind: string }>) => rows.map((item) => item.kind[0]).join("");
+
+  it("keeps the gap band between two changes", () => {
+    const rows = [row("add"), ...ctx(4), row("add")];
+    assert.equal(collapseDiffContext(rows).some((item) => item.kind === "gap"), true);
+  });
+
+  it("drops omission markers that sit before the first or after the last change", () => {
+    const rows = [row("gap"), row("ctx"), row("add"), row("ctx"), row("gap")];
+    assert.equal(collapseDiffContext(rows).some((item) => item.kind === "gap"), false);
+  });
+
+  it("shows little context around a small change and more around a large one", () => {
+    assert.equal(kinds(collapseDiffContext([...ctx(4), row("del"), row("add"), ...ctx(4)])), "ccdacc");
+    const big = [...ctx(4), ...Array.from({ length: 12 }, () => row("add")), ...ctx(4)];
+    assert.equal(collapseDiffContext(big).filter((item) => item.kind === "ctx").length, 8);
+  });
+
+  it("keeps the context nearest to the change, not the farthest", () => {
+    const rows = [...ctx(4).map((item, i) => ({ ...item, text: `before${i}` })), row("add"), ...ctx(4).map((item, i) => ({ ...item, text: `after${i}` }))];
+    const texts = collapseDiffContext(rows).filter((item) => item.kind === "ctx").map((item) => item.text);
+    assert.deepEqual(texts, ["before2", "before3", "after0", "after1"]);
+  });
+
+  it("leaves diffs without any change untouched", () => {
+    assert.equal(collapseDiffContext(ctx(9)).length, 9);
+  });
+});
+
+describe("adaptiveContextLines", () => {
+  it("grows with the size of the change and is capped", () => {
+    assert.equal(adaptiveContextLines(1), 2);
+    assert.equal(adaptiveContextLines(2), 2);
+    assert.equal(adaptiveContextLines(4), 3);
+    assert.equal(adaptiveContextLines(500), 4);
   });
 });

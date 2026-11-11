@@ -1,6 +1,6 @@
 import type { AskUserQuestionRequest, ExecutionItemStatus, ToolActivity, ToolPlanItem, ToolTrace } from "@vela/shared";
 import { isAgentToolName, unescapeMarkdown } from "@vela/shared";
-import { memo, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type TransitionEvent } from "react";
+import { memo, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type TransitionEvent } from "react";
 import { QuestionContext } from "./QuestionContext";
 import { LazyMount } from "./LazyMount";
 import { ContentSwap } from "./BatchMotion";
@@ -23,12 +23,14 @@ import { useFilePreview } from "./preview/FilePreviewContext";
 import type { ThemedToken } from "./preview/highlighter";
 import { QuestionCard, type QuestionReplyHandler } from "./QuestionCard";
 import { FileTypeIcon } from "./FileTypeIcon";
+import { sameMarks, type WordRange } from "./diff-words";
 import { STREAMING_HIGHLIGHT_INTERVAL_MS, tokenStyle, useDiffHighlight, type HighlightedDiff } from "./diff-highlight";
 import { CheckIcon, ExternalIcon, EyeIcon, GlobeIcon, McpIcon, StackIcon, ToolIcon, WebFetchIcon, WebSearchIcon } from "./icons";
 import {
   compactLabelParts,
   compactSummaryParts,
   diffStat,
+  collapseDiffContext,
   parseDisplayDiff,
   splitPath,
   totalDiffStat,
@@ -1058,6 +1060,7 @@ function CompactDiffView({ diff, path, followEnd = false, showLineNumbers = true
     <ScrollFade
       followEnd={followEnd}
       fade={false}
+      lockAxis
       className="compact-diff-scroll-shell"
       contentClassName="compact-diff-scroll-content"
       ariaLabel={tr("文件差异，可在区域内滚动", "File diff, scrollable")}
@@ -1370,15 +1373,7 @@ const DiffLine = memo(function DiffLine({ row, compact, showLineNumbers, tokens 
         {/* Streamed edit numbers are fragment-local, not file positions (even after interruption). */}
         {showLineNumbers ? row.gutter : null}
       </span>
-      <span className="tool-code-text">
-        {tokens
-          ? tokens.map((token, tokenIndex) => (
-              <span key={tokenIndex} style={tokenStyle(token)}>
-                {token.content}
-              </span>
-            ))
-          : row.text || " "}
-      </span>
+      <span className="tool-code-text">{renderCode(row.text, tokens, row.marks)}</span>
     </div>
   );
 }, (previous, next) =>
@@ -1387,7 +1382,46 @@ const DiffLine = memo(function DiffLine({ row, compact, showLineNumbers, tokens 
   && previous.showLineNumbers === next.showLineNumbers
   && previous.row.kind === next.row.kind
   && previous.row.text === next.row.text
-  && previous.row.gutter === next.row.gutter);
+  && previous.row.gutter === next.row.gutter
+  && sameMarks(previous.row.marks, next.row.marks));
+
+/** 渲染一行代码:有语法 token 就逐段着色;改动的字词再包一层更深的底色(跨 token 的相邻片段合成一块)。 */
+function renderCode(text: string, tokens: ThemedToken[] | null, marks: WordRange[] | undefined): ReactNode {
+  if (!marks || marks.length === 0) {
+    return tokens
+      ? tokens.map((token, tokenIndex) => <span key={tokenIndex} style={tokenStyle(token)}>{token.content}</span>)
+      : text || " ";
+  }
+  const slices: Array<{ content: string; changed: boolean; style?: CSSProperties }> = [];
+  let offset = 0;
+  for (const token of tokens ?? [{ content: text } as ThemedToken]) {
+    const end = offset + token.content.length;
+    const style = tokens ? tokenStyle(token) : undefined;
+    let cursor = offset;
+    const push = (to: number, changed: boolean) => {
+      if (to > cursor) slices.push({ content: token.content.slice(cursor - offset, to - offset), changed, ...(style ? { style } : {}) });
+      cursor = Math.max(cursor, to);
+    };
+    for (const [from, to] of marks) {
+      if (to <= cursor || from >= end) continue;
+      push(Math.max(from, cursor), false);
+      push(Math.min(to, end), true);
+    }
+    push(end, false);
+    offset = end;
+  }
+  const output: ReactNode[] = [];
+  for (let index = 0; index < slices.length;) {
+    const changed = slices[index]!.changed;
+    const group: ReactNode[] = [];
+    for (; index < slices.length && slices[index]!.changed === changed; index += 1) {
+      const slice = slices[index]!;
+      group.push(slice.style ? <span key={index} style={slice.style}>{slice.content}</span> : slice.content);
+    }
+    output.push(changed ? <span key={`w${index}`} className="tool-diff-word">{group}</span> : group);
+  }
+  return output;
+}
 
 /** 上下文行取新侧 token;两侧内容一致,缺哪侧用哪侧兜底。 */
 function rowTokens(row: DisplayDiffRow, highlight: HighlightedDiff | null, verify = false): ThemedToken[] | null {
@@ -1399,42 +1433,6 @@ function rowTokens(row: DisplayDiffRow, highlight: HighlightedDiff | null, verif
   // 流式增长时高亮结果可能比内容旧:文字对不上的行(新到的、还在变的)先显示纯文本。
   if (verify && tokens && tokens.map((token) => token.content).join("") !== row.text) return null;
   return tokens;
-}
-
-/** 长上下文只显示靠近两侧改动的行,并以细分隔带代表折叠内容。 */
-function collapseDiffContext(rows: DisplayDiffRow[]): DisplayDiffRow[] {
-  const output: DisplayDiffRow[] = [];
-  const changedAfter = new Array<boolean>(rows.length + 1).fill(false);
-  for (let index = rows.length - 1; index >= 0; index -= 1) {
-    const row = rows[index];
-    changedAfter[index] = changedAfter[index + 1]! || row?.kind === "add" || row?.kind === "del";
-  }
-  let index = 0;
-  let hasChangeBefore = false;
-  while (index < rows.length) {
-    const row = rows[index];
-    if (row?.kind !== "ctx" && row?.kind !== "gap") {
-      output.push(row!);
-      if (row?.kind === "add" || row?.kind === "del") hasChangeBefore = true;
-      index += 1;
-      continue;
-    }
-
-    // 工具自带的「…」省略标记也算这一段上下文,否则两处改动之间会出现孤立的几行夹在两条分隔带中间。
-    const start = index;
-    while (index < rows.length && (rows[index]?.kind === "ctx" || rows[index]?.kind === "gap")) index += 1;
-    const run = rows.slice(start, index);
-    const context = run.filter((item) => item.kind === "ctx");
-    const hasChangeAfter = changedAfter[index] ?? false;
-    if (context.length > 0 && (run.length > 3 || run.length > context.length) && hasChangeBefore && hasChangeAfter) {
-      output.push(context[0]!);
-      output.push({ kind: "gap", gutter: "", text: "", oldIndex: -1, newIndex: -1 });
-      if (context.length > 1) output.push(context[context.length - 1]!);
-    } else {
-      output.push(...run);
-    }
-  }
-  return output;
 }
 
 /** Keep running feedback without a trailing failure icon. */

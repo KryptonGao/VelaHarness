@@ -220,12 +220,12 @@
 }
 .tool-card-list.is-compact .tool-kind-label {
   width: auto;
-  font-size: calc(14px * var(--ui-scale));
+  font-size: calc(15px * var(--ui-scale));
   font-weight: 500;
   color: var(--text-muted);
 }
-.tool-card-list.is-compact .tool-card-name { font-size: calc(14px * var(--ui-scale)); font-weight: 500; }
-.tool-card-list.is-compact .tool-card-dir { font-size: calc(13px * var(--ui-scale)); }
+.tool-card-list.is-compact .tool-card-name { font-size: calc(15px * var(--ui-scale)); font-weight: 500; }
+.tool-card-list.is-compact .tool-card-dir { font-size: calc(14px * var(--ui-scale)); }
 .tool-card-list.is-compact .tool-card-body { padding: 2px 0 8px; }
 
 /* 紧凑模式的文字规范:未悬停时一律灰色(含文件名、命令、目录和耗时)。
@@ -534,7 +534,7 @@
   border: none;
   background: none;
   font-family: var(--font-mono);
-  font-size: calc(14px * var(--code-scale));
+  font-size: calc(15px * var(--code-scale));
   color: var(--text-primary);
   cursor: pointer;
 }

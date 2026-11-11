@@ -1,5 +1,6 @@
 import type { ToolTrace } from "@vela/shared";
 import { describeBashCommand } from "./bash-intent";
+import { markWordChanges, type WordRange } from "./diff-words";
 
 /** 可折叠进紧凑摘要的工具种类,与 ToolCard 的 ToolKind 对齐(不含 other)。 */
 export type CompactKind = "bash" | "read" | "edit" | "write";
@@ -124,6 +125,8 @@ export interface DisplayDiffRow {
   oldIndex: number;
   /** 该行在新文件中的索引;不存在时为 -1。 */
   newIndex: number;
+  /** 与配对的删除/新增行相比,这一行里真正改动的字符区间。 */
+  marks?: WordRange[];
 }
 
 export interface ParsedDisplayDiff {
@@ -197,7 +200,59 @@ export function parseDisplayDiff(diff: string): ParsedDisplayDiff {
     else pushCtx(line);
   }
 
+  markWordChanges(rows);
   return { rows, oldLines, newLines };
+}
+
+/** 改动区之外最多保留的上下文行数;工具生成 diff 时给的上下文是固定的,这里是展示上的上限。 */
+const maxContextLines = 4;
+
+/** 按改动规模自适应首尾上下文:改动越小留得越少(只改一两行不必再带一大片没动的代码),改动大了再放宽,最多 4 行。 */
+export function adaptiveContextLines(changedRows: number): number {
+  return Math.max(2, Math.min(maxContextLines, Math.ceil(changedRows / 2) + 1));
+}
+
+/** 长上下文只显示靠近两侧改动的行,并以细分隔带代表折叠内容;改动区首尾的上下文按改动规模自适应裁剪。 */
+export function collapseDiffContext(rows: DisplayDiffRow[]): DisplayDiffRow[] {
+  const output: DisplayDiffRow[] = [];
+  const changedTotal = rows.reduce((sum, row) => sum + (row.kind === "add" || row.kind === "del" ? 1 : 0), 0);
+  const edgeContext = adaptiveContextLines(changedTotal);
+  const changedAfter = new Array<boolean>(rows.length + 1).fill(false);
+  for (let index = rows.length - 1; index >= 0; index -= 1) {
+    const row = rows[index];
+    changedAfter[index] = changedAfter[index + 1]! || row?.kind === "add" || row?.kind === "del";
+  }
+  let index = 0;
+  let hasChangeBefore = false;
+  while (index < rows.length) {
+    const row = rows[index];
+    if (row?.kind !== "ctx" && row?.kind !== "gap") {
+      output.push(row!);
+      if (row?.kind === "add" || row?.kind === "del") hasChangeBefore = true;
+      index += 1;
+      continue;
+    }
+
+    // 工具自带的「…」省略标记也算这一段上下文,否则两处改动之间会出现孤立的几行夹在两条分隔带中间。
+    const start = index;
+    while (index < rows.length && (rows[index]?.kind === "ctx" || rows[index]?.kind === "gap")) index += 1;
+    const run = rows.slice(start, index);
+    const context = run.filter((item) => item.kind === "ctx");
+    const hasChangeAfter = changedAfter[index] ?? false;
+    if (context.length > 0 && (run.length > 3 || run.length > context.length) && hasChangeBefore && hasChangeAfter) {
+      output.push(context[0]!);
+      output.push({ kind: "gap", gutter: "", text: "", oldIndex: -1, newIndex: -1 });
+      if (context.length > 1) output.push(context[context.length - 1]!);
+    } else {
+      // 省略标记只在两处改动之间有意义;停在首尾的(没有改动在它另一侧)只会在改动区外多出一条分隔带。
+      const kept = run.filter((item) => item.kind !== "gap" || (hasChangeBefore && hasChangeAfter));
+      if (changedTotal === 0 || (hasChangeBefore && hasChangeAfter)) output.push(...kept);
+      // 首段只留紧挨着第一处改动的几行,尾段只留紧随最后一处改动的几行。
+      else if (!hasChangeBefore) output.push(...kept.slice(-edgeContext));
+      else output.push(...kept.slice(0, edgeContext));
+    }
+  }
+  return output;
 }
 
 /** 汇总一组工具的 diff 增删行数,全部为空时返回 null。 */
