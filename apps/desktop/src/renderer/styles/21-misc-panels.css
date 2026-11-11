@@ -192,6 +192,12 @@
 .tb-limit-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .tb-limit-label { font-size: calc(13px * var(--ui-scale)); color: var(--text-secondary); }
 .tb-limit-readout { font-size: calc(18px * var(--ui-scale)); font-weight: 600; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; color: var(--text-primary); margin: 0 0 4px; }
+.tb-limit-actions { display: inline-flex; align-items: center; gap: 12px; }
+/* 宽度固定:百分比位数变化、重设按钮出现或消失,都不能让滑块轨道跟着变长变短。 */
+.glass-opacity-control { width: 260px; flex: none; }
+.tb-limit-readout-inline { min-width: 4ch; text-align: right; font-size: calc(13px * var(--ui-scale)); font-variant-numeric: tabular-nums; color: var(--text-primary); }
+.tb-reset { padding: 0; border: 0; background: none; font: inherit; font-size: calc(12px * var(--ui-scale)); color: var(--text-muted); cursor: pointer; }
+.tb-reset:hover { color: var(--text-primary); }
 .tb-number {
   display: inline-flex; align-items: center; gap: 6px; padding: 0 10px; height: 30px; border-radius: var(--radius-md);
   border: 1px solid var(--border-subtle); background: var(--bg-card-surface); color: var(--text-muted); font-size: calc(12px * var(--ui-scale));
@@ -216,6 +222,8 @@
   transition: left 260ms cubic-bezier(0.22, 1, 0.36, 1), transform 160ms, box-shadow 160ms;
 }
 .tb-slider[data-dragging="true"] .tb-slider-fill { transition-duration: 120ms; }
+.tb-slider[data-continuous="true"][data-dragging="true"] .tb-slider-fill { transition: none; }
+.tb-slider[data-continuous="true"][data-dragging="true"] .tb-slider-thumb { transition: transform 160ms, box-shadow 160ms; }
 .tb-slider[data-dragging="true"] .tb-slider-thumb { transition-duration: 120ms, 160ms, 160ms; transform: scale(1.14); }
 .tb-slider:not([data-disabled="true"]):hover .tb-slider-thumb { transform: scale(1.08); }
 .tb-slider:focus-visible .tb-slider-thumb { box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-blue) 24%, transparent), 0 1px 3px rgba(20, 20, 20, 0.22); }

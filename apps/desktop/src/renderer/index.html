@@ -41,6 +41,10 @@
         if (readPreference("vela.locale") === "en") root.lang = "en";
         var glassTint = readPreference("vela.glassTint");
         root.dataset.glassTint = glassTint === "neutral" || glassTint === "none" ? glassTint : "theme";
+        var glassOpacity = readPreference("vela.glassOpacity");
+        if (glassOpacity && /^\d{1,3}$/.test(glassOpacity) && Number(glassOpacity) <= 100) {
+          root.style.setProperty("--glass-opacity", String(Number(glassOpacity) / 100));
+        }
         // 字体风格在首帧前就套上,避免先用无衬线渲染再跳成明体。
         function fontFace(key, fallback, allowInherit) {
           var value = readPreference(key);

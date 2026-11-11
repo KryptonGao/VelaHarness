@@ -21,6 +21,8 @@ import { CustomThemeEditor } from "./CustomThemeEditor";
 import { Segmented, SettingsBlock, SettingsGroup } from "./primitives";
 import { ThemeGroup } from "./ThemeGroup";
 import { FontSizeControl } from "./FontSizeControl";
+import { GlassOpacityControl } from "./GlassOpacityControl";
+import { defaultGlassOpacity, glassOpacityApplies } from "../../glass-opacity";
 import { codeFontSizeRange, uiFontSizeRange } from "../../font-size";
 
 export function AppearancePage({ copy, preferences }: { copy: SettingsCopy; preferences: PreferencesApi }) {
@@ -154,6 +156,17 @@ export function AppearancePage({ copy, preferences }: { copy: SettingsCopy; pref
             { id: "none", label: text.glassTintNone },
           ]}
           onChange={preferences.setGlassTint}
+        />
+      </SettingsBlock>
+      <SettingsBlock id="glass-opacity" title={text.glassOpacity} hint={text.glassOpacityHint} layout="inline">
+        <GlassOpacityControl
+          label={text.glassOpacity}
+          resetLabel={text.glassOpacityReset}
+          value={preferences.glassOpacity ?? defaultGlassOpacity(preferences.glassTint, preferences.scheme)}
+          isCustom={preferences.glassOpacity !== null}
+          disabled={!glassOpacityApplies(preferences.glassTint, preferences.scheme)}
+          onChange={preferences.setGlassOpacity}
+          onReset={() => preferences.setGlassOpacity(null)}
         />
       </SettingsBlock>
       <SettingsBlock id="sidebar-card-glass" title={text.sidebarCardGlass} hint={text.sidebarCardGlassHint} layout="inline">

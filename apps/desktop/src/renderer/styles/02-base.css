@@ -155,19 +155,20 @@ code,
  * 把叠色提到约 85% 不透明,让外框沉下来,仍保留一点透出的质感。
  */
 :root[data-scheme="dark"] {
-  --glass-fill: rgb(from var(--bg-sidebar-glass) r g b / 0.85);
+  --glass-fill: rgb(from var(--bg-sidebar-glass) r g b / var(--glass-opacity, 0.85));
 }
 
 /*
  * 玻璃染色(设置 → 外观):默认染主题色;「明暗」亮色染白、深色染黑,与主题无关;
  * 「不染色」去掉这一层,透出系统毛玻璃本身(非 macOS 则透出窗口底色);深色下例外,回退为「明暗」。
- * 模糊半径三档共用,只改叠色,切换时玻璃的质感不变。
+ * 叠色的不透明度由设置里的滑块写入 `--glass-opacity`;没设时用 var() 里的回退值,
+ * 这些回退值要与 glass-opacity.ts 的 defaultGlassOpacity 保持一致。
  */
 :root[data-glass-tint="neutral"][data-scheme="light"] {
-  --glass-fill: rgba(255, 255, 255, 0.6);
+  --glass-fill: rgb(255 255 255 / var(--glass-opacity, 0.6));
 }
 :root[data-glass-tint="neutral"][data-scheme="dark"] {
-  --glass-fill: rgba(0, 0, 0, 0.62);
+  --glass-fill: rgb(0 0 0 / var(--glass-opacity, 0.62));
 }
 /*
  * 窗口失焦时,所有半透明玻璃改为不透明:不再透出桌面,也不随系统失焦变灰。
@@ -183,7 +184,7 @@ code,
 }
 /* 深色下「不染色」会透出发灰发亮的系统毛玻璃,与近黑纸面反差过大,所以回退为「明暗」的深色效果。 */
 :root[data-glass-tint="none"][data-scheme="dark"] {
-  --glass-fill: rgba(0, 0, 0, 0.62);
+  --glass-fill: rgb(0 0 0 / var(--glass-opacity, 0.62));
   --glass-solid: #151515;
 }
 /* 属性数量要不少于上面的明暗染色规则,否则失焦时压不过它们。 */

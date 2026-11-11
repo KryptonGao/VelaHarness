@@ -36,6 +36,7 @@ import {
   parseFontSize,
   uiFontSizeRange,
 } from "../font-size";
+import { applyGlassOpacity, clampGlassOpacity, parseGlassOpacity } from "../glass-opacity";
 
 export type InfoLayout = "sidebar" | "floating" | "cards";
 export type Appearance = "system" | "light" | "dark";
@@ -99,6 +100,7 @@ const fileIconThemeKey = "vela.fileIconTheme";
 const composerCapsulesKey = "vela.composerCapsules";
 const glassTintKey = "vela.glassTint";
 const sidebarCardGlassKey = "vela.sidebarCardGlass";
+const glassOpacityKey = "vela.glassOpacity";
 const sendButtonIconKey = "vela.sendButtonIcon";
 const uiFontLatinKey = "vela.font.ui.latin";
 const uiFontCjkKey = "vela.font.ui.cjk";
@@ -352,6 +354,14 @@ export function usePreferences() {
   );
   const [glassTint, setGlassTint] = useState<GlassTint>(() => readStored(glassTintKey, isGlassTint, "theme"));
   const [sidebarCardGlass, setSidebarCardGlass] = useState(() => readStoredFlag(sidebarCardGlassKey, false));
+  /** 玻璃叠色的不透明度(0–100);null 表示沿用当前染色的默认值。 */
+  const [glassOpacity, setGlassOpacityState] = useState<number | null>(() =>
+    parseGlassOpacity(readStored(glassOpacityKey, (value): value is string => typeof value === "string", "")),
+  );
+  const setGlassOpacity = useCallback(
+    (value: number | null) => setGlassOpacityState(value === null ? null : clampGlassOpacity(value)),
+    [],
+  );
   const [sendButtonIcon, setSendButtonIcon] = useState<SendButtonIcon>(() =>
     readStored(sendButtonIconKey, isSendButtonIcon, "paper-plane"),
   );
@@ -562,6 +572,10 @@ export function usePreferences() {
     writeStored(glassTintKey, glassTint);
   }, [glassTint]);
   useEffect(() => {
+    applyGlassOpacity(document.documentElement, glassOpacity);
+    writeStored(glassOpacityKey, glassOpacity === null ? "" : String(glassOpacity));
+  }, [glassOpacity]);
+  useEffect(() => {
     document.documentElement.dataset.sidebarCard = sidebarCardGlass ? "glass" : "solid";
     writeStored(sidebarCardGlassKey, String(sidebarCardGlass));
   }, [sidebarCardGlass]);
@@ -616,6 +630,8 @@ export function usePreferences() {
     setGlassTint,
     sidebarCardGlass,
     setSidebarCardGlass,
+    glassOpacity,
+    setGlassOpacity,
     sendButtonIcon,
     setSendButtonIcon,
     uiFontLatin,

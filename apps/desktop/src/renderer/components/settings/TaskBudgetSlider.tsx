@@ -6,13 +6,15 @@ const thumb = 16;
  * 档位滑块：滑块和进度会顺滑地滑向目标档位（点击轨道、拖动、键盘都一样），
  * 拖动时贴着最近的档位走，松手或按键结束后才提交。
  */
-export function TaskBudgetSlider({ label, valueText, max, value, disabled, onChange, onCommit }: {
+export function TaskBudgetSlider({ label, valueText, max, value, disabled, continuous, onChange, onCommit }: {
   label: string;
   valueText: string;
   /** 最大档位序号，最小为 0。 */
   max: number;
   value: number;
   disabled: boolean;
+  /** 档位很密(如 0–100)时,拖动中滑块和进度直接贴着指针,不做滑向目标的缓动,否则会落后于手。 */
+  continuous?: boolean;
   onChange: (index: number) => void;
   onCommit: () => void;
 }) {
@@ -75,6 +77,7 @@ export function TaskBudgetSlider({ label, valueText, max, value, disabled, onCha
       aria-disabled={disabled || undefined}
       data-dragging={dragging ? "true" : undefined}
       data-disabled={disabled ? "true" : undefined}
+      data-continuous={continuous ? "true" : undefined}
       style={{ "--r": max > 0 ? value / max : 0 } as CSSProperties}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}

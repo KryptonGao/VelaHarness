@@ -41,7 +41,7 @@
   --glass-fillet: 12px;
   --glass-edge-inset: 6px;
   /* 玻璃上叠的颜色:默认是主题色,可在设置里改成明暗色或不染色,见下方 data-glass-tint 规则。 */
-  --glass-fill: var(--bg-sidebar-glass);
+  --glass-fill: rgb(from var(--bg-sidebar-glass) r g b / var(--glass-opacity, 0.55));
   --transition-smooth: 0.24s cubic-bezier(0.16, 1, 0.3, 1);
   --transition-enter: 0.18s cubic-bezier(0.16, 1, 0.3, 1);
   --motion-ease-enter: cubic-bezier(0.16, 1, 0.3, 1);
