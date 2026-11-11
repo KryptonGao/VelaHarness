@@ -451,6 +451,11 @@ button.settings-select-trigger:hover:not(:disabled) { background-color: var(--se
 .theme-group { display: flex; flex-direction: column; gap: 8px; }
 .theme-group + .theme-group { margin-top: 8px; }
 .theme-group-label { font-size: calc(15px * var(--ui-scale)); font-weight: 600; color: var(--text-muted); }
+/* 最多三行,超出部分在容器内滚动并上下渐进模糊;内边距给选中描边和焦点环留位置,负外边距抵掉它。 */
+.theme-grid-frame { margin: -6px; }
+.thinking-scroll-shell.theme-grid-scroll { --scroll-fade-background: var(--bg-elevated); }
+.theme-grid-scroll > .thinking-scroll-viewport { max-height: calc(var(--theme-grid-max-height, 9999px) + 12px); scrollbar-gutter: auto; }
+.theme-grid-scroll .thinking-scroll-viewport .thinking-text { padding: 6px; color: inherit; font-size: inherit; line-height: inherit; }
 .theme-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

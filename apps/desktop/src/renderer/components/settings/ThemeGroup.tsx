@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from "react";
+import { useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import {
   customThemeVars,
   maxCustomThemes,
@@ -7,7 +7,32 @@ import {
   type SelectedThemeId,
   type ThemeId,
 } from "../../themes";
+import { ScrollFade } from "../ScrollFade";
 import type { SettingsCopy } from "../settings-copy";
+
+/** 主题网格最多完整展示的行数,更多的行在容器里滚动。 */
+const MAX_VISIBLE_ROWS = 3;
+
+/** 按第一张卡片的实际高度算出三行的总高度,随字号缩放和窗口宽度变化重新计算。 */
+function useThemeRowsHeight() {
+  const gridRef = useRef<HTMLDivElement>(null);
+  const [height, setHeight] = useState<number | null>(null);
+  useLayoutEffect(() => {
+    const grid = gridRef.current;
+    if (!grid) return;
+    const measure = (): void => {
+      const card = grid.firstElementChild as HTMLElement | null;
+      if (!card) return;
+      const gap = Number.parseFloat(getComputedStyle(grid).rowGap) || 0;
+      setHeight(card.offsetHeight * MAX_VISIBLE_ROWS + gap * (MAX_VISIBLE_ROWS - 1));
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(grid);
+    return () => observer.disconnect();
+  }, []);
+  return { gridRef, height };
+}
 
 export function ThemeGroup({
   copy,
@@ -42,10 +67,16 @@ export function ThemeGroup({
   children?: ReactNode;
 }) {
   const text = copy.appearance;
+  const { gridRef, height } = useThemeRowsHeight();
   return (
     <div className="theme-group">
       <span className="theme-group-label">{label}</span>
-      <div className="theme-grid" role="radiogroup" aria-label={label}>
+      <div
+        className="theme-grid-frame"
+        style={height == null ? undefined : ({ "--theme-grid-max-height": `${height}px` } as CSSProperties)}
+      >
+      <ScrollFade className="theme-grid-scroll" ariaLabel={label}>
+      <div className="theme-grid" role="radiogroup" aria-label={label} ref={gridRef}>
         {ids.map((id) => {
           const meta = text.themes[id];
           return (
@@ -119,6 +150,8 @@ export function ThemeGroup({
             </button>
           </>
         ) : null}
+      </div>
+      </ScrollFade>
       </div>
       {children}
     </div>
