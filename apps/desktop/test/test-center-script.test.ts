@@ -38,7 +38,11 @@ test("script UI check timeout cleans up its own child processes", async () => {
   const {result,childPid}=await fixture('import {spawn} from "node:child_process";import {writeFileSync} from "node:fs";const child=spawn(process.execPath,["-e","setInterval(()=>{},1000)"],{stdio:"ignore"});writeFileSync("child.pid",String(child.pid));setInterval(()=>{},1000);',{timeoutMs:400});
   assert.equal(result.status,"failed");assert.match(result.error.message,/超时/);
   if (process.platform!=="win32") {
-    assert.ok(childPid);assert.throws(()=>process.kill(childPid,0),{code:"ESRCH"});
+    assert.ok(childPid);
+    // A killed child may linger as a zombie until it is reaped; macOS reports that as EPERM.
+    const gone=()=>{try{process.kill(childPid,0);return false;}catch(error){return error.code==="ESRCH"||error.code==="EPERM";}};
+    for(let i=0;i<20&&!gone();i++)await new Promise(resolve=>setTimeout(resolve,50));
+    assert.ok(gone());
   }
 });
 test("script UI checks report unavailable runtimes as failures", async () => {

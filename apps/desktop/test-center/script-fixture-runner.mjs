@@ -14,7 +14,8 @@ export async function runScriptFixture({ nodePath, script, cwd, timeoutMs, succe
   const killOwned = (kind) => {
     if (!child?.pid) return;
     try { grouped ? process.kill(-child.pid, kind) : child.kill(kind); }
-    catch (error) { if (error.code !== "ESRCH") throw error; }
+    // macOS reports EPERM, not ESRCH, when a group we created only has exited/zombie members left.
+    catch (error) { if (error.code !== "ESRCH" && error.code !== "EPERM") throw error; }
   };
   try {
     const env = { ...process.env, VELA_TEST_CENTER: "1" };
