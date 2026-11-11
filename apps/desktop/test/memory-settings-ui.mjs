@@ -279,6 +279,8 @@ if (!process.versions.electron) {
 
       // 项目选择器：显式选择已登记但目录失效的工作区时显示可操作错误。
       await until("!!document.querySelector('.memory-project button.settings-select-trigger')");
+      // 上一步遗留的 scroll 事件要到下一帧才派发，会把刚打开的下拉（滚动即收起）关掉；先等两帧再点。
+      await evaluate("new Promise(done => requestAnimationFrame(() => requestAnimationFrame(() => done())))");
       await evaluate("document.querySelector('.memory-project button.settings-select-trigger').click()");
       await until("!!document.querySelector('.settings-menu')");
       await evaluate("[...document.querySelectorAll('.settings-menu [role=option]')].find(option => option.textContent.includes('/workspace/gone')).click()");

@@ -325,8 +325,9 @@ if (!process.versions.electron) {
       await until("fixture.calls.some(c=>c.method==='remove')");
       console.log("PASS deletion requires an explicit confirmation");
 
-      await evaluate("window.renderMcp('zh')");
-      await until("document.querySelector('h2')?.textContent==='MCP 服务器'");
+      await evaluate("window.renderMcp('zh-CN')");
+      // 页面标题由设置页外壳统一渲染，区块自身不再带 h2；以本地化按钮判断中文已渲染。
+      await until("Array.from(document.querySelectorAll('button')).some(n=>n.textContent==='添加服务器')");
       assert.equal(
         await evaluate(
           "Array.from(document.querySelectorAll('button')).some(n=>n.textContent==='添加服务器')",

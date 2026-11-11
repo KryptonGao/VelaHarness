@@ -82,11 +82,12 @@ export function TaskBudgetFields({ text, value, disabled, onCommit }: {
   disabled?: boolean;
   onCommit: (next: TaskBudgetSettings) => Promise<void>;
 }) {
-  const [minutes, setMinutes] = useState("");
-  const [tokens, setTokens] = useState("");
-  const [subagents, setSubagents] = useState("");
-  const [cost, setCost] = useState("");
-  const [currency, setCurrency] = useState<PricingCurrency>("CNY");
+  // 值已就绪时首帧就带入输入框，避免等 effect 之前闪出空白。
+  const [minutes, setMinutes] = useState(() => value?.maxMinutes == null ? "" : String(value.maxMinutes));
+  const [tokens, setTokens] = useState(() => value?.maxTokens == null ? "" : String(value.maxTokens));
+  const [subagents, setSubagents] = useState(() => value ? String(value.maxSubagents) : "");
+  const [cost, setCost] = useState(() => value?.maxCost ? String(value.maxCost.amount) : "");
+  const [currency, setCurrency] = useState<PricingCurrency>(() => value?.maxCost?.currency ?? "CNY");
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {

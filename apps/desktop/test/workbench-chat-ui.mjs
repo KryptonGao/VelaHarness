@@ -58,7 +58,7 @@ if (!process.versions.electron) {
     };
     const panel = '.workbench-tabpanel:not(.is-inactive) .panel-chat-view';
     const newTab = async () => {
-      await evaluate("window.dispatchEvent(new KeyboardEvent('keydown', {key:'t', metaKey:true, bubbles:true}))");
+      await evaluate("window.dispatchEvent(new KeyboardEvent('keydown', {code:'KeyT', key:'t', metaKey:true, bubbles:true}))");
       await until("document.querySelector('.workbench-tabpanel:not(.is-inactive) .start-view')");
     };
     const chatOption = ".workbench-tabpanel:not(.is-inactive) .start-option:first-child";

@@ -33,7 +33,7 @@ const sideChatFixture = {
 };
 (window as unknown as { sideChatFixture: typeof sideChatFixture }).sideChatFixture = sideChatFixture;
 // 偏好设置新增的开关在共用夹具里还没有桩。
-Object.assign(window.vela!, { setRunView: async () => {}, setRecommendedActions: async () => {} });
+Object.assign(window.vela!, { setRunView: async () => {}, setRecommendedActions: async () => {}, setShortcuts() {} });
 window.vela!.sideChat = {
   send: request => new Promise((resolve, reject) => {
     requests.push(structuredClone(request));

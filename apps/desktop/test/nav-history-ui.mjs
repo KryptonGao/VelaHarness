@@ -6,6 +6,7 @@ import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { providerIconsPlugin } from "./provider-icons-plugin.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const require = createRequire(resolve(here, "../package.json"));
@@ -13,7 +14,7 @@ if (!process.versions.electron) {
   const temporary = mkdtempSync(join(tmpdir(), "vela-nav-history-"));
   try {
     const { build } = await import("esbuild");
-    await build({ entryPoints: [join(here, "workbench-chat-preview.tsx")], bundle: true, platform: "browser", format: "iife", jsx: "automatic",
+    await build({ plugins: [providerIconsPlugin], entryPoints: [join(here, "workbench-chat-preview.tsx")], bundle: true, platform: "browser", format: "iife", jsx: "automatic",
       outfile: join(temporary, "ui.js"), loader: { ".svg": "dataurl", ".png": "dataurl", ".woff2": "dataurl", ".ttf": "dataurl" },
       define: { "process.env.NODE_ENV": '"development"' }, logLevel: "error" });
     writeFileSync(join(temporary, "index.html"), '<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="ui.css"></head><body><div id="root"></div><script src="ui.js"></script></body></html>');

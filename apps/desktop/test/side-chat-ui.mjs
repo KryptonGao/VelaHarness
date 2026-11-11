@@ -69,7 +69,7 @@ if (!process.versions.electron) {
     };
     const enter = () => evaluate(`document.querySelector(${JSON.stringify(input)}).dispatchEvent(new KeyboardEvent('keydown', {key:'Enter', bubbles:true}))`);
     const newTab = async () => {
-      await evaluate("window.dispatchEvent(new KeyboardEvent('keydown', {key:'t', metaKey:true, bubbles:true}))");
+      await evaluate("window.dispatchEvent(new KeyboardEvent('keydown', {code:'KeyT', key:'t', metaKey:true, bubbles:true}))");
       await until("document.querySelector('.workbench-tabpanel:not(.is-inactive) .start-view')");
     };
     const sideOption = ".workbench-tabpanel:not(.is-inactive) .start-option:nth-child(2)";

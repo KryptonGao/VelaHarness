@@ -491,7 +491,7 @@ if (!process.versions.electron) {
       const pick = (index, value) => evaluate(`(() => { const select = document.querySelectorAll('.resident-settings select')[${index}]; const setter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set; setter.call(select, ${JSON.stringify(value)}); select.dispatchEvent(new Event('change', { bubbles: true })); })()`);
       const patches = () => evaluate("window.residentFixture.calls.filter(call => call.method === 'updateSettings').map(call => call.patch)");
       assert.deepEqual(await evaluate("[...document.querySelectorAll('.resident-settings select')[0].options].map(option => option.textContent)"), ["Use app settings", "Anthropic / Big", "Anthropic / Small"], "unavailable models are not offered");
-      assert.deepEqual(await evaluate("[...document.querySelectorAll('.resident-settings select')[1].options].map(option => option.value)"), ["", "off", "minimal", "low", "medium", "high", "xhigh", "max"], "any effort until a model narrows it");
+      assert.deepEqual(await evaluate("[...document.querySelectorAll('.resident-settings select')[1].options].map(option => option.value)"), ["", "off", "minimal", "low", "medium", "high", "xhigh", "max", "ultra"], "any effort until a model narrows it");
       await pick(0, JSON.stringify(["anthropic", "big"]));
       await until("window.residentFixture.calls.some(call => call.method === 'updateSettings' && call.patch.model?.id === 'big')");
       assert.deepEqual(await evaluate("[...document.querySelectorAll('.resident-settings select')[1].options].map(option => option.value)"), ["", "off", "low", "high"], "effort follows the chosen model");

@@ -134,6 +134,11 @@ if (!process.versions.electron) {
       },
       bundle: true, platform: "browser", format: "iife", jsx: "automatic",
       outfile: join(temporary, "ui.js"), loader: { ".svg": "dataurl" },
+      // 展示节奏有自己的单元测试；这里验证 UI 解析与交互，文字追加后立即可见，不被逐帧限速拖慢断言。
+      plugins: [{ name: "unpaced-text", setup(b) {
+        b.onResolve({ filter: /hooks\/usePacedText$/ }, () => ({ path: "unpaced-text", namespace: "unpaced-text" }));
+        b.onLoad({ filter: /.*/, namespace: "unpaced-text" }, () => ({ contents: "export const usePacedText = text => ({ text, resumed: false });", loader: "js" }));
+      } }],
       alias: { "@vela/shared": resolve(here, "../../../packages/shared/src/index.ts") },
       define: { "process.env.NODE_ENV": '"development"', "import.meta.env.DEV": "false" },
     });
