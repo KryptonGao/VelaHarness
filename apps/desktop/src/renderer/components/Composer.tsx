@@ -24,6 +24,7 @@ import { ApprovalSlot } from "./composer/ApprovalBanner";
 import { AttachMenu } from "./composer/AttachMenu";
 import { BranchChip } from "./composer/BranchChip";
 import { ComposerStatsRow } from "./composer/ComposerStatsRow";
+import { ComposerTray } from "./composer/ComposerTray";
 import { EnvironmentChip } from "./composer/EnvironmentChip";
 import { ModeChip } from "./composer/ModeChip";
 import { ModePicker } from "./composer/ModePicker";
@@ -973,7 +974,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
                 {actions}
               </div>
             </div>
-            <div className="composer-tray">
+            <ComposerTray>
               <div className="composer-tray-left">
                 <div className="composer-tray-chips">
                   {modePicker}
@@ -983,7 +984,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
                 {showStats ? <ComposerStatsRow usage={usage} contextPopover={contextPopover} /> : null}
                 {modelControls}
               </div>
-            </div>
+            </ComposerTray>
           </>
         ) : (
           <>

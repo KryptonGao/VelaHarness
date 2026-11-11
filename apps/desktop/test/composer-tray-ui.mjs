@@ -21,6 +21,7 @@ if (!process.versions.electron) {
         import { flushSync } from 'react-dom';
         import { ModePicker } from './apps/desktop/src/renderer/components/composer/ModePicker';
         import { ComposerStatsRow } from './apps/desktop/src/renderer/components/composer/ComposerStatsRow';
+        import { ComposerTray } from './apps/desktop/src/renderer/components/composer/ComposerTray';
         import { ModelControls } from './apps/desktop/src/renderer/components/ModelControls';
         import { AppLocaleProvider, setActiveLocale } from './apps/desktop/src/renderer/locale';
         const hour = 3600000;
@@ -31,7 +32,7 @@ if (!process.versions.electron) {
         const noop = async () => undefined;
         const root = createRoot(document.getElementById('root'));
         const usage = {tokens: 52000, contextWindow: 200000, percent: 26, outputSpeed: 241, sessionTokens: 257000, cacheHitRate: 0.97};
-        window.mount = (locale, thinkingLevel, sandbox, width) => {
+        window.mount = (locale, thinkingLevel, sandbox, width, modelLabel = 'GPT-6.1 Sol', outputSpeed = 241) => {
           setActiveLocale(locale);
           document.documentElement.dataset.composerLayout = 'capsule';
           flushSync(() => root.render(
@@ -39,16 +40,16 @@ if (!process.versions.electron) {
               <div id="lane" style={{width: width + 'px', paddingTop: '420px'}}>
                 <form className="floating-input-card layout-capsule">
                   <div className="composer-capsule"><div className="composer-capsule-main">x</div></div>
-                  <div className="composer-tray">
+                  <ComposerTray>
                     <div className="composer-tray-left">
                       <div className="composer-tray-chips">
                         <ModePicker mode="agent" sandboxMode={sandbox} disabled={false} onMode={() => {}} onSandboxMode={noop} race={{ onStart: () => {}, onShow: () => {}, count: 2 }} />
                       </div>
                     </div>
                     <div className="composer-tray-right">
-                      <ComposerStatsRow usage={usage} contextPopover={false} />
+                      <ComposerStatsRow usage={{...usage, outputSpeed}} contextPopover={false} />
                       <ModelControls
-                        modelLabel="GPT-6.1 Sol" modelProvider="openai-codex" modelId="gpt-6.1-sol"
+                        modelLabel={modelLabel} modelProvider="openai-codex" modelId="gpt-6.1-sol"
                         thinkingLevel={thinkingLevel} thinkingLevels={['low', 'medium', 'high', 'xhigh']}
                         disabled={false} catalog={null} catalogError={null} actionError={null} hiddenModels={[]}
                         login={{active: false, notices: [], progress: null, prompt: null, error: null}}
@@ -56,7 +57,7 @@ if (!process.versions.electron) {
                         onLogin={noop} onReplyLogin={noop} onCancelLogin={noop} onDismissLogin={() => {}}
                       />
                     </div>
-                  </div>
+                  </ComposerTray>
                 </form>
                 <div id="hover-probe" style={{display: 'flex', gap: '12px', padding: '12px'}}>
                   <button type="button" className="composer-chip"><span>Workspace</span></button>
@@ -80,6 +81,22 @@ if (!process.versions.electron) {
             .filter(visible)
             .map(el => ({name: el.className.toString().split(' ').slice(0, 2).join(' '), ...rect(el)}));
           const label = document.querySelector('.model-pill-label');
+          const collapsed = tray.dataset.collapsed || '';
+          const stages = collapsed.split(' ').filter(Boolean);
+          let previousFits = false;
+          if (stages.length) {
+            // Independently check that restoring the last collapsed item would really overflow.
+            tray.dataset.measuring = 'true';
+            tray.dataset.collapsed = stages.slice(0, -1).join(' ');
+            const right = tray.querySelector('.composer-tray-right');
+            const items = [...right.children].filter(visible);
+            const first = items[0].getBoundingClientRect();
+            const last = items.at(-1).getBoundingClientRect();
+            previousFits = first.left >= tray.querySelector('.composer-tray-left').getBoundingClientRect().right + parseFloat(style.columnGap) - 0.5
+              && last.right <= bounds.right - parseFloat(style.paddingRight) + 0.5;
+            tray.dataset.collapsed = collapsed;
+            delete tray.dataset.measuring;
+          }
           return {
             trayLeft: bounds.left + parseFloat(style.paddingLeft),
             trayRight: bounds.right - parseFloat(style.paddingRight),
@@ -88,6 +105,9 @@ if (!process.versions.electron) {
             sandboxText: visible(document.querySelector('.mode-pill > span')),
             thinkingText: visible(document.querySelector('.thinking-label-text')),
             statsVisible: visible(document.querySelector('.composer-stats-row')),
+            speedVisible: visible(document.querySelector('.composer-stats-row > .composer-stat:has(> .composer-stat-text)')),
+            collapsed,
+            previousFits,
             overflowed: label ? label.scrollWidth > label.clientWidth : false,
           };
         };
@@ -121,7 +141,17 @@ if (!process.versions.electron) {
     try {
       await win.loadFile(join(process.env.VELA_COMPOSER_TRAY_UI_TEMP, "index.html"));
       const failures = [];
-      const widths = [800, 700, 640, 560, 520, 480, 440, 400, 360, 340, 318, 300, 280, 260, 240];
+      const checkLayout = (m, tag) => {
+        const ordered = [...m.controls].sort((a, b) => a.left - b.left);
+        for (let i = 1; i < ordered.length; i++) {
+          if (ordered[i].left < ordered[i - 1].right - 0.5) failures.push(`${tag}: ${ordered[i - 1].name} 与 ${ordered[i].name} 重叠`);
+        }
+        if (ordered[0].left < m.trayLeft - 0.5) failures.push(`${tag}: 超出左边界`);
+        if (ordered.at(-1).right > m.trayRight + 0.5) failures.push(`${tag}: 超出右边界`);
+        if (m.modelLabelWidth < 28) failures.push(`${tag}: 模型名只剩 ${m.modelLabelWidth}px`);
+        if (m.previousFits) failures.push(`${tag}: 收起过多 ${m.collapsed}`);
+      };
+      const widths = [800, 760, 700, 640, 560, 520, 480, 440, 400, 360, 340, 318, 300, 280, 260, 240, 400, 640, 760, 800];
       for (const [locale, sandbox, level] of [["zh-CN", "full", "high"], ["en", "ask", "medium"], ["en", "smart", "xhigh"], ["zh-TW", "full", "high"], ["ja", "ask", "medium"], ["ko", "ask", "xhigh"]]) {
         await evaluate(`window.mount(${JSON.stringify(locale)}, ${JSON.stringify(level)}, ${JSON.stringify(sandbox)}, 800); window.setWidth(800)`);
         // 用量环是异步拉取的，等它出现后再量，否则看不到最挤的情况。
@@ -132,14 +162,7 @@ if (!process.versions.electron) {
           await settle();
           const m = await evaluate("window.measure()");
           const tag = `${locale}/${sandbox}/${level}@${width}`;
-          const ordered = [...m.controls].sort((a, b) => a.left - b.left);
-          for (let i = 1; i < ordered.length; i++) {
-            if (ordered[i].left < ordered[i - 1].right - 0.5) failures.push(`${tag}: ${ordered[i - 1].name} 与 ${ordered[i].name} 重叠`);
-          }
-          if (ordered[0].left < m.trayLeft - 0.5) failures.push(`${tag}: 超出左边界`);
-          if (ordered.at(-1).right > m.trayRight + 0.5) failures.push(`${tag}: 超出右边界`);
-          // 模型名要能认得出：至少留下约 4 个字符。
-          if (m.modelLabelWidth < 28) failures.push(`${tag}: 模型名只剩 ${m.modelLabelWidth}px`);
+          checkLayout(m, tag);
           if (shots && locale === "zh-CN" && [640, 480, 400, 340, 318, 260].includes(width)) {
             const image = await win.webContents.capturePage();
             writeFileSync(join(shots, `tray-${width}.png`), image.toPNG());
@@ -147,11 +170,39 @@ if (!process.versions.electron) {
           if (process.env.VELA_COMPOSER_TRAY_DUMP) console.log(tag, Math.round(m.trayRight - m.trayLeft), "label", Math.round(m.modelLabelWidth), "sandbox", m.sandboxText, "thinking", m.thinkingText, "stats", m.statsVisible);
         }
       }
+      // Intrinsic width changes must refit without changing the lane width.
+      for (const locale of ['en', 'ja']) {
+        for (const scale of [0.85, 1, 1.3, 1.6]) {
+          await evaluate(`document.documentElement.style.setProperty('--ui-scale', '${scale}')`);
+          for (const width of [760, 640, 400, 240, 760]) {
+            await evaluate(`window.mount('${locale}', 'xhigh', 'full', ${width}, 'A very long model name for the composer regression')`);
+            await settle();
+            checkLayout(await evaluate('window.measure()'), `${locale}/scale=${scale}/long-model@${width}`);
+          }
+        }
+      }
+      await evaluate("document.documentElement.style.removeProperty('--ui-scale')");
+      await evaluate("window.mount('en', 'high', 'full', 760, 'GPT-6.1 Sol', 123456789012345)");
+      await settle();
+      checkLayout(await evaluate('window.measure()'), 'updated-speed');
       // 宽度足够时不应无故收起文字。
       await evaluate("window.mount('zh-CN', 'high', 'full', 800); window.setWidth(800)");
       await settle();
       const wide = await evaluate("window.measure()");
-      assert.ok(wide.sandboxText && wide.thinkingText && wide.statsVisible, "宽托盘应保留全部文字");
+      assert.ok(wide.sandboxText && wide.thinkingText && wide.statsVisible && wide.speedVisible, "宽托盘应保留全部文字和速度");
+      // Regression: the old 760px container breakpoint hid speed despite ample free space.
+      await evaluate("window.mount('en', 'high', 'full', 760)");
+      await settle();
+      assert.ok((await evaluate("window.measure()")).speedVisible, "760px 下放得下时仍应显示 tok/s");
+      if (shots) writeFileSync(join(shots, 'speed-at-760.png'), (await win.webContents.capturePage()).toPNG());
+      // A tray updated while hidden must also refit when it becomes visible.
+      await evaluate("document.getElementById('lane').style.display = 'none'; window.mount('en', 'high', 'full', 760, 'GPT-6.1 Sol', 123456789012345)");
+      await settle();
+      await evaluate("document.getElementById('lane').style.display = ''");
+      await settle();
+      checkLayout(await evaluate('window.measure()'), 'revealed-tray');
+      await evaluate("window.mount('zh-CN', 'high', 'full', 800)");
+      await settle();
       assert.equal(await evaluate("document.querySelector('.mode-pill').getAttribute('aria-label')"), "完全访问", "权限芯片需要可读名称");
       assert.match(await evaluate("document.querySelector('.model-choice-pill').title"), /高/, "思考强度提示需要包含当前档位");
       // 输入框周围可点控件的 hover 只有两条规则：
@@ -192,7 +243,7 @@ if (!process.versions.electron) {
       }
       win.webContents.sendInputEvent({ type: "mouseMove", x: 2, y: 2 });
       // 只剩图标时仍然打得开菜单。
-      await evaluate("window.setWidth(300)");
+      await evaluate("window.setWidth(240)");
       await settle();
       const narrow = await evaluate("window.measure()");
       assert.ok(!narrow.sandboxText && !narrow.thinkingText, "窄托盘应收起权限和思考强度文字");
@@ -212,7 +263,7 @@ if (!process.versions.electron) {
       }
       assert.deepEqual(failures, []);
       assert.deepEqual(errors, []);
-      console.log(`PASS: 托盘 ${widths.length} 档宽度 × 6 组语言/权限/强度无重叠、无溢出，模型名可见`);
+      console.log(`PASS: 托盘 ${widths.length} 次宽窄切换 × 6 组语言/权限/强度；40 组字号/长模型名；速度恢复和隐藏后重现，无重叠、无溢出、无过度收起`);
     } catch (error) { console.error(error); process.exitCode = 1; }
     finally { win.destroy(); app.exit(process.exitCode ?? 0); }
   }).catch(error => { console.error(error); app.exit(1); });

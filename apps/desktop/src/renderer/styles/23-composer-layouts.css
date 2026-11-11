@@ -129,43 +129,24 @@
 .composer-tray .composer-stats-row { margin: 0; padding: 0; font-size: calc(12.5px * var(--ui-scale)); }
 .composer-tray .composer-stats-row:empty { display: none; }
 .composer-tray-right .composer-stats-row { column-gap: 10px; }
-/* 托盘不换行:放不下时按优先级逐级收起(速度 → token 与缓存命中 → 占用百分比 → 权限文字 → 占用环 → 思考强度文字与箭头 → 模型箭头 → 额度环),模式、权限图标、思考强度拨盘与模型名始终保留。 */
-.composer-tray { container: composer-tray / inline-size; flex-wrap: nowrap; }
+/* Measure actual content before collapsing: speed → totals → percentage → permission → context → reasoning → model arrow → quota. */
+.composer-tray { contain: inline-size; flex-wrap: nowrap; }
+.composer-tray[data-measuring] .model-controls { flex-shrink: 0; }
 .composer-tray-left { flex: 0 0 auto; }
 /* 模式与权限芯片也不换行,宽度由模型选择去让。 */
 .composer-tray-chips { flex-wrap: nowrap; }
 .composer-tray-chips > * { flex-shrink: 0; }
 .composer-tray-right { flex: 1 1 auto; min-width: 0; }
 .composer-tray-right .composer-stats-row { flex-wrap: nowrap; flex-shrink: 0; }
-@container composer-tray (max-width: 760px) {
-  .composer-tray-left > .composer-tray-sep,
-  .composer-tray-left > .composer-stats-row,
-  .composer-tray-right .composer-stats-row > .composer-stat:not(.composer-stat-context):has(> .composer-stat-text) { display: none; }
-}
-@container composer-tray (max-width: 700px) {
-  .composer-tray-right .composer-stats-row > .composer-stat:not(.composer-stat-context) { display: none; }
-}
-@container composer-tray (max-width: 560px) {
-  .composer-tray-right .composer-stat-context .composer-stat-text { display: none; }
-}
-@container composer-tray (max-width: 520px) {
-  .sandbox-pill > span,
-  .mode-pill.mode-combined > span { display: none; }
-}
-@container composer-tray (max-width: 420px) {
-  .composer-tray-right .composer-stats-row { display: none; }
-}
-@container composer-tray (max-width: 380px) {
-  .model-choice-pill:has(.thinking-glyph) { padding-right: 6px; }
-  .model-choice-pill:has(.thinking-glyph) :is(.thinking-label-text, .thinking-chevron) { display: none; }
-}
-@container composer-tray (max-width: 260px) {
-  .model-pill > svg { display: none; }
-  .model-controls { gap: 2px; }
-}
-@container composer-tray (max-width: 230px) {
-  .model-controls .usage-menu { display: none; }
-}
+.composer-tray[data-collapsed~="speed"] .composer-stats-row > .composer-stat:not(.composer-stat-context):has(> .composer-stat-text) { display: none; }
+.composer-tray[data-collapsed~="totals"] .composer-stats-row > .composer-stat:not(.composer-stat-context) { display: none; }
+.composer-tray[data-collapsed~="percent"] .composer-stat-context .composer-stat-text { display: none; }
+.composer-tray[data-collapsed~="permission"] :is(.sandbox-pill, .mode-pill.mode-combined) > span { display: none; }
+.composer-tray[data-collapsed~="context"] .composer-stats-row { display: none; }
+.composer-tray[data-collapsed~="reasoning"] .model-choice-pill:has(.thinking-glyph) { padding-right: 6px; }
+.composer-tray[data-collapsed~="reasoning"] .model-choice-pill:has(.thinking-glyph) :is(.thinking-label-text, .thinking-chevron) { display: none; }
+.composer-tray[data-collapsed~="model-arrow"] .model-pill > svg { display: none; }
+.composer-tray[data-collapsed~="quota"] .model-controls .usage-menu { display: none; }
 
 /* 「上下文」标签页 */
 .ctx-summary { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
