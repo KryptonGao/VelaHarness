@@ -36,6 +36,15 @@ const fixtures = {
   "shell-output": [tool("bash_output", presentation("shell", { operation: "read", shell, output: "first log line\nsecond log line", truncated: true }), rawShell + "\nfirst log line\nsecond log line")],
   "shell-kill": [tool("bash_kill", presentation("shell", { operation: "kill", shell: { ...shell, status: "killed", exitCode: null }, killed: true }), "Stopped background shell bg-ui-1.")],
   "shell-error": [tool("bash_output", presentation("shell", { operation: "read", shell: { id: "bg-missing" } }, "request"), "Unknown shell bg-missing", "error")],
+  "failed-operations": [
+    tool("bash", undefined, "Command failed", "error", { command: "pnpm fixture" }),
+    tool("edit", undefined, "Edit failed", "error", { path: "fixture.ts" }),
+    tool("read", undefined, "Read failed", "error", { path: "missing.ts" }),
+    tool("web_search", undefined, "Search failed", "error", { command: "fixture query" }),
+    tool("browser_repl", undefined, "Browser failed", "error", { command: "await tab.snapshot()" }),
+    tool("mcp__fixture__failed", undefined, "MCP failed", "error", { mcp: { server: "fixture", tool: "failed" } }),
+  ],
+  "running-operation": [tool("bash", undefined, undefined, "running", { command: "pnpm fixture" })],
   schedule: [tool("list_scheduled_tasks", presentation("schedule", { operation: "list", tasks, runs }), JSON.stringify({ tasks, runs }))],
   "schedule-delete": [tool("delete_scheduled_task", presentation("schedule", { operation: "delete", tasks: [], runs: [], deletedId: "task-deleted" }), '{"deleted":"task-deleted"}')],
   "schedule-empty": [tool("list_scheduled_tasks", presentation("schedule", { operation: "list", tasks: [], runs: [] }), '{"tasks":[],"runs":[]}')],
@@ -190,6 +199,15 @@ if (!process.versions.electron) {
       assert.equal(await evaluate("[...document.styleSheets].some(sheet => sheet.href?.endsWith('/ui.css'))"), true, "Load the emitted component CSS, not only the base stylesheet");
 
       for (const display of ["card", "compact"]) {
+        await evaluate(`window.renderCase('failed-operations', ${JSON.stringify(display)})`);
+        await wait(320);
+        assert.equal(await evaluate("document.querySelectorAll('.tool-compact-error, .tool-status-mark.error').length"), 0,
+          `${display}: failed operations do not show trailing red crosses`);
+        assert.equal(await evaluate("document.querySelectorAll('.tool-status-swap svg').length"), 0,
+          `${display}: failure status slots contain no replacement icons`);
+        await openCase("running-operation", display);
+        assert.equal(await evaluate("document.querySelectorAll('.tool-status-swap [role=status]').length"), 1,
+          `${display}: running operations keep their activity indicator`);
         for (const scheme of ["light", "dark"]) {
           for (const width of [720, 360]) {
             await openCase("shell", display, scheme, width);
@@ -240,6 +258,8 @@ if (!process.versions.electron) {
         assert.match(await visibleText(), /Unknown shell bg-missing/);
         assert.match(await visibleText(), /不代表执行成功/);
         assert.ok(!(await visibleText()).includes("读取完成"));
+        assert.equal(await evaluate("document.querySelectorAll('.tool-compact-error, .tool-status-mark.error').length"), 0,
+          `${display}: failure details remain available without a trailing red cross`);
         console.log(`PASS ${display}: native keyboard, exact raw copy, copy failure, shell output/kill/error`);
 
         await openCase("schedule", display, "dark", 360);

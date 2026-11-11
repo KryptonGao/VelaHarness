@@ -298,7 +298,7 @@ function AgentToolCard({ tool, compact = false }: { tool: ToolTrace; compact?: b
             {live ? (
               <AgentStatusMark status={live.status} />
             ) : (
-              <CompactStatus running={tool.status === "running"} failed={tool.status === "error"} />
+              <CompactStatus running={tool.status === "running"} />
             )}
           </button>
           {/* 耗时排在箭头之后靠右,箭头才不会被耗时的 auto 外边距推到右边。 */}
@@ -384,7 +384,6 @@ function taskReport(body: string | undefined): string {
 function GenericToolCard({ tool, compact = false }: ToolCardProps) {
   const [open, setOpen] = useToolExpanded(foldRowId(tool.id), compact);
   const preview = useFilePreview();
-  const showTiming = useToolProcessDetails();
   const activity = tool.activity ?? {};
   const mcp = activity.mcp;
   const discovery = !mcp && isMcpDiscoveryTool(tool.name);
@@ -439,7 +438,7 @@ function GenericToolCard({ tool, compact = false }: ToolCardProps) {
             <polyline points="9 18 15 12 9 6" />
           </svg>
           {compact ? <ToolDurationLabel tool={tool} /> : null}
-          {compact && !(tool.status === "error" && showTiming) ? <StatusMark status={tool.status} compact /> : null}
+          {compact ? <StatusMark status={tool.status} compact /> : null}
         </button>
         {canPreview ? (
           <button
@@ -535,7 +534,7 @@ function BrowserReplCard({ tool, compact = false }: { tool: ToolTrace; compact?:
           <polyline points="9 18 15 12 9 6" />
         </svg>
         <ToolDurationLabel tool={tool} />
-        {compact ? <CompactStatus running={running} failed={failed} /> : <StatusMark status={tool.status} />}
+        {compact ? <CompactStatus running={running} /> : <StatusMark status={tool.status} />}
       </button>
       <ToolCollapse open={open}>
         {() => (
@@ -843,7 +842,7 @@ export const CompactToolLine = memo(function CompactToolLine({
             <polyline points="9 18 15 12 9 6" />
           </svg>
           <ToolDurationLabel tool={tool} />
-          <CompactStatus running={running} failed={failed} />
+          <CompactStatus running={running} />
         </button>
         <ToolCollapse open={open}>
         {() => <>
@@ -940,7 +939,7 @@ export const CompactToolLine = memo(function CompactToolLine({
           </button>
         ) : null}
         <ToolDurationLabel tool={tool} />
-        <CompactStatus running={running} failed={failed} />
+        <CompactStatus running={running} />
       </div>
       {hasFileDetails ? (
         <ToolCollapse open={detailOpen}>
@@ -998,29 +997,12 @@ function compactAction(kind: ToolKind, streaming = false, skill = false, skillNa
   return tr("已运行", "Ran");
 }
 
-/** 紧凑行只标异常状态:运行中转圈、失败红叉,完成不占位置。 */
-function CompactStatus({ running, failed: rawFailed }: { running: boolean; failed: boolean }) {
-  // 计时开启时,失败红叉改由耗时标签显示在「·」与时间之间。
-  const failed = rawFailed && !useToolProcessDetails();
-  const key = running ? "running" : failed ? "error" : "done";
+/** Only running calls show a status indicator; finished calls take no space. */
+function CompactStatus({ running }: { running: boolean }) {
+  const key = running ? "running" : "done";
   return <ContentSwap inline hideWhenEmpty className={`tool-status-swap compact is-${key}`} motionKey={key}>
-    {running || failed ? <CompactStatusContent running={running} failed={failed} /> : null}
+    {running ? <ActivityIndicator /> : null}
   </ContentSwap>;
-}
-
-function CompactStatusContent({ running, failed }: { running: boolean; failed: boolean }) {
-  if (running) return <ActivityIndicator />;
-  if (failed) {
-    return (
-      <span className="tool-compact-error" role="img" aria-label={tr("失败", "Failed")}>
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-          <line x1="18" y1="6" x2="6" y2="18" />
-          <line x1="6" y1="6" x2="18" y2="18" />
-        </svg>
-      </span>
-    );
-  }
-  return null;
 }
 
 function CopyIcon({ size = 13 }: { size?: number }) {
@@ -1455,28 +1437,11 @@ function collapseDiffContext(rows: DisplayDiffRow[]): DisplayDiffRow[] {
   return output;
 }
 
-/** 只标异常状态:运行中转圈、失败红叉;完成不显示,没有报错即成功。 */
+/** Keep running feedback without a trailing failure icon. */
 function StatusMark({ status, compact = false }: { status: ToolTrace["status"]; compact?: boolean }) {
   return <ContentSwap inline hideWhenEmpty className={`tool-status-swap is-${status}`} motionKey={status}>
-    {status === "running" || status === "error" ? <StatusMarkContent status={status} compact={compact} /> : null}
+    {status === "running" ? (compact ? <ActivityIndicator /> : <span className="tool-spinner" role="status" aria-label={tr("运行中", "Running")} />) : null}
   </ContentSwap>;
-}
-
-function StatusMarkContent({ status, compact = false }: { status: ToolTrace["status"]; compact?: boolean }) {
-  if (status === "running") {
-    return compact ? <ActivityIndicator /> : <span className="tool-spinner" role="status" aria-label={tr("运行中", "Running")} />;
-  }
-  if (status === "error") {
-    return (
-      <span className="tool-status-mark error" role="img" aria-label={tr("失败", "Failed")}>
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-          <line x1="18" y1="6" x2="6" y2="18" />
-          <line x1="6" y1="6" x2="18" y2="18" />
-        </svg>
-      </span>
-    );
-  }
-  return null;
 }
 
 function GroupIcon({ name, fallback }: { name: string; fallback: ReactNode }): ReactNode {
