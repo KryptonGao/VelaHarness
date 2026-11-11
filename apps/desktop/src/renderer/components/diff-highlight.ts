@@ -3,7 +3,8 @@
  * 单个差异过大时跳过高亮,只渲染纯文本,避免一次创建过多 DOM。
  */
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { highlightSnippet, languageForPath, type ThemedToken } from "./preview/highlighter";
+import { createLineTokenizer, highlightSnippet, languageForPath, type ThemedToken } from "./preview/highlighter";
+import type { IncrementalTokenizer } from "./preview/incremental-tokenizer";
 
 const maxHighlightChars = 400_000;
 const fontStyleMask = { italic: 1, bold: 2 } as const;
@@ -26,17 +27,41 @@ interface HighlightInput {
   newText: string;
 }
 
-/** 旧/新两侧各自整体分词;语言不支持或内容过大时返回 null。 */
-async function highlightDiff({ path, oldLines, newLines, oldText, newText }: HighlightInput): Promise<HighlightedDiff | null> {
+/** 一份差异两侧各自的增量分词器,随语言存在;语言变了就重建。 */
+interface SideTokenizers {
+  lang: string;
+  old: Promise<IncrementalTokenizer | null>;
+  next: Promise<IncrementalTokenizer | null>;
+}
+
+/**
+ * 旧/新两侧各自分词;语言不支持或内容过大时返回 null。
+ * 差异在末尾增长时,每一侧只对新增的行分词,没变的行沿用原来的 token 数组;
+ * 分段进行并在段间让出主线程,长文本不会一次卡住界面。
+ */
+async function highlightDiff({ path, oldLines, newLines, oldText, newText }: HighlightInput, tokenizers: { current: SideTokenizers | null }): Promise<HighlightedDiff | null> {
   const lang = languageForPath(path ?? "");
   if (!lang) return null;
   if (oldText.length + newText.length > maxHighlightChars) return null;
   const wrap = markupFragmentWrapper(lang, `${oldText}\n${newText}`);
-  const highlightSide = (text: string): Promise<TokenLines | null> =>
-    wrap ? highlightSnippet(lang, wrap + text).then((lines) => lines?.slice(1) ?? null) : highlightSnippet(lang, text);
+  if (wrap) {
+    // 补了标签头的片段每次都要整体处理,不走增量。
+    const highlightSide = (text: string): Promise<TokenLines | null> => highlightSnippet(lang, wrap + text).then((lines) => lines?.slice(1) ?? null);
+    const [old, next] = await Promise.all([
+      oldLines.length > 0 ? highlightSide(oldText) : Promise.resolve(null),
+      newLines.length > 0 ? highlightSide(newText) : Promise.resolve(null),
+    ]);
+    const alignedOld = alignTokens(old, oldLines.length);
+    const alignedNew = alignTokens(next, newLines.length);
+    return alignedOld || alignedNew ? { old: alignedOld, new: alignedNew } : null;
+  }
+  if (tokenizers.current?.lang !== lang) {
+    tokenizers.current = { lang, old: createLineTokenizer(lang), next: createLineTokenizer(lang) };
+  }
+  const sides = tokenizers.current;
   const [old, next] = await Promise.all([
-    oldLines.length > 0 ? highlightSide(oldText) : Promise.resolve(null),
-    newLines.length > 0 ? highlightSide(newText) : Promise.resolve(null),
+    oldLines.length > 0 ? sides.old.then((tokenizer) => tokenizer?.tokenize(oldLines) ?? null) : Promise.resolve(null),
+    newLines.length > 0 ? sides.next.then((tokenizer) => tokenizer?.tokenize(newLines) ?? null) : Promise.resolve(null),
   ]);
   const alignedOld = alignTokens(old, oldLines.length);
   const alignedNew = alignTokens(next, newLines.length);
@@ -63,6 +88,7 @@ export function useDiffHighlight(
   const latest = useRef<HighlightInput>({ path, oldLines, newLines, oldText, newText });
   latest.current = { path, oldLines, newLines, oldText, newText };
   const state = useRef<{ seq: number; lastStart: number; timer: number | undefined; done: HighlightInput | null }>({ seq: 0, lastStart: 0, timer: undefined, done: null });
+  const tokenizers = useRef<SideTokenizers | null>(null);
 
   // 一次性的完整高亮:内容不再流式增长时,每次变化立即重新分词。
   useEffect(() => {
@@ -76,7 +102,7 @@ export function useDiffHighlight(
     const done = run.done;
     if (done && done.path === input.path && done.oldText === input.oldText && done.newText === input.newText) return;
     setHighlight(null);
-    void highlightDiff(input).then((result) => {
+    void highlightDiff(input, tokenizers).then((result) => {
       if (seq !== run.seq) return;
       run.done = input;
       setHighlight(result);
@@ -94,7 +120,7 @@ export function useDiffHighlight(
       run.lastStart = performance.now();
       const seq = ++run.seq;
       const input = latest.current;
-      void highlightDiff(input).then((result) => {
+      void highlightDiff(input, tokenizers).then((result) => {
         if (seq !== run.seq) return;
         run.done = input;
         setHighlight(result);

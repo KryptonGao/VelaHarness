@@ -1,11 +1,13 @@
 import {
   createHighlighterCore,
+  type GrammarState,
   type HighlighterCore,
   type ThemeRegistrationAny,
   type ThemedToken,
 } from "shiki/core";
 import { createJavaScriptRegexEngine } from "shiki/engine/javascript";
 import { createLogger } from "../../logger";
+import { createIncrementalTokenizer, type IncrementalTokenizer } from "./incremental-tokenizer";
 
 const log = createLogger("highlight");
 
@@ -214,6 +216,39 @@ async function highlightWithLanguage(lang: string, content: string): Promise<The
     log.error(`codeToTokens failed: ${lang}`, error);
     return null;
   }
+}
+
+/**
+ * 某个语言的增量分词器:文本只在末尾追加时(流式写入的差异)只对新增的行分词,而不是整份重来。
+ * 语言不支持或加载失败时返回 null。
+ */
+export async function createLineTokenizer(lang: string): Promise<IncrementalTokenizer | null> {
+  if (!langImports[lang]) return null;
+  let highlighter: HighlighterCore;
+  try {
+    highlighter = await getHighlighter();
+  } catch (error) {
+    log.error("highlighter creation failed", error);
+    return null;
+  }
+  if (!(await ensureLanguage(highlighter, lang))) return null;
+  return createIncrementalTokenizer<GrammarState>((text, state) => {
+    try {
+      const result = highlighter.codeToTokens(text, {
+        lang,
+        theme: velaTheme,
+        tokenizeMaxLineLength: maxHighlightLineLength,
+        tokenizeTimeLimit: maxHighlightLineMs,
+        ...(state ? { grammarState: state } : {}),
+      });
+      const next = highlighter.getLastGrammarState(result.tokens);
+      // 拿不到结束状态就无法接着分词,按失败处理,调用方退回纯文本。
+      return next ? { tokens: result.tokens, state: next } : null;
+    } catch (error) {
+      log.error(`codeToTokens failed: ${lang}`, error);
+      return null;
+    }
+  });
 }
 
 /** 按文件路径高亮;语言不支持或加载失败时返回 null(纯文本)。 */

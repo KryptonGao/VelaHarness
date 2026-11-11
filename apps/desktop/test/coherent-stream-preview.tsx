@@ -20,11 +20,14 @@ const output = Array.from({ length: 12 }, (_, i) => `✓ check ${i + 1} passed`)
 
 const streamDiff = params.has("streamdiff");
 /** A file write still being generated: the diff grows by `lines` rows and `streaming` marks the pending arguments. */
+const css = params.get("ext") === "css";
 const streamingEdit = (id: string, lines: number): ToolTrace => ({
   id, name: "edit", status: "running",
   activity: {
-    path: "src/streamed.ts", streaming: { added: lines, removed: 0 },
-    diff: Array.from({ length: lines }, (_, k) => `+${k + 1} export const value${k} = compute(${k}, "payload-${k}"); // streamed line`).join("\n"),
+    path: css ? "src/streamed.css" : "src/streamed.ts", streaming: { added: lines, removed: 0 },
+    diff: Array.from({ length: lines }, (_, k) => css
+      ? `+${k + 1} .composer-layout-${k} > .slot:nth-child(${k}) { padding: ${k}px calc(var(--gap) * 2); color: color-mix(in srgb, var(--fg) 40%, transparent); }`
+      : `+${k + 1} export const value${k} = compute(${k}, "payload-${k}"); // streamed line`).join("\n"),
   },
 });
 
