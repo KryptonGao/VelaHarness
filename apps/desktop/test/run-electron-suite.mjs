@@ -29,6 +29,7 @@ const suites = {
     { name: "thinking-activity-ui", runner: "node" },
     { name: "thinking-activity-settings-ui", runner: "node" },
     { name: "expand-chevron-ui", runner: "node" },
+    { name: "plan-status-icon-ui", runner: "node" },
     { name: "chat-actions-ui", runner: "node" },
     { name: "workbench-chat-ui", runner: "node" },
     { name: "workbench-split-ui", runner: "node" },

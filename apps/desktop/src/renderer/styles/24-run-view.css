@@ -23,6 +23,8 @@
 .run-todo-mark {
   box-sizing: border-box; width: 16px; height: 16px; justify-self: center; display: grid; place-items: center;
   border-radius: 50%; border: 1.5px dashed var(--text-dim); color: var(--bg-elevated);
+  /* Keep oversized glyphs centered instead of letting their intrinsic size expand the grid. */
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
   transition: background-color 0.25s, border-color 0.25s;
 }
 .run-todo-list :is(li, .plan-checklist-item)[data-status="completed"] { color: var(--text-muted); }
