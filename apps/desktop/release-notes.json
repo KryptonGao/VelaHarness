@@ -1,134 +1,89 @@
 {
-  "version": "1.2.31",
+  "version": "1.2.32",
   "locales": {
     "en": {
-      "summary": "Vela 1.2.31 lets you choose whether files open in a new tab or replace the current preview, opens the full-screen viewer from images in the preview panel, and keeps long conversations and streaming diffs smoother.",
+      "summary": "Vela 1.2.32 lets final replies embed local images and removes the lag when several command outputs are expanded.",
       "highlights": [
         {
-          "title": "File opening mode",
-          "body": "Choose New tab or Current tab in Settings → Interface. Current tab replaces only file previews, and unused Files tabs are reused."
+          "title": "Local images in replies",
+          "body": "Replies can embed workspace, absolute, and file:// images with ![alt](path), with clear loading and missing states."
         },
         {
-          "title": "Full-screen image viewer",
-          "body": "Click an image in the right preview panel to open it in the full-screen viewer."
-        },
-        {
-          "title": "Smoother streaming",
-          "body": "Streaming diffs highlight only newly added lines, and finished turns no longer re-render on every frame, so long conversations stay responsive."
-        },
-        {
-          "title": "Composer stats stay visible",
-          "body": "The composer keeps speed, token totals, and context usage visible whenever they fit."
+          "title": "No more lag expanding commands",
+          "body": "Scroll edges and composer docks now fade to the background instead of blurring, so opening several command outputs stays smooth."
         }
       ],
       "improvements": [
-        "The jump-to-latest arrow appears on hover and keyboard focus.",
-        "Tool operations no longer end with a trailing failure cross.",
-        "Plan status glyphs stay centered in every marker size."
+        "Skill-read rows now have their own bookmark-spark icon.",
+        "Rows no longer look half sharp and half blurred near scroll edges."
       ]
     },
     "zh-CN": {
-      "summary": "Vela 1.2.31 新增文件打开方式设置，可选择在新标签页打开或替换当前预览；右侧预览面板中的图片可打开全屏查看器；长对话和流式差异也更流畅。",
+      "summary": "Vela 1.2.32 支持在最终回复中嵌入本地图片，并消除了同时展开多个命令输出时的卡顿。",
       "highlights": [
         {
-          "title": "文件打开方式",
-          "body": "在“设置 → 界面”中选择“新标签页”或“当前标签页”。“当前标签页”仅替换文件预览，尚未展示文件的“文件”页会被复用。"
+          "title": "回复中的本地图片",
+          "body": "回复可通过 ![alt](path) 嵌入工作区相对路径、绝对路径和 file:// 图片，并提供清晰的加载中与缺失状态。"
         },
         {
-          "title": "全屏图片查看器",
-          "body": "点击右侧预览面板中的图片，即可打开全屏查看器。"
-        },
-        {
-          "title": "更流畅的流式输出",
-          "body": "流式差异只对新增行做语法高亮，已完成的轮次不再逐帧重新渲染，长对话依然流畅。"
-        },
-        {
-          "title": "输入框统计常驻",
-          "body": "只要空间足够，输入框就会持续显示速度、token 总量和上下文占用。"
+          "title": "展开命令不再卡顿",
+          "body": "滚动边缘和输入框停靠区现在以渐隐过渡到背景，不再使用模糊，同时展开多个命令输出也保持流畅。"
         }
       ],
       "improvements": [
-        "回到最新消息的箭头会在悬停和键盘聚焦时显示。",
-        "工具操作末尾不再出现失败叉号。",
-        "计划状态图标在各种标记尺寸下都保持居中。"
+        "读取技能的行现在使用专属的书签星光图标。",
+        "滚动边缘附近的行不再出现一半清晰一半模糊的情况。"
       ]
     },
     "zh-TW": {
-      "summary": "Vela 1.2.31 新增檔案開啟方式設定，可選擇在新分頁開啟或取代目前預覽；右側預覽面板中的圖片可開啟全螢幕檢視器；長對話和串流差異也更流暢。",
+      "summary": "Vela 1.2.32 支援在最終回覆中嵌入本機圖片，並消除了同時展開多個命令輸出時的卡頓。",
       "highlights": [
         {
-          "title": "檔案開啟方式",
-          "body": "在「設定 → 介面」中選擇「新分頁」或「目前分頁」。「目前分頁」僅取代檔案預覽，尚未顯示檔案的「檔案」頁會被重複使用。"
+          "title": "回覆中的本機圖片",
+          "body": "回覆可透過 ![alt](path) 嵌入工作區相對路徑、絕對路徑和 file:// 圖片，並提供清楚的載入中與遺失狀態。"
         },
         {
-          "title": "全螢幕圖片檢視器",
-          "body": "點擊右側預覽面板中的圖片，即可開啟全螢幕檢視器。"
-        },
-        {
-          "title": "更流暢的串流輸出",
-          "body": "串流差異只對新增列做語法醒目提示，已完成的輪次不再逐幀重新渲染，長對話依然流暢。"
-        },
-        {
-          "title": "輸入框統計常駐",
-          "body": "只要空間足夠，輸入框就會持續顯示速度、token 總量和上下文占用。"
+          "title": "展開命令不再卡頓",
+          "body": "捲動邊緣和輸入框停靠區現在以漸隱過渡到背景，不再使用模糊，同時展開多個命令輸出也保持流暢。"
         }
       ],
       "improvements": [
-        "回到最新訊息的箭頭會在滑鼠懸停和鍵盤聚焦時顯示。",
-        "工具操作結尾不再出現失敗叉號。",
-        "計畫狀態圖示在各種標記尺寸下都保持置中。"
+        "讀取技能的列現在使用專屬的書籤星光圖示。",
+        "捲動邊緣附近的列不再出現一半清晰一半模糊的情況。"
       ]
     },
     "ja": {
-      "summary": "Vela 1.2.31 では、ファイルを新しいタブで開くか現在のプレビューを置き換えるかを選べるようになり、プレビューパネルの画像から全画面ビューアを開けます。長い会話やストリーミング中の差分もより滑らかになりました。",
+      "summary": "Vela 1.2.32 では、最終返信にローカル画像を埋め込めるようになり、複数のコマンド出力を展開したときの遅延も解消しました。",
       "highlights": [
         {
-          "title": "ファイルの開き方",
-          "body": "設定 → インターフェースで「新しいタブ」または「現在のタブ」を選べます。「現在のタブ」はファイルプレビューのみを置き換え、未使用の「ファイル」タブは再利用されます。"
+          "title": "返信内のローカル画像",
+          "body": "返信では ![alt](path) でワークスペース相対パス、絶対パス、file:// の画像を埋め込め、読み込み中と見つからない場合の状態も表示されます。"
         },
         {
-          "title": "全画面の画像ビューア",
-          "body": "右側のプレビューパネルで画像をクリックすると、全画面ビューアが開きます。"
-        },
-        {
-          "title": "より滑らかなストリーミング",
-          "body": "ストリーミング中の差分は追加された行だけをハイライトし、完了したターンはフレームごとに再描画されないため、長い会話でも快適です。"
-        },
-        {
-          "title": "入力欄の統計を常に表示",
-          "body": "入力欄は、収まる限り速度、トークン合計、コンテキスト使用量を表示し続けます。"
+          "title": "コマンド展開の遅延を解消",
+          "body": "スクロール端と入力欄のドックはぼかしではなく背景へのフェードになり、複数のコマンド出力を開いても滑らかです。"
         }
       ],
       "improvements": [
-        "最新へ移動する矢印は、ホバーやキーボードフォーカス時に表示されます。",
-        "ツール操作の末尾に失敗の×印が付かなくなりました。",
-        "プランのステータスアイコンが、どのマーカーサイズでも中央に揃います。"
+        "スキルを読み取る行に専用のブックマークスパークアイコンが付きました。",
+        "スクロール端付近で行が半分だけぼやけて見える問題を解消しました。"
       ]
     },
     "ko": {
-      "summary": "Vela 1.2.31은 파일을 새 탭에서 열지 현재 미리보기를 대체할지 고를 수 있게 하고, 미리보기 패널의 이미지에서 전체 화면 뷰어를 열 수 있게 하며, 긴 대화와 스트리밍 diff를 더 부드럽게 만들었습니다.",
+      "summary": "Vela 1.2.32는 최종 답변에 로컬 이미지를 삽입할 수 있게 하고, 여러 명령 출력을 펼칠 때 생기던 지연을 없앴습니다.",
       "highlights": [
         {
-          "title": "파일 열기 방식",
-          "body": "설정 → 인터페이스에서 '새 탭' 또는 '현재 탭'을 선택합니다. '현재 탭'은 파일 미리보기만 대체하며, 비어 있는 '파일' 탭은 재사용됩니다."
+          "title": "답변 속 로컬 이미지",
+          "body": "답변에서 ![alt](path)로 워크스페이스 상대 경로, 절대 경로, file:// 이미지를 삽입할 수 있으며 로딩 중과 누락 상태도 표시됩니다."
         },
         {
-          "title": "전체 화면 이미지 뷰어",
-          "body": "오른쪽 미리보기 패널의 이미지를 클릭하면 전체 화면 뷰어가 열립니다."
-        },
-        {
-          "title": "더 부드러운 스트리밍",
-          "body": "스트리밍 diff는 새로 추가된 줄만 구문 강조하고, 완료된 턴은 프레임마다 다시 렌더링되지 않아 긴 대화에서도 반응이 빠릅니다."
-        },
-        {
-          "title": "입력창 통계 상시 표시",
-          "body": "공간이 충분하면 입력창이 속도, 토큰 합계, 컨텍스트 사용량을 계속 보여 줍니다."
+          "title": "명령 펼침 지연 해소",
+          "body": "스크롤 가장자리와 입력창 독이 흐림 대신 배경으로 페이드되어, 여러 명령 출력을 열어도 부드럽게 동작합니다."
         }
       ],
       "improvements": [
-        "최신으로 이동 화살표가 마우스를 올리거나 키보드 포커스가 갈 때 나타납니다.",
-        "도구 작업 끝에 더 이상 실패 X 표시가 붙지 않습니다.",
-        "계획 상태 아이콘이 모든 마커 크기에서 가운데에 정렬됩니다."
+        "스킬을 읽는 행에 전용 북마크 스파크 아이콘이 생겼습니다.",
+        "스크롤 가장자리 근처의 행이 절반만 흐리게 보이던 문제가 사라졌습니다."
       ]
     }
   }
