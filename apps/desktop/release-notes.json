@@ -1,134 +1,134 @@
 {
-  "version": "1.2.30",
+  "version": "1.2.31",
   "locales": {
     "en": {
-      "summary": "Vela 1.2.30 adds an optional review layout for version control, a tint opacity setting for translucent window edges, and provider error cards in the chat stream, serves the skill marketplace from a signed cloud catalog, and makes large conversations stream more smoothly.",
+      "summary": "Vela 1.2.31 lets you choose whether files open in a new tab or replace the current preview, opens the full-screen viewer from images in the preview panel, and keeps long conversations and streaming diffs smoother.",
       "highlights": [
         {
-          "title": "Version control review layout",
-          "body": "Choose Review in Settings → Interface to put files and the commit composer in one rail with more room for diffs. Classic stays the default."
+          "title": "File opening mode",
+          "body": "Choose New tab or Current tab in Settings → Interface. Current tab replaces only file previews, and unused Files tabs are reused."
         },
         {
-          "title": "Provider errors as cards",
-          "body": "Usage limits, rate limits, overload, auth, and context-length errors now appear as a card in the chat stream, with the plan and wait time when the provider reports them."
+          "title": "Full-screen image viewer",
+          "body": "Click an image in the right preview panel to open it in the full-screen viewer."
         },
         {
-          "title": "Tint opacity",
-          "body": "A 0–100% slider in Settings → Appearance sets how strongly the translucent window edges are tinted, with a reset action."
+          "title": "Smoother streaming",
+          "body": "Streaming diffs highlight only newly added lines, and finished turns no longer re-render on every frame, so long conversations stay responsive."
         },
         {
-          "title": "Signed skill marketplace",
-          "body": "The catalog and skill files now come from a signed cloud service, with install counts shown, and a built-in catalog as the offline fallback."
+          "title": "Composer stats stay visible",
+          "body": "The composer keeps speed, token totals, and context usage visible whenever they fit."
         }
       ],
       "improvements": [
-        "Large thinking groups and streaming file diffs re-render far less, so long streams stay responsive.",
-        "Thinking activity headlines use short localized labels while tool details stay in their rows.",
-        "Theme grids show three rows with edge-blur scrolling, and the Settings Done button is gone."
+        "The jump-to-latest arrow appears on hover and keyboard focus.",
+        "Tool operations no longer end with a trailing failure cross.",
+        "Plan status glyphs stay centered in every marker size."
       ]
     },
     "zh-CN": {
-      "summary": "Vela 1.2.30 新增可选的版本控制审查布局、半透明窗口边缘的染色不透明度设置，以及对话流中的服务商错误卡片；技能市场改由签名的云端目录提供；长对话的流式输出也更流畅。",
+      "summary": "Vela 1.2.31 新增文件打开方式设置，可选择在新标签页打开或替换当前预览；右侧预览面板中的图片可打开全屏查看器；长对话和流式差异也更流畅。",
       "highlights": [
         {
-          "title": "版本控制审查布局",
-          "body": "在“设置 → 界面”中选择“审查布局”，文件列表和提交编辑区会合并到同一侧栏，为差异审查留出更多空间。默认仍为经典布局。"
+          "title": "文件打开方式",
+          "body": "在“设置 → 界面”中选择“新标签页”或“当前标签页”。“当前标签页”仅替换文件预览，尚未展示文件的“文件”页会被复用。"
         },
         {
-          "title": "服务商错误卡片",
-          "body": "用量上限、速率限制、服务过载、认证和上下文长度等错误现在以卡片显示在对话流中，服务商提供套餐和等待时间时也会一并展示。"
+          "title": "全屏图片查看器",
+          "body": "点击右侧预览面板中的图片，即可打开全屏查看器。"
         },
         {
-          "title": "染色不透明度",
-          "body": "在“设置 → 外观”中用 0–100% 滑块调节半透明窗口边缘的染色强度，并可一键重置。"
+          "title": "更流畅的流式输出",
+          "body": "流式差异只对新增行做语法高亮，已完成的轮次不再逐帧重新渲染，长对话依然流畅。"
         },
         {
-          "title": "签名的技能市场",
-          "body": "目录和技能文件现在来自带签名的云端服务，并显示安装次数；云端不可用时使用内置目录作为备用。"
+          "title": "输入框统计常驻",
+          "body": "只要空间足够，输入框就会持续显示速度、token 总量和上下文占用。"
         }
       ],
       "improvements": [
-        "大型思考分组和流式文件差异的重复渲染大幅减少，长时间输出依然流畅。",
-        "思考活动标题改用简短的本地化操作名称，工具详情仍保留在各自的行内。",
-        "主题网格限制为三行并支持边缘模糊滚动，设置页的“完成”按钮已移除。"
+        "回到最新消息的箭头会在悬停和键盘聚焦时显示。",
+        "工具操作末尾不再出现失败叉号。",
+        "计划状态图标在各种标记尺寸下都保持居中。"
       ]
     },
     "zh-TW": {
-      "summary": "Vela 1.2.30 新增可選的版本控制審查版面、半透明視窗邊緣的染色不透明度設定，以及對話串流中的服務商錯誤卡片；技能市集改由簽章的雲端目錄提供；長對話的串流輸出也更流暢。",
+      "summary": "Vela 1.2.31 新增檔案開啟方式設定，可選擇在新分頁開啟或取代目前預覽；右側預覽面板中的圖片可開啟全螢幕檢視器；長對話和串流差異也更流暢。",
       "highlights": [
         {
-          "title": "版本控制審查版面",
-          "body": "在「設定 → 介面」中選擇「審查版面」，檔案清單和提交編輯區會合併到同一側欄，為差異審查留出更多空間。預設仍為經典版面。"
+          "title": "檔案開啟方式",
+          "body": "在「設定 → 介面」中選擇「新分頁」或「目前分頁」。「目前分頁」僅取代檔案預覽，尚未顯示檔案的「檔案」頁會被重複使用。"
         },
         {
-          "title": "服務商錯誤卡片",
-          "body": "用量上限、速率限制、服務過載、驗證和上下文長度等錯誤現在以卡片顯示在對話串流中，服務商提供方案和等待時間時也會一併顯示。"
+          "title": "全螢幕圖片檢視器",
+          "body": "點擊右側預覽面板中的圖片，即可開啟全螢幕檢視器。"
         },
         {
-          "title": "染色不透明度",
-          "body": "在「設定 → 外觀」中用 0–100% 滑桿調整半透明視窗邊緣的染色強度，並可一鍵重設。"
+          "title": "更流暢的串流輸出",
+          "body": "串流差異只對新增列做語法醒目提示，已完成的輪次不再逐幀重新渲染，長對話依然流暢。"
         },
         {
-          "title": "簽章的技能市集",
-          "body": "目錄和技能檔案現在來自帶簽章的雲端服務，並顯示安裝次數；雲端無法使用時以內建目錄作為備援。"
+          "title": "輸入框統計常駐",
+          "body": "只要空間足夠，輸入框就會持續顯示速度、token 總量和上下文占用。"
         }
       ],
       "improvements": [
-        "大型思考群組和串流檔案差異的重複渲染大幅減少，長時間輸出依然流暢。",
-        "思考活動標題改用簡短的在地化操作名稱，工具詳情仍保留在各自的列內。",
-        "主題格線限制為三列並支援邊緣模糊捲動，設定頁的「完成」按鈕已移除。"
+        "回到最新訊息的箭頭會在滑鼠懸停和鍵盤聚焦時顯示。",
+        "工具操作結尾不再出現失敗叉號。",
+        "計畫狀態圖示在各種標記尺寸下都保持置中。"
       ]
     },
     "ja": {
-      "summary": "Vela 1.2.30 では、バージョン管理のレビューレイアウト（任意）、半透明ウィンドウ縁の色味の不透明度設定、チャット内のプロバイダーエラーカードを追加しました。スキルマーケットプレイスは署名付きクラウドカタログから提供され、大きな会話のストリーミングも滑らかになりました。",
+      "summary": "Vela 1.2.31 では、ファイルを新しいタブで開くか現在のプレビューを置き換えるかを選べるようになり、プレビューパネルの画像から全画面ビューアを開けます。長い会話やストリーミング中の差分もより滑らかになりました。",
       "highlights": [
         {
-          "title": "バージョン管理のレビューレイアウト",
-          "body": "設定 → インターフェースで「レビュー」を選ぶと、ファイル一覧とコミット入力欄が 1 つのサイドバーにまとまり、差分を見る領域が広がります。既定はクラシックのままです。"
+          "title": "ファイルの開き方",
+          "body": "設定 → インターフェースで「新しいタブ」または「現在のタブ」を選べます。「現在のタブ」はファイルプレビューのみを置き換え、未使用の「ファイル」タブは再利用されます。"
         },
         {
-          "title": "プロバイダーエラーをカードで表示",
-          "body": "使用量上限、レート制限、過負荷、認証、コンテキスト長のエラーがチャットにカードとして表示され、プロバイダーが返す場合はプランと待ち時間も示されます。"
+          "title": "全画面の画像ビューア",
+          "body": "右側のプレビューパネルで画像をクリックすると、全画面ビューアが開きます。"
         },
         {
-          "title": "色味の不透明度",
-          "body": "設定 → 外観の 0〜100% スライダーで、半透明ウィンドウ縁の色味の強さを調整でき、リセットもできます。"
+          "title": "より滑らかなストリーミング",
+          "body": "ストリーミング中の差分は追加された行だけをハイライトし、完了したターンはフレームごとに再描画されないため、長い会話でも快適です。"
         },
         {
-          "title": "署名付きスキルマーケットプレイス",
-          "body": "カタログとスキルファイルは署名付きクラウドサービスから提供され、インストール数も表示されます。オフライン時は内蔵カタログを使います。"
+          "title": "入力欄の統計を常に表示",
+          "body": "入力欄は、収まる限り速度、トークン合計、コンテキスト使用量を表示し続けます。"
         }
       ],
       "improvements": [
-        "大きな思考グループやストリーミング中のファイル差分の再描画が大幅に減り、長い出力でも快適に動作します。",
-        "思考アクティビティの見出しは短いローカライズ済みラベルになり、ツールの詳細は各行に残ります。",
-        "テーマグリッドは 3 行までに制限されて端のぼかしスクロールに対応し、設定の「完了」ボタンは削除されました。"
+        "最新へ移動する矢印は、ホバーやキーボードフォーカス時に表示されます。",
+        "ツール操作の末尾に失敗の×印が付かなくなりました。",
+        "プランのステータスアイコンが、どのマーカーサイズでも中央に揃います。"
       ]
     },
     "ko": {
-      "summary": "Vela 1.2.30은 선택형 버전 관리 리뷰 레이아웃, 반투명 창 가장자리의 색조 불투명도 설정, 채팅 스트림의 제공업체 오류 카드를 추가하고, 스킬 마켓플레이스를 서명된 클라우드 카탈로그로 제공하며, 큰 대화의 스트리밍을 더 부드럽게 만들었습니다.",
+      "summary": "Vela 1.2.31은 파일을 새 탭에서 열지 현재 미리보기를 대체할지 고를 수 있게 하고, 미리보기 패널의 이미지에서 전체 화면 뷰어를 열 수 있게 하며, 긴 대화와 스트리밍 diff를 더 부드럽게 만들었습니다.",
       "highlights": [
         {
-          "title": "버전 관리 리뷰 레이아웃",
-          "body": "설정 → 인터페이스에서 '리뷰'를 선택하면 파일 목록과 커밋 작성 영역이 하나의 사이드바에 모여 diff를 볼 공간이 넓어집니다. 기본값은 클래식입니다."
+          "title": "파일 열기 방식",
+          "body": "설정 → 인터페이스에서 '새 탭' 또는 '현재 탭'을 선택합니다. '현재 탭'은 파일 미리보기만 대체하며, 비어 있는 '파일' 탭은 재사용됩니다."
         },
         {
-          "title": "제공업체 오류 카드",
-          "body": "사용량 한도, 속도 제한, 과부하, 인증, 컨텍스트 길이 오류가 채팅 스트림에 카드로 표시되며, 제공업체가 알려 주면 요금제와 대기 시간도 함께 보여 줍니다."
+          "title": "전체 화면 이미지 뷰어",
+          "body": "오른쪽 미리보기 패널의 이미지를 클릭하면 전체 화면 뷰어가 열립니다."
         },
         {
-          "title": "색조 불투명도",
-          "body": "설정 → 외관의 0–100% 슬라이더로 반투명 창 가장자리의 색조 강도를 조절하고 초기화할 수 있습니다."
+          "title": "더 부드러운 스트리밍",
+          "body": "스트리밍 diff는 새로 추가된 줄만 구문 강조하고, 완료된 턴은 프레임마다 다시 렌더링되지 않아 긴 대화에서도 반응이 빠릅니다."
         },
         {
-          "title": "서명된 스킬 마켓플레이스",
-          "body": "카탈로그와 스킬 파일이 서명된 클라우드 서비스에서 제공되고 설치 횟수도 표시됩니다. 오프라인일 때는 내장 카탈로그를 사용합니다."
+          "title": "입력창 통계 상시 표시",
+          "body": "공간이 충분하면 입력창이 속도, 토큰 합계, 컨텍스트 사용량을 계속 보여 줍니다."
         }
       ],
       "improvements": [
-        "큰 생각 그룹과 스트리밍 파일 diff의 재렌더링이 크게 줄어 긴 출력에서도 반응이 빠릅니다.",
-        "생각 활동 헤드라인은 짧은 현지화 레이블을 쓰고, 도구 세부 정보는 각 행에 그대로 남습니다.",
-        "테마 그리드는 세 줄로 제한되고 가장자리 블러 스크롤을 지원하며, 설정의 '완료' 버튼은 제거되었습니다."
+        "최신으로 이동 화살표가 마우스를 올리거나 키보드 포커스가 갈 때 나타납니다.",
+        "도구 작업 끝에 더 이상 실패 X 표시가 붙지 않습니다.",
+        "계획 상태 아이콘이 모든 마커 크기에서 가운데에 정렬됩니다."
       ]
     }
   }
