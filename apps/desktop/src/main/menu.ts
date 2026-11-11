@@ -1,6 +1,7 @@
 import { app, BrowserWindow, Menu, shell, type MenuItemConstructorOptions } from "electron";
 import { IpcChannel, isMenuAction, localizeZh, type AppLocale, type MenuAction } from "@vela/shared";
 import desktopPackage from "../../package.json";
+import { restoreDefaultWindowSize } from "./window-size";
 
 const repoUrl = "https://github.com/KryptonGao/VelaHarness";
 let activeLocale: AppLocale = "zh-CN";
@@ -185,7 +186,22 @@ export function installApplicationMenu(): void {
         { label: text("侧边聊天", "Side Chat"), ...accelerator("side-chat"), click: () => sendMenuAction("side-chat") },
       ],
     },
-    { role: "windowMenu", label: text("窗口", "Window") },
+    {
+      role: "windowMenu", label: text("窗口", "Window"),
+      submenu: [
+        { role: "minimize" },
+        { role: "zoom" },
+        { type: "separator" },
+        {
+          label: text("恢复默认窗口大小", "Restore Default Window Size"),
+          accelerator: "CmdOrCtrl+Alt+0",
+          click: (_item, win) => { if (win instanceof BrowserWindow) restoreDefaultWindowSize(win); },
+        },
+        ...(isMac
+          ? [{ type: "separator" }, { role: "front" }] satisfies MenuItemConstructorOptions[]
+          : [{ role: "close" }] satisfies MenuItemConstructorOptions[]),
+      ],
+    },
     {
       label: text("帮助", "Help"),
       submenu: [

@@ -19,6 +19,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { ConversationExportHost } from "./conversation-export-host";
 import { getApplicationLocale, setApplicationLocale, setDiagnosticsMenuActions, setMenuAccelerators, setUpdateMenuAction } from "./menu";
+import { DEFAULT_WINDOW_SIZE } from "./window-size";
 import { LogService } from "./log-service";
 import { installCrashHandlers, LogHost, systemInfo } from "./log-host";
 import { StorageHost } from "./storage-host";
@@ -142,8 +143,7 @@ const windowChrome: BrowserWindowConstructorOptions =
 
 function createWindow(): BrowserWindow {
   const win = new BrowserWindow({
-    width: 1280,
-    height: 840,
+    ...DEFAULT_WINDOW_SIZE,
     minWidth: 960,
     minHeight: 640,
     show: false,

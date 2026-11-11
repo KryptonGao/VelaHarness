@@ -144,7 +144,7 @@ export function stealsTextEditing(binding: string): boolean {
 }
 
 /** 这些组合留给系统/编辑功能,不允许自定义占用。 */
-const RESERVED = new Set(["Mod+C", "Mod+V", "Mod+X", "Mod+A", "Mod+Z", "Mod+Shift+Z", "Mod+Q", "Mod+W", "Mod+H", "Mod+M", "Mod+F", "Mod+R", "Mod+S"]);
+const RESERVED = new Set(["Mod+C", "Mod+V", "Mod+X", "Mod+A", "Mod+Z", "Mod+Shift+Z", "Mod+Q", "Mod+W", "Mod+H", "Mod+M", "Mod+F", "Mod+R", "Mod+S", "Mod+Alt+0"]);
 export function isReservedBinding(binding: string): boolean {
   return RESERVED.has(binding);
 }

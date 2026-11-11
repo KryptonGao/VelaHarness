@@ -41,6 +41,7 @@ describe("shortcut bindings", () => {
     assert.equal(isUsableBinding("Alt+N"), true);
     assert.equal(isUsableBinding("F5"), true);
     assert.equal(isReservedBinding("Mod+C"), true);
+    assert.equal(isReservedBinding("Mod+Alt+0"), true);
     assert.equal(isReservedBinding("Mod+N"), false);
   });
 
