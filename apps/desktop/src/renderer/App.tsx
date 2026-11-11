@@ -51,6 +51,7 @@ import { useReplyFocus } from "./browser/reply-store";
 import { routeConversationLink } from "./browser/conversation-link-policy";
 import { useModels } from "./hooks/useModels";
 import { usePreferences } from "./hooks/usePreferences";
+import { useFilePreviewOpenMode } from "./hooks/useFilePreviewOpenMode";
 import { useNotificationSounds } from "./hooks/useNotificationSounds";
 import { isBoolean, isBooleanRecord, readStoredState, useStoredState } from "./hooks/useStoredState";
 import { actionForEvent, acceleratorMap, isShortcutRecording, resolveBindings, useShortcutOverrides, useShortcutRecording } from "./shortcuts";
@@ -242,6 +243,8 @@ export function App() {
   const [openedAgentsByConversation, setOpenedAgentsByConversation] = useState<Record<string, string[]>>({});
   const [planDocuments, setPlanDocuments] = useState<Record<string, PlanDocumentState>>({});
   const planDocument = planDocuments[conversationKey] ?? emptyPlanDocumentState;
+  const filePreviewOpenMode = useFilePreviewOpenMode();
+  const [fileTabReplacement, setFileTabReplacement] = useState<{ from: string; to: string } | null>(null);
   const [tabOrder, setTabOrder] = useState<string[]>([]);
   const [activeWorkbenchTabId, setActiveWorkbenchTabId] = useState<string | null>(null);
   const [visibleWorkbenchTabIds, setVisibleWorkbenchTabIds] = useState<string[]>([]);
@@ -378,18 +381,29 @@ export function App() {
     setActiveWorkbenchTabId(turnReviewTabId);
   }, [showTurnReview, turnReviewTabId]);
 
-  const onOpenFile = useCallback((file: PreviewFileDescriptor) => {
+  const onOpenFile = useCallback((file: PreviewFileDescriptor, replacedId?: string) => {
     fileWorkspaceRef.current = workspaceKey;
     setFileTabsByWorkspace((current) => {
       const files = current[workspaceKey] ?? [];
       const index = files.findIndex((item) => item.id === file.id);
-      if (index < 0) return { ...current, [workspaceKey]: [...files, file] };
+      if (index < 0) return { ...current, [workspaceKey]: replacedId && files.some(item => item.id === replacedId)
+        ? files.map(item => item.id === replacedId ? file : item)
+        : [...files, file] };
       return { ...current, [workspaceKey]: files.map((item, itemIndex) => itemIndex === index ? file : item) };
     });
     const id = fileTabId(workspaceKey, file.id);
-    setTabOrder((current) => current.includes(id) ? current : [...current, id]);
+    const newFile = !(fileTabsByWorkspace[workspaceKey] ?? []).some(item => item.id === file.id);
+    const from = replacedId ? fileTabId(workspaceKey, replacedId)
+      : newFile && filesTabOpen && activeWorkbenchTabId === filesTabId ? filesTabId : null;
+    if (from) {
+      if (from === filesTabId) setFilesTabOpen(false);
+      setFileTabReplacement({ from, to: id });
+    }
+    setTabOrder((current) => current.includes(id) ? current
+      : from && current.includes(from) ? current.map(item => item === from ? id : item) : [...current, id]);
+    setWorkbenchCollapsed(false);
     setActiveWorkbenchTabId(id);
-  }, [workspaceKey]);
+  }, [workspaceKey, fileTabsByWorkspace, filesTabOpen, activeWorkbenchTabId]);
 
   const onCloseFileTab = useCallback((fileId: string) => {
     const owner = fileWorkspaceRef.current ?? workspaceKey;
@@ -1045,6 +1059,7 @@ export function App() {
               <div className="main-stage">
                 <FilePreviewProvider
                   onOpenFile={onOpenFile}
+                  replaceTabId={filePreviewOpenMode === "current-tab" && activeWorkbenchTab?.kind === "file" ? activeWorkbenchTab.path : null}
                   onCloseFileTab={onCloseFileTab}
                   onCloseAllFileTabs={onCloseAllFileTabs}
                 >
@@ -1129,6 +1144,7 @@ export function App() {
                         onVisibleTabsChange={setVisibleWorkbenchTabIds}
                         browserOperating={browser.state.operating.includes(conversationKey)}
                         tabs={workbenchTabs}
+                        tabReplacement={fileTabReplacement}
                         collapsed={workbenchCollapsed}
                         onCollapse={() => {
                           setWorkbenchCollapsed(true);

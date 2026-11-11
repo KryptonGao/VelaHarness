@@ -31,6 +31,13 @@ function replacePane(node: WorkbenchLayoutNode, id: string, replacement: Workben
   if ("pane" in node) return node.pane === id ? replacement : node;
   return { ...node, a: replacePane(node.a, id, replacement), b: replacePane(node.b, id, replacement) };
 }
+/** Replace a tab in place without collapsing its pane or losing its tab-strip position. */
+export function replaceWorkbenchTab(layout: WorkbenchLayout, from: string, to: string): WorkbenchLayout {
+  if (from === to || !layout.panes.some(p => p.tabs.includes(from)) || layout.panes.some(p => p.tabs.includes(to))) return layout;
+  return { ...layout, panes: layout.panes.map(p => p.tabs.includes(from)
+    ? { ...p, tabs: p.tabs.map(id => id === from ? to : id), selected: p.selected === from ? to : p.selected } : p) };
+}
+
 /** 外部新建标签落在聚焦窗口；关闭最后一个标签自动收拢对应分支。 */
 export function reconcileWorkbenchLayout(current: WorkbenchLayout, tabIds: readonly string[]): WorkbenchLayout {
   const live = new Set(tabIds);

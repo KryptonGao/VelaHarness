@@ -4,7 +4,7 @@ import { ChevronRightIcon } from "../icons";
 import { ExplorerPane } from "./ExplorerPane";
 import { useFilePreview } from "./FilePreviewContext";
 
-/** 起始页的「文件预览」入口:只展示文件树,选中的文件在新标签页里打开。 */
+/** The Files entry shows the tree until the first selected file takes over this tab. */
 export function FileBrowserView() {
   const preview = useFilePreview();
 

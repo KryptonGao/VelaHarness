@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { dropWorkbenchTab, emptyWorkbenchLayout, mergeWorkbenchPane, reconcileWorkbenchLayout, resizeWorkbenchDivider,
+import { dropWorkbenchTab, emptyWorkbenchLayout, mergeWorkbenchPane, reconcileWorkbenchLayout, replaceWorkbenchTab, resizeWorkbenchDivider,
   selectWorkbenchTab, workbenchDropTarget, workbenchFits, workbenchGeometry, workbenchPaneOrder, workbenchRatioBounds, reorderWorkbenchTab,
   WORKBENCH_MIN_PANE_HEIGHT, WORKBENCH_MIN_PANE_WIDTH, type WorkbenchLayout } from "../src/renderer/components/workbench-layout.ts";
 const initial = () => reconcileWorkbenchLayout(emptyWorkbenchLayout(), ["browser", "code", "terminal", "agent"]);
@@ -11,6 +11,24 @@ function assertInvariant(s: WorkbenchLayout, expected = ["agent", "browser", "co
   assert.ok(s.panes.length <= 4); assert.deepEqual(new Set(workbenchPaneOrder(s.root)), new Set(s.panes.map(p => p.id)));
   s.panes.forEach(p => { assert.ok(p.tabs.length); assert.ok(p.tabs.includes(p.selected)); });
 }
+test("file replacement preserves its exact tab position and split pane", () => {
+  let s = dropWorkbenchTab(initial(), "code", "pane-1", "right");
+  s = { ...s, maximized: owner(s, "code") };
+  const before = structuredClone(s);
+  const next = replaceWorkbenchTab(s, "code", "new-file");
+  assert.deepEqual(s, before);
+  assert.equal(next.root, s.root);
+  assert.equal(next.focused, s.focused);
+  assert.equal(next.maximized, s.maximized);
+  assert.equal(next.sequence, s.sequence);
+  assert.equal(owner(next, "new-file"), owner(s, "code"));
+  assert.equal(next.panes.find(p => p.id === next.focused)!.selected, "new-file");
+  assert.equal(reconcileWorkbenchLayout(next, ["browser", "new-file", "terminal", "agent"]), next);
+  assert.deepEqual(replaceWorkbenchTab(initial(), "code", "new-file").panes[0].tabs, ["browser", "new-file", "terminal", "agent"]);
+  assert.equal(replaceWorkbenchTab(s, "missing", "new-file"), s);
+  assert.equal(replaceWorkbenchTab(s, "code", "browser"), s);
+  assert.equal(replaceWorkbenchTab(s, "code", "code"), s);
+});
 test("单窗口初始化、无变化沿用原引用、新标签落在聚焦窗口", () => {
   let s = initial(); assert.equal(s.panes.length, 1); assert.equal(reconcileWorkbenchLayout(s, all(s)), s);
   s = dropWorkbenchTab(s, "code", owner(s, "browser"), "right");

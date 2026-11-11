@@ -32,7 +32,7 @@ import { BrowserPanel, BrowserTabIcon, BrowserTabLabel } from "./browser/Browser
 import type { BrowserController } from "../browser/browser-controller";
 import { BranchIcon, ChatIcon, FileIcon, FolderIcon, PlanIcon, PlusIcon, SparkIcon, TerminalIcon } from "./icons";
 import { WorkbenchTabStrip } from "./WorkbenchTabStrip";
-import { collapseWorkbenchLayout, dropWorkbenchTab, emptyWorkbenchLayout, mergeWorkbenchPane, reconcileWorkbenchLayout, resizeWorkbenchDivider,
+import { collapseWorkbenchLayout, dropWorkbenchTab, emptyWorkbenchLayout, mergeWorkbenchPane, reconcileWorkbenchLayout, replaceWorkbenchTab, resizeWorkbenchDivider,
   selectWorkbenchTab, workbenchDropTarget, workbenchFits, workbenchGeometry, workbenchPaneOrder, workbenchRatioBounds, WORKBENCH_GAP, WORKBENCH_HEADER_HEIGHT,
   type WorkbenchDivider, type WorkbenchDropEdge, type WorkbenchLayout, type WorkbenchRect } from "./workbench-layout";
 
@@ -54,6 +54,7 @@ export type WorkbenchTab =
 
 interface WorkbenchPanelProps {
   tabs: WorkbenchTab[];
+  tabReplacement?: { from: string; to: string } | null;
   layoutKey?: string;
   /** 实验性分屏开关;关闭时只有一个窗口,标签不能拖动,已有分屏合并回单窗口。 */
   splitEnabled?: boolean;
@@ -141,7 +142,11 @@ function WorkbenchPanelContent(props: WorkbenchPanelProps & { closing: boolean; 
   const scope = props.layoutKey ?? "workbench";
   const stored = layouts[scope] ?? emptyWorkbenchLayout();
   const splitEnabled = props.splitEnabled ?? false;
-  const reconciled = reconcileWorkbenchLayout(stored, tabs.map(t => t.id));
+  const lastReplacement = useRef(props.tabReplacement);
+  const replacement = props.tabReplacement;
+  const replaced = replacement && lastReplacement.current !== replacement
+    ? replaceWorkbenchTab(stored, replacement.from, replacement.to) : stored;
+  const reconciled = reconcileWorkbenchLayout(replaced, tabs.map(t => t.id));
   const synced = splitEnabled ? reconciled : collapseWorkbenchLayout(reconciled);
   const activeRef = useRef<{ scope: string; id: string | null }>({ scope: "", id: null });
   // 只响应外部真正切换的标签，不让另一个窗口的局部选择被全局激活值盖回去。
@@ -156,10 +161,11 @@ function WorkbenchPanelContent(props: WorkbenchPanelProps & { closing: boolean; 
     });
   }, [scope]);
   useLayoutEffect(() => {
+    lastReplacement.current = replacement;
     // Browser Host 可能先给出待激活 ID，再异步投影该标签；真正出现后才能消费这次激活。
     if (!activeTabId || tabs.some(tab => tab.id === activeTabId)) activeRef.current = { scope, id: activeTabId };
     if (layouts[scope] !== layout) setLayouts(current => ({ ...current, [scope]: layout }));
-  }, [scope, activeTabId, layout, layouts, tabs]);
+  }, [scope, activeTabId, layout, layouts, tabs, replacement]);
   const [drag, setDrag] = useState<{ key: string; placing: boolean } | null>(null);
   const dragRef = useRef(drag); dragRef.current = drag;
   const [drop, setDrop] = useState<{ pane: string; edge: WorkbenchDropEdge; rect: WorkbenchRect; index?: number; marker?: WorkbenchRect } | null>(null);

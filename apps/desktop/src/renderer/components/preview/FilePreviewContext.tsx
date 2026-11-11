@@ -110,10 +110,13 @@ export function FilePreviewProvider({
   onOpenFile,
   onCloseFileTab,
   onCloseAllFileTabs,
+  replaceTabId = null,
 }: {
   children: ReactNode;
   /** 文件打开或重新激活时通知宿主，并提供规范化路径身份。 */
-  onOpenFile?: (file: PreviewFileDescriptor) => void;
+  onOpenFile?: (file: PreviewFileDescriptor, replacedId?: string) => void;
+  /** Only an active file preview may be replaced; existing targets are always activated. */
+  replaceTabId?: string | null;
   /** 关闭单个文件标签时同步通知宿主。 */
   onCloseFileTab?: (id: string) => void;
   /** 关闭预览或工作区切换清空文件标签时同步通知宿主。 */
@@ -138,6 +141,8 @@ export function FilePreviewProvider({
   tabsRef.current = tabs;
   const onOpenFileRef = useRef(onOpenFile);
   onOpenFileRef.current = onOpenFile;
+  const replaceTabIdRef = useRef(replaceTabId);
+  replaceTabIdRef.current = replaceTabId;
   const onCloseFileTabRef = useRef(onCloseFileTab);
   onCloseFileTabRef.current = onCloseFileTab;
   const onCloseAllFileTabsRef = useRef(onCloseAllFileTabs);
@@ -147,18 +152,22 @@ export function FilePreviewProvider({
     (path: string, options?: { line?: number }) => {
       if (!path) return;
       const normalized = normalizeTabPath(path, fileList?.root ?? null);
-      setTabs((current) => {
-        const existing = current.find((tab) => tab.id === normalized.id);
-        if (!existing) {
-          return [...current, { ...normalized, jumpLine: options?.line ?? null }];
-        }
-        if (options?.line != null && existing.jumpLine !== options.line) {
-          return current.map((tab) =>
-            tab.id === normalized.id ? { ...tab, jumpLine: options.line ?? null } : tab,
-          );
-        }
-        return current;
-      });
+      const current = tabsRef.current;
+      const existing = current.find((tab) => tab.id === normalized.id);
+      const replacedId = !existing && current.some(tab => tab.id === replaceTabIdRef.current)
+        ? replaceTabIdRef.current! : undefined;
+      const nextTab = { ...normalized, jumpLine: options?.line ?? null };
+      const next = existing
+        ? options?.line != null && existing.jumpLine !== options.line
+          ? current.map(tab => tab.id === normalized.id ? nextTab : tab) : current
+        : replacedId ? current.map(tab => tab.id === replacedId ? nextTab : tab) : [...current, nextTab];
+      tabsRef.current = next;
+      setTabs(next);
+      if (replacedId) {
+        contentCache.current.delete(replacedId);
+        scrollPositions.current.delete(replacedId);
+        replaceTabIdRef.current = normalized.id;
+      }
       setActiveTabId(normalized.id);
       setContentError(null);
       onOpenFileRef.current?.({
@@ -166,7 +175,7 @@ export function FilePreviewProvider({
         path: normalized.id,
         name: normalized.name,
         dir: normalized.dir,
-      });
+      }, replacedId);
     },
     [fileList],
   );

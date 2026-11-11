@@ -12,6 +12,7 @@ import { setCombinedModePicker, useCombinedModePicker } from "../../hooks/useCom
 import { composerLayouts, setComposerLayout, useComposerLayout, type ComposerLayout } from "../../hooks/useComposerLayout";
 import { Segmented, SettingsBlock, SettingsGroup, SettingsSwitch } from "./primitives";
 import { SettingsSelect } from "./SettingsSelect";
+import { filePreviewOpenModes, setFilePreviewOpenMode, useFilePreviewOpenMode, type FilePreviewOpenMode } from "../../hooks/useFilePreviewOpenMode";
 
 export function InterfacePage({
   copy,
@@ -35,6 +36,11 @@ export function InterfacePage({
     setSendButtonIcon,
   } = preferences;
   const text = copy.appearance;
+  const filePreviewOpenMode = useFilePreviewOpenMode();
+  const filePreviewOpenModeLabels: Record<FilePreviewOpenMode, string> = {
+    "new-tab": text.filePreviewOpenModeNewTab,
+    "current-tab": text.filePreviewOpenModeCurrentTab,
+  };
   const composerLayout = useComposerLayout();
   const combinedModePicker = useCombinedModePicker();
   const minimalStart = useMinimalStart();
@@ -105,6 +111,10 @@ export function InterfacePage({
         <SettingsBlock id="conversation-link-target" title={text.conversationLinkTarget} hint={text.conversationLinkHint} layout="inline">
           <Segmented label={text.conversationLinkTarget} value={conversationLinkTarget}
             options={conversationLinkOptions} onChange={setConversationLinkTarget} />
+        </SettingsBlock>
+        <SettingsBlock id="file-preview-open-mode" title={text.filePreviewOpenMode} hint={text.filePreviewOpenModeHint} layout="inline">
+          <Segmented label={text.filePreviewOpenMode} value={filePreviewOpenMode}
+            options={filePreviewOpenModes.map(id => ({ id, label: filePreviewOpenModeLabels[id] }))} onChange={setFilePreviewOpenMode} />
         </SettingsBlock>
         <SettingsBlock id="workbench-split" title={text.workbenchSplit} hint={text.workbenchSplitHint} layout="inline">
           <SettingsSwitch label={text.workbenchSplit} checked={preferences.workbenchSplit} onChange={preferences.setWorkbenchSplit} />
