@@ -118,6 +118,9 @@ interface MessageTurn {
   assistants: UiMessage[];
 }
 
+/** 按轮次缓存最终回复数组:新数组会让 CompletedAssistantTurn 的 memo 失效,流式时所有历史轮次每帧都重渲染。 */
+const finalRepliesCache = new WeakMap<MessageTurn, UiMessage[]>();
+
 function groupMessagesIntoTurns(messages: UiMessage[], previous: MessageTurn[]): MessageTurn[] {
   const turns: MessageTurn[] = [];
   let current: MessageTurn | null = null;
@@ -873,7 +876,8 @@ export function ChatView({
           />
         ) : (
           turns.map((turn, index) => {
-            const finalReplies = selectFinalReplies(turn.assistants);
+            let finalReplies = finalRepliesCache.get(turn);
+            if (!finalReplies) finalRepliesCache.set(turn, finalReplies = selectFinalReplies(turn.assistants));
             const finalReply = finalReplies[finalReplies.length - 1] ?? null;
             const lastAssistant = turn.assistants[turn.assistants.length - 1] ?? null;
             const isCurrentTurn = index === turns.length - 1;
