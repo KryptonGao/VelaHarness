@@ -1,129 +1,134 @@
 {
-  "version": "1.2.29",
+  "version": "1.2.30",
   "locales": {
     "en": {
-      "summary": "Vela 1.2.29 adds a skill marketplace for installing curated skills from GitHub, lets you tune when running-tool details appear in thinking headlines, and fixes diff line numbers and integration card actions.",
+      "summary": "Vela 1.2.30 adds an optional review layout for version control, a tint opacity setting for translucent window edges, and provider error cards in the chat stream, serves the skill marketplace from a signed cloud catalog, and makes large conversations stream more smoothly.",
       "highlights": [
         {
-          "title": "Skill marketplace",
-          "body": "Browse a curated catalog in Settings → Skills, read each skill's details, and install it from GitHub with one click."
+          "title": "Version control review layout",
+          "body": "Choose Review in Settings → Interface to put files and the commit composer in one rail with more room for diffs. Classic stays the default."
         },
         {
-          "title": "Calmer thinking headlines",
-          "body": "A running tool appears in the thinking group headline only once the operation is no longer short, so quick calls no longer flash."
+          "title": "Provider errors as cards",
+          "body": "Usage limits, rate limits, overload, auth, and context-length errors now appear as a card in the chat stream, with the plan and wait time when the provider reports them."
         },
         {
-          "title": "Configurable headline delay",
-          "body": "Turn the delay on or off and set the threshold in Settings → Conversation display."
+          "title": "Tint opacity",
+          "body": "A 0–100% slider in Settings → Appearance sets how strongly the translucent window edges are tinted, with a reset action."
         },
         {
-          "title": "Accurate diff line numbers",
-          "body": "Context lines point at their post-edit positions, and streaming edits no longer show line numbers that do not match the file."
+          "title": "Signed skill marketplace",
+          "body": "The catalog and skill files now come from a signed cloud service, with install counts shown, and a built-in catalog as the offline fallback."
         }
       ],
       "improvements": [
-        "The marketplace checks file paths and size limits before installing, and its copy is localized in all five languages.",
-        "Integration card actions stay in a fixed top-right slot, so they no longer shift between cards."
+        "Large thinking groups and streaming file diffs re-render far less, so long streams stay responsive.",
+        "Thinking activity headlines use short localized labels while tool details stay in their rows.",
+        "Theme grids show three rows with edge-blur scrolling, and the Settings Done button is gone."
       ]
     },
     "zh-CN": {
-      "summary": "Vela 1.2.29 新增技能市场，可从 GitHub 安装精选技能；思考标题中运行中工具的出现时机可自行调节；同时修复了差异行号和集成卡片操作的位置问题。",
+      "summary": "Vela 1.2.30 新增可选的版本控制审查布局、半透明窗口边缘的染色不透明度设置，以及对话流中的服务商错误卡片；技能市场改由签名的云端目录提供；长对话的流式输出也更流畅。",
       "highlights": [
         {
-          "title": "技能市场",
-          "body": "在“设置 → 技能”中浏览精选目录，查看每个技能的详情，并一键从 GitHub 安装。"
+          "title": "版本控制审查布局",
+          "body": "在“设置 → 界面”中选择“审查布局”，文件列表和提交编辑区会合并到同一侧栏，为差异审查留出更多空间。默认仍为经典布局。"
         },
         {
-          "title": "更平稳的思考标题",
-          "body": "只有当操作不再短暂时，运行中的工具才会出现在思考分组标题中，短促的调用不再一闪而过。"
+          "title": "服务商错误卡片",
+          "body": "用量上限、速率限制、服务过载、认证和上下文长度等错误现在以卡片显示在对话流中，服务商提供套餐和等待时间时也会一并展示。"
         },
         {
-          "title": "可调的标题延迟",
-          "body": "可在“设置 → 对话显示”中开关该延迟并设置阈值。"
+          "title": "染色不透明度",
+          "body": "在“设置 → 外观”中用 0–100% 滑块调节半透明窗口边缘的染色强度，并可一键重置。"
         },
         {
-          "title": "准确的差异行号",
-          "body": "上下文行号现在指向编辑后的位置，流式编辑过程中也不再显示与文件不符的行号。"
+          "title": "签名的技能市场",
+          "body": "目录和技能文件现在来自带签名的云端服务，并显示安装次数；云端不可用时使用内置目录作为备用。"
         }
       ],
       "improvements": [
-        "技能市场在安装前会检查文件路径和大小限制，界面文案已提供五种语言。",
-        "集成卡片的操作固定在右上角，不会在不同卡片之间错位。"
+        "大型思考分组和流式文件差异的重复渲染大幅减少，长时间输出依然流畅。",
+        "思考活动标题改用简短的本地化操作名称，工具详情仍保留在各自的行内。",
+        "主题网格限制为三行并支持边缘模糊滚动，设置页的“完成”按钮已移除。"
       ]
     },
     "zh-TW": {
-      "summary": "Vela 1.2.29 新增技能市集，可從 GitHub 安裝精選技能；思考標題中執行中工具的出現時機可自行調整；同時修正了差異行號和整合卡片操作的位置問題。",
+      "summary": "Vela 1.2.30 新增可選的版本控制審查版面、半透明視窗邊緣的染色不透明度設定，以及對話串流中的服務商錯誤卡片；技能市集改由簽章的雲端目錄提供；長對話的串流輸出也更流暢。",
       "highlights": [
         {
-          "title": "技能市集",
-          "body": "在「設定 → 技能」中瀏覽精選目錄，查看每個技能的詳情，並一鍵從 GitHub 安裝。"
+          "title": "版本控制審查版面",
+          "body": "在「設定 → 介面」中選擇「審查版面」，檔案清單和提交編輯區會合併到同一側欄，為差異審查留出更多空間。預設仍為經典版面。"
         },
         {
-          "title": "更平穩的思考標題",
-          "body": "只有當操作不再短暫時，執行中的工具才會出現在思考群組標題中，短促的呼叫不再一閃而過。"
+          "title": "服務商錯誤卡片",
+          "body": "用量上限、速率限制、服務過載、驗證和上下文長度等錯誤現在以卡片顯示在對話串流中，服務商提供方案和等待時間時也會一併顯示。"
         },
         {
-          "title": "可調整的標題延遲",
-          "body": "可在「設定 → 對話顯示」中開關該延遲並設定門檻。"
+          "title": "染色不透明度",
+          "body": "在「設定 → 外觀」中用 0–100% 滑桿調整半透明視窗邊緣的染色強度，並可一鍵重設。"
         },
         {
-          "title": "準確的差異行號",
-          "body": "上下文行號現在指向編輯後的位置，串流編輯過程中也不再顯示與檔案不符的行號。"
+          "title": "簽章的技能市集",
+          "body": "目錄和技能檔案現在來自帶簽章的雲端服務，並顯示安裝次數；雲端無法使用時以內建目錄作為備援。"
         }
       ],
       "improvements": [
-        "技能市集在安裝前會檢查檔案路徑和大小限制，介面文案已提供五種語言。",
-        "整合卡片的操作固定在右上角，不會在不同卡片之間錯位。"
+        "大型思考群組和串流檔案差異的重複渲染大幅減少，長時間輸出依然流暢。",
+        "思考活動標題改用簡短的在地化操作名稱，工具詳情仍保留在各自的列內。",
+        "主題格線限制為三列並支援邊緣模糊捲動，設定頁的「完成」按鈕已移除。"
       ]
     },
     "ja": {
-      "summary": "Vela 1.2.29 では、GitHub から厳選スキルをインストールできるスキルマーケットプレイスを追加し、思考の見出しに実行中ツールが表示されるタイミングを調整できるようにしました。差分の行番号と連携カードの操作位置も修正しています。",
+      "summary": "Vela 1.2.30 では、バージョン管理のレビューレイアウト（任意）、半透明ウィンドウ縁の色味の不透明度設定、チャット内のプロバイダーエラーカードを追加しました。スキルマーケットプレイスは署名付きクラウドカタログから提供され、大きな会話のストリーミングも滑らかになりました。",
       "highlights": [
         {
-          "title": "スキルマーケットプレイス",
-          "body": "設定 → スキルで厳選カタログを閲覧し、各スキルの詳細を確認して、GitHub からワンクリックでインストールできます。"
+          "title": "バージョン管理のレビューレイアウト",
+          "body": "設定 → インターフェースで「レビュー」を選ぶと、ファイル一覧とコミット入力欄が 1 つのサイドバーにまとまり、差分を見る領域が広がります。既定はクラシックのままです。"
         },
         {
-          "title": "落ち着いた思考の見出し",
-          "body": "実行中のツールは、処理が短時間で終わらなくなってから思考グループの見出しに表示されるため、短い呼び出しで一瞬ちらつくことがなくなりました。"
+          "title": "プロバイダーエラーをカードで表示",
+          "body": "使用量上限、レート制限、過負荷、認証、コンテキスト長のエラーがチャットにカードとして表示され、プロバイダーが返す場合はプランと待ち時間も示されます。"
         },
         {
-          "title": "見出しの遅延を設定可能",
-          "body": "設定 → 会話の表示で、遅延のオン／オフとしきい値を設定できます。"
+          "title": "色味の不透明度",
+          "body": "設定 → 外観の 0〜100% スライダーで、半透明ウィンドウ縁の色味の強さを調整でき、リセットもできます。"
         },
         {
-          "title": "正確な差分の行番号",
-          "body": "コンテキスト行は編集後の位置を指すようになり、ストリーミング中の編集でもファイルと一致しない行番号は表示されません。"
+          "title": "署名付きスキルマーケットプレイス",
+          "body": "カタログとスキルファイルは署名付きクラウドサービスから提供され、インストール数も表示されます。オフライン時は内蔵カタログを使います。"
         }
       ],
       "improvements": [
-        "マーケットプレイスはインストール前にファイルパスとサイズ上限を検査し、表示文言は 5 言語に対応しています。",
-        "連携カードの操作は右上の固定位置に配置され、カードごとにずれなくなりました。"
+        "大きな思考グループやストリーミング中のファイル差分の再描画が大幅に減り、長い出力でも快適に動作します。",
+        "思考アクティビティの見出しは短いローカライズ済みラベルになり、ツールの詳細は各行に残ります。",
+        "テーマグリッドは 3 行までに制限されて端のぼかしスクロールに対応し、設定の「完了」ボタンは削除されました。"
       ]
     },
     "ko": {
-      "summary": "Vela 1.2.29는 GitHub에서 엄선된 스킬을 설치할 수 있는 스킬 마켓플레이스를 추가하고, 생각 헤드라인에 실행 중인 도구가 나타나는 시점을 조정할 수 있게 했으며, diff 줄 번호와 통합 카드 작업 위치를 수정했습니다.",
+      "summary": "Vela 1.2.30은 선택형 버전 관리 리뷰 레이아웃, 반투명 창 가장자리의 색조 불투명도 설정, 채팅 스트림의 제공업체 오류 카드를 추가하고, 스킬 마켓플레이스를 서명된 클라우드 카탈로그로 제공하며, 큰 대화의 스트리밍을 더 부드럽게 만들었습니다.",
       "highlights": [
         {
-          "title": "스킬 마켓플레이스",
-          "body": "설정 → 스킬에서 엄선된 목록을 살펴보고 각 스킬의 상세를 확인한 뒤 GitHub에서 한 번에 설치할 수 있습니다."
+          "title": "버전 관리 리뷰 레이아웃",
+          "body": "설정 → 인터페이스에서 '리뷰'를 선택하면 파일 목록과 커밋 작성 영역이 하나의 사이드바에 모여 diff를 볼 공간이 넓어집니다. 기본값은 클래식입니다."
         },
         {
-          "title": "더 차분한 생각 헤드라인",
-          "body": "실행 중인 도구는 작업이 더 이상 짧지 않을 때에만 생각 그룹 헤드라인에 나타나므로, 짧은 호출이 깜빡이지 않습니다."
+          "title": "제공업체 오류 카드",
+          "body": "사용량 한도, 속도 제한, 과부하, 인증, 컨텍스트 길이 오류가 채팅 스트림에 카드로 표시되며, 제공업체가 알려 주면 요금제와 대기 시간도 함께 보여 줍니다."
         },
         {
-          "title": "헤드라인 지연 설정",
-          "body": "설정 → 대화 표시에서 지연을 켜거나 끄고 임계값을 설정할 수 있습니다."
+          "title": "색조 불투명도",
+          "body": "설정 → 외관의 0–100% 슬라이더로 반투명 창 가장자리의 색조 강도를 조절하고 초기화할 수 있습니다."
         },
         {
-          "title": "정확한 diff 줄 번호",
-          "body": "컨텍스트 줄이 편집 후 위치를 가리키며, 스트리밍 중인 편집에도 파일과 맞지 않는 줄 번호가 표시되지 않습니다."
+          "title": "서명된 스킬 마켓플레이스",
+          "body": "카탈로그와 스킬 파일이 서명된 클라우드 서비스에서 제공되고 설치 횟수도 표시됩니다. 오프라인일 때는 내장 카탈로그를 사용합니다."
         }
       ],
       "improvements": [
-        "마켓플레이스는 설치 전에 파일 경로와 크기 제한을 검사하며, 화면 문구는 다섯 가지 언어로 제공됩니다.",
-        "통합 카드의 작업이 오른쪽 위 고정 위치에 놓여 카드마다 밀리지 않습니다."
+        "큰 생각 그룹과 스트리밍 파일 diff의 재렌더링이 크게 줄어 긴 출력에서도 반응이 빠릅니다.",
+        "생각 활동 헤드라인은 짧은 현지화 레이블을 쓰고, 도구 세부 정보는 각 행에 그대로 남습니다.",
+        "테마 그리드는 세 줄로 제한되고 가장자리 블러 스크롤을 지원하며, 설정의 '완료' 버튼은 제거되었습니다."
       ]
     }
   }
