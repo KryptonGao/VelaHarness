@@ -1,6 +1,6 @@
 /** Run after building: node_modules/.bin/electron apps/desktop/test/settings-electron-smoke.mjs */
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { app, BrowserWindow } from "electron";
@@ -33,8 +33,9 @@ try {
   const development = await ev("Boolean(window.vela.development)");
   assert.deepEqual(labels, ["General", "Agent", "Models & extensions", "Data & workspace", ...(development ? ["Development"] : [])]);
   const items = await ev("[...document.querySelectorAll('.settings-nav-item')].map(n => n.textContent)");
-  assert.equal(items.length, development ? 18 : 17);
-  console.log("PASS grouped nav keeps all 17 pages (plus developer tools in dev builds)");
+  assert.equal(items.length, development ? 19 : 18);
+  assert.ok(items.includes("Hooks"));
+  console.log("PASS grouped nav keeps all 18 pages including Hooks (plus developer tools in dev builds)");
   // the update page talks to the real main-process service over IPC
   await ev("[...document.querySelectorAll('.settings-nav-item')].find(n => n.textContent === 'About & updates').click()");
   await until(() => ev("!!document.querySelector('.update-card')"), "updates page");
@@ -50,6 +51,27 @@ try {
   await ev("[...document.querySelectorAll('[data-setting-id=\"checkpoint-storage\"] button')].find(n => n.textContent === 'Confirm cleanup').click()");
   await until(() => ev("document.querySelector('[data-setting-id=\"checkpoint-storage\"] .settings-saved')?.textContent === 'Nothing to clean up.'"), "cleanup result");
   console.log("PASS storage page shows checkpoint usage and cleans after confirmation");
+
+  // Hooks: the production renderer/preload/main/runtime chain, including an actual native command.
+  await ev("[...document.querySelectorAll('.settings-nav-item')].find(n => n.textContent === 'Hooks').click()");
+  await until(() => ev("!!document.querySelector('.hooks-config')"), "hooks config");
+  const hooksConfig = JSON.stringify({ version: 1, hooks: [{ id: "smoke", event: "PreToolUse", command: "printf verified > hooks-smoke-marker", enabled: true }] }, null, 2);
+  await ev(`(() => { const i=document.querySelector('.hooks-config');Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(i,${JSON.stringify(hooksConfig)});i.dispatchEvent(new Event('input',{bubbles:true})); })()`);
+  const clickHook = text => ev(`[...document.querySelectorAll('.hooks-settings button')].find(n=>n.textContent===${JSON.stringify(text)}).click()`);
+  await clickHook("Save configuration");
+  await until(() => ev("[...document.querySelectorAll('.hooks-settings button')].some(n=>n.textContent==='Review and authorize' && !n.disabled)"), "hooks saved");
+  await clickHook("Review and authorize");
+  await until(() => ev("!!document.querySelector('.hooks-confirm pre')"), "hooks review");
+  await clickHook("Authorize native execution");
+  await until(() => ev("[...document.querySelectorAll('.hooks-settings button')].some(n=>n.textContent==='Revoke authorization')"), "hooks authorized");
+  await clickHook("Test run");
+  await until(() => ev("!!document.querySelector('.hooks-confirm')"), "hooks test confirmation");
+  await clickHook("Run commands now");
+  await until(() => ev("document.querySelector('.hooks-run')?.textContent.includes('Passed')"), "hooks test result");
+  assert.equal(readFileSync(join(temporary, "hooks-smoke-marker"), "utf8"), "verified");
+  await clickHook("Revoke authorization");
+  await until(async () => !(await ev(`window.vela.getHooksCatalog({cwd:${JSON.stringify(temporary)}})`)).documents[1].trusted, "hooks revoked");
+  console.log("PASS production Hooks settings save, reviewed approval, real command test, live history and revocation");
 
   // search → jump (permissions sits at the bottom of "Defaults & permissions")
   await ev("document.querySelector('.settings-search-input').focus()");

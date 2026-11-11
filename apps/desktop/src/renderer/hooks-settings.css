@@ -1,0 +1,18 @@
+.hooks-settings .settings-block-text .settings-hint { overflow-wrap: anywhere; user-select: text; }
+.hooks-config { min-height: 200px; resize: vertical; font-family: var(--font-mono); font-size: calc(14px * var(--code-scale)); tab-size: 2; }
+.hooks-rules { display: flex; flex-direction: column; }
+.hooks-rule, .hooks-run { display: flex; align-items: center; gap: 12px; }
+.hooks-rule { padding: 10px 0; }
+.hooks-rule + .hooks-rule, .hooks-run + .hooks-run { border-top: 1px solid var(--border-subtle); }
+.hooks-rule-text { display: flex; flex-direction: column; gap: 2px; flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.hooks-rule-name { font-size: calc(15px * var(--ui-scale)); font-weight: 560; }
+.hooks-remove { flex: none; }
+.settings-card > .hooks-confirm, .settings-card > .hooks-message { margin: 0; padding: 14px 18px; overflow-wrap: anywhere; }
+.settings-card > .hooks-confirm > * + * { margin-top: 10px; }
+.hooks-confirm h4 { margin: 0; font-size: calc(15px * var(--ui-scale)); font-weight: 560; }
+.hooks-confirm pre { margin: 6px 0 0; padding: 10px 12px; border-radius: var(--radius-md); background: var(--bg-surface-subtle); white-space: pre-wrap; overflow-wrap: anywhere; user-select: text; font-family: var(--font-mono); font-size: calc(14px * var(--code-scale)); }
+.hooks-confirm summary { cursor: pointer; }
+.hooks-history { max-height: 420px; overflow-y: auto; }
+.hooks-run { justify-content: space-between; padding: 10px 18px; font-size: calc(14px * var(--ui-scale)); }
+.hooks-run > div { min-width: 0; overflow-wrap: anywhere; }
+.hooks-run > span { flex: none; }

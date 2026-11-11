@@ -294,6 +294,15 @@ const api: VelaApi = {
     ipcRenderer.on("plugins:status", handler);
     return () => { ipcRenderer.removeListener("plugins:status", handler); };
   },
+  testHooks: input => ipcRenderer.invoke("hooks:test", input),
+  getHooksCatalog: input => ipcRenderer.invoke("hooks:catalog", input),
+  saveHooksConfig: input => ipcRenderer.invoke("hooks:save", input),
+  setHooksTrust: input => ipcRenderer.invoke("hooks:trust", input),
+  onHooksChanged: listener => {
+    const handler = (_event: IpcRendererEvent, record: import("@vela/shared").HookRunRecord) => listener(record);
+    ipcRenderer.on("hooks:changed", handler);
+    return () => { ipcRenderer.removeListener("hooks:changed", handler); };
+  },
   getMcpCatalog: (input) => ipcRenderer.invoke("mcp:catalog", input),
   saveMcpServer: (input) => ipcRenderer.invoke("mcp:save", input),
   removeMcpServer: (input) => ipcRenderer.invoke("mcp:remove", input),

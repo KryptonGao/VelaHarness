@@ -1,6 +1,7 @@
 # 竞品差距与新功能构想
 
-状态：构想稿，**均未实现**。  
+Status: historical proposal. Command lifecycle Hooks are now implemented on the development branch; see [Lifecycle Hooks](../features/hooks.md). Other entries retain their original snapshot status.
+
 日期：2026-10-25。  
 范围：对比 OpenAI Codex、Claude Code、Z.ai ZCode，整理 Vela 缺失的能力，并提出按优先级排序的新功能。
 
@@ -30,7 +31,7 @@
 
 | 能力 | Codex | Claude Code | ZCode | Vela |
 | --- | --- | --- | --- | --- |
-| 用户可配置生命周期 Hooks（工具前后、停止、提交前） | 🟡 | ✅ 命令 / 提示 / HTTP / 异步 | ✅ | ❌ |
+| 用户可配置生命周期 Hooks（工具前后、停止、提交前） | 🟡 | ✅ 命令 / 提示 / HTTP / 异步 | ✅ | ✅ Command handlers; see [Hooks](../features/hooks.md) |
 | 插件包（Skill + 子代理 + Hooks + MCP 打包分发） | ✅ | ✅ | ✅ | 🟡 仅内置 MCP 插件 |
 | 内置斜线命令（`/model`、`/compact`、`/review` 等） | ✅ | ✅ | 🟡 | 🟡 斜线菜单只有 Skill 与配方 |
 | 自定义斜线命令 / 预设 | ✅ `/presets` | ✅ | 🟡 | 🟡 配方可替代，但无轻量形态 |
@@ -59,6 +60,8 @@
 ### P0：补齐基础扩展面
 
 **1. 生命周期 Hooks**  
+Implemented: command handlers, configuration and authorization, lifecycle boundaries, history/traces, and management UI. See [Hooks](../features/hooks.md) for current behavior and limits. Original proposal follows.
+
 事件：`PreToolUse`、`PostToolUse`、`Stop`、`SessionStart`、`PreCommit`。处理器先做命令型，输入输出为 JSON，可放行、拒绝或追加上下文。配置分全局与项目，项目配置沿用 MCP 的项目信任确认。  
 衔接：权限闸门已集中在 `sandbox-tools.ts`，可在同一处挂载；轨迹视图可直接显示 Hook 的触发与耗时，这是别家没有的可观测性。
 

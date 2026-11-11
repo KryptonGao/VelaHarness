@@ -1,4 +1,6 @@
+import { hooksZhTW } from "./hooks";
 const messages: Record<string, string> = {
+  ...hooksZhTW,
   "文件打开方式": "檔案開啟方式",
   "「当前标签页」仅替换文件预览；两种方式都会复用尚未展示文件的「文件」页。": "「目前分頁」僅取代檔案預覽；兩種方式都會重用尚未顯示檔案的「檔案」頁。",
   "当前标签页": "目前分頁",

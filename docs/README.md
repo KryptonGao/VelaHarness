@@ -38,6 +38,7 @@
 | [features/handoff-pack.md](./features/handoff-pack.md) | 使用者与开发者 | 任务交接包：把对话整理成目标、决策、修改文件、实际验证与未完成事项，预览编辑后填入新对话；事实与模型整理的分工、降级、实现位置与限制。 |
 | [features/outcome-acceptance.md](./features/outcome-acceptance.md) | 使用者与开发者 | 成果验收：逐项需求、修改、验证证据与待确认，agent 归属、确定性事实推导、fallback 与限制。 |
 | [features/race.md](./features/race.md) | 使用者与开发者 | 赛马：同一任务在 2–4 个独立 worktree 里用不同模型/思考强度/提示并行尝试，按耗时、token、改动、统一验证并排比较，一键 squash 采用其一；存储、恢复、限制与验证。 |
+| [features/hooks.md](./features/hooks.md) | Users and developers | Command lifecycle Hooks: configuration, native-code authorization, five events, bounded execution, test runs, history, traces and safety limits. |
 | [features/mcp.md](./features/mcp.md) | 使用者与开发者 | MCP 服务器的配置、项目信任、工具曝光、只读授权、会话生命周期与定向验收。 |
 | [features/memory.md](./features/memory.md) | 使用者与开发者 | 项目记忆与全局记忆的目录、作用域、加载与刷新时机、写入权限、设置页管理、worktree 行为与验证。 |
 | [features/web-tools.md](./features/web-tools.md) | 使用者与开发者 | 网页搜索与抓取：与模型提供商分开的可自定义提供商（内置 DeepSeek 预设 + 通用 HTTP 适配器）、加密密钥存储、`web_search`/`web_fetch` 工具、审批策略、不可信内容与安全边界、设置页与验证。 |
@@ -70,7 +71,7 @@
 | [requirements/intelligent-ui.md](./requirements/intelligent-ui.md) | 产品与开发者 | Intelligent UI 需求：自适应回答、原生声明式组件、流式编译、安全交互、持久化及 P0–P2 验收；P0–P2 已实现，用户模板除外。 |
 | [requirements/agent-inbox.md](./requirements/agent-inbox.md) | 产品与开发者 | Agent Inbox 与常驻 Agent 需求：定位、阶段状态、关键约束、后续设计决定与验收；第一至第七阶段均已实现。 |
 | [requirements/browser-annotations.md](./requirements/browser-annotations.md) | 产品与开发者 | 浏览器元素批注需求：在内置浏览器点选元素写批注，与“选中文字回复”共用卡片，随下一轮消息发送；P0–P2 分期、安全限制与验收；P0 已实现。 |
-| [requirements/competitive-gap-analysis.md](./requirements/competitive-gap-analysis.md) | 产品与开发者 | 竞品差距与新功能构想：对比 Codex、Claude Code、ZCode 缺失的能力，并按优先级列出构想；仅为构想稿，均未实现。 |
+| [requirements/competitive-gap-analysis.md](./requirements/competitive-gap-analysis.md) | 产品与开发者 | 竞品差距与新功能构想：对比 Codex、Claude Code、ZCode 缺失的能力，并按优先级列出构想；Historical proposal; Hooks implementation is documented separately. |
 
 ### 界面与设计参考
 

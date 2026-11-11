@@ -10,6 +10,7 @@ import { LoginDialog } from "./ModelControls";
 import { SheetPresence } from "./Presence";
 import { IntegrationsSection } from "./IntegrationsSection";
 import { McpSettingsSection } from "./McpSettingsSection";
+import { HooksSettingsSection } from "./HooksSettingsSection";
 import { MemorySettingsSection } from "./MemorySettingsSection";
 import { WebToolsSettingsSection } from "./WebToolsSettingsSection";
 import { settingsCopy } from "./settings-copy";
@@ -143,6 +144,7 @@ export function SettingsView({
           )}
           {page === "integrations" ? <IntegrationsSection locale={locale} workspacePath={workspacePath} conversationId={conversationDetached ? null : conversationId} /> : null}
           {page === "mcp" ? <McpSettingsSection locale={locale} workspacePath={workspacePath} conversationId={conversationId} detached={conversationDetached} /> : null}
+          {page === "hooks" ? <HooksSettingsSection locale={locale} workspacePath={workspacePath} /> : null}
           {page === "web" ? <WebToolsSettingsSection locale={locale} /> : null}
           {page === "memory" ? <MemorySettingsSection locale={locale} conversationId={conversationId} /> : null}
           {page === "usage" ? <SettingsUsageView conversations={conversations} providers={models.catalog?.providers ?? []} models={models.catalog?.models ?? []} /> : null}

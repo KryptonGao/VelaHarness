@@ -71,6 +71,8 @@ export interface AgentControlHost {
   /** 用父会话的模型、权限和指令创建一个独立 Pi 会话。 */
   createChildSession(input: AgentSessionRequest): Promise<AgentSession>;
   disposeChildSession?(session: AgentSession): Promise<void>;
+  /** Cancels host activity that can start before the SDK has a streaming AbortSignal. */
+  cancelChildActivity?(agentId: string): void;
   toolMutates?(session: AgentSession, toolName: string): boolean;
   /** 把子代理结论或消息投递给 root 会话；由运行时决定唤醒还是排队。 */
   deliverToRoot(input: { conversationId: string; message: AgentRootMessage }): void;
@@ -517,6 +519,7 @@ export class AgentControl {
     for (const agent of this.agents.values()) {
       if (agent.info.kind === "root") continue;
       agent.disposed = true;
+      this.options.host.cancelChildActivity?.(agent.info.id);
       agent.unsubscribe?.();
       agent.unsubscribe = null;
       if (agent.session) {
@@ -537,6 +540,7 @@ export class AgentControl {
 
   /** 终止一个代理当前和排队中的工作；调用方负责 emit。 */
   private abortAgent(agent: ManagedAgent): void {
+    this.options.host.cancelChildActivity?.(agent.info.id);
     agent.aborted = true;
     agent.generation += 1;
     agent.paused = false;

@@ -4,7 +4,7 @@ import { uiCopy } from "../intelligent-ui/copy";
 export type SettingsPageId =
   | "appearance" | "interface" | "shortcuts" | "updates"
   | "defaults" | "display" | "skills"
-  | "models" | "integrations" | "mcp" | "web" | "memory"
+  | "models" | "integrations" | "mcp" | "hooks" | "web" | "memory"
   | "workspace" | "archived" | "usage" | "storage" | "logs"
   | "development";
 
@@ -19,7 +19,7 @@ export interface SettingsGroup {
 export const settingsGroups: readonly SettingsGroup[] = [
   { id: "general", pages: ["appearance", "interface", "shortcuts", "updates"] },
   { id: "agent", pages: ["defaults", "display", "skills"] },
-  { id: "extensions", pages: ["models", "integrations", "mcp", "web", "memory"] },
+  { id: "extensions", pages: ["models", "integrations", "mcp", "hooks", "web", "memory"] },
   { id: "data", pages: ["workspace", "archived", "usage", "storage", "logs"] },
   { id: "development", pages: ["development"] },
 ];
@@ -122,6 +122,9 @@ export const settingsEntries: readonly SettingsEntry[] = [
   { id: "integrations", page: "integrations", title: (c) => c.pages.integrations.label, hint: (c) => c.pages.integrations.description, keywords: { zh: ["集成", "插件", "连接", "Notion"], en: ["integration", "plugin", "connect", "notion"] } },
 
   { id: "mcp-servers", page: "mcp", title: (c) => c.mcp.title, hint: (c) => c.mcp.hint, keywords: { zh: ["MCP", "服务器", "添加服务器", "工具"], en: ["mcp", "server", "model context protocol", "tools", "add server"] } },
+  { id: "hooks-config", page: "hooks", title: c => c.pages.hooks.label, hint: c => c.pages.hooks.description, keywords: { zh: ["钩子", "自动化", "生命周期", "命令", "工具前后"], en: ["hooks", "lifecycle", "automation", "PreToolUse", "PostToolUse", "Stop", "PreCommit"] } },
+  { id: "hooks-trust", page: "hooks", title: c => c.mcp.trustTitle, keywords: { zh: ["Hooks", "授权", "信任"], en: ["hooks", "authorize", "trust"] } },
+  { id: "hooks-history", page: "hooks", title: c => c.pages.hooks.label, keywords: { zh: ["Hooks", "运行记录", "耗时"], en: ["hooks", "history", "duration"] } },
   { id: "mcp-trust", page: "mcp", title: (c) => c.mcp.trustTitle, hint: (c) => c.mcp.trustHint, keywords: { zh: ["信任", "项目信任"], en: ["trust", "project trust"] } },
   { id: "mcp-import", page: "mcp", title: (c) => c.mcp.importTitle, hint: (c) => c.mcp.importHint, keywords: { zh: ["导入", "JSON", "mcpServers"], en: ["import", "json", "mcpServers"] } },
 

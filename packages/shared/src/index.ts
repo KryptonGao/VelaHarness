@@ -1,3 +1,5 @@
+export * from "./hooks";
+import type { HooksApi } from "./hooks";
 export * from "./pr-inbox";
 export * from "./mcp";
 export * from "./memory";
@@ -3026,7 +3028,7 @@ export interface DevelopmentApi {
   restartMain(): Promise<void>;
 }
 
-export interface VelaApi extends McpApi, PluginApi {
+export interface VelaApi extends McpApi, PluginApi, HooksApi {
   prInbox: import("./pr-inbox").PrInboxApi;
   /** 设置页的长期记忆管理入口；Agent 工具由运行时单独提供。 */
   memory: MemoryApi;

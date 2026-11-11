@@ -209,8 +209,11 @@ export class GitService {
   private mutationChain: Promise<void> = Promise.resolve();
   private readonly graphSnapshots = new Map<string, GraphSnapshotMeta>();
 
-  constructor(options?: { worktreeRoot?: string | null }) {
+  private readonly beforeCommit?: (cwd: string, input: GitCommitInput) => Promise<{ allowed: boolean; reason: string }>;
+
+  constructor(options?: { worktreeRoot?: string | null; beforeCommit?: (cwd: string, input: GitCommitInput) => Promise<{ allowed: boolean; reason: string }> }) {
     this.worktreeRoot = options?.worktreeRoot ?? null;
+    this.beforeCommit = options?.beforeCommit;
   }
 
   subscribe(listener: StatusListener): () => void {
@@ -477,6 +480,11 @@ export class GitService {
       const amendedPushed = amend ? await this.headPushed(cwd) : null;
       if (stagePaths && stagePaths.length > 0) {
         await gitMutate(cwd, ["add", "--", ...stagePaths]);
+      }
+      const hook = await this.beforeCommit?.(cwd, input);
+      if (hook && !hook.allowed) {
+        return { ok: false, sha: null, shortSha: null, branch: await readCurrentBranch(cwd),
+          message: "PreCommit hook denied the commit.", output: hook.reason, amendedSha, amendedPushed };
       }
       const args = ["commit"];
       if (amend) args.push("--amend");

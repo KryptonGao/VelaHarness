@@ -209,6 +209,32 @@ describe("GitService", () => {
     }
   });
 
+  it("awaits the lifecycle PreCommit guard after staging and preserves Git hooks", async () => {
+    const root = await createRepo();
+    await commitFile(root, "a.txt", "base\n", "base");
+    await writeRepoFile(root, "b.txt", "staged\n");
+    const hookPath = join(root, ".git", "hooks", "pre-commit");
+    await writeFile(hookPath, "#!/bin/sh\ntouch git-hook-ran\n"); await chmod(hookPath, 0o755);
+    let allowed = false;
+    let observed = 0;
+    const service = new GitService({ beforeCommit: async (cwd, input) => {
+      observed++;
+      assert.equal(input.title, "guarded");
+      assert.match(await git(cwd, ["diff", "--cached", "--name-only"]), /b.txt/);
+      return { allowed, reason: "Lifecycle check denied" };
+    } });
+    try {
+      await service.attach(root);
+      const denied = await service.commit({ title: "guarded", body: "", stagePaths: ["b.txt"] });
+      assert.equal(denied.ok, false); assert.match(denied.output, /Lifecycle check/);
+      await assert.rejects(readFile(join(root, "git-hook-ran")));
+      allowed = true;
+      assert.equal((await service.commit({ title: "guarded", body: "", stagePaths: null })).ok, true);
+      assert.equal(await readFile(join(root, "git-hook-ran"), "utf8"), "");
+      assert.equal(observed, 2);
+    } finally { await service.attach(null); }
+  });
+
   it("pre-commit hook 失败时返回 ok:false 且索引保持暂存", async () => {
     const root = await createRepo();
     await commitFile(root, "a.txt", "base\n", "base");

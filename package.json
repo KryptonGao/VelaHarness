@@ -6,6 +6,8 @@
     "node": ">=22.19.0"
   },
   "scripts": {
+    "test:hooks": "node --import ./packages/agent/test/register-ts.mjs --experimental-transform-types --experimental-test-module-mocks --test packages/agent/test/hooks-service.test.ts packages/agent/test/hooks-runtime.test.ts apps/desktop/test/hooks-host.test.ts apps/desktop/test/settings-registry.test.ts packages/workspace/test/git-service.test.ts",
+    "test:hooks:ui": "node apps/desktop/test/hooks-ui.mjs",
     "test:plugins": "pnpm --filter @vela/agent test:plugins && pnpm --filter @vela/desktop test:plugins && pnpm --filter @vela/desktop test:plugins:ui",
     "postinstall": "node node_modules/electron/install.js && node scripts/brand-electron-dev.mjs && node scripts/fix-native-modules.mjs",
     "dev": "pnpm --filter @vela/desktop dev",

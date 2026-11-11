@@ -636,6 +636,19 @@ export class TraceRecorder {
       this.flush();
     }
   }
+  /** Metadata only: hook stdin, commands and arbitrary output never enter the trace. */
+  recordHook(record: import("../../shared/src/hooks").HookRunRecord): void {
+    const id = `hook-${record.id}`;
+    const text = `Hook · ${record.event} · ${record.scope}/${record.hookId}${record.agentId ? ` · ${record.agentId}` : ""} · ${record.code}`;
+    const stored = this.nodes.get(id) ?? this.create("state", id, text, record.startedAt, null);
+    stored.content = text;
+    stored.node.status = record.status === "running" ? "Running" : record.status === "error" || record.status === "denied" ? "Failed" : "Completed";
+    stored.node.completedAt = record.status === "running" ? null : record.startedAt + record.durationMs;
+    stored.node.durationMs = record.durationMs;
+    this.touch(stored);
+    this.flush();
+  }
+
   fail(message: string) {
     if ([...this.nodes.values()].at(-1)?.content === message) return;
     const s = this.create(

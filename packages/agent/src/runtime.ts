@@ -1,3 +1,6 @@
+import { HooksService } from "./hooks-service";
+import { createHooksExtension } from "./hooks-extension";
+import type { HooksCatalog, HooksSaveInput, HooksTrustInput, HookRunRecord, HooksRunInput, HooksRunResult, HooksTestInput } from "../../shared/src/hooks";
 import { McpConfigService } from "./mcp-config";
 import { PluginRegistry } from "./mcp/plugin-registry";
 import { OAuthMCPManager } from "./mcp/oauth";
@@ -448,6 +451,8 @@ export class AgentRuntime {
   private readonly skills: SkillLibrary;
   private readonly tools: ToolLoadout;
   private readonly mcpConfig: McpConfigService;
+  private readonly hooks: HooksService;
+  private readonly hookFailures = new Map<string, string>();
   private readonly plugins: PluginRegistry;
   private readonly oauthMcp: OAuthMCPManager;
   private readonly pluginManager: PluginMCPManager;
@@ -500,6 +505,14 @@ export class AgentRuntime {
 
   constructor(private readonly options: AgentRuntimeOptions) {
     this.currentCwd = options.cwd;
+    this.hooks = new HooksService({ agentDir: options.agentDir });
+    this.hooks.subscribe(record => {
+      if (this.disposed || !record.conversationId) return;
+      const entry = this.conversations.get(record.conversationId);
+      if (!entry) return;
+      if (record.status === "running") this.advanceGoalWorkRevision(entry);
+      this.trace(entry.id).recordHook(record);
+    });
     this.memory = new MemoryService({ agentDir: options.agentDir });
     this.memorySettings = new MemorySettings(options.agentDir);
     this.webTools = new WebToolsService({
@@ -1713,6 +1726,7 @@ export class AgentRuntime {
     const entry = conversationId ? this.conversations.get(conversationId) : this.activeConversation();
     if (!entry) return;
     entry.stopRequested = true;
+    this.hooks.cancel(entry.id);
     try { this.options.onRecipeStop?.(entry.id); } catch (error) { log.error("recipe stop notification failed", error); }
     // 停止一并撤销还没投递的排队/调整指令,避免下一次发言时意外继续。
     entry.pendingInstructions = [];
@@ -2328,6 +2342,31 @@ export class AgentRuntime {
     });
   }
 
+  testHooks(input: HooksTestInput): Promise<HooksRunResult> { return this.hooks.test(input); }
+  getHooksCatalog(input: { cwd: string }): HooksCatalog { return this.hooks.getCatalog(input.cwd); }
+  saveHooksConfig(input: HooksSaveInput): HooksCatalog { return this.hooks.save(input); }
+  setHooksTrust(input: HooksTrustInput): HooksCatalog { return this.hooks.setTrust(input); }
+  subscribeHooks(listener: (record: HookRunRecord) => void): () => void { return this.hooks.subscribe(listener); }
+  runPreCommitHooks(cwd: string, commit: HooksRunInput["commit"]): Promise<HooksRunResult> {
+    return this.hooks.run({ cwd, event: "PreCommit", toolName: "git.commit", commit });
+  }
+
+  private hooksExtension(entry: Conversation, agentId?: string, kind?: SubagentKind): ExtensionFactory {
+    const enabled = () => entry.snapshot.mode !== "plan" && kind !== "explore" && !this.isResident(entry.id)
+      && entry.recipeStageSideEffect !== "read_only" && !entry.budget?.exhausted;
+    return createHooksExtension({
+      enabled,
+      run: async (input, signal) => {
+        try {
+          return await this.hooks.run({ ...input, cwd: entry.snapshot.cwd, conversationId: entry.id, ...(agentId ? { agentId } : {}) }, { signal, allowed: enabled() });
+        } catch {
+          return { allowed: false, failed: true, reason: "Hooks execution is unavailable. Review Hooks settings.", additionalContext: "" };
+        }
+      },
+      failure: message => { if (!agentId) this.hookFailures.set(entry.id, message); },
+    });
+  }
+
   setMcpEnabled(input: McpEnabledInput): Promise<McpCatalog> {
     return this.exclusive(async () => {
       await this.mcpConfig.setEnabled(input);
@@ -2656,6 +2695,7 @@ export class AgentRuntime {
 
   private disposeOnce(): Promise<void> {
     this.disposed = true;
+    this.hooks.cancel();
     this.touch();
     if (this.checkpointSweep) clearTimeout(this.checkpointSweep);
     this.checkpointSweep = null;
@@ -2969,6 +3009,7 @@ export class AgentRuntime {
             authorizeCall: call => this.tools.authorize(call, entry),
           }),
         }, { name: "vela-task-budget", hidden: true, factory: createTaskBudgetExtension(() => entry.budget?.exhausted === true) },
+        { name: "vela-hooks", hidden: true, factory: this.hooksExtension(entry) },
         { name: "vela-memory", hidden: true, factory: this.memoryExtension(entry, null) }, {
           name: "vela-intelligent-ui",
           hidden: true,
@@ -3029,6 +3070,7 @@ export class AgentRuntime {
         host: {
           createChildSession: (input) => this.createChildSession(entry, input),
           disposeChildSession: (session) => this.closeSession(session),
+          cancelChildActivity: agentId => this.hooks.cancel(entry.id, agentId),
           toolMutates: (session, name) => this.mcpBridges.get(session)?.isMutation(name) ?? false,
           deliverToRoot: (input) => {
             this.deliverAgentMessage(entry, input.message);
@@ -3185,6 +3227,8 @@ export class AgentRuntime {
   }
 
   private async detachEntry(entry: Conversation): Promise<void> {
+    this.hooks.cancel(entry.id);
+    this.hookFailures.delete(entry.id);
     this.endTaskBudget(entry);
     entry.unsubscribe?.();
     entry.unsubscribe = null;
@@ -3799,6 +3843,7 @@ export class AgentRuntime {
           ])),
         }));
       }
+      this.hookFailures.delete(entry.id);
       await session.prompt(
         text,
         images && images.length > 0
@@ -3815,10 +3860,13 @@ export class AgentRuntime {
         this.patchEntry(entry, { status: "ready", updatedAt: Date.now() });
         return "aborted";
       }
-      const failure = readSessionError(session);
-      if (failure && failure !== previousError) {
+      const hookFailure = this.hookFailures.get(entry.id);
+      this.hookFailures.delete(entry.id);
+      const failure = hookFailure ?? readSessionError(session);
+      if (failure && (hookFailure || failure !== previousError)) {
         this.trace(entry.id).settle("Failed");
         this.failPrompt(entry, failure);
+        if (hookFailure) this.patchEntry(entry, { error: failure });
         return "error";
       }
       this.trace(entry.id).settle("Completed");
@@ -3883,6 +3931,7 @@ export class AgentRuntime {
         ...(input.kind === "explore" ? [{ name: "vela-explore", hidden: true, factory: createExploreGuardExtension() }] : []),
         { name: "vela-task-budget", hidden: true, factory: createTaskBudgetExtension(() => entry.budget?.exhausted === true) },
         ...(input.beforeToolCall ? [{ name: "vela-agent-pause", hidden: true, factory: createAgentPauseExtension(input.beforeToolCall) }] : []),
+        { name: "vela-hooks", hidden: true, factory: this.hooksExtension(entry, input.agentId, input.kind) },
         { name: "vela-memory", hidden: true, factory: this.memoryExtension(entry, input.agentId) },
         { name: "vela-web-tools", hidden: true, factory: this.webToolsExtension(() => this.tools.web().length > 0) },
         ...mcp.factories(),
@@ -4069,7 +4118,14 @@ export class AgentRuntime {
     this.patchEntry(entry, { status: "streaming", error: null, updatedAt: Date.now() });
     entry.control?.setRootStatus("running");
     try {
+      this.hookFailures.delete(entry.id);
       await session.sendCustomMessage(payload, { triggerTurn: true });
+      const hookFailure = this.hookFailures.get(entry.id);
+      this.hookFailures.delete(entry.id);
+      if (hookFailure && !entry.stopRequested) {
+        this.failPrompt(entry, hookFailure);
+        this.patchEntry(entry, { error: hookFailure });
+      }
     } catch (error) {
       this.failPrompt(entry, error instanceof Error ? error.message : "子代理结论投递失败");
     } finally {

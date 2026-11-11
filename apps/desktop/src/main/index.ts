@@ -48,6 +48,7 @@ import { ResidentAgentHost } from "./resident-agent-host";
 import { ProactiveRuleService } from "./proactive-rules";
 import { ResidentTray, type TrayAction } from "./resident-tray";
 import { McpHost } from "./mcp-host";
+import { HooksHost } from "./hooks-host";
 import { MemoryHost } from "./memory-host";
 import { WebToolsHost } from "./web-tools-host";
 import { SecureCredentialStore } from "./plugin-credentials";
@@ -95,6 +96,7 @@ const trayIconPath = join(rootDir, "tray-template.png");
 const preloadPath = join(rootDir, "../preload/index.js");
 
 let mcpHost: McpHost | null = null;
+let hooksHost: HooksHost | null = null;
 let memoryHost: MemoryHost | null = null;
 let webToolsHost: WebToolsHost | null = null;
 let scheduledTaskHost: ScheduledTaskHost | null = null;
@@ -315,7 +317,10 @@ async function start(): Promise<void> {
   // 先恢复工作区记录，供旧会话迁移工作区归属时使用。
   const workspace = await workspaceManager.init(process.env.VELA_CWD?.trim() || null);
   const envManager = new ExecutionEnvironmentManager(fallbackCwd, join(home, "worktrees"));
-  const git = new GitService({ worktreeRoot: join(home, "worktrees") });
+  const git = new GitService({ worktreeRoot: join(home, "worktrees"), beforeCommit: async (cwd, input) => {
+    if (!runtimeHost) throw new Error("Hooks runtime is unavailable.");
+    return runtimeHost.runtime.runPreCommitHooks(cwd, input);
+  } });
   const operations = new GitOperationLog(join(home, "git-operations.json"));
   await operations.init();
   const files = new WorkspaceFileService();
@@ -688,6 +693,8 @@ async function start(): Promise<void> {
   scheduledTaskHost.register();
   mcpHost = new McpHost(runtime, () => workspaceManager.getState().current ?? fallbackCwd);
   mcpHost.register();
+  hooksHost = new HooksHost(runtime, () => workspaceManager.getState().current ?? fallbackCwd);
+  hooksHost.register();
   memoryHost = new MemoryHost(runtime, { workspaces: registeredWorkspaces });
   memoryHost.register();
   webToolsHost = new WebToolsHost(runtime);
@@ -801,6 +808,8 @@ app.on("before-quit", (event) => {
   residentHost?.dispose(); residentHost = null;
   agentInboxAdapter?.stop(); agentInboxAdapter = null;
   agentInboxHost?.dispose(); agentInboxHost = null;
+  hooksHost?.dispose();
+  hooksHost = null;
   mcpHost?.dispose();
   mcpHost = null;
   memoryHost?.dispose();
