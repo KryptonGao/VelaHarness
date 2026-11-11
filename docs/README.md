@@ -63,6 +63,7 @@
 
 | 文档 | 受众 | 内容 |
 | --- | --- | --- |
+| [requirements/remote-control.md](./requirements/remote-control.md) | 产品与开发者 | Remote Control 需求：手机续接桌面会话，P0 使用 Tailscale Serve，P1 可选 Funnel，涵盖设备配对、工作区授权、断线恢复及验收标准；尚未实现。 |
 | [requirements/version-control.md](./requirements/version-control.md) | 产品与开发者 | 版本控制需求：Git/GH CLI 分工、Commit 与同步、提交关系图、PR、AI 文案辅助及验收标准；P0–P2 已实现，P3 尚未实现。 |
 | [requirements/pull-requests.md](./requirements/pull-requests.md) | 产品与开发者 | Pull Request 中心方案：仅经 GH CLI 访问 GitHub，跨仓库关联查询、分页去重、概览与 diff、同步及验收；第一期读取闭环已实现，AI 与远程写入留待后续。 |
 | [requirements/task-recipes.md](./requirements/task-recipes.md) | 产品与开发者 | 任务配方需求基线：参数化模板、预览、新对话启动、版本快照与使用记录；P0/P1/P2 已实现。 |
