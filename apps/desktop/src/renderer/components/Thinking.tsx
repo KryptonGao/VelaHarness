@@ -158,9 +158,9 @@ export function Thinking({
     prevActive.current = expandSignal;
   }, [expandSignal]);
 
-  // 分组收起后放开高度封顶,下次展开重新按内容计算。
+  // 放开高度封顶要等到下次展开:收起动画期间若先放开,视口会瞬间长高、scrollTop 被夹回 0,顶部渐隐随之消失。
   useLayoutEffect(() => {
-    if (!open && scrollRef.current) scrollRef.current.style.maxHeight = "";
+    if (open && scrollRef.current) scrollRef.current.style.maxHeight = "";
   }, [open]);
 
   useEffect(() => {
@@ -179,10 +179,9 @@ export function Thinking({
   useLayoutEffect(() => {
     const scrollElement = scrollRef.current;
     const contentElement = contentRef.current;
-    if (!open || !revealed || !scrollElement || !contentElement) {
-      setOverflowing(false);
-      return;
-    }
+    // 收起时保留最后一次的溢出状态:此时高度动画还在进行,提前清掉会让上下渐隐在收起过程中瞬间消失。
+    if (!revealed) setOverflowing(false);
+    if (!open || !revealed || !scrollElement || !contentElement) return;
 
     // 流式追加、Markdown 异步渲染或展开动画都会改变高度,贴底时持续跟随到底部。
     const sync = () => {
