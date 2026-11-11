@@ -1,0 +1,274 @@
+/* Optional review-rail composer. Classic composition keeps its existing rules. */
+.vc-composer.vc-composer-compact {
+  flex: 0 1 auto;
+  min-width: 0;
+  min-height: 0;
+  max-height: min(60vh, 560px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 14px 16px 16px;
+  background: var(--bg-chat);
+  box-shadow: none;
+}
+
+.vc-composer.vc-composer-compact [hidden] {
+  display: none;
+}
+
+.vc-composer-compact .vc-composer-meta {
+  gap: 6px;
+  margin-bottom: 10px;
+  font-size: calc(12px * var(--ui-scale));
+  letter-spacing: normal;
+}
+
+.vc-composer-compact .vc-composer-meta > b {
+  color: var(--text-primary);
+  font-size: calc(15px * var(--ui-scale));
+  font-weight: 600;
+}
+
+.vc-composer-compact .vc-composer-file-count {
+  margin-left: auto;
+}
+
+.vc-composer-compact .vc-composer-meta > .vc-stats {
+  font: calc(12px * var(--code-scale))/1.5 var(--font-mono);
+}
+
+.vc-composer-compact .vc-composer-author {
+  flex-basis: 100%;
+  min-width: 0;
+  margin-left: 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  font-size: calc(12px * var(--ui-scale));
+}
+
+.vc-composer-compact .vc-composer-options-toggle {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  border-radius: var(--radius-sm);
+}
+
+.vc-composer-options-toggle[aria-expanded="true"] svg {
+  rotate: 180deg;
+}
+
+.vc-composer-compact .vc-composer-entry {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.vc-composer-compact .vc-composer-fields {
+  flex: 0 0 auto;
+  gap: 0;
+  padding: 2px;
+  border-radius: var(--radius-md);
+  background: var(--bg-surface-subtle);
+}
+
+.vc-composer-compact .vc-input {
+  min-width: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface-subtle);
+  font-size: calc(13px * var(--ui-scale));
+}
+
+.vc-composer-compact .vc-commit-title {
+  min-height: 34px;
+  padding: 8px 10px 4px;
+  font-weight: 500;
+}
+
+.vc-composer-compact .vc-commit-body {
+  height: 56px;
+  min-height: 44px;
+  max-height: 160px;
+  padding: 4px 10px 8px;
+  line-height: 1.55;
+  resize: vertical;
+}
+
+.vc-composer-compact .vc-ai {
+  width: auto;
+  min-width: 0;
+  flex: 0 0 auto;
+  gap: 8px;
+}
+
+.vc-composer-compact .vc-ai-actions,
+.vc-composer-compact .vc-ai-adjust {
+  justify-content: flex-start;
+  gap: 8px;
+}
+
+/* Hide only idle regenerate/adjust controls. Cancel and candidate feedback stay reachable. */
+.vc-composer-compact:not(.vc-composer-options-open) .vc-ai-adjust,
+.vc-composer-compact:not(.vc-composer-options-open) .vc-ai:has(> .vc-ai-adjust) .vc-ai-actions > .vc-btn-ghost {
+  display: none;
+}
+
+.vc-composer-compact .vc-ai-running,
+.vc-composer-compact .vc-ai-error {
+  justify-content: flex-start;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.vc-composer-compact .vc-ai-candidate {
+  min-width: 0;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 10px;
+  background: var(--bg-surface-subtle);
+  box-shadow: none;
+}
+
+.vc-composer-compact .vc-ai-candidate-head {
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.vc-composer-compact .vc-ai-candidate-scope,
+.vc-composer-compact .vc-ai-candidate-text {
+  overflow-wrap: anywhere;
+}
+
+.vc-composer-compact .vc-ai-candidate-body {
+  font-size: calc(12px * var(--ui-scale));
+}
+
+.vc-composer-compact .vc-composer-style {
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-subtle);
+  font-size: calc(13px * var(--ui-scale));
+}
+
+.vc-composer-compact .vc-composer-style label {
+  align-items: flex-start;
+  gap: 8px;
+  line-height: 1.55;
+}
+
+.vc-composer-compact .vc-composer-style input {
+  flex: 0 0 auto;
+  margin-top: 4px;
+}
+
+.vc-composer-compact .vc-composer-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+/* Text controls follow App's fixed 32px, borderless rounded-rectangle design. */
+.vc-composer.vc-composer-compact .vc-btn,
+.vc-composer.vc-composer-compact .vc-chip {
+  min-height: 32px;
+  height: auto;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--bg-surface-subtle);
+  color: var(--text-secondary);
+  box-shadow: none;
+  font-size: calc(13px * var(--ui-scale));
+  font-weight: 500;
+  line-height: 1.55;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.vc-composer.vc-composer-compact .vc-btn:hover:not(:disabled),
+.vc-composer.vc-composer-compact .vc-chip:hover:not(:disabled) {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.vc-composer.vc-composer-compact .vc-btn-ghost {
+  background: transparent;
+}
+
+.vc-composer.vc-composer-compact .vc-btn-primary {
+  background: var(--accent-blue);
+  color: var(--accent-contrast);
+  font-weight: 600;
+}
+
+.vc-composer.vc-composer-compact .vc-btn-primary:hover:not(:disabled) {
+  background: var(--accent-blue-hover);
+  color: var(--accent-contrast);
+}
+
+/* Applying a candidate is secondary to committing the staged snapshot. */
+.vc-composer.vc-composer-compact .vc-ai-candidate-actions .vc-btn-primary {
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+}
+
+.vc-composer.vc-composer-compact .vc-ai-candidate-actions .vc-btn-primary:hover:not(:disabled) {
+  color: var(--text-primary);
+}
+
+.vc-composer.vc-composer-compact .vc-btn-danger:hover:not(:disabled) {
+  background: var(--danger-tint);
+  color: var(--danger);
+}
+
+.vc-composer-compact .vc-identity-form {
+  align-items: stretch;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.vc-composer-compact .vc-identity-form .vc-input {
+  width: 100%;
+}
+
+.vc-composer-compact .vc-stage-all,
+.vc-composer-compact .vc-undo-panel,
+.vc-composer-compact .vc-amend-note {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.vc-composer-compact .vc-stage-all-head {
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.vc-composer-compact .vc-stage-all-actions,
+.vc-composer-compact .vc-dialog-actions {
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.vc-composer-compact .vc-stage-all-list {
+  max-height: 130px;
+  overflow: auto;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.vc-composer-compact .vc-composer-blocked {
+  font-size: calc(12px * var(--ui-scale));
+  color: var(--warning-strong);
+}
+
+.vc-composer-compact .vc-command-output {
+  font-size: calc(12px * var(--code-scale));
+  overflow-wrap: anywhere;
+}

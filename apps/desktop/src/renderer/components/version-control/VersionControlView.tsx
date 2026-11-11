@@ -1,11 +1,15 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import type { GitCommitSummary, SessionSnapshot } from "@vela/shared";
 import { tr, useAppLocale, trf } from "../../locale";
 import type { ProjectApi } from "../../hooks/useProject";
 import { useVersionControl } from "../../hooks/useVersionControl";
-import { useDismissable } from "../../hooks/useDismissable";
+import { setVersionControlLayout, useVersionControlLayout, type VersionControlLayout } from "../../hooks/useVersionControlLayout";
+import { settingsCopy } from "../settings-copy";
+import { SettingsSelect } from "../settings/SettingsSelect";
+import { RepositoryStatus } from "./RepositoryStatus";
+import { ReviewRepositoryToolbar } from "./ReviewRepositoryToolbar";
 import { useSlidingTabIndicator } from "../useSlidingTabIndicator";
-import { AlertIcon, ArrowDownIcon, ArrowUpIcon, BranchIcon, ChevronDownIcon, CloudIcon, FolderIcon, MonitorIcon, PrIcon, RefreshIcon, StackIcon, TagIcon } from "../icons";
+import { AlertIcon, ArrowDownIcon, ArrowUpIcon, BranchIcon, CloudIcon, FolderIcon, MonitorIcon, PrIcon, RefreshIcon, StackIcon, TagIcon } from "../icons";
 import { BranchMenu } from "./BranchMenu";
 import { BranchPanel } from "./BranchPanel";
 import { ChangesPage } from "./ChangesPage";
@@ -22,7 +26,6 @@ import { StashPanel } from "./StashPanel";
 import { SyncDialog } from "./SyncDialog";
 import { TagReleasePanel } from "./TagReleasePanel";
 import { WorktreePanel } from "./WorktreePanel";
-import { formatRelativeTime } from "./time-format";
 
 type VersionControlPage = "changes" | "history" | "pr";
 
@@ -45,13 +48,15 @@ export function VersionControlView({
   onOpenFile(absolutePath: string): void;
 }) {
   const locale = useAppLocale();
+  const layout = useVersionControlLayout();
+  const layoutCopy = settingsCopy(locale).appearance;
+  const tabId = useId();
   const agentStreaming = session?.status === "streaming";
   const api = useVersionControl(project, agentStreaming);
   const status = project.git;
   const [page, setPage] = useState<VersionControlPage>("changes");
   const [publishOpen, setPublishOpen] = useState(false);
   const [opsOpen, setOpsOpen] = useState(false);
-  const [statusOpen, setStatusOpen] = useState(false);
   const [branchesOpen, setBranchesOpen] = useState(false);
   const [remotesOpen, setRemotesOpen] = useState(false);
   const [stashOpen, setStashOpen] = useState(false);
@@ -61,7 +66,6 @@ export function VersionControlView({
   const [tagsOpen, setTagsOpen] = useState(false);
   const [reflogOpen, setReflogOpen] = useState(false);
   const [historyCommit, setHistoryCommit] = useState<GitCommitSummary | null>(null);
-  const statusRef = useDismissable<HTMLDivElement>(statusOpen, () => setStatusOpen(false));
 
   const workspace = project.workspace?.current ?? null;
   const repo = status?.repo ?? null;
@@ -77,7 +81,6 @@ export function VersionControlView({
   // 工作区切换后重新加载历史/PR,避免展示上一工作区的旧结果。
   useEffect(() => {
     setOpsOpen(false);
-    setStatusOpen(false);
     setBranchesOpen(false);
     setRemotesOpen(false);
     setStashOpen(false);
@@ -126,8 +129,22 @@ export function VersionControlView({
   };
 
   return (
-    <div className="vc-root" hidden={hidden}>
+    <div className="vc-root" data-vc-layout={layout} hidden={hidden}>
       <section className="vc-repo-bar" aria-label={tr("仓库状态与操作", "Repository status and actions")}>
+        {layout === "review" ? <ReviewRepositoryToolbar project={project} api={api} status={status}
+          sync={<RepositoryStatus status={status} api={api} locale={locale} />} onPush={onPush}
+          onPanel={panel => {
+            if (panel === "branches") setBranchesOpen(true);
+            else if (panel === "remotes") setRemotesOpen(true);
+            else if (panel === "stash") setStashOpen(true);
+            else if (panel === "worktrees") setWorktreesOpen(true);
+            else if (panel === "sync") setSyncMode("pull");
+            else if (panel === "force-push") setSyncMode("force-push");
+            else if (panel === "tags") setTagsOpen(true);
+            else if (panel === "operations") setOpsOpen(true);
+            else if (panel === "reflog") setReflogOpen(true);
+            else if (panel === "compare") setCompare({ base: "", head: branch ?? "" });
+          }} /> : <>
         <div className="vc-repo-main">
         <div className="vc-repo-info">
           <div className="vc-repo-title">
@@ -212,57 +229,9 @@ export function VersionControlView({
             {tr("操作记录", "Operations")}
           </button>
           </div>
-          <div className="vc-sync" ref={statusRef}>
-            <button type="button" className="vc-sync-summary" onClick={() => setStatusOpen((value) => !value)} aria-expanded={statusOpen}>
-              {upstream ? (
-                <>
-                  <span className="vc-ahead">↑ {status.ahead} {tr("待推送", "to push")}</span>
-                  <span className="vc-behind">↓ {status.behind} {tr("待拉取", "to pull")}</span>
-                </>
-              ) : (
-                <span>{tr("尚未发布分支", "Branch not published")}</span>
-              )}
-              <span>{status.lastFetchAt ? trf("Fetch {0}", "Fetched {0}", formatRelativeTime(status.lastFetchAt, locale)) : tr("尚未 Fetch", "Never fetched")}</span>
-              <ChevronDownIcon size={10} />
-            </button>
-            {statusOpen ? (
-              <div className="vc-popover vc-status-popover">
-                <div className="vc-status-row">
-                  <span>{tr("上游", "Upstream")}</span>
-                  <b>{upstream ?? tr("无", "None")}</b>
-                </div>
-                <div className="vc-status-row">
-                  <span>{tr("作者身份", "Author identity")}</span>
-                  <b>{status.identity.configured ? `${status.identity.name} <${status.identity.email}>` : tr("未配置", "Not configured")}</b>
-                </div>
-                <div className="vc-status-row">
-                  <span>{tr("远程", "Remotes")}</span>
-                  <b>{remotes.length > 0 ? remotes.join(", ") : tr("无", "None")}</b>
-                </div>
-                <div className="vc-status-row">
-                  <span>{tr("GitHub CLI", "GitHub CLI")}</span>
-                  <b>
-                    {api.pr
-                      ? api.pr.ghAvailable
-                        ? tr("可用", "Available")
-                        : tr("不可用", "Unavailable")
-                      : tr("未检查", "Not checked")}
-                  </b>
-                </div>
-                {status.operation ? (
-                  <div className="vc-status-row vc-status-warn">
-                    <AlertIcon size={12} />
-                    <span>{trf("进行中的操作：{0}", "Operation in progress: {0}", status.operation.kind)}</span>
-                  </div>
-                ) : null}
-                <div className="vc-status-row">
-                  <span>{tr("仓库范围", "Repository scope")}</span>
-                  <b>{tr("文件读写使用仓库根语义", "File operations use the repository root")}</b>
-                </div>
-              </div>
-            ) : null}
-          </div>
+          <RepositoryStatus status={status} api={api} locale={locale} />
         </div>
+        </>}
         <div className="vc-panel-host">
         <BranchPanel
           open={branchesOpen}
@@ -376,27 +345,35 @@ export function VersionControlView({
       <div className="vc-page-tabs">
         <nav className="vc-subtabs" role="tablist" aria-label={tr("版本控制页面", "Version control pages")}
           ref={pageTabs.navRef} onPointerMove={pageTabs.onPointerMove} onPointerLeave={pageTabs.onPointerLeave}>
-          <button role="tab" data-tab-key="changes" ref={pageTabs.registerTab("changes")} aria-selected={page === "changes"} className={page === "changes" ? "active" : ""} onClick={() => setPage("changes")}>
+          <button role="tab" id={`${tabId}-changes`} aria-controls={`${tabId}-panel-changes`} data-tab-key="changes" ref={pageTabs.registerTab("changes")} aria-selected={page === "changes"} className={page === "changes" ? "active" : ""} onClick={() => setPage("changes")}>
             {tr("改动", "Changes")} {changeCount > 0 ? <span className="vc-pill">{changeCount}</span> : null}
           </button>
-          <button role="tab" data-tab-key="history" ref={pageTabs.registerTab("history")} aria-selected={page === "history"} className={page === "history" ? "active" : ""} onClick={() => setPage("history")}>
+          <button role="tab" id={`${tabId}-history`} aria-controls={`${tabId}-panel-history`} data-tab-key="history" ref={pageTabs.registerTab("history")} aria-selected={page === "history"} className={page === "history" ? "active" : ""} onClick={() => setPage("history")}>
             {tr("历史", "History")}
           </button>
-          <button role="tab" data-tab-key="pr" ref={pageTabs.registerTab("pr")} aria-selected={page === "pr"} className={page === "pr" ? "active" : ""} onClick={() => setPage("pr")}>
+          <button role="tab" id={`${tabId}-pr`} aria-controls={`${tabId}-panel-pr`} data-tab-key="pr" ref={pageTabs.registerTab("pr")} aria-selected={page === "pr"} className={page === "pr" ? "active" : ""} onClick={() => setPage("pr")}>
             {tr("Pull Request", "Pull request")}
           </button>
           {pageTabs.indicator}
         </nav>
+        <div className="vc-layout-controls">
         <div className="vc-scope-note">
           {status.detached
             ? tr("Detached HEAD · 请创建或切换分支", "Detached HEAD · create or switch to a branch")
             : trf("工作区 {0}", "Workspace {0}", branch ?? "")}
         </div>
+        <SettingsSelect label={layoutCopy.versionControlLayout} value={layout}
+          options={[
+            { value: "classic", label: layoutCopy.versionControlLayoutClassic },
+            { value: "review", label: layoutCopy.versionControlLayoutReview },
+          ]} onChange={value => setVersionControlLayout(value as VersionControlLayout)} />
+        </div>
       </div>
 
-      <div className="vc-host">
+      <div className="vc-host" role="tabpanel" id={`${tabId}-panel-${page}`} aria-labelledby={`${tabId}-${page}`}>
         {page === "changes" ? (
           <ChangesPage
+            layout={layout}
             project={project}
             api={api}
             status={status}
@@ -409,6 +386,7 @@ export function VersionControlView({
         ) : null}
         {page === "history" ? (
           <HistoryPage
+            review={layout === "review"}
             api={api}
             repoRoot={repo.root}
             upstream={upstream}

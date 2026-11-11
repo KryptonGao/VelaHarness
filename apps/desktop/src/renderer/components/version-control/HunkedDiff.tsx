@@ -16,6 +16,7 @@ export function HunkedDiff({
   actions,
   disabled,
   onApply,
+  showLineNumbers = false,
 }: {
   path: string;
   diff: string;
@@ -23,6 +24,7 @@ export function HunkedDiff({
   /** 允许的代码块操作;空表示只读展示 */
   actions: GitHunkAction[];
   disabled: boolean;
+  showLineNumbers?: boolean;
   onApply(action: GitHunkAction, patch: string, count: number): void;
 }) {
   const patch = useMemo(() => parseRenderPatch(diff), [diff]);
@@ -43,7 +45,7 @@ export function HunkedDiff({
   };
 
   if (patch.hunks.length === 0) {
-    return <DiffPane path={path} diff={diff} mode={mode} />;
+    return <DiffPane path={path} diff={diff} mode={mode} showLineNumbers={showLineNumbers} hideMeta={showLineNumbers} />;
   }
 
   const indexes = [...selected].sort((a, b) => a - b);
@@ -138,7 +140,7 @@ export function HunkedDiff({
                 </span>
               ) : null}
             </div>
-            <DiffPane path={path} diff={`${hunk.header}\n${hunk.lines.join("\n")}`} mode={mode} />
+            <DiffPane path={path} diff={`${hunk.header}\n${hunk.lines.join("\n")}`} mode={mode} showLineNumbers={showLineNumbers} />
           </div>
         );
       })}

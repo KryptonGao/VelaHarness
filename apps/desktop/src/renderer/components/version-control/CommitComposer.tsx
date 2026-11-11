@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import type { AppLocale, ConversationGoal, GitPushInput, GitStatusSnapshot } from "@vela/shared";
 import { tr, trf } from "../../locale";
 import type { VersionControlApi } from "../../hooks/useVersionControl";
-import { AlertIcon, SparkIcon } from "../icons";
+import { AlertIcon, ChevronDownIcon, SparkIcon } from "../icons";
 import { AiAssist } from "./AiAssist";
 import { buildCommitSnapshot, useAiText, verificationNotesFromGoal, commitSnapshotKey } from "./ai-text";
 import { clearCommitDraft, commitDraftKey, readCommitDraft, writeCommitDraft } from "./git-drafts";
@@ -21,6 +21,7 @@ export function CommitComposer({
   goal,
   locale,
   workspace,
+  compact = false,
   onCommitted,
   onOpenHistory,
 }: {
@@ -31,6 +32,8 @@ export function CommitComposer({
   goal: ConversationGoal | null;
   locale: AppLocale;
   workspace: string | null;
+  /** Reuses the same mounted editor in the optional file-and-commit review rail. */
+  compact?: boolean;
   onCommitted(sha: string): void;
   onOpenHistory(): void;
 }) {
@@ -53,6 +56,9 @@ export function CommitComposer({
   const [identityEmail, setIdentityEmail] = useState("");
   const [identityError, setIdentityError] = useState<string | null>(null);
   const [showOutput, setShowOutput] = useState(false);
+  const [optionsOpen, setOptionsOpen] = useState(false);
+  const optionsId = useId();
+  const actionsId = useId();
   const [amend, setAmend] = useState(false);
   const [amendTarget, setAmendTarget] = useState<{ sha: string; shortSha: string; subject: string; pushed: boolean | null } | null>(null);
   const [undoOpen, setUndoOpen] = useState(false);
@@ -306,13 +312,26 @@ export function CommitComposer({
   const disabled = blocked !== null || api.busy !== null || ai.state.running;
 
   return (
-    <div className="vc-composer">
+    <div className={`vc-composer${compact ? " vc-composer-compact" : ""}${compact && optionsOpen ? " vc-composer-options-open" : ""}`}>
       <div className="vc-composer-meta">
-        <SparkIcon size={13} />
-        <b>{tr("提交已暂存改动", "Commit staged changes")}</b>
-        <span>{trf("{0} 个文件", "{0} files", stagedRows.length)}</span>
+        {compact ? null : <SparkIcon size={13} />}
+        <b>{compact ? tr("提交", "Commit") : tr("提交已暂存改动", "Commit staged changes")}</b>
+        <span className="vc-composer-file-count">{compact ? `${tr("已暂存", "Staged")} · ` : ""}{trf("{0} 个文件", "{0} files", stagedRows.length)}</span>
         <span className="vc-stats"><b className="vc-plus">+{stats.added}</b> <b className="vc-minus">−{stats.deleted}</b></span>
-        <span className="vc-composer-author">
+        {compact ? (
+          <button
+            type="button"
+            className="vc-icon-btn vc-composer-options-toggle"
+            title={tr("更多", "More")}
+            aria-label={tr("更多", "More")}
+            aria-expanded={optionsOpen}
+            aria-controls={`${optionsId} ${actionsId}`}
+            onClick={() => setOptionsOpen((value) => !value)}
+          >
+            <ChevronDownIcon size={14} />
+          </button>
+        ) : null}
+        <span className="vc-composer-author" hidden={compact && status.identity.configured && !optionsOpen}>
           {status.identity.configured
             ? `${status.identity.name} <${status.identity.email}>`
             : (
@@ -367,6 +386,7 @@ export function CommitComposer({
           />
         </div>
         <AiAssist
+          compact={compact}
           state={ai.state}
           disabled={stagedRows.length === 0 || status.detached || Boolean(status.operation)}
           hint={trf("依据已暂存的 {0} 个文件 · 结果可编辑", "Based on {0} staged files · editable", stagedRows.length)}
@@ -382,7 +402,7 @@ export function CommitComposer({
         />
       </div>
 
-      <div className="vc-composer-style">
+      <div className="vc-composer-style" id={optionsId} hidden={compact && !optionsOpen}>
         <label>
           <input type="checkbox" checked={aiStyle === "conventional"} onChange={(event) => setAiStyle(event.target.checked ? "conventional" : "plain")} />
           {tr("使用 Conventional Commits 标题", "Conventional Commits title")}
@@ -448,10 +468,11 @@ export function CommitComposer({
 
       {blocked ? <div className="vc-composer-blocked" role="status">{blocked}</div> : null}
 
-      <div className="vc-composer-actions">
+      <div className="vc-composer-actions" id={actionsId}>
         <button
           type="button"
           className="vc-btn vc-btn-ghost"
+          hidden={compact && !optionsOpen}
           disabled={amend || unstagedRows.length === 0 || status.detached || Boolean(status.operation) || api.busy !== null}
           title={amend ? tr("Amend 模式下不创建新提交", "Amend does not create a new commit") : undefined}
           onClick={() => setStageAllOpen((value) => !value)}
@@ -461,6 +482,7 @@ export function CommitComposer({
         <button
           type="button"
           className="vc-btn"
+          hidden={compact && !optionsOpen}
           disabled={disabled || !title.trim() || (!amend && stagedRows.length === 0)}
           onClick={() => void runCommit(true)}
         >
@@ -469,6 +491,7 @@ export function CommitComposer({
         <button
           type="button"
           className="vc-btn vc-btn-primary"
+          hidden={compact && (stageAllOpen || identityOpen)}
           disabled={disabled || !title.trim() || (!amend && stagedRows.length === 0)}
           onClick={() => void runCommit(false)}
         >

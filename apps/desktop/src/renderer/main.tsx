@@ -10,6 +10,8 @@ import "./acceptance.css";
 import "./components/intelligent-ui/intelligent-ui.css";
 import "./version-control.css";
 import "./version-control-p2.css";
+import "./version-control-review.css";
+import "./version-control-composer-review.css";
 import "./side-chat.css";
 import "./selection-actions.css";
 import "./info-cards.css";

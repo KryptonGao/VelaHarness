@@ -2,8 +2,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { AppLocale, ConversationGoal, GitChangeScope, GitHunkAction, GitStatusSnapshot } from "@vela/shared";
 import { tr, trf } from "../../locale";
 import type { ProjectApi } from "../../hooks/useProject";
+import type { VersionControlLayout } from "../../hooks/useVersionControlLayout";
+import { FileTypeIcon } from "../FileTypeIcon";
 import type { VersionControlApi } from "../../hooks/useVersionControl";
-import { AlertIcon, CheckIcon, DiffIcon, ExternalIcon, FileIcon, RefreshIcon, SearchIcon, TrashIcon } from "../icons";
+import { AlertIcon, ArrowLeftIcon, CheckIcon, DiffIcon, ExternalIcon, FileIcon, RefreshIcon, SearchIcon, TrashIcon } from "../icons";
 import { ConflictResolver, operationLabel } from "./ConflictResolver";
 import { groupChanges, matchesChangeFilter, scopeStats, scopeStatus, type ChangeGroupRow } from "./git-change-groups";
 import { HunkedDiff } from "./HunkedDiff";
@@ -43,6 +45,7 @@ const maxDiffChars = 400_000;
 
 /** 改动页:分组审阅 + 暂存/取消暂存/丢弃 + Commit 编辑区。 */
 export function ChangesPage({
+  layout = "classic",
   project,
   api,
   status,
@@ -52,6 +55,7 @@ export function ChangesPage({
   onOpenHistory,
   onOpenFile,
 }: {
+  layout?: VersionControlLayout;
   project: ProjectApi;
   api: VersionControlApi;
   status: GitStatusSnapshot;
@@ -70,6 +74,19 @@ export function ChangesPage({
   const [notice, setNotice] = useState<string | null>(null);
   const [diffNonce, setDiffNonce] = useState(0);
   const diffSeq = useRef(0);
+  const filesRef = useRef<HTMLDivElement>(null);
+  const diffContentRef = useRef<HTMLDivElement>(null);
+  const showFileList = () => {
+    setMobileDiff(false);
+    window.requestAnimationFrame(() => {
+      (filesRef.current?.querySelector<HTMLElement>(".vc-file-row.selected") ?? filesRef.current?.querySelector("input"))?.focus();
+    });
+  };
+  useEffect(() => {
+    if (layout !== "review" || !mobileDiff) return;
+    const back = diffContentRef.current?.querySelector<HTMLButtonElement>(".vc-review-diff-navigation button");
+    if (back?.getClientRects().length) back.focus();
+  }, [layout, mobileDiff]);
 
   const groups = useMemo(() => groupChanges(status.files), [status.files]);
   const visible = useMemo(() => ({
@@ -214,13 +231,15 @@ export function ChangesPage({
         </div>
       ) : null}
 
-      <div className="vc-files">
+      <div className="vc-changes-content">
+      <div className="vc-files" ref={filesRef}>
         <div className="vc-files-head">
           <div className="vc-files-title">
             <FileIcon size={13} />
             <b>{tr("变更文件", "Changed files")}</b>
             <span>{trf("{0} 个", "{0}", status.files.length)}</span>
           </div>
+          {layout === "review" ? <span className="vc-review-total-stats vc-stats"><b className="vc-plus">+{status.addedLines}</b><b className="vc-minus">−{status.deletedLines}</b></span> : null}
           <button
             type="button"
             className="vc-icon-btn vc-mobile-diff-btn"
@@ -322,6 +341,8 @@ export function ChangesPage({
       </div>
 
       <div className="vc-diff-pane">
+        <div className="vc-diff-content" ref={diffContentRef}>
+        {layout === "review" ? <div className="vc-review-diff-navigation"><button type="button" className="vc-btn vc-btn-ghost" onClick={showFileList}><ArrowLeftIcon size={14} />{tr("变更文件", "Changed files")}</button></div> : null}
         {selected ? (
           <>
             <div className="vc-diff-head">
@@ -331,7 +352,7 @@ export function ChangesPage({
               <span className="vc-diff-path" title={selected.file.path}>
                 {selected.file.oldPath && selected.file.status === "renamed"
                   ? `${selected.file.oldPath} → ${selected.file.path}`
-                  : selected.file.path}
+                  : layout === "review" ? selected.file.path.split("/").pop() : selected.file.path}
               </span>
               <span className="vc-diff-scope">
                 {selected.scope === "index" ? tr("索引版本", "Index version") : selected.scope === "conflict" ? tr("冲突内容", "Conflict") : tr("工作区改动", "Working tree")}
@@ -392,6 +413,7 @@ export function ChangesPage({
                 </button>
               ) : null}
             </div>
+            {layout === "review" ? <div className="vc-review-diff-breadcrumb"><span title={selected.file.path}>{selected.file.path}</span><span>{selected.scope === "index" ? tr("索引版本", "Index version") : selected.scope === "conflict" ? tr("冲突内容", "Conflict") : tr("工作区改动", "Working tree")}</span></div> : null}
             {notice ? <div className="vc-inline-notice" role="status">{notice}</div> : null}
             {selected.scope === "worktree" && confirmDiscard === selected.key ? (
               <DiscardConfirm row={selected} onCancel={() => setConfirmDiscard(null)} onConfirm={() => void discardRow(selected)} />
@@ -432,6 +454,7 @@ export function ChangesPage({
                     path={selected.file.path}
                     diff={diff.text}
                     mode={api.diffMode}
+                    showLineNumbers={layout === "review"}
                     actions={hunkActions(selected)}
                     disabled={api.busy !== null || api.guard?.agentRunning === true}
                     onApply={(action, patch, count) => void applyHunkPatch(selected)(action, patch, count)}
@@ -446,7 +469,9 @@ export function ChangesPage({
           <div className="vc-placeholder"><span className="vc-placeholder-icon"><DiffIcon size={18} /></span>{tr("选择一个文件查看差异", "Select a file to view its diff")}</div>
         )}
 
+        </div>
         <CommitComposer
+          compact={layout === "review"}
           api={api}
           status={status}
           stagedRows={groups.staged}
@@ -457,6 +482,7 @@ export function ChangesPage({
           onCommitted={() => undefined}
           onOpenHistory={onOpenHistory}
         />
+      </div>
       </div>
     </div>
   );
@@ -553,7 +579,7 @@ function ChangeRow({
   return (
     <div className={`vc-file-row${selected ? " selected" : ""}`} role="button" tabIndex={0} onClick={onSelect}
       onKeyDown={(event) => {
-        if (event.key === "Enter" || event.key === " ") {
+        if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) {
           event.preventDefault();
           onSelect();
         }
@@ -567,6 +593,7 @@ function ChangeRow({
         onClick={(event) => event.stopPropagation()}
         onChange={onToggle}
       />
+      <span className="vc-review-file-icon" aria-hidden="true"><FileTypeIcon path={row.file.path} /></span>
       <span className={`vc-status vc-status-${status}`} title={statusText(status)} aria-label={statusText(status)}>
         {statusLetters[status] ?? "M"}
       </span>

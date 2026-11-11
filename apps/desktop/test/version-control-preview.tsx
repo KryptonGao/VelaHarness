@@ -26,9 +26,14 @@ import type {
   WorkspaceFileContent,
 } from "@vela/shared";
 import { VersionControlView } from "../src/renderer/components/version-control/VersionControlView";
+import { setVersionControlLayout } from "../src/renderer/hooks/useVersionControlLayout";
+import { installFocusModality } from "../src/renderer/focus-modality";
 import type { ProjectApi } from "../src/renderer/hooks/useProject";
 import "../src/renderer/styles.css";
 import "../src/renderer/version-control.css";
+import "../src/renderer/version-control-p2.css";
+import "../src/renderer/version-control-review.css";
+import "../src/renderer/version-control-composer-review.css";
 
 const now = Date.now();
 
@@ -604,6 +609,11 @@ function Fixture({ page, select }: { page: string | null; select: boolean }) {
 }
 
 const params = new URLSearchParams(location.search);
+installFocusModality();
+if (params.get("layout") === "review") setVersionControlLayout("review");
+if (params.get("conflicts") === "0") git.files = git.files.filter(file => file.status !== "conflicted");
+// Test controls exercise the real components without touching an actual repository.
+Object.assign(window, { vcFixture: { project, git, session, setVersionControlLayout } });
 if (params.get("pr") === "open") {
   prFixture = {
     ...prInfo,

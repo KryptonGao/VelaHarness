@@ -1,5 +1,6 @@
 import { appLocaleNames, appLocales } from "@vela/shared";
 import { navLayouts, setNavLayout, useNavLayout, type NavLayout } from "../../hooks/useNavLayout";
+import { setVersionControlLayout, useVersionControlLayout, versionControlLayouts, type VersionControlLayout } from "../../hooks/useVersionControlLayout";
 import { setSidebarItem, sidebarItemIds, useSidebarItems } from "../../hooks/useSidebarItems";
 import type { AppLocale, InfoLayout, PreferencesApi } from "../../hooks/usePreferences";
 import type { ConversationLinkTarget } from "../../browser/conversation-link-policy";
@@ -51,6 +52,11 @@ export function InterfacePage({
   const sidebarItems = useSidebarItems();
   const navLayout = useNavLayout();
   const navLayoutLabels: Record<NavLayout, string> = { classic: text.navLayoutClassic, rail: text.navLayoutRail };
+  const versionControlLayout = useVersionControlLayout();
+  const versionControlLayoutLabels: Record<VersionControlLayout, string> = {
+    classic: text.versionControlLayoutClassic,
+    review: text.versionControlLayoutReview,
+  };
   const soundLabels = {
     error: text.soundError, complete: text.soundComplete,
     question: text.soundQuestion, permission: text.soundPermission,
@@ -108,6 +114,10 @@ export function InterfacePage({
         <SettingsBlock id="nav-layout" title={text.navLayout} hint={text.navLayoutHint} layout="inline">
           <Segmented label={text.navLayout} value={navLayout}
             options={navLayouts.map(id => ({ id, label: navLayoutLabels[id] }))} onChange={setNavLayout} />
+        </SettingsBlock>
+        <SettingsBlock id="version-control-layout" title={text.versionControlLayout} hint={text.versionControlLayoutHint} layout="inline">
+          <Segmented label={text.versionControlLayout} value={versionControlLayout}
+            options={versionControlLayouts.map(id => ({ id, label: versionControlLayoutLabels[id] }))} onChange={setVersionControlLayout} />
         </SettingsBlock>
         <SettingsBlock id="info-layout" title={text.infoLayout} hint={text.infoLayoutHint} extraHint={infoLayoutHints[infoLayout]} layout="inline">
           <Segmented menu label={text.infoLayout} value={infoLayout} options={infoLayoutOptions} onChange={setInfoLayout} />

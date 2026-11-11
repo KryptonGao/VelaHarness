@@ -25,6 +25,7 @@ const suites = {
     { name: "web-tools-card-ui", runner: "node" },
     { name: "tool-result-details-ui", runner: "node" },
     { name: "compact-diff-ui", runner: "node" },
+    { name: "version-control-layout-ui", runner: "node" },
     { name: "thinking-activity-ui", runner: "node" },
     { name: "thinking-activity-settings-ui", runner: "node" },
     { name: "expand-chevron-ui", runner: "node" },

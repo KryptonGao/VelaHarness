@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { AppLocale, GitCommitDetail, GitCommitSummary, GitRefLabel } from "@vela/shared";
 import { tr, trf } from "../../locale";
-import { AlertIcon, BranchIcon, CheckIcon, CommitIcon, CopyIcon, ExternalIcon, RefreshIcon, SearchIcon, TagIcon } from "../icons";
+import { AlertIcon, ArrowLeftIcon, BranchIcon, CheckIcon, CommitIcon, CopyIcon, ExternalIcon, RefreshIcon, SearchIcon, TagIcon } from "../icons";
 import { DiffPane } from "../DiffPane";
 import { CommitGraph, useCommitGraphGeometry } from "./CommitGraph";
 import { formatAbsoluteTime, formatRelativeTime } from "./time-format";
@@ -95,6 +95,7 @@ function CommitRow({
 }
 
 export function HistoryPage({
+  review = false,
   api,
   repoRoot,
   upstream,
@@ -104,6 +105,7 @@ export function HistoryPage({
   onOpenReflog,
   locale,
 }: {
+  review?: boolean;
   api: VersionControlApi;
   repoRoot: string;
   upstream: string | null;
@@ -144,6 +146,18 @@ export function HistoryPage({
   const fileDiff = detail && selectedFile ? diffByFile.get(selectedFile) ?? "" : "";
 
   const itemsRef = useRef<HTMLDivElement>(null);
+  const detailRef = useRef<HTMLDivElement>(null);
+  const showHistoryList = () => {
+    setMobileDetail(false);
+    window.requestAnimationFrame(() => {
+      (itemsRef.current?.querySelector<HTMLElement>('.vc-commit-row[aria-current="true"]') ?? itemsRef.current?.querySelector<HTMLElement>(".vc-commit-row"))?.focus();
+    });
+  };
+  useEffect(() => {
+    if (!review || !mobileDetail) return;
+    const back = detailRef.current?.querySelector<HTMLButtonElement>(".vc-review-history-navigation button");
+    if (back?.getClientRects().length) back.focus();
+  }, [review, mobileDetail]);
 
   /** 定位 HEAD:必要时清空搜索并选中 HEAD 提交。 */
   const locateHead = () => {
@@ -301,7 +315,8 @@ export function HistoryPage({
         </div>
       </div>
 
-      <div className="vc-commit-detail">
+      <div className="vc-commit-detail" ref={detailRef}>
+        {review ? <div className="vc-review-history-navigation"><button type="button" className="vc-btn vc-btn-ghost" onClick={showHistoryList}><ArrowLeftIcon size={14} />{tr("历史", "History")}</button></div> : null}
         {api.detailLoading && !detail ? <div className="vc-state">{tr("正在读取提交…", "Loading commit…")}</div> : null}
         {api.detailError ? (
           <div className="vc-state vc-state-error" role="alert">
@@ -327,6 +342,7 @@ export function HistoryPage({
           onCompareWith={(sha) => onCompare(sha, "HEAD")}
           onOpenHistoryOps={onOpenHistoryOps}
           diffMode={api.diffMode}
+          showLineNumbers={review}
           onDiffMode={api.setDiffMode}
           ignoreWhitespace={api.ignoreWhitespace}
           onIgnoreWhitespace={api.setIgnoreWhitespace}
@@ -351,6 +367,7 @@ function CommitDetailPane({
   onCompareWith,
   onOpenHistoryOps,
   diffMode,
+  showLineNumbers,
   onDiffMode,
   ignoreWhitespace,
   onIgnoreWhitespace,
@@ -369,6 +386,7 @@ function CommitDetailPane({
   onCompareWith(sha: string): void;
   onOpenHistoryOps(commit: GitCommitSummary): void;
   diffMode: "unified" | "split";
+  showLineNumbers: boolean;
   onDiffMode(mode: "unified" | "split"): void;
   ignoreWhitespace: boolean;
   onIgnoreWhitespace(value: boolean): void;
@@ -489,7 +507,7 @@ function CommitDetailPane({
         <div className="vc-inline-notice">{tr("差异过大，仅显示前一部分。", "The diff is very large; only the first part is shown.")}</div>
       ) : null}
       <div className="vc-detail-diff">
-        {fileDiff ? <DiffPane key={`${commit.sha}:${selectedFile}:${detail.parentSha ?? ""}`} path={selectedFile ?? ""} diff={fileDiff} mode={diffMode} /> : (
+        {fileDiff ? <DiffPane key={`${commit.sha}:${selectedFile}:${detail.parentSha ?? ""}`} path={selectedFile ?? ""} diff={fileDiff} mode={diffMode} showLineNumbers={showLineNumbers} hideMeta={showLineNumbers} /> : (
           <div className="vc-state">{tr("没有可显示的差异", "No diff to display")}</div>
         )}
       </div>

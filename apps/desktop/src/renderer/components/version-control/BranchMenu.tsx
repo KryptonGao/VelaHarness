@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useLayoutEffect, useMemo, useState } from "react";
 import type { BranchSummary } from "@vela/shared";
 import { tr } from "../../locale";
 import { useDismissable } from "../../hooks/useDismissable";
@@ -14,17 +14,39 @@ export function BranchMenu({
   disabled,
   onSwitch,
   onCreate,
+  contained = false,
 }: {
   branches: BranchSummary[];
   current: string | null;
   disabled: boolean;
   onSwitch(name: string): void;
   onCreate(name: string): void;
+  contained?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [newName, setNewName] = useState("");
   const ref = useDismissable<HTMLDivElement>(open, () => setOpen(false));
+
+  useLayoutEffect(() => {
+    if (!open || !contained) return;
+    const root = ref.current?.closest<HTMLElement>(".vc-root");
+    const popover = ref.current?.querySelector<HTMLElement>(".vc-branch-popover");
+    if (!root || !popover) return;
+    const position = () => {
+      popover.style.translate = "none";
+      const pane = root.getBoundingClientRect();
+      const trigger = ref.current?.querySelector("button")?.getBoundingClientRect();
+      if (trigger) popover.style.maxHeight = `${Math.max(80, pane.bottom - trigger.bottom - 18)}px`;
+      const box = popover.getBoundingClientRect();
+      const left = Math.max(pane.left + 12, Math.min(box.left, pane.right - box.width - 12));
+      popover.style.translate = `${left - box.left}px 0`;
+    };
+    position();
+    const observer = new ResizeObserver(position);
+    observer.observe(root);
+    return () => observer.disconnect();
+  }, [open, contained]);
 
   const filtered = useMemo(() => {
     const value = query.trim().toLowerCase();
