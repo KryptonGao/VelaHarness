@@ -1190,11 +1190,24 @@ button.tool-compact-line:hover .tool-compact-cmd {
   min-width: 0;
   flex: 0 1 auto;
   overflow: hidden;
-  color: var(--text-muted);
-  font-size: calc(12px * var(--ui-scale));
-  font-weight: 400;
+  color: var(--text-secondary, var(--text-muted));
+  font-size: calc(13px * var(--ui-scale));
+  font-weight: 500;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+button.compact-diff-card-name {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+button.compact-diff-card-name:focus-visible {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: 2px;
+  border-radius: 3px;
 }
 .compact-diff-card-name:hover {
   color: var(--text-primary);

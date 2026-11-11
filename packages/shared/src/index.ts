@@ -132,6 +132,7 @@ export const IpcChannel = {
   gitUnstage: "git:unstage",
   gitDiscard: "git:discard",
   gitOpenFile: "git:open-file",
+  gitRevealFile: "git:reveal-file",
   gitEvent: "git:event",
   prGet: "pr:get",
   prOpen: "pr:open",
@@ -3250,6 +3251,8 @@ export interface VelaApi extends McpApi, PluginApi, HooksApi {
   unstageFiles(paths: string[]): Promise<GitStatusSnapshot | null>;
   discardFiles(paths: string[], options?: { untracked?: boolean }): Promise<GitStatusSnapshot | null>;
   openFile(absolutePath: string): Promise<void>;
+  /** 在系统文件管理器中定位文件;相对路径按当前工作区解析。 */
+  revealFile(path: string): Promise<void>;
   /** 用索引内容创建提交;Hooks 与签名按仓库配置执行。 */
   commit(input: GitCommitInput): Promise<GitCommitResult>;
   /** 校验草稿与当前作者身份,提交前由界面调用。 */

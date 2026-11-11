@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import { readFile, stat } from "node:fs/promises";
 import { basename, extname, isAbsolute } from "node:path";
 import { AgentRuntime } from "@vela/agent";
@@ -830,6 +831,13 @@ export class ProjectHost {
       const absolutePath = parseAbsolutePath(raw);
       const message = await shell.openPath(absolutePath);
       if (message) throw new Error(message);
+    });
+
+    ipcMain.handle(IpcChannel.gitRevealFile, async (_event, raw: unknown) => {
+      // 只在文件管理器中定位,不读取内容;相对路径按工作区根解析。
+      const { absolutePath } = await this.options.files.resolvePath(this.workspaceRoots(), parseFlexiblePath(raw));
+      if (!existsSync(absolutePath)) throw new Error("文件不存在");
+      shell.showItemInFolder(absolutePath);
     });
 
     ipcMain.handle(IpcChannel.workspaceFileRead, async (_event, rawPath: unknown) => {

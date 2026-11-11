@@ -48,6 +48,7 @@ import { usePlanEnded } from "./PlanLiveContext";
 import { DurationLabel, ToolDurationLabel, useRunningSeconds, useToolDuration, useToolExpanded, useToolProcessDetails, useToolsDuration } from "./ToolProcessContext";
 import type { ToolDisplay, ToolFold } from "../hooks/usePreferences";
 import { localizeError, tr, trf } from "../locale";
+import { fileManagerName } from "../platform";
 import { cardToolGroup } from "./tool-groups";
 import { toolNameIcon } from "./tool-name-icon";
 
@@ -1023,7 +1024,14 @@ function CompactDiffCard({ fileName, filePath, diff, note, streaming = false, sh
   return (
     <section className="compact-diff-card" aria-label={trf("{0} 的文件差异", "{0} file diff", fileName)}>
       <header className="compact-diff-card-head">
-        <span className="compact-diff-card-name" title={fileName}>{fileName}</span>
+        {filePath
+          ? <button
+              className="compact-diff-card-name is-link"
+              type="button"
+              title={trf("在{0}中显示", "Show in {0}", fileManagerName(window.vela?.platform ?? "darwin"))}
+              onClick={() => { void window.vela?.revealFile(filePath).catch(() => undefined); }}
+            >{fileName}</button>
+          : <span className="compact-diff-card-name" title={fileName}>{fileName}</span>}
         {stat ? (
           <span className="compact-diff-card-stat">
             {stat.added > 0 ? <span className="tool-stat-add">+{stat.added}</span> : null}

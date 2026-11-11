@@ -626,6 +626,7 @@ const api: VelaApi = {
   cancelTextAssist: (requestId: string) =>
     ipcRenderer.invoke(IpcChannel.aiTextCancel, requestId) as Promise<void>,
   openFile: (absolutePath: string) => ipcRenderer.invoke(IpcChannel.gitOpenFile, absolutePath) as Promise<void>,
+  revealFile: (path: string) => ipcRenderer.invoke(IpcChannel.gitRevealFile, path) as Promise<void>,
   readWorkspaceFile: (path: string) =>
     ipcRenderer.invoke(IpcChannel.workspaceFileRead, path) as Promise<WorkspaceFileContent>,
   listWorkspaceFiles: () => ipcRenderer.invoke(IpcChannel.workspaceFileList) as Promise<WorkspaceFileList>,
