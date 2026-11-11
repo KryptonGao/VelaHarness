@@ -32,10 +32,14 @@ const velaTheme: ThemeRegistrationAny = {
     { scope: ["comment", "punctuation.definition.comment"], settings: { foreground: "var(--syntax-comment)", fontStyle: "italic" } },
     { scope: ["string", "string.quoted", "string.template", "punctuation.definition.string"], settings: { foreground: "var(--syntax-string)" } },
     { scope: ["constant.numeric", "constant.language", "constant.character.escape"], settings: { foreground: "var(--syntax-number)" } },
-    { scope: ["keyword", "keyword.operator", "storage", "variable.language", "punctuation.definition.tag"], settings: { foreground: "var(--syntax-keyword)" } },
-    { scope: ["entity.name.function", "support.function", "meta.function-call", "variable.function"], settings: { foreground: "var(--syntax-function)" } },
+    { scope: ["keyword", "storage", "variable.language", "punctuation.definition.tag"], settings: { foreground: "var(--syntax-keyword)" } },
+    // 赋值、比较等符号运算符保持正文色;new / typeof 这类词形运算符仍按关键字着色。
+    { scope: ["keyword.operator"], settings: { foreground: "var(--syntax-fg)" } },
+    { scope: ["keyword.operator.new", "keyword.operator.expression", "keyword.operator.word"], settings: { foreground: "var(--syntax-keyword)" } },
+    // 只给函数名着色,不让整个调用表达式(含括号和参数)染成函数色。
+    { scope: ["entity.name.function", "support.function", "meta.function-call.generic", "variable.function"], settings: { foreground: "var(--syntax-function)" } },
     { scope: ["entity.name.type", "support.type", "support.class", "entity.name.class", "entity.name.namespace", "entity.name.tag"], settings: { foreground: "var(--syntax-type)" } },
-    { scope: ["entity.other.attribute-name"], settings: { foreground: "var(--syntax-attr)" } },
+    { scope: ["entity.other.attribute-name", "variable.other.readwrite.alias"], settings: { foreground: "var(--syntax-attr)" } },
     { scope: ["variable", "meta.property-name"], settings: { foreground: "var(--syntax-fg)" } },
   ],
 };

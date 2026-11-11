@@ -129,12 +129,12 @@
   --ctx-conversation: #c93714;
   --syntax-fg: #1e293b;
   --syntax-comment: #94a3b8;
-  --syntax-string: #16a34a;
-  --syntax-number: #ea580c;
-  --syntax-keyword: #e11d48;
-  --syntax-function: #2563eb;
-  --syntax-type: #0284c7;
-  --syntax-attr: #b45309;
+  --syntax-string: #008809;
+  --syntax-number: #bd5800;
+  --syntax-keyword: #d53538;
+  --syntax-function: #751ed9;
+  --syntax-type: #0b6bcb;
+  --syntax-attr: #bd5800;
 }
 
 /* 夜航 Midnight(深色基底) */
@@ -191,12 +191,12 @@
   --ctx-conversation: #f07350;
   --syntax-fg: #d5dee8;
   --syntax-comment: #6b7a90;
-  --syntax-string: #4ade80;
-  --syntax-number: #fb923c;
-  --syntax-keyword: #fb7185;
-  --syntax-function: #60a5fa;
-  --syntax-type: #38bdf8;
-  --syntax-attr: #fbbf24;
+  --syntax-string: #5fd068;
+  --syntax-number: #f0a35e;
+  --syntax-keyword: #ff7b7e;
+  --syntax-function: #b987f5;
+  --syntax-type: #6cb6ff;
+  --syntax-attr: #f0a35e;
 }
 
 /* 由基础色推导的色调;主题块写在它之后,需要时可以单独覆盖。 */
@@ -274,12 +274,6 @@
   --term-error: var(--danger);
   --syntax-fg: #2e2822;
   --syntax-comment: #a89d8c;
-  --syntax-string: #5b7d3a;
-  --syntax-number: #b86e1a;
-  --syntax-keyword: #b4492d;
-  --syntax-function: #3b6a8f;
-  --syntax-type: #8a5a2b;
-  --syntax-attr: #9c6b1f;
 }
 
 /* 青瓷 Celadon:浅青灰釉色,松石绿强调色 */
@@ -326,12 +320,6 @@
   --term-error: var(--danger);
   --syntax-fg: #1c2a25;
   --syntax-comment: #8aa39a;
-  --syntax-string: #2f8a55;
-  --syntax-number: #c0701a;
-  --syntax-keyword: #b5406b;
-  --syntax-function: #1f6aa5;
-  --syntax-type: #0e7c6b;
-  --syntax-attr: #9a6b12;
 }
 
 /* 丁香 Lilac:淡紫雾色,丁香紫强调色 */
@@ -378,12 +366,6 @@
   --term-error: var(--danger);
   --syntax-fg: #26223a;
   --syntax-comment: #9a94b3;
-  --syntax-string: #2f8a55;
-  --syntax-number: #c0701a;
-  --syntax-keyword: #8a45c7;
-  --syntax-function: #3a6ea5;
-  --syntax-type: #6847c2;
-  --syntax-attr: #9a6b12;
 }
 
 /* 海棠 Blossom:浅粉底色,海棠红强调色 */
@@ -430,12 +412,6 @@
   --term-error: var(--danger);
   --syntax-fg: #2f2326;
   --syntax-comment: #ad9498;
-  --syntax-string: #4f7f3a;
-  --syntax-number: #b86e1a;
-  --syntax-keyword: #b8325a;
-  --syntax-function: #3b6a8f;
-  --syntax-type: #8a4a8f;
-  --syntax-attr: #9c6b1f;
 }
 
 /* 石墨 Graphite:中性近黑,薰衣草紫强调色 */
@@ -477,12 +453,6 @@
   --term-prompt: #b4a7ff;
   --syntax-fg: #e4e4e7;
   --syntax-comment: #6b6b73;
-  --syntax-string: #8bd5a4;
-  --syntax-number: #f0a868;
-  --syntax-keyword: #c49bff;
-  --syntax-function: #82aaff;
-  --syntax-type: #6fd4c7;
-  --syntax-attr: #e8c07d;
 }
 
 /* 余烬 Ember:暖炭底色,余火橙强调色 */
@@ -526,12 +496,6 @@
   --term-error: #f5a594;
   --syntax-fg: #ebe0d3;
   --syntax-comment: #85776a;
-  --syntax-string: #b8d27e;
-  --syntax-number: #f2a65a;
-  --syntax-keyword: #f08a6c;
-  --syntax-function: #8fb8dc;
-  --syntax-type: #e9c47e;
-  --syntax-attr: #dba26a;
 }
 
 /* 森林 Forest:深林暗绿,薄荷绿强调色 */
@@ -575,12 +539,6 @@
   --term-error: #f5a094;
   --syntax-fg: #e0ece4;
   --syntax-comment: #6f8176;
-  --syntax-string: #a8d98a;
-  --syntax-number: #f0b060;
-  --syntax-keyword: #d98fc4;
-  --syntax-function: #8fbfe0;
-  --syntax-type: #6fd4b5;
-  --syntax-attr: #dbb878;
 }
 
 /* 潮汐 Tide:深青海色,浪花青强调色 */
@@ -624,10 +582,4 @@
   --term-error: #f4a39b;
   --syntax-fg: #dcebf0;
   --syntax-comment: #667c87;
-  --syntax-string: #9fd98a;
-  --syntax-number: #f2a866;
-  --syntax-keyword: #b79cf0;
-  --syntax-function: #7fb8f0;
-  --syntax-type: #5fd0c0;
-  --syntax-attr: #e0bd80;
 }
