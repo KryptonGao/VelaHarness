@@ -3,6 +3,7 @@ import { useContentArrival } from "../BatchMotion";
 import { useFilePreview } from "./FilePreviewContext";
 import { localizeError, tr, trf } from "../../locale";
 import { highlightDocument, type ThemedToken } from "./highlighter";
+import { ImageViewer, type ImageViewerRequest } from "../ImageViewer";
 
 /** 超大文件只渲染前若干行,避免一次性创建过多 DOM。 */
 const maxRenderRows = 8000;
@@ -24,6 +25,7 @@ export function CodePane({ onOpenExternal }: { onOpenExternal: (absolutePath: st
 
   const [highlight, setHighlight] = useState<{ tabId: string; source: string; lines: ThemedToken[][] } | null>(null);
   const [activeLine, setActiveLine] = useState<{ tabId: string; line: number } | null>(null);
+  const [imageView, setImageView] = useState<ImageViewerRequest | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const arrivalRef = useContentArrival(`${tab?.id ?? "empty"}:${content?.kind ?? (preview?.contentLoading ? "loading" : "empty")}`);
@@ -34,6 +36,7 @@ export function CodePane({ onOpenExternal }: { onOpenExternal: (absolutePath: st
   useEffect(() => {
     setActiveLine(null);
     setHighlight(null);
+    setImageView(null);
   }, [tab?.id]);
 
   // 读取完成后异步高亮;只有文本变化才重新分词,主题色由 CSS 变量决定。
@@ -119,7 +122,27 @@ export function CodePane({ onOpenExternal }: { onOpenExternal: (absolutePath: st
     <div className="preview-code-pane" ref={arrivalRef}>
       {content?.kind === "image" ? (
         <div className="preview-image-wrap">
-          <img src={content.content ?? undefined} alt={tab.name} />
+          <button
+            className="preview-image-button"
+            type="button"
+            aria-label={tr("全屏查看", "View full screen")}
+            title={tr("全屏查看", "View full screen")}
+            disabled={!content.content}
+            onClick={(event) => {
+              const src = content.content;
+              if (!src) return;
+              const rect = event.currentTarget.getBoundingClientRect();
+              setImageView({
+                images: [{ src, alt: tab.name }],
+                index: 0,
+                origin: { left: rect.left, top: rect.top, width: rect.width, height: rect.height },
+                focusTarget: event.currentTarget,
+              });
+            }}
+          >
+            <img src={content.content ?? undefined} alt={tab.name} draggable={false} />
+          </button>
+          {imageView ? <ImageViewer request={imageView} onClose={() => setImageView(null)} /> : null}
         </div>
       ) : (
         <div
