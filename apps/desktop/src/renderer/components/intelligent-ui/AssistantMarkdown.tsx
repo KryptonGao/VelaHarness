@@ -35,7 +35,7 @@ function WithUi({ messageId, text, streaming, resumed }: { messageId: string; te
   const lastIndex = segments.length - 1;
   return <>
     {segments.map((segment, index) => segment.type === "markdown"
-      ? <Markdown key={segment.key} text={segment.text} streaming={streaming && index === lastIndex} resumed={resumed} fade="reply" />
+      ? <Markdown key={segment.key} text={segment.text} streaming={streaming && index === lastIndex} resumed={resumed} fade="reply" localImages />
       : segment.type === "app"
         ? <MicroAppView key={segment.key} app={segment.app} raw={segment.raw} messageId={messageId} streaming={streaming} />
         : <UiArtifactView key={segment.key} artifact={segment.artifact} raw={segment.raw} messageId={messageId} streaming={streaming} />)}
@@ -59,6 +59,6 @@ export const AssistantMarkdown = memo(function AssistantMarkdown({ messageId, te
   // 模型输出太快时按帧限速展示;队列没放完前仍按流式处理,解析器和动画才不会提前收尾。
   const { text: paced, resumed } = usePacedText(text, streaming, messageId);
   const live = streaming || paced.length < text.length;
-  if (!mayContainUi(paced)) return <Markdown text={paced} streaming={live} resumed={resumed} fade="reply" />;
+  if (!mayContainUi(paced)) return <Markdown text={paced} streaming={live} resumed={resumed} fade="reply" localImages />;
   return <WithUi messageId={messageId} text={paced} streaming={live} resumed={resumed} />;
 });

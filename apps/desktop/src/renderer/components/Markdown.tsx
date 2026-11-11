@@ -2,7 +2,8 @@ import type { Components } from "react-markdown";
 import ReactMarkdown from "react-markdown";
 import remarkBreaks from "remark-breaks";
 import remarkGfm from "remark-gfm";
-import { memo, useCallback, useContext, useLayoutEffect, useMemo, useRef, type ReactNode } from "react";
+import { memo, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { classifyChatImageSrc, replyUrlTransform } from "./markdown-image-src";
 import { trailingParagraphEnd, partitionMarkdown, wholeMarkdown, type MarkdownPartition } from "./markdown-blocks";
 import { remarkScriptGap } from "./markdown-script-gap";
 import { advanceFreshCuts, completeInline, remarkFresh, type FreshCuts } from "./markdown-fresh";
@@ -114,6 +115,46 @@ function MarkdownImage({ src, alt }: { src?: string; alt?: string }) {
   return <img src={src} alt={alt ?? ""} />;
 }
 
+type WorkspaceImageState = { status: "loading" } | { status: "ready"; src: string } | { status: "missing" };
+
+/** 正式回复里的图片:网络与 data 图片直接显示,本地路径经主进程按工作区规则读取。 */
+function ReplyImage({ src, alt }: { src?: string; alt?: string }) {
+  const source = useMemo(() => classifyChatImageSrc(src ?? ""), [src]);
+  if (source.kind === "none") return null;
+  if (source.kind === "remote") return <img src={source.src} alt={alt ?? ""} />;
+  return <WorkspaceImage path={source.path} alt={alt} />;
+}
+
+function WorkspaceImage({ path, alt }: { path: string; alt?: string }) {
+  useAppLocale();
+  const [state, setState] = useState<WorkspaceImageState>({ status: "loading" });
+  useEffect(() => {
+    const api = window.vela;
+    if (!api) {
+      setState({ status: "missing" });
+      return;
+    }
+    let active = true;
+    setState({ status: "loading" });
+    api.readWorkspaceFile(path)
+      .then((content) => {
+        if (!active) return;
+        setState(content.kind === "image" && content.content ? { status: "ready", src: content.content } : { status: "missing" });
+      })
+      .catch(() => {
+        if (active) setState({ status: "missing" });
+      });
+    return () => {
+      active = false;
+    };
+  }, [path]);
+  if (state.status === "loading") {
+    return <span className="md-image-pending" role="img" aria-busy="true" aria-label={alt || tr("正在加载图片", "Loading image")} />;
+  }
+  if (state.status === "ready") return <img src={state.src} alt={alt ?? ""} />;
+  return <span className="md-image-fallback">{alt || tr("图片无法显示", "Image unavailable")}</span>;
+}
+
 function MarkdownTable({ children }: { children?: ReactNode }) {
   return (
     <div className="md-table-scroll">
@@ -131,8 +172,10 @@ function safeUrl(url: string): string {
   return "";
 }
 
-const MarkdownBlockView = memo(function MarkdownBlockView({ text, components, entering, motionAllowed, fade, completing, trailing }: {
-  text: string; components: Components; entering: boolean; motionAllowed: boolean; fade: MarkdownFade | false; completing: boolean; trailing?: ReactNode;
+const safeLinkTransform = (url: string, key: string) => replyUrlTransform(url, key, safeUrl);
+
+const MarkdownBlockView = memo(function MarkdownBlockView({ text, components, entering, motionAllowed, fade, completing, trailing, localImages }: {
+  text: string; components: Components; entering: boolean; motionAllowed: boolean; fade: MarkdownFade | false; completing: boolean; trailing?: ReactNode; localImages: boolean;
 }) {
   useAppLocale();
   const arrival = useRef(entering);
@@ -153,7 +196,7 @@ const MarkdownBlockView = memo(function MarkdownBlockView({ text, components, en
     [components, trailingEnd, trailing],
   );
   return <div className={`md-block${fade ? ` fade-${fade}` : ""}${arrival.current && motionAllowed && !fade ? " is-entering" : ""}`}>
-    <ReactMarkdown remarkPlugins={plugins} urlTransform={safeUrl} components={blockComponents}>
+    <ReactMarkdown remarkPlugins={plugins} urlTransform={localImages ? safeLinkTransform : safeUrl} components={blockComponents}>
       {completing && fade && motionAllowed ? completeInline(text) : text}
     </ReactMarkdown>
     {trailing !== undefined && trailingEnd === undefined ? trailing : null}
@@ -163,8 +206,10 @@ const MarkdownBlockView = memo(function MarkdownBlockView({ text, components, en
 /** soft:思考内容轻轻淡入;pop:正式回复先淡入、轻轻弹起再落回。 */
 export type MarkdownFade = "reply" | "thinking";
 
-export const Markdown = memo(function Markdown({ text, streaming = false, fade = false, resumed = false, trailing }: {
+export const Markdown = memo(function Markdown({ text, streaming = false, fade = false, resumed = false, trailing, localImages = false }: {
   text: string;
+  /** 正式回复:图片地址可以是本地文件(工作区内或绝对路径),其余场景仍只接受网络图片。 */
+  localImages?: boolean;
   streaming?: boolean;
   /** 流式追加的文字逐批出现的动画;已显示的文字不重播。 */
   fade?: MarkdownFade | false;
@@ -175,10 +220,10 @@ export const Markdown = memo(function Markdown({ text, streaming = false, fade =
 }) {
   useAppLocale();
   const preview = useFilePreview();
-  const components = useMemo(
-    () => (preview ? withFileReference(preview) : baseComponents),
-    [preview],
-  );
+  const components = useMemo(() => {
+    const base = preview ? withFileReference(preview) : baseComponents;
+    return localImages ? { ...base, img: ReplyImage } : base;
+  }, [preview, localImages]);
   const reduced = useReducedMotion();
   const committed = useRef<MarkdownPartition | undefined>(undefined);
   // Static documents keep their original single parse. After streaming, retain
@@ -192,7 +237,7 @@ export const Markdown = memo(function Markdown({ text, streaming = false, fade =
     <div className="md-content">
       {partition.blocks.map((block) => <MarkdownBlockView key={block.offset} text={block.text}
         trailing={block.offset === lastOffset ? trailing : undefined}
-        components={components} fade={fade} completing={streaming && block.offset === lastOffset} motionAllowed={!reduced && !partition.wholeDocument} entering={streaming && !reduced && !partition.wholeDocument &&
+        components={components} localImages={localImages} fade={fade} completing={streaming && block.offset === lastOffset} motionAllowed={!reduced && !partition.wholeDocument} entering={streaming && !reduced && !partition.wholeDocument &&
           block.offset === lastOffset && !initialOffsets.current.has(block.offset)} />)}
     </div>
   );

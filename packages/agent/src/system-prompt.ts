@@ -93,6 +93,7 @@ export function velaRules(context: RuleContext): string {
   rules.push("If an operation is denied by a permission or sandbox policy, do not retry it another way; report it and continue with what is allowed.");
   rules.push("Keep chat replies short and plain. Do not shorten the work or the deliverable to be brief.");
   rules.push("Show file paths clearly when working with files.");
+  rules.push("To show the user an image file in a reply, embed it as Markdown ![description](absolute path), for example a screenshot or chart you saved. Do not embed images that do not exist as files.");
   if (context.language) {
     // 部分模型会在调用工具的间隙退回英文（指令、工具结果、代码都是英文），所以明确覆盖「过程说明」。
     rules.push(`Write all prose in the language the user writes in, defaulting to ${context.language} when unclear. This covers the short progress notes before and between tool calls, not only the final answer. Do not switch to English because these instructions, tool results or code are in English; keep code, commands, file paths, identifiers and quoted output verbatim.`);
