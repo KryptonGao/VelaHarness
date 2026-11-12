@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { Value } from "typebox/value";
 import {
-  createModeExtension, createModeTools, modeSystemPrompt, modeToolNames, todoGateReason, todoListOutcome, toolNamesFor, updateTodosToolName,
+  createModeExtension, createModeTools, modeSystemPrompt, modeToolNames, todoListOutcome, toolNamesFor, updateTodosToolName,
   type ModeToolHost, type ModeState,
 } from "../src/interaction.ts";
 import { ToolLoadout } from "../src/runtime-tools.ts";
@@ -30,10 +30,13 @@ describe("运行视图的待办清单", () => {
     assert.ok(modeToolNames.includes(updateTodosToolName));
   });
 
-  it("提示词要求先提交清单,关闭时不出现", () => {
+  it("提示词鼓励多步骤任务提交 2-7 项清单、允许简单任务跳过,关闭时不出现", () => {
     for (const mode of ["agent", "goal"] as const) {
       assert.match(modeSystemPrompt(mode, false, true), /Run View/);
       assert.match(modeSystemPrompt(mode, false, true), /update_todos/);
+      assert.match(modeSystemPrompt(mode, false, true), /2-7 concrete items/);
+      assert.doesNotMatch(modeSystemPrompt(mode, false, true), /3-7/);
+      assert.match(modeSystemPrompt(mode, false, true), /simple task[^.]*skip the list/);
       assert.doesNotMatch(modeSystemPrompt(mode, false, false), /Run View/);
     }
     assert.match(modeSystemPrompt("agent", true, true), /update_plan/);
@@ -85,32 +88,12 @@ function extensionHandlers(state: ModeState) {
   return { startTurn, call };
 }
 
-describe("运行视图的待办闸门", () => {
-  it("提交清单前拦住改动类工具,读取不受影响,提交后放行", async () => {
-    const { startTurn, call } = extensionHandlers({ mode: "agent", hasExecutionPlan: false, runView: true });
-    await startTurn();
-    assert.deepEqual(await call("bash", { command: "ls" }), { block: true, reason: todoGateReason });
-    assert.deepEqual(await call("edit", { path: "a.ts" }), { block: true, reason: todoGateReason });
-    assert.equal(await call("read", { path: "a.ts" }), undefined);
-    assert.equal(await call(updateTodosToolName), undefined);
-    assert.equal(await call("bash", { command: "ls" }), undefined);
-    assert.equal(await call("write", { path: "a.ts" }), undefined);
-  });
-
-  it("每一轮都重新要求,update_plan 同样算已提交", async () => {
-    const { startTurn, call } = extensionHandlers({ mode: "agent", hasExecutionPlan: true, runView: true });
-    await startTurn();
-    assert.ok(await call("bash", { command: "ls" }));
-    assert.equal(await call("update_plan"), undefined);
-    assert.equal(await call("bash", { command: "ls" }), undefined);
-    await startTurn();
-    assert.ok(await call("bash", { command: "ls" }));
-  });
-
-  it("运行视图关闭时不设闸门", async () => {
-    const { startTurn, call } = extensionHandlers({ mode: "agent", hasExecutionPlan: false });
-    await startTurn();
-    assert.equal(await call("bash", { command: "ls" }), undefined);
-    assert.equal(await call("edit", { path: "a.ts" }), undefined);
+describe("运行视图不设待办闸门", () => {
+  it("没有提交清单时 bash/edit/write 也不会被拦下", async () => {
+    for (const hasExecutionPlan of [false, true]) {
+      const { startTurn, call } = extensionHandlers({ mode: "agent", hasExecutionPlan, runView: true });
+      await startTurn();
+      for (const tool of ["bash", "edit", "write", "read"]) assert.equal(await call(tool, { command: "ls", path: "a.ts" }), undefined);
+    }
   });
 });

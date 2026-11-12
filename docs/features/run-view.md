@@ -16,13 +16,13 @@
 | 待办卡与状态条，渲染在 `ChatView` 滚动区里最后一轮之后 | `components/RunViewDock.tsx`、`ChatView.tsx` |
 | 运行动画：直接复用 `ActivityIndicator`（`jump-orb.ts` 的样式池与轮换） | `components/ActivityIndicator.tsx` |
 
-## 要求模型提交待办清单
+## 引导模型提交待办清单
 
 开启后（Agent 与 Goal 模式，不含 Plan、定时任务、配方执行和常驻 Agent）：
 
 1. 提供 `update_todos` 工具（参数 `todos: [{ step, status }]`，最多一项 `in_progress`）。它不改任何对话状态，清单随工具调用显示在界面上，历史会话也能还原。
-2. 系统提示要求动手前先提交清单，每完成一项再提交完整清单。
-3. **硬闸门**：本轮提交清单之前，`bash` / `edit` / `write` / `apply_patch` 会被拦下并告诉模型先调用 `update_todos`；读取类工具不受限。每一轮用户消息都重新要求。
-4. 已有批准的执行方案时不再提供 `update_todos`，由 `update_plan` 承担，闸门同样认它。
+2. 系统提示引导多步骤任务动手前先提交 2–7 项清单，之后每完成一项再提交完整清单。简单任务（一两步就能完成，或只是提问）允许不提交清单，也不要用凑数的条目填充。
+3. 没有闸门：不提交清单不会拦截任何工具。
+4. 已有批准的执行方案时不再提供 `update_todos`，由 `update_plan` 承担。
 
-关闭开关后，下一轮起不再注入提示和闸门，已激活的会话工具列表立即重算。
+关闭开关后，下一轮起不再注入提示，已激活的会话工具列表立即重算。

@@ -52,7 +52,7 @@
 | [features/task-recipes.md](./features/task-recipes.md) | 使用者与开发者 | 任务配方 P0/P1/P2 的使用、结构化阶段、分支审批与重试、团队共享、效果比较，以及验证和边界。 |
 | [features/intelligent-ui.md](./features/intelligent-ui.md) | 使用者与开发者 | Intelligent UI 的已实现能力：`vela-ui` 协议、组件与表达式、流式解析、本地状态与生命周期、图表与图解、可信数据源、本地指标与检查器、沙盒微应用、安全限制、导出、实现位置与验证（P0–P2）。 |
 | [features/agent-inbox.md](./features/agent-inbox.md) | 使用者与开发者 | Agent Inbox 的已实现能力：事项类型与状态、Host 权威决策与并发保护、重启作废、先落盘后通知、Resident Agent 与委派审批、Intelligent UI 嵌入、后台运行与通知、主动规则、限制、实现位置与验证。 |
-| [features/run-view.md](./features/run-view.md) | 使用者与开发者 | 运行视图：运行中在过程末尾显示待办清单与当前步骤状态条，并要求模型先提交待办清单（`update_todos`、闸门、偏好同步）。 |
+| [features/run-view.md](./features/run-view.md) | 使用者与开发者 | 运行视图：运行中在过程末尾显示待办清单与当前步骤状态条，并引导模型在多步骤任务中提交待办清单、简单任务可跳过（`update_todos`、偏好同步）。 |
 | [features/info-cards.md](./features/info-cards.md) | 使用者与开发者 | 信息卡片布局：右侧浮在对话上的可排序卡片、各卡片内容与显示条件、拖动与键盘排序、隐藏与找回、布局存储和实现位置。 |
 | [features/plan-mode.md](./features/plan-mode.md) | 使用者 | Plan 模式的工作方式：规划流程、Plan Document、revision、批准与执行、只读限制和常见问题。 |
 | [features/plan-mode-architecture.md](./features/plan-mode-architecture.md) | 开发者 | Plan 模式的实现：数据模型、流式解析、运行时编排、持久化与迁移、界面状态和测试。 |

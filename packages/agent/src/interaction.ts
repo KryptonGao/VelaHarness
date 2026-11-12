@@ -78,15 +78,15 @@ If this round is not finished, do the next thing you can do; do not stop and wai
 const agentPlanPrompt =
   "There is an approved execution plan. Before starting, break the actual implementation into trackable items and submit them with update_plan, then keep updating them with update_plan during execution: at most one item in_progress, mark items completed when done, and add, adjust, or merge items to match the actual implementation. The execution checklist only records progress; do not use it to rewrite the approved plan. If the design needs to change, stop, explain to the user, and suggest going back to Plan mode. When you hit a decision that needs the user's call during execution, you can ask with ask_user_question.";
 
-/** 运行视图模式要求的待办清单工具名；update_plan 同样算已提交（有已批准执行方案时用它）。 */
+/** 运行视图模式下的待办清单工具名；有已批准执行方案时由 update_plan 承担。 */
 export const updateTodosToolName = "update_todos";
 
 const todoPrompt = `The user is in Run View: the interface shows your todo list live above the input, so you must keep it current.
-At the start of every task, before you run any command or edit any file, call ${updateTodosToolName} with the complete todo list (3-7 concrete items in execution order, at most one in_progress). Reading files to understand the task first is fine, but bash, edit, and write are blocked until the list is submitted.
-After each item finishes, call ${updateTodosToolName} again with the full list: mark it completed and set the next item in_progress. Add, adjust, or merge items when the work changes, and make sure every item is completed (or removed if no longer needed) before your final reply. Even for a small task, submit a short list. Do not repeat the list in your reply text.`;
+You may first explore to understand the project and the task: read files and run read-only commands (such as cat, ls, grep, find without -delete or -exec, git status, git diff, git log). Do not run commands that change anything, and do not edit or write files, until you have a plan. For a task with several distinct steps, once you understand it well enough, call ${updateTodosToolName} with the complete todo list (2-7 concrete items in execution order, at most one in_progress) before your first change. For a simple task that needs only one or two quick actions, or a plain question, skip the list and just do it; do not pad a trivial task with filler items.
+Once you have submitted a list, call ${updateTodosToolName} again with the full list after each item finishes: mark it completed and set the next item in_progress. Add, adjust, or merge items when the work changes, and make sure every item is completed (or removed if no longer needed) before your final reply. Do not repeat the list in your reply text.`;
 
 const todoPromptWithPlan =
-  "The user is in Run View: the interface shows the execution checklist live above the input, so keep it current with update_plan: submit it before you run any command or edit any file, and update it after each item finishes. bash, edit, and write are blocked until it has been submitted this turn.";
+  "The user is in Run View: the interface shows the execution checklist live above the input, so keep it current with update_plan: you may first read files and run read-only commands (cat, ls, grep, git status, git diff, git log) to understand the task, then submit it before your first change, and update it after each item finishes.";
 
 const outcomePrompt = `If you modified files or ran verification in this turn, consider calling submit_outcome before writing your final reply. This is optional: a suggestion, not a requirement, and you may skip it when the change is small or a plain summary in your reply is enough. If you do submit, submit one item per user requirement, with its actual completion status and any risks, assumptions, or decisions still needing confirmation.
 Only cite files changed by completed edit/write calls and bash tool call ids completed in this turn. Leave verificationIds empty if you did not run verification; never invent files, ids, or results. If submission is rejected, correct the invalid references and retry before finishing.
@@ -104,7 +104,7 @@ const workTools = ["read", "bash", "edit", "write", ...agentToolNames];
 
 export function toolNamesFor(mode: InteractionMode, hasExecutionPlan: boolean, runView = false): string[] {
   if (mode === "plan") return ["read", "bash", "ask_user_question"];
-  // 运行视图要求必须有待办清单；有已批准执行方案时由 update_plan 承担,不再重复提供。
+  // 运行视图下提供待办清单工具(简单任务可不用);有已批准执行方案时由 update_plan 承担,不再重复提供。
   const todos = runView && !hasExecutionPlan ? [updateTodosToolName] : [];
   if (mode === "goal") return [...workTools, ...todos, "record_goal_validation", "submit_outcome", "update_goal"];
   return hasExecutionPlan
@@ -182,25 +182,18 @@ function bashCommandOf(input: unknown): string | null {
 export interface ModeState {
   mode: InteractionMode;
   hasExecutionPlan: boolean;
-  /** 运行视图开启:要求本轮先提交待办清单,否则不放行改动类工具。 */
+  /** 运行视图开启:提示词鼓励多步骤任务提交待办清单,简单任务可以不提交。 */
   runView?: boolean;
   /** 推荐操作开启:提示词告知模型可在一轮结束时调用 recommend_actions。 */
   recommendedActions?: boolean;
 }
-
-/** 运行视图下,待办清单提交之前不放行的工具:会改动工作区或执行命令的那几个。 */
-const todoGatedTools = new Set(["bash", "edit", "write", "apply_patch"]);
-export const todoGateReason = `Run View requires a todo list first. Call ${updateTodosToolName} with the complete todo list (or update_plan when an execution plan is approved), then retry this tool call.`;
 
 export function createModeExtension(
   read: () => ModeState,
   policy: ToolPolicy = defaultToolPolicy,
 ): ExtensionFactory {
   return (pi) => {
-    /** 本轮是否已经提交过待办清单;每次用户发起新一轮都重新要求。 */
-    let todosSubmitted = false;
     pi.on("before_agent_start", async (event) => {
-      todosSubmitted = false;
       const state = read();
       const extra = modeSystemPrompt(state.mode, state.hasExecutionPlan, state.runView === true, state.recommendedActions === true);
       if (!extra) return;
@@ -216,13 +209,6 @@ export function createModeExtension(
         input: event.input,
       });
       if (!result.allowed) return { block: true, reason: result.reason };
-      if (event.toolName === updateTodosToolName || event.toolName === "update_plan") {
-        todosSubmitted = true;
-        return;
-      }
-      if (state.runView === true && state.mode !== "plan" && !todosSubmitted && todoGatedTools.has(event.toolName)) {
-        return { block: true, reason: todoGateReason };
-      }
     });
   };
 }
@@ -338,7 +324,7 @@ export function createModeTools(host: ModeToolHost): ToolDefinition[] {
     name: updateTodosToolName,
     label: "更新待办清单",
     description:
-      "Submit or update the todo list shown live in the user's Run View. Always send the complete list in execution order: at most one item in_progress, finished items marked completed. Call it before any command or edit, and again each time an item finishes or the plan changes.",
+      "Submit or update the todo list shown live in the user's Run View. Always send the complete list in execution order: at most one item in_progress, finished items marked completed. Use it for tasks with several steps (skip it for simple ones); call it after your initial read-only exploration and before your first change, and again each time an item finishes or the plan changes.",
     promptSnippet: "Submit/update the todo list (list of step + status) shown in Run View",
     executionMode: "sequential",
     parameters: Type.Object({
