@@ -1,23 +1,21 @@
-# Vela 1.2.33
+# Vela 1.2.34
 
-Vela 1.2.33 adds user-configurable command lifecycle Hooks, refines the compact diff view, and adds a shortcut to restore the default window size. It also includes several visual polish fixes.
+Vela 1.2.34 lets a chat run in its own Git worktree and hand its changes back, adds a user-defined model pool for subagents with direct messaging and usage accounting, and makes the Run View todo list optional. It also renames the Midnight theme to a plain neutral Dark theme and fixes several settings and usage issues.
 
 ## New
 
-- **Command lifecycle Hooks**: run your own commands on five events (`PreToolUse`, `PostToolUse`, `Stop`, `SessionStart`, and `PreCommit`). Hooks can be configured globally or per project from the new Hooks settings page, with native-code authorization, bounded execution, test runs, run history, and trace metadata. A `PreCommit` hook can guard Git commits.
-- **Restore default window size**: press `Cmd+Option+0` or use the Window menu to return the focused window to 1280 x 840, including from full screen or maximized mode.
-- **Elastic scrolling (experimental)**: an optional setting, off by default, lets inner scroll areas rubber-band past their edges.
-- **Reveal in Finder from diff cards**: the file name on a diff card now reveals the file in Finder, and the name is larger.
+- **Worktree chats with hand-off**: a chat can run in a session-level Git worktree, so its edits stay separate from your main checkout until you hand them off. The environment chip in the composer creates the worktree and hands the changes over, and clear messages explain when a worktree can't be created (not a Git repository, or no commits yet) or when the agent is still running.
+- **Subagent model pool**: a new Subagent models settings page holds an available pool and an allowed pool. `spawn_agent` takes an optional model from the allowed pool, which is listed in the system prompt and saved with your selection. The chosen model appears in the Agent pane, the roster menu, and the spawn card.
+- **Message subagents directly**: send a message straight to a subagent from its pane. It is queued until the subagent's current turn ends, and the main agent is told silently so it doesn't mistake the reply for work it dispatched.
+- **Subagent requests in usage statistics**: every subagent model request is recorded under its own model, so the Usage page, cost totals, and latest-task cost include subagents.
 
 ## Improved
 
-- **Sharper compact diffs**: changed words are highlighted inside paired added and removed lines, edge context is trimmed to the size of the change, long lines stay on one row with a horizontally scrollable diff and a sticky, tinted gutter, and a wheel gesture locks to one axis. Tool text in compact mode is one pixel larger.
-- **Syntax highlighting**: all themes share one palette, symbolic operators keep the body color, and only function names are colored instead of whole call expressions.
-- **Lighter emphasis in replies**: inline code is pinned to weight 400 and bold text to 600 instead of inheriting the heavier reply weight.
-- **Stable chat column**: the column no longer shifts by about 2px when a group opens or closes, because the scrollbar gutter is now reserved permanently.
-- **Thinking group collapse**: the top edge fade stays visible while a thinking group collapses.
-- **Tooltips**: native tooltips are suppressed across the whole hovered ancestor chain, including titles refreshed during streaming.
-- **Settings**: task budget inputs now show the loaded value immediately instead of being blank for one frame.
+- **Optional todo list**: the Run View todo list no longer blocks `bash`, `edit`, and `write` until it exists. The model can explore with read-only commands first, submit a 2–7 item list for multi-step tasks, and skip it for simple ones.
+- **Dark theme**: the Midnight theme is now a plain neutral dark theme named Dark.
+- **Accurate subagent model labels**: each subagent shows the model it actually runs on (the parent's model when none was chosen) by its display name, and history restores it from the subagent's own session file.
+- **Subagent model pool saving**: saving from the Subagent models page now keeps your changes instead of echoing back the old pool.
+- **Settings and Usage layout**: the provider model list in model settings scrolls, the usage statistics title lines up with its content, and provider labels no longer wrap.
 
 ## Upgrade
 
@@ -31,18 +29,18 @@ The macOS build is not notarized and uses an ad-hoc signature. If macOS blocks f
 
 | File | Platform |
 | --- | --- |
-| `Vela-1.2.33-arm64.dmg` | macOS Apple Silicon installer |
-| `Vela-1.2.33-arm64.zip` | macOS Apple Silicon application bundle (`.app`); also the package used by in-app updates |
+| `Vela-1.2.34-arm64.dmg` | macOS Apple Silicon installer |
+| `Vela-1.2.34-arm64.zip` | macOS Apple Silicon application bundle (`.app`); also the package used by in-app updates |
 | `SHA256SUMS.txt` | SHA-256 checksums for both packages |
 | `SHA256SUMS.txt.sig` | Ed25519 signature of `SHA256SUMS.txt`, verified by the in-app updater |
 
-Package version: `1.2.33`. macOS bundle and download version: `1.2.33`.
+Package version: `1.2.34`. macOS bundle and download version: `1.2.34`.
 
 ## Validation
 
-- Release metadata verified: all package and macOS bundle version fields are `1.2.33`; all five in-app release-note languages contain four highlights and five improvements.
+- Release metadata verified: all package and macOS bundle version fields are `1.2.34`; all five in-app release-note languages contain four highlights and five improvements.
 - Production build and macOS arm64 packaging completed, followed by ad-hoc signing of `Vela.app` and regeneration of the DMG and ZIP from the signed bundle.
-- The app extracted from the ZIP and the app in the mounted DMG passed strict code-signature verification and bundle version checks; the bundle identifier is `com.vela.desktop`. The packaged app contains the final in-app release notes (`1.2.33`).
+- The app extracted from the ZIP and the app in the mounted DMG passed strict code-signature verification and bundle version checks; the bundle identifier is `com.vela.desktop`. The packaged app contains the final in-app release notes (`1.2.34`).
 - The ZIP has a single top-level `Vela.app` and passed archive-integrity verification. The DMG passed checksum verification and mounted successfully.
 
 The automated test suites were not run for this release, as requested.
