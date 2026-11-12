@@ -58,7 +58,7 @@
 
 ### 3.1 主题
 
-参考页只保留默认的浅色主题「晴空 Daylight」：`<html data-scheme="light">`，变量来自 `styles.css` 的 `:root, [data-scheme="light"]` 块，其后是由基础色推导的 `color-mix` 层（见下）。深色基底和其余 9 个主题（宣纸、青瓷、丁香、海棠、夜航、石墨、余烬、森林、潮汐）没有提取，需要时看 `styles.css` 的 `[data-scheme="dark"]` 与 `[data-theme="…"]` 块以及 `themes.ts`。
+参考页只保留默认的浅色主题「晴空 Daylight」：`<html data-scheme="light">`，变量来自 `styles.css` 的 `:root, [data-scheme="light"]` 块，其后是由基础色推导的 `color-mix` 层（见下）。深色基底和其余 9 个主题（宣纸、青瓷、丁香、海棠、深色、石墨、余烬、森林、潮汐）没有提取，需要时看 `styles.css` 的 `[data-scheme="dark"]` 与 `[data-theme="…"]` 块以及 `themes.ts`。
 
 真实应用的主题机制：`data-scheme="light|dark"` 决定明暗基底，`data-theme="<id>"` 在基底上覆盖配色；每个主题块把颜色变量写全，不依赖外层继承。派生层写在主题块**之前**，所以主题只需改基础色，`--accent-tint`、`--diff-add-bg` 等会自动跟随。
 

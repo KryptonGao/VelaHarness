@@ -34,7 +34,7 @@ const tokensEnd = find((l) => l.includes("主题:data-scheme")) - 1;
 add("tokens:root", 0, tokensEnd);
 const resetStart = find((l) => l === "*,");
 const lightStart = find((l) => l.includes("晴空 Daylight(浅色基底)"));
-const darkStart = find((l) => l.includes("夜航 Midnight(深色基底)"));
+const darkStart = find((l) => l.includes("深色 Dark(深色基底)"));
 const derivedStart = find((l) => l.startsWith("/* 由基础色推导的色调"));
 const darkDerived = find((l) => l === '[data-scheme="dark"] {', derivedStart);
 add("theme:daylight", lightStart, darkStart);

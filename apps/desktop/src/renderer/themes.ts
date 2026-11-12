@@ -53,7 +53,7 @@ export const builtinThemeColors: Record<ThemeId, CustomThemeColors> = {
   celadon: { background: "#f8fbf9", surface: "#ffffff", text: "#17231f", accent: "#0e7c6b" },
   lilac: { background: "#faf9fd", surface: "#ffffff", text: "#221f2e", accent: "#7c5cd6" },
   blossom: { background: "#fefaf9", surface: "#ffffff", text: "#2b1f22", accent: "#c0395f" },
-  midnight: { background: "#16181d", surface: "#1e2128", text: "#f3f5f8", accent: "#4f8cff" },
+  midnight: { background: "#1c1c1c", surface: "#242424", text: "#ececec", accent: "#4f8cff" },
   graphite: { background: "#111112", surface: "#19191b", text: "#ececee", accent: "#8e7dff" },
   ember: { background: "#1a1613", surface: "#221d19", text: "#f3eadf", accent: "#eb8a5e" },
   forest: { background: "#121714", surface: "#19211c", text: "#e9f2ec", accent: "#4cc38a" },

@@ -141,7 +141,7 @@ let uiSandboxHost: UiSandboxHost | null = null;
 const windowChrome: BrowserWindowConstructorOptions =
   process.platform === "darwin"
     ? { vibrancy: "sidebar", visualEffectState: "active", backgroundColor: "#00000000" }
-    : { backgroundColor: nativeTheme.shouldUseDarkColors ? "#16181d" : "#ffffff" };
+    : { backgroundColor: nativeTheme.shouldUseDarkColors ? "#1c1c1c" : "#ffffff" };
 
 function createWindow(): BrowserWindow {
   const win = new BrowserWindow({

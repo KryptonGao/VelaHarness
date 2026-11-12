@@ -137,27 +137,27 @@
   --syntax-attr: #bd5800;
 }
 
-/* 夜航 Midnight(深色基底) */
+/* 深色 Dark(深色基底):中性灰,无色相偏向 */
 [data-scheme="dark"] {
   color-scheme: dark;
-  --bg-sidebar-glass: rgba(22, 26, 34, 0.58);
+  --bg-sidebar-glass: rgba(28, 28, 28, 0.58);
   --bg-sidebar-hover: rgba(255, 255, 255, 0.06);
-  --bg-sidebar-active: #2a3140;
-  --bg-chat: #16181d;
-  --bg-chat-bubble-user: #2a3140;
-  --bg-card-surface: #1e2128;
-  --bg-surface-subtle: #242933;
-  --bg-elevated: #22262e;
-  --bg-code: #12151a;
+  --bg-sidebar-active: #303030;
+  --bg-chat: #1c1c1c;
+  --bg-chat-bubble-user: #2c2c2c;
+  --bg-card-surface: #242424;
+  --bg-surface-subtle: #2a2a2a;
+  --bg-elevated: #262626;
+  --bg-code: #161616;
   --bg-hover: rgba(255, 255, 255, 0.06);
   --scrollbar-thumb: rgba(255, 255, 255, 0.18);
   --border-subtle: rgba(255, 255, 255, 0.08);
-  --border-strong: #3a4252;
+  --border-strong: #404040;
   --overlay: rgba(0, 0, 0, 0.5);
-  --text-primary: #f3f5f8;
-  --text-secondary: #c5ccd6;
-  --text-muted: #8b95a7;
-  --text-dim: #6d7788;
+  --text-primary: #ececec;
+  --text-secondary: #c4c4c4;
+  --text-muted: #8c8c8c;
+  --text-dim: #6c6c6c;
   --accent-blue: #4f8cff;
   --accent-blue-hover: #6d9fff;
   --accent-contrast: #ffffff;
@@ -173,14 +173,14 @@
   --shadow-dock: 0 12px 36px rgba(0, 0, 0, 0.38), 0 2px 8px rgba(0, 0, 0, 0.24);
   --shadow-active-item: 0 2px 10px rgba(0, 0, 0, 0.28);
   --shadow-popover: 0 18px 48px rgba(0, 0, 0, 0.45), 0 4px 14px rgba(0, 0, 0, 0.3);
-  --tool-bash: #cbd5e1;
+  --tool-bash: #d4d4d4;
   --tool-read: #93c5fd;
   --tool-edit: #fdba74;
   --tool-write: #6ee7b7;
-  --tool-other: #94a3b8;
-  --term-bg: #0e141c;
-  --term-fg: #d5dee8;
-  --term-cmd: #f8fafc;
+  --tool-other: #a0a0a0;
+  --term-bg: #141414;
+  --term-fg: #d4d4d4;
+  --term-cmd: #fafafa;
   --term-prompt: #86efac;
   --term-error: #fca5a5;
   --ctx-track: rgba(255, 255, 255, 0.16);
@@ -189,8 +189,8 @@
   --ctx-rules: #3fb67f;
   --ctx-skills: #d9a23a;
   --ctx-conversation: #f07350;
-  --syntax-fg: #d5dee8;
-  --syntax-comment: #6b7a90;
+  --syntax-fg: #d4d4d4;
+  --syntax-comment: #6e6e6e;
   --syntax-string: #5fd068;
   --syntax-number: #f0a35e;
   --syntax-keyword: #ff7b7e;

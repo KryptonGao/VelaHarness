@@ -55,7 +55,7 @@ function cssColor(name: string, fallback: string): string {
 /** 从当前主题的 CSS 变量推导 xterm 配色,主题切换时重新读取。 */
 function readTerminalTheme(): ITheme {
   const dark = document.documentElement.dataset.scheme === "dark";
-  const background = cssColor("--term-bg", dark ? "#0e141c" : "#f5f5f6");
+  const background = cssColor("--term-bg", dark ? "#141414" : "#f5f5f6");
   const foreground = cssColor("--term-fg", dark ? "#d5dee8" : "#202124");
   return {
     background,
