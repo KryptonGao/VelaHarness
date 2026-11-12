@@ -1,144 +1,144 @@
 {
-  "version": "1.2.33",
+  "version": "1.2.34",
   "locales": {
     "en": {
-      "summary": "Vela 1.2.33 adds command lifecycle Hooks, a sharper compact diff view, and a shortcut to restore the default window size.",
+      "summary": "Vela 1.2.34 runs chats in their own Git worktrees, adds a model pool for subagents, and makes the todo list optional.",
       "highlights": [
         {
-          "title": "Command lifecycle Hooks",
-          "body": "Run your own commands on PreToolUse, PostToolUse, Stop, SessionStart, and PreCommit, configured globally or per project in the new Hooks settings page."
+          "title": "Worktree chats with hand-off",
+          "body": "Run a chat in its own Git worktree so edits stay separate from your checkout, then hand the changes off from the composer."
         },
         {
-          "title": "Sharper compact diffs",
-          "body": "Changed words are highlighted inside edited lines, long lines stay on one row with horizontal scrolling, and the file name reveals the file in Finder."
+          "title": "Subagent model pool",
+          "body": "Choose which models subagents may use on the new Subagent models page; the model in use shows in the Agent pane."
         },
         {
-          "title": "Restore default window size",
-          "body": "Press Cmd+Option+0 or use the Window menu to return to 1280 x 840, even from full screen or maximized."
+          "title": "Message subagents directly",
+          "body": "Send a message straight to a subagent; it is handled after its current turn and the main agent is informed."
         },
         {
-          "title": "Elastic scrolling (experimental)",
-          "body": "An optional setting, off by default, lets inner scroll areas rubber-band past their edges."
+          "title": "Subagents in usage statistics",
+          "body": "Every subagent request is counted under its own model in Usage and cost totals."
         }
       ],
       "improvements": [
-        "Syntax highlighting uses one shared palette across all themes and colors only function names.",
-        "Bold text and inline code in replies are lighter.",
-        "The chat column no longer shifts sideways when a group opens or closes.",
-        "The top edge fade stays visible while a thinking group collapses.",
-        "Native tooltips no longer appear over hovered controls."
+        "The Run View todo list is optional for simple tasks and uses 2–7 items.",
+        "The Midnight theme is now a plain neutral dark theme named Dark.",
+        "Subagents show the model they actually run on, by display name.",
+        "Saving the subagent model pool now keeps your changes.",
+        "Model settings and the Usage page scroll and align better."
       ]
     },
     "zh-CN": {
-      "summary": "Vela 1.2.33 新增命令生命周期 Hooks、更清晰的紧凑 Diff 视图，以及恢复默认窗口大小的快捷键。",
+      "summary": "Vela 1.2.34 支持在独立的 Git worktree 中运行对话，新增子代理模型池，并让待办清单变为可选。",
       "highlights": [
         {
-          "title": "命令生命周期 Hooks",
-          "body": "可在 PreToolUse、PostToolUse、Stop、SessionStart 和 PreCommit 时运行自己的命令，在新的 Hooks 设置页中按全局或项目配置。"
+          "title": "Worktree 对话与交接",
+          "body": "让对话在独立的 Git worktree 中运行，改动与你的工作目录分开，再从输入框交接改动。"
         },
         {
-          "title": "更清晰的紧凑 Diff",
-          "body": "被修改的行内会高亮变更的词，长行保持单行并可横向滚动，点击文件名即可在 Finder 中显示该文件。"
+          "title": "子代理模型池",
+          "body": "在新的“子代理模型”页面选择子代理可用的模型，实际使用的模型会显示在 Agent 面板中。"
         },
         {
-          "title": "恢复默认窗口大小",
-          "body": "按 Cmd+Option+0 或使用“窗口”菜单即可回到 1280 x 840，全屏或最大化时同样有效。"
+          "title": "直接与子代理对话",
+          "body": "可直接给子代理发消息，它会在当前回合结束后处理，并同步告知主代理。"
         },
         {
-          "title": "弹性滚动（实验性）",
-          "body": "新增默认关闭的可选设置，让内部滚动区域在到达边缘后产生橡皮筋回弹效果。"
+          "title": "子代理计入用量统计",
+          "body": "每个子代理请求都按其自身模型计入用量与费用统计。"
         }
       ],
       "improvements": [
-        "所有主题共用同一套语法高亮配色，且只为函数名着色。",
-        "回复中的粗体和行内代码更轻。",
-        "展开或收起分组时，聊天栏不再向侧边偏移。",
-        "思考分组收起过程中，顶部边缘渐隐保持可见。",
-        "悬停控件时不再出现系统原生提示。"
+        "运行视图的待办清单对简单任务变为可选，条目数为 2–7 项。",
+        "Midnight 主题现在是名为 Dark 的中性深色主题。",
+        "子代理会以显示名称展示其实际使用的模型。",
+        "保存子代理模型池现在会保留你的修改。",
+        "模型设置与用量页面的滚动和对齐更合理。"
       ]
     },
     "zh-TW": {
-      "summary": "Vela 1.2.33 新增命令生命週期 Hooks、更清晰的精簡 Diff 檢視，以及還原預設視窗大小的快速鍵。",
+      "summary": "Vela 1.2.34 支援在獨立的 Git worktree 中執行對話，新增子代理模型池，並讓待辦清單變為選用。",
       "highlights": [
         {
-          "title": "命令生命週期 Hooks",
-          "body": "可在 PreToolUse、PostToolUse、Stop、SessionStart 和 PreCommit 時執行自己的命令，並在新的 Hooks 設定頁中依全域或專案設定。"
+          "title": "Worktree 對話與交接",
+          "body": "讓對話在獨立的 Git worktree 中執行，變更與你的工作目錄分開，再從輸入框交接變更。"
         },
         {
-          "title": "更清晰的精簡 Diff",
-          "body": "被修改的行內會醒目標示變更的詞，長行保持單行並可橫向捲動，點擊檔名即可在 Finder 中顯示該檔案。"
+          "title": "子代理模型池",
+          "body": "在新的「子代理模型」頁面選擇子代理可用的模型，實際使用的模型會顯示在 Agent 面板中。"
         },
         {
-          "title": "還原預設視窗大小",
-          "body": "按 Cmd+Option+0 或使用「視窗」選單即可回到 1280 x 840，全螢幕或最大化時同樣有效。"
+          "title": "直接與子代理對話",
+          "body": "可直接傳訊息給子代理，它會在目前回合結束後處理，並同步告知主代理。"
         },
         {
-          "title": "彈性捲動（實驗性）",
-          "body": "新增預設關閉的選用設定，讓內部捲動區域到達邊緣後產生橡皮筋回彈效果。"
+          "title": "子代理計入用量統計",
+          "body": "每個子代理請求都依其自身模型計入用量與費用統計。"
         }
       ],
       "improvements": [
-        "所有主題共用同一套語法醒目標示配色，且只為函式名稱上色。",
-        "回覆中的粗體和行內程式碼更輕。",
-        "展開或收合群組時，聊天欄不再向側邊偏移。",
-        "思考群組收合過程中，頂部邊緣漸隱保持可見。",
-        "游標停留在控制項上時不再出現系統原生提示。"
+        "執行檢視的待辦清單對簡單任務變為選用，項目數為 2–7 項。",
+        "Midnight 主題現在是名為 Dark 的中性深色主題。",
+        "子代理會以顯示名稱呈現其實際使用的模型。",
+        "儲存子代理模型池現在會保留你的修改。",
+        "模型設定與用量頁面的捲動和對齊更合理。"
       ]
     },
     "ja": {
-      "summary": "Vela 1.2.33 では、コマンドのライフサイクル Hooks、見やすくなったコンパクト Diff、既定のウィンドウサイズに戻すショートカットを追加しました。",
+      "summary": "Vela 1.2.34 では、チャットを専用の Git worktree で実行でき、サブエージェント用のモデルプールを追加し、ToDo リストを任意にしました。",
       "highlights": [
         {
-          "title": "コマンドライフサイクル Hooks",
-          "body": "PreToolUse、PostToolUse、Stop、SessionStart、PreCommit のタイミングで独自のコマンドを実行でき、新しい Hooks 設定ページでグローバルまたはプロジェクトごとに設定できます。"
+          "title": "Worktree チャットと引き継ぎ",
+          "body": "チャットを専用の Git worktree で実行して変更をチェックアウトと分け、コンポーザーから変更を引き継げます。"
         },
         {
-          "title": "見やすいコンパクト Diff",
-          "body": "変更された行内の語がハイライトされ、長い行は 1 行のまま横スクロールでき、ファイル名から Finder で表示できます。"
+          "title": "サブエージェントのモデルプール",
+          "body": "新しい「サブエージェントモデル」ページで使用可能なモデルを選べ、実際のモデルは Agent ペインに表示されます。"
         },
         {
-          "title": "既定のウィンドウサイズに戻す",
-          "body": "Cmd+Option+0 または「ウインドウ」メニューで、全画面や最大化からでも 1280 x 840 に戻せます。"
+          "title": "サブエージェントに直接メッセージ",
+          "body": "サブエージェントに直接メッセージを送れます。現在のターン終了後に処理され、メインエージェントにも通知されます。"
         },
         {
-          "title": "弾性スクロール（試験的）",
-          "body": "既定でオフのオプション設定で、内側のスクロール領域が端を越えてゴムのように弾みます。"
+          "title": "使用量統計にサブエージェントを反映",
+          "body": "すべてのサブエージェントのリクエストが、それぞれのモデルで使用量とコストに集計されます。"
         }
       ],
       "improvements": [
-        "すべてのテーマで共通のシンタックスカラーを使い、関数名のみに色を付けます。",
-        "返信内の太字とインラインコードが軽くなりました。",
-        "グループの開閉時にチャット列が横にずれなくなりました。",
-        "思考グループを閉じる間も上端のフェードが保たれます。",
-        "ホバー中のコントロールにネイティブのツールチップが表示されなくなりました。"
+        "Run View の ToDo リストは単純なタスクでは任意になり、項目数は 2〜7 件です。",
+        "Midnight テーマは、Dark という名前のニュートラルなダークテーマになりました。",
+        "サブエージェントが実際に使うモデルが表示名で表示されます。",
+        "サブエージェントのモデルプールを保存すると変更が保持されます。",
+        "モデル設定と使用量ページのスクロールと配置を改善しました。"
       ]
     },
     "ko": {
-      "summary": "Vela 1.2.33은 명령 수명 주기 Hooks, 더 또렷해진 간결한 Diff 보기, 기본 창 크기로 되돌리는 단축키를 추가했습니다.",
+      "summary": "Vela 1.2.34는 채팅을 전용 Git worktree에서 실행하고, 서브에이전트 모델 풀을 추가하며, 할 일 목록을 선택 사항으로 바꿨습니다.",
       "highlights": [
         {
-          "title": "명령 수명 주기 Hooks",
-          "body": "PreToolUse, PostToolUse, Stop, SessionStart, PreCommit 시점에 원하는 명령을 실행할 수 있으며, 새 Hooks 설정 페이지에서 전역 또는 프로젝트별로 구성합니다."
+          "title": "Worktree 채팅과 인계",
+          "body": "채팅을 전용 Git worktree에서 실행해 변경 사항을 체크아웃과 분리하고, 입력창에서 변경 사항을 인계할 수 있습니다."
         },
         {
-          "title": "더 또렷한 간결한 Diff",
-          "body": "수정된 줄 안에서 바뀐 단어가 강조되고, 긴 줄은 한 줄로 유지되며 가로로 스크롤되고, 파일 이름으로 Finder에서 파일을 표시할 수 있습니다."
+          "title": "서브에이전트 모델 풀",
+          "body": "새 서브에이전트 모델 페이지에서 사용할 수 있는 모델을 고르며, 실제 사용 모델은 Agent 창에 표시됩니다."
         },
         {
-          "title": "기본 창 크기로 복원",
-          "body": "Cmd+Option+0 또는 창 메뉴로 전체 화면이나 최대화 상태에서도 1280 x 840으로 되돌릴 수 있습니다."
+          "title": "서브에이전트에 직접 메시지",
+          "body": "서브에이전트에 직접 메시지를 보낼 수 있으며, 현재 턴이 끝난 뒤 처리되고 메인 에이전트에도 알려집니다."
         },
         {
-          "title": "탄성 스크롤(실험적)",
-          "body": "기본값이 꺼짐인 선택 설정으로, 내부 스크롤 영역이 가장자리를 넘어 고무줄처럼 늘어납니다."
+          "title": "사용량 통계에 서브에이전트 반영",
+          "body": "모든 서브에이전트 요청이 각자의 모델로 사용량과 비용에 집계됩니다."
         }
       ],
       "improvements": [
-        "모든 테마가 하나의 구문 강조 팔레트를 공유하며 함수 이름에만 색을 입힙니다.",
-        "답변의 굵은 글씨와 인라인 코드가 더 가벼워졌습니다.",
-        "그룹을 펼치거나 접을 때 채팅 열이 옆으로 밀리지 않습니다.",
-        "생각 그룹이 접히는 동안에도 상단 가장자리 페이드가 유지됩니다.",
-        "마우스를 올린 컨트롤에 기본 툴팁이 더 이상 나타나지 않습니다."
+        "Run View 할 일 목록은 단순한 작업에서 선택 사항이며 항목은 2–7개입니다.",
+        "Midnight 테마가 Dark라는 이름의 중립적인 다크 테마로 바뀌었습니다.",
+        "서브에이전트가 실제로 쓰는 모델이 표시 이름으로 보입니다.",
+        "서브에이전트 모델 풀을 저장하면 변경 사항이 유지됩니다.",
+        "모델 설정과 사용량 페이지의 스크롤과 정렬이 개선되었습니다."
       ]
     }
   }
