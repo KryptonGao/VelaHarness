@@ -2,6 +2,7 @@ import { agentElapsedMs, isAgentBusy, type AgentControlAction, type AgentInfo, t
 import { createContext, useContext, useMemo, type ReactNode } from "react";
 import { useSecondClock } from "../hooks/useSecondClock";
 import { ActivityIndicator } from "./ActivityIndicator";
+import { ThinkingModelCatalogContext } from "./ThinkingGroupModeContext";
 import { PauseIcon, PlayIcon, StopSquareIcon } from "./icons";
 import { tr, trf } from "../locale";
 
@@ -177,12 +178,15 @@ export function agentKindLabel(kind: AgentInfo["kind"] | SubagentKind | undefine
   return tr("子代理", "Subagent");
 }
 
-/** 派生时从模型池选了模型的子代理才显示;没选的沿用主代理的模型,不加标签。 */
+/** 子代理实际使用的模型；旧记录没存模型时不显示。 */
 export function AgentModelTag({ model }: { model: ModelRef | null | undefined }) {
+  const catalog = useContext(ThinkingModelCatalogContext);
   if (!model) return null;
+  // 显示模型列表里的名称(如 GPT-6.1 Sol)，目录里找不到时才退回 id；悬停仍给完整的 provider/id。
+  const name = catalog.find((item) => item.provider === model.provider && item.id === model.modelId)?.name ?? model.modelId;
   return (
     <span className="agent-model" title={`${tr("模型", "Model")}: ${model.provider}/${model.modelId}`}>
-      {model.modelId}
+      {name}
     </span>
   );
 }

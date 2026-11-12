@@ -775,6 +775,10 @@ export class AgentControl {
       });
       agent.info.updatedAt = Date.now();
       this.emit();
+    // 记录子会话实际使用的模型(没指定时就是父代理当时的模型)；恢复旧会话时它可能已不是原来的，不覆盖。
+    if (!agent.sessionFile && session.model) {
+      agent.info.model = { provider: session.model.provider, modelId: session.model.id };
+    }
       return;
     }
     if (event.type === "tool_execution_end") {

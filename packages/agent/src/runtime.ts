@@ -102,7 +102,7 @@ import {
 import { clipTitle, normalizeManualConversationTitle, requestConversationTitle } from "./conversation-title";
 import { parseAiTextRequest, TextAssistService } from "./text-assist";
 import { ConversationStore } from "./conversation-store";
-import { legacyAgentTranscript, recoverLegacyAgents, type StoredAgent } from "./agent-history";
+import { lastAssistantModel, legacyAgentTranscript, recoverLegacyAgents, type StoredAgent } from "./agent-history";
 import { createPersistedSession } from "./session-persistence";
 import { copyTurnTimings, readTurnTimings, turnTimingEntryType } from "./turn-timing";
 import {
@@ -2785,6 +2785,17 @@ export class AgentRuntime {
       const storedAgents = stored.agents?.length ? stored.agents : recoverLegacyAgents(
         SessionManager.open(stored.sessionFile, this.sessionDir(), stored.cwd).buildSessionProjection().messages,
         stored.id,
+  /** 没记录模型的子代理(旧版或没指定模型)，从它自己的会话文件里读出实际用过的模型。 */
+  private backfillAgentModels(conversationId: string, cwd: string, agents: StoredAgent[]): void {
+    for (const agent of agents) {
+      if (agent.model || !agent.sessionFile || !existsSync(agent.sessionFile)) continue;
+      try {
+        const manager = SessionManager.open(agent.sessionFile, this.childSessionDir(conversationId), cwd);
+        agent.model = lastAssistantModel(manager.buildSessionProjection().messages);
+      } catch { /* 读不出来就不显示模型 */ }
+    }
+  }
+
       );
       this.conversations.set(stored.id, {
         hasWorkspace,
@@ -2798,6 +2809,7 @@ export class AgentRuntime {
         snapshot: {
           ...this.createSnapshot("ready", stored.cwd),
           id: stored.id,
+      this.backfillAgentModels(stored.id, stored.cwd, storedAgents);
           title: stored.title,
           mode: stored.mode,
           ...(stored.recipeExecution ? { sandboxMode: stored.recipeExecution.sandboxMode } : {}),

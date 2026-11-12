@@ -59,6 +59,17 @@ export function normalizeStoredAgents(value: unknown): StoredAgent[] {
   return result;
 }
 
+/** 子会话里最后一条助手消息用的模型；没有任何助手消息(或旧格式)时为 null。 */
+export function lastAssistantModel(messages: readonly AgentMessage[]): ModelRef | null {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index];
+    if (message?.role !== "assistant") continue;
+    const { provider, model } = message as { provider?: unknown; model?: unknown };
+    if (typeof provider === "string" && provider && typeof model === "string" && model) return { provider, modelId: model };
+  }
+  return null;
+}
+
 /** 旧版只有主会话落盘，从工具结果与子代理回传中找回可用的任务、步骤和结论。 */
 export function recoverLegacyAgents(messages: readonly AgentMessage[], conversationId: string): StoredAgent[] {
   const records = new Map<string, Record<string, unknown>>();

@@ -53,6 +53,7 @@ function agentFromTool(tool: ToolTrace, agentId: string): AgentInfo {
     activeMs: 0,
     runningSince: null,
     pauseRequested: false,
+    model: activity?.model ?? null,
     createdAt: 0,
     updatedAt: 0,
   };

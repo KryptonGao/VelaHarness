@@ -11,6 +11,7 @@ import type {
   BranchConversationOptions,
   ImageAttachment,
   InteractionMode,
+  ModelRef,
   PlanExecutionContextStrategy,
   RuntimeInstructionMode,
   ToolActivity,
@@ -984,6 +985,7 @@ function sanitizeActivity(value: ToolActivity | undefined): ToolActivity {
     mutated: value?.mutated === true ? true : undefined,
     streaming: sanitizeStreaming(value?.streaming),
     presentation: parseToolPresentation(value?.presentation),
+    model: sanitizeModelRef(value?.model) ?? undefined,
   };
 }
 
@@ -1047,7 +1049,13 @@ function withAgents(
 }
 
 /** 主进程推来的 agent 快照在渲染层再校验一次，坏数据直接丢掉。 */
-function sanitizeAgents(value: unknown): AgentInfo[] {
+function sanitizeModelRef(value: unknown): ModelRef | null {
+  if (!value || typeof value !== "object") return null;
+  const { provider, modelId } = value as Record<string, unknown>;
+  return typeof provider === "string" && provider && typeof modelId === "string" && modelId ? { provider, modelId } : null;
+}
+
+export function sanitizeAgents(value: unknown): AgentInfo[] {
   if (!Array.isArray(value)) return [];
   const result: AgentInfo[] = [];
   for (const item of value) {
@@ -1090,6 +1098,7 @@ function sanitizeAgents(value: unknown): AgentInfo[] {
 
 /** 子代理会话事件来自 IPC，渲染前再校验一次形状。 */
 export function sanitizeAgentEvent(value: unknown): AgentRuntimeStreamEvent | null {
+      model: sanitizeModelRef(record.model),
   if (!value || typeof value !== "object") return null;
   const event = value as Record<string, unknown>;
   const type = event.type;

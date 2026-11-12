@@ -6,6 +6,7 @@ import {
   applyStreamEvent,
   mergeAgentHistory,
   sanitizeAgentEvent,
+  sanitizeAgents,
   type MessageBuckets,
   type UiMessage,
   toUiMessage,
@@ -268,5 +269,24 @@ describe("MCP renderer activity", () => {
     const restored = mergeAgentHistory(undefined, history);
     assert.equal(restored?.length, 1);
     assert.equal(mergeAgentHistory(restored!, history), null);
+  });
+});
+
+describe("子代理列表校验", () => {
+  const base = { id: "a1", path: "/root/a", kind: "explore", status: "completed" };
+  it("保留子代理的模型，格式不对时当作没有", () => {
+    const [kept, bad, none] = sanitizeAgents([
+      { ...base, model: { provider: "openai", modelId: "gpt-5" } },
+      { ...base, id: "a2", model: { provider: "openai" } },
+      { ...base, id: "a3" },
+    ]);
+    assert.deepEqual(kept?.model, { provider: "openai", modelId: "gpt-5" });
+    assert.equal(bad?.model, null);
+    assert.equal(none?.model, null);
+  });
+  it("工具活动里的子代理模型经过校验后仍在", () => {
+    const event = sanitizeAgentEvent({ type: "tool_start", toolCallId: "t1", toolName: "spawn_agent",
+      activity: { agentId: "a1", model: { provider: "openai", modelId: "gpt-5" } } });
+    assert.deepEqual(event?.type === "tool_start" ? event.activity.model : null, { provider: "openai", modelId: "gpt-5" });
   });
 });

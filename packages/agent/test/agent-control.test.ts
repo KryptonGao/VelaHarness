@@ -15,6 +15,7 @@ import {
 /** 只实现控制面用到的会话表面：prompt / subscribe / abort / dispose / messages / errorMessage。 */
 class FakeSession {
   sessionFile: string | null = null;
+  model: { provider: string; id: string } | undefined = undefined;
   readonly sessionManager = { getSessionFile: () => this.sessionFile };
   readonly messages: AgentMessage[] = [];
   readonly prompts: string[] = [];
@@ -645,7 +646,7 @@ describe("子代理模型池", () => {
     assert.deepEqual(control.spawn("root-id", { kind: "explore", task: "b", model: "claude-haiku" }).model, pool[0]);
   });
 
-  it("没写 model 就沿用父代理，不记录模型", async () => {
+  it("没写 model 就沿用父代理，建好会话后记录实际用的模型", async () => {
     const { control, host } = createControl(undefined, () => pool);
     const agent = control.spawn("root-id", { kind: "explore", task: "查", name: "plain" });
     assert.equal(agent.model, null);
@@ -672,3 +673,6 @@ describe("子代理模型池", () => {
     assert.deepEqual(control.spawn("root-id", { kind: "explore", task: "x", model: "anthropic/claude-haiku" }).model, pool[0]);
   });
 });
+    host.sessionFactory = () => Object.assign(new FakeSession(), { model: { provider: "openai", id: "gpt-5" } });
+    await waitFor(() => control.list().find((item) => item.id === agent.id)?.model != null, "记录模型");
+    assert.deepEqual(control.storedAgents().find((item) => item.id === agent.id)?.model, { provider: "openai", modelId: "gpt-5" });

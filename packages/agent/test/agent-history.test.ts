@@ -5,7 +5,7 @@ import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { AgentMessage } from "@earendil-works/pi-agent-core";
-import { legacyAgentTranscript, normalizeStoredAgents, recoverLegacyAgents, type StoredAgent } from "../src/agent-history.ts";
+import { lastAssistantModel, legacyAgentTranscript, normalizeStoredAgents, recoverLegacyAgents, type StoredAgent } from "../src/agent-history.ts";
 import { ConversationStore } from "../src/conversation-store.ts";
 import { createPersistedSession } from "../src/session-persistence.ts";
 import { AgentRuntime, type RuntimeEvent } from "../src/runtime.ts";
@@ -28,6 +28,18 @@ describe("子代理模型的持久化", () => {
     assert.deepEqual(kept?.model, { provider: "anthropic", modelId: "claude-haiku" });
     assert.equal(bad?.model, null);
     assert.equal(none?.model, null);
+  });
+
+  it("从子会话消息里读出最后一次实际用的模型", () => {
+    const messages = [
+      { role: "user", content: "x", timestamp: 1 },
+      { role: "assistant", content: [], provider: "openai", model: "gpt-5", timestamp: 2 },
+      { role: "assistant", content: [], provider: "anthropic", model: "claude-haiku", timestamp: 3 },
+      { role: "user", content: "y", timestamp: 4 },
+    ] as unknown as AgentMessage[];
+    assert.deepEqual(lastAssistantModel(messages), { provider: "anthropic", modelId: "claude-haiku" });
+    assert.equal(lastAssistantModel(messages.slice(0, 1)), null);
+    assert.equal(lastAssistantModel([{ role: "assistant", content: [], timestamp: 1 }] as unknown as AgentMessage[]), null);
   });
 });
 
@@ -171,7 +183,8 @@ describe("子代理历史恢复", () => {
       ], timestamp: 2 } as never);
       child.appendMessage({ role: "toolResult", toolCallId: "read-1", toolName: "read",
         content: [{ type: "text", text: '{"name":"vela-harness"}' }], isError: false, timestamp: 3 } as never);
-      child.appendMessage({ role: "assistant", content: [{ type: "text", text: "检查完成" }], timestamp: 4 } as never);
+      child.appendMessage({ role: "assistant", content: [{ type: "text", text: "检查完成" }],
+        provider: "openai", model: "gpt-5", timestamp: 4 } as never);
       const store = new ConversationStore(join(dir, "conversations.json"));
       store.put({ id: root.getSessionId(), cwd: dir, title: "历史对话", createdAt: 1, updatedAt: 2,
         messageCount: 1, toolCallCount: 1, sessionFile: root.getSessionFile(), instructions: "", mode: "agent",
@@ -186,6 +199,8 @@ describe("子代理历史恢复", () => {
       runtime = new AgentRuntime({ cwd: dir, agentDir: dir });
       await runtime.getAgentSettings();
       assert.deepEqual(runtime.getAgents(root.getSessionId()).map((item) => item.status), ["completed", "aborted"]);
+      // 没存模型的旧记录从子会话文件补回实际用过的模型；没有会话文件的补不了。
+      assert.deepEqual(runtime.getAgents(root.getSessionId()).map((item) => item.model), [{ provider: "openai", modelId: "gpt-5" }, null]);
       const transcript = runtime.getAgentMessages(root.getSessionId(), "child");
       assert.equal(transcript[0]?.text, "查 package.json");
       assert.equal(transcript[1]?.thinking, "先读取文件");
