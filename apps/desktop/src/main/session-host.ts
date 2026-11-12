@@ -49,6 +49,10 @@ export interface SessionHostHooks {
   currentWorkspace?: () => string | null;
   /** 不在对话列表里显示的后台对话（常驻 Agent 的持久会话）。 */
   hiddenConversation?: (id: string) => boolean;
+  /** 对话被收起后清理它的会话 worktree(仅限没有任何改动的)。 */
+  onArchived?: (id: string) => Promise<void>;
+  /** 对话取消归档前确保它的会话 worktree 在位。 */
+  beforeUnarchive?: (id: string) => Promise<void>;
 }
 
 export class SessionHost {
@@ -156,7 +160,7 @@ export class SessionHost {
       let cwd = this.hooks.currentCwd();
       if (rawCwd !== undefined) {
         if (typeof rawCwd !== "string" ||
-          !this.runtime.listConversations().some(conversation => conversation.cwd === rawCwd && conversation.hasWorkspace !== false)) {
+          !this.runtime.listConversations().some(conversation => (conversation.cwd === rawCwd || conversation.worktree?.repository === rawCwd) && conversation.hasWorkspace !== false)) {
           throw new Error("工作区不存在");
         }
         cwd = rawCwd;
@@ -175,11 +179,15 @@ export class SessionHost {
       return this.currentState();
     });
     ipcMain.handle(IpcChannel.sessionArchive, async (_event, rawId: unknown) => {
-      await this.runtime.archiveConversation(parseConversationId(rawId, "对话"));
+      const id = parseConversationId(rawId, "对话");
+      await this.runtime.archiveConversation(id);
+      await this.hooks.onArchived?.(id).catch(() => undefined);
       return this.currentState();
     });
     ipcMain.handle(IpcChannel.sessionUnarchive, async (_event, rawId: unknown) => {
-      await this.runtime.unarchiveConversation(parseConversationId(rawId, "对话"));
+      const id = parseConversationId(rawId, "对话");
+      await this.hooks.beforeUnarchive?.(id);
+      await this.runtime.unarchiveConversation(id);
       return this.currentState();
     });
     ipcMain.handle(IpcChannel.sessionBranch, async (_event, rawId: unknown, rawTurn: unknown, rawOptions: unknown) => {
@@ -239,6 +247,16 @@ export class SessionHost {
         parseConversationId(rawConversation, "对话"),
         parseId(rawAgent, "Agent"),
         rawAction as AgentControlAction,
+      );
+    });
+    ipcMain.handle(IpcChannel.sessionAgentSend, (_event, rawConversation: unknown, rawAgent: unknown, rawText: unknown) => {
+      const text = typeof rawText === "string" ? rawText.trim() : "";
+      if (!text) throw new Error("消息不能为空");
+      if (text.length > maxPromptLength) throw new Error("消息过长");
+      this.runtime.sendAgentMessage(
+        parseConversationId(rawConversation, "对话"),
+        parseId(rawAgent, "Agent"),
+        text,
       );
     });
     ipcMain.handle(IpcChannel.sessionBackgroundShellOutput, (_event, rawConversation: unknown, rawShell: unknown) =>

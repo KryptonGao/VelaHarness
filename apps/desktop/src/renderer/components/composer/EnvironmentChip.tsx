@@ -3,12 +3,20 @@ import type { ProjectApi } from "../../hooks/useProject";
 import { useDismissable } from "../../hooks/useDismissable";
 import { CheckIcon, MonitorIcon } from "../icons";
 import { useState } from "react";
-import type { SelectableEnvironmentKind } from "@vela/shared";
-import { tr } from "../../locale";
+import type { SelectableEnvironmentKind, WorktreeHandoffResult } from "@vela/shared";
+import { localizeError, tr, trf } from "../../locale";
+
+function handoffText(result: WorktreeHandoffResult): string {
+  if (result.status === "applied") return trf("已交接 {0} 个文件到本地", "Handed off {0} files to Local", result.files);
+  if (result.status === "empty") return tr("没有需要交接的改动", "Nothing to hand off");
+  if (result.status === "conflict") return tr("本地有冲突的改动，没有交接任何文件", "Local edits conflict, so nothing was handed off");
+  return localizeError(result.message);
+}
 
 export function EnvironmentChip({ project }: { project: ProjectApi }) {
   const [open, setOpen] = useState(false);
-  const [pending, setPending] = useState<SelectableEnvironmentKind | null>(null);
+  const [pending, setPending] = useState<SelectableEnvironmentKind | "handoff" | null>(null);
+  const [handoff, setHandoff] = useState<WorktreeHandoffResult | null>(null);
   const ref = useDismissable<HTMLDivElement>(open, () => setOpen(false));
   const environment = project.environment;
   const environments = project.environments;
@@ -31,8 +39,20 @@ export function EnvironmentChip({ project }: { project: ProjectApi }) {
   async function switchTo(kind: SelectableEnvironmentKind): Promise<void> {
     if (pending || kind === activeKind) return;
     setPending(kind);
+    setHandoff(null);
     try {
-      await project.setEnvironment(kind);
+      // 切换会在所选环境里开一个新对话;新对话成为当前对话后菜单就没有必要停留。
+      if (await project.setEnvironment(kind)) setOpen(false);
+    } finally {
+      setPending(null);
+    }
+  }
+
+  async function handOffToLocal(): Promise<void> {
+    if (pending) return;
+    setPending("handoff");
+    try {
+      setHandoff(await project.handoffWorktree());
     } finally {
       setPending(null);
     }
@@ -81,11 +101,33 @@ export function EnvironmentChip({ project }: { project: ProjectApi }) {
               <span className="environment-path" title={worktree?.path}>
                 {worktreeActive
                   ? environment.path
-                  : worktree?.path || tr("为当前仓库创建独立工作树", "Create an isolated worktree for this repository")}
+                  : tr("在新对话里使用独立工作树", "Use an isolated worktree in a new chat")}
               </span>
             </div>
             {worktreeActive ? <CheckIcon /> : null}
           </button>
+          {worktreeActive ? (
+            <>
+              <button
+                type="button"
+                className="environment-row"
+                disabled={Boolean(pending)}
+                onClick={() => void handOffToLocal()}
+              >
+                <div className="environment-text">
+                  <span className="environment-name">
+                    {pending === "handoff" ? tr("交接中…", "Handing off…") : tr("交接改动到本地", "Hand off changes to Local")}
+                  </span>
+                </div>
+              </button>
+              {handoff ? (
+                <div className={`environment-result${handoff.ok ? "" : " failed"}`} role="status">
+                  {handoffText(handoff)}
+                  {handoff.conflicts.length > 0 ? <span className="environment-path" title={handoff.conflicts.join("\n")}>{handoff.conflicts.join(", ")}</span> : null}
+                </div>
+              ) : null}
+            </>
+          ) : null}
           {(["sandbox", "remote"] as const).map((kind) => (
             <div className="environment-row disabled" key={kind}>
               <MonitorIcon size={14} />

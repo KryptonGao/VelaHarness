@@ -32,5 +32,6 @@ export function useComposerLayout(): ComposerLayout {
   return useSyncExternalStore(
     listener => { listeners.add(listener); return () => { listeners.delete(listener); }; },
     () => current,
+    () => current,
   );
 }

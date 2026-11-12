@@ -123,6 +123,7 @@ export const IpcChannel = {
   envGet: "env:get",
   envList: "env:list",
   envSet: "env:set",
+  envHandoff: "env:handoff",
   gitGetStatus: "git:get-status",
   gitListBranches: "git:list-branches",
   gitSwitchBranch: "git:switch-branch",
@@ -214,6 +215,7 @@ export const IpcChannel = {
   questionReply: "session:question-reply",
   sessionAgentMessages: "session:agent-messages",
   sessionAgentControl: "session:agent-control",
+  sessionAgentSend: "session:agent-send",
   sessionBackgroundShellOutput: "session:background-shell-output",
   sessionBackgroundShellKill: "session:background-shell-kill",
   sessionBackgroundShellClear: "session:background-shell-clear",
@@ -781,6 +783,19 @@ export interface SessionSnapshot {
   taskBudget?: TaskBudgetState | null;
 }
 
+/**
+ * 绑定到会话的 git worktree。会话的 cwd 就是 worktree 目录(工具、终端都在里面运行),
+ * 工作区归属仍是 repository,所以侧边栏分组和最近列表不会多出一个"新工作区"。
+ */
+export interface ConversationWorktree {
+  /** 创建 worktree 时的仓库根目录,即会话所属的工作区。 */
+  repository: string;
+  /** 创建时的提交;交接改动与对比都以它为基线。 */
+  baseSha: string;
+  /** 默认 detached HEAD 为 null;在 worktree 里建了分支后才有值。 */
+  branch: string | null;
+}
+
 /** 侧边栏会话列表里的一条对话,绑定创建时的工作区目录。 */
 export interface ConversationSummary {
   id: string;
@@ -791,6 +806,8 @@ export interface ConversationSummary {
   cwd: string;
   /** 会话实际的工作区归属；执行目录与默认目录相同也可以关联工作区。 */
   hasWorkspace?: boolean;
+  /** 会话运行在受管 worktree 里时的信息;本地会话没有。 */
+  worktree?: ConversationWorktree;
   createdAt: number;
   updatedAt: number;
   /** 非空表示已归档(不显示在侧边栏),值为归档时间。 */
@@ -1172,6 +1189,8 @@ export interface WorkspaceUpdateInput {
 export interface WorkspaceState {
   /** 当前工作区的主要文件夹;agent、git、终端都以它为根。 */
   current: string | null;
+  /** 当前目录是会话的 worktree 时,它所属的仓库(工作区身份);否则为 null。 */
+  repository?: string | null;
   /** 当前工作区的附加文件夹,不含主要文件夹;未选择工作区时为空。 */
   folders: string[];
   recents: WorkspaceRecent[];
@@ -1187,6 +1206,28 @@ export interface ExecutionEnvironment {
   label: string;
   path: string;
   available: boolean;
+  /** worktree 环境:所属仓库与创建时的提交。 */
+  worktree?: ConversationWorktree;
+}
+
+/** 把 worktree 里的改动交接回本地仓库的结果。 */
+export interface WorktreeHandoffResult {
+  ok: boolean;
+  /** applied=已应用;empty=没有改动;conflict=本地有冲突,什么都没动;error=其他失败(见 message)。 */
+  status: "applied" | "empty" | "conflict" | "error";
+  /** 仅 error 时是给人看的原因。 */
+  message: string;
+  /** 交接的文件数。 */
+  files: number;
+  /** 无法干净应用时冲突或被占用的文件。 */
+  conflicts: string[];
+}
+
+export interface WorktreeRemoveResult {
+  ok: boolean;
+  message: string;
+  /** 因为还有未交接的改动而被拒绝时的文件数。 */
+  changeCount: number | null;
 }
 
 export interface WorkspaceEvent {
@@ -3144,6 +3185,8 @@ export interface VelaApi extends McpApi, PluginApi, HooksApi {
   getAgentMessages(conversationId: string, agentId: string): Promise<TranscriptMessage[]>;
   /** 暂停、继续或取消单个子代理；取消会连带它派出的子代理。 */
   controlAgent(conversationId: string, agentId: string, action: AgentControlAction): Promise<void>;
+  /** 用户直接给某个子代理发消息；排在它当前回合之后处理，并静默告知主代理。 */
+  sendAgentMessage(conversationId: string, agentId: string, text: string): Promise<void>;
   /** 读取某个后台命令的输出末尾；命令已被清掉时为 null。 */
   getBackgroundShellOutput(conversationId: string, shellId: string): Promise<BackgroundShellOutput | null>;
   /** 终止一个运行中的后台命令；状态变化随 background_shells 事件回来。 */
@@ -3222,7 +3265,10 @@ export interface VelaApi extends McpApi, PluginApi, HooksApi {
   updateWorkspace(input: WorkspaceUpdateInput): Promise<WorkspaceState>;
   getEnvironment(): Promise<ExecutionEnvironment | null>;
   listEnvironments(): Promise<ExecutionEnvironment[]>;
+  /** 在所选环境里开一个新对话(空的旧对话会被收起);worktree 环境为它创建独立的 detached worktree。 */
   setEnvironment(kind: SelectableEnvironmentKind): Promise<ExecutionEnvironment>;
+  /** 把当前会话 worktree 里的改动交接回本地仓库工作区,不提交。 */
+  handoffWorktree(): Promise<WorktreeHandoffResult>;
   onWorkspaceEvent(listener: (event: WorkspaceEvent) => void): () => void;
   getGitStatus(): Promise<GitStatusSnapshot | null>;
   listBranches(): Promise<BranchSummary[]>;

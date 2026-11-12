@@ -3,7 +3,7 @@ import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useSta
 import { createPortal } from "react-dom";
 import type { ProjectApi } from "../hooks/useProject";
 import type { SidebarResize } from "../hooks/useSidebarResize";
-import type { ToolDisplay, ToolFold } from "../hooks/usePreferences";
+import type { SendButtonIcon, ToolDisplay, ToolFold } from "../hooks/usePreferences";
 import type { MessageStore } from "../hooks/message-store";
 import type { UiMessage } from "../hooks/useSession";
 import { useMotionPresence } from "../hooks/useMotionPresence";
@@ -88,6 +88,8 @@ interface WorkbenchPanelProps {
   toolFold?: ToolFold;
   ensureAgentMessages: (agentId: string) => void;
   onControlAgent: (agentId: string, action: AgentControlAction) => void;
+  onSendAgentMessage: (agentId: string, text: string) => Promise<void>;
+  sendButtonIcon?: SendButtonIcon;
   onOpenAgent: (agentId: string) => void;
   onNewTab: () => void;
   onStartAction: (tab: WorkbenchTab, action: StartTabAction) => void;
@@ -400,6 +402,7 @@ function WorkbenchPanelContent(props: WorkbenchPanelProps & { closing: boolean; 
       case "terminal": return <TerminalView sessionId={tab.sessionId} visible={visible && !collapsed} />;
       case "agent": return <AgentPane agent={tab.agent} agents={props.agents} messages={props.getAgentMessages?.(tab.agent.id)} messageStore={props.messageStore}
         conversationId={props.conversationId} toolDisplay={props.toolDisplay} toolFold={props.toolFold} visible={visible} ensureMessages={props.ensureAgentMessages} onControl={props.onControlAgent}
+        onSend={props.onSendAgentMessage} sendButtonIcon={props.sendButtonIcon}
         onSwitch={agentId => { const next = tabs.find(t => t.kind === "agent" && t.agent.id === agentId); if (next) activateTab(next); else props.onOpenAgent(agentId); }} />;
     }
   }

@@ -7,6 +7,7 @@ import { AgentWorkspaceProvider } from "../src/renderer/components/AgentPanel";
 import { ToolList } from "../src/renderer/components/ToolCard";
 import { infoCardDefinitions, type InfoCardContext } from "../src/renderer/components/info-cards/InfoCardContents";
 import { AppLocaleProvider } from "../src/renderer/locale";
+import { composerLayouts, setComposerLayout } from "../src/renderer/hooks/useComposerLayout";
 import "../src/renderer/styles.css";
 import "../src/renderer/info-cards.css";
 
@@ -38,7 +39,10 @@ function Preview() {
         <main style={{ height: "100vh", overflow: "auto", background: "var(--bg-chat)", color: "var(--text-primary)", padding: 24 }}>
           <header style={{ display: "flex", justifyContent: "space-between", marginBottom: 24 }}>
             <h1 style={{ fontSize: 18 }}>SubAgent · Bottts</h1>
-            <button type="button" onClick={() => setDark(value => !value)}>{dark ? "浅色" : "深色"}</button>
+            <span>
+              {composerLayouts.map(layout => <button key={layout} type="button" onClick={() => setComposerLayout(layout)}>{layout}</button>)}
+              <button type="button" onClick={() => setDark(value => !value)}>{dark ? "浅色" : "深色"}</button>
+            </span>
           </header>
           <section style={{ maxWidth: 780, marginBottom: 24 }}>
             <ToolList tools={tools} display="compact" fold="none" />
@@ -49,9 +53,9 @@ function Preview() {
           <section style={{ maxWidth: 420, marginBottom: 24 }}>
             <Body ctx={{ agents, onOpenAgent: setActiveId } as InfoCardContext} />
           </section>
-          <section style={{ maxWidth: 900, height: 220, border: "1px solid var(--border-subtle)", display: "flex" }}>
+          <section style={{ maxWidth: 900, height: 360, border: "1px solid var(--border-subtle)", display: "flex" }}>
             <AgentPane agent={active} agents={agents} messages={[]} onSwitch={setActiveId}
-              ensureMessages={() => undefined} onControl={() => undefined} />
+              ensureMessages={() => undefined} onControl={() => undefined} onSend={async () => undefined} />
           </section>
         </main>
       </AgentWorkspaceProvider>

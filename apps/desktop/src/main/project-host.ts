@@ -51,13 +51,15 @@ import {
   type PrUpdateInput,
   type SandboxApprovalEvent,
   type SandboxMode,
+  type ExecutionEnvironment,
   type SelectableEnvironmentKind,
+  type WorktreeHandoffResult,
   type WorkspaceEvent,
   type WorkspaceState,
   type WorkspaceUpdateInput,
 } from "@vela/shared";
 import {
-  ExecutionEnvironmentManager,
+  WorktreeSessions,
   GitOperationLog,
   GitService,
   PullRequestService,
@@ -89,7 +91,7 @@ export interface ProjectHostOptions {
   files: WorkspaceFileService;
   pr: PullRequestService;
   sandbox: SandboxPermissionManager;
-  env: ExecutionEnvironmentManager;
+  worktrees: WorktreeSessions;
   runtime: AgentRuntime;
   operations: GitOperationLog;
   fallbackCwd: string;
@@ -156,14 +158,10 @@ export class ProjectHost {
     ipcMain.handle(IpcChannel.workspaceUpdate, (_event, raw: unknown) => {
       return this.options.workspaceManager.update(parseWorkspaceUpdate(raw));
     });
-    ipcMain.handle(IpcChannel.envGet, () => this.options.env.getActive());
-    ipcMain.handle(IpcChannel.envList, () => this.options.env.list());
-    ipcMain.handle(IpcChannel.envSet, async (_event, raw: unknown) => {
-      const kind = parseEnvironmentKind(raw);
-      const target = await this.options.env.resolve(kind);
-      await this.options.workspaceManager.select(target);
-      return this.options.env.getActive();
-    });
+    ipcMain.handle(IpcChannel.envGet, () => this.activeEnvironment());
+    ipcMain.handle(IpcChannel.envList, () => this.listEnvironments());
+    ipcMain.handle(IpcChannel.envSet, (_event, raw: unknown) => this.switchEnvironment(parseEnvironmentKind(raw)));
+    ipcMain.handle(IpcChannel.envHandoff, () => this.handoffWorktree());
 
     ipcMain.handle(IpcChannel.gitGetStatus, () => this.options.git.getSnapshot());
     ipcMain.handle(IpcChannel.gitListBranches, () => this.options.git.listBranches());
@@ -912,6 +910,96 @@ export class ProjectHost {
     return this.options.workspaceManager.getState().current;
   }
 
+  private activeConversation() {
+    const id = this.options.runtime.activeConversationId;
+    return this.options.runtime.listConversations().find((conversation) => conversation.id === id) ?? null;
+  }
+
+  /** 执行环境由工作区状态推出:当前目录是会话 worktree(有所属仓库)即为工作树环境。 */
+  private activeEnvironment(): ExecutionEnvironment {
+    const { current, repository } = this.options.workspaceManager.getState();
+    if (current && repository) {
+      const worktree = this.options.runtime.listConversations().find((conversation) => conversation.cwd === current && conversation.worktree)?.worktree;
+      return { kind: "worktree", label: "工作树", path: current, available: true, ...(worktree ? { worktree } : {}) };
+    }
+    return { kind: "local", label: "本地", path: current ?? this.options.fallbackCwd, available: true };
+  }
+
+  private listEnvironments(): ExecutionEnvironment[] {
+    const active = this.activeEnvironment();
+    const { repository } = this.options.workspaceManager.getState();
+    return [
+      { kind: "local", label: "本地", path: active.kind === "worktree" ? repository ?? "" : active.path, available: true },
+      { kind: "worktree", label: "工作树", path: active.kind === "worktree" ? active.path : "", available: true },
+      { kind: "sandbox", label: "沙箱", path: "", available: false },
+      { kind: "remote", label: "远程", path: "", available: false },
+    ];
+  }
+
+  /**
+   * 在所选环境里开一个新对话:worktree 为它创建独立的 detached worktree,
+   * 本地则回到仓库目录。切换不改动已有对话;当前对话还是空的就收起,避免留下空壳。
+   */
+  private async switchEnvironment(kind: SelectableEnvironmentKind): Promise<ExecutionEnvironment> {
+    const previous = this.activeConversation();
+    if (kind === this.activeEnvironment().kind) return this.activeEnvironment();
+    const { current, repository } = this.options.workspaceManager.getState();
+    const root = repository ?? current;
+    if (!root || previous?.hasWorkspace === false) throw new Error("先选择一个工作区");
+
+    if (kind === "worktree") {
+      const created = await this.options.worktrees.create(root);
+      try {
+        await this.options.runtime.createConversation(created.cwd, { hasWorkspace: true, worktree: created.worktree });
+      } catch (error) {
+        await this.options.worktrees.remove(created.path, created.worktree, true).catch(() => undefined);
+        throw error;
+      }
+      await this.syncConversationWorkspace(created.cwd, true, created.worktree.repository);
+    } else {
+      await this.options.runtime.createConversation(root, { hasWorkspace: true });
+      await this.syncConversationWorkspace(root, true, null);
+    }
+    if (previous && (previous.messageCount ?? 1) === 0) {
+      await this.options.runtime.archiveConversation(previous.id).catch(() => undefined);
+      await this.releaseWorktree(previous.id);
+    }
+    return this.activeEnvironment();
+  }
+
+  /** 会话收起时清理它的 worktree:只删没有任何改动、HEAD 仍在基线的,其余保留(取消归档时可重建)。 */
+  async releaseWorktree(conversationId: string): Promise<void> {
+    const conversations = this.options.runtime.listConversations();
+    const conversation = conversations.find((item) => item.id === conversationId);
+    if (!conversation?.worktree) return;
+    const path = this.options.worktrees.rootOf(conversation.cwd);
+    if (!path) return;
+    const shared = conversations.some((item) => item.id !== conversationId && item.archivedAt === null
+      && item.worktree && this.options.worktrees.rootOf(item.cwd) === path);
+    if (shared || !(await this.options.worktrees.isPristine(path, conversation.worktree))) return;
+    const result = await this.options.worktrees.remove(path, conversation.worktree);
+    if (!result.ok) log.warn("could not remove session worktree", { path, message: result.message });
+  }
+
+  /** 取消归档前确保会话的 worktree 在位:被清理过就从基线重建。 */
+  async restoreWorktree(conversationId: string): Promise<void> {
+    const conversation = this.options.runtime.listConversations().find((item) => item.id === conversationId);
+    if (!conversation?.worktree) return;
+    const path = this.options.worktrees.rootOf(conversation.cwd);
+    if (path) await this.options.worktrees.restore(path, conversation.worktree);
+  }
+
+  private async handoffWorktree(): Promise<WorktreeHandoffResult> {
+    const conversation = this.activeConversation();
+    if (!conversation?.worktree) throw new Error("当前不在工作树环境里");
+    if (this.options.runtime.findRunningAgent(conversation.cwd)) {
+      throw new Error("Agent 正在这个工作树执行,等它完成后再交接");
+    }
+    const path = this.options.worktrees.rootOf(conversation.cwd);
+    if (!path) throw new Error("找不到这个会话的 worktree");
+    return this.options.worktrees.handoffToLocal(path, conversation.worktree);
+  }
+
   /** Agent 在同一工作树执行时,首期阻止改动文件/索引的操作;主进程侧同样拦截。 */
   private assertMutable(): void {
     const running = this.options.runtime.findRunningAgent(this.currentWorkspace());
@@ -1137,7 +1225,7 @@ export class ProjectHost {
    * 让工作区选择跟随激活会话,保证输入区的工作区/环境/仓库卡片
    * 与会话目录(Context 面板)一致。会话目录不存在时保持原工作区。
    */
-  async syncConversationWorkspace(cwd: string, hasWorkspace = true): Promise<void> {
+  async syncConversationWorkspace(cwd: string, hasWorkspace = true, repository: string | null = null): Promise<void> {
     if (!hasWorkspace) {
       if (this.options.workspaceManager.getState().current !== null) await this.options.workspaceManager.close();
       return;
@@ -1145,7 +1233,8 @@ export class ProjectHost {
     if (!cwd || cwd === this.options.workspaceManager.getState().current) return;
     if (!(await isDirectory(cwd))) return;
     try {
-      await this.options.workspaceManager.select(cwd);
+      // 会话在 worktree 里时,工作区身份仍是它所属的仓库。
+      await this.options.workspaceManager.select(cwd, repository);
     } catch {
       // 目录不可访问等原因导致选择失败时,保持原工作区。
     }
@@ -1188,12 +1277,10 @@ export class ProjectHost {
 
   private async onWorkspaceChanged(workspace: WorkspaceState): Promise<void> {
     log.debug("workspace changed", { workspace: workspace.current });
-    await this.options.env.setWorkspace(workspace.current);
-    const environment = this.options.env.getActive();
     this.broadcast(IpcChannel.workspaceEvent, {
       type: "changed",
       workspace,
-      environment,
+      environment: this.activeEnvironment(),
     } satisfies WorkspaceEvent);
     await this.options.git.attach(workspace.current);
     const cwd = workspace.current ?? this.options.fallbackCwd;

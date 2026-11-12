@@ -152,7 +152,7 @@ it("synchronizes selected and unassigned conversations sharing one cwd without s
     workspaceManager, runtime, fallbackCwd: root,
     git: { subscribe: () => {}, attach: async (cwd: string | null) => { attached.push(cwd); } },
     sandbox: { subscribe: () => {} },
-    env: { setWorkspace: async () => {}, getActive: () => null },
+    worktrees: {},
   } as unknown as ConstructorParameters<typeof ProjectHost>[0]);
   t.after(async () => { project.dispose(); await runtime.dispose(); await rm(root, { recursive: true, force: true }); });
   const settle = async () => {

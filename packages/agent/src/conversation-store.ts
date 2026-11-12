@@ -1,4 +1,4 @@
-import type { ConversationGoal, ExecutionPlan, ExecutionPlanItem, InteractionMode, ProposedPlanItem, RecipeExecution } from "@vela/shared";
+import type { ConversationGoal, ConversationWorktree, ExecutionPlan, ExecutionPlanItem, InteractionMode, ProposedPlanItem, RecipeExecution } from "@vela/shared";
 import { normalizeStoredGoal } from "./goal-validation";
 import { normalizeStoredAgents, type StoredAgent } from "./agent-history";
 import { latestPlan, migrateLegacyPlan, sortPlans, type LegacyPlanRecord } from "./plan";
@@ -15,6 +15,8 @@ export interface StoredConversation {
   cwd: string;
   /** 会话创建时是否关联了工作区，与执行目录是否为默认目录无关。 */
   hasWorkspace?: boolean;
+  /** 会话运行在受管 worktree 里时的归属信息(cwd 即 worktree 目录)。 */
+  worktree?: ConversationWorktree;
   title: string;
   /** 旧索引缺省为 false；手动名称不再被自动标题覆盖。 */
   titleManuallySet?: boolean;
@@ -251,6 +253,7 @@ function normalize(entry: unknown): StoredConversation | null {
     id: record.id,
     cwd: record.cwd,
     hasWorkspace: typeof record.hasWorkspace === "boolean" ? record.hasWorkspace : undefined,
+    ...(normalizeWorktree(record.worktree) ? { worktree: normalizeWorktree(record.worktree)! } : {}),
     title: typeof record.title === "string" ? record.title : "新对话",
     titleManuallySet: record.titleManuallySet === true,
     createdAt: numberOr(record.createdAt, Date.now()),
@@ -400,4 +403,16 @@ function randomStepId(): string {
 
 function numberOr(value: unknown, fallback: number): number {
   return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function normalizeWorktree(value: unknown): ConversationWorktree | null {
+  if (!value || typeof value !== "object") return null;
+  const record = value as Record<string, unknown>;
+  if (typeof record.repository !== "string" || !record.repository) return null;
+  if (typeof record.baseSha !== "string" || !record.baseSha) return null;
+  return {
+    repository: record.repository,
+    baseSha: record.baseSha,
+    branch: typeof record.branch === "string" && record.branch ? record.branch : null,
+  };
 }

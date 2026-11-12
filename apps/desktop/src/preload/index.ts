@@ -31,6 +31,7 @@ import {
   type BranchSummary,
   type CustomModelInput,
   type ExecutionEnvironment,
+  type WorktreeHandoffResult,
   type FileAttachmentPayload,
   type GitBranchDeleteInput,
   type GitBranchDeleteResult,
@@ -466,6 +467,8 @@ const api: VelaApi = {
     ipcRenderer.invoke(IpcChannel.sessionAgentMessages, conversationId, agentId) as Promise<TranscriptMessage[]>,
   controlAgent: (conversationId: string, agentId: string, action: AgentControlAction) =>
     ipcRenderer.invoke(IpcChannel.sessionAgentControl, conversationId, agentId, action) as Promise<void>,
+  sendAgentMessage: (conversationId: string, agentId: string, text: string) =>
+    ipcRenderer.invoke(IpcChannel.sessionAgentSend, conversationId, agentId, text) as Promise<void>,
   getBackgroundShellOutput: (conversationId: string, shellId: string) =>
     ipcRenderer.invoke(IpcChannel.sessionBackgroundShellOutput, conversationId, shellId) as Promise<BackgroundShellOutput | null>,
   killBackgroundShell: (conversationId: string, shellId: string) =>
@@ -545,6 +548,7 @@ const api: VelaApi = {
   listEnvironments: () => ipcRenderer.invoke(IpcChannel.envList) as Promise<ExecutionEnvironment[]>,
   setEnvironment: (kind: SelectableEnvironmentKind) =>
     ipcRenderer.invoke(IpcChannel.envSet, kind) as Promise<ExecutionEnvironment>,
+  handoffWorktree: () => ipcRenderer.invoke(IpcChannel.envHandoff) as Promise<WorktreeHandoffResult>,
   getGitStatus: () => ipcRenderer.invoke(IpcChannel.gitGetStatus) as Promise<GitStatusSnapshot | null>,
   listBranches: () => ipcRenderer.invoke(IpcChannel.gitListBranches) as Promise<BranchSummary[]>,
   switchBranch: (name: string, options?: { createTracking?: boolean }) =>

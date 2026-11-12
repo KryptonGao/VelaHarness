@@ -1021,7 +1021,7 @@ function attachmentKey(entry: FileAttachmentPayload): string {
   return id;
 }
 
-function ComposerActions({ sendButtonIcon, streaming, sendHint, steerHint, canQueue, disabled, onSteer, onAbort }: {
+export function ComposerActions({ sendButtonIcon, streaming, sendHint, steerHint, canQueue, disabled, onSteer, onAbort }: {
   sendButtonIcon: SendButtonIcon;
   streaming: boolean; sendHint: string; steerHint: string; canQueue: boolean; disabled: boolean;
   onSteer: () => void; onAbort: () => Promise<void>;

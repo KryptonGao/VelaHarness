@@ -384,6 +384,38 @@ describe("消息投递", () => {
     );
   });
 
+  it("用户直接发消息：先静默告知主代理，再排进子代理队列，结论照常回投", async () => {
+    const { control, host } = createControl();
+    const info = control.spawn("root-id", { kind: "general", task: "初版", name: "work" });
+    await waitFor(() => host.rootMessages.some((message) => message.kind === "result"), "初版完成");
+    host.rootMessages.length = 0;
+
+    control.sendFromUser(info.id, "  换个思路  ");
+
+    const notice = host.rootMessages[0];
+    assert.equal(notice?.kind, "message");
+    assert.equal(notice?.fromUser, true);
+    assert.equal(notice?.path, "/root/work");
+    assert.equal(notice?.text, "换个思路");
+    await waitFor(() => host.rootMessages.some((message) => message.kind === "result"), "用户消息的结论回投");
+    assert.deepEqual(host.sessions.get("/root/work")?.prompts.slice(-1), ["换个思路"]);
+  });
+
+  it("用户直接发消息：拒绝空消息、历史子代理和不存在的目标", async () => {
+    const { control } = createControl();
+    const info = control.spawn("root-id", { kind: "general", task: "初版", name: "work" });
+    assert.throws(() => control.sendFromUser(info.id, "   "), /不能为空/);
+    assert.throws(() => control.sendFromUser("missing", "hi"), /不存在/);
+    assert.throws(() => control.sendFromUser("root-id", "hi"), /主代理/);
+
+    const restored = new AgentControl({
+      conversationId: "root-id",
+      host: createControl().host,
+      restoredAgents: [{ ...info, id: "old", path: "/root/old", name: "old", historyIncomplete: true, status: "completed", sessionFile: null }],
+    });
+    assert.throws(() => restored.sendFromUser("old", "继续"), /无法继续/);
+  });
+
   it("并发运行不超过上限，多余任务排队", async () => {
     const { control, host } = createControl();
     let running = 0;
@@ -648,10 +680,13 @@ describe("子代理模型池", () => {
 
   it("没写 model 就沿用父代理，建好会话后记录实际用的模型", async () => {
     const { control, host } = createControl(undefined, () => pool);
+    host.sessionFactory = () => Object.assign(new FakeSession(), { model: { provider: "openai", id: "gpt-5" } });
     const agent = control.spawn("root-id", { kind: "explore", task: "查", name: "plain" });
     assert.equal(agent.model, null);
     await waitFor(() => host.requests.length === 1, "建会话");
     assert.equal(host.requests[0]?.model, null);
+    await waitFor(() => control.list().find((item) => item.id === agent.id)?.model != null, "记录模型");
+    assert.deepEqual(control.storedAgents().find((item) => item.id === agent.id)?.model, { provider: "openai", modelId: "gpt-5" });
   });
 
   it("不在池里、或池为空时报错并列出可选项", () => {
@@ -673,6 +708,3 @@ describe("子代理模型池", () => {
     assert.deepEqual(control.spawn("root-id", { kind: "explore", task: "x", model: "anthropic/claude-haiku" }).model, pool[0]);
   });
 });
-    host.sessionFactory = () => Object.assign(new FakeSession(), { model: { provider: "openai", id: "gpt-5" } });
-    await waitFor(() => control.list().find((item) => item.id === agent.id)?.model != null, "记录模型");
-    assert.deepEqual(control.storedAgents().find((item) => item.id === agent.id)?.model, { provider: "openai", modelId: "gpt-5" });

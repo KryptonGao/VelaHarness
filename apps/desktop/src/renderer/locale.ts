@@ -41,6 +41,15 @@ export function isEnglish(): boolean {
 }
 
 const knownErrors: Record<string, string> = {
+  "这个工作区不是 Git 仓库，无法创建 worktree": "This workspace is not a Git repository, so a worktree can't be created.",
+  "仓库还没有提交，无法创建 worktree": "The repository has no commits yet, so a worktree can't be created.",
+  "Agent 正在这个工作树执行，等它完成后再交接": "The agent is running in this worktree. Hand off after it finishes.",
+  "当前不在工作树环境里": "This chat isn't running in a worktree.",
+  "找不到这个会话的 worktree": "Can't find this chat's worktree.",
+  "无法为 worktree 生成唯一目录": "Couldn't pick a unique folder for the worktree.",
+  "worktree 目录已不存在": "The worktree folder no longer exists.",
+  "生成改动失败": "Couldn't prepare the changes.",
+  "交接失败": "Hand-off failed.",
   "侧边聊天请求不正确": "Invalid side chat request.",
   "侧边聊天消息不正确": "Invalid side chat messages.",
   "侧边聊天模型不正确": "Invalid side chat model.",

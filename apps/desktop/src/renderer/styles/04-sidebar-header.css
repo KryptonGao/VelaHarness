@@ -222,6 +222,14 @@
   text-overflow: ellipsis;
 }
 
+.subchat-worktree {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  margin-left: 6px;
+  color: var(--text-muted);
+}
+
 .subchat-streaming-dot {
   flex-shrink: 0;
   width: 6px;

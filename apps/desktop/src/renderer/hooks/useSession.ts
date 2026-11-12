@@ -636,6 +636,14 @@ export function useSession(notify: NotifySound = noSound, fixedConversationId?: 
     }
   }, []);
 
+  /** 用户直接给子代理发消息；失败时抛出，由输入框把草稿放回去。 */
+  const sendAgentMessage = useCallback(async (agentId: string, text: string) => {
+    const conversationId = activeIdRef.current;
+    const api = window.vela;
+    if (!conversationId || !api) throw new Error("会话还没有准备好");
+    await api.sendAgentMessage(conversationId, agentId, text);
+  }, []);
+
   const activeAgents = useMemo(
     () => (activeConversationId ? agents[activeConversationId] ?? state?.agents ?? [] : []),
     [activeConversationId, agents, state?.agents],
@@ -671,6 +679,7 @@ export function useSession(notify: NotifySound = noSound, fixedConversationId?: 
     replyQuestion,
     ensureAgentMessages,
     controlAgent,
+    sendAgentMessage,
     send,
     removeInstruction,
     edit,
@@ -976,6 +985,7 @@ function sanitizeActivity(value: ToolActivity | undefined): ToolActivity {
     recommendedActions: parseRecommendedActions(value?.recommendedActions) ?? undefined,
     agent: value?.agent === "explore" || value?.agent === "general" ? value.agent : undefined,
     agentId: typeof value?.agentId === "string" ? value.agentId : undefined,
+    model: sanitizeModelRef(value?.model) ?? undefined,
     agentPath: typeof value?.agentPath === "string" ? value.agentPath : undefined,
     steps,
     mcp: typeof value?.mcp?.server === "string" && value.mcp.server.trim() &&
@@ -985,7 +995,6 @@ function sanitizeActivity(value: ToolActivity | undefined): ToolActivity {
     mutated: value?.mutated === true ? true : undefined,
     streaming: sanitizeStreaming(value?.streaming),
     presentation: parseToolPresentation(value?.presentation),
-    model: sanitizeModelRef(value?.model) ?? undefined,
   };
 }
 
@@ -1089,6 +1098,7 @@ export function sanitizeAgents(value: unknown): AgentInfo[] {
       activeMs: finiteOr0(record.activeMs),
       runningSince: typeof record.runningSince === "number" && Number.isFinite(record.runningSince) ? record.runningSince : null,
       pauseRequested: record.pauseRequested === true,
+      model: sanitizeModelRef(record.model),
       createdAt: typeof record.createdAt === "number" ? record.createdAt : 0,
       updatedAt: typeof record.updatedAt === "number" ? record.updatedAt : 0,
     });
@@ -1098,7 +1108,6 @@ export function sanitizeAgents(value: unknown): AgentInfo[] {
 
 /** 子代理会话事件来自 IPC，渲染前再校验一次形状。 */
 export function sanitizeAgentEvent(value: unknown): AgentRuntimeStreamEvent | null {
-      model: sanitizeModelRef(record.model),
   if (!value || typeof value !== "object") return null;
   const event = value as Record<string, unknown>;
   const type = event.type;

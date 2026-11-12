@@ -256,8 +256,8 @@
   transition: opacity var(--transition-enter), transform var(--transition-enter), visibility 0s;
 }
 .chat-jump-latest:hover { color: var(--accent-blue); }
-/* 子代理面板没有输入框,圆球直接停在面板底部中央。 */
-.agent-pane > .chat-jump-latest { left: 50%; bottom: 16px; }
+/* 子代理面板的输入框也是居中的,圆球停在它正上方的中央。 */
+.agent-pane > .chat-jump-latest { left: 50%; }
 /* 回到最新的圆球:箭头和动效两层交叉淡入淡出;动效是同一组 4 个点加一条线,由 JumpOrb.tsx 逐帧驱动,样式与轮换规则见 jump-orb.ts。 */
 .jump-orb, .jump-orb-arrow { position: absolute; inset: -1px; transition: opacity 220ms ease, transform 220ms ease; }
 .jump-orb-arrow { display: flex; align-items: center; justify-content: center; }

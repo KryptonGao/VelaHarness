@@ -17,7 +17,7 @@ export { PullRequestService } from "./pull-request-service";
 export { SandboxPermissionManager, sandboxApprovalTimeoutMs } from "./sandbox-permission-manager";
 export { BackgroundShellManager, type BackgroundShellInfo } from "./background-shells";
 export { createSandboxedToolDefinitions, type SandboxToolFactoryInput } from "./sandbox-tools";
-export { ExecutionEnvironmentManager } from "./environment-manager";
+export { WorktreeSessions, type CreatedWorktree } from "./worktree-session";
 export { createWorktree, removeWorktree } from './git-worktree';
 export { resolveRepoRoot } from './git-state';
 export { commitWorktreeChanges, currentHead, deleteLocalBranch, hasTrackedChanges, parseNumstat, squashMergeBranch, type SquashResult, type WorktreeCommitResult } from './git-squash';

@@ -1,4 +1,9 @@
-import type { WorkspaceRecent } from "@vela/shared";
+import type { ConversationSummary, WorkspaceRecent } from "@vela/shared";
+
+/** 会话所属的工作区:在 worktree 里的会话归到它的仓库名下,而不是 worktree 目录。 */
+export function conversationWorkspace(conversation: Pick<ConversationSummary, "cwd" | "worktree">): string {
+  return conversation.worktree?.repository ?? conversation.cwd;
+}
 
 export function folderName(path: string): string {
   const trimmed = path.replace(/[\\/]+$/, "");

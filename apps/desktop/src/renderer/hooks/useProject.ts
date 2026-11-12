@@ -10,6 +10,7 @@ import type {
   SelectableEnvironmentKind,
   VelaApi,
   WorkspaceState,
+  WorktreeHandoffResult,
   WorkspaceUpdateInput,
 } from "@vela/shared";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -260,6 +261,14 @@ export function useProject(notify: NotifySound = noSound) {
       }),
     [guarded],
   );
+  /** 把会话 worktree 里的改动交接回本地仓库;失败原因随结果返回,由调用方展示。 */
+  const handoffWorktree = useCallback(async (): Promise<WorktreeHandoffResult> => {
+    try {
+      return await getApi().handoffWorktree();
+    } catch (caught) {
+      return { ok: false, status: "error", message: cleanErrorMessage(caught), files: 0, conflicts: [] };
+    }
+  }, []);
   const replyApproval = useCallback(
     (id: string, allowed: boolean) => getApi().replyApproval(id, allowed),
     [],
@@ -296,6 +305,7 @@ export function useProject(notify: NotifySound = noSound) {
     createPullRequest,
     setSandboxMode,
     setEnvironment,
+    handoffWorktree,
     replyApproval,
   };
 }

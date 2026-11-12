@@ -1,5 +1,6 @@
 import { displayConversationTitle } from "./conversation-title";
 import type { ConversationSummary } from "@vela/shared";
+import { conversationWorkspace } from "./workspace-names";
 
 export interface ConversationGroup {
   cwd: string;
@@ -26,7 +27,7 @@ export function searchActiveConversations(
   const keywords = query.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
   return conversations.filter(conversation => {
     if (!isListedConversation(conversation)) return false;
-    const searchable = `${displayConversationTitle(conversation.title, untitledLabel)}\n${conversation.hasWorkspace === false ? "" : conversation.cwd}`.toLocaleLowerCase();
+    const searchable = `${displayConversationTitle(conversation.title, untitledLabel)}\n${conversation.hasWorkspace === false ? "" : conversationWorkspace(conversation)}`.toLocaleLowerCase();
     return keywords.every(keyword => searchable.includes(keyword));
   }).sort((a, b) => b.updatedAt - a.updatedAt);
 }
@@ -39,9 +40,10 @@ export function groupActiveConversations(
   const byWorkspace = new Map<string, ConversationSummary[]>();
   for (const conversation of searchActiveConversations(conversations, query, untitledLabel)) {
     if (conversation.hasWorkspace === false) continue;
-    const list = byWorkspace.get(conversation.cwd) ?? [];
+    const workspace = conversationWorkspace(conversation);
+    const list = byWorkspace.get(workspace) ?? [];
     list.push(conversation);
-    byWorkspace.set(conversation.cwd, list);
+    byWorkspace.set(workspace, list);
   }
   return [...byWorkspace].map(([cwd, list]) => ({ cwd, name: workspaceName(cwd), conversations: list }));
 }

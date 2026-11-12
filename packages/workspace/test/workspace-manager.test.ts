@@ -125,3 +125,54 @@ describe("WorkspaceManager 多文件夹", () => {
     assert.deepEqual(restored.recents[0].folders, []);
   });
 });
+
+describe("WorkspaceManager 会话 worktree", () => {
+  it("选中会话的 worktree 时工作区身份仍是仓库,最近列表不会多出一项", async () => {
+    const { store, dirs } = await fixture("app", "app-wt");
+    const manager = new WorkspaceManager(store);
+    await manager.init();
+    await manager.select(dirs[0]);
+    const state = await manager.select(dirs[1], dirs[0]);
+
+    assert.equal(state.current, dirs[1]);
+    assert.equal(state.repository, dirs[0]);
+    assert.deepEqual(state.recents.map((recent) => recent.path), [dirs[0]]);
+  });
+
+  it("附加文件夹仍取自仓库的记录", async () => {
+    const { store, dirs } = await fixture("app", "docs", "app-wt");
+    const manager = new WorkspaceManager(store);
+    await manager.init();
+    await manager.select(dirs[0]);
+    await manager.update({ path: dirs[0], name: null, folders: [dirs[0], dirs[1]] });
+
+    const state = await manager.select(dirs[2], dirs[0]);
+    assert.deepEqual(state.folders, [dirs[1]]);
+  });
+
+  it("回到本地后清掉仓库标记;重启后恢复 worktree 与仓库", async () => {
+    const { store, dirs } = await fixture("app", "app-wt");
+    const manager = new WorkspaceManager(store);
+    await manager.init();
+    await manager.select(dirs[1], dirs[0]);
+
+    const restored = await new WorkspaceManager(store).init();
+    assert.equal(restored.current, dirs[1]);
+    assert.equal(restored.repository, dirs[0]);
+
+    const local = await manager.select(dirs[0]);
+    assert.equal(local.repository, null);
+  });
+
+  it("上次的 worktree 已被清理时回到所属仓库", async () => {
+    const { store, dirs } = await fixture("app", "app-wt");
+    const manager = new WorkspaceManager(store);
+    await manager.init();
+    await manager.select(dirs[1], dirs[0]);
+    await rm(dirs[1], { recursive: true });
+
+    const restored = await new WorkspaceManager(store).init();
+    assert.equal(restored.current, dirs[0]);
+    assert.equal(restored.repository, null);
+  });
+});

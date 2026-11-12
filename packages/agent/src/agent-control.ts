@@ -67,6 +67,8 @@ export interface AgentRootMessage {
   text: string;
   /** 派生时要求成功完成也唤醒空闲的主代理；默认只记录进上下文，失败才唤醒。 */
   notify?: boolean;
+  /** 用户直接发给这个子代理的消息（agentId/path 是接收方）；只告知主代理，不唤醒。 */
+  fromUser?: boolean;
 }
 
 export interface AgentControlHost {
@@ -445,6 +447,33 @@ export class AgentControl {
     return cloneAgent(target.info);
   }
 
+  /**
+   * 用户直接给子代理发消息：入队等当前回合结束后处理，立即返回。
+   * 先静默告知主代理（wake: false，只写进上下文），否则它会收到一份自己没派发过的结论。
+   * 没有保存会话文件的历史子代理重建后是空上下文，拒绝发送。
+   */
+  sendFromUser(agentId: string, message: string): AgentInfo {
+    const target = this.requireChild(agentId);
+    const text = message.trim();
+    if (!text) throw new Error("消息不能为空。");
+    if (target.info.historyIncomplete && !target.session) {
+      throw new Error("这个历史子代理没有保存完整会话，无法继续对话。");
+    }
+    this.options.host.deliverToRoot({
+      conversationId: this.options.conversationId,
+      message: {
+        kind: "message",
+        agentId: target.info.id,
+        path: target.info.path,
+        agentKind: target.info.kind as SubagentKind,
+        text,
+        fromUser: true,
+      },
+    });
+    this.enqueue(target, { text, generation: target.generation, consume: null });
+    return cloneAgent(target.info);
+  }
+
   /** 追加任务并等待目标代理完成该回合，返回格式化的最终结论。 */
   async followup(
     callerId: string,
@@ -746,6 +775,10 @@ export class AgentControl {
       else session.dispose();
       throw new Error("子代理已结束。");
     }
+    // 记录子会话实际使用的模型(没指定时就是父代理当时的模型)；恢复旧会话时它可能已不是原来的，不覆盖。
+    if (!agent.sessionFile && session.model) {
+      agent.info.model = { provider: session.model.provider, modelId: session.model.id };
+    }
     agent.session = session;
     agent.sessionFile = session.sessionManager?.getSessionFile() ?? null;
     agent.unsubscribe = session.subscribe((event) => this.handleSessionEvent(agent, event));
@@ -775,10 +808,6 @@ export class AgentControl {
       });
       agent.info.updatedAt = Date.now();
       this.emit();
-    // 记录子会话实际使用的模型(没指定时就是父代理当时的模型)；恢复旧会话时它可能已不是原来的，不覆盖。
-    if (!agent.sessionFile && session.model) {
-      agent.info.model = { provider: session.model.provider, modelId: session.model.id };
-    }
       return;
     }
     if (event.type === "tool_execution_end") {

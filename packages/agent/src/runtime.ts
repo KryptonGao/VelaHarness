@@ -45,6 +45,7 @@ import {
   type AuthMethodType,
   type ConversationGoal,
   type ConversationSummary,
+  type ConversationWorktree,
   type CustomModelInput,
   type ExecutionPlan,
   type GoalStatus,
@@ -260,7 +261,7 @@ export interface AgentRuntimeOptions {
   /** 仅用于迁移旧会话缺失的工作区归属。 */
   isWorkspaceCwd?: (cwd: string) => boolean;
   /** 激活对话的执行目录或工作区归属变化时通知宿主。 */
-  onActiveCwd?: (cwd: string, hasWorkspace: boolean) => void;
+  onActiveCwd?: (cwd: string, hasWorkspace: boolean, repository?: string | null) => void;
   onRecipeStop?: (conversationId: string) => void;
   /** 系统提示档位；默认 v2，可用 VELA_SYSTEM_PROMPT=v1 切回 Pi 原有基础段。 */
   systemPromptProfile?: SystemPromptProfile;
@@ -339,6 +340,8 @@ interface PendingInstruction {
 
 interface Conversation {
   hasWorkspace: boolean;
+  /** 运行在受管 worktree 里时的归属;cwd 即 worktree 目录。 */
+  worktree?: ConversationWorktree;
   scheduledSandboxMode?: SandboxMode | null;
   /** 定时任务后台会话：只读记忆，不提供 memory_update。 */
   scheduledTaskConversation?: boolean;
@@ -607,6 +610,7 @@ export class AgentRuntime {
         messageCount: this.store.get(entry.id)?.messageCount ?? 0,
         cwd: entry.snapshot.cwd,
         hasWorkspace: entry.hasWorkspace,
+        ...(entry.worktree ? { worktree: entry.worktree } : {}),
         createdAt: entry.createdAt,
         updatedAt: entry.updatedAt,
         archivedAt: entry.archivedAt,
@@ -688,7 +692,7 @@ export class AgentRuntime {
   }
 
   /** 新建一个绑定 cwd 的对话；面板可选择保留主聊天。 */
-  async createConversation(cwd: string, options: { hasWorkspace?: boolean; activate?: boolean } = {}): Promise<SessionSnapshot> {
+  async createConversation(cwd: string, options: { hasWorkspace?: boolean; activate?: boolean; worktree?: ConversationWorktree } = {}): Promise<SessionSnapshot> {
     return this.exclusive(async () => {
       await this.ready();
       // 新对话可能沿用「上次使用」,所以先把当前对话正在用的选择记下来。
@@ -748,7 +752,7 @@ export class AgentRuntime {
       this.store.flushSync(true);
       if (run.trigger !== 'scheduled') {
         this.activeId = entry.id;
-        this.notifyActiveCwd(entry.snapshot.cwd, true);
+        this.notifyActiveCwd(entry.snapshot.cwd, true, entry.worktree);
       }
       this.emitStatus(entry);
     });
@@ -1183,6 +1187,7 @@ export class AgentRuntime {
       await this.rememberActiveSelection();
       const entry = this.addEntry(source.snapshot.cwd, {
         hasWorkspace: source.hasWorkspace,
+        ...(source.worktree ? { worktree: source.worktree } : {}),
         sessionManager: branched,
         title: branchTitle(source.snapshot.title),
         mode: source.snapshot.mode,
@@ -1215,7 +1220,7 @@ export class AgentRuntime {
       if (!entry) throw new Error("对话不存在或已结束");
       if (!entry.session) await this.startInternal(entry);
       this.activeId = entry.id;
-      this.notifyActiveCwd(entry.snapshot.cwd, entry.hasWorkspace);
+      this.notifyActiveCwd(entry.snapshot.cwd, entry.hasWorkspace, entry.worktree);
       this.emitStatus(entry);
       return this.getSnapshot();
     });
@@ -1250,7 +1255,7 @@ export class AgentRuntime {
           if (!fallback.session) await this.startInternal(fallback);
           this.activeId = fallback.id;
           this.touchEntry(fallback);
-          this.notifyActiveCwd(fallback.snapshot.cwd, fallback.hasWorkspace);
+          this.notifyActiveCwd(fallback.snapshot.cwd, fallback.hasWorkspace, fallback.worktree);
           this.emitStatus(fallback);
         }
       }
@@ -1760,7 +1765,7 @@ export class AgentRuntime {
         const entry = existing[0];
         if (!entry.session) await this.startInternal(entry);
         this.activeId = entry.id;
-        this.notifyActiveCwd(cwd, entry.hasWorkspace);
+        this.notifyActiveCwd(cwd, entry.hasWorkspace, entry.worktree);
         this.emitStatus(entry);
         return this.getSnapshot();
       }
@@ -2169,7 +2174,7 @@ export class AgentRuntime {
     const memoryEnabled = this.memorySettings.enabled;
     const memory = memoryEnabled
       ? await Promise.all(memoryTargetsFor(entry
-        ? { cwd: entry.snapshot.cwd, hasWorkspace: entry.hasWorkspace }
+        ? { cwd: entry.worktree?.repository ?? entry.snapshot.cwd, hasWorkspace: entry.hasWorkspace }
         : { cwd: this.currentCwd, hasWorkspace: false }).map((target) => this.memory.load(target)))
       : [];
     onEvent({ requestId: request.requestId, type: "memory", memory: memory.map(memoryLoadReport), memoryEnabled, model: `${model.provider}/${model.id}` });
@@ -2294,6 +2299,13 @@ export class AgentRuntime {
     if (action === "pause") control.pause(agentId);
     else if (action === "resume") control.resume(agentId);
     else control.cancel(agentId);
+  }
+
+  /** 用户直接给某个子代理发消息：排进它的队列，并静默告知主代理（只记进上下文，不唤醒）。 */
+  sendAgentMessage(conversationId: string, agentId: string, text: string): void {
+    const control = this.conversations.get(conversationId)?.control;
+    if (!control) throw new Error("找不到这个对话的子代理。");
+    control.sendFromUser(agentId, text);
   }
 
   getAgents(conversationId: string | null): AgentInfo[] {
@@ -2773,6 +2785,17 @@ export class AgentRuntime {
     }
   }
 
+  /** 没记录模型的子代理(旧版或没指定模型)，从它自己的会话文件里读出实际用过的模型。 */
+  private backfillAgentModels(conversationId: string, cwd: string, agents: StoredAgent[]): void {
+    for (const agent of agents) {
+      if (agent.model || !agent.sessionFile || !existsSync(agent.sessionFile)) continue;
+      try {
+        const manager = SessionManager.open(agent.sessionFile, this.childSessionDir(conversationId), cwd);
+        agent.model = lastAssistantModel(manager.buildSessionProjection().messages);
+      } catch { /* 读不出来就不显示模型 */ }
+    }
+  }
+
   private restoreConversations(): void {
     // 会话文件仍在磁盘上的对话才恢复。新对话在创建时就写入了文件
     // (见 createPersistedSession),所以没有文件的记录只会是历史遗留或已被外部清理的会话。
@@ -2785,20 +2808,11 @@ export class AgentRuntime {
       const storedAgents = stored.agents?.length ? stored.agents : recoverLegacyAgents(
         SessionManager.open(stored.sessionFile, this.sessionDir(), stored.cwd).buildSessionProjection().messages,
         stored.id,
-  /** 没记录模型的子代理(旧版或没指定模型)，从它自己的会话文件里读出实际用过的模型。 */
-  private backfillAgentModels(conversationId: string, cwd: string, agents: StoredAgent[]): void {
-    for (const agent of agents) {
-      if (agent.model || !agent.sessionFile || !existsSync(agent.sessionFile)) continue;
-      try {
-        const manager = SessionManager.open(agent.sessionFile, this.childSessionDir(conversationId), cwd);
-        agent.model = lastAssistantModel(manager.buildSessionProjection().messages);
-      } catch { /* 读不出来就不显示模型 */ }
-    }
-  }
-
       );
+      this.backfillAgentModels(stored.id, stored.cwd, storedAgents);
       this.conversations.set(stored.id, {
         hasWorkspace,
+        ...(stored.worktree ? { worktree: stored.worktree } : {}),
         recipeRunId: stored.recipeRunId,
         recipeExecution: stored.recipeExecution,
         scheduledSandboxMode: stored.recipeExecution?.sandboxMode,
@@ -2809,7 +2823,6 @@ export class AgentRuntime {
         snapshot: {
           ...this.createSnapshot("ready", stored.cwd),
           id: stored.id,
-      this.backfillAgentModels(stored.id, stored.cwd, storedAgents);
           title: stored.title,
           mode: stored.mode,
           ...(stored.recipeExecution ? { sandboxMode: stored.recipeExecution.sandboxMode } : {}),
@@ -2909,6 +2922,7 @@ export class AgentRuntime {
     cwd: string,
     options: {
       hasWorkspace?: boolean;
+      worktree?: ConversationWorktree;
       activate?: boolean;
       sessionManager?: SessionManager;
       title?: string;
@@ -2928,6 +2942,7 @@ export class AgentRuntime {
     if (options.recipeExecution) snapshot.sandboxMode = options.recipeExecution.sandboxMode;
     const entry: Conversation = {
       hasWorkspace: options.hasWorkspace ?? true,
+      ...(options.worktree ? { worktree: options.worktree } : {}),
       recipeRunId: options.recipeRunId,
       recipeExecution: options.recipeExecution,
       scheduledSandboxMode: options.recipeExecution?.sandboxMode,
@@ -2967,7 +2982,7 @@ export class AgentRuntime {
     this.persistEntry(entry);
     // 新对话是用户明确创建的状态,不等防抖窗口,立刻同步落盘。
     this.store.flushSync(Boolean(options.reservedId));
-    if (options.activate !== false) this.notifyActiveCwd(cwd, entry.hasWorkspace);
+    if (options.activate !== false) this.notifyActiveCwd(cwd, entry.hasWorkspace, entry.worktree);
     this.emitStatus(entry);
     return entry;
   }
@@ -3638,6 +3653,7 @@ export class AgentRuntime {
       id: entry.id,
       cwd: entry.snapshot.cwd,
       hasWorkspace: entry.hasWorkspace,
+      ...(entry.worktree ? { worktree: entry.worktree } : {}),
       title: entry.snapshot.title,
       titleManuallySet: entry.titleManuallySet,
       createdAt: entry.createdAt,
@@ -3661,11 +3677,11 @@ export class AgentRuntime {
   }
 
   /** 激活对话的 cwd 变化时通知宿主(工作区/界面状态跟随会话)。 */
-  private notifyActiveCwd(cwd: string, hasWorkspace: boolean): void {
+  private notifyActiveCwd(cwd: string, hasWorkspace: boolean, worktree?: ConversationWorktree | null): void {
     if (cwd === this.currentCwd && hasWorkspace === this.currentHasWorkspace) return;
     this.currentCwd = cwd;
     this.currentHasWorkspace = hasWorkspace;
-    this.options.onActiveCwd?.(cwd, hasWorkspace);
+    this.options.onActiveCwd?.(cwd, hasWorkspace, worktree?.repository ?? null);
   }
 
   private emitStatus(entry: Conversation): void {
@@ -4627,7 +4643,7 @@ export class AgentRuntime {
       enabled: () => this.memorySettings.enabled,
       instructions: () => !this.memorySettings.enabled ? memoryDisabledInstructions
         : agentId || !this.tools.canUpdateMemory(entry) ? memoryReadOnlyInstructions : memoryInstructions,
-      workspace: () => ({ cwd: entry.snapshot.cwd, hasWorkspace: entry.hasWorkspace }),
+      workspace: () => ({ cwd: entry.worktree?.repository ?? entry.snapshot.cwd, hasWorkspace: entry.hasWorkspace }),
       onLoad: (sources) => {
         this.memoryLoads.set(key, sources);
         // 只在根会话上写快照；子代理的加载状态由 getMemoryStatus 按 agentId 提供。
@@ -4645,7 +4661,7 @@ export class AgentRuntime {
       service: this.memory,
       enabled: () => this.memorySettings.enabled,
       update,
-      workspace: () => ({ cwd: entry.snapshot.cwd, hasWorkspace: entry.hasWorkspace }),
+      workspace: () => ({ cwd: entry.worktree?.repository ?? entry.snapshot.cwd, hasWorkspace: entry.hasWorkspace }),
       allowUpdate: () => this.tools.canUpdateMemory(entry),
       conversationId: agentId,
       sandboxMode: () => entry.scheduledSandboxMode,
@@ -5043,6 +5059,9 @@ const rootNoticeMaxHoldMs = 3000;
 /** 投递给主代理的 agent 消息正文；其余元数据随 custom message details 透出。 */
 function formatAgentRootMessage(message: AgentRootMessage): string {
   if (message.kind === "message") {
+    if (message.fromUser) {
+      return `[用户直接给子代理 ${message.path} 发了一条消息，它会在当前回合结束后处理；这不是你派发的任务，你无需回复或转发，它的结论稍后仍会回到你这里。]\n\n${message.text}`;
+    }
     return `[来自子代理 ${message.path} 的消息]\n\n${message.text}`;
   }
   const label = message.status === "completed" ? "已完成" : message.status === "aborted" ? "已停止" : "失败";

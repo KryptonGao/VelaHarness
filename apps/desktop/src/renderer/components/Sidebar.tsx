@@ -20,9 +20,9 @@ import {
 } from "./conversation-activity";
 import { ConversationSearchDialog } from "./ConversationSearchDialog";
 import { ConflictContext } from "./conflict-context";
-import { ChevronDownIcon, ClockIcon, InboxIcon } from "./icons";
+import { BranchIcon, ChevronDownIcon, ClockIcon, InboxIcon } from "./icons";
 import { useSidebarItems } from "../hooks/useSidebarItems";
-import { findWorkspace, workspaceTitle } from "./workspace-names";
+import { conversationWorkspace, findWorkspace, workspaceTitle } from "./workspace-names";
 import { WorkspaceHoverCard } from "./WorkspaceHoverCard";
 
 interface SidebarProps {
@@ -193,9 +193,10 @@ export function Sidebar({
       return next;
     });
   };
-  const activeWorkspace = allConversations.find(
+  const activeConversationItem = allConversations.find(
     (item) => item.id === activeConversationId && item.archivedAt === null,
-  )?.cwd ?? null;
+  );
+  const activeWorkspace = activeConversationItem ? conversationWorkspace(activeConversationItem) : null;
 
   // 激活对话变化时(新建/切换)自动展开它所在的工作区分组。
   useEffect(() => {
@@ -476,7 +477,8 @@ function ConversationRow({ conversation, active, activity, reason, priority, loc
   const conflictLabel = conflictCount > 0 ? trf("与其他对话改了同一处（{0} 个文件）", "Edits the same files as another chat ({0})", conflictCount) : "";
   const statusLabel = activityReasonLabel(reason, conversation);
   const priorityLabel = priority ? tr("取消优先关注", "Remove priority") : tr("设为优先关注", "Mark as priority");
-  const workspaceLabel = conversation.hasWorkspace === false ? "" : workspaceName(conversation.cwd);
+  const workspaceLabel = conversation.hasWorkspace === false ? "" : workspaceName(conversationWorkspace(conversation));
+  const worktreeLabel = conversation.worktree ? tr("工作树", "Worktree") : "";
   const updatedAt = new Date(conversation.updatedAt);
   const timeLabel = updatedAt.toLocaleString(locale, {
     ...(conversation.updatedAt < today ? { month: "2-digit", day: "2-digit" } as const : {}),
@@ -484,12 +486,13 @@ function ConversationRow({ conversation, active, activity, reason, priority, loc
   });
   return <div className={`subchat-row${activity ? " activity-row" : ""}${onRename ? " has-rename" : ""}`}>
     <button className={`subchat-item${active ? " active" : ""}`} type="button"
-      title={activity ? [title, workspaceLabel ? conversation.cwd : "", `${statusLabel} · ${updatedAt.toLocaleString(locale)}`].filter(Boolean).join("\n") : title}
-      aria-label={activity ? [title, workspaceLabel, statusLabel, conflictLabel].filter(Boolean).join(", ") : [title, conflictLabel].filter(Boolean).join(", ")}
+      title={activity ? [title, workspaceLabel ? conversation.cwd : "", worktreeLabel, `${statusLabel} · ${updatedAt.toLocaleString(locale)}`].filter(Boolean).join("\n") : title}
+      aria-label={activity ? [title, workspaceLabel, worktreeLabel, statusLabel, conflictLabel].filter(Boolean).join(", ") : [title, worktreeLabel, conflictLabel].filter(Boolean).join(", ")}
       aria-current={active ? "page" : undefined} onClick={() => onSelect(conversation.id)}>
       {activity ? <span className="activity-row-content">
         <span className="activity-row-heading">
           <span className="subchat-title">{title}</span>
+          {worktreeLabel ? <span className="subchat-worktree" role="img" aria-label={worktreeLabel} title={worktreeLabel}><BranchIcon size={11} /></span> : null}
           {conflictCount > 0 ? <span className="subchat-conflict" role="img" aria-label={conflictLabel} title={conflictLabel} /> : null}
           {workspaceLabel ? <span className="activity-workspace">{workspaceLabel}</span> : null}
         </span>
@@ -502,6 +505,7 @@ function ConversationRow({ conversation, active, activity, reason, priority, loc
         </span>
       </span> : <>
         <span className="subchat-title">{title}</span>
+        {worktreeLabel ? <span className="subchat-worktree" role="img" aria-label={worktreeLabel} title={worktreeLabel}><BranchIcon size={11} /></span> : null}
         {conflictCount > 0 ? <span className="subchat-conflict" role="img" aria-label={conflictLabel} title={conflictLabel} /> : null}
         {conversation.status === "streaming" ? <span className="subchat-streaming-dot" role="img" aria-label={tr("正在回复", "Replying")} title={tr("正在回复", "Replying")} /> : null}
       </>}

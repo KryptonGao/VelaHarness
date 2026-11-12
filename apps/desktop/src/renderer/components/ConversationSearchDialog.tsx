@@ -4,6 +4,7 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { tr } from "../locale";
 import { searchActiveConversations, workspaceName } from "./conversation-search";
+import { conversationWorkspace } from "./workspace-names";
 
 interface ConversationSearchDialogProps {
   id: string;
@@ -105,7 +106,7 @@ export function ConversationSearchDialog({ id, conversations, activeConversation
               onClick={() => openConversation(conversation.id)}
             >
               <span className="conversation-search-result-title">{displayConversationTitle(conversation.title, untitledLabel)}</span>
-              {conversation.hasWorkspace !== false ? <span className="conversation-search-workspace">{workspaceName(conversation.cwd)}</span> : null}
+              {conversation.hasWorkspace !== false ? <span className="conversation-search-workspace">{workspaceName(conversationWorkspace(conversation))}</span> : null}
               {conversation.id === activeConversationId ? <span className="conversation-search-current">{tr("当前", "Current")}</span> : null}
             </button>
           ))}

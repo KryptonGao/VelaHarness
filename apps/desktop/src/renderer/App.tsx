@@ -37,7 +37,7 @@ import { NavHistoryButtons } from "./components/NavHistoryButtons";
 import { NavHistory } from "./nav-history";
 import { RenameConversationDialog } from "./components/RenameConversationDialog";
 import { WorkspaceSettingsDialog } from "./components/WorkspaceSettingsDialog";
-import { findWorkspace, folderName } from "./components/workspace-names";
+import { conversationWorkspace, findWorkspace, folderName } from "./components/workspace-names";
 import { CheckpointTimelineDialog } from "./components/CheckpointTimelineDialog";
 import { FilePreviewProvider, type PreviewFileDescriptor } from "./components/preview/FilePreviewContext";
 import type { StartTabAction } from "./components/StartView";
@@ -158,7 +158,7 @@ export function App() {
     setComposerSeed({ id: crypto.randomUUID(), conversationId, text }), []);
   const startHandoff = useCallback(async (conversationId: string, text: string) => {
     const source = session.conversations.find(item => item.id === conversationId);
-    const newId = await session.newChat(source && source.hasWorkspace !== false ? source.cwd : undefined);
+    const newId = await session.newChat(source && source.hasWorkspace !== false ? conversationWorkspace(source) : undefined);
     if (!newId) throw new Error("新建对话失败");
     setComposerSeed({ id: crypto.randomUUID(), conversationId: newId, text });
   }, [session.conversations, session.newChat]);
@@ -1175,6 +1175,8 @@ export function App() {
                         toolFold={preferences.toolFold}
                         ensureAgentMessages={session.ensureAgentMessages}
                         onControlAgent={session.controlAgent}
+                        onSendAgentMessage={session.sendAgentMessage}
+                        sendButtonIcon={preferences.sendButtonIcon}
                         onOpenAgent={openAgentPane}
                         onNewTab={openStartTab}
                         onStartAction={handleStartAction}
@@ -1234,7 +1236,7 @@ export function App() {
                 </Presence>
                 <Presence present={recipesOpen} className="main-stage-pane scheduled-tasks-stage">
                   <TaskRecipesPage catalog={models.catalog} workspace={project.workspace?.current ?? null}
-                    workspaces={[...new Set([...(project.workspace?.recents.map(r => r.path) ?? []), ...session.conversations.filter(c => c.hasWorkspace !== false).map(c => c.cwd)])]}
+                    workspaces={[...new Set([...(project.workspace?.recents.map(r => r.path) ?? []), ...session.conversations.filter(c => c.hasWorkspace !== false).map(conversationWorkspace)])]}
                     locale={preferences.locale} sidebarCollapsed={leftCollapsed && !railMode} onToggleSidebar={toggleLeft}
                     seed={recipeSeed} onConsumeSeed={consumeRecipeSeed} selectedRecipe={recipeToUse} onConsumeSelection={consumeRecipeSelection} registerLeaveGuard={registerRecipeLeave}
                     onOpenConversation={id => leaveRecipes(() => { void session.switchTo(id); })} />

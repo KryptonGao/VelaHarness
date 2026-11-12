@@ -9,11 +9,13 @@ const maxWorkspaceFolders = 10;
 
 interface WorkspaceStore {
   current: string | null;
+  /** current 是会话的 worktree 时它所属的仓库。 */
+  repository?: string | null;
   recents: WorkspaceRecent[];
 }
 
 export class WorkspaceManager {
-  private state: WorkspaceState = { current: null, folders: [], recents: [] };
+  private state: WorkspaceState = { current: null, repository: null, folders: [], recents: [] };
   private readonly listeners = new Set<(state: WorkspaceState) => void>();
 
   constructor(private readonly storePath: string) {}
@@ -26,11 +28,17 @@ export class WorkspaceManager {
       .slice(0, maxRecents);
     const candidate = initialPath ?? stored.current;
     let current: string | null = null;
+    let repository: string | null = null;
     if (candidate && (await isDirectory(candidate))) {
       current = candidate;
-      touchRecent(recents, candidate);
+      repository = !initialPath && stored.repository && stored.repository !== candidate ? stored.repository : null;
+      touchRecent(recents, repository ?? candidate);
+    } else if (!initialPath && stored.repository && (await isDirectory(stored.repository))) {
+      // 上次所在的 worktree 已经被清理:回到它所属的仓库,而不是丢掉工作区。
+      current = stored.repository;
+      touchRecent(recents, current);
     }
-    this.state = { current, folders: [], recents };
+    this.state = { current, repository, folders: [], recents };
     this.syncFolders();
     await this.persist();
     return this.getState();
@@ -39,6 +47,7 @@ export class WorkspaceManager {
   getState(): WorkspaceState {
     return {
       current: this.state.current,
+      repository: this.state.repository ?? null,
       folders: [...this.state.folders],
       recents: this.state.recents.map((recent) => ({ ...recent, folders: [...(recent.folders ?? [])] })),
     };
@@ -62,12 +71,18 @@ export class WorkspaceManager {
     };
   }
 
-  async select(path: string): Promise<WorkspaceState> {
+  /**
+   * 选择工作区。`repository` 表示 path 是某个仓库的会话 worktree:当前目录用 path
+   * (agent、git、终端都在里面),但最近列表与附加文件夹仍记在仓库名下,不会多出一个工作区。
+   */
+  async select(path: string, repository?: string | null): Promise<WorkspaceState> {
     const normalized = normalizePath(path);
     if (!normalized) throw new Error("工作区路径不正确");
     if (!(await isDirectory(normalized))) throw new Error("目录不存在或不可访问");
+    const owner = repository ? normalizePath(repository) : null;
     this.state.current = normalized;
-    touchRecent(this.state.recents, normalized);
+    this.state.repository = owner && owner !== normalized ? owner : null;
+    touchRecent(this.state.recents, this.state.repository ?? normalized);
     this.syncFolders();
     await this.persist();
     this.notify();
@@ -76,6 +91,7 @@ export class WorkspaceManager {
 
   async close(): Promise<WorkspaceState> {
     this.state.current = null;
+    this.state.repository = null;
     this.syncFolders();
     await this.persist();
     this.notify();
@@ -120,6 +136,7 @@ export class WorkspaceManager {
     next.splice(Math.min(Math.max(index, 0), next.length), 0, entry);
     this.state.recents = next.slice(0, maxRecents);
     if (previous && this.state.current === previous.path) this.state.current = primary;
+    if (previous && this.state.repository === previous.path) this.state.repository = primary;
     return this.commitFolders();
   }
 
@@ -132,7 +149,7 @@ export class WorkspaceManager {
 
   /** 当前工作区的附加文件夹始终取自它在最近列表中的记录。 */
   private syncFolders(): void {
-    const entry = this.state.recents.find((recent) => recent.path === this.state.current);
+    const entry = this.state.recents.find((recent) => recent.path === (this.state.repository ?? this.state.current));
     this.state.folders = [...(entry?.folders ?? [])];
   }
 
@@ -146,16 +163,18 @@ export class WorkspaceManager {
       const raw = JSON.parse(await readFile(this.storePath, "utf8")) as Partial<WorkspaceStore>;
       return {
         current: typeof raw.current === "string" ? raw.current : null,
+        repository: typeof raw.repository === "string" ? raw.repository : null,
         recents: Array.isArray(raw.recents) ? raw.recents : [],
       };
     } catch {
-      return { current: null, recents: [] };
+      return { current: null, repository: null, recents: [] };
     }
   }
 
   private async persist(): Promise<void> {
     const payload: WorkspaceStore = {
       current: this.state.current,
+      repository: this.state.repository ?? null,
       recents: this.state.recents.slice(0, maxRecents),
     };
     await mkdir(dirname(this.storePath), { recursive: true });

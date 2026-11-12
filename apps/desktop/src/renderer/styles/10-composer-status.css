@@ -353,6 +353,15 @@ button.environment-row:not(:disabled):hover { background: var(--bg-surface-subtl
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.environment-result {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 10px 8px;
+  font-size: calc(15px * var(--ui-scale));
+  color: var(--text-secondary);
+}
+.environment-result.failed { color: var(--danger, var(--warning)); }
 .environment-soon { font-size: calc(15px * var(--ui-scale)); color: var(--text-muted); }
 
 /* ---------- 执行权限 ---------- */

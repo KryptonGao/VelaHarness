@@ -1,7 +1,7 @@
 import { systemPromptProfileFrom } from "@vela/agent";
 import { createRuntimeHost, type RuntimeHost } from "@vela/runner";
 import {
-  ExecutionEnvironmentManager,
+  WorktreeSessions,
   GitOperationLog,
   GitService,
   PullRequestService,
@@ -316,7 +316,7 @@ async function start(): Promise<void> {
   const workspaceManager = new WorkspaceManager(join(home, "workspaces.json"));
   // 先恢复工作区记录，供旧会话迁移工作区归属时使用。
   const workspace = await workspaceManager.init(process.env.VELA_CWD?.trim() || null);
-  const envManager = new ExecutionEnvironmentManager(fallbackCwd, join(home, "worktrees"));
+  const worktreeSessions = new WorktreeSessions(join(home, "worktrees"));
   const git = new GitService({ worktreeRoot: join(home, "worktrees"), beforeCommit: async (cwd, input) => {
     if (!runtimeHost) throw new Error("Hooks runtime is unavailable.");
     return runtimeHost.runtime.runPreCommitHooks(cwd, input);
@@ -410,14 +410,14 @@ async function start(): Promise<void> {
     // 系统提示档位：v2（默认）、v1（Pi 原有基础段）、v2-visual。
     systemPromptProfile: systemPromptProfileFrom(process.env.VELA_SYSTEM_PROMPT),
     // 激活会话变化时让工作区跟随,保证输入区与仓库卡片显示的目录即会话目录。
-    onActiveCwd: (cwd, hasWorkspace) => void project?.syncConversationWorkspace(cwd, hasWorkspace),
+    onActiveCwd: (cwd, hasWorkspace, repository) => void project?.syncConversationWorkspace(cwd, hasWorkspace, repository ?? null),
   });
   const runtime = runtimeHost.runtime;
   // 已登记工作区：当前选择、最近使用和已有会话的工作目录，供配方与记忆管理共用。
   const registeredWorkspaces = () => [...new Set([
     workspaceManager.getState().current,
     ...workspaceManager.getState().recents.map(r => r.path),
-    ...runtime.listConversations().filter(c => c.hasWorkspace !== false).map(c => c.cwd),
+    ...runtime.listConversations().filter(c => c.hasWorkspace !== false).map(c => c.worktree?.repository ?? c.cwd),
   ].filter((path): path is string => typeof path === "string" && path.length > 0))];
   const recipes = new TaskRecipeService(join(home, "task-recipes.json"), {
     resolveExecution: draft => runtime.resolveRecipeExecution(draft, draft.sandboxModeOverride ?? sandbox.getMode()),
@@ -671,7 +671,7 @@ async function start(): Promise<void> {
     files,
     pr,
     sandbox,
-    env: envManager,
+    worktrees: worktreeSessions,
     runtime,
     operations,
     fallbackCwd,
@@ -680,7 +680,10 @@ async function start(): Promise<void> {
   host = new SessionHost(runtime, {
     currentWorkspace: () => workspaceManager.getState().current,
     onAgentMutation: () => project?.notifyAgentMutation(),
-    currentCwd: () => workspaceManager.getState().current ?? fallbackCwd,
+    // 新对话默认在本地仓库里开;当前在会话 worktree 时也回到所属仓库,而不是共用那个 worktree。
+    currentCwd: () => { const state = workspaceManager.getState(); return state.repository ?? state.current ?? fallbackCwd; },
+    onArchived: id => project?.releaseWorktree(id) ?? Promise.resolve(),
+    beforeUnarchive: id => project?.restoreWorktree(id) ?? Promise.resolve(),
     hiddenConversation: id => residentSupervisor?.isResidentConversation(id) ?? false,
   });
   host.register();
@@ -704,8 +707,6 @@ async function start(): Promise<void> {
   registerOpenTargetIpc();
   createWindow();
 
-  // 初始工作区:显式环境变量 > 上次使用的工作区 > 无。
-  await envManager.setWorkspace(workspace.current);
   // Git 状态(跑 git 子进程)与会话启动(加载技能、MCP)互不依赖,并行做,分支和模型更早出现在界面上。
   // 会话的 cwd 就是 workspace.current,onActiveCwd 不会再触发工作区切换,不会与 attach 竞争。
   const [, snapshot] = await Promise.all([

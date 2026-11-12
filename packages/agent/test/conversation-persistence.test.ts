@@ -58,6 +58,47 @@ describe("conversation persistence", () => {
     assert.equal(restored.listConversations().find(chat => chat.id === standaloneId)?.hasWorkspace, false);
   });
 
+  it("keeps a conversation bound to its worktree through listing, notifications and restart", async t => {
+    const { root, file } = await fixture(t);
+    const worktreeDir = join(root, "worktrees", "app-abc123");
+    await mkdir(worktreeDir, { recursive: true });
+    const binding = { repository: root, baseSha: "a".repeat(40), branch: null };
+    const notifications: Array<[string, boolean, string | null | undefined]> = [];
+    const runtime = new AgentRuntime({ cwd: root, agentDir: root, onActiveCwd: (cwd, assigned, repository) => notifications.push([cwd, assigned, repository]) });
+    t.after(() => runtime.dispose());
+    await runtime.createConversation(root);
+    const localId = runtime.activeConversationId!;
+    runtime.addUsage(localId, 1, 0);
+    await runtime.createConversation(worktreeDir, { worktree: binding });
+    const boundId = runtime.activeConversationId!;
+    runtime.addUsage(boundId, 1, 0);
+
+    const summary = runtime.listConversations().find(chat => chat.id === boundId)!;
+    assert.deepEqual(summary.worktree, binding);
+    assert.equal(summary.cwd, worktreeDir);
+    assert.equal(runtime.listConversations().find(chat => chat.id === localId)?.worktree, undefined);
+    // 宿主据此把工作区身份留在仓库上,而 cwd 是 worktree。
+    assert.deepEqual(notifications.at(-1), [worktreeDir, true, root]);
+
+    // 回到仓库的工作区时选中的是本地对话,不会误入某个 worktree 对话。
+    await runtime.switchWorkspace(root, true);
+    assert.equal(runtime.activeConversationId, localId);
+    assert.deepEqual(notifications.at(-1), [root, true, null]);
+    await runtime.switchConversation(boundId);
+    assert.deepEqual(notifications.at(-1), [worktreeDir, true, root]);
+    await runtime.dispose();
+
+    const disk = JSON.parse(await readFile(file, "utf8")).conversations as StoredConversation[];
+    assert.deepEqual(disk.find(chat => chat.id === boundId)?.worktree, binding);
+    assert.equal(disk.find(chat => chat.id === localId)?.worktree, undefined);
+    const restored = new AgentRuntime({ cwd: root, agentDir: root });
+    t.after(() => restored.dispose());
+    await restored.listConversations();
+    await restored.switchWorkspace(worktreeDir, true);
+    assert.equal(restored.activeConversationId, boundId);
+    assert.deepEqual(restored.listConversations().find(chat => chat.id === boundId)?.worktree, binding);
+  });
+
   it("inherits unassigned workspace association when branching a conversation", async t => {
     const { root } = await fixture(t);
     const runtime = new AgentRuntime({ cwd: root, agentDir: root });

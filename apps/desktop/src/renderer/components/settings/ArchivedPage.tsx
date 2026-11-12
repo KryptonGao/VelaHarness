@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import type { AppLocale } from "../../hooks/usePreferences";
 import type { SettingsCopy } from "../settings-copy";
 import { SettingsBlock, SettingsGroup } from "./primitives";
+import { conversationWorkspace } from "../workspace-names";
 
 /** 已归档对话:搜索、取消归档。列表数据来自 AppState.conversations 的归档子集。 */
 export function ArchivedPage({
@@ -33,7 +34,7 @@ export function ArchivedPage({
   const keyword = query.trim().toLowerCase();
   const matches = keyword
     ? archived.filter((conversation) =>
-        `${conversation.title}\n${workspaceName(conversation.cwd)}`.toLowerCase().includes(keyword),
+        `${conversation.title}\n${workspaceName(conversationWorkspace(conversation))}`.toLowerCase().includes(keyword),
       )
     : archived;
 
@@ -66,7 +67,7 @@ export function ArchivedPage({
               <div className="settings-recent-main" title={conversation.cwd}>
                 <span className="settings-recent-name">{displayConversationTitle(conversation.title)}</span>
                 <span className="settings-recent-path">
-                  {`${workspaceName(conversation.cwd)} · ${formatter.format(conversation.archivedAt ?? conversation.updatedAt)}`}
+                  {`${workspaceName(conversationWorkspace(conversation))} · ${formatter.format(conversation.archivedAt ?? conversation.updatedAt)}`}
                 </span>
               </div>
               <button

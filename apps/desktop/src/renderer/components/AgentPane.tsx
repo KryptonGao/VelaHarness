@@ -2,7 +2,7 @@ import { isAgentBusy, type AgentControlAction, type AgentInfo } from "@vela/shar
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type MutableRefObject, type ReactNode } from "react";
 import { useDismissable } from "../hooks/useDismissable";
 import { useEntryArrival } from "../hooks/useEntryArrival";
-import type { ToolDisplay, ToolFold } from "../hooks/usePreferences";
+import type { SendButtonIcon, ToolDisplay, ToolFold } from "../hooks/usePreferences";
 import { useFrameTask } from "../hooks/useFrameTask";
 import { emptyMessages, type MessageStore } from "../hooks/message-store";
 import { useMessages } from "../hooks/useMessages";
@@ -10,6 +10,7 @@ import type { UiMessage } from "../hooks/useSession";
 import { tr, trf } from "../locale";
 import { ActivityIndicator } from "./ActivityIndicator";
 import { AgentAvatar } from "./AgentAvatar";
+import { AgentComposer } from "./AgentComposer";
 import {
   AgentControls, AgentModelTag, AgentRunStats, AgentStatusMark, agentKindLabel, agentStateText, formatTokenCount, useAgentClock,
 } from "./AgentPanel";
@@ -42,6 +43,10 @@ interface AgentPaneProps {
   ensureMessages: (agentId: string) => void;
   /** 暂停、继续或取消某个子代理。 */
   onControl: (agentId: string, action: AgentControlAction) => void;
+  /** 用户直接给这个子代理发消息；失败时抛出。 */
+  onSend: (agentId: string, text: string) => Promise<void>;
+  /** 与主输入框一致的发送按钮图标。 */
+  sendButtonIcon?: SendButtonIcon;
 }
 
 /**
@@ -74,7 +79,7 @@ export const AgentPane = memo(function AgentPane(props: AgentPaneProps) {
 
 function VisibleAgentPane({
   agent, agents, messages: providedMessages, messageStore, conversationId = null,
-  toolDisplay, toolFold = "message", onSwitch, ensureMessages, onControl, follow,
+  toolDisplay, toolFold = "message", onSwitch, ensureMessages, onControl, onSend, sendButtonIcon, follow,
 }: AgentPaneProps & { follow: MutableRefObject<AgentFollow> }) {
   const storedMessages = useMessages(messageStore, conversationId, agent.id);
   const messages = useNamedThinkingMessages(messageStore ? storedMessages : providedMessages ?? emptyMessages);
@@ -90,6 +95,7 @@ function VisibleAgentPane({
   const lastMessageId = messages.length > 0 ? messages[messages.length - 1]!.id : null;
   const agentId = agent.id;
   const scrollRef = useRef<HTMLDivElement>(null);
+  const dockRef = useRef<HTMLDivElement>(null);
   const streaming = agent.status === "running";
   const now = useAgentClock([agent]);
   const arrivalKeys = useMemo(() => {
@@ -155,6 +161,22 @@ function VisibleAgentPane({
   }, [follow, scheduleFollow]);
 
   useLayoutEffect(scheduleFollow, [scheduleFollow, messages]);
+
+  // 输入框浮在面板底部：把它的高度告诉滚动区和回到最新按钮，正文才不会被它盖住。
+  useLayoutEffect(() => {
+    const dock = dockRef.current;
+    const pane = dock?.parentElement;
+    if (!dock || !pane) return;
+    const measure = () => {
+      const height = dock.getBoundingClientRect().height;
+      if (height > 0) pane.style.setProperty("--composer-clearance", `${Math.ceil(height + 36)}px`);
+      scheduleFollow();
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(dock);
+    return () => { observer.disconnect(); pane.style.removeProperty("--composer-clearance"); };
+  }, [scheduleFollow]);
 
   const onScroll = (): void => {
     const node = scrollRef.current;
@@ -250,6 +272,7 @@ function VisibleAgentPane({
       >
         <JumpOrb activity={jumpActivity} commandKey={runningBash?.id} running={showJumpToLatest} />
       </button>
+      <AgentComposer key={agentId} ref={dockRef} agent={agent} sendButtonIcon={sendButtonIcon} onSend={onSend} />
     </section>
   );
 }
