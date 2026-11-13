@@ -8,6 +8,7 @@ import { type AgentInboxNavigation, type MenuAction, type ReleaseNotes, type Tas
 import { AgentWorkspaceProvider } from "./components/AgentPanel";
 import { SessionChatView } from "./components/SessionChatView";
 import { ContextPanel } from "./components/ContextPanel";
+import { PanelLayoutActions } from "./components/PanelLayoutActions";
 import { useMessagesEmpty } from "./hooks/useMessages";
 import { FileIconThemeProvider } from "./components/FileTypeIcon";
 import { ThinkingGroupModeContext, ThinkingModelCatalogContext } from "./components/ThinkingGroupModeContext";
@@ -649,6 +650,14 @@ export function App() {
     ];
   }, [tabOrder, unorderedTabs]);
   const activeWorkbenchTab = workbenchTabs.find((tab) => tab.id === activeWorkbenchTabId) ?? null;
+  const toggleWorkbench = useCallback(() => {
+    if (workbenchTabs.length === 0) {
+      setWorkbenchCollapsed(false);
+      openStartTab();
+      return;
+    }
+    setWorkbenchCollapsed(value => !value);
+  }, [workbenchTabs.length, openStartTab]);
 
   useEffect(() => {
     const liveIds = new Set(unorderedTabs.map((tab) => tab.id));
@@ -1119,14 +1128,8 @@ export function App() {
                           onReplyQuestion={replyQuestion}
                           onBranch={branchTurn}
                           onOpenCheckpoints={openCheckpoints}
-                          // 工作面板自己没开(没有标签页)或已折叠时,顶栏补一个新建标签页入口;
-                          // 工作面板展开时它自己标签栏里的 + 已经够用,不再重复。
-                          showNewTab={workbenchTabs.length === 0 || workbenchCollapsed}
-                          onExpandWorkbench={workbenchCollapsed && workbenchTabs.length > 0
-                            ? () => {
-                              setWorkbenchCollapsed(false);
-                              requestAnimationFrame(() => document.querySelector<HTMLButtonElement>('.workbench-tab[aria-selected="true"]')?.focus());
-                            } : undefined}
+                          // 右上角 PanelLayoutActions 统一负责展开工作面板(没有标签页时打开起始页),顶栏不再单独放 +。
+                          showNewTab={false}
                           onNewTab={openStartTab}
                           onOpenWebLink={openConversationLink}
                           onOpenChanges={openAllChanges}
@@ -1146,10 +1149,6 @@ export function App() {
                         tabs={workbenchTabs}
                         tabReplacement={fileTabReplacement}
                         collapsed={workbenchCollapsed}
-                        onCollapse={() => {
-                          setWorkbenchCollapsed(true);
-                          requestAnimationFrame(() => document.querySelector<HTMLButtonElement>(".workbench-expand")?.focus());
-                        }}
                         activeTabId={activeWorkbenchTabId}
                         contextOpen={contextSidebarOpen}
                         leftOpen={!leftCollapsed}
@@ -1214,13 +1213,15 @@ export function App() {
                         state={session.state}
                         planDraft={session.planDraft}
                         project={project}
-                        onToggle={() => setRightCollapsed(true)}
                         onOpenPlan={openPlan}
                         onResumeGoal={resumeGoal}
                         changesActive={activeWorkbenchTab?.kind === "changes"}
                         onOpenChanges={openAllChanges}
                       /> : null}
                     </PlanDocumentProvider>
+                    <PanelLayoutActions platform={platform} workbenchOpen={workbenchTabs.length > 0 && !workbenchCollapsed}
+                      onToggleWorkbench={toggleWorkbench}
+                      contextOpen={contextSidebarOpen} onToggleContext={!floatingInfo && !conversationEmpty ? toggleInfo : undefined} />
                   </Presence>
                 </FilePreviewProvider>
                 <Presence present={prInboxOpen} keepMounted className="main-stage-pane scheduled-tasks-stage">

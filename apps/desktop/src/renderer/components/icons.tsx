@@ -3,6 +3,14 @@ interface IconProps {
   filled?: boolean;
 }
 
+export function PanelLayoutIcon({ size = 14, columns = 2 }: IconProps & { columns?: 2 | 3 }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <rect x="3" y="4" width="18" height="16" rx="4" />
+    {columns === 3 && <path d="M9 4v16" />}
+    <path d="M15 4v16" />
+  </svg>;
+}
+
 export function ChatIcon({ size = 13 }: IconProps) {
   return <svg {...base(size)} aria-hidden="true"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l-2 2v-10A8.5 8.5 0 0 1 10.5 3h2a8.5 8.5 0 0 1 8.5 8.5Z" /><path d="M7 9h9M7 14h6" /></svg>;
 }

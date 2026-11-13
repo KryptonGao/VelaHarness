@@ -10,7 +10,7 @@ import { useAgentWorkspace } from "./AgentPanel";
 import { modKeyLabel } from "../platform";
 import { readModelHint, writeModelHint } from "../startup-hint";
 import { useSecondClock } from "../hooks/useSecondClock";
-import { ArrowLeftIcon, BranchIcon, CheckIcon, CopyIcon, HistoryIcon, PlusIcon, StackIcon } from "./icons";
+import { BranchIcon, CheckIcon, CopyIcon, HistoryIcon, PlusIcon, StackIcon } from "./icons";
 import { trackEnteredMessages, type EnterTrack } from "./message-motion";
 import type { useModels } from "../hooks/useModels";
 import type { ProjectApi } from "../hooks/useProject";
@@ -230,7 +230,6 @@ export interface ChatViewProps {
   onOpenCheckpoints?: (turnIndex?: number) => void;
   /** 顶栏的「新建标签页」入口:工作面板没开、或右侧栏收起时才显示,避免和标签栏的 + 重复。 */
   showNewTab: boolean;
-  onExpandWorkbench?: () => void;
   onOpenWebLink?: (url: string) => boolean;
   onNewTab: () => void;
   onOpenChanges: () => void;
@@ -281,7 +280,6 @@ export function ChatView({
   onBranch,
   onOpenCheckpoints,
   showNewTab,
-  onExpandWorkbench,
   onOpenWebLink,
   onNewTab,
   onOpenChanges,
@@ -770,12 +768,6 @@ export function ChatView({
               </span>
             </button>
           ) : null}
-          {onExpandWorkbench && <button className="view-icon-btn workbench-expand" type="button"
-            title={tr("展开工作面板", "Expand workbench")}
-            aria-label={tr("展开工作面板", "Expand workbench")} aria-expanded={false}
-            onClick={onExpandWorkbench}>
-            <ArrowLeftIcon size={15} />
-          </button>}
           {showNewTab ? (
             <button
               className="view-icon-btn"
@@ -800,7 +792,7 @@ export function ChatView({
             </button>
           ) : null}
           <ChatActionsMenu key={state?.activeConversationId ?? "empty"} messages={messages} streaming={Boolean(streaming)} />
-          {!embedded && !emptyConversation ? <button
+          {!embedded && !emptyConversation && floatingInfo ? <button
             className="icon-btn-ghost"
             type="button"
             title={`${rightLabel} (${mod}J)`}
@@ -808,7 +800,7 @@ export function ChatView({
             aria-pressed={!rightCollapsed}
             onClick={onToggleRight}
           >
-            {floatingInfo ? (infoCards ? <InfoCardsIcon /> : <EnvironmentInfoIcon />) : <PanelIcon />}
+            {infoCards ? <InfoCardsIcon /> : <EnvironmentInfoIcon />}
           </button> : null}
         </div>
       </header>
@@ -1878,13 +1870,3 @@ function InfoCardsIcon() {
     </svg>
   );
 }
-
-function PanelIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-      <rect x="3" y="3" width="18" height="18" rx="2" />
-      <line x1="15" y1="3" x2="15" y2="21" />
-    </svg>
-  );
-}
-

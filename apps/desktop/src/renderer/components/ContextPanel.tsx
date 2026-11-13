@@ -38,7 +38,6 @@ interface ContextPanelProps {
   state: AppState | null;
   planDraft: PlanDraft | null;
   project: ProjectApi;
-  onToggle: () => void;
   onOpenPlan: (planId: string) => void;
   onResumeGoal: () => void;
   changesActive?: boolean;
@@ -52,7 +51,6 @@ export function ContextPanel({
   state,
   planDraft,
   project,
-  onToggle,
   onOpenPlan,
   onResumeGoal,
   changesActive = false,
@@ -69,20 +67,7 @@ export function ContextPanel({
       inert={collapsed ? true : undefined}
     >
       <SidebarResizeHandle target="right" resize={resize} leftOpen={leftOpen} />
-      <div className="sidebar-right-header">
-        <div className="sidebar-right-header-spacer" />
-        <button
-          className="sidebar-collapse-btn"
-          type="button"
-          title={tr("收起右侧面板", "Collapse right panel")}
-          aria-label={tr("收起右侧面板", "Collapse right panel")}
-          onClick={onToggle}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
-        </button>
-      </div>
+      <div className="sidebar-right-header" aria-hidden="true" />
 
       <div className="sidebar-right-scroll">
         {session?.proposedPlan || planDraft ? (

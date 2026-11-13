@@ -45,7 +45,7 @@
 
 /* 纸面只在整体外缘倒圆角,并排的对话区与工作面板在接缝处保持相连。 */
 .main-chat-view { --paper-left-radius: var(--glass-fillet); --paper-right-radius: var(--glass-fillet); }
-.main-stage-pane:has(> .workbench-panel:not(.is-collapsed)) > .main-chat-view { --paper-right-radius: 0px; }
+.main-stage-pane:has(> .workbench-clip > .workbench-panel:not(.is-collapsed)) > .main-chat-view { --paper-right-radius: 0px; }
 .workbench-panel { --paper-left-radius: 0px; --paper-right-radius: var(--glass-fillet); }
 .settings-view { --paper-left-radius: var(--glass-fillet); --paper-right-radius: var(--glass-fillet); }
 .main-chat-view::after,

@@ -3,14 +3,14 @@ import { createPortal } from "react-dom";
 import { tr, trf } from "../locale";
 import type { WorkbenchTab } from "./WorkbenchPanel";
 import type { WorkbenchDropEdge } from "./workbench-layout";
-import { ArrowRightIcon, CloseIcon, MoreIcon, PlusIcon } from "./icons";
+import { CloseIcon, MoreIcon, PlusIcon } from "./icons";
 
 export function WorkbenchTabStrip({ tabs, splitEnabled, draggingId, selected, split, maximized, renderLabel, tabButtonId, tabPanelId,
-  onActivate, onClose, onNewTab, onCollapse, onMerge, onMaximize, onPlace, onEqualize, onSplit, onTabPointerDown,
+  onActivate, onClose, onNewTab, onMerge, onMaximize, onPlace, onEqualize, onSplit, onTabPointerDown,
 }: {
   tabs: WorkbenchTab[]; splitEnabled: boolean; draggingId: string | null; selected: string; split: boolean; maximized: boolean;
   renderLabel: (tab: WorkbenchTab) => ReactNode; tabButtonId: (tab: WorkbenchTab) => string; tabPanelId: (tab: WorkbenchTab) => string;
-  onActivate: (tab: WorkbenchTab) => void; onClose: (tab: WorkbenchTab) => void; onNewTab: () => void; onCollapse?: () => void;
+  onActivate: (tab: WorkbenchTab) => void; onClose: (tab: WorkbenchTab) => void; onNewTab: () => void;
   onMerge: () => void; onMaximize: () => void; onPlace: () => void; onEqualize: () => void;
   onSplit: (tab: WorkbenchTab, edge: WorkbenchDropEdge) => void;
   onTabPointerDown: (event: ReactPointerEvent<HTMLButtonElement>, tab: WorkbenchTab) => void;
@@ -128,8 +128,6 @@ export function WorkbenchTabStrip({ tabs, splitEnabled, draggingId, selected, sp
       }}><MoreIcon size={13} /></button>}
     {split && <button className="workbench-group-action is-secondary" type="button" aria-label={tr("关闭窗口，保留标签", "Close pane and keep tabs")}
       title={tr("关闭窗口，保留标签", "Close pane and keep tabs")} onClick={onMerge}><CloseIcon size={12} /></button>}
-    {onCollapse && <button className="workbench-collapse" type="button" aria-expanded="true" aria-label={tr("折叠工作面板", "Collapse workbench")}
-      title={tr("折叠工作面板", "Collapse workbench")} onClick={onCollapse}><ArrowRightIcon size={14} /></button>}
     {splitEnabled && menu && createPortal(<div ref={menuRef} id={menuId} className="workbench-pane-menu" role="menu" style={menu}>
       <button type="button" role="menuitem" onClick={() => { setMenu(null); onPlace(); }}>{tr("移动当前标签", "Move current tab")}</button>
       {split && <><button type="button" role="menuitem" onClick={() => { setMenu(null); onMaximize(); }}>{maximized ? tr("还原窗口", "Restore pane") : tr("放大窗口", "Maximize pane")}</button>

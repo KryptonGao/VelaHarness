@@ -3,11 +3,14 @@ import { createRoot } from "react-dom/client";
 import { flushSync } from "react-dom";
 import { AppLocaleProvider, setActiveLocale, type AppLocale } from "../src/renderer/locale";
 import { WorkbenchPanel, type WorkbenchTab } from "../src/renderer/components/WorkbenchPanel";
+import { ContextPanel } from "../src/renderer/components/ContextPanel";
+import { PanelLayoutActions } from "../src/renderer/components/PanelLayoutActions";
 import { FilePreviewProvider, useFilePreview } from "../src/renderer/components/preview/FilePreviewContext";
 import { BrowserViewHost } from "../src/renderer/components/browser/BrowserViewHost";
 import { BrowserController } from "../src/renderer/browser/browser-controller";
 import { useSidebarResize } from "../src/renderer/hooks/useSidebarResize";
 import "../src/renderer/styles.css";
+import "../src/renderer/nav-rail.css";
 
 const fixture = (window as any).splitFixture = { mounts: {} as Record<string, number>, unmounts: {} as Record<string, number>, binds: {} as Record<string, number>, visible: [] as string[], reads: [] as string[], revision: 0 };
 let gitChanged = () => {};
@@ -48,13 +51,17 @@ function Controls() {
   return null;
 }
 function Fixture() {
+  const rail = new URLSearchParams(location.search).has("rail");
   const [tabs, setTabs] = useState<WorkbenchTab[]>(["A", "B", "C", "D"].map(id => ({ id, kind: "chat", label: id, conversationId: id })));
   const [active, setActive] = useState<string | null>("A"), [visible, setVisible] = useState<string[]>([]), [scope, setScope] = useState(0), [collapsed, setCollapsed] = useState(false);
   const [split, setSplit] = useState(true);
+  const [contextEnabled, setContextEnabled] = useState(false), [contextCollapsed, setContextCollapsed] = useState(false);
   const [locale, setLocale] = useState<AppLocale>("zh-CN");
   fixture.setLocale = (next: AppLocale) => flushSync(() => { setActiveLocale(next); document.documentElement.lang = next; setLocale(next); });
   fixture.setSplit = (enabled: boolean) => flushSync(() => setSplit(enabled));
-  const resize = useSidebarResize(false, false, true);
+  const contextOpen = contextEnabled && !contextCollapsed;
+  const resize = useSidebarResize(false, contextOpen, true);
+  fixture.setContext = (open: boolean) => flushSync(() => { setContextEnabled(true); setContextCollapsed(!open); });
   const seq = useRef(0);
   fixture.visible = visible;
   fixture.reset = (kind = "chat") => flushSync(() => {
@@ -76,15 +83,22 @@ function Fixture() {
     setTabs(current => current.some(t => t.id === tab.id) ? current : [...current, tab]); setActive(tab.id);
   }} onCloseFileTab={path => setTabs(current => current.filter(t => t.id !== `file:${path}`))}>
     <Controls /><BrowserViewHost tabs={browserTabs} activeTabId={active} visibleTabIds={visible} visible={!collapsed} hosted command={command} />
-    <div className="vela-window left-collapsed" style={{ height: "100vh", display: "flex" }}><div className="main-stage-pane" style={{ display: "flex", flex: 1, minWidth: 0 }}>
-      <main className="main-chat-view" style={{ flex: 1, minWidth: 0 }}><h2 style={{ margin: 24 }}>主对话</h2></main>
-      <WorkbenchPanel splitEnabled={split} tabs={tabs} layoutKey={String(scope)} activeTabId={active} onVisibleTabsChange={setVisible} collapsed={collapsed} onCollapse={() => setCollapsed(true)}
-        contextOpen={false} leftOpen={false} resize={resize} project={{ git: null, openFile: noop } as any} busy={false} execution={null} onRevise={noop} onExecutePlan={noop}
+    <div className={`vela-window ${rail ? "nav-rail-layout platform-darwin" : "left-collapsed"}`} style={{ height: "100vh", display: "flex", background: rail ? "linear-gradient(135deg, #b7c7db, #dfc9b5)" : undefined, "--context-panel-overlay-width": "min(var(--sidebar-right-width), calc(100vw - 24px))" } as React.CSSProperties}>
+      {rail && <div style={{ width: 306, flex: "none" }} />}
+      <div className={rail ? "main-stage" : undefined} style={{ display: "flex", flex: 1, minWidth: 0 }}><div className="main-stage-pane" style={{ display: "flex", flex: 1, minWidth: 0 }}>
+      <main className="main-chat-view" style={{ flex: 1, minWidth: 0 }}><header className="main-chat-header"><h2>主对话</h2></header></main>
+      <WorkbenchPanel splitEnabled={split} tabs={tabs} layoutKey={String(scope)} activeTabId={active} onVisibleTabsChange={setVisible} collapsed={collapsed}
+        contextOpen={contextOpen} leftOpen={rail} resize={resize} project={{ git: null, openFile: noop } as any} busy={false} execution={null} onRevise={noop} onExecutePlan={noop}
         initialDiffPath={null} initialDiffPathRequestKey={0} onShowDiff={noop} agents={[]} ensureAgentMessages={noop} onControlAgent={noop} onOpenAgent={noop}
         onNewTab={() => fixture.add()} onStartAction={noop} gitAvailable={false} onActivateTab={tab => setActive(tab.id)}
         onTabCloseRequested={tab => fixture.closeRequests.push(tab.id)}
         onCloseTab={tab => { setTabs(current => current.filter(t => t.id !== tab.id)); setActive(null); }} renderChat={tab => <Draft id={tab.id} />} />
-    </div></div>
+      {contextEnabled && <ContextPanel collapsed={contextCollapsed} leftOpen={false} resize={resize} state={null} planDraft={null}
+        project={{ git: null } as any} onOpenPlan={noop} onResumeGoal={noop} onOpenChanges={noop} />}
+      <PanelLayoutActions platform="darwin" workbenchOpen={tabs.length > 0 && !collapsed}
+        onToggleWorkbench={() => { if (tabs.length) setCollapsed(value => !value); else { setCollapsed(false); fixture.add(); } }}
+        contextOpen={contextOpen} onToggleContext={contextEnabled ? () => setContextCollapsed(value => !value) : undefined} />
+    </div></div></div>
   </FilePreviewProvider></AppLocaleProvider>;
 }
 createRoot(document.getElementById("root")!).render(<Fixture />);

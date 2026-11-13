@@ -38,6 +38,28 @@ if (!process.versions.electron) {
     const key = (selector, name, extra = {}) => js(`document.querySelector(${JSON.stringify(selector)}).dispatchEvent(new KeyboardEvent('keydown',{key:${JSON.stringify(name)},bubbles:true,...${JSON.stringify(extra)}}))`);
     const count = () => js("document.querySelectorAll('.workbench-group').length");
     const names = () => js("[...document.querySelectorAll('.workbench-tab')].map(t=>t.textContent.trim()).sort()");
+    async function checkLayoutControls(expectedCount) {
+      const controls = await js(`(() => {
+        const root = document.querySelector('.panel-layout-actions'), stage = root.parentElement.getBoundingClientRect();
+        return [...root.children].map(button => { const r = button.getBoundingClientRect(); return {
+          right: stage.right - r.right, centerY: r.top + r.height / 2 - stage.top,
+          workbench: button.matches('.workbench-collapse,.workbench-expand'),
+          dividers: button.querySelectorAll('svg path').length,
+          hit: document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)?.closest('button') === button,
+          insidePanel: !!button.closest('.workbench-panel,.sidebar-right')
+        }; });
+      })()`);
+      assert.equal(controls.length, expectedCount);
+      controls.forEach((control, i) => {
+        assert.ok(Math.abs(control.right - (12 + (expectedCount - i - 1) * 28)) < 1, '布局按钮保持在窗口右上角的固定槽位');
+        assert.equal(control.centerY, 26);
+        assert.equal(control.hit, true, '按钮不被其他顶栏遮挡');
+        assert.equal(control.insidePanel, false, '按钮不随面板内容移动');
+      });
+      assert.equal(controls[0].workbench, true, '信息栏按钮位于工作面板按钮右侧');
+      assert.equal(controls[0].dividers, expectedCount === 2 ? 2 : 1, '无右侧信息栏按钮时工作面板按钮使用两栏图标');
+      if (expectedCount === 2) assert.equal(controls[1].dividers, 1, '信息栏按钮始终使用两栏图标');
+    }
     const reset = async (kind = "chat") => { await js(`splitFixture.reset(${JSON.stringify(kind)})`); await until("document.querySelectorAll('.workbench-group').length===1"); await pause(); };
     const box = name => js(`(()=>{const r=${paneExpr(name)}.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height}})()`);
     const setPanelWidth = async px => { await js(`document.documentElement.style.setProperty('--workbench-width','${px}px')`); let last = -1; for (let i = 0; i < 40; i++) { await new Promise(done => setTimeout(done, 50)); const w = await js("document.querySelector('.workbench-panel').getBoundingClientRect().width"); if (w === last) return; last = w; } };
@@ -82,6 +104,7 @@ if (!process.versions.electron) {
     try {
       await win.loadFile(join(temporary, "index.html")); await until("document.querySelectorAll('.workbench-tab').length===4"); await pause();
       await setPanelWidth(1000);
+      await checkLayoutControls(1);
       assert.equal(await count(), 1);
       assert.equal(await js("document.querySelectorAll('.layout-switch,.layout-button,.count-badge').length"), 0);
       await js("document.querySelector('textarea[aria-label=\"Draft B\"]').value='保留草稿'; window.originalDraft=document.querySelector('textarea[aria-label=\"Draft B\"]');");
@@ -301,14 +324,77 @@ if (!process.versions.electron) {
       await js(`${tabExpr("A")}.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',altKey:true,shiftKey:true,bubbles:true,cancelable:true}))`); await pause(); assert.equal(await count(), 1);
       await js("splitFixture.setSplit(true)"); await pause(); await drop("B", "A", "right"); assert.equal(await count(), 2);
       await reset(); await drop("C", "A", "bottom"); await drop("B", "A", "right");
-      await click('.workbench-collapse'); await pause(); assert.equal(await js("getComputedStyle(document.querySelector('.workbench-panel')).display"), "none");
-      await js("splitFixture.expand()"); await pause(); assert.equal(await count(), 3);
+      await checkLayoutControls(1);
+      const preferredFoldWidth = await js("document.documentElement.style.getPropertyValue('--workbench-width')");
+      await js("window.foldDraft=document.querySelector('textarea[aria-label=\"Draft B\"]'); foldDraft.value='folded draft'; window.foldMounts={...splitFixture.mounts}");
+      const foldFrames = await js(`new Promise(resolve => {
+        const panel = document.querySelector('.workbench-panel'), frames = [], start = performance.now();
+        document.querySelector('.workbench-collapse').click();
+        const sample = () => {
+          const style = getComputedStyle(panel), rect = panel.getBoundingClientRect();
+          const toggle = document.querySelector('.panel-layout-actions > button').getBoundingClientRect();
+          frames.push({ hidden: style.display === 'none', margin: parseFloat(style.marginRight), width: rect.width, toggleX: toggle.x,
+            chatWidth: document.querySelector('.main-chat-view').getBoundingClientRect().width, inert: panel.inert });
+          if (style.display === 'none' || performance.now() - start > 1000) resolve(frames);
+          else requestAnimationFrame(sample);
+        };
+        requestAnimationFrame(sample);
+      })`);
+      const slidingFrames = foldFrames.filter(frame => !frame.hidden);
+      assert.ok(slidingFrames.some(frame => frame.margin < -2 && frame.margin > -frame.width + 2), '折叠应经过滑出动画的中间帧');
+      assert.ok(slidingFrames.every(frame => frame.inert), '折叠开始后立即禁止面板交互');
+      assert.ok(slidingFrames.every(frame => Math.abs(frame.width - slidingFrames[0].width) < 1), '滑出时内容宽度保持不变');
+      assert.ok(foldFrames.at(-1).hidden, '动画结束后才隐藏面板');
+      assert.ok(foldFrames.every(frame => frame.toggleX === foldFrames[0].toggleX), '收起途中和收起后按钮位置不变');
+      await checkLayoutControls(1);
+      assert.ok(foldFrames.at(-1).chatWidth > slidingFrames[0].chatWidth + 20, '主对话应接回面板空间');
+      const openingFrames = await js(`new Promise(resolve => {
+        const frames = [], start = performance.now();
+        splitFixture.expand();
+        const sample = () => {
+          frames.push({ shell: document.querySelector('.workbench-panel').getBoundingClientRect().width,
+            content: document.querySelector('.workbench-canvas').getBoundingClientRect().width,
+            panes: [...document.querySelectorAll('.workbench-tabpanel')].filter(e => !e.hidden).map(e => e.getBoundingClientRect().width) });
+          if (performance.now() - start > 350) resolve(frames); else requestAnimationFrame(sample);
+        }; requestAnimationFrame(sample);
+      })`);
+      const finalWidth = openingFrames.at(-1).shell;
+      assert.ok(openingFrames.some(frame => frame.shell < finalWidth - 2), '展开外层仍有过渡动画');
+      assert.ok(openingFrames.every(frame => Math.abs(frame.content - finalWidth) < 1), '展开第一帧起内容就采用最终宽度');
+      assert.ok(openingFrames.every(frame => frame.panes.every((width, i) => Math.abs(width - openingFrames.at(-1).panes[i]) < 1)), '分屏内容不随展开动画逐帧排版');
+      assert.equal(await js("document.documentElement.style.getPropertyValue('--workbench-width')"), preferredFoldWidth, '展开保留拖动后的宽度');
+      assert.equal(await count(), 3);
+      await checkLayoutControls(1);
+      assert.equal(await js("document.querySelector('textarea[aria-label=\"Draft B\"]')===foldDraft && foldDraft.value==='folded draft'"), true);
+      assert.deepEqual(await js("({...splitFixture.mounts})"), await js("foldMounts"));
+      // Reopening during the exit must cancel the delayed hide.
+      await js(`new Promise(resolve => {
+        document.querySelector('.workbench-collapse').click();
+        requestAnimationFrame(() => { splitFixture.expand(); resolve(); });
+      })`);
+      await new Promise(done => setTimeout(done, 350));
+      await checkLayoutControls(1);
+      assert.equal(await js("(()=>{const p=document.querySelector('.workbench-panel');return !p.inert && getComputedStyle(p).display!=='none' && Math.abs(parseFloat(getComputedStyle(p).marginRight))<1})()"), true);
+      // Reduced motion skips the slide, retaining the same mounted content.
+      win.webContents.debugger.attach('1.3');
+      try {
+        await win.webContents.debugger.sendCommand('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
+        await until("matchMedia('(prefers-reduced-motion: reduce)').matches");
+        await click('.workbench-collapse');
+        await until("getComputedStyle(document.querySelector('.workbench-panel')).display==='none'");
+        assert.equal(await js("document.querySelector('textarea[aria-label=\"Draft B\"]')===foldDraft"), true);
+        await js("splitFixture.expand()");
+      } finally {
+        await win.webContents.debugger.sendCommand('Emulation.setEmulatedMedia', { features: [] });
+        win.webContents.debugger.detach();
+      }
+      await pause();
       for (const scheme of ["light", "dark"]) {
         await js(`document.documentElement.dataset.scheme=${JSON.stringify(scheme)}`);
         assert.equal(await js("document.querySelectorAll('.layout-switch,.layout-button').length"), 0);
         if (process.env.VELA_WORKBENCH_SPLIT_CAPTURE) { await pause(); writeFileSync(`${process.env.VELA_WORKBENCH_SPLIT_CAPTURE}-${scheme}.png`, (await win.webContents.capturePage()).toPNG()); }
       }
-      console.log("PASS 折叠保留布局、深浅色");
+      console.log("PASS 折叠滑出动画、快速重新展开、减少动态效果、保留布局和草稿、深浅色");
       // Terminal close uses the real compact in-app dialog, not a native OS alert.
       await reset("terminal"); await drop("Terminal", "A", "right");
       const closeTerminal = () => js(`(()=>{const b=document.querySelector('.workbench-tab-close[aria-label="关闭 Terminal"]');b.focus();b.click()})()`);
@@ -383,6 +469,12 @@ if (!process.versions.electron) {
       await closeTerminal(); await js("splitFixture.resolveTerminalClose('idle')");
       await until("!document.querySelector('.workbench-panel')");
       assert.deepEqual(await js("splitFixture.terminalCloses"), ["session-1"]);
+      await checkLayoutControls(1);
+      assert.equal(await js("document.querySelector('.panel-layout-actions > button').getAttribute('aria-expanded')"), 'false');
+      await click('.workbench-expand');
+      await until("document.querySelectorAll('.workbench-tab').length===1");
+      await checkLayoutControls(1);
+      assert.equal(await js("document.querySelector('.panel-layout-actions > button').getAttribute('aria-expanded')"), 'true');
       // Late inspection results and open prompts cannot leak across workspace scopes.
       await reset("terminal-only"); await closeTerminal(); await reset("terminal-only");
       await js("splitFixture.terminalCloses=[];splitFixture.closeRequests=[];splitFixture.resolveTerminalClose('busy')"); await pause();
@@ -391,6 +483,79 @@ if (!process.versions.electron) {
       await prompt(); await reset("terminal-only"); await pause();
       assert.equal(await js("Boolean(document.querySelector('.terminal-close-dialog'))"), false);
       console.log("PASS 应用内终端关闭卡片：深浅色、紧凑布局、默认取消、Enter/Escape、焦点循环与恢复、取消保留进程及 DOM、确认关闭、空闲直关及旧请求隔离");
+      await reset();
+      await js("document.documentElement.style.setProperty('--sidebar-right-width','340px'); splitFixture.setContext(true)");
+      await new Promise(done => setTimeout(done, 350));
+      await checkLayoutControls(2);
+      const contextFrames = async open => js(`new Promise(resolve => {
+        const frames = [], start = performance.now(); splitFixture.setContext(${open});
+        const sample = () => {
+          const sidebar = document.querySelector('.sidebar-right'), bounds = sidebar.getBoundingClientRect();
+          const panel = document.querySelector('.workbench-panel').getBoundingClientRect();
+          const overlapRight = Math.min(bounds.right, panel.right);
+          const overlap = !sidebar.inert && overlapRight - bounds.left > 2;
+          const sidebarOnTop = !overlap || [100, 400].every(y => document.elementFromPoint((bounds.left + overlapRight) / 2, bounds.top + y)?.closest('.sidebar-right'));
+          frames.push({ shell: bounds.width, overlap, sidebarOnTop,
+            widths: ['.sidebar-right-header','.sidebar-right-scroll','.sidebar-right > .context-usage'].map(s => document.querySelector(s).getBoundingClientRect().width) });
+          if (performance.now() - start > 350) resolve(frames); else requestAnimationFrame(sample);
+        }; requestAnimationFrame(sample);
+      })`);
+      for (const open of [false, true]) {
+        const frames = await contextFrames(open);
+        assert.ok(frames.every(frame => frame.widths.every((width, i) => Math.abs(width - [340, 340, 308][i]) < 1)), '右侧信息内容在收起和展开期间保持最终宽度');
+        assert.ok(frames.some(frame => frame.shell > 2 && frame.shell < 338), '信息栏外层保留收展动画');
+        assert.ok(frames.every(frame => frame.sidebarOnTop), '信息栏展开途中始终位于工作面板正文之上');
+        await checkLayoutControls(2);
+      }
+      // Real drag resizing remains responsive after separating content and shell widths.
+      await pointerDrag('.sidebar-right > .sidebar-resize-handle', -40);
+      const resizedContextWidth = await js("document.querySelector('.sidebar-right').getBoundingClientRect().width");
+      assert.ok(resizedContextWidth > 370);
+      assert.ok(await js("Math.abs(document.querySelector('.sidebar-right-scroll').getBoundingClientRect().width-document.querySelector('.sidebar-right').getBoundingClientRect().width)<1"));
+      for (const [width, floating] of [[980, false], [980, true], [1600, false]]) {
+        win.setSize(width, 1000);
+        await js(`document.querySelector('.vela-window').classList.toggle('layout-floating', ${floating})`);
+        await new Promise(done => setTimeout(done, 350));
+        await contextFrames(false);
+        const frames = await contextFrames(true);
+        assert.ok(frames.every(frame => Math.abs(frame.widths[1] - resizedContextWidth) < 1), '窄窗口浮层和并排布局均保留信息内容宽度');
+        assert.ok(frames.every(frame => frame.sidebarOnTop), '窄窗口和普通窗口的信息栏均覆盖重叠的工作面板');
+        await until("Math.abs(document.querySelector('.workbench-canvas').getBoundingClientRect().width-document.querySelector('.workbench-panel').getBoundingClientRect().width)<1");
+        await checkLayoutControls(2);
+      }
+      // Exercise the full workbench layer, including handles and hosted browser guests,
+      // against the translucent sidebar while leaving popovers above both.
+      const overlapLayers = await js(`(() => {
+        const sidebar = document.querySelector('.sidebar-right'), r = sidebar.getBoundingClientRect();
+        const probes = [20, 26, 30].map(zIndex => {
+          const probe = document.createElement('div');
+          Object.assign(probe.style, { position: 'fixed', left: r.left + 30 + 'px', top: r.top + 400 + 'px', width: '40px', height: '40px', zIndex: String(zIndex) });
+          document.querySelector('.main-stage-pane').append(probe);
+          const top = document.elementFromPoint(r.left + 50, r.top + 420);
+          const result = { sidebarOnTop: !!top?.closest('.sidebar-right'), probeOnTop: top === probe };
+          probe.remove(); return result;
+        }); return probes;
+      })()`);
+      assert.deepEqual(overlapLayers, [
+        { sidebarOnTop: true, probeOnTop: false },
+        { sidebarOnTop: true, probeOnTop: false },
+        { sidebarOnTop: false, probeOnTop: true },
+      ], '信息栏覆盖网页和分隔条，同时允许弹层正常显示');
+      const clickLayoutToggle = async () => {
+        const point = await js("(()=>{const r=document.querySelector('.panel-layout-actions > button').getBoundingClientRect();return {x:Math.round(r.left+r.width/2),y:Math.round(r.top+r.height/2)}})()");
+        win.webContents.sendInputEvent({ type: 'mouseMove', ...point });
+        win.webContents.sendInputEvent({ type: 'mouseDown', ...point, button: 'left', clickCount: 1 });
+        win.webContents.sendInputEvent({ type: 'mouseUp', ...point, button: 'left', clickCount: 1 });
+      };
+      await clickLayoutToggle();
+      await until("getComputedStyle(document.querySelector('.workbench-panel')).display==='none'");
+      await checkLayoutControls(2);
+      assert.equal(await js("document.activeElement===document.querySelector('.workbench-expand')"), true, '收起后焦点留在同一个固定按钮');
+      await clickLayoutToggle(); await new Promise(done => setTimeout(done, 350));
+      await checkLayoutControls(2);
+      assert.equal(await js("document.querySelector('.panel-layout-actions > button').getAttribute('aria-expanded')"), 'true');
+      if (process.env.VELA_WORKBENCH_SPLIT_CAPTURE) writeFileSync(`${process.env.VELA_WORKBENCH_SPLIT_CAPTURE}-context.png`, (await win.webContents.capturePage()).toPNG());
+      console.log("PASS 信息栏收展不重排、手动拖动宽度保留、窄窗口浮层及并排布局");
       assert.deepEqual(errors, []); console.log("PASS 无控制台错误"); app.exit(0);
     } catch (error) { console.error(error); console.error(errors.join("\n")); app.exit(1); }
   });

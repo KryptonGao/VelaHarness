@@ -52,9 +52,9 @@
 }
 
 @media (max-width: 1100px) {
+  .sidebar-right { --sidebar-right-content-width: var(--context-panel-overlay-width); }
   .sidebar-right:not(.collapsed) {
     position: absolute;
-    z-index: 8;
     top: 0;
     right: 0;
     bottom: 0;
@@ -70,25 +70,21 @@
     top: 0;
     right: 0;
     bottom: 0;
-    width: min(var(--workbench-width, 640px), max(0px, calc(100vw - var(--sidebar-left-width) - 24px)));
-    min-width: min(var(--workbench-width, 640px), max(0px, calc(100vw - var(--sidebar-left-width) - 24px)));
+    --workbench-content-width: min(var(--workbench-width, 640px), max(0px, calc(100vw - var(--sidebar-left-width) - 24px)));
     box-shadow: inset 1px 0 0 var(--border-strong), -12px 0 28px rgba(20, 20, 20, 0.1);
   }
   /* 浮层模式下对话纸面仍延伸到右缘,自身也需要完整的右侧圆角。 */
   .vela-window:not(.layout-floating) .main-stage-pane > .main-chat-view { --paper-right-radius: var(--glass-fillet); }
   .workbench-panel.is-context-open {
     right: var(--context-panel-overlay-width);
-    width: min(var(--workbench-width, 640px), max(0px, calc(100vw - var(--sidebar-left-width) - var(--context-panel-overlay-width) - 24px)));
-    min-width: min(var(--workbench-width, 640px), max(0px, calc(100vw - var(--sidebar-left-width) - var(--context-panel-overlay-width) - 24px)));
+    --workbench-content-width: min(var(--workbench-width, 640px), max(0px, calc(100vw - var(--sidebar-left-width) - var(--context-panel-overlay-width) - 24px)));
   }
   .vela-window.left-collapsed .main-stage { --context-panel-overlay-width: min(var(--sidebar-right-width), calc(100vw - 24px)); }
   .vela-window.left-collapsed .workbench-panel {
-    width: min(var(--workbench-width, 640px), max(0px, calc(100vw - 24px)));
-    min-width: min(var(--workbench-width, 640px), max(0px, calc(100vw - 24px)));
+    --workbench-content-width: min(var(--workbench-width, 640px), max(0px, calc(100vw - 24px)));
   }
   .vela-window.left-collapsed .workbench-panel.is-context-open {
-    width: min(var(--workbench-width, 640px), max(0px, calc(100vw - var(--context-panel-overlay-width) - 24px)));
-    min-width: min(var(--workbench-width, 640px), max(0px, calc(100vw - var(--context-panel-overlay-width) - 24px)));
+    --workbench-content-width: min(var(--workbench-width, 640px), max(0px, calc(100vw - var(--context-panel-overlay-width) - 24px)));
   }
   /*
    * 窄窗口里右栏和工作面板都是浮层,它们的顶栏那一段去掉自己的 tint,
@@ -613,13 +609,11 @@ html[data-thinking-fade="false"][data-thinking-pop="false"] .fade-thinking .md-f
     position: relative;
     inset: auto;
     z-index: auto;
-    width: min(var(--workbench-width, 640px), max(0px, calc(100vw - var(--sidebar-left-width) - 360px)));
-    min-width: min(var(--workbench-width, 640px), max(0px, calc(100vw - var(--sidebar-left-width) - 360px)));
+    --workbench-content-width: min(var(--workbench-width, 640px), max(0px, calc(100vw - var(--sidebar-left-width) - 360px)));
     box-shadow: inset 1px 0 0 var(--border-strong);
   }
   .vela-window.layout-floating.left-collapsed .workbench-panel {
-    width: min(var(--workbench-width, 640px), max(0px, calc(100vw - 360px)));
-    min-width: min(var(--workbench-width, 640px), max(0px, calc(100vw - 360px)));
+    --workbench-content-width: min(var(--workbench-width, 640px), max(0px, calc(100vw - 360px)));
   }
 }
 @media (prefers-reduced-motion: reduce) {

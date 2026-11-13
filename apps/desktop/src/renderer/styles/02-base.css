@@ -210,9 +210,16 @@ code,
   min-width: var(--sidebar-left-width);
 }
 .sidebar-right {
+  /* Above workbench content, hosted webviews (20) and split handles (26). */
+  z-index: 27;
+  --sidebar-right-content-width: var(--sidebar-right-width);
   width: var(--sidebar-right-width);
   min-width: var(--sidebar-right-width);
 }
+/* Only the outer box folds; the cards retain their final text layout. */
+.sidebar-right-header,
+.sidebar-right-scroll { width: var(--sidebar-right-content-width); }
+.sidebar-right > .context-usage { width: calc(var(--sidebar-right-content-width) - 32px); }
 .sidebar-left.collapsed,
 .sidebar-right.collapsed {
   width: 0;

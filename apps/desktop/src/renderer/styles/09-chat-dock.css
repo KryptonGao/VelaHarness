@@ -444,6 +444,8 @@
 }
 
 .sidebar-right-header {
+  height: var(--header-height);
+  flex-shrink: 0;
   padding: 14px 16px 10px;
   display: flex;
   align-items: center;

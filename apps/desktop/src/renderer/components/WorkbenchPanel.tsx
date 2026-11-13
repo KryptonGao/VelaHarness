@@ -61,7 +61,6 @@ interface WorkbenchPanelProps {
   onVisibleTabsChange?: (ids: string[]) => void;
   collapsed?: boolean;
   browserOperating?: boolean;
-  onCollapse?: () => void;
   activeTabId: string | null;
   contextOpen: boolean;
   leftOpen: boolean;
@@ -130,13 +129,16 @@ export function WorkbenchPanel(props: WorkbenchPanelProps) {
     pendingClose.complete(); setPendingClose(null);
   }, [pendingClose, presence.mounted, props.tabs]);
   if (!presence.mounted) return null;
-  return <WorkbenchPanelContent {...(presence.closing ? frozen.current : props)} closing={presence.closing} finishExit={presence.finishExit}
-    onLastTabClose={(tab, complete) => setPendingClose({ tabId: tab.id, complete })} />;
+  return <div className="workbench-clip"><WorkbenchPanelContent {...(presence.closing ? frozen.current : props)} closing={presence.closing} finishExit={presence.finishExit}
+    onLastTabClose={(tab, complete) => setPendingClose({ tabId: tab.id, complete })} /></div>;
 }
 const rectStyle = (r: WorkbenchRect): CSSProperties => ({ left: r.x, top: r.y, width: r.width, height: r.height });
 function WorkbenchPanelContent(props: WorkbenchPanelProps & { closing: boolean; finishExit: () => void; onLastTabClose: (tab: WorkbenchTab, complete: () => void) => void }) {
   const { tabs, activeTabId, collapsed = false, contextOpen, leftOpen, resize, closing, finishExit, onLastTabClose,
     project, onShowDiff, onVisibleTabsChange } = props;
+  // Keep the content mounted while folding, and hide its boxes only after the slide finishes.
+  const foldPresence = useMotionPresence(!collapsed, 160);
+  const exiting = closing || (collapsed && foldPresence.mounted);
   const preview = useFilePreview();
   const panelRef = useRef<HTMLElement>(null), canvasRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 640, height: 700 });
@@ -209,15 +211,17 @@ function WorkbenchPanelContent(props: WorkbenchPanelProps & { closing: boolean; 
     const el = canvasRef.current; if (!el) return;
     const update = () => {
       const r = el.getBoundingClientRect();
+      // Hidden boxes have no layout. Keep the final geometry ready for reopening.
+      if (r.width <= 0 || r.height <= 0) return;
       setSize(old => old.width === r.width && old.height === r.height ? old : { width: r.width, height: r.height });
       setDrop(null);
     };
     update(); const observer = new ResizeObserver(update); observer.observe(el);
     return () => observer.disconnect();
-  }, []);
+  }, [collapsed]);
   useLayoutEffect(() => {
-    if (closing && panelRef.current) panelRef.current.style.setProperty("--workbench-exit-width", `${panelRef.current.getBoundingClientRect().width}px`);
-  }, [closing]);
+    if (exiting && panelRef.current) panelRef.current.style.setProperty("--workbench-exit-width", `${panelRef.current.getBoundingClientRect().width}px`);
+  }, [exiting]);
   const visibleIds = layout.panes.filter(p => !layout.maximized || p.id === layout.maximized).map(p => p.selected);
   const visibleKey = !collapsed && !closing ? visibleIds.join("\0") : "";
   useLayoutEffect(() => { onVisibleTabsChange?.(visibleKey ? visibleKey.split("\0") : []); }, [visibleKey, onVisibleTabsChange]);
@@ -407,19 +411,32 @@ function WorkbenchPanelContent(props: WorkbenchPanelProps & { closing: boolean; 
     }
   }
   const canvasBounds = canvasRef.current?.getBoundingClientRect();
-  return <aside ref={panelRef} className={`workbench-panel${contextOpen ? " is-context-open" : ""}${closing ? " is-closing" : ""}${collapsed ? " is-collapsed" : ""}`}
+  const syncCornerMask = (started = false) => {
+    const panel = panelRef.current;
+    panel?.parentElement?.classList.toggle("is-animating", started || panel.getAnimations().some(animation =>
+      animation.playState === "running" || animation.pending));
+  };
+  return <aside ref={panelRef} className={`workbench-panel${contextOpen ? " is-context-open" : ""}${exiting ? " is-closing" : ""}${collapsed && !foldPresence.mounted ? " is-collapsed" : ""}`}
     inert={closing || collapsed} aria-hidden={closing || collapsed || undefined} aria-label={tr("工作面板", "Workbench")}
-    onTransitionEnd={event => { if (event.target === event.currentTarget && event.propertyName === "margin-right") finishExit(); }}>
+    onTransitionRun={event => { if (event.target === event.currentTarget) syncCornerMask(true); }}
+    onTransitionCancel={event => { if (event.target === event.currentTarget) syncCornerMask(); }}
+    onTransitionEnd={event => {
+      if (event.target === event.currentTarget) {
+        syncCornerMask();
+        if (event.propertyName === "margin-right") { finishExit(); foldPresence.finishExit(); }
+      }
+    }}>
     <SidebarResizeHandle target="workbench" resize={resize} contextOpen={contextOpen} leftOpen={leftOpen} />
     <div ref={canvasRef} className={`workbench-content workbench-canvas${layout.panes.length > 1 && !layout.maximized ? " is-split" : ""}`}>
       {workbenchPaneOrder(layout.root).map((paneId, index) => {
         const pane = layout.panes.find(p => p.id === paneId)!;
         const paneTabs = pane.tabs.map(id => tabs.find(t => t.id === id)).filter((t): t is WorkbenchTab => !!t);
         return <section key={paneId} className={`workbench-group${layout.focused === paneId ? " is-focused" : ""}`} data-workbench-pane={paneId} data-top-row={paneRect(paneId).y < 1}
+          data-right-edge={paneRect(paneId).x + paneRect(paneId).width >= size.width - 1}
           hidden={!!layout.maximized && layout.maximized !== paneId} style={rectStyle(paneRect(paneId))} aria-label={trf("窗口 {0}", "Pane {0}", index + 1)}>
           <WorkbenchTabStrip splitEnabled={splitEnabled} tabs={paneTabs} draggingId={drag && !drag.placing ? drag.key : null} selected={pane.selected} split={layout.panes.length > 1} maximized={layout.maximized === paneId}
             tabButtonId={tabButtonId} tabPanelId={tabPanelId} renderLabel={tab => <><TabIcon tab={tab} />{tab.kind === "browser" ? <BrowserTabLabel controller={tab.controller} /> : <span className="workbench-tab-label">{tab.label}</span>}</>}
-            onActivate={activateTab} onClose={closeTab} onNewTab={() => { focusPane(paneId); props.onNewTab(); }} onCollapse={index === 0 ? props.onCollapse : undefined}
+            onActivate={activateTab} onClose={closeTab} onNewTab={() => { focusPane(paneId); props.onNewTab(); }}
             onMaximize={() => mutate(current => ({ ...current, focused: paneId, maximized: current.maximized === paneId ? null : paneId }))}
             onMerge={() => { const next = mergeWorkbenchPane(layoutRef.current, paneId); mutate(() => next); const tab = tabs.find(t => t.id === next.panes.find(p => p.id === next.focused)?.selected); if (tab) props.onActivateTab(tab); }}
             onEqualize={() => mutate(current => geometry.dividers.reduce((result, divider) => resizeWorkbenchDivider(result, divider.id, 0.5, dividerBounds(divider)), current))}
@@ -433,6 +450,7 @@ function WorkbenchPanelContent(props: WorkbenchPanelProps & { closing: boolean; 
         const owner = ownerOf(tab.id); if (!owner) return null;
         const r = paneRect(owner.id), visible = owner.selected === tab.id && (!layout.maximized || layout.maximized === owner.id);
         return <WorkbenchTabPanel key={tab.id} id={tabPanelId(tab)} role="tabpanel" aria-labelledby={tabButtonId(tab)} hidden={!visible}
+          data-top-row={r.y < 1} data-right-edge={r.x + r.width >= size.width - 1} data-bottom-row={r.y + r.height >= size.height - 1}
           data-workbench-content-pane={owner.id} style={rectStyle({ ...r, y: r.y + headerHeight, height: Math.max(0, r.height - headerHeight) })}
           onPointerDownCapture={() => focusPane(owner.id)} onFocusCapture={() => focusPane(owner.id)}>{renderTab(tab, visible && !closing)}</WorkbenchTabPanel>;
       })}

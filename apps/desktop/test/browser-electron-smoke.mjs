@@ -55,8 +55,8 @@ async function run() {
       try { return await win.webContents.executeJavaScript(code); }
       catch (error) { throw new Error(`Renderer expression failed: ${code}`, { cause: error }); }
     };
-    await until(() => evaluate("!!document.querySelector('[aria-label=\"New tab\"]')"), "main renderer");
-    await evaluate("document.querySelector('[aria-label=\"New tab\"]').click()");
+    await until(() => evaluate("!!document.querySelector('[aria-label=\"Expand workbench\"]')"), "main renderer");
+    await evaluate("document.querySelector('[aria-label=\"Expand workbench\"]').click()");
     await until(() => evaluate("!!document.querySelector('.start-option')"), "start tab");
     await evaluate("Array.from(document.querySelectorAll('.start-option')).find(n => n.textContent.includes('Browser')).click()");
     await until(() => webContents.getAllWebContents().some((item) => item.getType() === "webview"), "webview attachment");

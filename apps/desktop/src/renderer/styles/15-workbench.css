@@ -1,10 +1,31 @@
 /* ---------- 统一工作面板 ---------- */
 
+/* A stationary viewport clips the sliding paper before it reaches transparent sidebars.
+ * Keep this free of stacking contexts so resize handles can stay above hosted webviews. */
+.workbench-clip { display: flex; flex: none; min-width: 0; overflow: clip; }
+/* Round the stationary paper edge below the header while the panel slides past it.
+ * Remove the mask when idle so hosted webviews and resize handles keep their layering. */
+.workbench-clip.is-animating {
+  mask-image:
+    radial-gradient(circle at left bottom, transparent calc(var(--glass-fillet) - 0.5px), #000 var(--glass-fillet)),
+    radial-gradient(circle at left top, transparent calc(var(--glass-fillet) - 0.5px), #000 var(--glass-fillet)),
+    linear-gradient(#000, #000);
+  mask-size: var(--glass-fillet) var(--glass-fillet), var(--glass-fillet) var(--glass-fillet), 100% 100%;
+  mask-position: right var(--header-height), right bottom, 0 0;
+  mask-repeat: no-repeat;
+  mask-composite: exclude;
+}
+@media (max-width: 1100px) {
+  .workbench-clip { display: contents; }
+  .vela-window.layout-floating .workbench-clip { display: flex; }
+}
+
 .workbench-panel {
   position: relative;
   flex: none;
-  width: min(var(--workbench-width, 640px), max(0px, calc(100vw - var(--sidebar-left-width) - 420px)));
-  min-width: min(var(--workbench-width, 640px), max(0px, calc(100vw - var(--sidebar-left-width) - 420px)));
+  width: var(--workbench-content-width);
+  min-width: var(--workbench-content-width);
+  --workbench-content-width: min(var(--workbench-width, 640px), max(0px, calc(100vw - var(--sidebar-left-width) - 420px)));
   min-height: 0;
   display: flex;
   flex-direction: column;
@@ -17,16 +38,13 @@
     margin-right 160ms var(--motion-ease-exit);
 }
 .workbench-panel.is-context-open {
-  width: min(var(--workbench-width, 640px), max(0px, calc(100vw - var(--sidebar-left-width) - var(--sidebar-right-width) - 420px)));
-  min-width: min(var(--workbench-width, 640px), max(0px, calc(100vw - var(--sidebar-left-width) - var(--sidebar-right-width) - 420px)));
+  --workbench-content-width: min(var(--workbench-width, 640px), max(0px, calc(100vw - var(--sidebar-left-width) - var(--sidebar-right-width) - 420px)));
 }
 .vela-window.left-collapsed .workbench-panel {
-  width: min(var(--workbench-width, 640px), max(0px, calc(100vw - 420px)));
-  min-width: min(var(--workbench-width, 640px), max(0px, calc(100vw - 420px)));
+  --workbench-content-width: min(var(--workbench-width, 640px), max(0px, calc(100vw - 420px)));
 }
 .vela-window.left-collapsed .workbench-panel.is-context-open {
-  width: min(var(--workbench-width, 640px), max(0px, calc(100vw - var(--sidebar-right-width) - 420px)));
-  min-width: min(var(--workbench-width, 640px), max(0px, calc(100vw - var(--sidebar-right-width) - 420px)));
+  --workbench-content-width: min(var(--workbench-width, 640px), max(0px, calc(100vw - var(--sidebar-right-width) - 420px)));
 }
 /* 浏览器 webview 以 z-index:20 浮在面板正文上,手柄要高于它才拖得动;仍低于 z-index:30 的弹层。 */
 .workbench-panel > .sidebar-resize-handle { width: 16px; z-index: 21; }
@@ -171,7 +189,19 @@
 .workbench-new-tab:hover { background: var(--bg-hover); color: var(--text-primary); }
 .workbench-new-tab:active { transform: scale(0.94); }
 
-.workbench-collapse {
+.panel-layout-actions {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: var(--header-height);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 12px;
+  z-index: 28;
+  -webkit-app-region: no-drag;
+}
+.panel-layout-actions > button {
   flex: none;
   display: grid;
   place-items: center;
@@ -181,14 +211,28 @@
   color: var(--text-muted);
   -webkit-app-region: no-drag;
 }
-.workbench-collapse:hover { background: var(--bg-hover); color: var(--text-primary); }
+.panel-layout-actions > button:hover { background: var(--bg-hover); color: var(--text-primary); }
+.panel-layout-actions > button:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: -2px; }
+/* Reserve space in the visible header underneath the fixed controls. */
+.main-stage-pane:has(> .panel-layout-actions) { --panel-layout-actions-width: 48px; }
+.main-stage-pane:has(> .panel-layout-actions[data-controls="2"]) { --panel-layout-actions-width: 76px; }
+.main-stage-pane:has(> .panel-layout-actions):not(:has(> .sidebar-right:not(.collapsed))) > .workbench-clip .workbench-group[data-top-row="true"][data-right-edge="true"] .workbench-tabbar {
+  padding-right: var(--panel-layout-actions-width);
+}
+.main-stage-pane:has(> .panel-layout-actions):not(:has(> .workbench-clip > .workbench-panel:not(.is-collapsed))):not(:has(> .sidebar-right:not(.collapsed))) > .main-chat-view > .main-chat-header {
+  padding-right: var(--panel-layout-actions-width);
+}
 /* Folding hides boxes only: mounted guests keep history, forms and scroll positions. */
 .vela-window .workbench-panel.is-collapsed { display: none; }
 
 /* ---------- 拖动分屏：标签组与内容保持各自稳定的 DOM 父节点 ---------- */
-.workbench-canvas { flex: 1; min-height: 0; overflow: hidden; z-index: auto; }
+/* Content uses its destination width throughout the outer panel transition. */
+.workbench-canvas { width: var(--workbench-content-width); flex: 1; min-height: 0; overflow: hidden; z-index: auto; }
 /* 白色纸面伪元素位于 z-index:0；内容须在其上，分隔线仍可独立抬到 guest 之上。 */
 .workbench-canvas > .workbench-tabpanel { z-index: 1; background: var(--bg-chat); container-type: inline-size; container-name: workbench-pane; }
+/* Content backgrounds must follow the outer paper corners after the motion mask is removed. */
+.workbench-tabpanel[data-right-edge="true"][data-top-row="true"] { border-top-right-radius: var(--paper-right-radius); }
+.workbench-tabpanel[data-right-edge="true"][data-bottom-row="true"] { border-bottom-right-radius: var(--paper-right-radius); }
 .workbench-canvas .preview-explorer-pane { width: min(40%, 224px); min-width: min(40%, 224px); }
 @container workbench-pane (max-width: 440px) {
   .preview-subbar { height: auto; min-height: 38px; flex-wrap: wrap; gap: 6px; padding: 6px 10px; }
