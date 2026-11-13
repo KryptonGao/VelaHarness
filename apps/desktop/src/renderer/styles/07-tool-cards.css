@@ -565,3 +565,24 @@
 
 /* 设置「文件显示路径」关闭时,隐藏读取/编辑/创建文件行的所在目录。 */
 :root[data-file-path="false"] .is-file-path { display: none; }
+
+/* 极简模式(紧凑独有):在紧凑基础上,文件行不显示文件图标;文件名为常规字重,默认灰色、带灰色虚线下划线,悬停时文字和下划线都变黑。路径由 data-file-path 统一隐藏。 */
+:root[data-minimal-mode="true"] .tool-compact-item :is(.file-type-icon) { display: none; }
+:root[data-minimal-mode="true"] :is(.tool-kind-read, .tool-kind-edit, .tool-kind-write) .tool-compact-name {
+  color: var(--text-muted);
+  font-weight: 400;
+  text-decoration: underline dashed;
+  text-decoration-color: color-mix(in srgb, var(--text-muted) 70%, transparent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  transition: color 0.15s ease, text-decoration-color 0.15s ease;
+}
+:root[data-minimal-mode="true"] :is(.tool-kind-read, .tool-kind-edit, .tool-kind-write) .tool-compact-name:hover,
+:root[data-minimal-mode="true"] :is(.tool-kind-read, .tool-kind-edit, .tool-kind-write) button.tool-compact-name:hover {
+  color: var(--text-primary);
+  font-weight: 400;
+  text-decoration: underline dashed;
+  text-decoration-color: var(--text-primary);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}

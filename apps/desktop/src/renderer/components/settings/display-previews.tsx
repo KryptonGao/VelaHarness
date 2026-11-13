@@ -433,6 +433,8 @@ export function InputPredictionPreview({ enabled, previewing }: { enabled: boole
 
 export interface ConversationSettings {
   toolDisplay: ToolDisplay;
+  /** 极简模式(紧凑独有),已计入是否处于紧凑。 */
+  minimalMode: boolean;
   toolFold: ToolFold;
   toolIconColor: ToolIconColor;
   toolProcessDetails: boolean;
@@ -555,7 +557,7 @@ export function ConversationPreview({ settings, previewing }: { settings: Conver
       {previewing ? <span className="dp-badge dp-live-badge">{tr("预览", "Preview")}</span> : null}
       <StillContext.Provider value>
         <div
-          className={`dp-still dp-live-inner${settings.toolIconColor === "theme" ? " dp-icon-theme" : ""}`}
+          className={`dp-still dp-live-inner${settings.toolIconColor === "theme" ? " dp-icon-theme" : ""}${settings.minimalMode ? " is-minimal" : ""}`}
           aria-hidden="true"
           key={JSON.stringify(settings)}
         >

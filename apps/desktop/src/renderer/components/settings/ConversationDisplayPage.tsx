@@ -34,6 +34,7 @@ export function ConversationDisplayPage({
     toolProcessDetails,
     runView,
     filePath,
+    minimalMode,
     recommendedActions,
     toolIconColor,
     thinkingGroupMode,
@@ -59,6 +60,7 @@ export function ConversationDisplayPage({
     setToolProcessDetails,
     setRunView,
     setFilePath,
+    setMinimalMode,
     setRecommendedActions,
     setToolIconColor,
     setThinkingGroupMode,
@@ -105,8 +107,11 @@ export function ConversationDisplayPage({
   const pick = <T extends string>(key: string): T => (hover?.key === key ? hover.value : selected[key]) as T;
   const peek = <T extends string>(key: string) => (value: T | null) => setHover(value === null ? null : { key, value });
   const previewing = (key: string) => hover?.key === key && hover.value !== selected[key];
+  // 极简是紧凑独有的;生效时「文件显示路径」强制关闭且不可打开。
+  const minimalActive = minimalMode && toolDisplay === "compact";
   const view = {
     toolDisplay: pick<ToolDisplay>("toolDisplay"),
+    minimalMode: minimalActive,
     toolFold: pick<ToolFold>("toolFold"),
     toolIconColor: pick<ToolIconColor>("toolIconColor"),
     toolProcessDetails: pick("toolProcessDetails") === "on",
@@ -205,8 +210,23 @@ export function ConversationDisplayPage({
       <SettingsBlock id="run-view" title={text.runView} hint={text.runViewHint} layout="inline">
         <SettingsSwitch label={text.runView} checked={runView} onChange={setRunView} />
       </SettingsBlock>
+      <SettingsBlock id="minimal-mode" title={text.minimalMode} hint={text.minimalModeHint} layout="inline">
+        <SettingsSwitch
+          label={text.minimalMode}
+          checked={minimalActive}
+          disabled={toolDisplay !== "compact"}
+          title={toolDisplay !== "compact" ? text.minimalModeCompactOnly : undefined}
+          onChange={setMinimalMode}
+        />
+      </SettingsBlock>
       <SettingsBlock id="file-path" title={text.filePath} hint={text.filePathHint} layout="inline">
-        <SettingsSwitch label={text.filePath} checked={filePath} onChange={setFilePath} />
+        <SettingsSwitch
+          label={text.filePath}
+          checked={filePath && !minimalActive}
+          disabled={minimalActive}
+          title={minimalActive ? text.filePathMinimalNote : undefined}
+          onChange={setFilePath}
+        />
       </SettingsBlock>
       <SettingsBlock id="recommended-actions" title={text.recommendedActions} hint={text.recommendedActionsHint} layout="inline">
         <SettingsSwitch label={text.recommendedActions} checked={recommendedActions} onChange={setRecommendedActions} />

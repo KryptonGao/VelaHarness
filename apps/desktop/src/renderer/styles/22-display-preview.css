@@ -317,3 +317,11 @@
 .dp-live-show:hover { background: var(--bg-hover); color: var(--text-primary); }
 .dp-live-show:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 1px; }
 
+
+/* 极简模式预览:文件行的文件名带灰色虚线下划线。 */
+.is-minimal .dp-line:has(:is(.dp-ico-read, .dp-ico-edit, .dp-ico-write)) .dp-name {
+  text-decoration: underline dashed;
+  text-decoration-color: color-mix(in srgb, var(--text-muted) 70%, transparent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}

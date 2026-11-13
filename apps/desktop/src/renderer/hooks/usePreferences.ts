@@ -76,6 +76,7 @@ const toolFoldKey = "vela.toolFold";
 const toolProcessDetailsKey = "vela.toolProcessDetails";
 const runViewKey = "vela.runView";
 const filePathKey = "vela.filePath";
+const minimalModeKey = "vela.minimalMode";
 const recommendedActionsKey = "vela.recommendedActions";
 const toolIconColorKey = "vela.toolIconColor";
 const thinkingGroupModeKey = "vela.thinkingGroupMode";
@@ -288,6 +289,10 @@ export function usePreferences() {
   const [filePath, setFilePath] = useState(() =>
     readStored(filePathKey, (value): value is string => value === "true" || value === "false", "true") === "true",
   );
+  /** 极简模式:紧凑工具调用显示独有,文件行不显示图标和路径,文件名灰色虚线下划线。默认关闭。 */
+  const [minimalMode, setMinimalMode] = useState(() =>
+    readStored(minimalModeKey, (value): value is string => value === "true" || value === "false", "false") === "true",
+  );
   /** 推荐操作：模型完成任务后可给出后续操作卡片。默认开启，不额外调用模型。 */
   const [recommendedActions, setRecommendedActions] = useState(() =>
     readStored(recommendedActionsKey, (value): value is string => value === "true" || value === "false", "true") === "true",
@@ -473,9 +478,15 @@ export function usePreferences() {
   useEffect(() => writeStored(thinkingActivityDelayMsKey, String(thinkingActivityDelayMs)), [thinkingActivityDelayMs]);
   useEffect(() => writeStored(toolProcessDetailsKey, String(toolProcessDetails)), [toolProcessDetails]);
   useEffect(() => {
-    document.documentElement.dataset.filePath = String(filePath);
+    // 极简模式生效时路径恒为隐藏,但不改写用户保存的开关,关闭极简后仍按原设置显示。
+    document.documentElement.dataset.filePath = String(filePath && !(minimalMode && toolDisplay === "compact"));
     writeStored(filePathKey, String(filePath));
-  }, [filePath]);
+  }, [filePath, minimalMode, toolDisplay]);
+  useEffect(() => {
+    // 极简只在紧凑模式下生效,卡片模式下保存的开关不起作用。
+    document.documentElement.dataset.minimalMode = String(minimalMode && toolDisplay === "compact");
+    writeStored(minimalModeKey, String(minimalMode));
+  }, [minimalMode, toolDisplay]);
   useEffect(() => {
     writeStored(runViewKey, String(runView));
     // 运行时要据此决定是否要求模型提交待办清单;浏览器预览等没有 window.vela 的环境直接跳过。
@@ -617,6 +628,7 @@ export function usePreferences() {
     toolProcessDetails,
     runView,
     filePath,
+    minimalMode,
     recommendedActions,
     toolIconColor,
     thinkingGroupMode,
@@ -677,6 +689,7 @@ export function usePreferences() {
     setToolProcessDetails,
     setRunView,
     setFilePath,
+    setMinimalMode,
     setRecommendedActions,
     setToolIconColor,
     setThinkingGroupMode,
