@@ -118,7 +118,6 @@
 .preview-crumb-text {
   min-width: 0;
   overflow: hidden;
-  text-overflow: ellipsis;
   padding: 2px 4px;
   border-radius: var(--radius-xs);
 }
@@ -126,10 +125,38 @@
   flex: 0 0 auto;
   max-width: 70%;
 }
+/* Hovering a truncated segment grows it to its full text. flex-shrink is
+ * interpolated 1 -> 0, so the segment widens smoothly while its siblings
+ * give the space back; the short delay keeps a sweep across the path from
+ * flickering every segment open. */
+.preview-crumb {
+  transition: flex-shrink 90ms cubic-bezier(0.22, 1, 0.36, 1) 0ms,
+    max-width 90ms cubic-bezier(0.22, 1, 0.36, 1) 0ms;
+}
+.preview-crumb-text,
+.preview-breadcrumbs-text strong {
+  transition: background-color 100ms ease, color 100ms ease;
+}
+.preview-crumb-text[data-fade="true"],
+.preview-breadcrumbs-text strong[data-fade="true"] {
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - min(16px, 45%)), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - min(16px, 45%)), transparent);
+}
+.preview-crumb:hover {
+  flex-shrink: 0;
+  max-width: 100%;
+  transition-delay: 16ms;
+}
+.preview-crumb:not(.current):hover .preview-crumb-text {
+  background: var(--bg-sidebar-hover);
+  color: var(--text-primary);
+}
+@media (prefers-reduced-motion: reduce) {
+  .preview-crumb { transition: none; }
+}
 .preview-breadcrumbs-text strong {
   min-width: 0;
   overflow: hidden;
-  text-overflow: ellipsis;
   padding: 2px 4px;
   color: var(--text-primary);
   font-weight: 600;

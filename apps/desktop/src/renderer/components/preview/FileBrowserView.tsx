@@ -1,8 +1,8 @@
 import { useEffect } from "react";
 import { tr } from "../../locale";
-import { ChevronRightIcon } from "../icons";
 import { ExplorerPane } from "./ExplorerPane";
 import { useFilePreview } from "./FilePreviewContext";
+import { PreviewBreadcrumbs } from "./PreviewBreadcrumbs";
 
 /** The Files entry shows the tree until the first selected file takes over this tab. */
 export function FileBrowserView() {
@@ -18,15 +18,7 @@ export function FileBrowserView() {
   return (
     <div className="panel-file-preview-view">
       <div className="preview-subbar">
-        <nav className="preview-breadcrumbs-text">
-          <span className="preview-crumb">
-            <span className="preview-crumb-text">{rootName}</span>
-          </span>
-          <span className="preview-crumb current">
-            <ChevronRightIcon size={10} />
-            <strong>{tr("文件", "Files")}</strong>
-          </span>
-        </nav>
+        <PreviewBreadcrumbs crumbs={[rootName]} current={tr("文件", "Files")} />
       </div>
       <div className="preview-main-split">
         <div className="file-browser-empty" />

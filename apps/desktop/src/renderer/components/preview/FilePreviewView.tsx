@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ProjectApi } from "../../hooks/useProject";
-import { CheckIcon, ChevronRightIcon, CopyIcon, DiffIcon, ExternalIcon, PanelRightIcon, RefreshIcon } from "../icons";
-import { FileTypeIcon } from "../FileTypeIcon";
+import { CheckIcon, CopyIcon, DiffIcon, ExternalIcon, PanelRightIcon, RefreshIcon } from "../icons";
 import { CodePane } from "./CodePane";
 import { ExplorerPane } from "./ExplorerPane";
 import { tr } from "../../locale";
 import { useFilePreview, isAbsolutePathLike } from "./FilePreviewContext";
 import { MarkdownPane } from "./MarkdownPane";
 import { isMarkdownPath } from "./markdown-path";
+import { PreviewBreadcrumbs } from "./PreviewBreadcrumbs";
 
 export function FilePreviewView({
   project,
@@ -53,19 +53,13 @@ export function FilePreviewView({
   return (
     <div className="panel-file-preview-view">
       <div className="preview-subbar">
-        <nav className="preview-breadcrumbs-text" title={tab.id} aria-label={tr("文件路径", "File path")}>
-          {crumbs.map((segment, index) => (
-            <span className="preview-crumb" key={`${index}:${segment}`}>
-              {index > 0 ? <ChevronRightIcon size={10} /> : null}
-              <span className="preview-crumb-text">{segment}</span>
-            </span>
-          ))}
-          <span className="preview-crumb current">
-            {crumbs.length > 0 ? <ChevronRightIcon size={10} /> : null}
-            <FileTypeIcon path={tab.id} />
-            <strong>{tab.name}</strong>
-          </span>
-        </nav>
+        <PreviewBreadcrumbs
+          crumbs={crumbs}
+          current={tab.name}
+          iconPath={tab.id}
+          title={tab.id}
+          ariaLabel={tr("文件路径", "File path")}
+        />
         <div className="preview-actions-group">
           {markdownBody ? (
             <div className="preview-view-toggle" role="group" aria-label={tr("Markdown 显示方式", "Markdown view mode")}>
