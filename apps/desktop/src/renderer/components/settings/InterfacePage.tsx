@@ -13,6 +13,7 @@ import { composerLayouts, setComposerLayout, useComposerLayout, type ComposerLay
 import { Segmented, SettingsBlock, SettingsGroup, SettingsSwitch } from "./primitives";
 import { SettingsSelect } from "./SettingsSelect";
 import { filePreviewOpenModes, setFilePreviewOpenMode, useFilePreviewOpenMode, type FilePreviewOpenMode } from "../../hooks/useFilePreviewOpenMode";
+import { previewBreadcrumbModes, setPreviewBreadcrumbMode, usePreviewBreadcrumbMode, type PreviewBreadcrumbMode } from "../../hooks/usePreviewBreadcrumbMode";
 
 export function InterfacePage({
   copy,
@@ -36,6 +37,11 @@ export function InterfacePage({
     setSendButtonIcon,
   } = preferences;
   const text = copy.appearance;
+  const previewBreadcrumbMode = usePreviewBreadcrumbMode();
+  const previewBreadcrumbModeLabels: Record<PreviewBreadcrumbMode, string> = {
+    scroll: text.previewBreadcrumbModeScroll,
+    hover: text.previewBreadcrumbModeHover,
+  };
   const filePreviewOpenMode = useFilePreviewOpenMode();
   const filePreviewOpenModeLabels: Record<FilePreviewOpenMode, string> = {
     "new-tab": text.filePreviewOpenModeNewTab,
@@ -115,6 +121,10 @@ export function InterfacePage({
         <SettingsBlock id="file-preview-open-mode" title={text.filePreviewOpenMode} hint={text.filePreviewOpenModeHint} layout="inline">
           <Segmented label={text.filePreviewOpenMode} value={filePreviewOpenMode}
             options={filePreviewOpenModes.map(id => ({ id, label: filePreviewOpenModeLabels[id] }))} onChange={setFilePreviewOpenMode} />
+        </SettingsBlock>
+        <SettingsBlock id="preview-breadcrumb-mode" title={text.previewBreadcrumbMode} hint={text.previewBreadcrumbModeHint} layout="inline">
+          <Segmented label={text.previewBreadcrumbMode} value={previewBreadcrumbMode}
+            options={previewBreadcrumbModes.map(id => ({ id, label: previewBreadcrumbModeLabels[id] }))} onChange={setPreviewBreadcrumbMode} />
         </SettingsBlock>
         <SettingsBlock id="workbench-split" title={text.workbenchSplit} hint={text.workbenchSplitHint} layout="inline">
           <SettingsSwitch label={text.workbenchSplit} checked={preferences.workbenchSplit} onChange={preferences.setWorkbenchSplit} />

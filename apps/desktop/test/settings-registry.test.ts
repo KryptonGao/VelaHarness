@@ -116,3 +116,20 @@ test("search requires every word, normalizes case and width, and ranks title hit
   assert.ok(searchSettings("DARK mode", en).some((result) => result.entry.id === "theme"));
   assert.equal(searchSettings("theme zzzz", en).length, 0);
 });
+
+test("breadcrumb display is searchable on Interface and translated in all five locales", () => {
+  const english = settingsCopy("en").appearance;
+  for (const locale of ["zh-CN", "en", "zh-TW", "ja", "ko"] as const) {
+    const copy = settingsCopy(locale);
+    const entries = resolveSettingsEntries(copy);
+    for (const query of ["面包屑", "触控板", "完整路径", "breadcrumb", "trackpad", "right panel"]) {
+      const result = searchSettings(query, entries).find(result => result.entry.id === "preview-breadcrumb-mode");
+      assert.equal(result?.entry.page, "interface", `${locale}: ${query}`);
+    }
+    for (const field of ["previewBreadcrumbMode", "previewBreadcrumbModeHint", "previewBreadcrumbModeScroll", "previewBreadcrumbModeHover"] as const) {
+      assert.ok(copy.appearance[field], `${locale}: ${field}`);
+      if (locale !== "en") assert.notEqual(copy.appearance[field], english[field], `${locale}: ${field}`);
+    }
+    assert.ok(searchSettings(copy.appearance.previewBreadcrumbMode, entries).some(result => result.entry.id === "preview-breadcrumb-mode"));
+  }
+});
