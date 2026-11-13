@@ -528,6 +528,17 @@
   color: var(--text-muted);
 }
 .coherent-flat { min-width: 0; margin: 2px 0 6px; }
+/* 组内展开的步骤行(已读取、已编辑、待办等动词与标签)与标题一致,跟随回复字体;
+   文件名、目录、示例文本和 diff 统计是标识符,保留界面字体,命令仍用等宽。 */
+:is(.thinking-block.is-coherent, .coherent-flat) :is(.tool-compact-summary, .tool-compact-line, .plan-checklist) {
+  font-family: var(--font-reply);
+  font-weight: var(--font-reply-weight);
+  -webkit-text-stroke: var(--font-reply-stroke) currentColor;
+}
+:is(.thinking-block.is-coherent, .coherent-flat) :is(.tool-compact-name, .tool-compact-dir, .tool-compact-sample:not(.is-code), .tool-compact-stat) {
+  font-family: var(--font-sans);
+  -webkit-text-stroke: 0;
+}
 /* 组内思考标题和展开正文也跟随回复字体,代码仍使用各自的等宽字体。 */
 .coherent-thought {
   min-width: 0;
