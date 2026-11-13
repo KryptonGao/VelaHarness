@@ -90,7 +90,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 6px;
   border-bottom: 1px solid var(--border-subtle);
 }
 .preview-breadcrumbs-text {
@@ -120,46 +120,28 @@
   overflow: hidden;
   padding: 2px 4px;
   border-radius: var(--radius-xs);
-}
-.preview-crumb.current {
-  flex: 0 0 auto;
-  max-width: 70%;
+  transition: background-color 100ms ease, color 100ms ease;
 }
 /* Hovering a truncated segment grows it to its full text. flex-shrink is
  * interpolated 1 -> 0, so the segment widens smoothly while its siblings
- * give the space back; the short delay keeps a sweep across the path from
- * flickering every segment open. */
+ * give the space back; a short leave cooldown in JS keeps sliding between
+ * crumbs from collapsing the bar in between. */
 .preview-crumb {
-  transition: flex-shrink 90ms cubic-bezier(0.22, 1, 0.36, 1) 0ms,
-    max-width 90ms cubic-bezier(0.22, 1, 0.36, 1) 0ms;
+  transition: flex-shrink 90ms cubic-bezier(0.22, 1, 0.36, 1) 0ms;
 }
-.preview-crumb-text,
-.preview-breadcrumbs-text strong {
-  transition: background-color 100ms ease, color 100ms ease;
-}
-.preview-crumb-text[data-fade="true"],
-.preview-breadcrumbs-text strong[data-fade="true"] {
+.preview-crumb-text[data-fade="true"] {
   -webkit-mask-image: linear-gradient(to right, #000 calc(100% - min(16px, 45%)), transparent);
   mask-image: linear-gradient(to right, #000 calc(100% - min(16px, 45%)), transparent);
 }
-.preview-crumb:hover {
+.preview-crumb[data-active="true"] {
   flex-shrink: 0;
-  max-width: 100%;
-  transition-delay: 16ms;
 }
-.preview-crumb:not(.current):hover .preview-crumb-text {
+.preview-crumb[data-active="true"] .preview-crumb-text {
   background: var(--bg-sidebar-hover);
   color: var(--text-primary);
 }
 @media (prefers-reduced-motion: reduce) {
   .preview-crumb { transition: none; }
-}
-.preview-breadcrumbs-text strong {
-  min-width: 0;
-  overflow: hidden;
-  padding: 2px 4px;
-  color: var(--text-primary);
-  font-weight: 600;
 }
 .preview-crumb.current .file-type-icon {
   width: 15px;
@@ -181,12 +163,15 @@
   flex: none;
   width: 1px;
   height: 16px;
-  margin: 0 6px;
+  margin: 0 2px;
   background: var(--border-subtle);
+}
+.preview-actions-sep:first-child {
+  margin-left: 0;
 }
 .preview-actions-group .preview-view-toggle,
 .preview-actions-group .preview-action-pill {
-  margin-right: 4px;
+  margin-right: 2px;
 }
 .sidebar-right .preview-actions-group .icon-btn-ghost:disabled {
   opacity: 0.4;
