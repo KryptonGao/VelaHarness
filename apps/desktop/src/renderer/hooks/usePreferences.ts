@@ -75,6 +75,7 @@ const toolDisplayKey = "vela.toolDisplay";
 const toolFoldKey = "vela.toolFold";
 const toolProcessDetailsKey = "vela.toolProcessDetails";
 const runViewKey = "vela.runView";
+const filePathKey = "vela.filePath";
 const recommendedActionsKey = "vela.recommendedActions";
 const toolIconColorKey = "vela.toolIconColor";
 const thinkingGroupModeKey = "vela.thinkingGroupMode";
@@ -283,6 +284,10 @@ export function usePreferences() {
   const [runView, setRunView] = useState(() =>
     readStored(runViewKey, (value): value is string => value === "true", "false") === "true",
   );
+  /** 读取/编辑/创建文件行是否显示所在目录路径。默认显示。 */
+  const [filePath, setFilePath] = useState(() =>
+    readStored(filePathKey, (value): value is string => value === "true" || value === "false", "true") === "true",
+  );
   /** 推荐操作：模型完成任务后可给出后续操作卡片。默认开启，不额外调用模型。 */
   const [recommendedActions, setRecommendedActions] = useState(() =>
     readStored(recommendedActionsKey, (value): value is string => value === "true" || value === "false", "true") === "true",
@@ -468,6 +473,10 @@ export function usePreferences() {
   useEffect(() => writeStored(thinkingActivityDelayMsKey, String(thinkingActivityDelayMs)), [thinkingActivityDelayMs]);
   useEffect(() => writeStored(toolProcessDetailsKey, String(toolProcessDetails)), [toolProcessDetails]);
   useEffect(() => {
+    document.documentElement.dataset.filePath = String(filePath);
+    writeStored(filePathKey, String(filePath));
+  }, [filePath]);
+  useEffect(() => {
     writeStored(runViewKey, String(runView));
     // 运行时要据此决定是否要求模型提交待办清单;浏览器预览等没有 window.vela 的环境直接跳过。
     void Promise.resolve(window.vela?.setRunView(runView)).catch(() => undefined);
@@ -607,6 +616,7 @@ export function usePreferences() {
     toolFold,
     toolProcessDetails,
     runView,
+    filePath,
     recommendedActions,
     toolIconColor,
     thinkingGroupMode,
@@ -666,6 +676,7 @@ export function usePreferences() {
     setToolFold,
     setToolProcessDetails,
     setRunView,
+    setFilePath,
     setRecommendedActions,
     setToolIconColor,
     setThinkingGroupMode,

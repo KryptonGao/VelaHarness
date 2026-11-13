@@ -186,7 +186,7 @@ export function ToolHeadlineDetails({ tool }: { tool: ToolTrace }) {
   if (kind === "read" || kind === "edit" || kind === "write") return <>
     <FileTypeIcon path={activity.path?.trim() || subject.name} />
     <span className="tool-compact-name is-static">{skillName || subject.name}</span>
-    {!skillName && subject.dir ? <span className="tool-compact-dir">{subject.dir}</span> : null}
+    {!skillName && subject.dir ? <span className="tool-compact-dir is-file-path">{subject.dir}</span> : null}
   </>;
   return <>
     <span className={`tool-card-name${subject.dir ? "" : " grow"}${subjectIsCode(kind, activity) ? " is-code" : ""}`}>{subject.name}</span>

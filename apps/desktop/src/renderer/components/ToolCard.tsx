@@ -426,7 +426,7 @@ function GenericToolCard({ tool, compact = false }: ToolCardProps) {
               {planFirst ? <PlanStatusIcon status={planFirst.status} ended={planEnded} className="plan-status-inline" /> : null}
               {planFirst ? <span className="tool-card-name-text">{subject.name}</span> : subject.name}
             </span>
-            {subject.dir ? <span className="tool-card-dir">{subject.dir}</span> : null}
+            {subject.dir ? <span className={`tool-card-dir${kind === "read" || kind === "edit" || kind === "write" ? " is-file-path" : ""}`}>{subject.dir}</span> : null}
           </span>
           {mcp || discoveryServer ? <span className="tool-mcp-source" aria-label={trf("MCP 服务器：{0}", "MCP server: {0}", (mcp?.server ?? discoveryServer)!)}>{mcp?.server ?? discoveryServer}</span> : null}
           {stat ? (
@@ -902,7 +902,7 @@ export const CompactToolLine = memo(function CompactToolLine({
         {skillName ? <span className="tool-compact-action">{skillActionParts().after}</span> : null}
         {skillName ? null : hasFileDetails && subject.dir ? (
           <button
-            className="tool-compact-text-toggle tool-compact-path-toggle"
+            className="tool-compact-text-toggle tool-compact-path-toggle is-file-path"
             type="button"
             aria-expanded={detailOpen}
             title={subject.dir}
@@ -911,7 +911,7 @@ export const CompactToolLine = memo(function CompactToolLine({
             <span className="tool-compact-dir">{subject.dir}</span>
           </button>
         ) : !hasFileDetails ? (
-          <span className="tool-compact-dir">{subject.dir}</span>
+          <span className={`tool-compact-dir${kind === "read" ? " is-file-path" : ""}`}>{subject.dir}</span>
         ) : null}
         {stat && !isDiffPreview ? (
           <span className="tool-compact-stat">

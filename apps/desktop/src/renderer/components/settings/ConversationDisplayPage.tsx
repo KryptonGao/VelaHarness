@@ -33,6 +33,7 @@ export function ConversationDisplayPage({
     toolFold,
     toolProcessDetails,
     runView,
+    filePath,
     recommendedActions,
     toolIconColor,
     thinkingGroupMode,
@@ -57,6 +58,7 @@ export function ConversationDisplayPage({
     setToolFold,
     setToolProcessDetails,
     setRunView,
+    setFilePath,
     setRecommendedActions,
     setToolIconColor,
     setThinkingGroupMode,
@@ -202,6 +204,9 @@ export function ConversationDisplayPage({
       </SettingsBlock>
       <SettingsBlock id="run-view" title={text.runView} hint={text.runViewHint} layout="inline">
         <SettingsSwitch label={text.runView} checked={runView} onChange={setRunView} />
+      </SettingsBlock>
+      <SettingsBlock id="file-path" title={text.filePath} hint={text.filePathHint} layout="inline">
+        <SettingsSwitch label={text.filePath} checked={filePath} onChange={setFilePath} />
       </SettingsBlock>
       <SettingsBlock id="recommended-actions" title={text.recommendedActions} hint={text.recommendedActionsHint} layout="inline">
         <SettingsSwitch label={text.recommendedActions} checked={recommendedActions} onChange={setRecommendedActions} />

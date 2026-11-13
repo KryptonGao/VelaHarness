@@ -562,3 +562,6 @@
 }
 .tool-card.is-openable .tool-card-head { cursor: pointer; }
 
+
+/* 设置「文件显示路径」关闭时,隐藏读取/编辑/创建文件行的所在目录。 */
+:root[data-file-path="false"] .is-file-path { display: none; }
