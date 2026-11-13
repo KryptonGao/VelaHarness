@@ -1274,7 +1274,11 @@ button.compact-diff-card-name:focus-visible {
   --pull-gutter-bg: color-mix(in srgb, var(--diff-del-fg) var(--diff-gutter-opacity), var(--bg-card-surface));
 }
 /* 横向滚到头不再触发浏览器的手势后退;纵向是否带动外层由脚本决定,见 wheel-axis.ts。 */
-.compact-diff-scroll-shell .thinking-scroll-viewport { overscroll-behavior-x: contain; }
+.compact-diff-scroll-shell .thinking-scroll-viewport {
+  overscroll-behavior-x: contain;
+  /* 行号列的 z-index 只在视口内部比较:视口自成层叠上下文,上下边缘的渐隐(z-index 1)才能盖住 sticky 的行号列。 */
+  isolation: isolate;
+}
 .tool-sheet.tool-sheet-compact-diff {
   /* 不换行:长行在视口内横向滚动,每个行号只对应一行;行号列 sticky,所以这里不能裁剪溢出。 */
   width: max-content;

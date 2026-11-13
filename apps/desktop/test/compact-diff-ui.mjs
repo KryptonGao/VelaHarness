@@ -149,6 +149,7 @@ if (!process.versions.electron) {
       })()`);
       const before = await wheel(0, 0);
       assert.ok(before.wide && before.tall, 'Fixture must overflow on both axes: ' + JSON.stringify(before));
+      assert.equal(await evaluate("getComputedStyle(document.querySelector('.compact-diff-scroll-shell .thinking-scroll-viewport')).isolation"), 'isolate', 'The viewport is its own stacking context, so the edge fade (z-index 1) covers the sticky gutters (z-index 3)');
       const vertical = await wheel(6, 40);
       assert.ok(vertical.prevented && vertical.top === before.top + 40 && vertical.left === 0, 'Vertical gesture ignores sideways drift: ' + JSON.stringify(vertical));
       
