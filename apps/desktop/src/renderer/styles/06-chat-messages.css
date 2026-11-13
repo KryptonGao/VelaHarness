@@ -1254,6 +1254,11 @@ button.compact-diff-card-name:focus-visible {
   background: var(--bg-card-surface);
   --scroll-fade-background: var(--bg-card-surface);
 }
+/* 紧凑 diff 里整行底色比行号列略深(11% 对 8%);自定义属性在定义处解析,所以 add/del 底色要在这里重新定义。 */
+.compact-diff-scroll-shell {
+  --diff-add-bg: color-mix(in srgb, var(--diff-add-fg) var(--diff-compact-bg-opacity), transparent);
+  --diff-del-bg: color-mix(in srgb, var(--diff-del-fg) var(--diff-compact-bg-opacity), transparent);
+}
 .compact-diff-scroll-shell .thinking-scroll-viewport .thinking-text {
   padding: 0;
 }
@@ -1261,7 +1266,7 @@ button.compact-diff-card-name:focus-visible {
 /* 越界时内容被拉开,露出的空白沿用离它最近那一行的颜色:白(上下文)、绿(新增)、红(删除),行号列也一并延续。 */
 .compact-diff-scroll-shell .thinking-scroll-viewport[data-pull-edge] {
   background:
-    linear-gradient(to right, var(--pull-gutter-bg, var(--bg-card-surface)) calc(var(--pull-gutter, 0px) - 3px), var(--bg-card-surface) 0 var(--pull-gutter, 0px), transparent 0),
+    linear-gradient(to right, var(--pull-gutter-bg, var(--bg-card-surface)) calc(var(--pull-gutter, 0px) - 2px), var(--bg-card-surface) 0 var(--pull-gutter, 0px), transparent 0),
     linear-gradient(var(--pull-row-bg, transparent), var(--pull-row-bg, transparent)),
     var(--bg-card-surface);
 }
@@ -1293,7 +1298,7 @@ button.compact-diff-card-name:focus-visible {
   min-height: 23px;
   padding-right: 8px;
 }
-/* 行号列不透明且固定在左侧,横向滚动时代码从它下面滑过;改动行的行号列比整行底色深一阶,左缘 3px 色条。 */
+/* 行号列不透明且固定在左侧,横向滚动时代码从它下面滑过;改动行的行号列比整行底色略浅,左缘 3px 色条。 */
 .tool-sheet-compact-diff .tool-gutter {
   position: sticky;
   left: 0;
@@ -1307,8 +1312,8 @@ button.compact-diff-card-name:focus-visible {
      下一行的行号列在 DOM 里更靠后,会盖在这 1px 之上,颜色不同的相邻行互不串色。
      紧挨分隔带或排在最后的行不伸出,否则会盖掉分隔带最上面那 1px,让左侧行号区的分隔线比右侧的细。 */
   margin-bottom: -1px;
-  /* 行号列与代码区之间是一条卡片底色(浅色模式白、深色模式深色)的竖条,不画灰线。 */
-  border-right: 3px solid var(--bg-card-surface);
+  /* 行号列与代码区之间是一条 2px 卡片底色(浅色模式白、深色模式深色)的细竖条,不画灰线。 */
+  border-right: 2px solid var(--bg-card-surface);
   background: var(--bg-card-surface);
   color: var(--text-muted);
 }

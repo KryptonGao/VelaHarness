@@ -458,13 +458,13 @@ if (!process.versions.electron) {
                 stripe: getComputedStyle(gutter).boxShadow, divider: getComputedStyle(gutter).borderRightColor + ' ' + getComputedStyle(gutter).borderRightWidth, surface};
             })()`);
             const expected = {
-              background: await resolvedColor('color-mix(in srgb, ' + foreground + ' 7%, transparent)'),
+              background: await resolvedColor('color-mix(in srgb, ' + foreground + ' 11%, transparent)'),
               text: await resolvedColor('var(--text-primary)'), gutterText: await resolvedColor(foreground),
-              gutterBackground: await resolvedColor('color-mix(in srgb, ' + foreground + ' 15%, ' + actual.surface + ')'),
+              gutterBackground: await resolvedColor('color-mix(in srgb, ' + foreground + ' 8%, ' + actual.surface + ')'),
             };
             assert.deepEqual({background: actual.background, text: actual.text, gutterText: actual.gutterText, gutterBackground: actual.gutterBackground}, expected,
-              `${theme || 'default'}/${scheme}/${kind}: 7% line tint, 15% opaque gutter with colored numbers, neutral code text`);
-            assert.equal(actual.divider, actual.surface + ' 3px', `${theme || 'default'}/${scheme}/${kind}: divider is a card-surface block, not a grey line`);
+              `${theme || 'default'}/${scheme}/${kind}: 11% line tint, 8% opaque gutter with colored numbers, neutral code text`);
+            assert.equal(actual.divider, actual.surface + ' 2px', `${theme || 'default'}/${scheme}/${kind}: divider is a card-surface block, not a grey line`);
             assert.ok(actual.stripe.startsWith(await resolvedColor(foreground)) && actual.stripe.includes('inset'), `${theme || 'default'}/${scheme}/${kind}: gutter keeps the 3px stripe: ${actual.stripe}`);
           }
         }

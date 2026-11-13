@@ -222,7 +222,8 @@
   --diff-del-fg: #e02e2a;
   /* Shared tints over the actual theme surface: whole line, gutter block, changed words. */
   --diff-bg-opacity: 7%;
-  --diff-gutter-opacity: 15%;
+  --diff-gutter-opacity: 8%;
+  --diff-compact-bg-opacity: 11%;
   --diff-word-opacity: 14%;
   --diff-add-bg: color-mix(in srgb, var(--diff-add-fg) var(--diff-bg-opacity), transparent);
   --diff-del-bg: color-mix(in srgb, var(--diff-del-fg) var(--diff-bg-opacity), transparent);
