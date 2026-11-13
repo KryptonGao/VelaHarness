@@ -46,6 +46,44 @@ describe("lockWheelAxis", () => {
     assert.equal(lockWheelAxis(lock, 30, 0, 1080), "y");
   });
 
+  it("starts a new gesture when a fresh flick arrives during inertia on the same axis", () => {
+    const lock: AxisLock = { axis: null, lastTime: 0 };
+    lockWheelAxis(lock, 0, 40, 1000);
+    lockWheelAxis(lock, 0, 20, 1016);
+    lockWheelAxis(lock, 0, 10, 1032);
+    assert.equal(lock.fresh, false);
+    lockWheelAxis(lock, 0, 4, 1048);
+    assert.equal(lock.fresh, false);
+    lockWheelAxis(lock, 0, 12, 1064);
+    assert.equal(lock.fresh, true);
+    lockWheelAxis(lock, 0, 20, 1080);
+    assert.equal(lock.fresh, false);
+  });
+
+  it("does not restart when the finger speeds up without having decayed", () => {
+    const lock: AxisLock = { axis: null, lastTime: 0 };
+    lockWheelAxis(lock, 0, 20, 1000);
+    lockWheelAxis(lock, 0, 20, 1016);
+    lockWheelAxis(lock, 0, 120, 1032);
+    assert.equal(lock.fresh, false);
+  });
+
+  it("does not restart on a steady speed-up after an earlier faster burst", () => {
+    const lock: AxisLock = { axis: null, lastTime: 0 };
+    lockWheelAxis(lock, 0, 40, 1000);
+    lockWheelAxis(lock, 0, 20, 1016);
+    lockWheelAxis(lock, 0, 20, 1032);
+    lockWheelAxis(lock, 0, 120, 1048);
+    assert.equal(lock.fresh, false);
+  });
+
+  it("starts a new gesture when the direction reverses mid-inertia", () => {
+    const lock: AxisLock = { axis: null, lastTime: 0 };
+    lockWheelAxis(lock, 0, 30, 1000);
+    lockWheelAxis(lock, 0, -8, 1016);
+    assert.equal(lock.fresh, true);
+  });
+
   it("treats a tie as vertical", () => {
     assert.equal(lockWheelAxis({ axis: null, lastTime: 0 }, 5, 5, 10), "y");
   });

@@ -31,7 +31,21 @@ export interface AxisLock {
   fresh?: boolean;
   /** 手势中连续出现的「另一轴明显占优」的事件数,凑够 SWITCH_EVENTS 就认为用户换了方向。 */
   switching?: number;
+  /** 当前轴上最近一个非零位移(带符号),用来识别惯性衰减中冒出来的新一轮滚动。 */
+  lastDelta?: number;
+  /** 当前手势里这根轴上出现过的最大位移,用来判断眼下是不是已经衰减到惯性尾巴。 */
+  peak?: number;
+  /** 上一个事件相对再上一个是否在变小:惯性尾巴是一路衰减的,手指匀速滑动则不是。 */
+  falling?: boolean;
 }
+
+/**
+ * 同轴新一轮滚动的识别:方向反过来,或者已经衰减到峰值一半以下的惯性尾巴里,位移突然比上一个事件大这么多倍,就当作新手势。
+ * 只看尾巴是为了不误伤手指没松开时的加速:那种情况上一个事件仍接近峰值。
+ */
+const RESTART_RATIO = 2;
+const TAIL_RATIO = 0.5;
+const RESTART_MIN_PX = 6;
 
 /** 另一轴要比当前锁定轴大这么多倍、且位移不小于 SWITCH_MIN_PX,才算用户想换方向,而不是手指的抖动。 */
 const SWITCH_RATIO = 2;
@@ -55,8 +69,31 @@ export function lockWheelAxis(lock: AxisLock, deltaX: number, deltaY: number, ti
       if (lock.switching >= SWITCH_EVENTS) lock.fresh = true;
     } else lock.switching = 0;
   } else lock.switching = 0;
+  // 同一个轴上,惯性期间位移只会衰减;突然变大或反向,说明用户松手后又划了一下,不用等惯性停。
+  if (!lock.fresh && lock.axis !== null && dominant === lock.axis) {
+    const d = lock.axis === "x" ? deltaX : deltaY;
+    const prev = lock.lastDelta ?? 0;
+    if (prev !== 0 && Math.abs(d) >= SWITCH_MIN_PX && Math.sign(d) !== Math.sign(prev)) lock.fresh = true;
+    else if (
+      Math.abs(d) >= RESTART_MIN_PX &&
+      Math.abs(d) >= Math.abs(prev) * RESTART_RATIO &&
+      Math.abs(prev) <= (lock.peak ?? 0) * TAIL_RATIO &&
+      lock.falling
+    )
+      lock.fresh = true;
+  }
   const axis: WheelAxis = lock.fresh ? dominant : lock.axis!;
   if (lock.fresh) lock.switching = 0;
+  const along = axis === "x" ? deltaX : deltaY;
+  if (lock.fresh) {
+    lock.lastDelta = along;
+    lock.peak = Math.abs(along);
+    lock.falling = false;
+  } else if (along !== 0) {
+    lock.falling = Math.abs(along) < Math.abs(lock.lastDelta ?? 0);
+    lock.lastDelta = along;
+    lock.peak = Math.max(lock.peak ?? 0, Math.abs(along));
+  }
   lock.axis = axis;
   lock.lastTime = time;
   return axis;
