@@ -25,6 +25,27 @@ describe("lockWheelAxis", () => {
     assert.equal(lock.fresh, true);
   });
 
+  it("switches axis during inertia once the other axis clearly takes over", () => {
+    const lock: AxisLock = { axis: null, lastTime: 0 };
+    assert.equal(lockWheelAxis(lock, 0, 40, 1000), "y");
+    assert.equal(lockWheelAxis(lock, 0, 12, 1016), "y");
+    assert.equal(lockWheelAxis(lock, 20, 0, 1032), "y");
+    assert.equal(lockWheelAxis(lock, 24, 0, 1048), "x");
+    assert.equal(lock.fresh, true);
+    assert.equal(lockWheelAxis(lock, 18, 1, 1064), "x");
+    assert.equal(lock.fresh, false);
+  });
+
+  it("does not switch for small or isolated off-axis deltas", () => {
+    const lock: AxisLock = { axis: null, lastTime: 0 };
+    lockWheelAxis(lock, 0, 40, 1000);
+    assert.equal(lockWheelAxis(lock, 2, 0, 1016), "y");
+    assert.equal(lockWheelAxis(lock, 2, 0, 1032), "y");
+    assert.equal(lockWheelAxis(lock, 30, 0, 1048), "y");
+    assert.equal(lockWheelAxis(lock, 0, 10, 1064), "y");
+    assert.equal(lockWheelAxis(lock, 30, 0, 1080), "y");
+  });
+
   it("treats a tie as vertical", () => {
     assert.equal(lockWheelAxis({ axis: null, lastTime: 0 }, 5, 5, 10), "y");
   });

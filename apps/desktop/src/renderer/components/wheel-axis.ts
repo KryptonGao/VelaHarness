@@ -29,12 +29,34 @@ export interface AxisLock {
   lastTime: number;
   /** 最近一次 lockWheelAxis 调用是否开启了新手势。 */
   fresh?: boolean;
+  /** 手势中连续出现的「另一轴明显占优」的事件数,凑够 SWITCH_EVENTS 就认为用户换了方向。 */
+  switching?: number;
 }
 
-/** 一次手势只选一个方向:手势的第一个事件里位移更大的那个轴,之后整段手势(含惯性)都沿用。 */
+/** 另一轴要比当前锁定轴大这么多倍、且位移不小于 SWITCH_MIN_PX,才算用户想换方向,而不是手指的抖动。 */
+const SWITCH_RATIO = 2;
+const SWITCH_MIN_PX = 3;
+/** 连续这么多个事件都朝另一轴时才切换,单个事件的偏移不会打断当前手势。 */
+const SWITCH_EVENTS = 2;
+
+/**
+ * 一次手势只选一个方向:手势的第一个事件里位移更大的那个轴,之后整段手势(含惯性)都沿用。
+ * 惯性可以持续一两秒,期间事件间隔始终小于 GESTURE_IDLE_MS,单靠停顿判定会让用户上下滚完后必须等惯性结束才能横向滚动。
+ * 所以锁定期间若连续出现另一轴明显占优的事件(惯性只会沿原方向衰减,不会突然朝另一轴),就当作新手势立即换轴。
+ */
 export function lockWheelAxis(lock: AxisLock, deltaX: number, deltaY: number, time: number): WheelAxis {
+  const dominant: WheelAxis = Math.abs(deltaX) > Math.abs(deltaY) ? "x" : "y";
   lock.fresh = lock.axis === null || time - lock.lastTime > GESTURE_IDLE_MS;
-  const axis: WheelAxis = lock.fresh ? (Math.abs(deltaX) > Math.abs(deltaY) ? "x" : "y") : lock.axis!;
+  if (!lock.fresh && lock.axis !== null && dominant !== lock.axis) {
+    const other = Math.abs(lock.axis === "x" ? deltaY : deltaX);
+    const own = Math.abs(lock.axis === "x" ? deltaX : deltaY);
+    if (other >= SWITCH_MIN_PX && other >= own * SWITCH_RATIO) {
+      lock.switching = (lock.switching ?? 0) + 1;
+      if (lock.switching >= SWITCH_EVENTS) lock.fresh = true;
+    } else lock.switching = 0;
+  } else lock.switching = 0;
+  const axis: WheelAxis = lock.fresh ? dominant : lock.axis!;
+  if (lock.fresh) lock.switching = 0;
   lock.axis = axis;
   lock.lastTime = time;
   return axis;
