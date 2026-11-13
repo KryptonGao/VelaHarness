@@ -1,144 +1,144 @@
 {
-  "version": "1.2.34",
+  "version": "1.2.35",
   "locales": {
     "en": {
-      "summary": "Vela 1.2.34 runs chats in their own Git worktrees, adds a model pool for subagents, and makes the todo list optional.",
+      "summary": "Vela 1.2.35 fixes the workbench and right-panel toggles in place, adds a full-path breadcrumb, and gives compact tool display a minimal mode.",
       "highlights": [
         {
-          "title": "Worktree chats with hand-off",
-          "body": "Run a chat in its own Git worktree so edits stay separate from your checkout, then hand the changes off from the composer."
+          "title": "Fixed layout toggles",
+          "body": "The workbench and right-panel toggles stay in place while panels slide open and closed beneath them."
         },
         {
-          "title": "Subagent model pool",
-          "body": "Choose which models subagents may use on the new Subagent models page; the model in use shows in the Agent pane."
+          "title": "Full-path breadcrumb",
+          "body": "File previews show the full path as a scrollable breadcrumb that fades clipped segments and expands quickly on hover."
         },
         {
-          "title": "Message subagents directly",
-          "body": "Send a message straight to a subagent; it is handled after its current turn and the main agent is informed."
+          "title": "Minimal compact display",
+          "body": "A new minimal mode for compact tool display hides file icons and paths and underlines file names with a dashed line."
         },
         {
-          "title": "Subagents in usage statistics",
-          "body": "Every subagent request is counted under its own model in Usage and cost totals."
+          "title": "Show or hide directories",
+          "body": "A new setting shows or hides directories on file read, edit, and create rows."
         }
       ],
       "improvements": [
-        "The Run View todo list is optional for simple tasks and uses 2–7 items.",
-        "The Midnight theme is now a plain neutral dark theme named Dark.",
-        "Subagents show the model they actually run on, by display name.",
-        "Saving the subagent model pool now keeps your changes.",
-        "Model settings and the Usage page scroll and align better."
+        "The breadcrumb's current segment, separator gap, and hover cooldown are polished.",
+        "Compact diff tints are lighter and the gutter divider is thinner.",
+        "The diff edge fade now covers the line-number column.",
+        "Scrolling during inertia handles direction changes and new flicks better.",
+        "Expanded step rows in grouped steps follow the reply font."
       ]
     },
     "zh-CN": {
-      "summary": "Vela 1.2.34 支持在独立的 Git worktree 中运行对话，新增子代理模型池，并让待办清单变为可选。",
+      "summary": "Vela 1.2.35 将工作台与右侧面板开关固定在原位，新增完整路径面包屑，并为紧凑工具显示加入极简模式。",
       "highlights": [
         {
-          "title": "Worktree 对话与交接",
-          "body": "让对话在独立的 Git worktree 中运行，改动与你的工作目录分开，再从输入框交接改动。"
+          "title": "固定的布局开关",
+          "body": "工作台与右侧面板的开关保持原位，面板在其下方滑入滑出。"
         },
         {
-          "title": "子代理模型池",
-          "body": "在新的“子代理模型”页面选择子代理可用的模型，实际使用的模型会显示在 Agent 面板中。"
+          "title": "完整路径面包屑",
+          "body": "文件预览以可滚动的面包屑显示完整路径，被裁切的片段会渐隐，悬停时更快展开。"
         },
         {
-          "title": "直接与子代理对话",
-          "body": "可直接给子代理发消息，它会在当前回合结束后处理，并同步告知主代理。"
+          "title": "极简紧凑显示",
+          "body": "紧凑工具显示新增极简模式，隐藏文件图标与路径，并为文件名加上灰色虚线下划线。"
         },
         {
-          "title": "子代理计入用量统计",
-          "body": "每个子代理请求都按其自身模型计入用量与费用统计。"
+          "title": "显示或隐藏目录",
+          "body": "新增设置，可在读取、编辑和创建文件的行上显示或隐藏目录。"
         }
       ],
       "improvements": [
-        "运行视图的待办清单对简单任务变为可选，条目数为 2–7 项。",
-        "Midnight 主题现在是名为 Dark 的中性深色主题。",
-        "子代理会以显示名称展示其实际使用的模型。",
-        "保存子代理模型池现在会保留你的修改。",
-        "模型设置与用量页面的滚动和对齐更合理。"
+        "优化面包屑当前片段、分隔符间距与悬停离开的缓冲。",
+        "紧凑差异的底色更浅，行号栏分隔线更细。",
+        "差异边缘渐隐现在也覆盖行号列。",
+        "滚动惯性期间能更好地处理方向切换与新的滑动。",
+        "合并步骤中展开的步骤行跟随回复字体。"
       ]
     },
     "zh-TW": {
-      "summary": "Vela 1.2.34 支援在獨立的 Git worktree 中執行對話，新增子代理模型池，並讓待辦清單變為選用。",
+      "summary": "Vela 1.2.35 將工作台與右側面板開關固定在原位，新增完整路徑導覽列，並為精簡工具顯示加入極簡模式。",
       "highlights": [
         {
-          "title": "Worktree 對話與交接",
-          "body": "讓對話在獨立的 Git worktree 中執行，變更與你的工作目錄分開，再從輸入框交接變更。"
+          "title": "固定的版面開關",
+          "body": "工作台與右側面板的開關保持原位，面板在其下方滑入滑出。"
         },
         {
-          "title": "子代理模型池",
-          "body": "在新的「子代理模型」頁面選擇子代理可用的模型，實際使用的模型會顯示在 Agent 面板中。"
+          "title": "完整路徑導覽列",
+          "body": "檔案預覽以可捲動的導覽列顯示完整路徑，被裁切的片段會漸隱，滑鼠懸停時更快展開。"
         },
         {
-          "title": "直接與子代理對話",
-          "body": "可直接傳訊息給子代理，它會在目前回合結束後處理，並同步告知主代理。"
+          "title": "極簡精簡顯示",
+          "body": "精簡工具顯示新增極簡模式，隱藏檔案圖示與路徑，並為檔名加上灰色虛線底線。"
         },
         {
-          "title": "子代理計入用量統計",
-          "body": "每個子代理請求都依其自身模型計入用量與費用統計。"
+          "title": "顯示或隱藏目錄",
+          "body": "新增設定，可在讀取、編輯和建立檔案的列上顯示或隱藏目錄。"
         }
       ],
       "improvements": [
-        "執行檢視的待辦清單對簡單任務變為選用，項目數為 2–7 項。",
-        "Midnight 主題現在是名為 Dark 的中性深色主題。",
-        "子代理會以顯示名稱呈現其實際使用的模型。",
-        "儲存子代理模型池現在會保留你的修改。",
-        "模型設定與用量頁面的捲動和對齊更合理。"
+        "調整導覽列目前片段、分隔符間距與滑鼠離開的緩衝。",
+        "精簡差異的底色更淺，行號欄分隔線更細。",
+        "差異邊緣漸隱現在也涵蓋行號欄。",
+        "捲動慣性期間能更好地處理方向切換與新的滑動。",
+        "合併步驟中展開的步驟列跟隨回覆字型。"
       ]
     },
     "ja": {
-      "summary": "Vela 1.2.34 では、チャットを専用の Git worktree で実行でき、サブエージェント用のモデルプールを追加し、ToDo リストを任意にしました。",
+      "summary": "Vela 1.2.35 では、ワークベンチと右パネルの切り替えを固定位置にし、フルパスのパンくずを追加し、コンパクトなツール表示にミニマルモードを加えました。",
       "highlights": [
         {
-          "title": "Worktree チャットと引き継ぎ",
-          "body": "チャットを専用の Git worktree で実行して変更をチェックアウトと分け、コンポーザーから変更を引き継げます。"
+          "title": "固定されたレイアウト切り替え",
+          "body": "ワークベンチと右パネルの切り替えは位置を保ち、パネルはその下でスライドして開閉します。"
         },
         {
-          "title": "サブエージェントのモデルプール",
-          "body": "新しい「サブエージェントモデル」ページで使用可能なモデルを選べ、実際のモデルは Agent ペインに表示されます。"
+          "title": "フルパスのパンくず",
+          "body": "ファイルプレビューにフルパスをスクロール可能なパンくずで表示し、切れた部分はフェードし、ホバーですばやく展開します。"
         },
         {
-          "title": "サブエージェントに直接メッセージ",
-          "body": "サブエージェントに直接メッセージを送れます。現在のターン終了後に処理され、メインエージェントにも通知されます。"
+          "title": "ミニマルなコンパクト表示",
+          "body": "コンパクトなツール表示に新しいミニマルモードを追加し、ファイルアイコンとパスを隠してファイル名に灰色の破線を引きます。"
         },
         {
-          "title": "使用量統計にサブエージェントを反映",
-          "body": "すべてのサブエージェントのリクエストが、それぞれのモデルで使用量とコストに集計されます。"
+          "title": "ディレクトリの表示切り替え",
+          "body": "ファイルの読み取り・編集・作成の行でディレクトリを表示または非表示にする設定を追加しました。"
         }
       ],
       "improvements": [
-        "Run View の ToDo リストは単純なタスクでは任意になり、項目数は 2〜7 件です。",
-        "Midnight テーマは、Dark という名前のニュートラルなダークテーマになりました。",
-        "サブエージェントが実際に使うモデルが表示名で表示されます。",
-        "サブエージェントのモデルプールを保存すると変更が保持されます。",
-        "モデル設定と使用量ページのスクロールと配置を改善しました。"
+        "パンくずの現在の項目、区切りの間隔、ホバー終了時の猶予を調整しました。",
+        "コンパクトな差分の色味を淡くし、行番号の区切り線を細くしました。",
+        "差分の端のフェードが行番号の列にも及ぶようになりました。",
+        "スクロールの慣性中の方向転換や新しいフリックをより適切に処理します。",
+        "グループ化されたステップの展開行が返信のフォントに従います。"
       ]
     },
     "ko": {
-      "summary": "Vela 1.2.34는 채팅을 전용 Git worktree에서 실행하고, 서브에이전트 모델 풀을 추가하며, 할 일 목록을 선택 사항으로 바꿨습니다.",
+      "summary": "Vela 1.2.35는 워크벤치와 오른쪽 패널 전환 버튼을 제자리에 고정하고, 전체 경로 이동 경로를 추가하며, 간결한 도구 표시에 최소 모드를 더했습니다.",
       "highlights": [
         {
-          "title": "Worktree 채팅과 인계",
-          "body": "채팅을 전용 Git worktree에서 실행해 변경 사항을 체크아웃과 분리하고, 입력창에서 변경 사항을 인계할 수 있습니다."
+          "title": "고정된 레이아웃 전환",
+          "body": "워크벤치와 오른쪽 패널 전환 버튼은 제자리에 머물고, 패널은 그 아래에서 열리고 닫힙니다."
         },
         {
-          "title": "서브에이전트 모델 풀",
-          "body": "새 서브에이전트 모델 페이지에서 사용할 수 있는 모델을 고르며, 실제 사용 모델은 Agent 창에 표시됩니다."
+          "title": "전체 경로 이동 경로",
+          "body": "파일 미리보기에 전체 경로를 스크롤 가능한 이동 경로로 표시하며, 잘린 부분은 흐려지고 마우스를 올리면 빠르게 펼쳐집니다."
         },
         {
-          "title": "서브에이전트에 직접 메시지",
-          "body": "서브에이전트에 직접 메시지를 보낼 수 있으며, 현재 턴이 끝난 뒤 처리되고 메인 에이전트에도 알려집니다."
+          "title": "최소 간결 표시",
+          "body": "간결한 도구 표시에 새 최소 모드를 추가해 파일 아이콘과 경로를 숨기고 파일 이름에 회색 점선 밑줄을 긋습니다."
         },
         {
-          "title": "사용량 통계에 서브에이전트 반영",
-          "body": "모든 서브에이전트 요청이 각자의 모델로 사용량과 비용에 집계됩니다."
+          "title": "디렉터리 표시 전환",
+          "body": "파일 읽기, 편집, 생성 행에서 디렉터리를 표시하거나 숨기는 설정을 추가했습니다."
         }
       ],
       "improvements": [
-        "Run View 할 일 목록은 단순한 작업에서 선택 사항이며 항목은 2–7개입니다.",
-        "Midnight 테마가 Dark라는 이름의 중립적인 다크 테마로 바뀌었습니다.",
-        "서브에이전트가 실제로 쓰는 모델이 표시 이름으로 보입니다.",
-        "서브에이전트 모델 풀을 저장하면 변경 사항이 유지됩니다.",
-        "모델 설정과 사용량 페이지의 스크롤과 정렬이 개선되었습니다."
+        "이동 경로의 현재 항목, 구분 기호 간격, 호버 해제 지연을 다듬었습니다.",
+        "간결한 diff 색조가 더 옅어지고 줄 번호 구분선이 더 얇아졌습니다.",
+        "diff 가장자리 페이드가 줄 번호 열까지 덮습니다.",
+        "스크롤 관성 중 방향 전환과 새 플릭을 더 잘 처리합니다.",
+        "그룹화된 단계의 펼친 행이 답변 글꼴을 따릅니다."
       ]
     }
   }
