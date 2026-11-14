@@ -75,6 +75,8 @@ import { latestRecommendedActions } from "./recommended-actions";
 import { RecipeChatCard } from "./RecipeChatContext";
 import { ChatActionsMenu } from "./ChatActionsMenu";
 import { UserMessageFrame } from "./UserMessageFrame";
+import { TurnNav } from "./TurnNav";
+import { TURN_NAV_MIN_TURNS, buildTurnNavItems, findActiveTurnIndex } from "./turn-nav";
 import { ImageViewer, type ImageViewerRequest } from "./ImageViewer";
 import { localizeError, tr, trf, activeIntlLocale } from "../locale";
 import { ProviderErrorCard } from "./ProviderErrorCard";
@@ -396,6 +398,11 @@ export function ChatView({
   });
 
   const [showJumpToLatest, setShowJumpToLatest] = useState(false);
+  const [activeTurnIndex, setActiveTurnIndex] = useState(0);
+  const activeTurnIndexRef = useRef(0);
+  activeTurnIndexRef.current = activeTurnIndex;
+  const jumpLockRef = useRef<{ cancel: () => void } | null>(null);
+  const syncActiveTurnRef = useRef<() => void>(() => {});
   const syncJumpToLatest = useCallback(() => {
     const scroller = scrollerRef.current;
     if (!scroller) return;
@@ -422,15 +429,18 @@ export function ChatView({
     }
     if (followRef.current.pinned) scrollFollowToEnd(scroller, followRef.current);
     syncJumpToLatest();
+    syncActiveTurnRef.current();
   };
   const scheduleLayout = useCallback(() => layoutRef.current(), []);
 
   const jumpToLatest = useCallback(() => {
     const scroller = scrollerRef.current;
     if (!scroller) return;
+    jumpLockRef.current?.cancel();
     followRef.current.pinned = true;
     scrollFollowToEnd(scroller, followRef.current);
     setShowJumpToLatest(false);
+    syncActiveTurnRef.current();
   }, []);
 
   useLayoutEffect(() => {
@@ -440,6 +450,14 @@ export function ChatView({
     if (!scroller || !dock || !root) return;
 
     let scrollbarHideTimer: number | undefined;
+    let activeTurnRaf = 0;
+    const scheduleActiveTurnSync = () => {
+      if (activeTurnRaf || jumpLockRef.current) return;
+      activeTurnRaf = window.requestAnimationFrame(() => {
+        activeTurnRaf = 0;
+        syncActiveTurnRef.current();
+      });
+    };
     const showScrollbar = () => {
       scroller.classList.add("is-scrolling");
       window.clearTimeout(scrollbarHideTimer);
@@ -450,6 +468,7 @@ export function ChatView({
 
     const onScroll = () => {
       showScrollbar();
+      scheduleActiveTurnSync();
       const follow = followRef.current;
       if (follow.ignoreScroll) {
         follow.ignoreScroll = false;
@@ -484,7 +503,11 @@ export function ChatView({
       syncJumpToLatest();
     };
 
+    const cancelJumpLock = () => {
+      jumpLockRef.current?.cancel();
+    };
     const releaseIfScrollingUp = (towardEarlier: boolean) => {
+      cancelJumpLock();
       if (releasesStreamFollow(scroller.scrollTop, towardEarlier)) {
         followRef.current.pinned = false;
         syncJumpToLatest();
@@ -494,6 +517,7 @@ export function ChatView({
 
     let touchY = 0;
     const onTouchStart = (event: TouchEvent) => {
+      cancelJumpLock();
       touchY = event.touches[0]?.clientY ?? touchY;
     };
     const onTouchMove = (event: TouchEvent) => {
@@ -532,8 +556,11 @@ export function ChatView({
     scroller.addEventListener("wheel", onWheel, { passive: true });
     scroller.addEventListener("touchstart", onTouchStart, { passive: true });
     scroller.addEventListener("touchmove", onTouchMove, { passive: true });
+    scroller.addEventListener("pointerdown", cancelJumpLock, { passive: true });
     return () => {
       window.clearTimeout(scrollbarHideTimer);
+      if (activeTurnRaf) window.cancelAnimationFrame(activeTurnRaf);
+      jumpLockRef.current?.cancel();
       scroller.classList.remove("is-scrolling");
       observer.disconnect();
       contentObserver.disconnect();
@@ -542,6 +569,7 @@ export function ChatView({
       scroller.removeEventListener("wheel", onWheel);
       scroller.removeEventListener("touchstart", onTouchStart);
       scroller.removeEventListener("touchmove", onTouchMove);
+      scroller.removeEventListener("pointerdown", cancelJumpLock);
       root.style.removeProperty("--composer-clearance");
     };
   }, [scheduleLayout, syncJumpToLatest]);
@@ -668,6 +696,88 @@ export function ChatView({
   const previousTurns = useRef<MessageTurn[]>([]);
   const turns = useMemo(() => groupMessagesIntoTurns(messages, previousTurns.current), [messages]);
   useLayoutEffect(() => { previousTurns.current = turns; }, [turns]);
+  const turnNavItems = useMemo(() => (turns.length >= TURN_NAV_MIN_TURNS ? buildTurnNavItems(turns) : []), [turns]);
+  const showTurnNav = view === "chat" && !homeLayout && turnNavItems.length >= TURN_NAV_MIN_TURNS;
+
+  const computeActiveTurn = useCallback(() => {
+    if (!showTurnNav || jumpLockRef.current) return;
+    const scroller = scrollerRef.current;
+    const surface = messageSurfaceRef.current;
+    if (!scroller || !surface) return;
+    const elements = Array.from(surface.children).filter(
+      (element): element is HTMLElement => element instanceof HTMLElement && element.hasAttribute("data-turn-id"),
+    );
+    if (elements.length === 0) return;
+    const scrollerTop = scroller.getBoundingClientRect().top;
+    const scrollTop = scroller.scrollTop;
+    const next = findActiveTurnIndex({
+      scrollTop,
+      scrollHeight: scroller.scrollHeight,
+      clientHeight: scroller.clientHeight,
+      turnCount: elements.length,
+      getTurnTop: (index) => elements[index]!.getBoundingClientRect().top - scrollerTop + scrollTop,
+    });
+    if (next >= 0 && next !== activeTurnIndexRef.current) {
+      setActiveTurnIndex(next);
+    }
+  }, [showTurnNav]);
+
+  syncActiveTurnRef.current = computeActiveTurn;
+
+  useLayoutEffect(() => {
+    computeActiveTurn();
+  }, [computeActiveTurn, turns, messageSurfaceKey]);
+
+  const jumpToTurn = useCallback((turnId: string, index: number) => {
+    const scroller = scrollerRef.current;
+    const surface = messageSurfaceRef.current;
+    if (!scroller || !surface) return;
+    const target = Array.from(surface.children).find(
+      (element): element is HTMLElement => element instanceof HTMLElement && element.dataset.turnId === turnId,
+    );
+    if (!target) return;
+
+    jumpLockRef.current?.cancel();
+    followRef.current.pinned = false;
+    syncJumpToLatest();
+    setActiveTurnIndex(index);
+
+    const targetTop = Math.max(0, target.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop - 20);
+    if (Math.abs(scroller.scrollTop - targetTop) < 1) return;
+
+    const reduced = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let settled = false;
+    let timer = 0;
+    const cleanup = () => {
+      window.clearTimeout(timer);
+      scroller.removeEventListener("scrollend", onSettle);
+      if (jumpLockRef.current?.cancel === cancel) jumpLockRef.current = null;
+    };
+    const cancel = () => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+    };
+    const onSettle = () => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      // 跨过 .turn-deferred（content-visibility: auto）时，落点附近高度可能展开，微调到准确位置。
+      if (target.isConnected) {
+        const delta = target.getBoundingClientRect().top - scroller.getBoundingClientRect().top - 20;
+        if (Math.abs(delta) > 24) {
+          scroller.scrollTop = Math.max(0, scroller.scrollTop + delta);
+        }
+      }
+      syncJumpToLatest();
+      computeActiveTurn();
+    };
+
+    jumpLockRef.current = { cancel };
+    scroller.addEventListener("scrollend", onSettle, { once: true });
+    timer = window.setTimeout(onSettle, reduced ? 40 : 750);
+    scroller.scrollTo({ top: targetTop, behavior: reduced ? "auto" : "smooth" });
+  }, [computeActiveTurn, syncJumpToLatest]);
   const changesCache = useRef(new Map<MessageTurn, { root: string | null; changes: TurnChanges | null }>());
   const turnChanges = useMemo(() => {
     const root = project.workspace?.current ?? null;
@@ -824,7 +934,7 @@ export function ChatView({
         onAbort={onAbort}
         onOpenFile={(absolutePath) => void project.openFile(absolutePath)}
       /> : null}
-      <div className="chat-conversation-pane" role="tabpanel" id={conversationPanelId(tabIdPrefix, "chat")} aria-labelledby={conversationTabId(tabIdPrefix, "chat")} data-home={homeLayout ? "true" : undefined} data-prompts={showHomePrompts ? "true" : undefined} hidden={view !== "chat"} inert={view !== "chat" ? true : undefined}>
+      <div className="chat-conversation-pane" role="tabpanel" id={conversationPanelId(tabIdPrefix, "chat")} aria-labelledby={conversationTabId(tabIdPrefix, "chat")} data-home={homeLayout ? "true" : undefined} data-prompts={showHomePrompts ? "true" : undefined} data-turn-nav={showTurnNav ? "true" : undefined} hidden={view !== "chat"} inert={view !== "chat" ? true : undefined}>
       {homeLayout ? <VelaMark /> : null}
       {floatingInfo && infoCards && !emptyConversation ? (
         <InfoCardStack concealed={environmentCollapsed || infoCardsConcealed} state={state} project={project} messages={messages} planDraft={planDraft}
@@ -891,6 +1001,7 @@ export function ChatView({
                 {turn.user ? (
                   <UserTurnMessage
                     message={turn.user}
+                    turnId={turn.id}
                     thinkingActive={false}
                     entering={entering.has(turn.user.id)}
                     changes={null}
@@ -909,6 +1020,7 @@ export function ChatView({
                 {canCollapse && finalReply && lastAssistant ? (
                   <CompletedAssistantTurn
                     key={lastAssistant.id}
+                    turnId={!turn.user ? turn.id : undefined}
                     messages={turn.assistants}
                     finalReplies={finalReplies}
                     elapsed={formatElapsedTime(lastAssistant.turnStartedAt, lastAssistant.turnCompletedAt)}
@@ -929,7 +1041,7 @@ export function ChatView({
                     deferred={!isCurrentTurn}
                   />
                 ) : turn.assistants.length > 0 ? (
-                  <div className="assistant-live-turn">
+                  <div className="assistant-live-turn" data-turn-id={!turn.user ? turn.id : undefined}>
                     {liveStartedAt !== undefined ? <TurnProgressHeader startedAt={liveStartedAt} /> : null}
                     {toolFold === "position" || (groupsByReply(thinkingGroupMode) && turn.assistants.some(supportsThinkingGroups)) ? (
                       <article className="assistant-block">
@@ -1014,6 +1126,7 @@ export function ChatView({
       </PlanLiveContext.Provider>
       <SelectionActions containerRef={scrollerRef} onSideChat={startSideChat}
         onReply={(quote, text) => replyStore.addText(replyKey, quote, text)} />
+      {showTurnNav ? <TurnNav items={turnNavItems} activeIndex={activeTurnIndex} onJump={jumpToTurn} /> : null}
       <button
         type="button"
         className="chat-jump-latest"
@@ -1127,6 +1240,7 @@ const UserTurnMessage = memo(function UserTurnMessage({ editTurn, onEditTurn, ..
 
 const Message = memo(function Message({
   message,
+  turnId,
   thinkingActive,
   streaming = false,
   entering,
@@ -1144,6 +1258,7 @@ const Message = memo(function Message({
   deferred = false,
 }: {
   message: UiMessage;
+  turnId?: string;
   thinkingActive: boolean;
   streaming?: boolean;
   entering: boolean;
@@ -1166,7 +1281,7 @@ const Message = memo(function Message({
   if (message.role === "user") {
     const images = message.images ?? [];
     return (
-      <UserMessageFrame text={message.text} timestamp={message.timestamp} disabled={editDisabled} className={enterClass} onEdit={onEdit}>
+      <UserMessageFrame text={message.text} timestamp={message.timestamp} disabled={editDisabled} className={enterClass} turnId={turnId} onEdit={onEdit}>
         {images.length > 0 ? (
           <div className="user-attachments">
             {images.map((image, index) => (
@@ -1492,6 +1607,7 @@ function ModelToolSequence({
 }
 
 const CompletedAssistantTurn = memo(function CompletedAssistantTurn({
+  turnId,
   messages,
   finalReplies,
   elapsed,
@@ -1511,6 +1627,7 @@ const CompletedAssistantTurn = memo(function CompletedAssistantTurn({
   onOpenAcceptance,
   deferred,
 }: {
+  turnId?: string;
   messages: UiMessage[];
   finalReplies: UiMessage[];
   elapsed: string | null;
@@ -1558,7 +1675,7 @@ const CompletedAssistantTurn = memo(function CompletedAssistantTurn({
 
   return (
     // 完成时是把已展示的消息换成折叠布局，不是新消息，不能重播入场淡入。
-    <article className={`assistant-block assistant-turn${deferred ? " turn-deferred" : ""}`}>
+    <article className={`assistant-block assistant-turn${deferred ? " turn-deferred" : ""}`} data-turn-id={turnId}>
       {hasProcess || displayedElapsed ? (
       <div className={`time-spent-collapsible${expanded ? " expanded" : ""}`}>
         {hasProcess ? (

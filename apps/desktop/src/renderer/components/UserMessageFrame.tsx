@@ -4,7 +4,7 @@ import { activeIntlLocale, localizeError, tr, trf } from "../locale";
 import { modKeyLabel } from "../platform";
 
 /** The action row remains outside the bubble, aligned with its right edge. */
-export function UserMessageFrame({ text, timestamp, disabled, className, onEdit, editNote, savingLabel, children }: {
+export function UserMessageFrame({ text, timestamp, disabled, className, turnId, onEdit, editNote, savingLabel, children }: {
   text: string;
   /** 覆盖编辑框下方的说明；不会回退对话的场景（如 Resident）用它改成实际行为。 */
   editNote?: string;
@@ -12,6 +12,7 @@ export function UserMessageFrame({ text, timestamp, disabled, className, onEdit,
   timestamp?: number | null;
   disabled: boolean;
   className?: string;
+  turnId?: string;
   onEdit?: (text: string) => Promise<void>;
   children: ReactNode;
 }) {
@@ -42,7 +43,7 @@ export function UserMessageFrame({ text, timestamp, disabled, className, onEdit,
     finally { setSaving(false); }
   };
   return (
-    <div className={`user-msg-container${className ?? ""}`}>
+    <div className={`user-msg-container${className ?? ""}`} data-turn-id={turnId}>
       {editing ? (
         <form className="user-message-editor" onSubmit={event => { event.preventDefault(); void submit(); }}>
           <textarea ref={textarea} value={draft} aria-label={tr("修改消息", "Edit message")} maxLength={100_000}

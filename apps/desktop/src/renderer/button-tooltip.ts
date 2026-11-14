@@ -34,6 +34,7 @@ export const TOOLTIP_EXCLUDED = [
   ".tool-compact-detail-toggle",
   ".agent-compact-toggle",
   ".browser-call-head",
+  ".turn-nav",
 ].join(", ");
 
 /** 带 aria-expanded 但不是菜单触发器的按钮是折叠开关;顶栏的图标按钮除外。 */
