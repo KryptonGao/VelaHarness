@@ -11,6 +11,7 @@ import { setHomePrompts, useHomePrompts } from "../../hooks/useHomePrompts";
 import { setCombinedModePicker, useCombinedModePicker } from "../../hooks/useCombinedModePicker";
 import { composerLayouts, setComposerLayout, useComposerLayout, type ComposerLayout } from "../../hooks/useComposerLayout";
 import { Segmented, SettingsBlock, SettingsGroup, SettingsSwitch } from "./primitives";
+import { SpeechSettings } from "./SpeechSettings";
 import { SettingsSelect } from "./SettingsSelect";
 import { filePreviewOpenModes, setFilePreviewOpenMode, useFilePreviewOpenMode, type FilePreviewOpenMode } from "../../hooks/useFilePreviewOpenMode";
 import { previewBreadcrumbModes, setPreviewBreadcrumbMode, usePreviewBreadcrumbMode, type PreviewBreadcrumbMode } from "../../hooks/usePreviewBreadcrumbMode";
@@ -114,6 +115,7 @@ export function InterfacePage({
             </div>
           </SettingsBlock>
         ) : null}
+        <SpeechSettings />
         <SettingsBlock id="conversation-link-target" title={text.conversationLinkTarget} hint={text.conversationLinkHint} layout="inline">
           <Segmented label={text.conversationLinkTarget} value={conversationLinkTarget}
             options={conversationLinkOptions} onChange={setConversationLinkTarget} />

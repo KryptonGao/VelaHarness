@@ -10,7 +10,8 @@ import { useAgentWorkspace } from "./AgentPanel";
 import { modKeyLabel } from "../platform";
 import { readModelHint, writeModelHint } from "../startup-hint";
 import { useSecondClock } from "../hooks/useSecondClock";
-import { BranchIcon, CheckIcon, CopyIcon, HistoryIcon, PlusIcon, StackIcon } from "./icons";
+import { BranchIcon, CheckIcon, CopyIcon, HistoryIcon, PlusIcon, SpeakerIcon, StackIcon, StopSquareIcon } from "./icons";
+import { speakReply, stopSpeaking, useSpeechPlayback, useSpeechState } from "../hooks/useSpeech";
 import { trackEnteredMessages, type EnterTrack } from "./message-motion";
 import type { useModels } from "../hooks/useModels";
 import type { ProjectApi } from "../hooks/useProject";
@@ -974,6 +975,7 @@ export function ChatView({
                     {finalReply || acceptance ? (
                       <ReplyActions
                         text={joinReplyText(finalReplies)}
+                        speechId={finalReplies[finalReplies.length - 1]?.id ?? null}
                         replyless={!finalReply}
                         timestamp={finalReply?.timestamp ?? null}
                         branchTurn={branchTurn}
@@ -1619,6 +1621,7 @@ const CompletedAssistantTurn = memo(function CompletedAssistantTurn({
       <PlanPreviewList planIds={collectPlanIds(messages)} />
       <ReplyActions
         text={joinReplyText(finalReplies)}
+        speechId={finalReplies[finalReplies.length - 1]?.id ?? null}
         timestamp={replyTime}
         branchTurn={branchTurn}
         branchDisabled={branchTurn === null}
@@ -1635,6 +1638,7 @@ const CompletedAssistantTurn = memo(function CompletedAssistantTurn({
 /** 回复下方的操作行:左侧复制与分支,右侧显示回复完成的时间点。 */
 function ReplyActions({
   text,
+  speechId,
   replyless = false,
   timestamp,
   branchTurn,
@@ -1645,6 +1649,8 @@ function ReplyActions({
   onOpenAcceptance,
 }: {
   text: string;
+  /** 朗读用的回复 id；没有最终回复时为 null。 */
+  speechId: string | null;
   /** 本轮没有最终回复文本时，只保留验收入口。 */
   replyless?: boolean;
   timestamp: number | null;
@@ -1656,6 +1662,25 @@ function ReplyActions({
   onOpenAcceptance?: (request: AcceptanceRequest) => void;
 }) {
   const [copied, setCopied] = useState(false);
+  const speech = useSpeechState();
+  const playback = useSpeechPlayback();
+  const [speechError, setSpeechError] = useState<string | null>(null);
+  const speaking = speechId !== null && playback?.id === speechId ? playback : null;
+  // 这条回复被卸载（切换对话、重新生成）时不再继续朗读。
+  const playbackIdRef = useRef<string | null>(null);
+  playbackIdRef.current = playback?.id ?? null;
+  useEffect(() => () => { if (speechId !== null && speechId === playbackIdRef.current) stopSpeaking(); }, [speechId]);
+  useEffect(() => {
+    if (!speechError) return;
+    const timer = window.setTimeout(() => setSpeechError(null), 4000);
+    return () => window.clearTimeout(timer);
+  }, [speechError]);
+  const toggleSpeech = () => {
+    if (speechId === null) return;
+    if (speaking) { stopSpeaking(); return; }
+    setSpeechError(null);
+    void speakReply(speechId, text).then(error => { if (error) setSpeechError(error); });
+  };
   const time = formatReplyTime(timestamp);
   const copy = () => {
     void navigator.clipboard.writeText(text).then(
@@ -1680,6 +1705,20 @@ function ReplyActions({
         {copied ? <CheckIcon size={13} /> : <CopyIcon size={13} />}
         <span>{copied ? tr("已复制", "Copied") : tr("复制", "Copy")}</span>
       </button>
+      {speech.configured && speechId !== null ? (
+        <button
+          className="reply-action"
+          type="button"
+          data-speaking={speaking ? "true" : undefined}
+          title={speechError ?? (speaking ? tr("停止朗读", "Stop reading") : tr("朗读最终回复", "Read the final reply aloud"))}
+          aria-label={speaking ? tr("停止朗读", "Stop reading") : tr("朗读", "Read aloud")}
+          aria-pressed={speaking ? true : undefined}
+          onClick={toggleSpeech}
+        >
+          {speaking ? <StopSquareIcon size={13} /> : <SpeakerIcon size={13} />}
+          <span>{speechError ? tr("朗读失败", "Failed") : speaking ? (speaking.status === "loading" ? tr("正在生成…", "Preparing…") : tr("停止朗读", "Stop")) : tr("朗读", "Read aloud")}</span>
+        </button>
+      ) : null}
       <button
         className="reply-action"
         type="button"

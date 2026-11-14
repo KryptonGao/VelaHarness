@@ -51,6 +51,7 @@ import { McpHost } from "./mcp-host";
 import { HooksHost } from "./hooks-host";
 import { MemoryHost } from "./memory-host";
 import { WebToolsHost } from "./web-tools-host";
+import { SpeechHost } from "./speech-host";
 import { SecureCredentialStore } from "./plugin-credentials";
 import { ensureLoginShellPath } from "./shell-path";
 import { PrInboxHost } from "./pr-inbox-host";
@@ -99,6 +100,7 @@ let mcpHost: McpHost | null = null;
 let hooksHost: HooksHost | null = null;
 let memoryHost: MemoryHost | null = null;
 let webToolsHost: WebToolsHost | null = null;
+let speechHost: SpeechHost | null = null;
 let scheduledTaskHost: ScheduledTaskHost | null = null;
 let agentInboxAdapter: AgentInboxAdapter | null = null;
 let agentInboxHost: AgentInboxHost | null = null;
@@ -702,6 +704,8 @@ async function start(): Promise<void> {
   memoryHost.register();
   webToolsHost = new WebToolsHost(runtime);
   webToolsHost.register();
+  speechHost = new SpeechHost(new SecureCredentialStore(join(home, "speech-auth.enc.json")));
+  speechHost.register();
   terminals = new TerminalHost(() => workspaceManager.getState().current ?? fallbackCwd);
   terminals.register();
   registerOpenTargetIpc();
@@ -817,6 +821,8 @@ app.on("before-quit", (event) => {
   memoryHost = null;
   webToolsHost?.dispose();
   webToolsHost = null;
+  speechHost?.dispose();
+  speechHost = null;
   // 先停业务入口和订阅，再关闭 RuntimeHost（Runtime 与后台命令），最后等调度服务收尾。
   host?.dispose();
   const closing = runtimeHost?.dispose();

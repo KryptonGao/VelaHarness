@@ -325,6 +325,11 @@ const api: VelaApi = {
     setApiKey: (input) => ipcRenderer.invoke(IpcChannel.webToolsSetKey, input),
     test: (input) => ipcRenderer.invoke(IpcChannel.webToolsTest, input),
   },
+  speech: {
+    getState: () => ipcRenderer.invoke(IpcChannel.speechGet),
+    setApiKey: (input) => ipcRenderer.invoke(IpcChannel.speechSetKey, input),
+    synthesize: (input) => ipcRenderer.invoke(IpcChannel.speechSynthesize, input),
+  },
   memory: {
     setEnabled: (input) => ipcRenderer.invoke(IpcChannel.memorySetEnabled, input),
     list: (input) => ipcRenderer.invoke(IpcChannel.memoryList, input ?? {}),

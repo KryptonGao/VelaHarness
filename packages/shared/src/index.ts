@@ -5,6 +5,8 @@ export * from "./mcp";
 export * from "./memory";
 export * from "./web-tools";
 import type { WebToolsApi } from "./web-tools";
+export * from "./speech";
+import type { SpeechApi } from "./speech";
 export * from "./handoff";
 export * from "./task-budget";
 export * from "./model-pricing";
@@ -289,6 +291,9 @@ export const IpcChannel = {
   webToolsSave: "web-tools:save",
   webToolsSetKey: "web-tools:set-key",
   webToolsTest: "web-tools:test",
+  speechGet: "speech:get",
+  speechSetKey: "speech:set-key",
+  speechSynthesize: "speech:synthesize",
 } as const;
 
 import type { AppLocale } from "./i18n";
@@ -3094,6 +3099,8 @@ export interface VelaApi extends McpApi, PluginApi, HooksApi {
   memory: MemoryApi;
   /** 设置页的网页搜索与抓取提供商；密钥只能写入，不能读回。 */
   webTools: WebToolsApi;
+  /** 回复朗读（DeepSeek TTS）；密钥只能写入，不能读回。 */
+  speech: SpeechApi;
   /** 侧边聊天：不带工具的轻量对话，带入长期记忆。 */
   sideChat?: import("./side-chat").SideChatApi;
   /** 仅开发版提供。 */
