@@ -3,13 +3,15 @@
  * 未保存密钥时，回复下方不显示朗读按钮。
  */
 import { useState } from "react";
-import { speechErrorText, setSpeechApiKey, useSpeechState } from "../../hooks/useSpeech";
+import type { SpeechVoice } from "@vela/shared";
+import { speechErrorText, setSpeechApiKey, setSpeechVoice, useSpeechState, useSpeechVoice } from "../../hooks/useSpeech";
 import { tr } from "../../locale";
-import { SettingsBlock } from "./primitives";
+import { Segmented, SettingsBlock } from "./primitives";
 import "../../web-tools.css";
 
 export function SpeechSettings() {
   const speech = useSpeechState();
+  const voice = useSpeechVoice();
   const [key, setKey] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +33,12 @@ export function SpeechSettings() {
 
   const disabled = busy || !speech.keysAvailable;
   const title = tr("朗读", "Read aloud");
+  const voices: { id: SpeechVoice; label: string }[] = [
+    { id: "stella", label: tr("海星（女声）", "Stella (female)") },
+    { id: "tide", label: tr("暗潮（男声）", "Tide (male)") },
+  ];
   return (
+    <>
     <SettingsBlock
       title={title}
       hint={tr(
@@ -62,5 +69,9 @@ export function SpeechSettings() {
       {!speech.keysAvailable ? <p className="settings-error" role="alert">{tr("系统的安全存储不可用，无法保存密钥。", "Secure storage is unavailable, so the key can't be saved.")}</p> : null}
       {error ? <p className="settings-error" role="alert">{error}</p> : null}
     </SettingsBlock>
+    <SettingsBlock title={tr("朗读音色", "Voice")} layout="inline">
+      <Segmented label={tr("朗读音色", "Voice")} value={voice} options={voices} onChange={setSpeechVoice} />
+    </SettingsBlock>
+    </>
   );
 }

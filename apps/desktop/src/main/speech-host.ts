@@ -5,8 +5,8 @@
 import { BrowserWindow, ipcMain } from "electron";
 import type { CredentialStore } from "@vela/agent";
 import {
-  IpcChannel, createLogger, speechLimits,
-  type SpeechFailureCode, type SpeechResult, type SpeechState,
+  IpcChannel, createLogger, defaultSpeechVoice, isSpeechVoice, speechLimits,
+  type SpeechFailureCode, type SpeechResult, type SpeechState, type SpeechVoice,
 } from "@vela/shared";
 
 const log = createLogger("speech");
@@ -29,11 +29,12 @@ export function parseSetKeyRequest(raw: unknown): { apiKey: string | null } {
   return { apiKey: trimmed };
 }
 
-export function parseSynthesizeRequest(raw: unknown): { text: string } {
-  if (!record(raw) || Object.keys(raw).some(key => key !== "text")) throw new SpeechError("invalid", "请求格式不正确");
+export function parseSynthesizeRequest(raw: unknown): { text: string; voice: SpeechVoice } {
+  if (!record(raw) || Object.keys(raw).some(key => key !== "text" && key !== "voice")) throw new SpeechError("invalid", "请求格式不正确");
+  if (raw.voice !== undefined && !isSpeechVoice(raw.voice)) throw new SpeechError("invalid", "不支持这个音色");
   if (typeof raw.text !== "string" || !raw.text.trim()) throw new SpeechError("invalid", "没有可朗读的文字");
   if (Buffer.byteLength(raw.text, "utf8") > speechLimits.bodyBytesMax - 1024) throw new SpeechError("invalid", "朗读的文字过长");
-  return { text: raw.text };
+  return { text: raw.text, voice: raw.voice ?? defaultSpeechVoice };
 }
 
 interface SpeechServiceOptions {
@@ -65,7 +66,7 @@ export class SpeechService {
     return this.getState();
   }
 
-  async synthesize(text: string, signal?: AbortSignal): Promise<Uint8Array> {
+  async synthesize(text: string, signal?: AbortSignal, voice: SpeechVoice = defaultSpeechVoice): Promise<Uint8Array> {
     let key: string | undefined;
     try { key = this.readKey(); } catch { throw new SpeechError("failed", "无法读取已保存的密钥"); }
     if (!key) throw new SpeechError("no-key", "还没有配置朗读的 API 密钥");
@@ -77,7 +78,7 @@ export class SpeechService {
       const response = await this.fetchImpl(endpoint, {
         method: "POST",
         headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ text, format: "wav", filter_markdown: true }),
+        body: JSON.stringify({ text, voice_id: voice, format: "wav", filter_markdown: true }),
         signal: combined,
       });
       if (!response.ok) throw this.httpError(response.status);
@@ -154,7 +155,7 @@ export class SpeechHost {
       const controller = new AbortController();
       this.pending.add(controller);
       try {
-        return await this.service.synthesize(input.text, controller.signal);
+        return await this.service.synthesize(input.text, controller.signal, input.voice);
       } finally {
         this.pending.delete(controller);
       }

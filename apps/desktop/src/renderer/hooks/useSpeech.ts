@@ -1,7 +1,9 @@
 import { useEffect, useSyncExternalStore } from "react";
-import { splitSpeechText, type SpeechFailureCode, type SpeechResult, type SpeechState } from "@vela/shared";
+import { defaultSpeechVoice, isSpeechVoice, splitSpeechText, type SpeechFailureCode, type SpeechResult, type SpeechState, type SpeechVoice } from "@vela/shared";
 import { tr } from "../locale";
 import { createLogger } from "../logger";
+import { uiStorage } from "../ui-storage";
+import { readStoredState } from "./useStoredState";
 
 const log = createLogger("speech");
 
@@ -56,6 +58,28 @@ export function useSpeechState(): SpeechState & { loaded: boolean } {
   useEffect(() => { if (!store.loaded) void refreshSpeechState(); }, []);
   const current = useSyncExternalStore(subscribe, () => store);
   return { ...current.state, loaded: current.loaded };
+}
+
+// ---- 音色 ----
+
+const voiceKey = "vela.speechVoice";
+let voice: SpeechVoice = readStoredState<SpeechVoice>(voiceKey, defaultSpeechVoice, isSpeechVoice);
+const voiceListeners = new Set<() => void>();
+
+export function setSpeechVoice(next: SpeechVoice): void {
+  voice = next;
+  try { uiStorage.setItem(voiceKey, JSON.stringify(next)); }
+  catch (error) { log.error(`failed to save UI preference ${voiceKey}`, error); }
+  voiceListeners.forEach(listener => listener());
+}
+
+const currentVoice = () => voice;
+
+export function useSpeechVoice(): SpeechVoice {
+  return useSyncExternalStore(
+    listener => { voiceListeners.add(listener); return () => { voiceListeners.delete(listener); }; },
+    () => voice,
+  );
 }
 
 // ---- 播放 ----
@@ -125,7 +149,8 @@ export async function speakReply(id: string, text: string): Promise<string | nul
   const chunks = splitSpeechText(text);
   if (!chunks.length) return speechErrorText("invalid");
   setPlayback({ id, status: "loading" });
-  const synthesize = (index: number) => speech.synthesize({ text: chunks[index]! });
+  const voice = currentVoice();
+  const synthesize = (index: number) => speech.synthesize({ text: chunks[index]!, voice });
   try {
     let pending = synthesize(0);
     for (let index = 0; index < chunks.length; index += 1) {

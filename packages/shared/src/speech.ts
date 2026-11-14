@@ -16,12 +16,18 @@ export type SpeechResult<T> =
   | { ok: true; value: T }
   | { ok: false; code: SpeechFailureCode; message: string };
 
+export const speechVoices = ["stella", "tide"] as const;
+export type SpeechVoice = (typeof speechVoices)[number];
+export const defaultSpeechVoice: SpeechVoice = "stella";
+export const isSpeechVoice = (value: unknown): value is SpeechVoice =>
+  typeof value === "string" && (speechVoices as readonly string[]).includes(value);
+
 export interface SpeechApi {
   getState(): Promise<SpeechResult<SpeechState>>;
   /** apiKey 为 null 表示清除。 */
   setApiKey(input: { apiKey: string | null }): Promise<SpeechResult<SpeechState>>;
   /** 合成一段文字，返回 WAV 音频字节。单次文字不超过 speechLimits.chunkBilling。 */
-  synthesize(input: { text: string }): Promise<SpeechResult<Uint8Array>>;
+  synthesize(input: { text: string; voice?: SpeechVoice }): Promise<SpeechResult<Uint8Array>>;
 }
 
 export const speechLimits = {

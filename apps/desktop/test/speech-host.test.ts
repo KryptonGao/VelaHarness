@@ -41,10 +41,12 @@ describe("speech IPC validation", () => {
   });
 
   it("requires non-empty text of bounded size", () => {
-    assert.deepEqual(parseSynthesizeRequest({ text: "你好" }), { text: "你好" });
+    assert.deepEqual(parseSynthesizeRequest({ text: "你好" }), { text: "你好", voice: "stella" });
+    assert.deepEqual(parseSynthesizeRequest({ text: "你好", voice: "tide" }), { text: "你好", voice: "tide" });
+    assert.throws(() => parseSynthesizeRequest({ text: "你好", voice: "other" }), /不支持这个音色/);
     assert.throws(() => parseSynthesizeRequest({ text: "  " }), /没有可朗读/);
     assert.throws(() => parseSynthesizeRequest({ text: "x".repeat(70_000) }), /过长/);
-    assert.throws(() => parseSynthesizeRequest({ text: "x", voice: "tide" }), /格式不正确/);
+    assert.throws(() => parseSynthesizeRequest({ text: "x", speed: 2 }), /格式不正确/);
   });
 });
 
@@ -80,7 +82,9 @@ describe("speech service", () => {
     assert.equal(seen?.url, "https://api.deepseek.com/v1/tools/tts");
     assert.equal(seen?.init.method, "POST");
     assert.equal((seen?.init.headers as Record<string, string>).Authorization, "Bearer sk-secret");
-    assert.deepEqual(JSON.parse(String(seen?.init.body)), { text: "你好", format: "wav", filter_markdown: true });
+    assert.deepEqual(JSON.parse(String(seen?.init.body)), { text: "你好", voice_id: "stella", format: "wav", filter_markdown: true });
+    await call<Uint8Array>("speech:synthesize", { text: "你好", voice: "tide" });
+    assert.equal(JSON.parse(String(seen?.init.body)).voice_id, "tide");
   });
 
   it("maps HTTP failures to codes and never leaks the key", async (t) => {
