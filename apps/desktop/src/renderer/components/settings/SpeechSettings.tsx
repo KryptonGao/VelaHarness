@@ -1,6 +1,6 @@
 /**
- * 设置页「朗读」：DeepSeek TTS 的 API 密钥。密钥只写入，保存后只显示「已保存」；
- * 未保存密钥时，回复下方不显示朗读按钮。
+ * 设置页「语音」：朗读（TTS）和语音输入（ASR）共用的 DeepSeek API 密钥。密钥只写入，保存后只显示「已保存」；
+ * 未保存密钥时，回复下方不显示朗读按钮，输入框也不显示麦克风按钮。
  */
 import { useState } from "react";
 import type { SpeechVoice } from "@vela/shared";
@@ -32,7 +32,7 @@ export function SpeechSettings() {
   }
 
   const disabled = busy || !speech.keysAvailable;
-  const title = tr("朗读", "Read aloud");
+  const title = tr("语音", "Speech");
   const voices: { id: SpeechVoice; label: string }[] = [
     { id: "stella", label: tr("海星（女声）", "Stella (female)") },
     { id: "tide", label: tr("暗潮（男声）", "Tide (male)") },
@@ -42,8 +42,8 @@ export function SpeechSettings() {
     <SettingsBlock
       title={title}
       hint={tr(
-        "使用 DeepSeek 语音合成朗读最终回复。填写 DeepSeek API 密钥后，回复下方会出现朗读按钮。",
-        "Reads the final reply aloud with DeepSeek speech synthesis. Add a DeepSeek API key and a read-aloud button appears below replies.",
+        "使用 DeepSeek 语音合成朗读最终回复，并用语音识别做语音输入。填写 DeepSeek API 密钥后，回复下方会出现朗读按钮，发送按钮左边会出现麦克风按钮。",
+        "Reads final replies aloud with DeepSeek speech synthesis and powers voice input with DeepSeek speech recognition. Add a DeepSeek API key and a read-aloud button appears below replies, with a microphone button next to Send.",
       )}
     >
       <form className="web-tools-key-row" onSubmit={(event) => { event.preventDefault(); const value = key.trim(); if (value) void save(value); }}>

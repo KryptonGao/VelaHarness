@@ -772,6 +772,31 @@ html[data-thinking-fade="false"][data-thinking-pop="false"] .fade-thinking .md-f
 }
 .composer-steer-btn:hover:not(:disabled) { background: var(--bg-hover); color: var(--text-primary); }
 .composer-steer-btn:disabled { opacity: 0.45; cursor: default; }
+.composer-dictation-btn {
+  width: 28px;
+  height: 28px;
+  flex: none;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--text-secondary);
+  background: transparent;
+  transition: background-color 100ms ease, color 100ms ease, opacity 120ms ease;
+}
+.composer-dictation-btn:hover:not(:disabled) { background: var(--bg-hover); color: var(--text-primary); }
+.composer-dictation-btn:disabled { opacity: 0.45; cursor: default; }
+.composer-dictation-btn.is-recording { color: var(--danger); background: color-mix(in srgb, var(--danger) 14%, transparent); animation: dictation-pulse 1.4s ease-in-out infinite; }
+.composer-dictation-btn.is-recording .stop-square { background: currentColor; }
+.composer-dictation-spinner {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  border: 1.5px solid color-mix(in srgb, var(--accent-blue) 28%, transparent);
+  border-top-color: var(--accent-blue);
+  animation: tool-spin 0.7s linear infinite;
+}
+@keyframes dictation-pulse { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--danger) 32%, transparent); } 50% { box-shadow: 0 0 0 5px transparent; } }
+@media (prefers-reduced-motion: reduce) { .composer-dictation-btn.is-recording, .composer-dictation-spinner { animation: none; } }
 .composer-stat-ring-progress { transition: stroke-dashoffset 320ms var(--motion-ease-enter), stroke 200ms ease; }
 .composer-stat-context { transition: color 200ms ease; }
 .approval-slot.open .approval-banner { animation: content-swap-in 120ms ease; }

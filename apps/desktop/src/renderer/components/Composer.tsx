@@ -10,11 +10,16 @@ import type {
   ThinkingLevel,
   ThinkingSummaryModel,
 } from "@vela/shared";
+import type { ReactNode } from "react";
 import { forwardRef, useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { useModels } from "../hooks/useModels";
 import type { ProjectApi } from "../hooks/useProject";
 import type { SendButtonIcon } from "../hooks/usePreferences";
 import { ArrowUpIcon, CloseIcon, FileIcon, SendIcon, SkillIcon, SteerIcon } from "./icons";
+import { DictationButton } from "./composer/DictationButton";
+import { useDictation } from "../hooks/useDictation";
+import { useSpeechState } from "../hooks/useSpeech";
+import { dictationSeparator } from "../dictation-audio";
 import { MotionList } from "./BatchMotion";
 import { useReducedMotion } from "../hooks/useMotionPresence";
 import { PopoverPresence } from "./MotionPresence";
@@ -216,6 +221,8 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
   // 卡片里的回复本身就是要发送的内容，输入框可以留空。
   const hasReplyText = anyReplyText(replies);
   const tracking = useAnnotationTracking();
+  const speech = useSpeechState();
+  const dictation = useDictation(text => insertDictation(text));
   const submitting = useRef(false);
   const prediction = useInputPrediction({
     enabled: predictionEnabled && !disabled && !recipeActive,
@@ -453,6 +460,23 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
     setSlash(null);
   }
 
+  /** 语音识别的结果接在输入框现有内容后面，不改动已有的文字和 Skill 芯片。 */
+  function insertDictation(text: string): void {
+    const root = inputRef.current;
+    if (!root) return;
+    root.focus();
+    const selection = window.getSelection();
+    if (selection) {
+      const range = document.createRange();
+      range.selectNodeContents(root);
+      range.collapse(false);
+      selection.removeAllRanges();
+      selection.addRange(range);
+    }
+    document.execCommand("insertText", false, dictationSeparator(serializeEditor(root), text) + text);
+    syncEditor();
+  }
+
   function clearEditor(): void {
     inputRef.current?.replaceChildren();
     setValue("");
@@ -609,7 +633,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
 
   const statusBar = (
     <>
-      {showSetupControls || showError || attachNotice ? (
+      {showSetupControls || showError || attachNotice || dictation.error ? (
         <div className="composer-status-bar">
           {showSetupControls ? (
             <>
@@ -626,6 +650,11 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
           {attachNotice ? (
             <span className="composer-status-notice" role="status" title={attachNotice}>
               {attachNotice}
+            </span>
+          ) : null}
+          {dictation.error ? (
+            <span className="composer-status-notice" role="alert" title={dictation.error}>
+              {dictation.error}
             </span>
           ) : null}
         </div>
@@ -877,7 +906,14 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
   const actions = (
     <ComposerActions sendButtonIcon={sendButtonIcon} streaming={streaming} sendHint={sendHint} steerHint={steerHint}
       canQueue={Boolean(prompt) || hasReplyText} disabled={disabled || recipeActive || !modelReady || (!prompt && !hasReplyText && !suggestion)}
-      onSteer={() => void submit(true)} onAbort={onAbort} />
+      onSteer={() => void submit(true)} onAbort={onAbort}
+      dictation={speech.configured ? (
+        <DictationButton
+          status={dictation.status}
+          disabled={!editable}
+          onToggle={() => { if (dictation.status === "idle") void dictation.start(); else if (dictation.status === "recording") void dictation.stop(); else dictation.cancel(); }}
+        />
+      ) : undefined} />
   );
 
   // 新对话没有任何统计可看（占用只有系统提示），整组不显示。
@@ -1021,16 +1057,19 @@ function attachmentKey(entry: FileAttachmentPayload): string {
   return id;
 }
 
-export function ComposerActions({ sendButtonIcon, streaming, sendHint, steerHint, canQueue, disabled, onSteer, onAbort }: {
+export function ComposerActions({ sendButtonIcon, streaming, sendHint, steerHint, canQueue, disabled, onSteer, onAbort, dictation }: {
   sendButtonIcon: SendButtonIcon;
   streaming: boolean; sendHint: string; steerHint: string; canQueue: boolean; disabled: boolean;
   onSteer: () => void; onAbort: () => Promise<void>;
+  /** 语音输入按钮，显示在发送按钮左边；没有配置密钥时不传。 */
+  dictation?: ReactNode;
 }) {
   const steerButton = streaming && canQueue
     ? <button className="composer-steer-btn" type="button" title={steerHint}
         aria-label={steerHint} disabled={disabled} onClick={onSteer}><SteerIcon /></button>
     : null;
   return <span className={`composer-action-slot${streaming ? " is-streaming" : ""}${steerButton ? " has-instruction" : ""}`}>
+    {dictation}
     {steerButton}
     <span className="composer-action-stack">
       <button className={`send-action-blue-btn send${sendButtonIcon === "arrow-up" ? " send-icon-arrow-up" : ""}`} type="submit" title={sendHint}

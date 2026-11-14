@@ -704,7 +704,7 @@ async function start(): Promise<void> {
   memoryHost.register();
   webToolsHost = new WebToolsHost(runtime);
   webToolsHost.register();
-  speechHost = new SpeechHost(new SecureCredentialStore(join(home, "speech-auth.enc.json")));
+  speechHost = new SpeechHost(new SecureCredentialStore(join(home, "speech-auth.enc.json")), { dictationConfigPath: join(home, "dictation.json") });
   speechHost.register();
   terminals = new TerminalHost(() => workspaceManager.getState().current ?? fallbackCwd);
   terminals.register();

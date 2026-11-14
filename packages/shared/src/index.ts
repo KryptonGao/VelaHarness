@@ -294,6 +294,7 @@ export const IpcChannel = {
   speechGet: "speech:get",
   speechSetKey: "speech:set-key",
   speechSynthesize: "speech:synthesize",
+  speechTranscribe: "speech:transcribe",
 } as const;
 
 import type { AppLocale } from "./i18n";

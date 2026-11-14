@@ -30,6 +30,7 @@ export function speechErrorText(code: SpeechFailureCode): string {
     case "timeout": return tr("朗读超时", "Reading aloud timed out");
     case "network": return tr("无法连接朗读服务", "Can't reach the read-aloud service");
     case "invalid": return tr("没有可朗读的文字", "There is nothing to read aloud");
+    case "no-speech": return tr("没有听清，请再说一次", "Didn't catch that. Try again.");
     default: return tr("朗读失败", "Reading aloud failed");
   }
 }
