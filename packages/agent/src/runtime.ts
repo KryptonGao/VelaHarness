@@ -22,6 +22,7 @@ import { CheckpointSettingsStore } from "./checkpoint-settings";
 import type { TraceRecorder } from "./trace";
 import { ConversationTraces, subscribeTracedSession } from "./runtime-tracing";
 import { SkillLibrary } from "./runtime-skills";
+import { loadCustomCommands } from "./custom-commands";
 import { ToolLoadout } from "./runtime-tools";
 import { RecipeSubmitOutcome, stageResponseEvidence, suspendAutomaticRecovery } from "./recipe-stage";
 import type { BranchConversationOptions, CheckpointCleanResult, CheckpointDeleteResult, CheckpointSettings, CheckpointRestorePreview, CheckpointStorageUsage, CheckpointTimeline, TraceSnapshot, TraceSummaryRequest, TraceUpdate } from "@vela/shared";
@@ -69,6 +70,9 @@ import {
   type MarketplaceListing,
   type MarketplaceSkillId,
   type SkillCatalog,
+  type CustomCommandCatalog,
+  expandCustomCommand,
+  parseSlashInvocation,
   type SkillMigrationResult,
   type ExternalSkillScan,
   type ThinkingLevel,
@@ -1505,29 +1509,39 @@ export class AgentRuntime {
     const entry = this.conversations.get(conversationId);
     if (!entry?.session) throw new Error("对话不存在或已结束");
     if (entry.recipeWorkflowActive && recipeToken !== recipePromptToken) throw new Error("配方阶段正在执行或等待审批，请使用阶段操作，或先停止任务");
+    const resolvedText = recipeToken === recipePromptToken ? text : this.resolveCustomCommandPrompt(entry, text);
     const running = entry.driving || entry.session.isStreaming;
     if (deliverAs && running) {
-      await this.appendInstruction(entry, text, images, deliverAs);
+      await this.appendInstruction(entry, resolvedText, images, deliverAs);
       return;
     }
     this.requireIdle(conversationId, recipeToken === recipePromptToken);
     this.addUsage(conversationId, 1, 0);
     if (!entry.titleManuallySet && !entry.titleGenerationStarted && entry.snapshot.title === "新对话") {
       entry.titleGenerationStarted = true;
-      const fallbackTitle = clipTitle(text);
+      const fallbackTitle = clipTitle(resolvedText);
       this.patchEntry(entry, { title: fallbackTitle, updatedAt: Date.now() });
       const directory = this.directory;
       const model = entry.session?.model;
       if (directory && model && directory.isAvailable(model)) {
-        void this.generateConversationTitle(entry, text, fallbackTitle, model, directory);
+        void this.generateConversationTitle(entry, resolvedText, fallbackTitle, model, directory);
       }
     }
-    if (entry.snapshot.mode === "goal") this.beginGoal(entry, text);
-    await this.drive(entry, text, images, {
+    if (entry.snapshot.mode === "goal") this.beginGoal(entry, resolvedText);
+    await this.drive(entry, resolvedText, images, {
       autonomous: entry.snapshot.mode === "goal",
       announce: false,
       rename: true,
     });
+  }
+
+  private resolveCustomCommandPrompt(entry: Conversation, text: string): string {
+    const invocation = parseSlashInvocation(text);
+    if (!invocation) return text;
+    const catalog = this.listCustomCommands(entry.snapshot.cwd, { hasWorkspace: entry.hasWorkspace });
+    const matched = catalog.commands.find((command) => command.name === invocation.name);
+    if (!matched) return text;
+    return expandCustomCommand(matched.content, invocation.args);
   }
 
   /** 撤销一条还没被 Pi 队列消费的运行中指令。 */
@@ -1878,6 +1892,28 @@ export class AgentRuntime {
   /** 按当前工作区扫描用户 Skill、项目 Skill 和 ~/.agents/skills。 */
   listSkills(cwd: string): Promise<SkillCatalog> {
     return this.skills.list(cwd);
+  }
+
+  /** 按工作区与用户目录扫描 `.vela/commands/*.md` 轻量自定义命令。 */
+  listCustomCommands(cwd: string, options?: { hasWorkspace?: boolean }): CustomCommandCatalog {
+    return loadCustomCommands({
+      cwd,
+      agentDir: this.options.agentDir,
+      hasWorkspace: options?.hasWorkspace,
+    });
+  }
+
+  /** 按对话所在工作区（或回退到当前活动工作区）扫描自定义命令。 */
+  listCustomCommandsForConversation(
+    conversationId: string | undefined,
+    fallbackCwd: string,
+    hasFallbackWorkspace: boolean,
+  ): CustomCommandCatalog {
+    const entry = conversationId ? this.conversations.get(conversationId) : undefined;
+    if (entry) {
+      return this.listCustomCommands(entry.snapshot.cwd, { hasWorkspace: entry.hasWorkspace });
+    }
+    return this.listCustomCommands(fallbackCwd, { hasWorkspace: hasFallbackWorkspace });
   }
 
   /** 启用或停用一个 Skill；已打开的对话会在下次发言前重新加载资源。 */

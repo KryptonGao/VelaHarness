@@ -136,6 +136,7 @@ import {
   type ExternalSkillScan,
   type MarketplaceListing,
   type SkillCatalog,
+  type CustomCommandCatalog,
   type SkillMigrationResult,
   type TerminalCreateOptions,
   type TerminalCloseStatus,
@@ -523,6 +524,8 @@ const api: VelaApi = {
     ipcRenderer.invoke(IpcChannel.uiSandboxRedeem, token, appKey, capability, size) as Promise<{ ok: boolean }>,
   uiSandboxRevoke: (appKey) => ipcRenderer.invoke(IpcChannel.uiSandboxRevoke, appKey) as Promise<void>,
   listSkills: () => ipcRenderer.invoke(IpcChannel.listSkills) as Promise<SkillCatalog>,
+  listCustomCommands: (conversationId?: string) =>
+    ipcRenderer.invoke(IpcChannel.listCustomCommands, conversationId) as Promise<CustomCommandCatalog>,
   openSkillsDirectory: () => ipcRenderer.invoke(IpcChannel.openSkillsDir) as Promise<void>,
   scanExternalSkills: () => ipcRenderer.invoke(IpcChannel.scanExternalSkills) as Promise<ExternalSkillScan>,
   migrateSkills: (ids) => ipcRenderer.invoke(IpcChannel.migrateSkills, ids) as Promise<SkillMigrationResult>,

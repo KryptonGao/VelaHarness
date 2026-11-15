@@ -242,6 +242,10 @@
   padding: 8px 6px 6px;
   overflow: hidden;
 }
+/* 空状态首页输入框居中,适当收敛菜单最大高度以免顶入窗口标题栏拖曳区。 */
+.chat-conversation-pane[data-home] .skill-menu {
+  max-height: min(360px, 40vh);
+}
 .skill-menu-title {
   padding: 4px 12px 6px;
   font-size: calc(15px * var(--ui-scale));

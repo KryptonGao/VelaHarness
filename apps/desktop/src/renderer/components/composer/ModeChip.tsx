@@ -1,6 +1,6 @@
 import { PopoverPresence } from "../MotionPresence";
 import type { InteractionMode } from "@vela/shared";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useDismissable } from "../../hooks/useDismissable";
 import { CheckIcon, GoalIcon, PlanIcon, RaceIcon, TerminalIcon } from "../icons";
 import { tr, trf } from "../../locale";
@@ -33,21 +33,31 @@ function modeDescription(mode: InteractionMode): string {
 export function ModeChip({
   mode,
   disabled,
+  openRequest,
   onChange,
   race,
 }: {
   mode: InteractionMode;
   disabled: boolean;
+  /** 每次值变化（且大于 0）就展开模式菜单；`/mode` 命令用它从输入框外部打开。 */
+  openRequest?: number;
   onChange: (mode: InteractionMode) => void;
   /** 赛马不是对话模式，而是一次性的启动动作，所以单独传入；缺省时菜单里没有这一项。 */
   race?: { onStart: () => void; onShow: () => void; count: number };
 }) {
   const [open, setOpen] = useState(false);
+  const lastOpenRequest = useRef(openRequest ?? 0);
   const ref = useDismissable<HTMLDivElement>(open, () => setOpen(false));
 
   useEffect(() => {
     if (disabled) setOpen(false);
   }, [disabled]);
+
+  useEffect(() => {
+    if (!openRequest || openRequest === lastOpenRequest.current) return;
+    lastOpenRequest.current = openRequest;
+    if (!disabled) setOpen(true);
+  }, [openRequest, disabled]);
 
   return (
     <div className="composer-chip-anchor" ref={ref}>

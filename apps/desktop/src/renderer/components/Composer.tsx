@@ -1,14 +1,18 @@
-import type {
-  ContextUsage,
-  FileAttachmentPayload,
-  ImageAttachment,
-  InteractionMode,
-  RuntimeInstruction,
-  RuntimeInstructionMode,
-  SkillSummary,
-  TaskRecipe,
-  ThinkingLevel,
-  ThinkingSummaryModel,
+import {
+  expandCustomCommand,
+  parseSlashInvocation,
+  thinkingLevelLabel,
+  type ContextUsage,
+  type CustomCommand,
+  type FileAttachmentPayload,
+  type ImageAttachment,
+  type InteractionMode,
+  type RuntimeInstruction,
+  type RuntimeInstructionMode,
+  type SkillSummary,
+  type TaskRecipe,
+  type ThinkingLevel,
+  type ThinkingSummaryModel,
 } from "@vela/shared";
 import type { ReactNode } from "react";
 import { forwardRef, useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -43,6 +47,7 @@ import {
   insertSkillChip,
   pruneChips,
   removeSlashText,
+  replaceSlashText,
   serializeEditor,
   setEditorText,
   skillAttr,
@@ -50,7 +55,19 @@ import {
 } from "./composer/skill-editor";
 import { modKeyLabel } from "../platform";
 import { slashMenuItems, type SlashMenuItem } from "./composer/slash-picker";
-import { formatTokens, slashCommands, statusItems, type SlashCommand, type StatusItem } from "./composer/slash-commands";
+import {
+  buildReviewPrompt,
+  formatTokens,
+  isBuiltinSlashCommand,
+  parseEffortArg,
+  parseModeArg,
+  slashCommandAcceptsArguments,
+  slashCommands,
+  statusItems,
+  type SlashCommand,
+  type SlashCommandId,
+  type StatusItem,
+} from "./composer/slash-commands";
 import { RecipeActionsContext } from "./recipe-actions-context";
 import { RaceActionsContext } from "./race-actions-context";
 import { RaceSetupDialog } from "./RaceSetupDialog";
@@ -112,13 +129,15 @@ export interface ComposerProps {
   onMode: (mode: InteractionMode) => void;
 }
 
-/** 输入框上方命令卡片的内容：`/status` 的条目，或 `/compact` 的进度与结果。 */
+/** 输入框上方命令卡片的内容：`/status` 的条目、`/compact` 的进度与结果，或斜线命令提示。 */
 type CommandCard =
   | { kind: "status"; items: StatusItem[] }
-  | { kind: "compact"; phase: "busy" | "done" | "error"; before: number | null; error?: string };
+  | { kind: "compact"; phase: "busy" | "done" | "error"; before: number | null; error?: string }
+  | { kind: "notice"; title: string; message?: string; items?: StatusItem[]; tone: "info" | "error" };
 
 function commandCardView(card: CommandCard, usage: ContextUsage | null): { title: string; message?: string; items: StatusItem[]; busy: boolean; tone: "info" | "error" } {
   if (card.kind === "status") return { title: tr("状态", "Status"), items: card.items, busy: false, tone: "info" };
+  if (card.kind === "notice") return { title: card.title, message: card.message, items: card.items ?? [], busy: false, tone: card.tone };
   if (card.phase === "busy") return { title: tr("正在压缩上下文…", "Compacting context…"), message: tr("把较早的对话总结成摘要，完成后可以继续发送。", "Summarizing earlier turns. You can keep chatting once it finishes."), items: [], busy: true, tone: "info" };
   if (card.phase === "error") return { title: tr("无法压缩上下文", "Could not compact the context"), message: card.error, items: [], busy: false, tone: "error" };
   const after = usage?.tokens ?? null;
@@ -186,10 +205,14 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
   const [value, setValue] = useState("");
   const [skills, setSkills] = useState<SkillSummary[] | null>(null);
   const [skillsError, setSkillsError] = useState<string | null>(null);
+  const [customCommands, setCustomCommands] = useState<CustomCommand[] | null>(null);
+  const [customCommandsError, setCustomCommandsError] = useState<string | null>(null);
   const [slash, setSlash] = useState<EditorSlash | null>(null);
   const [dismissedKey, setDismissedKey] = useState<string | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [modelOpenRequest, setModelOpenRequest] = useState(0);
+  const [thinkingOpenRequest, setThinkingOpenRequest] = useState(0);
+  const [modeOpenRequest, setModeOpenRequest] = useState(0);
   const [commandCard, setCommandCard] = useState<CommandCard | null>(null);
   const cardToken = useRef(0);
   const usageRef = useRef(usage);
@@ -205,16 +228,32 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
   const iconsRef = useRef<HTMLSpanElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const skillRequest = useRef(0);
+  const customCommandRequest = useRef(0);
   const dragCounter = useRef(0);
   const workspacePath = project.workspace?.current ?? null;
   const slashKey = slash ? `${slash.start}:${slash.query}` : "";
   const menuOpen = Boolean(slash) && dismissedKey !== slashKey && (!disabled || streaming);
   const recipesEnabled = !!recipeActions?.useRecipe && !streaming && !recipeActive;
+  const canChangeModel = !streaming && !recipeActive;
+  const canChangeEffort = !streaming && !recipeActive && thinkingLevels.length > 0;
+  const canChangeMode = !disabled && !streaming && !recipeActive;
+  const canHandoff = Boolean(conversationId && recipeActions?.createHandoff);
+  const canRace = Boolean(raceActions && workspacePath && window.vela?.races && modelReady && !recipeActive);
+  const canReview = Boolean(!disabled && !recipeActive && modelReady);
+  const canCompact = !disabled && !streaming && !recipeActive && modelReady && (usage?.turnCount ?? 0) > 0;
   const commandsAvailable = useMemo(() => slashCommands({
-    canChangeModel: !streaming && !recipeActive,
-    canCompact: !disabled && !streaming && !recipeActive && modelReady && (usage?.turnCount ?? 0) > 0,
-  }), [streaming, recipeActive, disabled, modelReady, usage?.turnCount]);
-  const filtered = useMemo(() => slashMenuItems(skills ?? [], recipesEnabled ? recipes ?? [] : [], slash?.query ?? "", commandsAvailable), [skills, recipes, recipesEnabled, slash?.query, commandsAvailable]);
+    canChangeModel,
+    canChangeEffort,
+    canChangeMode,
+    canHandoff,
+    canRace,
+    canReview,
+    canCompact,
+  }), [canChangeModel, canChangeEffort, canChangeMode, canHandoff, canRace, canReview, canCompact]);
+  const filtered = useMemo(
+    () => slashMenuItems(skills ?? [], recipesEnabled ? recipes ?? [] : [], slash?.query ?? "", commandsAvailable, customCommands ?? []),
+    [skills, recipes, recipesEnabled, slash?.query, commandsAvailable, customCommands],
+  );
   const safeIndex = filtered.length === 0 ? 0 : Math.min(activeIndex, filtered.length - 1);
   // 输入框里的 Skill 芯片会写成文字中的 `/skill:名称`，所以 value 本身就是要发送的内容。
   const prompt = value.trim();
@@ -340,6 +379,30 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
       active = false;
     };
   }, [workspacePath, menuOpen]);
+
+  useEffect(() => {
+    const api = window.vela;
+    if (!api?.listCustomCommands) {
+      setCustomCommands([]);
+      return;
+    }
+    const id = ++customCommandRequest.current;
+    let active = true;
+    void api.listCustomCommands(conversationId ?? undefined).then(
+      (catalog) => {
+        if (!active || customCommandRequest.current !== id) return;
+        setCustomCommands(catalog.commands);
+        setCustomCommandsError(null);
+      },
+      (caught: unknown) => {
+        if (!active || customCommandRequest.current !== id) return;
+        setCustomCommandsError(caught instanceof Error ? caught.message : tr("无法读取自定义命令", "Unable to read custom commands"));
+      },
+    );
+    return () => {
+      active = false;
+    };
+  }, [workspacePath, conversationId, menuOpen]);
 
   useEffect(() => {
     if (!menuOpen || !recipesEnabled) return;
@@ -495,21 +558,153 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
     setDismissedKey(null);
   }
 
-  /** 内置命令：去掉输入框里的 `/查询` 后直接执行。 */
-  function runCommand(command: SlashCommand): void {
-    const root = inputRef.current;
-    const token = root ? editorSlash(root) ?? slash : null;
-    if (!root || !token) return;
-    removeSlashText(token);
-    setValue(serializeEditor(root)); setSlash(null); setDismissedKey(null);
-    if (command.id === "model") { setModelOpenRequest((count) => count + 1); return; }
-    const token_ = ++cardToken.current;
-    if (command.id === "status") {
+  function showCommandNotice(title: string, tone: "info" | "error", message?: string, items?: StatusItem[]): void {
+    cardToken.current += 1;
+    setCommandCard({ kind: "notice", title, tone, message, items });
+  }
+
+  /** 执行内置命令；返回 true 表示命令被接受，false 表示参数或状态校验未通过。 */
+  async function executeBuiltinCommand(
+    id: SlashCommandId,
+    rawArgs: string,
+    options: { steerIntent?: boolean; typedDraft?: string; onConsume?: () => void } = {},
+  ): Promise<boolean> {
+    if (id === "model") {
+      if (!canChangeModel) {
+        showCommandNotice(tr("当前无法切换模型", "Cannot switch models right now"), "error");
+        return false;
+      }
+      options.onConsume?.();
+      setModelOpenRequest((count) => count + 1);
+      return true;
+    }
+
+    if (id === "effort") {
+      if (!canChangeEffort) {
+        showCommandNotice(
+          tr("无法切换思考强度", "Could not set reasoning effort"),
+          "error",
+          thinkingLevels.length === 0
+            ? tr("当前模型不支持调节思考强度", "Current model has no configurable reasoning effort")
+            : tr("运行中无法切换思考强度", "Cannot change reasoning effort while running"),
+        );
+        return false;
+      }
+      if (!rawArgs) {
+        options.onConsume?.();
+        setThinkingOpenRequest((count) => count + 1);
+        return true;
+      }
+      const parsed = parseEffortArg(rawArgs, thinkingLevels);
+      if (!parsed.ok) {
+        showCommandNotice(tr("无法切换思考强度", "Could not set reasoning effort"), "error", parsed.error);
+        return false;
+      }
+      options.onConsume?.();
+      try {
+        await models.setThinking(parsed.level);
+        showCommandNotice(
+          tr("思考强度已切换", "Reasoning effort updated"),
+          "info",
+          tr(thinkingLevelLabel[parsed.level], parsed.level),
+        );
+      } catch (caught: unknown) {
+        showCommandNotice(
+          tr("无法切换思考强度", "Could not set reasoning effort"),
+          "error",
+          caught instanceof Error ? localizeError(caught.message) : tr("设置思考强度失败", "Failed to update reasoning effort"),
+        );
+      }
+      return true;
+    }
+
+    if (id === "mode") {
+      if (!canChangeMode) {
+        showCommandNotice(tr("当前无法切换模式", "Cannot switch mode right now"), "error");
+        return false;
+      }
+      if (!rawArgs) {
+        options.onConsume?.();
+        setModeOpenRequest((count) => count + 1);
+        return true;
+      }
+      const nextMode = parseModeArg(rawArgs);
+      if (!nextMode) {
+        showCommandNotice(
+          tr("无法切换模式", "Could not switch mode"),
+          "error",
+          trf("未知模式「{0}」，可用：agent、plan、goal", "Unknown mode \"{0}\". Available: agent, plan, goal", rawArgs),
+        );
+        return false;
+      }
+      options.onConsume?.();
+      onMode(nextMode);
+      const label = nextMode === "agent" ? "Agent" : nextMode === "plan" ? "Plan" : "Goal";
+      showCommandNotice(tr("已切换模式", "Mode switched"), "info", label);
+      return true;
+    }
+
+    if (id === "handoff") {
+      if (!conversationId || !recipeActions?.createHandoff) {
+        showCommandNotice(
+          tr("无法生成交接包", "Could not create handoff pack"),
+          "error",
+          tr("当前对话尚未就绪或不支持生成交接包", "Handoff pack is unavailable in this view"),
+        );
+        return false;
+      }
+      options.onConsume?.();
+      recipeActions.createHandoff(conversationId);
+      return true;
+    }
+
+    if (id === "race") {
+      if (!canRace) {
+        showCommandNotice(
+          tr("当前无法发起赛马", "Cannot start a race right now"),
+          "error",
+          !workspacePath ? tr("请先选择一个工作区", "Select a workspace first") : undefined,
+        );
+        return false;
+      }
+      options.onConsume?.();
+      setRaceOpen(true);
+      return true;
+    }
+
+    if (id === "review") {
+      if (!canReview) {
+        showCommandNotice(tr("当前无法发起代码审查", "Cannot run code review right now"), "error");
+        return false;
+      }
+      await dispatchPrompt(buildReviewPrompt(rawArgs), Boolean(options.steerIntent), options.typedDraft ?? "");
+      return true;
+    }
+
+    if (id === "status") {
+      options.onConsume?.();
+      cardToken.current += 1;
       setCommandCard({ kind: "status", items: statusItems({ model, thinkingLevel, mode, usage }) });
-      return;
+      return true;
+    }
+
+    // compact
+    if (!canCompact) {
+      showCommandNotice(
+        tr("无法压缩上下文", "Could not compact the context"),
+        "error",
+        !modelReady
+          ? tr("模型尚未就绪", "Model is not ready")
+          : (usage?.turnCount ?? 0) === 0
+            ? tr("当前对话还没有可压缩的内容", "Nothing to compact in this conversation yet")
+            : tr("运行中无法压缩上下文", "Cannot compact while running"),
+      );
+      return false;
     }
     const api = window.vela;
-    if (!api) return;
+    if (!api) return false;
+    options.onConsume?.();
+    const token_ = ++cardToken.current;
     const before = usageRef.current?.tokens ?? null;
     setCommandCard({ kind: "compact", phase: "busy", before });
     void api.compactConversation(conversationId ?? undefined)
@@ -521,11 +716,66 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
           ? { kind: "compact", phase: "error", before, error: localizeError(result.error) }
           : { kind: "compact", phase: "done", before });
       });
+    return true;
   }
 
-  function selectSlashItem(item: SlashMenuItem): void {
-    if (item.type === 'command') { runCommand(item.command); return; }
-    if (item.type === 'skill') { selectSkill(item.skill); return; }
+  /** 内置命令：去掉输入框里的 `/查询` 后直接执行。 */
+  function runCommand(command: SlashCommand): void {
+    const root = inputRef.current;
+    const token = root ? editorSlash(root) ?? slash : null;
+    if (!root || !token) return;
+    void executeBuiltinCommand(command.id, "", {
+      onConsume: () => {
+        removeSlashText(token);
+        setValue(serializeEditor(root));
+        setSlash(null);
+        setDismissedKey(null);
+      },
+    });
+  }
+
+  function selectCustomCommand(customCommand: CustomCommand, intent: "select" | "complete"): void {
+    const root = inputRef.current;
+    const token = root ? editorSlash(root) ?? slash : null;
+    if (!root || !token) return;
+    if (intent === "complete" || customCommand.acceptsArguments) {
+      replaceSlashText(token, `/${customCommand.name} `);
+      setValue(serializeEditor(root));
+      setSlash(null);
+      setDismissedKey(null);
+      return;
+    }
+    if (disabled || recipeActive || !modelReady) {
+      showCommandNotice(tr("当前无法发送命令", "Cannot run command right now"), "error");
+      return;
+    }
+    removeSlashText(token);
+    const trailing = serializeEditor(root).trim();
+    const draftToRestore = `/${customCommand.name}${trailing ? ` ${trailing}` : ""}`;
+    const expanded = expandCustomCommand(customCommand.content, trailing);
+    void dispatchPrompt(expanded, false, draftToRestore);
+  }
+
+  function selectSlashItem(item: SlashMenuItem, intent: "select" | "complete" = "select"): void {
+    if (item.type === "command") {
+      if (intent === "complete" && slashCommandAcceptsArguments(item.command.id)) {
+        const root = inputRef.current;
+        const token = root ? editorSlash(root) ?? slash : null;
+        if (!root || !token) return;
+        replaceSlashText(token, `/${item.command.name} `);
+        setValue(serializeEditor(root));
+        setSlash(null);
+        setDismissedKey(null);
+        return;
+      }
+      runCommand(item.command);
+      return;
+    }
+    if (item.type === "customCommand") {
+      selectCustomCommand(item.customCommand, intent);
+      return;
+    }
+    if (item.type === "skill") { selectSkill(item.skill); return; }
     const root = inputRef.current;
     const token = root ? editorSlash(root) ?? slash : null;
     if (!root || !token || !recipesEnabled) return;
@@ -534,14 +784,9 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
     recipeActions?.useRecipe?.(item.recipe);
   }
 
-  async function submit(steerIntent = false): Promise<void> {
+  async function dispatchPrompt(outbound: string, steerIntent: boolean, draftRestoreText: string): Promise<void> {
     if (submitting.current) return;
-    const root = inputRef.current;
-    const typed = (root ? serializeEditor(root).trim() : prompt) || (hasReplyText ? "" : suggestion);
     const cards = replies;
-    // 只有元素、没有批注文字时，输入框必须有内容才能发送。
-    if (!typed && !hasReplyText && cards.some(isElementReply)) return;
-    if ((!typed && cards.length === 0) || disabled || recipeActive || !modelReady) return;
     // 取回元素截图需要一点时间；这段时间内不重复提交。发出之后运行中的追加指令仍可继续提交。
     submitting.current = true;
     let prepared: { text: string; images: ImageAttachment[]; draftAttachments: FileAttachmentPayload[]; sent: readonly ReplyCard[] } | null = null;
@@ -554,7 +799,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
       const plan = planAnnotationImages(cards, tracking, capacity);
       const annotation = await collectAnnotationImages(cards, plan, userImages.length + 1,
         (tabId, ids) => window.vela?.browser?.annotationImages(tabId, ids) ?? Promise.resolve({}));
-      const text = replyMessage(cards, typed, { stale: annotation.stale, images: annotation.refs, t: tr });
+      const text = replyMessage(cards, outbound, { stale: annotation.stale, images: annotation.refs, t: tr });
       if (text) {
         const draftAttachments = attachments;
         clearEditor();
@@ -578,7 +823,57 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
     }
     onSettleReplies?.(sent, kept);
     // 消息没有留下(没进对话也没排上队)时把草稿放回去;卡片已原样放回,用户已经开始写新内容就不覆盖。
-    if (!kept) restoreDraft(typed, draftAttachments);
+    if (!kept) restoreDraft(draftRestoreText, draftAttachments);
+  }
+
+  async function submit(steerIntent = false): Promise<void> {
+    if (submitting.current) return;
+    const root = inputRef.current;
+    const typed = (root ? serializeEditor(root).trim() : prompt) || (hasReplyText ? "" : suggestion);
+    const cards = replies;
+    // 只有元素、没有批注文字时，输入框必须有内容才能发送。
+    if (!typed && !hasReplyText && cards.some(isElementReply)) return;
+    if (!typed && cards.length === 0) return;
+
+    const invocation = typed ? parseSlashInvocation(typed) : null;
+    if (invocation) {
+      if (isBuiltinSlashCommand(invocation.name)) {
+        await executeBuiltinCommand(invocation.name, invocation.args, {
+          steerIntent,
+          typedDraft: typed,
+          onConsume: () => {
+            if (invocation.name === "race" && invocation.args) {
+              setText(invocation.args);
+            } else {
+              clearEditor();
+            }
+          },
+        });
+        return;
+      }
+      if (!disabled && !recipeActive && modelReady) {
+        let availableCustom = customCommands;
+        if (availableCustom === null && window.vela?.listCustomCommands) {
+          try {
+            const catalog = await window.vela.listCustomCommands(conversationId ?? undefined);
+            availableCustom = catalog.commands;
+            setCustomCommands(catalog.commands);
+            setCustomCommandsError(null);
+          } catch {
+            availableCustom = [];
+          }
+        }
+        const matchedCustom = (availableCustom ?? []).find((command) => command.name === invocation.name);
+        if (matchedCustom) {
+          const expanded = expandCustomCommand(matchedCustom.content, invocation.args);
+          await dispatchPrompt(expanded, steerIntent, typed);
+          return;
+        }
+      }
+    }
+
+    if (disabled || recipeActive || !modelReady) return;
+    await dispatchPrompt(typed, steerIntent, typed);
   }
 
   function restoreDraft(text: string, draftAttachments: FileAttachmentPayload[]): void {
@@ -588,11 +883,16 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
     setAttachments((current) => (current.length === 0 ? draftAttachments : current));
   }
 
-  // 压缩完成的提示几秒后自行收起；状态卡片和报错保留到用户关闭。
+  // 压缩完成的提示和轻提示几秒后自行收起；状态卡片和报错保留到用户关闭。
   useEffect(() => {
-    if (commandCard?.kind !== "compact" || commandCard.phase !== "done") return;
-    const timer = window.setTimeout(() => closeCommandCard(), 8_000);
-    return () => window.clearTimeout(timer);
+    if (commandCard?.kind === "compact" && commandCard.phase === "done") {
+      const timer = window.setTimeout(() => closeCommandCard(), 8_000);
+      return () => window.clearTimeout(timer);
+    }
+    if (commandCard?.kind === "notice" && commandCard.tone === "info") {
+      const timer = window.setTimeout(() => closeCommandCard(), 4_000);
+      return () => window.clearTimeout(timer);
+    }
   }, [commandCard]);
 
   // 换了对话就不再显示上一个对话的命令结果。
@@ -671,7 +971,9 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
           items={filtered}
           loadingSkills={skills === null && !skillsError}
           loadingRecipes={recipesEnabled && recipes === null && !recipesError}
+          loadingCustomCommands={customCommands === null && !customCommandsError}
           recipeError={recipesEnabled ? recipesError : null}
+          customCommandError={customCommandsError}
           error={skillsError}
           query={slash?.query ?? ""}
           activeIndex={safeIndex}
@@ -824,10 +1126,10 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
           if (menuOpen && filtered.length > 0 && !event.shiftKey && (event.key === "Enter" || event.key === "Tab")) {
             event.preventDefault();
             const picked = filtered[safeIndex];
-            if (picked) selectSlashItem(picked);
+            if (picked) selectSlashItem(picked, event.key === "Tab" ? "complete" : "select");
             return;
           }
-          if (menuOpen && (skills === null || recipesEnabled && recipes === null) && event.key === "Enter" && !event.shiftKey) {
+          if (menuOpen && (skills === null || (customCommands === null && !customCommandsError) || (recipesEnabled && recipes === null && !recipesError)) && event.key === "Enter" && !event.shiftKey) {
             event.preventDefault();
             return;
           }
@@ -865,13 +1167,14 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
       sandboxMode={sandboxMode ?? project.sandboxMode}
       sandboxLocked={Boolean(sandboxMode)}
       disabled={disabled || streaming || recipeActive}
+      openRequest={modeOpenRequest}
       onMode={onMode}
       onSandboxMode={project.setSandboxMode}
       race={raceMenu}
     />
   ) : (
     <>
-      <ModeChip mode={mode} disabled={disabled || streaming || recipeActive} onChange={onMode} race={raceMenu} />
+      <ModeChip mode={mode} disabled={disabled || streaming || recipeActive} openRequest={modeOpenRequest} onChange={onMode} race={raceMenu} />
       <SandboxPill project={project} conversationMode={sandboxMode} />
     </>
   );
@@ -900,6 +1203,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
       onCancelLogin={models.cancelLogin}
       onDismissLogin={models.dismissLogin}
       openRequest={modelOpenRequest}
+      thinkingOpenRequest={thinkingOpenRequest}
     />
   );
 

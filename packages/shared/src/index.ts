@@ -57,6 +57,8 @@ export * from "./intelligent-ui-source";
 export * from "./intelligent-ui-data";
 export * from "./intelligent-ui-sandbox";
 export * from "./intelligent-ui-metrics";
+export * from "./custom-commands";
+import type { CustomCommandCatalog } from "./custom-commands";
 import type { UpdatesApi } from "./updates";
 import type { ReleaseNotesApi } from "./release-notes";
 import type { TraceSnapshot, TraceDetails, TraceUpdate } from "./trace";
@@ -268,6 +270,7 @@ export const IpcChannel = {
   uiSandboxRedeem: "intelligent-ui:sandbox-redeem",
   uiSandboxRevoke: "intelligent-ui:sandbox-revoke",
   listSkills: "skills:list",
+  listCustomCommands: "commands:list",
   openSkillsDir: "skills:open-dir",
   scanExternalSkills: "skills:scan-external",
   migrateSkills: "skills:migrate",
@@ -3248,6 +3251,7 @@ export interface VelaApi extends McpApi, PluginApi, HooksApi {
   /** 应用停止或卸载时撤销它未使用的令牌。 */
   uiSandboxRevoke(appKey: string): Promise<void>;
   listSkills(): Promise<SkillCatalog>;
+  listCustomCommands(conversationId?: string): Promise<CustomCommandCatalog>;
   openSkillsDirectory(): Promise<void>;
   scanExternalSkills(): Promise<ExternalSkillScan>;
   migrateSkills(ids: string[]): Promise<SkillMigrationResult>;

@@ -60,6 +60,8 @@ interface ModelControlsProps {
   onDismissLogin: () => void;
   /** 每次值变化（且大于 0）就展开模型菜单；`/model` 命令用它从输入框外部打开。 */
   openRequest?: number;
+  /** 每次值变化（且大于 0）就展开思考强度菜单；`/effort` 命令用它从输入框外部打开。 */
+  thinkingOpenRequest?: number;
   /** 选用 Ultra 时推荐完全访问：传入当前执行权限和切换方法；不传（如侧边聊天、权限被配方锁定）就不提示。 */
   fullAccess?: { mode: SandboxMode; onEnable: () => unknown };
 }
@@ -156,9 +158,22 @@ export function ModelControls(props: ModelControlsProps) {
     return () => window.clearTimeout(timer);
   }, [menu, ultraSelected, ultraFlash]);
 
+  const shownThinkingRef = useRef(shownThinking);
+  shownThinkingRef.current = shownThinking;
+  const lastThinkingOpenRequest = useRef(props.thinkingOpenRequest ?? 0);
+
   useEffect(() => {
     if (props.openRequest) setMenu("model");
   }, [props.openRequest]);
+
+  useEffect(() => {
+    const request = props.thinkingOpenRequest ?? 0;
+    if (!request || request === lastThinkingOpenRequest.current) return;
+    lastThinkingOpenRequest.current = request;
+    if (props.disabled) return;
+    setSliderLevel(shownThinkingRef.current);
+    setMenu("thinking");
+  }, [props.thinkingOpenRequest, props.disabled]);
 
   useEffect(() => {
     if (menu !== "thinking") setSliderLevel(shownThinking);

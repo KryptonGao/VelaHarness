@@ -229,9 +229,10 @@
   --chat-lane-shrink: 0px;
 }
 .chat-conversation-pane[hidden] { display: none; }
-/* 对话区自成层叠上下文(z-index 1),低于选项卡(2);首页向上展开的弹层会被选项卡压住,
-   所以弹层打开时把整个对话区抬到选项卡之上。平时不抬,大 Logo 仍压在选项卡下面。 */
-.chat-conversation-pane:has(.dock-popover) { z-index: 3; }
+/* 对话区自成层叠上下文(z-index 1),低于选项卡(2)和顶栏(3);首页或小窗里向上展开的弹层
+   （.dock-popover、斜线菜单与命令卡片 .skill-menu-anchor、弹窗 .sheet-backdrop）会被压住,
+   所以弹层打开时把整个对话区抬到顶栏与选项卡之上。平时不抬,大 Logo 仍压在选项卡下面。 */
+.chat-conversation-pane:has(:is(.dock-popover, .skill-menu-anchor, .sheet-backdrop)) { z-index: 5; }
 /* 离开底部后浮在输入框上方,点击回到最新输出并恢复跟随。
    水平位置跟输入框共用一条车道:悬浮信息卡片打开时整列会左移(--chat-lane-shift)、
    滚动条占位也会把输入框推左一点(--chat-scrollbar-width),圆球同样让开这两段距离,

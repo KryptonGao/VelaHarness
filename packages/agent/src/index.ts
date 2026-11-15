@@ -97,3 +97,4 @@ export { parseAiTextRequest, TextAssistService, parseGeneratedText, splitDiff } 
 export { createBrowserTools, browserToolNames, browserUseInstructions, type BrowserReplService, type BrowserReplPermission, type BrowserReplContent } from "./browser-use";
 export { systemPromptProfileFrom, systemPromptProfiles, type SystemPromptProfile } from "./system-prompt";
 export { createResidentTools, residentInstructions, residentToolNames, type ResidentToolHost, type ResidentInboxSummary, type ResidentDelegateResult } from "./resident-tools";
+export { loadCustomCommands, parseCommandMarkdown, type LoadCustomCommandsOptions, type ParsedCommandMarkdown } from "./custom-commands";

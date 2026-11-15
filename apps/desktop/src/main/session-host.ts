@@ -325,6 +325,11 @@ export class SessionHost {
     ipcMain.handle(IpcChannel.setModelPrices, (_event, raw: unknown) => this.runtime.setModelPrices(raw));
     ipcMain.handle(IpcChannel.estimateTaskCost, (_event, id: unknown) => this.runtime.estimateTaskCost(id));
     ipcMain.handle(IpcChannel.listSkills, () => this.runtime.listSkills(this.hooks.currentCwd()));
+    ipcMain.handle(IpcChannel.listCustomCommands, (_event, rawConversationId?: unknown) => {
+      const conversationId = rawConversationId == null ? undefined : parseId(rawConversationId, "对话");
+      const hasFallbackWorkspace = !this.hooks.currentWorkspace || this.hooks.currentWorkspace() !== null;
+      return this.runtime.listCustomCommandsForConversation(conversationId, this.hooks.currentCwd(), hasFallbackWorkspace);
+    });
     ipcMain.handle(IpcChannel.scanExternalSkills, () => this.runtime.scanExternalSkills(this.hooks.currentCwd()));
     ipcMain.handle(IpcChannel.migrateSkills, (_event, raw: unknown) => {
       return this.runtime.migrateSkills(this.hooks.currentCwd(), parseSkillIds(raw));

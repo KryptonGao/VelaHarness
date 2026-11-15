@@ -27,14 +27,16 @@ export function SkillToken({
   );
 }
 
-export function SkillMenu({ id = "skill-menu", optionIdPrefix = "skill-option", items, loadingSkills, loadingRecipes, error, recipeError, query, activeIndex, onActiveIndex, onSelect }: {
+export function SkillMenu({ id = "skill-menu", optionIdPrefix = "skill-option", items, loadingSkills, loadingRecipes, loadingCustomCommands = false, error, recipeError, customCommandError = null, query, activeIndex, onActiveIndex, onSelect }: {
   id?: string;
   optionIdPrefix?: string;
   items: SlashMenuItem[];
   loadingSkills: boolean;
   loadingRecipes: boolean;
+  loadingCustomCommands?: boolean;
   error: string | null;
   recipeError: string | null;
+  customCommandError?: string | null;
   query: string;
   activeIndex: number;
   onActiveIndex: (index: number) => void;
@@ -51,16 +53,17 @@ export function SkillMenu({ id = "skill-menu", optionIdPrefix = "skill-option", 
     const target = Math.min(top, Math.max(list.scrollTop, bottom - list.clientHeight));
     list.scrollTo({ top: target, behavior: reduced ? "instant" : "smooth" });
   }, [activeIndex, items, reduced]);
-  const empty = loadingSkills || loadingRecipes
-    ? tr("正在读取技能与任务配方…", "Loading skills and task recipes…")
+  const empty = loadingSkills || loadingRecipes || loadingCustomCommands
+    ? tr("正在读取命令、技能与任务配方…", "Loading commands, skills and task recipes…")
     : query ? tr("没有匹配的命令、技能或任务配方", "No matching commands, skills or task recipes")
-    : tr("还没有技能或任务配方", "No skills or task recipes yet");
+    : tr("还没有命令、技能或任务配方", "No commands, skills or task recipes yet");
   const originLabel = (origin: string) => origin === 'builtin' ? tr('内置', 'Built-in') : origin === 'project' ? tr('项目', 'Project') : origin === 'team' ? tr('团队', 'Team') : tr('个人', 'Personal');
   return <div className="skill-menu" id={id} role="listbox" aria-label={tr("命令、技能与任务配方", "Commands, skills and task recipes")} onMouseDown={event => event.preventDefault()}>
     <div className="skill-menu-list" ref={listRef}>
       {items.map((item, index) => {
         const selected = index === activeIndex;
         const command = item.type === 'command' ? item.command : null;
+        const customCommand = item.type === 'customCommand' ? item.customCommand : null;
         const skill = item.type === 'skill' ? item.skill : null;
         const recipe = item.type === 'recipe' ? item.recipe : null;
         if (command) {
@@ -73,6 +76,20 @@ export function SkillMenu({ id = "skill-menu", optionIdPrefix = "skill-option", 
               <span className="skill-menu-name">/{command.name}</span>
               <span className="skill-menu-desc">{command.description}</span>
               <span className="skill-menu-origin">{tr('命令', 'Command')}</span>
+            </button>
+          </Fragment>;
+        }
+        if (customCommand) {
+          const desc = customCommand.argumentHint ? `${customCommand.argumentHint} · ${customCommand.description}` : customCommand.description;
+          return <Fragment key={`custom-command:${customCommand.location}`}>
+            {index === 0 || items[index - 1]!.type !== item.type ? <div className="skill-menu-title" aria-hidden="true">{tr('自定义命令', 'Custom commands')}</div> : null}
+            <button id={`${optionIdPrefix}-${index}`} ref={selected ? activeRef : undefined} type="button" role="option" aria-selected={selected}
+              aria-label={`/${customCommand.name} · ${originLabel(customCommand.origin)} · ${desc}`}
+              className={`skill-menu-row${selected ? " active" : ""}`} onMouseEnter={() => onActiveIndex(index)} onClick={() => onSelect(item)}>
+              <span className="skill-menu-icon"><CommandIcon size={15} /></span>
+              <span className="skill-menu-name">/{customCommand.name}</span>
+              <span className="skill-menu-desc">{desc}</span>
+              <span className="skill-menu-origin">{originLabel(customCommand.origin)}</span>
             </button>
           </Fragment>;
         }
@@ -90,6 +107,7 @@ export function SkillMenu({ id = "skill-menu", optionIdPrefix = "skill-option", 
       })}
       {!items.length && <div className="skill-menu-empty" role="status">{empty}</div>}
       {error && <div className="skill-menu-empty" role="status">{tr('技能：', 'Skills: ')}{localizeError(error)}</div>}
+      {customCommandError && <div className="skill-menu-empty" role="status">{tr('自定义命令：', 'Custom commands: ')}{localizeError(customCommandError)}</div>}
       {recipeError && <div className="skill-menu-empty" role="status">{tr('任务配方：', 'Task recipes: ')}{localizeError(recipeError)}</div>}
     </div>
   </div>;

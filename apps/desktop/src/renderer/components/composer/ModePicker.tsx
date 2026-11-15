@@ -1,6 +1,6 @@
 import { PopoverPresence } from "../MotionPresence";
 import type { InteractionMode, SandboxMode } from "@vela/shared";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useDismissable } from "../../hooks/useDismissable";
 import { CheckIcon } from "../icons";
 import { tr, trf } from "../../locale";
@@ -68,6 +68,7 @@ export function ModePicker({
   sandboxMode,
   sandboxLocked,
   disabled,
+  openRequest,
   onMode,
   onSandboxMode,
   race,
@@ -77,12 +78,15 @@ export function ModePicker({
   /** 配方启动时固定下来的权限快照；有值时不能在这里改权限。 */
   sandboxLocked?: boolean;
   disabled: boolean;
+  /** 每次值变化（且大于 0）就展开模式菜单；`/mode` 命令用它从输入框外部打开。 */
+  openRequest?: number;
   onMode: (mode: InteractionMode) => void;
   onSandboxMode: (mode: SandboxMode) => unknown;
   /** 赛马不是对话模式，而是一次性的启动动作，所以单独传入；缺省时菜单里没有这一项。 */
   race?: { onStart: () => void; onShow: () => void; count: number };
 }) {
   const [open, setOpen] = useState(false);
+  const lastOpenRequest = useRef(openRequest ?? 0);
   const ref = useDismissable<HTMLDivElement>(open, () => setOpen(false));
   const current = currentCombinedMode(mode, sandboxMode);
   // Plan / Goal 保持当前权限不变；权限放在气泡提示和菜单脚注里，避免 Goal + 完全访问被藏起来。
@@ -92,6 +96,12 @@ export function ModePicker({
   useEffect(() => {
     if (disabled) setOpen(false);
   }, [disabled]);
+
+  useEffect(() => {
+    if (!openRequest || openRequest === lastOpenRequest.current) return;
+    lastOpenRequest.current = openRequest;
+    if (!disabled) setOpen(true);
+  }, [openRequest, disabled]);
 
   function select(id: CombinedModeId) {
     const change = combinedModeChange(id, { interaction: mode, sandbox: sandboxMode }, { sandboxLocked });

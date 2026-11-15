@@ -113,6 +113,13 @@ export function removeSlashText(token: EditorSlash): void {
   placeCaret(token.node, next.caret);
 }
 
+/** 把 `/查询` 替换成指定文本（如 `/review `），光标放到替换文本之后。 */
+export function replaceSlashText(token: EditorSlash, replacement: string): void {
+  const text = token.node.data;
+  token.node.data = text.slice(0, token.start) + replacement + text.slice(token.end);
+  placeCaret(token.node, token.start + replacement.length);
+}
+
 /** 用纯文本整体替换输入框内容，光标放到末尾。 */
 export function setEditorText(root: HTMLElement, text: string, caret: number = text.length): void {
   root.replaceChildren();
