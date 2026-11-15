@@ -35,7 +35,7 @@ const until = async (condition: () => boolean | Promise<boolean>, label: string)
 };
 
 describe("background shell tools", () => {
-  const permission = { request: async () => true };
+  const permission = { decide: async () => ({ allowed: true }) };
 
   it("adds run_in_background to bash and registers bash_output and bash_kill", async () => {
     const { manager, cwd } = await setup();
@@ -119,8 +119,15 @@ describe("background shell tools", () => {
 
   it("does not start the command when permission is denied", async () => {
     const { manager, cwd } = await setup();
-    const tools = createSandboxedToolDefinitions({ cwd, workspace: cwd, permission: { request: async () => false } as never, conversationId: "c1", background: manager });
+    const tools = createSandboxedToolDefinitions({ cwd, workspace: cwd, permission: { decide: async () => ({ allowed: false }) } as never, conversationId: "c1", background: manager });
     await assert.rejects(() => tools[0]!.execute("t1", { command: "echo no", run_in_background: true }, undefined, undefined, { cwd } as never), /用户拒绝了命令执行/);
+    assert.equal(manager.list("c1").length, 0);
+  });
+
+  it("names the remembered deny instead of claiming the user refused", async () => {
+    const { manager, cwd } = await setup();
+    const tools = createSandboxedToolDefinitions({ cwd, workspace: cwd, permission: { decide: async () => ({ allowed: false, deniedByRule: "Bash(rm -rf *)" }) } as never, conversationId: "c1", background: manager });
+    await assert.rejects(() => tools[0]!.execute("t1", { command: "rm -rf x", run_in_background: true }, undefined, undefined, { cwd } as never), /命令被「永远拒绝」记录拦截\(Bash\(rm -rf \*\)\):rm -rf x/);
     assert.equal(manager.list("c1").length, 0);
   });
 });

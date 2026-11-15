@@ -866,9 +866,9 @@ export class ProjectHost {
     ipcMain.handle(IpcChannel.sandboxSetMode, (_event, raw: unknown) => {
       return this.options.sandbox.setMode(parseSandboxMode(raw));
     });
-    ipcMain.handle(IpcChannel.sandboxApprovalReply, (_event, rawId: unknown, rawAllowed: unknown) => {
-      if (typeof rawAllowed !== "boolean") throw new Error("审批回复不正确");
-      this.options.sandbox.reply(parseId(rawId, "审批请求"), rawAllowed);
+    ipcMain.handle(IpcChannel.sandboxApprovalReply, (_event, rawId: unknown, rawAllowed: unknown, rawAlways?: unknown) => {
+      if (typeof rawAllowed !== "boolean" || (rawAlways !== undefined && typeof rawAlways !== "boolean")) throw new Error("审批回复不正确");
+      this.options.sandbox.reply(parseId(rawId, "审批请求"), rawAllowed, { always: rawAlways === true });
     });
 
     ipcMain.handle(IpcChannel.appPickAttachments, async (event, rawKind: unknown) => {

@@ -14,7 +14,7 @@ export { assertValidRefName, gitDir, gitMutate, gitQuery, runGit } from "./git-r
 export { parsePatchSection, buildPatchFromHunks, missingHunkIndexes, type PatchHunk, type PatchFileSection } from "./diff-hunks";
 export { parseGithubSlug } from "./github-url";
 export { PullRequestService } from "./pull-request-service";
-export { SandboxPermissionManager, sandboxApprovalTimeoutMs } from "./sandbox-permission-manager";
+export { SandboxPermissionManager, sandboxApprovalTimeoutMs, type SandboxDecision, type SandboxRequestInput } from "./sandbox-permission-manager";
 export { BackgroundShellManager, type BackgroundShellInfo } from "./background-shells";
 export { createSandboxedToolDefinitions, type SandboxToolFactoryInput } from "./sandbox-tools";
 export { WorktreeSessions, type CreatedWorktree } from "./worktree-session";

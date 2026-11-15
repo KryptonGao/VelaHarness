@@ -270,7 +270,7 @@ export function useProject(notify: NotifySound = noSound) {
     }
   }, []);
   const replyApproval = useCallback(
-    (id: string, allowed: boolean) => getApi().replyApproval(id, allowed),
+    (id: string, allowed: boolean, always?: boolean) => getApi().replyApproval(id, allowed, always),
     [],
   );
   const clearError = useCallback(() => setError(null), []);

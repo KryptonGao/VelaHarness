@@ -711,8 +711,8 @@ const api: VelaApi = {
   getSandboxMode: () => ipcRenderer.invoke(IpcChannel.sandboxGetMode) as Promise<SandboxMode>,
   setSandboxMode: (mode: SandboxMode) =>
     ipcRenderer.invoke(IpcChannel.sandboxSetMode, mode) as Promise<SandboxMode>,
-  replyApproval: (id: string, allowed: boolean) =>
-    ipcRenderer.invoke(IpcChannel.sandboxApprovalReply, id, allowed) as Promise<void>,
+  replyApproval: (id: string, allowed: boolean, always?: boolean) =>
+    ipcRenderer.invoke(IpcChannel.sandboxApprovalReply, id, allowed, always === true) as Promise<void>,
   replyQuestion: (id: string, answer: string | null) =>
     ipcRenderer.invoke(IpcChannel.questionReply, id, answer) as Promise<void>,
   pickAttachments: (kind: AttachmentPickKind) =>

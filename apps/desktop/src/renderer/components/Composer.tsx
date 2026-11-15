@@ -925,10 +925,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
   const steerHint = trf("调整当前任务 ({0}Enter)", "Steer current task ({0}Enter)", modifier);
 
   const approvalSlots = (
-  <>
-    <ApprovalSlot approval={project.approval} onReply={project.replyApproval} />
-    <RecipeStageDock run={recipeRun} />
-  </>
+  <RecipeStageDock run={recipeRun} />
   );
 
   const statusBar = (
@@ -1284,6 +1281,10 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
 
   return (
     <div className="chat-dock-wrapper" ref={ref}>
+      {/* 审批条是独立的卡片,放在输入框之外:它回答的是 Agent 的请求,不是输入框的一部分。 */}
+      <div className="dock-approval">
+        <ApprovalSlot approval={project.approval} onReply={project.replyApproval} />
+      </div>
       <form
         className={`floating-input-card${layout === "capsule" ? " layout-capsule" : ""}${dragging ? " dragging" : ""}`}
         onSubmit={(event) => {

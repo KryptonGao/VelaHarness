@@ -119,7 +119,9 @@
 /* ---------- 审批条 ---------- */
 .approval-banner {
   border-radius: var(--radius-lg);
-  background: var(--warning-tint);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-dock);
   padding: 10px 12px;
   display: flex;
   flex-direction: column;
@@ -131,7 +133,7 @@
   gap: 8px;
   font-size: calc(15px * var(--ui-scale));
   font-weight: 600;
-  color: var(--warning-strong);
+  color: var(--text-primary);
 }
 .approval-banner-hint {
   margin-left: auto;
@@ -151,8 +153,8 @@
 .approval-banner-summary {
   font-family: var(--font-mono);
   font-size: calc(14px * var(--code-scale));
-  color: var(--warning-strong);
-  background: var(--warning-tint-strong);
+  color: var(--text-primary);
+  background: var(--bg-surface-subtle);
   border-radius: var(--radius-sm);
   padding: 8px 10px;
   max-height: 96px;
@@ -160,12 +162,20 @@
   white-space: pre-wrap;
   word-break: break-all;
 }
-.approval-banner-actions { display: flex; gap: 8px; justify-content: flex-end; }
+.approval-banner-rules {
+  font-family: var(--font-mono);
+  font-size: calc(12px * var(--code-scale));
+  color: var(--text-muted);
+  word-break: break-all;
+}
+.approval-banner-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
 .approval-btn { padding: 6px 14px; border-radius: var(--radius-md); font-size: calc(15px * var(--ui-scale)); font-weight: 600; }
 .approval-btn.allow { background: var(--accent-blue); color: var(--accent-contrast); }
 .approval-btn.allow:hover { background: var(--accent-blue-hover); }
 .approval-btn.deny { background: var(--bg-elevated); color: var(--text-secondary); }
 .approval-btn.deny:hover { background: var(--bg-hover); }
+.approval-btn.deny-always, .approval-btn.always { background: transparent; color: var(--text-primary); box-shadow: inset 0 0 0 1px var(--border-subtle); }
+.approval-btn.deny-always:hover, .approval-btn.always:hover { background: var(--bg-hover); }
 
 /* ---------- 提问卡片(消息流内) ---------- */
 .question-card {

@@ -179,6 +179,17 @@
   grid-template-rows: 1fr;
   margin-bottom: 0;
 }
+/* 审批条在输入框之外,与输入框是两张独立的卡片:同一条车道宽度,打开时留出卡片间距。 */
+.dock-approval {
+  pointer-events: auto;
+  flex: none;
+  width: calc(min(100%, var(--chat-lane-max, 760px)) - var(--chat-lane-shrink, 0px));
+  margin-right: calc(var(--chat-lane-shift, 0px) * 2);
+}
+.dock-approval > .approval-slot { margin-bottom: 0; }
+.dock-approval > .approval-slot.open { margin-bottom: 8px; }
+/* 卡片阴影不被槽的裁剪切掉;收起时内层是 visibility:hidden,不会漏出。 */
+.dock-approval > .approval-slot > .approval-slot-inner { overflow: clip; overflow-clip-margin: 16px; }
 .approval-slot-inner {
   min-height: 0;
   overflow: hidden;

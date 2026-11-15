@@ -39,6 +39,7 @@
 | [features/outcome-acceptance.md](./features/outcome-acceptance.md) | 使用者与开发者 | 成果验收：逐项需求、修改、验证证据与待确认，agent 归属、确定性事实推导、fallback 与限制。 |
 | [features/race.md](./features/race.md) | 使用者与开发者 | 赛马：同一任务在 2–4 个独立 worktree 里用不同模型/思考强度/提示并行尝试，按耗时、token、改动、统一验证并排比较，一键 squash 采用其一；存储、恢复、限制与验证。 |
 | [features/hooks.md](./features/hooks.md) | Users and developers | Command lifecycle Hooks: configuration, native-code authorization, five events, bounded execution, test runs, history, traces and safety limits. |
+| [features/permission-rules.md](./features/permission-rules.md) | Users and developers | Approval choices (Allow once, Always allow, Deny, Always deny): what is remembered per project, where it is stored, what gets offered, and rule matching limits. |
 | [features/mcp.md](./features/mcp.md) | 使用者与开发者 | MCP 服务器的配置、项目信任、工具曝光、只读授权、会话生命周期与定向验收。 |
 | [features/memory.md](./features/memory.md) | 使用者与开发者 | 项目记忆与全局记忆的目录、作用域、加载与刷新时机、写入权限、设置页管理、worktree 行为与验证。 |
 | [features/web-tools.md](./features/web-tools.md) | 使用者与开发者 | 网页搜索与抓取：与模型提供商分开的可自定义提供商（内置 DeepSeek 预设 + 通用 HTTP 适配器）、加密密钥存储、`web_search`/`web_fetch` 工具、审批策略、不可信内容与安全边界、设置页与验证。 |

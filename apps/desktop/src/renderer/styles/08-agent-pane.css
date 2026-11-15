@@ -442,7 +442,8 @@
   /* 与滚动区扣除滚动条后的可用宽度一致,输入框才能和正文列对齐。 */
   padding-right: calc(24px + var(--chat-scrollbar-width, 0px));
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
   pointer-events: none;
   /* 输入框及其下方保持不透明,滚动中的正文不会从边上和底部透出来。 */
   background: var(--bg-chat);

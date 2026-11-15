@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { after, describe, it } from "node:test";
 import type { SandboxApprovalEvent, SandboxMcpContext, SandboxRiskEvaluator, SandboxRiskInput, SandboxRiskVerdict } from "@vela/shared";
 import { SandboxPermissionManager } from "../src/sandbox-permission-manager.ts";
@@ -471,5 +471,130 @@ describe("web fetch approvals", () => {
     assert.ok(id, "a risky verdict falls back to asking the user");
     manager.reply(id, false);
     assert.equal(await pending, false);
+  });
+});
+
+describe("always allow / always deny", () => {
+  const settingsOf = (manager: SandboxPermissionManager): string => (manager as unknown as { settingsPath: string }).settingsPath;
+  const lastRequest = (events: SandboxApprovalEvent[]) => {
+    const event = events.filter((entry) => entry.type === "request").at(-1);
+    assert.ok(event?.type === "request");
+    return event.request;
+  };
+
+  it("offers suggestions, and 'always allow' remembers them for that project only", async () => {
+    const { manager, events } = await createManager("ask");
+    const first = manager.request({ kind: "bash", command: "pwd && git status --short", cwd: "/repo", workspace: "/repo" });
+    const request = lastRequest(events);
+    assert.deepEqual(request.suggestedAllow, ["Bash(pwd *)", "Bash(git status *)"]);
+    assert.deepEqual(request.suggestedDeny, ["Bash(pwd *)", "Bash(git status *)"]);
+    assert.equal(manager.reply(request.id, true, { always: true }), true);
+    assert.equal(await first, true);
+    assert.deepEqual(manager.getProjectAllowRules("/repo"), ["Bash(pwd *)", "Bash(git status *)"]);
+    events.length = 0;
+    assert.equal(await manager.request({ kind: "bash", command: "git status", cwd: "/repo", workspace: "/repo" }), true);
+    assert.deepEqual(events, []);
+    const other = manager.request({ kind: "bash", command: "git status", cwd: "/other", workspace: "/other" });
+    const id = pendingRequest(events);
+    assert.ok(id, "a different project is not covered");
+    manager.reply(id, false);
+    assert.equal(await other, false);
+    // The record lives next to the settings file, not in the repository, and survives a restart.
+    const file = JSON.parse(await readFile(join(dirname(settingsOf(manager)), "project-permissions.json"), "utf8"));
+    assert.deepEqual(file.projects["/repo"].allow, ["Bash(pwd *)", "Bash(git status *)"]);
+    const reloaded = new SandboxPermissionManager(settingsOf(manager));
+    assert.deepEqual(reloaded.getProjectAllowRules("/repo"), ["Bash(pwd *)", "Bash(git status *)"]);
+    assert.deepEqual(reloaded.getProjectAllowRules("/other"), []);
+  });
+
+  it("'always deny' refuses in every mode without asking, for that project only, and names the rule", async () => {
+    const { manager, events } = await createManager("ask", async () => "safe");
+    const first = manager.request({ kind: "bash", command: "pwd && rm -rf build", cwd: "/repo", workspace: "/repo" });
+    const request = lastRequest(events);
+    assert.deepEqual(request.suggestedDeny, ["Bash(rm *)"]);
+    manager.reply(request.id, false, { always: true });
+    assert.equal(await first, false);
+    assert.deepEqual(manager.getProjectDenyRules("/repo"), ["Bash(rm *)"]);
+    for (const mode of ["ask", "smart", "full"] as const) {
+      await manager.setMode(mode);
+      events.length = 0;
+      assert.deepEqual(await manager.decide({ kind: "bash", command: "sudo rm x", cwd: "/repo", workspace: "/repo" }), { allowed: false, deniedByRule: "Bash(rm *)" }, mode);
+      assert.deepEqual(events, [], mode);
+    }
+    assert.equal(await manager.request({ kind: "bash", command: "rm y", workspace: "/repo", sandboxMode: "full" }), false, "a per-conversation full override does not bypass it");
+    // Another project still goes through its own mode.
+    assert.equal(await manager.request({ kind: "bash", command: "rm x", cwd: "/other", workspace: "/other" }), true, "full mode, nothing remembered there");
+  });
+
+  it("a plain Deny or Allow once remembers nothing, and records never duplicate", async () => {
+    const { manager, events } = await createManager("ask");
+    const denied = manager.request({ kind: "bash", command: "git status", cwd: "/repo", workspace: "/repo" });
+    manager.reply(pendingRequest(events)!, false);
+    assert.equal(await denied, false);
+    events.length = 0;
+    const once = manager.request({ kind: "bash", command: "git status", cwd: "/repo", workspace: "/repo" });
+    manager.reply(pendingRequest(events)!, true);
+    assert.equal(await once, true);
+    assert.deepEqual(manager.getProjectAllowRules("/repo"), []);
+    assert.deepEqual(manager.getProjectDenyRules("/repo"), []);
+    for (let i = 0; i < 2; i++) {
+      events.length = 0;
+      const again = manager.request({ kind: "bash", command: "git diff", cwd: "/repo", workspace: "/repo" });
+      if (i === 1) assert.deepEqual(events, [], "already remembered, no second prompt");
+      else manager.reply(pendingRequest(events)!, true, { always: true });
+      assert.equal(await again, true);
+    }
+    assert.deepEqual(manager.getProjectAllowRules("/repo"), ["Bash(git diff *)"]);
+  });
+
+  it("offers neither button without a project, and 'always allow' only for what is on the safe list", async () => {
+    const { manager, events } = await createManager("ask");
+    const risky = manager.request({ kind: "bash", command: "rm -rf build", cwd: "/repo", workspace: "/repo" });
+    const riskyRequest = lastRequest(events);
+    assert.equal(riskyRequest.suggestedAllow, undefined);
+    assert.deepEqual(riskyRequest.suggestedDeny, ["Bash(rm *)"]);
+    manager.reply(riskyRequest.id, true, { always: true });
+    assert.equal(await risky, true, "allow once");
+    assert.deepEqual(manager.getProjectAllowRules("/repo"), [], "'always' on an allow without suggestions saves nothing");
+
+    events.length = 0;
+    const noProject = manager.request({ kind: "bash", command: "git status", cwd: "/repo" });
+    const noProjectRequest = lastRequest(events);
+    assert.equal(noProjectRequest.suggestedAllow, undefined);
+    assert.equal(noProjectRequest.suggestedDeny, undefined);
+    manager.reply(noProjectRequest.id, true, { always: true });
+    assert.equal(await noProject, true);
+  });
+
+  it("a remembered deny beats a remembered allow, and the record file is guarded like a write outside the workspace", async () => {
+    const { manager, events } = await createManager("smart", async () => "safe");
+    const first = manager.request({ kind: "bash", command: "git diff", cwd: "/repo", workspace: "/repo" });
+    assert.equal(await first, true, "smart judged it safe");
+    const file = join(dirname(settingsOf(manager)), "project-permissions.json");
+    await writeFile(file, JSON.stringify({ version: 1, projects: { "/repo": { allow: ["Bash(git diff *)"], deny: ["Bash(git diff *)"] } } }));
+    assert.equal(await manager.request({ kind: "bash", command: "git diff", cwd: "/repo", workspace: "/repo" }), false);
+    const pending = manager.request({ kind: "write", path: file, workspace: "/repo", insideWorkspace: false });
+    const request = lastRequest(events);
+    assert.equal(request.suggestedAllow, undefined, "no 'always' while rewriting the record itself");
+    assert.equal(request.suggestedDeny, undefined);
+    manager.reply(request.id, false);
+    assert.equal(await pending, false);
+  });
+
+  it("hand edits to the record file apply on the next request, and a broken file means no records", async () => {
+    const { manager } = await createManager("full");
+    const file = join(dirname(settingsOf(manager)), "project-permissions.json");
+    assert.equal(await manager.request({ kind: "bash", command: "git push", workspace: "/repo" }), true);
+    await writeFile(file, JSON.stringify({ version: 1, projects: { "/repo": { deny: ["Bash(git push *)", "oops("] } } }));
+    assert.equal(await manager.request({ kind: "bash", command: "git push origin", workspace: "/repo" }), false);
+    await writeFile(file, "{ half written");
+    assert.equal(await manager.request({ kind: "bash", command: "git push origin", workspace: "/repo" }), true);
+  });
+
+  it("keeps unrelated settings when the mode is saved", async () => {
+    const { manager } = await createManager("smart");
+    await writeFile(settingsOf(manager), JSON.stringify({ sandboxMode: "smart", theme: "dark" }));
+    await manager.setMode("ask");
+    assert.deepEqual(JSON.parse(await readFile(settingsOf(manager), "utf8")), { sandboxMode: "ask", theme: "dark" });
   });
 });

@@ -2917,6 +2917,10 @@ export type SandboxRiskEvaluator = (input: SandboxRiskInput) => Promise<SandboxR
 export interface SandboxApprovalRequest {
   conversationId?: string;
   mcp?: SandboxMcpContext;
+  /** 「始终允许」会为当前项目记下的规则;缺省时界面不提供该按钮。由主进程根据请求本身生成,回复时不信任界面传来的规则。 */
+  suggestedAllow?: string[];
+  /** 「永远拒绝」会为当前项目记下的规则;缺省时界面不提供该按钮。 */
+  suggestedDeny?: string[];
   id: string;
   kind: SandboxApprovalKind;
   command: string | null;
@@ -3433,7 +3437,8 @@ export interface VelaApi extends McpApi, PluginApi, HooksApi {
   createPullRequest(): Promise<void>;
   getSandboxMode(): Promise<SandboxMode>;
   setSandboxMode(mode: SandboxMode): Promise<SandboxMode>;
-  replyApproval(id: string, allowed: boolean): Promise<void>;
+  /** always 为 true 时同时记住这次选择:允许记为「始终允许」,拒绝记为「永远拒绝」,只对当前项目生效。 */
+  replyApproval(id: string, allowed: boolean, always?: boolean): Promise<void>;
   onApprovalEvent(listener: (event: SandboxApprovalEvent) => void): () => void;
   /** 回答 agent 提出的问题;answer 为 null 表示跳过。 */
   replyQuestion(id: string, answer: string | null): Promise<void>;

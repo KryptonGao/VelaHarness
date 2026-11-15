@@ -1,4 +1,4 @@
-/** Real sidebar/header/editor with local fixture state; ?fail=1 exercises failed saves. */
+/** Real sidebar/header/editor with local fixture state; ?fail=1 exercises failed saves, ?approval=1 shows a pending approval card (?risky=1 for one that offers "always deny" but not "always allow"). */
 import React, { useState } from "react";
 import { createRoot } from "react-dom/client";
 import type { AppState, ConversationSummary, VelaApi } from "@vela/shared";
@@ -27,7 +27,11 @@ const models = {
   add() {}, remove() {}, logout() {}, loginProvider() {}, replyLogin() {}, cancelLogin() {}, dismissLogin() {},
 } as unknown as ReturnType<typeof useModels>;
 const project = {
-  workspace: { current: "/projects/VelaHarness", recents: [] }, approval: null, environment: null, environments: [],
+  workspace: { current: "/projects/VelaHarness", recents: [] }, approval: params.has("approval") ? {
+    id: "approval-1", kind: "bash", path: null, cwd: "/projects/VelaHarness", createdAt: Date.now(),
+    command: params.has("risky") ? "rm -rf node_modules && pnpm install" : "pwd && git status --short && rg -n '\"test\"|\"test:' package.json",
+    ...(params.has("risky") ? { suggestedDeny: ["Bash(rm *)", "Bash(pnpm install *)"] } : { suggestedAllow: ["Bash(pwd *)", "Bash(git status *)", "Bash(rg *)"], suggestedDeny: ["Bash(pwd *)", "Bash(git status *)", "Bash(rg *)"] }),
+  } : null, environment: null, environments: [],
   sandboxMode: "ask", git: null, openWorkspaceDialog: async () => {}, replyApproval() {}, listBranches: async () => [],
 } as unknown as ProjectApi;
 const now = Date.now();

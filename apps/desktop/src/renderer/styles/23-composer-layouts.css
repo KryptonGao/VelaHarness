@@ -68,8 +68,6 @@
   border-radius: 26px;
   box-shadow: var(--shadow-dock);
 }
-/* 审批槽收起时用 -10px 抵消卡片 6px 的行距,这里行距与卡片相同,只需抵消 gap 本身。 */
-.composer-capsule > .approval-slot:not(.open) { margin-bottom: -6px; }
 .composer-capsule > :is(.instruction-row, .attachment-row) { padding-inline: 8px; }
 /* 工作区/环境/分支芯片挪到胶囊外,贴在胶囊上方,与下方托盘同样的左右内边距。 */
 .layout-capsule > .composer-status-bar { padding: 0 12px 6px; contain: inline-size; }

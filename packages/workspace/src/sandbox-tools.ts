@@ -15,7 +15,7 @@ import {
 import type { BackgroundShellManager } from "./background-shells";
 import { createBackgroundShellTools, withBackgroundOption } from "./background-shell-tools";
 import { isPathInsideReal } from "./git-service";
-import type { SandboxPermissionManager } from "./sandbox-permission-manager";
+import type { SandboxDecision, SandboxPermissionManager } from "./sandbox-permission-manager";
 
 export interface SandboxToolFactoryInput extends SandboxExecutionContext {
   /** Agent 会话 cwd(Pi 需要它来构造内置工具) */
@@ -33,21 +33,22 @@ export interface SandboxToolFactoryInput extends SandboxExecutionContext {
  * 包装 Pi 内置 bash/edit/write 工具:名称与内置一致,经 customTools
  * 注入后同名覆盖。每次工具调用只过一次权限门:bash 在 exec 前,
  * 文件写入在读取/写入任何内容前。ask 模式逐条审批、工作区内文件
- * 改动放行;smart 模式由模型判断;full 模式直接放行。
+ * 改动放行;smart 模式由模型判断;full 模式直接放行。用户点过「始终允许 / 永远拒绝」的
+ * 记录先于模式生效,永远拒绝命中时报错里带上规则,模型不会误以为是用户临时拒绝。
  */
 export function createSandboxedToolDefinitions(input: SandboxToolFactoryInput): ToolDefinition[] {
   const boundary = input.workspace ?? input.cwd;
 
   const bashOperations: BashOperations = {
     exec: async (command, cwd, options) => {
-      const allowed = await input.permission.request({ sandboxMode: input.sandboxMode, conversationId: input.conversationId, kind: "bash", command, cwd, workspace: boundary, signal: options.signal });
-      if (!allowed) throw new Error(`用户拒绝了命令执行:${command}`);
+      const decision = await input.permission.decide({ sandboxMode: input.sandboxMode, conversationId: input.conversationId, kind: "bash", command, cwd, workspace: boundary, signal: options.signal });
+      if (!decision.allowed) throw bashDenied(command, decision);
       return createLocalBashOperations().exec(command, cwd, options);
     },
   };
 
   const guardFileWrite = async (kind: "edit" | "write", path: string, signal?: AbortSignal): Promise<void> => {
-    const allowed = await input.permission.request({
+    const decision = await input.permission.decide({
       sandboxMode: input.sandboxMode,
       conversationId: input.conversationId,
       kind,
@@ -56,7 +57,9 @@ export function createSandboxedToolDefinitions(input: SandboxToolFactoryInput): 
       insideWorkspace: await isInsideWorkspace(path, [boundary, ...(input.extraRoots?.() ?? [])]),
       signal,
     });
-    if (!allowed) throw new Error(`用户拒绝了文件修改:${path}`);
+    if (!decision.allowed) throw decision.deniedByRule
+      ? new Error(`文件修改被「永远拒绝」记录拦截(${decision.deniedByRule}):${path}。这是用户的决定,不要换个写法重试`)
+      : new Error(`用户拒绝了文件修改:${path}`);
   };
 
   const bash = defineTool(createBashToolDefinition(input.cwd, { operations: bashOperations }));
@@ -67,8 +70,8 @@ export function createSandboxedToolDefinitions(input: SandboxToolFactoryInput): 
   return [
     background && conversationId
       ? withBackgroundOption(bash, input.cwd, background, conversationId, async (command, cwd, signal) => {
-          const allowed = await input.permission.request({ sandboxMode: input.sandboxMode, conversationId, kind: "bash", command, cwd, workspace: boundary, signal });
-          if (!allowed) throw new Error(`用户拒绝了命令执行:${command}`);
+          const decision = await input.permission.decide({ sandboxMode: input.sandboxMode, conversationId, kind: "bash", command, cwd, workspace: boundary, signal });
+          if (!decision.allowed) throw bashDenied(command, decision);
         })
       : bash,
     defineTool(
@@ -89,6 +92,12 @@ export function createSandboxedToolDefinitions(input: SandboxToolFactoryInput): 
     ),
     ...(background && conversationId ? createBackgroundShellTools(background, conversationId) : []),
   ];
+}
+
+function bashDenied(command: string, decision: SandboxDecision): Error {
+  return decision.deniedByRule
+    ? new Error(`命令被「永远拒绝」记录拦截(${decision.deniedByRule}):${command}。这是用户的决定,不要换个写法重试`)
+    : new Error(`用户拒绝了命令执行:${command}`);
 }
 
 /**

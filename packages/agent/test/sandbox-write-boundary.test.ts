@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, before, describe, it } from "node:test";
 import { isPathInsideReal } from "../../workspace/src/git-service.ts";
-import type { SandboxPermissionManager } from "../../workspace/src/sandbox-permission-manager.ts";
+import { SandboxPermissionManager } from "../../workspace/src/sandbox-permission-manager.ts";
 import { createSandboxedToolDefinitions } from "../../workspace/src/sandbox-tools.ts";
 
 let root: string;
@@ -67,9 +67,9 @@ describe("createSandboxedToolDefinitions 文件写入", () => {
   async function insideFlag(path: string, extraRoots?: readonly string[]): Promise<boolean | undefined> {
     const calls: Array<{ insideWorkspace?: boolean }> = [];
     const permission = {
-      request: async (input: { insideWorkspace?: boolean }) => {
+      decide: async (input: { insideWorkspace?: boolean }) => {
         calls.push(input);
-        return false;
+        return { allowed: false };
       },
     } as unknown as SandboxPermissionManager;
     const tools = createSandboxedToolDefinitions({ cwd: repo, workspace: repo, permission, extraRoots: extraRoots ? () => extraRoots : undefined });
@@ -95,5 +95,25 @@ describe("createSandboxedToolDefinitions 文件写入", () => {
     await symlink(outside, join(extra, "link"));
     assert.equal(await insideFlag(join(extra, "notes.md"), [extra]), true);
     assert.equal(await insideFlag(join(extra, "link", "id_rsa"), [extra]), false);
+  });
+});
+
+describe("createSandboxedToolDefinitions 永远拒绝", () => {
+  it("命中「永远拒绝」记录时报错点名规则,而不是冒充用户拒绝", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "vela-rules-tools-"));
+    try {
+      const workspace = join(dir, "repo");
+      await mkdir(workspace);
+      const manager = new SandboxPermissionManager(join(dir, "vela-settings.json"));
+      await manager.setMode("full");
+      await writeFile(join(dir, "project-permissions.json"), JSON.stringify({ version: 1, projects: { [await realpath(workspace)]: { deny: ["Edit(.env*)"] } } }));
+      const tools = createSandboxedToolDefinitions({ cwd: workspace, workspace, permission: manager });
+      const write = tools.find((tool) => tool.name === "write");
+      assert.ok(write);
+      await assert.rejects(write.execute("c2", { path: ".env", content: "x" }, undefined, undefined, { cwd: workspace } as never), /「永远拒绝」记录拦截\(Edit\(\.env\*\)\)/);
+      assert.deepEqual(await readdir(workspace), []);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
   });
 });

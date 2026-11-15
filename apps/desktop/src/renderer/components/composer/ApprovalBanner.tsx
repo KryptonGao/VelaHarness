@@ -24,7 +24,7 @@ export function ApprovalSlot({
   onReply,
 }: {
   approval: SandboxApprovalRequest | null;
-  onReply: (id: string, allowed: boolean) => void;
+  onReply: (id: string, allowed: boolean, always?: boolean) => void;
 }) {
   const [shown, setShown] = useState(approval);
   if (approval && shown?.id !== approval.id) setShown(approval);
@@ -34,7 +34,7 @@ export function ApprovalSlot({
   return (
     <div className={`approval-slot${approval ? " open" : ""}`} ref={slot}>
       <div className="approval-slot-inner" inert={approval ? undefined : true}>
-        {shown ? <ApprovalBanner approval={shown} onReply={onReply} /> : null}
+        {shown ? <ApprovalBanner approval={shown} onReply={onReply} onRemember={(id, allowed) => onReply(id, allowed, true)} /> : null}
       </div>
     </div>
   );
@@ -43,10 +43,15 @@ export function ApprovalSlot({
 export function ApprovalBanner({
   approval,
   onReply,
+  onRemember,
 }: {
   approval: SandboxApprovalRequest;
   onReply: (id: string, allowed: boolean) => void;
+  /** 提供后,请求带有建议规则时显示「始终允许」「永远拒绝」;没有记住选择的入口(如 Agent 收件箱)就不传。 */
+  onRemember?: (id: string, allowed: boolean) => void;
 }) {
+  const allowRules = onRemember ? approval.suggestedAllow ?? [] : [];
+  const denyRules = onRemember ? approval.suggestedDeny ?? [] : [];
   const summary = approval.kind === "mcp"
     ? [
         `${tr("服务器", "Server")}: ${approval.mcp?.server ?? tr("(未知)", "(Unknown)")}`,
@@ -82,7 +87,19 @@ export function ApprovalBanner({
         <span className="approval-banner-hint" aria-hidden="true">{tr("Esc 拒绝", "Esc to deny")}</span>
       </div>
       <pre className="approval-banner-summary" id={summaryId} tabIndex={0}>{summary}</pre>
+      {allowRules.length ? <div className="approval-banner-rules">{trf("在此项目中始终允许:{0}", "Always allowed in this project: {0}", allowRules.join("  ·  "))}</div> : null}
+      {denyRules.length ? <div className="approval-banner-rules">{trf("在此项目中永远拒绝:{0}", "Always denied in this project: {0}", denyRules.join("  ·  "))}</div> : null}
       <div className="approval-banner-actions">
+        {denyRules.length ? (
+          <button
+            type="button"
+            className="approval-btn deny-always"
+            title={denyRules.join("\n")}
+            onClick={() => onRemember?.(approval.id, false)}
+          >
+            {tr("永远拒绝", "Always deny")}
+          </button>
+        ) : null}
         <button
           type="button"
           className="approval-btn deny"
@@ -90,6 +107,16 @@ export function ApprovalBanner({
         >
           {tr("拒绝", "Deny")}
         </button>
+        {allowRules.length ? (
+          <button
+            type="button"
+            className="approval-btn always"
+            title={allowRules.join("\n")}
+            onClick={() => onRemember?.(approval.id, true)}
+          >
+            {tr("始终允许", "Always allow")}
+          </button>
+        ) : null}
         <button
           type="button"
           className="approval-btn allow"
