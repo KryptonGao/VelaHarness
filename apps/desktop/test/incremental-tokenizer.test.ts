@@ -159,7 +159,8 @@ const css = [
 async function realTokenizer(lang: "typescript" | "css") {
   const highlighter = await createHighlighterCore({ themes: [theme], langs: [], engine: createJavaScriptRegexEngine({ forgiving: true }) });
   await highlighter.loadLanguage(lang === "css" ? (await import("shiki/langs/css.mjs")).default : (await import("shiki/langs/typescript.mjs")).default);
-  const options = { lang, theme, tokenizeMaxLineLength: 2000, tokenizeTimeLimit: 100 };
+  // The test compares token output, not speed: a tight time limit makes a slow CI runner cut lines short and diverge.
+  const options = { lang, theme, tokenizeMaxLineLength: 2000, tokenizeTimeLimit: 10_000 };
   const full = (lines: string[]) => highlighter.codeToTokens(lines.join("\n"), options).tokens;
   const incremental = createIncrementalTokenizer((chunk: string, state) => {
     const result = highlighter.codeToTokens(chunk, { ...options, ...(state ? { grammarState: state } : {}) });
