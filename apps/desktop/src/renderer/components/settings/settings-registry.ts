@@ -3,7 +3,7 @@ import { uiCopy } from "../intelligent-ui/copy";
 
 export type SettingsPageId =
   | "appearance" | "interface" | "shortcuts" | "updates"
-  | "defaults" | "subagents" | "display" | "skills"
+  | "defaults" | "approvals" | "subagents" | "display" | "skills"
   | "models" | "integrations" | "mcp" | "hooks" | "web" | "memory"
   | "workspace" | "archived" | "usage" | "storage" | "logs"
   | "development";
@@ -18,7 +18,7 @@ export interface SettingsGroup {
 /** 导航顺序:先按使用意图分组,同组内由常用到少用。 */
 export const settingsGroups: readonly SettingsGroup[] = [
   { id: "general", pages: ["appearance", "interface", "shortcuts", "updates"] },
-  { id: "agent", pages: ["defaults", "subagents", "display", "skills"] },
+  { id: "agent", pages: ["defaults", "approvals", "subagents", "display", "skills"] },
   { id: "extensions", pages: ["models", "integrations", "mcp", "hooks", "web", "memory"] },
   { id: "data", pages: ["workspace", "archived", "usage", "storage", "logs"] },
   { id: "development", pages: ["development"] },
@@ -92,6 +92,8 @@ export const settingsEntries: readonly SettingsEntry[] = [
   { id: "context-limit", page: "defaults", title: (c) => c.agent.contextLimit, hint: (c) => c.agent.contextLimitHint, keywords: { zh: ["上下文", "长度", "窗口", "压缩", "token", "K"], en: ["context", "window", "length", "compact", "compaction", "token", "limit"] } },
   { id: "task-budget", page: "defaults", title: (c) => c.agent.taskBudget, hint: (c) => c.agent.taskBudgetHint, keywords: { zh: ["用量", "上限", "预算", "额度", "时间限制", "子代理"], en: ["budget", "limit", "usage", "quota", "token limit", "time limit", "subagent"] } },
   { id: "permissions", page: "defaults", title: (c) => c.permissions.title, hint: (c) => c.permissions.note, keywords: { zh: ["权限", "沙箱", "批准", "审批", "完全访问", "每次询问", "帮我批准"], en: ["permission", "sandbox", "approval", "approve", "full access", "ask", "smart"] } },
+
+  { id: "approval-records", page: "approvals", title: (c) => c.approvalRecords.title, hint: (c) => c.approvalRecords.hint, keywords: { zh: ["审批", "批准", "始终允许", "永远拒绝", "记录", "权限", "规则", "撤销"], en: ["approval", "approve", "always allow", "always deny", "records", "permission", "rules", "revoke", "remembered"] } },
 
   { id: "subagent-models", page: "subagents", title: (c) => c.subagentModels.title, hint: (c) => c.subagentModels.hint, keywords: { zh: ["子代理", "子agent", "模型池", "模型", "SubAgent", "派生", "允许的模型"], en: ["subagent", "sub-agent", "model pool", "models", "spawn", "allowed models", "delegate"] } },
 

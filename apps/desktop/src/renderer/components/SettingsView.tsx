@@ -17,6 +17,7 @@ import { settingsCopy } from "./settings-copy";
 import { SettingsUsageView } from "./usage/SettingsUsageView";
 import { AgentDefaultsPage } from "./settings/AgentDefaultsPage";
 import { AppearancePage } from "./settings/AppearancePage";
+import { ApprovalRecordsPage } from "./settings/ApprovalRecordsPage";
 import { ArchivedPage } from "./settings/ArchivedPage";
 import { ConversationDisplayPage } from "./settings/ConversationDisplayPage";
 import { DevelopmentPage } from "./settings/DevelopmentPage";
@@ -162,6 +163,7 @@ export function SettingsView({
           <div hidden={page !== "defaults"}>
             <AgentDefaultsPage copy={copy} catalog={models.catalog} project={project} />
           </div>
+          {page === "approvals" ? <ApprovalRecordsPage copy={copy} workspacePath={workspacePath} /> : null}
           <div hidden={page !== "subagents"}>
             <SubagentModelsPage copy={copy} catalog={models.catalog} hiddenModels={preferences.hiddenModels} />
           </div>

@@ -866,6 +866,16 @@ export class ProjectHost {
     ipcMain.handle(IpcChannel.sandboxSetMode, (_event, raw: unknown) => {
       return this.options.sandbox.setMode(parseSandboxMode(raw));
     });
+    ipcMain.handle(IpcChannel.sandboxRecordsList, () => this.options.sandbox.listProjectRecords());
+    ipcMain.handle(IpcChannel.sandboxRecordsRemove, (_event, rawWorkspace: unknown, rawList: unknown, rawRule: unknown) => {
+      if ((rawList !== "allow" && rawList !== "deny") || typeof rawRule !== "string" || rawRule.length > 2000) throw new Error("审批记录不正确");
+      this.options.sandbox.removeProjectRecord(parseRecordPath(rawWorkspace), rawList, rawRule);
+      return this.options.sandbox.listProjectRecords();
+    });
+    ipcMain.handle(IpcChannel.sandboxRecordsClear, (_event, rawWorkspace: unknown) => {
+      this.options.sandbox.clearProjectRecords(parseRecordPath(rawWorkspace));
+      return this.options.sandbox.listProjectRecords();
+    });
     ipcMain.handle(IpcChannel.sandboxApprovalReply, (_event, rawId: unknown, rawAllowed: unknown, rawAlways?: unknown) => {
       if (typeof rawAllowed !== "boolean" || (rawAlways !== undefined && typeof rawAlways !== "boolean")) throw new Error("审批回复不正确");
       this.options.sandbox.reply(parseId(rawId, "审批请求"), rawAllowed, { always: rawAlways === true });
@@ -1907,4 +1917,9 @@ async function isDirectory(path: string): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+function parseRecordPath(raw: unknown): string {
+  if (typeof raw !== "string" || !raw || raw.length > 4096) throw new Error("项目路径不正确");
+  return raw;
 }

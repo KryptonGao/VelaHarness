@@ -215,6 +215,9 @@ export const IpcChannel = {
   sandboxSetMode: "sandbox:set-mode",
   sandboxApprovalEvent: "sandbox:approval-event",
   sandboxApprovalReply: "sandbox:approval-reply",
+  sandboxRecordsList: "sandbox:records-list",
+  sandboxRecordsRemove: "sandbox:records-remove",
+  sandboxRecordsClear: "sandbox:records-clear",
   questionEvent: "session:question-event",
   questionReply: "session:question-reply",
   sessionAgentMessages: "session:agent-messages",
@@ -2914,6 +2917,14 @@ export type SandboxRiskVerdict = "safe" | "risky" | "unknown";
 
 export type SandboxRiskEvaluator = (input: SandboxRiskInput) => Promise<SandboxRiskVerdict>;
 
+/** 某个项目里「始终允许」和「永远拒绝」记下的规则,设置页据此展示和删除。 */
+export interface SandboxProjectRecord {
+  /** 项目的真实路径,同时是记录的键。 */
+  workspace: string;
+  allow: string[];
+  deny: string[];
+}
+
 export interface SandboxApprovalRequest {
   conversationId?: string;
   mcp?: SandboxMcpContext;
@@ -3437,6 +3448,12 @@ export interface VelaApi extends McpApi, PluginApi, HooksApi {
   createPullRequest(): Promise<void>;
   getSandboxMode(): Promise<SandboxMode>;
   setSandboxMode(mode: SandboxMode): Promise<SandboxMode>;
+  /** 各项目里「始终允许」和「永远拒绝」记下的规则。 */
+  listApprovalRecords(): Promise<SandboxProjectRecord[]>;
+  /** 删除一条记录,返回最新列表。 */
+  removeApprovalRecord(workspace: string, list: "allow" | "deny", rule: string): Promise<SandboxProjectRecord[]>;
+  /** 清空一个项目的全部记录,返回最新列表。 */
+  clearApprovalRecords(workspace: string): Promise<SandboxProjectRecord[]>;
   /** always 为 true 时同时记住这次选择:允许记为「始终允许」,拒绝记为「永远拒绝」,只对当前项目生效。 */
   replyApproval(id: string, allowed: boolean, always?: boolean): Promise<void>;
   onApprovalEvent(listener: (event: SandboxApprovalEvent) => void): () => void;

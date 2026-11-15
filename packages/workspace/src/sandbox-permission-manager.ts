@@ -8,6 +8,7 @@ import type {
   SandboxApprovalKind,
   SandboxMcpContext,
   SandboxMode,
+  SandboxProjectRecord,
   SandboxRiskEvaluator,
   SandboxRiskInput,
   SandboxRiskVerdict,
@@ -219,30 +220,68 @@ export class SandboxPermissionManager {
     return this.projectGrants(workspace).deny.map(rule => rule.source);
   }
 
-  /** 同步读写:回复审批时规则必须立刻对下一次请求生效。 */
-  private remember(workspace: string, list: "allow" | "deny", rules: readonly string[]): void {
-    type Entry = { allow?: string[]; deny?: string[] };
-    const key = projectKey(workspace);
-    let file: { version: 1; projects: Record<string, Entry> } = { version: 1, projects: {} };
+  /** 所有项目里记下的规则,按项目路径排序;设置页据此展示。直接读文件,显示的就是实际生效的内容。 */
+  listProjectRecords(): SandboxProjectRecord[] {
+    const projects = this.readGrantsFile().projects;
+    return Object.entries(projects)
+      .map(([workspace, entry]) => ({ workspace, allow: stringList(entry?.allow), deny: stringList(entry?.deny) }))
+      .filter((record) => record.allow.length || record.deny.length)
+      .sort((a, b) => a.workspace.localeCompare(b.workspace));
+  }
+
+  /** 删除一条记录,workspace 是 listProjectRecords 给出的路径。返回是否真的删掉了。 */
+  removeProjectRecord(workspace: string, list: "allow" | "deny", rule: string): boolean {
+    const file = this.readGrantsFile();
+    const entry = file.projects[workspace];
+    const current = stringList(entry?.[list]);
+    if (!entry || !current.includes(rule)) return false;
+    const next = current.filter((item) => item !== rule);
+    const updated = { ...entry, [list]: next };
+    if (!stringList(updated.allow).length && !stringList(updated.deny).length) delete file.projects[workspace];
+    else file.projects[workspace] = updated;
+    return this.writeGrantsFile(file);
+  }
+
+  /** 清空一个项目的全部记录。 */
+  clearProjectRecords(workspace: string): boolean {
+    const file = this.readGrantsFile();
+    if (!(workspace in file.projects)) return false;
+    delete file.projects[workspace];
+    return this.writeGrantsFile(file);
+  }
+
+  private readGrantsFile(): GrantsFile {
     try {
-      const raw = JSON.parse(readFileSync(this.grantsPath, "utf8")) as { projects?: Record<string, Entry> };
-      if (raw.projects && typeof raw.projects === "object") file = { version: 1, projects: raw.projects };
+      const raw = JSON.parse(readFileSync(this.grantsPath, "utf8")) as { projects?: Record<string, GrantEntry> };
+      if (raw.projects && typeof raw.projects === "object" && !Array.isArray(raw.projects)) return { version: 1, projects: { ...raw.projects } };
     } catch {
       // 没有或损坏的记录文件按空处理。
     }
-    const entry = file.projects[key] ?? {};
-    const existing = new Set(entry[list] ?? []);
-    const added = compilePermissionRules({ [list]: rules.filter(rule => !existing.has(rule)) })[list].map(rule => rule.source);
-    if (!added.length) return;
-    file.projects[key] = { ...entry, [list]: [...(entry[list] ?? []), ...added] };
+    return { version: 1, projects: {} };
+  }
+
+  private writeGrantsFile(file: GrantsFile): boolean {
     try {
       mkdirSync(dirname(this.grantsPath), { recursive: true });
       writeFileSync(this.grantsPath, `${JSON.stringify(file, null, 2)}\n`, "utf8");
     } catch {
-      // 写不进去时这条记录不保存,下次仍会询问。
-      return;
+      return false;
     }
     this.grantsMtime = -2;
+    return true;
+  }
+
+  /** 同步读写:回复审批时规则必须立刻对下一次请求生效。 */
+  private remember(workspace: string, list: "allow" | "deny", rules: readonly string[]): void {
+    const key = projectKey(workspace);
+    const file = this.readGrantsFile();
+    const entry = file.projects[key] ?? {};
+    const existing = new Set(stringList(entry[list]));
+    const added = compilePermissionRules({ [list]: rules.filter(rule => !existing.has(rule)) })[list].map(rule => rule.source);
+    if (!added.length) return;
+    file.projects[key] = { ...entry, [list]: [...stringList(entry[list]), ...added] };
+    // 写不进去时这条记录不保存,下次仍会询问。
+    this.writeGrantsFile(file);
   }
 
   private projectGrants(workspace: string | null | undefined): PermissionRuleSet {
@@ -341,6 +380,13 @@ function riskCacheKey(input: {
   // 网页抓取按完整 URL 缓存，不与文件操作共用「路径」键。
   if (input.kind === "web") return `web\0${input.command ?? ""}`;
   return `file\0${input.insideWorkspace === true ? "in" : "out"}\0${input.path ?? ""}`;
+}
+
+interface GrantEntry { allow?: unknown; deny?: unknown }
+interface GrantsFile { version: 1; projects: Record<string, GrantEntry> }
+
+function stringList(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
 }
 
 function projectKey(workspace: string): string {

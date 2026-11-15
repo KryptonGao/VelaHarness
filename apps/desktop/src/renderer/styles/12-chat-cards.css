@@ -340,3 +340,12 @@
 .provider-error-head strong { font-size: calc(13.5px * var(--ui-scale)); font-weight: 600; }
 .provider-error-meta { color: var(--text-muted); font-size: calc(12px * var(--ui-scale)); }
 .provider-error-text p { margin: 0; color: var(--text-secondary); display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* ---------- 设置页:审批记录 ---------- */
+.approval-record { display: flex; flex-direction: column; gap: 10px; padding: 12px; border-radius: var(--radius-md); background: var(--bg-surface-subtle); }
+.approval-record-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.approval-record-head .settings-recent-main { min-width: 0; }
+.approval-record-list { display: flex; flex-direction: column; gap: 6px; }
+.approval-record-title { margin: 0; font-size: calc(13px * var(--ui-scale)); font-weight: 600; color: var(--text-secondary); }
+.approval-record-rule { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 10px; border-radius: var(--radius-sm); background: var(--bg-elevated); }
+.approval-record-rule code { font-family: var(--font-mono); font-size: calc(13px * var(--code-scale)); color: var(--text-primary); word-break: break-all; }

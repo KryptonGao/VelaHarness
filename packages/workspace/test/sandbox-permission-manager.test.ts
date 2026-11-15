@@ -591,6 +591,42 @@ describe("always allow / always deny", () => {
     assert.equal(await manager.request({ kind: "bash", command: "git push origin", workspace: "/repo" }), true);
   });
 
+  it("lists, removes and clears remembered records, and a removed deny stops applying at once", async () => {
+    const { manager, events } = await createManager("ask");
+    for (const [workspace, command, allowed] of [["/repo", "git status", true], ["/repo", "rm x", false], ["/other", "pnpm test", true]] as const) {
+      const pending = manager.request({ kind: "bash", command, cwd: workspace, workspace });
+      manager.reply(pendingRequest(events.slice(events.findLastIndex((event) => event.type === "request")))!, allowed, { always: true });
+      assert.equal(await pending, allowed);
+    }
+    assert.deepEqual(manager.listProjectRecords(), [
+      { workspace: "/other", allow: ["Bash(pnpm test *)"], deny: [] },
+      { workspace: "/repo", allow: ["Bash(git status *)"], deny: ["Bash(rm *)"] },
+    ]);
+    assert.equal(manager.removeProjectRecord("/repo", "deny", "Bash(nope *)"), false);
+    assert.equal(manager.removeProjectRecord("/repo", "deny", "Bash(rm *)"), true);
+    assert.deepEqual(manager.getProjectDenyRules("/repo"), []);
+    events.length = 0;
+    const asked = manager.request({ kind: "bash", command: "rm x", cwd: "/repo", workspace: "/repo" });
+    assert.ok(pendingRequest(events), "the deny no longer applies, so it asks again");
+    manager.reply(pendingRequest(events)!, false);
+    assert.equal(await asked, false);
+    assert.equal(manager.removeProjectRecord("/other", "allow", "Bash(pnpm test *)"), true);
+    assert.deepEqual(manager.listProjectRecords().map((record) => record.workspace), ["/repo"], "an emptied project disappears");
+    assert.equal(manager.clearProjectRecords("/repo"), true);
+    assert.equal(manager.clearProjectRecords("/repo"), false);
+    assert.deepEqual(manager.listProjectRecords(), []);
+    assert.deepEqual(manager.getProjectAllowRules("/repo"), []);
+  });
+
+  it("lists what is in the file, including entries it cannot parse, so they can be removed", async () => {
+    const { manager } = await createManager("ask");
+    await writeFile(join(dirname(settingsOf(manager)), "project-permissions.json"), JSON.stringify({ version: 1, projects: { "/repo": { allow: ["oops(", 3, "Bash(ls *)"] }, "/empty": {} } }));
+    assert.deepEqual(manager.listProjectRecords(), [{ workspace: "/repo", allow: ["oops(", "Bash(ls *)"], deny: [] }]);
+    assert.equal(manager.removeProjectRecord("/repo", "allow", "oops("), true);
+    assert.deepEqual(manager.listProjectRecords(), [{ workspace: "/repo", allow: ["Bash(ls *)"], deny: [] }]);
+    assert.deepEqual(new SandboxPermissionManager(join(tmpdir(), "no-such-dir-xyz", "s.json")).listProjectRecords(), []);
+  });
+
   it("keeps unrelated settings when the mode is saved", async () => {
     const { manager } = await createManager("smart");
     await writeFile(settingsOf(manager), JSON.stringify({ sandboxMode: "smart", theme: "dark" }));

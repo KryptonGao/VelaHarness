@@ -132,6 +132,7 @@ import {
   type PullRequestInfo,
   type SandboxApprovalEvent,
   type SandboxMode,
+  type SandboxProjectRecord,
   type SelectableEnvironmentKind,
   type ExternalSkillScan,
   type MarketplaceListing,
@@ -711,6 +712,11 @@ const api: VelaApi = {
   getSandboxMode: () => ipcRenderer.invoke(IpcChannel.sandboxGetMode) as Promise<SandboxMode>,
   setSandboxMode: (mode: SandboxMode) =>
     ipcRenderer.invoke(IpcChannel.sandboxSetMode, mode) as Promise<SandboxMode>,
+  listApprovalRecords: () => ipcRenderer.invoke(IpcChannel.sandboxRecordsList) as Promise<SandboxProjectRecord[]>,
+  removeApprovalRecord: (workspace: string, list: "allow" | "deny", rule: string) =>
+    ipcRenderer.invoke(IpcChannel.sandboxRecordsRemove, workspace, list, rule) as Promise<SandboxProjectRecord[]>,
+  clearApprovalRecords: (workspace: string) =>
+    ipcRenderer.invoke(IpcChannel.sandboxRecordsClear, workspace) as Promise<SandboxProjectRecord[]>,
   replyApproval: (id: string, allowed: boolean, always?: boolean) =>
     ipcRenderer.invoke(IpcChannel.sandboxApprovalReply, id, allowed, always === true) as Promise<void>,
   replyQuestion: (id: string, answer: string | null) =>
