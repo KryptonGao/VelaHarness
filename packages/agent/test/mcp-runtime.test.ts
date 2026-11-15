@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
-import { describe, it, type TestContext } from "node:test";
+import { describe, it as nodeIt, type TestContext } from "node:test";
 import type { AgentSession } from "@earendil-works/pi-coding-agent";
 import type { StreamFn } from "@earendil-works/pi-agent-core";
 import { createAssistantMessageEventStream, type AssistantMessage, type Context, type ToolCall } from "@earendil-works/pi-ai";
@@ -206,8 +206,10 @@ async function fixture(t: TestContext, options: { mode?: SandboxMode; permission
     decision(value: boolean | null) { approvalDecision = value; } };
 }
 
-// Each test starts real stdio/HTTP fixtures. The suite budget must absorb parallel full-suite CPU contention.
-describe("AgentRuntime MCP integration", { timeout: 60_000 }, () => {
+// Each test starts real stdio/HTTP fixtures. A describe-level timeout is one budget shared by every test in the
+// suite (about 22s locally, well over 60s on a contended CI runner), so the limit is applied per test instead.
+const it = (name: string, run: (t: TestContext) => Promise<void>) => nodeIt(name, { timeout: 30_000 }, run);
+describe("AgentRuntime MCP integration", () => {
   it("uses protocol registered names and denies unknown MCP calls despite server readonly hints", async t => {
     const f = await fixture(t, { mode: "smart" });
     const riskInputs: unknown[] = [];
