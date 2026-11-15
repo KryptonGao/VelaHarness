@@ -1,144 +1,144 @@
 {
-  "version": "1.2.35",
+  "version": "1.2.36",
   "locales": {
     "en": {
-      "summary": "Vela 1.2.35 fixes the workbench and right-panel toggles in place, adds a full-path breadcrumb, and gives compact tool display a minimal mode.",
+      "summary": "Vela 1.2.36 remembers approval choices per project, adds slash commands and custom commands, and brings read-aloud and voice input to the composer.",
       "highlights": [
         {
-          "title": "Fixed layout toggles",
-          "body": "The workbench and right-panel toggles stay in place while panels slide open and closed beneath them."
+          "title": "Remembered approvals",
+          "body": "The approval card adds Always allow and Always deny, remembered per project and shown as a separate card above the composer."
         },
         {
-          "title": "Full-path breadcrumb",
-          "body": "File previews show the full path as a scrollable breadcrumb that fades clipped segments and expands quickly on hover."
+          "title": "Slash commands",
+          "body": "Use /effort, /mode, /handoff, /race, and /review, or define your own commands in .vela/commands/*.md."
         },
         {
-          "title": "Minimal compact display",
-          "body": "A new minimal mode for compact tool display hides file icons and paths and underlines file names with a dashed line."
+          "title": "Read-aloud",
+          "body": "Have final replies read aloud with DeepSeek text-to-speech and choose between the Stella and Tide voices."
         },
         {
-          "title": "Show or hide directories",
-          "body": "A new setting shows or hides directories on file read, edit, and create rows."
+          "title": "Voice input",
+          "body": "Dictate into the composer with DeepSeek speech recognition, with the transcript cleaned up by DeepSeek-Flash."
         }
       ],
       "improvements": [
-        "The breadcrumb's current segment, separator gap, and hover cooldown are polished.",
-        "Compact diff tints are lighter and the gutter divider is thinner.",
-        "The diff edge fade now covers the line-number column.",
-        "Scrolling during inertia handles direction changes and new flicks better.",
-        "Expanded step rows in grouped steps follow the reply font."
+        "A new Approval records settings page lets you view and delete remembered choices per project.",
+        "A hover-revealed navigation rail on the left jumps between turns in multi-turn sessions.",
+        "A remembered Always deny applies in every mode and beats a remembered Always allow.",
+        "Always allow is offered only for a short list of read-only and build commands.",
+        "Read-aloud and voice input appear only when a DeepSeek API key is configured."
       ]
     },
     "zh-CN": {
-      "summary": "Vela 1.2.35 将工作台与右侧面板开关固定在原位，新增完整路径面包屑，并为紧凑工具显示加入极简模式。",
+      "summary": "Vela 1.2.36 按项目记住审批选择，新增斜杠命令与自定义命令，并为输入框带来朗读与语音输入。",
       "highlights": [
         {
-          "title": "固定的布局开关",
-          "body": "工作台与右侧面板的开关保持原位，面板在其下方滑入滑出。"
+          "title": "记住审批选择",
+          "body": "审批卡片新增「始终允许」与「始终拒绝」，按项目记住，并以独立卡片显示在输入框上方。"
         },
         {
-          "title": "完整路径面包屑",
-          "body": "文件预览以可滚动的面包屑显示完整路径，被裁切的片段会渐隐，悬停时更快展开。"
+          "title": "斜杠命令",
+          "body": "可使用 /effort、/mode、/handoff、/race 与 /review，也可在 .vela/commands/*.md 中定义自己的命令。"
         },
         {
-          "title": "极简紧凑显示",
-          "body": "紧凑工具显示新增极简模式，隐藏文件图标与路径，并为文件名加上灰色虚线下划线。"
+          "title": "朗读回复",
+          "body": "使用 DeepSeek 语音合成朗读最终回复，并可在 Stella 与 Tide 两种声音间选择。"
         },
         {
-          "title": "显示或隐藏目录",
-          "body": "新增设置，可在读取、编辑和创建文件的行上显示或隐藏目录。"
+          "title": "语音输入",
+          "body": "使用 DeepSeek 语音识别向输入框听写，并由 DeepSeek-Flash 整理转写文本。"
         }
       ],
       "improvements": [
-        "优化面包屑当前片段、分隔符间距与悬停离开的缓冲。",
-        "紧凑差异的底色更浅，行号栏分隔线更细。",
-        "差异边缘渐隐现在也覆盖行号列。",
-        "滚动惯性期间能更好地处理方向切换与新的滑动。",
-        "合并步骤中展开的步骤行跟随回复字体。"
+        "新增「审批记录」设置页，可按项目查看并删除已记住的选择。",
+        "多轮会话左侧新增悬停显示的导航栏，可在各轮之间快速跳转。",
+        "已记住的「始终拒绝」在所有模式下生效，且优先于「始终允许」。",
+        "「始终允许」仅提供给少数只读与构建命令。",
+        "朗读与语音输入仅在配置 DeepSeek API 密钥后显示。"
       ]
     },
     "zh-TW": {
-      "summary": "Vela 1.2.35 將工作台與右側面板開關固定在原位，新增完整路徑導覽列，並為精簡工具顯示加入極簡模式。",
+      "summary": "Vela 1.2.36 依專案記住核准選擇，新增斜線指令與自訂指令，並為輸入框帶來朗讀與語音輸入。",
       "highlights": [
         {
-          "title": "固定的版面開關",
-          "body": "工作台與右側面板的開關保持原位，面板在其下方滑入滑出。"
+          "title": "記住核准選擇",
+          "body": "核准卡片新增「一律允許」與「一律拒絕」，依專案記住，並以獨立卡片顯示在輸入框上方。"
         },
         {
-          "title": "完整路徑導覽列",
-          "body": "檔案預覽以可捲動的導覽列顯示完整路徑，被裁切的片段會漸隱，滑鼠懸停時更快展開。"
+          "title": "斜線指令",
+          "body": "可使用 /effort、/mode、/handoff、/race 與 /review，也可在 .vela/commands/*.md 中定義自己的指令。"
         },
         {
-          "title": "極簡精簡顯示",
-          "body": "精簡工具顯示新增極簡模式，隱藏檔案圖示與路徑，並為檔名加上灰色虛線底線。"
+          "title": "朗讀回覆",
+          "body": "使用 DeepSeek 語音合成朗讀最終回覆，並可在 Stella 與 Tide 兩種聲音間選擇。"
         },
         {
-          "title": "顯示或隱藏目錄",
-          "body": "新增設定，可在讀取、編輯和建立檔案的列上顯示或隱藏目錄。"
+          "title": "語音輸入",
+          "body": "使用 DeepSeek 語音辨識向輸入框聽寫，並由 DeepSeek-Flash 整理轉寫文字。"
         }
       ],
       "improvements": [
-        "調整導覽列目前片段、分隔符間距與滑鼠離開的緩衝。",
-        "精簡差異的底色更淺，行號欄分隔線更細。",
-        "差異邊緣漸隱現在也涵蓋行號欄。",
-        "捲動慣性期間能更好地處理方向切換與新的滑動。",
-        "合併步驟中展開的步驟列跟隨回覆字型。"
+        "新增「核准記錄」設定頁，可依專案檢視並刪除已記住的選擇。",
+        "多輪對話左側新增滑鼠懸停顯示的導覽列，可在各輪之間快速跳轉。",
+        "已記住的「一律拒絕」在所有模式下生效，且優先於「一律允許」。",
+        "「一律允許」僅提供給少數唯讀與建置指令。",
+        "朗讀與語音輸入僅在設定 DeepSeek API 金鑰後顯示。"
       ]
     },
     "ja": {
-      "summary": "Vela 1.2.35 では、ワークベンチと右パネルの切り替えを固定位置にし、フルパスのパンくずを追加し、コンパクトなツール表示にミニマルモードを加えました。",
+      "summary": "Vela 1.2.36 では、承認の選択をプロジェクトごとに記憶し、スラッシュコマンドとカスタムコマンドを追加し、入力欄に読み上げと音声入力を加えました。",
       "highlights": [
         {
-          "title": "固定されたレイアウト切り替え",
-          "body": "ワークベンチと右パネルの切り替えは位置を保ち、パネルはその下でスライドして開閉します。"
+          "title": "承認を記憶",
+          "body": "承認カードに「常に許可」と「常に拒否」を追加し、プロジェクトごとに記憶して入力欄の上に別カードで表示します。"
         },
         {
-          "title": "フルパスのパンくず",
-          "body": "ファイルプレビューにフルパスをスクロール可能なパンくずで表示し、切れた部分はフェードし、ホバーですばやく展開します。"
+          "title": "スラッシュコマンド",
+          "body": "/effort、/mode、/handoff、/race、/review が使えるほか、.vela/commands/*.md に独自のコマンドを定義できます。"
         },
         {
-          "title": "ミニマルなコンパクト表示",
-          "body": "コンパクトなツール表示に新しいミニマルモードを追加し、ファイルアイコンとパスを隠してファイル名に灰色の破線を引きます。"
+          "title": "読み上げ",
+          "body": "DeepSeek の音声合成で最終返信を読み上げ、Stella と Tide の声から選べます。"
         },
         {
-          "title": "ディレクトリの表示切り替え",
-          "body": "ファイルの読み取り・編集・作成の行でディレクトリを表示または非表示にする設定を追加しました。"
+          "title": "音声入力",
+          "body": "DeepSeek の音声認識で入力欄に音声入力し、文字起こしは DeepSeek-Flash が整えます。"
         }
       ],
       "improvements": [
-        "パンくずの現在の項目、区切りの間隔、ホバー終了時の猶予を調整しました。",
-        "コンパクトな差分の色味を淡くし、行番号の区切り線を細くしました。",
-        "差分の端のフェードが行番号の列にも及ぶようになりました。",
-        "スクロールの慣性中の方向転換や新しいフリックをより適切に処理します。",
-        "グループ化されたステップの展開行が返信のフォントに従います。"
+        "新しい「承認の記録」設定ページで、記憶した選択をプロジェクトごとに確認・削除できます。",
+        "複数ターンのセッションで、ホバーで現れる左側のナビゲーションからターン間を移動できます。",
+        "記憶した「常に拒否」はすべてのモードで有効で、「常に許可」より優先されます。",
+        "「常に許可」は読み取り専用とビルドの一部のコマンドにのみ提示されます。",
+        "読み上げと音声入力は DeepSeek の API キーを設定したときだけ表示されます。"
       ]
     },
     "ko": {
-      "summary": "Vela 1.2.35는 워크벤치와 오른쪽 패널 전환 버튼을 제자리에 고정하고, 전체 경로 이동 경로를 추가하며, 간결한 도구 표시에 최소 모드를 더했습니다.",
+      "summary": "Vela 1.2.36은 승인 선택을 프로젝트별로 기억하고, 슬래시 명령과 사용자 지정 명령을 추가하며, 입력창에 읽어주기와 음성 입력을 더했습니다.",
       "highlights": [
         {
-          "title": "고정된 레이아웃 전환",
-          "body": "워크벤치와 오른쪽 패널 전환 버튼은 제자리에 머물고, 패널은 그 아래에서 열리고 닫힙니다."
+          "title": "승인 선택 기억",
+          "body": "승인 카드에 '항상 허용'과 '항상 거부'를 추가하고, 프로젝트별로 기억하며 입력창 위에 별도 카드로 표시합니다."
         },
         {
-          "title": "전체 경로 이동 경로",
-          "body": "파일 미리보기에 전체 경로를 스크롤 가능한 이동 경로로 표시하며, 잘린 부분은 흐려지고 마우스를 올리면 빠르게 펼쳐집니다."
+          "title": "슬래시 명령",
+          "body": "/effort, /mode, /handoff, /race, /review를 사용하거나 .vela/commands/*.md에 직접 명령을 정의할 수 있습니다."
         },
         {
-          "title": "최소 간결 표시",
-          "body": "간결한 도구 표시에 새 최소 모드를 추가해 파일 아이콘과 경로를 숨기고 파일 이름에 회색 점선 밑줄을 긋습니다."
+          "title": "읽어주기",
+          "body": "DeepSeek 음성 합성으로 최종 답변을 읽어주며 Stella와 Tide 목소리 중 선택할 수 있습니다."
         },
         {
-          "title": "디렉터리 표시 전환",
-          "body": "파일 읽기, 편집, 생성 행에서 디렉터리를 표시하거나 숨기는 설정을 추가했습니다."
+          "title": "음성 입력",
+          "body": "DeepSeek 음성 인식으로 입력창에 받아쓰고, 받아쓴 내용은 DeepSeek-Flash가 다듬습니다."
         }
       ],
       "improvements": [
-        "이동 경로의 현재 항목, 구분 기호 간격, 호버 해제 지연을 다듬었습니다.",
-        "간결한 diff 색조가 더 옅어지고 줄 번호 구분선이 더 얇아졌습니다.",
-        "diff 가장자리 페이드가 줄 번호 열까지 덮습니다.",
-        "스크롤 관성 중 방향 전환과 새 플릭을 더 잘 처리합니다.",
-        "그룹화된 단계의 펼친 행이 답변 글꼴을 따릅니다."
+        "새 '승인 기록' 설정 페이지에서 기억된 선택을 프로젝트별로 보고 삭제할 수 있습니다.",
+        "여러 턴이 있는 세션에서 마우스를 올리면 나타나는 왼쪽 탐색 막대로 턴 사이를 이동합니다.",
+        "기억된 '항상 거부'는 모든 모드에 적용되며 '항상 허용'보다 우선합니다.",
+        "'항상 허용'은 읽기 전용 및 빌드 명령 중 일부에만 제공됩니다.",
+        "읽어주기와 음성 입력은 DeepSeek API 키가 설정된 경우에만 표시됩니다."
       ]
     }
   }
