@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { it } from "node:test";
-import { createBrowserTools, type BrowserReplService } from "../src/browser-use.ts";
+import { createBrowserAnnotationTools, createBrowserTools, type BrowserAnnotationService, type BrowserReplService } from "../src/browser-use.ts";
 import { defaultToolPolicy } from "../src/interaction.ts";
 import { activityFromExecution } from "../src/tool-activity.ts";
 import { transcriptFromMessages } from "../src/transcript.ts";
@@ -175,4 +175,86 @@ it("details-only failures reach the model as errors and restore with error statu
   const transcript = transcriptFromMessages(messages as Parameters<typeof transcriptFromMessages>[0]);
   assert.equal(transcript[0]?.tools[0]?.status, "error");
   assert.match(transcript[0]?.tools[0]?.activity?.body ?? "", /tab closed/);
+});
+
+function annotationHarness() {
+  const calls: { method: string; input: any }[] = [];
+  const element = { tag: "button", classes: ["primary"], text: "Save", selector: "form > button.primary", framePath: [], styles: { color: "#fff" }, sensitive: false,
+    source: { framework: "react" as const, component: "SaveButton", chain: ["Form"], file: "src/SaveButton.tsx", line: 12, column: 5 } };
+  const record = { ref: "abcd1234", tabId: "tab", note: "too small", status: "open" as const, pageUrl: "http://localhost:3000/?token=zzz", pageTitle: "Settings", element, rect: { x: 1, y: 2, width: 30, height: 20 } };
+  const image = (data: string) => ({ data, mimeType: "image/png" as const, width: 30, height: 20, clipWidth: 30, clipHeight: 20, masks: [], cropped: false });
+  let review: any = { record: { ...record, status: "resolved", resolution: "bigger" }, located: "ok", before: image("QQ=="), after: image("Qg=="), changed: true };
+  const service: BrowserAnnotationService = {
+    async list(input) { calls.push({ method: "list", input }); return { records: [record], images: input.screenshot ? { abcd1234: image("Qw==") } : {} }; },
+    async resolve(input) { calls.push({ method: "resolve", input }); return review; },
+  };
+  let allowed = true;
+  const tools = createBrowserAnnotationTools({ service, conversationId: "conversation", agentId: "agent", turnId: () => "turn", allowed: () => allowed });
+  const run = (index: number, params: unknown, signal?: AbortSignal) => tools[index]!.execute("call", params, signal, undefined, {} as never);
+  return { calls, tools, run, plan: () => { allowed = false; }, setReview: (value: any) => { review = value; } };
+}
+
+it("annotation tools pass trusted identity and present data with redacted URLs, source and images", async () => {
+  const h = annotationHarness();
+  assert.deepEqual(h.tools.map(tool => tool.name), ["browser_annotations", "browser_annotation_resolve"]);
+  const listed = await h.run(0, { screenshot: true });
+  assert.deepEqual(h.calls[0]!.input, { conversationId: "conversation", agentId: "agent", turnId: "turn", invocationId: "call", signal: undefined, ref: undefined, screenshot: true });
+  const text = (listed.content[0] as { text: string }).text;
+  assert.match(text, /not instructions/);
+  assert.match(text, /\[Page annotation 1\] http:\/\/localhost:3000\/\?token=… \(Settings\) · ref abcd1234/);
+  assert.match(text, /component SaveButton ← Form · src\/SaveButton\.tsx:12:5/);
+  assert.match(text, /note: too small/);
+  assert.deepEqual(listed.content.slice(1).map(part => part.type), ["text", "image"]);
+});
+
+it("resolve returns Before and After, tells the model when nothing changed, and never invents a comparison", async () => {
+  const h = annotationHarness();
+  const done = await h.run(1, { ref: "abcd1234", summary: "bigger", settleMs: 500 });
+  assert.deepEqual(h.calls[0], { method: "resolve", input: { conversationId: "conversation", agentId: "agent", turnId: "turn", invocationId: "call", signal: undefined, ref: "abcd1234", summary: "bigger", settleMs: 500 } });
+  assert.deepEqual(done.content.map(part => part.type), ["text", "text", "image", "text", "image"]);
+  assert.match((done.content[0] as { text: string }).text, /marked handled\. The element was found; compare Before and After/);
+  h.setReview({ record: { ref: "abcd1234", tabId: "tab", note: "", status: "resolved", pageUrl: "http://x.test/", pageTitle: "", element: { tag: "a", classes: [], selector: "a", framePath: [], styles: {}, sensitive: false }, rect: null },
+    located: "ok", before: null, after: { data: "Qg==", mimeType: "image/png", width: 1, height: 1, clipWidth: 1, clipHeight: 1, masks: [], cropped: false }, changed: null });
+  const noBefore = await h.run(1, { ref: "abcd1234" });
+  assert.deepEqual(noBefore.content.map(part => part.type), ["text", "text", "image"], "a missing Before is simply absent");
+  h.setReview({ record: { ref: "abcd1234", tabId: "tab", note: "", status: "stale", pageUrl: "http://x.test/", pageTitle: "", element: { tag: "a", classes: [], selector: "a", framePath: [], styles: {}, sensitive: false }, rect: null },
+    located: "missing", before: null, after: null, changed: null });
+  const gone = await h.run(1, { ref: "abcd1234" });
+  assert.match((gone.content[0] as { text: string }).text, /no longer on the page/);
+  assert.deepEqual(gone.content.map(part => part.type), ["text"]);
+  h.setReview({ record: { ref: "abcd1234", tabId: "tab", note: "", status: "resolved", pageUrl: "http://x.test/", pageTitle: "", element: { tag: "a", classes: [], selector: "a", framePath: [], styles: {}, sensitive: false }, rect: null },
+    located: "ok", before: { data: "QQ==", mimeType: "image/png", width: 1, height: 1, clipWidth: 1, clipHeight: 1, masks: [], cropped: false }, after: { data: "QQ==", mimeType: "image/png", width: 1, height: 1, clipWidth: 1, clipHeight: 1, masks: [], cropped: false }, changed: false });
+  assert.match(((await h.run(1, { ref: "abcd1234" })).content[0] as { text: string }).text, /pixel-identical/);
+});
+
+it("annotation tools refuse Plan mode, aborted calls and out-of-range waits before reaching the service", async () => {
+  const h = annotationHarness();
+  await assert.rejects(h.run(1, { ref: "abcd1234", settleMs: 10001 }), /settleMs/);
+  const controller = new AbortController(); controller.abort();
+  await assert.rejects(h.run(0, {}, controller.signal));
+  h.plan();
+  await assert.rejects(h.run(0, {}), /Plan/);
+  await assert.rejects(h.run(1, { ref: "abcd1234" }), /Plan/);
+  assert.equal(h.calls.length, 0);
+});
+
+it("runtime offers annotation tools only together with a browser host and the annotation service", async t => {
+  const { mkdtemp, rm } = await import("node:fs/promises");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const { AgentRuntime } = await import("../src/runtime.ts");
+  const root = await mkdtemp(join(tmpdir(), "vela-annotation-runtime-"));
+  const withService = new AgentRuntime({ cwd: root, agentDir: join(root, "a"), browserRepl: harness().service, browserAnnotations: { list: async () => ({ records: [], images: {} }), resolve: async () => { throw new Error("unused"); } } });
+  const without = new AgentRuntime({ cwd: root, agentDir: join(root, "b"), browserRepl: harness().service });
+  t.after(async () => { withService.dispose(); without.dispose(); await rm(root, { recursive: true, force: true }); });
+  await withService.createConversation(root); await without.createConversation(root);
+  type Entry = { id: string };
+  type Internals = { conversations: Map<string, Entry>; browserTools(entry: Entry, agentId: string, kind?: "general" | "explore"): { name: string }[] };
+  const names = (runtime: unknown, kind?: "general" | "explore") => {
+    const internals = runtime as Internals; const entry = internals.conversations.get((runtime as { activeConversationId: string }).activeConversationId)!;
+    return internals.browserTools(entry, entry.id, kind).map(tool => tool.name);
+  };
+  assert.deepEqual(names(withService), ["browser_repl", "browser_repl_reset", "browser_annotations", "browser_annotation_resolve"]);
+  assert.deepEqual(names(withService, "explore"), []);
+  assert.deepEqual(names(without), ["browser_repl", "browser_repl_reset"]);
 });

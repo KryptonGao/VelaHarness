@@ -51,7 +51,8 @@ export function createAgentPauseExtension(beforeToolCall: () => Promise<boolean>
 export function createExploreGuardExtension(): ExtensionFactory {
   return (pi) => {
     pi.on("tool_call", async (event) => {
-      if (event.toolName === "browser_repl" || event.toolName === "browser_repl_reset") {
+      if (event.toolName === "browser_repl" || event.toolName === "browser_repl_reset"
+        || event.toolName === "browser_annotations" || event.toolName === "browser_annotation_resolve") {
         return { block: true, reason: "查阅子代理不能使用 Browser REPL。" };
       }
       if (isToolCallEventType("edit", event) || isToolCallEventType("write", event)) {

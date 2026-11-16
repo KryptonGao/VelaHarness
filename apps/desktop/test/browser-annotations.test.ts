@@ -26,6 +26,9 @@ function fixture() {
   const calls: string[] = [];
   let listener: ((hit: AnnotationHit) => void) | null = null;
   let captureFails = false;
+  let captured: BrowserAnnotationImage = image;
+  const located: { next: AnnotationHit | 'missing' | 'ambiguous' } = { next: 'missing' };
+  const reveals: number[] = [];
   const backend = {
     call: async () => ({}), dispose() {},
     setAnnotationListener(next: typeof listener) { listener = next; },
@@ -36,14 +39,16 @@ function fixture() {
     }),
     annotationNeighbor: async (hit: AnnotationHit, direction: string) => ({ backendNodeId: hit.backendNodeId + (direction === 'parent' ? 100 : -100) }),
     annotationBox: async (hit: AnnotationHit) => boxes.get(hit.backendNodeId) ?? { error: 'gone' as const },
-    annotationCapture: async () => { if (captureFails) throw new Error('offscreen'); return image; },
+    annotationCapture: async () => { if (captureFails) throw new Error('offscreen'); return captured; },
+    annotationLocate: async () => located.next,
+    annotationReveal: async (hit: AnnotationHit) => { reveals.push(hit.backendNodeId); },
   };
   const host = new BrowserHost(() => backend, session);
   host.registerWindow(10, asGuest(embedder));
   const first = makeGuest(2); host.registerGuest(10, asGuest(first));
   const command = (input: any) => host.command(10, asGuest(embedder), true, input);
   const context = { windowId: 10, conversationId: 'one', agentId: 'root', turnId: 'turn', invocationId: 'call' };
-  return { host, backend, calls, boxes, command, context, guests, embedder, makeGuest, emit: (hit: AnnotationHit) => listener?.(hit), setCaptureFails: (v: boolean) => { captureFails = v; }, hasListener: () => !!listener };
+  return { host, backend, calls, boxes, command, context, guests, embedder, makeGuest, emit: (hit: AnnotationHit) => listener?.(hit), setCaptureFails: (v: boolean) => { captureFails = v; }, setCaptured: (v: BrowserAnnotationImage) => { captured = v; }, located, reveals, hasListener: () => !!listener };
 }
 async function ready(f: ReturnType<typeof fixture>, url = 'http://localhost:3000/') {
   await f.command({ type: 'activate', conversationId: 'one' }); await f.command({ type: 'open', id: 'tab' });
@@ -188,5 +193,101 @@ test('Esc in the page leaves annotation mode without reaching the page', async (
   await settle();
   assert.equal(prevented, true);
   assert.equal((await annotation(f)), undefined);
+  f.host.dispose();
+});
+
+async function sendOne(f: ReturnType<typeof fixture>, id = 'abcd1234-aaaa', node = 7, note = 'make it bigger') {
+  await f.command({ type: 'annotate-mode', tabId: 'tab', enabled: true });
+  f.emit({ backendNodeId: node }); await settle();
+  await f.command({ type: 'annotate-commit', tabId: 'tab', pickId: (await annotation(f))!.pick!.id, annotationId: id }); await settle();
+  await f.command({ type: 'annotate-mode', tabId: 'tab', enabled: false });
+  await f.command({ type: 'annotate-handoff', tabId: 'tab', items: [{ annotationId: id, note }] });
+}
+const agent = (f: ReturnType<typeof fixture>, id = 'call-agent') => ({ ...f.context, invocationId: id });
+
+test('handoff keeps a sent annotation for the Agent and releases it from the person', async () => {
+  const f = fixture(); await ready(f);
+  await sendOne(f);
+  const state = await annotation(f);
+  assert.deepEqual(state?.items, [], 'no marker or card state remains on the page');
+  assert.deepEqual(state?.delivered, [{ id: 'abcd1234-aaaa', status: 'open' }]);
+  // The renderer releasing its card must not drop the Agent's handle.
+  await f.command({ type: 'annotate-remove', tabId: 'tab', annotationIds: ['abcd1234-aaaa'] });
+  assert.equal((await annotation(f))?.delivered?.length, 1);
+  await assert.rejects(f.command({ type: 'annotate-handoff', tabId: 'tab', items: [{ annotationId: 'bad id', note: 'x' }] }), /handoff/);
+  await assert.rejects(f.command({ type: 'annotate-handoff', tabId: 'tab', items: 'nope' }), /handoff/);
+  f.host.dispose();
+});
+
+test('the Agent lists sent annotations of its own conversation only', async () => {
+  const f = fixture(); await ready(f);
+  f.boxes.set(7, { rect: { x: 5, y: 6, width: 30, height: 40 } });
+  await sendOne(f, 'abcd1234-aaaa', 7, 'bigger');
+  const listing = await f.host.agentAnnotations(agent(f), { type: 'list', screenshot: true }) as any;
+  assert.equal(listing.records.length, 1);
+  assert.deepEqual([listing.records[0].ref, listing.records[0].note, listing.records[0].status, listing.records[0].tabId], ['abcd1234', 'bigger', 'open', 'tab']);
+  assert.equal(listing.records[0].pageUrl, 'http://localhost:3000/');
+  assert.equal(listing.images['abcd1234'].data, 'AAAA');
+  const other = await f.host.agentAnnotations({ ...agent(f, 'other-call'), conversationId: 'two' }, { type: 'list' }) as any;
+  assert.deepEqual(other.records, [], 'another conversation sees nothing');
+  const one = await f.host.agentAnnotations(agent(f, 'c3'), { type: 'list', ref: 'abcd' }) as any;
+  assert.equal(one.records.length, 1);
+  assert.equal((await f.host.agentAnnotations(agent(f, 'c4'), { type: 'list', ref: 'ffff' }) as any).records.length, 0);
+  f.host.dispose();
+});
+
+test('resolve re-finds the element after a reload, pairs Before and After and marks it handled', async () => {
+  const f = fixture(); await ready(f);
+  f.boxes.set(7, { rect: { x: 5, y: 6, width: 30, height: 40 } });
+  await sendOne(f);
+  await f.guests[0]!.loadURL('http://localhost:3000/'); await settle();   // HMR full reload: the old handle is dead
+  assert.equal((await f.host.agentAnnotations(agent(f), { type: 'list' }) as any).records[0].status, 'stale');
+  f.located.next = { backendNodeId: 55 };
+  f.boxes.set(55, { rect: { x: 5, y: 6, width: 60, height: 40 } });
+  f.setCaptured({ ...image, data: 'BBBB', width: 60, clipWidth: 60 });
+  const review = await f.host.agentAnnotations(agent(f, 'resolve'), { type: 'resolve', ref: 'abcd1234', summary: 'wider button', settleMs: 600 }) as any;
+  assert.equal(review.located, 'ok');
+  assert.equal(review.before.data, 'AAAA'); assert.equal(review.after.data, 'BBBB'); assert.equal(review.changed, true);
+  assert.deepEqual([review.record.status, review.record.resolution], ['resolved', 'wider button']);
+  assert.deepEqual((await annotation(f))?.delivered, [{ id: 'abcd1234-aaaa', status: 'resolved' }]);
+  f.host.dispose();
+});
+
+test('resolve reports a vanished or ambiguous element honestly and still marks the annotation', async () => {
+  const f = fixture(); await ready(f);
+  f.boxes.set(7, { rect: { x: 5, y: 6, width: 30, height: 40 } });
+  await sendOne(f);
+  f.boxes.delete(7); f.located.next = 'missing';
+  const gone = await f.host.agentAnnotations(agent(f), { type: 'resolve', ref: 'abcd1234', settleMs: 300 }) as any;
+  assert.deepEqual([gone.located, gone.after, gone.changed, gone.record.status], ['missing', null, null, 'stale']);
+  assert.equal(gone.before.data, 'AAAA');
+  f.located.next = 'ambiguous';
+  const many = await f.host.agentAnnotations(agent(f, 'again'), { type: 'resolve', ref: 'abcd1234', settleMs: 300 }) as any;
+  assert.equal(many.located, 'ambiguous');
+  await assert.rejects(f.host.agentAnnotations(agent(f, 'nope'), { type: 'resolve', ref: 'zzzz9999' }), /No sent annotation/);
+  f.host.dispose();
+});
+
+test('resolve scrolls an off-screen element into view before the After capture', async () => {
+  const f = fixture(); await ready(f);
+  f.boxes.set(7, { rect: { x: 5, y: 6, width: 30, height: 40 } });
+  await sendOne(f);
+  f.boxes.set(7, { rect: { x: 5, y: 5000, width: 30, height: 40 } });
+  const originalBox = f.backend.annotationBox;
+  f.backend.annotationBox = async (hit: AnnotationHit) => {
+    if (f.reveals.length) return { rect: { x: 5, y: 100, width: 30, height: 40 } };
+    return originalBox(hit);
+  };
+  const review = await f.host.agentAnnotations(agent(f), { type: 'resolve', ref: 'abcd1234', settleMs: 300 }) as any;
+  assert.deepEqual(f.reveals, [7]);
+  assert.equal(review.located, 'ok'); assert.ok(review.after);
+  f.host.dispose();
+});
+
+test('sent annotations go away with their tab', async () => {
+  const f = fixture(); await ready(f);
+  await sendOne(f);
+  await f.command({ type: 'close', tabId: 'tab' });
+  assert.deepEqual((await f.host.agentAnnotations(agent(f), { type: 'list' }) as any).records, []);
   f.host.dispose();
 });

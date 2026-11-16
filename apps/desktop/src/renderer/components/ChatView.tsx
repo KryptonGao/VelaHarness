@@ -39,6 +39,7 @@ import { ConversationLinkContext } from "./ConversationLinkContext";
 import { SelectionActions } from "./SelectionActions";
 import { SideChatLauncherContext } from "./selection-actions";
 import { replyStore, useReplyCards } from "../browser/reply-store";
+import { handoffCommands } from "./annotation-images";
 import { OpenInAppButton } from "./OpenInAppButton";
 import { CoherentGroup, CoherentThought, ThinkingGroup } from "./Thinking";
 import { groupsByReply, useNamedThinkingMessages, useThinkingGroupMode } from "./ThinkingGroupModeContext";
@@ -1196,7 +1197,11 @@ export function ChatView({
         onRemoveReply={(id) => replyStore.remove(replyKey, id)}
         onFocusReply={(id) => replyStore.requestFocus(id)}
         onBeginReplies={() => replyStore.beginSend(replyKey)}
-        onSettleReplies={(sent, kept) => replyStore.settleSend(replyKey, sent, kept)}
+        onSettleReplies={(sent, kept) => {
+          // 先移交再结算：结算会让页面里的元素句柄被释放。
+          if (kept) for (const command of handoffCommands(sent)) void window.vela?.browser?.command(command).catch(() => undefined);
+          replyStore.settleSend(replyKey, sent, kept);
+        }}
         onRemoveInstruction={onRemoveInstruction}
         onAbort={onAbort}
         onMode={onMode}

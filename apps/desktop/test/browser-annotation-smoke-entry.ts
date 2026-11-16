@@ -31,10 +31,18 @@ const server = createServer((req, res) => {
     <input id="cc" autocomplete="cc-number" value="4242424242424242" style="position:absolute;left:20px;top:120px;width:200px;height:30px">
   </div>
   <div id="host" style="position:absolute;left:400px;top:60px;width:150px;height:50px"></div>
+  <div id="far" style="position:absolute;left:40px;top:3000px;width:100px;height:40px;background:#f66">Far</div>
   <iframe src="/frame" style="position:absolute;left:40px;top:300px;width:300px;height:120px;border:0"></iframe>
   <iframe src="${local}/frame" style="position:absolute;left:400px;top:300px;width:300px;height:120px;border:0"></iframe>
   <script>
     document.querySelector('#host').attachShadow({mode:'open'}).innerHTML='<button id="sb" style="width:100px;height:40px">Shadow action</button>';
+    // Framework development metadata as React 18 and Vue 3 leave it on elements.
+    window.getterHits=0;
+    document.querySelector('#go').__reactFiber$smoke={type:'button',_debugSource:{fileName:'/repo/src/Submit.tsx',lineNumber:12,columnNumber:5},
+      return:{type:function SubmitButton(){},return:{type:function Form(){},return:null}}};
+    const panel={type:{name:'Panel',__file:'src/Panel.vue'}};
+    Object.defineProperty(panel,'parent',{get(){window.getterHits++;return {type:{name:'Page'}}}});
+    Object.defineProperty(document.querySelector('#card'),'__vueParentComponent',{value:panel,enumerable:false});
     window.events=[];for(const t of ['click','mousedown','mouseup','pointerdown'])addEventListener(t,()=>events.push(t),true);
   </script>`);
 });
@@ -102,12 +110,16 @@ async function run() {
   assert.equal(pick.element.styles['background-color'], '#2563eb'); assert.equal(pick.element.styles.color, '#fff');
   assert.equal(pick.element.styles.margin, '2px'); assert.equal(pick.element.styles['font-size'], '14px');
   near(pick.rect, goRect, 'button rect');
+  assert.deepEqual(pick.element.source, { framework: 'react', component: 'SubmitButton', chain: ['Form'], file: '/repo/src/Submit.tsx', line: 12, column: 5 });
   assert.deepEqual(await guest.executeJavaScript('window.events'), [], 'the page observed no click while picking');
   console.log('PASS pick: description, styles and geometry; the page saw no events');
 
   // 2. Hierarchy.
   await command({ type: 'annotate-refine', tabId: 'tab', pickId: pick.id, direction: 'parent' });
   assert.equal(annotation()?.pick?.element.id, 'card'); assert.equal(annotation()?.pick?.canChild, true);
+  // Vue metadata is read without ever running a page-defined getter.
+  assert.deepEqual(annotation()?.pick?.element.source, { framework: 'vue', component: 'Panel', chain: [], file: 'src/Panel.vue' });
+  assert.equal(await guest.executeJavaScript('window.getterHits'), 0, 'the source probe never triggered a page getter');
   await command({ type: 'annotate-refine', tabId: 'tab', pickId: pick.id, direction: 'child' });
   assert.equal(annotation()?.pick?.element.id, 'go');
 
@@ -183,6 +195,45 @@ async function run() {
   await until(() => annotation()?.items.every(i => i.status === 'stale'), 'navigation stales annotations');
   assert.equal((await host.annotationImages(win.id, win.webContents, true, 'tab', ['card'])).card, null);
   console.log('PASS navigation: annotations stale, no picture');
+
+  // 9. Agent follow-up: sent annotations survive for the Agent, relocate after a remount and pair Before/After.
+  await guest.loadURL(base);
+  await until(async () => (await guest.executeJavaScript('!!document.querySelector("#far")')), 'fixture reloaded');
+  await pause(600);
+  const agentCall = (invocationId: string) => ({ windowId: win.id, conversationId: 'main', agentId: 'agent', turnId: 'turn', invocationId });
+  await command({ type: 'annotate-mode', tabId: 'tab', enabled: true });
+  const sentGo = await pickAt(...center(await rectOf('#go')), 'sent button');
+  await command({ type: 'annotate-commit', tabId: 'tab', pickId: sentGo.id, annotationId: 'abcd1234-go' });
+  await until(() => annotation()?.items.find(i => i.id === 'abcd1234-go')?.shot === 'ok', 'button screenshot before scrolling away');
+  await guest.executeJavaScript('scrollTo(0, 2900)'); await pause(300);
+  const sentFar = await pickAt(...center(await rectOf('#far')), 'sent far element');
+  await command({ type: 'annotate-commit', tabId: 'tab', pickId: sentFar.id, annotationId: 'ffff0000-far' });
+  await until(() => annotation()?.items.find(i => i.id === 'ffff0000-far')?.shot === 'ok', 'far element screenshot');
+  await command({ type: 'annotate-mode', tabId: 'tab', enabled: false });
+  await command({ type: 'annotate-handoff', tabId: 'tab', items: [{ annotationId: 'abcd1234-go', note: 'make it wider' }, { annotationId: 'ffff0000-far', note: 'too faint' }] });
+  assert.ok(!annotation()?.items.some(i => i.id.endsWith('-go') && i.id.startsWith('abcd') || i.id.endsWith('-far')), 'sent annotations leave the person\'s items');
+  assert.equal(annotation()?.delivered?.length, 2);
+  await guest.executeJavaScript('scrollTo(0, 0)'); await pause(300);
+  const listed = await host.agentAnnotations(agentCall('list-1'), { type: 'list', screenshot: true }) as any;
+  assert.deepEqual(listed.records.map((r: any) => [r.ref, r.note, r.status]), [['abcd1234', 'make it wider', 'open'], ['ffff0000', 'too faint', 'open']]);
+  assert.ok(listed.images.abcd1234, 'a visible element gets a current screenshot'); assert.equal(listed.images.ffff0000, undefined, 'an off-screen one is not scrolled to by a read');
+  assert.equal(await guest.executeJavaScript('scrollY'), 0, 'listing never scrolls the page');
+  // An HMR-like remount: same selector, brand new node, wider.
+  await guest.executeJavaScript(`(() => { const old = document.querySelector('#go'); const next = old.cloneNode(true); next.style.width = '200px'; old.replaceWith(next); })()`);
+  const review = await host.agentAnnotations(agentCall('resolve-1'), { type: 'resolve', ref: 'abcd', summary: 'wider', settleMs: 1500 }) as any;
+  assert.equal(review.located, 'ok'); assert.equal(review.before.clipWidth, 120); assert.equal(review.after.clipWidth, 200);
+  assert.equal(review.changed, true); assert.equal(review.record.status, 'resolved');
+  const far = await host.agentAnnotations(agentCall('resolve-2'), { type: 'resolve', ref: 'ffff0000', settleMs: 600 }) as any;
+  assert.equal(far.located, 'ok'); assert.ok(far.after, 'an off-screen element is revealed before the After capture');
+  assert.ok((await guest.executeJavaScript('scrollY')) > 1000, 'resolve scrolled it into view');
+  // A full reload kills every handle; the selector still finds the element, and a removed one is reported honestly.
+  await guest.loadURL(base);
+  await until(async () => (await guest.executeJavaScript('!!document.querySelector("#far")')), 'second reload');
+  await guest.executeJavaScript('document.querySelector("#far").remove()');
+  const gone = await host.agentAnnotations(agentCall('resolve-3'), { type: 'resolve', ref: 'ffff', settleMs: 600 }) as any;
+  assert.equal(gone.located, 'missing'); assert.equal(gone.after, null); assert.ok(gone.before);
+  assert.deepEqual(host.state(win.id).tabs.find(t => t.id === 'tab')?.annotation?.delivered?.map(d => d.status), ['resolved', 'resolved']);
+  console.log('PASS agent follow-up: relocation after remount and reload, Before/After, reveal, honest missing');
   console.log('PASS browser-annotation smoke complete');
 }
 const watchdog = setTimeout(() => { console.error('FAIL fixture deadline (55s)'); app.exit(1); }, 55000);

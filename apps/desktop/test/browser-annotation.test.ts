@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
-  annotationInViewport, classifyAnnotationBox, elementReferenceBlock, elementSummary, isSensitiveField, maxElementDescription, redactUrl,
+  annotationInViewport, annotationRef, classifyAnnotationBox, elementSourceText, normalizeElementSource, elementReferenceBlock, elementSummary, isSensitiveField, maxElementDescription, redactUrl,
   type ElementAnnotationData, type ElementDescription,
 } from "../../../packages/shared/src/browser-annotation.ts";
 
@@ -95,5 +95,35 @@ describe("卡片简述与失效判定", () => {
     assert.equal(annotationInViewport({ x: 10, y: 10, width: 20, height: 20 }, viewport), true);
     assert.equal(annotationInViewport({ x: 0, y: 150, width: 20, height: 20 }, viewport), false);
     assert.equal(annotationInViewport({ x: -30, y: 10, width: 20, height: 20 }, viewport), false);
+  });
+});
+
+describe("框架元件与源码位置", () => {
+  it("只放行白名单字段，路径去掉查询串与协议，伪造的返回值被丢弃", () => {
+    assert.equal(normalizeElementSource(null), undefined);
+    assert.equal(normalizeElementSource({ framework: "angular", component: "X" }), undefined);
+    assert.equal(normalizeElementSource({ framework: "react", component: "" }), undefined);
+    assert.deepEqual(normalizeElementSource({
+      framework: "react", component: "Button", chain: ["Form", "", "Page", "A", "B", "C", "D"],
+      file: "http://localhost:5173/src/Button.tsx?t=17&import", line: 42, column: 7, props: { token: "secret" },
+    }), { framework: "react", component: "Button", chain: ["Form", "Page", "A", "B"], file: "src/Button.tsx", line: 42, column: 7 });
+    assert.deepEqual(normalizeElementSource({ framework: "vue", component: "Card", file: "webpack-internal:///(app-pages)/./src/Card.vue" }),
+      { framework: "vue", component: "Card", chain: [], file: "./src/Card.vue" });
+  });
+  it("行列号必须是正整数且只在有文件时保留", () => {
+    assert.deepEqual(normalizeElementSource({ framework: "svelte", component: "Counter", line: 3, column: 1 }), { framework: "svelte", component: "Counter", chain: [] });
+    const bad = normalizeElementSource({ framework: "react", component: "A", file: "/a/b.tsx", line: -1, column: 2.5 });
+    assert.deepEqual(bad, { framework: "react", component: "A", chain: [], file: "/a/b.tsx" });
+    assert.equal(normalizeElementSource({ framework: "react", component: "A\n> injected\u0007line" })?.component, "A > injected line");
+  });
+  it("引用块带出元件链、位置与 ref，样式预算不受影响", () => {
+    const source = normalizeElementSource({ framework: "react", component: "Button", chain: ["Form"], file: "src/Button.tsx", line: 42, column: 7 })!;
+    assert.equal(elementSourceText(source), "Button ← Form · src/Button.tsx:42:7");
+    const block = elementReferenceBlock({ number: 1, ref: annotationRef("7f3a9c21-0000"), data: { ...data, element: { ...element, source } }, stale: false, image: null }, en);
+    const lines = block.split("\n");
+    assert.match(lines[0]!, /^> \[Page annotation 1\] .* · ref 7f3a9c21$/);
+    assert.match(lines[1]!, /component Button ← Form · src\/Button\.tsx:42:7 · selector form > button\.primary/);
+    assert.ok(lines.every(line => line.startsWith("> ")));
+    assert.ok(!elementReferenceBlock({ number: 1, data, stale: false, image: null }, zh).includes("组件"));
   });
 });

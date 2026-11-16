@@ -1,6 +1,6 @@
 import { backgroundShellToolNames, recommendedActionsToolName, visualToolName, type InteractionMode, type RecipeStageSubmission, type SubagentKind } from "@vela/shared";
 import { defaultToolNames } from "@vela/tools";
-import { browserToolNames } from "./browser-use";
+import { browserAnnotationToolNames, browserToolNames } from "./browser-use";
 import { defaultToolPolicy, modeToolNames, type ToolAuthorizationResult, type ToolPolicyCall } from "./interaction";
 import { isMcpTool } from "./mcp-session";
 import { memoryDisabledDenial, memoryReadToolName, memoryToolNames, memoryUpdateToolName } from "./memory-tools";
@@ -23,6 +23,8 @@ export interface ToolLoadoutConversation {
 export interface ToolLoadoutOptions {
   scheduledTasks: boolean;
   browser: boolean;
+  /** 批注工具可用：随浏览器工具一起提供。 */
+  browserAnnotations?: boolean;
   /** 后台命令可用：主代理在非 Plan 模式获得 bash_output / bash_kill。 */
   background?: boolean;
   memoryEnabled: () => boolean;
@@ -63,10 +65,15 @@ export class ToolLoadout {
       ...memoryToolNames,
       ...(this.options.web ? webToolNames : []),
       ...(this.options.scheduledTasks ? scheduledTaskToolNames : []),
-      ...(this.options.browser ? browserToolNames : []),
+      ...this.browserNames(),
       ...(this.options.background ? backgroundShellToolNames : []),
       ...(this.options.resident ? residentToolNames : []),
     ];
+  }
+
+  /** 浏览器工具：REPL 随浏览器可用，批注工具另有开关。 */
+  private browserNames(): string[] {
+    return this.options.browser ? [...browserToolNames, ...(this.options.browserAnnotations ? browserAnnotationToolNames : [])] : [];
   }
 
   isResident(entry: ToolLoadoutConversation): boolean {
@@ -104,7 +111,7 @@ export class ToolLoadout {
   private conversation(entry: ToolLoadoutConversation): string[] {
     if (this.isResident(entry)) return [...residentTools];
     const tools = this.native(entry.snapshot.mode, entry.snapshot.executionPlan !== null, entry);
-    if (this.options.browser && entry.snapshot.mode !== "plan") tools.push(...browserToolNames);
+    if (this.options.browser && entry.snapshot.mode !== "plan") tools.push(...this.browserNames());
     return tools;
   }
 
@@ -131,7 +138,7 @@ export class ToolLoadout {
       ...agentToolNamesFor(kind),
       ...(this.options.memoryEnabled() ? [memoryReadToolName] : []),
       ...this.web(),
-      ...(this.options.browser && kind === "general" ? browserToolNames : []),
+      ...(kind === "general" ? this.browserNames() : []),
     ];
   }
 

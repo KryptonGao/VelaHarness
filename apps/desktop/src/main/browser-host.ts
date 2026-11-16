@@ -1,5 +1,6 @@
 import type { WebContents, Session } from 'electron';
 import type { BrowserAgentAction, BrowserAnnotationImages, BrowserUiCommand, BrowserWindowState } from '../../../../packages/shared/src/browser';
+import type { AgentAnnotationListing, AgentAnnotationReview } from '../../../../packages/shared/src/browser-annotation';
 import { isFaviconUrl, isUiBrowserUrl } from '../browser-policy';
 import { BrowserAnnotations, type AnnotationBackend } from './browser-annotations';
 import { BrowserHostError, BrowserSessionRegistry, type BrowserRecord } from './browser-session-registry';
@@ -178,6 +179,31 @@ export class BrowserHost {
       return result;
     };
     return this.cancellable(execute(),entry.abort.signal);
+  }
+  /**
+   * Sent annotations of the invoking conversation, for the Agent's annotation tools. Bound to a revocable
+   * invocation like any other Agent browser access: it stops the person from annotating meanwhile and ends with the call.
+   */
+  async agentAnnotations(context: BrowserInvocation, request:
+    | { type: 'list'; ref?: string; screenshot?: boolean }
+    | { type: 'resolve'; ref: string; summary?: string; settleMs?: number }): Promise<AgentAnnotationListing | AgentAnnotationReview> {
+    const end = this.beginInvocation(context);
+    try {
+      const tabs = this.registry.list(context.windowId, context.conversationId);
+      if (request.type === 'list') {
+        const merged: AgentAnnotationListing = { records: [], images: {} };
+        for (const tab of tabs) {
+          const part = await this.annotations.list(tab, { ref: request.ref, screenshot: request.screenshot, signal: context.signal });
+          merged.records.push(...part.records); Object.assign(merged.images, part.images);
+        }
+        if (request.ref && merged.records.length > 1) throw new BrowserHostError('annotation-ambiguous', 'The ref matches several annotations; use more characters');
+        return merged;
+      }
+      const owners = tabs.filter(tab => this.annotations.hasDelivered(tab, request.ref));
+      if (!owners.length) throw new BrowserHostError('annotation-not-found', 'No sent annotation of this conversation matches this ref');
+      if (owners.length > 1) throw new BrowserHostError('annotation-ambiguous', 'The ref matches several annotations; use more characters');
+      return await this.annotations.review(owners[0]!, request.ref, { summary: request.summary, settleMs: request.settleMs, signal: context.signal });
+    } finally { end('complete'); }
   }
   /** Element crops for annotations of a tab the caller's window currently owns. */
   async annotationImages(windowId: number, sender: WebContents, mainFrame: boolean, tabId: string, annotationIds: string[]): Promise<BrowserAnnotationImages> {

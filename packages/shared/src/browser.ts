@@ -1,4 +1,4 @@
-import type { BrowserAnnotationImage, BrowserTabAnnotation } from "./browser-annotation";
+import type { AnnotationHandoffItem, BrowserAnnotationImage, BrowserTabAnnotation } from "./browser-annotation";
 
 /** CSS viewport coordinates reported by the trusted browser input adapter. */
 export interface BrowserAgentAction {
@@ -53,6 +53,7 @@ export type BrowserUiCommand =
   | { type: 'annotate-cancel'; tabId: string }
   | { type: 'annotate-commit'; tabId: string; pickId: string; annotationId: string }
   | { type: 'annotate-remove'; tabId: string; annotationIds: string[] }
+  | { type: 'annotate-handoff'; tabId: string; items: AnnotationHandoffItem[] }
   | { type: 'annotate-track'; tabId: string; active: boolean };
 export type BrowserAnnotationImages = Record<string, BrowserAnnotationImage | null>;
 export interface BrowserPanelApi {

@@ -12,6 +12,14 @@ Conversation links open a Panel tab by default. Settings → Interface
 → Conversation links can select the system browser. Modified clicks
 retain native handling. Rendering a link does not open a browser.
 
+## Element annotations for the Agent
+
+Annotations the user sends with a message stay available to the Agent: `browser_annotations`
+lists them (read-only) and `browser_annotation_resolve` waits for the page to settle, re-finds the
+same element, returns Before and After screenshots and marks the annotation handled. Picked
+elements also carry the framework component and source location when the page runs React, Vue
+or Svelte in development mode. See [element annotations](../requirements/browser-annotations.md).
+
 ## Persistent Node REPL
 
 Execution-mode agents use `browser_repl({code, timeoutMs?})` and

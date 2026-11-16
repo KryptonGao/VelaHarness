@@ -1,4 +1,4 @@
-import { maxAnnotationImages, type AnnotationImageRef, type BrowserAnnotationImage, type BrowserAnnotationTrack, type ImageAttachment } from "@vela/shared";
+import { maxAnnotationImages, type AnnotationImageRef, type BrowserAnnotationImage, type BrowserAnnotationTrack, type BrowserUiCommand, type ImageAttachment } from "@vela/shared";
 import { isElementReply, type ReplyCard } from "./selection-actions";
 
 /** 随消息发出的元素截图，长边上限。 */
@@ -89,4 +89,18 @@ export async function drawAnnotationImage(source: BrowserAnnotationImage, number
   context.font = "bold 14px sans-serif"; context.textAlign = "center"; context.textBaseline = "middle";
   context.fillText(String(number), radius + 3, radius + 4);
   return { type: "image", data: canvas.toDataURL("image/png").split(",")[1] ?? "", mimeType: "image/png" };
+}
+
+/**
+ * 消息已经发出：把其中的元素批注按标签页移交给主进程，让 Agent 之后可以重新核对和复核。
+ * 只移交用户写的文字，元素信息主进程自己持有。
+ */
+export function handoffCommands(sent: readonly ReplyCard[]): BrowserUiCommand[] {
+  const byTab = new Map<string, { annotationId: string; note: string }[]>();
+  for (const card of sent.filter(isElementReply)) {
+    const items = byTab.get(card.tabId) ?? [];
+    items.push({ annotationId: card.id, note: card.text });
+    byTab.set(card.tabId, items);
+  }
+  return [...byTab].map(([tabId, items]) => ({ type: "annotate-handoff" as const, tabId, items }));
 }

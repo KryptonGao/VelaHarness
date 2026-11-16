@@ -15,7 +15,7 @@ import { RecipeGenerator, parseRecipeGenerateInput } from './recipe-generator';
 import type { RaceTokens, RecipeExecution, RecipeRun, RecipeStageSubmission, RecipeSubmitResult, RecipeStageEvidence, RecipeUseDraft, ScheduledTaskInput, BackgroundShellEvents, BackgroundShellExit, BackgroundShellItem, BackgroundShellOutput, ToolFactoryContext, SandboxMode, ScheduledTaskService } from "@vela/shared";
 import type { McpCatalog, McpCatalogInput, McpServerInput, McpServerTarget, McpEnabledInput, McpProjectTrustInput, McpToolReadOnlyInput, McpStatusEvent, MemoryLoadReport, SideChatEvent, SideChatResult } from "@vela/shared";
 import { memoryLoadReport, modelLanguageName, visualToolName, type AppLocale } from "@vela/shared";
-import { browserUseInstructions, createBrowserTools, type BrowserReplService, type BrowserReplPermission } from "./browser-use";
+import { browserAnnotationInstructions, browserUseInstructions, createBrowserAnnotationTools, createBrowserTools, type BrowserAnnotationService, type BrowserReplService, type BrowserReplPermission } from "./browser-use";
 import { TurnCheckpoints, changedPaths, sharedDirectory, type TurnCheckpoint } from "./turn-checkpoints";
 import { checkpointUsage, cleanCheckpoints, defaultCheckpointPolicy, deleteAllCheckpoints } from "./checkpoint-storage";
 import { CheckpointSettingsStore } from "./checkpoint-settings";
@@ -246,6 +246,8 @@ export interface AgentRuntimeOptions {
   agentDir: string;
   /** Optional desktop host for persistent Browser Panel JavaScript contexts. */
   browserRepl?: BrowserReplService;
+  /** 浏览器批注：与 browserRepl 同时提供才生效。 */
+  browserAnnotations?: BrowserAnnotationService;
   browserReplPermission?: BrowserReplPermission;
   /** 记忆写入的沙箱审批入口；复用现有 ask / smart / full 写权限判断。 */
   memoryPermission?: MemoryWritePermission;
@@ -545,6 +547,7 @@ export class AgentRuntime {
     this.tools = new ToolLoadout({
       scheduledTasks: Boolean(options.scheduledTasks),
       browser: Boolean(options.browserRepl),
+      browserAnnotations: Boolean(options.browserRepl && options.browserAnnotations),
       background: Boolean(options.backgroundShells),
       memoryEnabled: () => this.memorySettings.enabled,
       web: () => this.webTools.ready(),
@@ -4354,7 +4357,8 @@ export class AgentRuntime {
   }
 
   private browserInstructions(): string {
-    return checksVisualWork(this.promptProfile) ? `${browserUseInstructions}\n${browserVisualCheckNote}` : browserUseInstructions;
+    const base = checksVisualWork(this.promptProfile) ? `${browserUseInstructions}\n${browserVisualCheckNote}` : browserUseInstructions;
+    return this.options.browserAnnotations ? `${base}\n${browserAnnotationInstructions}` : base;
   }
 
   /** 网页工具始终注册，是否激活由 ToolLoadout 按开关、提供商和密钥决定。 */
@@ -4381,7 +4385,11 @@ export class AgentRuntime {
   private browserTools(entry: Conversation, agentId: string, kind?: SubagentKind): ToolDefinition[] {
     if (kind === "explore" || !this.options.browserRepl) return [];
     const permission = this.options.browserReplPermission;
-    return createBrowserTools({
+    const turnId = () => `${entry.id}:${entry.activeTurn?.startedAt ?? entry.snapshot.turnStartedAt ?? "idle"}`;
+    const annotations = this.options.browserAnnotations
+      ? createBrowserAnnotationTools({ service: this.options.browserAnnotations, conversationId: entry.id, agentId, turnId, allowed: () => entry.snapshot.mode !== "plan" })
+      : [];
+    return [...createBrowserTools({
       service: this.options.browserRepl,
       permission: permission
         ? { request: input => permission.request({ ...input, conversationId: entry.id, sandboxMode: entry.scheduledSandboxMode }) }
@@ -4389,7 +4397,7 @@ export class AgentRuntime {
       conversationId: entry.id, agentId, cwd: entry.snapshot.cwd,
       turnId: () => `${entry.id}:${entry.activeTurn?.startedAt ?? entry.snapshot.turnStartedAt ?? "idle"}`,
       allowed: () => entry.snapshot.mode !== "plan",
-    });
+    }), ...annotations];
   }
 
   /**

@@ -1,5 +1,5 @@
 import { createContext } from "react";
-import { elementReferenceBlock, elementSummary, type AnnotationImageRef, type ElementAnnotationData } from "@vela/shared";
+import { annotationRef, elementReferenceBlock, elementSummary, type AnnotationImageRef, type ElementAnnotationData } from "@vela/shared";
 
 /** 选中文字后「开启侧边聊天」：由 App 提供，打开一个侧边聊天标签，带上引用和已经写好的问题。 */
 export const SideChatLauncherContext = createContext<((quote: string, draft?: string) => void) | null>(null);
@@ -78,7 +78,7 @@ export function replyMessage(replies: readonly (ReplyDraft & { id?: string })[],
     const image = reply.id ? options.images?.get(reply.id) : undefined;
     const block = elementReferenceBlock({
       number: ++number, data: reply.data, stale: !!reply.id && !!options.stale?.has(reply.id),
-      image: image?.ref ?? null, cropped: image?.cropped,
+      image: image?.ref ?? null, cropped: image?.cropped, ref: reply.id ? annotationRef(reply.id) : undefined,
     }, options.t ?? ((chinese) => chinese));
     return [block, reply.text.trim()].filter(Boolean).join("\n\n");
   });

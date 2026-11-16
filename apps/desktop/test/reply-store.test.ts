@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { ReplyStore } from "../src/renderer/browser/reply-store.ts";
-import { planAnnotationImages } from "../src/renderer/components/annotation-images.ts";
-import { isElementReply, type ElementReplyDraft, type ReplyCard } from "../src/renderer/components/selection-actions.ts";
+import { handoffCommands, planAnnotationImages } from "../src/renderer/components/annotation-images.ts";
+import { isElementReply, replyMessage, type ElementReplyDraft, type ReplyCard } from "../src/renderer/components/selection-actions.ts";
 
 const data: ElementReplyDraft["data"] = {
   pageUrl: "http://localhost:3000/", pageTitle: "首页", rect: null, viewport: { width: 800, height: 600 },
@@ -105,5 +105,23 @@ describe("元素截图的名额", () => {
 
   it("主进程已经不认识的批注当作失效", () => {
     assert.equal(planAnnotationImages([element("x")], new Map(), 4).get("x"), "stale");
+  });
+});
+
+describe("发送后移交给 Agent", () => {
+  it("按标签页分组，只移交元素批注和用户写的文字", () => {
+    const cards: ReplyCard[] = [
+      { id: "t1", kind: "text", quote: "引文", text: "好" }, element("e1", "tabA", "太小"), element("e2", "tabB"), element("e3", "tabA", "颜色"),
+    ];
+    assert.deepEqual(handoffCommands(cards), [
+      { type: "annotate-handoff", tabId: "tabA", items: [{ annotationId: "e1", note: "太小" }, { annotationId: "e3", note: "颜色" }] },
+      { type: "annotate-handoff", tabId: "tabB", items: [{ annotationId: "e2", note: "" }] },
+    ]);
+    assert.deepEqual(handoffCommands([cards[0]!]), []);
+  });
+
+  it("消息里的引用块带上与工具相同的 ref", () => {
+    const message = replyMessage([element("abcd1234-ffff", "tab", "太小")], "");
+    assert.match(message.split("\n")[0]!, / · ref abcd1234$/);
   });
 });

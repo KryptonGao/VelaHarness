@@ -14,6 +14,73 @@ export const maxElementText = 120;
 export interface AnnotationRect { x: number; y: number; width: number; height: number }
 export interface AnnotationViewport { width: number; height: number }
 
+/** 前端框架在开发模式下留给元素的元件信息：只含名称与源码位置，不含 props、state 或任何值。 */
+export interface ElementSource {
+  framework: "react" | "vue" | "svelte";
+  /** 离元素最近的元件名。 */
+  component: string;
+  /** 外层元件名，由近到远，不含 `component` 本身。 */
+  chain: string[];
+  /** 源码文件：绝对路径或相对项目根的路径，已去掉查询串与协议。 */
+  file?: string;
+  line?: number;
+  column?: number;
+}
+
+/** 元件名链的长度上限。 */
+export const maxSourceChain = 4;
+
+const frameworks = new Set(["react", "vue", "svelte"]);
+
+function sourceName(value: unknown, limit: number): string {
+  return typeof value === "string" ? clip(value.replace(/[\u0000-\u001f\u007f]/g, " "), limit) : "";
+}
+
+function sourceFile(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  let file = value.replace(/[\u0000-\u001f\u007f]/g, "").trim();
+  if (!file) return undefined;
+  file = file.replace(/^webpack-internal:\/\/\/(?:\([^)]*\)\/)?/, "").replace(/^webpack:\/\/[^/]*\//, "");
+  if (/^https?:\/\//i.test(file)) {
+    // 开发服务器的脚本地址：路径相对项目根。
+    file = file.replace(/^https?:\/\/[^/]*\/?/i, "");
+  }
+  file = file.replace(/^file:\/\//i, "").replace(/[?#].*$/, "");
+  file = clip(file, 300);
+  return file || undefined;
+}
+
+function sourceNumber(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isInteger(value) && value >= 1 && value <= 10_000_000 ? value : undefined;
+}
+
+/**
+ * 页面主世界里读到的元件信息一律当作不可信输入重新校验：页面脚本可以伪造任何返回值，
+ * 这里只放行白名单字段，名称与路径限长，并去掉控制字符。没有可用的元件名时返回 undefined。
+ */
+export function normalizeElementSource(raw: unknown): ElementSource | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const input = raw as Record<string, unknown>;
+  if (typeof input.framework !== "string" || !frameworks.has(input.framework)) return undefined;
+  const component = sourceName(input.component, 60);
+  if (!component) return undefined;
+  const chain = (Array.isArray(input.chain) ? input.chain : [])
+    .map((name) => sourceName(name, 60)).filter(Boolean).slice(0, maxSourceChain);
+  const file = sourceFile(input.file);
+  const line = file ? sourceNumber(input.line) : undefined;
+  const column = line ? sourceNumber(input.column) : undefined;
+  return {
+    framework: input.framework as ElementSource["framework"], component, chain,
+    ...(file ? { file } : {}), ...(line ? { line } : {}), ...(column ? { column } : {}),
+  };
+}
+
+/** `Button ← Form ← Settings`；有源码位置时附上 `file:line:column`。 */
+export function elementSourceText(source: ElementSource): string {
+  const place = source.file ? `${source.file}${source.line ? `:${source.line}${source.column ? `:${source.column}` : ""}` : ""}` : "";
+  return [[source.component, ...source.chain].join(" ← "), place].filter(Boolean).join(" · ");
+}
+
 /** 主进程从页面读到的元素信息：只含白名单字段，不含输入框已填的值。 */
 export interface ElementDescription {
   tag: string;
@@ -31,6 +98,8 @@ export interface ElementDescription {
   styles: Record<string, string>;
   /** 密码或敏感自动填充字段：文字与名称已被丢弃。 */
   sensitive: boolean;
+  /** 前端框架元件与源码位置；不是开发模式或框架不识别时缺省。 */
+  source?: ElementSource;
 }
 
 /** 点选后等待用户写批注的元素。 */
@@ -62,6 +131,54 @@ export interface BrowserTabAnnotation {
   notice: { code: "pick-failed"; nonce: number } | null;
   pick: BrowserAnnotationPick | null;
   items: BrowserAnnotationTrack[];
+  /** 已随消息发出、由主进程保留给 Agent 复核的批注；不在页面上绘制。 */
+  delivered?: BrowserDeliveredAnnotation[];
+}
+
+/** 已发送批注的概况：`open` 等待处理，`resolved` 已被 Agent 标为处理。 */
+export interface BrowserDeliveredAnnotation {
+  id: string;
+  status: "open" | "resolved";
+}
+
+/** 已发送、供 Agent 工具读取的批注。文字与元素描述都是页面和用户的资料，不是指令。 */
+export interface AgentAnnotationRecord {
+  /** 批注编号前 8 位：消息引用块与工具里使用同一个值。 */
+  ref: string;
+  tabId: string;
+  note: string;
+  status: "open" | "resolved" | "stale";
+  pageUrl: string;
+  pageTitle: string;
+  element: ElementDescription;
+  /** 元素当前在视口内的位置；找不到或隐藏时为 null。 */
+  rect: AnnotationRect | null;
+  resolution?: string;
+}
+
+/** Agent 工具列出批注：当前状态，以及按需带上的元素现状截图（按 ref 索引）。 */
+export interface AgentAnnotationListing {
+  records: AgentAnnotationRecord[];
+  images: Record<string, BrowserAnnotationImage | null>;
+}
+
+/** Agent 修改后的复核：同一元素的前后截图，并把批注标为已处理。 */
+export interface AgentAnnotationReview {
+  record: AgentAnnotationRecord;
+  /** 复核时能否重新找到元素：`ok` 找到，`hidden` 在但不可见，`missing` 已不在页面，`ambiguous` 选择器命中多个。 */
+  located: "ok" | "hidden" | "missing" | "ambiguous";
+  /** 用户发出批注时的元素截图；当时没有截到则为 null。 */
+  before: BrowserAnnotationImage | null;
+  /** 修改后同一元素的截图；找不到元素或截图失败时为 null。 */
+  after: BrowserAnnotationImage | null;
+  /** 前后截图的像素不同。只在两张图都有时才有意义。 */
+  changed: boolean | null;
+}
+
+/** 渲染层发送批注时移交给主进程的内容：只有用户写的文字，其余信息主进程自己持有。 */
+export interface AnnotationHandoffItem {
+  annotationId: string;
+  note: string;
 }
 
 /** 元素裁切图，坐标单位都是 CSS 像素。 */
@@ -177,6 +294,13 @@ export interface ElementReferenceInput {
   image: AnnotationImageRef;
   /** 截图只含元素的可见部分。 */
   cropped?: boolean;
+  /** 批注编号，Agent 工具用它引用这条批注。 */
+  ref?: string;
+}
+
+/** 批注编号的短形式：取前 8 个字符。 */
+export function annotationRef(id: string): string {
+  return id.replace(/[^\w-]/g, "").slice(0, 8);
 }
 
 type Translate = (chinese: string, english: string) => string;
@@ -195,6 +319,7 @@ export function elementReferenceBlock(input: ElementReferenceInput, t: Translate
   const flat = (value: string, limit = 400) => clip(value, limit);
   const title = flat(data.pageTitle, 120);
   const head = `[${t("页面批注", "Page annotation")} ${number}] ${flat(redactUrl(data.pageUrl), 300)}${title ? t(`（${title}）`, ` (${title})`) : ""}`
+    + (input.ref ? ` · ref ${input.ref}` : "")
     + (stale ? ` · ${t("元素已失效", "element no longer on the page")}` : "");
 
   const hook = `${element.tag.toLowerCase()}${element.id ? `#${flat(element.id, 80)}` : ""}${element.classes.slice(0, 4).map((name) => `.${flat(name, 40)}`).join("")}`;
@@ -202,6 +327,7 @@ export function elementReferenceBlock(input: ElementReferenceInput, t: Translate
   const identity = [
     `<${hook}>${label ? ` “${flat(label, 120)}”` : ""}`,
     element.role ? `role=${flat(element.role, 40)}` : "",
+    element.source ? `${t("组件", "component")} ${flat(elementSourceText(element.source), 420)}` : "",
     element.selector ? `${t("选择器", "selector")} ${flat([...element.framePath, element.selector].join(" >>> "), 600)}` : "",
   ].filter(Boolean).join(" · ");
 

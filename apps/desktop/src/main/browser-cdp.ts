@@ -2,7 +2,7 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import type { WebContents } from "electron";
 import type { BrowserAgentAction } from "../../../../packages/shared/src/browser";
-import { sensitiveAutocompleteSource } from "../../../../packages/shared/src/browser-annotation";
+import { normalizeElementSource, sensitiveAutocompleteSource } from "../../../../packages/shared/src/browser-annotation";
 import type { AnnotationRect, AnnotationViewport, BrowserAnnotationImage, ElementDescription } from "../../../../packages/shared/src/browser-annotation";
 
 export class BrowserCdpError extends Error {
@@ -191,6 +191,135 @@ function neighborProbe(this: Element, direction: string): Element | null {
   }
   const children = Array.from(this.children);
   return children.find(child => { const box = child.getBoundingClientRect(); return box.width > 0 && box.height > 0; }) ?? children[0] ?? null;
+}
+// 按选择器重新找元素（隔离世界）。返回元素本身；没有或不唯一时返回 "missing" / "ambiguous"。
+function locateProbe(framePath: string[], selector: string): Element | string {
+  let ambiguous = false;
+  const query = (root: Document | ShadowRoot, chain: string): Element | null => {
+    let scope: Document | ShadowRoot | null = root; let found: Element | null = null;
+    const hops = chain.split(" >>> ");
+    for (let index = 0; index < hops.length; index++) {
+      if (!scope) return null;
+      let list: NodeListOf<Element>;
+      try { list = scope.querySelectorAll(hops[index]!); } catch { return null; }
+      if (list.length > 1) { ambiguous = true; return null; }
+      if (list.length === 0) return null;
+      found = list[0]!;
+      if (index < hops.length - 1) scope = found.shadowRoot;
+    }
+    return found;
+  };
+  let doc: Document = document;
+  for (const hop of framePath) {
+    const owner = query(doc, hop) as HTMLIFrameElement | null;
+    const inner = owner ? (() => { try { return owner.contentDocument; } catch { return null; } })() : null;
+    if (!inner) return ambiguous ? "ambiguous" : "missing";
+    doc = inner;
+  }
+  const element = query(doc, selector);
+  return element ?? (ambiguous ? "ambiguous" : "missing");
+}
+// 在页面主世界里读取前端框架的开发元数据（React fiber、Vue 实例、Svelte meta）：框架把它们挂在元素的自有属性上，
+// 隔离世界看不到。只读、固定函数、不派发事件、不改 DOM；只取自有数据属性（不触发页面定义的 getter），
+// 只返回名称与源码位置，不读 props、state 或任何值。返回值在主进程里按白名单重新校验。
+function sourceProbe(this: Element): any {
+  const own = (target: any, key: string): any => {
+    try {
+      if (target === null || (typeof target !== "object" && typeof target !== "function")) return undefined;
+      const descriptor = Object.getOwnPropertyDescriptor(target, key);
+      return descriptor && "value" in descriptor ? descriptor.value : undefined;
+    } catch { return undefined; }
+  };
+  const text = (value: unknown, limit: number): string | undefined => (typeof value === "string" && value ? value.slice(0, limit) : undefined);
+  const number = (value: unknown): number | undefined => (typeof value === "number" ? value : undefined);
+  let keys: string[] = [];
+  try { keys = Object.getOwnPropertyNames(this); } catch { keys = []; }
+
+  const typeName = (type: any, depth = 0): string => {
+    if (!type || depth > 3) return "";
+    if (typeof type === "function") return text(own(type, "displayName"), 80) || text(own(type, "name"), 80) || "";
+    if (typeof type === "object") return text(own(type, "displayName"), 80) || typeName(own(type, "render"), depth + 1) || typeName(own(type, "type"), depth + 1);
+    return "";
+  };
+  const fiberKey = keys.find(key => key.startsWith("__reactFiber$") || key.startsWith("__reactInternalInstance$"));
+  if (fiberKey) {
+    const host = own(this, fiberKey);
+    const debugSource = (fiber: any) => {
+      const source = own(fiber, "_debugSource");
+      const file = text(own(source, "fileName"), 400);
+      return file ? { file, line: number(own(source, "lineNumber")), column: number(own(source, "columnNumber")) } : null;
+    };
+    // React 19 不再有 _debugSource，改在 _debugStack（一个 Error）里留下创建处的调用栈。
+    // 它指向开发服务器提供的脚本，行列号可能与源码有偏差，所以只取文件。
+    const stackFile = (fiber: any): string | undefined => {
+      const error = own(fiber, "_debugStack");
+      if (!error || typeof error !== "object") return undefined;
+      let stack = own(error, "stack");
+      if (typeof stack !== "string") { try { stack = (error as Error).stack; } catch { return undefined; } }
+      if (typeof stack !== "string") return undefined;
+      for (const line of stack.split("\n").slice(0, 12)) {
+        if (/react-stack|jsx-dev-runtime|jsx-runtime|node_modules|\.vite\/deps|jsxDEV/.test(line)) continue;
+        const match = /((?:https?|file):\/\/[^\s)]+?):\d+:\d+\)?\s*$/.exec(line);
+        if (match) return match[1];
+      }
+      return undefined;
+    };
+    const names: string[] = [];
+    let located: { file?: string; line?: number; column?: number } | null = debugSource(host);
+    let fiber: any = host;
+    for (let depth = 0; fiber && depth < 80 && names.length < 6; depth++) {
+      const type = own(fiber, "type");
+      if (typeof type !== "string") {
+        const name = typeName(type);
+        if (name && name !== "Anonymous" && names[names.length - 1] !== name) {
+          names.push(name);
+          if (!located) located = debugSource(fiber);
+        }
+      }
+      fiber = own(fiber, "return");
+    }
+    if (!located) { const file = stackFile(host); if (file) located = { file }; }
+    if (names.length) return { framework: "react", component: names[0], chain: names.slice(1), ...(located || {}) };
+    return null;
+  }
+
+  const vueParent = own(this, "__vueParentComponent");
+  if (vueParent && typeof vueParent === "object") {
+    const names: string[] = []; let file: string | undefined;
+    let instance: any = vueParent;
+    for (let depth = 0; instance && depth < 30 && names.length < 6; depth++) {
+      const type = own(instance, "type");
+      const name = text(own(type, "name"), 80) || text(own(type, "__name"), 80);
+      if (name) names.push(name);
+      if (!file) file = text(own(type, "__file"), 400);
+      instance = own(instance, "parent");
+    }
+    if (names.length) return { framework: "vue", component: names[0], chain: names.slice(1), file };
+    return null;
+  }
+  const vue2 = own(this, "__vue__");
+  if (vue2 && typeof vue2 === "object") {
+    const names: string[] = []; let file: string | undefined;
+    let vm: any = vue2;
+    for (let depth = 0; vm && depth < 30 && names.length < 6; depth++) {
+      const options = own(vm, "$options");
+      const name = text(own(options, "name"), 80) || text(own(options, "_componentTag"), 80);
+      if (name) names.push(name);
+      if (!file) file = text(own(options, "__file"), 400);
+      vm = own(vm, "$parent");
+    }
+    if (names.length) return { framework: "vue", component: names[0], chain: names.slice(1), file };
+    return null;
+  }
+
+  const meta = own(this, "__svelte_meta");
+  const loc = own(meta, "loc");
+  const file = text(own(loc, "file"), 400);
+  if (file) {
+    const base = file.split(/[\\/]/).pop() || file;
+    return { framework: "svelte", component: base.replace(/\.svelte$/, "") || base, chain: [], file, line: number(own(loc, "line")), column: number(own(loc, "column")) };
+  }
+  return null;
 }
 // 密码框与敏感自动填充字段的位置（主框架视口坐标），截图时据此打码。
 function sensitiveProbe(sensitivePattern: string): number[][] {
@@ -580,10 +709,11 @@ export class BrowserCdp {
     return context;
   }
   /** 在隔离世界里解析节点并以它为 this 调用函数。 */
-  private async withNode<T>(hit: AnnotationHit, run: (objectId: string, session?: string) => Promise<T>): Promise<T> {
+  private async withNode<T>(hit: AnnotationHit, run: (objectId: string, session?: string) => Promise<T>, world: "isolated" | "main" = "isolated"): Promise<T> {
     const frame = this.annotationFrame(hit.session);
     await this.ensureDom(hit.session);
-    const context = await this.isolatedContext(frame);
+    const context = world === "main" ? this.mainContexts.get(this.contextKey(frame.id, frame.session))?.id : await this.isolatedContext(frame);
+    if (context === undefined) throw new BrowserCdpError("ELEMENT_UNAVAILABLE", "The page world is not ready");
     let resolved: any;
     try { resolved = await this.send("DOM.resolveNode", { backendNodeId: hit.backendNodeId, executionContextId: context }, hit.session); }
     catch { throw new BrowserCdpError("ELEMENT_UNAVAILABLE", "The element is no longer available"); }
@@ -653,6 +783,12 @@ export class BrowserCdp {
       const box = await this.boxOf(hit);
       const viewport = await this.evaluate("({width: innerWidth, height: innerHeight})", this.frame());
       const { hasParent, hasChild, ...element } = probe;
+      // 框架元数据只是锦上添花：读不到就不带，拾取不受影响。
+      const source = probe.sensitive ? undefined : normalizeElementSource(await this.withNode(hit, async (objectId, session) => {
+        const result = await this.send("Runtime.callFunctionOn", { objectId, functionDeclaration: sourceProbe.toString(), returnByValue: true }, session);
+        return result.exceptionDetails ? null : result.result?.value;
+      }, "main").catch(() => null));
+      if (source) (element as ElementDescription).source = source;
       return { element: element as ElementDescription, rect: "rect" in box ? box.rect : null, viewport, canParent: !!hasParent, canChild: !!hasChild };
     });
   }
@@ -667,6 +803,34 @@ export class BrowserCdp {
         return typeof described.node?.backendNodeId === "number" ? { session, backendNodeId: described.node.backendNodeId as number } : null;
       } finally { void this.send("Runtime.releaseObject", { objectId: neighbor }, session).catch(() => {}); }
     }));
+  }
+  /**
+   * 页面刷新或热更新后按选择器重新找到元素：只在选择器恰好命中一个元素时成功。
+   * 支持开放的 Shadow DOM 和同源 iframe；跨域 iframe 无法重新定位。
+   */
+  async annotationLocate(element: { selector: string; framePath: string[] }): Promise<AnnotationHit | "missing" | "ambiguous"> {
+    return this.annotate(async () => {
+      const frame = this.frame();
+      await this.ensureDom();
+      const context = await this.isolatedContext(frame);
+      const expression = `(${locateProbe.toString()})(${JSON.stringify(element.framePath)}, ${JSON.stringify(element.selector)})`;
+      const result = await this.send("Runtime.evaluate", { expression, contextId: context, returnByValue: false });
+      const remote = result.result;
+      if (result.exceptionDetails || !remote) return "missing" as const;
+      if (remote.type === "string") return remote.value === "ambiguous" ? "ambiguous" as const : "missing" as const;
+      if (!remote.objectId) return "missing" as const;
+      try {
+        const described = await this.send("DOM.describeNode", { objectId: remote.objectId });
+        return typeof described.node?.backendNodeId === "number" ? { backendNodeId: described.node.backendNodeId as number } : "missing" as const;
+      } finally { void this.send("Runtime.releaseObject", { objectId: remote.objectId }).catch(() => {}); }
+    });
+  }
+  /** 元素不在视口内时滚动到可见；只在 Agent 复核时使用。 */
+  async annotationReveal(hit: AnnotationHit): Promise<void> {
+    return this.annotate(async () => {
+      await this.ensureDom(hit.session);
+      await this.send("DOM.scrollIntoViewIfNeeded", { backendNodeId: hit.backendNodeId }, hit.session).catch(() => {});
+    });
   }
   /** 元素裁切图：只截元素的可见部分，裁切区域里的密码框位置一并返回，由渲染层打码。 */
   async annotationCapture(rect: AnnotationRect, viewport: AnnotationViewport): Promise<BrowserAnnotationImage> {

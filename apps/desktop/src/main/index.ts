@@ -67,6 +67,7 @@ import { configureBrowserPlatformAuthenticator, readWebAuthnAccessGroup, registe
 import { BrowserHost } from "./browser-host";
 import { BrowserCdp } from "./browser-cdp";
 import { BrowserReplManager } from "./browser-repl";
+import { createBrowserAnnotationService } from "./browser-annotation-service";
 import { BrowserIpc, type BrowserUiCommand } from "../../../../packages/shared/src/browser";
 import { UI_BROWSER_PARTITION } from "../browser-policy";
 
@@ -402,6 +403,7 @@ async function start(): Promise<void> {
     scheduledTasks: scheduler,
     pluginCredentialStore: new SecureCredentialStore(join(home, "integrations-auth.enc.json")),
     browserRepl,
+    browserAnnotations: browserHost ? createBrowserAnnotationService(browserHost) : undefined,
     mcpOpenUrl: (url) => { void shell.openExternal(url).catch(() => undefined); },
     webToolsCredentialStore: new SecureCredentialStore(join(home, "web-tools-auth.enc.json")),
     cwd: fallbackCwd,
