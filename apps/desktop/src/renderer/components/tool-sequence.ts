@@ -1,4 +1,4 @@
-import type { ToolTrace } from "@vela/shared";
+import { visualToolName, type ToolTrace } from "@vela/shared";
 import type { ToolDisplay, ToolFold } from "../hooks/usePreferences";
 import type { UiMessage } from "../hooks/useSession";
 import { splitThinkingTitle } from "../thinking-title";
@@ -63,16 +63,22 @@ export function groupAgentStream(messages: UiMessage[], fold: ToolFold = "messag
 /** 把一轮里的助理消息按界面顺序拍平:思考、工具、正文。 */
 export function buildTurnItems(
   messages: UiMessage[],
-  options: { includeText?: (message: UiMessage) => boolean } = {},
+  options: { includeText?: (message: UiMessage) => boolean; includeTool?: (tool: ToolTrace, message: UiMessage) => boolean } = {},
 ): ProcessItem[] {
   const items: ProcessItem[] = [];
   for (const message of messages) {
     if (message.thinking) items.push({ kind: "thinking", id: message.id, messageId: message.id, text: message.thinking, ...(message.model ? { model: message.model } : {}), ...(message.modelName ? { modelName: message.modelName } : {}) });
+    const visuals: ToolTrace[] = [];
     for (const tool of message.tools) {
-      items.push({ kind: "tool", id: tool.id, messageId: message.id, tool });
+      if (!(options.includeTool?.(tool, message) ?? true)) continue;
+      if (tool.name === visualToolName) visuals.push(tool);
+      else items.push({ kind: "tool", id: tool.id, messageId: message.id, tool });
     }
     if (message.text && (options.includeText?.(message) ?? true)) {
       items.push({ kind: "text", id: `${message.id}:text`, messageId: message.id, text: message.text });
+    }
+    for (const tool of visuals) {
+      items.push({ kind: "tool", id: tool.id, messageId: message.id, tool });
     }
   }
   return items;
@@ -119,6 +125,7 @@ export type CoherentEntry = Extract<ProcessNode, { type: "thinking" | "tool" }>;
 /** 连贯模式的渲染节点:两段正文之间的所有思考和工具合成一组,正文留在原位。 */
 export type CoherentNode =
   | { type: "group"; id: string; messageId: string; entries: CoherentEntry[] }
+  | { type: "visual"; id: string; messageId: string; tool: ToolTrace }
   | Extract<ProcessNode, { type: "text" }>;
 
 /**
@@ -133,6 +140,11 @@ export function groupCoherentItems(items: ProcessItem[]): CoherentNode[] {
     if (item.kind === "text") {
       group = null;
       nodes.push({ type: "text", id: item.id, messageId: item.messageId, text: item.text });
+      continue;
+    }
+    if (item.kind === "tool" && item.tool.name === visualToolName) {
+      group = null;
+      nodes.push({ type: "visual", id: item.id, messageId: item.messageId, tool: item.tool });
       continue;
     }
     if (item.kind === "thinking" && !item.text.trim()) continue;
@@ -203,7 +215,7 @@ function attachThinkingItems(items: ProcessItem[]): ProcessItem[] {
       }
     }
     if (!group) output.push(item);
-    else if (item.kind === "tool") group.push(item);
+    else if (item.kind === "tool" && item.tool.name !== visualToolName) group.push(item);
     else replies.push(item);
   }
   flush();
@@ -256,10 +268,11 @@ export function attachFollowerTools(messages: readonly UiMessage[]): AssistantUn
   const units: AssistantUnit[] = [];
   for (const message of messages) {
     if (followerSet.has(message)) {
-      if (!message.text) continue;
+      const visualTools = message.tools.filter((tool) => tool.name === visualToolName);
+      if (!message.text && visualTools.length === 0) continue;
       let stripped = strippedCache.get(message);
-      if (!stripped) {
-        stripped = { ...message, tools: [] };
+      if (!stripped || stripped.tools.length !== visualTools.length) {
+        stripped = { ...message, tools: visualTools };
         strippedCache.set(message, stripped);
       }
       units.push({ message: stripped, memberIds: [message.id] });
@@ -272,7 +285,16 @@ export function attachFollowerTools(messages: readonly UiMessage[]): AssistantUn
     }
     let cached = mergedCache.get(message);
     if (!cached || !sameMessages(cached.followers, followers)) {
-      cached = { followers, merged: { ...message, tools: [...message.tools, ...followers.flatMap((follower) => follower.tools)] } };
+      cached = {
+        followers,
+        merged: {
+          ...message,
+          tools: [
+            ...message.tools,
+            ...followers.flatMap((follower) => follower.tools.filter((tool) => tool.name !== visualToolName)),
+          ],
+        },
+      };
       mergedCache.set(message, cached);
     }
     units.push({

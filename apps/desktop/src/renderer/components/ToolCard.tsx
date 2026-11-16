@@ -23,6 +23,7 @@ import {
 import { useFilePreview } from "./preview/FilePreviewContext";
 import type { ThemedToken } from "./preview/highlighter";
 import { QuestionCard, type QuestionReplyHandler } from "./QuestionCard";
+import { VisualToolCard } from "./VisualToolCard";
 import { FileTypeIcon } from "./FileTypeIcon";
 import { sameMarks, type WordRange } from "./diff-words";
 import { STREAMING_HIGHLIGHT_INTERVAL_MS, tokenStyle, useDiffHighlight, type HighlightedDiff } from "./diff-highlight";
@@ -161,6 +162,7 @@ export const ToolCard = memo(function ToolCard(props: ToolCardProps) {
   }
   if (isAgentToolName(props.tool.name)) return <AgentToolCard tool={props.tool} compact={props.compact} />;
   if (props.tool.name === "browser_repl") return <BrowserReplCard tool={props.tool} compact={props.compact} />;
+  if (props.tool.name === "show_visual") return <VisualToolCard tool={props.tool} />;
   return <GenericToolCard {...props} />;
 });
 
@@ -1462,6 +1464,7 @@ function toolLabel(name: string, kind: ToolKind): string {
   if (name === "update_todos") return tr("待办", "Todos");
   if (name === "submit_outcome") return tr("交付", "Outcome");
   if (name === "recommend_actions") return tr("推荐操作", "Recommended actions");
+  if (name === "show_visual") return tr("可视化视图", "Made a visual");
   if (cardToolGroup(name) === "schedule") return tr("定时任务", "Schedule");
   if (cardToolGroup(name) === "memory") return tr("记忆", "Memory");
   if (name === "record_goal_validation") return tr("验证", "Validation");

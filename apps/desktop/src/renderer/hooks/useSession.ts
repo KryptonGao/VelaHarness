@@ -19,7 +19,7 @@ import type {
   ToolTrace,
   TranscriptMessage,
 } from "@vela/shared";
-import { agentStatuses, emptyAgentUsage, parseOutcomeSubmission, parseRecommendedActions, parseToolPresentation } from "@vela/shared";
+import { agentStatuses, emptyAgentUsage, parseOutcomeSubmission, parseRecommendedActions, parseToolPresentation, parseVisualDemo } from "@vela/shared";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createMessageStore, emptyMessages, messageScope, type MessageStore } from "./message-store";
 import { uiStateStore } from "../components/intelligent-ui/ui-state-instance";
@@ -983,6 +983,7 @@ function sanitizeActivity(value: ToolActivity | undefined): ToolActivity {
     plan,
     outcome: parseOutcomeSubmission(value?.outcome) ?? undefined,
     recommendedActions: parseRecommendedActions(value?.recommendedActions) ?? undefined,
+    visual: parseVisualDemo(value?.visual) ?? undefined,
     agent: value?.agent === "explore" || value?.agent === "general" ? value.agent : undefined,
     agentId: typeof value?.agentId === "string" ? value.agentId : undefined,
     model: sanitizeModelRef(value?.model) ?? undefined,
@@ -1151,6 +1152,7 @@ function mergeActivity(current: ToolActivity | undefined, patch: ToolActivity): 
     plan: patch.plan ?? base.plan,
     outcome: patch.outcome ?? base.outcome,
     recommendedActions: patch.recommendedActions ?? base.recommendedActions,
+    visual: patch.visual ?? base.visual,
     agent: patch.agent ?? base.agent,
     agentId: patch.agentId ?? base.agentId,
     agentPath: patch.agentPath ?? base.agentPath,

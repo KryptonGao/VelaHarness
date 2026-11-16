@@ -42,7 +42,22 @@ export {
   type MemoryToolWorkspace,
   type MemoryWritePermission,
 } from "./memory-tools";
+export {
+  MemoryDistiller,
+  formatDistilledAddition,
+  memoryDistillSystemPrompt,
+  parseMemoryDistillOutput,
+  sliceMessagesUpToTurn,
+  transcriptForMemoryDistill,
+  type MemoryDistillEntry,
+  type MemoryDistillInput,
+  type MemoryDistillParsed,
+  type MemoryDistillUsageRequest,
+} from "./memory-distill";
 export type {
+  MemoryDistillCategory,
+  MemoryDistillDraft,
+  MemoryDistillRequest,
   MemoryDocument,
   MemoryErrorCode,
   MemoryLoadReport,

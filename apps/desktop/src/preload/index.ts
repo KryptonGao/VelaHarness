@@ -145,6 +145,7 @@ import {
   type TerminalSessionInfo,
   type TranscriptMessage,
   type HandoffPack,
+  type MemoryDistillDraft,
   type ConversationTaskBudget,
   type ContextLimitSettings,
   type ConversationContextLimit,
@@ -471,6 +472,8 @@ const api: VelaApi = {
   predictInput: (input) => ipcRenderer.invoke(IpcChannel.sessionPredictInput, input) as Promise<string>,
   draftHandoff: (request) => ipcRenderer.invoke(IpcChannel.sessionHandoffDraft, request) as Promise<HandoffPack>,
   cancelHandoff: (requestId: string) => ipcRenderer.invoke(IpcChannel.sessionHandoffCancel, requestId) as Promise<void>,
+  distillMemory: (request) => ipcRenderer.invoke(IpcChannel.sessionMemoryDistill, request) as Promise<MemoryDistillDraft>,
+  cancelMemoryDistill: (requestId: string) => ipcRenderer.invoke(IpcChannel.sessionMemoryDistillCancel, requestId) as Promise<void>,
   getAgentMessages: (conversationId: string, agentId: string) =>
     ipcRenderer.invoke(IpcChannel.sessionAgentMessages, conversationId, agentId) as Promise<TranscriptMessage[]>,
   controlAgent: (conversationId: string, agentId: string, action: AgentControlAction) =>

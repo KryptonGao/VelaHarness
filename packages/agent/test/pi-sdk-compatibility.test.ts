@@ -119,13 +119,13 @@ describe("released Pi SDK compatibility", () => {
     const registry = f.session.getAllTools().map(tool => tool.name);
     assert.ok(forbidden.every(name => !registry.includes(name)));
     assert.ok(!f.session.getActiveToolNames().includes("tool_search"), "MCP discovery stays inactive without enabled servers");
-    const work = ["read", "bash", "edit", "write", "spawn_agent", "send_message", "followup_task", "submit_outcome", "ask_user_question"];
+    const work = ["read", "bash", "edit", "write", "spawn_agent", "send_message", "followup_task", "submit_outcome", "ask_user_question", "show_visual"];
     const memory = ["memory_read", "memory_update"];
     assert.deepEqual(f.session.getActiveToolNames(), [...work, ...memory]);
     await f.runtime.setMode(f.id, "goal");
-    assert.deepEqual(f.session.getActiveToolNames(), [...work.filter(name => name !== "ask_user_question" && name !== "submit_outcome"), "record_goal_validation", "submit_outcome", "update_goal", ...memory]);
+    assert.deepEqual(f.session.getActiveToolNames(), [...work.filter(name => name !== "ask_user_question" && name !== "submit_outcome" && name !== "show_visual"), "record_goal_validation", "submit_outcome", "update_goal", "show_visual", ...memory]);
     await f.runtime.setMode(f.id, "plan");
-    assert.deepEqual(f.session.getActiveToolNames(), ["read", "bash", "ask_user_question", "memory_read"]);
+    assert.deepEqual(f.session.getActiveToolNames(), ["read", "bash", "ask_user_question", "show_visual", "memory_read"]);
     // Even if a tool was activated externally, the final mode guard must reject it.
     f.session.setActiveToolsByName(["read", "bash", "write", "ask_user_question"]);
     let approvals = 0;

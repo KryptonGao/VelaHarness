@@ -14,7 +14,7 @@ import { createScheduledTaskTools, scheduledTaskInstructions } from "./scheduled
 import { RecipeGenerator, parseRecipeGenerateInput } from './recipe-generator';
 import type { RaceTokens, RecipeExecution, RecipeRun, RecipeStageSubmission, RecipeSubmitResult, RecipeStageEvidence, RecipeUseDraft, ScheduledTaskInput, BackgroundShellEvents, BackgroundShellExit, BackgroundShellItem, BackgroundShellOutput, ToolFactoryContext, SandboxMode, ScheduledTaskService } from "@vela/shared";
 import type { McpCatalog, McpCatalogInput, McpServerInput, McpServerTarget, McpEnabledInput, McpProjectTrustInput, McpToolReadOnlyInput, McpStatusEvent, MemoryLoadReport, SideChatEvent, SideChatResult } from "@vela/shared";
-import { memoryLoadReport, modelLanguageName, type AppLocale } from "@vela/shared";
+import { memoryLoadReport, modelLanguageName, visualToolName, type AppLocale } from "@vela/shared";
 import { browserUseInstructions, createBrowserTools, type BrowserReplService, type BrowserReplPermission } from "./browser-use";
 import { TurnCheckpoints, changedPaths, sharedDirectory, type TurnCheckpoint } from "./turn-checkpoints";
 import { checkpointUsage, cleanCheckpoints, defaultCheckpointPolicy, deleteAllCheckpoints } from "./checkpoint-storage";
@@ -83,8 +83,10 @@ import {
   type AiTextResult,
   type AgentControlAction,
   type HandoffPack,
+  type MemoryDistillDraft,
   isAgentBusy,
   parseHandoffDraftRequest,
+  parseMemoryDistillRequest,
   parseOutcomeSubmission,
   parseRecommendedActions,
   validateOutcomeSubmission,
@@ -118,6 +120,7 @@ import {
 } from "./goal-validation";
 import { ModelDirectory, type ModelDirectoryOptions } from "./model-directory";
 import { MemoryService } from "./memory";
+import { MemoryDistiller } from "./memory-distill";
 import { MemorySettings } from "./memory-settings";
 import { MemoryCredentialStore } from "./mcp/credentials";
 import { WebToolsService } from "./web-tools-service";
@@ -452,6 +455,7 @@ export class AgentRuntime {
   private readonly sideChats = new SideChatService();
   private readonly textAssist = new TextAssistService();
   private readonly handoffPacks = new HandoffPackGenerator();
+  private readonly memoryDistiller = new MemoryDistiller();
   private readonly recipeGenerator = new RecipeGenerator();
   private readonly initializePromise: Promise<void>;
   private readonly store: ConversationStore;
@@ -546,6 +550,7 @@ export class AgentRuntime {
       web: () => this.webTools.ready(),
       runView: () => this.runView,
       recommendedActions: () => this.recommendedActions,
+      visualDemo: () => this.visualDemoEnabled(),
       ...(options.resident ? { resident: { isResident: entry => this.isResident(entry.id) } } : {}),
     });
     this.stopBackgroundShells = options.backgroundShells?.subscribe((event) => this.handleBackgroundShellExit(event)) ?? null;
@@ -2285,6 +2290,46 @@ export class AgentRuntime {
     }
   }
 
+  /**
+   * 从对话经验中提炼仓库隐含约束（测试命令、避坑点、构建依赖等），
+   * 返回基于最新项目 MEMORY.md 的追加草稿，由界面 Diff 预览确认后再写入。
+   */
+  async distillProjectMemory(raw: unknown): Promise<MemoryDistillDraft> {
+    const request = parseMemoryDistillRequest(raw);
+    const entry = this.conversations.get(request.conversationId);
+    if (!entry) throw new Error("对话不存在或已结束");
+    if (!entry.hasWorkspace) throw new Error("当前对话没有项目工作区，无法提炼项目记忆");
+    if (entry.driving || entry.session?.isStreaming) throw new Error("等当前回复结束后再提炼项目记忆");
+    const messages = this.getMessages(entry.id);
+    if (messages.length === 0) throw new Error("这个对话还没有内容可以提炼");
+    const workspace = entry.worktree?.repository ?? entry.snapshot.cwd;
+    const directory = await this.readyDirectory();
+    const candidate = entry.session?.model ?? directory.modelForSelection();
+    const model = candidate && directory.isAvailable(candidate) ? candidate : null;
+    if (!model) throw new Error("先选择一个已登录或已配置密钥的模型");
+    return this.memoryDistiller.distill(
+      directory.runtime,
+      model,
+      this.memory,
+      {
+        requestId: request.requestId,
+        conversationId: entry.id,
+        workspace,
+        locale: request.locale,
+        messages,
+        cwd: entry.snapshot.cwd,
+        upToTurn: request.upToTurn,
+      },
+      (usage) => this.recordSummaryUsage(entry.id, usage),
+    );
+  }
+
+  cancelMemoryDistill(requestId: unknown): void {
+    if (typeof requestId === "string" && requestId.length > 0 && requestId.length <= 100) {
+      this.memoryDistiller.cancel(requestId);
+    }
+  }
+
   async generateRecipe(raw: unknown) {
     const input = parseRecipeGenerateInput(raw);
     const directory = await this.readyDirectory();
@@ -2767,6 +2812,7 @@ export class AgentRuntime {
     this.sideChats.dispose();
     this.textAssist.dispose();
     this.handoffPacks.dispose();
+    this.memoryDistiller.dispose();
     this.recipeGenerator.dispose();
     this.traces.dispose();
     this.directory?.cancelLogin();
@@ -3077,6 +3123,7 @@ export class AgentRuntime {
             hasExecutionPlan: entry.snapshot.executionPlan !== null,
             runView: this.runView && !this.isResident(entry.id) && !entry.scheduledTaskConversation && !entry.backgroundExecution && !entry.recipeExecution,
             recommendedActions: this.recommendedActions && !this.isResident(entry.id) && !entry.scheduledTaskConversation && !entry.backgroundExecution && !entry.recipeExecution,
+            visualDemo: this.visualDemoEnabled() && !this.isResident(entry.id) && !entry.scheduledTaskConversation && !entry.backgroundExecution && !entry.recipeExecution,
           }), {
             availableTools: (mode, plan) => this.tools.native(mode, plan, entry),
             authorizeCall: call => this.tools.authorize(call, entry),
@@ -3597,7 +3644,10 @@ export class AgentRuntime {
         toolCallId: call.toolCallId,
         toolName: call.toolName,
         isError: true,
-        activity: { ...(call.path ? { path: call.path } : {}), body: "模型没有写完这次调用，已取消，没有改动文件。" },
+        activity: {
+          ...(call.path ? { path: call.path } : {}),
+          body: call.toolName === visualToolName ? "模型没有写完这次调用，已取消。" : "模型没有写完这次调用，已取消，没有改动文件。",
+        },
       });
     }
   }
@@ -4366,12 +4416,19 @@ export class AgentRuntime {
     for (const entry of this.conversations.values()) this.applyActiveTools(entry);
   }
 
+  private visualDemoEnabled(): boolean {
+    return this.options.hostProfile !== "headless" && this.intelligentUiSettings.preference !== "text_only";
+  }
+
   getIntelligentUiSettings(): IntelligentUiState {
     return this.intelligentUiSettings.state;
   }
 
   setIntelligentUiPreference(preference: UiPreference): IntelligentUiState {
     this.intelligentUiSettings.setPreference(preference);
+    if (!this.disposed) {
+      for (const entry of this.conversations.values()) this.applyActiveTools(entry);
+    }
     return this.getIntelligentUiSettings();
   }
 

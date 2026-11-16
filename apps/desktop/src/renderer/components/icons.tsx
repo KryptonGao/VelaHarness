@@ -732,6 +732,39 @@ export function TagIcon({ size = 13 }: IconProps) {
   );
 }
 
+/** 可视化界面示意图。 */
+export function VisualIcon({ size = 13 }: IconProps) {
+  return (
+    <svg {...base(size)} aria-hidden="true">
+      <rect x="3" y="4" width="18" height="16" rx="2.5" />
+      <path d="M3 9.5h18" />
+      <path d="M9.5 9.5V20" />
+    </svg>
+  );
+}
+
+/** 放大查看（对角双向箭头）。 */
+export function ExpandIcon({ size = 13 }: IconProps) {
+  return (
+    <svg {...base(size)} aria-hidden="true">
+      <polyline points="15 3 21 3 21 9" />
+      <polyline points="9 21 3 21 3 15" />
+      <line x1="21" y1="3" x2="14" y2="10" />
+      <line x1="3" y1="21" x2="10" y2="14" />
+    </svg>
+  );
+}
+
+/** HTML / 源码符号。 */
+export function CodeIcon({ size = 13 }: IconProps) {
+  return (
+    <svg {...base(size)} aria-hidden="true">
+      <polyline points="16 18 22 12 16 6" />
+      <polyline points="8 6 2 12 8 18" />
+    </svg>
+  );
+}
+
 /* 会话视图标签专用的一套图标：统一 1.7 描边、圆角端点，主体加 22% 淡色填充。 */
 function viewTabBase(size: number) {
   return {

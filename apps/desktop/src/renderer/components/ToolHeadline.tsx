@@ -90,6 +90,9 @@ export function subjectOf(kind: ToolKind, activity: ToolActivity, name: string):
       const line = activity.body?.split("\n").find((item) => item.trim())?.trim();
       return { name: line || name, dir: "" };
     }
+    if (name === "show_visual") {
+      return { name: activity.visual?.title || tr("可视化视图", "Made a visual"), dir: "" };
+    }
     return { name: toolActionName(name) ?? name, dir: "" };
   }
   const normalized = path.replaceAll("\\", "/");

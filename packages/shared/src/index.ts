@@ -37,7 +37,7 @@ export * from "./recipe-workflow";
 export * from "./plugin";
 import type { PluginApi } from "./plugin";
 import type { McpApi } from "./mcp";
-import type { MemoryApi, MemoryLoadReport } from "./memory";
+import type { MemoryApi, MemoryDistillDraft, MemoryDistillRequest, MemoryLoadReport } from "./memory";
 import type { IntelligentUiState, UiPreference } from "./intelligent-ui";
 import type { UiSandboxCapability, UiSandboxIssueResult } from "./intelligent-ui-sandbox";
 export * from "./trace";
@@ -57,6 +57,8 @@ export * from "./intelligent-ui-source";
 export * from "./intelligent-ui-data";
 export * from "./intelligent-ui-sandbox";
 export * from "./intelligent-ui-metrics";
+export * from "./visual-demo";
+import type { VisualDemo } from "./visual-demo";
 export * from "./custom-commands";
 import type { CustomCommandCatalog } from "./custom-commands";
 import type { UpdatesApi } from "./updates";
@@ -94,6 +96,8 @@ export const IpcChannel = {
   sideChatThreadsRemove: "side-chat:threads-remove",
   sessionHandoffDraft: "session:handoff-draft",
   sessionHandoffCancel: "session:handoff-cancel",
+  sessionMemoryDistill: "session:memory-distill",
+  sessionMemoryDistillCancel: "session:memory-distill-cancel",
   sessionTrace: "session:trace",
   sessionUsage: "session:usage",
   sessionTraceDetails: "session:trace-details",
@@ -993,6 +997,8 @@ export interface ToolActivity {
   outcome?: OutcomeSubmission;
   /** recommend_actions 的推荐操作，界面在本轮回复末尾渲染成卡片。 */
   recommendedActions?: RecommendedActions;
+  /** show_visual 的内联 HTML/CSS/SVG 可视化演示片段。 */
+  visual?: VisualDemo;
   /** task 子代理类型 */
   agent?: SubagentKind;
   /** 常驻子代理的 id 和路径，供界面把卡片关联到 agent 列表。 */
@@ -3203,6 +3209,9 @@ export interface VelaApi extends McpApi, PluginApi, HooksApi {
   /** 整理对话的交接包草稿：事实由记录推导，语义部分由模型整理；只读，不修改对话。 */
   draftHandoff(request: HandoffDraftRequest): Promise<HandoffPack>;
   cancelHandoff(requestId: string): Promise<void>;
+  /** 从对话经验提炼项目隐含规范与约束，返回 Diff 预览草稿，确认后再写入项目 MEMORY.md。 */
+  distillMemory(request: MemoryDistillRequest): Promise<MemoryDistillDraft>;
+  cancelMemoryDistill(requestId: string): Promise<void>;
   getTrace(conversationId: string): Promise<TraceSnapshot>;
   /** 只含模型请求与用量（nodes 恒为空）；不会载入完整轨迹。 */
   getTraceUsage(conversationId: string): Promise<TraceSnapshot>;

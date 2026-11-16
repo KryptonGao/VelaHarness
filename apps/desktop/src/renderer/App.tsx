@@ -31,6 +31,7 @@ import { ConflictDialog } from "./components/ConflictDialog";
 import { ComposerSeedContext, type ComposerSeed } from "./components/composer-seed-context";
 import { SideChatLauncherContext, type SideChatInboxItem } from "./components/selection-actions";
 import { HandoffPackDialog } from "./components/HandoffPackDialog";
+import { MemoryDistillDialog } from "./components/MemoryDistillDialog";
 import { ScheduledTasksPage } from "./components/ScheduledTasksPage";
 import { Sidebar } from "./components/Sidebar";
 import { NavRail, type NavCategory } from "./components/NavRail";
@@ -153,6 +154,8 @@ export function App() {
     session.forkCheckpoint(turnIndex, { restoreFiles }), [session.forkCheckpoint]);
   /** 任务交接包：预览确认后新建对话，并把交接文本填入新对话的输入框。 */
   const [handoff, setHandoff] = useState<{ conversationId: string; factsOnly?: boolean } | null>(null);
+  /** 对话经验提炼到项目记忆：Diff 预览确认后追加写入项目 MEMORY.md。 */
+  const [memoryDistill, setMemoryDistill] = useState<{ conversationId: string; upToTurn?: number } | null>(null);
   const [composerSeed, setComposerSeed] = useState<ComposerSeed | null>(null);
   const consumeComposerSeed = useCallback((id: string) => setComposerSeed(current => current?.id === id ? null : current), []);
   const offerComposerSeed = useCallback((conversationId: string, text: string) =>
@@ -491,6 +494,7 @@ export function App() {
     useRecipe: recipe => { setRecipeToUse(recipe); openRecipes(); },
     fromMessage: seed => { setRecipeSeed(seed); openRecipes(); },
     createHandoff: (conversationId, options) => setHandoff({ conversationId, ...(options?.factsOnly ? { factsOnly: true } : {}) }),
+    distillMemory: (conversationId, options) => setMemoryDistill({ conversationId, ...(options?.upToTurn !== undefined ? { upToTurn: options.upToTurn } : {}) }),
   }), [session.activeConversationId, openRecipes]);
   const conflictContext = useMemo((): ConflictContextValue => ({
     state: conflicts.state,
@@ -1317,8 +1321,17 @@ export function App() {
           key={handoff.conversationId}
           conversationId={handoff.conversationId}
           factsOnly={handoff.factsOnly}
+          onDistillMemory={session.conversations.find(item => item.id === handoff.conversationId)?.hasWorkspace !== false
+            ? () => setMemoryDistill({ conversationId: handoff.conversationId })
+            : undefined}
           onConfirm={text => startHandoff(handoff.conversationId, text)}
           onClose={() => setHandoff(null)}
+        /> : null}
+        {memoryDistill ? <MemoryDistillDialog
+          key={`${memoryDistill.conversationId}:${memoryDistill.upToTurn ?? "all"}`}
+          conversationId={memoryDistill.conversationId}
+          upToTurn={memoryDistill.upToTurn}
+          onClose={() => setMemoryDistill(null)}
         /> : null}
         {conflictsOpen ? <ConflictDialog onClose={() => setConflictsOpen(false)} /> : null}
         {onboardingComplete ? <UpdateNotice locale={preferences.locale} /> : null}

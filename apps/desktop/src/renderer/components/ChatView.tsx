@@ -4,13 +4,13 @@ import { LazyMount } from "./LazyMount";
 import { VersionControlView } from "./version-control/VersionControlView";
 import { TraceView } from "./trace/TraceView";
 import { UsageView } from "./usage/UsageView";
-import { isAgentBusy, type AppState, type AskUserQuestionRequest, type InteractionMode } from "@vela/shared";
+import { isAgentBusy, visualToolName, type AppState, type AskUserQuestionRequest, type InteractionMode, type ToolTrace } from "@vela/shared";
 import { Fragment, memo, useCallback, useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useAgentWorkspace } from "./AgentPanel";
 import { modKeyLabel } from "../platform";
 import { readModelHint, writeModelHint } from "../startup-hint";
 import { useSecondClock } from "../hooks/useSecondClock";
-import { BranchIcon, CheckIcon, CopyIcon, HistoryIcon, PlusIcon, SpeakerIcon, StackIcon, StopSquareIcon } from "./icons";
+import { BranchIcon, CheckIcon, CopyIcon, HistoryIcon, MemoryUpdateIcon, PlusIcon, SpeakerIcon, StackIcon, StopSquareIcon } from "./icons";
 import { speakReply, stopSpeaking, useSpeechPlayback, useSpeechState } from "../hooks/useSpeech";
 import { trackEnteredMessages, type EnterTrack } from "./message-motion";
 import type { useModels } from "../hooks/useModels";
@@ -46,6 +46,7 @@ import { partitionThinkingGroups, supportsThinkingGroups } from "../thinking-mod
 import { ThinkingSummaryContext } from "./ThinkingSummaryContext";
 import type { ThinkingSummariesApi } from "../hooks/useThinkingSummaries";
 import { ToolCard, ToolList, CompactToolGroup, CompactToolLine, ToolRunGroup, type QuestionLookup } from "./ToolCard";
+import { VisualToolCard } from "./VisualToolCard";
 import { toolCompactKind } from "./tool-compact";
 import { attachFollowerTools, buildTurnItems, groupCoherentItems, groupProcessItems, hasCoherentTools, isFlatCoherentGroup, latestThoughtId, type CoherentNode, type ProcessNode } from "./tool-sequence";
 import { readToolDuration } from "./tool-duration";
@@ -73,6 +74,7 @@ import type { QuestionReplyHandler } from "./QuestionCard";
 import { RecommendedActionsCard } from "./RecommendedActionsCard";
 import { latestRecommendedActions } from "./recommended-actions";
 import { RecipeChatCard } from "./RecipeChatContext";
+import { RecipeActionsContext } from "./recipe-actions-context";
 import { ChatActionsMenu } from "./ChatActionsMenu";
 import { UserMessageFrame } from "./UserMessageFrame";
 import { TurnNav } from "./TurnNav";
@@ -148,7 +150,14 @@ function groupMessagesIntoTurns(messages: UiMessage[], previous: MessageTurn[]):
 }
 
 function joinReplyText(replies: UiMessage[]): string {
-  return replies.map((reply) => reply.text.trim()).join("\n\n");
+  return replies.map((reply) => reply.text.trim()).filter(Boolean).join("\n\n");
+}
+
+function lastTextReplyId(replies: readonly UiMessage[]): string | null {
+  for (let index = replies.length - 1; index >= 0; index -= 1) {
+    if (replies[index]!.text.trim().length > 0) return replies[index]!.id;
+  }
+  return null;
 }
 
 function formatElapsedTime(startedAt: number | undefined, completedAt: number | undefined): string | null {
@@ -305,6 +314,7 @@ export function ChatView({
   const [vcMounted, setVcMounted] = useState(false);
   const [imageView, setImageView] = useState<ImageViewerRequest | null>(null);
   const startSideChat = useContext(SideChatLauncherContext);
+  const recipeActions = useContext(RecipeActionsContext);
   const activeConversationId = state?.activeConversationId ?? null;
   /** 选中文字后点「回复」得到的引用、浏览器里的元素批注，随下一条消息一起发送。 */
   const replyKey = activeConversationId ?? "";
@@ -316,6 +326,13 @@ export function ChatView({
   const viewKey = state?.activeConversationId ?? "empty";
   const hasWorkspace = state?.conversations?.find(conversation => conversation.id === state.activeConversationId)?.hasWorkspace
     ?? Boolean(project.workspace?.current);
+  const distillMemoryAction = recipeActions?.distillMemory;
+  const distillMemory = useMemo(
+    () => (hasWorkspace && activeConversationId && distillMemoryAction
+      ? (turnIndex: number | null) => distillMemoryAction(activeConversationId, turnIndex !== null ? { upToTurn: turnIndex } : undefined)
+      : undefined),
+    [hasWorkspace, activeConversationId, distillMemoryAction],
+  );
   const savedView = views[viewKey] ?? "chat";
   const emptyConversation = messages.length === 0;
   const view = (savedView === "versionControl" && !hasWorkspace) || isEmptyConversationView(savedView, emptyConversation) ? "chat" : savedView;
@@ -1036,6 +1053,8 @@ export function ChatView({
                     replyTime={finalReply.timestamp ?? lastAssistant.timestamp ?? lastAssistant.turnCompletedAt ?? null}
                     onBranch={onBranch}
                     onCheckpoints={onOpenCheckpoints}
+                    onDistillMemory={distillMemory}
+                    distillDisabled={session?.status !== "ready"}
                     acceptance={acceptance}
                     onOpenAcceptance={onOpenAcceptance}
                     deferred={!isCurrentTurn}
@@ -1087,13 +1106,15 @@ export function ChatView({
                     {finalReply || acceptance ? (
                       <ReplyActions
                         text={joinReplyText(finalReplies)}
-                        speechId={finalReplies[finalReplies.length - 1]?.id ?? null}
-                        replyless={!finalReply}
+                        speechId={lastTextReplyId(finalReplies)}
+                        replyless={!lastTextReplyId(finalReplies)}
                         timestamp={finalReply?.timestamp ?? null}
                         branchTurn={branchTurn}
                         branchDisabled={session?.status !== "ready"}
                         onBranch={onBranch}
                         onCheckpoints={onOpenCheckpoints}
+                        onDistillMemory={distillMemory}
+                        distillDisabled={session?.status !== "ready"}
                         acceptance={acceptance}
                         onOpenAcceptance={onOpenAcceptance}
                       />
@@ -1350,6 +1371,7 @@ function AssistantMessageContent({
   streaming = false,
   thinkingDisclosure = true,
   showTools,
+  showVisualTools = showTools,
   showText,
   changes,
   onOpenChanges,
@@ -1365,6 +1387,7 @@ function AssistantMessageContent({
   streaming?: boolean;
   thinkingDisclosure?: boolean;
   showTools: boolean;
+  showVisualTools?: boolean;
   showText: boolean;
   changes: TurnChanges | null;
   onOpenChanges: () => void;
@@ -1375,9 +1398,11 @@ function AssistantMessageContent({
   toolDisplay?: ToolDisplay;
   toolFold?: ToolFold;
 }) {
-  const tools = showTools && message.tools.length > 0 ? (
+  const preTextTools = message.tools.filter((tool) => tool.name !== visualToolName);
+  const visualTools = showVisualTools ? message.tools.filter((tool) => tool.name === visualToolName) : [];
+  const tools = showTools && preTextTools.length > 0 ? (
     <ToolList
-      tools={message.tools}
+      tools={preTextTools}
       getQuestion={getQuestion}
       onReplyQuestion={onReplyQuestion}
       display={toolDisplay}
@@ -1396,8 +1421,8 @@ function AssistantMessageContent({
             active={thinkingActive}
             live={streaming && (!message.text || message.tools.some((tool) => tool.status === "running"))}
             showActivityIndicator={toolDisplay === "compact"}
-            tools={message.tools}
-            forceOpen={message.tools.some((tool) => getQuestion(tool.id) !== null)}
+            tools={preTextTools}
+            forceOpen={preTextTools.some((tool) => getQuestion(tool.id) !== null)}
           >
             {tools}
           </ThinkingGroup>
@@ -1415,6 +1440,9 @@ function AssistantMessageContent({
           <AssistantMarkdown messageId={message.id} text={message.text} streaming={streaming} />
         </div>
       ) : null}
+      {visualTools.map((tool) => (
+        <VisualToolCard key={tool.id} tool={tool} />
+      ))}
       {changes ? <TurnChangesCard turnId={message.id} changes={changes} onOpenChanges={onOpenChanges} onReviewTurn={onReviewTurn} canManageChanges={canManageChanges} /> : null}
     </>
   );
@@ -1435,6 +1463,7 @@ function ModelToolSequence({
   activeAssistantId,
   entering,
   includeText,
+  includeTool,
   toolDisplay,
   getQuestion,
   onReplyQuestion,
@@ -1445,12 +1474,13 @@ function ModelToolSequence({
   activeAssistantId?: string;
   entering?: Set<string>;
   includeText?: (message: UiMessage) => boolean;
+  includeTool?: (tool: ToolTrace, message: UiMessage) => boolean;
   toolDisplay: ToolDisplay;
   getQuestion: QuestionLookup;
   onReplyQuestion: QuestionReplyHandler;
 }) {
   const codex = useThinkingGroupMode() === "codex";
-  const items = useMemo(() => buildTurnItems(messages, { includeText }), [messages, includeText]);
+  const items = useMemo(() => buildTurnItems(messages, { includeText, includeTool }), [messages, includeText, includeTool]);
   const nodes = useMemo(() => coherent ? [] : groupProcessItems(items, toolDisplay), [coherent, items, toolDisplay]);
   const coherentNodes = useMemo(() => coherent ? groupCoherentItems(items) : [], [coherent, items]);
   const messageById = useMemo(() => new Map(messages.map((message) => [message.id, message])), [messages]);
@@ -1545,7 +1575,11 @@ function ModelToolSequence({
     );
   };
   coherentNodes.forEach((node, index) => {
-    output.push(node.type === "group" ? renderCoherentGroup(node, index === coherentNodes.length - 1) : withEnter(
+    output.push(node.type === "group" ? renderCoherentGroup(node, index === coherentNodes.length - 1) : node.type === "visual" ? withEnter(
+      node.id,
+      node.messageId,
+      <VisualToolCard tool={node.tool} />,
+    ) : withEnter(
       node.id,
       node.messageId,
       <div className="agent-reply-prose"><AssistantMarkdown messageId={node.messageId} text={node.text} streaming={node.messageId === activeAssistantId} /></div>,
@@ -1623,6 +1657,8 @@ const CompletedAssistantTurn = memo(function CompletedAssistantTurn({
   replyTime,
   onBranch,
   onCheckpoints,
+  onDistillMemory,
+  distillDisabled,
   acceptance,
   onOpenAcceptance,
   deferred,
@@ -1643,6 +1679,8 @@ const CompletedAssistantTurn = memo(function CompletedAssistantTurn({
   replyTime: number | null;
   onBranch: (turnIndex: number) => void;
   onCheckpoints?: (turnIndex?: number) => void;
+  onDistillMemory?: (turnIndex: number | null) => void;
+  distillDisabled?: boolean;
   acceptance: AcceptanceRequest | null;
   onOpenAcceptance?: (request: AcceptanceRequest) => void;
   deferred: boolean;
@@ -1661,7 +1699,7 @@ const CompletedAssistantTurn = memo(function CompletedAssistantTurn({
   const isFinalReply = (message: UiMessage) => finalReplies.some((reply) => reply.id === message.id);
   const hasProcess = messages.some((message) => (
     !isFinalReply(message) && Boolean(message.text || message.thinking || message.tools.length > 0)
-  )) || finalReplies.some((message) => Boolean(message.thinking || message.tools.length > 0));
+  )) || finalReplies.some((message) => Boolean(message.thinking || message.tools.some((tool) => tool.name !== visualToolName)));
   const triggerContent = (
     <>
       <span>{!displayedElapsed ? tr("查看过程", "View process") : stopped ? trf("你在 {0}后停止了", "You stopped after {0}", displayedElapsed) : trf("用时 {0}", "Took {0}", displayedElapsed)}</span>
@@ -1699,6 +1737,7 @@ const CompletedAssistantTurn = memo(function CompletedAssistantTurn({
                 <ToolSequence
                   messages={messages}
                   includeText={(message) => !isFinalReply(message)}
+                  includeTool={(tool, message) => !(tool.name === visualToolName && isFinalReply(message))}
                   toolDisplay={toolDisplay ?? "card"}
                   getQuestion={getQuestion}
                   onReplyQuestion={onReplyQuestion}
@@ -1712,6 +1751,7 @@ const CompletedAssistantTurn = memo(function CompletedAssistantTurn({
                     thinkingActive={false}
                     thinkingDisclosure
                     showTools
+                    showVisualTools={!isFinalReply(message)}
                     showText={!isFinalReply(message)}
                     changes={null}
                     onOpenChanges={onOpenChanges}
@@ -1730,20 +1770,33 @@ const CompletedAssistantTurn = memo(function CompletedAssistantTurn({
         </div>
       </div>
       ) : null}
-      {finalReplies.map((reply) => (
-        <div className="agent-reply-prose" key={reply.id}>
-          <AssistantMarkdown messageId={reply.id} text={reply.text} />
-        </div>
-      ))}
+      {finalReplies.map((reply) => {
+        const visuals = reply.tools.filter((tool) => tool.name === visualToolName);
+        return (
+          <Fragment key={reply.id}>
+            {reply.text ? (
+              <div className="agent-reply-prose">
+                <AssistantMarkdown messageId={reply.id} text={reply.text} />
+              </div>
+            ) : null}
+            {visuals.map((tool) => (
+              <VisualToolCard key={tool.id} tool={tool} />
+            ))}
+          </Fragment>
+        );
+      })}
       <PlanPreviewList planIds={collectPlanIds(messages)} />
       <ReplyActions
         text={joinReplyText(finalReplies)}
-        speechId={finalReplies[finalReplies.length - 1]?.id ?? null}
+        speechId={lastTextReplyId(finalReplies)}
+        replyless={!lastTextReplyId(finalReplies)}
         timestamp={replyTime}
         branchTurn={branchTurn}
         branchDisabled={branchTurn === null}
         onBranch={onBranch}
         onCheckpoints={onCheckpoints}
+        onDistillMemory={onDistillMemory}
+        distillDisabled={distillDisabled}
         acceptance={acceptance}
         onOpenAcceptance={onOpenAcceptance}
       />
@@ -1762,6 +1815,8 @@ function ReplyActions({
   branchDisabled,
   onBranch,
   onCheckpoints,
+  onDistillMemory,
+  distillDisabled = false,
   acceptance,
   onOpenAcceptance,
 }: {
@@ -1775,6 +1830,8 @@ function ReplyActions({
   branchDisabled: boolean;
   onBranch: (turnIndex: number) => void;
   onCheckpoints?: (turnIndex?: number) => void;
+  onDistillMemory?: (turnIndex: number | null) => void;
+  distillDisabled?: boolean;
   acceptance?: AcceptanceRequest | null;
   onOpenAcceptance?: (request: AcceptanceRequest) => void;
 }) {
@@ -1863,6 +1920,20 @@ function ReplyActions({
         </button>
       ) : null}
       </>: null}
+      {onDistillMemory ? (
+        <button
+          className="reply-action reply-action-distill"
+          type="button"
+          disabled={distillDisabled}
+          title={tr("抽取本次发现的隐含约束，经 Diff 预览后追加到项目 MEMORY.md", "Extract implicit constraints discovered in this chat and append to project MEMORY.md")}
+          aria-label={tr("提炼规范到项目记忆", "Distill to project memory")}
+          aria-haspopup="dialog"
+          onClick={() => onDistillMemory(branchTurn)}
+        >
+          <MemoryUpdateIcon size={13} />
+          <span>{tr("提炼到项目记忆", "Distill memory")}</span>
+        </button>
+      ) : null}
       {acceptance ? (
         <button
           className="reply-action reply-action-acceptance"

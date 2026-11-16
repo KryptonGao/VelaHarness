@@ -12,6 +12,7 @@ import {
   SendMessageIcon,
   SubagentIcon,
   TodoListIcon,
+  VisualIcon,
 } from "./icons";
 
 /** 有专属图标的工具。图标按工具单独设计,颜色按类型共用(见 tool-groups)。 */
@@ -23,6 +24,7 @@ export function toolNameIcon(name: string, size = 13): ReactNode | null {
   if (name === "submit_outcome") return <OutcomeIcon size={size} />;
   if (name === "recommend_actions") return <OutcomeIcon size={size} />;
   if (name === "ask_user_question") return <QuestionIcon size={size} />;
+  if (name === "show_visual") return <VisualIcon size={size} />;
   if (name === "create_scheduled_task") return <ScheduleCreateIcon size={size} />;
   if (name === "list_scheduled_tasks") return <ScheduleListIcon size={size} />;
   if (name === "update_scheduled_task") return <ScheduleUpdateIcon size={size} />;

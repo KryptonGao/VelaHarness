@@ -6,14 +6,18 @@ import {
 } from "@earendil-works/pi-coding-agent";
 import {
   outcomeLimits,
+  parseVisualDemo,
   recommendedActionLimits,
   recommendedActionsToolName,
+  visualDemoLimits,
+  visualToolName,
   type ConversationGoal,
   type GoalValidation,
   type GoalStatus,
   type InteractionMode,
   type OutcomeSubmission,
   type RecommendedActions,
+  type VisualDemo,
 } from "@vela/shared";
 import { Type } from "typebox";
 import { isPlanSafeCommand } from "./plan-command";
@@ -95,6 +99,8 @@ In Goal mode, call record_goal_validation before submit_outcome (record_goal_val
 const recommendedActionsPrompt = `When you finish the user's request and there is a clear, useful next step the user would probably want (for example committing the changes, running a broader check, or continuing with a follow-up task), call ${recommendedActionsToolName} as the very last step, after your final reply text. The UI shows it as a dismissible card under your reply with one button per action; clicking a button sends that action's prompt to you as the user's next message.
 Give 1-${recommendedActionLimits.maxActions} actions. Each prompt must be complete and self-contained, written from the user's point of view as an instruction to you, because it is sent verbatim. Do not call it when the request was a plain question, when you are still working or blocked on the user, or when there is no natural next step; it is optional, and never use it to repeat your reply. After it returns, end your turn without writing anything more.`;
 
+const visualDemoPrompt = `When the user asks what a UI, component, layout, or diagram looks like (or when a visual mockup explains structure or a design comparison much better than prose), you can call ${visualToolName} to render a concise, self-contained HTML/CSS/SVG preview inline in the conversation stream. Briefly explain what you are showing before or after calling it, and do not use it for plain code snippets or when you already have a real screenshot.`;
+
 const agentTreePrompt = `Subagents are expensive: every subagent runs its own model loop and re-reads context, so its cost adds to yours. Do the work yourself by default. Spawn a subagent only when both hold: (1) the work is large or clearly separable, such as an investigation across many files or independent pieces that can run in parallel, and (2) doing it yourself would flood your context or take clearly longer. When in doubt, do not spawn.
 Never spawn a subagent for: a task you can finish in a few tool calls, reading or editing one or a few files, a single search, running a command, checking or re-verifying your own work, or work you are already partway through. Do not spawn one just to be careful, to get a second opinion, or to repeat work another agent already did. Keep a small budget: normally zero or one subagent at a time, at most three in parallel, and spawn another only after earlier ones have finished and their conclusions are used. Never spawn a subagent to wait on, review, or supervise another subagent.
 When you do spawn, use spawn_agent to start a persistent subagent: agent is explore (read-only, preferred when nothing needs changing) or general (can modify files); it returns the agent id and path immediately without waiting for the result. State the goal, scope, and completion criteria clearly in the task; fork inherits context and costs more, so keep it at none (default) unless the subagent truly needs the conversation. Parallel general subagents modify the workspace concurrently, so give each its own files.
@@ -112,12 +118,19 @@ export function toolNamesFor(mode: InteractionMode, hasExecutionPlan: boolean, r
     : [...workTools, ...todos, "submit_outcome", "ask_user_question"];
 }
 
-export function modeSystemPrompt(mode: InteractionMode, hasExecutionPlan: boolean, runView = false, recommendedActions = false): string {
-  if (mode === "plan") return planPrompt;
+export function modeSystemPrompt(
+  mode: InteractionMode,
+  hasExecutionPlan: boolean,
+  runView = false,
+  recommendedActions = false,
+  visualDemo = false,
+): string {
+  const visual = visualDemo ? visualDemoPrompt : "";
+  if (mode === "plan") return [planPrompt, visual].filter(Boolean).join("\n\n");
   const todo = runView ? (hasExecutionPlan ? todoPromptWithPlan : todoPrompt) : "";
   const recommend = recommendedActions ? recommendedActionsPrompt : "";
-  if (mode === "goal") return [goalPrompt, todo, outcomePrompt, recommend, agentTreePrompt].filter(Boolean).join("\n\n");
-  return [hasExecutionPlan ? agentPlanPrompt : "", todo, outcomePrompt, recommend, agentTreePrompt].filter(Boolean).join("\n\n");
+  if (mode === "goal") return [goalPrompt, todo, outcomePrompt, recommend, visual, agentTreePrompt].filter(Boolean).join("\n\n");
+  return [hasExecutionPlan ? agentPlanPrompt : "", todo, outcomePrompt, recommend, visual, agentTreePrompt].filter(Boolean).join("\n\n");
 }
 
 // ---------- Tool policy ----------
@@ -141,7 +154,7 @@ export interface ToolPolicy {
   authorizeCall(call: ToolPolicyCall): ToolAuthorizationResult;
 }
 
-const planAllowedTools = new Set(["read", "bash", "ask_user_question", memoryReadToolName, ...webToolNames]);
+const planAllowedTools = new Set(["read", "bash", "ask_user_question", visualToolName, memoryReadToolName, ...webToolNames]);
 const planDeniedTools = new Set(["edit", "write", "apply_patch"]);
 
 export class DefaultToolPolicy implements ToolPolicy {
@@ -186,6 +199,8 @@ export interface ModeState {
   runView?: boolean;
   /** 推荐操作开启:提示词告知模型可在一轮结束时调用 recommend_actions。 */
   recommendedActions?: boolean;
+  /** 可视化演示开启:提示词告知模型可调用 show_visual 内联展示界面草图。 */
+  visualDemo?: boolean;
 }
 
 export function createModeExtension(
@@ -195,7 +210,13 @@ export function createModeExtension(
   return (pi) => {
     pi.on("before_agent_start", async (event) => {
       const state = read();
-      const extra = modeSystemPrompt(state.mode, state.hasExecutionPlan, state.runView === true, state.recommendedActions === true);
+      const extra = modeSystemPrompt(
+        state.mode,
+        state.hasExecutionPlan,
+        state.runView === true,
+        state.recommendedActions === true,
+        state.visualDemo === true,
+      );
       if (!extra) return;
       const current = event.systemPromptOptions.appendSystemPrompt.trim();
       event.systemPromptOptions.appendSystemPrompt = current ? `${current}\n\n${extra}` : extra;
@@ -222,7 +243,7 @@ export type ToolOutcome =
  * Pi 的 createAgentSession 把 tools 参数当作注册表白名单(内置与自定义都过滤),
  * 这些名字必须并入 tools,否则工具进不了注册表,setActiveToolsByName 会静默忽略。
  */
-export const modeToolNames = ["update_plan", updateTodosToolName, "update_goal", "record_goal_validation", "submit_outcome", "ask_user_question", recommendedActionsToolName];
+export const modeToolNames = ["update_plan", updateTodosToolName, "update_goal", "record_goal_validation", "submit_outcome", "ask_user_question", recommendedActionsToolName, visualToolName];
 
 export interface AskUserInput {
   toolCallId: string;
@@ -238,6 +259,7 @@ export interface ModeToolHost {
   recordGoalValidation(draft: GoalValidationDraft): ToolOutcome;
   submitOutcome(draft: OutcomeSubmission): ToolOutcome;
   recommendActions(draft: RecommendedActions): ToolOutcome;
+  showVisual?(draft: VisualDemo): ToolOutcome;
   askUser(input: AskUserInput): Promise<AskUserOutcome>;
 }
 
@@ -431,7 +453,33 @@ export function createModeTools(host: ModeToolHost): ToolDefinition[] {
     },
   });
 
-  return [updatePlan, updateTodos, updateGoal, recordGoalValidation, submitOutcome, recommendActions, askUserQuestion];
+  const showVisual = defineTool({
+    name: visualToolName,
+    label: "可视化视图",
+    description:
+      "Render a concise, self-contained HTML/CSS/SVG visual preview inline in the conversation stream (UI mockups, component recreations, layout comparisons, or diagrams). Pass an HTML fragment (<style>, HTML/SVG, optional lightweight <script> for tabs/toggles); omit <!DOCTYPE>/<html>/<body> wrappers. Never fetch external URLs, scripts, fonts, or images, and use theme CSS variables (var(--bg-card-surface), var(--bg-surface-subtle), var(--text-primary), var(--text-secondary), var(--text-muted), var(--border-subtle), var(--accent-blue)) so both light and dark themes look native.",
+    promptSnippet: "Render a self-contained HTML/CSS/SVG visual mockup or diagram inline in the chat stream",
+    executionMode: "sequential",
+    parameters: Type.Object({
+      title: Type.Optional(Type.String({ maxLength: visualDemoLimits.maxTitleChars, description: "Optional short title, e.g. \"ApprovalBanner\"" })),
+      html: Type.String({ minLength: 1, maxLength: visualDemoLimits.maxHtmlBytes, description: "Self-contained HTML fragment (<style>, HTML/SVG, optional lightweight <script>)" }),
+      height: Type.Optional(Type.Number({ minimum: visualDemoLimits.minHeight, maximum: visualDemoLimits.maxHeight, description: "Optional initial height in px (auto-resized to fit content)" })),
+    }),
+    execute: async (_toolCallId, params) => {
+      const parsed = parseVisualDemo(params);
+      if (!parsed) {
+        return outcome({ ok: false, text: `可视化 HTML 无效或超过 ${visualDemoLimits.maxHtmlBytes} 字节上限，请精简后重试。` });
+      }
+      return outcome(host.showVisual ? host.showVisual(parsed) : {
+        ok: true,
+        text: parsed.title
+          ? `已在对话流中展示可视化视图「${parsed.title}」。请继续用简短文字向用户说明重点。`
+          : "已在对话流中展示可视化视图。请继续用简短文字向用户说明重点。",
+      });
+    },
+  });
+
+  return [updatePlan, updateTodos, updateGoal, recordGoalValidation, submitOutcome, recommendActions, showVisual, askUserQuestion];
 }
 
 /** update_todos 不改任何对话状态,清单只随工具调用显示在界面上;这里只校验「最多一项进行中」。 */

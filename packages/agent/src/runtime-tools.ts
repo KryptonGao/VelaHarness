@@ -1,4 +1,4 @@
-import { backgroundShellToolNames, recommendedActionsToolName, type InteractionMode, type RecipeStageSubmission, type SubagentKind } from "@vela/shared";
+import { backgroundShellToolNames, recommendedActionsToolName, visualToolName, type InteractionMode, type RecipeStageSubmission, type SubagentKind } from "@vela/shared";
 import { defaultToolNames } from "@vela/tools";
 import { browserToolNames } from "./browser-use";
 import { defaultToolPolicy, modeToolNames, type ToolAuthorizationResult, type ToolPolicyCall } from "./interaction";
@@ -32,6 +32,8 @@ export interface ToolLoadoutOptions {
   runView?: () => boolean;
   /** 推荐操作是否开启:开启后主代理在非 Plan 模式获得 recommend_actions。 */
   recommendedActions?: () => boolean;
+  /** 可视化演示是否开启:开启后主代理在对话模式下获得 show_visual。 */
+  visualDemo?: () => boolean;
   /** 常驻 Agent 的会话：没有文件与命令工具，只有协调工具。 */
   resident?: { isResident(entry: ToolLoadoutConversation): boolean };
 }
@@ -81,12 +83,18 @@ export class ToolLoadout {
     return this.options.recommendedActions?.() === true && mode !== "plan" && !(entry?.scheduledTaskConversation || entry?.backgroundExecution || entry?.recipeExecution);
   }
 
+  /** 内联可视化演示在桌面端主对话的 agent / plan / goal 模式都可用。 */
+  private visualDemoFor(entry?: ToolLoadoutConversation): boolean {
+    return this.options.visualDemo?.() === true && !(entry?.scheduledTaskConversation || entry?.backgroundExecution || entry?.recipeExecution);
+  }
+
   /** 模式决定的原生工具；传入对话时附带它可用的记忆工具。 */
   native(mode: InteractionMode, plan: boolean, entry?: ToolLoadoutConversation): string[] {
     if (entry && this.isResident(entry)) return [...residentTools];
     const scheduled = this.options.scheduledTasks ? (mode === "plan" ? ["list_scheduled_tasks"] : scheduledTaskToolNames) : [];
     const tools = [...defaultToolPolicy.availableTools(mode, plan, this.runViewFor(entry)), ...scheduled];
     if (this.recommendedActionsFor(mode, entry)) tools.push(recommendedActionsToolName);
+    if (this.visualDemoFor(entry)) tools.push(visualToolName);
     if (entry) tools.push(...this.memory(entry), ...this.web());
     if (this.options.background && mode !== "plan") tools.push(...backgroundShellToolNames);
     return tools;
@@ -155,6 +163,9 @@ export class ToolLoadout {
     if ((residentToolNames as readonly string[]).includes(call.toolName)) return { allowed: false, reason: "这个工具只属于常驻 Agent" };
     if (call.toolName === recommendedActionsToolName && !this.recommendedActionsFor(entry.snapshot.mode, entry)) {
       return { allowed: false, reason: "推荐操作当前不可用" };
+    }
+    if (call.toolName === visualToolName && !this.visualDemoFor(entry)) {
+      return { allowed: false, reason: "可视化视图当前不可用" };
     }
     if (isMemoryTool(call.toolName) && !this.options.memoryEnabled()) return { allowed: false, reason: memoryDisabledDenial };
     if (entry.recipeStageSideEffect && isAgentTool(call.toolName)) return { allowed: false, reason: recipeStageSubagentDenial };

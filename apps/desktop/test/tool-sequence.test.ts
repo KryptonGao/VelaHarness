@@ -396,3 +396,65 @@ describe("latestThoughtId", () => {
     assert.equal(latestThoughtId(entries), null);
   });
 });
+
+describe("show_visual sequence placement", () => {
+  it("places show_visual after text on the same message and breaks coherent groups", () => {
+    const items = buildTurnItems([
+      message("m1", { tools: [tool("read", "r1"), tool("show_visual", "v1")], text: "这是当前弹窗样式：" }),
+      message("m2", { tools: [tool("read", "r2")], text: "如上所示。" }),
+    ]);
+    assert.deepEqual(
+      items.map((item) => item.kind === "tool" ? `tool:${item.tool.id}` : item.kind),
+      ["tool:r1", "text", "tool:v1", "tool:r2", "text"],
+    );
+
+    const coherent = groupCoherentItems(items);
+    assert.deepEqual(
+      coherent.map((node) => node.type),
+      ["group", "text", "visual", "group", "text"],
+    );
+  });
+
+  it("never pulls show_visual into an earlier titled ThinkingGroup", () => {
+    const units = attachFollowerTools([
+      message("lead", {
+        thinking: "**Inspect component**\n\nCheck styles.",
+        model: "gpt-5.4",
+        provider: "openai-codex",
+        tools: [tool("read", "r1")],
+      }),
+      message("follow", {
+        model: "gpt-5.4",
+        provider: "openai-codex",
+        tools: [tool("show_visual", "v1")],
+      }),
+    ]);
+    assert.deepEqual(
+      units.map((unit) => ({ id: unit.message.id, tools: unit.message.tools.map((item) => item.id) })),
+      [
+        { id: "lead", tools: ["r1"] },
+        { id: "follow", tools: ["v1"] },
+      ],
+    );
+
+    const items = buildTurnItems([
+      message("lead", {
+        thinking: "**Inspect component**\n\nCheck styles.",
+        model: "gpt-5.4",
+        provider: "openai-codex",
+        tools: [tool("read", "r1")],
+      }),
+      message("follow", {
+        model: "gpt-5.4",
+        provider: "openai-codex",
+        text: "示意图如下：",
+        tools: [tool("show_visual", "v1")],
+      }),
+    ]);
+    const nodes = groupProcessItems(items, "card");
+    assert.deepEqual(
+      nodes.map((node) => node.type === "tool" ? `tool:${node.tool.id}` : node.type),
+      ["thinking", "tool:r1", "text", "tool:v1"],
+    );
+  });
+});

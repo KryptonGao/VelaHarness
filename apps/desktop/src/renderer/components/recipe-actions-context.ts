@@ -11,4 +11,6 @@ export const RecipeActionsContext = createContext<{
   fromMessage: (seed: RecipeMessageSeed) => void;
   /** 打开任务交接包预览；对话进行中时菜单项禁用。 */
   createHandoff?: (conversationId: string, options?: { factsOnly?: boolean }) => void;
+  /** 从对话提炼项目规范并预览 Diff 后追加到项目 MEMORY.md。 */
+  distillMemory?: (conversationId: string, options?: { upToTurn?: number }) => void;
 } | null>(null);

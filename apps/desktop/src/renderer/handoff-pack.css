@@ -10,7 +10,8 @@
 .handoff-dialog > header { display:flex; align-items:center; justify-content:space-between; padding:16px 20px 8px; }
 .handoff-dialog > header h2 { margin:0; font-size:calc(16px * var(--ui-scale)); font-weight:600; }
 .handoff-dialog > header .handoff-close { border:0; font-size:calc(18px * var(--ui-scale)); line-height:1; padding:2px 8px; }
-.handoff-dialog > footer { display:flex; justify-content:flex-end; gap:8px; padding:12px 20px 16px; border-top:1px solid var(--border-subtle); }
+.handoff-dialog > footer { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:8px; padding:12px 20px 16px; border-top:1px solid var(--border-subtle); }
+.handoff-dialog > footer .handoff-distill-btn { margin-right:auto; display:inline-flex; align-items:center; gap:6px; }
 .handoff-body { overflow:auto; padding:4px 20px 12px; font-size:calc(13px * var(--ui-scale)); line-height:1.55; min-height:0; }
 .handoff-state { display:flex; align-items:center; gap:10px; padding:28px 20px; color:var(--text-secondary); font-size:calc(13px * var(--ui-scale)); }
 .handoff-state[role="alert"] { flex-direction:column; align-items:flex-start; gap:10px; color:var(--danger); }

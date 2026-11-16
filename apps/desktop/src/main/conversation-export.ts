@@ -3,6 +3,7 @@ import {
   localizeZh,
   redactSensitive,
   relativePath,
+  visualToolName,
   type AppLocale,
   type CheckpointTimeline,
   type ConversationExportOptions,
@@ -61,7 +62,7 @@ const bodyLimit = 4000;
 const compactBodyLimit = 1200;
 const failureLimit = 2000;
 const timelineLimit = 1000;
-const noBodyTools = new Set(["read", "update_plan"]);
+const noBodyTools = new Set(["read", "update_plan", visualToolName]);
 
 const pad = (value: number) => String(value).padStart(2, "0");
 
@@ -109,7 +110,7 @@ function splitTurns(messages: readonly TranscriptMessage[]): Turn[] {
 function toolHeadline(tool: TranscriptTool): string {
   const { activity } = tool;
   const name = activity.mcp ? `${activity.mcp.server}/${activity.mcp.tool}` : tool.name;
-  const subject = activity.command?.split("\n")[0] ?? activity.path ?? "";
+  const subject = activity.command?.split("\n")[0] ?? activity.path ?? activity.visual?.title ?? "";
   return subject ? `${name} · ${subject.length > 160 ? `${subject.slice(0, 160)}…` : subject}` : name;
 }
 
@@ -241,7 +242,7 @@ function buildBlocks(input: ConversationExportInput, settings: ConversationExpor
         blocks.push({ t: "text", text: `**${t("助手", "Assistant")}**${stamp}` });
         blocks.push({ t: "text", text: exportAssistantText(message.text, uiMessageId, uiContext) });
       }
-      for (const tool of message.tools) blocks.push(...toolBlocks(tool, input.conversation.cwd, settings, clipLabel));
+      for (const tool of message.tools) blocks.push(...toolBlocks(tool, input.conversation.cwd, settings, clipLabel, t));
     }
     const checkpoint = checkpointTurns[turn.index];
     if (checkpoint?.changedFiles && checkpoint.changedFiles.length > 0) {
@@ -259,10 +260,14 @@ function toolBlocks(
   cwd: string,
   settings: ConversationExportSettings,
   clipLabel: (omitted: number) => string,
+  t: (zh: string, en: string, ...args: unknown[]) => string,
 ): Block[] {
   const { activity } = tool;
   const mark = tool.status === "error" ? "✗" : "✓";
   const summary = `${mark} ${toolHeadline(tool)}`;
+  if (tool.name === visualToolName && tool.status !== "error" && activity.visual) {
+    return [{ t: "list", items: [`${summary} — ${t("[可视化视图已省略]", "[Visual preview omitted]")}`] }];
+  }
   const inner: Block[] = [];
   if (activity.command && activity.command.includes("\n")) inner.push({ t: "code", lang: "bash", text: activity.command });
   if (settings.includeDiffs && activity.diff && (tool.name === "edit" || tool.name === "write")) {

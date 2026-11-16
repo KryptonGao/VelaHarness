@@ -1,4 +1,4 @@
-import { parseOutcomeSubmission, parseRecommendedActions, recommendedActionsToolName, type ModelRef, type SubagentKind, type ToolActivity, type ToolPlanItem, type ToolStep } from "@vela/shared";
+import { parseOutcomeSubmission, parseRecommendedActions, parseVisualDemo, recommendedActionsToolName, visualToolName, type ModelRef, type SubagentKind, type ToolActivity, type ToolPlanItem, type ToolStep } from "@vela/shared";
 import { followupTaskToolName, sendMessageToolName, spawnAgentToolName } from "./subagent";
 import { presentationFromCall, presentationFromExecution } from "./tool-presentation";
 
@@ -25,6 +25,10 @@ function rawActivityFromCall(toolName: string, args: unknown): ToolActivity {
   if (toolName === recommendedActionsToolName) {
     const recommendedActions = parseRecommendedActions(args);
     return recommendedActions ? { recommendedActions, body: recommendedActions.question } : {};
+  }
+  if (toolName === visualToolName) {
+    const visual = parseVisualDemo(args);
+    return visual ? { visual, ...(visual.title ? { body: visual.title } : {}) } : {};
   }
   if (toolName === "browser_repl") return { command: readString(args, "code") };
   // 网页工具：卡片标题直接显示搜索词或网址。
@@ -82,6 +86,9 @@ function rawActivityFromExecution(
   if (toolName === "browser_repl") return { ...call, body: browserResultBody(result, text) };
   if (toolName === recommendedActionsToolName) {
     return isError ? { body: clip(text) || "推荐操作提交失败" } : call;
+  }
+  if (toolName === visualToolName) {
+    return isError ? { body: clip(text) || "可视化视图渲染失败" } : call;
   }
   if (toolName === "submit_outcome") {
     return { ...call, body: clip(text) || (isError ? "成果验收提交失败" : call.body || "已提交成果验收") };

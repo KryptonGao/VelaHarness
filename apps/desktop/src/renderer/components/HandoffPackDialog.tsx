@@ -1,12 +1,15 @@
 import { renderHandoffText, type HandoffPack } from "@vela/shared";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { localizeError, tr, trf, useAppLocale } from "../locale";
+import { MemoryUpdateIcon } from "./icons";
 import "../handoff-pack.css";
 
 export interface HandoffPackDialogProps {
   conversationId: string;
   /** 不向模型发请求，只用记录里的事实整理；任务用量到上限后使用。 */
   factsOnly?: boolean;
+  /** 可选：从当前对话提炼规范到项目 MEMORY.md（仅工作区会话提供）。 */
+  onDistillMemory?: () => void;
   /** 用最终文本建立新对话并预填；失败时抛错，对话框保持打开。 */
   onConfirm: (text: string) => Promise<void>;
   onClose: () => void;
@@ -19,7 +22,7 @@ function verificationLabel(result: "passed" | "failed" | "unknown"): string {
 }
 
 /** 预览并编辑任务交接包：事实类内容（文件、验证）只能剔除，不能改写。 */
-export function HandoffPackDialog({ conversationId, factsOnly = false, onConfirm, onClose }: HandoffPackDialogProps) {
+export function HandoffPackDialog({ conversationId, factsOnly = false, onDistillMemory, onConfirm, onClose }: HandoffPackDialogProps) {
   const locale = useAppLocale();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const goalRef = useRef<HTMLTextAreaElement>(null);
@@ -238,6 +241,18 @@ export function HandoffPackDialog({ conversationId, factsOnly = false, onConfirm
       ) : null}
 
       <footer>
+        {onDistillMemory ? (
+          <button
+            type="button"
+            className="handoff-distill-btn"
+            disabled={confirming}
+            title={tr("抽取本次发现的隐含约束，经 Diff 预览后追加到项目 MEMORY.md", "Extract implicit constraints discovered in this chat and append to project MEMORY.md")}
+            onClick={onDistillMemory}
+          >
+            <MemoryUpdateIcon size={13} />
+            <span>{tr("提炼规范到项目记忆", "Distill to project memory")}</span>
+          </button>
+        ) : null}
         <button type="button" disabled={confirming} onClick={onClose}>{tr("取消", "Cancel")}</button>
         <button type="button" className="is-primary" disabled={!pack || confirming} onClick={() => void confirm()}>
           {confirming ? tr("创建中…", "Creating…") : tr("创建新对话并填入", "Start new chat with this")}

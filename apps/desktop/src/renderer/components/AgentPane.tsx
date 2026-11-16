@@ -1,4 +1,5 @@
 import { isAgentBusy, type AgentControlAction, type AgentInfo } from "@vela/shared";
+import { VisualToolCard } from "./VisualToolCard";
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type MutableRefObject, type ReactNode } from "react";
 import { useDismissable } from "../hooks/useDismissable";
 import { useEntryArrival } from "../hooks/useEntryArrival";
@@ -560,7 +561,11 @@ function ModelAgentProcessSequence({
     );
   };
   coherentNodes.forEach((node, index) => {
-    output.push(node.type === "group" ? renderCoherentGroup(node, index === coherentNodes.length - 1) : (
+    output.push(node.type === "group" ? renderCoherentGroup(node, index === coherentNodes.length - 1) : node.type === "visual" ? (
+      <div key={`visual:${node.id}`} data-arrival-key={`${node.messageId}:tool`}>
+        <VisualToolCard tool={node.tool} />
+      </div>
+    ) : (
       <div key={`text:${node.id}`} className="agent-reply-prose" data-arrival-key={`${node.messageId}:text`}>
         <AssistantMarkdown messageId={node.messageId} text={node.text} streaming={node.messageId === streamingId} />
       </div>

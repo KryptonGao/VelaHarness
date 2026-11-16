@@ -1,8 +1,8 @@
-import type { ToolActivity } from "@vela/shared";
+import { visualToolName, type ToolActivity } from "@vela/shared";
 
 /** 流式生成参数时值得提前展示的工具：只有它们的参数会很长。 */
 export function isStreamedFileTool(toolName: string): boolean {
-  return toolName === "edit" || toolName === "write";
+  return toolName === "edit" || toolName === "write" || toolName === visualToolName;
 }
 
 interface JsonString {
@@ -113,6 +113,15 @@ function streamedDiff(toolName: string, raw: string): string {
  * 最终 diff 会合并相同的上下文，所以这里只是实时进度，不是最终结果。
  */
 export function streamedFileActivity(toolName: string, raw: string): ToolActivity {
+  if (toolName === visualToolName) {
+    const title = readJsonStringValues(raw, "title").find((value) => value.text.trim())?.text.trim();
+    let added = 0;
+    for (const value of readJsonStringValues(raw, "html")) added += lineCount(value.text);
+    return {
+      ...(title ? { body: title } : {}),
+      streaming: { added, removed: 0 },
+    };
+  }
   const paths = [...readJsonStringValues(raw, "path"), ...readJsonStringValues(raw, "file_path")];
   const path = paths.find((value) => value.closed && value.text.trim())?.text;
   let added = 0;

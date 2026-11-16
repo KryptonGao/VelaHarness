@@ -37,4 +37,29 @@ describe("final reply selection", () => {
   it("returns nothing when no message has text", () => {
     assert.deepEqual(selectFinalReplies([assistant("tools", "", [tool("bash")])]), []);
   });
+
+  it("keeps trailing show_visual cards and surrounding prose out of the collapsed process", () => {
+    const work = assistant("work", "", [tool("bash")]);
+    const intro = assistant("intro", "Below is the current approval bar layout.");
+    const visualOnly = assistant("visual", "", [tool("show_visual")]);
+    const outro = assistant("outro", "It matches ApprovalBanner.tsx.");
+    assert.deepEqual(
+      selectFinalReplies([work, intro, visualOnly, outro]).map((reply) => reply.id),
+      ["intro", "visual", "outro"],
+    );
+    assert.deepEqual(
+      selectFinalReplies([work, intro, visualOnly]).map((reply) => reply.id),
+      ["intro", "visual"],
+    );
+  });
+
+  it("keeps show_visual followed by more work in the process section", () => {
+    const earlyVisual = assistant("early", "Draft preview:", [tool("show_visual")]);
+    const moreWork = assistant("work", "", [tool("edit")]);
+    const finalAnswer = assistant("final", "Updated file.");
+    assert.deepEqual(
+      selectFinalReplies([earlyVisual, moreWork, finalAnswer]).map((reply) => reply.id),
+      ["final"],
+    );
+  });
 });
