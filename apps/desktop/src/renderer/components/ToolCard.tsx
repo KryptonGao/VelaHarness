@@ -300,9 +300,7 @@ function AgentToolCard({ tool, compact = false }: { tool: ToolTrace; compact?: b
             title={summaryLabel}
             aria-label={summaryLabel}
           >
-            <svg className="tool-compact-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
-              <polyline points="9 18 15 12 9 6" />
-            </svg>
+            <Icon name="chevron-right" size={12} className="tool-compact-chevron" />
             {live ? (
               <AgentStatusMark status={live.status} />
             ) : (
@@ -348,9 +346,7 @@ function AgentToolCard({ tool, compact = false }: { tool: ToolTrace; compact?: b
           aria-label={summaryLabel}
           onClick={toggle}
         >
-          <svg className="tool-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
+          <Icon name="chevron-right" size={12} className="tool-chevron" />
         </button>
         {canOpen ? (
           <button
@@ -442,9 +438,7 @@ function GenericToolCard({ tool, compact = false }: ToolCardProps) {
           ) : null}
           {kind === "write" && tool.status === "done" ? <span className="tool-file-created-dot" aria-hidden="true" /> : null}
           {compact ? null : <StatusMark status={tool.status} />}
-          <svg className="tool-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
+          <Icon name="chevron-right" size={12} className="tool-chevron" />
           {compact ? <ToolDurationLabel tool={tool} /> : null}
           {compact ? <StatusMark status={tool.status} compact /> : null}
         </button>
@@ -538,9 +532,7 @@ function BrowserReplCard({ tool, compact = false }: { tool: ToolTrace; compact?:
             {screenshots.length}
           </span>
         ) : null}
-        <svg className="tool-compact-chevron browser-call-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
-          <polyline points="9 18 15 12 9 6" />
-        </svg>
+        <Icon name="chevron-right" size={12} className="tool-compact-chevron browser-call-chevron" />
         <ToolDurationLabel tool={tool} />
         {compact ? <CompactStatus running={running} /> : <StatusMark status={tool.status} />}
       </button>
@@ -645,18 +637,7 @@ export const ToolRunGroup = memo(function ToolRunGroup({ tools }: { tools: ToolT
           </span>
         ) : null}
         <StatusMark status={current.status === "running" ? "running" : failed > 0 ? "error" : "done"} />
-        <svg
-          className="tool-run-chevron"
-          width="12"
-          height="12"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.5"
-          aria-hidden="true"
-        >
-          <polyline points="9 18 15 12 9 6" />
-        </svg>
+        <Icon name="chevron-right" size={12} className="tool-run-chevron" />
       </button>
       <ToolCollapse open={open}>
         {() => <>
@@ -730,18 +711,7 @@ export const CompactToolGroup = memo(function CompactToolGroup({ tools, sequence
             {stat.removed > 0 ? <span className="tool-stat-del">−{stat.removed}</span> : null}
           </span>
         ) : null}
-        <svg
-          className="tool-compact-chevron"
-          width="12"
-          height="12"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.5"
-          aria-hidden="true"
-        >
-          <polyline points="9 18 15 12 9 6" />
-        </svg>
+        <Icon name="chevron-right" size={12} className="tool-compact-chevron" />
         {details ? (
           <span className="tool-compact-steps">
             {trf("{0} 步", "{0} steps", tools.length)}<DurationLabel duration={duration} />
@@ -837,18 +807,7 @@ export const CompactToolLine = memo(function CompactToolLine({
           ) : null}
           {!hideAction ? <span className="tool-compact-action">{backgroundStart ? tr("已在后台运行", "Ran in background") : elapsedSeconds !== null ? trf("命令已运行 {0} 秒", "Command running for {0}s", elapsedSeconds) : bashIntent?.action ?? ranAction(toolDuration)}</span> : null}
           <BashSubject activity={activity} />
-          <svg
-            className="tool-compact-chevron"
-            width="12"
-            height="12"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            aria-hidden="true"
-          >
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
+          <Icon name="chevron-right" size={12} className="tool-compact-chevron" />
           <ToolDurationLabel tool={tool} />
           <CompactStatus running={running} />
         </button>
@@ -932,18 +891,7 @@ export const CompactToolLine = memo(function CompactToolLine({
             title={detailOpen ? tr("收起差异", "Hide diff") : tr("查看差异", "View diff")}
             onClick={toggleDetail}
           >
-            <svg
-              className="tool-compact-chevron"
-              width="12"
-              height="12"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              aria-hidden="true"
-            >
-              <polyline points="9 18 15 12 9 6" />
-            </svg>
+            <Icon name="chevron-right" size={12} className="tool-compact-chevron" />
           </button>
         ) : null}
         <ToolDurationLabel tool={tool} />
@@ -1096,13 +1044,7 @@ export function PlanStatusIcon({ status, ended = false, className }: { status: E
 }
 
 export function PlanEndedDots() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true">
-      <circle cx="3" cy="6" r="0.9" />
-      <circle cx="6" cy="6" r="0.9" />
-      <circle cx="9" cy="6" r="0.9" />
-    </svg>
-  );
+  return <Icon name="more" size={12} />;
 }
 
 /** update_plan / update_todos 展开后的清单:与运行视图待办清单同一套标记和文字样式。 */

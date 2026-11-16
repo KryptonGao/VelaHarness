@@ -871,7 +871,7 @@ export function ChatView({
               title={tr("重命名对话", "Rename chat")} data-tooltip
               aria-label={`${tr("重命名对话", "Rename chat")} “${title}”`}
               onClick={() => onRenameConversation(state.activeConversationId!)}
-            ><span>{title}</span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="m16 3 5 5-12 12-6 1 1-6L16 3Z" /><path d="m14 5 5 5" /></svg></button>
+            ><span>{title}</span><Icon name="edit" size={14} /></button>
           ) : <span className="chat-active-title" title={title}>{title}</span>}
         </div>
         <div className="chat-header-actions">
@@ -930,7 +930,7 @@ export function ChatView({
             aria-pressed={!rightCollapsed}
             onClick={onToggleRight}
           >
-            {infoCards ? <InfoCardsIcon /> : <EnvironmentInfoIcon />}
+            {infoCards ? <Icon name="cards" size={14} /> : <Icon name="list" size={14} />}
           </button> : null}
         </div>
       </header>
@@ -1710,9 +1710,7 @@ const CompletedAssistantTurn = memo(function CompletedAssistantTurn({
     <>
       <span>{!displayedElapsed ? tr("查看过程", "View process") : stopped ? trf("你在 {0}后停止了", "You stopped after {0}", displayedElapsed) : trf("用时 {0}", "Took {0}", displayedElapsed)}</span>
       {hasProcess ? (
-        <svg className="time-spent-trigger-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
-          <polyline points="9 18 15 12 9 6" />
-        </svg>
+        <Icon name="chevron-right" size={12} className="time-spent-trigger-arrow" />
       ) : null}
     </>
   );
@@ -1993,7 +1991,7 @@ function TurnChangesCard({ turnId, changes, onOpenChanges, onReviewTurn, canMana
   return (
     <section className="turn-changes" aria-label={tr("本轮文件变更统计", "File changes in this turn")}>
       <header className="turn-changes-header">
-        <span className="turn-changes-icon" aria-hidden="true"><FileChangeIcon /></span>
+        <span className="turn-changes-icon" aria-hidden="true"><Icon name="file-diff" size={18} /></span>
         <div className="turn-changes-summary">
           <strong>{trf("已编辑 {0} 个文件", "Edited {0} files", changes.files.length)}</strong>
           <span className="turn-changes-total">
@@ -2009,7 +2007,7 @@ function TurnChangesCard({ turnId, changes, onOpenChanges, onReviewTurn, canMana
             disabled={!canManageChanges}
             onClick={onOpenChanges}
           >
-            {tr("撤销", "Undo")} <UndoIcon />
+            {tr("撤销", "Undo")} <Icon name="undo" size={14} />
           </button>
           <button
             type="button"
@@ -2048,41 +2046,3 @@ function TurnChangesCard({ turnId, changes, onOpenChanges, onReviewTurn, canMana
   );
 }
 
-function FileChangeIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="2.5" width="18" height="19" rx="3" />
-      <path d="M8 8h8M8 16h8M12 5v6" />
-    </svg>
-  );
-}
-
-function UndoIcon() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M9 14 4 9l5-5" />
-      <path d="M4 9h10a6 6 0 0 1 0 12h-2" />
-    </svg>
-  );
-}
-
-function EnvironmentInfoIcon() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="5.5" cy="6.5" r="2.5" />
-      <circle cx="5.5" cy="17.5" r="2.5" />
-      <path d="M12 6.5h9M12 17.5h9" />
-    </svg>
-  );
-}
-
-/** 信息卡片模式：圆角卡片里两行「点 + 线」。 */
-function InfoCardsIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <rect x="2.5" y="5" width="19" height="14" rx="3.5" />
-      <path d="M7.5 10h.01M7.5 14h.01" strokeWidth="2.4" />
-      <path d="M11.5 10h5M11.5 14h5" />
-    </svg>
-  );
-}

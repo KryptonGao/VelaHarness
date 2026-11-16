@@ -35,6 +35,18 @@ const ICONS = {
   file: "file",
   terminal: "terminal-box",
   branch: "git-branch",
+  "pull-request": "git-pull-request",
+  edit: "edit-2",
+  compose: "edit",
+  clipboard: "clipboard",
+  sliders: "settings-6",
+  archive: "archive",
+  "folder-open": "folder-open",
+  more: "more-1",
+  undo: "back-2",
+  "file-diff": "file-diff",
+  list: "list-check",
+  cards: "layout-5",
 };
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
