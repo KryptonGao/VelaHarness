@@ -11,9 +11,10 @@ import {
 } from "@vela/shared";
 import { createLogger } from "../logger";
 import { localizeError, tr, trf } from "../locale";
-import { CheckIcon, ChevronDownIcon, CloseIcon, CodeIcon, CopyIcon, ExpandIcon, VisualIcon } from "./icons";
+import { ChevronDownIcon, CloseIcon, CodeIcon, ExpandIcon, VisualIcon } from "./icons";
 import { foldRowId } from "./tool-fold-state";
 import { useToolExpanded } from "./ToolProcessContext";
+import { Icon } from "./icons/Icon";
 
 const log = createLogger("visual-demo");
 
@@ -216,7 +217,7 @@ function VisualModal({
               title={tr("复制 HTML", "Copy HTML")}
               onClick={copyHtml}
             >
-              {copied ? <CheckIcon size={13} /> : <CopyIcon size={13} />}
+              {copied ? <Icon name="check" size={14} /> : <Icon name="copy" size={14} />}
               <span>{copied ? tr("已复制", "Copied") : tr("复制", "Copy")}</span>
             </button>
             <button

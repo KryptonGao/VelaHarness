@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { AppLocale, GitCommitDetail, GitCommitSummary, GitRefLabel } from "@vela/shared";
 import { tr, trf } from "../../locale";
-import { AlertIcon, ArrowLeftIcon, BranchIcon, CheckIcon, CommitIcon, CopyIcon, ExternalIcon, RefreshIcon, SearchIcon, TagIcon } from "../icons";
+import { AlertIcon, ArrowLeftIcon, BranchIcon, CommitIcon, ExternalIcon, RefreshIcon, TagIcon } from "../icons";
 import { DiffPane } from "../DiffPane";
 import { CommitGraph, useCommitGraphGeometry } from "./CommitGraph";
 import { formatAbsoluteTime, formatRelativeTime } from "./time-format";
 import type { VersionControlApi } from "../../hooks/useVersionControl";
+import { Icon } from "../icons/Icon";
 
 /** 把提交 Diff 按文件切开,供逐文件查看。 */
 export function splitCommitDiff(diff: string): Map<string, string> {
@@ -213,7 +214,7 @@ export function HistoryPage({
             <option value="all-local">{tr("全部本地分支", "All local branches")}</option>
           </select>
           <label className="vc-search">
-            <SearchIcon size={12} />
+            <Icon name="search" size={12} />
             <input
               aria-label={tr("搜索提交、SHA 或作者", "Search commits, SHA or author")}
               placeholder={tr("搜索提交、SHA 或作者", "Search commits, SHA or author")}
@@ -432,8 +433,8 @@ function CommitDetailPane({
           >
             <CommitIcon size={12} /> {tr("历史操作", "History actions")}
           </button>
-          <button type="button" className="vc-btn" onClick={onCopySha}>{copied === "sha" ? <CheckIcon size={12} /> : <CopyIcon size={12} />}{tr("复制 SHA", "Copy SHA")}</button>
-          <button type="button" className="vc-btn" onClick={onCopyMessage}>{copied === "message" ? <CheckIcon size={12} /> : <CopyIcon size={12} />}{tr("复制 Message", "Copy message")}</button>
+          <button type="button" className="vc-btn" onClick={onCopySha}>{copied === "sha" ? <Icon name="check" size={12} /> : <Icon name="copy" size={12} />}{tr("复制 SHA", "Copy SHA")}</button>
+          <button type="button" className="vc-btn" onClick={onCopyMessage}>{copied === "message" ? <Icon name="check" size={12} /> : <Icon name="copy" size={12} />}{tr("复制 Message", "Copy message")}</button>
           <button
             type="button"
             className="vc-btn"

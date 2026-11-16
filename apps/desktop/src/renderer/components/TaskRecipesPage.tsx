@@ -7,7 +7,8 @@ import { useAutoHideScrollbarsWithin } from '../hooks/useAutoHideScrollbar';
 import '../task-recipes.css';
 import { RecipeGeneratePanel, RecipeSchedulePanel } from './RecipeEnhancements';
 import { RecipeStageEditor, RecipeStagePreview, RecipeRunProgress, RecipeRunOutcome, RecipeComparison, RecipeTeamPanel } from './RecipeWorkflow';
-import { AlertIcon, CloseIcon, CopyIcon, ExternalIcon, FolderIcon, HistoryIcon, PencilIcon, PlusIcon, RefreshIcon, SearchIcon, SparkIcon, TrashIcon } from './icons';
+import { AlertIcon, CloseIcon, ExternalIcon, FolderIcon, HistoryIcon, PencilIcon, PlusIcon, RefreshIcon, SparkIcon, TrashIcon } from './icons';
+import { Icon } from "./icons/Icon";
 
 export interface RecipeMessageSeed { text: string; conversationId: string; messageId?: string; planId?: string }
 export interface TaskRecipesPageProps {
@@ -106,7 +107,7 @@ export function TaskRecipesPage(props: TaskRecipesPageProps) {
       {!editor && !using && <>
         {imports.length > 0 && <section className="scheduled-task-form"><h2>{tr('导入预览', 'Import preview')}</h2><p>{tr('导入内容尚未保存或执行。每项会以新 ID 保存，重名不会覆盖；请审阅正文和 Skill 依赖。', 'Nothing is saved or executed yet. Each template gets a new ID; duplicate names do not overwrite recipes. Review its text and Skill dependencies.')}</p>{imports.map((input, index) => <article key={index}><h3>{input.name}</h3><p>{input.description}</p><p>{input.parameters.length} {tr('个参数', 'parameters')} · {input.requiredSkills?.join(', ')}</p><button type="button" onClick={() => { setEditor({ recipe: input, original: JSON.stringify(blankRecipe()) }); setImports(imports.filter((_, i) => i !== index)); }}>{tr('编辑并保存', 'Review and save')}</button></article>)}<button type="button" onClick={() => setImports([])}>{tr('放弃剩余导入', 'Discard remaining imports')}</button></section>}
         <div className="recipe-toolbar">
-          <label className="recipe-search"><SearchIcon /><input type="search" aria-label={tr('搜索配方', 'Search recipes')} value={search} onChange={e => setSearch(e.target.value)} placeholder={tr('搜索名称、说明或标签', 'Search name, description, or tags')} /></label>
+          <label className="recipe-search"><Icon name="search" size={14} /><input type="search" aria-label={tr('搜索配方', 'Search recipes')} value={search} onChange={e => setSearch(e.target.value)} placeholder={tr('搜索名称、说明或标签', 'Search name, description, or tags')} /></label>
           <div className="recipe-chips" role="group" aria-label={tr('来源', 'Source')}>{origins.map(o => <button key={o.id} type="button" className="recipe-chip" aria-pressed={origin === o.id} onClick={() => setOrigin(o.id)}>{o.label}<span>{o.count}</span></button>)}</div>
           <button type="button" className="recipe-history-toggle" aria-pressed={history === '*'} onClick={() => { setHistory(history === '*' ? null : '*'); setPage(0); }}><HistoryIcon />{tr('使用记录', 'History')} <span>{state.runs.length}</span></button></div>
         {loading && <p role="status" className="scheduled-tasks-note">{tr('加载中…', 'Loading…')}</p>}
@@ -126,7 +127,7 @@ export function TaskRecipesPage(props: TaskRecipesPageProps) {
               <span>{tr('最近使用', 'Last used')} {latest ? date(latest.startedAt) : tr('尚未使用', 'Not used yet')}</span><span>r{recipe.revision}</span></div>
             <div className="recipe-card-actions"><button className="recipe-primary" type="button" disabled={!!state.error} onClick={() => choose(recipe)}>{tr('使用配方', 'Use recipe')}</button>
               <span className="recipe-card-tools">
-                <button type="button" className="recipe-icon-button" aria-label={tr('复制', 'Duplicate')} title={tr('复制', 'Duplicate')} disabled={!!state.error} onClick={() => edit(recipe, true)}><CopyIcon /></button>
+                <button type="button" className="recipe-icon-button" aria-label={tr('复制', 'Duplicate')} title={tr('复制', 'Duplicate')} disabled={!!state.error} onClick={() => edit(recipe, true)}><Icon name="copy" size={14} /></button>
                 {canWrite && <button type="button" className="recipe-icon-button" aria-label={tr('编辑', 'Edit')} title={tr('编辑', 'Edit')} disabled={!!state.error} onClick={() => edit(recipe)}><PencilIcon /></button>}
                 <button type="button" className="recipe-icon-button" aria-label={tr('导出', 'Export')} title={tr('导出', 'Export')} onClick={() => { void api()!.exportFile(recipe).then(saved => { if (saved) setNotice(tr('配方已导出。', 'Recipe exported.')); }).catch(e => setError((e as Error).message)); }}><ExternalIcon /></button>
                 <button type="button" className="recipe-icon-button recipe-tool-count" aria-label={tr('使用记录', 'Usage history')} title={tr('使用记录', 'Usage history')} aria-pressed={history === recipe.id} onClick={() => { setHistory(history === recipe.id ? null : recipe.id); setPage(0); }}><HistoryIcon />{runCount > 0 && <span>{runCount}</span>}</button>

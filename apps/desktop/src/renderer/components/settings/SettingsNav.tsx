@@ -1,10 +1,11 @@
 import { useEffect, useId, useRef, useState, type RefObject } from "react";
 import { useAutoHideScrollbar } from "../../hooks/useAutoHideScrollbar";
 import type { SettingsCopy } from "../settings-copy";
-import { CloseIcon, SearchIcon } from "../icons";
+import { CloseIcon } from "../icons";
 import { groupOfPage, settingsGroups, type SettingsPageId } from "./settings-registry";
 import { SettingsPageIcon } from "./settings-icons";
 import type { SettingsSearchResult } from "./settings-search";
+import { Icon } from "../icons/Icon";
 
 interface SettingsNavProps {
   copy: SettingsCopy;
@@ -33,7 +34,7 @@ export function SettingsNav({ copy, page, pages, onPage, query, onQuery, results
     <nav className="settings-nav autohide-scrollbar" ref={navRef} aria-label={copy.title}>
       <h1 className="settings-nav-title">{copy.title}</h1>
       <div className="settings-search">
-        <SearchIcon size={14} />
+        <Icon name="search" size={14} />
         <input
           ref={searchRef}
           className="settings-search-input"

@@ -18,13 +18,14 @@ import type { UiMessage } from "../hooks/useSession";
 import { AssistantMarkdown } from "./intelligent-ui/AssistantMarkdown";
 import { UiHostProvider, type UiHost } from "./intelligent-ui/UiRuntime";
 import { stableUiMessageId } from "./intelligent-ui/ui-state-store";
-import { ArrowUpIcon, CheckIcon, CopyIcon, PauseIcon, PlayIcon } from "./icons";
+import { ArrowUpIcon, PauseIcon, PlayIcon } from "./icons";
 import { Markdown } from "./Markdown";
 import { UserMessageFrame } from "./UserMessageFrame";
 import { ProactiveRulesPanel } from "./ProactiveRulesPanel";
 import { ResidentSettingsPanel } from "./ResidentSettingsPanel";
 import { modeDescription, modeLabel, stateLabel, statusSummary, taskErrorText, taskSourceLabel, taskStatusLabel } from "./resident-agent-model";
 import { useSlidingTabIndicator } from "./useSlidingTabIndicator";
+import { Icon } from "./icons/Icon";
 
 type Tab = "chat" | "tasks" | "rules" | "settings";
 
@@ -91,7 +92,7 @@ function ResidentReplyActions({ text, timestamp }: { text: string; timestamp: nu
   return <div className="reply-actions">
     <button className="reply-action" type="button" title={label} aria-label={label}
       onClick={() => { void navigator.clipboard.writeText(text).then(() => setCopied(true), () => setCopied(false)); }}>
-      {copied ? <CheckIcon size={13} /> : <CopyIcon size={13} />}
+      {copied ? <Icon name="check" size={14} /> : <Icon name="copy" size={14} />}
       <span>{copied ? tr("已复制", "Copied") : tr("复制", "Copy")}</span>
     </button>
     {valid ? <time className="reply-time" dateTime={valid.toISOString()} title={valid.toLocaleString(activeIntlLocale())}>{formatTime(valid.getTime())}</time> : null}

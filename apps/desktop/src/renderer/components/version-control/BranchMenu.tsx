@@ -2,7 +2,8 @@ import { useLayoutEffect, useMemo, useState } from "react";
 import type { BranchSummary } from "@vela/shared";
 import { tr } from "../../locale";
 import { useDismissable } from "../../hooks/useDismissable";
-import { BranchIcon, CheckIcon, ChevronDownIcon, SearchIcon } from "../icons";
+import { BranchIcon, CheckIcon, ChevronDownIcon } from "../icons";
+import { Icon } from "../icons/Icon";
 
 /**
  * 分支选择:搜索本地/远程分支,标记当前分支、upstream 与 worktree 占用,
@@ -74,7 +75,7 @@ export function BranchMenu({
       {open ? (
         <div className="vc-popover vc-branch-popover" role="listbox" aria-label={tr("选择分支", "Choose a branch")}>
           <label className="vc-search">
-            <SearchIcon size={12} />
+            <Icon name="search" size={12} />
             <input
               autoFocus
               aria-label={tr("搜索分支", "Search branches")}

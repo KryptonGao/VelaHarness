@@ -4,7 +4,7 @@ import type { useModels } from "../hooks/useModels";
 import type { SendButtonIcon } from "../hooks/usePreferences";
 import { tr } from "../locale";
 import { ConfirmDeleteButton } from "./ConfirmDeleteButton";
-import { CloseIcon, PlusIcon, SearchIcon, SparkIcon } from "./icons";
+import { CloseIcon, PlusIcon, SparkIcon } from "./icons";
 import type { SideChatInboxItem } from "./selection-actions";
 import { SideChatView } from "./SideChatView";
 import {
@@ -15,6 +15,7 @@ import {
   sideChatTitle,
   type SideChatModelChoice,
 } from "./side-chat-model";
+import { Icon } from "./icons/Icon";
 
 interface ChatProps {
   conversationId: string | null;
@@ -164,7 +165,7 @@ export function SideChatPanel({ workspace, visible, inbox, onInboxConsumed, ...c
           </button>
         </header>
         <div className="side-chat-search">
-          <SearchIcon size={13} />
+          <Icon name="search" size={14} />
           <input ref={searchRef} type="text" value={query} placeholder={tr("搜索聊天", "Search chats")}
             aria-label={tr("搜索聊天", "Search chats")} onChange={(event) => setQuery(event.target.value)}
             onKeyDown={(event) => { if (event.key === "Escape") setQuery(""); }} />

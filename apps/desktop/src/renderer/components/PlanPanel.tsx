@@ -24,8 +24,9 @@ import {
 import { Markdown } from "./Markdown";
 import { ContentSwap } from "./BatchMotion";
 import { PopoverPresence } from "./MotionPresence";
-import { CheckIcon, ChevronDownIcon, CopyIcon, PlanIcon } from "./icons";
+import { ChevronDownIcon, PlanIcon } from "./icons";
 import { RecipeActionsContext } from './recipe-actions-context';
+import { Icon } from "./icons/Icon";
 
 const planStatusLabels: Record<ProposedPlanStatus, [string, string]> = {
   draft: ["草稿", "Draft"],
@@ -283,7 +284,7 @@ export function PlanDocumentPane({
             aria-label={tr("复制 Markdown", "Copy Markdown")}
             onClick={copyMarkdown}
           >
-            {copied ? <CheckIcon size={12} /> : <CopyIcon size={12} />}
+            {copied ? <Icon name="check" size={12} /> : <Icon name="copy" size={12} />}
           </button>
           <div className="plan-revision-anchor" ref={revisionMenuRef}>
             <button

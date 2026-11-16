@@ -8,10 +8,11 @@ import type {
 } from "@vela/shared";
 import { tr, trf } from "../../locale";
 import type { VersionControlApi } from "../../hooks/useVersionControl";
-import { AlertIcon, CopyIcon, RefreshIcon, SparkIcon, TagIcon, TrashIcon } from "../icons";
+import { AlertIcon, RefreshIcon, SparkIcon, TagIcon, TrashIcon } from "../icons";
 import { AiAssist } from "./AiAssist";
 import { useAiText } from "./ai-text";
 import { formatDateOnly, formatRelativeTime } from "./time-format";
+import { Icon } from "../icons/Icon";
 
 type PanelTab = "tags" | "releases" | "notes";
 
@@ -851,7 +852,7 @@ export function TagReleasePanel({
                 disabled={!draftTitle.trim() && !draftBody.trim()}
                 onClick={copyDraft}
               >
-                <CopyIcon size={12} /> {tr("复制", "Copy")}
+                <Icon name="copy" size={12} /> {tr("复制", "Copy")}
               </button>
               <button
                 type="button"

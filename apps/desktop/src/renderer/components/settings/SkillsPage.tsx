@@ -10,21 +10,12 @@ import { useEffect, useMemo, useState } from "react";
 import { localizeError } from "../../locale";
 import { SheetPresence } from "../Presence";
 import { SkillMigrationDialog } from "../SkillMigrationDialog";
-import {
-  AlertIcon,
-  ChevronRightIcon,
-  CloseIcon,
-  CopyIcon,
-  FolderIcon,
-  RefreshIcon,
-  SearchIcon,
-  SkillIcon,
-  TrashIcon,
-} from "../icons";
+import { AlertIcon, ChevronRightIcon, CloseIcon, FolderIcon, RefreshIcon, SkillIcon, TrashIcon } from "../icons";
 import type { SettingsCopy } from "../settings-copy";
 import { MarketplaceAction, MarketplaceDetail } from "./MarketplaceDetail";
 import { MarketplaceIcon } from "./MarketplaceIcon";
 import { Segmented, SettingsSwitch } from "./primitives";
+import { Icon } from "../icons/Icon";
 
 type SkillItem = SkillCatalog["skills"][number];
 type SkillFilter = "all" | "enabled" | "disabled";
@@ -242,7 +233,7 @@ export function SkillsPage({ copy, workspacePath }: { copy: SettingsCopy; worksp
           ]}
         />
         <label className="settings-search skills-search">
-          <SearchIcon size={14} />
+          <Icon name="search" size={14} />
           <input
             className="settings-search-input"
             type="search"
@@ -381,7 +372,7 @@ function SkillsMarketplace({
     <>
       <p className="settings-hint">{copy.skillsMarketHint}</p>
       <label className="settings-search skills-search market-search">
-        <SearchIcon size={14} />
+        <Icon name="search" size={14} />
         <input
           className="settings-search-input"
           type="search"
@@ -558,7 +549,7 @@ function SkillDetailDialog({ skill, copy, onClose }: { skill: SkillItem; copy: S
             <div className="skill-detail-path">
               <code>{skill.location}</code>
               <button className="skills-icon-btn" type="button" aria-label={copy.skillCopyPath} title={copied ? copy.skillCopied : copy.skillCopyPath} onClick={() => void copyPath()}>
-                <CopyIcon size={13} />
+                <Icon name="copy" size={14} />
               </button>
             </div>
             {copied ? <span className="settings-saved">{copy.skillCopied}</span> : null}

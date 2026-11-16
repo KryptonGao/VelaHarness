@@ -24,6 +24,7 @@ import { BranchIcon, ChevronDownIcon, ClockIcon, InboxIcon } from "./icons";
 import { useSidebarItems } from "../hooks/useSidebarItems";
 import { conversationWorkspace, findWorkspace, workspaceTitle } from "./workspace-names";
 import { WorkspaceHoverCard } from "./WorkspaceHoverCard";
+import { Icon } from "./icons/Icon";
 
 interface SidebarProps {
   onOpenPrInbox: () => void;
@@ -265,7 +266,7 @@ export function Sidebar({
             aria-label={tr("收起侧边栏", "Collapse sidebar")}
             onClick={onToggle}
           >
-            <SidebarIcon />
+            <Icon name="sidebar" size={14} />
           </button>
         </div>
         <div className="workspace-title-row">
@@ -293,7 +294,7 @@ export function Sidebar({
               aria-controls={searchId}
               onClick={() => setSearchOpen(true)}
             >
-              <SearchIcon />
+              <Icon name="search" size={14} />
             </button>
           </div>
         </div>
@@ -531,21 +532,8 @@ function PriorityIcon() {
   return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-6.2L3 9.6l6.2-.9L12 3Z" /></svg>;
 }
 
-function SearchIcon() {
-  return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 5 5" /></svg>;
-}
-
 function RenameIcon() {
   return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="m16 3 5 5-12 12-6 1 1-6L16 3Z" /><path d="m14 5 5 5" /></svg>;
-}
-
-function SidebarIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <rect x="3" y="3" width="18" height="18" rx="2" />
-      <line x1="9" y1="3" x2="9" y2="21" />
-    </svg>
-  );
 }
 
 function WorkspaceSettingsIcon() {

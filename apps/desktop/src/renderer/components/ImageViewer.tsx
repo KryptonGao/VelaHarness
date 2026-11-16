@@ -11,6 +11,7 @@ import { createPortal } from "react-dom";
 import { tr, trf } from "../locale";
 import { useReducedMotion } from "../hooks/useMotionPresence";
 import { CloseIcon } from "./icons";
+import { Icon } from "./icons/Icon";
 import {
   CLICK_SLOP,
   MOMENTUM_MIN_VELOCITY,
@@ -599,10 +600,10 @@ export function ImageViewer({ request, onClose }: { request: ImageViewerRequest;
       {count > 1 && status !== "failed" ? (
         <>
           <ViewerNavButton className="is-prev" label={tr("上一张", "Previous image")} onClick={() => step(-1)}>
-            <ChevronIcon direction="left" />
+            <Icon name="chevron-left" size={16} />
           </ViewerNavButton>
           <ViewerNavButton className="is-next" label={tr("下一张", "Next image")} onClick={() => step(1)}>
-            <ChevronIcon direction="right" />
+            <Icon name="chevron-right" size={16} />
           </ViewerNavButton>
         </>
       ) : null}
@@ -696,11 +697,3 @@ function ZoomIcon({ direction }: { direction: "in" | "out" }) {
   );
 }
 
-function ChevronIcon({ direction }: { direction: "left" | "right" }) {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
-      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d={direction === "left" ? "m14.5 6-6 6 6 6" : "m9.5 6 6 6-6 6"} />
-    </svg>
-  );
-}

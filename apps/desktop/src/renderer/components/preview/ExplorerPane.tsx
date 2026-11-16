@@ -1,10 +1,11 @@
 import type { WorkspaceSearchResult } from "@vela/shared";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { FileTypeIcon } from "../FileTypeIcon";
-import { ChevronRightIcon, SearchIcon } from "../icons";
+import { ChevronRightIcon } from "../icons";
 import { useFilePreview } from "./FilePreviewContext";
 import { ancestorsOf, buildFileTree, filterFilePaths, type FileTreeNode } from "./tree";
 import { localizeError, tr } from "../../locale";
+import { Icon } from "../icons/Icon";
 
 type SearchMode = "file" | "code";
 
@@ -80,7 +81,7 @@ export function ExplorerPane() {
     <div className="preview-explorer-pane">
       <div className="explorer-search-row">
         <label className="explorer-search-field">
-          <SearchIcon size={13} />
+          <Icon name="search" size={14} />
           <input
             className="explorer-search-input"
             type="text"

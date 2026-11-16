@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { CheckIcon, CopyIcon, PencilIcon } from "./icons";
+import { PencilIcon } from "./icons";
 import { activeIntlLocale, localizeError, tr, trf } from "../locale";
 import { modKeyLabel } from "../platform";
+import { Icon } from "./icons/Icon";
 
 /** The action row remains outside the bubble, aligned with its right edge. */
 export function UserMessageFrame({ text, timestamp, disabled, className, turnId, onEdit, editNote, savingLabel, children }: {
@@ -74,7 +75,7 @@ export function UserMessageFrame({ text, timestamp, disabled, className, turnId,
           title={copied ? tr("已复制", "Copied") : tr("复制消息", "Copy message")}
           aria-label={copied ? tr("已复制", "Copied") : tr("复制消息", "Copy message")}
           onClick={() => { void navigator.clipboard.writeText(text).then(() => { setCopied(true); setError(null); }, () => setError(tr("复制失败，请重试", "Copy failed. Try again."))); }}>
-          {copied ? <CheckIcon size={13} /> : <CopyIcon size={13} />}
+          {copied ? <Icon name="check" size={14} /> : <Icon name="copy" size={14} />}
         </button>
         <button ref={editButton} className="reply-action user-message-action" type="button" disabled={disabled || !onEdit || saving || editing}
           title={disabled ? tr("等待当前任务完成后修改", "Wait for the current task to finish before editing") : tr("修改消息", "Edit message")}

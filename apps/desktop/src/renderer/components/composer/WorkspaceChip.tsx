@@ -2,9 +2,10 @@ import { useState } from "react";
 import { PopoverPresence } from "../MotionPresence";
 import type { ProjectApi } from "../../hooks/useProject";
 import { useDismissable } from "../../hooks/useDismissable";
-import { CheckIcon, CloseIcon, FolderIcon, PlusIcon, SearchIcon } from "../icons";
+import { CheckIcon, CloseIcon, FolderIcon, PlusIcon } from "../icons";
 import { tr } from "../../locale";
 import { workspaceTitle } from "../workspace-names";
+import { Icon } from "../icons/Icon";
 
 export function WorkspaceChip({ project }: { project: ProjectApi }) {
   const [open, setOpen] = useState(false);
@@ -37,7 +38,7 @@ export function WorkspaceChip({ project }: { project: ProjectApi }) {
       <PopoverPresence present={open}>
         <div className="dock-popover composer-popover up workspace-picker">
           <label className="workspace-search">
-            <SearchIcon />
+            <Icon name="search" size={14} />
             <input
               autoFocus
               value={query}

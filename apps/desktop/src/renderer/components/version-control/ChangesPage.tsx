@@ -5,11 +5,12 @@ import type { ProjectApi } from "../../hooks/useProject";
 import type { VersionControlLayout } from "../../hooks/useVersionControlLayout";
 import { FileTypeIcon } from "../FileTypeIcon";
 import type { VersionControlApi } from "../../hooks/useVersionControl";
-import { AlertIcon, ArrowLeftIcon, CheckIcon, DiffIcon, ExternalIcon, FileIcon, RefreshIcon, SearchIcon, TrashIcon } from "../icons";
+import { AlertIcon, ArrowLeftIcon, CheckIcon, DiffIcon, ExternalIcon, FileIcon, RefreshIcon, TrashIcon } from "../icons";
 import { ConflictResolver, operationLabel } from "./ConflictResolver";
 import { groupChanges, matchesChangeFilter, scopeStats, scopeStatus, type ChangeGroupRow } from "./git-change-groups";
 import { HunkedDiff } from "./HunkedDiff";
 import { CommitComposer } from "./CommitComposer";
+import { Icon } from "../icons/Icon";
 
 const statusLetters: Record<string, string> = {
   modified: "M",
@@ -248,11 +249,11 @@ export function ChangesPage({
             aria-pressed={mobileDiff}
             onClick={() => setMobileDiff((value) => !value)}
           >
-            <SearchIcon size={13} />
+            <Icon name="search" size={14} />
           </button>
         </div>
         <label className="vc-search">
-          <SearchIcon size={12} />
+          <Icon name="search" size={12} />
           <input
             aria-label={tr("筛选文件名或路径", "Filter by file name or path")}
             placeholder={tr("筛选文件名或路径", "Filter file name or path")}

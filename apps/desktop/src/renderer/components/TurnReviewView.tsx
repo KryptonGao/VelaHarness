@@ -3,10 +3,11 @@ import { useEscapeKey } from "../hooks/useDismissable";
 import { tr, trf } from "../locale";
 import { DiffPane, isSingleSidedDiff } from "./DiffPane";
 import { FileTypeIcon } from "./FileTypeIcon";
-import { FileIcon, FolderIcon, SearchIcon } from "./icons";
+import { FileIcon, FolderIcon } from "./icons";
 import { FileTree } from "./preview/ExplorerPane";
 import { buildFileTree, type FileTreeNode } from "./preview/tree";
 import type { TurnReviewRequest } from "./turn-changes";
+import { Icon } from "./icons/Icon";
 
 function directoryPaths(nodes: FileTreeNode[], into = new Set<string>()): Set<string> {
   for (const node of nodes) {
@@ -253,7 +254,7 @@ export function TurnReviewView({ review, visible, onClose, target, title, filesL
       <nav id={`${id}-files`} ref={sidebar} className="turn-review-sidebar preview-explorer-pane" aria-label={filesLabel ?? tr("本轮变更文件", "Files changed in this turn")}
         hidden={compact && !drawerOpen}>
         <div className="explorer-search-row">
-          <label className="explorer-search-field"><SearchIcon size={13} />
+          <label className="explorer-search-field"><Icon name="search" size={14} />
             <input className="explorer-search-input" type="text" value={filter} onChange={event => setFilter(event.target.value)}
               aria-label={tr("筛选文件", "Filter files")} placeholder={tr("筛选文件…", "Filter files…")} />
           </label>

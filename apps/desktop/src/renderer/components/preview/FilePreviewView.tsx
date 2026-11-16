@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ProjectApi } from "../../hooks/useProject";
-import { CheckIcon, CopyIcon, DiffIcon, ExternalIcon, PanelRightIcon, RefreshIcon } from "../icons";
+import { DiffIcon, ExternalIcon, PanelRightIcon, RefreshIcon } from "../icons";
 import { CodePane } from "./CodePane";
 import { ExplorerPane } from "./ExplorerPane";
 import { tr } from "../../locale";
@@ -8,6 +8,7 @@ import { useFilePreview, isAbsolutePathLike } from "./FilePreviewContext";
 import { MarkdownPane } from "./MarkdownPane";
 import { isMarkdownPath } from "./markdown-path";
 import { PreviewBreadcrumbs } from "./PreviewBreadcrumbs";
+import { Icon } from "../icons/Icon";
 
 export function FilePreviewView({
   project,
@@ -113,7 +114,7 @@ export function FilePreviewView({
               void navigator.clipboard.writeText(content.content).then(() => setCopied(true));
             }}
           >
-            {copied ? <CheckIcon size={13} /> : <CopyIcon size={13} />}
+            {copied ? <Icon name="check" size={14} /> : <Icon name="copy" size={14} />}
           </button>
           <button
             type="button"

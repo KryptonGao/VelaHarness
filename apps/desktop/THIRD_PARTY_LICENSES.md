@@ -91,3 +91,11 @@ The provider icons in the models settings (`src/renderer/assets/providers`) are 
 Source: https://github.com/lobehub/lobe-icons
 
 The package is distributed under the MIT License. The logos themselves remain trademarks of their respective owners and are shown only to identify each provider.
+
+## MingCute Icon
+
+The interface icons in `src/renderer/components/icons/svg` are derived from MingCute Icon by MingCute Design.
+
+Source: https://github.com/Richard9394/MingCute
+
+The icons are distributed under the Apache License 2.0; the full text is in `src/renderer/components/icons/LICENSE`.

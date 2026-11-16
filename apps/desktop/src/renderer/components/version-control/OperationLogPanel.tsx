@@ -2,8 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import type { AppLocale, GitOperationQuery, GitOperationRecord, GitOperationType } from "@vela/shared";
 import { tr, trf } from "../../locale";
 import { useDismissable } from "../../hooks/useDismissable";
-import { AlertIcon, CheckIcon, CommitIcon, ExternalIcon, PrIcon, RefreshIcon, SearchIcon } from "../icons";
+import { AlertIcon, CheckIcon, CommitIcon, ExternalIcon, PrIcon, RefreshIcon } from "../icons";
 import { formatRelativeTime } from "./time-format";
+import { Icon } from "../icons/Icon";
 
 const operationLabels: Record<GitOperationType, [string, string]> = {
   stage: ["暂存", "Stage"],
@@ -149,7 +150,7 @@ export function OperationLogPanel({
 
       <div className="vc-ops-filters">
         <label className="vc-search">
-          <SearchIcon size={12} />
+          <Icon name="search" size={12} />
           <input
             aria-label={tr("检索操作记录", "Search operations")}
             placeholder={tr("检索分支、SHA、PR 或错误", "Search branch, SHA, PR or error")}

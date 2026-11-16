@@ -1,9 +1,10 @@
 import { PopoverPresence } from "../MotionPresence";
 import type { ProjectApi } from "../../hooks/useProject";
 import { useDismissable } from "../../hooks/useDismissable";
-import { ArrowDownIcon, ArrowUpIcon, BranchIcon, PlusIcon, SearchIcon } from "../icons";
+import { ArrowDownIcon, ArrowUpIcon, BranchIcon, PlusIcon } from "../icons";
 import { useMemo, useState } from "react";
 import { tr } from "../../locale";
+import { Icon } from "../icons/Icon";
 
 function formatCount(value: number): string {
   return value >= 1000 ? `${(value / 1000).toFixed(1)}k` : String(value);
@@ -96,7 +97,7 @@ export function BranchPickerContent({
       </div>
 
       <div className="branch-search-row">
-        <SearchIcon />
+        <Icon name="search" size={14} />
         <input
           className="branch-search-input"
           placeholder={tr("搜索分支", "Search branches")}

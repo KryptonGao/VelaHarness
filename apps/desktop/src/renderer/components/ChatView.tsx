@@ -10,7 +10,7 @@ import { useAgentWorkspace } from "./AgentPanel";
 import { modKeyLabel } from "../platform";
 import { readModelHint, writeModelHint } from "../startup-hint";
 import { useSecondClock } from "../hooks/useSecondClock";
-import { BranchIcon, CheckIcon, CopyIcon, HistoryIcon, MemoryUpdateIcon, PlusIcon, SpeakerIcon, StackIcon, StopSquareIcon } from "./icons";
+import { BranchIcon, CheckIcon, HistoryIcon, MemoryUpdateIcon, PlusIcon, SpeakerIcon, StackIcon, StopSquareIcon } from "./icons";
 import { speakReply, stopSpeaking, useSpeechPlayback, useSpeechState } from "../hooks/useSpeech";
 import { trackEnteredMessages, type EnterTrack } from "./message-motion";
 import type { useModels } from "../hooks/useModels";
@@ -84,6 +84,7 @@ import { ImageViewer, type ImageViewerRequest } from "./ImageViewer";
 import { localizeError, tr, trf, activeIntlLocale } from "../locale";
 import { ProviderErrorCard } from "./ProviderErrorCard";
 import { parseProviderError } from "./provider-error";
+import { Icon } from "./icons/Icon";
 
 interface FollowState {
   pinned: boolean;
@@ -860,7 +861,7 @@ export function ChatView({
               aria-label={tr("展开侧边栏", "Expand sidebar")}
               onClick={onToggleLeft}
             >
-              <SidebarIcon />
+              <Icon name="sidebar" size={14} />
             </button>
           ) : null}
           {state?.activeConversationId && onRenameConversation ? (
@@ -1881,7 +1882,7 @@ function ReplyActions({
         aria-label={copied ? tr("已复制", "Copied") : tr("复制回复", "Copy reply")}
         onClick={copy}
       >
-        {copied ? <CheckIcon size={13} /> : <CopyIcon size={13} />}
+        {copied ? <Icon name="check" size={14} /> : <Icon name="copy" size={14} />}
         <span>{copied ? tr("已复制", "Copied") : tr("复制", "Copy")}</span>
       </button>
       {speech.configured && speechId !== null ? (
@@ -2039,7 +2040,7 @@ function TurnChangesCard({ turnId, changes, onOpenChanges, onReviewTurn, canMana
         {remaining > 0 ? (
           <button className="turn-changes-more" type="button" aria-expanded={showAll} onClick={() => setShowAll((value) => !value)}>
             {showAll ? tr("收起文件", "Show fewer files") : trf("再显示 {0} 个文件", "Show {0} more files", remaining)}
-            <ChevronIcon up={showAll} />
+            <Icon name="chevron-down" size={12} className={showAll ? "is-up" : ""} />
           </button>
         ) : null}
       </div>
@@ -2056,28 +2057,11 @@ function FileChangeIcon() {
   );
 }
 
-function ChevronIcon({ up }: { up: boolean }) {
-  return (
-    <svg className={up ? "is-up" : ""} width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-      <path d="m6 9 6 6 6-6" />
-    </svg>
-  );
-}
-
 function UndoIcon() {
   return (
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M9 14 4 9l5-5" />
       <path d="M4 9h10a6 6 0 0 1 0 12h-2" />
-    </svg>
-  );
-}
-
-function SidebarIcon() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-      <rect x="3" y="3" width="18" height="18" rx="2" />
-      <line x1="9" y1="3" x2="9" y2="21" />
     </svg>
   );
 }

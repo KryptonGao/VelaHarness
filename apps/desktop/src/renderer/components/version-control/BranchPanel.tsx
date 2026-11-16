@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { AppLocale, BranchSummary, GitBranchDeleteInput, GitBranchDetail } from "@vela/shared";
 import { tr, trf } from "../../locale";
 import type { VersionControlApi } from "../../hooks/useVersionControl";
-import { AlertIcon, BranchIcon, CheckIcon, RefreshIcon, SearchIcon, TrashIcon } from "../icons";
+import { AlertIcon, BranchIcon, CheckIcon, RefreshIcon, TrashIcon } from "../icons";
+import { Icon } from "../icons/Icon";
 
 /**
  * 分支管理(BR-02):重命名、删除与跟踪关系;删除前展示合并状态、
@@ -99,7 +100,7 @@ export function BranchPanel({
       <div className="vc-branch-panel-body">
         <div className="vc-branch-panel-list">
           <label className="vc-search">
-            <SearchIcon size={12} />
+            <Icon name="search" size={12} />
             <input
               aria-label={tr("搜索本地分支", "Search local branches")}
               placeholder={tr("搜索本地分支", "Search local branches")}

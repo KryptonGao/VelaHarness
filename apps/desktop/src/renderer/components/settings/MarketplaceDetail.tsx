@@ -6,9 +6,10 @@ import {
   type SkillCatalog,
 } from "@vela/shared";
 import { useEffect, useState } from "react";
-import { ArrowLeftIcon, CheckIcon, CopyIcon, ExternalIcon, SkillIcon } from "../icons";
+import { ArrowLeftIcon, CheckIcon, ExternalIcon, SkillIcon } from "../icons";
 import type { SettingsCopy } from "../settings-copy";
 import { MarketplaceIcon } from "./MarketplaceIcon";
+import { Icon } from "../icons/Icon";
 
 type SkillItem = SkillCatalog["skills"][number];
 
@@ -179,7 +180,7 @@ export function MarketplaceDetail({
                 title={copied ? copy.skillCopied : copy.skillsMarketCopyCommand}
                 onClick={() => void copyCommand()}
               >
-                {copied ? <CheckIcon size={13} /> : <CopyIcon size={13} />}
+                {copied ? <Icon name="check" size={14} /> : <Icon name="copy" size={14} />}
               </button>
             </dd>
           </div>

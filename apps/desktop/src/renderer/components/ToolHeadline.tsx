@@ -5,12 +5,13 @@ import { tr, trf } from "../locale";
 import { AgentAvatar } from "./AgentAvatar";
 import { agentKindLabel, findAgentInfo, useAgentRoster } from "./AgentPanel";
 import { FileTypeIcon } from "./FileTypeIcon";
-import { ArrowRightIcon, EditFileIcon, FilePlusIcon, FolderIcon, GlobeIcon, McpIcon, ReadFileIcon, SearchIcon, SkillReadIcon, TerminalIcon, ToolIcon, WebFetchIcon, WebSearchIcon } from "./icons";
+import { ArrowRightIcon, EditFileIcon, FilePlusIcon, FolderIcon, GlobeIcon, McpIcon, ReadFileIcon, SkillReadIcon, TerminalIcon, ToolIcon, WebFetchIcon, WebSearchIcon } from "./icons";
 import { bashIntentDisplay } from "./bash-intent-label";
 import { summarizeBrowserCode, type BrowserStep } from "./browser-call";
 import { isSkillRead, skillNameOf, splitPath } from "./tool-compact";
 import { isMcpDiscoveryTool, splitMcpQuery } from "./tool-result-model";
 import { toolNameIcon } from "./tool-name-icon";
+import { Icon } from "./icons/Icon";
 
 export type ToolKind = "browser" | "bash" | "read" | "edit" | "write" | "other";
 
@@ -27,7 +28,7 @@ export function KindIcon({ kind, command, skill = false }: { kind: ToolKind; com
     const intent = bashIntentDisplay(command)?.kind;
     if (intent === "list") return <FolderIcon size={13} />;
     if (intent === "read") return <ReadFileIcon size={13} />;
-    if (intent === "search" || intent === "find") return <SearchIcon size={13} />;
+    if (intent === "search" || intent === "find") return <Icon name="search" size={14} />;
     return <TerminalIcon size={13} />;
   }
   if (kind === "read") return <ReadFileIcon size={13} />;

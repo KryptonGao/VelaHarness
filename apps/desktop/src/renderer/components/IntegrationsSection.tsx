@@ -2,7 +2,8 @@ import { localizeCopy } from "@vela/shared";
 import { useEffect, useRef, useState } from "react";
 import type { PluginCatalog, PluginSnapshot } from "@vela/shared";
 import type { AppLocale } from "../hooks/usePreferences";
-import { SearchIcon } from "./icons";
+import { Icon } from "./icons/Icon";
+
 
 const copy = {
   en: { title: "Integrations", search: "Search integrations", empty: "No matching integrations", connect: "Connect", disconnect: "Disconnect", cancel: "Cancel", retry: "Try again", loading: "Loading integrations…", failed: "Unable to update integrations. Please try again.", pending: "Tools will become available in the current chat after its turn finishes.", states: { disconnected: "Not connected", connecting: "Connecting…", connected: "Connected", error: "Connection failed" } },
@@ -99,7 +100,7 @@ export function IntegrationsSection({ locale, workspacePath, conversationId }: {
   return <section className="settings-section integrations-section" aria-label={text.title} data-setting-id="integrations">
     {error ? <div className="settings-block"><p role="alert">{text.failed}</p><button className="settings-secondary" onClick={() => setReload(value => value + 1)}>{text.retry}</button></div> : null}
     {!catalog && !error ? <p role="status" className="settings-hint">{text.loading}</p> : null}
-    {catalog ? <label className="integrations-search"><SearchIcon size={15} />
+    {catalog ? <label className="integrations-search"><Icon name="search" size={16} />
       <input type="search" aria-label={text.search} placeholder={text.search} value={query} onChange={event => setQuery(event.target.value)} /></label> : null}
     {visible && !visible.length ? <p role="status" className="settings-hint">{text.empty}</p> : null}
     <div className="integrations-grid">
