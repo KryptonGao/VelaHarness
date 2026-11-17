@@ -1,6 +1,8 @@
 import { hooksZhTW } from "./hooks";
+import { workspaceOverviewZhTW } from "./workspace-overview";
 const messages: Record<string, string> = {
   ...hooksZhTW,
+  ...workspaceOverviewZhTW,
   "面包屑路径": "麵包屑路徑",
   "完整路径可用滚轮或触控板上下、左右滚动；悬停展开会压缩路径，悬停时展开当前片段。": "完整路徑可用滾輪或觸控板上下、左右捲動；懸停展開會壓縮路徑，懸停時展開目前片段。",
   "完整路径滚动": "完整路徑捲動",

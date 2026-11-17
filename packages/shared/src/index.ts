@@ -48,6 +48,8 @@ export * from "./updates";
 export * from "./storage";
 export * from "./release-notes";
 export * from "./side-chat";
+export * from "./workspace-overview";
+import type { WorkspaceOverviewApi } from "./workspace-overview";
 export * from "./intelligent-ui";
 export * from "./intelligent-ui-expression";
 export * from "./intelligent-ui-components";
@@ -3120,6 +3122,8 @@ export interface DevelopmentApi {
 
 export interface VelaApi extends McpApi, PluginApi, HooksApi {
   prInbox: import("./pr-inbox").PrInboxApi;
+  /** 工作区总览页:按路径读取任一已登记工作区的 Git 概况。 */
+  workspaceOverview?: WorkspaceOverviewApi;
   /** 设置页的长期记忆管理入口；Agent 工具由运行时单独提供。 */
   memory: MemoryApi;
   /** 设置页的网页搜索与抓取提供商；密钥只能写入，不能读回。 */

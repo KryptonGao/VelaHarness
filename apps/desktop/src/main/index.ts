@@ -55,6 +55,7 @@ import { SpeechHost } from "./speech-host";
 import { SecureCredentialStore } from "./plugin-credentials";
 import { ensureLoginShellPath } from "./shell-path";
 import { PrInboxHost } from "./pr-inbox-host";
+import { WorkspaceOverviewHost } from "./workspace-overview-host";
 import { PrReviewResponseService } from "./pr-review-response-service";
 import { TerminalHost } from "./terminal-host";
 import { configureVelaProfile, noWorkspaceCwd, prepareVelaHome } from "./vela-home";
@@ -128,6 +129,7 @@ let browserRepl: BrowserReplManager | null = null;
 let project: ProjectHost | null = null;
 let terminals: TerminalHost | null = null;
 let prInboxHost: PrInboxHost | null = null;
+let workspaceOverviewHost: WorkspaceOverviewHost | null = null;
 let logHost: LogHost | null = null;
 let conversationExportHost: ConversationExportHost | null = null;
 let sideChatHost: SideChatHost | null = null;
@@ -423,6 +425,8 @@ async function start(): Promise<void> {
     ...workspaceManager.getState().recents.map(r => r.path),
     ...runtime.listConversations().filter(c => c.hasWorkspace !== false).map(c => c.worktree?.repository ?? c.cwd),
   ].filter((path): path is string => typeof path === "string" && path.length > 0))];
+  workspaceOverviewHost = new WorkspaceOverviewHost({ workspaces: registeredWorkspaces, worktreeRoot: join(home, "worktrees") });
+  workspaceOverviewHost.register();
   const recipes = new TaskRecipeService(join(home, "task-recipes.json"), {
     resolveExecution: draft => runtime.resolveRecipeExecution(draft, draft.sandboxModeOverride ?? sandbox.getMode()),
     create: run => runtime.createRecipeConversation(run), submit: (run, stage) => runtime.submitRecipe(run, stage),
@@ -787,6 +791,7 @@ app.on("before-quit", (event) => {
   shutdownStarted = true;
   log.info("app quitting");
   prInboxHost?.dispose();
+  workspaceOverviewHost?.dispose();
   logHost?.dispose();
   logHost = null;
   conversationExportHost?.dispose();

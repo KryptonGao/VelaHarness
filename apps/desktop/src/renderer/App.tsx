@@ -1,5 +1,6 @@
 import { PLACEHOLDER_CONVERSATION_TITLE, displayConversationTitle } from "./components/conversation-title";
 import { PrInboxPage } from "./components/PrInboxPage";
+import { WorkspaceOverviewPage } from "./components/WorkspaceOverviewPage";
 import { AgentInboxPage } from "./components/AgentInboxPage";
 import { useAgentInbox } from "./hooks/useAgentInbox";
 import { uiStorage } from "./ui-storage";
@@ -132,8 +133,9 @@ function writeWhatsNewSeen(version: string): void {
   }
 }
 
-interface NavEntry { page: NavCategory; conversationId: string | null }
-const navEntryKey = (entry: NavEntry) => `${entry.page}:${entry.conversationId ?? ""}`;
+/** overview 是主页上打开的工作区总览(它所属工作区的路径);其余页面为 null。 */
+interface NavEntry { page: NavCategory; conversationId: string | null; overview: string | null }
+const navEntryKey = (entry: NavEntry) => `${entry.page}:${entry.conversationId ?? ""}:${entry.overview ?? ""}`;
 
 export function App() {
   const preferences = usePreferences();
@@ -176,6 +178,10 @@ export function App() {
   const [rightCollapsed, setRightCollapsed] = useStoredState("vela.rightCollapsed", true, isBoolean);
   const [scheduledTasksOpen, setScheduledTasksOpen] = useState(false);
   const [prInboxOpen, setPrInboxOpen] = useState(false);
+  // 工作区总览属于主页:侧栏保持可见,只是替换掉对话区。
+  const [overviewWorkspace, setOverviewWorkspace] = useState<string | null>(null);
+  const lastOverviewWorkspace = useRef<string | null>(null);
+  if (overviewWorkspace !== null) lastOverviewWorkspace.current = overviewWorkspace;
   const [agentInboxOpen, setAgentInboxOpen] = useState(false);
   const { snapshot: agentInbox } = useAgentInbox();
   const [agentInboxNav, setAgentInboxNav] = useState<{ target: AgentInboxNavigation; nonce: number } | null>(null);
@@ -192,7 +198,7 @@ export function App() {
     const leave = () => { setRecipesOpen(false); action(); };
     if (recipeLeaveGuard.current) recipeLeaveGuard.current(leave); else leave();
   }, []);
-  const openRecipes = useCallback(() => { setSettingsOpen(false); setPrInboxOpen(false); setAgentInboxOpen(false); setScheduledTasksOpen(false); setRecipesOpen(true); }, []);
+  const openRecipes = useCallback(() => { setSettingsOpen(false); setOverviewWorkspace(null); setPrInboxOpen(false); setAgentInboxOpen(false); setScheduledTasksOpen(false); setRecipesOpen(true); }, []);
   const consumeRecipeSeed = useCallback(() => setRecipeSeed(null), []);
   // 通知点击、菜单栏入口：主进程要求打开收件箱的某个位置。窗口刚创建时订阅还没建立，先取走暂存的请求。
   useEffect(() => {
@@ -202,7 +208,7 @@ export function App() {
     const open = (target: AgentInboxNavigation) => {
       if (!live) return;
       leaveRecipes(() => {
-        setSettingsOpen(false); setScheduledTasksOpen(false); setPrInboxOpen(false); setAgentInboxOpen(true);
+        setSettingsOpen(false); setOverviewWorkspace(null); setScheduledTasksOpen(false); setPrInboxOpen(false); setAgentInboxOpen(true);
         agentInboxNavNonce.current += 1;
         setAgentInboxNav({ target, nonce: agentInboxNavNonce.current });
       });
@@ -216,7 +222,7 @@ export function App() {
   // 新对话的首页不显示右侧信息卡，发出第一句话后再出现。
   // 只订阅「是否为空」：流式回复每帧发布新消息数组，订阅整个数组会让整棵应用逐帧重渲染。
   const conversationEmpty = useMessagesEmpty(session.messageStore, session.activeConversationId);
-  const contextSidebarOpen = !floatingInfo && !rightCollapsed && !conversationEmpty && !scheduledTasksOpen && !recipesOpen && !prInboxOpen && !agentInboxOpen;
+  const contextSidebarOpen = !floatingInfo && !rightCollapsed && !conversationEmpty && !scheduledTasksOpen && !recipesOpen && !prInboxOpen && !agentInboxOpen && overviewWorkspace === null;
   const [environmentCollapsed, setEnvironmentCollapsed] = useStoredState("vela.environmentCollapsed", false, isBoolean);
   const toggleInfo = useCallback(() => {
     if (floatingInfo) setEnvironmentCollapsed(value => !value);
@@ -858,16 +864,23 @@ export function App() {
     return () => { active = false; };
   }, [onboardingComplete]);
 
-  const openPrInbox = () => leaveRecipes(() => { setSettingsOpen(false); setScheduledTasksOpen(false); setAgentInboxOpen(false); setPrInboxOpen(true); });
-  const openAgentInbox = () => leaveRecipes(() => { setSettingsOpen(false); setScheduledTasksOpen(false); setPrInboxOpen(false); setAgentInboxOpen(true); });
+  const openPrInbox = () => leaveRecipes(() => { setSettingsOpen(false); setOverviewWorkspace(null); setScheduledTasksOpen(false); setAgentInboxOpen(false); setPrInboxOpen(true); });
+  const openAgentInbox = () => leaveRecipes(() => { setSettingsOpen(false); setOverviewWorkspace(null); setScheduledTasksOpen(false); setPrInboxOpen(false); setAgentInboxOpen(true); });
   const openScheduledTasks = () => leaveRecipes(() => {
-    setSettingsOpen(false);
+    setSettingsOpen(false); setOverviewWorkspace(null);
     setPrInboxOpen(false); setAgentInboxOpen(false); setScheduledTasksOpen(true);
   });
-  const toggleSettings = () => leaveRecipes(() => { setPrInboxOpen(false); setAgentInboxOpen(false); setScheduledTasksOpen(false); setSettingsOpen((open) => !open); });
-  const goHome = () => leaveRecipes(() => { setPrInboxOpen(false); setAgentInboxOpen(false); setScheduledTasksOpen(false); setSettingsOpen(false); });
+  const toggleSettings = () => leaveRecipes(() => { setOverviewWorkspace(null); setPrInboxOpen(false); setAgentInboxOpen(false); setScheduledTasksOpen(false); setSettingsOpen((open) => !open); });
+  const goHome = () => leaveRecipes(() => { setOverviewWorkspace(null); setPrInboxOpen(false); setAgentInboxOpen(false); setScheduledTasksOpen(false); setSettingsOpen(false); });
+  const openWorkspaceOverview = (cwd: string) => leaveRecipes(() => {
+    setSettingsOpen(false); setPrInboxOpen(false); setAgentInboxOpen(false); setScheduledTasksOpen(false); setOverviewWorkspace(cwd);
+  });
   // 前进/后退历史：记录「页面 + 主页上的当前对话」；回退时先登记目标，等界面落到目标后再放行记录，避免回退被当成新导航。
-  const navEntry: NavEntry = { page: navCategory, conversationId: navCategory === "home" ? session.activeConversationId : null };
+  const navEntry: NavEntry = {
+    page: navCategory,
+    conversationId: navCategory === "home" && overviewWorkspace === null ? session.activeConversationId : null,
+    overview: navCategory === "home" ? overviewWorkspace : null,
+  };
   const navKey = navEntryKey(navEntry);
   const navEntryRef = useRef(navEntry);
   navEntryRef.current = navEntry;
@@ -876,7 +889,7 @@ export function App() {
   const navPending = useRef<{ key: string; timer: number } | null>(null);
   const recordNav = useCallback(() => {
     const entry = navEntryRef.current;
-    if (entry.page === "home" && !entry.conversationId) return;
+    if (entry.page === "home" && !entry.conversationId && !entry.overview) return;
     if (navHistory.record(entry)) bumpNav();
   }, [navHistory]);
   useEffect(() => {
@@ -901,7 +914,8 @@ export function App() {
     leaveRecipes(() => {
       setSettingsOpen(entry.page === "settings"); setScheduledTasksOpen(entry.page === "scheduledTasks"); setRecipesOpen(entry.page === "recipes");
       setAgentInboxOpen(entry.page === "agentInbox"); setPrInboxOpen(entry.page === "prInbox");
-      if (entry.page === "home" && entry.conversationId && entry.conversationId !== session.activeConversationId) void session.switchTo(entry.conversationId);
+      setOverviewWorkspace(entry.page === "home" ? entry.overview : null);
+      if (entry.page === "home" && !entry.overview && entry.conversationId && entry.conversationId !== session.activeConversationId) void session.switchTo(entry.conversationId);
     });
   };
   const goBack = () => { const entry = navHistory.back(navEntryValid); if (entry) showNavEntry(entry); };
@@ -909,7 +923,7 @@ export function App() {
   navActions.current = { back: goBack, forward: goForward };
   // 工作台标签只在主页上可见:先离开设置、收件箱等页面再打开。
   const showHomeThen = (action: () => void) => leaveRecipes(() => {
-    setSettingsOpen(false); setPrInboxOpen(false); setAgentInboxOpen(false); setScheduledTasksOpen(false);
+    setSettingsOpen(false); setOverviewWorkspace(null); setPrInboxOpen(false); setAgentInboxOpen(false); setScheduledTasksOpen(false);
     action();
   });
   const cycleWorkbenchTab = (step: 1 | -1) => {
@@ -967,7 +981,7 @@ export function App() {
     }
   };
   const selectNavCategory = (category: NavCategory) => {
-    if (category === navCategory) return;
+    if (category === navCategory && !(category === "home" && overviewWorkspace !== null)) return;
     switch (category) {
       case "home": goHome(); break;
       case "scheduledTasks": openScheduledTasks(); break;
@@ -1002,7 +1016,7 @@ export function App() {
           <BrowserViewHost tabs={browser.allTabs} visibleTabIds={visibleWorkbenchTabIds}
             onFocusTab={id => { if (id !== activeWorkbenchTabId) { browser.select(id); setActiveWorkbenchTabId(id); } }}
             activeTabId={browser.tabs.some(tab => tab.id === activeWorkbenchTabId) ? activeWorkbenchTabId : null}
-            visible={onboardingComplete && !settingsOpen && !scheduledTasksOpen && !recipesOpen && !prInboxOpen && !agentInboxOpen && !workbenchCollapsed} hosted={browser.hosted} command={browser.command} />
+            visible={onboardingComplete && !settingsOpen && !scheduledTasksOpen && !recipesOpen && !prInboxOpen && !agentInboxOpen && overviewWorkspace === null && !workbenchCollapsed} hosted={browser.hosted} command={browser.command} />
           <ScreenPresence present={!onboardingComplete} className="app-screen-onboarding">
             <div className={`vela-window platform-${platform} onboarding-window`}>
               <OnboardingView
@@ -1053,18 +1067,20 @@ export function App() {
                 conversations={session.conversations}
                 waitingConversationIds={session.waitingConversationIds}
                 scheduledTasksOpen={scheduledTasksOpen}
-                activeConversationId={scheduledTasksOpen || recipesOpen || prInboxOpen || agentInboxOpen ? null : session.activeConversationId}
+                activeConversationId={scheduledTasksOpen || recipesOpen || prInboxOpen || agentInboxOpen || overviewWorkspace !== null ? null : session.activeConversationId}
+                overviewWorkspace={overviewWorkspace}
+                onOpenWorkspaceOverview={openWorkspaceOverview}
                 settingsOpen={settingsOpen}
                 settingsLabel={tr("设置", "Settings")}
                 onToggle={() => setLeftCollapsed((value) => !value)}
                 onOpenSettings={toggleSettings}
                 onNewChat={(cwd) => leaveRecipes(() => {
-                  setPrInboxOpen(false); setAgentInboxOpen(false); setScheduledTasksOpen(false); setSettingsOpen(false); void session.newChat(cwd);
+                  setOverviewWorkspace(null); setPrInboxOpen(false); setAgentInboxOpen(false); setScheduledTasksOpen(false); setSettingsOpen(false); void session.newChat(cwd);
                 })}
                 workspaces={project.workspace?.recents}
                 onEditWorkspace={setEditingWorkspace}
                 onSwitchConversation={(id) => leaveRecipes(() => {
-                  setPrInboxOpen(false); setAgentInboxOpen(false); setScheduledTasksOpen(false); setSettingsOpen(false); void session.switchTo(id);
+                  setOverviewWorkspace(null); setPrInboxOpen(false); setAgentInboxOpen(false); setScheduledTasksOpen(false); setSettingsOpen(false); void session.switchTo(id);
                 })}
                 onArchiveConversation={(id) => void session.archive(id)}
                 onRenameConversation={openRenameConversation}
@@ -1076,7 +1092,7 @@ export function App() {
                   onCloseFileTab={onCloseFileTab}
                   onCloseAllFileTabs={onCloseAllFileTabs}
                 >
-                  <Presence present={!settingsOpen && !scheduledTasksOpen && !recipesOpen && !prInboxOpen && !agentInboxOpen} keepMounted={scheduledTasksOpen || recipesOpen || prInboxOpen || agentInboxOpen} className="main-stage-pane">
+                  <Presence present={!settingsOpen && !scheduledTasksOpen && !recipesOpen && !prInboxOpen && !agentInboxOpen && overviewWorkspace === null} keepMounted={scheduledTasksOpen || recipesOpen || prInboxOpen || agentInboxOpen || overviewWorkspace !== null} className="main-stage-pane">
                     <PlanDocumentProvider
                       plans={session.state?.session.planRevisions ?? []}
                       draft={session.planDraft}
@@ -1228,6 +1244,15 @@ export function App() {
                       contextOpen={contextSidebarOpen} onToggleContext={!floatingInfo && !conversationEmpty ? toggleInfo : undefined} />
                   </Presence>
                 </FilePreviewProvider>
+                <Presence present={overviewWorkspace !== null} className="main-stage-pane scheduled-tasks-stage">
+                  {lastOverviewWorkspace.current !== null ? <WorkspaceOverviewPage workspace={lastOverviewWorkspace.current}
+                    conversations={session.conversations} workspaces={project.workspace?.recents ?? []}
+                    waitingConversationIds={session.waitingConversationIds}
+                    sidebarCollapsed={leftCollapsed && !railMode} onToggleSidebar={toggleLeft}
+                    onOpenConversation={id => { setOverviewWorkspace(null); void session.switchTo(id); }}
+                    onNewChat={cwd => leaveRecipes(() => { setOverviewWorkspace(null); void session.newChat(cwd); })}
+                    onEditWorkspace={setEditingWorkspace} onOpenScheduledTasks={openScheduledTasks} /> : null}
+                </Presence>
                 <Presence present={prInboxOpen} keepMounted className="main-stage-pane scheduled-tasks-stage">
                   <PrInboxPage active={prInboxOpen} sidebarCollapsed={leftCollapsed && !railMode} onToggleSidebar={toggleLeft}
                     onOpenConversation={(id) => { setPrInboxOpen(false); setAgentInboxOpen(false); void session.switchTo(id); }} />

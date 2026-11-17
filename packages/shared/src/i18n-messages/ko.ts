@@ -1,6 +1,8 @@
 import { hooksKo } from "./hooks";
+import { workspaceOverviewKo } from "./workspace-overview";
 const messages: Record<string, string> = {
   ...hooksKo,
+  ...workspaceOverviewKo,
   "面包屑路径": "탐색 경로",
   "完整路径可用滚轮或触控板上下、左右滚动；悬停展开会压缩路径，悬停时展开当前片段。": "전체 경로는 휠이나 트랙패드의 상하·좌우 동작으로 스크롤할 수 있습니다. 호버 확장은 경로를 압축하고 포인터를 올린 부분을 펼칩니다.",
   "完整路径滚动": "전체 경로 스크롤",

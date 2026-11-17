@@ -3,6 +3,7 @@ import {
   IpcChannel,
   isMenuAction,
   PrInboxIpc,
+  WorkspaceOverviewIpc,
   TaskRecipesIpc,
   RaceIpc,
   ConflictIpc,
@@ -172,6 +173,10 @@ import { contextBridge, ipcRenderer, webUtils, type IpcRendererEvent } from "ele
 import { isStreamEvent } from "./stream-event";
 
 const api: VelaApi = {
+  workspaceOverview: {
+    get: workspace => ipcRenderer.invoke(WorkspaceOverviewIpc.get, workspace),
+    reveal: (workspace, path) => ipcRenderer.invoke(WorkspaceOverviewIpc.reveal, workspace, path),
+  },
   prInbox: {
     list: (query, options) => ipcRenderer.invoke(PrInboxIpc.list, query, options),
     enrich: (targets, options) => ipcRenderer.invoke(PrInboxIpc.enrich, targets, options),

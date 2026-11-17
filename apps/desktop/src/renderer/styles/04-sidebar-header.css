@@ -286,6 +286,31 @@
   flex: none;
   margin-right: 3px;
 }
+/* 文件夹图标单独成钮:点它打开工作区总览,点名称折叠/展开。 */
+.session-group-overview {
+  align-self: stretch;
+  margin-right: 0;
+  padding: 4px 3px 4px 8px;
+  border-radius: var(--radius-xs) 0 0 var(--radius-xs);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background-color 100ms ease, color 100ms ease;
+}
+.session-group-row:hover .session-group-overview {
+  background: var(--bg-sidebar-hover);
+  color: var(--text-secondary);
+}
+.session-group-row .session-group-overview:hover {
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--text-primary) 9%, transparent);
+}
+.session-group-overview[aria-current="page"] {
+  color: var(--accent-blue);
+}
+.session-group-header.has-overview {
+  padding-left: 3px;
+  border-radius: 0 var(--radius-xs) var(--radius-xs) 0;
+}
 .session-group-content {
   display: grid;
   grid-template-rows: 0fr;

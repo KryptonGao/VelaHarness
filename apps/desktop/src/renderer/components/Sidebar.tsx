@@ -52,6 +52,10 @@ interface SidebarProps {
   /** 已登记的工作区,用于显示自定义名称。 */
   workspaces?: readonly WorkspaceRecent[];
   onEditWorkspace?: (cwd: string) => void;
+  /** 当前打开着总览的工作区;没有打开时为 null。 */
+  overviewWorkspace?: string | null;
+  /** 点击工作区左侧的文件夹图标:打开这个工作区的总览。 */
+  onOpenWorkspaceOverview?: (cwd: string) => void;
   onSwitchConversation: (id: string) => void;
   onArchiveConversation: (id: string) => void;
   onRenameConversation?: (id: string) => void;
@@ -86,6 +90,8 @@ export function Sidebar({
   onNewChat,
   workspaces,
   onEditWorkspace,
+  overviewWorkspace = null,
+  onOpenWorkspaceOverview,
   onSwitchConversation,
   onArchiveConversation,
   onRenameConversation,
@@ -232,6 +238,8 @@ export function Sidebar({
           }}
           onTogglePin={() => togglePinnedWorkspace(group.cwd)}
           onEdit={onEditWorkspace ? () => onEditWorkspace(group.cwd) : undefined}
+          overviewOpen={overviewWorkspace === group.cwd}
+          onOpenOverview={onOpenWorkspaceOverview ? () => onOpenWorkspaceOverview(group.cwd) : undefined}
           onNewChat={() => onNewChat(group.cwd)} />
         <div id={listId} className={`session-group-content${isCollapsed ? "" : " is-open"}`}
           inert={isCollapsed} aria-hidden={isCollapsed || undefined}>
@@ -416,9 +424,10 @@ function activityReasonLabel(reason: ActivityReason, conversation: ConversationS
   }
 }
 
-function WorkspaceGroupRow({ cwd, name, folders, chatCount, collapsed, listId, pinned, onToggleCollapsed, onTogglePin, onEdit, onNewChat }: {
+function WorkspaceGroupRow({ cwd, name, folders, chatCount, collapsed, listId, pinned, overviewOpen, onToggleCollapsed, onTogglePin, onEdit, onOpenOverview, onNewChat }: {
   cwd: string; name: string; folders: readonly string[]; chatCount: number; collapsed: boolean; listId: string; pinned: boolean;
-  onToggleCollapsed: () => void; onTogglePin: () => void; onEdit?: () => void; onNewChat: () => void;
+  overviewOpen: boolean;
+  onToggleCollapsed: () => void; onTogglePin: () => void; onEdit?: () => void; onOpenOverview?: () => void; onNewChat: () => void;
 }) {
   const rowRef = useRef<HTMLDivElement>(null);
   const timer = useRef<number | undefined>(undefined);
@@ -440,11 +449,17 @@ function WorkspaceGroupRow({ cwd, name, folders, chatCount, collapsed, listId, p
       onFocus={event => { if (event.target.matches(":focus-visible")) schedule(true, 0); }}
       onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) schedule(false, 0); }}
       onKeyDown={event => { if (event.key === "Escape" && cardOpen) { event.stopPropagation(); schedule(false, 0); } }}>
-      <button className="session-group-header" type="button" aria-expanded={!collapsed} aria-controls={listId}
+      {onOpenOverview ? <button className="session-group-folder session-group-overview" type="button"
+        title={tr("工作区总览", "Workspace overview")}
+        aria-label={`${tr("工作区总览", "Workspace overview")} · ${name}`}
+        aria-current={overviewOpen ? "page" : undefined} onClick={onOpenOverview}>
+        <Icon name={collapsed ? "folder" : "folder-open"} size={16} />
+      </button> : null}
+      <button className={`session-group-header${onOpenOverview ? " has-overview" : ""}`} type="button" aria-expanded={!collapsed} aria-controls={listId}
         onClick={onToggleCollapsed}>
-        <span className="session-group-folder" aria-hidden="true">
+        {onOpenOverview ? null : <span className="session-group-folder" aria-hidden="true">
           <Icon name={collapsed ? "folder" : "folder-open"} size={16} />
-        </span>
+        </span>}
         <span className="session-group-name">{name}</span>
         <span className="session-group-count">{chatCount}</span>
       </button>

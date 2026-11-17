@@ -1,6 +1,8 @@
 import { hooksJa } from "./hooks";
+import { workspaceOverviewJa } from "./workspace-overview";
 const messages: Record<string, string> = {
   ...hooksJa,
+  ...workspaceOverviewJa,
   "面包屑路径": "パンくずパス",
   "完整路径可用滚轮或触控板上下、左右滚动；悬停展开会压缩路径，悬停时展开当前片段。": "フルパスはホイールやトラックパッドの縦横どちらの操作でもスクロールできます。ホバー展開ではパスを縮め、ポインターを重ねた部分を展開します。",
   "完整路径滚动": "フルパスをスクロール",

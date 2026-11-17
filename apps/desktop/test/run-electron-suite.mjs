@@ -38,6 +38,7 @@ const suites = {
     { name: "workbench-split-ui", runner: "node" },
     { name: "workbench-sidebar-ui", runner: "node" },
     { name: "nav-history-ui", runner: "node" },
+    { name: "workspace-overview-ui", runner: "node" },
     { name: "shortcuts-ui", runner: "node" },
     { name: "side-chat-ui", runner: "node" },
     { name: "acceptance-ui", runner: "node" },

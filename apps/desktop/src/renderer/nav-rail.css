@@ -50,15 +50,15 @@
   box-shadow: 0 0 4px rgba(0, 0, 0, 0.12);
   pointer-events: none;
 }
-/* 纸面始终是直角，不随折叠状态切换形状。 */
-.nav-rail-layout .main-chat-view { --paper-left-radius: 0px; }
+/* 纸面始终是直角，不随折叠状态切换形状。工作区总览（.wo-shell）和对话一样属于主页，行为相同。 */
+.nav-rail-layout :is(.main-chat-view, .wo-shell) { --paper-left-radius: 0px; }
 /*
  * 左侧圆角是固定在收起位置的透明遮罩，而非随纸面移动的 border-radius。
  * 遮罩宽度随 --nav-open 缩小，圆心始终留在收起位置：展开时直角从圆角下面抽出，
  * 收起时再滑回圆角下面。只裁两个角，不重复绘制玻璃，也不裁掉顶栏和菜单。
  * 不用负数 mask-position：Chromium 会把移出左缘的遮罩误画到右侧，造成纸面缺角。
  */
-.nav-rail-layout .main-stage-pane > .main-chat-view {
+.nav-rail-layout .main-stage-pane > :is(.main-chat-view, .wo-shell) {
   mask-image:
     radial-gradient(circle at right bottom, transparent calc(var(--glass-fillet) - 0.5px), #000 var(--glass-fillet)),
     radial-gradient(circle at right top, transparent calc(var(--glass-fillet) - 0.5px), #000 var(--glass-fillet)),

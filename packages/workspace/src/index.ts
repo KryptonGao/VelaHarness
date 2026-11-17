@@ -20,6 +20,7 @@ export { createSandboxedToolDefinitions, type SandboxToolFactoryInput } from "./
 export { WorktreeSessions, type CreatedWorktree } from "./worktree-session";
 export { createWorktree, removeWorktree } from './git-worktree';
 export { resolveRepoRoot } from './git-state';
+export { collectWorkspaceOverview, parseCommitLog, pickTopFiles, resolveRevealPath, type WorkspaceOverviewOptions } from './workspace-overview';
 export { commitWorktreeChanges, currentHead, deleteLocalBranch, hasTrackedChanges, parseNumstat, squashMergeBranch, type SquashResult, type WorktreeCommitResult } from './git-squash';
 export { PullRequestInboxService } from './pull-request-inbox-service';
 export { validateTarget, safeGithubUrl } from './pr-inbox-mapping';
