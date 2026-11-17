@@ -257,7 +257,16 @@ if (!process.versions.electron) {
       // A git event refreshes the snapshot.
       await evaluate("window.snapshot = { ...window.snapshot, git: { ...window.snapshot.git, branch: 'release', fileCount: 0, counts: { modified: 0, added: 0, untracked: 0, deleted: 0, renamed: 0, conflicted: 0 }, topFiles: [] } }; window.gitListener({ type: 'status-changed' })");
       await until("document.querySelector('.wo-branch')?.textContent === 'release'");
-      assert.match(await text(".wo-clean"), /没有未提交的变更/);
+      assert.match(await text(".wo-branch-line .wo-ok"), /没有未提交的变更/, "A clean tree is a small chip beside the branch");
+      assert.equal(await count(".wo-repo-cols > *"), 2, "Without changes worktrees and commits take a column each, with no empty column");
+      assert.equal(await count(".wo-files"), 0);
+      assert.match(await evaluate("[...document.querySelectorAll('.wo-stat')][1].textContent"), /0.*工作区干净/);
+      assert.doesNotMatch(await evaluate("[...document.querySelectorAll('.wo-stat')][1].textContent"), /\+\d|−\d/, "No +0 −0 when nothing changed");
+      if (process.env.VELA_OVERVIEW_SHOT) {
+        await evaluate("document.querySelector('.scheduled-tasks-page-scroll').scrollTop = 0");
+        await new Promise(done => setTimeout(done, 500));
+        save(process.env.VELA_OVERVIEW_SHOT.replace(/\.png$/, "-clean.png"), (await win.webContents.capturePage()).toPNG());
+      }
 
       // Sidebar: the folder icon opens the overview, the name still folds the group.
       const group = "document.querySelector('.session-group')";

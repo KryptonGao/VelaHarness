@@ -162,7 +162,7 @@ export function WorkspaceOverviewPage({
             <span className="wo-stat-label"><Icon name="file-diff" size={14} />{tr("未提交的变更", "Uncommitted changes")}</span>
             <span className="wo-stat-value wo-num">{git.fileCount}<small>{tr("个文件", git.fileCount === 1 ? "file" : "files")}</small></span>
             <span className="wo-stat-sub wo-num">
-              <span className="wo-add">+{git.addedLines}</span><span className="wo-del">−{git.deletedLines}</span>
+              {git.fileCount > 0 ? <><span className="wo-add">+{git.addedLines}</span><span className="wo-del">−{git.deletedLines}</span></> : <span className="wo-ok">{tr("工作区干净", "Clean")}</span>}
               {git.worktreeCount > 0 ? <span>{trf("{0} 个工作树", git.worktreeCount === 1 ? "1 worktree" : "{0} worktrees", git.worktreeCount)}</span> : null}
             </span>
           </div> : null}
@@ -203,49 +203,50 @@ function RepositoryCard({ workspace, git, loading, now }: { workspace: string; g
   }
   const parts = changeBreakdown(git.counts);
   const partLabel = { modified: tr("修改", "modified"), added: tr("新增", "added"), deleted: tr("删除", "deleted"), other: tr("其他", "other") };
+  const changes = git.fileCount > 0 ? <div key="changes">
+    <div className="wo-sec"><span>{tr("工作区变更", "Working tree")}</span><span className="wo-num"><span className="wo-add">+{git.addedLines}</span> <span className="wo-del">−{git.deletedLines}</span></span></div>
+    <div className="wo-splitbar" role="img" aria-label={parts.map(part => `${part.count} ${partLabel[part.status]}`).join(", ")}>
+      {parts.map(part => <i key={part.status} className={`wo-part-${part.status}`} style={{ flexGrow: part.count }} />)}
+    </div>
+    <div className="wo-legend wo-num">{parts.map(part => <span key={part.status}><i className={`wo-part-${part.status}`} />{part.count} {partLabel[part.status]}</span>)}</div>
+    <ul className="wo-files wo-num">{git.topFiles.map(file => <li key={file.path}>
+      <button className="wo-file" type="button" title={`${tr("在 Finder 中显示", "Reveal in Finder")} · ${file.path}`}
+        aria-label={`${tr("在 Finder 中显示", "Reveal in Finder")} · ${fileBaseName(file.path)}`}
+        onClick={() => { void window.vela?.workspaceOverview?.reveal(workspace, file.path).catch(() => undefined); }}>
+        <FileTypeIcon path={file.path} /><span className="wo-file-name">{fileBaseName(file.path)}</span>
+      </button>
+      <span className="wo-add">+{file.addedLines}</span><span className="wo-del">−{file.deletedLines}</span>
+    </li>)}</ul>
+  </div> : null;
+  const worktrees = git.worktreeCount > 0 ? <div key="worktrees">
+    <div className="wo-sec"><span>{trf("工作树 · {0}", "Worktrees · {0}", git.worktreeCount)}</span></div>
+    <ul className="wo-worktrees">{git.worktrees.map(item => <li key={item.path}>
+      <Icon name="branch" size={12} />
+      <span className="wo-mono wo-wt-name" title={item.path}>{item.branch ?? folderName(item.path)}</span>
+      <span className="wo-faint">{item.changeCount ? trf("{0} 处改动", item.changeCount === 1 ? "1 change" : "{0} changes", item.changeCount) : tr("无改动", "Clean")}</span>
+    </li>)}</ul>
+  </div> : null;
+  const commits = git.commits.length > 0 ? <div key="commits">
+    <div className="wo-sec"><span>{tr("最近提交", "Recent commits")}</span></div>
+    <ul className="wo-commits">{git.commits.map(commit => <li key={commit.sha}>
+      <span className="wo-hash wo-mono">{commit.shortSha}</span>
+      <span className="wo-commit-subject" title={commit.subject}>{commit.subject}</span>
+      <span className="wo-faint">{relativeTime(commit.at, now)}</span>
+    </li>)}</ul>
+  </div> : null;
+  // 有变更时：左列变更，右列工作树和提交；没有变更时：工作树和提交各占一列，不留空列。
+  const columns = changes ? [changes, worktrees || commits ? <div key="side" className="wo-repo-side">{worktrees}{commits}</div> : null] : [worktrees, commits];
+  const shown = columns.filter(Boolean);
   return <section className="wo-card" aria-labelledby="wo-repo-title">
     <div className="wo-card-head"><h2 id="wo-repo-title">{tr("仓库", "Repository")}</h2></div>
     <div className="wo-card-body wo-repo">
       <div className="wo-branch-line">
         <Icon name="branch" size={14} />
         <span className="wo-mono wo-branch">{git.branch ?? tr("游离 HEAD", "Detached HEAD")}</span>
+        {git.fileCount === 0 ? <span className="wo-chip wo-ok"><Icon name="check" size={12} />{tr("没有未提交的变更", "Working tree clean")}</span> : null}
         {git.upstream ? <span className="wo-sync wo-num"><span>↑{git.ahead}</span><span>↓{git.behind}</span></span> : null}
       </div>
-      <div className="wo-repo-cols">
-      {git.fileCount > 0 ? <div>
-        <div className="wo-sec"><span>{tr("工作区变更", "Working tree")}</span><span className="wo-num"><span className="wo-add">+{git.addedLines}</span> <span className="wo-del">−{git.deletedLines}</span></span></div>
-        <div className="wo-splitbar" role="img" aria-label={parts.map(part => `${part.count} ${partLabel[part.status]}`).join(", ")}>
-          {parts.map(part => <i key={part.status} className={`wo-part-${part.status}`} style={{ flexGrow: part.count }} />)}
-        </div>
-        <div className="wo-legend wo-num">{parts.map(part => <span key={part.status}><i className={`wo-part-${part.status}`} />{part.count} {partLabel[part.status]}</span>)}</div>
-        <ul className="wo-files wo-num">{git.topFiles.map(file => <li key={file.path}>
-          <button className="wo-file" type="button" title={`${tr("在 Finder 中显示", "Reveal in Finder")} · ${file.path}`}
-            aria-label={`${tr("在 Finder 中显示", "Reveal in Finder")} · ${fileBaseName(file.path)}`}
-            onClick={() => { void window.vela?.workspaceOverview?.reveal(workspace, file.path).catch(() => undefined); }}>
-            <FileTypeIcon path={file.path} /><span className="wo-file-name">{fileBaseName(file.path)}</span>
-          </button>
-          <span className="wo-add">+{file.addedLines}</span><span className="wo-del">−{file.deletedLines}</span>
-        </li>)}</ul>
-      </div> : <p className="wo-clean"><Icon name="check-circle" size={14} />{tr("没有未提交的变更", "Working tree clean")}</p>}
-      {git.worktreeCount > 0 || git.commits.length > 0 ? <div>
-      {git.worktreeCount > 0 ? <div>
-        <div className="wo-sec"><span>{trf("工作树 · {0}", "Worktrees · {0}", git.worktreeCount)}</span></div>
-        <ul className="wo-worktrees">{git.worktrees.map(item => <li key={item.path}>
-          <Icon name="branch" size={12} />
-          <span className="wo-mono wo-wt-name" title={item.path}>{item.branch ?? folderName(item.path)}</span>
-          <span className="wo-faint">{item.changeCount ? trf("{0} 处改动", item.changeCount === 1 ? "1 change" : "{0} changes", item.changeCount) : tr("无改动", "Clean")}</span>
-        </li>)}</ul>
-      </div> : null}
-      {git.commits.length > 0 ? <div>
-        <div className="wo-sec"><span>{tr("最近提交", "Recent commits")}</span></div>
-        <ul className="wo-commits">{git.commits.map(commit => <li key={commit.sha}>
-          <span className="wo-hash wo-mono">{commit.shortSha}</span>
-          <span className="wo-commit-subject" title={commit.subject}>{commit.subject}</span>
-          <span className="wo-faint">{relativeTime(commit.at, now)}</span>
-        </li>)}</ul>
-      </div> : null}
-      </div> : null}
-      </div>
+      {shown.length > 0 ? <div className="wo-repo-cols">{shown}</div> : null}
     </div>
   </section>;
 }

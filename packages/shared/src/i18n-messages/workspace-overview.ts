@@ -1,5 +1,6 @@
 /** 工作区总览页。已在其他页面出现过的通用词（对话、定时任务等）沿用全局词典。 */
 export const workspaceOverviewZhTW: Record<string, string> = {
+  "工作区干净": "工作區乾淨",
   "工作区总览": "工作區總覽",
   "概况": "概況",
   "仓库": "儲存庫",
@@ -41,6 +42,7 @@ export const workspaceOverviewZhTW: Record<string, string> = {
 };
 
 export const workspaceOverviewJa: Record<string, string> = {
+  "工作区干净": "変更なし",
   "工作区总览": "ワークスペース概要",
   "概况": "サマリー",
   "仓库": "リポジトリ",
@@ -82,6 +84,7 @@ export const workspaceOverviewJa: Record<string, string> = {
 };
 
 export const workspaceOverviewKo: Record<string, string> = {
+  "工作区干净": "변경 없음",
   "工作区总览": "워크스페이스 개요",
   "概况": "요약",
   "仓库": "저장소",

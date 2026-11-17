@@ -104,7 +104,8 @@ button.wo-chip:hover { background: var(--bg-hover); color: var(--text-primary); 
 /* 仓库 */
 .wo-repo { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
 .wo-repo-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 14px 32px; }
-.wo-repo-cols > * { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; align-content: start; }
+.wo-repo-cols > * { min-width: 0; align-self: start; }
+.wo-repo-side { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
 .wo-branch-line { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .wo-branch { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .wo-sync { margin-left: auto; display: flex; gap: 8px; color: var(--text-muted); font-size: calc(12px * var(--ui-scale)); }
@@ -122,7 +123,6 @@ button.wo-chip:hover { background: var(--bg-hover); color: var(--text-primary); 
 .wo-file:hover { color: var(--text-primary); }
 .wo-file .file-type-icon { flex: none; }
 .wo-file-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.wo-clean { display: flex; align-items: center; gap: 6px; color: var(--success); }
 .wo-worktrees, .wo-commits { display: grid; grid-template-columns: minmax(0, 1fr); gap: 5px; font-size: calc(12px * var(--ui-scale)); }
 .wo-worktrees li { display: flex; align-items: center; gap: 8px; }
 .wo-worktrees svg { color: var(--violet); flex: none; }
