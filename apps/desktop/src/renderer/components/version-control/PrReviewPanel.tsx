@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import type { AppLocale, PrReviewComment, PrReviewEvent, PrReviewState, PrReviewSummary, PrSummary } from "@vela/shared";
 import { tr, trf } from "../../locale";
 import type { VersionControlApi } from "../../hooks/useVersionControl";
-import { AlertIcon, PrIcon, RefreshIcon } from "../icons";
 import { formatRelativeTime } from "./time-format";
+import { Icon } from "../icons";
 
 /** 线程列表筛选;全部为默认,其余按本地数据过滤。 */
 type ReviewFilter = "all" | "unresolved" | "resolved" | "outdated";
@@ -220,7 +220,7 @@ export function PrReviewPanel({
     <div className="vc-popover vc-p2-review" role="dialog" aria-label={tr("评论与审阅", "Comments and reviews")}>
       <div className="vc-ops-head">
         <b>
-          <PrIcon size={12} /> {trf("PR #{0} 评论与审阅", "PR #{0} comments and reviews", pr.number)}
+          <Icon name="pull-request" size={12} /> {trf("PR #{0} 评论与审阅", "PR #{0} comments and reviews", pr.number)}
         </b>
         {api.reviewThreadsLoading ? <span className="vc-spinner" aria-hidden="true" /> : null}
         <button
@@ -230,7 +230,7 @@ export function PrReviewPanel({
           aria-label={tr("刷新评论与审阅", "Refresh comments and reviews")}
           onClick={retry}
         >
-          <RefreshIcon size={11} />
+          <Icon name="refresh" size={12} />
         </button>
         <button type="button" className="vc-link" onClick={onClose}>{tr("关闭", "Close")}</button>
       </div>
@@ -244,14 +244,14 @@ export function PrReviewPanel({
         ) : null}
         {!data && loadFailed ? (
           <div className="vc-state vc-state-error" role="alert">
-            <AlertIcon size={13} />
+            <Icon name="alert" size={14} />
             <span>{api.error ?? tr("读取评论与审阅失败", "Could not load comments and reviews")}</span>
             <button type="button" className="vc-link" onClick={retry}>{tr("重试", "Retry")}</button>
           </div>
         ) : null}
         {data && !data.ok ? (
           <div className="vc-state vc-state-error" role="alert">
-            <AlertIcon size={13} />
+            <Icon name="alert" size={14} />
             <span>{data.message || tr("读取评论与审阅失败", "Could not load comments and reviews")}</span>
             <button type="button" className="vc-link" onClick={retry}>{tr("重试", "Retry")}</button>
           </div>

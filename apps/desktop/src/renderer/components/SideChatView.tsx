@@ -7,7 +7,6 @@ import { Markdown } from "./Markdown";
 import { usePacedText } from "../hooks/usePacedText";
 import { ModelControls } from "./ModelControls";
 import { composeQuotes, type SideChatInboxItem } from "./selection-actions";
-import { ArrowLeftIcon, ArrowUpIcon, CloseIcon, SendIcon } from "./icons";
 import { ConfirmDeleteButton } from "./ConfirmDeleteButton";
 import {
   forgetSideChatEntries,
@@ -26,6 +25,7 @@ import {
   type SideChatEntry,
   type SideChatModelChoice,
 } from "./side-chat-model";
+import { Icon } from "./icons";
 
 /**
  * 侧边聊天：工作面板里的轻量对话。只和模型对话，不调用任何工具；
@@ -216,7 +216,7 @@ export function SideChatView({ workspace, threadId, number, initialEntries, onBa
       <header className="side-chat-header">
         <button type="button" className="side-chat-icon-button" onClick={onBack}
           aria-label={tr("返回聊天列表", "Back to chats")} title={tr("返回聊天列表", "Back to chats")}>
-          <ArrowLeftIcon size={14} />
+          <Icon name="arrow-left" size={14} />
         </button>
         <div className="side-chat-heading">
           <span className="side-chat-title" title={sideChatTitle(sideChatStoredEntries(entries))}>{sideChatTitle(sideChatStoredEntries(entries))}</span>
@@ -275,7 +275,7 @@ export function SideChatView({ workspace, threadId, number, initialEntries, onBa
                 <button type="button" className="reply-quote-remove" title={tr("移除引用", "Remove quote")}
                   aria-label={tr("移除引用", "Remove quote")}
                   onClick={() => { setQuotes((current) => current.filter((_, at) => at !== index)); inputRef.current?.focus(); }}>
-                  <CloseIcon size={10} />
+                  <Icon name="close" size={10} />
                 </button>
               </div>
             ))}
@@ -327,7 +327,7 @@ export function SideChatView({ workspace, threadId, number, initialEntries, onBa
           ) : (
             <button type="submit" className={`send-action-blue-btn send${sendButtonIcon === "arrow-up" ? " send-icon-arrow-up" : ""}`} disabled={!draft.trim()}
               aria-label={tr("发送", "Send")} title={trf("发送 ({0})", "Send ({0})", "Enter")}>
-              {sendButtonIcon === "arrow-up" ? <ArrowUpIcon size={15} /> : <SendIcon />}
+              {sendButtonIcon === "arrow-up" ? <Icon name="arrow-up" size={16} /> : <Icon name="send" size={16} />}
             </button>
           )}
         </div>

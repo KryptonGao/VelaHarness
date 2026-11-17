@@ -14,8 +14,8 @@ import type {
 } from "@vela/shared";
 import { tr, trf } from "../../locale";
 import type { VersionControlApi } from "../../hooks/useVersionControl";
-import { AlertIcon, BranchIcon, CheckIcon, CommitIcon, DiffIcon, RefreshIcon } from "../icons";
 import { formatAbsoluteTime, formatRelativeTime } from "./time-format";
+import { Icon } from "../icons";
 
 type HistoryOpsTab = "history" | "rewrite" | "branch";
 
@@ -275,7 +275,7 @@ export function HistoryOpsPanel({
     <div className="vc-popover vc-p2-history" role="dialog" aria-label={tr("历史操作", "History actions")}>
       <div className="vc-ops-head">
         <b>
-          <CommitIcon size={12} /> {tr("历史操作", "History actions")}
+          <Icon name="commit" size={12} /> {tr("历史操作", "History actions")}
         </b>
         {tab === "branch" ? null : (
           <button
@@ -285,7 +285,7 @@ export function HistoryOpsPanel({
             aria-label={tr("刷新预览", "Refresh preview")}
             onClick={refreshPreview}
           >
-            <RefreshIcon size={12} />
+            <Icon name="refresh" size={12} />
           </button>
         )}
         <button type="button" className="vc-link" onClick={onClose}>
@@ -392,7 +392,7 @@ export function HistoryOpsPanel({
 
                 <div className="vc-p2-section">
                   <div className="vc-p2-label">
-                    <DiffIcon size={11} /> {tr("影响范围", "Impact")}
+                    <Icon name="diff" size={12} /> {tr("影响范围", "Impact")}
                   </div>
                   {historyPreviewLoading ? (
                     <div className="vc-state">{tr("正在读取操作范围…", "Loading the operation scope…")}</div>
@@ -430,7 +430,7 @@ export function HistoryOpsPanel({
                       {activeHistoryPreview.branch === null ? (
                         <div className="vc-p2-warn" role="alert">
                           <span>
-                            <AlertIcon size={11} />{" "}
+                            <Icon name="alert" size={12} />{" "}
                             {tr(
                               "当前处于 detached HEAD，没有可用的目标分支，请先切换或创建分支。",
                               "HEAD is detached, so there is no target branch. Switch to or create a branch first.",
@@ -441,7 +441,7 @@ export function HistoryOpsPanel({
                       {activeHistoryPreview.dirty ? (
                         <div className="vc-p2-warn" role="alert">
                           <span>
-                            <AlertIcon size={11} />{" "}
+                            <Icon name="alert" size={12} />{" "}
                             {tr(
                               "工作区有未提交改动，执行前请先提交或暂存。",
                               "The working tree has uncommitted changes; commit or stash them first.",
@@ -515,7 +515,7 @@ export function HistoryOpsPanel({
             {historyResult ? (
               <div className="vc-p2-section">
                 <div className="vc-p2-label">
-                  {historyResult.ok ? <CheckIcon size={11} /> : <AlertIcon size={11} />}
+                  {historyResult.ok ? <Icon name="check" size={12} /> : <Icon name="alert" size={12} />}
                   {tr("执行结果", "Result")}
                 </div>
                 <div className={historyResult.ok ? "vc-p2-note" : "vc-p2-error"} role={historyResult.ok ? "status" : "alert"}>
@@ -528,7 +528,7 @@ export function HistoryOpsPanel({
                   <>
                     <div className="vc-p2-warn" role="alert">
                       <span>
-                        <AlertIcon size={11} />{" "}
+                        <Icon name="alert" size={12} />{" "}
                         {trf("有 {0} 个冲突文件：解决后在改动页继续或中止该操作，然后刷新历史。", "{0} conflicted files: resolve them, then continue or abort the operation in the Changes page and refresh the history.", historyResult.conflictedPaths.length)}
                       </span>
                     </div>
@@ -646,7 +646,7 @@ export function HistoryOpsPanel({
             {commit && effectiveTargetSha ? (
               <div className="vc-p2-section">
                 <div className="vc-p2-label">
-                  <DiffIcon size={11} /> {tr("整理范围", "Rewrite scope")}
+                  <Icon name="diff" size={12} /> {tr("整理范围", "Rewrite scope")}
                 </div>
                 {rewritePreviewLoading ? (
                   <div className="vc-state">{tr("正在读取整理范围…", "Loading the rewrite scope…")}</div>
@@ -676,7 +676,7 @@ export function HistoryOpsPanel({
                     {activeRewritePreview.pushedCount > 0 ? (
                       <div className="vc-p2-warn" role="alert">
                         <span>
-                          <AlertIcon size={11} />{" "}
+                          <Icon name="alert" size={12} />{" "}
                           {trf("其中 {0} 个提交已推送，整理后需要另行安全强推，应用不会自动推送", "{0} of these commits are already pushed; after rewriting you must force-push safely yourself — the app never pushes automatically", activeRewritePreview.pushedCount)}
                         </span>
                       </div>
@@ -684,7 +684,7 @@ export function HistoryOpsPanel({
                     {activeRewritePreview.dirty ? (
                       <div className="vc-p2-warn" role="alert">
                         <span>
-                          <AlertIcon size={11} />{" "}
+                          <Icon name="alert" size={12} />{" "}
                           {tr(
                             "工作区有未提交改动，请先提交或暂存后再整理历史。",
                             "The working tree has uncommitted changes; commit or stash them before rewriting history.",
@@ -745,7 +745,7 @@ export function HistoryOpsPanel({
             {rewriteResult ? (
               <div className="vc-p2-section">
                 <div className="vc-p2-label">
-                  {rewriteResult.ok ? <CheckIcon size={11} /> : <AlertIcon size={11} />}
+                  {rewriteResult.ok ? <Icon name="check" size={12} /> : <Icon name="alert" size={12} />}
                   {tr("执行结果", "Result")}
                 </div>
                 <div className={rewriteResult.ok ? "vc-p2-note" : "vc-p2-error"} role={rewriteResult.ok ? "status" : "alert"}>
@@ -760,7 +760,7 @@ export function HistoryOpsPanel({
                 {rewriteResult.ok && rewriteResult.pushedCount > 0 ? (
                   <div className="vc-p2-warn" role="alert">
                     <span>
-                      <AlertIcon size={11} />{" "}
+                      <Icon name="alert" size={12} />{" "}
                       {trf("其中 {0} 个提交已推送，需要另行安全强推，应用不会自动推送。", "{0} of the rewritten commits were already pushed; force-push them safely yourself — the app never pushes automatically.", rewriteResult.pushedCount)}
                     </span>
                   </div>
@@ -809,7 +809,7 @@ export function HistoryOpsPanel({
 
                 <div className="vc-p2-section">
                   <div className="vc-p2-label">
-                    <BranchIcon size={11} /> {tr("起点", "Start point")}
+                    <Icon name="branch" size={12} /> {tr("起点", "Start point")}
                   </div>
                   <div className="vc-p2-meta">
                     <span>
@@ -836,7 +836,7 @@ export function HistoryOpsPanel({
             {branchResult ? (
               <div className="vc-p2-section">
                 <div className="vc-p2-label">
-                  {branchResult.ok ? <CheckIcon size={11} /> : <AlertIcon size={11} />}
+                  {branchResult.ok ? <Icon name="check" size={12} /> : <Icon name="alert" size={12} />}
                   {tr("执行结果", "Result")}
                 </div>
                 <div className={branchResult.ok ? "vc-p2-note" : "vc-p2-error"} role={branchResult.ok ? "status" : "alert"}>

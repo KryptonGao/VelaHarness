@@ -12,11 +12,11 @@ import type { ProjectApi } from "../hooks/useProject";
 import type { SidebarResize } from "../hooks/useSidebarResize";
 import type { PlanDraft } from "../plan-draft";
 import { planReferenceModel } from "../plan-draft";
-import { ChevronDownIcon } from "./icons";
 import { PlanReferenceCard } from "./PlanPanel";
 import { RepoCard } from "./RepoCard";
 import { SidebarResizeHandle } from "./SidebarResizeHandle";
 import { tr, trf, activeIntlLocale } from "../locale";
+import { Icon } from "./icons";
 
 const categoryLabels: Record<ContextCategory, [string, string]> = {
   system: ["系统提示词", "System prompt"],
@@ -156,7 +156,7 @@ export function PanelDisclosure({
       >
         <span className="panel-disclosure-title">{title}</span>
         <span className="panel-disclosure-meta">{meta}</span>
-        <span className="panel-disclosure-chevron" aria-hidden="true"><ChevronDownIcon /></span>
+        <span className="panel-disclosure-chevron" aria-hidden="true"><Icon name="chevron-down" size={12} /></span>
       </button>
       <div id={contentId} className="panel-disclosure-content" inert={!open} aria-hidden={!open}>
         <div className="panel-disclosure-inner">{children}</div>
@@ -304,7 +304,7 @@ export function ContextUsageCard({ context, details = false }: { context: Contex
       >
         <span>{tr("上下文用量", "Context usage")}</span>
         <span className="context-usage-chevron" aria-hidden="true">
-          <ChevronDownIcon />
+          <Icon name="chevron-down" size={12} />
         </span>
       </button>}
       <div className="context-usage-summary">

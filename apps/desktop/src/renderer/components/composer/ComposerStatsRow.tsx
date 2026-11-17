@@ -3,6 +3,7 @@ import type { ContextUsage } from "@vela/shared";
 import { ContextUsageTrigger } from "../ContextUsagePopover";
 import { COMPOSER_STAT_ROTATE_MS, composerStats } from "./composer-stats";
 import { tr } from "../../locale";
+import { Icon } from "../icons";
 
 /**
  * 输入框下方的会话统计条：输出速度、缓存命中率与 token 总量（每 30 秒轮流展示）、上下文占用环。
@@ -101,10 +102,6 @@ function ContextRing({ percent }: { percent: number }) {
 
 function TokenStackIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-      <ellipse cx="12" cy="6" rx="8" ry="3.2" />
-      <path d="M4 6v6c0 1.8 3.6 3.2 8 3.2s8-1.4 8-3.2V6" />
-      <path d="M4 12v6c0 1.8 3.6 3.2 8 3.2s8-1.4 8-3.2v-6" />
-    </svg>
+    <Icon name="stack" size={14} />
   );
 }

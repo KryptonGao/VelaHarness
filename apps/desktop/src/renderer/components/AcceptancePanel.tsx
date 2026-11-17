@@ -4,7 +4,7 @@ import { tr, trf } from "../locale";
 import type { AcceptanceRequest } from "./acceptance";
 import { BashView } from "./ToolCard";
 import { FileTypeIcon } from "./FileTypeIcon";
-import { ArrowRightIcon, CheckIcon, CircleIcon, TerminalIcon } from "./icons";
+import { Icon } from "./icons";
 
 function confirmationText(confirm: OutcomeConfirm): string {
   // agent 自己写的内容原样保留，系统生成的提示才参与本地化。
@@ -24,7 +24,7 @@ function confirmationText(confirm: OutcomeConfirm): string {
 
 function Status({ status }: { status: OutcomeItem["status"] }) {
   return <span className={`acceptance-status is-${status}`}>
-    {status === "done" ? <CheckIcon size={12} /> : <CircleIcon size={12} />}
+    {status === "done" ? <Icon name="check" size={12} /> : <Icon name="circle" size={12} />}
     {status === "done" ? tr("已完成", "Done") : status === "partial" ? tr("部分完成", "Partial") : tr("未完成", "Not done")}
   </span>;
 }
@@ -37,10 +37,10 @@ function EvidenceRow({ evidence, request }: { evidence: OutcomeEvidence; request
   return <div className={`acceptance-evidence is-${evidence.result}`}>
     <button type="button" className="acceptance-evidence-toggle" aria-expanded={open} aria-controls={id}
       onClick={() => setOpen(value => !value)}>
-      <TerminalIcon size={14} /><code>{evidence.command}</code>
+      <Icon name="terminal" size={14} /><code>{evidence.command}</code>
       <span className={`acceptance-result is-${evidence.result}`}>{result}</span>
       {evidence.stale ? <span className="acceptance-stale">{tr("已过期", "Stale")}</span> : null}
-      <ArrowRightIcon size={12} />
+      <Icon name="arrow-right" size={12} />
     </button>
     <div id={id} className="acceptance-evidence-output" hidden={!open}>
       {evidence.exitCode !== undefined ? <div className="acceptance-output-meta">{trf("退出码 {0}", "Exit code {0}", evidence.exitCode)}</div> : null}
@@ -65,7 +65,7 @@ export function AcceptancePanel({ request, onOpenDiff }: {
       title={change.path} onClick={() => onOpenDiff(change.path, change.diffToolIds[0])}>
       <FileTypeIcon path={change.path} /><span className="acceptance-change-path">{change.path}</span>
       {change.origin === "tool" ? <span className="acceptance-change-stats"><span className="turn-changes-added">+{change.added}</span><span className="turn-changes-removed">−{change.removed}</span></span> : null}
-      {change.diffToolIds.length ? <ArrowRightIcon size={12} /> : null}
+      {change.diffToolIds.length ? <Icon name="arrow-right" size={12} /> : null}
     </button>
     {!change.diffToolIds.length ? <p className="acceptance-change-note">{tr("没有保存的 diff", "No saved diff")}</p> : null}
     {change.diffToolIds.length > 1 ? <div className="acceptance-edits">{change.diffToolIds.map((toolId, index) => <button type="button" key={toolId}
@@ -73,7 +73,7 @@ export function AcceptancePanel({ request, onOpenDiff }: {
   </li>;
 
   return <div className="acceptance-panel" role="region" aria-labelledby={`${id}-title`}>
-    <header className="acceptance-toolbar"><CheckIcon size={14} /><strong id={`${id}-title`}>{tr("成果验收", "Outcome acceptance")}</strong>
+    <header className="acceptance-toolbar"><Icon name="check" size={14} /><strong id={`${id}-title`}>{tr("成果验收", "Outcome acceptance")}</strong>
       <span>{trf("{0} 项需求", "{0} requirements", outcome.items.length)}</span></header>
     {outcome.source === "derived" ? <p className="acceptance-derived">{tr("未提交需求归属，按本轮记录汇总", "No requirement attribution was submitted; summarized from this turn’s records")}</p> : null}
     <div className="acceptance-body">

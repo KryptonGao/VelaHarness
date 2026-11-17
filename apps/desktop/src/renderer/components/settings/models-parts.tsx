@@ -1,10 +1,10 @@
 import { customModelApis, type CustomModelApi } from "@vela/shared";
 import { useState } from "react";
-import { CubeIcon, EyeIcon, EyeOffIcon } from "../icons";
 import type { SettingsCopy } from "../settings-copy";
 import { providerMonogram } from "./models-view";
 import { SettingsSelect } from "./SettingsSelect";
 import { isColorIcon, monoIconTint, providerIconName } from "./provider-icons";
+import { Icon, snapIconSize } from "../icons";
 
 /** 随包的供应商图标,按文件名索引。彩色版直接用 <img>,单色版用 mask 绘制,颜色跟随主题。 */
 const iconUrls = import.meta.glob<string>("../../assets/providers/*.svg", { query: "?url", import: "default", eager: true });
@@ -37,7 +37,7 @@ export function ProviderLogo({ provider, size = "sm" }: { provider: { id?: strin
     );
   }
   if (provider.custom) {
-    return <span className={`models-logo ${size}`}><CubeIcon size={size === "lg" ? 24 : 18} /></span>;
+    return <span className={`models-logo ${size}`}><Icon name="cube" size={snapIconSize(size === "lg" ? 24 : 18)} /></span>;
   }
   const { letter, hue } = providerMonogram(provider.name);
   return (
@@ -165,7 +165,7 @@ export function KeyField({
           title={shown ? copy.hideKey : copy.showKey}
           onClick={() => setShown((current) => !current)}
         >
-          {shown ? <EyeOffIcon size={15} /> : <EyeIcon size={15} />}
+          {shown ? <Icon name="eye-off" size={16} /> : <Icon name="eye" size={16} />}
         </button>
       </span>
     </label>

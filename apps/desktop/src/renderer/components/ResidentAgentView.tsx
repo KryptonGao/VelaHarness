@@ -18,14 +18,13 @@ import type { UiMessage } from "../hooks/useSession";
 import { AssistantMarkdown } from "./intelligent-ui/AssistantMarkdown";
 import { UiHostProvider, type UiHost } from "./intelligent-ui/UiRuntime";
 import { stableUiMessageId } from "./intelligent-ui/ui-state-store";
-import { ArrowUpIcon, PauseIcon, PlayIcon } from "./icons";
 import { Markdown } from "./Markdown";
 import { UserMessageFrame } from "./UserMessageFrame";
 import { ProactiveRulesPanel } from "./ProactiveRulesPanel";
 import { ResidentSettingsPanel } from "./ResidentSettingsPanel";
 import { modeDescription, modeLabel, stateLabel, statusSummary, taskErrorText, taskSourceLabel, taskStatusLabel } from "./resident-agent-model";
 import { useSlidingTabIndicator } from "./useSlidingTabIndicator";
-import { Icon } from "./icons/Icon";
+import { Icon } from "./icons";
 
 type Tab = "chat" | "tasks" | "rules" | "settings";
 
@@ -191,7 +190,7 @@ function Chat({ api, status, settings, messageStore, notice, setNotice }: {
             </select>
           </label>
           <button type="submit" className="send-action-blue-btn send send-icon-arrow-up" title={tr("发送 (Enter)", "Send (Enter)")} aria-label={tr("发送", "Send")}
-            disabled={!text.trim() || sending || Boolean(blocked)}><ArrowUpIcon size={15} /></button>
+            disabled={!text.trim() || sending || Boolean(blocked)}><Icon name="arrow-up" size={16} /></button>
         </div>
       </form>
       {settings?.mode === "disabled" ? null : <p className="agent-inbox-muted resident-hint">{workspace
@@ -296,7 +295,7 @@ export function ResidentAgentView({ api, status, settings, rules, messageStore, 
         </div>
         <button type="button" className="resident-pause" disabled={pending || settings.mode === "disabled"} aria-pressed={status.paused} onClick={() => void togglePause()}
           title={status.paused ? tr("恢复后台自动任务", "Resume background tasks") : tr("暂停全部后台自动任务；已在运行的不会被打断", "Pause all background tasks. Ones already running aren't interrupted")}>
-          {status.paused ? <PlayIcon size={12} /> : <PauseIcon size={12} />}
+          {status.paused ? <Icon name="play" size={12} /> : <Icon name="pause" size={12} />}
           <span>{status.paused ? tr("恢复", "Resume") : tr("暂停", "Pause")}</span>
         </button>
       </div>

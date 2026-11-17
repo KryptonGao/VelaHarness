@@ -10,8 +10,8 @@ import type {
 } from "@vela/shared";
 import { tr, trf } from "../../locale";
 import type { VersionControlApi } from "../../hooks/useVersionControl";
-import { AlertIcon, PrIcon, RefreshIcon } from "../icons";
 import { formatRelativeTime } from "./time-format";
+import { Icon } from "../icons";
 
 /** 面板内的写入结果;页面级提示仍由 useVersionControl 的 notice 承担。 */
 type PanelMessage = { ok: boolean; blocked: boolean; message: string };
@@ -191,7 +191,7 @@ export function PrMergePanel({
     <div className="vc-popover vc-p2-merge" role="dialog" aria-label={tr("合并与关闭", "Merge and close")}>
       <div className="vc-ops-head">
         <b>
-          <PrIcon size={12} /> {trf("PR #{0} 合并与关闭", "PR #{0} merge and close", pr.number)}
+          <Icon name="pull-request" size={12} /> {trf("PR #{0} 合并与关闭", "PR #{0} merge and close", pr.number)}
         </b>
         {api.mergePreviewLoading ? <span className="vc-spinner" aria-hidden="true" /> : null}
         <button
@@ -201,7 +201,7 @@ export function PrMergePanel({
           aria-label={tr("刷新合并条件", "Refresh merge conditions")}
           onClick={retry}
         >
-          <RefreshIcon size={11} />
+          <Icon name="refresh" size={12} />
         </button>
         <button type="button" className="vc-link" onClick={onClose}>{tr("关闭", "Close")}</button>
       </div>
@@ -215,14 +215,14 @@ export function PrMergePanel({
         ) : null}
         {!preview && loadFailed ? (
           <div className="vc-state vc-state-error" role="alert">
-            <AlertIcon size={13} />
+            <Icon name="alert" size={14} />
             <span>{api.error ?? tr("核对合并条件失败", "Could not check the merge conditions")}</span>
             <button type="button" className="vc-link" onClick={retry}>{tr("重试", "Retry")}</button>
           </div>
         ) : null}
         {preview && !preview.ok ? (
           <div className="vc-state vc-state-error" role="alert">
-            <AlertIcon size={13} />
+            <Icon name="alert" size={14} />
             <span>{preview.message || tr("核对合并条件失败", "Could not check the merge conditions")}</span>
             <button type="button" className="vc-link" onClick={retry}>{tr("重试", "Retry")}</button>
           </div>
@@ -475,7 +475,7 @@ export function PrMergePanel({
                 {tr("同时删除对应分支（本地与远程）", "Also delete the branch locally and remotely")}
               </label>
               <div className="vc-inline-notice">
-                <AlertIcon size={12} />
+                <Icon name="alert" size={12} />
                 {tr(
                   "关闭不会删除任何提交，也不会删除本地分支，并且不能在这里撤销；需要时在 GitHub 上重新打开。",
                   "Closing deletes no commits and keeps the local branch; it cannot be undone here. Reopen it on GitHub if needed.",

@@ -1,11 +1,10 @@
 import type { WorkspaceSearchResult } from "@vela/shared";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { FileTypeIcon } from "../FileTypeIcon";
-import { ChevronRightIcon } from "../icons";
 import { useFilePreview } from "./FilePreviewContext";
 import { ancestorsOf, buildFileTree, filterFilePaths, type FileTreeNode } from "./tree";
 import { localizeError, tr } from "../../locale";
-import { Icon } from "../icons/Icon";
+import { Icon } from "../icons";
 
 type SearchMode = "file" | "code";
 
@@ -217,7 +216,7 @@ export function FileTree({
               title={node.path}
             >
               <span className={`explorer-caret${expanded.has(node.path) ? " is-expanded" : ""}`} aria-hidden="true">
-                <ChevronRightIcon size={10} />
+                <Icon name="chevron-right" size={10} />
               </span>
               <span className="explorer-name">{node.name}</span>
             </button>

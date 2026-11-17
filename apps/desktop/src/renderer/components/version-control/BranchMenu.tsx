@@ -2,8 +2,7 @@ import { useLayoutEffect, useMemo, useState } from "react";
 import type { BranchSummary } from "@vela/shared";
 import { tr } from "../../locale";
 import { useDismissable } from "../../hooks/useDismissable";
-import { BranchIcon, CheckIcon, ChevronDownIcon } from "../icons";
-import { Icon } from "../icons/Icon";
+import { Icon } from "../icons";
 
 /**
  * 分支选择:搜索本地/远程分支,标记当前分支、upstream 与 worktree 占用,
@@ -68,9 +67,9 @@ export function BranchMenu({
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
       >
-        <BranchIcon size={12} />
+        <Icon name="branch" size={12} />
         <span className="vc-branch-name">{current ?? tr("Detached HEAD", "Detached HEAD")}</span>
-        <ChevronDownIcon size={11} />
+        <Icon name="chevron-down" size={12} />
       </button>
       {open ? (
         <div className="vc-popover vc-branch-popover" role="listbox" aria-label={tr("选择分支", "Choose a branch")}>
@@ -103,7 +102,7 @@ export function BranchMenu({
                   }}
                 >
                   <span className="vc-branch-item-name">
-                    {branch.current ? <CheckIcon size={11} /> : null}
+                    {branch.current ? <Icon name="check" size={12} /> : null}
                     {branch.name}
                   </span>
                   <span className="vc-branch-item-meta">

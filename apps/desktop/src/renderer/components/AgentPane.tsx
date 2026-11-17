@@ -23,10 +23,10 @@ import { partitionThinkingGroups, supportsThinkingGroups } from "../thinking-mod
 import { CompactToolGroup, CompactToolLine, ToolCard, ToolList, ToolRunGroup } from "./ToolCard";
 import { toolCompactKind } from "./tool-compact";
 import { attachFollowerTools, buildTurnItems, groupAgentStream, groupCoherentItems, groupProcessItems, hasCoherentTools, isFlatCoherentGroup, latestThoughtId, type CoherentNode, type ProcessNode } from "./tool-sequence";
-import { BranchIcon } from "./icons";
 import { JumpOrb } from "./JumpOrb";
 import type { OrbActivity } from "./jump-orb";
 import { shouldShowJumpToLatest } from "./chat-scroll";
+import { Icon } from "./icons";
 
 interface AgentPaneProps {
   agent: AgentInfo;
@@ -362,7 +362,7 @@ function AgentRosterMenu({
         aria-label={tr("子代理面板", "Subagents panel")}
         onClick={() => setOpen((value) => !value)}
       >
-        <BranchIcon size={13} />
+        <Icon name="branch" size={14} />
       </button>
       {open ? (
         <div className="agent-roster-menu" role="listbox" aria-label={tr("子代理列表", "Subagent list")}>

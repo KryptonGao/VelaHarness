@@ -2,8 +2,8 @@ import { PopoverPresence } from "../MotionPresence";
 import type { InteractionMode } from "@vela/shared";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useDismissable } from "../../hooks/useDismissable";
-import { CheckIcon, GoalIcon, PlanIcon, RaceIcon, TerminalIcon } from "../icons";
 import { tr, trf } from "../../locale";
+import { Icon } from "../icons";
 
 const modes: InteractionMode[] = ["agent", "plan", "goal"];
 
@@ -14,9 +14,9 @@ const modeLabels: Record<InteractionMode, string> = {
 };
 
 const modeIcons: Record<InteractionMode, ReactNode> = {
-  agent: <TerminalIcon size={14} />,
-  plan: <PlanIcon size={14} />,
-  goal: <GoalIcon size={14} />,
+  agent: <Icon name="terminal" size={14} />,
+  plan: <Icon name="plan" size={14} />,
+  goal: <Icon name="goal" size={14} />,
 };
 
 const modeDescriptions: Record<InteractionMode, [string, string]> = {
@@ -89,14 +89,14 @@ export function ModeChip({
               <span className="mode-option-text">
                 <span className="mode-option-name">{modeLabels[candidate]}</span>
               </span>
-              {candidate === mode ? <CheckIcon /> : null}
+              {candidate === mode ? <Icon name="check" size={14} /> : null}
             </button>
           ))}
           {race ? (
             <>
               <div className="mode-popover-divider" role="separator" />
               <button type="button" className="mode-option" onClick={() => { race.onStart(); setOpen(false); }}>
-                <span className="mode-option-icon mode-race"><RaceIcon size={14} /></span>
+                <span className="mode-option-icon mode-race"><Icon name="race" size={14} /></span>
                 <span className="mode-option-text">
                   <span className="mode-option-name">{tr("赛马", "Race")}</span>
                 </span>

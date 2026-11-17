@@ -10,7 +10,6 @@ import { useAgentWorkspace } from "./AgentPanel";
 import { modKeyLabel } from "../platform";
 import { readModelHint, writeModelHint } from "../startup-hint";
 import { useSecondClock } from "../hooks/useSecondClock";
-import { BranchIcon, CheckIcon, HistoryIcon, MemoryUpdateIcon, PlusIcon, SpeakerIcon, StackIcon, StopSquareIcon } from "./icons";
 import { speakReply, stopSpeaking, useSpeechPlayback, useSpeechState } from "../hooks/useSpeech";
 import { trackEnteredMessages, type EnterTrack } from "./message-motion";
 import type { useModels } from "../hooks/useModels";
@@ -84,7 +83,7 @@ import { ImageViewer, type ImageViewerRequest } from "./ImageViewer";
 import { localizeError, tr, trf, activeIntlLocale } from "../locale";
 import { ProviderErrorCard } from "./ProviderErrorCard";
 import { parseProviderError } from "./provider-error";
-import { Icon } from "./icons/Icon";
+import { Icon } from "./icons";
 
 interface FollowState {
   pinned: boolean;
@@ -890,7 +889,7 @@ export function ChatView({
               aria-label={tr("查看子代理运行", "View subagent runs")}
               onClick={openMostRelevantAgent}
             >
-              <StackIcon size={13} />
+              <Icon name="stack" size={14} />
               <span>
                 {runningSubagents > 0
                   ? trf("{0} 运行中", "{0} running", runningSubagents)
@@ -906,7 +905,7 @@ export function ChatView({
               aria-label={tr("新建标签页", "New tab")}
               onClick={onNewTab}
             >
-              <PlusIcon size={15} />
+              <Icon name="plus" size={16} />
             </button>
           ) : null}
           {onOpenCheckpoints && state?.activeConversationId && messages.some(message => message.role === "user") ? (
@@ -918,7 +917,7 @@ export function ChatView({
               aria-haspopup="dialog"
               onClick={() => onOpenCheckpoints()}
             >
-              <HistoryIcon size={15} />
+              <Icon name="history" size={16} />
             </button>
           ) : null}
           <ChatActionsMenu key={state?.activeConversationId ?? "empty"} messages={messages} streaming={Boolean(streaming)} />
@@ -1893,7 +1892,7 @@ function ReplyActions({
           aria-pressed={speaking ? true : undefined}
           onClick={toggleSpeech}
         >
-          {speaking ? <StopSquareIcon size={13} /> : <SpeakerIcon size={13} />}
+          {speaking ? <Icon name="stop-square" size={14} /> : <Icon name="speaker" size={14} />}
           <span>{speechError ? tr("朗读失败", "Failed") : speaking ? (speaking.status === "loading" ? tr("正在生成…", "Preparing…") : tr("停止朗读", "Stop")) : tr("朗读", "Read aloud")}</span>
         </button>
       ) : null}
@@ -1907,7 +1906,7 @@ function ReplyActions({
           if (branchTurn !== null) onBranch(branchTurn);
         }}
       >
-        <BranchIcon size={13} />
+        <Icon name="branch" size={14} />
         <span>{tr("分支到新聊天", "Branch to new chat")}</span>
       </button>
       {onCheckpoints && branchTurn !== null ? (
@@ -1919,7 +1918,7 @@ function ReplyActions({
           aria-haspopup="dialog"
           onClick={() => onCheckpoints(branchTurn)}
         >
-          <HistoryIcon size={13} />
+          <Icon name="history" size={14} />
           <span>{tr("检查点", "Checkpoint")}</span>
         </button>
       ) : null}
@@ -1934,7 +1933,7 @@ function ReplyActions({
           aria-haspopup="dialog"
           onClick={() => onDistillMemory(branchTurn)}
         >
-          <MemoryUpdateIcon size={13} />
+          <Icon name="memory-update" size={14} />
           <span>{tr("提炼到项目记忆", "Distill memory")}</span>
         </button>
       ) : null}
@@ -1947,7 +1946,7 @@ function ReplyActions({
           disabled={!onOpenAcceptance}
           onClick={() => onOpenAcceptance?.(acceptance)}
         >
-          <CheckIcon size={13} />
+          <Icon name="check" size={14} />
           <span>{tr("验收", "Acceptance")}</span>
         </button>
       ) : null}

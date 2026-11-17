@@ -24,9 +24,8 @@ import {
 import { Markdown } from "./Markdown";
 import { ContentSwap } from "./BatchMotion";
 import { PopoverPresence } from "./MotionPresence";
-import { ChevronDownIcon, PlanIcon } from "./icons";
 import { RecipeActionsContext } from './recipe-actions-context';
-import { Icon } from "./icons/Icon";
+import { Icon } from "./icons";
 
 const planStatusLabels: Record<ProposedPlanStatus, [string, string]> = {
   draft: ["草稿", "Draft"],
@@ -110,7 +109,7 @@ function PlanPreviewCard({ planId }: { planId: string }) {
     >
       <span className="plan-preview-head">
         <span className="plan-preview-kind">
-          <PlanIcon size={12} />
+          <Icon name="plan" size={12} />
           {resolved.streaming ? tr("正在撰写计划", "Writing a plan") : tr("已提交计划", "Plan submitted")}
         </span>
         <span className="plan-preview-meta">
@@ -164,7 +163,7 @@ export function PlanReferenceCard({
       </div>
       <button type="button" className="plan-reference-main" onClick={() => onOpen(model.id)}>
         <span className="plan-reference-icon" aria-hidden="true">
-          <PlanIcon size={14} />
+          <Icon name="plan" size={14} />
         </span>
         <span className="plan-reference-text">
           <span className="plan-reference-title">{model.title || tr("未命名计划", "Untitled plan")}</span>
@@ -266,7 +265,7 @@ export function PlanDocumentPane({
       <header className="plan-pane-header">
         <div className="plan-pane-title">
           <span className="plan-pane-kind" aria-hidden="true">
-            <PlanIcon size={13} />
+            <Icon name="plan" size={14} />
           </span>
           <h2 className="plan-pane-title-text" title={info.title}>
             {info.title || tr("未命名计划", "Untitled plan")}
@@ -295,7 +294,7 @@ export function PlanDocumentPane({
               onClick={() => setRevisionMenu((value) => !value)}
             >
               {`v${resolved.revision}`}
-              <ChevronDownIcon size={11} />
+              <Icon name="chevron-down" size={12} />
             </button>
             <PopoverPresence present={revisionMenu}>
               <div className="dock-popover plan-revision-menu" role="menu">
@@ -385,7 +384,7 @@ export function PlanDocumentPane({
                 onClick={() => setExecuteMenu((value) => !value)}
               >
                 {actions.generating ? tr("生成中…", "Generating…") : tr("执行计划", "Implement")}
-                <ChevronDownIcon size={11} />
+                <Icon name="chevron-down" size={12} />
               </button>
               <PopoverPresence present={executeMenu}>
                 <div className="dock-popover up plan-execute-menu" role="menu">

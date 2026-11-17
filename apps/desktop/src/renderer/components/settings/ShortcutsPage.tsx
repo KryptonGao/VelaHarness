@@ -19,9 +19,9 @@ import {
   type ShortcutDefinition,
   type ShortcutGroup,
 } from "../../shortcuts";
-import { PencilIcon, PlusIcon } from "../icons";
 import type { SettingsCopy } from "../settings-copy";
 import { SettingsGroup } from "./primitives";
+import { Icon } from "../icons";
 
 const MAX_BINDINGS = 3;
 
@@ -140,7 +140,7 @@ export function ShortcutsPage({ copy, platform }: { copy: SettingsCopy; platform
                               aria-label={active ? tr("按下新的快捷键", "Press new shortcut") : trf("修改快捷键 {0}", "Change shortcut {0}", formatBinding(binding, platform))}
                               onClick={() => { setProblem(null); setRecording(active ? null : { action, index }); }}>
                               {active ? <ListeningPill /> : <kbd>{formatBinding(binding, platform)}</kbd>}
-                              {active ? null : <PencilIcon />}
+                              {active ? null : <Icon name="edit" size={14} />}
                             </button>
                           );
                         })}
@@ -153,7 +153,7 @@ export function ShortcutsPage({ copy, platform }: { copy: SettingsCopy; platform
                             aria-label={trf("为「{0}」添加快捷键", "Add a shortcut for “{0}”", label(definition))}
                             title={tr("添加快捷键", "Add shortcut")}
                             onClick={() => { setProblem(null); setRecording({ action, index: null }); }}>
-                            <PlusIcon />
+                            <Icon name="plus" size={14} />
                           </button>
                         ) : null}
                         {customized ? (

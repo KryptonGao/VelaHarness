@@ -4,7 +4,6 @@ import type { useModels } from "../hooks/useModels";
 import type { SendButtonIcon } from "../hooks/usePreferences";
 import { tr } from "../locale";
 import { ConfirmDeleteButton } from "./ConfirmDeleteButton";
-import { CloseIcon, PlusIcon, SparkIcon } from "./icons";
 import type { SideChatInboxItem } from "./selection-actions";
 import { SideChatView } from "./SideChatView";
 import {
@@ -15,7 +14,7 @@ import {
   sideChatTitle,
   type SideChatModelChoice,
 } from "./side-chat-model";
-import { Icon } from "./icons/Icon";
+import { Icon } from "./icons";
 
 interface ChatProps {
   conversationId: string | null;
@@ -160,7 +159,7 @@ export function SideChatPanel({ workspace, visible, inbox, onInboxConsumed, ...c
         <header className="side-chat-home-header">
           <span className="side-chat-title">{tr("侧边聊天", "Side chat")}</span>
           <button type="button" className="side-chat-new" onClick={() => startChat()}>
-            <PlusIcon size={13} />
+            <Icon name="plus" size={14} />
             <span>{tr("新聊天", "New chat")}</span>
           </button>
         </header>
@@ -172,7 +171,7 @@ export function SideChatPanel({ workspace, visible, inbox, onInboxConsumed, ...c
           {query ? (
             <button type="button" className="side-chat-search-clear" aria-label={tr("清除搜索", "Clear search")}
               onClick={() => { setQuery(""); searchRef.current?.focus(); }}>
-              <CloseIcon size={10} />
+              <Icon name="close" size={10} />
             </button>
           ) : null}
         </div>
@@ -193,7 +192,7 @@ export function SideChatPanel({ workspace, visible, inbox, onInboxConsumed, ...c
               return (
                 <li key={thread.id} className="side-chat-thread-row">
                   <button type="button" className="side-chat-thread" onClick={() => openChat(thread)}>
-                    <span className="side-chat-avatar" aria-hidden="true"><SparkIcon size={15} /></span>
+                    <span className="side-chat-avatar" aria-hidden="true"><Icon name="sparkles" size={16} /></span>
                     <span className="side-chat-thread-body">
                       <span className="side-chat-thread-top">
                         <span className="side-chat-thread-title">{sideChatTitle(thread.entries)}</span>

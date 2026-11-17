@@ -1,9 +1,9 @@
 import { Fragment, useEffect, useRef } from "react";
-import { CloseIcon, CommandIcon, FileIcon, SkillIcon } from "../icons";
 import type { SlashMenuItem } from "./slash-picker";
 import { skillOriginLabel, skillTitle } from "./skill-picker";
 import { localizeError, tr } from "../../locale";
 import { useReducedMotion } from "../../hooks/useMotionPresence";
+import { Icon } from "../icons";
 
 export function SkillToken({
   name,
@@ -16,11 +16,11 @@ export function SkillToken({
 }) {
   return (
     <div className="composer-skill" title={description || `/skill:${name}`}>
-      <SkillIcon size={15} />
+      <Icon name="skill" size={16} />
       <span className="composer-skill-name">{skillTitle(name)}</span>
       {onRemove ? (
         <button type="button" className="composer-skill-remove" aria-label={tr("移除 Skill", "Remove skill")} onClick={onRemove}>
-          <CloseIcon size={12} />
+          <Icon name="close" size={12} />
         </button>
       ) : null}
     </div>
@@ -72,7 +72,7 @@ export function SkillMenu({ id = "skill-menu", optionIdPrefix = "skill-option", 
             <button id={`${optionIdPrefix}-${index}`} ref={selected ? activeRef : undefined} type="button" role="option" aria-selected={selected}
               aria-label={`/${command.name} · ${tr('命令', 'Command')} · ${command.description}`}
               className={`skill-menu-row${selected ? " active" : ""}`} onMouseEnter={() => onActiveIndex(index)} onClick={() => onSelect(item)}>
-              <span className="skill-menu-icon"><CommandIcon size={15} /></span>
+              <span className="skill-menu-icon"><Icon name="prompt" size={16} /></span>
               <span className="skill-menu-name">/{command.name}</span>
               <span className="skill-menu-desc">{command.description}</span>
               <span className="skill-menu-origin">{tr('命令', 'Command')}</span>
@@ -86,7 +86,7 @@ export function SkillMenu({ id = "skill-menu", optionIdPrefix = "skill-option", 
             <button id={`${optionIdPrefix}-${index}`} ref={selected ? activeRef : undefined} type="button" role="option" aria-selected={selected}
               aria-label={`/${customCommand.name} · ${originLabel(customCommand.origin)} · ${desc}`}
               className={`skill-menu-row${selected ? " active" : ""}`} onMouseEnter={() => onActiveIndex(index)} onClick={() => onSelect(item)}>
-              <span className="skill-menu-icon"><CommandIcon size={15} /></span>
+              <span className="skill-menu-icon"><Icon name="prompt" size={16} /></span>
               <span className="skill-menu-name">/{customCommand.name}</span>
               <span className="skill-menu-desc">{desc}</span>
               <span className="skill-menu-origin">{originLabel(customCommand.origin)}</span>
@@ -98,7 +98,7 @@ export function SkillMenu({ id = "skill-menu", optionIdPrefix = "skill-option", 
           <button id={`${optionIdPrefix}-${index}`} ref={selected ? activeRef : undefined} type="button" role="option" aria-selected={selected}
             aria-label={skill ? `${skillTitle(skill.name)} · ${tr('技能', 'Skill')} · ${skill.description}` : `${recipe!.name} · ${tr('任务配方', 'Task recipe')} · ${originLabel(recipe!.origin)} · ${recipe!.description}`}
             className={`skill-menu-row${selected ? " active" : ""}`} onMouseEnter={() => onActiveIndex(index)} onClick={() => onSelect(item)}>
-            <span className="skill-menu-icon">{skill ? <SkillIcon size={15} /> : <FileIcon size={15} />}</span>
+            <span className="skill-menu-icon">{skill ? <Icon name="skill" size={16} /> : <Icon name="file" size={16} />}</span>
             <span className="skill-menu-name">{skill ? skillTitle(skill.name) : recipe!.name}</span>
             <span className="skill-menu-desc">{skill?.description ?? recipe!.description}</span>
             <span className="skill-menu-origin">{skill ? skillOriginLabel(skill.origin) : originLabel(recipe!.origin)}</span>

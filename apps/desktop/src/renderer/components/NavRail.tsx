@@ -2,8 +2,8 @@ import type { ReactNode } from "react";
 import { tr, trf } from "../locale";
 import { modKeyLabel } from "../platform";
 import { useSidebarItems } from "../hooks/useSidebarItems";
-import { ClockIcon, GearIcon, HomeIcon, InboxIcon, PullRequestIcon, RecipeIcon } from "./icons";
 import "../nav-rail.css";
+import { Icon } from "./icons";
 
 export type NavCategory = "home" | "scheduledTasks" | "recipes" | "agentInbox" | "prInbox" | "settings";
 
@@ -31,14 +31,14 @@ export function NavRail({ active, platform, agentInboxBadge, onSelect }: NavRail
   return <nav className="nav-rail" aria-label={tr("分类", "Categories")}>
     <div className="nav-rail-titlebar" />
     <div className="nav-rail-group">
-      {button("home", tr("主页", "Home"), <HomeIcon size={18} filled={active === "home"} />)}
-      {items.scheduledTasks ? button("scheduledTasks", tr("定时任务", "Scheduled Tasks"), <ClockIcon size={18} filled={active === "scheduledTasks"} />) : null}
-      {items.recipes ? button("recipes", tr("任务配方", "Task Recipes"), <RecipeIcon size={18} filled={active === "recipes"} />) : null}
-      {items.agentInbox ? button("agentInbox", tr("Agent 收件箱", "Agent Inbox"), <InboxIcon size={18} filled={active === "agentInbox"} />, { badge: agentInboxBadge }) : null}
-      {items.prInbox ? button("prInbox", "Pull Request", <PullRequestIcon size={18} filled={active === "prInbox"} />) : null}
+      {button("home", tr("主页", "Home"), <Icon name="home" size={18} filled={active === "home"} />)}
+      {items.scheduledTasks ? button("scheduledTasks", tr("定时任务", "Scheduled Tasks"), <Icon name="clock" size={18} filled={active === "scheduledTasks"} />) : null}
+      {items.recipes ? button("recipes", tr("任务配方", "Task Recipes"), <Icon name="clipboard" size={18} filled={active === "recipes"} />) : null}
+      {items.agentInbox ? button("agentInbox", tr("Agent 收件箱", "Agent Inbox"), <Icon name="inbox" size={18} filled={active === "agentInbox"} />, { badge: agentInboxBadge }) : null}
+      {items.prInbox ? button("prInbox", "Pull Request", <Icon name="pull-request" size={18} filled={active === "prInbox"} />) : null}
     </div>
     <div className="nav-rail-group nav-rail-footer">
-      {button("settings", tr("设置", "Settings"), <GearIcon size={18} filled={active === "settings"} />, { title: `${tr("设置", "Settings")} (${mod},)` })}
+      {button("settings", tr("设置", "Settings"), <Icon name="settings" size={18} filled={active === "settings"} />, { title: `${tr("设置", "Settings")} (${mod},)` })}
     </div>
   </nav>;
 }

@@ -19,7 +19,6 @@ import { forwardRef, useContext, useEffect, useId, useLayoutEffect, useMemo, use
 import type { useModels } from "../hooks/useModels";
 import type { ProjectApi } from "../hooks/useProject";
 import type { SendButtonIcon } from "../hooks/usePreferences";
-import { ArrowUpIcon, CloseIcon, FileIcon, SendIcon, SkillIcon, SteerIcon } from "./icons";
 import { DictationButton } from "./composer/DictationButton";
 import { useDictation } from "../hooks/useDictation";
 import { useSpeechState } from "../hooks/useSpeech";
@@ -78,6 +77,7 @@ import { useAnnotationTracking } from "../browser/reply-store";
 import { localizeError, tr, useAppLocale, trf } from "../locale";
 import { useInputPrediction } from "../hooks/useInputPrediction";
 import { useComposerLayout } from "../hooks/useComposerLayout";
+import { Icon } from "./icons";
 
 export interface ComposerProps {
   embedded?: boolean;
@@ -994,7 +994,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
             {card?.busy ? <span className="status-card-spinner" aria-hidden="true" /> : null}
             <span className="status-card-title">{card?.title}</span>
             <button type="button" className="status-card-close" aria-label={tr("关闭", "Close")} title={tr("关闭", "Close")} onClick={closeCommandCard}>
-              <CloseIcon size={12} />
+              <Icon name="close" size={12} />
             </button>
           </header>
           {card?.message ? <p className="status-card-message">{card.message}</p> : null}
@@ -1028,7 +1028,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
             aria-label={tr("撤销这条指令", "Remove this instruction")}
             onClick={() => void onRemoveInstruction(entry.id)}
           >
-            <CloseIcon size={10} />
+            <Icon name="close" size={10} />
           </button>
         </div>
       )}
@@ -1047,7 +1047,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
               />
             ) : (
               <span className="attachment-file-icon">
-                <FileIcon size={12} />
+                <Icon name="file" size={12} />
               </span>
             )}
             <span className="attachment-name" title={entry.path || entry.name}>
@@ -1059,7 +1059,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
               title={tr("移除附件", "Remove attachment")}
               onClick={() => setAttachments((current) => current.filter((item) => item !== entry))}
             >
-              <CloseIcon size={10} />
+              <Icon name="close" size={10} />
             </button>
           </div>
         )}
@@ -1070,8 +1070,8 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
   const entry = (
     <div className="composer-entry">
       <span hidden ref={iconsRef}>
-        <SkillIcon size={15} />
-        <CloseIcon size={12} />
+        <Icon name="skill" size={16} />
+        <Icon name="close" size={12} />
       </span>
       <div
         id={promptId}
@@ -1258,7 +1258,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
               aria-label={element ? tr("移除批注", "Remove note") : tr("移除回复", "Remove reply")}
               onClick={() => { onRemoveReply?.(reply.id); inputRef.current?.focus(); }}
             >
-              <CloseIcon size={10} />
+              <Icon name="close" size={10} />
             </button>
           </div>
         );
@@ -1371,7 +1371,7 @@ export function ComposerActions({ sendButtonIcon, streaming, sendHint, steerHint
 }) {
   const steerButton = streaming && canQueue
     ? <button className="composer-steer-btn" type="button" title={steerHint}
-        aria-label={steerHint} disabled={disabled} onClick={onSteer}><SteerIcon /></button>
+        aria-label={steerHint} disabled={disabled} onClick={onSteer}><Icon name="sliders" size={14} /></button>
     : null;
   return <span className={`composer-action-slot${streaming ? " is-streaming" : ""}${steerButton ? " has-instruction" : ""}`}>
     {dictation}
@@ -1380,7 +1380,7 @@ export function ComposerActions({ sendButtonIcon, streaming, sendHint, steerHint
       <button className={`send-action-blue-btn send${sendButtonIcon === "arrow-up" ? " send-icon-arrow-up" : ""}`} type="submit" title={sendHint}
         aria-label={streaming ? tr("排队发送", "Queue") : tr("发送", "Send")} disabled={disabled}
         inert={streaming && !canQueue} aria-hidden={streaming && !canQueue} tabIndex={streaming && !canQueue ? -1 : undefined}>
-        {sendButtonIcon === "arrow-up" ? <ArrowUpIcon size={15} /> : <SendIcon />}
+        {sendButtonIcon === "arrow-up" ? <Icon name="arrow-up" size={16} /> : <Icon name="send" size={16} />}
       </button>
       <button className="send-action-blue-btn stop" type="button"
         title={tr("停止生成", "Stop generating")} aria-label={tr("停止生成", "Stop generating")}

@@ -2,13 +2,13 @@ import { useState } from "react";
 import type { useModels } from "../../hooks/useModels";
 import type { PreferencesApi } from "../../hooks/usePreferences";
 import { localizeError } from "../../locale";
-import { PlusIcon, RefreshIcon } from "../icons";
 import type { SettingsCopy } from "../settings-copy";
 import { AddProviderPicker } from "./AddProviderPicker";
 import { CustomProviderForm } from "./CustomProviderForm";
 import { ProviderLogo } from "./models-parts";
 import { groupListed, listedProviders, providerStatus, resolveSelection, unlistedBuiltins } from "./models-view";
 import { ProviderDetail } from "./ProviderDetail";
+import { Icon } from "../icons";
 
 type ModelsApi = ReturnType<typeof useModels>;
 
@@ -99,10 +99,10 @@ export function ModelsPage({ copy, models, preferences }: { copy: SettingsCopy; 
           disabled={models.refreshing}
           onClick={() => void refreshModels()}
         >
-          <span className={models.refreshing ? "models-spin" : undefined}><RefreshIcon size={15} /></span>
+          <span className={models.refreshing ? "models-spin" : undefined}><Icon name="refresh" size={16} /></span>
         </button>
         <button type="button" className="models-add-btn" data-setting-id="add-model" onClick={() => setView("add")}>
-          <PlusIcon size={14} />
+          <Icon name="plus" size={14} />
           {text.add}
         </button>
       </div>
@@ -116,11 +116,11 @@ export function ModelsPage({ copy, models, preferences }: { copy: SettingsCopy; 
 
       {empty ? (
         <div className="models-empty">
-          <span className="models-empty-ring"><PlusIcon size={22} /></span>
+          <span className="models-empty-ring"><Icon name="plus" size={24} /></span>
           <h3>{text.empty}</h3>
           <p>{text.emptyHint}</p>
           <button type="button" className="models-add-btn" onClick={() => setView("add")}>
-            <PlusIcon size={14} />
+            <Icon name="plus" size={14} />
             {text.add}
           </button>
         </div>

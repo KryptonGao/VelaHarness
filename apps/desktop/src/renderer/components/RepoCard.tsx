@@ -5,19 +5,10 @@ import { fileManagerName } from "../platform";
 import { BranchPickerContent } from "./composer/BranchChip";
 import { PopoverPresence } from "./MotionPresence";
 import { RepoCardPopover } from "./RepoCardPopover";
-import {
-  ChevronDownIcon,
-  BranchIcon,
-  FolderIcon,
-  GithubIcon,
-  GridIcon,
-  MoreIcon,
-  PlanIcon,
-  PrIcon,
-} from "./icons";
 import type { PrSummary } from "@vela/shared";
 import { localizeError, tr, trf } from "../locale";
 import type { PlanReferenceModel } from "../plan-draft";
+import { Icon } from "./icons";
 
 const prStateLabels: Record<PrSummary["state"], string> = {
   open: "Open",
@@ -86,7 +77,7 @@ export function RepoCard({
             title={collapsed ? tr("展开环境卡片", "Expand environment card") : tr("折叠环境卡片", "Collapse environment card")}
             onClick={onToggle}>
             <span className="repo-card-name" title={repo?.root ?? currentWorkspace ?? undefined}>{name}</span>
-            <span aria-hidden="true" className={`environment-chevron${collapsed ? " collapsed" : ""}`}><ChevronDownIcon /></span>
+            <span aria-hidden="true" className={`environment-chevron${collapsed ? " collapsed" : ""}`}><Icon name="chevron-down" size={12} /></span>
           </button>
         ) : <span className="repo-card-title" title={repo?.root ?? currentWorkspace ?? undefined}>
           {name}
@@ -102,16 +93,16 @@ export function RepoCard({
             disabled={!repo?.root && !currentWorkspace}
             onClick={() => setMenuOpen((v) => !v)}
           >
-            <MoreIcon size={13} />
+            <Icon name="more" size={14} />
           </button>
           <PopoverPresence present={menuOpen}>
             <RepoCardPopover anchor={menuRef} className="repo-menu" label={tr("更多操作", "More actions")}>
               <button type="button" className="workspace-action-row" onClick={revealRoot}>
-                <FolderIcon />
+                <Icon name="folder" size={14} />
                 <span>{tr("在", "Open in ")}{fileManagerName(window.vela?.platform ?? "darwin")}{tr("中打开", "")}</span>
               </button>
               <button type="button" className="workspace-action-row" onClick={copyPath}>
-                <FolderIcon />
+                <Icon name="folder" size={14} />
                 <span>{tr("复制路径", "Copy path")}</span>
               </button>
             </RepoCardPopover>
@@ -131,7 +122,7 @@ export function RepoCard({
               aria-expanded={branchOpen}
               onClick={() => setBranchOpen((v) => !v)}
             >
-              <BranchIcon />
+              <Icon name="branch" size={14} />
               <span className="repo-branch-name">{git.branch ?? "HEAD"}</span>
             </button>
             <button
@@ -163,7 +154,7 @@ export function RepoCard({
 
           <div className="repo-pr-row">
             <span className="repo-pr-lead">
-              <GithubIcon />
+              <Icon name="github" size={14} />
               <span>{tr("Pull Request", "Pull request")}</span>
             </span>
             {pr ? (
@@ -180,7 +171,7 @@ export function RepoCard({
           {pr ? (
             <button type="button" className="repo-pr-detail" onClick={() => void project.openPullRequest(pr.url)}>
               <span className="repo-pr-detail-icon">
-                <PrIcon />
+                <Icon name="pull-request" size={14} />
               </span>
               <span className="repo-pr-detail-text">
                 <span className="repo-pr-title">{pr.title}</span>
@@ -225,7 +216,7 @@ export function RepoCard({
             aria-label={`${tr("打开计划", "Open plan")}: ${plan.title || tr("未命名计划", "Untitled plan")}`}
             onClick={() => onOpenPlan(plan.id)}
           >
-            <span className="repo-plan-icon" aria-hidden="true"><PlanIcon size={16} /></span>
+            <span className="repo-plan-icon" aria-hidden="true"><Icon name="plan" size={16} /></span>
             <span className="repo-plan-title">{plan.title || tr("未命名计划", "Untitled plan")}</span>
             {plan.streaming ? <span className="repo-plan-status">{tr("生成中", "Writing")}</span> : null}
           </button>
@@ -252,7 +243,7 @@ export function RepoCard({
             aria-expanded={sourcesOpen}
             onClick={() => setSourcesOpen((value) => !value)}
           >
-            <GridIcon />
+            <Icon name="grid" size={14} />
             <span>{sourcesOpen ? tr("收起列表", "Hide list") : trf("查看全部({0})", "View all ({0})", recents.length)}</span>
           </button>
         ) : null}
@@ -267,7 +258,7 @@ export function RepoCard({
                   if (recent.path !== currentWorkspace) void project.selectRecentWorkspace(recent.path);
                 }}
               >
-                <FolderIcon />
+                <Icon name="folder" size={14} />
                 <span>{recent.name}</span>
               </button>
             ))

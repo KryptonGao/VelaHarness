@@ -10,8 +10,7 @@ import {
 import { createPortal } from "react-dom";
 import { tr, trf } from "../locale";
 import { useReducedMotion } from "../hooks/useMotionPresence";
-import { CloseIcon } from "./icons";
-import { Icon } from "./icons/Icon";
+import { Icon } from "./icons";
 import {
   CLICK_SLOP,
   MOMENTUM_MIN_VELOCITY,
@@ -615,7 +614,7 @@ export function ImageViewer({ request, onClose }: { request: ImageViewerRequest;
           title={tr("关闭 (Esc)", "Close (Esc)")}
           onClick={dismiss}
         >
-          <CloseIcon size={14} />
+          <Icon name="close" size={14} />
         </button>
         <div className="image-viewer-controls">
           <button
@@ -687,13 +686,7 @@ function ViewerNavButton({ className, label, onClick, children }: {
 
 function ZoomIcon({ direction }: { direction: "in" | "out" }) {
   return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
-      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="10.5" cy="10.5" r="6.5" />
-      <path d="M15.5 15.5 21 21" />
-      <path d="M10.5 7.5v6" />
-      {direction === "in" ? <path d="M7.5 10.5h6" /> : null}
-    </svg>
+    <Icon name={direction === "in" ? "zoom-in" : "zoom-out"} size={16} />
   );
 }
 

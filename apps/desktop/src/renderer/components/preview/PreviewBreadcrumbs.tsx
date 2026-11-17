@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { FileTypeIcon } from "../FileTypeIcon";
-import { ChevronRightIcon } from "../icons";
 import { usePreviewBreadcrumbMode } from "../../hooks/usePreviewBreadcrumbMode";
+import { Icon } from "../icons";
 
 const HOVER_LEAVE_CD_MS = 70;
 
@@ -156,7 +156,7 @@ export function PreviewBreadcrumbs({
           onMouseEnter={() => handleCrumbEnter(index)}
           onMouseLeave={handleCrumbLeave}
         >
-          {index > 0 ? <ChevronRightIcon size={10} /> : null}
+          {index > 0 ? <Icon name="chevron-right" size={10} /> : null}
           <span className="preview-crumb-text">{segment}</span>
         </span>
       ))}
@@ -166,7 +166,7 @@ export function PreviewBreadcrumbs({
         onMouseEnter={() => handleCrumbEnter(crumbs.length)}
         onMouseLeave={handleCrumbLeave}
       >
-        {crumbs.length > 0 ? <ChevronRightIcon size={10} /> : null}
+        {crumbs.length > 0 ? <Icon name="chevron-right" size={10} /> : null}
         {iconPath ? <FileTypeIcon path={iconPath} /> : null}
         <span className="preview-crumb-text">{current}</span>
       </span>

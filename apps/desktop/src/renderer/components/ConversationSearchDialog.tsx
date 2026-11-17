@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { tr } from "../locale";
 import { searchActiveConversations, workspaceName } from "./conversation-search";
 import { conversationWorkspace } from "./workspace-names";
+import { Icon } from "./icons";
 
 interface ConversationSearchDialogProps {
   id: string;
@@ -114,7 +115,7 @@ export function ConversationSearchDialog({ id, conversations, activeConversation
         {results.length === 0 ? <div className="conversation-search-empty" role="status">{query.trim() ? tr("没有匹配的会话", "No matching chats") : tr("还没有会话", "No chats yet")}</div> : null}
         <div className="conversation-search-section-label">{tr("快捷操作", "Quick actions")}</div>
         <button className="conversation-search-new" type="button" onClick={() => { onClose(); onNewChat(); }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+          <Icon name="plus" size={16} />
           {tr("新对话", "New chat")}
         </button>
       </div>

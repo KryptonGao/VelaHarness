@@ -1,8 +1,8 @@
 import { renderHandoffText, type HandoffPack } from "@vela/shared";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { localizeError, tr, trf, useAppLocale } from "../locale";
-import { MemoryUpdateIcon } from "./icons";
 import "../handoff-pack.css";
+import { Icon } from "./icons";
 
 export interface HandoffPackDialogProps {
   conversationId: string;
@@ -249,7 +249,7 @@ export function HandoffPackDialog({ conversationId, factsOnly = false, onDistill
             title={tr("抽取本次发现的隐含约束，经 Diff 预览后追加到项目 MEMORY.md", "Extract implicit constraints discovered in this chat and append to project MEMORY.md")}
             onClick={onDistillMemory}
           >
-            <MemoryUpdateIcon size={13} />
+            <Icon name="memory-update" size={14} />
             <span>{tr("提炼规范到项目记忆", "Distill to project memory")}</span>
           </button>
         ) : null}

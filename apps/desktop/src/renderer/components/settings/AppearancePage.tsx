@@ -18,7 +18,8 @@ import {
 import { randomThemeColors } from "../../theme-random";
 import type { SettingsCopy } from "../settings-copy";
 import { CustomThemeEditor } from "./CustomThemeEditor";
-import { Segmented, SettingsBlock, SettingsGroup } from "./primitives";
+import { Segmented, SettingsBlock, SettingsGroup, SettingsSwitch } from "./primitives";
+import { setUnifiedIcons, useUnifiedIcons } from "../../hooks/useUnifiedIcons";
 import { ThemeGroup } from "./ThemeGroup";
 import { FontSizeControl } from "./FontSizeControl";
 import { GlassOpacityControl } from "./GlassOpacityControl";
@@ -28,6 +29,7 @@ import { codeFontSizeRange, uiFontSizeRange } from "../../font-size";
 export function AppearancePage({ copy, preferences }: { copy: SettingsCopy; preferences: PreferencesApi }) {
   const { appearance, theme, lightTheme, darkTheme, customThemes, fileIconTheme, setAppearance, setFileIconTheme } = preferences;
   const text = copy.appearance;
+  const unifiedIcons = useUnifiedIcons();
   const [editing, setEditing] = useState<{ theme: CustomTheme; isNew: boolean; randomStart?: boolean } | null>(null);
   // 固定为另一种明暗时,点选主题顺带切过去,否则点了看不到效果。
   const pickTheme = (scheme: ColorScheme, id: SelectedThemeId) => {
@@ -190,6 +192,9 @@ export function AppearancePage({ copy, preferences }: { copy: SettingsCopy; pref
           options={fileIconThemeOptions}
           onChange={setFileIconTheme}
         />
+      </SettingsBlock>
+      <SettingsBlock id="unified-icons" title={text.unifiedIcons} hint={text.unifiedIconsHint} layout="inline">
+        <SettingsSwitch label={text.unifiedIcons} checked={unifiedIcons} onChange={setUnifiedIcons} />
       </SettingsBlock>
       <SettingsBlock id="ui-font" title={text.uiFont} hint={text.uiFontHint} layout="inline">
         <div className="settings-font-row">

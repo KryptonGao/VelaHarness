@@ -10,7 +10,6 @@ import { AgentInboxQuestionForm } from "./AgentInboxQuestionForm";
 import { AgentInboxContent } from "./AgentInboxContent";
 import { ResidentAgentView } from "./ResidentAgentView";
 import { stateLabel } from "./resident-agent-model";
-import { InboxIcon, QuestionIcon, ShieldIcon } from "./icons";
 import {
   agentInboxOverview,
   agentInboxTypes,
@@ -21,6 +20,7 @@ import {
   type AgentInboxView,
 } from "./agent-inbox-model";
 import "../agent-inbox.css";
+import { Icon } from "./icons";
 
 const viewLabels: Record<AgentInboxView, () => string> = {
   overview: () => tr("概览", "Overview"),
@@ -109,7 +109,7 @@ function InboxTime({ at }: { at: number }) {
 
 function TypeMark({ type }: { type: AgentInboxItemType }) {
   return <span className={`agent-inbox-mark type-${type}`} aria-hidden="true">
-    {type === "approval" ? <ShieldIcon size={15} /> : type === "question" ? <QuestionIcon size={15} /> : <InboxIcon size={15} />}
+    {type === "approval" ? <Icon name="shield" size={16} /> : type === "question" ? <Icon name="question" size={16} /> : <Icon name="inbox" size={16} />}
   </span>;
 }
 
@@ -278,7 +278,7 @@ export function AgentInboxPage({ active, sidebarCollapsed, onToggleSidebar, onOp
 
   return <section className="agent-inbox-page" ref={pageRef} aria-label={tr("Agent 收件箱", "Agent Inbox")}>
     <header className="agent-inbox-topbar main-chat-header">
-      {sidebarCollapsed && <button type="button" onClick={onToggleSidebar} aria-label={tr("展开侧栏", "Show sidebar")}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></svg></button>}
+      {sidebarCollapsed && <button type="button" onClick={onToggleSidebar} aria-label={tr("展开侧栏", "Show sidebar")}><Icon name="sidebar" size={16} /></button>}
       <h1 className="page-topbar-title">{tr("Agent 收件箱", "Agent Inbox")}</h1>
       <span className="agent-inbox-summary" role="status">
         {snapshot.badge > 0 ? trf("{0} 项需要处理", "{0} need your attention", snapshot.badge) : tr("没有待处理事项", "All caught up")}

@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { AppLocale, GitRemote, GitRemoteChange } from "@vela/shared";
 import { tr, trf } from "../../locale";
 import { useDismissable } from "../../hooks/useDismissable";
-import { AlertIcon, CheckIcon, PencilIcon, PlusIcon, TrashIcon } from "../icons";
+import { Icon } from "../icons";
 
 /**
  * 远程管理(SY-01):添加/编辑/删除远程与 push 地址。
@@ -87,7 +87,7 @@ export function RemotePanel({
       <div className="vc-ops-head">
         <b>{tr("远程管理", "Remotes")}</b>
         <button type="button" className="vc-link" onClick={startAdd}>
-          <PlusIcon size={11} /> {tr("添加远程", "Add remote")}
+          <Icon name="plus" size={12} /> {tr("添加远程", "Add remote")}
         </button>
         <button type="button" className="vc-link" onClick={onClose}>{tr("关闭", "Close")}</button>
       </div>
@@ -139,7 +139,7 @@ export function RemotePanel({
               ) : (
                 <>
                   <button type="button" className="vc-icon-btn" title={tr("编辑地址", "Edit URL")} aria-label={`${tr("编辑", "Edit")} ${remote.name}`} onClick={() => startEdit(remote)}>
-                    <PencilIcon size={11} />
+                    <Icon name="edit" size={12} />
                   </button>
                   <button type="button" className="vc-link" onClick={() => setRenaming({ name: remote.name, next: remote.name })}>{tr("重命名", "Rename")}</button>
                   <button
@@ -149,14 +149,14 @@ export function RemotePanel({
                     aria-label={`${tr("删除", "Remove")} ${remote.name}`}
                     onClick={() => setConfirmRemove(remote.name)}
                   >
-                    <TrashIcon size={11} />
+                    <Icon name="trash" size={12} />
                   </button>
                 </>
               )}
             </div>
             {confirmRemove === remote.name ? (
               <div className="vc-inline-notice" role="alert">
-                <AlertIcon size={12} />
+                <Icon name="alert" size={12} />
                 {tr(
                   "删除远程会移除对应的远程跟踪引用；依赖它的分支会失去 upstream 配置。",
                   "Removing a remote deletes its remote-tracking refs; branches depending on it lose their upstream.",
@@ -195,7 +195,7 @@ export function RemotePanel({
             value={pushUrl}
             onChange={(event) => setPushUrl(event.target.value)}
           />
-          {error ? <div className="vc-error-banner" role="alert"><AlertIcon size={12} />{error}</div> : null}
+          {error ? <div className="vc-error-banner" role="alert"><Icon name="alert" size={12} />{error}</div> : null}
           <div className="vc-dialog-actions">
             <button type="button" className="vc-btn vc-btn-ghost" onClick={() => setMode(null)}>{tr("取消", "Cancel")}</button>
             <button
@@ -204,7 +204,7 @@ export function RemotePanel({
               disabled={busy || !url.trim() || (mode.kind === "add" && !name.trim())}
               onClick={() => void submit()}
             >
-              <CheckIcon size={12} /> {mode.kind === "add" ? tr("添加", "Add") : tr("保存", "Save")}
+              <Icon name="check" size={12} /> {mode.kind === "add" ? tr("添加", "Add") : tr("保存", "Save")}
             </button>
           </div>
         </div>

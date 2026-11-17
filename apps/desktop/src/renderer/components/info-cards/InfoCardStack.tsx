@@ -6,13 +6,13 @@ import { writtenFiles } from "./info-cards-data";
 import { useStoredState } from "../../hooks/useStoredState";
 import { tr, trf } from "../../locale";
 import { useAgentWorkspace } from "../AgentPanel";
-import { ChevronDownIcon, PlusIcon } from "../icons";
 import { infoCardDefinitions, type InfoCardContext } from "./InfoCardContents";
 import {
   defaultLayout, dropIndexAtTop, hiddenCards, hideCard, isStoredInfoCardLayout, placeAt, renderedCards,
   reorderRendered, sanitizeLayout, showCard, stepRendered, toggleCollapsed,
   type InfoCardId, type InfoCardLayout,
 } from "./info-cards-layout";
+import { Icon } from "../icons";
 
 export type InfoCardStackProps = Omit<InfoCardContext, "outputs" | "agents" | "onOpenAgent"> & {
   /** 打开一个文件预览；没有预览上下文时由调用方回退到系统打开。 */
@@ -42,24 +42,6 @@ function cardGap(list: HTMLElement | null): number {
   if (!list) return 0;
   const rowGap = Number.parseFloat(getComputedStyle(list).rowGap);
   return Number.isFinite(rowGap) ? rowGap : 0;
-}
-
-function GripIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      {[7, 12, 17].flatMap((x) => [9, 15].map((y) => <circle key={`${x}:${y}`} cx={x} cy={y} r="1.7" />))}
-    </svg>
-  );
-}
-
-function HideIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" />
-      <circle cx="12" cy="12" r="3" />
-      <path d="M4 4l16 16" />
-    </svg>
-  );
 }
 
 /** 卡片模式的右侧信息卡片：浮在对话上，可拖动排序、折叠、隐藏。 */
@@ -354,7 +336,7 @@ export function InfoCardStack(props: InfoCardStackProps) {
           const definition = infoCardDefinitions[id];
           const collapsed = layout.collapsed.includes(id);
           const title = definition.title();
-          const Icon = definition.Icon;
+          const CardIcon = definition.Icon;
           const Body = definition.Body;
           const bodyId = `${uid}-${id}`;
           return (
@@ -363,19 +345,19 @@ export function InfoCardStack(props: InfoCardStackProps) {
               data-lifted={liftedId === id || undefined} data-entering={enteringId === id || undefined}
               ref={(el) => { if (el) cardRefs.current.set(id, el); else cardRefs.current.delete(id); }}>
               <header className="info-card-head">
-                <span className="info-card-ico" aria-hidden="true"><Icon size={15} /></span>
+                <span className="info-card-ico" aria-hidden="true"><CardIcon size={15} /></span>
                 <button type="button" className="info-card-title" aria-expanded={!collapsed} aria-controls={bodyId}
                   onClick={() => update((current) => toggleCollapsed(current, id))}>
                   <span>{title}</span>
-                  <span className="info-card-chevron" aria-hidden="true"><ChevronDownIcon size={13} /></span>
+                  <span className="info-card-chevron" aria-hidden="true"><Icon name="chevron-down" size={14} /></span>
                 </button>
                 <span className="info-card-meta">{definition.summary(ctx)}</span>
                 <span className="info-card-tools">
                   <button type="button" className="info-card-icon-btn" title={tr("隐藏", "Hide")}
-                    aria-label={`${tr("隐藏", "Hide")}: ${title}`} onClick={() => hide(id)}><HideIcon /></button>
+                    aria-label={`${tr("隐藏", "Hide")}: ${title}`} onClick={() => hide(id)}><Icon name="eye-off" size={14} /></button>
                   <button type="button" className="info-card-icon-btn info-card-grip" data-grip={id}
                     title={tr("拖动排序", "Drag to reorder")} aria-pressed={liftedId === id}
-                    aria-label={`${tr("拖动排序", "Drag to reorder")}: ${title}`}><GripIcon /></button>
+                    aria-label={`${tr("拖动排序", "Drag to reorder")}: ${title}`}><Icon name="grip" size={16} /></button>
                 </span>
               </header>
               <div className="info-card-body" id={bodyId} inert={collapsed ? true : undefined}>
@@ -388,7 +370,7 @@ export function InfoCardStack(props: InfoCardStackProps) {
       {hidden.length > 0 ? (
         <>
           <button type="button" className="info-card-add" aria-expanded={trayOpen} onClick={() => setTrayOpen((open) => !open)}>
-            <PlusIcon size={12} />
+            <Icon name="plus" size={12} />
             <span>{tr("添加卡片", "Add card")} · {hidden.length}</span>
           </button>
           {trayOpen ? (
@@ -397,7 +379,7 @@ export function InfoCardStack(props: InfoCardStackProps) {
               <div className="info-card-tray-list">
                 {hidden.map((id) => (
                   <button key={id} type="button" className="info-card-tray-chip" onClick={() => restore(id)}>
-                    <PlusIcon size={11} />{infoCardDefinitions[id].title()}
+                    <Icon name="plus" size={12} />{infoCardDefinitions[id].title()}
                   </button>
                 ))}
               </div>

@@ -1,9 +1,9 @@
 import { appLocales, localizeZh, type AskUserQuestionRequest, type ToolTrace } from "@vela/shared";
 import { useState } from "react";
-import { QuestionIcon } from "./icons";
 import { tr } from "../locale";
 import { useAttentionFocus } from "./attention-focus";
 import { ToolDurationLabel } from "./ToolProcessContext";
+import { Icon } from "./icons";
 
 /** 工具记录里的回答行前缀是规范中文，但历史或本地化后的文本可能是任一语言，所以逐语言收集。 */
 const ANSWER_PREFIXES = [...new Set([
@@ -83,7 +83,7 @@ export function QuestionCard({
       <article className="question-card is-compact-history">
         <div className="question-compact-head">
           <span className="question-compact-icon" aria-hidden="true">
-            <QuestionIcon size={13} />
+            <Icon name="question" size={14} />
           </span>
           <div className="question-card-q">{question}</div>
           <ToolDurationLabel tool={tool} />
@@ -107,7 +107,7 @@ export function QuestionCard({
       ) : null}
       <div className="question-card-head">
         <span className="tool-card-icon" aria-hidden="true">
-          <QuestionIcon size={13} />
+          <Icon name="question" size={14} />
         </span>
         <span className="tool-kind-label">{tr("提问", "Question")}</span>
         <span className="question-card-state">

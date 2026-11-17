@@ -1,6 +1,6 @@
 import { tr } from "../locale";
 import { modKeyLabel } from "../platform";
-import { PanelLayoutIcon } from "./icons";
+import { Icon } from "./icons";
 
 /** Window-level layout controls stay in place while the panels beneath them move. */
 export function PanelLayoutActions({ workbenchOpen, onToggleWorkbench, contextOpen, onToggleContext, platform }: {
@@ -16,11 +16,11 @@ export function PanelLayoutActions({ workbenchOpen, onToggleWorkbench, contextOp
   return <div className="panel-layout-actions" data-controls={Number(!!onToggleWorkbench) + Number(!!onToggleContext)}>
     {onToggleWorkbench && <button className={`view-icon-btn ${workbenchOpen ? "workbench-collapse" : "workbench-expand"}`}
       type="button" title={workbenchLabel} aria-label={workbenchLabel} aria-expanded={workbenchOpen} onClick={onToggleWorkbench}>
-      <PanelLayoutIcon columns={onToggleContext ? 3 : 2} />
+      <Icon name={onToggleContext ? "panel-columns" : "panel-right"} size={14} />
     </button>}
     {onToggleContext && <button className="view-icon-btn context-sidebar-toggle" type="button"
       title={`${contextLabel} (${modKeyLabel(platform)}J)`} aria-label={contextLabel} aria-expanded={contextOpen} onClick={onToggleContext}>
-      <PanelLayoutIcon />
+      <Icon name="panel-right" size={14} />
     </button>}
   </div>;
 }

@@ -1,6 +1,6 @@
 import { Fragment, useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
 import { createPortal } from "react-dom";
-import { CheckIcon } from "../icons";
+import { Icon } from "../icons";
 
 export interface SelectOption {
   value: string;
@@ -193,7 +193,7 @@ export function SettingsSelect({ label, value, options, onChange, disabled, desc
                   <span className="settings-menu-label">{option.label}</span>
                   {option.description ? <span className="settings-menu-desc">{option.description}</span> : null}
                 </span>
-                {option.value === value ? <span className="settings-menu-check"><CheckIcon size={15} /></span> : null}
+                {option.value === value ? <span className="settings-menu-check"><Icon name="check" size={16} /></span> : null}
               </div>
             </Fragment>
           ))}

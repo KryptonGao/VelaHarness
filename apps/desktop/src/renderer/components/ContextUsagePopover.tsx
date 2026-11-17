@@ -4,8 +4,8 @@ import type { ContextUsage } from "@vela/shared";
 import { tr } from "../locale";
 import { ContextUsageCard } from "./ContextPanel";
 import { useMotionPresence } from "../hooks/useMotionPresence";
-import { CloseIcon } from "./icons";
 import { positionContextPopover } from "./popover-position";
+import { Icon } from "./icons";
 
 export function ContextUsageTrigger({ usage, high, children }: {
   usage: ContextUsage | null | undefined;
@@ -90,7 +90,7 @@ export function ContextUsageTrigger({ usage, high, children }: {
           if (event.target === event.currentTarget && event.propertyName === "opacity") finishExit();
         }}>
         <button type="button" className="context-popover-close" onClick={() => close(true)}
-          aria-label={tr("关闭上下文用量", "Close context usage")} title={tr("关闭", "Close")}><CloseIcon size={13} /></button>
+          aria-label={tr("关闭上下文用量", "Close context usage")} title={tr("关闭", "Close")}><Icon name="close" size={14} /></button>
         <ContextUsageCard context={usage} details />
       </div>, document.body,
     ) : null}

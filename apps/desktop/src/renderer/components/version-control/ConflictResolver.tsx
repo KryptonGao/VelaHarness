@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { GitConflictFile, GitInProgressOperation } from "@vela/shared";
 import { tr } from "../../locale";
 import type { VersionControlApi } from "../../hooks/useVersionControl";
-import { AlertIcon, CheckIcon, RefreshIcon } from "../icons";
+import { Icon } from "../icons";
 
 const operationLabels: Record<GitInProgressOperation, [string, string]> = {
   merge: ["合并", "Merge"],
@@ -91,7 +91,7 @@ export function ConflictResolver({
   if (!file) {
     return (
       <div className="vc-state vc-state-error" role="alert">
-        <AlertIcon size={13} />
+        <Icon name="alert" size={14} />
         <span>{error ?? tr("无法读取冲突内容", "Could not read the conflict")}</span>
         <button type="button" className="vc-link" onClick={() => void load()}>{tr("重试", "Retry")}</button>
       </div>
@@ -117,7 +117,7 @@ export function ConflictResolver({
           {showBase ? tr("隐藏共同祖先", "Hide common ancestor") : tr("查看共同祖先", "Show common ancestor")}
         </button>
         <button type="button" className="vc-link" onClick={() => void load()}>
-          <RefreshIcon size={11} /> {tr("重新读取", "Reload")}
+          <Icon name="refresh" size={12} /> {tr("重新读取", "Reload")}
         </button>
       </div>
 
@@ -151,11 +151,11 @@ export function ConflictResolver({
         </div>
       ) : null}
       {message ? <div className="vc-inline-notice" role="status">{message}</div> : null}
-      {error ? <div className="vc-error-banner" role="alert"><AlertIcon size={12} />{error}</div> : null}
+      {error ? <div className="vc-error-banner" role="alert"><Icon name="alert" size={12} />{error}</div> : null}
 
       <div className="vc-dialog-actions">
         <button type="button" className="vc-btn vc-btn-primary" disabled={disabled || !dirty} onClick={() => void save()}>
-          <CheckIcon size={12} /> {tr("保存并标记为已解决", "Save and mark resolved")}
+          <Icon name="check" size={12} /> {tr("保存并标记为已解决", "Save and mark resolved")}
         </button>
       </div>
     </div>

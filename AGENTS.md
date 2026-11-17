@@ -124,6 +124,7 @@ gh release list --limit 1        # Should show Latest
 
 ## Conventions
 
+- Interface icons come only from `<Icon name="…" />` in `apps/desktop/src/renderer/components/icons/` (MingCute, 10/12/14/16/18/20/24/28px). The MingCute set is opt-in (Settings → Appearance → Unified icons, off by default); with it off, `<Icon>` renders the original glyphs from `icons/classic-glyphs.ts`. To add an icon, put it in the table at the top of `scripts/sync-mingcute-icons.mjs`, run the script, add a matching original glyph to `classic-glyphs.ts`, and commit the generated files; never hand-write interface-icon `<svg>` elements (`apps/desktop/test/icons.test.ts` enforces this).
 - Avoid unnecessary secondary labels and descriptions. Let the layout do the explaining.
 - Do not commit any files from `~/.vela-release`, and never put private key contents in code, documentation, logs, or conversation.
 - After changing update-related logic (`apps/desktop/src/main/update-*.ts`), run `pnpm --filter @vela/desktop test:updates` and `test:updates:ui`.

@@ -4,13 +4,13 @@ import type { BrowserController } from "../../browser/browser-controller";
 import { describeBrowserError } from "../../browser/browser-error";
 import { browserFavorites, useBrowserFavorites, type BrowserFavorite } from "../../browser/favorites-store";
 import { tr, trf } from "../../locale";
-import { AlertIcon, AnnotateIcon, ArrowLeftIcon, ArrowRightIcon, CloseIcon, GlobeIcon, RefreshIcon, StarIcon } from "../icons";
+import { Icon, snapIconSize } from "../icons";
 
 /** 网站图标；没有地址或图片加载失败时退回地球图标。 */
 export function SiteIcon({ src, size = 12, fallbackSize = size }: { src?: string; size?: number; fallbackSize?: number }) {
   const [failed, setFailed] = useState(false);
   useEffect(() => setFailed(false), [src]);
-  if (!src || failed) return <GlobeIcon size={fallbackSize} />;
+  if (!src || failed) return <Icon name="globe" size={snapIconSize(fallbackSize)} />;
   return <img className="browser-site-icon" src={src} width={size} height={size} alt="" draggable={false}
     referrerPolicy="no-referrer" onError={() => setFailed(true)} />;
 }
@@ -44,15 +44,15 @@ export function BrowserPanel({ controller, tabId, operating, onAbort }: { contro
     <div className="browser-toolbar">
       <button type="button" className="browser-nav" aria-label={tr("后退", "Back")}
         title={tr("后退", "Back")} disabled={!state.ready || !state.canGoBack} onClick={controller.back}>
-        <ArrowLeftIcon size={14} />
+        <Icon name="arrow-left" size={14} />
       </button>
       <button type="button" className="browser-nav" aria-label={tr("前进", "Forward")}
         title={tr("前进", "Forward")} disabled={!state.ready || !state.canGoForward} onClick={controller.forward}>
-        <ArrowRightIcon size={14} />
+        <Icon name="arrow-right" size={14} />
       </button>
       <button type="button" className="browser-nav" aria-label={refreshLabel} title={refreshLabel}
         disabled={!state.ready} onClick={state.loading ? controller.stop : controller.refresh}>
-        {state.loading ? <CloseIcon size={14} /> : <RefreshIcon size={14} />}
+        {state.loading ? <Icon name="close" size={14} /> : <Icon name="refresh" size={14} />}
       </button>
       <form className="browser-address-form" onSubmit={(event) => { event.preventDefault(); controller.navigate(); }}>
         <input className="browser-address" aria-label={tr("网页地址", "Web address")}
@@ -68,13 +68,13 @@ export function BrowserPanel({ controller, tabId, operating, onAbort }: { contro
       <button type="button" className="browser-nav browser-favorite" aria-label={favoriteLabelText} title={favoriteLabelText}
         aria-pressed={favorited} disabled={blank || !!state.error}
         onClick={() => browserFavorites.toggle({ url: state.url, title: state.title, ...(state.favicon ? { favicon: state.favicon } : {}) })}>
-        <StarIcon size={14} filled={favorited} />
+        <Icon name="star" size={14} filled={favorited} />
       </button>
       {controller.supportsAnnotation && <button type="button" className="browser-nav browser-annotate" aria-label={annotateLabel}
         title={operating ? tr("Agent 正在操作浏览器", "The Agent is using the browser") : annotateLabel}
         aria-pressed={state.annotating} disabled={annotateDisabled && !state.annotating}
         onClick={() => controller.setAnnotating(!state.annotating)}>
-        <AnnotateIcon size={14} />
+        <Icon name="annotate" size={14} />
       </button>}
     </div>
     <div className="browser-progress" data-active={state.loading || undefined} aria-hidden="true" />
@@ -94,17 +94,17 @@ export function BrowserPanel({ controller, tabId, operating, onAbort }: { contro
     {addressError && <div className="browser-notice" role="alert">{addressError}</div>}
     <div className="browser-viewport" data-browser-viewport={tabId}>
       {pageError && <div className="browser-error" role="alert">
-        <span className="browser-error-icon" aria-hidden="true"><AlertIcon size={22} /></span>
+        <span className="browser-error-icon" aria-hidden="true"><Icon name="alert" size={24} /></span>
         <h2>{pageError.title}</h2>
         <p>{pageError.hint}</p>
         {failedUrl && <code className="browser-error-url" title={failedUrl}>{failedUrl}</code>}
         {pageError.technical && <span className="browser-error-code">{pageError.technical}</span>}
         <button type="button" className="browser-error-retry" onClick={controller.retry}>
-          <RefreshIcon size={13} />{tr("重试", "Try again")}
+          <Icon name="refresh" size={14} />{tr("重试", "Try again")}
         </button>
       </div>}
       {state.url === UI_BROWSER_BLANK_URL && !state.loading && !state.error && <div className="browser-empty">
-        <span aria-hidden="true"><GlobeIcon size={28} /></span>
+        <span aria-hidden="true"><Icon name="globe" size={28} /></span>
         <h2>{tr("打开网页", "Open a web page")}</h2>
         <p>{tr("在地址栏输入网址，开始浏览", "Enter a URL in the address bar to start browsing")}</p>
         {favorites.length > 0 && <div className="browser-favorites" role="list" aria-label={tr("收藏", "Favorites")}>
@@ -115,7 +115,7 @@ export function BrowserPanel({ controller, tabId, operating, onAbort }: { contro
             </button>
             <button type="button" className="browser-favorite-remove" aria-label={trf("移除收藏 {0}", "Remove favorite {0}", favoriteLabel(favorite))}
               title={tr("取消收藏", "Remove from favorites")} onClick={() => browserFavorites.remove(favorite.url)}>
-              <CloseIcon size={10} />
+              <Icon name="close" size={10} />
             </button>
           </div>)}
         </div>}

@@ -44,7 +44,7 @@ if (!process.versions.electron) {
         return [...root.children].map(button => { const r = button.getBoundingClientRect(); return {
           right: stage.right - r.right, centerY: r.top + r.height / 2 - stage.top,
           workbench: button.matches('.workbench-collapse,.workbench-expand'),
-          dividers: button.querySelectorAll('svg path').length,
+          icon: button.querySelector('svg')?.dataset.icon,
           hit: document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)?.closest('button') === button,
           insidePanel: !!button.closest('.workbench-panel,.sidebar-right')
         }; });
@@ -57,8 +57,8 @@ if (!process.versions.electron) {
         assert.equal(control.insidePanel, false, '按钮不随面板内容移动');
       });
       assert.equal(controls[0].workbench, true, '信息栏按钮位于工作面板按钮右侧');
-      assert.equal(controls[0].dividers, expectedCount === 2 ? 2 : 1, '无右侧信息栏按钮时工作面板按钮使用两栏图标');
-      if (expectedCount === 2) assert.equal(controls[1].dividers, 1, '信息栏按钮始终使用两栏图标');
+      assert.equal(controls[0].icon, expectedCount === 2 ? 'panel-columns' : 'panel-right', '无右侧信息栏按钮时工作面板按钮使用两栏图标');
+      if (expectedCount === 2) assert.equal(controls[1].icon, 'panel-right', '信息栏按钮始终使用两栏图标');
     }
     const reset = async (kind = "chat") => { await js(`splitFixture.reset(${JSON.stringify(kind)})`); await until("document.querySelectorAll('.workbench-group').length===1"); await pause(); };
     const box = name => js(`(()=>{const r=${paneExpr(name)}.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height}})()`);

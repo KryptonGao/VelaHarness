@@ -9,7 +9,6 @@ import { SettingsSelect } from "../settings/SettingsSelect";
 import { RepositoryStatus } from "./RepositoryStatus";
 import { ReviewRepositoryToolbar } from "./ReviewRepositoryToolbar";
 import { useSlidingTabIndicator } from "../useSlidingTabIndicator";
-import { AlertIcon, ArrowDownIcon, ArrowUpIcon, BranchIcon, CloudIcon, FolderIcon, MonitorIcon, PrIcon, RefreshIcon, StackIcon, TagIcon } from "../icons";
 import { BranchMenu } from "./BranchMenu";
 import { BranchPanel } from "./BranchPanel";
 import { ChangesPage } from "./ChangesPage";
@@ -26,6 +25,7 @@ import { StashPanel } from "./StashPanel";
 import { SyncDialog } from "./SyncDialog";
 import { TagReleasePanel } from "./TagReleasePanel";
 import { WorktreePanel } from "./WorktreePanel";
+import { Icon } from "../icons";
 
 type VersionControlPage = "changes" | "history" | "pr";
 
@@ -95,7 +95,7 @@ export function VersionControlView({
   if (!workspace) {
     return (
       <div className="vc-empty" hidden={hidden}>
-        <FolderIcon size={22} />
+        <Icon name="folder" size={24} />
         <h2>{tr("还没有选择工作区", "No workspace selected")}</h2>
         <p>{tr("选择工作区后可以审阅改动、提交、推送并创建 Pull Request。", "Choose a workspace to review changes, commit, push and create pull requests.")}</p>
         <button type="button" className="vc-btn vc-btn-primary" onClick={() => void project.openWorkspaceDialog()}>
@@ -108,7 +108,7 @@ export function VersionControlView({
   if (!status || !repo) {
     return (
       <div className="vc-empty" hidden={hidden}>
-        <FolderIcon size={22} />
+        <Icon name="folder" size={24} />
         <h2>{tr("当前目录不是 Git 仓库", "This folder is not a Git repository")}</h2>
         <p>{tr("本地 Git 功能需要仓库支持；首期不提供初始化或克隆。若 Git 未安装，请先安装并配置。", "Version control needs a Git repository. Initializing or cloning is not part of this release. If Git is missing, install and configure it first.")}</p>
         <div className="vc-empty-path">{workspace}</div>
@@ -148,7 +148,7 @@ export function VersionControlView({
         <div className="vc-repo-main">
         <div className="vc-repo-info">
           <div className="vc-repo-title">
-            <FolderIcon size={14} />
+            <Icon name="folder" size={14} />
             <b>{repo.name}</b>
             <span className="vc-badge vc-badge-muted">{tr("Git 仓库", "Git repository")}</span>
             {repo.subdir ? <span className="vc-badge vc-badge-muted">{trf("子目录 · {0}", "subdir · {0}", repo.subdir)}</span> : null}
@@ -165,19 +165,19 @@ export function VersionControlView({
           />
           <div className="vc-btn-group" role="group" aria-label={tr("同步", "Sync")}>
           <button type="button" className="vc-btn" disabled={api.busy !== null} onClick={() => void api.fetch(null)}>
-            <RefreshIcon size={12} /> {api.busy === "fetch" ? tr("Fetch 中…", "Fetching…") : tr("Fetch", "Fetch")}
+            <Icon name="refresh" size={12} /> {api.busy === "fetch" ? tr("Fetch 中…", "Fetching…") : tr("Fetch", "Fetch")}
           </button>
           <button type="button" className="vc-btn" disabled={api.busy !== null || !upstream || api.guard?.agentRunning === true} title={upstream ? undefined : tr("没有 upstream，先发布分支", "No upstream; publish the branch first")} onClick={() => void api.pull()}>
             {api.busy === "pull" ? tr("Pull 中…", "Pulling…") : tr("Pull", "Pull")}
           </button>
           <button type="button" className={`vc-btn${status.ahead > 0 || !upstream ? " vc-btn-emphasis" : ""}`} disabled={api.busy !== null || !branch} onClick={onPush}>
-            <CloudIcon size={12} />
+            <Icon name="cloud" size={12} />
             {upstream ? tr("Push", "Push") : tr("发布分支", "Publish branch")}
             {status.ahead > 0 ? <b className="vc-ahead">↑{status.ahead}</b> : null}
           </button>
           </div>
           <button type="button" className={`vc-btn${page === "pr" ? " active" : ""}`} onClick={() => setPage("pr")}>
-            <PrIcon size={12} />
+            <Icon name="pull-request" size={12} />
             {prSummary ? `#${prSummary.number}` : tr("Pull Request", "Pull request")}
           </button>
         </div>
@@ -185,16 +185,16 @@ export function VersionControlView({
         <div className="vc-repo-tools">
           <div className="vc-btn-group" role="group" aria-label={tr("仓库管理", "Repository")}>
           <button type="button" className={`vc-btn${branchesOpen ? " active" : ""}`} aria-expanded={branchesOpen} onClick={() => setBranchesOpen((value) => !value)}>
-            <BranchIcon size={12} /> {tr("分支", "Branches")}
+            <Icon name="branch" size={12} /> {tr("分支", "Branches")}
           </button>
           <button type="button" className={`vc-btn${remotesOpen ? " active" : ""}`} aria-expanded={remotesOpen} onClick={() => setRemotesOpen((value) => !value)}>
-            <CloudIcon size={12} /> {tr("远程", "Remotes")}
+            <Icon name="cloud" size={12} /> {tr("远程", "Remotes")}
           </button>
           <button type="button" className={`vc-btn${stashOpen ? " active" : ""}`} aria-expanded={stashOpen} onClick={() => setStashOpen((value) => !value)}>
-            <StackIcon size={12} /> {tr("Stash", "Stash")}
+            <Icon name="stack" size={12} /> {tr("Stash", "Stash")}
           </button>
           <button type="button" className={`vc-btn${worktreesOpen ? " active" : ""}`} aria-expanded={worktreesOpen} onClick={() => setWorktreesOpen((value) => !value)}>
-            <MonitorIcon size={12} /> {tr("Worktree", "Worktree")}
+            <Icon name="monitor" size={12} /> {tr("Worktree", "Worktree")}
           </button>
           </div>
           <div className="vc-btn-group vc-btn-group-quiet" role="group" aria-label={tr("更多", "More")}>
@@ -204,7 +204,7 @@ export function VersionControlView({
             title={tr("选择 Merge 或 Rebase 同步策略；默认仍为仅快进", "Choose a merge or rebase sync strategy; fast-forward stays the default")}
             onClick={() => setSyncMode((value) => (value === "pull" ? null : "pull"))}
           >
-            <ArrowDownIcon size={12} /> {tr("同步策略", "Sync strategy")}
+            <Icon name="arrow-down" size={12} /> {tr("同步策略", "Sync strategy")}
           </button>
           {branch && !status.detached && status.ahead > 0 ? (
             <button
@@ -213,7 +213,7 @@ export function VersionControlView({
               title={tr("用 --force-with-lease 覆盖远程分支，需要先核对影响范围", "Overwrite the remote branch with --force-with-lease after checking the scope")}
               onClick={() => setSyncMode((value) => (value === "force-push" ? null : "force-push"))}
             >
-              <ArrowUpIcon size={12} /> {tr("安全强推", "Force push")}
+              <Icon name="arrow-up" size={12} /> {tr("安全强推", "Force push")}
             </button>
           ) : null}
           <button
@@ -223,7 +223,7 @@ export function VersionControlView({
             title={tr("标签、Release 与发布说明", "Tags, releases and release notes")}
             onClick={() => setTagsOpen((value) => !value)}
           >
-            <TagIcon size={12} /> {tr("标签 / 发布", "Tags / releases")}
+            <Icon name="tag" size={12} /> {tr("标签 / 发布", "Tags / releases")}
           </button>
           <button type="button" className={`vc-btn${opsOpen ? " active" : ""}`} onClick={() => setOpsOpen((value) => !value)}>
             {tr("操作记录", "Operations")}
@@ -330,7 +330,7 @@ export function VersionControlView({
 
       {api.error ? (
         <div className="vc-error-banner" role="alert">
-          <AlertIcon size={13} />
+          <Icon name="alert" size={14} />
           <span>{api.error}</span>
           <button type="button" className="vc-link" onClick={api.clearError}>{tr("关闭", "Dismiss")}</button>
         </div>
@@ -411,7 +411,7 @@ export function VersionControlView({
 
       {page === "changes" && changeCount === 0 && status.ahead > 0 && !status.detached ? (
         <div className="vc-push-hint" role="status">
-          <BranchIcon size={12} />
+          <Icon name="branch" size={12} />
           <span>{trf("有 {0} 个提交待推送。", "{0} commits are waiting to be pushed.", status.ahead)}</span>
           <button type="button" className="vc-link" onClick={onPush}>{tr("仅推送", "Push only")}</button>
         </div>

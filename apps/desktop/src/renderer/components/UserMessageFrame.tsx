@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { PencilIcon } from "./icons";
 import { activeIntlLocale, localizeError, tr, trf } from "../locale";
 import { modKeyLabel } from "../platform";
-import { Icon } from "./icons/Icon";
+import { Icon } from "./icons";
 
 /** The action row remains outside the bubble, aligned with its right edge. */
 export function UserMessageFrame({ text, timestamp, disabled, className, turnId, onEdit, editNote, savingLabel, children }: {
@@ -80,7 +79,7 @@ export function UserMessageFrame({ text, timestamp, disabled, className, turnId,
         <button ref={editButton} className="reply-action user-message-action" type="button" disabled={disabled || !onEdit || saving || editing}
           title={disabled ? tr("等待当前任务完成后修改", "Wait for the current task to finish before editing") : tr("修改消息", "Edit message")}
           aria-label={tr("修改消息", "Edit message")}
-          onClick={() => { setDraft(text); setError(null); setEditing(true); }}><PencilIcon size={13} /></button>
+          onClick={() => { setDraft(text); setError(null); setEditing(true); }}><Icon name="edit" size={14} /></button>
         <span className="sr-only" role="status">{copied ? tr("已复制", "Copied") : ""}</span>
       </div>
       {!editing && error ? <p className="user-edit-error" role="alert">{error}</p> : null}

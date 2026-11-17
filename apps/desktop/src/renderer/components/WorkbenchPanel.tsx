@@ -30,8 +30,8 @@ import { TerminalView } from "./TerminalView";
 import { TerminalCloseDialog } from "./TerminalCloseDialog";
 import { BrowserPanel, BrowserTabIcon, BrowserTabLabel } from "./browser/BrowserPanel";
 import type { BrowserController } from "../browser/browser-controller";
-import { BranchIcon, ChatIcon, FileIcon, FolderIcon, PlanIcon, PlusIcon, SparkIcon, TerminalIcon } from "./icons";
 import { WorkbenchTabStrip } from "./WorkbenchTabStrip";
+import { Icon } from "./icons";
 import { collapseWorkbenchLayout, dropWorkbenchTab, emptyWorkbenchLayout, mergeWorkbenchPane, reconcileWorkbenchLayout, replaceWorkbenchTab, resizeWorkbenchDivider,
   selectWorkbenchTab, workbenchDropTarget, workbenchFits, workbenchGeometry, workbenchPaneOrder, workbenchRatioBounds, WORKBENCH_GAP, WORKBENCH_HEADER_HEIGHT,
   type WorkbenchDivider, type WorkbenchDropEdge, type WorkbenchLayout, type WorkbenchRect } from "./workbench-layout";
@@ -106,15 +106,15 @@ function safeId(value: string): string {
 }
 function TabIcon({ tab }: { tab: WorkbenchTab }) {
   if (tab.kind === "file") return <FileTypeIcon path={tab.path} />;
-  if (tab.kind === "changes" || tab.kind === "turn-review" || tab.kind === "acceptance") return <FileIcon size={12} />;
-  if (tab.kind === "race") return <BranchIcon size={12} />;
-  if (tab.kind === "background" || tab.kind === "terminal") return <TerminalIcon size={12} />;
-  if (tab.kind === "plan") return <PlanIcon size={12} />;
-  if (tab.kind === "start") return <PlusIcon size={12} />;
-  if (tab.kind === "files") return <FolderIcon size={12} />;
+  if (tab.kind === "changes" || tab.kind === "turn-review" || tab.kind === "acceptance") return <Icon name="file" size={12} />;
+  if (tab.kind === "race") return <Icon name="branch" size={12} />;
+  if (tab.kind === "background" || tab.kind === "terminal") return <Icon name="terminal" size={12} />;
+  if (tab.kind === "plan") return <Icon name="plan" size={12} />;
+  if (tab.kind === "start") return <Icon name="plus" size={12} />;
+  if (tab.kind === "files") return <Icon name="folder" size={12} />;
   if (tab.kind === "browser") return <BrowserTabIcon controller={tab.controller} />;
-  if (tab.kind === "chat") return <ChatIcon size={12} />;
-  if (tab.kind === "side-chat") return <SparkIcon size={12} />;
+  if (tab.kind === "chat") return <Icon name="chat" size={12} />;
+  if (tab.kind === "side-chat") return <Icon name="sparkles" size={12} />;
   return <><AgentAvatar agentId={tab.agent.id} size={18} /><AgentStatusMark status={tab.agent.status} /></>;
 }
 export function WorkbenchPanel(props: WorkbenchPanelProps) {

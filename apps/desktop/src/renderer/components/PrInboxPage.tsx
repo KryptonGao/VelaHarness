@@ -8,6 +8,7 @@ import { useAutoHideScrollbarsWithin } from '../hooks/useAutoHideScrollbar';
 import { useSlidingTabIndicator } from './useSlidingTabIndicator';
 import { defaultPrInboxQuery } from './pr-inbox-cache';
 import '../pr-inbox.css';
+import { Icon, type IconName } from "./icons";
 
 export const relationLabels: Record<PrRelation | 'all', [string, string]> = {
   all: ['全部关联', 'All related'], authored: ['我创建的', 'Authored'], reviewRequested: ['待我审查', 'Review requested'],
@@ -17,14 +18,11 @@ export const checkLabels = {
   unknown: ['未知', 'Unknown'], none: ['无检查', 'No checks'], passing: ['检查通过', 'Checks passed'], failing: ['检查失败', 'Checks failed'],
   pending: ['检查运行中', 'Checks pending'], skipped: ['检查已跳过', 'Checks skipped'], cancelled: ['检查已取消', 'Checks cancelled'],
 } as const;
+const checkIcon = { passing: 'check-circle', failing: 'close-circle', pending: 'clock', unknown: 'question', none: 'minus-circle', skipped: 'minus-circle', cancelled: 'minus-circle' } as const satisfies Record<PrInboxItem['checks'], IconName>;
 export function PrCheckStatus({ state, compact = false }: { state: PrInboxItem['checks']; compact?: boolean }) {
   const label = tr(checkLabels[state][0], checkLabels[state][1]);
   return <span className={`pr-inbox-check-status check-${state}`} title={label} role={compact ? 'img' : undefined} aria-label={compact ? label : undefined}>
-    <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="10" cy="10" r="7.5"/>
-      {state === 'passing' ? <path d="m6.5 10 2.3 2.4 4.7-4.9"/> : state === 'failing' ? <path d="m7.3 7.3 5.4 5.4m0-5.4-5.4 5.4"/> :
-        state === 'pending' ? <path d="M10 5.8v4.5l2.5 1.5"/> : state === 'unknown' ? <><path d="M8.2 7.7a1.9 1.9 0 1 1 3.6 1c-.6.9-1.8.9-1.8 2.3"/><path d="M10 13.5h.01"/></> : <path d="M6.7 10h6.6"/>}
-    </svg>
+    <Icon name={checkIcon[state]} size={18} />
     {!compact && <span>{label}</span>}
   </span>;
 }
@@ -143,7 +141,7 @@ export function PrInboxPage({ active, sidebarCollapsed, onToggleSidebar, onOpenC
 
   return <section className="pr-inbox-page" ref={pageRef} aria-label="Pull Request">
     <header className="pr-inbox-topbar main-chat-header">
-      {sidebarCollapsed && <button type="button" onClick={onToggleSidebar} aria-label={tr('展开侧栏', 'Show sidebar')}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></svg></button>}
+      {sidebarCollapsed && <button type="button" onClick={onToggleSidebar} aria-label={tr('展开侧栏', 'Show sidebar')}><Icon name="sidebar" size={16} /></button>}
       <span className="page-topbar-title">Pull Requests</span>
       <span className="pr-inbox-sync">{list?.syncedAt ? `${list.stale ? tr('缓存 · ', 'Cached · ') : ''}${tr('同步于 ', 'Synced ')}${new Date(list.syncedAt).toLocaleTimeString()}` : ''}</span>
       <span className="pr-inbox-account">{list?.identity ? `@${list.identity.login}` : tr('GitHub 身份未确认', 'GitHub identity unavailable')}</span>
@@ -161,7 +159,7 @@ export function PrInboxPage({ active, sidebarCollapsed, onToggleSidebar, onOpenC
               {relationTabs.indicator}
             </nav>
             <div className="pr-inbox-filters">
-              <label className="pr-inbox-search"><svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true"><circle cx="9" cy="9" r="5.5"/><path d="m13.2 13.2 3.8 3.8"/></svg>
+              <label className="pr-inbox-search"><Icon name="search" size={14} />
                 <input ref={searchRef} value={keyword} aria-label={tr('搜索已加载 PR', 'Search loaded PRs')} placeholder={tr('搜索已加载 PR：标题、仓库或 #编号', 'Search loaded PRs: title, repository or #number')} onChange={e => { setKeyword(e.target.value); resetPage(); }} /></label>
               <select aria-label={tr('仓库（已加载范围）', 'Repository (loaded results)')} value={query.repository ?? ''} onChange={e => { setQuery(q => ({ ...q, repository: e.target.value || null })); resetPage(); }}>
                 <option value="">{tr('所有仓库', 'All repositories')}</option>{repositories.map(repo => <option key={repo}>{repo}</option>)}</select>
@@ -186,7 +184,7 @@ export function PrInboxPage({ active, sidebarCollapsed, onToggleSidebar, onOpenC
               {visible.map((item, index) => <Fragment key={item.key}>
                 {sort === 'attention' && (index === 0 || !!item.attentionReasons.length !== !!visible[index - 1].attentionReasons.length) && <h2 className="pr-inbox-group">{item.attentionReasons.length ? tr('需要关注', 'Needs attention') : tr('其他', 'Other')}</h2>}
                 <button type="button" className="pr-inbox-row" onClick={() => open(item)}>
-                  <span className={`pr-inbox-pr-symbol state-${item.state}`} aria-hidden="true"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="6" cy="5" r="3"/><circle cx="6" cy="19" r="3"/><circle cx="18" cy="19" r="3"/><path d="M6 8v8M18 16V9a4 4 0 0 0-4-4h-2m2-2-2 2 2 2"/></svg></span>
+                  <span className={`pr-inbox-pr-symbol state-${item.state}`} aria-hidden="true"><Icon name="pull-request" size={18} /></span>
                   <span className="pr-inbox-row-title"><strong title={item.title}>{item.title}</strong><span className="pr-inbox-meta"><span>{item.target.owner}/{item.target.repo}</span><span>#{item.target.number}</span>{item.relations.map(r => <span className="pr-inbox-relation-tag" key={r}>{tr(...relationLabels[r])}</span>)}</span></span>
                   <span className="pr-inbox-row-state"><PrStateBadge state={item.state}/><span className="pr-inbox-check">{item.enrichment === 'idle' ? tr('正在读取状态…', 'Reading status…') : item.enrichment === 'error' ? tr('状态读取失败', 'Status unavailable') : <PrCheckStatus state={item.checks}/>}</span></span>
                   <PrUpdatedTime value={item.updatedAt}/>

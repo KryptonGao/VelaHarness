@@ -1,11 +1,10 @@
 import { useEffect, useId, useRef, useState, type RefObject } from "react";
 import { useAutoHideScrollbar } from "../../hooks/useAutoHideScrollbar";
 import type { SettingsCopy } from "../settings-copy";
-import { CloseIcon } from "../icons";
 import { groupOfPage, settingsGroups, type SettingsPageId } from "./settings-registry";
 import { SettingsPageIcon } from "./settings-icons";
 import type { SettingsSearchResult } from "./settings-search";
-import { Icon } from "../icons/Icon";
+import { Icon } from "../icons";
 
 interface SettingsNavProps {
   copy: SettingsCopy;
@@ -82,7 +81,7 @@ export function SettingsNav({ copy, page, pages, onPage, query, onQuery, results
               searchRef.current?.focus();
             }}
           >
-            <CloseIcon size={12} />
+            <Icon name="close" size={12} />
           </button>
         ) : null}
       </div>

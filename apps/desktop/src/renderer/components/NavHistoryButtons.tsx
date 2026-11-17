@@ -1,6 +1,6 @@
 import { tr } from "../locale";
 import { modKeyLabel } from "../platform";
-import { ArrowLeftIcon, ArrowRightIcon } from "./icons";
+import { Icon } from "./icons";
 
 interface NavHistoryButtonsProps {
   platform: string;
@@ -18,11 +18,11 @@ export function NavHistoryButtons({ platform, canGoBack, canGoForward, onBack, o
   return <div className="nav-history-buttons" role="group" aria-label={tr("导航历史", "Navigation history")}>
     <button className="icon-btn-ghost" type="button" disabled={!canGoBack} onClick={onBack}
       title={`${back} (${mac ? `${modKeyLabel(platform)}[` : "Alt+←"})`} aria-label={back}>
-      <ArrowLeftIcon size={15} />
+      <Icon name="arrow-left" size={16} />
     </button>
     <button className="icon-btn-ghost" type="button" disabled={!canGoForward} onClick={onForward}
       title={`${forward} (${mac ? `${modKeyLabel(platform)}]` : "Alt+→"})`} aria-label={forward}>
-      <ArrowRightIcon size={15} />
+      <Icon name="arrow-right" size={16} />
     </button>
   </div>;
 }

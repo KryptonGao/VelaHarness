@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef, type RefObject } from "react";
 import { tr, trf } from "../locale";
-import { ChatIcon, FolderIcon } from "./icons";
 import { positionSidePopover } from "./popover-position";
+import { Icon } from "./icons";
 
 /** 侧边栏工作区悬停信息卡:用原生 top layer 弹出,不被侧边栏滚动区裁切。 */
 export function WorkspaceHoverCard({ anchor, name, cwd, folders, chatCount, pinned, onTogglePin, onEdit }: {
@@ -48,16 +48,16 @@ export function WorkspaceHoverCard({ anchor, name, cwd, folders, chatCount, pinn
   return (
     <div ref={ref} popover="manual" role="group" aria-label={name} className="workspace-hover-card">
       <div className="workspace-hover-card-head">
-        <FolderIcon size={15} />
+        <Icon name="folder" size={16} />
         <span className="workspace-hover-card-name">{name}</span>
         <button className="workspace-hover-card-pin" type="button" title={pinLabel} aria-label={`${pinLabel} · ${name}`}
           aria-pressed={pinned} onClick={onTogglePin}>
           <PinIcon filled={pinned} />
         </button>
       </div>
-      <div className="workspace-hover-card-line"><ChatIcon size={15} /><span>{chatLabel}</span></div>
+      <div className="workspace-hover-card-line"><Icon name="chat" size={16} /><span>{chatLabel}</span></div>
       <div className="workspace-hover-card-paths">
-        <FolderIcon size={15} />
+        <Icon name="folder" size={16} />
         <div>
           <span className="workspace-hover-card-path" title={cwd}>{cwd}</span>
           {folders.map(folder => <span key={folder} className="workspace-hover-card-path" title={folder}>{folder}</span>)}
@@ -72,20 +72,12 @@ export function WorkspaceHoverCard({ anchor, name, cwd, folders, chatCount, pinn
 
 export function PinIcon({ filled = false }: { filled?: boolean }) {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor"
-      strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M12 17v5" />
-      <path d="M9 3h6l-1 6 3 3v2H7v-2l3-3-1-6Z" />
-    </svg>
+    <Icon name="pin" size={14} filled={filled} />
   );
 }
 
 function EditIcon() {
   return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M4 7h10M18 7h2M4 17h2M10 17h10" />
-      <circle cx="16" cy="7" r="2" />
-      <circle cx="8" cy="17" r="2" />
-    </svg>
+    <Icon name="sliders" size={16} />
   );
 }

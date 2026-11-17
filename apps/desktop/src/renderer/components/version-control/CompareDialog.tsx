@@ -2,11 +2,11 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { BranchSummary, GitCompareResult, GitCompareFile, GitCommitSummary } from "@vela/shared";
 import { tr, trf } from "../../locale";
 import type { VersionControlApi } from "../../hooks/useVersionControl";
-import { AlertIcon, ArrowRightIcon, RefreshIcon } from "../icons";
 import { DiffPane } from "../DiffPane";
 import { splitCommitDiff } from "./HistoryPage";
 import { formatRelativeTime } from "./time-format";
 import type { AppLocale } from "@vela/shared";
+import { Icon } from "../icons";
 
 /**
  * 两个 ref 的比较(BR-03 分支比较 / HI-01 提交比较)。
@@ -107,7 +107,7 @@ export function CompareDialog({
               setHead(base);
             }}
           >
-            <ArrowRightIcon size={12} />
+            <Icon name="arrow-right" size={12} />
           </button>
           <label className="vc-field-label">
             {tr("目标（head）", "Head")}
@@ -146,7 +146,7 @@ export function CompareDialog({
         </div>
 
         {result?.error ? (
-          <div className="vc-error-banner" role="alert"><AlertIcon size={12} />{result.error}</div>
+          <div className="vc-error-banner" role="alert"><Icon name="alert" size={12} />{result.error}</div>
         ) : null}
         {result?.diffTruncated ? (
           <div className="vc-inline-notice">{tr("差异过大，仅显示前一部分。", "The diff is very large; only the first part is shown.")}</div>
@@ -206,7 +206,7 @@ export function CompareDialog({
 
         <div className="vc-dialog-foot">
           <button type="button" className="vc-icon-btn" title={tr("重新比较", "Re-compare")} aria-label={tr("重新比较", "Re-compare")} onClick={() => void run()}>
-            <RefreshIcon size={12} />
+            <Icon name="refresh" size={12} />
           </button>
           <span className="vc-hint">{tr("比较使用共同祖先作为基准，方向和范围以输入为准。", "Comparison uses the merge base; direction follows the inputs.")}</span>
         </div>

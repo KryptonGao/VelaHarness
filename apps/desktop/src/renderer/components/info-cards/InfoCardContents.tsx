@@ -15,11 +15,9 @@ import { formatElapsed } from "../AgentPanel";
 import { PopoverPresence } from "../MotionPresence";
 import { RepoCardPopover } from "../RepoCardPopover";
 import { planStatusLabel } from "../PlanPanel";
-import {
-  BranchIcon, CheckIcon, DiffIcon, FolderIcon, GithubIcon, GoalIcon, PlanIcon, StackIcon, StopSquareIcon, SubagentIcon, TerminalIcon, ToolIcon, ViewGaugeIcon,
-} from "../icons";
 import type { InfoCardId } from "./info-cards-layout";
 import type { OutputFile } from "./info-cards-data";
+import { Icon, snapIconSize } from "../icons";
 
 /** 信息卡片需要的全部输入；由 ChatView 提供，卡片自己不订阅会话。 */
 export interface InfoCardContext {
@@ -85,7 +83,7 @@ function EnvironmentBody({ ctx }: { ctx: InfoCardContext }) {
       <button type="button" className="info-card-row" disabled={!root} title={root ?? undefined}
         aria-label={`${tr("在", "Open in ")}${fileManagerName(window.vela?.platform ?? "darwin")}${tr("中打开", "")}: ${name}`}
         onClick={() => root && void project.openFile(root)}>
-        <FolderIcon />
+        <Icon name="folder" size={14} />
         <span className="info-card-row-main">{name}</span>
         {root ? <span className="info-card-row-note">{root.replace(/^\/Users\/[^/]+/, "~")}</span> : null}
       </button>
@@ -93,7 +91,7 @@ function EnvironmentBody({ ctx }: { ctx: InfoCardContext }) {
         <div className="info-card-branch" ref={branchRef}>
           <button type="button" className="info-card-row" aria-haspopup="true" aria-expanded={branchOpen}
             title={tr("切换分支", "Switch branch")} onClick={() => setBranchOpen((open) => !open)}>
-            <BranchIcon />
+            <Icon name="branch" size={14} />
             <span className="info-card-row-main">{git.branch ?? "HEAD"}</span>
           </button>
           <PopoverPresence present={branchOpen}>
@@ -110,12 +108,12 @@ function EnvironmentBody({ ctx }: { ctx: InfoCardContext }) {
       {repo ? (
         pr ? (
           <button type="button" className="info-card-row" onClick={() => void project.openPullRequest(pr.url)}>
-            <GithubIcon />
+            <Icon name="github" size={14} />
             <span className="info-card-row-main">#{pr.number} {pr.title}</span>
           </button>
         ) : project.pr?.ghAvailable ? (
           <button type="button" className="info-card-row" onClick={() => void project.createPullRequest()}>
-            <GithubIcon />
+            <Icon name="github" size={14} />
             <span className="info-card-row-main">{tr("创建 Pull Request", "Create pull request")}</span>
           </button>
         ) : project.pr?.reason ? <p className="info-card-empty">{localizeError(project.pr.reason)}</p> : null
@@ -141,7 +139,7 @@ function PlanBody({ ctx }: { ctx: InfoCardContext }) {
       {model && ctx.onOpenPlan ? (
         <button type="button" className="info-card-row" onClick={() => ctx.onOpenPlan?.(model.id)}
           aria-label={`${tr("打开计划", "Open plan")}: ${model.title || tr("未命名计划", "Untitled plan")}`}>
-          <PlanIcon size={15} />
+          <Icon name="plan" size={16} />
           <span className="info-card-row-main">{model.title || tr("未命名计划", "Untitled plan")}</span>
           <span className="info-card-row-note">{model.streaming ? tr("生成中", "Writing") : planStatusLabel(model.status)}</span>
         </button>
@@ -247,12 +245,12 @@ function BackgroundShellRow({ ctx, shell, now }: { ctx: InfoCardContext; shell: 
   return (
     <div className="info-card-shell">
       <button type="button" className="info-card-row" title={shell.command} disabled={!ctx.onOpenBackgroundTasks} onClick={ctx.onOpenBackgroundTasks}>
-        <TerminalIcon size={15} />
+        <Icon name="terminal" size={16} />
         <span className="info-card-row-main">{shell.command}</span>
         <span className="info-card-row-note">{formatElapsed(now - shell.startedAt)}</span>
       </button>
       <button type="button" className="info-card-icon-btn" title={tr("停止", "Stop")} aria-label={tr("停止后台任务", "Stop background task")} onClick={stop}>
-        <StopSquareIcon size={11} />
+        <Icon name="stop-square" size={12} />
       </button>
     </div>
   );
@@ -268,7 +266,7 @@ function BackgroundBody({ ctx }: { ctx: InfoCardContext }) {
       {running.map((shell) => <BackgroundShellRow key={shell.id} ctx={ctx} shell={shell} now={now} />)}
       {finished > 0 ? (
         <button type="button" className="info-card-row" disabled={!ctx.onOpenBackgroundTasks} onClick={ctx.onOpenBackgroundTasks}>
-          <CheckIcon size={15} />
+          <Icon name="check" size={16} />
           <span className="info-card-row-main">{trf("{0} 个已结束", "{0} finished", finished)}</span>
         </button>
       ) : null}
@@ -288,14 +286,14 @@ function ToolsBody({ ctx }: { ctx: InfoCardContext }) {
 
 export const infoCardDefinitions: Record<InfoCardId, InfoCardDefinition> = {
   env: {
-    Icon: ({ size }) => <FolderIcon size={size} />,
+    Icon: ({ size }) => <Icon name="folder" size={snapIconSize(size ?? 13)} />,
     title: () => tr("环境", "Environment"),
     available: () => true,
     summary: (ctx) => ctx.project.git?.branch ?? ctx.project.workspace?.current?.split("/").filter(Boolean).pop() ?? null,
     Body: EnvironmentBody,
   },
   goal: {
-    Icon: ({ size }) => <GoalIcon size={size} />,
+    Icon: ({ size }) => <Icon name="goal" size={snapIconSize(size ?? 13)} />,
     title: () => tr("目标", "Goal"),
     available: (ctx) => Boolean(ctx.state?.session.goal),
     summary: (ctx) => {
@@ -305,7 +303,7 @@ export const infoCardDefinitions: Record<InfoCardId, InfoCardDefinition> = {
     Body: GoalBody,
   },
   plan: {
-    Icon: ({ size }) => <PlanIcon size={size} />,
+    Icon: ({ size }) => <Icon name="plan" size={snapIconSize(size ?? 13)} />,
     title: () => tr("计划", "Plan"),
     available: (ctx) => planModel(ctx) !== null,
     summary: (ctx) => {
@@ -315,21 +313,21 @@ export const infoCardDefinitions: Record<InfoCardId, InfoCardDefinition> = {
     Body: PlanBody,
   },
   context: {
-    Icon: ({ size }) => <ViewGaugeIcon size={size} />,
+    Icon: ({ size }) => <Icon name="gauge" size={snapIconSize(size ?? 13)} />,
     title: () => tr("上下文", "Context"),
     available: (ctx) => ctx.state !== null,
     summary: (ctx) => <ContextSummary ctx={ctx} />,
     Body: ContextBody,
   },
   outputs: {
-    Icon: ({ size }) => <StackIcon size={size} />,
+    Icon: ({ size }) => <Icon name="stack" size={snapIconSize(size ?? 13)} />,
     title: () => tr("产出", "Outputs"),
     available: (ctx) => ctx.outputs.length > 0,
     summary: (ctx) => trf("{0} 个文件", "{0} files", ctx.outputs.length),
     Body: OutputsBody,
   },
   changes: {
-    Icon: ({ size }) => <DiffIcon size={size} />,
+    Icon: ({ size }) => <Icon name="diff" size={snapIconSize(size ?? 13)} />,
     title: () => tr("变更", "Changes"),
     available: (ctx) => Boolean(ctx.project.git?.repo),
     summary: (ctx) => {
@@ -346,7 +344,7 @@ export const infoCardDefinitions: Record<InfoCardId, InfoCardDefinition> = {
     Body: ChangesBody,
   },
   agents: {
-    Icon: ({ size }) => <SubagentIcon size={size} />,
+    Icon: ({ size }) => <Icon name="subagent" size={snapIconSize(size ?? 13)} />,
     title: () => tr("子代理", "Subagents"),
     available: (ctx) => subagentsOf(ctx).length > 0,
     summary: (ctx) => {
@@ -357,7 +355,7 @@ export const infoCardDefinitions: Record<InfoCardId, InfoCardDefinition> = {
     Body: AgentsBody,
   },
   background: {
-    Icon: ({ size }) => <TerminalIcon size={size} />,
+    Icon: ({ size }) => <Icon name="terminal" size={snapIconSize(size ?? 13)} />,
     title: () => tr("后台任务", "Background tasks"),
     available: (ctx) => shellsOf(ctx).length > 0,
     summary: (ctx) => {
@@ -367,7 +365,7 @@ export const infoCardDefinitions: Record<InfoCardId, InfoCardDefinition> = {
     Body: BackgroundBody,
   },
   tools: {
-    Icon: ({ size }) => <ToolIcon size={size} />,
+    Icon: ({ size }) => <Icon name="tool" size={snapIconSize(size ?? 13)} />,
     title: () => tr("已启用工具", "Enabled tools"),
     available: (ctx) => (ctx.state?.session.tools?.length ?? 0) > 0,
     summary: (ctx) => String(ctx.state?.session.tools?.length ?? 0),

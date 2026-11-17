@@ -2,8 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { AppLocale, BranchSummary, GitBranchDeleteInput, GitBranchDetail } from "@vela/shared";
 import { tr, trf } from "../../locale";
 import type { VersionControlApi } from "../../hooks/useVersionControl";
-import { AlertIcon, BranchIcon, CheckIcon, RefreshIcon, TrashIcon } from "../icons";
-import { Icon } from "../icons/Icon";
+import { Icon } from "../icons";
 
 /**
  * 分支管理(BR-02):重命名、删除与跟踪关系;删除前展示合并状态、
@@ -118,7 +117,7 @@ export function BranchPanel({
               onClick={() => void load(branch.name)}
             >
               <span className="vc-branch-item-name">
-                {branch.current ? <CheckIcon size={11} /> : <BranchIcon size={11} />}
+                {branch.current ? <Icon name="check" size={12} /> : <Icon name="branch" size={12} />}
                 {branch.name}
               </span>
               <span className="vc-branch-item-meta">
@@ -312,10 +311,10 @@ export function BranchPanel({
                   title={detail.current ? tr("不能删除当前分支", "Cannot delete the current branch") : undefined}
                   onClick={() => { setDeleting({ detail, force: false, remote: null }); setRenaming(null); }}
                 >
-                  <TrashIcon size={12} /> {tr("删除分支", "Delete")}
+                  <Icon name="trash" size={12} /> {tr("删除分支", "Delete")}
                 </button>
                 <button type="button" className="vc-icon-btn" title={tr("刷新", "Refresh")} aria-label={tr("刷新分支状态", "Refresh branch")} onClick={() => void load(detail.name)}>
-                  <RefreshIcon size={12} />
+                  <Icon name="refresh" size={12} />
                 </button>
               </div>
               <p className="vc-hint">
@@ -329,7 +328,7 @@ export function BranchPanel({
           {message ? <div className="vc-inline-notice" role="status">{message}</div> : null}
           {api.error ? (
             <div className="vc-error-banner" role="alert">
-              <AlertIcon size={12} />
+              <Icon name="alert" size={12} />
               {api.error}
               <button type="button" className="vc-link" onClick={api.clearError}>{tr("关闭", "Dismiss")}</button>
             </div>

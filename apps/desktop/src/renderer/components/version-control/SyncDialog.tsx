@@ -8,8 +8,8 @@ import type {
 } from "@vela/shared";
 import { tr, trf } from "../../locale";
 import type { VersionControlApi } from "../../hooks/useVersionControl";
-import { AlertIcon } from "../icons";
 import { formatAbsoluteTime, formatRelativeTime } from "./time-format";
+import { Icon } from "../icons";
 
 /** 同步策略:与 P0 的仅快进 Pull 区分,逐项说明对历史的影响(SY-03)。 */
 const pullStrategies: Array<{ value: GitPullStrategy; label: [string, string]; hint: [string, string] }> = [
@@ -173,7 +173,7 @@ export function SyncDialog({
             </div>
             {hasTrackedChanges ? (
               <div className="vc-p2-warn" role="status">
-                <AlertIcon size={12} />
+                <Icon name="alert" size={12} />
                 {tr(
                   "工作区有未提交改动，同步会先停止；请先提交或保存到 Stash。",
                   "The working tree has uncommitted changes; the sync stops first. Commit them or save them to a stash.",

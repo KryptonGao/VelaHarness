@@ -112,11 +112,11 @@ if (!process.versions.electron) {
       for (const display of ["card", "compact"]) {
         await evaluate(`window.renderTools(${JSON.stringify(display)})`);
         await until("document.querySelectorAll('.tool-card').length === 2");
-        const icons = await evaluate("Array.from(document.querySelectorAll('.tool-card-icon svg')).map(node => node.innerHTML)");
+        const icons = await evaluate("Array.from(document.querySelectorAll('.tool-card-icon svg')).map(node => node.dataset.icon)");
         assert.equal(icons.length, 2);
         assert.notEqual(icons[0], icons[1], display + ": search and fetch have different icons");
-        assert.ok(icons[0].includes("circle") && icons[1].includes("rect"), display + ": dedicated icons rather than the wrench");
-        assert.ok(!icons.some((icon) => icon.includes("M14.7 6.3")), display + ": the generic wrench is not used");
+        assert.deepEqual(icons, ["web-search", "web-fetch"], display + ": dedicated icons rather than the wrench");
+        assert.ok(!icons.includes("tool"), display + ": the generic wrench is not used");
         assert.equal(await evaluate("document.querySelectorAll('.tool-card.is-web').length"), 2);
         // 运行中的图标周围没有脉冲光圈。
         const style = await evaluate("(() => { const style = getComputedStyle(document.querySelector('.tool-card.is-running .tool-card-icon')); return { animation: style.animationName, shadow: style.boxShadow }; })()");

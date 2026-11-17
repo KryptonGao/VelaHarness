@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowDownIcon } from "./icons";
 import { OrbCanvas } from "./OrbCanvas";
 import { createOrbRotation, drawOrbStyle, orbDwellMs, type OrbActivity, type OrbStyle } from "./jump-orb";
+import { Icon } from "./icons";
 
 /**
  * 按轮换规则选当前样式(规则见 jump-orb.ts)。
@@ -35,7 +35,7 @@ export function JumpOrb({ activity, commandKey, running }: { activity: OrbActivi
   const style = useOrbStyle(activity, commandKey);
   return (
     <>
-      <span className="jump-orb-arrow" data-on={!style}><ArrowDownIcon size={18} /></span>
+      <span className="jump-orb-arrow" data-on={!style}><Icon name="arrow-down" size={18} /></span>
       <OrbCanvas style={style} running={running} visible={Boolean(style)} className={activity === "command" ? "jump-orb jump-orb-command" : "jump-orb"} />
     </>
   );

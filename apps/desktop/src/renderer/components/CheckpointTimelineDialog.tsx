@@ -1,8 +1,8 @@
 import type { CheckpointRestorePreview, CheckpointTimeline } from "@vela/shared";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { localizeError, tr, trf, activeIntlLocale } from "../locale";
-import { BranchIcon, HistoryIcon, TrashIcon } from "./icons";
 import "../checkpoints.css";
+import { Icon } from "./icons";
 
 interface CheckpointTimelineDialogProps {
   conversationId: string;
@@ -174,7 +174,7 @@ export function CheckpointTimelineDialog({ conversationId, busy, initialTurn, on
           <p>{tr("回到某一轮结束时的对话和文件，或从那里分叉出新对话。", "Return the chat and its files to the end of a turn, or fork a new chat from there.")}</p>
         </div>
         <button type="button" className="checkpoint-close" aria-label={tr("关闭", "Close")} disabled={working} onClick={onClose}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12" /></svg>
+          <Icon name="close" size={14} />
         </button>
       </header>
 
@@ -224,7 +224,7 @@ export function CheckpointTimelineDialog({ conversationId, busy, initialTurn, on
 
                 <div className="checkpoint-action">
                   <div className="checkpoint-action-copy">
-                    <strong><HistoryIcon size={13} /> {tr("回到这里", "Return here")}</strong>
+                    <strong><Icon name="history" size={14} /> {tr("回到这里", "Return here")}</strong>
                     {node.current ? (
                       <p>{tr("这是对话当前所在的位置。", "This is where the chat is now.")}</p>
                     ) : restore?.available ? (
@@ -252,7 +252,7 @@ export function CheckpointTimelineDialog({ conversationId, busy, initialTurn, on
                 {node.turnIndex >= 0 ? (
                   <div className="checkpoint-action">
                     <div className="checkpoint-action-copy">
-                      <strong><BranchIcon size={13} /> {tr("从这里分叉", "Fork from here")}</strong>
+                      <strong><Icon name="branch" size={14} /> {tr("从这里分叉", "Fork from here")}</strong>
                       <p>{tr("保留到这一轮为止的对话，在新聊天里继续；原对话不变。", "Keep the chat up to this turn and continue in a new chat. The original chat stays as it is.")}</p>
                       {!node.current ? (
                         <label className="checkpoint-option">
@@ -289,7 +289,7 @@ export function CheckpointTimelineDialog({ conversationId, busy, initialTurn, on
                 {node.turnIndex >= 0 ? (
                   <div className="checkpoint-action">
                     <div className="checkpoint-action-copy">
-                      <strong><TrashIcon size={13} /> {tr("删除检查点记录", "Delete checkpoint records")}</strong>
+                      <strong><Icon name="trash" size={14} /> {tr("删除检查点记录", "Delete checkpoint records")}</strong>
                       <p>{node.current
                         ? tr("删除这个对话全部的检查点记录并释放磁盘空间。对话内容不受影响，但这些轮次不能再回退文件。", "Delete all of this chat's checkpoint records and free the disk space. The conversation stays, but these turns can no longer be rewound.")
                         : tr("删除这一轮及更早各轮的检查点记录并释放磁盘空间。对话内容不受影响，但这些轮次不能再回退文件。", "Delete the checkpoint records of this turn and the earlier ones and free the disk space. The conversation stays, but those turns can no longer be rewound.")}</p>

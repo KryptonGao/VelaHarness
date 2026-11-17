@@ -1,6 +1,5 @@
 import { memo, useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent, type ReactNode, type TouchEvent, type WheelEvent } from "react";
 import { ActivityIndicator } from "./ActivityIndicator";
-import { EditFileIcon, ReadFileIcon, TerminalIcon, ThinkingIcon, ToolIcon } from "./icons";
 import { Markdown } from "./Markdown";
 import { usePacedText } from "../hooks/usePacedText";
 import { useDelayedThinkingActivity } from "../hooks/useDelayedThinkingActivity";
@@ -16,6 +15,7 @@ import { ThinkingSummaryContext } from "./ThinkingSummaryContext";
 import { thinkingActivity, type ThinkingActivity } from "./thinking-activity";
 import { ScrollFadeShell } from "./ScrollFadeShell";
 import { defaultCommandDetailHeight, defaultThinkingGroupHeight, defaultToolDetailHeight, expandedThinkingGroupHeight } from "../thinking-group-height";
+import { Icon } from "./icons";
 
 /** 分组展开详情时高度封顶的下限。 */
 const GROUP_LOCK_MIN_HEIGHT = 220;
@@ -278,12 +278,10 @@ export function Thinking({
   const showActivity = expandSignal && showActivityIndicator;
 
   const arrow = (
-    <svg className="time-spent-trigger-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
-      <polyline points="9 18 15 12 9 6" />
-    </svg>
+    <Icon name="chevron-right" size={12} className="time-spent-trigger-arrow" />
   );
   // 紧凑模式下前缀一个与工具行对齐的图标,其他模式由样式隐藏。
-  const icon = <span className="thinking-icon" aria-hidden="true"><ThinkingIcon size={13} /></span>;
+  const icon = <span className="thinking-icon" aria-hidden="true"><Icon name="thinking" size={14} /></span>;
   const label = (
     <>
       {icon}
@@ -325,9 +323,7 @@ export function Thinking({
       title={open ? tr("收起思考内容", "Hide the thinking") : tr("展开思考内容", "Show the thinking")}
       aria-label={open ? tr("收起思考内容", "Hide the thinking") : tr("展开思考内容", "Show the thinking")}
     >
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
-        <polyline points="9 18 15 12 9 6" />
-      </svg>
+      <Icon name="chevron-right" size={12} />
     </button>
   ), [open, bodyId, locale]);
   const prose = layout === "prose" && summary?.status === "done" ? (
@@ -487,10 +483,10 @@ function actionSeparator(locale: ReturnType<typeof useAppLocale>): string {
 }
 
 const actionIcons: Record<CoherentAction, ReactNode> = {
-  edit: <EditFileIcon size={14} />,
-  read: <ReadFileIcon size={14} />,
-  bash: <TerminalIcon size={14} />,
-  tools: <ToolIcon size={14} />,
+  edit: <Icon name="edit" size={14} />,
+  read: <Icon name="read-file" size={14} />,
+  bash: <Icon name="terminal" size={14} />,
+  tools: <Icon name="tool" size={14} />,
 };
 
 /**
@@ -547,7 +543,7 @@ export function CoherentGroup({
       titled={{ title: coherentTitle(entries, live, locale), body: "" }}
       leadingIcon={
         <span className="coherent-group-icon" aria-hidden="true">
-          {firstAction ? actionIcons[firstAction] : <ThinkingIcon size={14} />}
+          {firstAction ? actionIcons[firstAction] : <Icon name="thinking" size={14} />}
         </span>
       }
       live={live}
@@ -585,7 +581,7 @@ export const CoherentThought = memo(function CoherentThought({ text, messageId, 
     return (
       <div className="coherent-thought is-multi">
         <div className="coherent-thought-trigger is-cot-title">
-          <span className="thinking-icon" aria-hidden="true"><ThinkingIcon size={13} /></span>
+          <span className="thinking-icon" aria-hidden="true"><Icon name="thinking" size={14} /></span>
           <span className="coherent-thought-lines">
             {summaries.map((line, index) => <span key={index} className="coherent-thought-line">{line}</span>)}
           </span>
@@ -596,12 +592,10 @@ export const CoherentThought = memo(function CoherentThought({ text, messageId, 
   return (
     <div className={`coherent-thought${open ? " open" : ""}`}>
       <button className={`coherent-thought-trigger${titled || summaries ? " is-cot-title" : ""}`} type="button" aria-expanded={open} aria-controls={bodyId} disabled={!body} onClick={() => setManual(!open)} title={title}>
-        <span className="thinking-icon" aria-hidden="true"><ThinkingIcon size={13} /></span>
+        <span className="thinking-icon" aria-hidden="true"><Icon name="thinking" size={14} /></span>
         <span className="coherent-thought-title">{title}</span>
         {body ? (
-          <svg className="coherent-thought-arrow" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
+          <Icon name="chevron-right" size={12} className="coherent-thought-arrow" />
         ) : null}
       </button>
       {body ? (

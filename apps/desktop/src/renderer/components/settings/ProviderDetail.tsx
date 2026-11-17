@@ -2,7 +2,6 @@ import { customModelApis, type AuthMethodType, type CustomModelApi, type ModelSu
 import { useState } from "react";
 import type { useModels } from "../../hooks/useModels";
 import type { PreferencesApi } from "../../hooks/usePreferences";
-import { PencilIcon, PlusIcon, TrashIcon } from "../icons";
 import type { SettingsCopy } from "../settings-copy";
 import {
   ApiSelect,
@@ -15,6 +14,7 @@ import {
 } from "./models-parts";
 import { authSourceKind, formatContext, providerStatus } from "./models-view";
 import { SettingsSwitch } from "./primitives";
+import { Icon } from "../icons";
 
 type ModelsApi = ReturnType<typeof useModels>;
 type ModelsCopy = SettingsCopy["models"];
@@ -286,7 +286,7 @@ function ModelList({
             className="models-btn small"
             onClick={() => { setEditing({ mode: "add" }); setDraft(emptyModelDraft); setError(null); }}
           >
-            <PlusIcon size={13} />
+            <Icon name="plus" size={14} />
             {text.addModel}
           </button>
         ) : null}
@@ -328,7 +328,7 @@ function ModelList({
               {model.custom ? (
                 <div className="models-row-actions">
                   <button type="button" className="models-icon-btn" aria-label={text.editModel} title={text.editModel} onClick={() => startEdit(model)}>
-                    <PencilIcon size={14} />
+                    <Icon name="edit" size={14} />
                   </button>
                   <button
                     type="button"
@@ -338,7 +338,7 @@ function ModelList({
                     onBlur={() => setPendingDelete((current) => (current === model.id ? null : current))}
                     onClick={() => void deleteModel(model)}
                   >
-                    <TrashIcon size={14} />
+                    <Icon name="trash" size={14} />
                   </button>
                 </div>
               ) : null}
@@ -390,7 +390,7 @@ function RemoveProvider({ text, provider, providerModels, models, onRemoved }: {
       onBlur={() => setArmed(false)}
       onClick={() => void remove()}
     >
-      <TrashIcon size={15} />
+      <Icon name="trash" size={16} />
     </button>
   );
 }

@@ -6,6 +6,7 @@ import { RecipeActionsContext } from "./recipe-actions-context";
 import { ConflictContext } from "./conflict-context";
 import type { RecipeMessageSeed } from "./TaskRecipesPage";
 import { PopoverPresence } from "./MotionPresence";
+import { Icon } from "./icons";
 
 export function ChatActionsMenu({ messages, streaming }: { messages: UiMessage[]; streaming: boolean }) {
   const actions = useContext(RecipeActionsContext);
@@ -78,9 +79,7 @@ export function ChatActionsMenu({ messages, streaming }: { messages: UiMessage[]
       onKeyDown={event => {
         if (event.key === "ArrowDown" || event.key === "ArrowUp") { event.preventDefault(); if (!open) toggle(); else item.current?.focus(); }
       }}>
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-        <circle cx="5" cy="12" r="1.7" /><circle cx="12" cy="12" r="1.7" /><circle cx="19" cy="12" r="1.7" />
-      </svg>
+      <Icon name="more" size={16} />
     </button>
     <PopoverPresence present={open}>
       <div ref={menu} id={menuId} className="dock-popover chat-actions-menu" data-side="below" role="menu" aria-label={tr("对话操作", "Chat actions")}

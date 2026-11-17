@@ -2,10 +2,9 @@ import { useState } from "react";
 import { PopoverPresence } from "../MotionPresence";
 import type { ProjectApi } from "../../hooks/useProject";
 import { useDismissable } from "../../hooks/useDismissable";
-import { CheckIcon, CloseIcon, FolderIcon, PlusIcon } from "../icons";
 import { tr } from "../../locale";
 import { workspaceTitle } from "../workspace-names";
-import { Icon } from "../icons/Icon";
+import { Icon } from "../icons";
 
 export function WorkspaceChip({ project }: { project: ProjectApi }) {
   const [open, setOpen] = useState(false);
@@ -32,7 +31,7 @@ export function WorkspaceChip({ project }: { project: ProjectApi }) {
         aria-expanded={open}
         onClick={toggle}
       >
-        <FolderIcon />
+        <Icon name="folder" size={14} />
         <span>{current ? workspaceTitle(recents, current) : tr("选择工作区", "Choose workspace")}</span>
       </button>
       <PopoverPresence present={open}>
@@ -59,9 +58,9 @@ export function WorkspaceChip({ project }: { project: ProjectApi }) {
                   if (recent.path !== current) void project.selectRecentWorkspace(recent.path);
                 }}
               >
-                <FolderIcon />
+                <Icon name="folder" size={14} />
                 <span className="workspace-recent-name">{workspaceTitle(recents, recent.path)}</span>
-                {recent.path === current ? <CheckIcon /> : null}
+                {recent.path === current ? <Icon name="check" size={14} /> : null}
               </button>
             ))}
             {visible.length === 0 ? <div className="workspace-empty">{tr("没有匹配的工作区", "No matching workspaces")}</div> : null}
@@ -75,7 +74,7 @@ export function WorkspaceChip({ project }: { project: ProjectApi }) {
                 void project.openWorkspaceDialog();
               }}
             >
-              <PlusIcon />
+              <Icon name="plus" size={14} />
               <span>{tr("打开新的文件夹…", "Open a new folder…")}</span>
             </button>
             {current ? (
@@ -87,7 +86,7 @@ export function WorkspaceChip({ project }: { project: ProjectApi }) {
                   void project.closeWorkspace();
                 }}
               >
-                <CloseIcon />
+                <Icon name="close" size={14} />
                 <span>{tr("清除当前工作区", "Clear current workspace")}</span>
               </button>
             ) : null}

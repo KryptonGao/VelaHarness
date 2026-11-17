@@ -1,8 +1,8 @@
 import { maxWorkspaceFolders, type WorkspaceRecent, type WorkspaceUpdateInput } from "@vela/shared";
 import { useEffect, useId, useRef, useState } from "react";
 import { localizeError, tr } from "../locale";
-import { CloseIcon, FolderIcon, PlusIcon } from "./icons";
 import { folderName } from "./workspace-names";
+import { Icon } from "./icons";
 
 interface WorkspaceSettingsDialogProps {
   /** 要编辑的工作区;未登记的会话目录以只有主要文件夹的形式传入。 */
@@ -87,11 +87,11 @@ export function WorkspaceSettingsDialog({ workspace, onSave, onRemove, onPickFol
         <div className="workspace-settings-head">
           <h2 id={headingId}>{tr("编辑工作区", "Edit workspace")}</h2>
           <button type="button" className="workspace-settings-close" aria-label={tr("关闭", "Close")} disabled={busy} onClick={onClose}>
-            <CloseIcon size={18} />
+            <Icon name="close" size={18} />
           </button>
         </div>
         <label className="workspace-settings-name" htmlFor={nameId}>
-          <FolderIcon size={15} />
+          <Icon name="folder" size={16} />
           <input
             id={nameId}
             value={nameTouched ? name : (workspace.displayName ?? folderName(primary))}
@@ -105,7 +105,7 @@ export function WorkspaceSettingsDialog({ workspace, onSave, onRemove, onPickFol
         <div className="workspace-settings-folders">
           {folders.map((path, index) => (
             <div className="workspace-settings-row" key={path}>
-              <FolderIcon size={15} />
+              <Icon name="folder" size={16} />
               <span className="workspace-settings-folder" title={path}>{folderName(path)}</span>
               {index === 0 ? (
                 <span className="workspace-settings-primary">{tr("主要", "Primary")}</span>
@@ -127,12 +127,12 @@ export function WorkspaceSettingsDialog({ workspace, onSave, onRemove, onPickFol
                 disabled={busy || folders.length === 1}
                 onClick={() => setFolders((current) => current.filter((item) => item !== path))}
               >
-                <CloseIcon size={16} />
+                <Icon name="close" size={16} />
               </button>
             </div>
           ))}
           <button type="button" className="workspace-settings-add" disabled={busy || full} onClick={() => void addFolder()}>
-            <PlusIcon size={15} />
+            <Icon name="plus" size={16} />
             <span>{tr("添加文件夹", "Add folder")}</span>
           </button>
         </div>

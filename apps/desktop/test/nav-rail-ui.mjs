@@ -88,11 +88,10 @@ if (!process.versions.electron) {
       assert.equal(await evaluate("document.querySelector('.nav-rail-item[aria-current=page]').getAttribute('aria-label')"), "主页");
       assert.equal(await evaluate("document.querySelector('.nav-rail-badge').textContent"), "3");
       const checkRailIcons = async () => {
-        const icons = await evaluate("[...document.querySelectorAll('.nav-rail-item')].map(item => { const icon = item.querySelector('svg'); const style = getComputedStyle(item); return { active: item.getAttribute('aria-current') === 'page', fill: icon.getAttribute('fill'), stroke: icon.getAttribute('stroke'), border: style.borderWidth, shadow: style.boxShadow }; })");
+        const icons = await evaluate("[...document.querySelectorAll('.nav-rail-item')].map(item => { const icon = item.querySelector('svg'); const style = getComputedStyle(item); return { active: item.getAttribute('aria-current') === 'page', solid: icon.dataset.filled === 'true', border: style.borderWidth, shadow: style.boxShadow }; })");
         assert.equal(icons.filter(icon => icon.active).length, 1);
         for (const icon of icons) {
-          assert.equal(icon.fill, icon.active ? "currentColor" : "none", "Only the selected category uses a solid icon");
-          assert.equal(icon.stroke, icon.active ? "none" : "currentColor", "Inactive categories keep outline icons");
+          assert.equal(icon.solid, icon.active, "Only the selected category uses a solid icon");
           assert.equal(icon.border, "0px", "Category buttons have no border");
           if (icon.active) assert.equal(icon.shadow, "rgba(0, 0, 0, 0.08) 0px 1px 5px 0px", "Selection has a soft shadow, not a border-like ring");
           else assert.equal(icon.shadow, "none");

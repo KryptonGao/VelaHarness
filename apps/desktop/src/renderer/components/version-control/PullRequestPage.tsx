@@ -3,13 +3,13 @@ import type { AppLocale, ConversationGoal, GitStatusSnapshot, PrCheckDetail, PrC
 import { tr, trf } from "../../locale";
 import type { VersionControlApi } from "../../hooks/useVersionControl";
 import { Markdown } from "../Markdown";
-import { AlertIcon, BranchIcon, CheckIcon, CloudIcon, ExternalIcon, GithubIcon, PencilIcon, PrIcon, RefreshIcon, SendIcon } from "../icons";
 import { AiAssist } from "./AiAssist";
 import { PrMergePanel } from "./PrMergePanel";
 import { PrReviewPanel } from "./PrReviewPanel";
 import { buildPrSnapshot, prSnapshotKey, useAiText, verificationNotesFromGoal } from "./ai-text";
 import { clearPrDraft, prDraftKey, readPrDraft, writePrDraft } from "./git-drafts";
 import { formatRelativeTime } from "./time-format";
+import { Icon } from "../icons";
 
 const prStateLabels: Record<PrState, [string, string]> = {
   open: ["开放", "Open"],
@@ -279,7 +279,7 @@ export function PullRequestPage({
               )}
             </div>
             <div className="vc-compare-line">
-              <BranchIcon size={11} />
+              <Icon name="branch" size={12} />
               {pr?.baseOptions && pr.baseOptions.length > 0 ? (
                 <select className="vc-select" aria-label={tr("目标分支 base", "Base branch")} value={base} onChange={(event) => setBase(event.target.value)}>
                   {pr.baseOptions.map((option) => <option key={option} value={option}>{option}</option>)}
@@ -302,14 +302,14 @@ export function PullRequestPage({
               <span className="vc-repo-value" title={headRepo || undefined}>{headRepo || tr("未识别来源仓库", "Head repository unknown")}</span>
             </div>
             <div className="vc-compare-line">
-              <BranchIcon size={11} />
+              <Icon name="branch" size={12} />
               <span className="vc-branch-value" title={branch ?? undefined}>{branch ?? "—"}</span>
             </div>
           </div>
         </section>
         {pushTarget ? (
           <p className="vc-compare-note">
-            <CloudIcon size={11} />
+            <Icon name="cloud" size={12} />
             {trf("推送只发生在 {0}（{1}）", "Pushes only go to {0} ({1})", pushTarget.remote, pushTarget.repo ?? tr("非 GitHub", "not GitHub"))}
           </p>
         ) : null}
@@ -427,16 +427,16 @@ export function PullRequestPage({
         <div className="vc-scope-head">
           <b>{tr("变更范围", "Change range")}</b>
           <button type="button" className="vc-link" disabled={scopeLoading || !base} onClick={() => base && void api.loadScope(base).then(setScope)}>
-            <RefreshIcon size={11} /> {tr("重新核对", "Re-check")}
+            <Icon name="refresh" size={12} /> {tr("重新核对", "Re-check")}
           </button>
         </div>
         {scopeLoading ? <div className="vc-state">{tr("正在核对范围…", "Checking the range…")}</div> : null}
-        {!scopeLoading && scope?.error ? <div className="vc-scope-message error" role="alert"><AlertIcon size={12} /><span>{scope.error}</span></div> : null}
+        {!scopeLoading && scope?.error ? <div className="vc-scope-message error" role="alert"><Icon name="alert" size={12} /><span>{scope.error}</span></div> : null}
         {!scopeLoading && scope && !scope.error ? (
           <>
             {scope.empty ? (
               <div className="vc-scope-message warn" role="status">
-                <AlertIcon size={12} />
+                <Icon name="alert" size={12} />
                 <span>
                   <b>{tr("没有可创建的提交", "Nothing to create")}</b>
                   {trf("当前分支与 {0} 没有差异；先提交并推送改动后再回来。", "No difference between this branch and {0}; commit and push first.", base || "base")}
@@ -475,7 +475,7 @@ export function PullRequestPage({
                 <em>{scope.pushTarget ? scope.pushTarget.remote : tr("无远程", "No remote")}</em>
               </div>
               <div className="vc-scope-commit">
-                <CloudIcon size={12} />
+                <Icon name="cloud" size={12} />
                 <span className="vc-scope-msg">
                   {scope.pushTarget ? `${scope.pushTarget.remote} / ${scope.pushTarget.branch}` : tr("没有可用远程", "No remote available")}
                 </span>
@@ -806,7 +806,7 @@ function PrEditPanel({
 
       <div className="vc-dialog-actions">
         <button type="button" className="vc-btn vc-btn-primary" disabled={api.busy !== null || !title.trim()} onClick={() => void submit()}>
-          <CheckIcon size={12} /> {tr("更新远程 PR", "Update on GitHub")}
+          <Icon name="check" size={12} /> {tr("更新远程 PR", "Update on GitHub")}
         </button>
         <button
           type="button"
@@ -860,7 +860,7 @@ function PrAccessNotice({
   const [chinese, english] = messages[pr.status] ?? messages.failed!;
   return (
     <div className={`vc-pr-notice${pr.stale ? " stale" : ""}`} role="status">
-      <AlertIcon size={13} />
+      <Icon name="alert" size={14} />
       <span>{tr(chinese, english)}{pr.reason ? ` · ${pr.reason}` : ""}</span>
       <button type="button" className="vc-link" onClick={onRefresh}>{tr("刷新", "Refresh")}</button>
       <button type="button" className="vc-link" onClick={onOpenConversation}>{tr("返回对话", "Back to chat")}</button>
@@ -888,7 +888,7 @@ function PrDetail({
   return (
     <div className="vc-pr-detail">
       <header className="vc-pr-detail-head">
-        <div className="vc-overline"><PrIcon size={12} /> #{summary.number} · {prStateLabel(summary.state)}</div>
+        <div className="vc-overline"><Icon name="pull-request" size={12} /> #{summary.number} · {prStateLabel(summary.state)}</div>
         <h1>{summary.title}</h1>
         <div className="vc-pr-detail-meta">
           <span>{summary.baseRepo ?? summary.baseRefName} ← {summary.headRepo ?? summary.headRefName}</span>
@@ -899,10 +899,10 @@ function PrDetail({
         </div>
         <div className="vc-pr-detail-actions">
           <button type="button" className="vc-btn vc-btn-primary" onClick={() => void window.vela?.openPullRequest(summary.url)}>
-            <GithubIcon size={12} /> {tr("在 GitHub 打开", "Open on GitHub")}
+            <Icon name="github" size={12} /> {tr("在 GitHub 打开", "Open on GitHub")}
           </button>
           <button type="button" className={`vc-btn${editing ? " active" : ""}`} aria-pressed={editing} onClick={() => setEditing((value) => !value)}>
-            <PencilIcon size={12} /> {editing ? tr("收起编辑", "Hide editor") : tr("编辑", "Edit")}
+            <Icon name="edit" size={12} /> {editing ? tr("收起编辑", "Hide editor") : tr("编辑", "Edit")}
           </button>
           {summary.isDraft ? (
             <button
@@ -911,7 +911,7 @@ function PrDetail({
               disabled={api.busy !== null}
               onClick={() => void api.markPrReady(summary.number)}
             >
-              <CheckIcon size={12} /> {tr("转为 Ready for review", "Mark ready for review")}
+              <Icon name="check" size={12} /> {tr("转为 Ready for review", "Mark ready for review")}
             </button>
           ) : null}
           <div className="vc-pr-panel-anchor">
@@ -924,7 +924,7 @@ function PrDetail({
                 setMergeOpen(false);
               }}
             >
-              <SendIcon size={12} /> {tr("评论与审阅", "Comments & reviews")}
+              <Icon name="send" size={12} /> {tr("评论与审阅", "Comments & reviews")}
             </button>
             <PrReviewPanel open={reviewOpen} onClose={() => setReviewOpen(false)} api={api} pr={summary} locale={locale} />
           </div>
@@ -938,7 +938,7 @@ function PrDetail({
                 setReviewOpen(false);
               }}
             >
-              <CheckIcon size={12} /> {tr("合并 / 关闭", "Merge / close")}
+              <Icon name="check" size={12} /> {tr("合并 / 关闭", "Merge / close")}
             </button>
             {mergeOpen ? (
               <PrMergePanel
@@ -954,7 +954,7 @@ function PrDetail({
             ) : null}
           </div>
           <button type="button" className="vc-btn" disabled={api.prLoading} onClick={api.refreshPr}>
-            <RefreshIcon size={12} /> {api.prLoading ? tr("刷新中…", "Refreshing…") : tr("刷新", "Refresh")}
+            <Icon name="refresh" size={12} /> {api.prLoading ? tr("刷新中…", "Refreshing…") : tr("刷新", "Refresh")}
           </button>
           <button type="button" className="vc-btn vc-btn-ghost" onClick={onOpenConversation}>{tr("返回对话", "Back to chat")}</button>
           {pr.stale ? <span className="vc-badge vc-badge-pending">{tr("数据可能已过期", "Data may be stale")}</span> : null}
@@ -1000,7 +1000,7 @@ function PrDetail({
               {check.workflow ? <span className="vc-hint">{check.workflow}</span> : null}
               {check.link ? (
                 <button type="button" className="vc-icon-btn" title={tr("查看详情", "View details")} aria-label={`${tr("查看详情", "View details")} ${check.name}`} onClick={() => void window.vela?.openPullRequest(check.link!)}>
-                  <ExternalIcon size={11} />
+                  <Icon name="external" size={12} />
                 </button>
               ) : null}
             </div>
@@ -1022,7 +1022,7 @@ function PrDetail({
               <span className={`vc-badge ${other.state === "merged" ? "vc-badge-ok" : "vc-badge-muted"}`}>{prStateLabel(other.state)}</span>
               <span className="vc-check-name">#{other.number} {other.title}</span>
               <button type="button" className="vc-icon-btn" title={tr("打开", "Open")} aria-label={tr("打开", "Open")} onClick={() => void window.vela?.openPullRequest(other.url)}>
-                <ExternalIcon size={11} />
+                <Icon name="external" size={12} />
               </button>
             </div>
           ))}

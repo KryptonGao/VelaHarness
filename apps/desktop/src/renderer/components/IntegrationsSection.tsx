@@ -2,7 +2,7 @@ import { localizeCopy } from "@vela/shared";
 import { useEffect, useRef, useState } from "react";
 import type { PluginCatalog, PluginSnapshot } from "@vela/shared";
 import type { AppLocale } from "../hooks/usePreferences";
-import { Icon } from "./icons/Icon";
+import { Icon } from "./icons";
 
 
 const copy = {

@@ -2,9 +2,9 @@ import { PopoverPresence } from "../MotionPresence";
 import type { SandboxMode } from "@vela/shared";
 import type { ProjectApi } from "../../hooks/useProject";
 import { useDismissable } from "../../hooks/useDismissable";
-import { CheckIcon, ShieldIcon } from "../icons";
 import { useState } from "react";
 import { tr } from "../../locale";
+import { Icon } from "../icons";
 
 const modeLabels: Record<SandboxMode, [string, string]> = {
   ask: ["每次询问", "Ask every time"],
@@ -44,7 +44,7 @@ export function SandboxPill({ project, conversationMode }: { project: ProjectApi
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
       >
-        <ShieldIcon size={12} />
+        <Icon name="shield" size={12} />
         <span>{modeLabel(mode)}</span>
       </button>
       <PopoverPresence present={open}>
@@ -62,12 +62,12 @@ export function SandboxPill({ project, conversationMode }: { project: ProjectApi
               }}
             >
               <span className={`sandbox-option-icon sandbox-${candidate}`}>
-                <ShieldIcon size={13} />
+                <Icon name="shield" size={14} />
               </span>
               <span className="sandbox-option-text">
                 <span className="sandbox-option-name">{modeLabel(candidate)}</span>
               </span>
-              {candidate === mode ? <CheckIcon /> : null}
+              {candidate === mode ? <Icon name="check" size={14} /> : null}
             </button>
           ))}
           {conversationMode ? <div className="composer-popover-footnote">{tr("此对话使用配方启动时的权限快照；应用默认权限不受影响。", "This chat uses the permission snapshot from its recipe launch. App defaults are unchanged.")}</div> : null}

@@ -6,10 +6,9 @@ import {
   type SkillCatalog,
 } from "@vela/shared";
 import { useEffect, useState } from "react";
-import { ArrowLeftIcon, CheckIcon, ExternalIcon, SkillIcon } from "../icons";
 import type { SettingsCopy } from "../settings-copy";
 import { MarketplaceIcon } from "./MarketplaceIcon";
-import { Icon } from "../icons/Icon";
+import { Icon } from "../icons";
 
 type SkillItem = SkillCatalog["skills"][number];
 
@@ -45,7 +44,7 @@ export function MarketplaceAction({ copy, entry, skill, busy, installing, confir
   if (skill) {
     return (
       <span className="market-installed">
-        <CheckIcon size={13} />
+        <Icon name="check" size={14} />
         {copy.skillsMarketInstalled}
       </span>
     );
@@ -104,7 +103,7 @@ export function MarketplaceDetail({
   return (
     <div className="market-detail">
       <button type="button" className="market-back" onClick={onBack}>
-        <ArrowLeftIcon size={14} />
+        <Icon name="arrow-left" size={14} />
         {copy.skillsTabMarket}
       </button>
       <header className="market-detail-head">
@@ -134,7 +133,7 @@ export function MarketplaceDetail({
         <h3 className="skills-group-head">{copy.skillsMarketDetailSkills}</h3>
         <div className="skills-list">
           <div className="market-detail-row market-detail-skill">
-            <span className="skills-row-icon" aria-hidden="true"><SkillIcon size={16} /></span>
+            <span className="skills-row-icon" aria-hidden="true"><Icon name="skill" size={16} /></span>
             <span className="skills-row-copy">
               <span className="skills-row-name">{entry.skill}</span>
               <span className="skills-row-desc market-wrap">{description}</span>
@@ -165,7 +164,7 @@ export function MarketplaceDetail({
             <dd>
               <a href={homepage} target="_blank" rel="noreferrer noopener" className="market-link">
                 {homepage.replace("https://", "")}
-                <ExternalIcon size={12} />
+                <Icon name="external" size={12} />
               </a>
             </dd>
           </div>

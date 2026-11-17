@@ -3,8 +3,8 @@ import { createContext, useContext, useMemo, type ReactNode } from "react";
 import { useSecondClock } from "../hooks/useSecondClock";
 import { ActivityIndicator } from "./ActivityIndicator";
 import { ThinkingModelCatalogContext } from "./ThinkingGroupModeContext";
-import { PauseIcon, PlayIcon, StopSquareIcon } from "./icons";
 import { tr, trf } from "../locale";
+import { Icon } from "./icons";
 
 export interface AgentWorkspaceValue {
   /** 当前对话的常驻 agent 树快照。 */
@@ -154,17 +154,17 @@ export function AgentControls({
     <span className="agent-controls">
       {canPause ? (
         <button className="agent-control-btn" type="button" title={pauseTitle} aria-label={pauseTitle} onClick={act("pause")}>
-          <PauseIcon size={12} />
+          <Icon name="pause" size={12} />
         </button>
       ) : null}
       {canResume ? (
         <button className="agent-control-btn" type="button" title={resumeTitle} aria-label={resumeTitle} onClick={act("resume")}>
-          <PlayIcon size={12} />
+          <Icon name="play" size={12} />
         </button>
       ) : null}
       {canCancel ? (
         <button className="agent-control-btn is-danger" type="button" title={cancelTitle} aria-label={cancelTitle} onClick={act("cancel")}>
-          <StopSquareIcon size={12} />
+          <Icon name="stop-square" size={12} />
         </button>
       ) : null}
     </span>

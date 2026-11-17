@@ -9,8 +9,8 @@ import type {
 } from "@vela/shared";
 import { tr, trf } from "../../locale";
 import type { VersionControlApi } from "../../hooks/useVersionControl";
-import { AlertIcon, RefreshIcon } from "../icons";
 import { formatAbsoluteTime, formatRelativeTime } from "./time-format";
+import { Icon } from "../icons";
 
 /** 恢复方式:文案直接说明对当前分支与文件/索引的影响(HI-06)。 */
 const recoveryModes: Array<{ value: GitRecoveryMode; label: [string, string] }> = [
@@ -163,7 +163,7 @@ export function ReflogPanel({
           aria-label={tr("刷新 Reflog", "Refresh the reflog")}
           onClick={reload}
         >
-          <RefreshIcon size={12} />
+          <Icon name="refresh" size={12} />
         </button>
         <button type="button" className="vc-link" onClick={onClose}>{tr("关闭", "Close")}</button>
       </div>
@@ -353,7 +353,7 @@ export function ReflogPanel({
 
             {result ? (
               <div className={result.ok ? "vc-inline-notice" : "vc-p2-error"} role="status">
-                <AlertIcon size={12} /> {result.message}
+                <Icon name="alert" size={12} /> {result.message}
               </div>
             ) : null}
             {result?.ok && result.conflictedPaths.length > 0 ? (

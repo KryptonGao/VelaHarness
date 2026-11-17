@@ -2,12 +2,12 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react"
 import type { AppLocale, ConversationGoal, GitPushInput, GitStatusSnapshot } from "@vela/shared";
 import { tr, trf } from "../../locale";
 import type { VersionControlApi } from "../../hooks/useVersionControl";
-import { AlertIcon, ChevronDownIcon, SparkIcon } from "../icons";
 import { AiAssist } from "./AiAssist";
 import { buildCommitSnapshot, useAiText, verificationNotesFromGoal, commitSnapshotKey } from "./ai-text";
 import { clearCommitDraft, commitDraftKey, readCommitDraft, writeCommitDraft } from "./git-drafts";
 import { PushDialog } from "./PushDialog";
 import type { ChangeGroupRow } from "./git-change-groups";
+import { Icon } from "../icons";
 
 /**
  * Commit 编辑区:只提交索引内容;「全部暂存并提交」先展示范围再执行。
@@ -314,7 +314,7 @@ export function CommitComposer({
   return (
     <div className={`vc-composer${compact ? " vc-composer-compact" : ""}${compact && optionsOpen ? " vc-composer-options-open" : ""}`}>
       <div className="vc-composer-meta">
-        {compact ? null : <SparkIcon size={13} />}
+        {compact ? null : <Icon name="sparkles" size={14} />}
         <b>{compact ? tr("提交", "Commit") : tr("提交已暂存改动", "Commit staged changes")}</b>
         <span className="vc-composer-file-count">{compact ? `${tr("已暂存", "Staged")} · ` : ""}{trf("{0} 个文件", "{0} files", stagedRows.length)}</span>
         <span className="vc-stats"><b className="vc-plus">+{stats.added}</b> <b className="vc-minus">−{stats.deleted}</b></span>
@@ -328,7 +328,7 @@ export function CommitComposer({
             aria-controls={`${optionsId} ${actionsId}`}
             onClick={() => setOptionsOpen((value) => !value)}
           >
-            <ChevronDownIcon size={14} />
+            <Icon name="chevron-down" size={14} />
           </button>
         ) : null}
         <span className="vc-composer-author" hidden={compact && status.identity.configured && !optionsOpen}>
@@ -456,7 +456,7 @@ export function CommitComposer({
             <input type="radio" name="vc-undo-mode" checked={undoMode === "keep-worktree"} onChange={() => setUndoMode("keep-worktree")} />
             {tr("保留在工作区（未暂存）", "Keep in the working tree (unstaged)")}
           </label>
-          {undoResult ? <div className="vc-error-banner" role="alert"><AlertIcon size={12} />{undoResult}</div> : null}
+          {undoResult ? <div className="vc-error-banner" role="alert"><Icon name="alert" size={12} />{undoResult}</div> : null}
           <div className="vc-dialog-actions">
             <button type="button" className="vc-btn vc-btn-ghost" onClick={() => setUndoOpen(false)}>{tr("取消", "Cancel")}</button>
             <button type="button" className="vc-btn vc-btn-danger" disabled={api.busy !== null} onClick={() => void runUndo()}>

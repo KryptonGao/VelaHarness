@@ -3,7 +3,7 @@ import type { OpenTarget } from "@vela/shared";
 import { useEffect, useState } from "react";
 import { useDismissable } from "../hooks/useDismissable";
 import { tr, trf } from "../locale";
-import { CheckIcon, ChevronDownIcon, FolderIcon, MonitorIcon, TerminalIcon } from "./icons";
+import { Icon } from "./icons";
 
 const openTargetKey = "vela.openTarget";
 
@@ -24,9 +24,9 @@ function writeStoredTarget(id: string): void {
 }
 
 function FallbackIcon({ kind }: { kind: OpenTarget["kind"] }) {
-  if (kind === "file-manager") return <FolderIcon size={14} />;
-  if (kind === "terminal") return <TerminalIcon size={14} />;
-  return <MonitorIcon size={14} />;
+  if (kind === "file-manager") return <Icon name="folder" size={14} />;
+  if (kind === "terminal") return <Icon name="terminal" size={14} />;
+  return <Icon name="monitor" size={14} />;
 }
 
 function AppIcon({ target }: { target: OpenTarget }) {
@@ -93,7 +93,7 @@ export function OpenInAppButton({ path }: { path: string | null }) {
           aria-expanded={open}
           onClick={() => setOpen((value) => !value)}
         >
-          <ChevronDownIcon size={10} />
+          <Icon name="chevron-down" size={10} />
         </button>
       </div>
       {open ? (
@@ -114,7 +114,7 @@ export function OpenInAppButton({ path }: { path: string | null }) {
               >
                 <AppIcon target={target} />
                 <span className="open-in-row-name">{target.name}</span>
-                {current ? <CheckIcon size={12} /> : null}
+                {current ? <Icon name="check" size={12} /> : null}
               </button>
             );
           })}

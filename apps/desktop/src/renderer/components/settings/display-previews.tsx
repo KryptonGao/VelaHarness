@@ -1,8 +1,8 @@
 import { createContext, useContext, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import type { ThinkingSummaryStyle, ToolDisplay, ToolFold, ToolIconColor } from "../../hooks/usePreferences";
 import { tr, trf } from "../../locale";
-import { EditFileIcon, EyeIcon, FilePlusIcon, ReadFileIcon, SubagentIcon, TerminalIcon, ThinkingIcon } from "../icons";
 import { formatDuration } from "../tool-duration";
+import { Icon } from "../icons";
 
 /** 常驻预览里的动画一律静止:只显示终态,选项切换时即时刷新。 */
 const StillContext = createContext(false);
@@ -53,10 +53,10 @@ const Chevron = ({ className }: { className?: string }) => (
 type Kind = "bash" | "read" | "edit" | "write";
 
 const kindIcon: Record<Kind, ReactNode> = {
-  bash: <TerminalIcon size={13} />,
-  read: <ReadFileIcon size={13} />,
-  edit: <EditFileIcon size={13} />,
-  write: <FilePlusIcon size={13} />,
+  bash: <Icon name="terminal" size={14} />,
+  read: <Icon name="read-file" size={14} />,
+  edit: <Icon name="edit" size={14} />,
+  write: <Icon name="file-plus" size={14} />,
 };
 
 const kindAction: Record<Kind, () => string> = {
@@ -230,8 +230,8 @@ const chips: { id: string; icon: ReactNode; label: () => string }[] = [
   { id: "read", icon: kindIcon.read, label: () => tr("已读取", "Read") },
   { id: "edit", icon: kindIcon.edit, label: () => tr("已编辑", "Edited") },
   { id: "write", icon: kindIcon.write, label: () => tr("已创建", "Created") },
-  { id: "think", icon: <ThinkingIcon size={13} />, label: () => tr("思考", "Thinking") },
-  { id: "agent", icon: <SubagentIcon size={13} />, label: () => tr("子代理", "Subagent") },
+  { id: "think", icon: <Icon name="thinking" size={14} />, label: () => tr("思考", "Thinking") },
+  { id: "agent", icon: <Icon name="subagent" size={14} />, label: () => tr("子代理", "Subagent") },
 ];
 
 export function ToolIconColorPreview({ mode, previewing }: { mode: ToolIconColor; previewing: boolean }) {
@@ -354,7 +354,7 @@ function ThinkingContent({ style, summary, withBody }: { style: ThinkingSummaryS
             </div>
             <div className="dp-think-row dp-swap-in" style={delay(1500)}>
               <span className="dp-think-label is-headline">
-                <span className="dp-ico is-colored-off"><ThinkingIcon size={13} /></span>
+                <span className="dp-ico is-colored-off"><Icon name="thinking" size={14} /></span>
                 <span>{text}</span>
                 <Chevron className={turn} />
               </span>
@@ -535,7 +535,7 @@ export function ConversationPreview({ settings, previewing }: { settings: Conver
   if (hidden) {
     return (
       <button type="button" className="dp-live-show" onClick={() => toggle(false)}>
-        <EyeIcon size={13} />
+        <Icon name="eye" size={14} />
         {tr("显示预览", "Show preview")}
       </button>
     );

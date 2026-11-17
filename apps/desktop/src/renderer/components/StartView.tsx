@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { tr } from "../locale";
-import { ChatIcon, DiffIcon, FolderIcon, GlobeIcon, SparkIcon, TerminalIcon } from "./icons";
+import { Icon } from "./icons";
 
 /** 起始页入口;宿主据此打开对应标签页。 */
 export type StartTabAction = "chat" | "side-chat" | "changes" | "terminal" | "files" | "browser" | "background";
@@ -60,25 +60,25 @@ export function StartView({
         {error ? <p className="start-error" role="alert">{error}</p> : null}
         <fieldset className="start-options" disabled={pending} aria-busy={pending}>
           <StartOption
-            icon={<ChatIcon size={16} />}
+            icon={<Icon name="chat" size={16} />}
             title={tr("聊天", "Chat")}
             description={tr("在面板中开启独立对话", "Start an independent chat in the panel")}
             onSelect={() => onAction("chat")}
           />
           <StartOption
-            icon={<SparkIcon size={16} />}
+            icon={<Icon name="sparkles" size={16} />}
             title={tr("侧边聊天", "Side chat")}
             description={tr("只聊天、不使用工具，带入长期记忆", "Chat only, without tools, with your long-term memory")}
             onSelect={() => onAction("side-chat")}
           />
           <StartOption
-            icon={<GlobeIcon size={16} />}
+            icon={<Icon name="globe" size={16} />}
             title={tr("浏览器", "Browser")}
             description={tr("在面板中手动浏览网页", "Browse web pages manually in the panel")}
             onSelect={() => onAction("browser")}
           />
           <StartOption
-            icon={<DiffIcon size={16} />}
+            icon={<Icon name="diff" size={16} />}
             title={tr("变更", "Changes")}
             description={
               gitAvailable
@@ -89,19 +89,19 @@ export function StartView({
             onSelect={() => onAction("changes")}
           />
           <StartOption
-            icon={<TerminalIcon size={16} />}
+            icon={<Icon name="terminal" size={16} />}
             title={tr("终端", "Terminal")}
             description={tr("在工作区目录运行命令", "Run commands in the workspace directory")}
             onSelect={() => onAction("terminal")}
           />
           <StartOption
-            icon={<TerminalIcon size={16} />}
+            icon={<Icon name="terminal" size={16} />}
             title={tr("后台任务", "Background tasks")}
             description={tr("查看后台命令及其输出", "View background commands and their output")}
             onSelect={() => onAction("background")}
           />
           <StartOption
-            icon={<FolderIcon size={16} />}
+            icon={<Icon name="folder" size={16} />}
             title={tr("文件预览", "File preview")}
             description={tr("浏览工作区文件并预览内容", "Browse workspace files and preview contents")}
             onSelect={() => onAction("files")}

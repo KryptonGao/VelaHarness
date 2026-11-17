@@ -1,10 +1,10 @@
 import { PopoverPresence } from "../MotionPresence";
 import type { ProjectApi } from "../../hooks/useProject";
 import { useDismissable } from "../../hooks/useDismissable";
-import { CheckIcon, MonitorIcon } from "../icons";
 import { useState } from "react";
 import type { SelectableEnvironmentKind, WorktreeHandoffResult } from "@vela/shared";
 import { localizeError, tr, trf } from "../../locale";
+import { Icon } from "../icons";
 
 function handoffText(result: WorktreeHandoffResult): string {
   if (result.status === "applied") return trf("已交接 {0} 个文件到本地", "Handed off {0} files to Local", result.files);
@@ -68,7 +68,7 @@ export function EnvironmentChip({ project }: { project: ProjectApi }) {
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
       >
-        <MonitorIcon />
+        <Icon name="monitor" size={14} />
         <span>{activeLabel}</span>
       </button>
       <PopoverPresence present={open}>
@@ -80,14 +80,14 @@ export function EnvironmentChip({ project }: { project: ProjectApi }) {
             disabled={Boolean(pending) || !worktreeActive}
             onClick={() => void switchTo("local")}
           >
-            <MonitorIcon size={14} />
+            <Icon name="monitor" size={14} />
             <div className="environment-text">
               <span className="environment-name">{tr("本地", "Local")}{pending === "local" ? tr(" · 切换中", " · Switching…") : ""}</span>
               <span className="environment-path" title={local?.path || environment.path}>
                 {local?.path || environment.path}
               </span>
             </div>
-            {worktreeActive ? null : <CheckIcon />}
+            {worktreeActive ? null : <Icon name="check" size={14} />}
           </button>
           <button
             type="button"
@@ -95,7 +95,7 @@ export function EnvironmentChip({ project }: { project: ProjectApi }) {
             disabled={Boolean(pending) || worktreeActive}
             onClick={() => void switchTo("worktree")}
           >
-            <MonitorIcon size={14} />
+            <Icon name="monitor" size={14} />
             <div className="environment-text">
               <span className="environment-name">{tr("工作树", "Worktree")}{pending === "worktree" ? tr(" · 创建中", " · Creating…") : ""}</span>
               <span className="environment-path" title={worktree?.path}>
@@ -104,7 +104,7 @@ export function EnvironmentChip({ project }: { project: ProjectApi }) {
                   : tr("在新对话里使用独立工作树", "Use an isolated worktree in a new chat")}
               </span>
             </div>
-            {worktreeActive ? <CheckIcon /> : null}
+            {worktreeActive ? <Icon name="check" size={14} /> : null}
           </button>
           {worktreeActive ? (
             <>
@@ -130,7 +130,7 @@ export function EnvironmentChip({ project }: { project: ProjectApi }) {
           ) : null}
           {(["sandbox", "remote"] as const).map((kind) => (
             <div className="environment-row disabled" key={kind}>
-              <MonitorIcon size={14} />
+              <Icon name="monitor" size={14} />
               <div className="environment-text">
                 <span className="environment-name">{kind === "sandbox" ? tr("沙箱", "Sandbox") : tr("远程", "Remote")}</span>
               </div>

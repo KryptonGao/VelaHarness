@@ -17,8 +17,8 @@ import {
   type RunStepKind,
 } from "../run-view";
 import { ActivityIndicator } from "./ActivityIndicator";
-import { CheckIcon } from "./icons";
 import { PlanEndedDots } from "./ToolCard";
+import { Icon } from "./icons";
 
 function stepLabel(kind: RunStepKind): string {
   switch (kind) {
@@ -57,7 +57,7 @@ function RunTodoCard({ items, ended }: { items: ToolPlanItem[]; ended: boolean }
         {shown.map((item, index) => (
           <li key={`${index}:${item.text}`} data-status={markOf(item)}>
             <span className="run-todo-mark" data-status={markOf(item)} aria-hidden="true">
-              {item.status === "completed" ? <CheckIcon size={9} /> : markOf(item) === "stopped" ? <PlanEndedDots /> : null}
+              {item.status === "completed" ? <Icon name="check" size={10} /> : markOf(item) === "stopped" ? <PlanEndedDots /> : null}
             </span>
             <span className="run-todo-text">{item.text}</span>
             <span className="sr-only">{item.status === "completed" ? tr("已完成", "Completed") : item.status === "in_progress" ? tr("进行中", "In progress") : tr("待办", "Pending")}</span>

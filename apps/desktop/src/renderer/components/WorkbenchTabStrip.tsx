@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { tr, trf } from "../locale";
 import type { WorkbenchTab } from "./WorkbenchPanel";
 import type { WorkbenchDropEdge } from "./workbench-layout";
-import { CloseIcon, MoreIcon, PlusIcon } from "./icons";
+import { Icon } from "./icons";
 
 export function WorkbenchTabStrip({ tabs, splitEnabled, draggingId, selected, split, maximized, renderLabel, tabButtonId, tabPanelId,
   onActivate, onClose, onNewTab, onMerge, onMaximize, onPlace, onEqualize, onSplit, onTabPointerDown,
@@ -112,22 +112,20 @@ export function WorkbenchTabStrip({ tabs, splitEnabled, draggingId, selected, sp
       const p = positions[tab.id]; if (!p) return null;
       return <button key={tab.id} type="button" className={`workbench-tab-close${p.clipped ? " is-clipped" : ""}`}
         style={{ left: p.left, top: p.top }} aria-label={trf("关闭 {0}", "Close {0}", tab.label)} title={tr("关闭标签", "Close tab")}
-        onClick={() => onClose(tab)}><CloseIcon size={12} /></button>;
+        onClick={() => onClose(tab)}><Icon name="close" size={12} /></button>;
     })}</div>
-    <button className="workbench-new-tab" type="button" aria-label={tr("新建标签页", "New tab")} title={tr("新建标签页", "New tab")} onClick={onNewTab}><PlusIcon size={14} /></button>
+    <button className="workbench-new-tab" type="button" aria-label={tr("新建标签页", "New tab")} title={tr("新建标签页", "New tab")} onClick={onNewTab}><Icon name="plus" size={14} /></button>
     {split && <button className="workbench-group-action is-secondary" type="button" aria-label={maximized ? tr("还原窗口", "Restore pane") : tr("放大窗口", "Maximize pane")}
       title={maximized ? tr("还原窗口", "Restore pane") : tr("放大窗口", "Maximize pane")} aria-pressed={maximized} onClick={onMaximize}>
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
-        <path d={maximized ? "M3 8h5V3m13 5h-5V3M3 16h5v5m13-5h-5v5" : "M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"} />
-      </svg></button>}
+      <Icon name={maximized ? "minimize" : "maximize"} size={14} /></button>}
     {splitEnabled && <button ref={menuButton} className="workbench-group-action" type="button" aria-label={tr("窗口操作", "Pane actions")} title={tr("窗口操作", "Pane actions")}
       aria-haspopup="menu" aria-expanded={!!menu} aria-controls={menu ? menuId : undefined} onClick={event => {
         if (menu) { setMenu(null); return; }
         const r = event.currentTarget.getBoundingClientRect();
         setMenu({ left: Math.max(8, Math.min(innerWidth - 228, r.right - 220)), top: Math.max(8, Math.min(innerHeight - 190, r.bottom + 5)) });
-      }}><MoreIcon size={13} /></button>}
+      }}><Icon name="more" size={14} /></button>}
     {split && <button className="workbench-group-action is-secondary" type="button" aria-label={tr("关闭窗口，保留标签", "Close pane and keep tabs")}
-      title={tr("关闭窗口，保留标签", "Close pane and keep tabs")} onClick={onMerge}><CloseIcon size={12} /></button>}
+      title={tr("关闭窗口，保留标签", "Close pane and keep tabs")} onClick={onMerge}><Icon name="close" size={12} /></button>}
     {splitEnabled && menu && createPortal(<div ref={menuRef} id={menuId} className="workbench-pane-menu" role="menu" style={menu}>
       <button type="button" role="menuitem" onClick={() => { setMenu(null); onPlace(); }}>{tr("移动当前标签", "Move current tab")}</button>
       {split && <><button type="button" role="menuitem" onClick={() => { setMenu(null); onMaximize(); }}>{maximized ? tr("还原窗口", "Restore pane") : tr("放大窗口", "Maximize pane")}</button>

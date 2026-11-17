@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import type { GitHunkAction } from "@vela/shared";
 import { tr, trf } from "../../locale";
-import { CheckIcon, CloseIcon, DiffIcon, TrashIcon } from "../icons";
 import { DiffPane } from "../DiffPane";
 import { buildHunkPatch, hunkLabel, parseRenderPatch } from "./diff-hunks";
+import { Icon } from "../icons";
 
 /**
  * 带代码块操作的差异视图(VC-15)。选择只是界面状态;
@@ -95,7 +95,7 @@ export function HunkedDiff({
                   onChange={() => toggle(hunk.index)}
                 />
               ) : (
-                <DiffIcon size={11} />
+                <Icon name="diff" size={12} />
               )}
               <code className="vc-hunk-label">{hunk.header}</code>
               <span className="vc-hint">{hunkLabel(hunk)}</span>
@@ -110,7 +110,7 @@ export function HunkedDiff({
                       disabled={disabled}
                       onClick={() => onApply("stage", buildHunkPatch(patch, [hunk.index]), 1)}
                     >
-                      <CheckIcon size={11} />
+                      <Icon name="check" size={12} />
                     </button>
                   ) : null}
                   {actions.includes("unstage") ? (
@@ -122,7 +122,7 @@ export function HunkedDiff({
                       disabled={disabled}
                       onClick={() => onApply("unstage", buildHunkPatch(patch, [hunk.index]), 1)}
                     >
-                      <CloseIcon size={11} />
+                      <Icon name="close" size={12} />
                     </button>
                   ) : null}
                   {actions.includes("discard") ? (
@@ -134,7 +134,7 @@ export function HunkedDiff({
                       disabled={disabled}
                       onClick={() => onApply("discard", buildHunkPatch(patch, [hunk.index]), 1)}
                     >
-                      <TrashIcon size={11} />
+                      <Icon name="trash" size={12} />
                     </button>
                   ) : null}
                 </span>

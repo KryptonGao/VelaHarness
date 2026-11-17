@@ -5,11 +5,11 @@ import { useModels } from "../hooks/useModels";
 import { useSession } from "../hooks/useSession";
 import { tr } from "../locale";
 import { AgentWorkspaceProvider } from "./AgentPanel";
-import { ArrowLeftIcon } from "./icons";
 import { PlanDocumentPane, PlanDocumentProvider } from "./PlanPanel";
 import { RecipeActionsContext } from "./recipe-actions-context";
 import { RaceActionsContext } from "./race-actions-context";
 import { SessionChatView } from "./SessionChatView";
+import { Icon } from "./icons";
 
 /** 每个标签拥有独立会话与输入状态；隐藏标签时保持挂载以继续接收消息。 */
 export function WorkbenchChatView({ conversationId, preferences, project, onRenameConversation, onOpenConversation, onNewTab, onShowDiff, onOpenWebLink }: {
@@ -65,7 +65,7 @@ export function WorkbenchChatView({ conversationId, preferences, project, onRena
             {planId ? <>
               <div className="panel-chat-plan-toolbar">
                 <button type="button" className="view-icon-btn" onClick={closePlan}
-                  aria-label={tr("返回聊天", "Back to chat")} title={tr("返回聊天", "Back to chat")}><ArrowLeftIcon size={15} /></button>
+                  aria-label={tr("返回聊天", "Back to chat")} title={tr("返回聊天", "Back to chat")}><Icon name="arrow-left" size={16} /></button>
                 <span>{tr("计划", "Plan")}</span>
               </div>
               <PlanDocumentPane busy={session.state?.session.status !== "ready"}

@@ -2,9 +2,9 @@ import { useEffect, useState } from "react";
 import type { AppLocale } from "@vela/shared";
 import { tr } from "../../locale";
 import type { VersionControlApi } from "../../hooks/useVersionControl";
-import { AlertIcon, EyeIcon, StackIcon, TrashIcon } from "../icons";
 import { DiffPane } from "../DiffPane";
 import { formatRelativeTime } from "./time-format";
+import { Icon } from "../icons";
 
 /**
  * Stash 管理(ST-01):命名保存、可选包含未跟踪文件、预览、Apply/Pop/删除。
@@ -67,9 +67,9 @@ export function StashPanel({
   return (
     <div className="vc-popover vc-stash-popover" role="dialog" aria-label={tr("Stash", "Stashes")}>
       <div className="vc-ops-head">
-        <b><StackIcon size={12} /> {tr("Stash", "Stashes")}</b>
+        <b><Icon name="stack" size={12} /> {tr("Stash", "Stashes")}</b>
         <button type="button" className="vc-icon-btn" title={tr("刷新", "Refresh")} aria-label={tr("刷新 Stash 列表", "Refresh stashes")} onClick={api.refreshStashes}>
-          <StackIcon size={12} />
+          <Icon name="stack" size={12} />
         </button>
         <button type="button" className="vc-link" onClick={onClose}>{tr("关闭", "Close")}</button>
       </div>
@@ -125,7 +125,7 @@ export function StashPanel({
                 {tr("Pop（恢复并移除）", "Pop (apply and drop)")}
               </button>
               <button type="button" className="vc-icon-btn" title={tr("预览差异", "Preview diff")} aria-label={tr("预览差异", "Preview diff")} aria-pressed={previewId === entry.id} onClick={() => setPreviewId((current) => (current === entry.id ? null : entry.id))}>
-                <EyeIcon size={11} />
+                <Icon name="eye" size={12} />
               </button>
               {confirmDrop === entry.id ? (
                 <span className="vc-confirm">
@@ -143,7 +143,7 @@ export function StashPanel({
                 </span>
               ) : (
                 <button type="button" className="vc-icon-btn vc-danger" title={tr("删除该记录", "Drop this stash")} aria-label={tr("删除该记录", "Drop this stash")} onClick={() => setConfirmDrop(entry.id)}>
-                  <TrashIcon size={11} />
+                  <Icon name="trash" size={12} />
                 </button>
               )}
             </div>
@@ -156,7 +156,7 @@ export function StashPanel({
         ))}
       </div>
       <div className="vc-inline-notice">
-        <AlertIcon size={12} />
+        <Icon name="alert" size={12} />
         {tr("Apply/Pop 遇到冲突时会保留 Stash 记录，先解决冲突再重试。", "If apply/pop conflicts, the stash entry is kept; resolve the conflict and retry.")}
       </div>
     </div>

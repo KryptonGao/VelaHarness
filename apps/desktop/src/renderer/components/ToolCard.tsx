@@ -27,7 +27,6 @@ import { VisualToolCard } from "./VisualToolCard";
 import { FileTypeIcon } from "./FileTypeIcon";
 import { sameMarks, type WordRange } from "./diff-words";
 import { STREAMING_HIGHLIGHT_INTERVAL_MS, tokenStyle, useDiffHighlight, type HighlightedDiff } from "./diff-highlight";
-import { CheckIcon, ExternalIcon, EyeIcon, GlobeIcon, McpIcon, StackIcon, ToolIcon, WebFetchIcon, WebSearchIcon } from "./icons";
 import {
   compactLabelParts,
   compactSummaryParts,
@@ -55,7 +54,7 @@ import { cardToolGroup } from "./tool-groups";
 import { toolNameIcon } from "./tool-name-icon";
 
 import { AgentHeadlineIcon, BashSubject, BrowserHeadlineSteps, KindIcon, subjectOf, subjectIsCode, taskTitle, todoFocus, toolKind, type ToolKind } from "./ToolHeadline";
-import { Icon } from "./icons/Icon";
+import { Icon } from "./icons";
 
 const kindLabels: Record<ToolKind, string> = {
   browser: "Browser REPL",
@@ -330,7 +329,7 @@ function AgentToolCard({ tool, compact = false }: { tool: ToolTrace; compact?: b
           disabled={!canOpen}
         >
           <span className="tool-card-icon" aria-hidden="true">
-            {avatarId ? <AgentAvatar agentId={avatarId} size={22} /> : toolNameIcon(tool.name) ?? <ToolIcon size={13} />}
+            {avatarId ? <AgentAvatar agentId={avatarId} size={22} /> : toolNameIcon(tool.name) ?? <Icon name="tool" size={14} />}
           </span>
           <span className="tool-kind-label">{label}</span>
           <span className="tool-card-main">
@@ -356,7 +355,7 @@ function AgentToolCard({ tool, compact = false }: { tool: ToolTrace; compact?: b
             aria-label={tr("在右侧打开运行", "Open run in pane")}
             onClick={openInPane}
           >
-            <ExternalIcon size={12} />
+            <Icon name="external" size={12} />
           </button>
         ) : null}
       </div>
@@ -417,7 +416,7 @@ function GenericToolCard({ tool, compact = false }: ToolCardProps) {
           onClick={() => setOpen((value) => !value)}
         >
           <span className="tool-card-icon" aria-hidden="true">
-            {mcp || discovery ? <McpIcon size={13} /> : webTool ? <WebToolIcon name={tool.name} /> : <GroupIcon name={tool.name} fallback={<KindIcon kind={kind} command={activity.command} skill={skillRead} />} />}
+            {mcp || discovery ? <Icon name="mcp" size={14} /> : webTool ? <WebToolIcon name={tool.name} /> : <GroupIcon name={tool.name} fallback={<KindIcon kind={kind} command={activity.command} skill={skillRead} />} />}
           </span>
           <span className="tool-kind-label">{mcp || discovery ? "MCP" : skillRead ? tr("技能", "Skill") : bashIntent?.label ?? toolLabel(tool.name, kind)}</span>
           <span className="tool-card-main">
@@ -450,7 +449,7 @@ function GenericToolCard({ tool, compact = false }: ToolCardProps) {
             aria-label={`${tr("预览", "Preview")} ${subject.name}`}
             onClick={() => preview?.openFile(previewPath ?? "")}
           >
-            <EyeIcon size={12} />
+            <Icon name="eye" size={12} />
           </button>
         ) : null}
       </div>
@@ -523,12 +522,12 @@ function BrowserReplCard({ tool, compact = false }: { tool: ToolTrace; compact?:
         onClick={() => setOpen((value) => !value)}
       >
         <span className="browser-call-badge" aria-hidden="true">
-          <GlobeIcon size={13} />
+          <Icon name="globe" size={14} />
         </span>
         <BrowserHeadlineSteps steps={steps} />
         {screenshots.length > 0 ? (
           <span className="browser-call-shots" aria-label={trf("{0} 张截图", "{0} screenshots", screenshots.length)}>
-            <EyeIcon size={11} />
+            <Icon name="eye" size={12} />
             {screenshots.length}
           </span>
         ) : null}
@@ -624,7 +623,7 @@ export const ToolRunGroup = memo(function ToolRunGroup({ tools }: { tools: ToolT
         onClick={() => setOpen((value) => !value)}
       >
         <span className="tool-card-icon" aria-hidden="true">
-          {uniform ? <KindIcon kind={uniform} command={uniform === "bash" && tools.every((tool) => bashIntentDisplay(tool.activity?.command)?.kind === currentIntent?.kind) ? activity.command : undefined} /> : <StackIcon />}
+          {uniform ? <KindIcon kind={uniform} command={uniform === "bash" && tools.every((tool) => bashIntentDisplay(tool.activity?.command)?.kind === currentIntent?.kind) ? activity.command : undefined} /> : <Icon name="stack" size={14} />}
         </span>
         <span className="tool-kind-label">{uniform ? toolKindLabel(uniform) : tr("工具", "Tools")}</span>
         <span className="tool-run-count">×{tools.length}</span>
@@ -700,7 +699,7 @@ export const CompactToolGroup = memo(function CompactToolGroup({ tools, sequence
         onClick={() => setOpen((value) => !value)}
       >
         <span className="tool-compact-icon" aria-hidden="true">
-          {uniform ? <KindIcon kind={uniform} command={uniform === "bash" ? tools[0]?.activity?.command : undefined} skill={allSkills} /> : <StackIcon size={13} />}
+          {uniform ? <KindIcon kind={uniform} command={uniform === "bash" ? tools[0]?.activity?.command : undefined} skill={allSkills} /> : <Icon name="stack" size={14} />}
         </span>
         <span className="tool-compact-label">{label}</span>
         {sampleLabel && !(open && fileDiffGroup) ? <span className={`tool-compact-sample${firstBash && subjectIsCode("bash", tools[0]?.activity ?? {}) ? " is-code" : ""}`}>{sampleLabel}</span> : null}
@@ -1038,7 +1037,7 @@ export function PlanStatusIcon({ status, ended = false, className }: { status: E
       data-status={mark}
       aria-hidden="true"
     >
-      {mark === "completed" ? <CheckIcon size={9} /> : mark === "stopped" ? <PlanEndedDots /> : null}
+      {mark === "completed" ? <Icon name="check" size={10} /> : mark === "stopped" ? <PlanEndedDots /> : null}
     </span>
   );
 }
@@ -1135,7 +1134,7 @@ function ToolBody({
 const isWebTool = (name: string): boolean => name === "web_search" || name === "web_fetch";
 
 function WebToolIcon({ name }: { name: string }): ReactNode {
-  return name === "web_fetch" ? <WebFetchIcon size={13} /> : <WebSearchIcon size={13} />;
+  return name === "web_fetch" ? <Icon name="web-fetch" size={14} /> : <Icon name="web-search" size={14} />;
 }
 
 /**

@@ -4,8 +4,8 @@ import type { ProjectApi } from "../../hooks/useProject";
 import type { VersionControlApi } from "../../hooks/useVersionControl";
 import { useDismissable } from "../../hooks/useDismissable";
 import { tr } from "../../locale";
-import { ArrowDownIcon, ArrowUpIcon, BranchIcon, CloudIcon, FolderIcon, HistoryIcon, MonitorIcon, MoreIcon, RefreshIcon, StackIcon, TagIcon } from "../icons";
 import { BranchMenu } from "./BranchMenu";
+import { Icon } from "../icons";
 
 export type RepositoryPanel = "branches" | "remotes" | "stash" | "worktrees" | "sync" | "force-push" | "tags" | "operations" | "reflog" | "compare";
 
@@ -28,22 +28,22 @@ export function ReviewRepositoryToolbar({ project, api, status, sync, onPush, on
   }, [open]);
   useEffect(() => { setOpen(false); }, [status.repo?.root]);
   const actions: { panel: RepositoryPanel; label: string; icon: ReactNode }[] = [
-    { panel: "branches", label: tr("分支", "Branches"), icon: <BranchIcon size={15} /> },
-    { panel: "remotes", label: tr("远程", "Remotes"), icon: <CloudIcon size={15} /> },
-    { panel: "stash", label: tr("Stash", "Stash"), icon: <StackIcon size={15} /> },
-    { panel: "worktrees", label: tr("Worktree", "Worktree"), icon: <MonitorIcon size={15} /> },
-    { panel: "compare", label: tr("比较", "Compare"), icon: <BranchIcon size={15} /> },
-    { panel: "sync", label: tr("同步策略", "Sync strategy"), icon: <ArrowDownIcon size={15} /> },
+    { panel: "branches", label: tr("分支", "Branches"), icon: <Icon name="branch" size={16} /> },
+    { panel: "remotes", label: tr("远程", "Remotes"), icon: <Icon name="cloud" size={16} /> },
+    { panel: "stash", label: tr("Stash", "Stash"), icon: <Icon name="stack" size={16} /> },
+    { panel: "worktrees", label: tr("Worktree", "Worktree"), icon: <Icon name="monitor" size={16} /> },
+    { panel: "compare", label: tr("比较", "Compare"), icon: <Icon name="branch" size={16} /> },
+    { panel: "sync", label: tr("同步策略", "Sync strategy"), icon: <Icon name="arrow-down" size={16} /> },
     ...(status.branch && !status.detached && status.ahead > 0
-      ? [{ panel: "force-push" as const, label: tr("安全强推", "Force push"), icon: <ArrowUpIcon size={15} /> }]
+      ? [{ panel: "force-push" as const, label: tr("安全强推", "Force push"), icon: <Icon name="arrow-up" size={16} /> }]
       : []),
-    { panel: "tags", label: tr("标签 / 发布", "Tags / releases"), icon: <TagIcon size={15} /> },
-    { panel: "operations", label: tr("操作记录", "Operations"), icon: <HistoryIcon size={15} /> },
-    { panel: "reflog", label: tr("Reflog", "Reflog"), icon: <HistoryIcon size={15} /> },
+    { panel: "tags", label: tr("标签 / 发布", "Tags / releases"), icon: <Icon name="tag" size={16} /> },
+    { panel: "operations", label: tr("操作记录", "Operations"), icon: <Icon name="history" size={16} /> },
+    { panel: "reflog", label: tr("Reflog", "Reflog"), icon: <Icon name="history" size={16} /> },
   ];
   return <div className="vc-review-toolbar">
     <div className="vc-review-repository">
-      <span className="vc-review-repo-icon" aria-hidden="true"><FolderIcon size={20} /></span>
+      <span className="vc-review-repo-icon" aria-hidden="true"><Icon name="folder" size={20} /></span>
       <div className="vc-repo-info">
         <div className="vc-repo-title"><b>{status.repo?.name}</b></div>
         <div className="vc-repo-path" title={status.repo?.root}>{status.repo?.root}</div>
@@ -55,14 +55,14 @@ export function ReviewRepositoryToolbar({ project, api, status, sync, onPush, on
     <div className="vc-review-sync-actions">
       {sync}
       <button type="button" className="vc-btn vc-btn-ghost" disabled={api.busy !== null} onClick={() => void api.fetch(null)}>
-        <RefreshIcon size={14} />{api.busy === "fetch" ? tr("Fetch 中…", "Fetching…") : "Fetch"}
+        <Icon name="refresh" size={14} />{api.busy === "fetch" ? tr("Fetch 中…", "Fetching…") : "Fetch"}
       </button>
       <button type="button" className="vc-btn vc-btn-ghost" disabled={api.busy !== null || !status.upstream || api.guard?.agentRunning === true}
         title={status.upstream ? undefined : tr("没有 upstream，先发布分支", "No upstream; publish the branch first")} onClick={() => void api.pull()}>
-        <ArrowDownIcon size={14} />{api.busy === "pull" ? tr("Pull 中…", "Pulling…") : "Pull"}
+        <Icon name="arrow-down" size={14} />{api.busy === "pull" ? tr("Pull 中…", "Pulling…") : "Pull"}
       </button>
       <button type="button" className="vc-btn" disabled={api.busy !== null || !status.branch} onClick={onPush}>
-        <ArrowUpIcon size={14} />{status.upstream ? "Push" : tr("发布分支", "Publish branch")}
+        <Icon name="arrow-up" size={14} />{status.upstream ? "Push" : tr("发布分支", "Publish branch")}
         {status.ahead > 0 ? <span className="vc-review-ahead">{status.ahead}</span> : null}
       </button>
       <div className="vc-review-menu-anchor" ref={anchor}>
@@ -70,7 +70,7 @@ export function ReviewRepositoryToolbar({ project, api, status, sync, onPush, on
           aria-haspopup="menu" aria-expanded={open} aria-controls={open ? id : undefined}
           onClick={() => setOpen(value => !value)} onKeyDown={event => {
             if (event.key === "ArrowDown") { event.preventDefault(); setOpen(true); }
-          }}><MoreIcon size={18} /></button>
+          }}><Icon name="more" size={18} /></button>
         {open ? <div className="vc-popover vc-review-menu" id={id} ref={menu} role="menu" aria-label={tr("仓库管理", "Repository")}
           onKeyDown={event => {
             if (event.key === "Escape") { event.preventDefault(); setOpen(false); trigger.current?.focus(); }

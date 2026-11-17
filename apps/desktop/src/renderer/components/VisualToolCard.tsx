@@ -11,10 +11,9 @@ import {
 } from "@vela/shared";
 import { createLogger } from "../logger";
 import { localizeError, tr, trf } from "../locale";
-import { ChevronDownIcon, CloseIcon, CodeIcon, ExpandIcon, VisualIcon } from "./icons";
 import { foldRowId } from "./tool-fold-state";
 import { useToolExpanded } from "./ToolProcessContext";
-import { Icon } from "./icons/Icon";
+import { Icon } from "./icons";
 
 const log = createLogger("visual-demo");
 
@@ -195,7 +194,7 @@ function VisualModal({
         <div className="visual-modal-head">
           <div className="visual-modal-title-group">
             <span className="visual-tool-icon" aria-hidden="true">
-              <VisualIcon size={14} />
+              <Icon name="visual" size={14} />
             </span>
             <span className="visual-tool-label">{tr("可视化视图", "Made a visual")}</span>
             {visual.title ? <span className="visual-tool-title">{visual.title}</span> : null}
@@ -208,7 +207,7 @@ function VisualModal({
               title={showCode ? tr("查看效果", "Preview") : tr("查看 HTML 源码", "View HTML source")}
               onClick={() => setShowCode((value) => !value)}
             >
-              <CodeIcon size={13} />
+              <Icon name="code" size={14} />
               <span>{showCode ? tr("预览", "Preview") : "HTML"}</span>
             </button>
             <button
@@ -227,7 +226,7 @@ function VisualModal({
               aria-label={tr("关闭", "Close")}
               onClick={onClose}
             >
-              <CloseIcon size={14} />
+              <Icon name="close" size={14} />
             </button>
           </div>
         </div>
@@ -309,7 +308,7 @@ export const VisualToolCard = memo(function VisualToolCard({ tool }: { tool: Too
                 title={tr("放大查看", "Expand visual")}
                 onClick={() => setModalOpen(true)}
               >
-                <ExpandIcon size={12} />
+                <Icon name="expand" size={12} />
               </button>
               <button
                 type="button"
@@ -322,7 +321,7 @@ export const VisualToolCard = memo(function VisualToolCard({ tool }: { tool: Too
                   if (!open) setOpen(true);
                 }}
               >
-                <CodeIcon size={12} />
+                <Icon name="code" size={12} />
               </button>
             </>
           ) : null}
@@ -334,7 +333,7 @@ export const VisualToolCard = memo(function VisualToolCard({ tool }: { tool: Too
             aria-controls={bodyId}
             onClick={() => setOpen((value) => !value)}
           >
-            <ChevronDownIcon size={12} />
+            <Icon name="chevron-down" size={12} />
           </button>
         </div>
       </div>

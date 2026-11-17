@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ProjectApi } from "../../hooks/useProject";
-import { DiffIcon, ExternalIcon, PanelRightIcon, RefreshIcon } from "../icons";
 import { CodePane } from "./CodePane";
 import { ExplorerPane } from "./ExplorerPane";
 import { tr } from "../../locale";
@@ -8,7 +7,7 @@ import { useFilePreview, isAbsolutePathLike } from "./FilePreviewContext";
 import { MarkdownPane } from "./MarkdownPane";
 import { isMarkdownPath } from "./markdown-path";
 import { PreviewBreadcrumbs } from "./PreviewBreadcrumbs";
-import { Icon } from "../icons/Icon";
+import { Icon } from "../icons";
 
 export function FilePreviewView({
   project,
@@ -89,7 +88,7 @@ export function FilePreviewView({
               title={tr("查看该文件的 Git 差异", "View this file's Git diff")}
               onClick={() => onShowDiff(tab.id)}
             >
-              <DiffIcon size={12} />
+              <Icon name="diff" size={12} />
               {tr("差异", "Diff")}
             </button>
           ) : null}
@@ -101,7 +100,7 @@ export function FilePreviewView({
             aria-label={tr("重新读取", "Reload")}
             onClick={preview.reloadActive}
           >
-            <RefreshIcon size={13} />
+            <Icon name="refresh" size={14} />
           </button>
           <button
             type="button"
@@ -126,7 +125,7 @@ export function FilePreviewView({
               if (content) project.openFile(content.absolutePath);
             }}
           >
-            <ExternalIcon size={13} />
+            <Icon name="external" size={14} />
           </button>
           <span className="preview-actions-sep" aria-hidden="true" />
           <button
@@ -137,7 +136,7 @@ export function FilePreviewView({
             aria-pressed={explorerOpen}
             onClick={() => setExplorerOpen((value) => !value)}
           >
-            <PanelRightIcon size={14} />
+            <Icon name="panel-right" size={14} />
           </button>
         </div>
       </div>

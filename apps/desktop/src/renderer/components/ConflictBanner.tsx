@@ -4,6 +4,7 @@ import { tr, trf } from "../locale";
 import { ConflictContext } from "./conflict-context";
 import { MoveToWorktreeButton } from "./ConflictDialog";
 import "../conflict.css";
+import { Icon } from "./icons";
 
 const shownFiles = 3;
 
@@ -21,9 +22,7 @@ export function ConflictBanner({ conversationId }: { conversationId: string | nu
   const more = others.length > 2 ? trf(" 等 {0} 个对话", " and {0} more", others.length - 2) : "";
   return <aside className="conflict-banner" role="status" aria-live="polite">
     <span className="conflict-banner-icon" aria-hidden="true">
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M5 2.5v6.2a2.3 2.3 0 0 0 2.3 2.3H11" /><path d="M5 2.5 3 4.5M5 2.5l2 2" /><circle cx="12.5" cy="11" r="1.5" />
-      </svg>
+      <Icon name="git-merge" size={16} />
     </span>
     <div className="conflict-banner-text">
       <strong>{trf("{0} 个文件同时被其他对话修改", "{0} file(s) also edited in other chats", files.length)}</strong>

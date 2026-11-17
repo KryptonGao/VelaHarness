@@ -2,7 +2,6 @@ import { PopoverPresence } from "../MotionPresence";
 import type { InteractionMode, SandboxMode } from "@vela/shared";
 import { useEffect, useRef, useState } from "react";
 import { useDismissable } from "../../hooks/useDismissable";
-import { CheckIcon } from "../icons";
 import { tr, trf } from "../../locale";
 import {
   combinedModeChange,
@@ -10,6 +9,7 @@ import {
   currentCombinedMode,
   type CombinedModeId,
 } from "./combined-mode";
+import { Icon } from "../icons";
 
 const labels: Record<CombinedModeId, [string, string]> = {
   auto: ["自动", "Auto"],
@@ -206,7 +206,7 @@ export function ModePicker({
                   </span>
                   <span className="mode-option-desc">{description(option.id)}</span>
                 </span>
-                <span className="mode-option-check" aria-hidden="true">{option.id === current ? <CheckIcon /> : null}</span>
+                <span className="mode-option-check" aria-hidden="true">{option.id === current ? <Icon name="check" size={14} /> : null}</span>
                 <span className="mode-option-key" aria-hidden="true">{index + 1}</span>
               </button>
             );
@@ -223,7 +223,7 @@ export function ModePicker({
             >
               <span className="mode-option-name">{row.name}</span>
               <span className="mode-option-hint">{row.hint}</span>
-              <span className="mode-option-check" aria-hidden="true">{row.active ? <CheckIcon /> : null}</span>
+              <span className="mode-option-check" aria-hidden="true">{row.active ? <Icon name="check" size={14} /> : null}</span>
               <span className="mode-option-key" aria-hidden="true">{firstCompactKey + index}</span>
             </button>
           ))}

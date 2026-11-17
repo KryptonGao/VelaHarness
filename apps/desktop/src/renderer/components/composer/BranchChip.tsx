@@ -1,10 +1,9 @@
 import { PopoverPresence } from "../MotionPresence";
 import type { ProjectApi } from "../../hooks/useProject";
 import { useDismissable } from "../../hooks/useDismissable";
-import { ArrowDownIcon, ArrowUpIcon, BranchIcon, PlusIcon } from "../icons";
 import { useMemo, useState } from "react";
 import { tr } from "../../locale";
-import { Icon } from "../icons/Icon";
+import { Icon } from "../icons";
 
 function formatCount(value: number): string {
   return value >= 1000 ? `${(value / 1000).toFixed(1)}k` : String(value);
@@ -16,12 +15,12 @@ export function BranchAheadBehind({ ahead, behind }: { ahead: number; behind: nu
     <span className="branch-ahead-behind">
       {ahead > 0 ? (
         <span className="branch-ahead">
-          <ArrowUpIcon /> {ahead}
+          <Icon name="arrow-up" size={12} /> {ahead}
         </span>
       ) : null}
       {behind > 0 ? (
         <span className="branch-behind">
-          <ArrowDownIcon /> {behind}
+          <Icon name="arrow-down" size={12} /> {behind}
         </span>
       ) : null}
     </span>
@@ -59,7 +58,7 @@ export function BranchPickerContent({
   return (
     <div className="branch-picker">
       <div className="branch-current-row">
-        <BranchIcon size={15} />
+        <Icon name="branch" size={16} />
         <span className="branch-current-name" title={git?.upstream ?? undefined}>
           {git?.branch ?? "HEAD"}
         </span>
@@ -92,7 +91,7 @@ export function BranchPickerContent({
             void project.createBranch(newName.trim());
           }}
         >
-          <PlusIcon size={12} />
+          <Icon name="plus" size={12} />
         </button>
       </div>
 
@@ -116,7 +115,7 @@ export function BranchPickerContent({
             className={`branch-item${branch.current ? " active" : ""}`}
             onClick={() => switchTo(branch.name)}
           >
-            <BranchIcon size={12} />
+            <Icon name="branch" size={12} />
             <span className="branch-item-name">{branch.name}</span>
             {branch.current ? <span className="branch-item-tag">{tr("当前", "Current")}</span> : null}
           </button>
@@ -124,7 +123,7 @@ export function BranchPickerContent({
         {filtered.remote.length > 0 ? <div className="composer-popover-section">{tr("远程", "Remote")}</div> : null}
         {filtered.remote.map((branch) => (
           <button type="button" key={branch.name} className="branch-item remote" onClick={() => switchTo(branch.name)}>
-            <BranchIcon size={12} />
+            <Icon name="branch" size={12} />
             <span className="branch-item-name">{branch.name}</span>
           </button>
         ))}
@@ -153,7 +152,7 @@ export function BranchChip({ project }: { project: ProjectApi }) {
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
       >
-        <BranchIcon />
+        <Icon name="branch" size={14} />
         <span>{branch}</span>
         <BranchAheadBehind ahead={project.git.ahead} behind={project.git.behind} />
       </button>

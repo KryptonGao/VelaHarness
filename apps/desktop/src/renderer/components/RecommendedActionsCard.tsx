@@ -1,7 +1,7 @@
 import type { RecommendedAction, RecommendedActions } from "@vela/shared";
 import { useState } from "react";
-import { CloseIcon } from "./icons";
 import { tr } from "../locale";
+import { Icon } from "./icons";
 
 /**
  * 一轮结束后模型推荐的后续操作。点击按钮把模型写好的 prompt 作为下一条用户消息发出;
@@ -42,7 +42,7 @@ export function RecommendedActionsCard({
         title={tr("关闭", "Close")}
         onClick={onDismiss}
       >
-        <CloseIcon size={14} />
+        <Icon name="close" size={14} />
       </button>
       <p className="recommended-actions-question">{recommendation.question}</p>
       <div className="recommended-actions-buttons" role="group" aria-label={tr("推荐操作", "Recommended actions")}>

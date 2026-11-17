@@ -4,6 +4,7 @@ import { tr, activeIntlLocale } from '../locale';
 import { PrMarkdown } from './PrInboxMarkdown';
 import { prTimeline, type PrTimelineEvent } from './pr-inbox-model';
 import { usePrInboxCache } from '../hooks/usePrInboxCache';
+import { Icon, type IconName } from "./icons";
 
 const kinds = ['commits', 'comments', 'reviews', 'threads'] as const;
 const kindLabels = { commits: ['提交', 'Commits'], comments: ['讨论', 'Comments'], reviews: ['审阅', 'Reviews'], threads: ['审阅线程', 'Review threads'], threadComments: ['线程回复', 'Thread replies'] } as const;
@@ -22,10 +23,9 @@ function ActivityAvatar({ author }: { author: string | null }) {
   const tone = [...name].reduce((sum, ch) => sum + ch.charCodeAt(0), 0) % 3;
   return <span className={`pr-activity-avatar tone-${tone}`} role="img" aria-label={name}>{name.slice(0, 1).toUpperCase()}</span>;
 }
+const eventIcon = { commit: 'commit', opened: 'pull-request', review: 'check-circle', thread: 'chat' } as const satisfies Record<string, IconName>;
 function EventIcon({ kind }: { kind: 'commit' | 'opened' | 'review' | 'thread' }) {
-  return <svg className={`pr-activity-icon kind-${kind}`} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    {kind === 'commit' ? <><path d="M3 12h5m8 0h5"/><circle cx="12" cy="12" r="4"/></> : kind === 'opened' ? <><circle cx="6" cy="5" r="2.5"/><circle cx="6" cy="19" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="M6 8v8M18 16V9a4 4 0 0 0-4-4h-2m2-2-2 2 2 2"/></> : kind === 'review' ? <><circle cx="12" cy="12" r="8"/><path d="m8 12 3 3 5-6"/></> : <path d="M20 14a3 3 0 0 1-3 3H9l-5 3V7a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3z"/>}
-  </svg>;
+  return <Icon name={eventIcon[kind]} size={18} className={`pr-activity-icon kind-${kind}`} />;
 }
 
 function ActivityBody({ text, target }: { text: string; target: PrTarget }) {
@@ -33,7 +33,7 @@ function ActivityBody({ text, target }: { text: string; target: PrTarget }) {
   const long = text.length > 650 || text.split('\n').length > 10;
   return <>
     <div className={`pr-activity-body${long && !expanded ? ' is-folded' : ''}`}><PrMarkdown text={text} target={target}/></div>
-    {long && <footer className="pr-activity-card-footer"><button type="button" aria-expanded={expanded} onClick={() => setExpanded(value => !value)}>{expanded ? tr('收起', 'Collapse') : tr('展开', 'Expand')}<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><path d={expanded ? 'm4 10 4-4 4 4' : 'm4 6 4 4 4-4'}/></svg></button></footer>}
+    {long && <footer className="pr-activity-card-footer"><button type="button" aria-expanded={expanded} onClick={() => setExpanded(value => !value)}>{expanded ? tr('收起', 'Collapse') : tr('展开', 'Expand')}<Icon name={expanded ? 'chevron-up' : 'chevron-down'} size={12} /></button></footer>}
   </>;
 }
 
@@ -89,7 +89,7 @@ export function PrActivity({ detail, active, draft, onDraft, posted, submitting,
   }, [active, api, load, syncedAt, headSha, posted]);
   const events = useMemo(() => prTimeline(detail, pages, posted).filter(event => filter === 'all' || (filter === 'commits' ? event.kind === 'commit' : ['comment', 'review', 'thread'].includes(event.kind))), [detail, pages, posted, filter]);
   return <section className="pr-inbox-activity" aria-label={tr('活动与讨论', 'Activity & Conversation')}>
-    <header className="pr-activity-heading"><h2>{tr('活动与讨论', 'Activity & Conversation')}</h2><label><svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true"><path d="M3 5h14M5 10h10M8 15h4"/></svg><select aria-label={tr('活动类型', 'Activity type')} value={filter} onChange={e => setFilter(e.target.value)}><option value="all">{tr('全部活动', 'All activity')}</option><option value="conversation">{tr('讨论与审阅', 'Conversation')}</option><option value="commits">{tr('提交', 'Commits')}</option></select></label></header>
+    <header className="pr-activity-heading"><h2>{tr('活动与讨论', 'Activity & Conversation')}</h2><label><Icon name="filter" size={16} /><select aria-label={tr('活动类型', 'Activity type')} value={filter} onChange={e => setFilter(e.target.value)}><option value="all">{tr('全部活动', 'All activity')}</option><option value="conversation">{tr('讨论与审阅', 'Conversation')}</option><option value="commits">{tr('提交', 'Commits')}</option></select></label></header>
     {Object.entries(errors).filter(([, error]) => error).map(([kind, error]) => <p className="pr-inbox-notice" role="alert" key={kind}>{tr(kindLabels[kind as PrActivityKind][0], kindLabels[kind as PrActivityKind][1])}：{error} <button type="button" disabled={busy[kind as PrActivityKind]} onClick={() => kind === 'threadComments' ? void load('threads') : void load(kind as PrActivityKind, pages[kind as PrActivityKind]?.nextCursor ?? null)}>{tr('重试', 'Retry')}</button></p>)}
     {kinds.some(kind => busy[kind]) && <p className="pr-inbox-meta" role="status">{tr('正在读取活动…', 'Loading activity…')}</p>}
     <div className="pr-activity-timeline">{events.map(event => <ActivityCard key={event.id} event={event} target={target} threadCursor={event.kind === 'thread' ? pages.threads?.threadCursors[event.thread.id] : null} threadBusy={busy.threadComments} onThreadMore={(id, cursor) => void load('threadComments', cursor, id)}/>)}</div>

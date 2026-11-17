@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { tr } from "../locale";
-import { TrashIcon } from "./icons";
+import { Icon } from "./icons";
 
 /** 垃圾桶按钮：点一下变成「确认删除」，几秒内再点一次才执行，失焦或超时恢复。 */
 export function ConfirmDeleteButton({ label, className, onConfirm }: {
@@ -23,7 +23,7 @@ export function ConfirmDeleteButton({ label, className, onConfirm }: {
   ) : (
     <button type="button" className={`${className ?? ""} confirm-delete`} aria-label={label} title={label}
       onClick={(event) => { event.stopPropagation(); setArmed(true); }}>
-      <TrashIcon size={14} />
+      <Icon name="trash" size={14} />
     </button>
   );
 }

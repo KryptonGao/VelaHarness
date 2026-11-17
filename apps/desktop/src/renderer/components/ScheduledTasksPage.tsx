@@ -5,6 +5,7 @@ import { cleanErrorMessage } from "../hooks/useProject";
 import { useAutoHideScrollbarsWithin } from "../hooks/useAutoHideScrollbar";
 import "../scheduled-tasks.css";
 import { scheduledStatusText as statusText, scheduledDateText as dateText, scheduledStatusTone as statusTone, scheduledDays as days, scheduledScheduleText as scheduleText } from "./scheduled-task-format";
+import { Icon } from "./icons";
 
 const emptyState: ScheduledTasksState = { tasks: [], runs: [] };
 const baseName = (path: string) => path.split(/[\\/]/).filter(Boolean).pop() ?? path;
@@ -45,7 +46,7 @@ export function ScheduledTasksPage({ workspace, workspaces, onOpenConversation, 
       <div className="chat-title-group">
         {sidebarCollapsed && <button className="view-icon-btn" type="button" onClick={onToggleSidebar}
           title={tr("展开侧边栏", "Expand sidebar")} aria-label={tr("展开侧边栏", "Expand sidebar")}>
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M9 4v16" /></svg>
+          <Icon name="sidebar" size={16} />
         </button>}
         <span className="chat-active-title">{tr("定时任务", "Scheduled Tasks")}</span>
       </div>
@@ -153,7 +154,7 @@ function TaskForm({ task, workspaces, workspace, pending, catalog, catalogError,
   }}>
     <div className="st-form-head"><h3 id={`${id}-heading`}>{task ? tr("编辑任务", "Edit task") : tr("创建任务", "Create task")}</h3>
       <button type="button" className="st-close" aria-label={tr("关闭", "Close")} title={tr("关闭", "Close")} disabled={pending} onClick={onCancel}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg></button></div>
+        <Icon name="close" size={14} /></button></div>
     <fieldset disabled={pending}>
       <div className="st-form-body">
         <section className="st-section">

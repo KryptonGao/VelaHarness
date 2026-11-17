@@ -10,12 +10,11 @@ import { useEffect, useMemo, useState } from "react";
 import { localizeError } from "../../locale";
 import { SheetPresence } from "../Presence";
 import { SkillMigrationDialog } from "../SkillMigrationDialog";
-import { AlertIcon, ChevronRightIcon, CloseIcon, FolderIcon, RefreshIcon, SkillIcon, TrashIcon } from "../icons";
 import type { SettingsCopy } from "../settings-copy";
 import { MarketplaceAction, MarketplaceDetail } from "./MarketplaceDetail";
 import { MarketplaceIcon } from "./MarketplaceIcon";
 import { Segmented, SettingsSwitch } from "./primitives";
-import { Icon } from "../icons/Icon";
+import { Icon } from "../icons";
 
 type SkillItem = SkillCatalog["skills"][number];
 type SkillFilter = "all" | "enabled" | "disabled";
@@ -254,10 +253,10 @@ export function SkillsPage({ copy, workspacePath }: { copy: SettingsCopy; worksp
           title={text.skillsRefresh}
           onClick={() => setRefreshKey((current) => current + 1)}
         >
-          <RefreshIcon size={14} />
+          <Icon name="refresh" size={14} />
         </button>
         <button className="settings-secondary skills-action-btn" type="button" onClick={() => void openDir()}>
-          <FolderIcon size={14} />
+          <Icon name="folder" size={14} />
           {text.openSkills}
         </button>
         <button
@@ -279,8 +278,8 @@ export function SkillsPage({ copy, workspacePath }: { copy: SettingsCopy; worksp
       {diagnostics.length > 0 ? (
         <details className={`skills-diagnostics${errorCount > 0 ? " has-error" : ""}`}>
           <summary>
-            <ChevronRightIcon size={12} />
-            <AlertIcon size={14} />
+            <Icon name="chevron-right" size={12} />
+            <Icon name="alert" size={14} />
             <span>{text.skillsDiagnostics.replace("{0}", String(errorCount)).replace("{1}", String(warningCount))}</span>
           </summary>
           <ul>
@@ -451,7 +450,7 @@ function SkillRow({
   return (
     <div className={`skills-row${skill.enabled ? "" : " disabled"}`}>
       <button type="button" className="skills-row-main" onClick={onOpen}>
-        <span className="skills-row-icon" aria-hidden="true"><SkillIcon size={16} /></span>
+        <span className="skills-row-icon" aria-hidden="true"><Icon name="skill" size={16} /></span>
         <span className="skills-row-copy">
           <span className="skills-row-name">
             {skill.name}
@@ -477,7 +476,7 @@ function SkillRow({
             disabled={pending}
             onClick={onDelete}
           >
-            {confirmingDelete ? copy.skillDeleteConfirm : <TrashIcon size={13} />}
+            {confirmingDelete ? copy.skillDeleteConfirm : <Icon name="trash" size={14} />}
           </button>
         ) : null}
       </div>
@@ -523,7 +522,7 @@ function SkillDetailDialog({ skill, copy, onClose }: { skill: SkillItem; copy: S
         <header className="sheet-header skill-detail-header">
           <h2 id="skill-detail-title">{skill.name}</h2>
           <button className="skills-icon-btn" type="button" aria-label={copy.skillDetailClose} onClick={onClose}>
-            <CloseIcon size={14} />
+            <Icon name="close" size={14} />
           </button>
         </header>
         <div className="skill-detail-body">

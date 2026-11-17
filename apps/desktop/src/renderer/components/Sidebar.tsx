@@ -20,11 +20,10 @@ import {
 } from "./conversation-activity";
 import { ConversationSearchDialog } from "./ConversationSearchDialog";
 import { ConflictContext } from "./conflict-context";
-import { BranchIcon, ChevronDownIcon, ClockIcon, InboxIcon } from "./icons";
 import { useSidebarItems } from "../hooks/useSidebarItems";
 import { conversationWorkspace, findWorkspace, workspaceTitle } from "./workspace-names";
 import { WorkspaceHoverCard } from "./WorkspaceHoverCard";
-import { Icon } from "./icons/Icon";
+import { Icon } from "./icons";
 
 interface SidebarProps {
   onOpenPrInbox: () => void;
@@ -306,11 +305,11 @@ export function Sidebar({
         </button> : null}
         {items.agentInbox ? <button className="quick-action-item" type="button" aria-current={agentInboxOpen ? "page" : undefined}
           aria-label={agentInboxBadge > 0 ? trf("Agent 收件箱，{0} 项需要处理", "Agent Inbox, {0} need your attention", agentInboxBadge) : undefined} onClick={onOpenAgentInbox}>
-          <span className="quick-action-item-left"><InboxIcon size={16} /><span>{tr("Agent 收件箱", "Agent Inbox")}</span></span>
+          <span className="quick-action-item-left"><Icon name="inbox" size={16} /><span>{tr("Agent 收件箱", "Agent Inbox")}</span></span>
           {agentInboxBadge > 0 ? <span className="quick-action-badge" aria-hidden="true">{agentInboxBadge > 99 ? "99+" : agentInboxBadge}</span> : null}
         </button> : null}
         {items.scheduledTasks ? <button className="quick-action-item" type="button" aria-current={scheduledTasksOpen ? "page" : undefined} onClick={onOpenScheduledTasks}>
-          <span className="quick-action-item-left"><ClockIcon /><span>{tr("定时任务", "Scheduled Tasks")}</span></span>
+          <span className="quick-action-item-left"><Icon name="clock" size={14} /><span>{tr("定时任务", "Scheduled Tasks")}</span></span>
         </button> : null}
         {items.newChat ? <button className="quick-action-item" type="button" onClick={() => onNewChat()}>
           <span className="quick-action-item-left">
@@ -343,7 +342,7 @@ export function Sidebar({
               aria-expanded={!pinnedSectionCollapsed} aria-controls={`${searchId}-pinned`}
               onClick={() => setPinnedSectionCollapsed(current => !current)}>
               <span>{tr("置顶", "Pinned")}</span>
-              <span className={`sidebar-section-chevron${pinnedSectionCollapsed ? " collapsed" : ""}`} aria-hidden="true"><ChevronDownIcon /></span>
+              <span className={`sidebar-section-chevron${pinnedSectionCollapsed ? " collapsed" : ""}`} aria-hidden="true"><Icon name="chevron-down" size={12} /></span>
             </button>
             <div id={`${searchId}-pinned`} className={`session-group-content${pinnedSectionCollapsed ? "" : " is-open"}`}
               inert={pinnedSectionCollapsed} aria-hidden={pinnedSectionCollapsed || undefined}>
@@ -493,7 +492,7 @@ function ConversationRow({ conversation, active, activity, reason, priority, loc
       {activity ? <span className="activity-row-content">
         <span className="activity-row-heading">
           <span className="subchat-title">{title}</span>
-          {worktreeLabel ? <span className="subchat-worktree" role="img" aria-label={worktreeLabel} title={worktreeLabel}><BranchIcon size={11} /></span> : null}
+          {worktreeLabel ? <span className="subchat-worktree" role="img" aria-label={worktreeLabel} title={worktreeLabel}><Icon name="branch" size={12} /></span> : null}
           {conflictCount > 0 ? <span className="subchat-conflict" role="img" aria-label={conflictLabel} title={conflictLabel} /> : null}
           {workspaceLabel ? <span className="activity-workspace">{workspaceLabel}</span> : null}
         </span>
@@ -506,7 +505,7 @@ function ConversationRow({ conversation, active, activity, reason, priority, loc
         </span>
       </span> : <>
         <span className="subchat-title">{title}</span>
-        {worktreeLabel ? <span className="subchat-worktree" role="img" aria-label={worktreeLabel} title={worktreeLabel}><BranchIcon size={11} /></span> : null}
+        {worktreeLabel ? <span className="subchat-worktree" role="img" aria-label={worktreeLabel} title={worktreeLabel}><Icon name="branch" size={12} /></span> : null}
         {conflictCount > 0 ? <span className="subchat-conflict" role="img" aria-label={conflictLabel} title={conflictLabel} /> : null}
         {conversation.status === "streaming" ? <span className="subchat-streaming-dot" role="img" aria-label={tr("正在回复", "Replying")} title={tr("正在回复", "Replying")} /> : null}
       </>}

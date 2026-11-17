@@ -1,6 +1,6 @@
 import { tr } from "../../locale";
 import type { DictationStatus } from "../../hooks/useDictation";
-import { MicIcon } from "../icons";
+import { Icon } from "../icons";
 
 /** 发送按钮左边的语音输入：点一下开始录音，再点一下结束并识别；识别期间点击可取消。 */
 export function DictationButton({ status, disabled, onToggle }: {
@@ -23,7 +23,7 @@ export function DictationButton({ status, disabled, onToggle }: {
       disabled={disabled && status === "idle"}
       onClick={onToggle}
     >
-      {status === "recording" ? <span className="stop-square" /> : status === "transcribing" ? <span className="composer-dictation-spinner" /> : <MicIcon />}
+      {status === "recording" ? <span className="stop-square" /> : status === "transcribing" ? <span className="composer-dictation-spinner" /> : <Icon name="mic" size={16} />}
     </button>
   );
 }

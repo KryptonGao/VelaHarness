@@ -1,7 +1,7 @@
 import type { ProviderSummary } from "@vela/shared";
-import { ArrowLeftIcon, ChevronRightIcon, PlusIcon } from "../icons";
 import type { SettingsCopy } from "../settings-copy";
 import { ProviderLogo } from "./models-parts";
+import { Icon } from "../icons";
 
 /** 「添加供应商」页:尚未接入的内置提供方,加上创建自定义供应商的入口。 */
 export function AddProviderPicker({
@@ -22,7 +22,7 @@ export function AddProviderPicker({
     <div className="models-add">
       <div className="models-toolbar">
         <button type="button" className="models-back" onClick={onBack}>
-          <ArrowLeftIcon size={15} />
+          <Icon name="arrow-left" size={16} />
           {text.add}
         </button>
       </div>
@@ -38,7 +38,7 @@ export function AddProviderPicker({
                   <span className="models-card-title">{provider.name}</span>
                   <span className="models-card-sub">{provider.methods.map((method) => (method.type === "oauth" ? text.methodOauth : text.methodKey)).join(" / ")}</span>
                 </span>
-                <ChevronRightIcon size={14} />
+                <Icon name="chevron-right" size={14} />
               </button>
             ))}
           </div>
@@ -47,12 +47,12 @@ export function AddProviderPicker({
         <div className="models-add-group">{text.pickOther}</div>
         <div className="models-cards">
           <button type="button" className="models-card" onClick={onCustom}>
-            <span className="models-logo lg plain"><PlusIcon size={16} /></span>
+            <span className="models-logo lg plain"><Icon name="plus" size={16} /></span>
             <span className="models-card-copy">
               <span className="models-card-title">{text.createCustom}</span>
               <span className="models-card-sub">{text.createCustomHint}</span>
             </span>
-            <ChevronRightIcon size={14} />
+            <Icon name="chevron-right" size={14} />
           </button>
         </div>
       </div>

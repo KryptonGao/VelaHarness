@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { AppLocale, GitCommitDetail, GitCommitSummary, GitRefLabel } from "@vela/shared";
 import { tr, trf } from "../../locale";
-import { AlertIcon, ArrowLeftIcon, BranchIcon, CommitIcon, ExternalIcon, RefreshIcon, TagIcon } from "../icons";
 import { DiffPane } from "../DiffPane";
 import { CommitGraph, useCommitGraphGeometry } from "./CommitGraph";
 import { formatAbsoluteTime, formatRelativeTime } from "./time-format";
 import type { VersionControlApi } from "../../hooks/useVersionControl";
-import { Icon } from "../icons/Icon";
+import { Icon } from "../icons";
 
 /** 把提交 Diff 按文件切开,供逐文件查看。 */
 export function splitCommitDiff(diff: string): Map<string, string> {
@@ -35,8 +34,8 @@ function RefBadges({ refs, limit = 3 }: { refs: GitRefLabel[]; limit?: number })
     <span className="vc-refs">
       {shown.map((ref) => (
         <span key={`${ref.kind}:${ref.name}`} className={`vc-ref vc-ref-${ref.kind}`}>
-          {ref.kind === "tag" ? <TagIcon size={9} /> : null}
-          {ref.kind === "local" || ref.kind === "head" ? <BranchIcon size={9} /> : null}
+          {ref.kind === "tag" ? <Icon name="tag" size={10} /> : null}
+          {ref.kind === "local" || ref.kind === "head" ? <Icon name="branch" size={10} /> : null}
           {refLabel(ref)}
         </span>
       ))}
@@ -228,10 +227,10 @@ export function HistoryPage({
             />
           </label>
           <button type="button" className="vc-icon-btn" title={tr("刷新历史", "Refresh history")} aria-label={tr("刷新历史", "Refresh history")} onClick={api.refreshGraph}>
-            <RefreshIcon size={13} />
+            <Icon name="refresh" size={14} />
           </button>
           <button type="button" className="vc-icon-btn" title={tr("定位 HEAD", "Locate HEAD")} aria-label={tr("定位 HEAD", "Locate HEAD")} onClick={locateHead}>
-            <CommitIcon size={13} />
+            <Icon name="commit" size={14} />
           </button>
           <button
             type="button"
@@ -257,7 +256,7 @@ export function HistoryPage({
             aria-pressed={mobileDetail}
             onClick={() => setMobileDetail((value) => !value)}
           >
-            <CommitIcon size={13} />
+            <Icon name="commit" size={14} />
           </button>
         </div>
 
@@ -274,7 +273,7 @@ export function HistoryPage({
           {api.searchLoading ? <div className="vc-state">{tr("正在搜索…", "Searching…")}</div> : null}
           {!api.searchLoading && api.graphError ? (
             <div className="vc-state vc-state-error" role="alert">
-              <AlertIcon size={13} />
+              <Icon name="alert" size={14} />
               <span>{api.graphError}</span>
               <button type="button" className="vc-link" onClick={api.refreshGraph}>{tr("重试", "Retry")}</button>
             </div>
@@ -317,17 +316,17 @@ export function HistoryPage({
       </div>
 
       <div className="vc-commit-detail" ref={detailRef}>
-        {review ? <div className="vc-review-history-navigation"><button type="button" className="vc-btn vc-btn-ghost" onClick={showHistoryList}><ArrowLeftIcon size={14} />{tr("历史", "History")}</button></div> : null}
+        {review ? <div className="vc-review-history-navigation"><button type="button" className="vc-btn vc-btn-ghost" onClick={showHistoryList}><Icon name="arrow-left" size={14} />{tr("历史", "History")}</button></div> : null}
         {api.detailLoading && !detail ? <div className="vc-state">{tr("正在读取提交…", "Loading commit…")}</div> : null}
         {api.detailError ? (
           <div className="vc-state vc-state-error" role="alert">
-            <AlertIcon size={13} />
+            <Icon name="alert" size={14} />
             <span>{api.detailError}</span>
             <button type="button" className="vc-link" onClick={() => api.selectCommit(api.selectedSha)}>{tr("重试", "Retry")}</button>
           </div>
         ) : null}
         {!detail && !api.detailLoading && !api.detailError ? (
-          <div className="vc-placeholder"><span className="vc-placeholder-icon"><CommitIcon size={18} /></span>{tr("选择一个提交查看详情", "Select a commit to view details")}</div>
+          <div className="vc-placeholder"><span className="vc-placeholder-icon"><Icon name="commit" size={18} /></span>{tr("选择一个提交查看详情", "Select a commit to view details")}</div>
         ) : null}
         {detail ? <CommitDetailPane
           detail={detail}
@@ -431,7 +430,7 @@ function CommitDetailPane({
             title={tr("撤销该提交、拣选到当前分支、整理历史或从该提交创建分支", "Revert, cherry-pick, rewrite history or branch from this commit")}
             onClick={() => onOpenHistoryOps(commit)}
           >
-            <CommitIcon size={12} /> {tr("历史操作", "History actions")}
+            <Icon name="commit" size={12} /> {tr("历史操作", "History actions")}
           </button>
           <button type="button" className="vc-btn" onClick={onCopySha}>{copied === "sha" ? <Icon name="check" size={12} /> : <Icon name="copy" size={12} />}{tr("复制 SHA", "Copy SHA")}</button>
           <button type="button" className="vc-btn" onClick={onCopyMessage}>{copied === "message" ? <Icon name="check" size={12} /> : <Icon name="copy" size={12} />}{tr("复制 Message", "Copy message")}</button>
@@ -484,7 +483,7 @@ function CommitDetailPane({
                 onOpenFile(file.path);
               }}
             >
-              <ExternalIcon size={12} />
+              <Icon name="external" size={12} />
             </button>
           </div>
         ))}

@@ -7,8 +7,7 @@ import { useAutoHideScrollbarsWithin } from '../hooks/useAutoHideScrollbar';
 import '../task-recipes.css';
 import { RecipeGeneratePanel, RecipeSchedulePanel } from './RecipeEnhancements';
 import { RecipeStageEditor, RecipeStagePreview, RecipeRunProgress, RecipeRunOutcome, RecipeComparison, RecipeTeamPanel } from './RecipeWorkflow';
-import { AlertIcon, CloseIcon, ExternalIcon, FolderIcon, HistoryIcon, PencilIcon, PlusIcon, RefreshIcon, SparkIcon, TrashIcon } from './icons';
-import { Icon } from "./icons/Icon";
+import { Icon } from "./icons";
 
 export interface RecipeMessageSeed { text: string; conversationId: string; messageId?: string; planId?: string }
 export interface TaskRecipesPageProps {
@@ -82,21 +81,21 @@ export function TaskRecipesPage(props: TaskRecipesPageProps) {
   const choose = (recipe: TaskRecipe, run?: RecipeRun) => guard(() => { setEditor(null); setUsing({ recipe, run }); setError(null); });
   return <section className="scheduled-tasks-page-shell recipe-page-shell" ref={pageRef}>
     <header className="scheduled-tasks-page-toolbar main-chat-header">
-      {props.sidebarCollapsed && <button type="button" className="header-toggle" aria-label={tr('展开侧栏', 'Show sidebar')} onClick={props.onToggleSidebar}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></svg></button>}
+      {props.sidebarCollapsed && <button type="button" className="header-toggle" aria-label={tr('展开侧栏', 'Show sidebar')} onClick={props.onToggleSidebar}><Icon name="sidebar" size={16} /></button>}
       <span className="page-topbar-title">{tr('任务配方', 'Task Recipes')}</span>
     </header>
     <div className="scheduled-tasks-page-scroll autohide-scrollbar"><div className={`scheduled-tasks-page recipe-page${editor ? ' is-editing' : ''}`}>
       {!editor && <div className="scheduled-tasks-header recipe-page-heading"><div><h1>{tr('任务配方', 'Task Recipes')}</h1><p className="scheduled-tasks-note">{tr('把常用任务保存为配方，下次填写参数即可开始。', 'Save repeatable tasks. Fill in the parameters and start again anytime.')}</p></div>
-        <div className="scheduled-task-actions"><button type="button" className="recipe-primary" disabled={pending || !!state.error} onClick={() => edit()}><PlusIcon />{tr('创建配方', 'Create recipe')}</button>
+        <div className="scheduled-task-actions"><button type="button" className="recipe-primary" disabled={pending || !!state.error} onClick={() => edit()}><Icon name="plus" size={14} />{tr('创建配方', 'Create recipe')}</button>
           <button type="button" disabled={pending || !!state.error} onClick={() => guard(() => { void api()!.importFile().then(result => { if (result) { setImports(result); setEditor(null); setUsing(null); } }).catch(e => setError((e as Error).message)); })}>{tr('导入配方', 'Import recipes')}</button>
-          <button type="button" className="recipe-icon-button" aria-label={tr('刷新', 'Refresh')} title={tr('刷新', 'Refresh')} onClick={() => void refresh()}><RefreshIcon /></button></div></div>}
-      {(error || state.error) && <div className="recipe-banner" data-tone="bad" role="alert"><AlertIcon /><p>{error || state.error}</p><button type="button" onClick={() => void refresh()}>{tr('重试读取', 'Retry loading')}</button></div>}
+          <button type="button" className="recipe-icon-button" aria-label={tr('刷新', 'Refresh')} title={tr('刷新', 'Refresh')} onClick={() => void refresh()}><Icon name="refresh" size={14} /></button></div></div>}
+      {(error || state.error) && <div className="recipe-banner" data-tone="bad" role="alert"><Icon name="alert" size={14} /><p>{error || state.error}</p><button type="button" onClick={() => void refresh()}>{tr('重试读取', 'Retry loading')}</button></div>}
       {notice && <p role="status" className="recipe-banner" data-tone="ok">{notice}</p>}
-      {Object.entries(state.projectErrors ?? {}).filter(([path, message]) => !dismissedProjectErrors.has(`${path}\0${message}`)).map(([path, message]) => <div key={path} className="recipe-banner" data-tone="warn" role="alert"><AlertIcon /><p><strong>{tr('项目配方读取失败', 'Could not read project recipes')}</strong><code>{path}</code><span>{message}</span></p><button type="button" onClick={() => setDismissedProjectErrors(prev => new Set(prev).add(`${path}\0${message}`))}>{tr('知晓', 'Got it')}</button></div>)}
+      {Object.entries(state.projectErrors ?? {}).filter(([path, message]) => !dismissedProjectErrors.has(`${path}\0${message}`)).map(([path, message]) => <div key={path} className="recipe-banner" data-tone="warn" role="alert"><Icon name="alert" size={14} /><p><strong>{tr('项目配方读取失败', 'Could not read project recipes')}</strong><code>{path}</code><span>{message}</span></p><button type="button" onClick={() => setDismissedProjectErrors(prev => new Set(prev).add(`${path}\0${message}`))}>{tr('知晓', 'Got it')}</button></div>)}
       {!editor && !using && <RecipeTeamPanel state={state} workspaces={props.workspaces} />}
       {editor && <RecipeEditor editor={editor} fields={fields} pending={pending || generating} onChange={recipe => { setEditor({ ...editor, recipe }); setFields(validateRecipe(recipe)); }} onSave={save} onClose={() => guard(() => setEditor(null))} tools={<>
         <div className="recipe-editor-toolbar"><label>{tr('保存位置', 'Save to')}<select disabled={!!editor.id || pending || generating} value={editor.teamWorkspace ? `team:${editor.teamWorkspace}` : editor.projectWorkspace ?? ''} onChange={e => setEditor({ ...editor, projectWorkspace: e.target.value.startsWith('team:') ? undefined : e.target.value || undefined, teamWorkspace: e.target.value.startsWith('team:') ? e.target.value.slice(5) : undefined, teamFingerprint: undefined, original: '' })}><option value="">{tr('个人配方库', 'Personal library')}</option>{state.teams?.filter(t => t.permission === 'write' || t.workspace === editor.teamWorkspace).map(t => <option key={`team:${t.workspace}`} value={`team:${t.workspace}`}>{tr('团队', 'Team')}: {t.workspace}</option>)}{[...new Set([...props.workspaces, ...(editor.projectWorkspace ? [editor.projectWorkspace] : [])])].map(path => <option key={path} value={path}>{tr('项目', 'Project')}: {path}</option>)}</select></label>
-        <button type="button" disabled={pending} onClick={() => setGenerating(true)}><SparkIcon />{tr('AI 整理配方', 'Organize with AI')}</button></div>
+        <button type="button" disabled={pending} onClick={() => setGenerating(true)}><Icon name="sparkles" size={14} />{tr('AI 整理配方', 'Organize with AI')}</button></div>
         {generating && <RecipeGeneratePanel text={editor.recipe.sourceReference ? editor.recipe.workflowTemplate : [editor.recipe.objectiveTemplate, editor.recipe.workflowTemplate, editor.recipe.deliverableTemplate].filter(Boolean).join('\n\n')} sourceReference={editor.recipe.sourceReference} catalog={props.catalog} locale={props.locale} onClose={() => setGenerating(false)} onGenerated={result => {
           setEditor({ ...editor, recipe: result.recipe }); setFields({}); setGenerating(false); setNotice(`${tr('已整理为草稿，保存后生效。模型', 'Draft generated; save to keep it. Model')}: ${result.model.provider}/${result.model.id}`);
         }} />}
@@ -109,9 +108,9 @@ export function TaskRecipesPage(props: TaskRecipesPageProps) {
         <div className="recipe-toolbar">
           <label className="recipe-search"><Icon name="search" size={14} /><input type="search" aria-label={tr('搜索配方', 'Search recipes')} value={search} onChange={e => setSearch(e.target.value)} placeholder={tr('搜索名称、说明或标签', 'Search name, description, or tags')} /></label>
           <div className="recipe-chips" role="group" aria-label={tr('来源', 'Source')}>{origins.map(o => <button key={o.id} type="button" className="recipe-chip" aria-pressed={origin === o.id} onClick={() => setOrigin(o.id)}>{o.label}<span>{o.count}</span></button>)}</div>
-          <button type="button" className="recipe-history-toggle" aria-pressed={history === '*'} onClick={() => { setHistory(history === '*' ? null : '*'); setPage(0); }}><HistoryIcon />{tr('使用记录', 'History')} <span>{state.runs.length}</span></button></div>
+          <button type="button" className="recipe-history-toggle" aria-pressed={history === '*'} onClick={() => { setHistory(history === '*' ? null : '*'); setPage(0); }}><Icon name="history" size={14} />{tr('使用记录', 'History')} <span>{state.runs.length}</span></button></div>
         {loading && <p role="status" className="scheduled-tasks-note">{tr('加载中…', 'Loading…')}</p>}
-        {!loading && !state.error && !state.recipes.some(r => r.origin === 'user') && !search && origin === 'all' && <p className="recipe-hint"><SparkIcon />{tr('还没有个人配方：创建一个，或复制下方内置示例。', 'No personal recipes yet. Create one, or duplicate a built-in example below.')}</p>}
+        {!loading && !state.error && !state.recipes.some(r => r.origin === 'user') && !search && origin === 'all' && <p className="recipe-hint"><Icon name="sparkles" size={14} />{tr('还没有个人配方：创建一个，或复制下方内置示例。', 'No personal recipes yet. Create one, or duplicate a built-in example below.')}</p>}
         {!loading && recipes.length === 0 && <div className="recipe-empty"><strong>{tr('没有匹配的配方', 'No matching recipes')}</strong><div className="scheduled-task-actions"><button type="button" onClick={() => { setSearch(''); setOrigin('all'); }}>{tr('清空筛选', 'Clear filters')}</button><button type="button" onClick={() => edit()}>{tr('创建配方', 'Create recipe')}</button></div></div>}
         <div className="recipe-list">{recipes.map(recipe => {
           const runCount = state.runs.filter(r => r.recipeId === recipe.id).length;
@@ -123,15 +122,15 @@ export function TaskRecipesPage(props: TaskRecipesPageProps) {
             {recipe.description && <p className="recipe-desc">{recipe.description}</p>}
             {recipe.tags.length > 0 && <div className="recipe-tag-list">{recipe.tags.map(tag => <span key={tag}>{tag}</span>)}</div>}
             <div className="recipe-meta">
-              {location && <span className="recipe-meta-path" title={location}><FolderIcon />{location}{recipe.origin === 'team' ? ` · ${recipe.teamPermission === 'write' ? tr('可写', 'Writable') : tr('只读', 'Read only')}` : ''}</span>}
+              {location && <span className="recipe-meta-path" title={location}><Icon name="folder" size={14} />{location}{recipe.origin === 'team' ? ` · ${recipe.teamPermission === 'write' ? tr('可写', 'Writable') : tr('只读', 'Read only')}` : ''}</span>}
               <span>{tr('最近使用', 'Last used')} {latest ? date(latest.startedAt) : tr('尚未使用', 'Not used yet')}</span><span>r{recipe.revision}</span></div>
             <div className="recipe-card-actions"><button className="recipe-primary" type="button" disabled={!!state.error} onClick={() => choose(recipe)}>{tr('使用配方', 'Use recipe')}</button>
               <span className="recipe-card-tools">
                 <button type="button" className="recipe-icon-button" aria-label={tr('复制', 'Duplicate')} title={tr('复制', 'Duplicate')} disabled={!!state.error} onClick={() => edit(recipe, true)}><Icon name="copy" size={14} /></button>
-                {canWrite && <button type="button" className="recipe-icon-button" aria-label={tr('编辑', 'Edit')} title={tr('编辑', 'Edit')} disabled={!!state.error} onClick={() => edit(recipe)}><PencilIcon /></button>}
-                <button type="button" className="recipe-icon-button" aria-label={tr('导出', 'Export')} title={tr('导出', 'Export')} onClick={() => { void api()!.exportFile(recipe).then(saved => { if (saved) setNotice(tr('配方已导出。', 'Recipe exported.')); }).catch(e => setError((e as Error).message)); }}><ExternalIcon /></button>
-                <button type="button" className="recipe-icon-button recipe-tool-count" aria-label={tr('使用记录', 'Usage history')} title={tr('使用记录', 'Usage history')} aria-pressed={history === recipe.id} onClick={() => { setHistory(history === recipe.id ? null : recipe.id); setPage(0); }}><HistoryIcon />{runCount > 0 && <span>{runCount}</span>}</button>
-                {canWrite && <button type="button" className="recipe-icon-button recipe-danger-icon" aria-label={tr('删除', 'Delete')} title={tr('删除', 'Delete')} disabled={!!state.error} onClick={() => setDeleting(recipe)}><TrashIcon /></button>}</span></div>
+                {canWrite && <button type="button" className="recipe-icon-button" aria-label={tr('编辑', 'Edit')} title={tr('编辑', 'Edit')} disabled={!!state.error} onClick={() => edit(recipe)}><Icon name="edit" size={14} /></button>}
+                <button type="button" className="recipe-icon-button" aria-label={tr('导出', 'Export')} title={tr('导出', 'Export')} onClick={() => { void api()!.exportFile(recipe).then(saved => { if (saved) setNotice(tr('配方已导出。', 'Recipe exported.')); }).catch(e => setError((e as Error).message)); }}><Icon name="external" size={14} /></button>
+                <button type="button" className="recipe-icon-button recipe-tool-count" aria-label={tr('使用记录', 'Usage history')} title={tr('使用记录', 'Usage history')} aria-pressed={history === recipe.id} onClick={() => { setHistory(history === recipe.id ? null : recipe.id); setPage(0); }}><Icon name="history" size={14} />{runCount > 0 && <span>{runCount}</span>}</button>
+                {canWrite && <button type="button" className="recipe-icon-button recipe-danger-icon" aria-label={tr('删除', 'Delete')} title={tr('删除', 'Delete')} disabled={!!state.error} onClick={() => setDeleting(recipe)}><Icon name="trash" size={14} /></button>}</span></div>
             <details><summary>{tr('查看模板', 'View template')}</summary><pre className="recipe-preview">{recipe.objectiveTemplate}{'\n\n'}{recipe.workflowTemplate}{'\n\n'}{recipe.deliverableTemplate}</pre></details>
           </article>;
         })}</div>
@@ -159,7 +158,7 @@ function RecipeDialog({ title, children, onDismiss }: { title: string; children:
     return () => { dialog?.close(); if (opener instanceof HTMLElement && opener.isConnected && !opener.closest('[inert]')) opener.focus(); };
   }, []);
   return <dialog className="recipe-dialog" ref={ref} aria-labelledby={titleId} onCancel={event => { event.preventDefault(); onDismiss?.(); }} onKeyDown={event => event.stopPropagation()}>
-    <div className="recipe-dialog-heading"><h2 id={titleId}>{title}</h2><button type="button" className="recipe-dialog-close" aria-label={tr('关闭弹窗', 'Close dialog')} disabled={!onDismiss} onClick={onDismiss}><CloseIcon size={16} /></button></div>{children}</dialog>;
+    <div className="recipe-dialog-heading"><h2 id={titleId}>{title}</h2><button type="button" className="recipe-dialog-close" aria-label={tr('关闭弹窗', 'Close dialog')} disabled={!onDismiss} onClick={onDismiss}><Icon name="close" size={16} /></button></div>{children}</dialog>;
 }
 function RecipeRunCard({ run, onOpen, onReuse }: { run: RecipeRun; onOpen: (id: string) => void; onReuse: () => void }) {
   const [exists, setExists] = useState(true);
@@ -205,7 +204,7 @@ function RecipeEditor({ editor, fields, pending, onChange, onSave, onClose, tool
           <p className="scheduled-tasks-note">{tr('正文最多 40,000 字符。变量只替换一次，不执行表达式或脚本。', 'Up to 40,000 characters. Variables are replaced once; expressions and scripts are not executed.')}</p>
         </details>
       </section>
-      <section className="recipe-editor-section"><div className="scheduled-task-title"><h3>{tr('参数定义', 'Parameters')} <span className="recipe-count">{recipe.parameters.length}/20</span></h3><button type="button" disabled={recipe.parameters.length >= 20} onClick={() => set('parameters', [...recipe.parameters, { id: `parameter_${recipe.parameters.length + 1}`, label: '', type: 'text', required: false }])}><PlusIcon />{tr('添加参数', 'Add parameter')}</button></div>
+      <section className="recipe-editor-section"><div className="scheduled-task-title"><h3>{tr('参数定义', 'Parameters')} <span className="recipe-count">{recipe.parameters.length}/20</span></h3><button type="button" disabled={recipe.parameters.length >= 20} onClick={() => set('parameters', [...recipe.parameters, { id: `parameter_${recipe.parameters.length + 1}`, label: '', type: 'text', required: false }])}><Icon name="plus" size={14} />{tr('添加参数', 'Add parameter')}</button></div>
         {!recipe.parameters.length && <p className="scheduled-tasks-note">{tr('把每次变化的内容设为参数，例如文件路径或审查范围。', 'Add parameters for values that change each time, such as a file path or review scope.')}</p>}
         {recipe.parameters.map((parameter, index) => <ParameterEditor key={index} parameter={parameter} index={index} fields={fields} onChange={p => set('parameters', recipe.parameters.map((old, i) => i === index ? p : old))} onRemove={() => set('parameters', recipe.parameters.filter((_, i) => i !== index))} />)}
         {fieldError('parameters')}</section>

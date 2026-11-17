@@ -8,11 +8,10 @@ import type {
 } from "@vela/shared";
 import { tr, trf } from "../../locale";
 import type { VersionControlApi } from "../../hooks/useVersionControl";
-import { AlertIcon, RefreshIcon, SparkIcon, TagIcon, TrashIcon } from "../icons";
 import { AiAssist } from "./AiAssist";
 import { useAiText } from "./ai-text";
 import { formatDateOnly, formatRelativeTime } from "./time-format";
-import { Icon } from "../icons/Icon";
+import { Icon } from "../icons";
 
 type PanelTab = "tags" | "releases" | "notes";
 
@@ -336,7 +335,7 @@ export function TagReleasePanel({
   return (
     <div className="vc-popover vc-p2-tagrelease" role="dialog" aria-label={tr("标签与发布", "Tags and releases")}>
       <div className="vc-ops-head">
-        <b><TagIcon size={12} /> {tr("标签与发布", "Tags and releases")}</b>
+        <b><Icon name="tag" size={12} /> {tr("标签与发布", "Tags and releases")}</b>
         <button
           type="button"
           className="vc-icon-btn"
@@ -344,7 +343,7 @@ export function TagReleasePanel({
           aria-label={tab === "releases" ? tr("刷新发布记录", "Refresh releases") : tr("刷新标签", "Refresh tags")}
           onClick={tab === "releases" ? api.refreshReleases : api.refreshTags}
         >
-          <RefreshIcon size={12} />
+          <Icon name="refresh" size={12} />
         </button>
         <button type="button" className="vc-link" onClick={onClose}>{tr("关闭", "Close")}</button>
       </div>
@@ -366,7 +365,7 @@ export function TagReleasePanel({
       {tab === "tags" ? (
         <div className="vc-p2-body">
           <div className="vc-p2-section">
-            <div className="vc-p2-label"><TagIcon size={11} /> {tr("创建标签", "Create a tag")}</div>
+            <div className="vc-p2-label"><Icon name="tag" size={12} /> {tr("创建标签", "Create a tag")}</div>
             <input
               className="vc-input"
               placeholder="v1.0.0"
@@ -439,7 +438,7 @@ export function TagReleasePanel({
             </div>
           ) : null}
           {api.tagsError ? (
-            <div className="vc-state vc-state-error" role="alert"><AlertIcon size={12} />{api.tagsError}</div>
+            <div className="vc-state vc-state-error" role="alert"><Icon name="alert" size={12} />{api.tagsError}</div>
           ) : null}
           {!api.tagsLoading && !api.tagsError && api.tags.length === 0 ? (
             <div className="vc-state">{tr("当前仓库还没有标签", "No tags yet")}</div>
@@ -474,7 +473,7 @@ export function TagReleasePanel({
                         aria-label={`${tr("删除标签", "Delete tag")} ${tag.name}`}
                         onClick={() => setConfirmTag(tag.name)}
                       >
-                        <TrashIcon size={11} />
+                        <Icon name="trash" size={12} />
                       </button>
                     )}
                   </div>
@@ -793,7 +792,7 @@ export function TagReleasePanel({
           ) : null}
 
           <div className="vc-p2-section">
-            <div className="vc-p2-label"><SparkIcon size={11} /> {tr("生成发布说明", "Generate release notes")}</div>
+            <div className="vc-p2-label"><Icon name="sparkles" size={12} /> {tr("生成发布说明", "Generate release notes")}</div>
             <div className="vc-p2-note">
               {tr(
                 "生成不会创建标签或发布；结果是候选，采用后仍需在「发布」页签手动创建。",
@@ -807,7 +806,7 @@ export function TagReleasePanel({
                 disabled={!scope || Boolean(scope.error) || ai.state.running}
                 onClick={() => void generate("generate", null)}
               >
-                <SparkIcon size={12} />
+                <Icon name="sparkles" size={12} />
                 {ai.state.running ? tr("正在生成…", "Generating…") : tr("生成发布说明", "Generate release notes")}
               </button>
             </div>

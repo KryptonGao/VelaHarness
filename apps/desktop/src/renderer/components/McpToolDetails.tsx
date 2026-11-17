@@ -6,9 +6,9 @@ import { ConversationLinkContext } from "./ConversationLinkContext";
 import { Markdown } from "./Markdown";
 import { ScrollFade } from "./ScrollFade";
 import { StructuredValue } from "./StructuredValue";
-import { ExternalIcon } from "./icons";
 import { useSlidingTabIndicator } from "./useSlidingTabIndicator";
 import { formatMcpResponse, mcpResultUrl, presentMcpResult, type McpSearchResult } from "./mcp-tool-result";
+import { Icon } from "./icons";
 
 type DetailTab = "result" | "call" | "raw";
 const tabs: DetailTab[] = ["result", "call", "raw"];
@@ -105,7 +105,7 @@ function SearchResult({ item }: { item: McpSearchResult }) {
     {url ? <a className="mcp-result-title" href={url.href} target="_blank" rel="noreferrer noopener" onClick={event => {
       if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
       if (openLink?.(url.href)) event.preventDefault();
-    }}><span>{item.title}</span><ExternalIcon size={14} /></a> : <div className="mcp-result-title">{item.title}</div>}
+    }}><span>{item.title}</span><Icon name="external" size={14} /></a> : <div className="mcp-result-title">{item.title}</div>}
     {item.highlight ? <><div ref={snippetRef} className={`mcp-result-snippet${expanded ? " is-expanded" : ""}`}><Markdown text={item.highlight} /></div>
       {overflows || expanded ? <button className="mcp-detail-action" type="button" aria-expanded={expanded} onClick={() => setExpanded(value => !value)}>{expanded ? tr("收起片段", "Collapse excerpt") : tr("展开片段", "Expand excerpt")}</button> : null}</> : null}
     <div className="mcp-result-meta">{url ? <span>{url.hostname === "app.notion.com" || url.hostname === "www.notion.so" ? "Notion" : url.hostname === "linear.app" ? "Linear" : url.hostname === "deepwiki.com" ? "DeepWiki" : url.hostname === "cloudflare.com" || url.hostname.endsWith(".cloudflare.com") ? "Cloudflare" : url.hostname === "supabase.com" || url.hostname.endsWith(".supabase.com") || url.hostname.endsWith(".supabase.co") ? "Supabase" : url.hostname === "posthog.com" || url.hostname.endsWith(".posthog.com") ? "PostHog" : url.hostname}</span> : null}

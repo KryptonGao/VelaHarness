@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type RefObject } from "react";
 import { tr } from "../locale";
-import { SparkIcon } from "./icons";
 import { normalizeQuote } from "./selection-actions";
+import { Icon } from "./icons";
 
 interface Anchor {
   text: string;
@@ -163,7 +163,7 @@ export function SelectionActions({ containerRef, onReply, onSideChat }: {
               <button type="button" className="selection-reply-side" title={tr("开启侧边聊天", "Start a side chat")}
                 aria-label={tr("开启侧边聊天", "Start a side chat")}
                 onClick={() => finish((quote, text) => onSideChat(quote, text || undefined))}>
-                <SparkIcon size={15} />
+                <Icon name="sparkles" size={16} />
               </button>
             ) : null}
           </div>

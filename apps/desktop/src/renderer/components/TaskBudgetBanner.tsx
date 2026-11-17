@@ -3,6 +3,7 @@ import { useContext, useState } from "react";
 import { useSecondClock } from "../hooks/useSecondClock";
 import { activeIntlLocale, tr, trf } from "../locale";
 import { RecipeActionsContext } from "./recipe-actions-context";
+import { Icon } from "./icons";
 
 function usageLine(budget: TaskBudgetState, elapsedMs: number): string {
   const parts: string[] = [];
@@ -40,9 +41,7 @@ export function TaskBudgetBanner({ budget, conversationId }: { budget: TaskBudge
   const uncounted = uncountedNote(budget);
   return <aside className={`task-budget-banner${exhausted ? " exhausted" : ""}`} role={exhausted ? "alert" : "status"} aria-live="polite">
     <span className="task-budget-icon" aria-hidden="true">
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
-        <circle cx="8" cy="8" r="6.2" /><path d="M8 4.8V8.4" /><circle cx="8" cy="11" r="0.5" fill="currentColor" />
-      </svg>
+      <Icon name="warning" size={16} />
     </span>
     <div className="task-budget-text">
       <strong>{exhausted

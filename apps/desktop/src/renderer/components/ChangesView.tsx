@@ -2,12 +2,12 @@ import type { GitFileChange, GitFileStatus, WorkspaceFileContent } from "@vela/s
 import { useEffect, useState } from "react";
 import { useEscapeKey } from "../hooks/useDismissable";
 import type { ProjectApi } from "../hooks/useProject";
-import { ExternalIcon, EyeIcon, FileIcon } from "./icons";
 import { DiffPane } from "./DiffPane";
 import { useFilePreview } from "./preview/FilePreviewContext";
 import { MarkdownPane } from "./preview/MarkdownPane";
 import { isMarkdownPath } from "./preview/markdown-path";
 import { tr, trf } from "../locale";
+import { Icon } from "./icons";
 
 const statusLetters: Record<GitFileStatus, string> = {
   modified: "M",
@@ -174,7 +174,7 @@ export function ChangesView({
       >
         <header className="changes-header">
           <div className="changes-header-title">
-            <FileIcon size={14} />
+            <Icon name="file" size={14} />
             <span id="changes-sheet-title">{tr("工作区变更", "Workspace changes")}</span>
             <span className="changes-count">{files.length > 0 ? trf("{0} 个文件", "{0} files", files.length) : tr("无变更", "No changes")}</span>
           </div>
@@ -263,7 +263,7 @@ export function ChangesView({
                       title={tr("在侧栏预览", "Preview in sidebar")}
                       onClick={() => onPreviewFile(selected.path)}
                     >
-                      <EyeIcon size={12} />
+                      <Icon name="eye" size={12} />
                     </button>
                   ) : null}
                 </div>
@@ -365,11 +365,11 @@ function FileRow({
           {file.indexStatus !== null && file.worktreeStatus === null ? "−" : "+"}
         </button>
         <button type="button" className="changes-file-btn" title={tr("用默认应用打开", "Open with default app")} aria-label={`${tr("打开", "Open")} ${name}`} onClick={onOpen}>
-          <ExternalIcon size={12} />
+          <Icon name="external" size={12} />
         </button>
         {onPreview ? (
           <button type="button" className="changes-file-btn" title={tr("在侧栏预览", "Preview in sidebar")} aria-label={`${tr("预览", "Preview")} ${name}`} onClick={onPreview}>
-            <EyeIcon size={12} />
+            <Icon name="eye" size={12} />
           </button>
         ) : null}
         {confirmDiscard ? (

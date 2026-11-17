@@ -5,13 +5,12 @@ import { tr, trf } from "../locale";
 import { AgentAvatar } from "./AgentAvatar";
 import { agentKindLabel, findAgentInfo, useAgentRoster } from "./AgentPanel";
 import { FileTypeIcon } from "./FileTypeIcon";
-import { ArrowRightIcon, EditFileIcon, FilePlusIcon, FolderIcon, GlobeIcon, McpIcon, ReadFileIcon, SkillReadIcon, TerminalIcon, ToolIcon, WebFetchIcon, WebSearchIcon } from "./icons";
 import { bashIntentDisplay } from "./bash-intent-label";
 import { summarizeBrowserCode, type BrowserStep } from "./browser-call";
 import { isSkillRead, skillNameOf, splitPath } from "./tool-compact";
 import { isMcpDiscoveryTool, splitMcpQuery } from "./tool-result-model";
 import { toolNameIcon } from "./tool-name-icon";
-import { Icon } from "./icons/Icon";
+import { Icon } from "./icons";
 
 export type ToolKind = "browser" | "bash" | "read" | "edit" | "write" | "other";
 
@@ -22,19 +21,19 @@ export function toolKind(name: string): ToolKind {
 }
 
 export function KindIcon({ kind, command, skill = false }: { kind: ToolKind; command?: string; skill?: boolean }): ReactNode {
-  if (skill) return <SkillReadIcon size={13} />;
-  if (kind === "other") return <ToolIcon size={13} />;
+  if (skill) return <Icon name="skill-read" size={14} />;
+  if (kind === "other") return <Icon name="tool" size={14} />;
   if (kind === "bash") {
     const intent = bashIntentDisplay(command)?.kind;
-    if (intent === "list") return <FolderIcon size={13} />;
-    if (intent === "read") return <ReadFileIcon size={13} />;
+    if (intent === "list") return <Icon name="folder" size={14} />;
+    if (intent === "read") return <Icon name="read-file" size={14} />;
     if (intent === "search" || intent === "find") return <Icon name="search" size={14} />;
-    return <TerminalIcon size={13} />;
+    return <Icon name="terminal" size={14} />;
   }
-  if (kind === "read") return <ReadFileIcon size={13} />;
-  if (kind === "edit") return <EditFileIcon size={13} />;
-  if (kind === "write") return <FilePlusIcon size={13} />;
-  return <TerminalIcon size={13} />;
+  if (kind === "read") return <Icon name="read-file" size={14} />;
+  if (kind === "edit") return <Icon name="edit" size={14} />;
+  if (kind === "write") return <Icon name="file-plus" size={14} />;
+  return <Icon name="terminal" size={14} />;
 }
 
 function toolActionName(name: string): string | null {
@@ -136,7 +135,7 @@ export function BrowserHeadlineSteps({ steps }: { steps: readonly BrowserStep[] 
   return <span className="browser-call-steps">
     {steps.map((step, index) => (
       <span className="browser-call-step-wrap" key={index}>
-        {index > 0 ? <ArrowRightIcon size={10} /> : null}
+        {index > 0 ? <Icon name="arrow-right" size={10} /> : null}
         <span className={`browser-call-step is-${step.kind}`}>{browserStepLabel(step)}</span>
       </span>
     ))}
@@ -149,21 +148,21 @@ export function taskTitle(body: string | undefined): string {
 }
 
 export function AgentHeadlineIcon({ avatarId, name }: { avatarId?: string | null; name: string }) {
-  return avatarId ? <AgentAvatar agentId={avatarId} size={18} /> : toolNameIcon(name) ?? <ToolIcon size={13} />;
+  return avatarId ? <AgentAvatar agentId={avatarId} size={18} /> : toolNameIcon(name) ?? <Icon name="tool" size={14} />;
 }
 
 /** Presentation only: no buttons, status indicators, durations or diff statistics. */
 export function ToolHeadlineIcon({ tool }: { tool: ToolTrace }) {
   const roster = useAgentRoster();
   const activity = tool.activity ?? {};
-  if (activity.mcp || isMcpDiscoveryTool(tool.name)) return <McpIcon size={13} />;
+  if (activity.mcp || isMcpDiscoveryTool(tool.name)) return <Icon name="mcp" size={14} />;
   if (isAgentToolName(tool.name)) {
     const live = findAgentInfo(roster, activity.agentId, activity.agentPath);
     return <AgentHeadlineIcon name={tool.name} avatarId={live?.id ?? activity.agentId ?? activity.agentPath} />;
   }
-  if (toolKind(tool.name) === "browser") return <GlobeIcon size={13} />;
-  if (tool.name === "web_fetch") return <WebFetchIcon size={13} />;
-  if (tool.name === "web_search") return <WebSearchIcon size={13} />;
+  if (toolKind(tool.name) === "browser") return <Icon name="globe" size={14} />;
+  if (tool.name === "web_fetch") return <Icon name="web-fetch" size={14} />;
+  if (tool.name === "web_search") return <Icon name="web-search" size={14} />;
   return toolNameIcon(tool.name) ?? <KindIcon kind={toolKind(tool.name)} command={activity.command} skill={isSkillRead(tool)} />;
 }
 

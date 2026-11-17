@@ -3,8 +3,8 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNo
 import { useSecondClock } from "../hooks/useSecondClock";
 import { tr, trf } from "../locale";
 import { formatElapsed } from "./AgentPanel";
-import { ChevronDownIcon, StopSquareIcon, TrashIcon } from "./icons";
 import "../background-tasks.css";
+import { Icon } from "./icons";
 
 export interface BackgroundTasksPanelProps {
   conversationId: string | null;
@@ -94,14 +94,14 @@ function ShellTask({ conversationId, shell, now }: { conversationId: string | nu
     <div className="bg-task" data-status={shell.status}>
       <div className="bg-task-head">
         <button type="button" className="bg-task-toggle" aria-expanded={open} title={shell.command} onClick={() => setOpen((value) => !value)}>
-          <span className="bg-task-chevron" data-open={open ? "true" : undefined}><ChevronDownIcon size={11} /></span>
+          <span className="bg-task-chevron" data-open={open ? "true" : undefined}><Icon name="chevron-down" size={12} /></span>
           <span className="bg-task-command">{shell.command}</span>
         </button>
         {!running ? <span className={`bg-task-status${isFailure(shell) ? " is-failed" : ""}`}>{statusText(shell)}</span> : null}
         <span className="bg-task-time">{elapsed}</span>
         {running ? (
           <button type="button" className="bg-task-stop" disabled={stopping} title={tr("停止", "Stop")} aria-label={tr("停止后台任务", "Stop background task")} onClick={() => void stop()}>
-            <StopSquareIcon size={11} />
+            <Icon name="stop-square" size={12} />
           </button>
         ) : null}
       </div>
@@ -115,7 +115,7 @@ function Section({ title, count, children }: { title: string; count: number; chi
   return (
     <section className="bg-section">
       <button type="button" className="bg-section-head" aria-expanded={open} onClick={() => setOpen((value) => !value)}>
-        <span className="bg-task-chevron" data-open={open ? "true" : undefined}><ChevronDownIcon size={11} /></span>
+        <span className="bg-task-chevron" data-open={open ? "true" : undefined}><Icon name="chevron-down" size={12} /></span>
         <span>{title}</span>
         <span className="bg-section-count">{count}</span>
       </button>
@@ -140,7 +140,7 @@ export function BackgroundTasksPanel({ conversationId, shells }: BackgroundTasks
         <span className="bg-tasks-title">{tr("后台任务", "Background tasks")}</span>
         <button type="button" className="bg-tasks-clear" disabled={finished.length === 0} title={tr("清除已结束的任务", "Clear finished tasks")}
           aria-label={tr("清除已结束的任务", "Clear finished tasks")} onClick={clear}>
-          <TrashIcon size={14} />
+          <Icon name="trash" size={14} />
         </button>
       </div>
       {shells.length === 0 ? <p className="bg-tasks-empty">{tr("暂无后台任务", "No background tasks")}</p> : null}

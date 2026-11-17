@@ -3,11 +3,10 @@ import { useEscapeKey } from "../hooks/useDismissable";
 import { tr, trf } from "../locale";
 import { DiffPane, isSingleSidedDiff } from "./DiffPane";
 import { FileTypeIcon } from "./FileTypeIcon";
-import { FileIcon, FolderIcon } from "./icons";
 import { FileTree } from "./preview/ExplorerPane";
 import { buildFileTree, type FileTreeNode } from "./preview/tree";
 import type { TurnReviewRequest } from "./turn-changes";
-import { Icon } from "./icons/Icon";
+import { Icon } from "./icons";
 
 function directoryPaths(nodes: FileTreeNode[], into = new Set<string>()): Set<string> {
   for (const node of nodes) {
@@ -237,12 +236,12 @@ export function TurnReviewView({ review, visible, onClose, target, title, filesL
     role="region" aria-labelledby={`${id}-title`}>
     <header className="turn-review-toolbar">
       {toolbarControl ? <div className="changes-filter-heading" id={`${id}-title`}>{toolbarControl}</div>
-        : <><FileIcon size={14} /><strong id={`${id}-title`}>{title ?? tr("本轮变更", "Turn changes")}</strong></>}
+        : <><Icon name="file" size={14} /><strong id={`${id}-title`}>{title ?? tr("本轮变更", "Turn changes")}</strong></>}
       <span className="turn-review-count">{trf("{0} 个文件", "{0} files", changes.files.length)}</span>
       <ChangeStats added={changes.added} removed={changes.removed} />
       {compact ? <button ref={toggle} type="button" className="turn-review-files-toggle" aria-controls={`${id}-files`}
         aria-expanded={drawerOpen} onClick={() => setDrawerOpen(open => !open)}>
-        <FolderIcon size={14} />{tr("文件", "Files")}
+        <Icon name="folder" size={14} />{tr("文件", "Files")}
       </button> : null}
     </header>
     <div className="turn-review-body">

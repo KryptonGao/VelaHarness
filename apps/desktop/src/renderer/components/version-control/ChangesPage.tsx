@@ -5,12 +5,11 @@ import type { ProjectApi } from "../../hooks/useProject";
 import type { VersionControlLayout } from "../../hooks/useVersionControlLayout";
 import { FileTypeIcon } from "../FileTypeIcon";
 import type { VersionControlApi } from "../../hooks/useVersionControl";
-import { AlertIcon, ArrowLeftIcon, CheckIcon, DiffIcon, ExternalIcon, FileIcon, RefreshIcon, TrashIcon } from "../icons";
 import { ConflictResolver, operationLabel } from "./ConflictResolver";
 import { groupChanges, matchesChangeFilter, scopeStats, scopeStatus, type ChangeGroupRow } from "./git-change-groups";
 import { HunkedDiff } from "./HunkedDiff";
 import { CommitComposer } from "./CommitComposer";
-import { Icon } from "../icons/Icon";
+import { Icon } from "../icons";
 
 const statusLetters: Record<string, string> = {
   modified: "M",
@@ -208,7 +207,7 @@ export function ChangesPage({
     <div className={`vc-changes${mobileDiff ? " show-diff" : ""}`}>
       {operation ? (
         <div className="vc-op-banner" role="alert">
-          <AlertIcon size={13} />
+          <Icon name="alert" size={14} />
           <span>
             {trf("正在进行的操作：{0}，{1} 个冲突文件", "Operation in progress: {0}, {1} conflicted file(s)", operationLabel(operation.kind), operation.conflictedPaths.length)}
           </span>
@@ -236,7 +235,7 @@ export function ChangesPage({
       <div className="vc-files" ref={filesRef}>
         <div className="vc-files-head">
           <div className="vc-files-title">
-            <FileIcon size={13} />
+            <Icon name="file" size={14} />
             <b>{tr("变更文件", "Changed files")}</b>
             <span>{trf("{0} 个", "{0}", status.files.length)}</span>
           </div>
@@ -277,12 +276,12 @@ export function ChangesPage({
 
         <div className="vc-files-scroll">
           {status.files.length === 0 ? (
-            <div className="vc-placeholder vc-placeholder-compact"><span className="vc-placeholder-icon"><CheckIcon size={16} /></span>{tr("工作区是干净的", "The workspace is clean")}</div>
+            <div className="vc-placeholder vc-placeholder-compact"><span className="vc-placeholder-icon"><Icon name="check" size={16} /></span>{tr("工作区是干净的", "The workspace is clean")}</div>
           ) : null}
           {conflictedCount > 0 ? (
             <div className="vc-group vc-group-conflict">
               <div className="vc-group-head">
-                <span className="vc-group-title"><AlertIcon size={12} />{tr("冲突", "Conflicts")}</span>
+                <span className="vc-group-title"><Icon name="alert" size={12} />{tr("冲突", "Conflicts")}</span>
                 <span className="vc-group-count">{visible.conflicted.length}</span>
               </div>
               {visible.conflicted.map((row) => (
@@ -343,7 +342,7 @@ export function ChangesPage({
 
       <div className="vc-diff-pane">
         <div className="vc-diff-content" ref={diffContentRef}>
-        {layout === "review" ? <div className="vc-review-diff-navigation"><button type="button" className="vc-btn vc-btn-ghost" onClick={showFileList}><ArrowLeftIcon size={14} />{tr("变更文件", "Changed files")}</button></div> : null}
+        {layout === "review" ? <div className="vc-review-diff-navigation"><button type="button" className="vc-btn vc-btn-ghost" onClick={showFileList}><Icon name="arrow-left" size={14} />{tr("变更文件", "Changed files")}</button></div> : null}
         {selected ? (
           <>
             <div className="vc-diff-head">
@@ -400,7 +399,7 @@ export function ChangesPage({
                   }).catch(() => setNotice(tr("无法打开该文件", "Could not open this file")));
                 }}
               >
-                <ExternalIcon size={12} />
+                <Icon name="external" size={12} />
               </button>
               {selected.scope === "worktree" || selected.file.status === "untracked" ? (
                 <button
@@ -410,7 +409,7 @@ export function ChangesPage({
                   aria-label={tr("丢弃工作区改动", "Discard working tree changes")}
                   onClick={() => setConfirmDiscard(selected.key)}
                 >
-                  <TrashIcon size={12} />
+                  <Icon name="trash" size={12} />
                 </button>
               ) : null}
             </div>
@@ -429,10 +428,10 @@ export function ChangesPage({
                 />
               ) : diff?.key.startsWith(`${selected.key}:`) && diff.error ? (
                 <div className="vc-state vc-state-error" role="alert">
-                  <AlertIcon size={13} />
+                  <Icon name="alert" size={14} />
                   <span>{diff.error}</span>
                   <button type="button" className="vc-link" onClick={() => setDiffNonce((value) => value + 1)}>
-                    <RefreshIcon size={12} /> {tr("重试", "Retry")}
+                    <Icon name="refresh" size={12} /> {tr("重试", "Retry")}
                   </button>
                 </div>
               ) : !diff || !diff.key.startsWith(`${selected.key}:`) ? (
@@ -467,7 +466,7 @@ export function ChangesPage({
             </div>
           </>
         ) : (
-          <div className="vc-placeholder"><span className="vc-placeholder-icon"><DiffIcon size={18} /></span>{tr("选择一个文件查看差异", "Select a file to view its diff")}</div>
+          <div className="vc-placeholder"><span className="vc-placeholder-icon"><Icon name="diff" size={18} /></span>{tr("选择一个文件查看差异", "Select a file to view its diff")}</div>
         )}
 
         </div>
@@ -618,11 +617,11 @@ function ChangeRow({
           <>
             {onDiscard ? (
               <button type="button" className="vc-icon-btn vc-danger" title={tr("丢弃工作区改动", "Discard changes")} aria-label={tr("丢弃", "Discard")} onClick={onDiscard}>
-                <TrashIcon size={11} />
+                <Icon name="trash" size={12} />
               </button>
             ) : null}
             <button type="button" className="vc-icon-btn" title={row.scope === "index" ? tr("取消暂存", "Unstage") : tr("暂存", "Stage")} aria-label={row.scope === "index" ? tr("取消暂存", "Unstage") : tr("暂存", "Stage")} onClick={onStage}>
-              {row.scope === "index" ? "−" : <CheckIcon size={11} />}
+              {row.scope === "index" ? "−" : <Icon name="check" size={12} />}
             </button>
           </>
         )}

@@ -1,7 +1,7 @@
 import type { AiTextAction, AiTextResult } from "@vela/shared";
 import { tr } from "../../locale";
-import { CheckIcon, CloseIcon, SparkIcon } from "../icons";
 import type { AiTextState } from "./ai-text";
+import { Icon } from "../icons";
 
 /**
  * Commit / PR 文案的生成、润色与调整入口。
@@ -44,7 +44,7 @@ export function AiAssist({
           disabled={disabled || state.running}
           onClick={() => onGenerate(hasText ? "polish" : "generate")}
         >
-          <SparkIcon size={12} />
+          <Icon name="sparkles" size={12} />
           {hasText ? tr("AI 润色", "AI polish") : tr("AI 生成", "AI generate")}
         </button>
         {hasText ? (
@@ -92,11 +92,11 @@ export function AiAssist({
           </div>
           <div className="vc-ai-candidate-actions">
             <button type="button" className="vc-btn vc-btn-primary" onClick={() => onApply(state.result!)}>
-              <CheckIcon size={12} />
+              <Icon name="check" size={12} />
               {tr("采用", "Apply")}
             </button>
             <button type="button" className="vc-btn vc-btn-ghost" onClick={onDismiss}>
-              <CloseIcon size={12} />
+              <Icon name="close" size={12} />
               {tr("丢弃", "Dismiss")}
             </button>
           </div>

@@ -26,6 +26,7 @@ import {
   durationLabel,
   timeLabel,
 } from "./TraceInspector";
+import { Icon } from "../icons";
 
 const rowHeight = 34;
 // Reserve the lane labels (52px) and the right gutter (8px) outside the scale.
@@ -394,17 +395,7 @@ export function TraceView({
             role="group"
             aria-label={tr("时间轴缩放", "Timeline zoom")}
           >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 16 16"
-              fill="none"
-              stroke="currentColor"
-              aria-hidden="true"
-            >
-              <rect x="1.5" y="5.5" width="13" height="5" rx="1" />
-              <path d="M4.5 5.5v2M7 5.5v3M9.5 5.5v2M12 5.5v3" />
-            </svg>
+            <Icon name="ruler" size={14} />
             <input
               className="trace-scale-input"
               type="range"
@@ -448,17 +439,7 @@ export function TraceView({
             aria-pressed={inspector}
             onClick={() => setInspector((v) => !v)}
           >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 16 16"
-              fill="none"
-              stroke="currentColor"
-              aria-hidden="true"
-            >
-              <rect x="1.5" y="2.5" width="13" height="11" rx="1" />
-              <path d="M10 3v10" />
-            </svg>
+            <Icon name="panel-right" size={16} />
           </button>
         </div>
       </div>

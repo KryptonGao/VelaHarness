@@ -2,9 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import type { AppLocale, GitOperationQuery, GitOperationRecord, GitOperationType } from "@vela/shared";
 import { tr, trf } from "../../locale";
 import { useDismissable } from "../../hooks/useDismissable";
-import { AlertIcon, CheckIcon, CommitIcon, ExternalIcon, PrIcon, RefreshIcon } from "../icons";
 import { formatRelativeTime } from "./time-format";
-import { Icon } from "../icons/Icon";
+import { Icon } from "../icons";
 
 const operationLabels: Record<GitOperationType, [string, string]> = {
   stage: ["暂存", "Stage"],
@@ -143,7 +142,7 @@ export function OperationLogPanel({
       <div className="vc-ops-head">
         <b>{tr("操作记录", "Operation log")}</b>
         <button type="button" className="vc-icon-btn" title={tr("刷新", "Refresh")} aria-label={tr("刷新", "Refresh")} onClick={onRefresh}>
-          <RefreshIcon size={12} />
+          <Icon name="refresh" size={12} />
         </button>
         <button type="button" className="vc-link" onClick={onClose}>{tr("关闭", "Close")}</button>
       </div>
@@ -211,7 +210,7 @@ export function OperationLogPanel({
             <div className="vc-op-steps">
               {record.steps.map((step) => (
                 <span key={step.id} className={`vc-op-step vc-op-step-${step.status}`}>
-                  {step.status === "success" ? <CheckIcon size={10} /> : step.status === "failed" ? <AlertIcon size={10} /> : null}
+                  {step.status === "success" ? <Icon name="check" size={10} /> : step.status === "failed" ? <Icon name="alert" size={10} /> : null}
                   {step.label}
                   {step.detail ? <em>{step.detail}</em> : null}
                 </span>
@@ -220,7 +219,7 @@ export function OperationLogPanel({
             <div className="vc-op-nav">
               {record.resultSha ? (
                 <button type="button" className="vc-link" onClick={() => onOpenCommit(record.resultSha!)}>
-                  <CommitIcon size={11} /> {tr("查看提交", "View commit")} <code>{record.resultSha.slice(0, 7)}</code>
+                  <Icon name="commit" size={12} /> {tr("查看提交", "View commit")} <code>{record.resultSha.slice(0, 7)}</code>
                 </button>
               ) : null}
               {record.resultUrl ? (
@@ -232,8 +231,8 @@ export function OperationLogPanel({
                     void window.vela?.openPullRequest(record.resultUrl!);
                   }}
                 >
-                  <PrIcon size={11} /> {record.prNumber ? `PR #${record.prNumber}` : tr("打开 PR", "Open PR")}
-                  <ExternalIcon size={10} />
+                  <Icon name="pull-request" size={12} /> {record.prNumber ? `PR #${record.prNumber}` : tr("打开 PR", "Open PR")}
+                  <Icon name="external" size={10} />
                 </button>
               ) : null}
             </div>
