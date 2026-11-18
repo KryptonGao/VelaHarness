@@ -1861,6 +1861,7 @@ function ReplyActions({
     setSpeechError(null);
     void speakReply(speechId, text).then(error => { if (error) setSpeechError(error); });
   };
+  const speechIcon = speechError ? "warning" : speaking?.status === "loading" ? "clock" : speaking ? "stop-square" : "speaker";
   const time = formatReplyTime(timestamp);
   const copy = () => {
     void navigator.clipboard.writeText(text).then(
@@ -1883,7 +1884,6 @@ function ReplyActions({
         onClick={copy}
       >
         {copied ? <Icon name="check" size={14} /> : <Icon name="copy" size={14} />}
-        <span>{copied ? tr("已复制", "Copied") : tr("复制", "Copy")}</span>
       </button>
       {speech.configured && speechId !== null ? (
         <button
@@ -1895,8 +1895,7 @@ function ReplyActions({
           aria-pressed={speaking ? true : undefined}
           onClick={toggleSpeech}
         >
-          {speaking ? <Icon name="stop-square" size={14} /> : <Icon name="speaker" size={14} />}
-          <span>{speechError ? tr("朗读失败", "Failed") : speaking ? (speaking.status === "loading" ? tr("正在生成…", "Preparing…") : tr("停止朗读", "Stop")) : tr("朗读", "Read aloud")}</span>
+          <Icon name={speechIcon} size={14} />
         </button>
       ) : null}
       <button
@@ -1910,7 +1909,6 @@ function ReplyActions({
         }}
       >
         <Icon name="branch" size={14} />
-        <span>{tr("分支到新聊天", "Branch to new chat")}</span>
       </button>
       {onCheckpoints && branchTurn !== null ? (
         <button
@@ -1922,7 +1920,6 @@ function ReplyActions({
           onClick={() => onCheckpoints(branchTurn)}
         >
           <Icon name="history" size={14} />
-          <span>{tr("检查点", "Checkpoint")}</span>
         </button>
       ) : null}
       </>: null}
@@ -1937,7 +1934,6 @@ function ReplyActions({
           onClick={() => onDistillMemory(branchTurn)}
         >
           <Icon name="memory-update" size={14} />
-          <span>{tr("提炼到项目记忆", "Distill memory")}</span>
         </button>
       ) : null}
       {acceptance ? (
@@ -1949,8 +1945,7 @@ function ReplyActions({
           disabled={!onOpenAcceptance}
           onClick={() => onOpenAcceptance?.(acceptance)}
         >
-          <Icon name="check" size={14} />
-          <span>{tr("验收", "Acceptance")}</span>
+          <Icon name="acceptance" size={14} />
         </button>
       ) : null}
       {time && timestamp !== null ? (

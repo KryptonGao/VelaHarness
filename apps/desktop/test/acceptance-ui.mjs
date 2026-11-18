@@ -54,7 +54,8 @@ if (!process.versions.electron) {
   try {
     await win.loadFile(join(process.env.VELA_ACCEPTANCE_TEMP, "index.html"));
     await until("document.querySelectorAll('.reply-action-acceptance').length === 2");
-    assert.equal(await evaluate("document.querySelector('.reply-action-acceptance').textContent.includes('验收')"), true);
+    assert.equal(await evaluate("document.querySelector('.reply-action-acceptance').getAttribute('aria-label')"), "验收");
+    assert.equal(await evaluate("Array.from(document.querySelectorAll('.reply-actions button')).every(button => !button.textContent.trim())"), true);
 
     // 回合边界、无改动问答、checkpoint 磁盘改动与最后一次成功提交。
     assert.deepEqual(await evaluate(`(() => {

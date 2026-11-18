@@ -92,7 +92,6 @@ function ResidentReplyActions({ text, timestamp }: { text: string; timestamp: nu
     <button className="reply-action" type="button" title={label} aria-label={label}
       onClick={() => { void navigator.clipboard.writeText(text).then(() => setCopied(true), () => setCopied(false)); }}>
       {copied ? <Icon name="check" size={14} /> : <Icon name="copy" size={14} />}
-      <span>{copied ? tr("已复制", "Copied") : tr("复制", "Copy")}</span>
     </button>
     {valid ? <time className="reply-time" dateTime={valid.toISOString()} title={valid.toLocaleString(activeIntlLocale())}>{formatTime(valid.getTime())}</time> : null}
   </div>;

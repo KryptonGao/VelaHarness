@@ -73,7 +73,7 @@ export function AcceptancePanel({ request, onOpenDiff }: {
   </li>;
 
   return <div className="acceptance-panel" role="region" aria-labelledby={`${id}-title`}>
-    <header className="acceptance-toolbar"><Icon name="check" size={14} /><strong id={`${id}-title`}>{tr("成果验收", "Outcome acceptance")}</strong>
+    <header className="acceptance-toolbar"><Icon name="acceptance" size={14} /><strong id={`${id}-title`}>{tr("成果验收", "Outcome acceptance")}</strong>
       <span>{trf("{0} 项需求", "{0} requirements", outcome.items.length)}</span></header>
     {outcome.source === "derived" ? <p className="acceptance-derived">{tr("未提交需求归属，按本轮记录汇总", "No requirement attribution was submitted; summarized from this turn’s records")}</p> : null}
     <div className="acceptance-body">

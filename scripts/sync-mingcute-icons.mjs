@@ -76,6 +76,7 @@ const ICONS = {
   tool: "tool",
   "todo-list": "list-todo",
   outcome: "flag-1",
+  acceptance: "file-check",
   followup: "corner-down-right",
   "schedule-create": "calendar-add",
   "schedule-list": "calendar",
