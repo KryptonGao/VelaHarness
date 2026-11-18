@@ -111,37 +111,24 @@
 }
 
 /* 右侧变更页的只读范围筛选,沿用现有浮层与中性色。 */
-.changes-filter-heading { min-width: 0; }
+.changes-filter-heading { min-width: 0; font-size: 1rem; }
 .changes-filter { position: relative; min-width: 0; }
-.changes-filter-trigger {
-  display: flex; align-items: center; gap: 8px; max-width: 100%; min-height: 30px;
-  padding: 4px 10px; border: 1px solid var(--border-subtle); border-radius: var(--radius-md);
-  background: var(--bg-elevated); color: var(--text-primary); font: inherit; cursor: pointer;
-}
-.changes-filter-trigger > span { display: flex; align-items: center; gap: 7px; min-width: 0; white-space: nowrap; }
-.changes-filter-trigger svg { flex: none; }
+.changes-filter-trigger { max-width: 100%; }
+.changes-filter-trigger .settings-select-value { display: flex; align-items: center; gap: 7px; }
 .changes-filter-detail { max-width: 110px; overflow: hidden; text-overflow: ellipsis; color: var(--text-muted); font-size: calc(11px * var(--ui-scale)); }
-.changes-filter-trigger:hover { background: var(--bg-hover); }
 .changes-filter-menu {
   position: absolute; top: calc(100% + 6px); left: 0; z-index: 10;
-  width: min(280px, calc(100vw - 60px)); padding: 6px;
-  border: 1px solid var(--border-subtle); border-radius: var(--radius-lg);
-  background: var(--bg-elevated); box-shadow: var(--shadow-card); color: var(--text-primary);
+  display: flex; flex-direction: column;
+  width: min(280px, calc(100vw - 60px));
 }
-.changes-filter-item {
-  display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  width: 100%; min-height: 34px; padding: 7px 10px; border: 0; border-radius: var(--radius-md);
-  background: transparent; color: inherit; text-align: left; font: inherit; cursor: pointer;
-}
+.changes-filter-item { width: 100%; text-align: left; }
 .changes-filter-item > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .changes-filter-item svg { flex: none; }
-.changes-filter-item:hover, .changes-filter-item:focus-visible, .changes-filter-item[aria-checked="true"] { background: var(--bg-hover); }
-.changes-filter-separator { height: 1px; margin: 5px 10px; background: var(--border-subtle); }
+.changes-filter-item:hover, .changes-filter-item:focus-visible { background: var(--settings-track); }
+.changes-filter-separator { flex: none; height: 1px; margin: 5px 10px; background: var(--border-subtle); }
 .changes-filter-back { justify-content: flex-start; color: var(--text-secondary); }
-.changes-filter-options { max-height: min(360px, 55vh); overflow-y: auto; }
-.changes-filter-commit { display: flex; flex-direction: column; gap: 2px; }
+.changes-filter-options { max-height: 55vh; overflow-y: auto; }
 .changes-filter-commit > span { overflow: hidden; text-overflow: ellipsis; }
-.changes-filter-commit small { color: var(--text-muted); font-size: calc(11px * var(--ui-scale)); }
 .changes-filter-empty { padding: 14px 10px; color: var(--text-muted); }
 .changes-filter-notice { padding: 10px 14px; color: var(--text-secondary); background: var(--bg-surface-subtle); font-size: calc(12px * var(--ui-scale)); }
 .changes-filter-retry { margin-left: 8px; color: var(--accent-blue); cursor: pointer; }

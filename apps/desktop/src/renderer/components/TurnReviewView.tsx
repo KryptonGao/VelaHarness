@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useEscapeKey } from "../hooks/useDismissable";
 import { tr, trf } from "../locale";
 import { DiffPane, isSingleSidedDiff } from "./DiffPane";
@@ -17,11 +17,66 @@ function directoryPaths(nodes: FileTreeNode[], into = new Set<string>()): Set<st
   return into;
 }
 
+function ReviewFilePath({ path }: { path: string }) {
+  const nameStart = path.lastIndexOf("/") + 1;
+  const viewportRef = useRef<HTMLElement>(null);
+  const textRef = useRef<HTMLSpanElement>(null);
+
+  useLayoutEffect(() => {
+    const viewport = viewportRef.current;
+    const text = textRef.current;
+    const header = viewport?.closest("summary");
+    if (!viewport || !text || !header) return;
+
+    // The right edge is the scroll origin, so the filename is visible on mount.
+    const updateFade = () => {
+      const max = viewport.scrollWidth - viewport.clientWidth;
+      viewport.toggleAttribute("data-fade-left", max + viewport.scrollLeft > 1);
+      viewport.toggleAttribute("data-fade-right", viewport.scrollLeft < -1);
+    };
+    const onWheel = (event: WheelEvent) => {
+      if (event.ctrlKey || event.metaKey) return;
+      const max = viewport.scrollWidth - viewport.clientWidth;
+      if (max <= 1) return;
+      // Keep wheel input on the path even when it has reached either end.
+      event.preventDefault();
+      const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? viewport.clientWidth : 1;
+      const delta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
+      viewport.scrollLeft = Math.max(-max, Math.min(0, viewport.scrollLeft + delta * unit));
+    };
+
+    updateFade();
+    viewport.addEventListener("scroll", updateFade, { passive: true });
+    header.addEventListener("wheel", onWheel, { passive: false });
+    const observer = new ResizeObserver(updateFade);
+    observer.observe(viewport);
+    observer.observe(text);
+    return () => {
+      observer.disconnect();
+      viewport.removeEventListener("scroll", updateFade);
+      header.removeEventListener("wheel", onWheel);
+    };
+  }, []);
+
+  return <strong ref={viewportRef} className="turn-review-file-path" dir="rtl" title={path}>
+    <span ref={textRef} className="turn-review-path-text" dir="ltr">
+      {nameStart > 0 && <span className="turn-review-directory">{path.slice(0, nameStart)}</span>}
+      <bdi>{path.slice(nameStart)}</bdi>
+    </span>
+  </strong>;
+}
+
 function ChangeStats({ added, removed }: { added: number; removed: number }) {
   return <span className="turn-review-stats" aria-label={trf("增加 {0} 行，删除 {1} 行", "{0} lines added, {1} removed", added, removed)}>
     <span className="turn-changes-added">+{added}</span>
     <span className="turn-changes-removed">−{removed}</span>
   </span>;
+}
+
+function openFileForNavigation(section: HTMLDetailsElement) {
+  // Scroll targets need their final layout before their position is measured.
+  delete section.dataset.animateFold;
+  section.open = true;
 }
 
 export interface TurnReviewTarget {
@@ -65,7 +120,7 @@ export function TurnReviewView({ review, visible, onClose, target, title, filesL
   const scroller = useRef<HTMLDivElement>(null);
   const sidebar = useRef<HTMLElement>(null);
   const toggle = useRef<HTMLButtonElement>(null);
-  const sections = useRef(new Map<string, HTMLElement>());
+  const sections = useRef(new Map<string, HTMLDetailsElement>());
   const edits = useRef(new Map<string, HTMLElement>());
   const appliedTarget = useRef<string | null>(null);
   const targetScroll = useRef<{ path: string; top: number } | null>(null);
@@ -171,6 +226,7 @@ export function TurnReviewView({ review, visible, onClose, target, title, filesL
     const section = sections.current.get(path);
     const scroll = scroller.current;
     if (section && scroll) {
+      openFileForNavigation(section);
       scroll.scrollTo({ top: scroll.scrollTop + section.getBoundingClientRect().top - scroll.getBoundingClientRect().top });
     }
     setSelected(path);
@@ -185,11 +241,13 @@ export function TurnReviewView({ review, visible, onClose, target, title, filesL
     const key = JSON.stringify([review.turnId, target.path, target.requestKey, target.diffToolId]);
     if (appliedTarget.current === key || !changes.files.some(file => file.path === target.path)) return;
     if (filter) { setFilter(""); return; }
-    const section = (target.diffToolId && edits.current.get(target.diffToolId)) || sections.current.get(target.path);
+    const section = sections.current.get(target.path);
     const scroll = scroller.current;
     if (!section || !scroll) return;
+    openFileForNavigation(section);
+    const anchor = (target.diffToolId && edits.current.get(target.diffToolId)) || section;
     appliedTarget.current = key;
-    const top = scroll.scrollTop + section.getBoundingClientRect().top - scroll.getBoundingClientRect().top;
+    const top = scroll.scrollTop + anchor.getBoundingClientRect().top - scroll.getBoundingClientRect().top;
     targetScroll.current = { path: target.path, top };
     scroll.scrollTo({ top });
     setSelected(target.path);
@@ -206,13 +264,24 @@ export function TurnReviewView({ review, visible, onClose, target, title, filesL
 
   // 展开/收起目录、滚动高亮只改侧栏状态;差异区单独缓存,避免几十个文件的 Diff 跟着重渲染。
   const sectionList = useMemo(() => (
-    files.map((file, index) => <section key={file.path} className="turn-review-file"
+    files.map((file, index) => <details open key={JSON.stringify([review.turnId, file.path])} className="turn-review-file"
         ref={node => { if (node) sections.current.set(file.path, node); else sections.current.delete(file.path); }}
         aria-label={file.path}>
-        <header className="turn-review-file-header">
-          <FileTypeIcon path={file.path} /><strong title={file.path}>{file.path}</strong>
+        <summary className="turn-review-file-header" onClick={() => {
+          const section = sections.current.get(file.path);
+          const scroll = scroller.current;
+          if (!section) return;
+          section.dataset.animateFold = "";
+          if (!section.open || !scroll) return;
+          // Keep the sticky header in view when the diff above the viewport disappears.
+          const offset = section.getBoundingClientRect().top - scroll.getBoundingClientRect().top;
+          if (offset < 0) scroll.scrollTop += offset;
+        }}>
+          <FileTypeIcon path={file.path} />
+          <ReviewFilePath path={file.path} />
           <ChangeStats added={file.added} removed={file.removed} />
-        </header>
+          <Icon name="chevron-right" size={12} className="turn-review-file-chevron" />
+        </summary>
         {file.diffs.some(diff => diff && !isSingleSidedDiff(diff, file.format ?? "tool"))
           ? <div className="turn-review-side-labels"><span>{tr("编辑前", "Before")}</span><span>{tr("编辑后", "After")}</span></div> : null}
         {index >= mountedCount && file.path !== target?.path
@@ -228,9 +297,9 @@ export function TurnReviewView({ review, visible, onClose, target, title, filesL
           {diff ? <DiffPane path={file.path} diff={diff} mode="split" format={file.format ?? "tool"} showLineNumbers hideMeta />
             : <div className="turn-review-empty">{tr("这项编辑没有保存可显示的差异", "No saved diff is available for this edit")}</div>}
         </div>; }) : <div className="turn-review-empty">{tr("这项编辑没有保存可显示的差异", "No saved diff is available for this edit")}</div>}
-      </section>)
+      </details>)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  ), [files, mountedCount, target?.path]);
+  ), [files, mountedCount, target?.path, review.turnId]);
 
   return <div ref={contentRef} className={`turn-review-view${compact ? " is-compact" : ""}${drawerOpen ? " is-drawer-open" : ""}`}
     role="region" aria-labelledby={`${id}-title`}>

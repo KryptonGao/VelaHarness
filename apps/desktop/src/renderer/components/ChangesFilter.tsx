@@ -66,28 +66,28 @@ export function ChangesFilter({ category, onSelect, onRequestCommits, commits, c
   const detail = category === "committed" ? commit?.shortSha : category === "branch" ? baseBranch : null;
   const categories: ChangesCategory[] = ["last-turn", "uncommitted", "unstaged", "staged", "committed", "branch"];
   return <div ref={root} className="changes-filter" onKeyDownCapture={onKeyDown}>
-    <button ref={trigger} type="button" className="changes-filter-trigger" aria-label={tr("变更分类", "Change category")}
+    <button ref={trigger} type="button" className="settings-select-trigger changes-filter-trigger" aria-label={tr("变更分类", "Change category")}
       aria-haspopup="menu" aria-expanded={open} aria-controls={open ? id : undefined}
       onClick={() => { setOpen(value => !value); setPage(null); }}
       onKeyDown={event => { if (!open && ["ArrowDown", "ArrowUp"].includes(event.key)) { event.preventDefault(); setOpen(true); } }}>
-      <span>{categoryLabel(category)}{detail ? <span className="changes-filter-detail">{detail}</span> : null}</span><Icon name="chevron-down" size={12} />
+      <span className="settings-select-value">{categoryLabel(category)}{detail ? <span className="changes-filter-detail">{detail}</span> : null}</span>
     </button>
-    {open ? <div id={id} ref={menu} className="changes-filter-menu" role="menu" aria-label={tr("变更分类", "Change category")}>
+    {open ? <div id={id} ref={menu} className="settings-menu changes-filter-menu" role="menu" aria-label={tr("变更分类", "Change category")}>
       {page ? <>
-        <button type="button" role="menuitem" className="changes-filter-item changes-filter-back" onClick={() => setPage(null)}>
-          <Icon name="arrow-left" size={14} /><span>{categoryLabel(page)}</span>
+        <button type="button" role="menuitem" className="settings-menu-item changes-filter-item changes-filter-back" onClick={() => setPage(null)}>
+          <Icon name="arrow-left" size={14} /><span className="settings-menu-label">{categoryLabel(page)}</span>
         </button>
         <div role="separator" className="changes-filter-separator" />
         <div className="changes-filter-options">
           {page === "committed" ? commits.map(item => <button key={item.sha} type="button" role="menuitemradio"
-            aria-checked={category === "committed" && commitSha === item.sha} className="changes-filter-item"
+            aria-checked={category === "committed" && commitSha === item.sha} className="settings-menu-item changes-filter-item"
             title={`${item.shortSha} ${item.subject}`} onClick={() => select("committed", item.sha)}>
-            <span className="changes-filter-commit"><span>{item.subject}</span><small>{item.shortSha}</small></span>
-            {category === "committed" && commitSha === item.sha ? <Icon name="check" size={14} /> : null}
+            <span className="settings-menu-text changes-filter-commit"><span className="settings-menu-label">{item.subject}</span><small className="settings-menu-desc">{item.shortSha}</small></span>
+            {category === "committed" && commitSha === item.sha ? <Icon name="check" size={16} /> : null}
           </button>) : branches.map(item => <button key={item.name} type="button" role="menuitemradio"
-            aria-checked={category === "branch" && baseBranch === item.name} className="changes-filter-item"
+            aria-checked={category === "branch" && baseBranch === item.name} className="settings-menu-item changes-filter-item"
             title={item.name} onClick={() => select("branch", item.name)}>
-            <span>{item.name}</span>{category === "branch" && baseBranch === item.name ? <Icon name="check" size={14} /> : null}
+            <span className="settings-menu-label">{item.name}</span>{category === "branch" && baseBranch === item.name ? <Icon name="check" size={16} /> : null}
           </button>)}
           {page === "committed" && commits.length === 0 ? <div className="changes-filter-empty" role="status">{commitsLoading
             ? tr("正在读取提交…", "Loading commits…") : commitsError ? tr("加载变更失败", "Failed to load changes") : tr("没有提交记录", "No commits yet")}</div> : null}
@@ -95,13 +95,13 @@ export function ChangesFilter({ category, onSelect, onRequestCommits, commits, c
         </div>
       </> : categories.map((item, index) => <div key={item}>
         {index === 1 || index === 4 ? <div role="separator" className="changes-filter-separator" /> : null}
-        <button type="button" className="changes-filter-item" role={item === "committed" || item === "branch" ? "menuitem" : "menuitemradio"}
+        <button type="button" className="settings-menu-item changes-filter-item" role={item === "committed" || item === "branch" ? "menuitem" : "menuitemradio"}
           aria-checked={item === "committed" || item === "branch" ? undefined : category === item}
           aria-haspopup={item === "committed" || item === "branch" ? "menu" : undefined}
           onKeyDown={event => { if (event.key === "ArrowRight" && (item === "committed" || item === "branch")) { event.preventDefault(); openPage(item); } }}
           onClick={() => item === "committed" || item === "branch" ? openPage(item) : select(item)}>
-          <span>{categoryLabel(item)}</span>
-          {category === item ? <Icon name="check" size={14} /> : item === "committed" || item === "branch" ? <Icon name="chevron-right" size={12} /> : null}
+          <span className="settings-menu-label">{categoryLabel(item)}</span>
+          {category === item ? <Icon name="check" size={16} /> : item === "committed" || item === "branch" ? <Icon name="chevron-right" size={12} /> : null}
         </button>
       </div>)}
     </div> : null}

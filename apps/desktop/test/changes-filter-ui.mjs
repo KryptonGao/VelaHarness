@@ -139,11 +139,97 @@ if (!process.versions.electron) {
     await win.loadFile(join(temporary, "index.html"));
     await until("document.querySelectorAll('.turn-review-file').length===3");
     assert.equal(await evaluate("document.querySelector('.changes-filter-trigger').textContent.trim()"), "未提交");
+    const firstFileHeight = () => evaluate("document.querySelector('.turn-review-file').getBoundingClientRect().height");
+    const expandedHeight = await firstFileHeight();
+    const motionEnabled = await evaluate("matchMedia('(prefers-reduced-motion: no-preference)').matches");
+    if (motionEnabled) {
+      const reversedDuringFold = await evaluate(`(async () => {
+        const file = document.querySelector('.turn-review-file');
+        const header = file.querySelector('summary');
+        const fullHeight = file.getBoundingClientRect().height;
+        header.click();
+        const deadline = performance.now() + 1000;
+        while (performance.now() < deadline) {
+          await new Promise(requestAnimationFrame);
+          const height = file.getBoundingClientRect().height;
+          if (height < fullHeight && height > header.offsetHeight + 1) {
+            header.click();
+            return true;
+          }
+        }
+        return false;
+      })()`);
+      assert.ok(reversedDuringFold, "Diff reaches an intermediate height before the toggle is reversed");
+      await until(`document.querySelector('.turn-review-file').getBoundingClientRect().height === ${expandedHeight}`);
+    }
+    await click(".turn-review-file-header .turn-review-file-path");
+    await until("document.querySelector('.turn-review-file').getBoundingClientRect().height <= document.querySelector('.turn-review-file-header').getBoundingClientRect().height + 1");
+    assert.ok(await evaluate(`(() => {
+      const [first, second] = document.querySelectorAll('.turn-review-file');
+      const header = first.querySelector('summary');
+      return !first.open && second.open &&
+        Math.abs(second.getBoundingClientRect().top - header.getBoundingClientRect().bottom) <= 1 &&
+        header.querySelector('.turn-changes-added').getBoundingClientRect().width > 0 &&
+        header.querySelector('.turn-changes-removed').getBoundingClientRect().width > 0;
+    })()`), "The collapsed header shows both line counts directly above the next expanded file");
+    await evaluate("document.querySelector('.turn-review-file-header').focus()");
+    win.webContents.sendInputEvent({ type: "keyDown", keyCode: "Space" });
+    win.webContents.sendInputEvent({ type: "keyUp", keyCode: "Space" });
+    await until("document.querySelector('.turn-review-file').open");
+    if (motionEnabled) {
+      await until(`(() => {
+        const file = document.querySelector('.turn-review-file');
+        const content = getComputedStyle(file, '::details-content');
+        const height = file.getBoundingClientRect().height;
+        return content.contentVisibility === 'visible' && Number(content.opacity) > 0.1 &&
+          Number(content.opacity) < 0.9 && height > file.querySelector('summary').offsetHeight + 1 &&
+          height < ${expandedHeight};
+      })()`);
+    }
+    await until(`document.querySelector('.turn-review-file').getBoundingClientRect().height === ${expandedHeight}`);
     assert.equal(await evaluate("document.querySelectorAll('.turn-review-file:first-child .turn-review-edit').length"), 2);
     assert.ok(await evaluate("document.querySelectorAll('.turn-review-view .diff-line.hunk').length > 0"), "Fixture includes Git hunk headers");
     assert.equal(await evaluate("[...document.querySelectorAll('.turn-review-view .diff-line.hunk')].every(el => getComputedStyle(el).display === 'none' && el.getBoundingClientRect().height === 0)"), true, "Hunk headers take no space in changes review");
     assert.equal(await evaluate("document.querySelector('.turn-review-view .diff-line-number').textContent"), "12", "Original file line numbers remain intact");
     assert.equal(await evaluate("document.querySelectorAll('.turn-review-side-labels span').length > 0 && document.querySelectorAll('.turn-review-view .diff-line.add').length > 0 && document.querySelectorAll('.turn-review-view .diff-line.del').length > 0"), true, "Before/after labels and diff content remain visible");
+    const wheelTargets = await evaluate(`(() => {
+      const path = document.querySelector('.turn-review-file-path');
+      const code = document.querySelector('.turn-review-scroll');
+      path.style.maxWidth = '36px';
+      code.style.maxHeight = '260px';
+      code.scrollTop = 24;
+      const point = (x, y) => ({ x: Math.floor(x), y: Math.floor(y) });
+      const label = path.getBoundingClientRect();
+      const header = path.closest('summary').getBoundingClientRect();
+      const region = code.getBoundingClientRect();
+      const pathCenter = label.left + label.width / 2;
+      return { abovePath: point(pathCenter, header.top + 2), belowPath: point(pathCenter, header.bottom - 3),
+        code: point(region.left + region.width / 2, region.top + 120) };
+    })()`);
+    const wheelAt = async (point, deltaY) => {
+      win.webContents.sendInputEvent({ type: "mouseWheel", ...point, deltaX: 0, deltaY });
+      await evaluate("new Promise(done => setTimeout(done, 150))");
+    };
+    const codeScrollTop = () => evaluate("document.querySelector('.turn-review-scroll').scrollTop");
+    assert.equal(await codeScrollTop(), 24, "The code area can scroll in either direction");
+    await until("document.querySelector('.turn-review-file-path').hasAttribute('data-fade-left')");
+    await wheelAt(wheelTargets.abovePath, -60);
+    assert.equal(await codeScrollTop(), 24, "Wheel input above the breadcrumb stays out of the code area at the right edge");
+    await wheelAt(wheelTargets.abovePath, 60);
+    await until("document.querySelector('.turn-review-file-path').hasAttribute('data-fade-right') && !document.querySelector('.turn-review-file-path').hasAttribute('data-fade-left')");
+    await wheelAt(wheelTargets.belowPath, 60);
+    assert.equal(await codeScrollTop(), 24, "Wheel input below the breadcrumb stays out of the code area at the left edge");
+    await wheelAt(wheelTargets.belowPath, -60);
+    await until("document.querySelector('.turn-review-file-path').hasAttribute('data-fade-left') && !document.querySelector('.turn-review-file-path').hasAttribute('data-fade-right')");
+    assert.equal(await codeScrollTop(), 24, "Scrolling the breadcrumb in either direction keeps the code in place");
+    await wheelAt(wheelTargets.code, -60);
+    assert.ok(await codeScrollTop() > 24, "Wheel input over the code still scrolls it");
+    await evaluate(`(() => {
+      document.querySelector('.turn-review-file-path').style.removeProperty('max-width');
+      const code = document.querySelector('.turn-review-scroll');
+      code.style.removeProperty('max-height');
+      code.scrollTop = 0;
+    })()`);
     await assertStripedGaps();
     await assertSeamlessGaps();
     await assertUniformStripes();
@@ -179,7 +265,7 @@ if (!process.versions.electron) {
     assert.equal(await evaluate("document.activeElement.textContent.trim()"), "上一轮");
     await key("Escape");
     assert.equal(await evaluate("changesFixture.closed"), 0);
-    assert.equal(await evaluate("document.activeElement.className"), "changes-filter-trigger");
+    assert.equal(await evaluate("document.activeElement.matches('.changes-filter-trigger')"), true);
     await choose("未暂存");
     await until("document.querySelectorAll('.turn-review-file').length===2");
     assert.deepEqual(await paths(), ["README.md", "apps/desktop/test/new.test.ts"]);

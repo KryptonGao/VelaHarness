@@ -202,6 +202,7 @@ export function FileTree({
   renderFileMeta?: (path: string) => ReactNode;
   depth?: number;
 }) {
+  const paddingLeft = `calc(6px + ${depth} * var(--explorer-tree-indent, 15px))`;
   return (
     <>
       {nodes.map((node) =>
@@ -210,7 +211,7 @@ export function FileTree({
             <button
               type="button"
               className="explorer-tree-item dir"
-              style={{ paddingLeft: 6 + depth * 15 }}
+              style={{ paddingLeft }}
               aria-expanded={expanded.has(node.path)}
               onClick={() => onToggleDir(node.path)}
               title={node.path}
@@ -236,13 +237,13 @@ export function FileTree({
           <button
             type="button"
             className={`explorer-tree-item file${node.path === activePath ? " active" : ""}`}
-            style={{ paddingLeft: 6 + depth * 15 }}
+            style={{ paddingLeft }}
             key={node.path}
             onClick={() => onOpenFile(node.path)}
             title={node.path}
           >
             <FileTypeIcon path={node.path} />
-            <span className="explorer-name">{node.name}</span>
+            <span className="explorer-name"><span>{node.name}</span></span>
             {renderFileMeta ? <span className="explorer-tree-meta">{renderFileMeta(node.path)}</span> : null}
           </button>
         ),

@@ -107,7 +107,8 @@ function safeId(value: string): string {
 }
 function TabIcon({ tab }: { tab: WorkbenchTab }) {
   if (tab.kind === "file") return <FileTypeIcon path={tab.path} />;
-  if (tab.kind === "changes" || tab.kind === "turn-review" || tab.kind === "acceptance") return <Icon name="file" size={12} />;
+  if (tab.kind === "changes") return <Icon name="file-diff" size={12} />;
+  if (tab.kind === "turn-review" || tab.kind === "acceptance") return <Icon name="file" size={12} />;
   if (tab.kind === "race") return <Icon name="branch" size={12} />;
   if (tab.kind === "background" || tab.kind === "terminal") return <Icon name="terminal" size={12} />;
   if (tab.kind === "plan") return <Icon name="plan" size={12} />;

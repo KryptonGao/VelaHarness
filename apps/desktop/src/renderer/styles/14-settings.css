@@ -34,6 +34,7 @@
  */
 /* 下拉列表挂在 body 下,不在 .settings-body 里,所以变量两处都要声明 */
 .settings-body,
+.settings-select-trigger,
 .settings-menu {
   --settings-frame: color-mix(in srgb, var(--bg-chat) 95%, var(--text-primary));
   --settings-track: color-mix(in srgb, var(--text-primary) 6%, transparent);
@@ -264,7 +265,8 @@
   align-items: flex-end;
   text-align: right;
 }
-.settings-card > .settings-block[data-layout="inline"] .settings-select { width: auto; min-width: 120px; max-width: 280px; }
+.settings-card > .settings-block[data-layout="inline"] .settings-select,
+.changes-filter-trigger { width: auto; min-width: 120px; max-width: 280px; }
 /* 卡片里的下拉框:白底、细描边、黑字,右侧一个灰色小箭头 */
 button.settings-select-trigger {
   appearance: none;

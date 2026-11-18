@@ -38,6 +38,7 @@
 .turn-review-file { min-width: 0; border-bottom: 1px solid var(--border-subtle); }
 .turn-review-file-header {
   position: sticky;
+  cursor: pointer;
   top: 0;
   z-index: 1;
   display: flex;
@@ -49,18 +50,66 @@
   border-bottom: 1px solid var(--border-subtle);
   font-size: calc(13px * var(--ui-scale));
 }
-.turn-review-file-header strong { flex: 1; min-width: 0; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.turn-review-file-header:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: -2px; }
+.turn-review-file-chevron { flex: none; color: var(--text-muted); }
+.turn-review-file[open] > summary .turn-review-file-chevron { transform: rotate(90deg); }
+@media (prefers-reduced-motion: no-preference) {
+  .turn-review-file { --review-fold-motion: var(--transition-enter); }
+  .turn-review-file[open] { --review-fold-motion: 260ms ease-in-out; }
+  .turn-review-file::details-content {
+    block-size: 0;
+    opacity: 0;
+    interpolate-size: allow-keywords;
+    overflow: clip;
+  }
+  .turn-review-file[open]::details-content { block-size: auto; opacity: 1; }
+  .turn-review-file[data-animate-fold]::details-content {
+    transition: block-size var(--review-fold-motion), opacity var(--review-fold-motion),
+      content-visibility var(--review-fold-motion) allow-discrete;
+  }
+  .turn-review-file-chevron { transition: transform var(--review-fold-motion); }
+}
+.turn-review-file-path {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  justify-content: safe end;
+  overflow-x: auto;
+  scrollbar-width: none;
+  white-space: nowrap;
+  color: var(--text-primary);
+  font-size: calc(1em + 1px);
+  font-weight: 500;
+}
+.turn-review-file-path[data-fade-left], .turn-review-file-path[data-fade-right] {
+  mask-image: linear-gradient(to right, transparent, #000 var(--review-path-fade-left, 0px),
+    #000 calc(100% - var(--review-path-fade-right, 0px)), transparent);
+}
+.turn-review-file-path[data-fade-left] { --review-path-fade-left: min(16px, 25%); }
+.turn-review-file-path[data-fade-right] { --review-path-fade-right: min(16px, 25%); }
+.turn-review-path-text { flex: none; }
+.turn-review-directory { color: var(--text-muted); }
 .turn-review-side-labels { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); font-size: calc(12px * var(--ui-scale)); color: var(--text-muted); background: var(--bg-surface-subtle); }
 .turn-review-side-labels span { padding: 4px 12px; }
 .turn-review-side-labels span + span { border-left: 1px solid var(--border-subtle); }
 .turn-review-edit-label { padding: 5px 12px; font-size: calc(12px * var(--ui-scale)); color: var(--text-muted); background: var(--bg-surface-subtle); border-top: 1px solid var(--border-subtle); }
 .turn-review-pending { background: var(--bg-surface-subtle); }
 .turn-review-empty { padding: 20px 14px; font-size: calc(12px * var(--ui-scale)); color: var(--text-muted); }
-.turn-review-sidebar { flex: none; border-left: 1px solid var(--border-subtle); }
+.turn-review-sidebar { --explorer-tree-indent: 7.5px; flex: none; border-left: 1px solid var(--border-subtle); }
 .turn-review-sidebar[hidden] { display: none; }
 .turn-review-sidebar .explorer-tree-meta { margin-left: auto; padding-left: 6px; flex: none; }
 .turn-review-sidebar .explorer-tree-item.file { font-size: calc(13px * var(--ui-scale)); }
-.turn-review-sidebar .turn-review-stats { font-size: calc(11px * var(--ui-scale)); gap: 4px; }
+.turn-review-sidebar .explorer-tree-item.file .explorer-name {
+  container: explorer-file-name / scroll-state;
+  text-overflow: clip;
+}
+@container explorer-file-name scroll-state(scrollable: right) {
+  .explorer-name > span {
+    display: block;
+    mask-image: linear-gradient(to right, #000 calc(100% - min(16px, 45%)), transparent);
+  }
+}
+.turn-review-sidebar .turn-review-stats { font-size: calc(11px * var(--ui-scale) + 1px); font-weight: 500; gap: 4px; }
 .turn-review-view button:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: -2px; }
 .turn-review-view.is-compact .turn-review-sidebar { position: absolute; top: 0; right: 0; bottom: 0; z-index: 3; width: min(280px, 90%); box-shadow: var(--shadow-card); }
 
