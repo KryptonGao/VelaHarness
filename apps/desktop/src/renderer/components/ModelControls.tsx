@@ -11,8 +11,10 @@ import {
   type SandboxMode,
   type ThinkingLevel,
 } from "@vela/shared";
-import { useEffect, useId, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useCombinedModelPicker } from "../hooks/useCombinedModelPicker";
 import { useEscapeKey } from "../hooks/useDismissable";
+import { useReducedMotion } from "../hooks/useMotionPresence";
 import type { LoginState } from "../hooks/useModels";
 import { modelKey } from "../hooks/usePreferences";
 import { useUsageLimits } from "../hooks/useUsageLimits";
@@ -119,11 +121,17 @@ function ThinkingGlyph({ choices, level }: { choices: ThinkingLevel[]; level: Th
 }
 
 export function ModelControls(props: ModelControlsProps) {
+  const combined = useCombinedModelPicker();
+  const reducedMotion = useReducedMotion();
   const [menu, setMenu] = useState<"model" | "thinking" | "usage" | null>(null);
+  const [modelSelection, setModelSelection] = useState<{ provider: string; id: string } | null>(null);
   const [accountsOpen, setAccountsOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [sliderLevel, setSliderLevel] = useState(props.thinkingLevel);
   const rootRef = useRef<HTMLDivElement>(null);
+  const combinedTriggerRef = useRef<HTMLButtonElement>(null);
+  const combinedPopoverRef = useRef<HTMLDivElement>(null);
+  const previousHeight = useRef<number | undefined>(undefined);
   const thinkingRequestRef = useRef(0);
   const thinkingPopoverId = useId();
   const thinkingChoices = props.thinkingLevels.length > 0 ? props.thinkingLevels : (["off"] as ThinkingLevel[]);
@@ -162,19 +170,61 @@ export function ModelControls(props: ModelControlsProps) {
   const shownThinkingRef = useRef(shownThinking);
   shownThinkingRef.current = shownThinking;
   const lastThinkingOpenRequest = useRef(props.thinkingOpenRequest ?? 0);
+  const pickerOpen = menu === "model" || menu === "thinking";
+  const openPicker = useCallback((page: "model" | "thinking") => {
+    // Keep the same bottom anchor while the two pages change the panel's height.
+    previousHeight.current = combinedPopoverRef.current?.offsetHeight;
+    if (page === "thinking") setSliderLevel(shownThinkingRef.current);
+    setMenu(page);
+  }, []);
+
+  const closePicker = useCallback(() => {
+    setMenu(null);
+    combinedTriggerRef.current?.focus({ preventScroll: true });
+  }, []);
+
+  useLayoutEffect(() => {
+    const from = previousHeight.current;
+    previousHeight.current = undefined;
+    const panel = combinedPopoverRef.current;
+    if (reducedMotion || !pickerOpen || from === undefined || !panel) return;
+    const duration = 200;
+    const easing = "cubic-bezier(0.2, 0.75, 0.25, 1)";
+    const resize = panel.animate([{ height: `${from}px` }, { height: `${panel.offsetHeight}px` }], { duration, easing });
+    const slide = panel.firstElementChild?.animate([
+      { opacity: 0, transform: `translateX(${menu === "model" ? 12 : -12}px)` },
+      { opacity: 1, transform: "none" },
+    ], { duration, easing });
+    return () => {
+      resize.cancel();
+      slide?.cancel();
+    };
+  }, [combined, menu, pickerOpen, reducedMotion]);
+
+  useLayoutEffect(() => {
+    if (!modelSelection) return;
+    if (!combined || menu !== "model") {
+      setModelSelection(null);
+      return;
+    }
+    // The session supplies the new model's supported levels and clamped effort together.
+    if (props.modelProvider === modelSelection.provider && props.modelId === modelSelection.id) {
+      setModelSelection(null);
+      openPicker("thinking");
+    }
+  }, [combined, menu, modelSelection, openPicker, props.modelId, props.modelProvider]);
 
   useEffect(() => {
-    if (props.openRequest) setMenu("model");
-  }, [props.openRequest]);
+    if (props.openRequest) openPicker("model");
+  }, [openPicker, props.openRequest]);
 
   useEffect(() => {
     const request = props.thinkingOpenRequest ?? 0;
     if (!request || request === lastThinkingOpenRequest.current) return;
     lastThinkingOpenRequest.current = request;
     if (props.disabled) return;
-    setSliderLevel(shownThinkingRef.current);
-    setMenu("thinking");
-  }, [props.thinkingOpenRequest, props.disabled]);
+    openPicker("thinking");
+  }, [openPicker, props.thinkingOpenRequest, props.disabled]);
 
   useEffect(() => {
     if (menu !== "thinking") setSliderLevel(shownThinking);
@@ -186,7 +236,10 @@ export function ModelControls(props: ModelControlsProps) {
       if (!rootRef.current?.contains(event.target as Node)) setMenu(null);
     };
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setMenu(null);
+      if (event.key !== "Escape" || event.isComposing) return;
+      if (combined && menu === "model") openPicker("thinking");
+      else if (combined && menu === "thinking") closePicker();
+      else setMenu(null);
     };
     window.addEventListener("pointerdown", onPointer);
     window.addEventListener("keydown", onKey);
@@ -194,153 +247,242 @@ export function ModelControls(props: ModelControlsProps) {
       window.removeEventListener("pointerdown", onPointer);
       window.removeEventListener("keydown", onKey);
     };
-  }, [menu]);
+  }, [closePicker, combined, menu, openPicker]);
 
-  return (
-    <div className="model-controls" ref={rootRef}>
-      <div className="dock-menu">
+  const reasoningLabel = tr("思考强度", "Reasoning effort");
+  const chooseModel = tr("选择模型", "Choose a model");
+  const combinedLabel = props.modelLabel
+    ? trf("模型与思考强度：{0} · {1}", "Model & reasoning effort: {0} · {1}", props.modelLabel, thinkingLabel(shownThinking))
+    : tr("模型与思考强度", "Model & reasoning effort");
+  const thinkingHeading = (
+    <>
+      <span
+        key={ultraFlash ? "ultra-flash" : sliderThinking}
+        className={`thinking-level-value${ultraSelected ? " is-ultra" : ""}${ultraFlash ? " is-ultra-flash" : ""}`}
+        aria-live="polite"
+      >
+        {ultraFlash ? tr("更快使用算力", "Faster compute") : thinkingLabel(sliderThinking)}
+      </span>
+      <span className="thinking-model-label">{props.modelLabel ?? chooseModel}</span>
+    </>
+  );
+
+  const thinkingContent = (
+    <>
+      {combined ? (
         <button
-          className="model-choice-pill"
+          className="thinking-popover-heading combined-thinking-heading"
           type="button"
-          title={thinkingChoices.length < 2 ? tr("当前模型不支持调整思考强度", "The current model does not support adjustable reasoning") : `${tr("思考强度", "Reasoning effort")}: ${thinkingLabel(shownThinking)}`}
-          aria-controls={thinkingPopoverId}
-          aria-expanded={menu === "thinking"}
-          disabled={props.disabled || thinkingChoices.length < 2}
-          onClick={() => {
-            if (menu === "thinking") {
-              setMenu(null);
-              return;
-            }
-            setSliderLevel(shownThinking);
-            setMenu("thinking");
-          }}
+          title={chooseModel}
+          disabled={props.disabled}
+          autoFocus
+          onClick={() => openPicker("model")}
         >
-          {/* 文字、标记、箭头按顺序紧挨着排，不预留空位；按钮宽度随当前档位的文字变化。 */}
-          <span className="thinking-label">
-            <span className="thinking-label-text">{thinkingLabel(shownThinking)}</span>
-            <ThinkingGlyph choices={thinkingChoices} level={shownThinking} />
-            <span className="thinking-chevron"><Chevron /></span>
-          </span>
+          {thinkingHeading}
+          <Icon className="combined-thinking-arrow" name="chevron-right" size={12} />
         </button>
-        <PopoverPresence present={menu === "thinking"}>
-          <div id={thinkingPopoverId} className="dock-popover thinking-popover" role="group" aria-label={tr("思考强度", "Reasoning effort")}>
-            <div className="thinking-popover-heading">
-              <span
-                key={ultraFlash ? "ultra-flash" : sliderThinking}
-                className={`thinking-level-value${ultraSelected ? " is-ultra" : ""}${ultraFlash ? " is-ultra-flash" : ""}`}
-                aria-live="polite"
-              >
-                {ultraFlash ? tr("更快使用算力", "Faster compute") : thinkingLabel(sliderThinking)}
-              </span>
-              <span className="thinking-model-label">{props.modelLabel ?? tr("选择模型", "Choose a model")}</span>
-            </div>
-            <div
-              className={`thinking-slider${ultraSelected ? " is-ultra" : ""}`}
-              style={{
-                "--thinking-progress": `${sliderProgress * 100}%`,
-                "--thinking-particle-duration": particleDuration,
-              } as CSSProperties}
-            >
-              <div className="thinking-slider-track" aria-hidden="true">
-                <div className="thinking-fill-frame">
-                  {sliderProgress > 0 ? (
-                    <div className="thinking-slider-fill">
-                      <div className="thinking-particles">
-                        {[0, 1, 2, 3, 4].map((particle) => (
-                          <span
-                            key={particle}
-                            className={`thinking-particle particle-${particle + 1}`}
-                            style={{ "--thinking-particle-delay": `${particle * -0.31}s` } as CSSProperties}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  ) : null}
-                </div>
-                <div className="thinking-slider-markers">
-                  {thinkingChoices.map((level, index) => (
+      ) : (
+        <div className="thinking-popover-heading">{thinkingHeading}</div>
+      )}
+      <div
+        className={`thinking-slider${ultraSelected ? " is-ultra" : ""}`}
+        style={{
+          "--thinking-progress": `${sliderProgress * 100}%`,
+          "--thinking-particle-duration": particleDuration,
+        } as CSSProperties}
+      >
+        <div className="thinking-slider-track" aria-hidden="true">
+          <div className="thinking-fill-frame">
+            {sliderProgress > 0 ? (
+              <div className="thinking-slider-fill">
+                <div className="thinking-particles">
+                  {[0, 1, 2, 3, 4].map((particle) => (
                     <span
-                      key={level}
-                      className={index <= sliderIndex ? "is-active" : undefined}
-                      style={{ left: `${sliderRangeMax > 0 ? ((index + sliderOffset) / sliderRangeMax) * 100 : 0}%` }}
+                      key={particle}
+                      className={`thinking-particle particle-${particle + 1}`}
+                      style={{ "--thinking-particle-delay": `${particle * -0.31}s` } as CSSProperties}
                     />
                   ))}
                 </div>
               </div>
-              <input
-                className="thinking-slider-input"
-                aria-label={tr("思考强度", "Reasoning effort")}
-                aria-valuetext={thinkingLabel(sliderThinking)}
-                type="range"
-                min={0}
-                max={sliderRangeMax}
-                step={1}
-                value={sliderValue}
-                disabled={props.disabled || thinkingChoices.length < 2}
-                onChange={(event) => {
-                  const nextIndex = Number(event.currentTarget.value) - sliderOffset;
-                  const nextLevel = thinkingChoices[nextIndex];
-                  if (!nextLevel || nextLevel === sliderThinking) return;
-                  setSliderLevel(nextLevel);
-                  // 仅在用户切入 Ultra 时播放提示，打开已选 Ultra 的卡片不重播。
-                  setUltraFlash(nextLevel === "ultra");
-                  const request = ++thinkingRequestRef.current;
-                  void props.onThinking(nextLevel).then((result) => {
-                    if (request === thinkingRequestRef.current && typeof result === "string") {
-                      setSliderLevel(shownThinking);
-                    }
-                  }).catch(() => {
-                    if (request === thinkingRequestRef.current) setSliderLevel(shownThinking);
-                  });
-                }}
-              />
-            </div>
-            {ultraSelected && props.fullAccess && props.fullAccess.mode !== "full" ? (
-              <div className="thinking-ultra-tip">
-                <span>{tr("Ultra 会并行启用更多 SubAgent，推荐使用完全访问权限，避免逐项审批打断它们。", "Ultra runs more SubAgents in parallel. Full access is recommended so approvals do not interrupt them.")}</span>
-                <button type="button" onClick={() => { void props.fullAccess?.onEnable(); }}>{tr("切换到完全访问", "Switch to full access")}</button>
-              </div>
             ) : null}
           </div>
-        </PopoverPresence>
+          <div className="thinking-slider-markers">
+            {thinkingChoices.map((level, index) => (
+              <span
+                key={level}
+                className={index <= sliderIndex ? "is-active" : undefined}
+                style={{ left: `${sliderRangeMax > 0 ? ((index + sliderOffset) / sliderRangeMax) * 100 : 0}%` }}
+              />
+            ))}
+          </div>
+        </div>
+        <input
+          className="thinking-slider-input"
+          aria-label={reasoningLabel}
+          aria-valuetext={thinkingLabel(sliderThinking)}
+          type="range"
+          min={0}
+          max={sliderRangeMax}
+          step={1}
+          value={sliderValue}
+          disabled={props.disabled || thinkingChoices.length < 2}
+          onChange={(event) => {
+            const nextIndex = Number(event.currentTarget.value) - sliderOffset;
+            const nextLevel = thinkingChoices[nextIndex];
+            if (!nextLevel || nextLevel === sliderThinking) return;
+            setSliderLevel(nextLevel);
+            // 仅在用户切入 Ultra 时播放提示，打开已选 Ultra 的卡片不重播。
+            setUltraFlash(nextLevel === "ultra");
+            const request = ++thinkingRequestRef.current;
+            void props.onThinking(nextLevel).then((result) => {
+              if (request === thinkingRequestRef.current && typeof result === "string") {
+                  setSliderLevel(shownThinkingRef.current);
+              }
+            }).catch(() => {
+              if (request === thinkingRequestRef.current) setSliderLevel(shownThinkingRef.current);
+            });
+          }}
+        />
       </div>
+      {ultraSelected && props.fullAccess && props.fullAccess.mode !== "full" ? (
+        <div className="thinking-ultra-tip">
+          <span>{tr("Ultra 会并行启用更多 SubAgent，推荐使用完全访问权限，避免逐项审批打断它们。", "Ultra runs more SubAgents in parallel. Full access is recommended so approvals do not interrupt them.")}</span>
+          <button type="button" onClick={() => { void props.fullAccess?.onEnable(); }}>{tr("切换到完全访问", "Switch to full access")}</button>
+        </div>
+      ) : null}
+    </>
+  );
 
-      <div className="dock-menu">
-        <button
-          className="model-choice-pill model-pill"
-          type="button"
-          title={props.modelLabel ? `${tr("模型", "Model")}: ${props.modelLabel}` : tr("选择模型", "Choose a model")}
-          aria-haspopup="true"
-          aria-expanded={menu === "model"}
-          disabled={props.disabled}
-          onClick={() => setMenu((current) => (current === "model" ? null : "model"))}
-        >
-          <span className="model-pill-label">{props.modelLabel ?? tr("选择模型", "Choose a model")}</span>
-          <Chevron />
-        </button>
-        <PopoverPresence present={menu === "model"}>
-          <ModelMenu
-            catalog={props.catalog}
-            catalogError={props.catalogError}
-            actionError={props.actionError}
-            provider={props.modelProvider}
-            modelId={props.modelId}
-            hiddenModels={props.hiddenModels}
-            onSelect={(provider, id) => {
-              setMenu(null);
-              void props.onSelect(provider, id);
+  const modelMenu = (
+    <ModelMenu
+      catalog={props.catalog}
+      catalogError={props.catalogError}
+      actionError={props.actionError}
+      provider={props.modelProvider}
+      modelId={props.modelId}
+      hiddenModels={props.hiddenModels}
+      selecting={modelSelection !== null}
+      onBack={combined ? () => openPicker("thinking") : undefined}
+      onSelect={(provider, id) => {
+        if (!combined) {
+          closePicker();
+          void props.onSelect(provider, id);
+          return;
+        }
+        if (modelSelection) return;
+        if (props.modelProvider === provider && props.modelId === id) {
+          openPicker("thinking");
+          return;
+        }
+        const selection = { provider, id };
+        setModelSelection(selection);
+        const clearSelection = () => setModelSelection(current => current === selection ? null : current);
+        void props.onSelect(provider, id).then(result => {
+          if (typeof result === "string") clearSelection();
+        }, clearSelection);
+      }}
+      onAdd={() => {
+        setMenu(null);
+        setAddOpen(true);
+      }}
+      onAccounts={() => {
+        setMenu(null);
+        setAccountsOpen(true);
+      }}
+    />
+  );
+
+  return (
+    <div className="model-controls" ref={rootRef}>
+      {combined ? (
+        <div className="dock-menu">
+          <button
+            ref={combinedTriggerRef}
+            className="model-choice-pill model-pill combined-model-pill"
+            type="button"
+            title={combinedLabel}
+            aria-label={combinedLabel}
+            aria-controls={pickerOpen ? thinkingPopoverId : undefined}
+            aria-expanded={pickerOpen}
+            disabled={props.disabled}
+            onClick={() => {
+              if (pickerOpen) closePicker();
+              else openPicker("thinking");
             }}
-            onAdd={() => {
-              setMenu(null);
-              setAddOpen(true);
-            }}
-            onAccounts={() => {
-              setMenu(null);
-              setAccountsOpen(true);
-            }}
-          />
-        </PopoverPresence>
-      </div>
+          >
+            <span className="model-pill-label">{props.modelLabel ?? combinedLabel}</span>
+            {props.modelLabel ? (
+              <span className={`combined-effort-label${shownThinking === "ultra" ? " is-ultra" : ""}`}>
+                {thinkingLabel(shownThinking)}
+              </span>
+            ) : null}
+            <Chevron />
+          </button>
+          <PopoverPresence present={pickerOpen}>
+            <div
+              ref={combinedPopoverRef}
+              id={thinkingPopoverId}
+              className="dock-popover combined-model-popover"
+              role="group"
+              aria-label={menu === "model" ? chooseModel : reasoningLabel}
+            >
+              {menu === "model" ? modelMenu : (
+                <div className="combined-thinking-page">{thinkingContent}</div>
+              )}
+            </div>
+          </PopoverPresence>
+        </div>
+      ) : (
+        <>
+          <div className="dock-menu">
+            <button
+              className="model-choice-pill"
+              type="button"
+              title={thinkingChoices.length < 2 ? tr("当前模型不支持调整思考强度", "The current model does not support adjustable reasoning") : `${reasoningLabel}: ${thinkingLabel(shownThinking)}`}
+              aria-controls={thinkingPopoverId}
+              aria-expanded={menu === "thinking"}
+              disabled={props.disabled || thinkingChoices.length < 2}
+              onClick={() => {
+                if (menu === "thinking") {
+                  setMenu(null);
+                  return;
+                }
+                openPicker("thinking");
+              }}
+            >
+              {/* 文字、标记、箭头按顺序紧挨着排，不预留空位；按钮宽度随当前档位的文字变化。 */}
+              <span className="thinking-label">
+                <span className="thinking-label-text">{thinkingLabel(shownThinking)}</span>
+                <ThinkingGlyph choices={thinkingChoices} level={shownThinking} />
+                <span className="thinking-chevron"><Chevron /></span>
+              </span>
+            </button>
+            <PopoverPresence present={menu === "thinking"}>
+              <div id={thinkingPopoverId} className="dock-popover thinking-popover" role="group" aria-label={reasoningLabel}>
+                {thinkingContent}
+              </div>
+            </PopoverPresence>
+          </div>
+          <div className="dock-menu">
+            <button
+              className="model-choice-pill model-pill"
+              type="button"
+              title={props.modelLabel ? `${tr("模型", "Model")}: ${props.modelLabel}` : tr("选择模型", "Choose a model")}
+              aria-haspopup="true"
+              aria-expanded={menu === "model"}
+              disabled={props.disabled}
+              onClick={() => setMenu((current) => (current === "model" ? null : "model"))}
+            >
+              <span className="model-pill-label">{props.modelLabel ?? tr("选择模型", "Choose a model")}</span>
+              <Chevron />
+            </button>
+            <PopoverPresence present={menu === "model"}>
+              {modelMenu}
+            </PopoverPresence>
+          </div>
+        </>
+      )}
 
       {usage.limits ? (
         <UsageLimitMenu
@@ -393,6 +535,8 @@ function ModelMenu({
   provider,
   modelId,
   hiddenModels,
+  selecting,
+  onBack,
   onSelect,
   onAdd,
   onAccounts,
@@ -403,6 +547,8 @@ function ModelMenu({
   provider: string | null;
   modelId: string | null;
   hiddenModels: string[];
+  selecting: boolean;
+  onBack?: () => void;
   onSelect: (provider: string, id: string) => void;
   onAdd: () => void;
   onAccounts: () => void;
@@ -423,7 +569,19 @@ function ModelMenu({
   }, [catalog, hiddenModels]);
 
   return (
-    <div className="dock-popover model-popover">
+    <div className={onBack ? "combined-model-page" : "dock-popover model-popover"}>
+      {onBack ? (
+        <button
+          className="combined-model-back"
+          type="button"
+          title={tr("返回思考强度", "Back to reasoning effort")}
+          aria-label={tr("返回思考强度", "Back to reasoning effort")}
+          onClick={onBack}
+        >
+          <Icon name="chevron-left" size={14} />
+          {tr("选择模型", "Choose a model")}
+        </button>
+      ) : null}
       <input
         className="menu-search"
         placeholder={tr("搜索模型", "Search models")}
@@ -435,7 +593,7 @@ function ModelMenu({
           if (event.key === "Enter") event.preventDefault();
         }}
       />
-      <div className="menu-scroll">
+      <div className="menu-scroll" aria-busy={selecting || undefined}>
         {catalogError ? <p className="menu-note">{localizeError(catalogError)}</p> : null}
         {actionError ? <p className="menu-note menu-note-error">{localizeError(actionError)}</p> : null}
         {catalog?.error ? <p className="menu-note menu-note-error">{localizeError(catalog.error)}</p> : null}
@@ -455,13 +613,16 @@ function ModelMenu({
                   key={`${model.provider}/${model.id}`}
                   className={`menu-row${selected ? " active" : ""}`}
                   type="button"
+                  disabled={selecting}
+                  aria-current={selected || undefined}
                   onClick={() => onSelect(model.provider, model.id)}
                 >
                   <span className="menu-row-title">
                     {model.name}
                     {model.custom ? <em>{tr("自定义", "Custom")}</em> : null}
                   </span>
-                  <span className="menu-row-meta">{model.id}</span>
+                  {!onBack || model.id !== model.name ? <span className="menu-row-meta">{model.id}</span> : null}
+                  {onBack && selected ? <Icon className="combined-model-check" name="check" size={14} /> : null}
                 </button>
               );
             })}

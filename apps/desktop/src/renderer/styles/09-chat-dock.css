@@ -742,6 +742,81 @@
   gap: 11px;
   border: 1px solid var(--border-subtle);
 }
+.combined-effort-label {
+  flex-shrink: 0;
+  color: var(--text-secondary);
+}
+.combined-model-popover {
+  width: min(280px, calc(100vw - 24px));
+  border: 1px solid var(--border-subtle);
+}
+.combined-thinking-page,
+.combined-model-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.combined-thinking-page {
+  gap: 10px;
+  padding: 8px 12px 13px;
+  overflow: auto;
+}
+.combined-thinking-heading {
+  position: relative;
+  flex-shrink: 0;
+  padding: 6px 24px;
+  border-radius: var(--radius-md);
+}
+.combined-thinking-heading:hover:not(:disabled),
+.combined-model-back:hover {
+  background: var(--bg-hover);
+}
+.combined-thinking-arrow {
+  position: absolute;
+  inset-inline-end: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-secondary);
+}
+.combined-thinking-page .thinking-slider { flex-shrink: 0; }
+.combined-thinking-page .thinking-slider:has(input:disabled) { opacity: 0.55; }
+.combined-model-back {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  margin: 6px 6px 2px;
+  padding: 7px 6px;
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  text-align: start;
+}
+.combined-model-page .menu-search {
+  min-width: 0;
+  margin: 2px 8px 4px;
+  padding: 5px 8px;
+}
+.combined-model-page .menu-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  padding-block: 5px;
+}
+.combined-model-page :is(.menu-row-title, .menu-row-meta) {
+  display: block;
+  grid-column: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.combined-model-page .menu-row-title { font-weight: 500; }
+.combined-model-page .menu-row-title em { margin-inline-start: 6px; }
+.combined-model-page .menu-row-meta { font-size: calc(12px * var(--ui-scale)); }
+.combined-model-check {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  color: var(--accent-blue);
+}
 .thinking-popover-heading {
   display: flex;
   flex-direction: column;
@@ -878,29 +953,23 @@
   box-shadow: 0 0 0 3px var(--accent-ring);
 }
 .thinking-slider-input:disabled { cursor: default; }
-.thinking-level-value.is-ultra,
-.thinking-level-value.is-ultra-flash,
+.thinking-level-value:is(.is-ultra, .is-ultra-flash),
+.combined-effort-label.is-ultra,
 .thinking-slider.is-ultra .thinking-slider-fill {
-  --ultra-gradient: linear-gradient(90deg, #3b82f6 0%, #8b5cf6 100%);
+  background: linear-gradient(90deg, #3b82f6 0%, #8b5cf6 100%);
 }
-.thinking-slider.is-ultra .thinking-slider-fill {
-  background: var(--ultra-gradient);
-}
-.thinking-level-value.is-ultra-flash {
-  background: var(--ultra-gradient);
+.thinking-level-value:is(.is-ultra, .is-ultra-flash),
+.combined-effort-label.is-ultra {
   background-clip: text;
   -webkit-background-clip: text;
   color: transparent;
   -webkit-text-fill-color: transparent;
+}
+.thinking-level-value.is-ultra-flash {
   animation: thinking-ultra-swap 220ms ease-out;
 }
 /* 「更快使用算力」结束后换成「Ultra」：沿用同一渐变，从模糊放大淡入并扫过一道高光，和前一句衔接。 */
 .thinking-level-value.is-ultra:not(.is-ultra-flash) {
-  background: var(--ultra-gradient);
-  background-clip: text;
-  -webkit-background-clip: text;
-  color: transparent;
-  -webkit-text-fill-color: transparent;
   animation: thinking-ultra-arrive 520ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 @keyframes thinking-ultra-arrive {

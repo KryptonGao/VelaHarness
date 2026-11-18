@@ -143,6 +143,7 @@
 .composer-tray[data-collapsed~="context"] .composer-stats-row { display: none; }
 .composer-tray[data-collapsed~="reasoning"] .model-choice-pill:has(.thinking-glyph) { padding-right: 6px; }
 .composer-tray[data-collapsed~="reasoning"] .model-choice-pill:has(.thinking-glyph) :is(.thinking-label-text, .thinking-chevron) { display: none; }
+.composer-tray[data-collapsed~="reasoning"] .combined-effort-label { display: none; }
 .composer-tray[data-collapsed~="model-arrow"] .model-pill > svg { display: none; }
 .composer-tray[data-collapsed~="quota"] .model-controls .usage-menu { display: none; }
 

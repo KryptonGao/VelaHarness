@@ -267,6 +267,80 @@ if (!process.versions.electron) {
         await until("document.querySelector('.main-chat-view')"); await newTab();
         assert.equal(await evaluate(`document.querySelector(${JSON.stringify(chatOption + ' .start-option-title')}).textContent`), label);
       }
+      // The opt-in picker shares the panel's choices and keeps both pages within the narrow pane.
+      await win.loadFile(join(temporary, "index.html"));
+      await until("document.querySelector('.chat-active-title')?.textContent === '主聊天'");
+      await newTab(); await click(chatOption);
+      await until(`document.querySelector(${JSON.stringify(panel + ' .model-pill')})?.textContent.includes('Model One')`);
+      await evaluate("document.documentElement.style.setProperty('--workbench-width', '360px'); document.documentElement.dataset.scheme = 'dark'; document.documentElement.dataset.theme = 'midnight'");
+      const combinedSwitch = '[data-setting-id="combined-model-picker"] [role="switch"]';
+      const combinedPill = panel + " .combined-model-pill";
+      const combinedPopover = panel + " .combined-model-popover";
+      const openInterface = async () => {
+        await evaluate("window.dispatchEvent(new KeyboardEvent('keydown', { key:',', code:'Comma', metaKey:true }))");
+        await until("document.querySelector('.settings-nav-item')");
+        await evaluate("[...document.querySelectorAll('.settings-nav-item')].find(n => n.textContent === '界面').click()");
+        await until(`document.querySelector(${JSON.stringify(combinedSwitch)})`);
+      };
+      await openInterface();
+      assert.equal(await evaluate(`document.querySelector(${JSON.stringify(combinedSwitch)}).getAttribute('aria-checked')`), "false");
+      await click(combinedSwitch);
+      assert.equal(await evaluate("localStorage.getItem('vela.combinedModelPicker')"), "true");
+      await click(".nav-history-buttons button:first-child");
+      await until("!document.querySelector('.settings-view')");
+      await click(combinedPill);
+      await until(`${thinkingValue} === '中'`);
+      assert.equal(await evaluate(`document.querySelectorAll(${JSON.stringify(panel + ' .model-choice-pill')}).length`), 1);
+      assert.equal(await evaluate(`document.querySelector(${JSON.stringify(panel + ' .thinking-model-label')}).textContent`), "Model One");
+      await capture("combined-reasoning");
+      await setThinkingSlider(1);
+      await until("chatFixture.state('panel-1').session.thinkingLevel === 'low'");
+      const motion = await evaluate(`(() => {
+        const frame = window.openPickerPanel = document.querySelector(${JSON.stringify(combinedPopover)});
+        frame.querySelector('.combined-thinking-heading').click();
+        return new Promise(done => requestAnimationFrame(() => {
+          const properties = ['height', 'transform'];
+          const animated = [frame, frame.firstElementChild].flatMap((el, index) => el.getAnimations()
+            .filter(animation => animation.effect.getKeyframes().some(keyframe => properties[index] in keyframe && !(animation instanceof CSSTransition))));
+          if (${Boolean(process.env.VELA_WORKBENCH_CHAT_CAPTURE)}) {
+            animated.forEach(animation => { animation.pause(); animation.currentTime = 65; });
+          }
+          done({ active: animated.length, reduced: matchMedia('(prefers-reduced-motion: reduce)').matches });
+        }));
+      })()`);
+      assert.equal(motion.active, motion.reduced ? 0 : 2);
+      if (motion.active && process.env.VELA_WORKBENCH_CHAT_CAPTURE) {
+        await capture("combined-transition");
+        await evaluate("window.openPickerPanel.getAnimations({subtree:true}).filter(a => a.playState === 'paused').forEach(a => a.finish())");
+      }
+      await until(`document.querySelector(${JSON.stringify(combinedPopover + ' .menu-row[aria-current=true]')})?.textContent.includes('Model One')`);
+      assert.equal(await evaluate(`window.openPickerPanel === document.querySelector(${JSON.stringify(combinedPopover)})`), true);
+      assert.deepEqual(await evaluate(`Array.from(window.openPickerPanel.querySelectorAll('.menu-row-title'), n => n.textContent)`), ["Model One", "Model Two"]);
+      await capture("combined-models");
+      assert.equal(await evaluate(`(() => { const frame = document.querySelector(${JSON.stringify(panel)}).getBoundingClientRect(); const popover = window.openPickerPanel.getBoundingClientRect(); return popover.left >= frame.left && popover.right <= frame.right; })()`), true);
+      await click(panel + " .combined-model-back");
+      await until(`${thinkingValue} === '低'`);
+      await click(panel + " .combined-thinking-heading");
+      await until(`document.activeElement === document.querySelector(${JSON.stringify(combinedPopover + ' .menu-search')})`);
+      await evaluate("document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))");
+      await until(`${thinkingValue} === '低'`);
+      await click(panel + " .combined-thinking-heading");
+      await click(combinedPopover + " .menu-row:not([aria-current])");
+      await until("chatFixture.state('panel-1').session.modelId === 'two'");
+      await until(`document.querySelector(${JSON.stringify(combinedPopover + ' .thinking-model-label')})?.textContent === 'Model Two'`);
+      assert.equal(await evaluate(`window.openPickerPanel === document.querySelector(${JSON.stringify(combinedPopover)})`), true);
+      assert.equal(await evaluate(`document.querySelector(${JSON.stringify(combinedPill)}).getAttribute('aria-expanded')`), "true");
+      assert.equal(await evaluate(thinkingValue), "中");
+      assert.match(await evaluate(`document.querySelector(${JSON.stringify(combinedPill)}).textContent`), /Model Two/);
+      await setThinkingSlider(1);
+      await until("chatFixture.state('panel-1').session.thinkingLevel === 'minimal'");
+      await win.loadFile(join(temporary, "index.html"));
+      await until(`document.querySelector(${JSON.stringify(main + ' .combined-model-pill')})`);
+      await openInterface();
+      await click(combinedSwitch);
+      await click(".nav-history-buttons button:first-child");
+      await until(`document.querySelectorAll(${JSON.stringify(main + ' .model-choice-pill')}).length === 2`);
+      console.log("PASS opt-in combined picker adjusts effort, navigates to configured models, and switches back to separate controls");
       assert.equal(errors.length, 0, errors.join("\n"));
       console.log("PASS chat creation, isolated streams/controls, shared rewind history, retained drafts, keyboard tabs, failure/retry and close races");
       win.destroy(); app.exit(0);

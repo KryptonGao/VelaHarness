@@ -8,6 +8,7 @@ import { notificationSoundKinds, type NotifySound } from "../../notification-sou
 import type { SettingsCopy } from "../settings-copy";
 import { setMinimalStart, useMinimalStart } from "../../hooks/useMinimalStart";
 import { setHomePrompts, useHomePrompts } from "../../hooks/useHomePrompts";
+import { setCombinedModelPicker, useCombinedModelPicker } from "../../hooks/useCombinedModelPicker";
 import { setCombinedModePicker, useCombinedModePicker } from "../../hooks/useCombinedModePicker";
 import { composerLayouts, setComposerLayout, useComposerLayout, type ComposerLayout } from "../../hooks/useComposerLayout";
 import { Segmented, SettingsBlock, SettingsGroup, SettingsSwitch } from "./primitives";
@@ -49,6 +50,7 @@ export function InterfacePage({
     "current-tab": text.filePreviewOpenModeCurrentTab,
   };
   const composerLayout = useComposerLayout();
+  const combinedModelPicker = useCombinedModelPicker();
   const combinedModePicker = useCombinedModePicker();
   const minimalStart = useMinimalStart();
   const homePrompts = useHomePrompts();
@@ -177,6 +179,9 @@ export function InterfacePage({
         </SettingsBlock>
         <SettingsBlock id="combined-mode-picker" title={text.combinedModePicker} hint={text.combinedModePickerHint} layout="inline">
           <SettingsSwitch label={text.combinedModePicker} checked={combinedModePicker} onChange={setCombinedModePicker} />
+        </SettingsBlock>
+        <SettingsBlock id="combined-model-picker" title={text.combinedModelPicker} hint={text.combinedModelPickerHint} layout="inline">
+          <SettingsSwitch label={text.combinedModelPicker} checked={combinedModelPicker} onChange={setCombinedModelPicker} />
         </SettingsBlock>
         <SettingsBlock id="composer-capsules" title={text.composerCapsules} hint={text.composerCapsulesHint} layout="inline">
           <SettingsSwitch label={text.composerCapsules} checked={composerCapsules} onChange={setComposerCapsules} />

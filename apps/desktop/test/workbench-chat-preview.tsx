@@ -2,6 +2,7 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 import type { AgentStreamEvent, AppState, AskUserQuestionEvent, SessionSnapshot, TranscriptMessage, VelaApi } from "@vela/shared";
+import { defaultContextLimitSettings, defaultTaskBudgetSettings } from "@vela/shared";
 import { App } from "../src/renderer/App";
 import "../src/renderer/styles.css";
 
@@ -16,8 +17,9 @@ const sessions = new Map<string, SessionSnapshot>();
 const messages = new Map<string, TranscriptMessage[]>();
 let active = "main-chat";
 let sequence = 0;
+const modelThinkingLevels = (modelId: string): SessionSnapshot["thinkingLevels"] => ["off", modelId === "two" ? "minimal" : "low", "medium", "high", "ultra"];
 const snapshot = (id: string, title: string): SessionSnapshot => ({ id, title, cwd, status: "ready", mode: "agent",
-  model: "Model One", modelProvider: "fixture", modelId: "one", modelReady: true, thinkingLevel: "medium", thinkingLevels: ["off", "low", "medium", "high", "ultra"],
+  model: "Model One", modelProvider: "fixture", modelId: "one", modelReady: true, thinkingLevel: "medium", thinkingLevels: modelThinkingLevels("one"),
   tools: [], proposedPlan: null, planRevisions: [], executionPlan: null, goal: null, memory: [], error: null, pendingInstructions: [] });
 sessions.set(active, snapshot(active, "主聊天"));
 messages.set(active, [
@@ -55,8 +57,10 @@ window.vela = {
   getWorkspaceState: async () => ({ current: cwd, folders: [], recents: [{ path: cwd, name: "VelaHarness", lastUsedAt: 1 }] }), getEnvironment: async () => null, listEnvironments: async () => [],
   getGitStatus: async () => null, listBranches: async () => [], getPullRequest: async () => null, getSandboxMode: async () => "ask",
   getCatalog: async () => ({ error: null, providers: [], models: ["one", "two"].map((id, index) => ({ provider: "fixture", providerName: "Fixture",
-    id, name: index ? "Model Two" : "Model One", reasoning: true, contextWindow: 100000, available: true, custom: false, thinkingLevels: ["off", "low", "medium", "high", "ultra"] })) }),
+    id, name: index ? "Model Two" : "Model One", reasoning: true, contextWindow: 100000, available: true, custom: false, thinkingLevels: modelThinkingLevels(id) })) }),
   getAgentSettings: async () => ({ provider: "fixture", modelId: "one", thinkingLevel: "medium", newConversationSelection: "default", instructions: "" }),
+  getContextLimit: async () => defaultContextLimitSettings, getTaskBudget: async () => defaultTaskBudgetSettings,
+  getIntelligentUi: async () => ({ preference: "auto", microApps: false }),
   estimateTaskCost: async () => null,
   listSkills: async () => ({ skills: [] }), listOpenTargets: async () => [],
   createConversation: async (_cwd, options) => {
@@ -80,7 +84,11 @@ window.vela = {
   abort: async (id = active) => { calls.push({ name: "abort", id }); fixture.finish(id); return state(); },
   setInteractionMode: async (mode, id = active) => { calls.push({ name: "mode", id }); sessions.get(id)!.mode = mode; broadcast(); return state(); },
   selectModel: async (_provider, model, id = active) => {
-    calls.push({ name: "model", id }); Object.assign(sessions.get(id)!, { modelId: model, model: model === "one" ? "Model One" : "Model Two" });
+    const session = sessions.get(id)!;
+    const thinkingLevels = modelThinkingLevels(model);
+    const thinkingLevel = thinkingLevels.includes(session.thinkingLevel) ? session.thinkingLevel : "medium";
+    calls.push({ name: "model", id });
+    Object.assign(session, { modelId: model, model: model === "one" ? "Model One" : "Model Two", thinkingLevels, thinkingLevel });
     broadcast(); return state(id);
   },
   setThinkingLevel: async (thinkingLevel, id = active) => { calls.push({ name: "thinking", id }); sessions.get(id)!.thinkingLevel = thinkingLevel; broadcast(); return state(id); },
