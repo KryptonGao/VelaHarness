@@ -568,10 +568,14 @@ export function App() {
     if (action === "changes") openChanges();
     else if (action === "side-chat") openSideChatTab();
     else if (action === "terminal") openTerminalTab();
-    else if (action === "browser") openBrowserTab();
     else if (action === "background") openBackgroundTab();
     else openFilesTab();
-  }, [openChanges, openSideChatTab, openTerminalTab, openFilesTab, openBrowserTab, openBackgroundTab, workspaceKey]);
+  }, [openChanges, openSideChatTab, openTerminalTab, openFilesTab, openBackgroundTab, workspaceKey]);
+
+  const handleStartBrowse = useCallback((tab: WorkbenchTab, url: string) => {
+    setStartTabState((current) => current.filter((candidate) => candidate.id !== tab.id));
+    openBrowserTab(url);
+  }, [openBrowserTab]);
 
   const fileTabs = useMemo<WorkbenchTab[]>(() => (fileTabsByWorkspace[workspaceKey] ?? []).map((file) => ({
     id: fileTabId(workspaceKey, file.id),
@@ -1199,6 +1203,7 @@ export function App() {
                         onOpenAgent={openAgentPane}
                         onNewTab={openStartTab}
                         onStartAction={handleStartAction}
+                        onStartBrowse={handleStartBrowse}
                         pendingStartTabIds={pendingChatTabs}
                         startErrors={startErrors}
                         renderChat={tab => <WorkbenchChatView key={tab.conversationId}

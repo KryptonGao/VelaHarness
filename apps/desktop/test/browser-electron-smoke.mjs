@@ -55,10 +55,19 @@ async function run() {
       try { return await win.webContents.executeJavaScript(code); }
       catch (error) { throw new Error(`Renderer expression failed: ${code}`, { cause: error }); }
     };
+    const openBrowserFromStart = async (path) => {
+      await evaluate(`(() => {
+        const input = document.querySelector('.workbench-tabpanel:not(.is-inactive) .start-address');
+        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, ${JSON.stringify(base + path)});
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      })()`);
+      await pause(20);
+      await evaluate("document.querySelector('.workbench-tabpanel:not(.is-inactive) .start-address-form').requestSubmit()");
+    };
     await until(() => evaluate("!!document.querySelector('[aria-label=\"Expand workbench\"]')"), "main renderer");
     await evaluate("document.querySelector('[aria-label=\"Expand workbench\"]').click()");
     await until(() => evaluate("!!document.querySelector('.start-option')"), "start tab");
-    await evaluate("Array.from(document.querySelectorAll('.start-option')).find(n => n.textContent.includes('Browser')).click()");
+    await openBrowserFromStart("/one");
     await until(() => webContents.getAllWebContents().some((item) => item.getType() === "webview"), "webview attachment");
     const guest = webContents.getAllWebContents().find((item) => item.getType() === "webview");
     await until(() => evaluate("document.querySelector('[aria-label=\"Reload\"]')?.disabled === false"), "guest ready");
@@ -184,7 +193,7 @@ async function run() {
     assert.equal(await guest.executeJavaScript("window.fixtureMarker"), 42);
     await evaluate("document.querySelector('.workbench-new-tab').click()");
     await until(() => evaluate("!!document.querySelector('.start-option')"), "new conversation start tab");
-    await evaluate("Array.from(document.querySelectorAll('.start-option')).find(n => n.textContent.includes('Browser')).click()");
+    await openBrowserFromStart("/two");
     await until(() => webContents.getAllWebContents().filter(item => item.getType() === 'webview').length === 2, "other conversation guest");
     const conversationGuest = webContents.getAllWebContents().find(item => item.getType() === 'webview' && item.id !== guest.id);
     await until(() => evaluate("document.querySelector('.workbench-tabpanel:not(.is-inactive) [aria-label=\"Reload\"]')?.disabled === false"), "other conversation guest ready");
@@ -245,7 +254,7 @@ async function run() {
     }
     await evaluate("Array.from(document.querySelectorAll('.workbench-tab')).find(n => n.textContent.includes('New tab')).click()");
     await pause(200);
-    await evaluate("Array.from(document.querySelectorAll('.start-option')).find(n => n.textContent.includes('Browser')).click()");
+    await openBrowserFromStart("/two");
     await until(() => webContents.getAllWebContents().filter((item) => item.getType() === "webview").length === 2, "second browser tab");
     const secondGuest = webContents.getAllWebContents().find((item) => item.getType() === "webview" && item.id !== guest.id);
     await until(() => evaluate("document.querySelector('.workbench-tabpanel:not(.is-inactive) [aria-label=\"Reload\"]')?.disabled === false"), "second guest ready");

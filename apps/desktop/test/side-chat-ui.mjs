@@ -77,7 +77,7 @@ if (!process.versions.electron) {
       await win.loadFile(join(temporary, "index.html"));
       await until("document.querySelector('.chat-active-title')?.textContent === '主聊天'");
       await newTab();
-      assert.equal(await text(sideOption + " .start-option-title"), "侧边聊天");
+      assert.equal(await text(sideOption + " .start-option-title"), "聊天");
       await click(sideOption);
       // 先进到本项目的聊天列表；还没有聊天时给出提示，新聊天按钮进入对话。
       await until(homeShown);
@@ -267,7 +267,7 @@ if (!process.versions.electron) {
       assert.ok((await text(view + " .side-chat-bubble")).includes("关闭时仍在回复"));
       assert.equal(await evaluate("sideChatFixture.requests.length"), requestsBefore, "restoring must not send a request");
 
-      for (const [locale, label] of [["en", "Side chat"], ["zh-TW", "側邊聊天"], ["ja", "サイドチャット"], ["ko", "사이드 채팅"]]) {
+      for (const [locale, label] of [["en", "Chat"], ["zh-TW", "聊天"], ["ja", "チャット"], ["ko", "채팅"]]) {
         await win.loadFile(join(temporary, "index.html"), { query: { locale } });
         await until("document.querySelector('.main-chat-view')"); await newTab();
         assert.equal(await text(sideOption + " .start-option-title"), label);

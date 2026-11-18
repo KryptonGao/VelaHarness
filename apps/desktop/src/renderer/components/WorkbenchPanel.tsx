@@ -92,6 +92,7 @@ interface WorkbenchPanelProps {
   onOpenAgent: (agentId: string) => void;
   onNewTab: () => void;
   onStartAction: (tab: WorkbenchTab, action: StartTabAction) => void;
+  onStartBrowse: (tab: WorkbenchTab, url: string) => void;
   pendingStartTabIds?: readonly string[];
   startErrors?: Record<string, string>;
   renderChat?: (tab: Extract<WorkbenchTab, { kind: "chat" }>) => ReactNode;
@@ -402,7 +403,7 @@ function WorkbenchPanelContent(props: WorkbenchPanelProps & { closing: boolean; 
       case "race": return <RacePanel races={props.races ?? []} onOpenConversation={props.onOpenConversation ?? (() => {})} onOpenAcceptance={props.onOpenAcceptance ?? (() => {})} />;
       case "background": return <BackgroundTasksPanel conversationId={props.conversationId ?? null} shells={props.backgroundShells ?? []} />;
       case "files": return <FileBrowserView />;
-      case "start": return <StartView gitAvailable={props.gitAvailable} onAction={action => props.onStartAction(tab, action)} pending={props.pendingStartTabIds?.includes(tab.id)} error={props.startErrors?.[tab.id]} />;
+      case "start": return <StartView gitAvailable={props.gitAvailable} onAction={action => props.onStartAction(tab, action)} onBrowse={url => props.onStartBrowse(tab, url)} pending={props.pendingStartTabIds?.includes(tab.id)} error={props.startErrors?.[tab.id]} />;
       case "terminal": return <TerminalView sessionId={tab.sessionId} visible={visible && !collapsed} />;
       case "agent": return <AgentPane agent={tab.agent} agents={props.agents} messages={props.getAgentMessages?.(tab.agent.id)} messageStore={props.messageStore}
         conversationId={props.conversationId} toolDisplay={props.toolDisplay} toolFold={props.toolFold} visible={visible} ensureMessages={props.ensureAgentMessages} onControl={props.onControlAgent}

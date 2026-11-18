@@ -1,20 +1,22 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
+import { normalizeBrowserAddress } from "../../browser-policy";
 import { tr } from "../locale";
 import { Icon } from "./icons";
 
 /** 起始页入口;宿主据此打开对应标签页。 */
-export type StartTabAction = "chat" | "side-chat" | "changes" | "terminal" | "files" | "browser" | "background";
+export type StartTabAction = "chat" | "side-chat" | "changes" | "terminal" | "files" | "background";
 
 function StartOption({
   icon,
   title,
-  description,
+  hint,
   disabled = false,
   onSelect,
 }: {
   icon: ReactNode;
   title: string;
-  description: string;
+  /** 仅作悬停提示(如入口不可用的原因),不在卡片上显示。 */
+  hint?: string;
   disabled?: boolean;
   onSelect: () => void;
 }) {
@@ -24,13 +26,10 @@ function StartOption({
       className="start-option"
       disabled={disabled}
       onClick={onSelect}
-      title={description}
+      title={hint}
     >
       <span className="start-option-icon" aria-hidden="true">{icon}</span>
-      <span className="start-option-copy">
-        <span className="start-option-title">{title}</span>
-        <span className="start-option-description">{description}</span>
-      </span>
+      <span className="start-option-title">{title}</span>
     </button>
   );
 }
@@ -42,14 +41,25 @@ function StartOption({
 export function StartView({
   gitAvailable,
   onAction,
+  onBrowse,
   pending = false,
   error = null,
 }: {
   gitAvailable: boolean;
   onAction: (action: StartTabAction) => void;
+  /** 地址栏回车:宿主把当前起始标签换成打开该网址的浏览器标签。 */
+  onBrowse: (url: string) => void;
   pending?: boolean;
   error?: string | null;
 }) {
+  const [address, setAddress] = useState("");
+  const [invalid, setInvalid] = useState(false);
+  const browse = () => {
+    if (pending) return;
+    const url = normalizeBrowserAddress(address);
+    if (!url) { setInvalid(true); return; }
+    onBrowse(url);
+  };
   return (
     <div className="start-view">
       <div className="start-view-inner">
@@ -57,53 +67,52 @@ export function StartView({
           <h2>{tr("新标签页", "New tab")}</h2>
           <p>{tr("选择要在这个标签里打开的内容", "Pick what to open in this tab")}</p>
         </div>
+        <form className="start-address-form" onSubmit={(event) => { event.preventDefault(); browse(); }}>
+          <span className="start-address-icon" aria-hidden="true"><Icon name="globe" size={16} /></span>
+          <input
+            className="start-address"
+            aria-label={tr("网页地址", "Web address")}
+            placeholder={tr("输入网址", "Enter a URL")}
+            value={address}
+            autoComplete="off"
+            spellCheck={false}
+            aria-invalid={invalid || undefined}
+            onChange={(event) => { setAddress(event.target.value); setInvalid(false); }}
+          />
+        </form>
+        {invalid ? <p className="start-error" role="alert">{tr("请输入有效的 HTTP 或 HTTPS 网址", "Enter a valid HTTP or HTTPS address")}</p> : null}
         {error ? <p className="start-error" role="alert">{error}</p> : null}
         <fieldset className="start-options" disabled={pending} aria-busy={pending}>
           <StartOption
-            icon={<Icon name="chat" size={16} />}
-            title={tr("聊天", "Chat")}
-            description={tr("在面板中开启独立对话", "Start an independent chat in the panel")}
+            icon={<Icon name="chat" size={18} />}
+            title={tr("新对话", "New chat")}
             onSelect={() => onAction("chat")}
           />
           <StartOption
-            icon={<Icon name="sparkles" size={16} />}
-            title={tr("侧边聊天", "Side chat")}
-            description={tr("只聊天、不使用工具，带入长期记忆", "Chat only, without tools, with your long-term memory")}
+            icon={<Icon name="sparkles" size={18} />}
+            title={tr("聊天", "Chat")}
             onSelect={() => onAction("side-chat")}
           />
           <StartOption
-            icon={<Icon name="globe" size={16} />}
-            title={tr("浏览器", "Browser")}
-            description={tr("在面板中手动浏览网页", "Browse web pages manually in the panel")}
-            onSelect={() => onAction("browser")}
-          />
-          <StartOption
-            icon={<Icon name="diff" size={16} />}
+            icon={<Icon name="diff" size={18} />}
             title={tr("变更", "Changes")}
-            description={
-              gitAvailable
-                ? tr("查看未提交的 Git 变更与差异", "Review uncommitted Git changes and diffs")
-                : tr("当前工作区不是 Git 仓库", "The current workspace is not a Git repository")
-            }
+            hint={gitAvailable ? undefined : tr("当前工作区不是 Git 仓库", "The current workspace is not a Git repository")}
             disabled={!gitAvailable}
             onSelect={() => onAction("changes")}
           />
           <StartOption
-            icon={<Icon name="terminal" size={16} />}
+            icon={<Icon name="terminal" size={18} />}
             title={tr("终端", "Terminal")}
-            description={tr("在工作区目录运行命令", "Run commands in the workspace directory")}
             onSelect={() => onAction("terminal")}
           />
           <StartOption
-            icon={<Icon name="terminal" size={16} />}
+            icon={<Icon name="list" size={18} />}
             title={tr("后台任务", "Background tasks")}
-            description={tr("查看后台命令及其输出", "View background commands and their output")}
             onSelect={() => onAction("background")}
           />
           <StartOption
-            icon={<Icon name="folder" size={16} />}
+            icon={<Icon name="folder" size={18} />}
             title={tr("文件预览", "File preview")}
-            description={tr("浏览工作区文件并预览内容", "Browse workspace files and preview contents")}
             onSelect={() => onAction("files")}
           />
         </fieldset>

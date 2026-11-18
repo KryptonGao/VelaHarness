@@ -262,7 +262,7 @@ if (!process.versions.electron) {
       await until("!document.querySelector('.workbench-panel')");
       await evaluate("new Promise(done => setTimeout(done, 220))");
       assert.equal(await evaluate("document.querySelector('.workbench-panel') === null"), true);
-      for (const [locale, label] of [["en", "Chat"], ["zh-TW", "聊天"], ["ja", "チャット"], ["ko", "채팅"]]) {
+      for (const [locale, label] of [["en", "New chat"], ["zh-TW", "新對話"], ["ja", "新しいチャット"], ["ko", "새 채팅"]]) {
         await win.loadFile(join(temporary, "index.html"), { query: { locale } });
         await until("document.querySelector('.main-chat-view')"); await newTab();
         assert.equal(await evaluate(`document.querySelector(${JSON.stringify(chatOption + ' .start-option-title')}).textContent`), label);

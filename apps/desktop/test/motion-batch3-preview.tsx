@@ -102,7 +102,7 @@ function Fixture() {
         <SkillMenu items={skillItems} loadingSkills={false} loadingRecipes={false} error={null} recipeError={null} query="" activeIndex={activeSkill} onActiveIndex={setActiveSkill} onSelect={noop} />
       </div>
       <div className="fixture-card"><h3>起始卡片、总结与按压反馈</h3>
-        <StartView gitAvailable onAction={noop} />
+        <StartView gitAvailable onAction={noop} onBrowse={noop} />
         <ThinkingSummaryContext.Provider value={{ enabled: true, style: summaryStyle,
           get: () => summary ? { status: "done", text: "已定位动画入口，并复用共享动效。", model: "fixture", updatedAt: 1 } as any : { status: "pending" } as any, request: noop }}>
           <Thinking text="先检查组件，再实现动画。" messageId="thinking" active={false} showActivityIndicator={false} />
