@@ -1173,6 +1173,7 @@ export function ChatView({
         streaming={Boolean(streaming)}
         platform={platform}
         instructions={state?.session.pendingInstructions ?? []}
+        newChat={!embedded && messages.length === 0 && (state?.context.turnCount ?? 0) === 0}
         showSetupControls={!embedded && messages.length === 0 && !streaming && (state?.context.turnCount ?? 0) === 0}
         model={session?.model ?? hintModel?.label}
         modelProvider={session?.modelProvider ?? hintModel?.provider ?? null}

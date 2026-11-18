@@ -39,6 +39,7 @@ import { ModePicker } from "./composer/ModePicker";
 import { SandboxPill } from "./composer/SandboxPill";
 import { useCombinedModePicker } from "../hooks/useCombinedModePicker";
 import { SkillMenu } from "./composer/SkillMenu";
+import { composerDraftKey, composerDrafts } from "./composer/composer-drafts";
 import { WorkspaceChip } from "./composer/WorkspaceChip";
 import {
   createSkillChip,
@@ -81,6 +82,8 @@ import { Icon } from "./icons";
 
 export interface ComposerProps {
   embedded?: boolean;
+  /** 还没有任何消息的新对话：草稿共用一份，下次新建对话时恢复。 */
+  newChat?: boolean;
   sandboxMode?: import("@vela/shared").SandboxMode;
   disabled: boolean;
   streaming: boolean;
@@ -155,6 +158,7 @@ function maxInputHeight(input: HTMLElement): number {
 
 export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Composer({
   embedded = false,
+  newChat = false,
   sandboxMode,
   disabled,
   streaming,
@@ -339,6 +343,30 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
     document.addEventListener("selectionchange", onSelectionChange);
     return () => document.removeEventListener("selectionchange", onSelectionChange);
   }, []);
+
+  // 草稿按对话保存：切换对话或输入框重新挂载时，换回该对话上次没发出的内容。
+  // draftKeyRef 先于保存生效，避免切换瞬间把上一个对话的文字写到新对话名下。
+  const draftKey = composerDraftKey(conversationId, embedded, newChat);
+  const draftKeyRef = useRef<string | null>(null);
+  useLayoutEffect(() => {
+    draftKeyRef.current = draftKey;
+    const root = inputRef.current;
+    if (!root) return;
+    const draft = composerDrafts.get(draftKey);
+    if (serializeEditor(root) === draft) return;
+    // 切换时不抢焦点：只有输入框本来就有焦点才把光标放到末尾。
+    if (document.activeElement === root) setEditorText(root, draft);
+    else root.replaceChildren(...(draft ? [document.createTextNode(draft)] : []));
+    setValue(draft);
+    setSlash(null);
+  }, [draftKey]);
+  useEffect(() => {
+    const key = draftKeyRef.current;
+    const root = inputRef.current;
+    // 值还没跟上输入框（刚挂载或刚换对话，恢复的草稿尚未同步进 value）时不保存，免得把草稿冲掉。
+    if (key === null || (root && serializeEditor(root) !== value)) return;
+    composerDrafts.set(key, value);
+  }, [value]);
 
   // 任务交接包等外部预填：只在目标对话的输入框里取走，并把光标放到末尾方便补一句指令。
   useComposerSeed(recipeActions?.conversationId ?? null, text => setText(text));
@@ -542,6 +570,8 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
 
   function clearEditor(): void {
     inputRef.current?.replaceChildren();
+    // 发送后立刻清掉草稿：同一次渲染里对话键可能已从「新对话」切走，不能指望随后的保存。
+    if (draftKeyRef.current !== null) composerDrafts.set(draftKeyRef.current, "");
     setValue("");
     setSlash(null);
   }
