@@ -55,7 +55,7 @@ type Kind = "bash" | "read" | "edit" | "write";
 const kindIcon: Record<Kind, ReactNode> = {
   bash: <Icon name="terminal" size={14} />,
   read: <Icon name="read-file" size={14} />,
-  edit: <Icon name="edit" size={14} />,
+  edit: <Icon name="edit-file" size={14} />,
   write: <Icon name="file-plus" size={14} />,
 };
 

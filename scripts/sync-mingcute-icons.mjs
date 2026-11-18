@@ -37,6 +37,7 @@ const ICONS = {
   branch: "git-branch",
   "pull-request": "git-pull-request",
   edit: "edit-2",
+  "edit-file": "edit-2",
   compose: "edit",
   clipboard: "clipboard",
   sliders: "settings-6",

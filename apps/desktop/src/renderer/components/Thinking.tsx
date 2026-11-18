@@ -483,7 +483,7 @@ function actionSeparator(locale: ReturnType<typeof useAppLocale>): string {
 }
 
 const actionIcons: Record<CoherentAction, ReactNode> = {
-  edit: <Icon name="edit" size={14} />,
+  edit: <Icon name="edit-file" size={14} />,
   read: <Icon name="read-file" size={14} />,
   bash: <Icon name="terminal" size={14} />,
   tools: <Icon name="tool" size={14} />,
