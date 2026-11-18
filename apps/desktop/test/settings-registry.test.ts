@@ -106,6 +106,19 @@ test("tool headline delay is searchable and localized in all five languages", ()
   }
 });
 
+test("modern Codex grouping is searchable and localized in all five languages", () => {
+  for (const locale of ["zh-CN", "en", "zh-TW", "ja", "ko"] as const) {
+    const copy = settingsCopy(locale);
+    const entries = resolveSettingsEntries(copy);
+    assert.ok(searchSettings("modern Codex", entries).some(result => result.entry.id === "thinking-group-mode"), locale);
+    assert.ok(copy.appearance.thinkingGroupModeCodexModernHint);
+    if (locale !== "en") {
+      assert.notEqual(copy.appearance.thinkingGroupModeCodexModern, settingsCopy("en").appearance.thinkingGroupModeCodexModern, locale);
+      assert.notEqual(copy.appearance.thinkingGroupModeCodexModernHint, settingsCopy("en").appearance.thinkingGroupModeCodexModernHint, locale);
+    }
+  }
+});
+
 test("search requires every word, normalizes case and width, and ranks title hits first", () => {
   const en = resolveSettingsEntries(settingsCopy("en"));
   assert.deepEqual(searchSettings("   ", en), []);

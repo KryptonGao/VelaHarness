@@ -38,6 +38,7 @@ export function Thinking({
   forceOpen = false,
   coherent = false,
   codex = false,
+  codexModern = false,
   leadingIcon,
   toolActivity: pendingToolActivity = null,
   children,
@@ -58,6 +59,8 @@ export function Thinking({
   coherent?: boolean;
   /** Codex 风格:展开后只有工具调用,不画左侧引导线。 */
   codex?: boolean;
+  /** Modern Codex: nested guide lines and a naturally growing group, without a group height cap. */
+  codexModern?: boolean;
   /** 连贯模式标题左边的灰色图标,随汇总的首个动作变化。 */
   leadingIcon?: ReactNode;
   /** Running tools replace the group headline only after the short-operation delay. */
@@ -129,7 +132,7 @@ export function Thinking({
   // 分组里展开某个工具的详情(命令输出、diff)时,整块高度不跟着增长:按展开前的高度封顶,详情在里面滚动。
   // 太矮的分组至少给 GROUP_LOCK_MIN_HEIGHT,否则详情只剩一条缝。
   const lockGroupHeight = (event: MouseEvent<HTMLDivElement>) => {
-    if (!titled || document.documentElement.dataset.thinkingGroupGrow === "true") return;
+    if (!titled || codexModern || document.documentElement.dataset.thinkingGroupGrow === "true") return;
     const toggle = (event.target as Element).closest("[aria-expanded]");
     if (!toggle || !event.currentTarget.contains(toggle)) return;
     const element = event.currentTarget;
@@ -161,7 +164,7 @@ export function Thinking({
   // 放开高度封顶要等到下次展开:收起动画期间若先放开,视口会瞬间长高、scrollTop 被夹回 0,顶部渐隐随之消失。
   useLayoutEffect(() => {
     if (open && scrollRef.current) scrollRef.current.style.maxHeight = "";
-  }, [open]);
+  }, [open, codexModern]);
 
   useEffect(() => {
     if (!forceOpen) return;
@@ -198,7 +201,7 @@ export function Thinking({
   const isGroup = Boolean(titled);
   useLayoutEffect(() => {
     const viewport = scrollRef.current;
-    if (!isGroup || !open || !revealed || !viewport) return;
+    if (!isGroup || codexModern || !open || !revealed || !viewport) return;
     const root = document.documentElement;
     let baseHeight = viewport.clientHeight;
     let growing = false;
@@ -267,7 +270,7 @@ export function Thinking({
       preferences.disconnect();
       viewport.style.removeProperty("--thinking-group-expanded-height");
     };
-  }, [isGroup, open, revealed]);
+  }, [isGroup, codexModern, open, revealed]);
 
   const toggle = () => {
     // 展开过就保留 Markdown 挂载,收起时才有平滑的高度过渡。
@@ -342,7 +345,7 @@ export function Thinking({
     </div>
   ) : null;
   return (
-    <div className={`time-spent-collapsible thinking-block${open ? " expanded" : ""}${coherent ? " is-coherent" : ""}${codex ? " is-codex" : ""}`}>
+    <div className={`time-spent-collapsible thinking-block${open ? " expanded" : ""}${coherent ? " is-coherent" : ""}${codex ? " is-codex" : ""}${codexModern ? " is-codex-modern" : ""}`}>
       {groupHeader ?? headline ?? prose ?? (
         <div className="thinking-header">
           <button className={`time-spent-trigger${showActivity ? " is-running" : ""}`} type="button" aria-expanded={open} aria-controls={bodyId} onClick={toggle}>
@@ -382,7 +385,7 @@ export function Thinking({
               ) : <p className="thinking-summary-failed">{localizeError(summary.error)}</p>}
             </aside>
           ) : null}
-          <ScrollFadeShell height={viewportHeight} overflowing={overflowing} className={titled ? "thinking-group-shell" : undefined}>
+          <ScrollFadeShell height={viewportHeight} overflowing={overflowing} enabled={!codexModern} className={titled ? "thinking-group-shell" : undefined}>
             <div
               className="thinking-scroll-viewport"
               ref={scrollRef}
@@ -392,8 +395,8 @@ export function Thinking({
               onTouchStart={handleTouchStart}
               onTouchMove={handleTouchMove}
               role="region"
-              aria-label={tr("思考内容，可在区域内滚动", "Thinking content, scrollable")}
-              tabIndex={0}
+              aria-label={codexModern ? tr("思考内容", "Thinking content") : tr("思考内容，可在区域内滚动", "Thinking content, scrollable")}
+              tabIndex={codexModern ? undefined : 0}
             >
               {titled ? (
                 // 引导线在滚动内容里面,随内容一起被上下漸进模糊。
@@ -521,6 +524,7 @@ export function CoherentGroup({
   showActivityIndicator,
   forceOpen,
   codex = false,
+  codexModern = false,
   children,
 }: {
   entries: readonly CoherentEntry[];
@@ -529,6 +533,7 @@ export function CoherentGroup({
   forceOpen?: boolean;
   /** Codex 风格:思考总结只出现在进行中的标题上,展开后没有引导线。 */
   codex?: boolean;
+  codexModern?: boolean;
   children?: ReactNode;
 }) {
   const locale = useAppLocale();
@@ -550,6 +555,7 @@ export function CoherentGroup({
       forceOpen={forceOpen}
       coherent
       codex={codex}
+      codexModern={codexModern}
       toolActivity={toolActivity}
     >
       {children}

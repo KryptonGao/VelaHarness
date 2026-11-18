@@ -150,6 +150,7 @@ export function ConversationDisplayPage({
     { id: "single", label: text.thinkingGroupModeSingle },
     { id: "coherent", label: text.thinkingGroupModeCoherent },
     { id: "codex", label: text.thinkingGroupModeCodex },
+    { id: "codex-modern", label: text.thinkingGroupModeCodexModern },
   ];
   const thinkingSummaryStyleOptions: { id: ThinkingSummaryStyle; label: string }[] = [
     { id: "inline", label: text.thinkingSummaryStyleInline },
@@ -295,7 +296,7 @@ export function ConversationDisplayPage({
           onPreview={peek("thinkingSummaryStyle")}
         />
       </SettingsBlock>
-      <SettingsBlock id="thinking-group-mode" title={text.thinkingGroupMode} hint={text.thinkingGroupModeHint} layout="inline">
+      <SettingsBlock id="thinking-group-mode" title={text.thinkingGroupMode} hint={`${text.thinkingGroupModeHint} ${text.thinkingGroupModeCodexModernHint}`} layout="inline">
         <Segmented menu label={text.thinkingGroupMode} value={thinkingGroupMode} options={thinkingGroupModeOptions} onChange={setThinkingGroupMode} />
       </SettingsBlock>
       <SettingsBlock id="thinking-activity-delay" title={text.thinkingActivityDelay} hint={text.thinkingActivityDelayHint} layout="inline">

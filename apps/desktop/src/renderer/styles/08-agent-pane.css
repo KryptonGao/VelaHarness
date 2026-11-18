@@ -327,7 +327,7 @@
 }
 /* 分组里命令块用自己的高度上限(与编辑详情分开设置),按比例缩小时用命令自己的比例。 */
 .thinking-group-rail .tool-terminal.is-boxed { --terminal-cap: var(--command-detail-height, 200px); }
-:root[data-tool-detail-scale="true"]:not([data-thinking-group-grow="true"]) .thinking-group-rail .tool-terminal.is-boxed {
+:root[data-tool-detail-scale="true"]:not([data-thinking-group-grow="true"]) .thinking-block:not(.is-codex-modern) .thinking-group-rail .tool-terminal.is-boxed {
   --terminal-cap: min(
     var(--command-detail-height, 200px),
     calc(var(--thinking-group-live-height, var(--thinking-group-height, 280px)) * var(--command-detail-ratio, 0.7143))
@@ -337,7 +337,7 @@
 .thinking-group-rail .tool-kind-bash .tool-details-scroll > .thinking-scroll-viewport {
   max-height: var(--command-detail-height, 200px);
 }
-:root[data-tool-detail-scale="true"]:not([data-thinking-group-grow="true"]) .thinking-group-rail .tool-kind-bash .tool-details-scroll > .thinking-scroll-viewport {
+:root[data-tool-detail-scale="true"]:not([data-thinking-group-grow="true"]) .thinking-block:not(.is-codex-modern) .thinking-group-rail .tool-kind-bash .tool-details-scroll > .thinking-scroll-viewport {
   max-height: min(
     var(--command-detail-height, 200px),
     calc(var(--thinking-group-live-height, var(--thinking-group-height, 280px)) * var(--command-detail-ratio, 0.7143))

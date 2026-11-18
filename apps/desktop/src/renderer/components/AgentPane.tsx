@@ -484,7 +484,9 @@ function ModelAgentProcessSequence({
 }) {
   const display = toolDisplay ?? "card";
   const compact = display === "compact";
-  const codex = useThinkingGroupMode() === "codex";
+  const groupMode = useThinkingGroupMode();
+  const codexModern = groupMode === "codex-modern";
+  const codex = groupMode === "codex" || codexModern;
   const items = useMemo(() => buildTurnItems(messages), [messages]);
   const nodes = useMemo(() => coherent ? [] : groupProcessItems(items, display), [coherent, items, display]);
   const coherentNodes = useMemo(() => coherent ? groupCoherentItems(items) : [], [coherent, items]);
@@ -554,7 +556,7 @@ function ModelAgentProcessSequence({
     }
     return (
       <div key={`group:${node.id}`} data-arrival-key={`${node.messageId}:thinking`}>
-        <CoherentGroup entries={node.entries} live={live} showActivityIndicator={compact} codex={codex}>
+        <CoherentGroup entries={node.entries} live={live} showActivityIndicator={compact} codex={codex} codexModern={codexModern}>
           {content}
         </CoherentGroup>
       </div>

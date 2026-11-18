@@ -1484,7 +1484,9 @@ function ModelToolSequence({
   getQuestion: QuestionLookup;
   onReplyQuestion: QuestionReplyHandler;
 }) {
-  const codex = useThinkingGroupMode() === "codex";
+  const groupMode = useThinkingGroupMode();
+  const codexModern = groupMode === "codex-modern";
+  const codex = groupMode === "codex" || codexModern;
   const items = useMemo(() => buildTurnItems(messages, { includeText, includeTool }), [messages, includeText, includeTool]);
   const nodes = useMemo(() => coherent ? [] : groupProcessItems(items, toolDisplay), [coherent, items, toolDisplay]);
   const coherentNodes = useMemo(() => coherent ? groupCoherentItems(items) : [], [coherent, items]);
@@ -1574,6 +1576,7 @@ function ModelToolSequence({
         showActivityIndicator={compact}
         forceOpen={tools.some((tool) => getQuestion(tool.id) !== null)}
         codex={codex}
+        codexModern={codexModern}
       >
         {content}
       </CoherentGroup>,

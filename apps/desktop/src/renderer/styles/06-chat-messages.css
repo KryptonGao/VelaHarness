@@ -478,8 +478,8 @@
   max-height: var(--tool-detail-height, 200px);
 }
 /* 开启「按比例缩放」后:分组实际高度不足设定值时,详情按「详情上限 ÷ 分组上限」同比缩小。 */
-:root[data-tool-detail-scale="true"]:not([data-thinking-group-grow="true"]) .thinking-group-rail .tool-details-scroll > .thinking-scroll-viewport,
-:root[data-tool-detail-scale="true"]:not([data-thinking-group-grow="true"]) .thinking-group-rail .compact-diff-scroll-shell > .thinking-scroll-viewport {
+:root[data-tool-detail-scale="true"]:not([data-thinking-group-grow="true"]) .thinking-block:not(.is-codex-modern) .thinking-group-rail .tool-details-scroll > .thinking-scroll-viewport,
+:root[data-tool-detail-scale="true"]:not([data-thinking-group-grow="true"]) .thinking-block:not(.is-codex-modern) .thinking-group-rail .compact-diff-scroll-shell > .thinking-scroll-viewport {
   max-height: min(
     var(--tool-detail-height, 200px),
     calc(var(--thinking-group-live-height, var(--thinking-group-height, 280px)) * var(--tool-detail-ratio, 0.7143))
@@ -492,6 +492,27 @@
   padding-left: 0;
   padding-right: 0;
   border-left: 0;
+}
+/* Modern Codex keeps the whole group in the chat's scroll flow. Only individual
+   command/diff details retain their own height limits and scrollable viewports. */
+:root .thinking-block.is-codex-modern .thinking-group-shell > .thinking-scroll-viewport {
+  display: flow-root;
+  max-height: none;
+  overflow: visible;
+}
+.thinking-block.is-codex-modern .thinking-group-rail {
+  margin: 6px 0 2px 7px;
+  padding: 0 0 0 16px;
+  border-left: 1px solid var(--border-subtle);
+}
+/* Align the inner rail under its tool icon, with the details indented one level. */
+.thinking-block.is-codex-modern .tool-compact-item > .tool-collapse > .tool-collapse-inner {
+  margin-left: 7px;
+  padding-left: 16px;
+  border-left: 1px solid var(--border-subtle);
+}
+.thinking-block.is-codex-modern .tool-compact-item > .tool-collapse > .tool-collapse-inner > .tool-compact-out {
+  margin-left: 0;
 }
 /* 组内代码改动的增删行数:紧跟标题,不推到右边。 */
 .thinking-group-stat {
