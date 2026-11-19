@@ -741,7 +741,7 @@ function compactPartLabel({ kind, count }: CompactLabelPart): string {
   return trf("已运行 {0} 条命令", count === 1 ? "Ran {0} command" : "Ran {0} commands", count);
 }
 
-/** 紧凑模式的一行:文件类点击文件名在右侧预览,bash 点击整行内联展开输出。 */
+/** 紧凑模式的一行:文件名打开右侧预览，增减行数和箭头展开差异，bash 点击整行展开输出。 */
 export const CompactToolLine = memo(function CompactToolLine({
   tool,
   hideAction = false,
@@ -825,6 +825,18 @@ export const CompactToolLine = memo(function CompactToolLine({
     );
   }
 
+  const visibleStat = isDiffPreview ? null : stat;
+  const added = visibleStat?.added ? `+${visibleStat.added}` : "";
+  const removed = visibleStat?.removed ? `−${visibleStat.removed}` : "";
+  const statText = [added, removed].filter(Boolean).join(" ");
+  const statBadge = visibleStat ? (
+    <span className="tool-compact-stat">
+      {added ? <span className="tool-stat-add">{added}</span> : null}
+      {removed ? <span className="tool-stat-del">{removed}</span> : null}
+    </span>
+  ) : null;
+  const detailLabel = detailOpen ? tr("收起文件差异", "Hide file diff") : tr("展开文件差异", "Show file diff");
+
   return (
     <div className={`tool-compact-item tool-kind-${kind}${hasFileDetails && detailOpen ? " open" : ""}`}>
       <div className="tool-compact-line">
@@ -874,25 +886,20 @@ export const CompactToolLine = memo(function CompactToolLine({
         ) : !hasFileDetails ? (
           <span className={`tool-compact-dir${kind === "read" ? " is-file-path" : ""}`}>{subject.dir}</span>
         ) : null}
-        {stat && !isDiffPreview ? (
-          <span className="tool-compact-stat">
-            {stat.added > 0 ? <span className="tool-stat-add">+{stat.added}</span> : null}
-            {stat.removed > 0 ? <span className="tool-stat-del">−{stat.removed}</span> : null}
-          </span>
-        ) : null}
-        {kind === "write" && tool.status === "done" ? <span className="tool-file-created-dot" aria-hidden="true" /> : null}
         {hasFileDetails ? (
           <button
             className="tool-compact-detail-toggle"
             type="button"
             aria-expanded={detailOpen}
-            aria-label={detailOpen ? tr("收起文件差异", "Hide file diff") : tr("展开文件差异", "Show file diff")}
+            aria-label={statText ? `${detailLabel} (${statText})` : detailLabel}
             title={detailOpen ? tr("收起差异", "Hide diff") : tr("查看差异", "View diff")}
             onClick={toggleDetail}
           >
+            {statBadge}
+            {kind === "write" && tool.status === "done" ? <span className="tool-file-created-dot" aria-hidden="true" /> : null}
             <Icon name="chevron-right" size={12} className="tool-compact-chevron" />
           </button>
-        ) : null}
+        ) : statBadge}
         <ToolDurationLabel tool={tool} />
         <CompactStatus running={running} />
       </div>

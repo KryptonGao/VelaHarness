@@ -820,15 +820,17 @@
 .tool-stat-del { color: var(--diff-stat-del-fg); }
 /* 只响应当前摘要行的悬停，展开分组时不连带点亮子行。 */
 :is(.tool-card-head, .tool-run-head, .tool-compact-summary, .tool-compact-line)
-  > :is(.tool-stat, .tool-compact-stat) > :is(.tool-stat-add, .tool-stat-del) {
+  :is(.tool-stat, .tool-compact-stat) > :is(.tool-stat-add, .tool-stat-del) {
   color: var(--text-muted);
 }
 :is(.tool-card-head, .tool-run-head, .tool-compact-summary, .tool-compact-line):hover
-  > :is(.tool-stat, .tool-compact-stat) > .tool-stat-add {
+  :is(.tool-stat, .tool-compact-stat) > .tool-stat-add,
+.tool-compact-detail-toggle:focus-visible .tool-stat-add {
   color: var(--diff-stat-add-fg);
 }
 :is(.tool-card-head, .tool-run-head, .tool-compact-summary, .tool-compact-line):hover
-  > :is(.tool-stat, .tool-compact-stat) > .tool-stat-del {
+  :is(.tool-stat, .tool-compact-stat) > .tool-stat-del,
+.tool-compact-detail-toggle:focus-visible .tool-stat-del {
   color: var(--diff-stat-del-fg);
 }
 .tool-lines {
@@ -1182,10 +1184,10 @@ button.tool-compact-line:hover .tool-compact-cmd {
 }
 .tool-compact-detail-toggle {
   flex: none;
-  display: grid;
-  place-items: center;
-  width: 20px;
-  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 20px;
   padding: 0;
   border: 0;
   border-radius: 4px;
@@ -1193,7 +1195,8 @@ button.tool-compact-line:hover .tool-compact-cmd {
   color: var(--text-muted);
   cursor: pointer;
 }
-.tool-compact-detail-toggle:hover { color: var(--text-primary); }
+.tool-compact-detail-toggle .tool-compact-chevron { margin-inline: 4px; }
+.tool-compact-detail-toggle:hover .tool-compact-chevron { color: var(--text-primary); }
 .tool-compact-detail-toggle:focus-visible {
   outline: 2px solid var(--accent-blue);
   outline-offset: -2px;

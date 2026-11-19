@@ -328,6 +328,7 @@ if (!process.versions.electron) {
             const measure = () => evaluate(`(() => {
               const row = document.querySelector(${JSON.stringify(head)});
               const stats = row.querySelector(${JSON.stringify(stat)});
+              const statSlot = stats.closest('.tool-compact-detail-toggle') || stats;
               const arrow = row.querySelector('.tool-compact-chevron, .tool-chevron');
               const path = row.querySelector('.tool-compact-path-toggle, .tool-compact-name, .tool-card-main');
               const dot = row.querySelector('.tool-file-created-dot');
@@ -339,7 +340,7 @@ if (!process.versions.electron) {
                 add: getComputedStyle(stats.querySelector('.tool-stat-add')).color,
                 muted: getComputedStyle(row).getPropertyValue('--text-muted').trim(),
                 stats: bounds(stats), arrow: bounds(arrow),
-                previous: stats.previousElementSibling.className,
+                previous: statSlot.previousElementSibling.className,
                 dot: dot ? {color: getComputedStyle(dot).backgroundColor, opacity: getComputedStyle(dot).opacity, width: dot.getBoundingClientRect().width} : null,
               };
             })()`);
@@ -364,10 +365,34 @@ if (!process.versions.electron) {
             assert.equal(hovered.weight, '400', `${currentCase}: line counts stay regular on hover`);
             assert.deepEqual(hovered.dot, before.dot, `${currentCase}: dot color unaffected by hover`);
             await protocol('CSS.forcePseudoState', { nodeId, forcedPseudoClasses: [] });
-            if (created && display === 'compact') {
-              await toggle();
-              await until("document.querySelector('.tool-compact-item.open .tool-file-created-dot')");
-              assert.equal(await evaluate("getComputedStyle(document.querySelector('.tool-file-created-dot')).opacity"), '1', `${currentCase}: expanded dot remains visible`);
+            if (display === 'compact') {
+              const count = name === 'diff' ? '.tool-stat-del' : '.tool-stat-add';
+              const point = await evaluate(`(() => {
+                const count = document.querySelector('.tool-compact-stat ${count}');
+                const {x, y, width, height} = count.getBoundingClientRect();
+                return {x: x + width / 2, y: y + height / 2};
+              })()`);
+              await protocol('Input.dispatchMouseEvent', {type: 'mousePressed', ...point, button: 'left', clickCount: 1});
+              await protocol('Input.dispatchMouseEvent', {type: 'mouseReleased', ...point, button: 'left', clickCount: 1});
+              const detail = name === 'failedWrite' ? '.tool-compact-file-detail' : '.compact-diff-card';
+              await until(`document.querySelector('.tool-compact-item.open ${detail}')`);
+              await protocol('Input.dispatchMouseEvent', {type: 'mouseMoved', x: 799, y: 699});
+              if (created) {
+                assert.equal(await evaluate("getComputedStyle(document.querySelector('.tool-compact-item.open .tool-file-created-dot')).opacity"), '1', `${currentCase}: expanded dot remains visible`);
+              }
+              if (name === 'diff') {
+                await toggle();
+                await until("document.querySelector('.tool-compact-stat .tool-stat-del')");
+                await evaluate("document.querySelector('.tool-compact-detail-toggle').focus()");
+                const pressSpace = async () => {
+                  await protocol('Input.dispatchKeyEvent', {type: 'keyDown', key: ' ', code: 'Space', text: ' ', windowsVirtualKeyCode: 32});
+                  await protocol('Input.dispatchKeyEvent', {type: 'keyUp', key: ' ', code: 'Space', windowsVirtualKeyCode: 32});
+                };
+                await pressSpace();
+                await until("document.activeElement.matches('.tool-compact-detail-toggle[aria-expanded=true]') && !document.querySelector('.tool-compact-line .tool-compact-stat')");
+                await pressSpace();
+                await until("document.activeElement.matches('.tool-compact-detail-toggle[aria-expanded=false]') && document.querySelector('.tool-compact-stat .tool-stat-del')");
+              }
             }
           }
         }
@@ -378,7 +403,7 @@ if (!process.versions.electron) {
       win.webContents.debugger.detach();
       console.log('Reply typography: 36 Latin/CJK interface/reply font combinations × light/dark; serif regular weight, no stroke, matching coherent headlines and unchanged sans weight passed');
       console.log('Thinking model UI: GPT, DeepSeek, unknown history, mixed models, cached/missing summaries and bounded raw thinking passed in light/dark');
-      console.log('Expand chevron UI: 11 arrow cases + 8 file summary cases × light/dark; visibility, hover/focus, nested isolation, UI fonts, count order and persistent creation dots passed');
+      console.log('Expand chevron UI: 11 arrow cases + 8 file summary cases × light/dark; visibility, hover/focus, nested isolation, UI fonts, count order, count clicks, keyboard focus retention and persistent creation dots passed');
       app.exit(0);
     } catch (error) {
       console.error(error);
