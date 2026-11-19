@@ -87,6 +87,7 @@ import { localizeError, tr, trf, activeIntlLocale } from "../locale";
 import { ProviderErrorCard } from "./ProviderErrorCard";
 import { parseProviderError } from "./provider-error";
 import { Icon } from "./icons";
+import { FileTypeIcon } from "./FileTypeIcon";
 
 interface FollowState {
   pinned: boolean;
@@ -1987,6 +1988,19 @@ function formatReplyTimeTitle(timestamp: number): string {
   return new Date(timestamp).toLocaleString(activeIntlLocale());
 }
 
+function TurnChangeFileLabel({ path }: { path: string }) {
+  const nameStart = path.lastIndexOf("/") + 1;
+  return <>
+    <FileTypeIcon path={path} fallback={<Icon name="file" size={14} />} />
+    <span className="turn-changes-path-text" dir="rtl">
+      <bdi dir="ltr">
+        {nameStart > 0 && <span className="turn-changes-directory">{path.slice(0, nameStart)}</span>}
+        <bdi>{path.slice(nameStart)}</bdi>
+      </bdi>
+    </span>
+  </>;
+}
+
 /** 本轮完成后展示文件统计；审查读取保存的工具差异，不受后续工作区改动影响。 */
 function TurnChangesCard({ turnId, changes, onOpenChanges, onReviewTurn, canManageChanges }: {
   turnId: string;
@@ -2036,10 +2050,10 @@ function TurnChangesCard({ turnId, changes, onOpenChanges, onReviewTurn, canMana
           <div className="turn-changes-file" key={file.path}>
             {preview ? (
               <button className="turn-changes-path" type="button" title={`${tr("预览", "Preview")} ${file.path}`} onClick={() => preview.openFile(file.path)}>
-                {file.path}
+                <TurnChangeFileLabel path={file.path} />
               </button>
             ) : (
-              <span className="turn-changes-path" title={file.path}>{file.path}</span>
+              <span className="turn-changes-path" title={file.path}><TurnChangeFileLabel path={file.path} /></span>
             )}
             <span className="turn-changes-file-stat" aria-label={trf("增加 {0} 行，删除 {1} 行", "{0} lines added, {1} removed", file.added, file.removed)}>
               <span className="turn-changes-added">+{file.added}</span>

@@ -733,16 +733,23 @@
   min-width: 0;
 }
 .turn-changes-path {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 6px;
   flex: 1;
+  min-width: 0;
+  color: var(--text-primary);
+  font-size: calc(15px * var(--ui-scale));
+}
+.turn-changes-path > svg { flex: none; color: var(--text-muted); }
+.turn-changes-path-text {
   min-width: 0;
   overflow: hidden;
   text-align: left;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: var(--text-secondary);
-  font-size: calc(15px * var(--ui-scale));
 }
+.turn-changes-directory { color: var(--text-muted); }
 button.turn-changes-path:hover { color: var(--accent-blue); }
 .turn-changes-file-stat {
   display: flex;

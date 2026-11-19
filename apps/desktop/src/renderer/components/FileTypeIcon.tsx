@@ -300,7 +300,7 @@ const catppuccinIconsByName: Record<string, string> = {
   ".dockerignore": catppuccinDocker,
 };
 
-export function FileTypeIcon({ path }: { path: string }) {
+export function FileTypeIcon({ path, fallback = null }: { path: string; fallback?: ReactNode }) {
   const { theme, scheme } = useContext(FileIconThemeContext);
   const fileName = path.split(/[\\/]/).filter(Boolean).at(-1)?.toLowerCase() ?? "";
   const extension = fileName.includes(".") ? fileName.slice(fileName.lastIndexOf(".") + 1) : fileName;
@@ -323,7 +323,7 @@ export function FileTypeIcon({ path }: { path: string }) {
       break;
     }
   }
-  if (!icon) return null;
+  if (!icon) return fallback;
 
   return <img className="file-type-icon" src={icon} alt="" aria-hidden="true" />;
 }
