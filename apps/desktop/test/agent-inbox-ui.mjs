@@ -448,13 +448,13 @@ if (!process.versions.electron) {
       assert.deepEqual(await evaluate("window.residentFixture.calls.find(call => call.method === 'submit').input"), { text: "Start with the api project" }, "UI submit goes to the Resident conversation only");
       await evaluate("window.residentFixture.calls.length = 0");
 
+      assert.equal(await evaluate("!!document.querySelector('.resident-composer select')"), false, "the Resident composer has no target dropdown");
       await setField("#resident-input", "Run the api tests");
-      await setField(".resident-composer select", "/work/api");
       await evaluate("document.querySelector('.resident-composer button[type=submit]').click()");
       await until("window.residentFixture.calls.some(call => call.method === 'submit')");
-      assert.deepEqual(await evaluate("window.residentFixture.calls.find(call => call.method === 'submit').input"), { text: "Run the api tests", workspace: "/work/api" });
+      assert.deepEqual(await evaluate("window.residentFixture.calls.find(call => call.method === 'submit').input"), { text: "Run the api tests" });
       await until("document.querySelector('#resident-input').value === ''");
-      console.log("PASS the Resident chat renders Intelligent UI and routes input to the right target");
+      console.log("PASS the Resident chat renders Intelligent UI and sends plain chat messages without a target dropdown");
 
       // Event groups render only trusted Host markers, and NO_REPLY hides the entire turn.
       await evaluate(`(() => {

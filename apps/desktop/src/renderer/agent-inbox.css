@@ -145,11 +145,7 @@
 .resident-composer textarea { width:100%; box-sizing:border-box; resize:none; min-height:44px; max-height:140px; border:0; outline:none; padding:0; line-height:1.5; font-size:calc(15px * var(--ui-scale)); field-sizing:content; }
 .resident-composer textarea::placeholder { color:var(--text-muted); }
 .resident-composer textarea:disabled { opacity:.6; }
-.resident-composer-row { display:flex; gap:8px; align-items:center; justify-content:space-between; }
-.resident-composer-row label { min-width:0; display:flex; }
-.resident-composer-row select { min-width:0; max-width:100%; height:32px; border:0; border-radius:var(--radius-pill); background:transparent; padding:0 8px; font-size:calc(14px * var(--ui-scale)); font-weight:600; color:var(--text-secondary); cursor:pointer; }
-.resident-composer-row select:hover:not(:disabled) { background:var(--bg-hover); }
-.resident-composer-row select:disabled { opacity:.55; cursor:default; }
+.resident-composer > .send-action-blue-btn { align-self:flex-end; }
 .resident-hint { margin:0; padding:0 4px; font-size:calc(12px * var(--ui-scale)); }
 
 .resident-tasks { padding:10px 24px 24px; }

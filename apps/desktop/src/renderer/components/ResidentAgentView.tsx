@@ -157,7 +157,6 @@ function Chat({ api, status, settings, messageStore, notice, setNotice }: {
   const messages = useMessages(messageStore, status.conversationId);
   const rows = useMemo(() => visibleChatRows(messages, status.wakeCards), [messages, status.wakeCards]);
   const [text, setText] = useState("");
-  const [workspace, setWorkspace] = useState("");
   const [sending, setSending] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
   const stick = useRef(true);
@@ -169,10 +168,10 @@ function Chat({ api, status, settings, messageStore, notice, setNotice }: {
     return ordinals;
   }, [messages]);
 
-  const submit = async (value: string, target?: string): Promise<boolean> => {
+  const submit = async (value: string): Promise<boolean> => {
     setNotice(null);
     try {
-      const result = await api.submit({ text: value, ...(target ? { workspace: target } : {}) });
+      const result = await api.submit({ text: value });
       if (result.ok) return true;
       setNotice(result.message ?? submitFailure[result.reason]());
     } catch (error) {
@@ -206,7 +205,7 @@ function Chat({ api, status, settings, messageStore, notice, setNotice }: {
     const value = text.trim();
     if (!value || sending || blocked) return;
     setSending(true);
-    const ok = await submit(value, workspace || undefined);
+    const ok = await submit(value);
     setSending(false);
     if (ok) { setText(""); stick.current = true; }
   };
@@ -228,24 +227,13 @@ function Chat({ api, status, settings, messageStore, notice, setNotice }: {
       <form className="resident-composer" onSubmit={event => { event.preventDefault(); void send(); }}>
         <label className="agent-inbox-sr" htmlFor="resident-input">{tr("给 Resident Agent 的消息", "Message for Resident Agent")}</label>
         <textarea id="resident-input" rows={1} value={text} maxLength={residentLimits.maxPrompt} disabled={Boolean(blocked)}
-          placeholder={workspace ? tr("描述要在这个工作区里完成的任务", "Describe the task for this workspace") : tr("和 Resident Agent 对话，或交给它一个任务", "Talk to Resident Agent or hand it a task")}
+          placeholder={tr("和 Resident Agent 对话，或交给它一个任务", "Talk to Resident Agent or hand it a task")}
           onChange={event => setText(event.target.value)}
           onKeyDown={event => { if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); void send(); } }} />
-        <div className="resident-composer-row">
-          <label>
-            <span className="agent-inbox-sr">{tr("目标", "Target")}</span>
-            <select value={workspace} onChange={event => setWorkspace(event.target.value)} disabled={Boolean(blocked)}>
-              <option value="">{tr("交给 Resident Agent", "Ask Resident Agent")}</option>
-              {status.workspaces.map(path => <option key={path} value={path} title={path}>{trf("直接在 {0} 创建后台任务", "Run in {0} directly", baseName(path))}</option>)}
-            </select>
-          </label>
-          <button type="submit" className="send-action-blue-btn send send-icon-arrow-up" title={tr("发送 (Enter)", "Send (Enter)")} aria-label={tr("发送", "Send")}
-            disabled={!text.trim() || sending || Boolean(blocked)}><Icon name="arrow-up" size={16} /></button>
-        </div>
+        <button type="submit" className="send-action-blue-btn send send-icon-arrow-up" title={tr("发送 (Enter)", "Send (Enter)")} aria-label={tr("发送", "Send")}
+          disabled={!text.trim() || sending || Boolean(blocked)}><Icon name="arrow-up" size={16} /></button>
       </form>
-      {settings?.mode === "disabled" ? null : <p className="agent-inbox-muted resident-hint">{workspace
-        ? tr("直接创建的任务按当前的权限设置运行；需要批准的操作会出现在收件箱里。", "The task runs with your current permission settings. Anything needing approval shows up in the Inbox.")
-        : tr("Resident 不能读写文件或运行命令；需要动手时它会请你批准后在工作区里创建后台任务。", "Resident can't read files or run commands. When work is needed it asks you to approve a background task in a workspace.")}</p>}
+      {settings?.mode === "disabled" ? null : <p className="agent-inbox-muted resident-hint">{tr("Resident 不能读写文件或运行命令；需要动手时它会请你批准后在工作区里创建后台任务。", "Resident can't read files or run commands. When work is needed it asks you to approve a background task in a workspace.")}</p>}
     </div>
   </div>;
 }
