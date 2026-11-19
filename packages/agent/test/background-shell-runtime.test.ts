@@ -7,6 +7,7 @@ import type { StreamFn } from "@earendil-works/pi-agent-core";
 import { createAssistantMessageEventStream, type AssistantMessage, type Context, type ToolCall } from "@earendil-works/pi-ai";
 import type { AgentSession } from "@earendil-works/pi-coding-agent";
 import { AgentRuntime } from "../src/runtime.ts";
+import type { AgentRootMessage } from "../src/agent-control.ts";
 import { ToolLoadout } from "../src/runtime-tools.ts";
 import type { TraceRecorder } from "../src/trace.ts";
 import { BackgroundShellManager } from "../../workspace/src/background-shells.ts";
@@ -38,6 +39,7 @@ async function fixture(t: TestContext) {
   const internals = runtime as unknown as {
     conversations: Map<string, { session: AgentSession }>;
     trace(conversationId: string): TraceRecorder;
+    deliverAgentMessage(entry: unknown, message: AgentRootMessage): void;
   };
   const session = internals.conversations.get(id)!.session;
   const requests: Context[] = [];
@@ -60,7 +62,11 @@ async function fixture(t: TestContext) {
     };
     session.agent.streamFunction = internals.trace(id).wrapStream(stream);
   }
-  return { runtime, id, session, requests, script, shells };
+  const report = (status: "completed" | "failed", text: string) =>
+    internals.deliverAgentMessage(internals.conversations.get(id), {
+      kind: "result", path: "/root/test", agentId: "test", agentKind: "explore", status, text,
+    });
+  return { runtime, id, session, requests, script, shells, report };
 }
 
 const call = (id: string, name: string, args: Record<string, unknown>): ToolCall => ({ type: "toolCall", id, name, arguments: args });
@@ -74,6 +80,42 @@ const until = async (condition: () => boolean, label: string): Promise<void> => 
 const text = (context: Context): string => JSON.stringify(context.messages);
 
 describe("background shells in the agent runtime", () => {
+  it("folds separate background completions into the next tool step instead of replying after the summary", { timeout: 20_000 }, async (t) => {
+    const f = await fixture(t);
+    f.script([
+      [call("start", "bash", { command: "sleep 0.1; echo ok", run_in_background: true }),
+        call("fail", "bash", { command: "sleep 1; exit 7", run_in_background: true })],
+      [call("foreground", "bash", { command: "sleep 2" })],
+      "Summary.",
+    ]);
+    await f.runtime.prompt(f.id, "Run the checks.");
+    await f.runtime.waitForIdle(f.id, { includeBackgroundShells: true });
+    assert.equal(f.requests.length, 3);
+    const summary = text(f.requests[2]!);
+    assert.match(summary, /Background shell bg-\d+ exited with code 0/);
+    assert.match(summary, /Background shell bg-\d+ exited with code 7/);
+  });
+
+  for (const failed of [false, true]) {
+    it(`handles a batch arriving during the last answer with ${failed ? "one failure reply" : "no extra reply"}`, async (t) => {
+      const f = await fixture(t);
+      let sent = false;
+      f.session.subscribe(event => {
+        if (sent || event.type !== "message_end" || event.message.role !== "assistant") return;
+        sent = true;
+        if (failed) f.report("failed", "Failed check A");
+        f.report("completed", "Completed check B");
+        f.report("completed", "Completed check C");
+      });
+      f.script(failed ? ["Summary.", "Correction."] : ["Summary."]);
+      await f.runtime.prompt(f.id, "Run the checks.");
+      await f.runtime.waitForIdle(f.id);
+      assert.equal(f.requests.length, failed ? 2 : 1);
+      if (failed) assert.match(text(f.requests[1]!), /Failed check A.*Completed check B.*Completed check C/);
+      assert.ok(f.session.messages.some(m => m.role === "custom" && m.content.toString().includes("Completed check C")));
+    });
+  }
+
   it("lets the turn finish while the command runs, then wakes the agent with its result", { timeout: 20_000 }, async (t) => {
     const f = await fixture(t);
     assert.ok(f.session.getActiveToolNames().includes("bash_output"));

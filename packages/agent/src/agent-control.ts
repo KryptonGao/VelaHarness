@@ -103,6 +103,7 @@ interface AgentTaskOutcome {
 
 interface AgentTask {
   text: string;
+  sender: string;
   /** 入队时的中断代际；abortAll 之后旧任务直接作废。 */
   generation: number;
   /**
@@ -119,6 +120,7 @@ interface ManagedAgent {
   sessionPromise: Promise<AgentSession> | null;
   unsubscribe: (() => void) | null;
   queue: AgentTask[];
+  pendingInputSender?: string;
   processing: boolean;
   running: boolean;
   aborted: boolean;
@@ -402,7 +404,7 @@ export class AgentControl {
     };
     this.agents.set(info.id, agent);
     this.emit();
-    this.enqueue(agent, { text: task, generation: agent.generation, consume: null });
+    this.enqueue(agent, { text: task, sender: caller.info.path, generation: agent.generation, consume: null });
     return cloneAgent(info);
   }
 
@@ -443,7 +445,7 @@ export class AgentControl {
       });
       return cloneAgent(target.info);
     }
-    this.enqueue(target, { text, generation: target.generation, consume: null });
+    this.enqueue(target, { text, sender: caller.info.path, generation: target.generation, consume: null });
     return cloneAgent(target.info);
   }
 
@@ -470,7 +472,7 @@ export class AgentControl {
         fromUser: true,
       },
     });
-    this.enqueue(target, { text, generation: target.generation, consume: null });
+    this.enqueue(target, { text, sender: "user", generation: target.generation, consume: null });
     return cloneAgent(target.info);
   }
 
@@ -508,6 +510,7 @@ export class AgentControl {
       }
       this.enqueue(target, {
         text,
+        sender: caller.info.path,
         generation: target.generation,
         consume: (value) => (abandoned ? false : finish(value)),
       });
@@ -787,6 +790,12 @@ export class AgentControl {
   }
 
   private handleSessionEvent(agent: ManagedAgent, event: AgentSessionEvent): void {
+    if (event.type === "message_end" && event.message.role === "user" && agent.pendingInputSender) {
+      // Pi persists this same message immediately after notifying subscribers.
+      // Keep attribution with the input through replay and forks, outside its prompt text.
+      Object.assign(event.message, { inputSender: agent.pendingInputSender });
+      delete agent.pendingInputSender;
+    }
     this.options.host.onAgentEvent({
       conversationId: this.options.conversationId,
       agentId: agent.info.id,
@@ -842,12 +851,15 @@ export class AgentControl {
     this.emit();
 
     let failure = "";
+    agent.pendingInputSender = task.sender;
     try {
       await session.prompt(task.text, { expandPromptTemplates: false });
     } catch (error) {
       if (!agent.aborted) {
         failure = error instanceof Error ? error.message : "子代理执行失败";
       }
+    } finally {
+      delete agent.pendingInputSender;
     }
     const text = lastAssistantText(session.messages);
     const sessionError =
@@ -981,6 +993,7 @@ export class AgentControl {
     }
     const label = outcome.status === "completed" ? "已完成" : outcome.status === "aborted" ? "已停止" : "失败";
     this.enqueue(parent, {
+      sender: agent.info.path,
       text: `[子代理 ${agent.info.path} ${label}]\n\n${outcome.text}`,
       generation: parent.generation,
       consume: null,

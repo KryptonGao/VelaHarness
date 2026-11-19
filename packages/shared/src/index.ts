@@ -1032,6 +1032,8 @@ export interface TranscriptTool {
 }
 
 export interface TranscriptMessage {
+  /** Sender of an attributed subagent input: "user" or the sending agent's absolute path. */
+  inputSender?: string;
   id: string;
   role: "user" | "assistant";
   /** assistant 消息实际来源的 SDK 模型标识；旧历史可能没有。 */
@@ -1171,7 +1173,7 @@ export type AgentStreamEvent =
 
 /** 子代理会话的实时事件；形状与主对话一致，只是用 agentId 代替 conversationId。 */
 export type AgentRuntimeStreamEvent =
-  | { type: "user_message"; text: string }
+  | { type: "user_message"; text: string; inputSender?: string }
   | { type: "assistant_start"; model?: string; provider?: string }
   | { type: "assistant_update" | "assistant_end"; model?: string; provider?: string }
   | { type: "text_delta"; delta: string }

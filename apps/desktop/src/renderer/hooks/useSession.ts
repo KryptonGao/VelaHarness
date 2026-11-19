@@ -34,6 +34,7 @@ const emptyShells: BackgroundShellItem[] = [];
 export interface UiMessage {
   id: string;
   role: "user" | "assistant";
+  inputSender?: string;
   /** assistant 消息实际来源的 SDK 模型标识；未知时不以当前选择代替。 */
   model?: string;
   provider?: string;
@@ -715,7 +716,7 @@ export function mergeAgentHistory(live: readonly UiMessage[] | undefined, histor
   const pending = live ?? [];
   const first = pending[0];
   const lastUser = history.findLast((message) => message.role === "user");
-  const duplicated = first?.role === "user" && lastUser?.text === first.text;
+  const duplicated = first?.role === "user" && lastUser?.text === first.text && lastUser.inputSender === first.inputSender;
   return [...history, ...(duplicated ? pending.slice(1) : pending)];
 }
 
@@ -723,6 +724,7 @@ export function toUiMessage(message: TranscriptMessage): UiMessage {
   return {
     id: message.id,
     role: message.role,
+    inputSender: message.inputSender,
     ...(message.role === "assistant" ? modelMetadata(message) : {}),
     text: message.text,
     thinking: message.thinking,
@@ -887,8 +889,8 @@ export function applyAgentStreamEvent(
 function applyAgentToMessages(messages: UiMessage[], event: AgentRuntimeStreamEvent): UiMessage[] {
   if (event.type === "user_message") {
     const last = messages[messages.length - 1];
-    if (last?.role === "user" && last.text === event.text) return messages;
-    return [...messages, { id: crypto.randomUUID(), role: "user", text: event.text, thinking: "", tools: [] }];
+    if (last?.role === "user" && last.text === event.text && last.inputSender === event.inputSender) return messages;
+    return [...messages, { id: crypto.randomUUID(), role: "user", text: event.text, inputSender: event.inputSender, thinking: "", tools: [] }];
   }
   if (event.type === "assistant_start") {
     const last = messages[messages.length - 1];
@@ -1113,7 +1115,9 @@ export function sanitizeAgentEvent(value: unknown): AgentRuntimeStreamEvent | nu
   const event = value as Record<string, unknown>;
   const type = event.type;
   if (type === "user_message") {
-    return typeof event.text === "string" ? { type, text: event.text } : null;
+    return typeof event.text === "string"
+      ? { type, text: event.text, ...(typeof event.inputSender === "string" ? { inputSender: event.inputSender } : {}) }
+      : null;
   }
   if (type === "assistant_start" || type === "assistant_update" || type === "assistant_end") return { type, ...modelMetadata(event) };
   if (type === "text_delta" || type === "thinking_delta") {

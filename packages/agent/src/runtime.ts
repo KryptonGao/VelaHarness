@@ -181,6 +181,7 @@ import { activityFromCall, activityFromExecution, activityFromOutput, toolResult
 import { ToolStreamTracker } from "./tool-stream";
 import {
   branchLeafForTurn,
+  inputAttribution,
   isVisibleTranscriptMessage,
   countTranscriptActivity,
   transcriptFromMessages,
@@ -1773,6 +1774,7 @@ export class AgentRuntime {
     } finally {
       entry.driving = false;
       this.syncFromSession(entry);
+      this.flushIdleRootNotices(entry);
     }
   }
 
@@ -3406,6 +3408,18 @@ export class AgentRuntime {
   private handlePiEvent(conversationId: string, event: AgentSessionEvent): void {
     const recorder = this.trace(conversationId);
     recorder.capture(() => recorder.handle(event));
+    if (event.type === "turn_end") {
+      const entry = this.conversations.get(conversationId);
+      if (entry && this.rootNotices.has(conversationId)) {
+        // Pi flushes context-only messages after this event. A tool result or queued user
+        // input already leads to another request, which will see the whole batch.
+        const canWake = event.toolResults.length === 0 && event.message.role === "assistant"
+          && event.message.stopReason === "stop"
+          && !entry.session?.agent.hasQueuedMessages();
+        this.flushRootNotices(entry, canWake);
+      }
+      return;
+    }
     // Pi 的 turn_start 是一次模型/工具循环；user 消息才是成果验收的回合边界。
     // custom 子代理通知和 assistant/toolResult 消息仍属于当前用户回合。
     if (event.type === "message_start" && event.message.role === "user") {
@@ -3601,7 +3615,7 @@ export class AgentRuntime {
       }
       if (message.role === "user") {
         const text = userMessageText(message);
-        if (text.trim()) emit({ type: "user_message", text });
+        if (text.trim()) emit({ type: "user_message", text, ...inputAttribution(message) });
         return;
       }
       const failure = message.role === "assistant" ? message.errorMessage?.trim() : undefined;
@@ -3959,6 +3973,7 @@ export class AgentRuntime {
         this.patchEntry(entry, { status: "ready", updatedAt: Date.now() });
       }
       this.emit({ type: "prompt_idle", conversationId: entry.id });
+      this.flushIdleRootNotices(entry);
     }
   }
 
@@ -4194,16 +4209,10 @@ export class AgentRuntime {
     }
   }
 
-  /**
-   * 子代理结论/消息进入 root 会话。结论要主代理处理，会唤醒它；子代理中途发来的
-   * 进度消息只进上下文，下次回合自然看到，不单独触发一轮回复。
-   */
   private deliverAgentMessage(entry: Conversation, message: AgentRootMessage): void {
     const isResult = message.kind === "result";
     this.queueRootNotice(entry, {
-      wake: isResult,
-      // 主代理已回复完毕、处于空闲时：成功的结论只记录，要它回报需派生时显式 notify_on_finish；失败照常唤醒。
-      wakeIdle: isResult && (this.wakesOnSuccess(message.notify === true) || message.status !== "completed"),
+      wake: isResult && (this.wakesOnSuccess(message.notify === true) || message.status !== "completed"),
       payload: {
         customType: message.kind === "result" ? "vela_agent_result" : "vela_agent_message",
         content: formatAgentRootMessage(message),
@@ -4223,15 +4232,14 @@ export class AgentRuntime {
     return requested || this.options.hostProfile === "headless";
   }
 
-  /** 后台命令结束：主动终止或会话已被移除时不打扰主代理；正常退出且没有未读输出的也只记录，不唤醒。 */
+  /** Report natural exits. Only failures and requested successful completions warrant a new reply. */
   private handleBackgroundShellExit(event: BackgroundShellExit): void {
     if (!event.notify) return;
     const entry = this.conversations.get(event.conversationId);
     if (!entry?.session) return;
     const failed = !(event.status === "exited" && event.exitCode === 0);
     this.queueRootNotice(entry, {
-      wake: !(event.status === "exited" && event.exitCode === 0 && !event.output),
-      wakeIdle: failed || this.wakesOnSuccess(event.wakeOnExit),
+      wake: failed || this.wakesOnSuccess(event.wakeOnExit),
       payload: {
         customType: "vela_background_shell",
         content: formatBackgroundShellExit(event),
@@ -4241,28 +4249,30 @@ export class AgentRuntime {
     });
   }
 
-  /**
-   * 通知先攒一小会儿再一起投递：同一批里只有最后一条触发回合，其余按顺序写进上下文，
-   * 这样几个子代理/命令前后脚结束时，主代理只回复一次。
-   */
+  /** The next model/tool boundary drains an active batch. Idle sessions use a short debounce. */
   private queueRootNotice(entry: Conversation, notice: RootNotice): void {
     const pending = this.rootNotices.get(entry.id);
     const firstAt = pending?.firstAt ?? Date.now();
     if (pending) clearTimeout(pending.timer);
     const delay = Math.max(0, Math.min(rootNoticeQuietMs, firstAt + rootNoticeMaxHoldMs - Date.now()));
-    const timer = setTimeout(() => {
-      const batch = this.rootNotices.get(entry.id);
-      this.rootNotices.delete(entry.id);
-      if (batch) this.trackRootDelivery(batch.entry, batch.items);
-    }, delay);
-    this.rootNotices.set(entry.id, { entry, items: [...(pending?.items ?? []), notice], firstAt, timer });
+    const timer = setTimeout(() => this.flushIdleRootNotices(entry), delay);
+    const items = pending?.items ?? [];
+    items.push(notice);
+    this.rootNotices.set(entry.id, { entry, items, firstAt, timer });
     this.touch();
   }
 
-  /** 登记进行中的投递（同步，紧接在通知表删除之后），结束时再递减。 */
-  private trackRootDelivery(entry: Conversation, items: RootNotice[]): void {
+  private flushIdleRootNotices(entry: Conversation): void {
+    if (!entry.driving && !entry.session?.isStreaming) this.flushRootNotices(entry, true);
+  }
+
+  private flushRootNotices(entry: Conversation, canWake: boolean): void {
+    const batch = this.rootNotices.get(entry.id);
+    if (!batch || batch.entry !== entry) return;
+    clearTimeout(batch.timer);
+    this.rootNotices.delete(entry.id);
     this.rootDeliveries.set(entry.id, (this.rootDeliveries.get(entry.id) ?? 0) + 1);
-    void this.deliverRootNotices(entry, items).catch(() => undefined).finally(() => {
+    void this.deliverRootNotices(entry, batch.items, canWake).catch(() => undefined).finally(() => {
       const left = (this.rootDeliveries.get(entry.id) ?? 1) - 1;
       if (left > 0) this.rootDeliveries.set(entry.id, left);
       else this.rootDeliveries.delete(entry.id);
@@ -4275,14 +4285,13 @@ export class AgentRuntime {
     this.rootNotices.clear();
   }
 
-  private async deliverRootNotices(entry: Conversation, items: RootNotice[]): Promise<void> {
+  private async deliverRootNotices(entry: Conversation, items: RootNotice[], canWake: boolean): Promise<void> {
     if (!entry.session || this.conversations.get(entry.id) !== entry) return;
-    // 主代理正在回合里时，通知作为 follow-up 并入当前回合；已空闲时只有要求唤醒或失败的才另开一轮。
-    const idle = !entry.driving && !entry.session.isStreaming;
-    const lastWake = entry.stopRequested ? -1 : items.findLastIndex(item => (idle ? item.wakeIdle : item.wake));
-    for (const [index, item] of items.entries()) {
-      await this.deliverRootMessage(entry, item.payload, index === lastWake);
-    }
+    const wake = canWake && !entry.stopRequested && items.some(item => item.wake);
+    // Submit in arrival order before Pi leaves turn_end. Only the final payload may
+    // start a request, including when a later context-only result follows a failure.
+    await Promise.all(items.map((item, index) =>
+      this.deliverRootMessage(entry, item.payload, wake && index === items.length - 1)));
   }
 
   /** 把一条不可见的自定义消息送进 root 会话。wake 为真时：空闲则唤醒，运行中追加为 follow-up；否则只写进上下文。 */
@@ -4327,6 +4336,7 @@ export class AgentRuntime {
       if (entry.snapshot.status === "streaming") {
         this.patchEntry(entry, { status: "ready", updatedAt: Date.now() });
       }
+      this.flushIdleRootNotices(entry);
     }
   }
 
@@ -5179,8 +5189,6 @@ function isPotentialGoalMutation(toolName: string, args: unknown): boolean {
 /** 等待投递给主代理的一条通知；wake 为假时只记录进上下文，不单独触发回合。 */
 interface RootNotice {
   wake: boolean;
-  /** 主代理空闲时是否值得另开一轮；成功结束且没要求回报的通知为假，只写进上下文。 */
-  wakeIdle: boolean;
   payload: { customType: string; content: string; display: false; details: Record<string, unknown> };
 }
 

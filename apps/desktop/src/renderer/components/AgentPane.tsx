@@ -8,12 +8,12 @@ import { useFrameTask } from "../hooks/useFrameTask";
 import { emptyMessages, type MessageStore } from "../hooks/message-store";
 import { useMessages } from "../hooks/useMessages";
 import type { UiMessage } from "../hooks/useSession";
-import { tr, trf } from "../locale";
+import { tr, trf, useAppLocale } from "../locale";
 import { ActivityIndicator } from "./ActivityIndicator";
 import { AgentAvatar } from "./AgentAvatar";
 import { AgentComposer } from "./AgentComposer";
 import {
-  AgentControls, AgentModelTag, AgentRunStats, AgentStatusMark, agentKindLabel, agentStateText, formatTokenCount, useAgentClock,
+  AgentControls, AgentModelTag, AgentRunStats, AgentStatusMark, agentKindLabel, agentStateText, findAgentInfo, formatTokenCount, useAgentClock,
 } from "./AgentPanel";
 import { Markdown } from "./Markdown";
 import { AssistantMarkdown } from "./intelligent-ui/AssistantMarkdown";
@@ -245,6 +245,7 @@ function VisibleAgentPane({
               <AgentStreamMessage
                 key={`${agentId}:${block.id}`}
                 message={block.messages[0]!}
+                senderAgentId={findAgentInfo(agents, undefined, block.messages[0]!.inputSender)?.id}
                 streaming={streaming && lastMessageId !== null && (memberIdsOf.get(block.messages[0]!.id)?.includes(lastMessageId) ?? block.messages[0]!.id === lastMessageId)}
                 toolDisplay={toolDisplay}
                 toolFold={toolFold}
@@ -409,19 +410,33 @@ function AgentRosterMenu({
 
 const AgentStreamMessage = memo(function AgentStreamMessage({
   message,
+  senderAgentId,
   streaming,
   toolDisplay,
   toolFold,
 }: {
   message: UiMessage;
+  senderAgentId?: string;
   streaming: boolean;
   toolDisplay?: ToolDisplay;
   toolFold?: ToolFold;
 }) {
+  useAppLocale();
   if (message.role === "user") {
+    const sender = message.inputSender;
+    const label = sender === "/root" ? agentKindLabel("root") : sender === "user" ? tr("用户", "User") : sender;
+    const roleIcon = sender === "/root" ? "sparkles" : sender === "user" ? "user" : undefined;
     return (
       <article className="agent-stream-message is-user" data-arrival-key={message.id}>
         <div className="agent-stream-user">
+          {label && (
+            <div className="agent-input-sender">
+              {senderAgentId && !roleIcon
+                ? <AgentAvatar agentId={senderAgentId} size={20} />
+                : <Icon name={roleIcon ?? "subagent"} size={16} />}
+              <span>{label}</span>
+            </div>
+          )}
           {message.text ? <Markdown text={message.text} /> : null}
         </div>
       </article>

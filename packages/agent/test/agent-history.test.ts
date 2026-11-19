@@ -132,6 +132,13 @@ describe("子代理历史恢复", () => {
       assert.deepEqual(failures, []);
       const child = runtime.getAgents(id).find((item) => item.kind !== "root");
       assert.equal(child?.status, "completed"); assert.ok(child);
+      // Identical input text from two senders must retain distinct attribution.
+      const input = "读取 fixture.txt，汇报文件内容";
+      runtime.sendAgentMessage(id, child.id, input);
+      await runtime.waitForIdle(id);
+      const inputs = events.flatMap(event => event.type === "agent_event" && event.event.type === "user_message"
+        ? [event.event] : []);
+      assert.deepEqual(inputs.map(message => [message.text, message.inputSender]), [[input, "/root"], [input, "user"]]);
       // 等主会话消费回传完成，模拟正常退出，避免仍有流式回调写入测试目录。
       for (let i = 0; i < 300 && runtime.getSnapshot().status === "streaming"; i++) {
         await new Promise((resolve) => setTimeout(resolve, 10));
@@ -153,6 +160,7 @@ describe("子代理历史恢复", () => {
       const restarted = new AgentRuntime({ cwd: dir, agentDir: dir }); runtimes.push(restarted);
       await restarted.switchConversation(id);
       const restored = restarted.getAgentMessages(id, child.id);
+      assert.deepEqual(restored.filter(message => message.role === "user").map(message => message.inputSender), ["/root", "user"]);
       assert.ok(restored.some((message) => message.thinking === "先读取持久化测试文件"), JSON.stringify(restored));
       assert.ok(restored.some((message) => message.tools.some((tool) => tool.activity.body?.includes("持久化工具输出"))));
       assert.equal(restored.at(-1)?.text, "已读取：持久化工具输出");

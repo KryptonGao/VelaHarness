@@ -19,6 +19,11 @@ export interface TranscriptSource {
 // Pi formatDimensionNote 的完整格式；不要用宽泛的 [Image: ...] 匹配吞掉用户正文。
 const imageDimensionNote = /^\[Image: original \d+x\d+, displayed at \d+x\d+\. Multiply coordinates by \d+\.\d{2} to map to original image\.\]$/;
 
+export function inputAttribution(message: AgentMessage): { inputSender?: string } {
+  return message.role === "user" && "inputSender" in message && typeof message.inputSender === "string"
+    ? { inputSender: message.inputSender } : {};
+}
+
 /** 仅清理展示副本；SDK 追加的坐标提示仍保留在模型消息和持久化会话里。 */
 export function userMessageDisplayText(message: AgentMessage): string {
   const text = userMessageText(message);
@@ -152,7 +157,7 @@ function transcriptFromSources(sources: TranscriptSource[], plans: readonly Prop
         .filter((part) => part.type === "image")
         .map((part) => ({ type: "image" as const, data: part.data, mimeType: part.mimeType }));
       if ((!text.trim() && images.length === 0) || isPlanExecutionPrompt(text)) continue;
-      result.push({ id: randomUUID(), role: "user", text, images, thinking: "", tools: [], timestamp: source.timestamp });
+      result.push({ id: randomUUID(), role: "user", ...inputAttribution(message), text, images, thinking: "", tools: [], timestamp: source.timestamp });
       continue;
     }
 

@@ -90,7 +90,22 @@
   margin-inline: auto;
 }
 .agent-stream-message { min-width: 0; }
-.agent-stream-message.is-user { margin-block: 5px; }
+.agent-stream-message.is-user {
+  align-self: flex-end;
+  max-width: 85%;
+  margin-block: 5px;
+}
+.agent-input-sender {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 4px;
+  color: color-mix(in srgb, var(--text-muted) 70%, var(--text-secondary));
+  font-size: calc(12px * var(--ui-scale));
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.agent-input-sender > svg { flex: none; }
 .agent-stream-user {
   padding: 8px 12px;
   border-radius: 12px;

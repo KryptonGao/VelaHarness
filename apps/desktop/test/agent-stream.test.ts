@@ -83,6 +83,13 @@ describe("assistant 模型来源数据链路", () => {
 });
 
 describe("子代理运行流 reducer", () => {
+  it("retains distinct senders for identical inputs in live events and restored history", () => {
+    const senders = ["/root", "user", "/root/reviewer"];
+    const messages = reduce(senders.map(inputSender => sanitizeAgentEvent({ type: "user_message", text: "Check", inputSender })!));
+    assert.deepEqual(messages.map(message => message.inputSender), senders);
+    assert.equal(toUiMessage({ id: "old", role: "user", text: "Check", thinking: "", tools: [], timestamp: null }).inputSender, undefined);
+    assert.equal(toUiMessage({ ...messages[0]!, timestamp: null }).inputSender, "/root");
+  });
   it("用户消息和 assistant 文本按顺序累积", () => {
     const messages = reduce([
       { type: "user_message", text: "查一下启动流程" },
