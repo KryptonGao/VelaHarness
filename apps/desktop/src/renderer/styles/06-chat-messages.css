@@ -241,6 +241,13 @@
   text-align: left;
 }
 .time-spent-trigger.is-running { width: 100%; }
+/* 计时右侧的本轮额度消耗；用点号与计时分开，数字等宽避免实时刷新时抖动。 */
+.turn-quota {
+  font-variant-numeric: tabular-nums;
+  font-weight: 400;
+  white-space: nowrap;
+}
+.turn-quota::before { content: "·"; margin-right: 5px; }
 .assistant-turn-trigger {
   width: 100%;
   padding-bottom: 8px;

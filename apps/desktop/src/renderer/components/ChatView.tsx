@@ -10,6 +10,9 @@ import { useAgentWorkspace } from "./AgentPanel";
 import { modKeyLabel } from "../platform";
 import { readModelHint, writeModelHint } from "../startup-hint";
 import { useSecondClock } from "../hooks/useSecondClock";
+import { finishTurnQuota, startTurnQuota, useTurnQuota } from "../hooks/useTurnQuota";
+import { usageLimitProvider } from "../hooks/useUsageLimits";
+import { turnQuotaText } from "./turn-quota";
 import { speakReply, stopSpeaking, useSpeechPlayback, useSpeechState } from "../hooks/useSpeech";
 import { trackEnteredMessages, type EnterTrack } from "./message-motion";
 import type { useModels } from "../hooks/useModels";
@@ -182,14 +185,23 @@ function formatWholeSeconds(ms: number): string {
  * 运行中的轮次在最终回复出现前显示“已处理 xx”。回复完成后这一行会被
  * CompletedAssistantTurn 的“用时 xx”触发器接替,位置与分界线保持不变。
  */
-function TurnProgressHeader({ startedAt }: { startedAt: number }) {
+function TurnProgressHeader({ startedAt, quota }: { startedAt: number; quota: boolean }) {
   const now = useSecondClock();
+  const windows = useTurnQuota(startedAt);
+  useEffect(() => {
+    if (!quota) return;
+    startTurnQuota(startedAt);
+    // 本轮结束（或离开这一轮）时补读最终额度。
+    return () => finishTurnQuota(startedAt);
+  }, [quota, startedAt]);
   const elapsed = formatElapsedTime(startedAt, now);
   if (!elapsed) return null;
+  const quotaText = turnQuotaText(windows);
   return (
     // 每秒更新的计时不进入 role="log" 的朗读范围。
     <span className="time-spent-trigger assistant-turn-trigger" aria-live="off">
-      {trf("已处理 {0}", "Worked {0}", elapsed)}
+      <span>{trf("已处理 {0}", "Worked {0}", elapsed)}</span>
+      {quotaText ? <span className="turn-quota">{quotaText}</span> : null}
     </span>
   );
 }
@@ -1062,7 +1074,7 @@ export function ChatView({
                   />
                 ) : turn.assistants.length > 0 ? (
                   <div className="assistant-live-turn" data-turn-id={!turn.user ? turn.id : undefined}>
-                    {liveStartedAt !== undefined ? <TurnProgressHeader startedAt={liveStartedAt} /> : null}
+                    {liveStartedAt !== undefined ? <TurnProgressHeader startedAt={liveStartedAt} quota={session?.modelProvider === usageLimitProvider} /> : null}
                     {toolFold === "position" || (groupsByReply(thinkingGroupMode) && turn.assistants.some(supportsThinkingGroups)) ? (
                       <article className="assistant-block">
                         <ToolSequence
@@ -1704,6 +1716,7 @@ const CompletedAssistantTurn = memo(function CompletedAssistantTurn({
   const stopped = messages[messages.length - 1]?.turnStopped === true;
   // 用户停止时报告墙钟时间(“多少秒后停止”),不用工具耗时之和。
   const displayedElapsed = turnDuration === null || stopped ? elapsed : formatWholeSeconds(turnDuration);
+  const quotaText = turnQuotaText(useTurnQuota(startedAt));
   const processId = useId();
   const isFinalReply = (message: UiMessage) => finalReplies.some((reply) => reply.id === message.id);
   const hasProcess = messages.some((message) => (
@@ -1712,6 +1725,7 @@ const CompletedAssistantTurn = memo(function CompletedAssistantTurn({
   const triggerContent = (
     <>
       <span>{!displayedElapsed ? tr("查看过程", "View process") : stopped ? trf("你在 {0}后停止了", "You stopped after {0}", displayedElapsed) : trf("用时 {0}", "Took {0}", displayedElapsed)}</span>
+      {quotaText ? <span className="turn-quota">{quotaText}</span> : null}
       {hasProcess ? (
         <Icon name="chevron-right" size={12} className="time-spent-trigger-arrow" />
       ) : null}
