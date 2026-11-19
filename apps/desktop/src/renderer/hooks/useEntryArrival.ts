@@ -27,9 +27,17 @@ export function useEntryArrival(scope: string, keys: readonly string[], stagger 
     const fresh = keys.some(key => !seen.current.has(key));
     const first = !primed.current;
     primed.current = true;
+    // 已见集合只增不减，并且把 DOM 上实际出现的 key 也记进去：
+    // 有些节点（连贯分组的 :thinking、可视化工具的 :tool）的 key 不在 keys 里，
+    // 若不登记，每来一条新消息整组都会被当成新节点重新淡入，表现为面板突然闪一下。
+    const settle = () => {
+      for (const key of keys) seen.current.add(key);
+      for (const element of root.current?.querySelectorAll<HTMLElement>("[data-arrival-key]") ?? []) {
+        seen.current.add(element.dataset.arrivalKey!);
+      }
+    };
     if ((first && !animateInitial) || !fresh || reduced) {
-      // keys 全部已见过且数量相同时集合不变，流式期间每个分片都走这里，不必重建。
-      if (fresh || keys.length !== seen.current.size) seen.current = new Set(keys);
+      if (fresh || first) settle();
       return;
     }
     const viewport = root.current?.getBoundingClientRect();
@@ -51,7 +59,7 @@ export function useEntryArrival(scope: string, keys: readonly string[], stagger 
       entering.add(element);
       animation.finished.then(() => animations.current.delete(animation), () => animations.current.delete(animation));
     }
-    seen.current = new Set(keys);
+    settle();
   }, [keys, scope, reduced, stagger, animateInitial]);
   return root;
 }
