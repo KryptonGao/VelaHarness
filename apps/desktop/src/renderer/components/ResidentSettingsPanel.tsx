@@ -111,11 +111,11 @@ export function ResidentSettingsPanel({ api, settings, onSettings, catalog = nul
 
     <fieldset>
       <legend>{tr("通知", "Notifications")}</legend>
-      <Toggle label={tr("系统通知", "System notifications")} hint={tr("有事项需要你处理时提醒；应用在前台时不打扰。", "Alerts you when something needs attention. Stays quiet while the app is in front.")}
+      <Toggle label={tr("系统通知", "System notifications")} hint={tr("需要处理的事项在应用处于后台时提醒；离开 Resident 页面时也接收事件回复。", "Get alerts for items needing attention while the app is in the background, and for event replies when you're away from the Resident page.")}
         checked={notify.enabled} onChange={value => update({ notifications: { enabled: value } })} />
       <Toggle label={tr("隐藏通知内容", "Hide notification previews")} hint={tr("通知里不显示命令、路径和回答，只提示有事项。", "Notifications won't show commands, paths or answers.")}
         checked={notify.hidePreview} disabled={!notify.enabled} onChange={value => update({ notifications: { hidePreview: value } })} />
-      <Toggle label={tr("任务完成时也提醒", "Also notify when tasks finish")} hint={tr("默认只提醒需要你处理的事项和 Agent 的建议。", "By default only items needing you and Agent suggestions notify.")}
+      <Toggle label={tr("任务完成时也提醒", "Also notify when tasks finish")} hint={tr("只影响普通任务结果，不影响 Resident 的事件回复。", "Applies to regular task results, not Resident event replies.")}
         checked={notify.notifyResults} disabled={!notify.enabled} onChange={value => update({ notifications: { notifyResults: value } })} />
       <Toggle label={tr("静默时段", "Quiet hours")} hint={tr("这段时间不弹通知，事项仍会进入收件箱。", "No notifications in this window. Items still land in the Inbox.")}
         checked={quiet.enabled} disabled={!notify.enabled} onChange={value => update({ notifications: { quietHours: { enabled: value } } })} />
@@ -137,6 +137,9 @@ export function ResidentSettingsPanel({ api, settings, onSettings, catalog = nul
       <NumberRow label={tr("每天最多主动运行", "Proactive runs per day")} value={limits.dailyProactiveRuns} min={residentLimits.dailyProactiveRuns.min} max={residentLimits.dailyProactiveRuns.max} unit={tr("次", "runs")}
         hint={tr("每次主动运行都会调用模型。设为 0 则不允许主动触发。", "Each proactive run calls the model. 0 disables proactive triggers.")}
         onCommit={value => update({ limits: { dailyProactiveRuns: value } })} />
+      <NumberRow label={tr("每天最多事件唤醒", "Event wakes per day")} value={limits.maxWakesPerDay} min={residentLimits.maxWakesPerDay.min} max={residentLimits.maxWakesPerDay.max}
+        hint={tr("限制事件唤醒调用模型的次数。设为 0 可关闭，不影响主动规则。", "Limits model calls triggered by events. 0 disables event wakes without changing proactive rules.")}
+        onCommit={value => update({ limits: { maxWakesPerDay: value } })} />
       <Toggle label={tr("电池供电时暂停主动任务", "Pause proactive runs on battery")} checked={limits.pauseProactiveOnBattery}
         onChange={value => update({ limits: { pauseProactiveOnBattery: value } })} />
       <p className="agent-inbox-muted">{tr("后台任务不会使用「完全访问」：即使全局设置为完全访问，也会按「帮我批准」运行。", "Background tasks never run with Full access: even if it's your global setting, they use Smart approval.")}</p>

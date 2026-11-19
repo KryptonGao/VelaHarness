@@ -401,8 +401,8 @@ export class SessionHost {
   }
 
   private onRuntimeEvent(event: RuntimeEvent): void {
-    // 这两类事件只给主进程里的收件箱用，不广播给渲染层。
-    if (event.type === "prompt_end" || event.type === "task_budget") return;
+    // 这些事件只供主进程协调使用，不广播给渲染层。
+    if (event.type === "prompt_end" || event.type === "prompt_idle" || event.type === "task_budget") return;
     // 工具调用计数由 Runtime 在真实开始执行时记录，这里只负责转发。
 
     if (event.type === "status") {

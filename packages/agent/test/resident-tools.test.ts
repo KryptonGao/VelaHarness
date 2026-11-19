@@ -16,6 +16,8 @@ function host(patch: Partial<ResidentToolHost> = {}): ResidentToolHost & { deleg
     workspaces: () => ["/w", "/x"],
     tasks: () => [task()],
     inbox: filter => [{ id: "i1", type: "question", status: "pending", title: "t", summary: filter.pendingOnly ? "pending" : "all", updatedAt: 1 }],
+    readTaskResult: taskId => ({ ok: true, taskId, status: "succeeded", text: "last report", truncated: false, toolCalls: 2, filesInvolved: 1 }),
+    continueTask: async taskId => ({ ok: true, taskId, status: "queued" }),
     delegate: async input => { delegated.push(input); return { ok: true, taskId: "t9", status: "queued" }; },
     ...patch,
   };
@@ -27,7 +29,7 @@ const run = async (tools: ReturnType<typeof createResidentTools>, name: string, 
   return JSON.parse((out.content[0] as { text: string }).text);
 };
 
-it("exposes exactly the four coordination tools", () => {
+it("exposes exactly the six coordination tools", () => {
   assert.deepEqual(createResidentTools(host()).map(tool => tool.name), residentToolNames);
 });
 
@@ -44,6 +46,17 @@ it("passes inbox filters through with sane defaults", async () => {
   const tools = createResidentTools(host());
   assert.equal((await run(tools, "list_inbox_items", { pendingOnly: true })).items[0].summary, "pending");
   assert.equal((await run(tools, "list_inbox_items", {})).items[0].summary, "all");
+});
+
+it("uses a task ID, not a conversation ID, to read results and continue tasks", async () => {
+  const h = host({ continueTask: async (taskId, text) => {
+    assert.equal(taskId, "t1");
+    assert.equal(text, "What was verified?");
+    return { ok: true, taskId, status: "queued" };
+  } });
+  const tools = createResidentTools(h);
+  assert.equal((await run(tools, "read_task_result", { taskId: "t1", conversationId: "unrelated" })).text, "last report");
+  assert.deepEqual(await run(tools, "send_to_task", { taskId: "t1", text: "What was verified?" }), { ok: true, taskId: "t1", status: "queued" });
 });
 
 it("delegation forwards only workspace, title and prompt, and returns the host's verdict", async () => {
@@ -87,7 +100,7 @@ it("authorization denies files, commands, MCP and memory for the resident", () =
     assert.match(result.allowed ? "" : result.reason, /常驻 Agent/);
   }
   for (const name of ["ask_user_question", ...residentToolNames]) assert.deepEqual(call(name), { allowed: true });
-  assert.equal(l.authorize({ mode: "agent", toolName: "delegate_workspace_task", input: {} }, conversation("chat")).allowed, false, "ordinary chats cannot delegate");
+  for (const name of residentToolNames) assert.equal(l.authorize({ mode: "agent", toolName: name, input: {} }, conversation("chat")).allowed, false, name);
 });
 
 it("without a resident option nothing is registered and nothing is special-cased", () => {

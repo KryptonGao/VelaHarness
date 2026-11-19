@@ -259,6 +259,7 @@ const api: VelaApi = {
     updateSettings: patch => ipcRenderer.invoke(ResidentIpc.updateSettings, patch),
     cancelTask: id => ipcRenderer.invoke(ResidentIpc.cancelTask, id),
     getMessages: () => ipcRenderer.invoke(ResidentIpc.messages),
+    setPageVisible: visible => ipcRenderer.invoke(ResidentIpc.pageVisible, visible),
     subscribe: listener => {
       const handler = (_event: IpcRendererEvent, status: ResidentStatus) => listener(status);
       ipcRenderer.on(ResidentIpc.statusChange, handler);

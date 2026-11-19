@@ -13,6 +13,7 @@ import { stateLabel } from "./resident-agent-model";
 import {
   agentInboxOverview,
   agentInboxTypes,
+  agentInboxUnreadCount,
   agentInboxViewCount,
   agentInboxViews,
   filterAgentInboxItems,
@@ -37,6 +38,7 @@ const typeLabels: Record<AgentInboxItemType, () => string> = {
   error: () => tr("失败", "Failure"),
   alert: () => tr("提醒", "Alert"),
   suggestion: () => tr("建议", "Suggestion"),
+  message: () => tr("Resident Agent 消息", "Resident Agent message"),
   system: () => tr("系统", "System"),
 };
 
@@ -76,7 +78,7 @@ export function statusLabel(item: AgentInboxItem): string {
       if (item.outcome === "approved") return tr("已批准", "Approved");
       if (item.outcome === "answered") return tr("已回答", "Answered");
       if (item.outcome === "acknowledged") return tr("已确认", "Acknowledged");
-      return item.type === "result" || item.type === "system" ? "" : tr("已完成", "Done");
+      return item.type === "result" || item.type === "system" || item.type === "message" ? "" : tr("已完成", "Done");
   }
 }
 
@@ -109,7 +111,7 @@ function InboxTime({ at }: { at: number }) {
 
 function TypeMark({ type }: { type: AgentInboxItemType }) {
   return <span className={`agent-inbox-mark type-${type}`} aria-hidden="true">
-    {type === "approval" ? <Icon name="shield" size={16} /> : type === "question" ? <Icon name="question" size={16} /> : <Icon name="inbox" size={16} />}
+    <Icon name={type === "approval" ? "shield" : type === "question" ? "question" : type === "message" ? "chat" : "inbox"} size={16} />
   </span>;
 }
 
@@ -146,7 +148,7 @@ function Row({ item, selected, busy, onSelect, onDecide }: {
   </div>;
 }
 
-function Detail({ item, busy, notice, onDecide, onArchive, onBack, onOpenConversation }: {
+function Detail({ item, busy, notice, onDecide, onArchive, onBack, onOpenConversation, onOpenResident }: {
   item: AgentInboxItem;
   busy: boolean;
   notice: string | null;
@@ -154,6 +156,7 @@ function Detail({ item, busy, notice, onDecide, onArchive, onBack, onOpenConvers
   onArchive: (item: AgentInboxItem) => void;
   onBack: () => void;
   onOpenConversation: (id: string) => void;
+  onOpenResident: () => void;
 }) {
   const pending = item.status === "pending";
   const status = statusLabel(item);
@@ -192,7 +195,8 @@ function Detail({ item, busy, notice, onDecide, onArchive, onBack, onOpenConvers
 
     <div className="agent-inbox-actions">
       {pending && (item.type === "error" || item.type === "review") ? <button type="button" className="agent-inbox-primary" disabled={busy} onClick={() => onDecide(item, "acknowledge")}>{tr("标为已确认", "Mark as acknowledged")}</button> : null}
-      {item.conversationId ? <button type="button" onClick={() => onOpenConversation(item.conversationId!)}>{tr("打开对话", "Open conversation")}</button> : null}
+      {item.type === "message" ? <button type="button" onClick={onOpenResident}>{tr("打开 Resident Agent", "Open Resident Agent")}</button>
+        : item.conversationId ? <button type="button" onClick={() => onOpenConversation(item.conversationId!)}>{tr("打开对话", "Open conversation")}</button> : null}
       <button type="button" onClick={() => onArchive(item)} title={pending ? tr("归档只改变显示，不会处理这个请求", "Archiving only changes how it's shown. It doesn't act on the request") : undefined}>
         {item.readState === "archived" ? tr("取消归档", "Unarchive") : tr("归档", "Archive")}
       </button>
@@ -253,6 +257,7 @@ export function AgentInboxPage({ active, sidebarCollapsed, onToggleSidebar, onOp
   const list = useMemo(() => filterAgentInboxItems(snapshot.items, { view, type, search }), [snapshot.items, view, type, search]);
   const overview = useMemo(() => agentInboxOverview(snapshot.items), [snapshot.items]);
   const types = useMemo(() => agentInboxTypes(snapshot.items), [snapshot.items]);
+  const unread = useMemo(() => agentInboxUnreadCount(snapshot.items), [snapshot.items]);
   const selected = resolveSelection(snapshot.items, selectedId);
   const grouped = view === "overview" && !filtering;
 
@@ -270,6 +275,7 @@ export function AgentInboxPage({ active, sidebarCollapsed, onToggleSidebar, onOp
     } finally { setBusyId(null); }
   };
   const archive = (item: AgentInboxItem) => { void store?.archive(item, item.readState !== "archived"); };
+  const openResident = () => { setSection("resident"); setSelectedId(null); };
 
   const emptyText = view === "needs_action" ? tr("没有需要你处理的事项。", "Nothing needs your attention.")
     : view === "archive" ? tr("没有归档的事项。", "No archived items.")
@@ -283,6 +289,7 @@ export function AgentInboxPage({ active, sidebarCollapsed, onToggleSidebar, onOp
       <span className="agent-inbox-summary" role="status">
         {snapshot.badge > 0 ? trf("{0} 项需要处理", "{0} need your attention", snapshot.badge) : tr("没有待处理事项", "All caught up")}
       </span>
+      {unread > 0 ? <span className="agent-inbox-unread-count" role="status">{trf("{0} 项未读", "{0} unread", unread)}</span> : null}
     </header>
     {snapshot.loadError || snapshot.error ? <p className="agent-inbox-banner" role="alert">{snapshot.loadError ?? snapshot.error}</p> : null}
     <div className="agent-inbox-body" data-mode={section === "resident" ? "resident" : selected ? "detail" : "list"}>
@@ -293,14 +300,14 @@ export function AgentInboxPage({ active, sidebarCollapsed, onToggleSidebar, onOp
           <span className="agent-inbox-count" data-urgent={value === "needs_action" && snapshot.badge > 0 ? "" : undefined}>{value === "needs_action" ? snapshot.badge : agentInboxViewCount(snapshot.items, value)}</span>
         </button>)}
         <button type="button" className="agent-inbox-nav-resident" aria-current={section === "resident" ? "page" : undefined}
-          onClick={() => { setSection("resident"); setSelectedId(null); }}>
+          onClick={openResident}>
           <span>Resident Agent</span>
           <span className="resident-dot resident-nav-dot" role="img" aria-label={resident.status ? stateLabel(resident.status.state) : tr("未运行", "Offline")} title={resident.status ? stateLabel(resident.status.state) : undefined}
             data-state={resident.status?.state ?? "offline"} />
         </button>
       </nav>
       {section === "resident" ? <div className="agent-inbox-resident">
-        <ResidentAgentView api={resident.api} status={resident.status} settings={resident.settings} rules={resident.rules} error={resident.error}
+        <ResidentAgentView active={active} api={resident.api} status={resident.status} settings={resident.settings} rules={resident.rules} error={resident.error}
           messageStore={messageStore} ensureTranscript={ensureTranscript} onOpenConversation={onOpenConversation} onSettings={resident.setSettings}
           catalog={catalog} catalogError={catalogError} />
       </div> : <>
@@ -334,7 +341,7 @@ export function AgentInboxPage({ active, sidebarCollapsed, onToggleSidebar, onOp
       <div className="agent-inbox-detail-pane autohide-scrollbar">
         {selected
           ? <Detail key={selected.id} item={selected} busy={busyId === selected.id} notice={notice?.id === selected.id ? notice.text : null}
-            onDecide={decide} onArchive={archive} onBack={() => setSelectedId(null)} onOpenConversation={onOpenConversation} />
+            onDecide={decide} onArchive={archive} onBack={() => setSelectedId(null)} onOpenConversation={onOpenConversation} onOpenResident={openResident} />
           : <p className="agent-inbox-empty">{tr("选择一个事项查看详情。", "Select an item to see its details.")}</p>}
       </div>
       </>}

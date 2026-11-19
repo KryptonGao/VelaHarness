@@ -399,6 +399,8 @@ async function start(): Promise<void> {
         workspaces: () => residentSupervisor?.workspaces() ?? [],
         tasks: () => residentSupervisor?.tasks() ?? [],
         inbox: filter => residentSupervisor?.inbox(filter) ?? [],
+        readTaskResult: taskId => residentSupervisor?.readTaskResult(taskId) ?? { ok: false, reason: "unavailable" },
+        continueTask: (taskId, text, signal) => residentSupervisor?.continueTask(taskId, text, signal) ?? Promise.resolve({ ok: false as const, reason: "unavailable" }),
         delegate: input => residentSupervisor ? residentSupervisor.delegate(input) : Promise.resolve({ ok: false as const, reason: "常驻 Agent 尚未就绪" }),
       },
     },
@@ -562,6 +564,7 @@ async function start(): Promise<void> {
       },
       workspaces: registeredWorkspaces,
       sandboxMode: () => sandbox.getMode(),
+      onWakeReply: reply => { if (!residentHost?.isPageVisible()) agentInboxAdapter?.recordWakeReply(reply); },
     });
     supervisor.init();
     residentSupervisor = supervisor;
@@ -596,6 +599,8 @@ async function start(): Promise<void> {
     agentInboxAdapter = new AgentInboxAdapter({
       service: inbox, runtime, sandbox, scheduler, approvalTimeoutMs: sandboxApprovalTimeoutMs,
       tasks: {
+        isWaking: conversationId => supervisor.isWaking(conversationId),
+        onInboxEvent: (kind, title, summary) => supervisor.onInboxEvent(kind, title, summary),
         classify: conversationId => {
           if (supervisor.isResidentConversation(conversationId)) return { isResident: true, origin: "resident" };
           const task = supervisor.taskForConversation(conversationId);
@@ -622,6 +627,7 @@ async function start(): Promise<void> {
     agentInboxNotifier = new AgentInboxNotifier({
       settings: () => supervisor.getSettings(),
       locale: getApplicationLocale,
+      residentVisible: () => residentHost?.isPageVisible() ?? false,
       appFocused: () => BrowserWindow.getAllWindows().some(window => !window.isDestroyed() && window.isFocused() && window.isVisible()),
       show: note => {
         if (!Notification.isSupported()) return;

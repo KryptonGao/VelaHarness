@@ -66,9 +66,10 @@ const mockScript = String.raw`
     const ruleListeners = new Set();
     const settings = { mode: "standby", model: null, thinkingLevel: null, paused: false, showMenuBarIcon: true, launchAtLogin: false, quitWhenWindowsClosed: false,
       notifications: { enabled: true, hidePreview: false, notifyResults: false, quietHours: { enabled: false, startMinute: 1320, endMinute: 480 } },
-      limits: { maxConcurrentTasks: 2, maxTaskMinutes: 60, dailyProactiveRuns: 10, pauseProactiveOnBattery: true } };
+      limits: { maxConcurrentTasks: 2, maxTaskMinutes: 60, dailyProactiveRuns: 10, maxWakesPerDay: 30, pauseProactiveOnBattery: true } };
     const status = { state: "ready", mode: "standby", paused: false, conversationId: "res1", model: "test-model", residentBusy: false, runningTasks: 1, queuedTasks: 0,
       waitingItems: 0, pendingItems: 2, lastActivityAt: now - 5000, suspended: false, onBattery: false, error: null, proactiveRunsToday: 0,
+      wakesToday: 0, lastWakeSkip: null, wakeCards: [],
       tasks: [
         { id: "t1", title: "Check build", prompt: "p", workspace: "/work/app", source: "agent", status: "running", conversationId: "c9", createdAt: now - 1000, startedAt: now - 900, finishedAt: null },
         { id: "t2", title: "Lint", prompt: "p", workspace: "/work/app", source: "rule", reason: "Rule X: file changed", status: "failed", error: "exit code 2", conversationId: null, createdAt: now - 90000, startedAt: now - 80000, finishedAt: now - 70000 },
@@ -77,10 +78,11 @@ const mockScript = String.raw`
     const derive = () => { status.state = settings.paused ? "paused" : settings.mode === "disabled" ? "offline" : status.runningTasks ? "working" : "ready"; status.mode = settings.mode; status.paused = settings.paused; status.revision += 1; };
     const emitStatus = () => { derive(); for (const listener of statusListeners) listener(clone(status)); };
     const emitRules = () => { for (const listener of ruleListeners) listener(clone({ rules, error: null })); };
-    window.residentFixture = { calls: [], rules: () => rules };
+    window.residentFixture = { calls: [], rules: () => rules, setStatus(patch) { Object.assign(status, patch); emitStatus(); } };
     const call = (method, args) => window.residentFixture.calls.push({ method, ...args });
     return {
       getStatus: async () => { derive(); return clone(status); },
+      setPageVisible: async (visible) => { call('setPageVisible', { visible }); },
       getSettings: async () => clone(settings),
       updateSettings: async (patch) => {
         call("updateSettings", { patch });
@@ -132,20 +134,23 @@ if (!process.versions.electron) {
       import React from 'react';
       import { createRoot } from 'react-dom/client';
       import { AgentInboxPage } from './apps/desktop/src/renderer/components/AgentInboxPage';
+      import { residentWakeMarker } from './packages/shared/src/resident-agent';
       import { setActiveLocale } from './apps/desktop/src/renderer/locale';
       import { createMessageStore, messageScope } from './apps/desktop/src/renderer/hooks/message-store';
       const root = createRoot(document.getElementById('root'));
       window.opened = [];
       window.handled = [];
       window.transcripts = [];
-      window.messageStore = createMessageStore((callback) => { callback(); return () => {}; });
+      window.messageStore = createMessageStore();
       window.messageScope = messageScope;
+      window.residentWakeMarker = residentWakeMarker;
       let currentLocale = 'en';
+      let active = true;
       let navigation = null;
       let nonce = 0;
       const ensureTranscript = (id) => { window.transcripts.push(id); };
       const handled = (value) => { window.handled.push(value); if (navigation?.nonce === value) { navigation = null; window.renderInbox(currentLocale); } };
-      window.renderInbox = (locale) => { currentLocale = locale; setActiveLocale(locale); root.render(<AgentInboxPage key={locale} active sidebarCollapsed={false} onToggleSidebar={() => {}} onOpenConversation={(id) => window.opened.push(id)}
+      window.renderInbox = (locale) => { currentLocale = locale; setActiveLocale(locale); root.render(<AgentInboxPage key={locale} active={active} sidebarCollapsed={false} onToggleSidebar={() => {}} onOpenConversation={(id) => window.opened.push(id)}
         messageStore={window.messageStore} ensureTranscript={ensureTranscript} navigation={navigation} onNavigationHandled={handled}
         catalog={{ providers: [], error: null, models: [
           { provider: 'anthropic', providerName: 'Anthropic', id: 'big', name: 'Big', reasoning: true, contextWindow: 200000, available: true, custom: false, thinkingLevels: ['off', 'low', 'high'] },
@@ -153,6 +158,7 @@ if (!process.versions.electron) {
           { provider: 'other', providerName: 'Other', id: 'locked', name: 'Locked', reasoning: true, contextWindow: 1000, available: false, custom: false, thinkingLevels: ['off', 'low'] },
         ] }} catalogError={null} />); };
       window.navigate = (target) => { nonce += 1; navigation = { target, nonce }; window.renderInbox(currentLocale); };
+      window.setInboxActive = (value) => { active = value; window.renderInbox(currentLocale); };
       window.renderInbox('en');
     `,
         resolveDir: resolve(here, "../../.."),
@@ -209,6 +215,8 @@ if (!process.versions.electron) {
       const clickText = (selector, label) => evaluate(`Array.from(document.querySelectorAll(${JSON.stringify(selector)})).find(node => node.textContent.includes(${JSON.stringify(label)})).click()`);
       const rows = () => evaluate("Array.from(document.querySelectorAll('.agent-inbox-row')).map(node => node.querySelector('strong').textContent)");
       const navCount = (label) => evaluate(`Array.from(document.querySelectorAll('.agent-inbox-nav button')).find(node => node.textContent.startsWith(${JSON.stringify(label)})).querySelector('.agent-inbox-count').textContent`);
+      const unreadCount = async () => parseInt(await text('.agent-inbox-unread-count'), 10) || 0;
+      const lastVisibility = "residentFixture.calls.filter(call => call.method === 'setPageVisible').at(-1)?.visible";
       const capture = async (name) => {
         if (!process.env.VELA_AGENT_INBOX_UI_CAPTURE) return;
         await new Promise((res) => setTimeout(res, 250));
@@ -407,6 +415,12 @@ if (!process.versions.electron) {
       assert.equal(await evaluate("document.querySelector('.resident-modes [aria-checked=true]').textContent"), "Standby");
       assert.match(await text(".resident-state"), /1 running/);
       assert.match(await text(".resident-facts"), /test-model/);
+      await until(lastVisibility + ' === true');
+      await evaluate('window.setInboxActive(false)');
+      await until(lastVisibility + ' === false');
+      assert.equal(await evaluate("!!document.querySelector('.resident-view')"), true, "hiding the outer page does not unmount Resident");
+      await evaluate('window.setInboxActive(true)');
+      await until(lastVisibility + ' === true');
       await capture("resident");
       console.log("PASS the Resident view shows real state, mode and model");
 
@@ -441,6 +455,49 @@ if (!process.versions.electron) {
       assert.deepEqual(await evaluate("window.residentFixture.calls.find(call => call.method === 'submit').input"), { text: "Run the api tests", workspace: "/work/api" });
       await until("document.querySelector('#resident-input').value === ''");
       console.log("PASS the Resident chat renders Intelligent UI and routes input to the right target");
+
+      // Event groups render only trusted Host markers, and NO_REPLY hides the entire turn.
+      await evaluate(`(() => {
+        const [first, second, unknown] = [1, 2, 3].map(n => '00000000-0000-4000-8000-00000000000' + n);
+        const cards = [
+          { id: first, state: 'replied', events: [{ kind: 'task', taskId: 't1', title: 'Build <b>check</b>', status: 'succeeded' }, { kind: 'approval_expired', title: 'Compile approval' }] },
+          { id: second, state: 'running', events: [{ kind: 'failure', title: 'Quiet failure' }] },
+        ];
+        residentFixture.setStatus({ wakeCards: cards, wakesToday: 2, residentBusy: true });
+        const msg = (id, role, text, tools = []) => ({ id, role, text, thinking: '', tools });
+        const envelope = (id, body) => residentWakeMarker(id) + '\\n' + body;
+        const turns = [
+          msg('e1', 'user', envelope(first, 'RAW HOST PAYLOAD')),
+          msg('a1', 'assistant', 'Build checks passed.'),
+          msg('e2', 'user', envelope(second, 'SILENT HOST PAYLOAD')),
+          msg('a2', 'assistant', 'Draft before silence', [{ id: 'tc2', name: 'read_task_result', status: 'done', activity: {} }]),
+          msg('a3', 'assistant', 'NO_REPLY'),
+        ];
+        window.messageStore.publish(window.messageScope('res1'), turns);
+        window.finishQuietWake = () => {
+          residentFixture.setStatus({ wakeCards: [cards[0], { ...cards[1], state: 'silent' }], residentBusy: false,
+            lastWakeSkip: { at: Date.now(), reason: 'daily_limit' } });
+          window.messageStore.publish(window.messageScope('res1'), [
+            ...turns,
+            msg('n1', 'user', envelope(unknown, 'Ordinary user message')),
+            msg('n2', 'assistant', 'An ordinary reply about NO_REPLY'),
+          ]);
+        };
+      })()`);
+      await until("document.querySelectorAll('.resident-event-card').length === 2");
+      assert.match(await text('.resident-event-card'), /Background events[\s\S]*Build <b>check<\/b>Done[\s\S]*Compile approvalApproval expired/);
+      assert.equal(await evaluate("document.querySelector('.resident-event-card b')"), null, "event titles render as plain text");
+      assert.equal(await evaluate("document.querySelector('.resident-event-card button')"), null, "events are not editable user bubbles");
+      assert.match(await text('.resident-event-progress'), /Reviewing events/);
+      assert.doesNotMatch(await text('.resident-messages'), /NO_REPLY|Draft before silence|HOST PAYLOAD/);
+      await evaluate('window.finishQuietWake()');
+      await until("document.querySelectorAll('.resident-event-card').length === 1 && !!document.querySelector('.resident-messages .user-bubble')");
+      assert.match(await text('.resident-messages'), /Build checks passed[\s\S]*Ordinary user message[\s\S]*An ordinary reply about NO_REPLY/);
+      assert.doesNotMatch(await text('.resident-messages'), /Draft before silence|Quiet failure|Read task result|HOST PAYLOAD/);
+      assert.match(await text('.resident-facts'), /Event wakes today2 \/ 30/);
+      assert.match(await text('.resident-mode-note[role=status]'), /Daily wake limit reached/);
+      await capture('resident-event-card');
+      console.log('PASS trusted event cards, silent turns, and the wake budget display');
 
       // Tasks
       await clickText(".resident-tabs button", "Tasks");
@@ -485,7 +542,13 @@ if (!process.versions.electron) {
       await setField(".resident-number input", "4");
       await evaluate("document.querySelector('.resident-number input').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))");
       await until("window.residentFixture.calls.some(call => call.method === 'updateSettings' && call.patch.limits?.maxConcurrentTasks === 4)");
-      console.log("PASS settings send only the changed field");
+      const wakeLimit = ".resident-settings fieldset:last-child .resident-row:has(input[type=number][min='0']) + .resident-row:has(input[type=number][min='0']) input";
+      assert.equal(await evaluate(`document.querySelector(${JSON.stringify(wakeLimit)}).value`), '30');
+      await setField(wakeLimit, '0');
+      await evaluate(`document.querySelector(${JSON.stringify(wakeLimit)}).dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))`);
+      await until("window.residentFixture.calls.some(call => call.method === 'updateSettings' && call.patch.limits?.maxWakesPerDay === 0)");
+      assert.deepEqual(await evaluate("window.residentFixture.calls.filter(call => call.method === 'updateSettings').at(-1).patch"), { limits: { maxWakesPerDay: 0 } });
+      console.log("PASS settings send only the changed field, including turning event wakes off");
 
       // Model and reasoning effort
       const pick = (index, value) => evaluate(`(() => { const select = document.querySelectorAll('.resident-settings select')[${index}]; const setter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set; setter.call(select, ${JSON.stringify(value)}); select.dispatchEvent(new Event('change', { bubbles: true })); })()`);
@@ -522,12 +585,59 @@ if (!process.versions.electron) {
       assert.equal(await evaluate("window.handled.length"), 2, "every navigation request is consumed exactly once");
       console.log("PASS navigation requests open the item or the Resident view");
 
+      // Incoming wake messages are read-only activity, not items requiring action.
+      await clickText('.agent-inbox-nav button', 'Needs action');
+      await until(lastVisibility + ' === false');
+      const unreadBefore = await unreadCount();
+      const pendingBefore = await navCount('Needs action');
+      await evaluate(`(() => {
+        const now = Date.now();
+        fixture.contents.resmsg = { text: ${JSON.stringify(uiFence('Do not send', 'do not send'))}, conversationId: 'res1', uiOrdinal: 2 };
+        fixture.add({ id: 'resmsg', type: 'message', origin: 'resident', status: 'resolved', title: 'Resident Agent', summary: 'Build checks passed.',
+          sourceEventId: 'resident-wake:report', conversationId: 'res1', contentRef: { conversationId: 'res1', uiOrdinal: 2, fingerprint: 'abc' },
+          createdAt: now, updatedAt: now, detail: { kind: 'text', text: 'Build checks passed.' } });
+      })()`);
+      await until(`document.querySelector('.agent-inbox-unread-count')?.textContent === '${unreadBefore + 1} unread'`);
+      assert.equal(await navCount('Needs action'), pendingBefore);
+      assert.ok(!(await rows()).includes('Resident Agent message'));
+      await clickText('.agent-inbox-nav button', 'Activity');
+      await until("!!document.querySelector('.agent-inbox-row[data-unread] .type-message')");
+      await setField('.agent-inbox-filters select', 'message');
+      await until("document.querySelectorAll('.agent-inbox-row').length === 1");
+      await clickText('.agent-inbox-row', 'Resident Agent message');
+      await until("document.querySelector('.agent-inbox-detail .agent-inbox-text')?.textContent === 'Build checks passed.' && !document.querySelector('.agent-inbox-row[data-unread]')");
+      assert.equal(await unreadCount(), unreadBefore);
+      assert.equal(await evaluate("fixture.calls.some(call => call.id === 'resmsg' && (call.method === 'getContent' || call.method === 'submit'))"), false);
+      assert.equal(await evaluate("!!document.querySelector('.agent-inbox-detail .iui-button')"), false);
+      await clickText('.agent-inbox-actions button', 'Open Resident Agent');
+      await until(lastVisibility + ' === true');
+      assert.ok(!(await evaluate('window.opened')).includes('res1'), 'the hidden Resident conversation is never opened as a normal chat');
+      console.log('PASS Resident messages enter Activity, add only unread, and open the Resident page');
+
       await win.setContentSize(700, 800);
       await new Promise((res) => setTimeout(res, 150));
       assert.equal(await evaluate("document.documentElement.scrollWidth <= window.innerWidth"), true, "no horizontal scroll in the Resident view when narrow");
       await capture("resident-narrow");
       await win.setContentSize(1280, 800);
       console.log("PASS the Resident view fits narrow windows");
+
+      await evaluate(`(async () => {
+        const { wakeCards } = await window.vela.resident.getStatus();
+        residentFixture.setStatus({ wakeCards: wakeCards.map(card => ({ ...card, events: [] })) });
+      })()`);
+      await until("document.querySelectorAll('.resident-event-card').length === 1 && !document.querySelector('.resident-event-card ul')");
+      assert.equal(await text('.resident-event-card'), 'Background events');
+      assert.match(await text('.resident-messages'), /Build checks passed/);
+      assert.doesNotMatch(await text('.resident-messages'), /HOST PAYLOAD|Draft before silence|Quiet failure/);
+      console.log('PASS archived wakes render generic cards and archived silent turns stay hidden');
+
+      for (const [locale, label] of [['zh-CN', '后台事件'], ['zh-TW', '背景事件'], ['ja', 'バックグラウンドイベント'], ['ko', '백그라운드 이벤트']]) {
+        await evaluate(`window.renderInbox(${JSON.stringify(locale)})`);
+        await until("!document.querySelector('.resident-view')");
+        await clickText('.agent-inbox-nav button', 'Resident Agent');
+        await until(`document.querySelector('.resident-event-card')?.getAttribute('aria-label') === ${JSON.stringify(label)}`);
+      }
+      console.log('PASS event cards are localized in all five languages');
 
       assert.deepEqual(errors, [], "no renderer console errors");
       app.exit(0);

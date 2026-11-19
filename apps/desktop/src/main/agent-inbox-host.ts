@@ -54,14 +54,14 @@ export class AgentInboxHost {
 
   getContent(id: string): AgentInboxContent | null {
     const item = this.service.get(id);
-    if (!item?.contentRef || !this.runtime) return null;
+    if (!item?.contentRef || item.type === "message" || !this.runtime) return null;
     try { return resolveUiContent(this.runtime.getMessages(item.contentRef.conversationId), item.contentRef); }
     catch (error) { log.error("agent inbox content unavailable", error); return null; }
   }
 
   async submitToSource(id: string, text: string): Promise<AgentInboxSubmitResult> {
     const item = this.service.get(id);
-    if (!item?.conversationId || !this.runtime) return { ok: false, message: "没有可以回复的对话" };
+    if (!item?.conversationId || item.type === "message" || !this.runtime) return { ok: false, message: "没有可以回复的对话" };
     const clean = text.trim();
     if (!clean || clean.length > agentInboxLimits.maxAnswer) return { ok: false, message: "内容无效" };
     const sending = this.runtime.promptBackground(item.conversationId, clean).then(

@@ -15,16 +15,18 @@ function item(id: string, patch: Partial<AgentInboxItem> = {}): AgentInboxItem {
 function setup(patch: (settings: ResidentSettings) => ResidentSettings = settings => settings) {
   let now = new Date(2026, 9, 10, 12, 0).getTime();
   let focused = false;
+  let residentVisible = false;
   let settings = patch(structuredClone(defaultResidentSettings));
   const shown: InboxNotification[] = [];
   const timers: Array<{ work: () => void; ms: number; cancelled: boolean }> = [];
   const notifier = new AgentInboxNotifier({
-    settings: () => settings, locale: () => "zh-CN", appFocused: () => focused, show: n => shown.push(n), now: () => now,
+    settings: () => settings, locale: () => "zh-CN", appFocused: () => focused, residentVisible: () => residentVisible, show: n => shown.push(n), now: () => now,
     schedule: (work, ms) => { const timer = { work, ms, cancelled: false }; timers.push(timer); return { cancel: () => { timer.cancelled = true; } }; },
   });
   return {
     notifier, shown, timers,
     setFocused: (value: boolean) => { focused = value; },
+    showResident: () => { residentVisible = true; },
     setSettings: (next: ResidentSettings) => { settings = next; },
     advance: (ms: number) => { now += ms; },
     at: (hour: number, minute = 0) => { now = new Date(2026, 9, 10, hour, minute).getTime(); },
@@ -57,6 +59,19 @@ it("ignores read items, plain results and resolved items by default", () => {
   assert.equal(s.shown.length, 0);
   s.setSettings({ ...defaultResidentSettings, notifications: { ...defaultResidentSettings.notifications, notifyResults: true } });
   s.notifier.onChange({ upserts: [item("done2", { type: "result", status: "resolved", detail: { kind: "text", text: "ok" } })] });
+  assert.equal(s.shown.length, 1);
+});
+
+it("notifies wake replies once away from Resident even in a focused window, without notifying the raw task result", () => {
+  const s = setup(settings => ({ ...settings, notifications: { ...settings.notifications, notifyResults: true } }));
+  const message = (id: string) => item(id, { type: "message", origin: "resident", status: "resolved", summary: "ready", detail: { kind: "text", text: "ready" } });
+  s.notifier.onChange({ upserts: [item("raw", { type: "result", origin: "resident", taskId: "t", status: "resolved" })] });
+  assert.equal(s.shown.length, 0);
+  s.setFocused(true);
+  s.notifier.onChange({ upserts: [message("wake"), message("wake")] });
+  assert.equal(s.shown[0]?.title, "Resident Agent 消息");
+  s.showResident();
+  s.notifier.onChange({ upserts: [message("visible")] });
   assert.equal(s.shown.length, 1);
 });
 

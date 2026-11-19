@@ -72,6 +72,7 @@
 | [requirements/task-recipes.md](./requirements/task-recipes.md) | 产品与开发者 | 任务配方需求基线：参数化模板、预览、新对话启动、版本快照与使用记录；P0/P1/P2 已实现。 |
 | [requirements/intelligent-ui.md](./requirements/intelligent-ui.md) | 产品与开发者 | Intelligent UI 需求：自适应回答、原生声明式组件、流式编译、安全交互、持久化及 P0–P2 验收；P0–P2 已实现，用户模板除外。 |
 | [requirements/agent-inbox.md](./requirements/agent-inbox.md) | 产品与开发者 | Agent Inbox 与常驻 Agent 需求：定位、阶段状态、关键约束、后续设计决定与验收；第一至第七阶段均已实现。 |
+| [requirements/resident-agent-autonomy.md](./requirements/resident-agent-autonomy.md) | 产品与开发者 | Resident Agent autonomy requirements: task results, follow-ups, and event-driven notifications are implemented in P1–P2; P3–P5 remain planned. |
 | [requirements/browser-annotations.md](./requirements/browser-annotations.md) | 产品与开发者 | 浏览器元素批注需求：在内置浏览器点选元素写批注，与“选中文字回复”共用卡片，随下一轮消息发送；P0–P2 分期、安全限制与验收；P0、框架源码定位与 Agent 读取复核已实现。 |
 | [requirements/competitive-gap-analysis.md](./requirements/competitive-gap-analysis.md) | 产品与开发者 | 竞品差距与新功能构想：对比 Codex、Claude Code、ZCode 缺失的能力，并按优先级列出构想；Historical proposal; Hooks implementation is documented separately. |
 

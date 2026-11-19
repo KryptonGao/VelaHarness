@@ -24,6 +24,7 @@ export interface AgentInboxNotifierOptions {
   locale: () => AppLocale;
   /** 应用窗口正在前台：徽标和页面已经可见，不再弹系统通知。 */
   appFocused: () => boolean;
+  residentVisible?: () => boolean;
   show: (notification: InboxNotification) => void;
   now?: () => number;
   /** 测试里替换成可控的定时器。 */
@@ -77,11 +78,13 @@ export class AgentInboxNotifier {
   private consider(item: AgentInboxItem): void {
     const settings = this.options.settings();
     if (!settings.notifications.enabled || item.readState !== "unread") return;
+    // The task's original Inbox record remains available; Resident's wake reply is the notification.
+    if (item.origin === "resident" && item.taskId && (item.type === "result" || item.type === "error")) return;
     const wanted = item.status === "pending" ? notifyTypes.has(item.type)
-      : item.type === "suggestion" || (item.type === "result" && settings.notifications.notifyResults);
+      : item.type === "message" || item.type === "suggestion" || (item.type === "result" && settings.notifications.notifyResults);
     if (!wanted) return;
     if (isQuietNow(settings.notifications.quietHours, new Date(this.now()))) return;
-    if (this.options.appFocused()) return;
+    if (item.type === "message" ? this.options.residentVisible?.() : this.options.appFocused()) return;
     const now = this.now();
     while (this.shownAt.length && now - this.shownAt[0]! >= notificationBurst.windowMs) this.shownAt.shift();
     if (this.shownAt.length >= notificationBurst.max) {
@@ -100,7 +103,8 @@ export class AgentInboxNotifier {
       this.flushTimer = null;
       const count = this.overflow;
       this.overflow = 0;
-      if (!count) return;
+      const settings = this.options.settings();
+      if (!count || !settings.notifications.enabled || isQuietNow(settings.notifications.quietHours, new Date(this.now()))) return;
       const locale = this.options.locale();
       this.options.show({
         title: "Vela",
@@ -127,6 +131,7 @@ export class AgentInboxNotifier {
       error: text("任务失败", "Task failed"),
       review: text("计划待检查", "Plan ready for review"),
       suggestion: text("Agent 的建议", "Agent suggestion"),
+      message: text("Resident Agent 消息", "Resident Agent message"),
       result: text("任务完成", "Task finished"),
     } as Record<string, string>)[item.type] ?? "Vela";
     const from = item.title && item.title !== subject ? `${item.title}\n` : "";

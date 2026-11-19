@@ -5,8 +5,13 @@ import { ResidentIpc } from "@vela/shared";
 
 const handlers = new Map<string, (...args: any[]) => any>();
 const sent: Array<{ channel: string; payload: unknown }> = [];
+let focused = true;
+let visible = true;
+const frame = {};
+const sender = Object.assign(new EventEmitter(), { id: 1, mainFrame: frame, isDestroyed: () => false, isLoadingMainFrame: () => false,
+  send: (channel: string, payload: unknown) => sent.push({ channel, payload }) });
 const windows = [
-  { isDestroyed: () => false, webContents: { isDestroyed: () => false, send: (channel: string, payload: unknown) => sent.push({ channel, payload }) } },
+  { isDestroyed: () => false, isFocused: () => focused, isVisible: () => visible, webContents: sender },
   { isDestroyed: () => true, webContents: { isDestroyed: () => false, send: () => { throw new Error("destroyed window must be skipped"); } } },
 ];
 mock.module("electron", { namedExports: {
@@ -41,8 +46,6 @@ function fixture() {
   };
   const host = new ResidentAgentHost(supervisor, rules);
   host.register();
-  const frame = {};
-  const sender = Object.assign(new EventEmitter(), { id: 1, mainFrame: frame });
   return {
     host, calls, event: { sender, senderFrame: frame }, foreign: { sender, senderFrame: {} },
     invoke: (channel: string, ...args: unknown[]) => handlers.get(channel)!(...args),
@@ -53,7 +56,7 @@ function fixture() {
 
 it("only the app window's main frame may call, before anything is touched", async () => {
   const f = fixture();
-  for (const channel of [ResidentIpc.status, ResidentIpc.submit, ResidentIpc.pause, ResidentIpc.resume, ResidentIpc.getSettings, ResidentIpc.updateSettings, ResidentIpc.cancelTask, ResidentIpc.messages, ResidentIpc.rulesList, ResidentIpc.rulesSave, ResidentIpc.rulesRemove]) {
+  for (const channel of [ResidentIpc.status, ResidentIpc.submit, ResidentIpc.pause, ResidentIpc.resume, ResidentIpc.getSettings, ResidentIpc.updateSettings, ResidentIpc.cancelTask, ResidentIpc.messages, ResidentIpc.pageVisible, ResidentIpc.rulesList, ResidentIpc.rulesSave, ResidentIpc.rulesRemove]) {
     assert.match(String(await fails(() => f.invoke(channel, f.foreign, { text: "x" }))), /应用窗口/, channel);
   }
   assert.deepEqual(f.calls, []);
@@ -88,6 +91,23 @@ it("passes valid requests through and returns the authoritative status", async (
   assert.deepEqual(f.calls.map(call => call[0]), ["pause", "resume", "cancelTask", "updateSettings", "saveRule", "saveRule", "removeRule"]);
   assert.deepEqual(f.calls[4]![1], { input: { title: "t" }, id: undefined });
   assert.deepEqual(f.calls[5]![1], { input: { title: "t" }, id: "rule-1" });
+  f.host.dispose();
+});
+
+it("suppresses away delivery only for a visible Resident page in a focused window", async () => {
+  const f = fixture();
+  assert.ok(await fails(() => f.invoke(ResidentIpc.pageVisible, f.event, "true")));
+  assert.equal(f.host.isPageVisible(), false);
+  f.invoke(ResidentIpc.pageVisible, f.event, true);
+  assert.equal(f.host.isPageVisible(), true);
+  focused = false;
+  assert.equal(f.host.isPageVisible(), false);
+  focused = true;
+  visible = false;
+  assert.equal(f.host.isPageVisible(), false);
+  visible = true;
+  f.invoke(ResidentIpc.pageVisible, f.event, false);
+  assert.equal(f.host.isPageVisible(), false);
   f.host.dispose();
 });
 

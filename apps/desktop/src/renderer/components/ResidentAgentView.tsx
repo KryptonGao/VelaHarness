@@ -3,6 +3,7 @@ import {
   mayContainUi,
   residentLimits,
   residentModes,
+  residentWakeId,
   type ModelCatalog,
   type ProactiveRulesState,
   type ResidentAgentApi,
@@ -10,6 +11,8 @@ import {
   type ResidentSettings,
   type ResidentStatus,
   type ResidentSubmitFailure,
+  type ResidentWakeCard,
+  type ResidentWakeEvent,
 } from "@vela/shared";
 import { activeIntlLocale, tr, trf } from "../locale";
 import type { MessageStore } from "../hooks/message-store";
@@ -22,7 +25,7 @@ import { Markdown } from "./Markdown";
 import { UserMessageFrame } from "./UserMessageFrame";
 import { ProactiveRulesPanel } from "./ProactiveRulesPanel";
 import { ResidentSettingsPanel } from "./ResidentSettingsPanel";
-import { modeDescription, modeLabel, stateLabel, statusSummary, taskErrorText, taskSourceLabel, taskStatusLabel } from "./resident-agent-model";
+import { modeDescription, modeLabel, stateLabel, statusSummary, taskErrorText, taskSourceLabel, taskStatusLabel, wakeSkipReasonLabel } from "./resident-agent-model";
 import { useSlidingTabIndicator } from "./useSlidingTabIndicator";
 import { Icon } from "./icons";
 
@@ -42,6 +45,8 @@ const toolLabels: Record<string, () => string> = {
   list_background_tasks: () => tr("查询后台任务", "Checked background tasks"),
   list_inbox_items: () => tr("查询收件箱", "Checked the Inbox"),
   delegate_workspace_task: () => tr("创建后台任务", "Created a background task"),
+  read_task_result: () => tr("读取任务结果", "Read task result"),
+  send_to_task: () => tr("继续后台任务", "Continued a background task"),
   ask_user_question: () => tr("向你提问", "Asked you a question"),
 };
 
@@ -97,6 +102,50 @@ function ResidentReplyActions({ text, timestamp }: { text: string; timestamp: nu
   </div>;
 }
 
+function wakeEventLabel(event: ResidentWakeEvent): string {
+  if (event.kind === "task") return taskStatusLabel(event.status);
+  return event.kind === "approval_expired" ? tr("审批已过期", "Approval expired") : tr("失败事项", "Failure reported");
+}
+
+function ResidentEventCard({ card }: { card: ResidentWakeCard }) {
+  const label = tr("后台事件", "Background events");
+  return <article className="resident-event-card" aria-label={label}>
+    <header>
+      <Icon name="bell" size={16} />
+      <strong>{label}</strong>
+    </header>
+    {card.events.length > 0 ? <ul>
+      {card.events.map((event, index) => <li key={index}>
+        {event.title ? <span>{event.title}</span> : null}
+        <span className={event.title ? "resident-event-kind" : undefined}>{wakeEventLabel(event)}</span>
+      </li>)}
+    </ul> : null}
+    {card.state === "running" ? <p className="resident-event-progress" role="status">{tr("正在处理事件…", "Reviewing events…")}</p> : null}
+    {card.state === "failed" ? <p className="resident-event-progress" role="status">{tr("未能处理这些事件。", "Couldn't process these events.")}</p> : null}
+  </article>;
+}
+
+type ChatRow = { message: UiMessage; card?: ResidentWakeCard };
+
+function visibleChatRows(messages: readonly UiMessage[], cards: readonly ResidentWakeCard[]): ChatRow[] {
+  const byId = new Map(cards.map(card => [card.id, card]));
+  const rows: ChatRow[] = [];
+  let wake: ResidentWakeCard | undefined;
+  for (const message of messages) {
+    if (message.role === "user") {
+      const id = residentWakeId(message.text);
+      wake = id ? byId.get(id) : undefined;
+      // Treat only Host-registered prompts as events, and consume each event ID once.
+      if (id && wake) byId.delete(id);
+      if (wake?.state !== "silent") rows.push({ message, ...(wake ? { card: wake } : {}) });
+    } else if (!wake || wake.state === "replied") {
+      // Don't flash a partial wake reply (including the NO_REPLY marker) while it streams.
+      rows.push({ message });
+    }
+  }
+  return rows;
+}
+
 function Chat({ api, status, settings, messageStore, notice, setNotice }: {
   api: ResidentAgentApi;
   status: ResidentStatus;
@@ -106,6 +155,7 @@ function Chat({ api, status, settings, messageStore, notice, setNotice }: {
   setNotice: (text: string | null) => void;
 }) {
   const messages = useMessages(messageStore, status.conversationId);
+  const rows = useMemo(() => visibleChatRows(messages, status.wakeCards), [messages, status.wakeCards]);
   const [text, setText] = useState("");
   const [workspace, setWorkspace] = useState("");
   const [sending, setSending] = useState(false);
@@ -144,7 +194,7 @@ function Chat({ api, status, settings, messageStore, notice, setNotice }: {
   useEffect(() => {
     const list = listRef.current;
     if (list && stick.current) list.scrollTop = list.scrollHeight;
-  }, [messages]);
+  }, [rows]);
 
   const submitRef = useRef(submit);
   submitRef.current = submit;
@@ -165,10 +215,11 @@ function Chat({ api, status, settings, messageStore, notice, setNotice }: {
   return <div className="resident-chat">
     <div className="resident-messages autohide-scrollbar" ref={listRef} role="log" aria-label={tr("与 Resident Agent 的对话", "Conversation with Resident Agent")}
       onScroll={event => { const el = event.currentTarget; stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 48; }}>
-      {messages.length === 0
+      {rows.length === 0
         ? <p className="agent-inbox-empty">{tr("还没有对话。告诉它你想让后台处理什么，比如「检查一下 api 项目最近的失败测试」。", "No conversation yet. Tell it what to handle in the background, e.g. “check the failing tests in the api project”.")}</p>
         : <UiHostProvider value={uiHost}>
-          {messages.map((message, index) => <ResidentMessage key={message.id} message={message} streaming={status.residentBusy && index === lastIndex} editDisabled={status.residentBusy || Boolean(blocked)} onResend={resend} />)}
+          {rows.map(({ message, card }) => card ? <ResidentEventCard key={message.id} card={card} />
+            : <ResidentMessage key={message.id} message={message} streaming={status.residentBusy && message === messages[lastIndex]} editDisabled={status.residentBusy || Boolean(blocked)} onResend={resend} />)}
         </UiHostProvider>}
     </div>
     {notice ? <p className="agent-inbox-notice" role="alert">{notice}</p> : null}
@@ -233,7 +284,8 @@ function Tasks({ api, status, onOpenConversation }: { api: ResidentAgentApi; sta
   </div>;
 }
 
-export function ResidentAgentView({ api, status, settings, rules, messageStore, ensureTranscript, onOpenConversation, onSettings, error, catalog = null, catalogError = null, initialTab = "chat" }: {
+export function ResidentAgentView({ active, api, status, settings, rules, messageStore, ensureTranscript, onOpenConversation, onSettings, error, catalog = null, catalogError = null, initialTab = "chat" }: {
+  active: boolean;
   api: ResidentAgentApi | null;
   status: ResidentStatus | null;
   settings: ResidentSettings | null;
@@ -253,6 +305,12 @@ export function ResidentAgentView({ api, status, settings, rules, messageStore, 
   const [pending, setPending] = useState(false);
   const conversationId = status?.conversationId ?? null;
   useEffect(() => { if (conversationId) ensureTranscript(conversationId); }, [conversationId, ensureTranscript]);
+  // AgentInboxPage stays mounted behind other app pages, so mounting alone isn't visibility.
+  useEffect(() => {
+    if (!active || !api) return;
+    void api.setPageVisible(true).catch(() => {});
+    return () => { void api.setPageVisible(false).catch(() => {}); };
+  }, [active, api]);
 
   if (!api) return <p className="agent-inbox-empty">{tr("当前环境不支持 Resident Agent。", "Resident Agent isn't available here.")}</p>;
   if (!status || !settings) return <p className="agent-inbox-empty" role="status">{error ?? tr("正在读取…", "Loading…")}</p>;
@@ -304,7 +362,11 @@ export function ResidentAgentView({ api, status, settings, rules, messageStore, 
         <dt>{tr("模型", "Model")}</dt><dd>{status.model ?? tr("使用当前默认模型", "Default model")}</dd>
         <dt>{tr("最近活动", "Last activity")}</dt><dd>{status.lastActivityAt ? formatTime(status.lastActivityAt) : tr("暂无", "None yet")}</dd>
         {settings.mode === "proactive" ? <><dt>{tr("今日主动运行", "Proactive runs today")}</dt><dd>{status.proactiveRunsToday} / {settings.limits.dailyProactiveRuns}</dd></> : null}
+        <dt>{tr("今日事件唤醒", "Event wakes today")}</dt><dd>{status.wakesToday} / {settings.limits.maxWakesPerDay}</dd>
       </dl>
+      {status.lastWakeSkip ? <p className="resident-mode-note" title={formatTime(status.lastWakeSkip.at)} role="status">
+        {trf("上次未唤醒：{0}", "Last skipped wake: {0}", wakeSkipReasonLabel(status.lastWakeSkip.reason))}
+      </p> : null}
     </header>
     <nav ref={slider.navRef} className="conversation-view-tabs resident-tabs" role="tablist" aria-label={tr("Resident Agent 分区", "Resident Agent sections")}
       onPointerMove={slider.onPointerMove} onPointerLeave={slider.onPointerLeave}>

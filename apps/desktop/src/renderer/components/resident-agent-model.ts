@@ -28,9 +28,18 @@ export const modeLabel = (mode: ResidentMode): string => ({
 
 export const modeDescription = (mode: ResidentMode): string => ({
   disabled: tr("不创建新的后台任务，也不监听任何事件。已经在运行的对话不受影响。", "No new background tasks and no event listening. Conversations already running aren't affected."),
-  standby: tr("只处理你交给它的任务；没有新事件时不会调用模型。", "Only handles tasks you hand over. The model isn't called when nothing new happens."),
+  standby: tr("处理你交给它的任务，并汇报后台事件。没有新事件时不会调用模型。", "Handles tasks you hand over and reports background events. The model isn't called while idle."),
   proactive: tr("在待命的基础上，按你订阅的规则在事件发生时主动分析。每次触发都会调用模型并产生费用。", "On top of Standby, analyses on its own when an event matches a rule you subscribed to. Every run calls the model and costs money."),
 } as const)[mode];
+
+export const wakeSkipReasonLabel = (reason: NonNullable<ResidentStatus["lastWakeSkip"]>["reason"]): string => {
+  switch (reason) {
+    case "daily_limit": return tr("已达到每日唤醒上限", "Daily wake limit reached");
+    case "disabled": return tr("Resident Agent 已关闭", "Resident Agent is off");
+    case "paused": return tr("后台自动任务已暂停", "Background tasks are paused");
+    case "queue_full": return tr("事件队列已满", "The event queue is full");
+  }
+};
 
 export const taskStatusLabel = (status: ResidentTaskStatus): string => ({
   queued: tr("排队中", "Queued"),

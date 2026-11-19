@@ -61,6 +61,8 @@ export interface AgentInboxTaskInfo {
 
 export interface AgentInboxTaskSource {
   classify(conversationId: string): AgentInboxTaskInfo | null;
+  isWaking?(conversationId: string): boolean;
+  onInboxEvent?(kind: "failure" | "approval_expired", title: string, summary: string): void;
 }
 
 export interface AgentInboxAdapterOptions {
@@ -81,6 +83,7 @@ export interface AgentInboxAdapterOptions {
 export class AgentInboxAdapter {
   private readonly unsubscribe: Array<() => void> = [];
   private readonly agentStatus = new Map<string, string>();
+  private readonly seenFailures = new Set<string>();
   private started = false;
   private readonly now: () => number;
 
@@ -93,19 +96,37 @@ export class AgentInboxAdapter {
     this.started = true;
     const { runtime, sandbox, scheduler, service } = this.options;
     if (service.getCursors().scheduledRunsAt === null) service.setCursor("scheduledRunsAt", this.now());
+    // Backfill scheduled records for Inbox history without waking Resident on app startup.
+    this.guard(() => this.onScheduled(scheduler.list()));
+    for (const item of service.list({}).items) if (item.type === "error") this.seenFailures.add(item.id);
     this.unsubscribe.push(
       sandbox.subscribe(event => this.guard(() => this.onApproval(event))),
       runtime.subscribeQuestions(event => this.guard(() => this.onQuestion(event))),
       runtime.subscribe(event => this.guard(() => this.onRuntime(event))),
       scheduler.subscribe(state => this.guard(() => this.onScheduled(state))),
+      service.subscribe(change => this.guard(() => {
+        for (const item of change.upserts) {
+          if (item.type !== "error" || item.revision !== 1 || item.readState !== "unread" || this.seenFailures.has(item.id)) continue;
+          if (item.origin === "resident" || item.origin === "proactive" || (item.conversationId && this.options.tasks?.classify(item.conversationId))) continue;
+          this.seenFailures.add(item.id);
+          this.options.tasks?.onInboxEvent?.("failure", item.title, item.summary);
+        }
+      })),
     );
-    // 启动前就结束的定时任务（包括重启时被标记为中断的）也要补进来。
-    this.guard(() => this.onScheduled(scheduler.list()));
   }
 
   stop(): void {
     for (const off of this.unsubscribe.splice(0)) off();
     this.started = false;
+  }
+
+  recordWakeReply(reply: { id: string; conversationId: string; text: string }): void {
+    const text = truncateInboxText(stripUiFences(reply.text), agentInboxLimits.maxDetailText);
+    this.options.service.upsert({
+      sourceEventId: `resident-wake:${reply.id}`, type: "message", origin: "resident", status: "resolved",
+      title: "Resident Agent", summary: truncateInboxText(text, agentInboxLimits.maxSummary), detail: { kind: "text", text },
+      conversationId: reply.conversationId,
+    });
   }
 
   /** 一个来源出错不能影响其他来源，也不能让运行时事件循环抛出。 */
@@ -147,7 +168,10 @@ export class AgentInboxAdapter {
     const sourceEventId = `approval:${event.id}`;
     const item = service.getBySource(sourceEventId);
     if (!item) return;
-    service.settle(sourceEventId, approvalOutcome(event.allowed, item.createdAt, this.now(), this.options.approvalTimeoutMs));
+    const settled = service.settle(sourceEventId, approvalOutcome(event.allowed, item.createdAt, this.now(), this.options.approvalTimeoutMs));
+    if (item.status === "pending" && settled?.status === "expired" && (!item.conversationId || !this.options.tasks?.isWaking?.(item.conversationId))) {
+      this.options.tasks?.onInboxEvent?.("approval_expired", item.title, item.summary);
+    }
   }
 
   private onQuestion(event: AskUserQuestionEvent): void {
@@ -214,6 +238,7 @@ export class AgentInboxAdapter {
    */
   private onPromptEnd(event: Extract<AgentInboxRuntimeEvent, { type: "prompt_end" }>): void {
     const { scheduler, service } = this.options;
+    if (this.options.tasks?.isWaking?.(event.conversationId)) return;
     const task = this.options.tasks?.classify(event.conversationId) ?? null;
     const conversation = this.conversation(event.conversationId);
     const base = {

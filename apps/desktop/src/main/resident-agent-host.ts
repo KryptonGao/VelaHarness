@@ -1,4 +1,4 @@
-import { BrowserWindow, ipcMain } from "electron";
+import { BrowserWindow, ipcMain, type WebContents } from "electron";
 import {
   ResidentIpc,
   agentInboxIdPattern,
@@ -13,7 +13,7 @@ import type { ResidentAgentSupervisor } from "./resident-agent-supervisor";
 
 const channels = [
   ResidentIpc.status, ResidentIpc.submit, ResidentIpc.pause, ResidentIpc.resume, ResidentIpc.getSettings, ResidentIpc.updateSettings,
-  ResidentIpc.cancelTask, ResidentIpc.messages, ResidentIpc.rulesList, ResidentIpc.rulesSave, ResidentIpc.rulesRemove,
+  ResidentIpc.cancelTask, ResidentIpc.messages, ResidentIpc.pageVisible, ResidentIpc.rulesList, ResidentIpc.rulesSave, ResidentIpc.rulesRemove,
 ];
 
 /**
@@ -22,6 +22,12 @@ const channels = [
  */
 export class ResidentAgentHost {
   private readonly offs: Array<() => void> = [];
+  private readonly visiblePages = new WeakSet<WebContents>();
+
+  isPageVisible(): boolean {
+    return BrowserWindow.getAllWindows().some(window => !window.isDestroyed() && window.isFocused() && window.isVisible()
+      && !window.webContents.isDestroyed() && !window.webContents.isLoadingMainFrame() && this.visiblePages.has(window.webContents));
+  }
 
   constructor(private readonly supervisor: ResidentAgentSupervisor, private readonly rules: ProactiveRuleService) {}
 
@@ -43,6 +49,12 @@ export class ResidentAgentHost {
       return supervisor.getStatus();
     });
     ipcMain.handle(ResidentIpc.messages, event => { assertMainFrame(event); return supervisor.getMessages(); });
+    ipcMain.handle(ResidentIpc.pageVisible, (event, visible: unknown) => {
+      assertMainFrame(event);
+      if (typeof visible !== "boolean") throw new Error("页面状态不正确");
+      if (visible) this.visiblePages.add(event.sender);
+      else this.visiblePages.delete(event.sender);
+    });
     ipcMain.handle(ResidentIpc.rulesList, event => { assertMainFrame(event); return rules.list(); });
     ipcMain.handle(ResidentIpc.rulesSave, (event, raw: unknown, rawId: unknown) => {
       assertMainFrame(event);

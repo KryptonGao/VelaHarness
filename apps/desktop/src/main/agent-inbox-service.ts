@@ -83,6 +83,7 @@ const defaultActions: Record<AgentInboxItemType, AgentInboxDecision[]> = {
   result: [],
   alert: [],
   suggestion: [],
+  message: [],
   system: [],
 };
 

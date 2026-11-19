@@ -6,7 +6,7 @@
 
 ## 事项
 
-事项类型为 `approval`、`question`、`review`、`result`、`error`、`alert`、`suggestion`、`system`；当前会产生的有：
+事项类型为 `approval`、`question`、`review`、`result`、`error`、`alert`、`suggestion`、`message`、`system`；当前会产生的有：
 
 | 类型 | 来源 | 是否计入徽标 |
 | --- | --- | --- |
@@ -17,6 +17,7 @@
 | `result` | 对话回合完成（包括任务配方的各阶段回合）、定时任务完成、Resident 后台任务完成 | 否 |
 | `system` | 被策略跳过的定时任务执行 | 否 |
 | `suggestion` | 主动规则触发的分析结果 | 否 |
+| `message` | An event-driven Resident reply when the Resident page is not in the foreground | No; unread only |
 
 **徽标只统计 `status === "pending"` 的事项**，等于「需要处理」视图的数量。每个对话回合结束都会产生一条事项，包括用户正在查看的对话，因为用户可能正停留在别的页面；用户主动停止的回合不记录。定时任务的对话由执行记录单独汇报，不会再产生第二条。子代理只汇报失败：完成的子代理会唤醒主代理，结果由主代理的回合汇报。
 
@@ -85,7 +86,7 @@ Inbox 左侧导航的「Resident Agent」是一个常驻的协调者：它有一
 
 ### 它能做什么、不能做什么
 
-Resident 的会话**没有任何文件、命令、浏览器或 MCP 工具**，也不继承全局文件访问。它只有四个协调工具和 `ask_user_question`：
+Resident 的会话**没有任何文件、命令、浏览器或 MCP 工具**，也不继承全局文件访问。它只有六个协调工具和 `ask_user_question`：
 
 | 工具 | 作用 |
 | --- | --- |
@@ -93,8 +94,10 @@ Resident 的会话**没有任何文件、命令、浏览器或 MCP 工具**，�
 | `list_background_tasks` | 列出任务及真实状态（不含任务提示和对话 ID） |
 | `list_inbox_items` | 列出收件箱事项摘要 |
 | `delegate_workspace_task` | 在**一个**已登记的工作区创建后台任务 |
+| `read_task_result` | Read the last assistant reply (up to 6,000 characters) and observed tool and file counts for a task in the ledger. It does not expose prompts, tool output, or an arbitrary conversation. |
+| `send_to_task` | Queue a follow-up in the original task conversation with the same execution mode, subject to concurrency and a fresh time limit. A follow-up requested in an event-driven turn requires approval. |
 
-其余工具在 `ToolLoadout.authorize` 被拒绝，并且这四个协调工具在普通对话里同样会被拒绝。每个委派都要经过一次类型为 `delegate` 的审批（显示目标工作区和任务内容），**即使在「帮我批准」模式下也不会交给模型自动判断**；用户拒绝后任务不会创建。批准期间如果状态变了（暂停、关闭），以批准当下的状态为准再检查一次。
+其余工具在 `ToolLoadout.authorize` 被拒绝，并且这些协调工具在普通对话里同样会被拒绝。每个委派都要经过一次类型为 `delegate` 的审批（显示目标工作区和任务内容），**即使在「帮我批准」模式下也不会交给模型自动判断**；用户拒绝后任务不会创建。批准期间如果状态变了（暂停、关闭），以批准当下的状态为准再检查一次。
 
 ### 后台任务
 
@@ -102,7 +105,13 @@ Resident 的会话**没有任何文件、命令、浏览器或 MCP 工具**，�
 
 **重启不会重放**：启动时仍是 `queued` 或 `running` 的任务一律标为 `interrupted`，因为它们可能已经产生了副作用。暂停只阻止新任务启动，已在运行的不受影响，已排队的保持排队直到恢复。
 
-任务结果按来源进入收件箱：Resident 创建的显示为「后台任务已完成/失败」，规则触发的显示为「主动建议」并带触发原因；Resident 自己成功的回合只在它的对话里看，不会再产生一条事项。
+Task records remain in Inbox, including rule suggestions and their reasons. A background task's final report is prompted to include the result, evidence, what was not verified, and a suggested next step.
+
+### Event-driven replies
+
+Non-rule Resident task completions, new failure items, and approval expiry can wake Resident. Events arriving within about 20 seconds are combined; if Resident is busy, the batch waits. The daily wake budget defaults to 30, is independent of the proactive-rule budget, and resets at local midnight. Set it to 0 to disable automatic wakes. Skipped wakes are explained on the Resident page; pending batches are not replayed on restart.
+
+Host events appear as event cards, not user messages. Task result text is untrusted data, not instructions or approval. When Resident returns `NO_REPLY`, the event and its reply are hidden and no notification is sent; the wake still counts against the daily budget. If a visible event reply arrives while the Resident page is not in the foreground, Inbox gets one unread `message`. System notifications respect the notification switch, quiet hours, hidden previews, and burst limits. The original Resident task result does not send a second notification. Replies to user messages do not create a `message` or a wake notification. Rule-result routing and reminders are deferred to P5.
 
 ## Intelligent UI 嵌入
 
@@ -142,7 +151,7 @@ Intelligent UI 复用现有的 `vela-ui` 协议、`UiStreamParser`、`AssistantM
 - 只支持 macOS 菜单栏；登录启动只在安装版有效，开发版不会注册登录项。
 - 规则只有三种触发器（失败事项、Git 变化、文件变化），没有跨工作区的联合条件，也没有日历或外部服务事件。
 - 文件监听使用 `fs.watch`，在网络盘或事件风暴下可能丢事件；漏掉的变化会在下一次变化时一并分析。
-- Resident 看不到任务的对话内容，只能看到任务状态和收件箱摘要；需要细节时让它委派一个任务去读。
+- Resident cannot inspect full task transcripts or read other conversations; it only sees bounded reports and metadata for tasks in its ledger.
 
 ## 实现位置
 

@@ -15,7 +15,7 @@ export const agentInboxLimits = {
   pageSize: 200,
 } as const;
 
-export const agentInboxItemTypes = ["approval", "question", "review", "result", "error", "alert", "suggestion", "system"] as const;
+export const agentInboxItemTypes = ["approval", "question", "review", "result", "error", "alert", "suggestion", "message", "system"] as const;
 export type AgentInboxItemType = (typeof agentInboxItemTypes)[number];
 
 /** 业务状态：只由 Host 的权威事件或经 Host 确认的决策改变，与阅读状态相互独立。 */
@@ -196,7 +196,7 @@ export function agentInboxBadge(items: readonly Pick<AgentInboxItem, "status">[]
 
 const priorityRank: Record<AgentInboxPriority, number> = { critical: 3, high: 2, normal: 1, low: 0 };
 const typeRank: Record<AgentInboxItemType, number> = {
-  approval: 7, question: 6, error: 5, review: 4, alert: 3, result: 2, suggestion: 1, system: 0,
+  approval: 7, question: 6, error: 5, review: 4, alert: 3, result: 2, suggestion: 1, message: 1, system: 0,
 };
 
 /** 待处理的真实审批与问题在前；同级别按最近更新倒序。 */

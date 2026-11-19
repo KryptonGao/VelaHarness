@@ -9,7 +9,7 @@ import { SandboxPermissionManager, sandboxApprovalTimeoutMs } from "../../../pac
 import { AgentInboxAdapter, stripUiFences, type AgentInboxRuntimeEvent, type AgentInboxRuntimeSource, type AgentInboxTaskInfo } from "../src/main/agent-inbox-adapter.ts";
 import { AgentInboxService } from "../src/main/agent-inbox-service.ts";
 
-async function fixture(t: TestContext, classify?: (conversationId: string) => AgentInboxTaskInfo | null) {
+async function fixture(t: TestContext, classify?: (conversationId: string) => AgentInboxTaskInfo | null, waking?: (conversationId: string) => boolean) {
   const dir = await mkdtemp(join(tmpdir(), "vela-inbox-adapter-"));
   // 审批请求的 createdAt 来自真实时钟，假时钟必须从真实时间起步。
   let now = Date.now();
@@ -34,9 +34,10 @@ async function fixture(t: TestContext, classify?: (conversationId: string) => Ag
     answer: (id, answer) => questions.reply(id, answer),
   }, () => now);
   service.init();
+  const wakeEvents: Array<{ kind: string; title: string; summary: string }> = [];
   const adapter = new AgentInboxAdapter({
     service, runtime, sandbox,
-    ...(classify ? { tasks: { classify } } : {}),
+    tasks: { classify: classify ?? (() => null), isWaking: waking, onInboxEvent: (kind, title, summary) => wakeEvents.push({ kind, title, summary }) },
     scheduler: { list: () => scheduled, subscribe: listener => { schedulerListeners.add(listener); return () => { schedulerListeners.delete(listener); }; } },
     approvalTimeoutMs: sandboxApprovalTimeoutMs,
     now: () => now,
@@ -47,7 +48,7 @@ async function fixture(t: TestContext, classify?: (conversationId: string) => Ag
   sandbox.subscribe(event => { if (event.type === "request") open.add(event.request.id); else open.delete(event.id); });
   t.after(async () => { adapter.stop(); for (const id of [...open]) sandbox.reply(id, false); questions.cancelAll(); await rm(dir, { recursive: true, force: true }); });
   return {
-    service, questions, sandbox, messages,
+    service, questions, sandbox, messages, adapter, wakeEvents,
     advance: (ms: number) => { now += ms; },
     now: () => now,
     emit: (event: AgentInboxRuntimeEvent) => { for (const listener of runtimeListeners) listener(event); },
@@ -109,6 +110,32 @@ it("maps denial and timeout to different business states", async t => {
   assert.equal(f.service.get(oldest.id)?.status, "rejected");
   assert.equal(f.service.get(newest.id)?.status, "expired");
   assert.equal(f.service.get(newest.id)?.outcome, "timed_out");
+});
+
+it("emits external failures and approval expiry once, but does not wake recursively", async t => {
+  const f = await fixture(t, id => id === "resident" ? { isResident: true, origin: "resident" } : null, id => id === "resident");
+  f.emit({ type: "prompt_end", conversationId: "bg", status: "failed", planPending: false, error: "failed test" });
+  f.emit({ type: "prompt_end", conversationId: "bg", status: "failed", planPending: false, error: "same event" });
+  f.emit({ type: "prompt_end", conversationId: "resident", status: "failed", planPending: false, error: "wake failed" });
+  const approval = f.requestApproval();
+  const id = f.service.list().items.find(item => item.type === "approval")!.requestId!;
+  f.advance(sandboxApprovalTimeoutMs + 1);
+  f.sandbox.reply(id, false);
+  assert.equal(await approval, false);
+  assert.deepEqual(f.wakeEvents.map(event => [event.kind, event.summary]), [["failure", "failed test"], ["approval_expired", "npm test"]]);
+  assert.ok(!f.service.list().items.some(item => item.summary === "wake failed"));
+});
+
+it("stores a wake reply once as unread activity without affecting the pending badge", async t => {
+  const f = await fixture(t);
+  const reply = { id: "wake-1", conversationId: "resident", text: "Background work completed." };
+  f.adapter.recordWakeReply(reply);
+  f.adapter.recordWakeReply(reply);
+  const snapshot = f.service.list();
+  assert.equal(snapshot.badge, 0);
+  assert.equal(snapshot.items.length, 1);
+  assert.deepEqual(snapshot.items.map(({ type, status, readState, summary }) => ({ type, status, readState, summary })),
+    [{ type: "message", status: "resolved", readState: "unread", summary: reply.text }]);
 });
 
 it("keeps several simultaneous approvals instead of overwriting them", async t => {

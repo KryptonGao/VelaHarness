@@ -13,7 +13,8 @@ type Loaded = { key: string; content: Content | null };
  * 也不会借此批准任何工具请求——审批只能用上面的审批按钮。
  */
 export function AgentInboxContent({ item, fallback }: { item: AgentInboxItem; fallback: string }) {
-  const ref = item.contentRef;
+  // A wake message is a read-only notification. Interact in the Resident chat, not through the Inbox.
+  const ref = item.type === "message" ? undefined : item.contentRef;
   const key = ref ? `${item.id}:${ref.conversationId}:${ref.uiOrdinal}:${ref.fingerprint}` : null;
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);

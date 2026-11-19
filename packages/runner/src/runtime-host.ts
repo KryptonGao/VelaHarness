@@ -42,6 +42,9 @@ export function createRuntimeHost(options: RuntimeHostOptions): RuntimeHost {
         extraRoots: () => runtimeOptions.workspaceFolders?.(cwd) ?? [],
         permission: sandbox,
         ...context,
+        get sandboxMode() {
+          return context.conversationId ? runtime.getBackgroundSandboxMode(context.conversationId) : context.sandboxMode;
+        },
         ...(background ? { background: backgroundShells } : {}),
       }),
   });

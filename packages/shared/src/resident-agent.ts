@@ -16,6 +16,8 @@ export const residentLimits = {
   maxConcurrentTasks: { min: 1, max: 5, fallback: 2 },
   maxTaskMinutes: { min: 5, max: 240, fallback: 60 },
   dailyProactiveRuns: { min: 0, max: 100, fallback: 10 },
+  maxWakesPerDay: { min: 0, max: 100, fallback: 30 },
+  maxTaskResult: 6000,
   maxQueued: 20,
   maxTitle: 120,
   maxPrompt: 8000,
@@ -69,6 +71,8 @@ export interface ResidentSettings {
     maxTaskMinutes: number;
     /** 主动规则每天最多触发的模型调用次数；0 表示不允许主动触发。 */
     dailyProactiveRuns: number;
+    /** Event-driven Resident turns per local day; independent of rule runs. */
+    maxWakesPerDay: number;
     pauseProactiveOnBattery: boolean;
   };
 }
@@ -95,6 +99,7 @@ export const defaultResidentSettings: ResidentSettings = {
     maxConcurrentTasks: residentLimits.maxConcurrentTasks.fallback,
     maxTaskMinutes: residentLimits.maxTaskMinutes.fallback,
     dailyProactiveRuns: residentLimits.dailyProactiveRuns.fallback,
+    maxWakesPerDay: residentLimits.maxWakesPerDay.fallback,
     pauseProactiveOnBattery: true,
   },
 };
@@ -159,6 +164,7 @@ export function normalizeResidentSettings(raw: unknown, base: ResidentSettings =
       maxConcurrentTasks: clampInt(limits.maxConcurrentTasks, { ...residentLimits.maxConcurrentTasks, fallback: base.limits.maxConcurrentTasks }),
       maxTaskMinutes: clampInt(limits.maxTaskMinutes, { ...residentLimits.maxTaskMinutes, fallback: base.limits.maxTaskMinutes }),
       dailyProactiveRuns: clampInt(limits.dailyProactiveRuns, { ...residentLimits.dailyProactiveRuns, fallback: base.limits.dailyProactiveRuns }),
+      maxWakesPerDay: clampInt(limits.maxWakesPerDay, { ...residentLimits.maxWakesPerDay, fallback: base.limits.maxWakesPerDay }),
       pauseProactiveOnBattery: bool(limits.pauseProactiveOnBattery, base.limits.pauseProactiveOnBattery),
     },
   };
@@ -202,6 +208,7 @@ export interface ResidentTask {
   workspace: string;
   source: ResidentTaskSource;
   ruleId?: string;
+  readOnly?: boolean;
   /** 主动规则命中时的触发原因，随结果一起展示。 */
   reason?: string;
   /** 任务开始后才有对话。 */
@@ -215,6 +222,37 @@ export interface ResidentTask {
 
 export function isResidentTaskActive(status: ResidentTaskStatus): boolean {
   return status === "queued" || status === "running";
+}
+
+export type ResidentTaskResult =
+  | { ok: true; taskId: string; status: ResidentTaskStatus; text: string | null; truncated: boolean; toolCalls: number; filesInvolved: number }
+  | { ok: false; reason: "unknown_task" | "no_conversation" | "unavailable" };
+
+// ---------- Event wakes ----------
+
+export const residentWakeWindowMs = 20_000;
+export const residentNoReply = "NO_REPLY";
+
+export type ResidentWakeEvent =
+  | { kind: "task"; taskId: string; title: string; status: ResidentTaskStatus }
+  | { kind: "failure" | "approval_expired"; title: string };
+
+export interface ResidentWakeCard {
+  id: string;
+  events: ResidentWakeEvent[];
+  state: "running" | "replied" | "silent" | "failed";
+}
+
+export interface ResidentWakeSkip {
+  at: number;
+  reason: "daily_limit" | "disabled" | "paused" | "queue_full";
+}
+
+export function residentWakeMarker(id: string): string { return `<!-- vela-resident-wake:${id} -->`; }
+
+/** Match only the reserved envelope header. Its ID must also be present in the Host's ledger. */
+export function residentWakeId(text: string): string | null {
+  return /^<!-- vela-resident-wake:([0-9a-f-]{36}) -->(?:\r?\n|$)/.exec(text)?.[1] ?? null;
 }
 
 // ---------- 状态 ----------
@@ -267,6 +305,9 @@ export interface ResidentStatus {
   error: string | null;
   /** 今天已经触发的主动运行次数。 */
   proactiveRunsToday: number;
+  wakesToday: number;
+  lastWakeSkip: ResidentWakeSkip | null;
+  wakeCards: ResidentWakeCard[];
   tasks: ResidentTask[];
   /** 可以作为任务目标的已登记工作区。 */
   workspaces: string[];
@@ -413,6 +454,7 @@ export interface ResidentAgentApi {
   cancelTask(id: string): Promise<ResidentStatus>;
   /** Resident 持久会话的消息；没有会话时为空。 */
   getMessages(): Promise<TranscriptMessage[]>;
+  setPageVisible(visible: boolean): Promise<void>;
   subscribe(listener: (status: ResidentStatus) => void): () => void;
   rules: {
     list(): Promise<ProactiveRulesState>;
@@ -432,6 +474,7 @@ export const ResidentIpc = {
   updateSettings: "resident:update-settings",
   cancelTask: "resident:cancel-task",
   messages: "resident:messages",
+  pageVisible: "resident:page-visible",
   rulesList: "resident:rules-list",
   rulesSave: "resident:rules-save",
   rulesRemove: "resident:rules-remove",

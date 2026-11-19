@@ -12,7 +12,7 @@ async function fixture(t: TestContext) {
   await mkdir(cwd); await mkdir(residentDir);
   const runtime = new AgentRuntime({
     cwd, agentDir: root,
-    resident: { conversationId: () => null, host: { workspaces: () => [], tasks: () => [], inbox: () => [], delegate: async () => ({ ok: false as const, reason: "unused" }) } },
+    resident: { conversationId: () => null, host: { workspaces: () => [], tasks: () => [], inbox: () => [], readTaskResult: () => ({ ok: false, reason: "unknown_task" }), continueTask: async () => ({ ok: false, reason: "unused" }), delegate: async () => ({ ok: false as const, reason: "unused" }) } },
   });
   t.after(async () => { await runtime.dispose(); await rm(root, { recursive: true, force: true }); });
   await runtime.createConversation(cwd);

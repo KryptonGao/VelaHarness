@@ -218,6 +218,7 @@ function assistantModelMetadata(message: AgentMessage | undefined): { model?: st
 export type RuntimeEvent =
   | TraceUpdate
   | { type: "status"; conversationId: string }
+  | { type: "prompt_idle"; conversationId: string }
   | { type: "prompt_end"; conversationId: string; status: "responded" | "stopped" | "failed"; error?: string; planPending: boolean }
   /** 任务费用接近或到达费用上限；每个任务每个阶段只发一次，收件箱据此提醒。 */
   | { type: "task_budget"; conversationId: string; startedAt: number; phase: "warning" | "exhausted"; costUsed: number; maxCost: TaskBudgetCostLimit }
@@ -823,9 +824,10 @@ export class AgentRuntime {
   }
 
   /** Scheduler entry point: create a persisted background chat without changing the selected workspace. */
-  async runScheduledTask(cwd: string, text: string, onCreated: (id: string) => void, execution: Pick<ScheduledTaskInput, "model" | "thinkingLevel" | "sandboxMode"> & { mode?: "agent" | "plan" } = {}): Promise<void> {
+  async runScheduledTask(cwd: string, text: string, onCreated: (id: string) => void, execution: Pick<ScheduledTaskInput, "model" | "thinkingLevel" | "sandboxMode"> & { mode?: "agent" | "plan" } = {}, signal?: AbortSignal): Promise<void> {
     const entry = await this.exclusive(async () => {
       await this.ready();
+      signal?.throwIfAborted();
       const entry = this.addEntry(cwd, { activate: false, mode: execution.mode ?? "agent" });
       entry.scheduledSandboxMode = execution.sandboxMode;
       entry.scheduledTaskConversation = true;
@@ -843,6 +845,7 @@ export class AgentRuntime {
     let failure: string | null = null;
     const unsubscribe = this.subscribe(event => { if (event.type === "error" && event.conversationId === entry.id) failure = event.message; });
     try {
+      signal?.throwIfAborted();
       // The renderer is not sending this prompt, so publish it for any viewer already in this chat.
       this.emit({ type: "user_message", conversationId: entry.id, text });
       await this.prompt(entry.id, text);
@@ -1134,9 +1137,10 @@ export class AgentRuntime {
    * 向一个后台对话发消息，不切换当前对话；必要时先启动会话。
    * 对话正在运行时进入队列，不打断当前任务。
    */
-  async promptBackground(conversationId: string, text: string, execution?: BackgroundExecution): Promise<void> {
+  async promptBackground(conversationId: string, text: string, execution?: BackgroundExecution, managed?: ManagedBackgroundPrompt): Promise<void> {
     const entry = this.conversations.get(conversationId);
     if (!entry) throw new Error("对话不存在或已结束");
+    managed?.signal?.throwIfAborted();
     if (!entry.session) {
       await this.exclusive(async () => {
         await this.ready();
@@ -1145,15 +1149,36 @@ export class AgentRuntime {
     } else if (execution) {
       await this.exclusive(() => this.applyBackgroundSelection(entry, execution));
     }
+    managed?.signal?.throwIfAborted();
     const running = Boolean(entry.driving || entry.session?.isStreaming);
-    if (!running) this.emit({ type: "user_message", conversationId, text });
-    await this.prompt(conversationId, text, undefined, running ? "queue" : undefined);
+    // Managed turns resolve after execution, not when the SDK accepts a queued instruction.
+    if (managed && running) throw new Error("上一个回复还在进行中");
+    const task = managed?.task;
+    if (task && (entry.snapshot.cwd !== task.cwd || entry.snapshot.mode !== task.mode)) throw new Error("后台任务的工作区或模式已变更");
+    const previousSandbox = entry.scheduledSandboxMode;
+    if (task) {
+      entry.scheduledTaskConversation = true;
+      entry.scheduledSandboxMode = task.sandboxMode;
+      this.applyActiveTools(entry);
+    }
+    try {
+      if (!running) this.emit({ type: "user_message", conversationId, text });
+      await this.prompt(conversationId, text, undefined, running ? "queue" : undefined);
+      if (managed && (entry.stopRequested || entry.snapshot.error || this.disposed)) throw new Error(entry.snapshot.error ?? "后台回复已停止");
+    } finally {
+      if (task) entry.scheduledSandboxMode = previousSandbox;
+    }
+  }
+
+  /** The native tool wrappers also read this when a restored task is continued. */
+  getBackgroundSandboxMode(conversationId: string): SandboxMode | null | undefined {
+    return this.conversations.get(conversationId)?.scheduledSandboxMode;
   }
 
   /** 对话是否存在、状态与正在使用的模型；供宿主展示常驻 Agent 状态。 */
   getConversationInfo(conversationId: string): { status: SessionStatus; model: string | null } | null {
     const entry = this.conversations.get(conversationId);
-    return entry ? { status: entry.snapshot.status, model: entry.snapshot.model } : null;
+    return entry ? { status: entry.driving || entry.session?.isStreaming ? "streaming" : entry.snapshot.status, model: entry.snapshot.model } : null;
   }
 
   /**
@@ -3933,6 +3958,7 @@ export class AgentRuntime {
       if (entry.snapshot.status === "streaming") {
         this.patchEntry(entry, { status: "ready", updatedAt: Date.now() });
       }
+      this.emit({ type: "prompt_idle", conversationId: entry.id });
     }
   }
 
@@ -5086,6 +5112,11 @@ export interface LaneRequest {
   prompt: string;
 }
 export interface LaneResult { status: "responded" | "failed" | "stopped"; error?: string }
+
+export interface ManagedBackgroundPrompt {
+  signal?: AbortSignal;
+  task?: { cwd: string; mode: "agent" | "plan"; sandboxMode: SandboxMode | null };
+}
 
 export interface BackgroundExecution {
   model?: { provider: string; id: string } | null;

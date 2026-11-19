@@ -7,7 +7,9 @@
 .agent-inbox-topbar { gap:12px; flex:none; font-size:calc(13px * var(--ui-scale)); }
 .agent-inbox-topbar button { -webkit-app-region:no-drag; }
 .agent-inbox-topbar h1 { margin:0; }
-.agent-inbox-summary { margin-left:auto; color:var(--text-secondary); font-size:calc(12px * var(--ui-scale)); white-space:nowrap; }
+.agent-inbox-summary,.agent-inbox-unread-count { color:var(--text-secondary); font-size:calc(12px * var(--ui-scale)); white-space:nowrap; }
+.agent-inbox-summary { margin-left:auto; }
+.agent-inbox-unread-count { font-variant-numeric:tabular-nums; }
 .agent-inbox-banner { flex:none; margin:0; padding:8px 20px; font-size:calc(13px * var(--ui-scale)); color:var(--danger); background:color-mix(in srgb, var(--danger) 8%, transparent); }
 
 .agent-inbox-body { position:relative; z-index:1; flex:1; min-height:0; display:grid; grid-template-columns:184px minmax(300px,400px) minmax(0,1fr); border-radius:var(--paper-left-radius) var(--paper-right-radius) var(--paper-right-radius) var(--paper-left-radius); overflow:hidden; }
@@ -46,7 +48,7 @@
 .agent-inbox-unread { width:7px; height:7px; border-radius:50%; background:var(--accent-blue); }
 .agent-inbox-mark { display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:8px; color:var(--text-secondary); background:var(--bg-surface-subtle); flex:none; }
 .agent-inbox-mark.type-approval { color:var(--warning); background:color-mix(in srgb, var(--warning) 14%, transparent); }
-.agent-inbox-mark.type-question { color:var(--accent-blue); background:color-mix(in srgb, var(--accent-blue) 14%, transparent); }
+.agent-inbox-mark.type-question,.agent-inbox-mark.type-message { color:var(--accent-blue); background:color-mix(in srgb, var(--accent-blue) 14%, transparent); }
 .agent-inbox-mark.type-error { color:var(--danger); background:color-mix(in srgb, var(--danger) 12%, transparent); }
 .agent-inbox-status { display:inline-flex; font-size:calc(11px * var(--ui-scale)); line-height:1.5; border-radius:10px; padding:0 8px; border:1px solid currentColor; white-space:nowrap; color:var(--text-secondary); }
 .agent-inbox-status.status-pending { color:var(--accent-blue); }
@@ -116,7 +118,15 @@
 
 .resident-chat { flex:1; min-height:0; display:flex; flex-direction:column; }
 .resident-messages { flex:1; min-height:0; overflow:auto; padding:20px 24px 24px; display:flex; flex-direction:column; align-items:center; gap:22px; }
-.resident-messages > .user-msg-container,.resident-messages > .assistant-block { width:min(100%,760px); }
+.resident-messages > .user-msg-container,.resident-messages > .assistant-block,.resident-event-card { width:min(100%,760px); }
+.resident-event-card { box-sizing:border-box; flex:none; border:1px solid var(--border-subtle); border-radius:10px; background:var(--bg-card-surface); padding:10px 14px; display:grid; gap:6px; font-size:calc(13px * var(--ui-scale)); line-height:1.5; }
+.resident-event-card header { display:flex; align-items:center; gap:8px; }
+.resident-event-card header svg { flex:none; color:var(--text-secondary); }
+.resident-event-card strong { font-weight:600; }
+.resident-event-card ul { display:grid; gap:4px; margin:0; padding:0; list-style:none; }
+.resident-event-card li { display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:2px 12px; overflow-wrap:anywhere; }
+.resident-event-kind,.resident-event-progress { color:var(--text-secondary); font-size:calc(12px * var(--ui-scale)); }
+.resident-event-progress { margin:0; }
 /* 页面级的 button 重置(padding/圆角)会压扁复用自主对话的按钮,这里还原它们的尺寸。 */
 .agent-inbox-page .reply-action { padding:3px 7px; border-radius:var(--radius-xs); }
 .agent-inbox-page .reply-action.user-message-action { padding:0; width:28px; height:28px; }
