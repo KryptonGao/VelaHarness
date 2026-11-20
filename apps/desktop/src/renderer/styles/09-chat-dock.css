@@ -69,7 +69,7 @@
   justify-content: flex-start;
   column-gap: 12px;
   row-gap: 3px;
-  /* 窗口窄到放不下三组时换行,好过把每组的数字都截断。 */
+  /* 窗口窄到放不下所有统计时换行,好过把每组的数字都截断。 */
   flex-wrap: wrap;
   margin: 2px 0 0;
   padding: 2px 0 0;
@@ -88,24 +88,6 @@
 .composer-stat-text {
   overflow: hidden;
   text-overflow: ellipsis;
-}
-.composer-stat-rotator {
-  display: inline-grid;
-  min-width: 0;
-  overflow: hidden;
-}
-.composer-stat-rotator-item {
-  grid-area: 1 / 1;
-  opacity: 0;
-  transform: translateY(-60%);
-  transition: opacity 320ms ease, transform 320ms var(--motion-ease-enter);
-}
-.composer-stat-rotator-item.is-active {
-  opacity: 1;
-  transform: none;
-}
-@media (prefers-reduced-motion: reduce) {
-  .composer-stat-rotator-item { transition: opacity 120ms ease; transform: none; }
 }
 .composer-stat-icon {
   display: grid;

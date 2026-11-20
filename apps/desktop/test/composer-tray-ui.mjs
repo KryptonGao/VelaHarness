@@ -105,7 +105,8 @@ if (!process.versions.electron) {
             sandboxText: visible(document.querySelector('.mode-pill > span')),
             thinkingText: visible(document.querySelector('.thinking-label-text')),
             statsVisible: visible(document.querySelector('.composer-stats-row')),
-            speedVisible: visible(document.querySelector('.composer-stats-row > .composer-stat:has(> .composer-stat-text)')),
+            speedVisible: visible(tray.querySelector('.composer-stat-speed')),
+            metricLabels: [...tray.querySelectorAll('.composer-stat:not(.composer-stat-context)')].filter(visible).map(el => el.textContent),
             collapsed,
             previousFits,
             overflowed: label ? label.scrollWidth > label.clientWidth : false,
@@ -189,6 +190,7 @@ if (!process.versions.electron) {
       await evaluate("window.mount('zh-CN', 'high', 'full', 800); window.setWidth(800)");
       await settle();
       const wide = await evaluate("window.measure()");
+      assert.deepEqual(wide.metricLabels, ['241 tok/s', '缓存命中 97%', '累计 257K tok'], '宽托盘应并列显示三项统计');
       assert.ok(wide.sandboxText && wide.thinkingText && wide.statsVisible && wide.speedVisible, "宽托盘应保留全部文字和速度");
       // Regression: the old 760px container breakpoint hid speed despite ample free space.
       await evaluate("window.mount('en', 'high', 'full', 760)");

@@ -1,9 +1,6 @@
 import type { ContextUsage } from "@vela/shared";
 import { trf } from "../../locale";
 
-/** 缓存命中率与 token 总量在同一个位置轮流展示，切换间隔。 */
-export const COMPOSER_STAT_ROTATE_MS = 30_000;
-
 /**
  * 输入框统计条的数据模型。每一段都可以单独缺失：没有会话、没产生用量或提供方
  * 不上报缓存时，对应的一段整个不渲染，避免出现 "0 tok/s" 这种没意义的数字。
@@ -11,8 +8,8 @@ export const COMPOSER_STAT_ROTATE_MS = 30_000;
 export interface ComposerStats {
   /** 输出速度，例如 "241 tok/s"。 */
   speed: string | null;
-  /** 轮流展示的几项，例如 ["缓存命中 97%", "累计 257K tok"]；没有数据时为空数组。 */
-  rotating: string[];
+  cacheHit: string | null;
+  total: string | null;
   /** 上下文占用百分比；窗口未知时为空。 */
   percent: number | null;
   /** 占用百分比的展示文本。 */
@@ -37,17 +34,10 @@ export function composerStats(usage: ContextUsage | undefined | null, options: C
     speedLabel = "— tok/s";
   }
 
-  const rotating: string[] = [];
-  if (hitRate !== null) {
-    rotating.push(trf("缓存命中 {0}", "Cache hit {0}", formatRate(hitRate)));
-  }
-  if (sessionTokens !== null && sessionTokens > 0) {
-    rotating.push(trf("累计 {0} tok", "Total {0} tok", formatTokens(sessionTokens)));
-  }
-
   return {
     speed: speedLabel,
-    rotating,
+    cacheHit: hitRate !== null ? trf("缓存命中 {0}", "Cache hit {0}", formatRate(hitRate)) : null,
+    total: sessionTokens !== null && sessionTokens > 0 ? trf("累计 {0} tok", "Total {0} tok", formatTokens(sessionTokens)) : null,
     percent: percent !== null && Number.isFinite(percent) ? percent : null,
     percentLabel: percent !== null && Number.isFinite(percent) ? `${Math.round(percent)}%` : null,
   };

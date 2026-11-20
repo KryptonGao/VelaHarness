@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { ContextUsage } from "@vela/shared";
-import { COMPOSER_STAT_ROTATE_MS, composerStats, formatRate, formatSpeed, formatTokens } from "../src/renderer/components/composer/composer-stats.ts";
+import { getActiveLocale, setActiveLocale } from "../src/renderer/locale.ts";
+import { composerStats, formatRate, formatSpeed, formatTokens } from "../src/renderer/components/composer/composer-stats.ts";
 
 function usage(patch: Partial<ContextUsage> = {}): ContextUsage {
   return {
@@ -29,21 +30,34 @@ describe("composer stats", () => {
     assert.equal(composerStats(usage({ turnCount: 1, stepCount: 3 })).speed, null);
   });
 
-  it("rotates between cache hit rate and the session token total", () => {
+  it("reports cache hit rate and the session token total together", () => {
     const stats = composerStats(usage({ sessionTokens: 257_000, cacheHitRate: 0.968 }));
-    assert.deepEqual(stats.rotating, ["缓存命中 97%", "累计 257K tok"]);
-    assert.equal(COMPOSER_STAT_ROTATE_MS, 30_000);
+    assert.equal(stats.cacheHit, "缓存命中 97%");
+    assert.equal(stats.total, "累计 257K tok");
   });
 
-  it("rotates nothing when neither is reported, and one item when only one is", () => {
-    assert.deepEqual(composerStats(usage()).rotating, []);
-    assert.deepEqual(composerStats(usage({ cacheHitRate: 0.5 })).rotating, ["缓存命中 50%"]);
-    assert.deepEqual(composerStats(usage({ sessionTokens: 940 })).rotating, ["累计 940 tok"]);
+  it("localizes the session token total in every interface language", (t) => {
+    const previous = getActiveLocale();
+    t.after(() => setActiveLocale(previous));
+    for (const [locale, label] of [["zh-CN", "累计"], ["zh-TW", "累計"], ["ja", "累計"], ["ko", "누적"], ["en", "Total"]] as const) {
+      setActiveLocale(locale);
+      assert.equal(composerStats(usage({ sessionTokens: 810_800 })).total, `${label} 810.8K tok`, locale);
+    }
+  });
+
+  it("can report either metric independently", () => {
+    const cacheOnly = composerStats(usage({ cacheHitRate: 0 }));
+    assert.equal(cacheOnly.cacheHit, "缓存命中 0%");
+    assert.equal(cacheOnly.total, null);
+    const totalOnly = composerStats(usage({ sessionTokens: 940 }));
+    assert.equal(totalOnly.cacheHit, null);
+    assert.equal(totalOnly.total, "累计 940 tok");
   });
 
   it("omits fields the provider has not reported", () => {
     const stats = composerStats(usage({ turnCount: 1, stepCount: 2 }));
-    assert.deepEqual(stats.rotating, []);
+    assert.equal(stats.cacheHit, null);
+    assert.equal(stats.total, null);
     assert.equal(stats.percent, null);
     assert.equal(stats.percentLabel, null);
   });
@@ -51,7 +65,7 @@ describe("composer stats", () => {
   it("drops an all-zero session instead of printing placeholders", () => {
     const stats = composerStats(usage());
     assert.equal(stats.speed, null);
-    assert.deepEqual(stats.rotating, []);
+    assert.equal(stats.total, null);
   });
 
   it("can keep the speed visible before any usage exists", () => {
@@ -63,7 +77,8 @@ describe("composer stats", () => {
   it("tolerates a missing usage snapshot", () => {
     const stats = composerStats(undefined);
     assert.equal(stats.speed, null);
-    assert.deepEqual(stats.rotating, []);
+    assert.equal(stats.cacheHit, null);
+    assert.equal(stats.total, null);
     assert.equal(stats.percentLabel, null);
   });
 

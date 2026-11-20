@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef, type ReactNode } from "react";
 
 /** Collapse only as much as the rendered controls need, independent of locale or UI scale. */
-const COLLAPSE_ORDER = ["speed", "totals", "percent", "permission", "context", "reasoning", "model-arrow", "quota"];
+const COLLAPSE_ORDER = ["total", "speed", "cache", "percent", "permission", "context", "reasoning", "model-arrow", "quota"];
 
 export function ComposerTray({ children }: { children: ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
