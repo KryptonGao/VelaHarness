@@ -1,9 +1,12 @@
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { tr, trf } from "../locale";
 import { modKeyLabel } from "../platform";
 import { useSidebarItems } from "../hooks/useSidebarItems";
+import { usageLimitProvider, useUsageLimits } from "../hooks/useUsageLimits";
+import { useUsageRingPrefs } from "../hooks/useUsageRingPrefs";
 import "../nav-rail.css";
 import { Icon } from "./icons";
+import { NavUsageRing } from "./NavUsageRing";
 
 export type NavCategory = "home" | "scheduledTasks" | "recipes" | "agentInbox" | "prInbox" | "settings";
 
@@ -18,6 +21,15 @@ interface NavRailProps {
 /** 分类视图最左侧的图标栏：主页是「侧栏 + 对话」，其余分类各占整块内容区。 */
 export function NavRail({ active, platform, agentInboxBadge, onSelect }: NavRailProps) {
   const items = useSidebarItems();
+  const usageRing = useUsageRingPrefs();
+  // 关掉圆环后不再请求额度接口。
+  const usage = useUsageLimits(usageRing.enabled ? usageLimitProvider : null);
+  const refreshUsage = usage.refresh;
+  // 切回窗口时补读一次，圆环不用等下一个 5 分钟周期。
+  useEffect(() => {
+    window.addEventListener("focus", refreshUsage);
+    return () => window.removeEventListener("focus", refreshUsage);
+  }, [refreshUsage]);
   const mod = modKeyLabel(platform);
   const button = (category: NavCategory, label: string, glyph: ReactNode, options: { badge?: number; title?: string } = {}) => {
     const badge = options.badge ?? 0;
@@ -38,6 +50,7 @@ export function NavRail({ active, platform, agentInboxBadge, onSelect }: NavRail
       {items.prInbox ? button("prInbox", "Pull Request", <Icon name="pull-request" size={18} filled={active === "prInbox"} />) : null}
     </div>
     <div className="nav-rail-group nav-rail-footer">
+      {usage.limits ? <NavUsageRing limits={usage.limits} threshold={usageRing.threshold} onOpen={refreshUsage} /> : null}
       {button("settings", tr("设置", "Settings"), <Icon name="settings" size={18} filled={active === "settings"} />, { title: `${tr("设置", "Settings")} (${mod},)` })}
     </div>
   </nav>;

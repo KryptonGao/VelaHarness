@@ -8,6 +8,8 @@ import { notificationSoundKinds, type NotifySound } from "../../notification-sou
 import type { SettingsCopy } from "../settings-copy";
 import { setStartPageStyle, startPageStyles, useStartPageStyle, type StartPageStyle } from "../../hooks/useStartPageStyle";
 import { setHomePrompts, useHomePrompts } from "../../hooks/useHomePrompts";
+import { setUsageRingPrefs, useUsageRingPrefs } from "../../hooks/useUsageRingPrefs";
+import { UsageRingThresholdControl } from "./UsageRingThresholdControl";
 import { setCombinedModelPicker, useCombinedModelPicker } from "../../hooks/useCombinedModelPicker";
 import { setCombinedModePicker, useCombinedModePicker } from "../../hooks/useCombinedModePicker";
 import { composerLayouts, setComposerLayout, useComposerLayout, type ComposerLayout } from "../../hooks/useComposerLayout";
@@ -77,6 +79,7 @@ export function InterfacePage({
     capsule: text.composerLayoutCapsuleHint,
   };
   const sidebarItems = useSidebarItems();
+  const usageRing = useUsageRingPrefs();
   const navLayout = useNavLayout();
   const navLayoutLabels: Record<NavLayout, string> = { classic: text.navLayoutClassic, rail: text.navLayoutRail };
   const versionControlLayout = useVersionControlLayout();
@@ -172,6 +175,13 @@ export function InterfacePage({
               />
             </div>
           ))}
+        </SettingsBlock>
+        <SettingsBlock id="usage-ring" title={text.usageRing} hint={text.usageRingHint} layout="inline">
+          <SettingsSwitch label={text.usageRing} checked={usageRing.enabled} onChange={enabled => setUsageRingPrefs({ enabled })} />
+        </SettingsBlock>
+        <SettingsBlock id="usage-ring-threshold" title={text.usageRingThreshold} hint={text.usageRingThresholdHint} layout="inline">
+          <UsageRingThresholdControl label={text.usageRingThreshold} value={usageRing.threshold} disabled={!usageRing.enabled}
+            onChange={threshold => setUsageRingPrefs({ threshold })} />
         </SettingsBlock>
         <SettingsBlock id="start-page-style" title={text.startPageStyle} hint={text.startPageStyleHint} extraHint={startPageStyleHints[startPageStyle]} layout="inline">
           <Segmented

@@ -228,3 +228,32 @@
 :root[data-sidebar-card="glass"][data-scheme="light"] .sidebar-left.is-rail::before { background: rgb(from var(--bg-surface-subtle) r g b / 0.65); }
 :root[data-sidebar-card="glass"][data-scheme="dark"] .sidebar-left.is-rail::before { background: rgb(from var(--bg-surface-subtle) r g b / 0.5); }
 .sidebar-left.is-rail .sidebar-scroll-area { margin-bottom: var(--glass-edge-inset); }
+
+/* 设置上方的 Codex 剩余额度圆环；弹窗向右展开，盖在内容区上。 */
+/* 主题里的 --warning 偏橙，额度偏低要的是黄色，所以单独定义。 */
+.nav-usage { --usage-low: #e5a50a; position: relative; -webkit-app-region: no-drag; }
+[data-scheme="dark"] .nav-usage { --usage-low: #facc15; }
+/* 剩余额度高于提醒线时用常态前景色（深色主题里是白色），低于时变黄。 */
+.nav-usage-button { color: var(--text-primary); }
+.nav-usage-button[aria-expanded="true"] { background: var(--bg-sidebar-hover); }
+.nav-usage-ring { width: 24px; height: 24px; }
+.nav-usage-track,
+.nav-usage-value { fill: none; stroke-width: 2.4; }
+.nav-usage-track { stroke: var(--border-strong); }
+.nav-usage-value { stroke: currentColor; transition: stroke-dasharray 0.3s ease; }
+.nav-usage-value[data-tone="low"] { color: var(--usage-low); }
+.nav-rail .nav-usage-popover {
+  right: auto;
+  left: calc(100% + 10px);
+  bottom: -2px;
+  width: 280px;
+  padding: 12px 14px 14px;
+  gap: 12px;
+  border: 1px solid var(--border-subtle);
+  transform-origin: left bottom;
+  z-index: 40;
+}
+.nav-rail .nav-usage-popover .usage-row-reset { align-self: flex-start; }
+.nav-rail .nav-usage-popover .usage-bar-fill { background: var(--text-primary); }
+.nav-rail .nav-usage-popover .usage-row[data-tone="low"] .usage-bar-fill { background: var(--usage-low); }
+@media (prefers-reduced-motion: reduce) { .nav-usage-value { transition: none; } }

@@ -1,4 +1,4 @@
-import type { UsageLimits } from "@vela/shared";
+import type { UsageLimits, UsageLimitWindow } from "@vela/shared";
 import { activeIntlLocale, tr, trf } from "../locale";
 
 const warnPercent = 75;
@@ -40,4 +40,44 @@ export function resetText(resetsAt: number | null, now = Date.now()): string {
 export function planName(plan: string | null): string {
   if (!plan) return "";
   return plan.charAt(0).toUpperCase() + plan.slice(1).toLowerCase();
+}
+
+/** 圆环和详情显示的是剩余额度，和 Codex 自己的界面一致。 */
+export function remainingPercent(usedPercent: number): number {
+  return Math.min(100, Math.max(0, 100 - usedPercent));
+}
+
+/** 5 小时额度占圆环顶部的角度，其余部分给每周额度。 */
+export const shortArcDegrees = 100;
+/** 两段弧之间留出的缝隙（度）。 */
+export const arcGapDegrees = 12;
+
+export type UsageRingLayout =
+  | { kind: "split"; short: UsageLimitWindow; long: UsageLimitWindow }
+  | { kind: "single"; window: UsageLimitWindow };
+
+/**
+ * Plus 有 5 小时和每周两个额度：顶部约 100° 画 5 小时，其余画每周。
+ * Pro 整圈只画一个额度（最长的那个窗口，即每周额度），详情里仍列出所有窗口。
+ * 其他套餐按窗口数量决定：两个窗口分段，一个窗口整圈。
+ */
+export function usageRingLayout(limits: UsageLimits): UsageRingLayout | null {
+  const windows = [...limits.windows].sort((a, b) => a.windowMinutes - b.windowMinutes);
+  if (windows.length === 0) return null;
+  const long = windows[windows.length - 1];
+  const short = windows.find((window) => window.windowMinutes === 300) ?? windows[0];
+  const pro = (limits.plan ?? "").toLowerCase().startsWith("pro");
+  if (pro || windows.length === 1 || short === long) return { kind: "single", window: long };
+  return { kind: "split", short, long };
+}
+
+/** 圆环上某段弧的起止角度，自正上方顺时针计。 */
+export function usageRingArcs(): { short: [number, number]; long: [number, number] } {
+  const half = shortArcDegrees / 2;
+  return { short: [-half, half], long: [half + arcGapDegrees, 360 - half - arcGapDegrees] };
+}
+
+/** 圆环和详情的颜色：剩余额度低于用户设定的提醒线时为 low（黄色），否则为 ok。 */
+export function remainingTone(usedPercent: number, threshold: number): "ok" | "low" {
+  return remainingPercent(usedPercent) < threshold ? "low" : "ok";
 }

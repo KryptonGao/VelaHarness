@@ -24,6 +24,7 @@ const SVG_ALLOWLIST: Record<string, string> = {
   "components/intelligent-ui/rich-views.tsx": "plots",
   "components/version-control/CommitGraph.tsx": "commit graph",
   "components/composer/ComposerStatsRow.tsx": "progress ring",
+  "components/NavUsageRing.tsx": "quota progress ring",
   "components/UsageLimitMenu.tsx": "progress ring",
   "components/ModelControls.tsx": "thinking dial",
   "components/browser/BrowserAgentPointer.tsx": "agent cursor",

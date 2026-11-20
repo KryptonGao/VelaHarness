@@ -1,0 +1,50 @@
+import { useSyncExternalStore } from "react";
+import { readStoredState } from "./useStoredState";
+import { uiStorage } from "../ui-storage";
+import { createLogger } from "../logger";
+
+const log = createLogger("preferences");
+
+export interface UsageRingPrefs {
+  /** 是否在导航栏设置上方显示 Codex 剩余额度圆环。 */
+  enabled: boolean;
+  /** 剩余额度（%）低于该值时圆环变黄，否则保持常态颜色（白色）。 */
+  threshold: number;
+}
+
+export const usageRingThresholdRange = { min: 0, max: 100 } as const;
+export const defaultUsageRingPrefs: UsageRingPrefs = { enabled: true, threshold: 20 };
+
+const key = "vela.usageRing";
+
+export function clampUsageRingThreshold(value: number): number {
+  if (!Number.isFinite(value)) return defaultUsageRingPrefs.threshold;
+  return Math.min(usageRingThresholdRange.max, Math.max(usageRingThresholdRange.min, Math.round(value)));
+}
+
+const accept = (value: unknown): value is Partial<UsageRingPrefs> =>
+  Boolean(value) && typeof value === "object" && !Array.isArray(value);
+
+export function normalizeUsageRingPrefs(value: Partial<UsageRingPrefs>): UsageRingPrefs {
+  return {
+    enabled: typeof value.enabled === "boolean" ? value.enabled : defaultUsageRingPrefs.enabled,
+    threshold: typeof value.threshold === "number" ? clampUsageRingThreshold(value.threshold) : defaultUsageRingPrefs.threshold,
+  };
+}
+
+let current = normalizeUsageRingPrefs(readStoredState<Partial<UsageRingPrefs>>(key, {}, accept));
+const listeners = new Set<() => void>();
+
+export function setUsageRingPrefs(patch: Partial<UsageRingPrefs>) {
+  current = normalizeUsageRingPrefs({ ...current, ...patch });
+  try { uiStorage.setItem(key, JSON.stringify(current)); }
+  catch (error) { log.error(`failed to save UI preference ${key}`, error); }
+  listeners.forEach(listener => listener());
+}
+
+export function useUsageRingPrefs(): UsageRingPrefs {
+  return useSyncExternalStore(
+    listener => { listeners.add(listener); return () => { listeners.delete(listener); }; },
+    () => current,
+  );
+}
