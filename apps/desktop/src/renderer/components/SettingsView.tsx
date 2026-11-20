@@ -3,11 +3,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { useModels } from "../hooks/useModels";
 import type { PreferencesApi } from "../hooks/usePreferences";
 import type { ProjectApi } from "../hooks/useProject";
+import type { SidebarResize } from "../hooks/useSidebarResize";
 import { useAutoHideScrollbar } from "../hooks/useAutoHideScrollbar";
 import { useStoredState } from "../hooks/useStoredState";
 import type { NotifySound } from "../notification-sounds";
 import { LoginDialog } from "./ModelControls";
 import { SheetPresence } from "./Presence";
+import { SidebarResizeHandle } from "./SidebarResizeHandle";
 import { IntegrationsSection } from "./IntegrationsSection";
 import { McpSettingsSection } from "./McpSettingsSection";
 import { HooksSettingsSection } from "./HooksSettingsSection";
@@ -43,6 +45,7 @@ import { useSettingsJump, type SettingsJumpTarget } from "./settings/useSettings
 type ModelsApi = ReturnType<typeof useModels>;
 
 interface SettingsViewProps {
+  sidebarResize?: SidebarResize;
   onPreviewSound: NotifySound;
   preferences: PreferencesApi;
   platform: string;
@@ -58,6 +61,7 @@ interface SettingsViewProps {
 }
 
 export function SettingsView({
+  sidebarResize,
   onPreviewSound,
   preferences,
   platform,
@@ -138,6 +142,7 @@ export function SettingsView({
           onPick={pickResult}
           searchRef={searchRef}
         />
+        {sidebarResize && <SidebarResizeHandle target="left" resize={sidebarResize} />}
         <div className={`settings-content autohide-scrollbar${page === "models" ? " fill" : ""}`} ref={contentRef}>
           {pagesWithOwnHeader.has(page) ? null : (
             <header className="settings-page-header">

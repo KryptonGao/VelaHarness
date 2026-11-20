@@ -53,6 +53,11 @@ describe("widthFromPointer", () => {
     assert.equal(widthFromPointerDelta(640, 500, 450), 690);
     assert.equal(widthFromPointerDelta(640, 500, 550), 590);
   });
+
+  it("accounts for the navigation rail when dragging a left sidebar", () => {
+    assert.equal(widthFromPointer("left", 308, 1280, 58), 250);
+    assert.equal(widthFromPointer("left", 332, 1280, 58), 274);
+  });
 });
 
 describe("parseSidebarWidths", () => {

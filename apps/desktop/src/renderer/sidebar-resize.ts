@@ -63,9 +63,8 @@ export function clampSidebarWidth(
   return Math.round(Math.min(Math.max(width, min), max));
 }
 
-/** 把指针位置换算成该侧栏的可用宽度:左栏量到窗口左边,右栏量到窗口右边。 */
-export function widthFromPointer(target: "left" | "right", clientX: number, viewportWidth: number): number {
-  return target === "left" ? clientX : viewportWidth - clientX;
+export function widthFromPointer(target: "left" | "right", clientX: number, viewportWidth: number, leftOrigin = 0): number {
+  return target === "left" ? clientX - leftOrigin : viewportWidth - clientX;
 }
 
 /** 工作面板的左边界向左移动时扩宽。 */

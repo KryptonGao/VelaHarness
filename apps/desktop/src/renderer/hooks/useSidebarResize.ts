@@ -123,13 +123,15 @@ export function useSidebarResize(leftPanelOpen = true, rightPanelOpen = true, wo
         ? handle.parentElement?.getBoundingClientRect().width
         : undefined;
       const startWidth = renderedWidth && renderedWidth > 0 ? renderedWidth : widthsRef.current[target];
+      // Preserve the grab point even when the navigation rail offsets the left sidebar.
+      const leftOrigin = startX - startWidth;
       let lastAppliedWidth = startWidth;
       const apply = (clientX: number) => {
         const viewport = window.innerWidth;
         const current = widthsRef.current;
         const raw = target === "workbench"
           ? widthFromPointerDelta(startWidth, startX, clientX)
-          : widthFromPointer(target, clientX, viewport);
+          : widthFromPointer(target, clientX, viewport, leftOrigin);
         const next = clampFor(target, raw, current, leftPanelOpen, rightPanelOpen, workbenchDocked);
         if (next === lastAppliedWidth) return;
         // 拖拽过程直接改 CSS 变量,避免每帧重渲染聊天区。

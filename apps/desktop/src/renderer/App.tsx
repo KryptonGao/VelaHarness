@@ -1294,6 +1294,7 @@ export function App() {
                 </Presence>
                 <Presence present={settingsOpen && !scheduledTasksOpen && !recipesOpen && !prInboxOpen && !agentInboxOpen} className="main-stage-pane">
                   <SettingsView
+                    sidebarResize={railMode ? resize : undefined}
                     onPreviewSound={sounds.preview}
                     preferences={preferences}
                     platform={platform}

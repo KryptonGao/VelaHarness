@@ -366,6 +366,22 @@ button.settings-select-trigger:hover:not(:disabled) { background-color: var(--se
 @media (max-width: 760px) {
   .settings-body { flex-direction: column; }
   .settings-nav { width: auto; max-height: 40%; border-bottom: 1px solid var(--border-subtle); }
+  .settings-body > .sidebar-resize-handle { display: none; }
+}
+@media (width > 760px) {
+  .nav-rail-layout .settings-view { --settings-nav-width: var(--sidebar-left-width); }
+  .nav-rail-layout .settings-view::after {
+    left: var(--settings-nav-width);
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+  }
+  .nav-rail-layout .settings-nav { margin-right: 0; padding-right: 8px; }
+  .nav-rail-layout .settings-content { border-radius: 0; }
+  .settings-body > .sidebar-resize-handle {
+    left: var(--settings-nav-width);
+    right: auto;
+    transform: translateX(-50%);
+  }
 }
 .settings-hint,
 .settings-note,
