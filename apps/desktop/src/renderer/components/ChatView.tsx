@@ -5,7 +5,7 @@ import { VersionControlView } from "./version-control/VersionControlView";
 import { TraceView } from "./trace/TraceView";
 import { UsageView } from "./usage/UsageView";
 import { isAgentBusy, visualToolName, type AppState, type AskUserQuestionRequest, type InteractionMode, type ToolTrace } from "@vela/shared";
-import { Fragment, memo, startTransition, useCallback, useContext, useEffect, useId, useLayoutEffect, useMemo, useOptimistic, useRef, useState, type ReactNode } from "react";
+import { Fragment, memo, startTransition, useCallback, useContext, useEffect, useEffectEvent, useId, useLayoutEffect, useMemo, useOptimistic, useRef, useState, type ReactNode } from "react";
 import { useAgentWorkspace } from "./AgentPanel";
 import { modKeyLabel } from "../platform";
 import { readModelHint, writeModelHint } from "../startup-hint";
@@ -378,7 +378,7 @@ export function ChatView({
   // 冷启动时会话还没就绪,先用上次的模型占位;禁用状态和 modelReady 仍以真实会话为准。
   const [modelHint] = useState(readModelHint);
   const hintModel = !embedded && !session?.modelProvider ? modelHint : null;
-  useEffect(() => {
+  const rememberModel = useEffectEvent(() => {
     if (embedded || session?.status !== "ready" || !session.modelReady || !session.model || !session.modelProvider || !session.modelId) return;
     writeModelHint({
       label: session.model,
@@ -387,7 +387,13 @@ export function ChatView({
       thinkingLevel: session.thinkingLevel,
       thinkingLevels: session.thinkingLevels,
     });
-  }, [embedded, session?.status, session?.modelReady, session?.model, session?.modelProvider, session?.modelId, session?.thinkingLevel, session?.thinkingLevels]);
+  });
+  // IPC snapshots clone the levels array even when the model is unchanged.
+  const thinkingLevelsKey = session?.thinkingLevels?.join(",");
+  useEffect(() => { rememberModel(); }, [
+    embedded, session?.status, session?.modelReady, session?.model, session?.modelProvider, session?.modelId,
+    session?.thinkingLevel, thinkingLevelsKey,
+  ]);
   const streaming = session?.status === "streaming";
   // 服务限额类报错在对话流里显示成卡片,输入框上方不再重复一行红字。
   const providerError = useMemo(() => parseProviderError(sendError), [sendError]);
