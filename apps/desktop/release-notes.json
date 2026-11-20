@@ -1,144 +1,144 @@
 {
-  "version": "1.2.37",
+  "version": "1.2.38",
   "locales": {
     "en": {
-      "summary": "Vela 1.2.37 adds an opt-in combined model and reasoning effort picker, keeps unsent composer drafts per conversation, and makes reply actions icon-only.",
+      "summary": "Vela 1.2.38 adds selectable start pages for new chats, shows live file changes and per-turn quota usage near the composer, and makes Resident Agent follow-ups and subagent chats more reliable.",
       "highlights": [
         {
-          "title": "Combined model picker",
-          "body": "An optional Interface setting merges reasoning effort and model choice into one composer button with a slider and a model list."
+          "title": "Start page styles",
+          "body": "Choose Atelier, Command Deck, Classic, or Minimal for new chats under Settings → Interface. Atelier is the new default."
         },
         {
-          "title": "Drafts that stay",
-          "body": "Unsent text is kept per conversation, and new chats share one draft, so switching conversations no longer loses what you typed."
+          "title": "Live file changes",
+          "body": "Files changed during the current turn appear above the composer while the agent works."
         },
         {
-          "title": "Icon-only reply actions",
-          "body": "Copy, read aloud, branch, checkpoint, memory, and acceptance actions under replies are now compact icons."
+          "title": "Per-turn quota usage",
+          "body": "The 5h and 1w quota a turn consumed shows in a small capsule next to the elapsed time."
         },
         {
-          "title": "Acceptance icon",
-          "body": "Outcome acceptance has its own icon in reply actions, the acceptance panel, and workbench tabs."
+          "title": "Resident Agent follow-ups",
+          "body": "Resident Agent tasks support follow-ups and event-driven replies, and composer messages go through the agent conversation."
         }
       ],
       "improvements": [
-        "Read-aloud shows a clock while preparing, a stop icon while playing, and a warning icon on failure.",
-        "The combined picker keeps the model list and the reasoning slider in sync when you switch models.",
-        "The combined picker fits narrow workbench panes and collapses its label when the composer is tight.",
-        "Unsent drafts are kept in memory and cleared as soon as a message is sent.",
-        "Acceptance uses the new file-check icon in both icon sets."
+        "Turn changes show file icons and emphasized filenames, with a compact-diff toggle on line counts.",
+        "The changes review file tree can be toggled at any width.",
+        "The settings sidebar can be resized in navigation rail mode.",
+        "Subagent chats batch background results, identify senders, and count their usage in cumulative chat tokens.",
+        "Conversation mode switches stay responsive, and rendered entries no longer replay arrival animations."
       ]
     },
     "zh-CN": {
-      "summary": "Vela 1.2.37 新增可选的「模型与思考强度」合并菜单，按对话保留未发送的草稿，并将回复操作改为纯图标。",
+      "summary": "Vela 1.2.38 新增可选的新对话起始页样式，在输入框附近显示实时文件改动与单轮额度消耗，并提升常驻 Agent 跟进与子代理对话的可靠性。",
       "highlights": [
         {
-          "title": "合并模型菜单",
-          "body": "在「界面」设置中可开启，把思考强度与模型选择合并为输入框里的一个按钮，含滑杆与模型列表。"
+          "title": "起始页样式",
+          "body": "在「设置 → 界面」中为新对话选择静纸稿台、星航指挥舱、经典或极简样式，静纸稿台为新的默认样式。"
         },
         {
-          "title": "草稿不丢失",
-          "body": "未发送的文字按对话保留，新对话共用一份草稿，切换对话不再丢失已输入的内容。"
+          "title": "实时文件改动",
+          "body": "本轮对话中改动的文件会在 Agent 工作时显示在输入框上方。"
         },
         {
-          "title": "纯图标回复操作",
-          "body": "回复下方的复制、朗读、分支、检查点、记忆与验收操作改为紧凑的图标。"
+          "title": "单轮额度消耗",
+          "body": "一轮对话消耗的 5 小时与 1 周额度，以小胶囊显示在耗时旁边。"
         },
         {
-          "title": "验收专属图标",
-          "body": "成果验收在回复操作、验收面板与工作台标签中使用专属图标。"
+          "title": "常驻 Agent 跟进",
+          "body": "常驻 Agent 任务支持跟进与事件驱动的回复，输入框消息统一通过 Agent 对话发送。"
         }
       ],
       "improvements": [
-        "朗读准备中显示时钟，播放中显示停止图标，失败时显示警告图标。",
-        "合并菜单在切换模型时保持模型列表与思考滑杆同步。",
-        "合并菜单适配较窄的工作台窗格，输入框空间不足时自动收起文字。",
-        "未发送的草稿仅保存在内存中，发送后立即清除。",
-        "验收在两套图标风格中都改用新的文件勾选图标。"
+        "本轮改动显示文件图标并突出文件名，点击行数可切换紧凑差异。",
+        "改动审阅的文件树在任意宽度下都可展开或收起。",
+        "导航栏模式下可调整设置侧边栏的宽度。",
+        "子代理对话会合并后台结果、标明发送者，并把其用量计入对话累计 Token。",
+        "切换对话模式更流畅，已渲染的条目不再重复播放出现动画。"
       ]
     },
     "zh-TW": {
-      "summary": "Vela 1.2.37 新增可選的「模型與思考強度」合併選單，依對話保留未送出的草稿，並將回覆操作改為純圖示。",
+      "summary": "Vela 1.2.38 新增可選的新對話起始頁樣式，在輸入框附近顯示即時檔案變更與單輪額度消耗，並提升常駐 Agent 跟進與子代理對話的可靠性。",
       "highlights": [
         {
-          "title": "合併模型選單",
-          "body": "可在「介面」設定中開啟，把思考強度與模型選擇合併為輸入框中的一個按鈕，含滑桿與模型清單。"
+          "title": "起始頁樣式",
+          "body": "在「設定 → 介面」中為新對話選擇靜紙稿台、星航指揮艙、經典或極簡樣式，靜紙稿台為新的預設樣式。"
         },
         {
-          "title": "草稿不遺失",
-          "body": "未送出的文字依對話保留，新對話共用一份草稿，切換對話不再遺失已輸入的內容。"
+          "title": "即時檔案變更",
+          "body": "本輪對話中變更的檔案會在 Agent 工作時顯示在輸入框上方。"
         },
         {
-          "title": "純圖示回覆操作",
-          "body": "回覆下方的複製、朗讀、分支、檢查點、記憶與驗收操作改為精簡的圖示。"
+          "title": "單輪額度消耗",
+          "body": "一輪對話消耗的 5 小時與 1 週額度，以小膠囊顯示在耗時旁邊。"
         },
         {
-          "title": "驗收專屬圖示",
-          "body": "成果驗收在回覆操作、驗收面板與工作台分頁中使用專屬圖示。"
+          "title": "常駐 Agent 跟進",
+          "body": "常駐 Agent 任務支援跟進與事件驅動的回覆，輸入框訊息統一透過 Agent 對話送出。"
         }
       ],
       "improvements": [
-        "朗讀準備中顯示時鐘，播放中顯示停止圖示，失敗時顯示警告圖示。",
-        "合併選單在切換模型時保持模型清單與思考滑桿同步。",
-        "合併選單適用於較窄的工作台窗格，輸入框空間不足時自動收起文字。",
-        "未送出的草稿只保存在記憶體中，送出後立即清除。",
-        "驗收在兩套圖示風格中都改用新的檔案勾選圖示。"
+        "本輪變更顯示檔案圖示並突顯檔名，點擊行數可切換精簡差異。",
+        "變更審閱的檔案樹在任何寬度下都可展開或收合。",
+        "導覽列模式下可調整設定側邊欄的寬度。",
+        "子代理對話會合併背景結果、標明傳送者，並將其用量計入對話累計 Token。",
+        "切換對話模式更流暢，已渲染的項目不再重複播放出現動畫。"
       ]
     },
     "ja": {
-      "summary": "Vela 1.2.37 では、モデルと推論強度をまとめる任意のピッカーを追加し、未送信の下書きを会話ごとに保持し、返信アクションをアイコンのみにしました。",
+      "summary": "Vela 1.2.38 では、新規チャットの開始ページのスタイルを選べるようになり、入力欄の近くにファイル変更のライブ表示とターンごとのクォータ消費を表示し、常駐エージェントのフォローアップとサブエージェントのチャットの信頼性を高めました。",
       "highlights": [
         {
-          "title": "モデルのまとめピッカー",
-          "body": "「インターフェース」設定で有効にすると、推論強度とモデル選択が入力欄の 1 つのボタンにまとまり、スライダーとモデル一覧を使えます。"
+          "title": "開始ページのスタイル",
+          "body": "「設定 → インターフェース」で、新規チャットにアトリエ、コマンドデッキ、クラシック、ミニマルから選べます。新しい既定はアトリエです。"
         },
         {
-          "title": "消えない下書き",
-          "body": "未送信のテキストを会話ごとに保持し、新しいチャットでは 1 つの下書きを共有するので、会話を切り替えても入力が失われません。"
+          "title": "ライブのファイル変更",
+          "body": "現在のターンで変更されたファイルが、エージェントの作業中に入力欄の上へ表示されます。"
         },
         {
-          "title": "アイコンのみの返信アクション",
-          "body": "返信の下にあるコピー、読み上げ、分岐、チェックポイント、メモリ、承認のアクションをコンパクトなアイコンにしました。"
+          "title": "ターンごとのクォータ消費",
+          "body": "ターンで消費した 5 時間枠と 1 週間枠のクォータを、経過時間の横に小さなカプセルで表示します。"
         },
         {
-          "title": "受け入れ確認アイコン",
-          "body": "成果の受け入れ確認に専用アイコンを用意し、返信アクション、確認パネル、ワークベンチのタブで使います。"
+          "title": "常駐エージェントのフォローアップ",
+          "body": "常駐エージェントのタスクがフォローアップとイベント駆動の返信に対応し、入力欄のメッセージはエージェントの会話を通して送信されます。"
         }
       ],
       "improvements": [
-        "読み上げは準備中に時計、再生中に停止、失敗時に警告のアイコンを表示します。",
-        "まとめピッカーはモデルを切り替えてもモデル一覧と推論スライダーの状態を揃えます。",
-        "まとめピッカーは狭いワークベンチ枠に収まり、入力欄が窄いときはラベルを畳みます。",
-        "未送信の下書きはメモリ内にのみ保持し、送信するとすぐに消去します。",
-        "受け入れ確認は両方のアイコンセットで新しいファイルチェックのアイコンを使います。"
+        "ターンの変更にファイルアイコンとファイル名の強調を追加し、行数でコンパクト差分を切り替えられます。",
+        "変更レビューのファイルツリーを、どの幅でも開閉できます。",
+        "ナビゲーションレールモードで設定のサイドバーの幅を変更できます。",
+        "サブエージェントのチャットはバックグラウンド結果をまとめ、送信者を表示し、使用量を累計トークンに含めます。",
+        "会話モードの切り替えが滑らかになり、描画済みの項目が登場アニメーションを再生しなくなりました。"
       ]
     },
     "ko": {
-      "summary": "Vela 1.2.37은 모델과 사고 강도를 합친 선택형 피커를 추가하고, 보내지 않은 초안을 대화별로 보존하며, 답변 동작을 아이콘 전용으로 바꿨습니다.",
+      "summary": "Vela 1.2.38은 새 채팅 시작 페이지 스타일을 선택할 수 있게 하고, 입력창 근처에 실시간 파일 변경과 턴별 할당량 사용량을 보여주며, 상주 에이전트 후속 작업과 서브에이전트 채팅의 안정성을 높였습니다.",
       "highlights": [
         {
-          "title": "통합 모델 피커",
-          "body": "'인터페이스' 설정에서 켜면 사고 강도와 모델 선택이 입력창의 버튼 하나로 합쳐지며 슬라이더와 모델 목록을 쓸 수 있습니다."
+          "title": "시작 페이지 스타일",
+          "body": "'설정 → 인터페이스'에서 새 채팅에 아틀리에, 커맨드 덱, 클래식, 미니멀 중 하나를 고를 수 있습니다. 새 기본값은 아틀리에입니다."
         },
         {
-          "title": "사라지지 않는 초안",
-          "body": "보내지 않은 텍스트를 대화별로 보존하고 새 채팅은 초안 하나를 공유하므로, 대화를 전환해도 입력한 내용이 사라지지 않습니다."
+          "title": "실시간 파일 변경",
+          "body": "현재 턴에서 변경된 파일이 에이전트가 작업하는 동안 입력창 위에 표시됩니다."
         },
         {
-          "title": "아이콘 전용 답변 동작",
-          "body": "답변 아래의 복사, 읽어주기, 분기, 체크포인트, 메모리, 검수 동작이 간결한 아이콘으로 바뀌었습니다."
+          "title": "턴별 할당량 사용량",
+          "body": "한 턴에서 소모한 5시간 및 1주 할당량을 경과 시간 옆의 작은 캡슐로 보여줍니다."
         },
         {
-          "title": "검수 아이콘",
-          "body": "성과 검수에 전용 아이콘이 생겨 답변 동작, 검수 패널, 워크벤치 탭에서 사용됩니다."
+          "title": "상주 에이전트 후속 작업",
+          "body": "상주 에이전트 작업이 후속 작업과 이벤트 기반 답변을 지원하며, 입력창 메시지는 에이전트 대화를 통해 전송됩니다."
         }
       ],
       "improvements": [
-        "읽어주기는 준비 중에 시계, 재생 중에 정지, 실패 시 경고 아이콘을 표시합니다.",
-        "통합 피커는 모델을 바꿔도 모델 목록과 사고 강도 슬라이더를 일치시킵니다.",
-        "통합 피커는 좁은 워크벤치 창에 맞고 입력창이 좁으면 라벨을 접습니다.",
-        "보내지 않은 초안은 메모리에만 보관하고 전송하는 즉시 지웁니다.",
-        "검수는 두 아이콘 세트 모두에서 새 파일 체크 아이콘을 사용합니다."
+        "턴 변경에 파일 아이콘과 강조된 파일명을 표시하고, 줄 수를 눌러 간결한 diff로 전환할 수 있습니다.",
+        "변경 검토의 파일 트리를 어떤 너비에서도 열고 닫을 수 있습니다.",
+        "내비게이션 레일 모드에서 설정 사이드바의 너비를 조절할 수 있습니다.",
+        "서브에이전트 채팅은 백그라운드 결과를 묶고 발신자를 표시하며 사용량을 누적 토큰에 포함합니다.",
+        "대화 모드 전환이 더 매끄러워졌고, 이미 렌더링된 항목이 등장 애니메이션을 다시 재생하지 않습니다."
       ]
     }
   }

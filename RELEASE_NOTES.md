@@ -1,18 +1,22 @@
-# Vela 1.2.37
+# Vela 1.2.38
 
-Vela 1.2.37 adds an opt-in picker that combines the model and reasoning effort into one composer button, keeps unsent composer drafts per conversation, and makes reply actions icon-only.
+Vela 1.2.38 adds selectable start pages for new chats, shows live file changes and per-turn quota usage near the composer, and makes Resident Agent follow-ups and subagent chats more reliable.
 
 ## New
 
-- **Combined model and reasoning effort picker**: turn on **Combine model and reasoning effort** under Settings → Interface to adjust reasoning effort with a slider and switch models from one composer button. It is off by default and fits narrow workbench panes.
-- **Per-conversation drafts**: unsent composer text is kept for each conversation and restored when you switch back. New chats share one draft, and a draft is cleared as soon as it is sent. Drafts live in memory only and do not survive a restart.
-- **Acceptance icon**: outcome acceptance has its own icon in reply actions, the acceptance panel, and workbench tabs, in both the classic and unified icon sets.
+- **Start page styles**: choose how an empty chat looks under Settings → Interface → Start page style. **Atelier** is the new default, a left-aligned editorial desk with a workspace masthead, mode rail, and tabbed starter index; **Command Deck** shows live repository changes or recent commits with a ⌘1–⌘4 shortcut matrix; **Classic** keeps the centered greeting and prompt cards; **Minimal** shows only the composer. Installations that had Minimal start page turned on stay on Minimal.
+- **Live file changes above the composer**: files changed during the current turn appear above the chat composer while the agent works.
+- **Resident Agent follow-ups**: Resident Agent tasks support follow-ups and event-driven replies, and composer messages in a Resident Agent view go through the agent conversation.
+- **Per-turn quota usage**: the 5h and 1w quota consumed by a turn appears in a small capsule next to the elapsed time, rounded to whole percent and shown as <1% below one percent.
 
 ## Improved
 
-- **Icon-only reply actions**: copy, read aloud, branch, checkpoint, memory, and acceptance actions under replies are compact icons with tooltips and accessible labels.
-- **Read-aloud states**: the read-aloud button shows a clock while preparing, a stop icon while playing, and a warning icon on failure.
-- **Picker model switching**: switching models in the combined picker keeps the model list and the reasoning slider in sync.
+- **Turn changes**: file icons and emphasized filenames, a compact-diff toggle on line counts, and a changes review file tree that can be toggled at any width.
+- **Composer usage metrics**: usage figures sit side by side in the composer.
+- **Settings sidebar**: the settings sidebar can be resized in navigation rail mode.
+- **Subagent chats**: background results are batched and each message identifies its sender; cumulative chat tokens now include subagent usage.
+- **Responsiveness**: switching conversation modes stays responsive and consistent, previously rendered entries no longer replay arrival animations, and the startup model hint is no longer rewritten for unchanged snapshots.
+- **Localization**: new start page and usage copy is available in all five languages.
 
 ## Upgrade
 
@@ -26,19 +30,18 @@ The macOS build is not notarized and uses an ad-hoc signature. If macOS blocks f
 
 | File | Platform |
 | --- | --- |
-| `Vela-1.2.37-arm64.dmg` | macOS Apple Silicon installer |
-| `Vela-1.2.37-arm64.zip` | macOS Apple Silicon application bundle (`.app`); also the package used by in-app updates |
+| `Vela-1.2.38-arm64.dmg` | macOS Apple Silicon installer |
+| `Vela-1.2.38-arm64.zip` | macOS Apple Silicon application bundle (`.app`); also the package used by in-app updates |
 | `SHA256SUMS.txt` | SHA-256 checksums for both packages |
 | `SHA256SUMS.txt.sig` | Ed25519 signature of `SHA256SUMS.txt`, verified by the in-app updater |
 
-Package version: `1.2.37`. macOS bundle and download version: `1.2.37`.
+Package version: `1.2.38`. macOS bundle and download version: `1.2.38`.
 
 ## Validation
 
-- Release metadata verified: all package and macOS bundle version fields are `1.2.37`; all five in-app release-note languages contain four highlights and five improvements.
-- Production build and macOS arm64 packaging completed, followed by ad-hoc signing of `Vela.app` and regeneration of the DMG and ZIP from the signed bundle.
-- The app extracted from the ZIP and the app in the mounted DMG passed strict code-signature verification and bundle version checks; the bundle identifier is `com.vela.desktop`. The packaged app contains the final in-app release notes (`1.2.37`).
-- The ZIP has a single top-level `Vela.app` and passed archive-integrity verification. The DMG passed checksum verification and mounted successfully.
+- Release metadata verified: all package and macOS bundle version fields are `1.2.38`; all five in-app release-note languages contain four highlights and five improvements.
+- Production build and macOS arm64 packaging completed.
+- The app extracted from the ZIP reports bundle version `1.2.38` and bundle identifier `com.vela.desktop`; the ZIP has a single top-level `Vela.app` and the DMG mounts successfully.
 - `SHA256SUMS.txt` was generated and signed with the release key, whose public key is bundled in the app.
 
 The automated test suites were not run for this release, as requested.
