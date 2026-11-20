@@ -5,7 +5,7 @@ import { VersionControlView } from "./version-control/VersionControlView";
 import { TraceView } from "./trace/TraceView";
 import { UsageView } from "./usage/UsageView";
 import { isAgentBusy, visualToolName, type AppState, type AskUserQuestionRequest, type InteractionMode, type ToolTrace } from "@vela/shared";
-import { Fragment, memo, useCallback, useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Fragment, memo, startTransition, useCallback, useContext, useEffect, useId, useLayoutEffect, useMemo, useOptimistic, useRef, useState, type ReactNode } from "react";
 import { useAgentWorkspace } from "./AgentPanel";
 import { modKeyLabel } from "../platform";
 import { readModelHint, writeModelHint } from "../startup-hint";
@@ -244,7 +244,7 @@ export interface ChatViewProps {
   onRemoveInstruction: (instructionId: string) => Promise<void>;
   onEdit?: (turnIndex: number, text: string, images?: import("@vela/shared").ImageAttachment[]) => Promise<void>;
   onAbort: () => Promise<void>;
-  onMode: (mode: import("@vela/shared").InteractionMode) => void;
+  onMode: (mode: InteractionMode) => void | Promise<void>;
   models: ReturnType<typeof useModels>;
   question?: AskUserQuestionRequest | null;
   getQuestion: QuestionLookup;
@@ -365,6 +365,16 @@ export function ChatView({
   );
   const pendingInteraction = Boolean(project.approval) || hasPendingQuestion;
   const session = state?.session;
+  // Keep immediate mode feedback local while the runtime applies the change.
+  const [pendingMode, setPendingMode] = useOptimistic<{ id: string; mode: InteractionMode } | null>(null);
+  const mode = pendingMode && pendingMode.id === activeConversationId ? pendingMode.mode : session?.mode ?? "agent";
+  const changeMode = (next: InteractionMode) => {
+    if (!activeConversationId || next === mode) return;
+    startTransition(async () => {
+      setPendingMode({ id: activeConversationId, mode: next });
+      await onMode(next);
+    });
+  };
   // 冷启动时会话还没就绪,先用上次的模型占位;禁用状态和 modelReady 仍以真实会话为准。
   const [modelHint] = useState(readModelHint);
   const hintModel = !embedded && !session?.modelProvider ? modelHint : null;
@@ -1027,7 +1037,7 @@ export function ChatView({
           <EmptyState
             workspace={project.workspace?.current ?? null}
             modelMissing={modelMissing}
-            mode={session?.mode ?? "agent"}
+            mode={mode}
             minimal={minimalStart && !embedded}
           />
         ) : (
@@ -1231,7 +1241,7 @@ export function ChatView({
         predictionKey={predictionKey}
         conversationId={state?.activeConversationId ?? null}
         models={models}
-        mode={session?.mode ?? "agent"}
+        mode={mode}
         sendError={providerError ? null : sendError}
         usage={state?.context ?? null}
         contextPopover={floatingInfo}
@@ -1248,7 +1258,7 @@ export function ChatView({
         }}
         onRemoveInstruction={onRemoveInstruction}
         onAbort={onAbort}
-        onMode={onMode}
+        onMode={changeMode}
       />
       {showHomePrompts ? <NewChatPrompts hasGit={Boolean(project.git?.repo)} /> : null}
       </div>

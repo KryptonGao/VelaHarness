@@ -85,7 +85,7 @@ export function useSession(notify: NotifySound = noSound, fixedConversationId?: 
       if (mounted.current) setRawState(next);
       return;
     }
-    void window.vela?.getState(scope).then(scoped => {
+    return window.vela?.getState(scope).then(scoped => {
       if (mounted.current && request === stateRequest.current) setRawState(scoped);
     }).catch(() => {});
   }, []);
@@ -401,18 +401,22 @@ export function useSession(notify: NotifySound = noSound, fixedConversationId?: 
     setState(next);
   }, []);
 
+  const modeSeqRef = useRef(0);
   const setMode = useCallback(async (mode: InteractionMode) => {
     const api = window.vela;
     const id = activeIdRef.current;
     if (!api || !id) return;
-    setErrors((current) => ({ ...current, [id]: "" }));
+    const seq = ++modeSeqRef.current;
+    setErrors((current) => (current[id] ? { ...current, [id]: "" } : current));
     try {
-      setState(await api.setInteractionMode(mode, id));
+      const next = await api.setInteractionMode(mode, id);
+      if (seq === modeSeqRef.current && activeIdRef.current === id) await setState(next);
     } catch (error) {
+      if (seq !== modeSeqRef.current) return;
       const message = error instanceof Error ? error.message : "无法切换模式";
       setErrors((current) => ({ ...current, [id]: message }));
     }
-  }, []);
+  }, [setState]);
 
   const executePlan = useCallback(async (strategy: PlanExecutionContextStrategy) => {
     const api = window.vela;

@@ -1701,8 +1701,9 @@ export class AgentRuntime {
     if (entry.recipeWorkflowActive) throw new Error("配方阶段执行期间不能切换模式");
     if (entry.snapshot.mode === mode) return;
     if (entry.snapshot.mode === "goal") this.pauseGoal(entry, null);
-    this.patchEntry(entry, { mode });
-    this.applyActiveTools(entry);
+    entry.snapshot = { ...entry.snapshot, mode };
+    // 把 mode 与对应的工具集合合并为一次持久化与状态推送，避免切模式时双倍落盘和重复刷新。
+    this.applyActiveTools(entry, { mode });
   }
 
   /**
@@ -4812,7 +4813,7 @@ export class AgentRuntime {
     });
   }
 
-  private applyActiveTools(entry: Conversation): void {
+  private applyActiveTools(entry: Conversation, extraPatch?: Partial<SessionSnapshot>): void {
     const tools = this.tools.active(entry);
     const session = entry.session;
     const bridge = session ? this.mcpBridges.get(session) : undefined;
@@ -4820,7 +4821,7 @@ export class AgentRuntime {
     // 常驻 Agent 不加载外部 MCP 工具：它只负责协调，外部能力由工作区里的任务使用。
     const active = session && bridge && !this.isResident(entry.id) ? this.mcpActiveTools(session, tools) : tools;
     session?.setActiveToolsByName(active);
-    this.patchEntry(entry, { tools: active });
+    this.patchEntry(entry, { ...extraPatch, tools: active });
     for (const [child, other] of this.mcpBridges) {
       if (other !== bridge && other.options.conversationId === entry.id) {
         other.refresh();
