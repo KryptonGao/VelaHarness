@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { computeTurnQuota, consumedText, turnQuotaText } from "../src/renderer/components/turn-quota.ts";
+import { computeTurnQuota, consumedText, quotaWindowName } from "../src/renderer/components/turn-quota.ts";
 
 const limits = (...windows: [number, number][]) => ({
   provider: "openai-codex",
@@ -30,18 +30,18 @@ describe("turn quota consumption", () => {
     assert.deepEqual(computeTurnQuota(limits([10080, 1]), limits([300, 5], [10080, 2])), [{ windowMinutes: 10080, consumedPercent: 1 }]);
   });
 
-  it("formats small and large amounts", () => {
-    assert.equal(consumedText(0), "0%");
-    assert.equal(consumedText(0.04), "<0.1%");
-    assert.equal(consumedText(0.46), "0.5%");
-    assert.equal(consumedText(12.4), "12%");
+  it("rounds to whole percent and shows <1% below one percent", () => {
+    assert.equal(consumedText(0), "<1%");
+    assert.equal(consumedText(0.4), "<1%");
+    assert.equal(consumedText(0.5), "1%");
+    assert.equal(consumedText(2.4), "2%");
+    assert.equal(consumedText(12.6), "13%");
   });
 
-  it("builds the label and hides it without windows", () => {
-    assert.equal(turnQuotaText([]), null);
-    assert.equal(
-      turnQuotaText([{ windowMinutes: 300, consumedPercent: 2 }, { windowMinutes: 10080, consumedPercent: 0.3 }]),
-      "消耗 5 小时额度 2% · 每周额度 0.3%",
-    );
+  it("names windows briefly", () => {
+    assert.equal(quotaWindowName(300), "5h");
+    assert.equal(quotaWindowName(10080), "1w");
+    assert.equal(quotaWindowName(2880), "2d");
+    assert.equal(quotaWindowName(90), "90m");
   });
 });

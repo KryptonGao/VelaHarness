@@ -12,7 +12,7 @@ import { readModelHint, writeModelHint } from "../startup-hint";
 import { useSecondClock } from "../hooks/useSecondClock";
 import { finishTurnQuota, startTurnQuota, useTurnQuota } from "../hooks/useTurnQuota";
 import { usageLimitProvider } from "../hooks/useUsageLimits";
-import { turnQuotaText } from "./turn-quota";
+import { TurnQuotaPill } from "./TurnQuotaPill";
 import { speakReply, stopSpeaking, useSpeechPlayback, useSpeechState } from "../hooks/useSpeech";
 import { trackEnteredMessages, type EnterTrack } from "./message-motion";
 import type { useModels } from "../hooks/useModels";
@@ -197,12 +197,11 @@ function TurnProgressHeader({ startedAt, quota }: { startedAt: number; quota: bo
   }, [quota, startedAt]);
   const elapsed = formatElapsedTime(startedAt, now);
   if (!elapsed) return null;
-  const quotaText = turnQuotaText(windows);
   return (
     // 每秒更新的计时不进入 role="log" 的朗读范围。
     <span className="time-spent-trigger assistant-turn-trigger" aria-live="off">
       <span>{trf("已处理 {0}", "Worked {0}", elapsed)}</span>
-      {quotaText ? <span className="turn-quota">{quotaText}</span> : null}
+      <TurnQuotaPill windows={windows} />
     </span>
   );
 }
@@ -1748,7 +1747,7 @@ const CompletedAssistantTurn = memo(function CompletedAssistantTurn({
   const stopped = messages[messages.length - 1]?.turnStopped === true;
   // 用户停止时报告墙钟时间(“多少秒后停止”),不用工具耗时之和。
   const displayedElapsed = turnDuration === null || stopped ? elapsed : formatWholeSeconds(turnDuration);
-  const quotaText = turnQuotaText(useTurnQuota(startedAt));
+  const quotaWindows = useTurnQuota(startedAt);
   const processId = useId();
   const isFinalReply = (message: UiMessage) => finalReplies.some((reply) => reply.id === message.id);
   const hasProcess = messages.some((message) => (
@@ -1757,7 +1756,7 @@ const CompletedAssistantTurn = memo(function CompletedAssistantTurn({
   const triggerContent = (
     <>
       <span>{!displayedElapsed ? tr("查看过程", "View process") : stopped ? trf("你在 {0}后停止了", "You stopped after {0}", displayedElapsed) : trf("用时 {0}", "Took {0}", displayedElapsed)}</span>
-      {quotaText ? <span className="turn-quota">{quotaText}</span> : null}
+      <TurnQuotaPill windows={quotaWindows} />
       {hasProcess ? (
         <Icon name="chevron-right" size={12} className="time-spent-trigger-arrow" />
       ) : null}

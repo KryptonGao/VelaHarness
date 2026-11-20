@@ -1,6 +1,4 @@
 import type { UsageLimits } from "@vela/shared";
-import { trf } from "../locale";
-import { windowLabel } from "./usage-limit-format";
 
 /** 一轮对话在某个额度窗口里消耗的百分点。 */
 export interface TurnQuotaWindow {
@@ -24,17 +22,16 @@ export function computeTurnQuota(baseline: UsageLimits, current: UsageLimits): T
   return result.sort((a, b) => a.windowMinutes - b.windowMinutes);
 }
 
-/** 消耗量的数字：不足 0.1% 写 <0.1%，10% 以下保留一位小数，更大取整。 */
-export function consumedText(percent: number): string {
-  if (!(percent > 0)) return "0%";
-  if (percent < 0.1) return "<0.1%";
-  if (percent < 10) return `${Math.round(percent * 10) / 10}%`;
-  return `${Math.round(percent)}%`;
+/** 胶囊里的窗口名：5h、1w，其余按天 / 小时 / 分钟。 */
+export function quotaWindowName(minutes: number): string {
+  if (minutes === 10080) return "1w";
+  if (minutes % 1440 === 0) return `${minutes / 1440}d`;
+  if (minutes % 60 === 0) return `${minutes / 60}h`;
+  return `${minutes}m`;
 }
 
-/** 「消耗 5 小时额度 0.4% · 每周额度 0.1%」；没有可显示的窗口返回 null。 */
-export function turnQuotaText(windows: readonly TurnQuotaWindow[]): string | null {
-  if (windows.length === 0) return null;
-  const parts = windows.map((window) => `${windowLabel(window.windowMinutes)} ${consumedText(window.consumedPercent)}`);
-  return trf("消耗 {0}", "Used {0}", parts.join(" · "));
+/** 四舍五入到整数百分比；不到 1% 写 <1%。 */
+export function consumedText(percent: number): string {
+  const rounded = Math.round(percent);
+  return rounded < 1 ? "<1%" : `${rounded}%`;
 }

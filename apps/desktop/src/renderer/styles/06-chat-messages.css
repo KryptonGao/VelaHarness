@@ -241,13 +241,22 @@
   text-align: left;
 }
 .time-spent-trigger.is-running { width: 100%; }
-/* 计时右侧的本轮额度消耗；用点号与计时分开，数字等宽避免实时刷新时抖动。 */
+/* 计时右侧的本轮额度胶囊；数字等宽，实时刷新时不抖动。 */
 .turn-quota {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 6px;
+  padding: 1px 9px;
+  border-radius: 999px;
+  background: var(--bg-surface-subtle);
+  font-size: calc(12px * var(--ui-scale));
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
-  font-weight: 400;
   white-space: nowrap;
 }
-.turn-quota::before { content: "·"; margin-right: 5px; }
+.turn-quota-item { display: inline-flex; align-items: baseline; gap: 4px; }
+.turn-quota-name { opacity: 0.75; }
 .assistant-turn-trigger {
   width: 100%;
   padding-bottom: 8px;
