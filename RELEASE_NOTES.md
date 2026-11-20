@@ -40,8 +40,9 @@ Package version: `1.2.38`. macOS bundle and download version: `1.2.38`.
 ## Validation
 
 - Release metadata verified: all package and macOS bundle version fields are `1.2.38`; all five in-app release-note languages contain four highlights and five improvements.
-- Production build and macOS arm64 packaging completed.
-- The app extracted from the ZIP reports bundle version `1.2.38` and bundle identifier `com.vela.desktop`; the ZIP has a single top-level `Vela.app` and the DMG mounts successfully.
+- Production build and macOS arm64 packaging completed, followed by ad-hoc signing of `Vela.app` and regeneration of the DMG and ZIP from the signed bundle.
+- The app extracted from the ZIP and the app in the mounted DMG passed strict code-signature verification and bundle version checks; the bundle identifier is `com.vela.desktop`.
+- The ZIP has a single top-level `Vela.app` and passed archive-integrity verification. The DMG passed checksum verification and mounted successfully.
 - `SHA256SUMS.txt` was generated and signed with the release key, whose public key is bundled in the app.
 
 The automated test suites were not run for this release, as requested.
