@@ -82,6 +82,7 @@ import { Icon } from "./icons";
 
 export interface ComposerProps {
   changeSummary?: ReactNode;
+  conflictBanner?: ReactNode;
   embedded?: boolean;
   /** 还没有任何消息的新对话：草稿共用一份，下次新建对话时恢复。 */
   newChat?: boolean;
@@ -163,6 +164,7 @@ function maxInputHeight(input: HTMLElement): number {
 
 export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Composer({
   changeSummary,
+  conflictBanner,
   embedded = false,
   newChat = false,
   sandboxMode,
@@ -1105,6 +1107,9 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
   );
 
   const editable = !(recipeActive || disabled && !streaming);
+  const placeholder = streaming && !recipeActive
+    ? trf("Enter 排队 · {0}Enter 调整当前任务", "Enter queues · {0}Enter steers the current task", modifier)
+    : suggestion || placeholderFor(mode);
   const entry = (
     <div className="composer-entry">
       <span hidden ref={iconsRef}>
@@ -1115,7 +1120,8 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
         id={promptId}
         ref={inputRef}
         className={`input-textarea rich-input${suggestion ? " with-prediction" : ""}`}
-        data-placeholder={suggestion || placeholderFor(mode)}
+        data-placeholder={placeholder}
+        aria-placeholder={suggestion ? undefined : placeholder}
         data-empty={!prompt}
         role="textbox"
         aria-multiline="true"
@@ -1269,13 +1275,6 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
     <ComposerStatsRow usage={usage} contextPopover={contextPopover} />
   ) : null;
 
-  // 胶囊布局里提示放在胶囊外侧，不占用输入框内部空间。
-  const queueHint = streaming && !recipeActive ? (
-    <p className="composer-queue-hint">
-      {trf("Enter 排队 · {0}Enter 调整当前任务", "Enter queues · {0}Enter steers the current task", modifier)}
-    </p>
-  ) : null;
-
   const quoteCard = replies.length > 0 ? (
     <div className="reply-quote-row">
       {replies.map((reply) => {
@@ -1320,7 +1319,6 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
       {skillMenu}
       {statusPanel}
       {instructionRow}
-      {useCapsule ? null : queueHint}
       {quoteCard}
       {attachmentRow}
     </>
@@ -1333,6 +1331,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
         <ApprovalSlot approval={project.approval} onReply={project.replyApproval} />
       </div>
       {changeSummary}
+      {conflictBanner}
       <form
         className={`floating-input-card${useCapsule ? " layout-capsule" : ""}${homeStyle ? ` home-composer-${homeStyle}` : ""}${dragging ? " dragging" : ""}`}
         onSubmit={(event) => {
@@ -1354,7 +1353,6 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
         {useCapsule ? (
           <>
             {statusBar}
-            {queueHint}
             <div className="composer-capsule">
               {above}
               <div className="composer-capsule-main">

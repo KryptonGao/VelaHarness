@@ -189,6 +189,7 @@ function formatWholeSeconds(ms: number): string {
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
   if (hours > 0) return trf("{0}小时{1}分{2}秒", "{0}h {1}m {2}s", hours, minutes, seconds);
+  if (minutes > 0 && seconds === 0) return trf("{0}分", "{0}m", minutes);
   if (minutes > 0) return trf("{0}分{1}秒", "{0}m {1}s", minutes, seconds);
   return trf("{0}秒", "{0}s", seconds);
 }
@@ -240,6 +241,7 @@ export interface ChatViewProps {
   toolFold?: ToolFold;
   /** 运行视图:运行中在本轮过程末尾显示待办清单与当前步骤状态,随对话滚动。 */
   runView?: boolean;
+  showChangeSummary?: boolean;
   thinkingSummaries?: ThinkingSummariesApi;
   /** 在输入框模型列表中隐藏的模型，key 为 `provider/id`。 */
   hiddenModels?: string[];
@@ -300,6 +302,7 @@ export function ChatView({
   toolDisplay = "card",
   toolFold = "message",
   runView = false,
+  showChangeSummary = true,
   thinkingSummaries,
   hiddenModels = [],
   sendButtonIcon = "paper-plane",
@@ -1239,10 +1242,10 @@ export function ChatView({
         <JumpOrb activity={jumpActivity} commandKey={runningBash?.id} running={showJumpToLatest && view === "chat"} />
       </button>
       <TaskBudgetBanner budget={session?.taskBudget} conversationId={state?.activeConversationId} />
-      <ConflictBanner conversationId={state?.activeConversationId} />
       <TaskCostForecastHint session={session} />
       <Composer
-        changeSummary={liveReview && onReviewTurn ? (
+        conflictBanner={<ConflictBanner conversationId={state?.activeConversationId} turnStartedAt={session?.turnStartedAt} />}
+        changeSummary={showChangeSummary && liveReview && onReviewTurn ? (
           <button type="button" className="composer-change-summary" title={tr("变更审查", "Change review")}
             onClick={() => onReviewTurn(liveReview)}>
             <span>{trf("{0} 个文件已更改", liveReview.changes.files.length === 1 ? "{0} file changed" : "{0} files changed", liveReview.changes.files.length)}</span>

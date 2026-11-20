@@ -307,6 +307,7 @@ export function App() {
   const [filesTabOpen, setFilesTabOpen] = useState(false);
   const raceState = useRaces();
   const conflicts = useConflicts();
+  const [dismissedConflictTurns, setDismissedConflictTurns] = useState(() => new Map<string, number>());
   const [conflictsOpen, setConflictsOpen] = useState(false);
   const [raceTabOpen, setRaceTabOpen] = useState(false);
   const [backgroundTabOpen, setBackgroundTabOpen] = useState(false);
@@ -505,6 +506,8 @@ export function App() {
   }), [session.activeConversationId, openRecipes]);
   const conflictContext = useMemo((): ConflictContextValue => ({
     state: conflicts.state,
+    dismissedTurns: dismissedConflictTurns,
+    dismissTurn: (id, turnStartedAt) => setDismissedConflictTurns(current => new Map(current).set(id, turnStartedAt)),
     openOverview: () => setConflictsOpen(true),
     openConversation: id => { void session.switchTo(id); },
     moveToWorktree: async conversationId => {
@@ -515,7 +518,7 @@ export function App() {
       await session.switchTo(moved.conversationId);
       setComposerSeed({ id: crypto.randomUUID(), conversationId: moved.conversationId, text: moved.seed });
     },
-  }), [conflicts.state, session.switchTo]);
+  }), [conflicts.state, dismissedConflictTurns, session.switchTo]);
   const openBackgroundTab = useCallback(() => {
     setBackgroundTabOpen(true);
     setActiveWorkbenchTabId(backgroundTabId);
@@ -1133,6 +1136,7 @@ export function App() {
                           toolDisplay={preferences.toolDisplay}
                           toolFold={preferences.toolFold}
                           runView={preferences.runView}
+                          showChangeSummary={preferences.showChangeSummary}
                           toolProcessDetails={preferences.toolProcessDetails}
                           summaryEnabled={preferences.thinkingSummary}
                           summaryStyle={preferences.thinkingSummaryStyle}

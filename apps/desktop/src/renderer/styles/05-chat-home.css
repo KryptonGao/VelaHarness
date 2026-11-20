@@ -72,7 +72,6 @@
   background: transparent;
   border-radius: 0;
 }
-.chat-conversation-pane[data-home] .chat-dock-wrapper::before { display: none; }
 :where(.chat-conversation-pane[data-home] .chat-dock-wrapper .dock-popover[popover]) { border: 0; padding: 0; }
 .chat-conversation-pane[data-home] .chat-dock-wrapper .dock-popover[popover] {
   position: fixed;

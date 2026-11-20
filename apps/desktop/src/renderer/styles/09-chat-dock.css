@@ -1,20 +1,3 @@
-/* 输入框上方只做渐隐:正文从上到下逐渐淡入聊天底色,自然接到不透明的输入区,
-   滚动中的正文不会再被一条白色硬边切掉。不要加 backdrop-filter 模糊:整条 dock 宽的模糊层每帧都要重算。 */
-.chat-dock-wrapper::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 100%;
-  height: 52px;
-  pointer-events: none;
-  background: linear-gradient(
-    to bottom,
-    transparent 0%,
-    color-mix(in srgb, var(--bg-chat) 55%, transparent) 55%,
-    var(--bg-chat) 100%
-  );
-}
 @container chat (max-width: 720px) {
   .chat-dock-wrapper,
   .chat-scroll-area {
@@ -27,7 +10,7 @@
 .composer-change-summary {
   pointer-events: auto;
   display: inline-flex;
-  align-items: center;
+  align-items: baseline;
   gap: 5px;
   margin: 0 calc(var(--chat-lane-shift, 0px) * 2) 7px 0;
   padding: 5px 11px;
@@ -49,7 +32,7 @@
   position: relative;
   /* flex:none 保证宽度不被 dock 的剩余空间压缩;margin-right 撑出车道时允许溢出居中。 */
   flex: none;
-  width: calc(min(100%, var(--chat-lane-max, 760px)) - var(--chat-lane-shrink, 0px));
+  width: var(--composer-width, min(100%, 760px));
   /* 与对话列共用车道:margin-right 是左移量的两倍(居中布局里只兑现一半)。 */
   margin-right: calc(var(--chat-lane-shift, 0px) * 2);
   background: var(--bg-elevated);

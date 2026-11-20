@@ -2,7 +2,7 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 import type { AgentStreamEvent, AppState, AskUserQuestionEvent, SessionSnapshot, TranscriptMessage, VelaApi } from "@vela/shared";
-import { defaultContextLimitSettings, defaultTaskBudgetSettings } from "@vela/shared";
+import { defaultContextLimitSettings, defaultTaskBudgetSettings, emptyConflictsState } from "@vela/shared";
 import { App } from "../src/renderer/App";
 import "../src/renderer/styles.css";
 
@@ -35,7 +35,14 @@ const state = (id = active): AppState => structuredClone({ activeConversationId:
 const emit = (event: AgentStreamEvent) => { for (const listener of events) listener(event); };
 const broadcast = () => emit({ type: "state", state: state() });
 const calls: { name: string; id?: string; text?: string; options?: unknown }[] = [];
+const conflictListeners = new Set<() => void>();
+let conflictState = emptyConflictsState;
 const fixture = {
+  setOverlaps(files: string[]) {
+    conflictState = { ...emptyConflictsState, overlaps: files.map(file => ({ path: `${cwd}/${file}`, relativePath: file,
+      conversations: [active, "other-chat"].map(id => ({ conversationId: id, title: id, editedAt: 1 })) })) };
+    for (const listener of conflictListeners) listener();
+  },
   calls, active: () => active, state,
   failCreate: false, deferCreate: false, releaseCreate: () => {},
   emit,
@@ -49,6 +56,8 @@ const fixture = {
 (window as unknown as { chatFixture: typeof fixture }).chatFixture = fixture;
 const subscribe = () => () => {};
 window.vela = {
+  conflicts: { list: async () => conflictState, subscribe: listener => { conflictListeners.add(listener); return () => { conflictListeners.delete(listener); }; },
+    moveToWorktree: async () => { throw new Error("Not implemented"); } },
   platform: "darwin", setLocale() {}, setAppearance: async () => {}, setRunView: async () => {}, setRecommendedActions: async () => {}, setShortcuts() {},
   getState: async id => state(id), getMessages: async id => structuredClone(messages.get(id) ?? []), getAgentMessages: async () => [],
   onEvent: listener => { events.add(listener); return () => { events.delete(listener); }; },

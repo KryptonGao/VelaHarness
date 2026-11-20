@@ -1,5 +1,5 @@
 import { conflictingConversations } from "@vela/shared";
-import { useContext, useMemo, useState } from "react";
+import { useContext, useMemo } from "react";
 import { tr, trf } from "../locale";
 import { ConflictContext } from "./conflict-context";
 import { MoveToWorktreeButton } from "./ConflictDialog";
@@ -9,14 +9,10 @@ import { Icon } from "./icons";
 const shownFiles = 3;
 
 /** 当前对话和其他对话近期改了同一个文件时的提醒；只管这一个对话，全局概览在 ConflictDialog。 */
-export function ConflictBanner({ conversationId }: { conversationId: string | null | undefined }) {
-  const { state, openOverview } = useContext(ConflictContext);
-  const [dismissed, setDismissed] = useState<string | null>(null);
+export function ConflictBanner({ conversationId, turnStartedAt }: { conversationId?: string | null; turnStartedAt?: number }) {
+  const { state, openOverview, dismissedTurns, dismissTurn } = useContext(ConflictContext);
   const others = useMemo(() => conversationId ? conflictingConversations(state, conversationId) : [], [state, conversationId]);
-  if (!conversationId || others.length === 0) return null;
-  // 同一批冲突只关闭一次；出现新的重叠文件后再次提醒。
-  const signature = `${conversationId}:${others.map(item => `${item.conversationId}=${item.files.join("|")}`).join(";")}`;
-  if (dismissed === signature) return null;
+  if (!conversationId || turnStartedAt === undefined || others.length === 0 || dismissedTurns.get(conversationId) === turnStartedAt) return null;
   const files = [...new Set(others.flatMap(item => item.files))];
   const names = others.map(item => item.title).slice(0, 2).join(tr("、", ", "));
   const more = others.length > 2 ? trf(" 等 {0} 个对话", " and {0} more", others.length - 2) : "";
@@ -35,7 +31,7 @@ export function ConflictBanner({ conversationId }: { conversationId: string | nu
       <MoveToWorktreeButton conversationId={conversationId} compact />
       <div className="conflict-links">
         <button type="button" className="conflict-link" onClick={openOverview}>{tr("查看全部", "View all")}</button>
-        <button type="button" className="conflict-link" aria-label={tr("关闭提醒", "Dismiss")} onClick={() => setDismissed(signature)}>{tr("忽略", "Dismiss")}</button>
+        <button type="button" className="conflict-link" aria-label={tr("关闭提醒", "Dismiss")} onClick={() => dismissTurn(conversationId, turnStartedAt)}>{tr("忽略", "Dismiss")}</button>
       </div>
     </div>
   </aside>;

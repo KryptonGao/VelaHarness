@@ -460,9 +460,24 @@
   flex-direction: column;
   align-items: center;
   pointer-events: none;
-  /* 输入框及其下方保持不透明,滚动中的正文不会从边上和底部透出来。 */
-  background: var(--bg-chat);
+  isolation: isolate;
+  anchor-scope: --input-surface;
+  --composer-overhang: 12px;
+  --composer-width: calc(min(100%, var(--chat-lane-max, 760px)) - var(--chat-lane-shrink, 0px) + 2 * var(--composer-overhang));
 }
 
-/* 子代理面板的输入框沿用主对话的 dock:浮在面板底部,两侧留白与正文一致。 */
+/* 从输入框内部开始挡住下方的托盘及底部留白，不在圆角上方划一条横线。 */
+:is(.chat-conversation-pane:not([data-home]), .agent-pane) > .chat-dock-wrapper::after {
+  content: "";
+  position: absolute;
+  inset: anchor(--input-surface center) 0 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--bg-chat);
+  pointer-events: none;
+}
+.floating-input-card:not(.layout-capsule), .composer-capsule { anchor-name: --input-surface; }
+.chat-conversation-pane[data-home] .chat-dock-wrapper { --composer-overhang: 0px; }
+
+/* 子代理面板的输入框沿用主对话的 dock。 */
 .agent-pane > .chat-dock-wrapper { padding: 0 16px 14px; }

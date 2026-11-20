@@ -1,5 +1,6 @@
 /* 侧边聊天：工作面板里的轻量对话，不带工具。 */
 .side-chat {
+  --side-input-overlap: 32px;
   flex: 1;
   min-height: 0;
   display: flex;
@@ -43,7 +44,8 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: 16px;
+  isolation: isolate;
+  padding: 16px 16px calc(16px + var(--side-input-overlap));
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -90,7 +92,7 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  margin: 0 12px 12px;
+  margin: calc(-1 * var(--side-input-overlap)) 8px 12px;
   padding: 14px 12px 8px 16px;
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-xl);

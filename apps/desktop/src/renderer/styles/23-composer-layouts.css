@@ -50,10 +50,10 @@
   box-shadow: none;
   padding: 0;
   gap: 0;
-  /* 默认与对话列同宽;托盘放不下时随内容变宽,最宽到 dock 内边距(安全区)为止。 */
+  /* 托盘可随内容变宽，至少盖住回复列的两侧。 */
   width: max-content;
-  min-width: calc(min(100%, var(--chat-lane-max, 760px)) - var(--chat-lane-shrink, 0px));
-  max-width: calc(100% - var(--chat-lane-shrink, 0px));
+  min-width: var(--composer-width, min(100%, 760px));
+  max-width: calc(100% - var(--chat-lane-shrink, 0px) + 2 * var(--composer-overhang, 0px));
 }
 .composer-capsule {
   /* 胶囊自身不参与宽度测算,卡片宽度只由下方托盘的内容宽度决定。 */
@@ -73,6 +73,10 @@
 .layout-capsule > .composer-status-bar { padding: 0 12px 6px; contain: inline-size; }
 .layout-capsule > .composer-queue-hint { padding: 0 12px 6px; contain: inline-size; }
 .composer-capsule > :first-child:is(.instruction-row, .attachment-row) { padding-top: 4px; }
+/* 浮在正文上的文字只给自身垫底，不遮掉整行。 */
+.layout-capsule > .composer-status-bar :is(.composer-chip-anchor, .composer-status-notice),
+.layout-capsule > .composer-queue-hint { background-color: var(--bg-chat); }
+.layout-capsule > .composer-queue-hint { align-self: flex-start; contain: none; }
 .composer-capsule-main {
   display: flex;
   align-items: flex-end;

@@ -116,8 +116,8 @@
 .resident-tabs { overflow-x:auto; }
 .resident-panel { flex:1; min-height:0; display:flex; flex-direction:column; overflow:auto; }
 
-.resident-chat { flex:1; min-height:0; display:flex; flex-direction:column; }
-.resident-messages { flex:1; min-height:0; overflow:auto; padding:20px 24px 24px; display:flex; flex-direction:column; align-items:center; gap:22px; }
+.resident-chat { flex:1; min-height:0; display:flex; flex-direction:column; position:relative; }
+.resident-messages { flex:1; min-height:0; overflow:auto; isolation:isolate; padding:20px 24px calc(24px + var(--resident-dock-height, 0px)); display:flex; flex-direction:column; align-items:center; gap:22px; }
 .resident-messages > .user-msg-container,.resident-messages > .assistant-block,.resident-event-card { width:min(100%,760px); }
 .resident-event-card { box-sizing:border-box; flex:none; border:1px solid var(--border-subtle); border-radius:10px; background:var(--bg-card-surface); padding:10px 14px; display:grid; gap:6px; font-size:calc(13px * var(--ui-scale)); line-height:1.5; }
 .resident-event-card header { display:flex; align-items:center; gap:8px; }
@@ -137,10 +137,11 @@
 .resident-tools li[data-status="running"]::after { content:" …"; }
 .resident-tools li[data-status="error"] { color:var(--danger); }
 .resident-typing { width:28px; height:10px; background:radial-gradient(circle,var(--text-muted) 2px,transparent 3px) 0 50%/10px 10px repeat-x; animation:resident-pulse 1.2s ease-in-out infinite; }
-.resident-chat > .agent-inbox-notice,.resident-blocked { margin:0 24px 8px; }
-.resident-composer-dock { flex:none; display:flex; flex-direction:column; gap:6px; padding:0 24px 16px; position:relative; z-index:1; background:var(--bg-chat); border-radius:0 0 var(--paper-right-radius) 0; }
-/* 与主对话输入区一致:正文在输入框上方渐隐,最后融进纸面底色。 */
-.resident-composer-dock::before { content:""; position:absolute; left:0; right:0; bottom:100%; height:52px; pointer-events:none; background:linear-gradient(to bottom,transparent 0%,color-mix(in srgb,var(--bg-chat) 55%,transparent) 55%,var(--bg-chat) 100%); }
+.resident-composer-dock { position:absolute; inset:auto 0 0; z-index:1; display:flex; flex-direction:column; align-items:center; gap:6px; padding:0 24px 16px; pointer-events:none; anchor-scope:--input-surface; border-radius:0 0 var(--paper-right-radius) 0; }
+.resident-composer-dock::after { content:""; position:absolute; inset:anchor(--input-surface center) 0 0; z-index:-1; background:var(--bg-chat); border-radius:inherit; }
+.resident-composer-dock > * { width:calc(min(100%, 760px) + 24px); pointer-events:auto; }
+.resident-composer-dock > :is(.agent-inbox-notice,.resident-blocked) { margin:0; width:fit-content; max-width:100%; background:var(--bg-chat); }
+.resident-composer { anchor-name:--input-surface; }
 .resident-composer { display:flex; flex-direction:column; gap:6px; padding:14px 16px 10px; background:var(--bg-elevated); border:1px solid var(--border-subtle); border-radius:var(--radius-xl); box-shadow:var(--shadow-dock); }
 .resident-composer textarea { width:100%; box-sizing:border-box; resize:none; min-height:44px; max-height:140px; border:0; outline:none; padding:0; line-height:1.5; font-size:calc(15px * var(--ui-scale)); field-sizing:content; }
 .resident-composer textarea::placeholder { color:var(--text-muted); }

@@ -1,6 +1,6 @@
 .conflict-banner {
-  position: absolute; left: 50%; bottom: calc(var(--composer-clearance, 120px) + 84px); transform: translateX(-50%); z-index: 4;
-  display: flex; align-items: center; gap: 12px; box-sizing: border-box; width: min(760px, calc(100% - 32px));
+  pointer-events: auto; width: var(--composer-width); margin: 0 calc(var(--chat-lane-shift, 0px) * 2) 8px 0;
+  display: flex; align-items: center; gap: 12px; box-sizing: border-box;
   padding: 10px 14px; border: 1px solid var(--border-subtle); border-radius: var(--radius-xl);
   background: var(--bg-elevated); box-shadow: var(--shadow-popover); color: var(--text-primary);
 }

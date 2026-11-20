@@ -51,6 +51,7 @@ const laterEdit: UiMessage = {
 
 let controls: {
   liveStep(step: number): void;
+  showSummary(show: boolean): void;
   scope(chat: string, workspace?: string): void;
   width(value: number): void;
   variant(display: ToolDisplay, fold: ToolFold, noReply: boolean): void;
@@ -65,6 +66,7 @@ function Fixture() {
   const [fold, setFold] = useState<ToolFold>("message");
   const [liveStep, setLiveStep] = useState(params.has("live") ? 2 : 0);
   const [noReply, setNoReply] = useState(false);
+  const [showSummary, setShowSummary] = useState(true);
   const [active, setActive] = useState<string | null>(null);
   const [startOpen, setStartOpen] = useState(true);
   const review = useTurnReview(workspace, chat);
@@ -73,6 +75,7 @@ function Fixture() {
   useEffect(() => { setActive(review.review ? review.tabId : "start"); }, [workspace, chat]);
   controls = {
     liveStep: setLiveStep,
+    showSummary: setShowSummary,
     scope(nextChat, nextWorkspace = workspace) { setChat(nextChat); setWorkspace(nextWorkspace); },
     width: setWidth,
     variant(nextDisplay, nextFold, nextNoReply) { setDisplay(nextDisplay); setFold(nextFold); setNoReply(nextNoReply); },
@@ -103,6 +106,7 @@ function Fixture() {
           models={models} onToggleLeft={noop} onToggleRight={noop} onSend={async () => {}} onAbort={async () => {}}
           onMode={async () => {}} getQuestion={() => null} onReplyQuestion={noop} onBranch={noop}
           showNewTab={false} onNewTab={noop} onOpenChanges={noop}
+          showChangeSummary={showSummary}
           liveReviewId={review.review?.live ? review.review.turnId : undefined} onRefreshReview={review.refresh}
           onReviewTurn={request => { review.open(request); setActive(review.tabId); }} />
         <WorkbenchPanel tabs={tabs} activeTabId={active} contextOpen={false} leftOpen={false}
@@ -144,9 +148,13 @@ async function run() {
     assert(!badge(), "A new turn must not show changes from the previous turn");
     flushSync(() => controls.liveStep(2));
     assert(badge()?.textContent === tr("1 个文件已更改+3−0", "1 file changed+3−0"), "First saved edit updates badge");
+    assert(getComputedStyle(badge()!).alignItems === "baseline", "File and line counts share a text baseline");
     flushSync(() => badge()!.click()); await wait();
     assert(reviewTab()?.getAttribute("aria-selected") === "true" && view()?.querySelectorAll(".turn-review-file").length === 1, "Badge opens current turn in review");
+    flushSync(() => controls.showSummary(false));
     flushSync(() => controls.liveStep(3)); await wait();
+    assert(!badge() && view()?.querySelectorAll(".turn-review-file").length === 2, "Hiding the badge keeps the live review updated");
+    flushSync(() => controls.showSummary(true));
     assert(badge()?.textContent === tr("2 个文件已更改+4−1", "2 files changed+4−1"), "Repeated edits count once per path");
     assert(view()?.querySelectorAll(".turn-review-file").length === 2, "Open review follows later edits");
     flushSync(() => controls.liveStep(4)); await wait();

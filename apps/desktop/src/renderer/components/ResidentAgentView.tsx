@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   mayContainUi,
   residentLimits,
@@ -159,6 +159,7 @@ function Chat({ api, status, settings, messageStore, notice, setNotice }: {
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
+  const dockRef = useRef<HTMLDivElement>(null);
   const stick = useRef(true);
   const blocked = status.mode === "disabled" ? "disabled" : status.paused ? "paused" : null;
 
@@ -195,6 +196,19 @@ function Chat({ api, status, settings, messageStore, notice, setNotice }: {
     if (list && stick.current) list.scrollTop = list.scrollHeight;
   }, [rows]);
 
+  useLayoutEffect(() => {
+    const list = listRef.current, dock = dockRef.current;
+    if (!list || !dock) return;
+    const measure = () => {
+      list.style.setProperty("--resident-dock-height", `${dock.offsetHeight}px`);
+      if (stick.current) list.scrollTop = list.scrollHeight;
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(dock);
+    return () => observer.disconnect();
+  }, []);
+
   const submitRef = useRef(submit);
   submitRef.current = submit;
   const resend = useCallback(async (value: string) => {
@@ -221,9 +235,9 @@ function Chat({ api, status, settings, messageStore, notice, setNotice }: {
             : <ResidentMessage key={message.id} message={message} streaming={status.residentBusy && message === messages[lastIndex]} editDisabled={status.residentBusy || Boolean(blocked)} onResend={resend} />)}
         </UiHostProvider>}
     </div>
-    {notice ? <p className="agent-inbox-notice" role="alert">{notice}</p> : null}
-    {blocked ? <p className="agent-inbox-muted resident-blocked" role="status">{submitFailure[blocked]()}</p> : null}
-    <div className="resident-composer-dock">
+    <div className="resident-composer-dock" ref={dockRef}>
+      {notice ? <p className="agent-inbox-notice" role="alert">{notice}</p> : null}
+      {blocked ? <p className="agent-inbox-muted resident-blocked" role="status">{submitFailure[blocked]()}</p> : null}
       <form className="resident-composer" onSubmit={event => { event.preventDefault(); void send(); }}>
         <label className="agent-inbox-sr" htmlFor="resident-input">{tr("给 Resident Agent 的消息", "Message for Resident Agent")}</label>
         <textarea id="resident-input" rows={1} value={text} maxLength={residentLimits.maxPrompt} disabled={Boolean(blocked)}

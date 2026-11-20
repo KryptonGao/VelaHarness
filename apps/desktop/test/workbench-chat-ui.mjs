@@ -65,6 +65,21 @@ if (!process.versions.electron) {
     try {
       await win.loadFile(join(temporary, "index.html"));
       await until("document.querySelector('.chat-active-title')?.textContent === '主聊天'");
+      await evaluate("window.vela.prompt('first turn'); chatFixture.setOverlaps(['a.ts'])");
+      await until("!!document.querySelector('.chat-dock-wrapper > .conflict-banner + .floating-input-card')");
+      assert.ok(await evaluate(`(() => {
+        const banner = document.querySelector('.conflict-banner');
+        const gap = banner.nextElementSibling.getBoundingClientRect().top - banner.getBoundingClientRect().bottom;
+        return gap >= 0 && gap <= 10;
+      })()`));
+      await evaluate("document.querySelector('.conflict-banner button[aria-label]').click()");
+      await until("!document.querySelector('.conflict-banner')");
+      await evaluate("chatFixture.setOverlaps(['b.ts', 'a.ts']); new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done)))");
+      assert.equal(await evaluate("!!document.querySelector('.conflict-banner')"), false);
+      await evaluate("chatFixture.finish('main-chat'); window.vela.prompt('next turn')");
+      await until("document.querySelector('.conflict-banner-files')?.textContent.includes('b.ts')");
+      await win.loadFile(join(temporary, "index.html"));
+      await until("document.querySelector('.chat-active-title')?.textContent === '主聊天'");
       // 首页的卡片与胶囊都只用柔和的环境影，不用 dock 的向下投影；对话页仍保留浮动 dock 的层次。
       assert.deepEqual(await evaluate(`(() => {
         const root = document.documentElement;
@@ -97,6 +112,31 @@ if (!process.versions.electron) {
           }
         }
       })()`), Array.from({ length: 2 }, () => ({ flat: true, bordered: true, floating: true })));
+      // Verify the actual overlap, not just the dock's z-index: the scrollport must run
+      // behind the input, and the lower shield must start inside the rounded surface.
+      const overlapChecks = await evaluate(`(() => {
+        const pane = document.createElement('section');
+        pane.className = 'chat-conversation-pane';
+        pane.style.cssText = 'position:fixed;inset:0 auto auto 0;height:480px;display:flex;flex-direction:column;--composer-clearance:160px';
+        pane.innerHTML = '<div class="chat-scroll-area"><div class="chat-message-surface"><article class="assistant-block" style="min-height:1200px">Reply</article></div></div><div class="chat-dock-wrapper"><form class="floating-input-card"><div class="composer-capsule" style="min-height:64px"></div></form></div>';
+        document.body.append(pane);
+        try {
+          const list = pane.querySelector('.chat-scroll-area'), reply = pane.querySelector('article');
+          const form = pane.querySelector('form'), dock = form.parentElement, checks = [];
+          for (const width of [400, 1000]) for (const capsule of [false, true]) {
+            pane.style.width = width + 'px'; form.classList.toggle('layout-capsule', capsule);
+            const surface = (capsule ? form.firstElementChild : form).getBoundingClientRect();
+            const shield = dock.getBoundingClientRect().top + parseFloat(getComputedStyle(dock, '::after').top);
+            list.scrollTop = 0;
+            const row = reply.getBoundingClientRect();
+            const overlap = row.left > surface.left && row.right < surface.right && row.bottom > surface.bottom && list.getBoundingClientRect().bottom >= surface.bottom;
+            list.scrollTop = list.scrollHeight;
+            checks.push({width, capsule, overlap, shieldInside: shield > surface.top && shield < surface.bottom, lastVisible: reply.getBoundingClientRect().bottom <= surface.top});
+          }
+          return checks;
+        } finally { pane.remove(); }
+      })()`);
+      for (const c of overlapChecks) assert.ok(c.overlap && c.shieldInside && c.lastVisible, JSON.stringify(c));
       await newTab(); await capture("start-light");
       await click(chatOption);
       await until(`document.querySelector(${JSON.stringify(panel + ' .rich-input')}) && !document.querySelector(${JSON.stringify(panel + ' .rich-input')}).disabled`);
@@ -192,6 +232,9 @@ if (!process.versions.electron) {
         await until(`${actions(view)}.opacity === '0'`);
         assert.equal(await evaluate(`${actions(view)}.pointerEvents`), 'none');
       }
+      // Switching the main conversation can restore a collapsed workbench. Hover only once it is on screen.
+      await evaluate("document.querySelector('.main-stage-pane > .main-chat-view .workbench-expand')?.click()");
+      await until(`document.querySelector(${JSON.stringify(panel + ' .user-bubble')}).getBoundingClientRect().right <= innerWidth && !document.querySelector('.workbench-clip.is-animating')`);
       await movePointer(panel + ' .user-bubble');
       await until(`${actions(panel)}.opacity === '1'`);
       assert.equal(await evaluate(`${actions(main)}.opacity`), '0');

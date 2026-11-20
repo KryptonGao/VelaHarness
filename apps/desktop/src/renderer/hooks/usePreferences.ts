@@ -75,6 +75,7 @@ const toolDisplayKey = "vela.toolDisplay";
 const toolFoldKey = "vela.toolFold";
 const toolProcessDetailsKey = "vela.toolProcessDetails";
 const runViewKey = "vela.runView";
+const changeSummaryKey = "vela.showChangeSummary";
 const filePathKey = "vela.filePath";
 const minimalModeKey = "vela.minimalMode";
 const recommendedActionsKey = "vela.recommendedActions";
@@ -285,6 +286,9 @@ export function usePreferences() {
   const [runView, setRunView] = useState(() =>
     readStored(runViewKey, (value): value is string => value === "true", "false") === "true",
   );
+  const [showChangeSummary, setShowChangeSummary] = useState(() =>
+    readStored(changeSummaryKey, (value): value is string => value === "true" || value === "false", "true") === "true",
+  );
   /** 读取/编辑/创建文件行是否显示所在目录路径。默认显示。 */
   const [filePath, setFilePath] = useState(() =>
     readStored(filePathKey, (value): value is string => value === "true" || value === "false", "true") === "true",
@@ -492,6 +496,7 @@ export function usePreferences() {
     // 运行时要据此决定是否要求模型提交待办清单;浏览器预览等没有 window.vela 的环境直接跳过。
     void Promise.resolve(window.vela?.setRunView(runView)).catch(() => undefined);
   }, [runView]);
+  useEffect(() => writeStored(changeSummaryKey, String(showChangeSummary)), [showChangeSummary]);
   useEffect(() => {
     writeStored(recommendedActionsKey, String(recommendedActions));
     void Promise.resolve(window.vela?.setRecommendedActions(recommendedActions)).catch(() => undefined);
@@ -627,6 +632,7 @@ export function usePreferences() {
     toolFold,
     toolProcessDetails,
     runView,
+    showChangeSummary,
     filePath,
     minimalMode,
     recommendedActions,
@@ -688,6 +694,7 @@ export function usePreferences() {
     setToolFold,
     setToolProcessDetails,
     setRunView,
+    setShowChangeSummary,
     setFilePath,
     setMinimalMode,
     setRecommendedActions,

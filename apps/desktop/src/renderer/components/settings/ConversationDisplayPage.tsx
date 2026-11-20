@@ -211,6 +211,9 @@ export function ConversationDisplayPage({
       <SettingsBlock id="run-view" title={text.runView} hint={text.runViewHint} layout="inline">
         <SettingsSwitch label={text.runView} checked={runView} onChange={setRunView} />
       </SettingsBlock>
+      <SettingsBlock id="change-summary" title={text.changeSummary} hint={text.changeSummaryHint} layout="inline">
+        <SettingsSwitch label={text.changeSummary} checked={preferences.showChangeSummary} onChange={preferences.setShowChangeSummary} />
+      </SettingsBlock>
       <SettingsBlock id="minimal-mode" title={text.minimalMode} hint={text.minimalModeHint} layout="inline">
         <SettingsSwitch
           label={text.minimalMode}
