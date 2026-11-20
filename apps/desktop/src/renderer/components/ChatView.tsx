@@ -30,9 +30,19 @@ import { latestTodoTool } from "../run-view";
 import { JumpOrb } from "./JumpOrb";
 import type { OrbActivity } from "./jump-orb";
 import { ContextTab } from "./ContextTab";
-import { NewChatGreeting, NewChatPrompts, VelaMark } from "./NewChatHome";
-import { useMinimalStart } from "../hooks/useMinimalStart";
+import {
+  AtelierBackdrop,
+  NewChatAtelierHeader,
+  NewChatAtelierLedger,
+  NewChatDeckBento,
+  NewChatDeckHeader,
+  NewChatGreeting,
+  NewChatPrompts,
+  VelaMark,
+} from "./NewChatHome";
+import { useStartPageStyle, type StartPageStyle } from "../hooks/useStartPageStyle";
 import { useHomePrompts } from "../hooks/useHomePrompts";
+import { RaceActionsContext } from "./race-actions-context";
 import { TaskBudgetTab } from "./TaskBudgetTab";
 import { useContentArrival } from "./BatchMotion";
 import { Markdown } from "./Markdown";
@@ -332,6 +342,8 @@ export function ChatView({
   const [imageView, setImageView] = useState<ImageViewerRequest | null>(null);
   const startSideChat = useContext(SideChatLauncherContext);
   const recipeActions = useContext(RecipeActionsContext);
+  const raceActions = useContext(RaceActionsContext);
+  const [raceOpenRequest, setRaceOpenRequest] = useState(0);
   const activeConversationId = state?.activeConversationId ?? null;
   /** 选中文字后点「回复」得到的引用、浏览器里的元素批注，随下一条消息一起发送。 */
   const replyKey = activeConversationId ?? "";
@@ -430,12 +442,18 @@ export function ChatView({
   const title = displayConversationTitle(session?.title);
   // 空对话用「首页」布局:问候、输入框、预设整体居中,而不是输入框贴底。
   // 极简起始页:不用首页布局,空对话只剩贴底的输入框。
-  const minimalStart = useMinimalStart();
+  const startPageStyle = useStartPageStyle();
+  const minimalStart = startPageStyle === "minimal";
   const homePromptsEnabled = useHomePrompts();
   const homeLayout = !embedded && messages.length === 0 && !minimalStart;
+  const activeHomeStyle: StartPageStyle | undefined = homeLayout ? startPageStyle : undefined;
+  const homeComposerStyle = activeHomeStyle === "atelier" || activeHomeStyle === "deck" ? activeHomeStyle : undefined;
   const hasProjectWorkspace = Boolean(project.workspace?.current);
   const modelMissing = session?.status === "ready" && !session.modelReady;
   const showHomePrompts = homeLayout && hasProjectWorkspace && !modelMissing && homePromptsEnabled;
+  const composerDisabled = session?.status !== "ready" && session?.status !== "streaming";
+  const modeDisabled = composerDisabled || Boolean(streaming);
+  const canRace = Boolean(raceActions && project.workspace?.current && window.vela?.races && session?.modelReady);
   const scrollerRef = useRef<HTMLDivElement>(null);
   const dockRef = useRef<HTMLDivElement>(null);
   const followRef = useRef<FollowState>({
@@ -1003,8 +1021,9 @@ export function ChatView({
         onAbort={onAbort}
         onOpenFile={(absolutePath) => void project.openFile(absolutePath)}
       /> : null}
-      <div className="chat-conversation-pane" role="tabpanel" id={conversationPanelId(tabIdPrefix, "chat")} aria-labelledby={conversationTabId(tabIdPrefix, "chat")} data-home={homeLayout ? "true" : undefined} data-prompts={showHomePrompts ? "true" : undefined} data-turn-nav={showTurnNav ? "true" : undefined} hidden={view !== "chat"} inert={view !== "chat" ? true : undefined}>
-      {homeLayout ? <VelaMark /> : null}
+      <div className="chat-conversation-pane" role="tabpanel" id={conversationPanelId(tabIdPrefix, "chat")} aria-labelledby={conversationTabId(tabIdPrefix, "chat")} data-home={homeLayout ? "true" : undefined} data-home-style={activeHomeStyle} data-prompts={showHomePrompts ? "true" : undefined} data-turn-nav={showTurnNav ? "true" : undefined} hidden={view !== "chat"} inert={view !== "chat" ? true : undefined}>
+      {activeHomeStyle === "classic" ? <VelaMark /> : null}
+      {activeHomeStyle === "atelier" ? <AtelierBackdrop /> : null}
       {floatingInfo && infoCards && !emptyConversation ? (
         <InfoCardStack concealed={environmentCollapsed || infoCardsConcealed} state={state} project={project} messages={messages} planDraft={planDraft}
           backgroundShells={backgroundShells} onOpenBackgroundTasks={onOpenBackgroundTasks} changesActive={changesActive} onOpenChanges={onOpenChanges} onOpenPlan={onOpenPlan}
@@ -1041,10 +1060,15 @@ export function ChatView({
         <RecipeChatCard />
         {messages.length === 0 ? (
           <EmptyState
+            style={embedded ? "classic" : startPageStyle}
+            project={project}
             workspace={project.workspace?.current ?? null}
             modelMissing={modelMissing}
             mode={mode}
-            minimal={minimalStart && !embedded}
+            modeDisabled={modeDisabled}
+            canRace={canRace}
+            onMode={changeMode}
+            onOpenRace={() => setRaceOpenRequest((n) => n + 1)}
           />
         ) : (
           turns.map((turn, index) => {
@@ -1265,8 +1289,24 @@ export function ChatView({
         onRemoveInstruction={onRemoveInstruction}
         onAbort={onAbort}
         onMode={changeMode}
+        homeStyle={homeComposerStyle}
+        raceOpenRequest={raceOpenRequest}
       />
-      {showHomePrompts ? <NewChatPrompts hasGit={Boolean(project.git?.repo)} /> : null}
+      {showHomePrompts ? (
+        activeHomeStyle === "atelier" ? (
+          <NewChatAtelierLedger project={project} conversationId={state?.activeConversationId ?? null} />
+        ) : activeHomeStyle === "deck" ? (
+          <NewChatDeckBento
+            project={project}
+            conversationId={state?.activeConversationId ?? null}
+            platform={platform}
+            onMode={changeMode}
+            modeDisabled={modeDisabled}
+          />
+        ) : (
+          <NewChatPrompts hasGit={Boolean(project.git?.repo)} />
+        )
+      ) : null}
       </div>
       {imageView ? <ImageViewer request={imageView} onClose={() => setImageView(null)} /> : null}
     </main>
@@ -1283,24 +1323,60 @@ const modeHints: Record<InteractionMode, [string, string]> = {
 
 /** 空对话的引导文案按缺失的前置条件切换:先准备模型,再提示选工作区,最后才是开始任务。工作区本身由输入框上方的晶片选择。 */
 function EmptyState({
+  style,
+  project,
   workspace,
   modelMissing,
   mode,
-  minimal = false,
+  modeDisabled,
+  canRace,
+  onMode,
+  onOpenRace,
 }: {
+  style: StartPageStyle;
+  project: ProjectApi;
   workspace: string | null;
   modelMissing: boolean;
   mode: InteractionMode;
-  minimal?: boolean;
+  modeDisabled: boolean;
+  canRace: boolean;
+  onMode: (mode: InteractionMode) => void;
+  onOpenRace: () => void;
 }) {
   const hint = modelMissing
     ? tr("还没有可用的模型。点输入框右下角的模型按钮登录提供方，或添加一个兼容接口。", "No models are available yet. Use the model button at the bottom right to sign in to a provider or add a compatible API.")
     : workspace
       ? tr(modeHints[mode][0], modeHints[mode][1])
       : tr("点输入框上方的工作区晶片，选择要处理的项目。", "Pick a project with the workspace chip above the input.");
-  if (minimal) {
+  if (style === "minimal") {
     // 极简起始页只在缺前置条件时留一行提示,其余什么都不显示。
     return modelMissing || !workspace ? <p className="home-hint minimal-start-hint">{hint}</p> : null;
+  }
+  if (style === "atelier") {
+    return (
+      <NewChatAtelierHeader
+        project={project}
+        mode={mode}
+        hint={hint}
+        showHint={modelMissing || !workspace}
+        onMode={onMode}
+        modeDisabled={modeDisabled}
+      />
+    );
+  }
+  if (style === "deck") {
+    return (
+      <NewChatDeckHeader
+        project={project}
+        mode={mode}
+        hint={hint}
+        showHint={modelMissing || !workspace}
+        onMode={onMode}
+        modeDisabled={modeDisabled}
+        canRace={canRace}
+        onOpenRace={onOpenRace}
+      />
+    );
   }
   return <NewChatGreeting mode={mode} hint={hint} />;
 }

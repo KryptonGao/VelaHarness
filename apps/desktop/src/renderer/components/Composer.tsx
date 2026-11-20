@@ -131,6 +131,10 @@ export interface ComposerProps {
   onRemoveInstruction: (instructionId: string) => Promise<void>;
   onAbort: () => Promise<void>;
   onMode: (mode: InteractionMode) => void;
+  /** 新对话起始页专属输入框外壳样式；仅在空对话起始页生效，内部控件沿用原生固定控件。 */
+  homeStyle?: "atelier" | "deck";
+  /** 递增时打开多模型竞速弹窗（供星航指挥舱的 Race 按钮联动）。 */
+  raceOpenRequest?: number;
 }
 
 /** 输入框上方命令卡片的内容：`/status` 的条目、`/compact` 的进度与结果，或斜线命令提示。 */
@@ -194,6 +198,8 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
   onRemoveInstruction,
   onAbort,
   onMode,
+  homeStyle,
+  raceOpenRequest,
 }, ref) {
   const instanceId = useId();
   const promptId = embedded ? `prompt-${instanceId}` : "prompt";
@@ -1190,6 +1196,14 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
 
   const combinedModePicker = useCombinedModePicker();
   const raceMenu = raceActions && workspacePath && window.vela?.races && modelReady ? { onStart: () => setRaceOpen(true), onShow: raceActions.open, count: raceActions.count } : undefined;
+  const lastRaceOpenRequest = useRef(raceOpenRequest ?? 0);
+  useEffect(() => {
+    if (!raceOpenRequest || raceOpenRequest === lastRaceOpenRequest.current) return;
+    lastRaceOpenRequest.current = raceOpenRequest;
+    if (raceActions && workspacePath && window.vela?.races && modelReady && !disabled && !streaming && !recipeActive) {
+      setRaceOpen(true);
+    }
+  }, [raceOpenRequest, raceActions, workspacePath, modelReady, disabled, streaming, recipeActive]);
   const modePicker = combinedModePicker ? (
     <ModePicker
       mode={mode}
@@ -1298,14 +1312,15 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
     </div>
   ) : null;
 
+  const useCapsule = layout === "capsule" && !homeStyle;
   const above = (
     <>
       {approvalSlots}
-      {layout === "capsule" ? null : statusBar}
+      {useCapsule ? null : statusBar}
       {skillMenu}
       {statusPanel}
       {instructionRow}
-      {layout === "capsule" ? null : queueHint}
+      {useCapsule ? null : queueHint}
       {quoteCard}
       {attachmentRow}
     </>
@@ -1319,7 +1334,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
       </div>
       {changeSummary}
       <form
-        className={`floating-input-card${layout === "capsule" ? " layout-capsule" : ""}${dragging ? " dragging" : ""}`}
+        className={`floating-input-card${useCapsule ? " layout-capsule" : ""}${homeStyle ? ` home-composer-${homeStyle}` : ""}${dragging ? " dragging" : ""}`}
         onSubmit={(event) => {
           event.preventDefault();
           void submit();
@@ -1336,7 +1351,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
         }}
         onDrop={(event) => void handleDrop(event)}
       >
-        {layout === "capsule" ? (
+        {useCapsule ? (
           <>
             {statusBar}
             {queueHint}

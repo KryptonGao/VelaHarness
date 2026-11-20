@@ -29,7 +29,16 @@ export function PopoverPresence({ present, children }: { present: boolean; child
   if (present) frozen.current = children;
   useLayoutEffect(() => {
     if (!present || !presence.mounted) return;
-    root.current?.querySelectorAll<HTMLElement>(":scope > .dock-popover").forEach(fitPopoverToViewport);
+    root.current?.querySelectorAll<HTMLElement>(":scope > .dock-popover").forEach((popover) => {
+      const anchor = root.current?.parentElement;
+      if (anchor?.closest(".chat-conversation-pane[data-home] .chat-dock-wrapper")) {
+        // Keep the menu in its trigger's DOM subtree for dismissal and theme inheritance.
+        popover.popover = "manual";
+        popover.showPopover({ source: anchor });
+      } else {
+        fitPopoverToViewport(popover);
+      }
+    });
   }, [present, presence.mounted]);
   if (!presence.mounted) return null;
 

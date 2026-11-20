@@ -6,7 +6,7 @@ import type { AppLocale, InfoLayout, PreferencesApi } from "../../hooks/usePrefe
 import type { ConversationLinkTarget } from "../../browser/conversation-link-policy";
 import { notificationSoundKinds, type NotifySound } from "../../notification-sounds";
 import type { SettingsCopy } from "../settings-copy";
-import { setMinimalStart, useMinimalStart } from "../../hooks/useMinimalStart";
+import { setStartPageStyle, startPageStyles, useStartPageStyle, type StartPageStyle } from "../../hooks/useStartPageStyle";
 import { setHomePrompts, useHomePrompts } from "../../hooks/useHomePrompts";
 import { setCombinedModelPicker, useCombinedModelPicker } from "../../hooks/useCombinedModelPicker";
 import { setCombinedModePicker, useCombinedModePicker } from "../../hooks/useCombinedModePicker";
@@ -52,7 +52,19 @@ export function InterfacePage({
   const composerLayout = useComposerLayout();
   const combinedModelPicker = useCombinedModelPicker();
   const combinedModePicker = useCombinedModePicker();
-  const minimalStart = useMinimalStart();
+  const startPageStyle = useStartPageStyle();
+  const startPageStyleLabels: Record<StartPageStyle, string> = {
+    atelier: text.startPageStyleAtelier,
+    deck: text.startPageStyleDeck,
+    classic: text.startPageStyleClassic,
+    minimal: text.startPageStyleMinimal,
+  };
+  const startPageStyleHints: Record<StartPageStyle, string> = {
+    atelier: text.startPageStyleAtelierHint,
+    deck: text.startPageStyleDeckHint,
+    classic: text.startPageStyleClassicHint,
+    minimal: text.startPageStyleMinimalHint,
+  };
   const homePrompts = useHomePrompts();
   const composerLayoutLabels: Record<ComposerLayout, string> = {
     classic: text.composerLayoutClassic,
@@ -161,8 +173,14 @@ export function InterfacePage({
             </div>
           ))}
         </SettingsBlock>
-        <SettingsBlock id="minimal-start" title={text.minimalStart} hint={text.minimalStartHint} layout="inline">
-          <SettingsSwitch label={text.minimalStart} checked={minimalStart} onChange={setMinimalStart} />
+        <SettingsBlock id="start-page-style" title={text.startPageStyle} hint={text.startPageStyleHint} extraHint={startPageStyleHints[startPageStyle]} layout="inline">
+          <Segmented
+            menu
+            label={text.startPageStyle}
+            value={startPageStyle}
+            options={startPageStyles.map(id => ({ id, label: startPageStyleLabels[id] }))}
+            onChange={setStartPageStyle}
+          />
         </SettingsBlock>
         <SettingsBlock id="home-prompts" title={text.homePrompts} hint={text.homePromptsHint} layout="inline">
           <SettingsSwitch label={text.homePrompts} checked={homePrompts} onChange={setHomePrompts} />
