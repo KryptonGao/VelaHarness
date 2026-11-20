@@ -240,7 +240,7 @@ export function App() {
   const menuActionHandler = useRef<(action: MenuAction) => void>(() => {});
   const workspaceKey = project.workspace?.current ?? "";
   const conversationKey = session.activeConversationId ?? "";
-  const { review: turnReview, tabId: turnReviewTabId, open: showTurnReview, close: dismissTurnReview } = useTurnReview(workspaceKey, conversationKey);
+  const { review: turnReview, tabId: turnReviewTabId, open: showTurnReview, refresh: refreshTurnReview, close: dismissTurnReview } = useTurnReview(workspaceKey, conversationKey);
   const { acceptance, tabId: acceptanceTabId, open: showAcceptance, close: dismissAcceptance } = useAcceptance(workspaceKey, conversationKey);
   const [reviewTargets, setReviewTargets] = useState<Record<string, { path: string; requestKey: number; diffToolId?: string }>>({});
   const [fileTabsByWorkspace, setFileTabsByWorkspace] = useState<Record<string, PreviewFileDescriptor[]>>({});
@@ -1158,6 +1158,8 @@ export function App() {
                           onOpenWebLink={openConversationLink}
                           onOpenChanges={openAllChanges}
                           onReviewTurn={onReviewTurn}
+                          liveReviewId={turnReview?.live ? turnReview.turnId : undefined}
+                          onRefreshReview={refreshTurnReview}
                           onOpenAcceptance={onOpenAcceptance}
                           planDraft={session.planDraft}
                           backgroundShells={session.backgroundShells}

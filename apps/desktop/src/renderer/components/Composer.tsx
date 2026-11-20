@@ -81,6 +81,7 @@ import { useComposerLayout } from "../hooks/useComposerLayout";
 import { Icon } from "./icons";
 
 export interface ComposerProps {
+  changeSummary?: ReactNode;
   embedded?: boolean;
   /** 还没有任何消息的新对话：草稿共用一份，下次新建对话时恢复。 */
   newChat?: boolean;
@@ -157,6 +158,7 @@ function maxInputHeight(input: HTMLElement): number {
 }
 
 export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Composer({
+  changeSummary,
   embedded = false,
   newChat = false,
   sandboxMode,
@@ -1315,6 +1317,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
       <div className="dock-approval">
         <ApprovalSlot approval={project.approval} onReply={project.replyApproval} />
       </div>
+      {changeSummary}
       <form
         className={`floating-input-card${layout === "capsule" ? " layout-capsule" : ""}${dragging ? " dragging" : ""}`}
         onSubmit={(event) => {

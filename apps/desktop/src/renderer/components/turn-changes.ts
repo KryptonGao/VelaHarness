@@ -21,7 +21,8 @@ export interface TurnChanges {
 }
 
 export interface TurnReviewRequest {
-  /** 本轮最后一条 assistant 消息的 ID。 */
+  /** Live reviews use the stable turn ID until the final assistant message is known. */
+  live?: boolean;
   turnId: string;
   changes: TurnChanges;
 }
@@ -42,10 +43,14 @@ function diffLines(diff: string): { added: number; removed: number } {
   return { added, removed };
 }
 
+function isCompletedFileEdit(tool: ToolTrace): boolean {
+  return tool.status === "done" && (tool.name === "edit" || tool.name === "write");
+}
+
 export function summarizeTurnChanges(tools: ToolTrace[], workspaceRoot: string | null): TurnChanges | null {
   const files = new Map<string, TurnFileChange>();
   for (const tool of tools) {
-    if (tool.status !== "done" || (tool.name !== "edit" && tool.name !== "write")) continue;
+    if (!isCompletedFileEdit(tool)) continue;
     const path = tool.activity?.path && displayPath(tool.activity.path, workspaceRoot);
     if (!path) continue;
     const file = files.get(path) ?? { path, added: 0, removed: 0, diffs: [] };
@@ -64,6 +69,22 @@ export function summarizeTurnChanges(tools: ToolTrace[], workspaceRoot: string |
     files: values,
     added: values.reduce((sum, file) => sum + file.added, 0),
     removed: values.reduce((sum, file) => sum + file.removed, 0),
+  };
+}
+
+/** Text deltas and tool previews should not reparse saved diffs or refresh an open review. */
+export function createLiveChangesSelector() {
+  let previous: ToolTrace[] = [];
+  let root: string | null = null;
+  let changes: TurnChanges | null = null;
+  return (assistants: UiMessage[], workspaceRoot: string | null) => {
+    const edits = assistants.flatMap(message => message.tools.filter(isCompletedFileEdit));
+    if (root !== workspaceRoot || edits.length !== previous.length || edits.some((edit, i) => edit !== previous[i])) {
+      previous = edits;
+      root = workspaceRoot;
+      changes = summarizeTurnChanges(edits, root);
+    }
+    return changes;
   };
 }
 

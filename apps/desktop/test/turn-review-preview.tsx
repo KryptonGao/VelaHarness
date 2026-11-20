@@ -44,7 +44,13 @@ const sourceMessages: UiMessage[] = [
   { id: "r2", role: "assistant", text: "已新增说明。", thinking: "", tools: [edit("f", "docs/next.md", "+1 # Second turn\n+2 \n+3 Saved independently.")] },
 ];
 
+const laterEdit: UiMessage = {
+  id: "later-edit", role: "assistant", text: "", thinking: "",
+  tools: [edit("g", "docs/next.md", "-1 old"), edit("h", "other.md", "+1 new")],
+};
+
 let controls: {
+  liveStep(step: number): void;
   scope(chat: string, workspace?: string): void;
   width(value: number): void;
   variant(display: ToolDisplay, fold: ToolFold, noReply: boolean): void;
@@ -57,6 +63,7 @@ function Fixture() {
   const [width, setWidth] = useState(params.has("compact") ? 480 : 780);
   const [display, setDisplay] = useState<ToolDisplay>("compact");
   const [fold, setFold] = useState<ToolFold>("message");
+  const [liveStep, setLiveStep] = useState(params.has("live") ? 2 : 0);
   const [noReply, setNoReply] = useState(false);
   const [active, setActive] = useState<string | null>(null);
   const [startOpen, setStartOpen] = useState(true);
@@ -65,6 +72,7 @@ function Fixture() {
   const tabs: WorkbenchTab[] = [...(startOpen ? [{ id: "start", kind: "start" as const, label: tr("新标签页", "New tab") }] : []), ...(tab ? [tab] : [])];
   useEffect(() => { setActive(review.review ? review.tabId : "start"); }, [workspace, chat]);
   controls = {
+    liveStep: setLiveStep,
     scope(nextChat, nextWorkspace = workspace) { setChat(nextChat); setWorkspace(nextWorkspace); },
     width: setWidth,
     variant(nextDisplay, nextFold, nextNoReply) { setDisplay(nextDisplay); setFold(nextFold); setNoReply(nextNoReply); },
@@ -73,12 +81,14 @@ function Fixture() {
   const project = { workspace: { current: workspace, recents: [] }, git: null, approval: null, sandboxMode: "ask", listBranches: async () => [] } as unknown as ProjectApi;
   const state = {
     activeConversationId: chat,
-    session: { id: chat, title: "文件变更审查", cwd: workspace, status: "ready", model: "Fixture", modelReady: true,
+    session: { id: chat, title: "文件变更审查", cwd: workspace, status: liveStep > 0 && liveStep < 4 ? "streaming" : "ready", model: "Fixture", modelReady: true,
       modelProvider: "fixture", modelId: "fixture", tools: [], mode: "agent", thinkingLevel: "medium", thinkingLevels: ["medium"] },
     agents: [], context: { tokens: 100, contextWindow: 10000, percent: 1, messageCount: 4, toolCallCount: 6,
       segments: { system: 0, tools: 0, rules: 0, skills: 0, conversation: 100 } },
   } as unknown as AppState;
-  const messages = noReply ? sourceMessages.map(message => message.role === "assistant" ? { ...message, text: "" } : message) : sourceMessages;
+  let messages = noReply ? sourceMessages.map(message => message.role === "assistant" ? { ...message, text: "" } : message) : sourceMessages;
+  if (liveStep === 1) messages = messages.slice(0, -1);
+  if (liveStep >= 3) messages = [...messages, laterEdit];
   return <>
     <div className="fixture-controls">
       <button onClick={() => setChat(current => current === "a" ? "b" : "a")}>Chat {chat}</button>
@@ -93,6 +103,7 @@ function Fixture() {
           models={models} onToggleLeft={noop} onToggleRight={noop} onSend={async () => {}} onAbort={async () => {}}
           onMode={async () => {}} getQuestion={() => null} onReplyQuestion={noop} onBranch={noop}
           showNewTab={false} onNewTab={noop} onOpenChanges={noop}
+          liveReviewId={review.review?.live ? review.review.turnId : undefined} onRefreshReview={review.refresh}
           onReviewTurn={request => { review.open(request); setActive(review.tabId); }} />
         <WorkbenchPanel tabs={tabs} activeTabId={active} contextOpen={false} leftOpen={false}
           resize={{ widths: { left: 250, right: 340, workbench: width }, startResize: noop, nudge: noop, reset: noop }}
@@ -128,6 +139,20 @@ async function run() {
   const pass = (message: string) => { result.textContent += `PASS ${message}\n`; };
   try {
     await wait(300);
+    const badge = () => document.querySelector<HTMLButtonElement>(".composer-change-summary");
+    flushSync(() => controls.liveStep(1));
+    assert(!badge(), "A new turn must not show changes from the previous turn");
+    flushSync(() => controls.liveStep(2));
+    assert(badge()?.textContent === tr("1 个文件已更改+3−0", "1 file changed+3−0"), "First saved edit updates badge");
+    flushSync(() => badge()!.click()); await wait();
+    assert(reviewTab()?.getAttribute("aria-selected") === "true" && view()?.querySelectorAll(".turn-review-file").length === 1, "Badge opens current turn in review");
+    flushSync(() => controls.liveStep(3)); await wait();
+    assert(badge()?.textContent === tr("2 个文件已更改+4−1", "2 files changed+4−1"), "Repeated edits count once per path");
+    assert(view()?.querySelectorAll(".turn-review-file").length === 2, "Open review follows later edits");
+    flushSync(() => controls.liveStep(4)); await wait();
+    assert(!badge() && view()?.querySelectorAll(".turn-review-file").length === 2, "Review retains the final changes after the badge disappears");
+    pass("running-turn badge and review follow saved edits until completion");
+    flushSync(() => controls.liveStep(0)); await wait();
     assert(cards().length === 2, "One card per completed turn");
     await clickReview();
     assert(reviewTab()?.getAttribute("aria-selected") === "true", "Click activates review tab");

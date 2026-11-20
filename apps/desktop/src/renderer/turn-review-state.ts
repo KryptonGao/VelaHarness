@@ -7,7 +7,9 @@ export function turnReviewScope(workspace: string, conversation: string): string
 }
 
 export function openTurnReview(current: TurnReviews, scope: string, request: TurnReviewRequest): TurnReviews {
-  if (current[scope]?.turnId === request.turnId) return current;
+  const existing = current[scope];
+  if (existing?.turnId === request.turnId && !existing.live && !request.live) return current;
+  if (request.live) return existing === request ? current : { ...current, [scope]: request };
   return {
     ...current,
     [scope]: {

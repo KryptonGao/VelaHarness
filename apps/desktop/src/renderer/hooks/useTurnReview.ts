@@ -9,6 +9,11 @@ export function useTurnReview(workspace: string, conversation: string) {
   const open = useCallback((request: TurnReviewRequest) => {
     setReviews(current => openTurnReview(current, scope, request));
   }, [scope]);
+  const refresh = useCallback((liveId: string, request: TurnReviewRequest) => {
+    setReviews(current => current[scope]?.live && current[scope].turnId === liveId
+      ? openTurnReview(current, scope, request)
+      : current);
+  }, [scope]);
   const close = useCallback(() => setReviews(current => closeTurnReview(current, scope)), [scope]);
-  return { review: reviews[scope] ?? null, tabId: `turn-review:${encodeURIComponent(scope)}`, open, close };
+  return { review: reviews[scope] ?? null, tabId: `turn-review:${encodeURIComponent(scope)}`, open, refresh, close };
 }

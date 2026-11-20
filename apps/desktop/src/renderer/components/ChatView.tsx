@@ -70,7 +70,7 @@ import {
   shouldShowJumpToLatest,
 } from "./chat-scroll";
 import { outcomeByFinalMessage, type AcceptanceRequest } from "./acceptance";
-import { summarizeTurnChanges, type TurnChanges, type TurnReviewRequest } from "./turn-changes";
+import { createLiveChangesSelector, summarizeTurnChanges, type TurnChanges, type TurnReviewRequest } from "./turn-changes";
 import { chatLaneDefaultMaxWidth, planChatLane, planInfoCardLane } from "../chat-lane";
 import { ConversationViewTabs, conversationPanelId, conversationTabId, isEmptyConversationView, type ConversationViewKey } from "./ConversationViewTabs";
 import type { QuestionReplyHandler } from "./QuestionCard";
@@ -260,6 +260,8 @@ export interface ChatViewProps {
   onNewTab: () => void;
   onOpenChanges: () => void;
   onReviewTurn?: (request: TurnReviewRequest) => void;
+  liveReviewId?: string;
+  onRefreshReview?: (liveId: string, request: TurnReviewRequest) => void;
   onOpenAcceptance?: (request: AcceptanceRequest) => void;
   planDraft?: import("../plan-draft").PlanDraft | null;
   /** 当前对话的后台命令，信息卡片模式下显示在「后台任务」卡片里。 */
@@ -310,6 +312,8 @@ export function ChatView({
   onNewTab,
   onOpenChanges,
   onReviewTurn,
+  liveReviewId,
+  onRefreshReview,
   onOpenAcceptance,
   planDraft = null,
   backgroundShells = [],
@@ -827,6 +831,25 @@ export function ChatView({
     changesCache.current = cache;
     return cards;
   }, [turns, streaming, project.workspace?.current]);
+  const currentTurn = streaming ? turns.at(-1) : undefined;
+  const selectLiveChanges = useMemo(createLiveChangesSelector, []);
+  const liveChanges = currentTurn && onReviewTurn
+    ? selectLiveChanges(currentTurn.assistants, project.workspace?.current ?? null) : null;
+  const currentTurnId = currentTurn?.id;
+  const liveReview = useMemo<TurnReviewRequest | null>(() => currentTurnId && liveChanges
+    ? { turnId: currentTurnId, changes: liveChanges, live: true } : null, [currentTurnId, liveChanges]);
+
+  const finalReviewId = liveReviewId && liveReviewId !== currentTurnId
+    ? turns.find(turn => turn.id === liveReviewId)?.assistants.at(-1)?.id : undefined;
+  const finalReviewChanges = finalReviewId && turnChanges.get(finalReviewId);
+  useEffect(() => {
+    if (!liveReviewId || !onRefreshReview) return;
+    if (liveReview?.turnId === liveReviewId) onRefreshReview(liveReviewId, liveReview);
+    else if (finalReviewId && finalReviewChanges) {
+      onRefreshReview(liveReviewId, { turnId: finalReviewId, changes: finalReviewChanges });
+    }
+  }, [liveReviewId, onRefreshReview, liveReview, finalReviewId, finalReviewChanges]);
+
   const outcomeCache = useRef(new Map<MessageTurn, { root: string | null; request: AcceptanceRequest | null }>());
   const turnOutcomes = useMemo(() => {
     const root = project.workspace?.current ?? null;
@@ -1179,6 +1202,14 @@ export function ChatView({
       <ConflictBanner conversationId={state?.activeConversationId} />
       <TaskCostForecastHint session={session} />
       <Composer
+        changeSummary={liveReview && onReviewTurn ? (
+          <button type="button" className="composer-change-summary" title={tr("变更审查", "Change review")}
+            onClick={() => onReviewTurn(liveReview)}>
+            <span>{trf("{0} 个文件已更改", liveReview.changes.files.length === 1 ? "{0} file changed" : "{0} files changed", liveReview.changes.files.length)}</span>
+            <span className="turn-changes-added">+{liveReview.changes.added}</span>
+            <span className="turn-changes-removed">−{liveReview.changes.removed}</span>
+          </button>
+        ) : null}
         embedded={embedded}
         sandboxMode={session?.sandboxMode}
         ref={dockRef}
