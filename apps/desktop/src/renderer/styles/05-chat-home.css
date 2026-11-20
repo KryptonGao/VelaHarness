@@ -501,29 +501,20 @@
   margin-bottom: 4px;
 }
 .atelier-tab-group {
+  position: relative;
   display: flex;
   gap: 18px;
 }
 .atelier-tab {
-  position: relative;
   padding: 7px 0 9px;
   font-size: calc(12.5px * var(--ui-scale));
   font-weight: 500;
   color: var(--text-muted);
   cursor: pointer;
-  transition: color 150ms ease;
+  transition: color 140ms var(--motion-ease-enter);
 }
-.atelier-tab:hover { color: var(--text-primary); }
-.atelier-tab[aria-selected="true"] { color: var(--text-primary); }
-.atelier-tab[aria-selected="true"]::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -1px;
-  height: 1.5px;
-  background: var(--accent-blue);
-}
+.atelier-tab:not([aria-selected="true"]):hover { color: var(--text-primary); }
+.atelier-tab[aria-selected="true"] { color: var(--accent-blue); }
 .atelier-ledger-hint {
   font-size: calc(11.5px * var(--ui-scale));
   color: var(--text-dim);

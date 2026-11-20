@@ -5,6 +5,7 @@ import { activeIntlLocale, tr, trf, useAppLocale } from "../locale";
 import { modKeyLabel } from "../platform";
 import { ComposerSeedContext } from "./composer-seed-context";
 import { RecipeActionsContext } from "./recipe-actions-context";
+import { useSlidingTabIndicator } from "./useSlidingTabIndicator";
 import { useReducedMotion } from "../hooks/useMotionPresence";
 import { workspaceTitle } from "./workspace-names";
 import { VelaLogoMark } from "./VelaLogo";
@@ -576,7 +577,42 @@ interface LedgerEntry {
   onSelect: () => void;
 }
 
-type AtelierTab = "starters" | "recipes" | "workspace";
+const atelierTabs = [
+  ["starters", "快速起点", "Quick starters"],
+  ["recipes", "工作流配方", "Recipes"],
+  ["workspace", "当前工作区", "Workspace"],
+] as const;
+
+type AtelierTab = typeof atelierTabs[number][0];
+
+function AtelierLedgerTabs({ tab, onChange }: { tab: AtelierTab; onChange: (tab: AtelierTab) => void }) {
+  const tabs = useSlidingTabIndicator({ activeKey: tab });
+  return (
+    <nav
+      className="atelier-tab-group"
+      role="tablist"
+      ref={tabs.navRef}
+      onPointerMove={tabs.onPointerMove}
+      onPointerLeave={tabs.onPointerLeave}
+    >
+      {atelierTabs.map(([key, chinese, english]) => (
+        <button
+          key={key}
+          type="button"
+          role="tab"
+          className="atelier-tab"
+          data-tab-key={key}
+          ref={tabs.registerTab(key)}
+          aria-selected={tab === key}
+          onClick={() => onChange(key)}
+        >
+          {tr(chinese, english)}
+        </button>
+      ))}
+      {tabs.indicator}
+    </nav>
+  );
+}
 
 export function NewChatAtelierLedger({
   project,
@@ -856,17 +892,7 @@ export function NewChatAtelierLedger({
   return (
     <section className="atelier-ledger" aria-label={tr("快速起点", "Quick starters")}>
       <div className="atelier-ledger-tabs">
-        <div className="atelier-tab-group" role="tablist">
-          <button type="button" role="tab" className="atelier-tab" aria-selected={tab === "starters"} onClick={() => setTab("starters")}>
-            {tr("快速起点", "Quick starters")}
-          </button>
-          <button type="button" role="tab" className="atelier-tab" aria-selected={tab === "recipes"} onClick={() => setTab("recipes")}>
-            {tr("工作流配方", "Recipes")}
-          </button>
-          <button type="button" role="tab" className="atelier-tab" aria-selected={tab === "workspace"} onClick={() => setTab("workspace")}>
-            {tr("当前工作区", "Workspace")}
-          </button>
-        </div>
+        <AtelierLedgerTabs tab={tab} onChange={setTab} />
         <span className="atelier-ledger-hint">{tr("点击填入输入框", "Click to fill composer")}</span>
       </div>
 
