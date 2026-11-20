@@ -60,7 +60,7 @@ export class SessionHost {
   private readonly mutatedAgents = new Set<string>();
   /** 合并子代理连续的 text/thinking delta，减少 IPC 条数。 */
   private readonly coalescer = new StreamCoalescer((event) => this.sendToWindows(event));
-  /** 工具事件触发的状态广播做尾部节流，状态/错误变化仍立即广播。 */
+  /** 工具事件与子代理用量触发的状态广播做尾部节流，状态/错误变化仍立即广播。 */
   private readonly stateThrottle = new StateThrottle(() => this.broadcast({ type: "state", state: this.currentState() }));
 
   /** Runtime 的生命周期归 RuntimeHost；这里只持有自己的订阅，dispose 时取消。 */
@@ -411,6 +411,11 @@ export class SessionHost {
     }
 
     this.broadcast(event);
+    if (event.type === "trace" && event.agentRequests?.length) {
+      // The main agent can be idle while subagents are still accumulating usage.
+      this.stateThrottle.request();
+      return;
+    }
     if (event.type === "agents") {
       // 子代理改完工作区后刷新 Git；同一个代理只触发一次。
       for (const agent of event.agents) {

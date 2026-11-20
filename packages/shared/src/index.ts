@@ -855,9 +855,9 @@ export interface ContextUsage {
   /** 占窗口的百分比，0–100 以上都可能。窗口未知时为空。 */
   percent: number | null;
   segments: ContextSegments;
-  /** 本次会话累计计费的 token（输入 + 输出 + 缓存读写）。还没产生用量时为空。 */
+  /** 本次会话主代理与已记录的子代理累计计费 token（输入 + 输出 + 缓存读写）。无用量时为空。 */
   sessionTokens: number | null;
-  /** 提示词缓存命中率 0–1；提供方既不上报缓存读取也不上报写入时为空。 */
+  /** 主代理提示词缓存命中率 0–1；提供方既不上报缓存读取也不上报写入时为空。 */
   cacheHitRate: number | null;
   /** 本次运行累计的输出速度（tokens/秒，不含首字等待）；还没测到用量或耗时时为空。 */
   outputSpeed: number | null;

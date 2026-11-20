@@ -581,6 +581,7 @@ it("keeps subagent requests across reopen and rewind, tagged with the agent path
   const [request] = recorder.snapshot().agentRequests ?? [];
   assert.deepEqual([request?.id, request?.agentPath, request?.model, request?.status], ["agent-1", "/root/scan", "anthropic/claude-haiku", "Completed"]);
   assert.equal(request?.usage?.totalTokens, 950);
+  assert.equal(recorder.subagentTokens, 950);
   assert.equal(events.at(-1)?.agentRequests?.length, 1);
   // 子代理请求不进主代理的轮次，也不混进思考总结。
   assert.equal(recorder.snapshot().requests.length, 0);
@@ -590,4 +591,5 @@ it("keeps subagent requests across reopen and rewind, tagged with the agent path
   const reopened = new TraceRecorder("conv", file, () => {});
   recorders.push(reopened);
   assert.equal(reopened.snapshot().agentRequests?.[0]?.usage?.input, 800);
+  assert.equal(reopened.subagentTokens, 950);
 });

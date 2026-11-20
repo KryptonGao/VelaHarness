@@ -2078,12 +2078,16 @@ export class AgentRuntime {
     const sessionUsage = session
       ? measureSessionUsage(session)
       : { sessionTokens: null, cacheHitRate: null };
+    // Active sessions already have a recorder; don't load large trace files just to build a state snapshot.
+    const subagentTokens = conversationId && this.traces.has(conversationId) ? this.trace(conversationId).subagentTokens : 0;
+    const sessionTokens = (sessionUsage.sessionTokens ?? 0) + subagentTokens;
     return {
       messageCount: stored?.messageCount ?? 0,
       toolCallCount: stored?.toolCallCount ?? 0,
       ...countConversationActivity(session?.agent.state.messages ?? [], isPlanExecutionPrompt),
       ...measured,
-      ...sessionUsage,
+      sessionTokens: sessionTokens > 0 ? sessionTokens : null,
+      cacheHitRate: sessionUsage.cacheHitRate,
       outputSpeed: session ? outputSpeed(entry) : null,
       ...this.contextLimitUsage(entry, session, measured.contextWindow),
     };

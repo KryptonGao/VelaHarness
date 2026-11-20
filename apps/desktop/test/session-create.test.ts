@@ -3,16 +3,27 @@ import { mkdtemp, mkdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { it, mock } from "node:test";
+import type { AssistantMessage } from "@earendil-works/pi-ai";
+import type { AgentSession, AgentSessionEvent } from "@earendil-works/pi-coding-agent";
 import { AgentRuntime } from "../../../packages/agent/src/runtime.ts";
 import { IpcChannel, type AppState } from "@vela/shared";
 import { WorkspaceManager } from "../../../packages/workspace/src/workspace-manager.ts";
 
 type CreateHandler = (event: unknown, ...args: unknown[]) => Promise<AppState>;
 const handlers = new Map<string, CreateHandler>();
+let onState: ((state: AppState) => void) | undefined;
 mock.module("electron", {
   namedExports: {
     ipcMain: { handle: (channel: string, handler: CreateHandler) => handlers.set(channel, handler) },
-    BrowserWindow: { getAllWindows: () => [] },
+    BrowserWindow: { getAllWindows: () => onState ? [{
+      isDestroyed: () => false,
+      webContents: {
+        isDestroyed: () => false,
+        send: (channel: string, event: { type: string; state: AppState }) => {
+          if (channel === IpcChannel.event && event.type === "state") onState?.(event.state);
+        },
+      },
+    }] : [] },
     shell: {},
     dialog: {},
   },
@@ -75,6 +86,45 @@ it("creates and controls a panel chat without changing the active chat or worksp
   await runtime.switchConversation(panelId);
   assert.equal(runtime.getSnapshot().modelId, "other");
   assert.equal(runtime.getSnapshot().mode, "plan");
+});
+
+it("broadcasts cumulative subagent tokens while the main agent is idle", { timeout: 10_000 }, async t => {
+  const root = await mkdtemp(join(tmpdir(), "vela-session-usage-"));
+  const runtime = new AgentRuntime({ cwd: root, agentDir: join(root, "agent") });
+  const host = new SessionHost(runtime, { currentCwd: () => root });
+  t.after(async () => {
+    onState = undefined;
+    host.dispose();
+    await runtime.dispose();
+    await rm(root, { recursive: true, force: true });
+  });
+  await runtime.createConversation(root);
+  const id = runtime.activeConversationId!;
+  assert.equal(host.currentState().context.sessionTokens, null);
+  const internal = runtime as unknown as {
+    conversations: Map<string, { session: AgentSession }>;
+    handleAgentPiEvent(conversationId: string, agentId: string, event: AgentSessionEvent): void;
+  };
+  const reply = (input: number, output: number, cacheRead: number, cacheWrite: number): AssistantMessage => ({
+    role: "assistant", api: "openai-completions", provider: "fixture", model: "fixture", content: [],
+    stopReason: "stop", timestamp: Date.now(),
+    usage: { input, output, cacheRead, cacheWrite, totalTokens: input + output + cacheRead + cacheWrite,
+      cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } },
+  });
+  internal.conversations.get(id)!.session.sessionManager.appendMessage(reply(40, 10, 40, 0));
+  const before = host.currentState().context;
+  assert.equal(before.sessionTokens, 90);
+  assert.equal(before.cacheHitRate, 0.5);
+
+  const broadcast = new Promise<AppState>(resolve => { onState = resolve; });
+  internal.handleAgentPiEvent(id, "child", { type: "message_end", message: reply(50, 5, 0, 5) });
+  internal.handleAgentPiEvent(id, "grandchild", { type: "message_end", message: reply(20, 10, 70, 0) });
+  const state = await broadcast;
+  assert.equal(state.activeConversationId, id);
+  assert.equal(state.session.status, "ready");
+  assert.equal(state.context.sessionTokens, 250);
+  assert.equal(state.context.cacheHitRate, before.cacheHitRate);
+  assert.equal(state.context.percent, before.percent);
 });
 
 it("creates a fresh chat in the requested workspace while preserving existing chats and the default entry point", async t => {

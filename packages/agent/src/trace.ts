@@ -221,6 +221,16 @@ export class TraceRecorder {
     this.version++;
     this.flush();
   }
+  /** Counts actual subagent requests, excluding messages copied into a fork as context. */
+  get subagentTokens(): number {
+    let total = 0;
+    for (const request of this.agentRequests.values()) {
+      const tokens = request.usage?.totalTokens;
+      if (typeof tokens === "number" && Number.isFinite(tokens) && tokens > 0) total += tokens;
+    }
+    return total;
+  }
+
   /** Records a model request made by a subagent so its tokens and cost count toward usage. */
   recordAgentRequest(agentPath: string, message: AssistantMessage): void {
     const id = `agent-${this.agentRequests.size + 1}`;
