@@ -45,6 +45,14 @@ if (!process.versions.electron) {
     await evaluate(`[...document.querySelectorAll('.changes-filter-item')].find(item=>item.textContent.trim()===${JSON.stringify(label)}).click()`);
   };
   const paths = () => evaluate("[...document.querySelectorAll('.turn-review-file-header strong')].map(el=>el.textContent)");
+  const filesToggle = ".turn-review-files-toggle";
+  const diffWidth = () => evaluate("document.querySelector('.turn-review-scroll').clientWidth");
+  const waitForFileTree = open => until(`(() => {
+    const toggle = document.querySelector('${filesToggle}');
+    const tree = document.getElementById(toggle.getAttribute('aria-controls'));
+    return tree?.matches('.turn-review-sidebar') && (getComputedStyle(tree).display !== 'none') === ${open}
+      && toggle.getAttribute('aria-expanded') === '${open}';
+  })()`);
   const assertStripedGaps = async () => {
     const gaps = await evaluate(`Array.from(document.querySelectorAll('.turn-review-view .diff-split-empty'), el => {
       const rect = el.getBoundingClientRect();
@@ -139,6 +147,16 @@ if (!process.versions.electron) {
     await win.loadFile(join(temporary, "index.html"));
     await until("document.querySelectorAll('.turn-review-file').length===3");
     assert.equal(await evaluate("document.querySelector('.changes-filter-trigger').textContent.trim()"), "未提交");
+    await waitForFileTree(true);
+    const dockedWidth = await diffWidth();
+    const originalPaths = await paths();
+    await click(filesToggle);
+    await waitForFileTree(false);
+    assert.ok(await diffWidth() > dockedWidth, "Closing the docked tree gives its space to the diff");
+    assert.deepEqual(await paths(), originalPaths, "Toggling the tree does not change the displayed files");
+    await click(filesToggle);
+    await waitForFileTree(true);
+    assert.equal(await diffWidth(), dockedWidth);
     const firstFileHeight = () => evaluate("document.querySelector('.turn-review-file').getBoundingClientRect().height");
     const expandedHeight = await firstFileHeight();
     const motionEnabled = await evaluate("matchMedia('(prefers-reduced-motion: no-preference)').matches");
@@ -315,7 +333,22 @@ if (!process.versions.electron) {
     await evaluate("document.querySelector('.turn-review-count').dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}))");
     await until("!document.querySelector('.changes-filter-menu')");
     // 窄面板和暗色主题。
+    await click(filesToggle);
+    await waitForFileTree(false);
     await evaluate("document.querySelector('.fixture').style.width='380px';document.documentElement.dataset.scheme='dark'");
+    await until("document.querySelector('.turn-review-view.is-compact')");
+    await waitForFileTree(false);
+    const compactWidth = await diffWidth();
+    await click(filesToggle);
+    await waitForFileTree(true);
+    assert.equal(await diffWidth(), compactWidth, "The narrow tree opens without taking space from the diff");
+    await key("Escape");
+    await waitForFileTree(false);
+    assert.equal(await evaluate(`document.activeElement.matches('${filesToggle}') && changesFixture.closed === 0`), true);
+    await evaluate("document.querySelector('.fixture').style.width='900px'");
+    await until("!document.querySelector('.turn-review-view.is-compact')");
+    await waitForFileTree(false);
+    await evaluate("document.querySelector('.fixture').style.width='380px'");
     await until("document.querySelector('.turn-review-view.is-compact')");
     await assertStripedGaps();
     assert.equal(await evaluate("[...document.querySelectorAll('.turn-review-view .diff-split-empty:last-child')].some(el => el.getBoundingClientRect().height > parseFloat(getComputedStyle(el).lineHeight) * 2)"), true, "Deletion gaps fill the height of wrapped code");
@@ -338,7 +371,7 @@ if (!process.versions.electron) {
     assert.equal(await evaluate("document.querySelector('.changes-filter-trigger').scrollWidth <= document.querySelector('.changes-filter-trigger').clientWidth+1"), true);
     await capture("menu-dark-zoom");
     assert.deepEqual(errors, []);
-    console.log("Changes filter UI passed: six categories, mixed staging, commits, branch comparison, keyboard, dismissal, retry, uniform seamless striped addition/deletion gaps (pixel regressions + negative controls), wrapped rows, scrolling, narrow/dark/zoom.");
+    console.log("Changes filter UI passed: docked and compact file tree, six categories, mixed staging, commits, branch comparison, keyboard, dismissal, retry, uniform seamless striped addition/deletion gaps (pixel regressions + negative controls), wrapped rows, scrolling, narrow/dark/zoom.");
   } catch (error) { console.error(error); app.exit(1); }
   finally { win.destroy(); }
   app.exit(0);

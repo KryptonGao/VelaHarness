@@ -202,7 +202,7 @@ export function FileTree({
   renderFileMeta?: (path: string) => ReactNode;
   depth?: number;
 }) {
-  const paddingLeft = `calc(6px + ${depth} * var(--explorer-tree-indent, 15px))`;
+  const paddingLeft = 6 + depth * 7.5;
   return (
     <>
       {nodes.map((node) =>

@@ -115,7 +115,9 @@ export function TurnReviewView({ review, visible, onClose, target, title, filesL
   const [selected, setSelected] = useState<string | null>(changes.files[0]?.path ?? null);
   const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set());
   const [compact, setCompact] = useState(false);
+  const [dockedTreeOpen, setDockedTreeOpen] = useState(true);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const filesOpen = compact ? drawerOpen : dockedTreeOpen;
   const id = useId();
   const scroller = useRef<HTMLDivElement>(null);
   const sidebar = useRef<HTMLElement>(null);
@@ -308,10 +310,15 @@ export function TurnReviewView({ review, visible, onClose, target, title, filesL
         : <><Icon name="file" size={14} /><strong id={`${id}-title`}>{title ?? tr("本轮变更", "Turn changes")}</strong></>}
       <span className="turn-review-count">{trf("{0} 个文件", "{0} files", changes.files.length)}</span>
       <ChangeStats added={changes.added} removed={changes.removed} />
-      {compact ? <button ref={toggle} type="button" className="turn-review-files-toggle" aria-controls={`${id}-files`}
-        aria-expanded={drawerOpen} onClick={() => setDrawerOpen(open => !open)}>
-        <Icon name="folder" size={14} />{tr("文件", "Files")}
-      </button> : null}
+      <button ref={toggle} type="button" className="icon-btn-ghost turn-review-files-toggle"
+        title={filesOpen ? tr("收起文件树", "Hide file tree") : tr("展开文件树", "Show file tree")}
+        aria-label={tr("文件树", "File tree")} aria-controls={`${id}-files`} aria-expanded={filesOpen}
+        onClick={() => {
+          if (compact) setDrawerOpen(open => !open);
+          else setDockedTreeOpen(open => !open);
+        }}>
+        <Icon name="panel-right" size={16} />
+      </button>
     </header>
     <div className="turn-review-body">
       <div className="turn-review-scroll" ref={scroller} onScroll={onScroll}>
@@ -320,7 +327,7 @@ export function TurnReviewView({ review, visible, onClose, target, title, filesL
         {!statusLabel && files.length === 0 ? <div className="turn-review-empty">{noChanges && emptyLabel ? emptyLabel : tr("没有匹配的文件", "No matching files")}</div> : null}
       </div>
       <nav id={`${id}-files`} ref={sidebar} className="turn-review-sidebar preview-explorer-pane" aria-label={filesLabel ?? tr("本轮变更文件", "Files changed in this turn")}
-        hidden={compact && !drawerOpen}>
+        hidden={!filesOpen}>
         <div className="explorer-search-row">
           <label className="explorer-search-field"><Icon name="search" size={14} />
             <input className="explorer-search-input" type="text" value={filter} onChange={event => setFilter(event.target.value)}
