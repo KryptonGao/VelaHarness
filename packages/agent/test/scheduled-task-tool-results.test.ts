@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { it } from "node:test";
 import type { ScheduledTask, ScheduledTaskInput, ScheduledTaskPatch, ScheduledTaskService, ScheduledTasksState, TaskSchedule } from "@vela/shared";
-import { createScheduledTaskTools } from "../src/scheduled-task-tools.ts";
+import { createScheduledTaskTools, scheduledTaskTimeContext } from "../src/scheduled-task-tools.ts";
 
 it("定时任务四种操作保留 JSON 原文并返回服务实际结果的独立快照", async () => {
   const state: ScheduledTasksState = { tasks: [], runs: [] };
@@ -35,9 +35,12 @@ it("定时任务四种操作保留 JSON 原文并返回服务实际结果的独�
     assert.notEqual((created.details as { data: unknown }).data, state.tasks[0]);
     state.runs.push({ id: "run", taskId: "task", trigger: "scheduled", scheduledAt: 1, startedAt: 2, finishedAt: 3, status: "failed", conversationId: "chat", error: "原始运行错误" });
     const listed = await call("list_scheduled_tasks", {});
-    const listSnapshot = structuredClone(state);
-    assert.deepEqual(listed.content, [{ type: "text", text: JSON.stringify(listSnapshot) }]);
-    assert.deepEqual(listed.details, { operation: "list", data: listSnapshot });
+    const listDetails = listed.details as { operation: string; data: ScheduledTasksState & { now: string } };
+    const { now, ...listSnapshot } = listDetails.data;
+    assert.deepEqual(listSnapshot, structuredClone(state));
+    assert.ok(!Number.isNaN(Date.parse(now)) && new Date(now).toISOString() === now);
+    assert.deepEqual(listed.content, [{ type: "text", text: JSON.stringify({ ...listSnapshot, now }) }]);
+    assert.equal(listDetails.operation, "list");
     const updated = await call("update_scheduled_task", { id: "task", title: "已更新", status: "paused" });
     assert.deepEqual(updated.content, [{ type: "text", text: JSON.stringify(state.tasks[0]) }]);
     assert.deepEqual(updated.details, { operation: "update", data: structuredClone(state.tasks[0]) });
@@ -51,8 +54,9 @@ it("定时任务四种操作保留 JSON 原文并返回服务实际结果的独�
     state.runs = [];
   }
   const empty = await call("list_scheduled_tasks", {});
-  assert.deepEqual(empty.details, { operation: "list", data: { tasks: [], runs: [] } });
-  assert.deepEqual(empty.content, [{ type: "text", text: '{"tasks":[],"runs":[]}' }]);
+  const emptyDetails = empty.details as { operation: string; data: { now: string } };
+  assert.deepEqual(empty.details, { operation: "list", data: { tasks: [], runs: [], now: emptyDetails.data.now } });
+  assert.deepEqual(empty.content, [{ type: "text", text: JSON.stringify({ tasks: [], runs: [], now: emptyDetails.data.now }) }]);
 });
 
 it("定时任务失败与只读权限仍保持原有拒绝语义", async () => {
@@ -74,4 +78,12 @@ it("定时任务失败与只读权限仍保持原有拒绝语义", async () => {
   assert.equal(mutations, 1);
   await assert.rejects(tools.find(tool => tool.name === "update_scheduled_task")!.execute("not-owned", { id: "missing" }), /当前工作区没有这个任务/);
   assert.equal(mutations, 1);
+});
+
+it("time context in the system prompt is stable within a day so it never invalidates the prompt cache", () => {
+  const morning = scheduledTaskTimeContext(new Date(2026, 10, 21, 0, 0, 1, 1));
+  const night = scheduledTaskTimeContext(new Date(2026, 10, 21, 23, 59, 59, 999));
+  assert.equal(morning, night);
+  assert.match(morning, /^Task time context: today is 2026-11-21 \(Saturday\); local time zone: \S+$/);
+  assert.notEqual(morning, scheduledTaskTimeContext(new Date(2026, 10, 22, 12)));
 });

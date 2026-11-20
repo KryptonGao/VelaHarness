@@ -60,6 +60,7 @@ it("natural-language chat reaches the real Pi tool registry and creates a persis
   assert.equal(f.scheduler.list().tasks[0].thinkingLevel, "off");
   assert.deepEqual(f.scheduler.list().tasks[0].model, { provider: "task-fixture", id: "fixture" });
   assert.match(prompt, /Task time context/); assert.match(prompt, /Scheduled Tasks/);
+  assert.doesNotMatch(prompt, /Task time context: \d{4}-\d{2}-\d{2}T\d{2}:\d{2}/, "exact timestamps in the prompt break the prompt cache every turn");
   const toolResult = f.session(id).messages.find(message => message.role === "toolResult" && message.toolCallId === "create-task");
   assert.ok(toolResult?.role === "toolResult" && !toolResult.isError);
   await f.runtime.setMode(id, "plan");

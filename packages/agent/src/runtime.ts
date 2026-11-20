@@ -10,7 +10,7 @@ import { compactionTokensForLimit, effectiveContextWindow, estimateTaskCost, par
 import type { BuiltInPlugin, IntelligentUiState, PluginCatalog, PluginTarget, PluginStatusEvent, UiPreference } from "@vela/shared";
 import { redactMcpDisplay, mcpConfiguredSecrets, preserveTraceModels } from "./mcp-redaction";
 import { McpSessionBridge, isMcpTool, type McpPermission } from "./mcp-session";
-import { createScheduledTaskTools, scheduledTaskInstructions } from "./scheduled-task-tools";
+import { createScheduledTaskTools, scheduledTaskInstructions, scheduledTaskTimeContext } from "./scheduled-task-tools";
 import { RecipeGenerator, parseRecipeGenerateInput } from './recipe-generator';
 import type { RaceTokens, RecipeExecution, RecipeRun, RecipeStageSubmission, RecipeSubmitResult, RecipeStageEvidence, RecipeUseDraft, ScheduledTaskInput, BackgroundShellEvents, BackgroundShellExit, BackgroundShellItem, BackgroundShellOutput, ToolFactoryContext, SandboxMode, ScheduledTaskService } from "@vela/shared";
 import type { McpCatalog, McpCatalogInput, McpServerInput, McpServerTarget, McpEnabledInput, McpProjectTrustInput, McpToolReadOnlyInput, McpStatusEvent, MemoryLoadReport, SideChatEvent, SideChatResult } from "@vela/shared";
@@ -3210,7 +3210,7 @@ export class AgentRuntime {
           factory: this.subagentModelsExtension(),
         }, ...(this.options.scheduledTasks ? [{ name: "vela-scheduled-tasks-clock", hidden: true,
           factory: ((pi) => { pi.on("before_agent_start", event => {
-            event.systemPromptOptions.appendSystemPrompt += `\n\nTask time context: ${new Date().toISOString()}; local time zone: ${Intl.DateTimeFormat().resolvedOptions().timeZone}`;
+            event.systemPromptOptions.appendSystemPrompt += `\n\n${scheduledTaskTimeContext()}`;
           }); }) as ExtensionFactory,
         }] : []), ...mcp.factories()],
         appendSystemPromptOverride: (base) => this.isResident(entry.id)
