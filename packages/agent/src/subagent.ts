@@ -1,6 +1,6 @@
 import type { AgentMessage } from "@earendil-works/pi-agent-core";
 import { isToolCallEventType, type ExtensionFactory } from "@earendil-works/pi-coding-agent";
-import { agentToolNames, type AgentKind, type SubagentKind, type ToolStep } from "@vela/shared";
+import { agentToolNames, type AgentKind, type SubagentKind, type ThinkingLevel, type ToolStep } from "@vela/shared";
 import { isPlanSafeCommand } from "./plan-command";
 
 /** agent 树工具名；root 与子代理共享同一组 API。 */
@@ -135,6 +135,7 @@ export interface SubagentModelOption {
   provider: string;
   modelId: string;
   name: string;
+  thinkingLevels: ThinkingLevel[];
   reasoning?: boolean;
   vision?: boolean;
   contextWindow?: number;
@@ -149,10 +150,10 @@ export function subagentModelsPrompt(options: readonly SubagentModelOption[]): s
       option.vision ? "vision" : null,
       option.contextWindow ? `${Math.round(option.contextWindow / 1000)}K context` : null,
     ].filter(Boolean).join(", ");
-    return `- ${option.provider}/${option.modelId} (${option.name}${traits ? `; ${traits}` : ""})`;
+    return `- ${option.provider}/${option.modelId} (${option.name}${traits ? `; ${traits}` : ""}) — reasoning_effort: ${option.thinkingLevels.join(", ") || "none available"}`;
   });
   return [
-    "Allowed subagent models. spawn_agent takes an optional model argument (provider/modelId); you may only choose from this list, which the user set up. Omit it to use your own model, which is the right default. Choose a different one only when it clearly fits: a cheaper or faster model for simple, mechanical or read-only work, a stronger one for hard reasoning or risky edits.",
+    "Allowed subagent models. spawn_agent takes an optional model argument (provider/modelId); you may only choose from this list, which the user set up. Omit it to use your own model, which is the right default. Choose a different one only when it clearly fits: a cheaper or faster model for simple, mechanical or read-only work, a stronger one for hard reasoning or risky edits. You can also set reasoning_effort to one of the levels listed for the selected model.",
     ...lines,
   ].join("\n");
 }

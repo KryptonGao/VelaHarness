@@ -1,3 +1,4 @@
+import type { ThinkingLevel } from "@vela/shared";
 import assert from "node:assert/strict";
 import { fileURLToPath } from "node:url";
 import { after, before, describe, it } from "node:test";
@@ -28,14 +29,21 @@ after(async () => {
 describe("子代理模型标签", () => {
   const model = { provider: "openai-codex", modelId: "gpt-6.1-sol" };
   const catalog = [{ provider: "openai-codex", id: "gpt-6.1-sol", name: "GPT-6.1 Sol" }];
-  const render = (models: typeof catalog) => renderToStaticMarkup(
-    createElement(context.ThinkingModelCatalogContext.Provider, { value: models }, createElement(panel.AgentModelTag, { model })),
+  const render = (models: typeof catalog, thinkingLevel?: ThinkingLevel) => renderToStaticMarkup(
+    createElement(context.ThinkingModelCatalogContext.Provider, { value: models }, createElement(panel.AgentModelTag, { model, thinkingLevel })),
   );
 
   it("显示模型列表里的名称，悬停给完整 id", () => {
     const html = render(catalog);
     assert.match(html, />GPT-6\.1 Sol</);
     assert.match(html, /openai-codex\/gpt-6\.1-sol/);
+  });
+
+  it("shows the effort after the model and omits it for older records without one", () => {
+    for (const level of ["off", "high", "ultra"] as const) {
+      assert.match(render(catalog, level), /GPT-6\.1 Sol<\/span><span class="agent-model-effort"> · [^<]+<\/span>/);
+    }
+    assert.doesNotMatch(render(catalog), /agent-model-effort/);
   });
 
   it("目录里找不到时退回 id", () => {

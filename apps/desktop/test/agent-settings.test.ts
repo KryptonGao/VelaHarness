@@ -25,15 +25,21 @@ describe("parseAgentSettings (IPC boundary)", () => {
     }
   });
 
+  it("rejects empty and unknown reasoning effort choices", () => {
+    for (const levels of [[], ["turbo"], null, "low"]) {
+      assert.throws(() => parseAgentSettings({ ...base, subagentModels: [{ provider: "p", modelId: "m", thinkingLevels: levels }] }), /推理强度/);
+    }
+  });
+
   it("a pool saved through the parser comes back from the stored settings", async () => {
     const dir = await mkdtemp(join(tmpdir(), "vela-agent-settings-"));
     try {
       const directory = await ModelDirectory.open(dir);
-      const saved = await directory.saveSettings(parseAgentSettings({ ...base, subagentModels: [{ provider: "anthropic", modelId: "claude-haiku" }] }));
-      assert.deepEqual(saved.subagentModels, [{ provider: "anthropic", modelId: "claude-haiku" }]);
-      // 之后不带模型池的保存（例如默认设置页）不能把它清掉。
-      const again = await directory.saveSettings(parseAgentSettings({ ...base, instructions: "Be brief" }));
-      assert.equal(again.subagentModels?.length, 1);
+      const pool = [{ provider: "anthropic", modelId: "claude-haiku", thinkingLevels: ["low", "high"] }];
+      const saved = await directory.saveSettings(parseAgentSettings({ ...base, subagentModels: pool }));
+      assert.deepEqual(saved.subagentModels, pool);
+      await directory.saveSettings(parseAgentSettings({ ...base, instructions: "Be brief" }));
+      assert.deepEqual((await ModelDirectory.open(dir)).getSettings().subagentModels, pool);
     } finally {
       await rm(dir, { recursive: true, force: true });
     }

@@ -93,7 +93,7 @@ import {
 } from "@vela/shared";
 import { defaultToolNames } from "@vela/tools";
 import { getCurrentTools, type Api, type Model } from "@earendil-works/pi-ai";
-import { clampThinkingLevelFor, isThinkingLevel, isUltra, modelThinkingLevel, thinkingLevelsFor, ultraInstructions } from "./thinking-level";
+import { closestSubagentLevel, clampThinkingLevelFor, isThinkingLevel, isUltra, modelThinkingLevel, thinkingLevelsFor, ultraInstructions } from "./thinking-level";
 import { existsSync, readdirSync } from "node:fs";
 import { stat } from "node:fs/promises";
 import { readTraceUsage } from "./trace-usage";
@@ -2905,10 +2905,14 @@ export class AgentRuntime {
   /** 没记录模型的子代理(旧版或没指定模型)，从它自己的会话文件里读出实际用过的模型。 */
   private backfillAgentModels(conversationId: string, cwd: string, agents: StoredAgent[]): void {
     for (const agent of agents) {
-      if (agent.model || !agent.sessionFile || !existsSync(agent.sessionFile)) continue;
+      if ((agent.model && (agent.effectiveThinkingLevel || agent.thinkingLevel)) || !agent.sessionFile || !existsSync(agent.sessionFile)) continue;
       try {
         const manager = SessionManager.open(agent.sessionFile, this.childSessionDir(conversationId), cwd);
-        agent.model = lastAssistantModel(manager.buildSessionProjection().messages);
+        agent.model ??= lastAssistantModel(manager.buildSessionProjection().messages);
+        if (!agent.effectiveThinkingLevel && !agent.thinkingLevel) {
+          const entry = manager.getBranch().findLast(item => item.type === "thinking_level_change");
+          if (entry && isThinkingLevel(entry.thinkingLevel)) agent.effectiveThinkingLevel = entry.thinkingLevel;
+        }
       } catch { /* 读不出来就不显示模型 */ }
     }
   }
@@ -3226,7 +3230,7 @@ export class AgentRuntime {
           const budget = this.effectiveTaskBudget(entry);
           return { maxSubagents: budget.subagentsEnabled ? budget.maxSubagents : 0, allowNested: budget.allowNestedSubagents };
         },
-        modelPool: () => this.subagentModelOptions().map(({ provider, modelId }) => ({ provider, modelId })),
+        modelPool: () => this.subagentModelOptions(),
         host: {
           createChildSession: (input) => this.createChildSession(entry, input),
           disposeChildSession: (session) => this.closeSession(session),
@@ -4079,13 +4083,10 @@ export class AgentRuntime {
     }
   }
 
-  /**
-   * 为 agent 树创建子会话：独立 Pi 会话、独立上下文，继承父会话的模型、思考强度、
-   * 沙箱工具和指令；explore 追加只读守卫并只保留只读工具。
-   */
   /** 模型池里当前可用的模型，附带提示用的名称与特性；每次现读，设置改动立即生效。 */
   private subagentModelOptions(): SubagentModelOption[] {
-    return (this.directory?.availableSubagentModels() ?? []).map((model) => ({
+    return (this.directory?.availableSubagentModels() ?? []).map(({ model, thinkingLevels }) => ({
+      thinkingLevels,
       provider: model.provider,
       modelId: model.id,
       name: model.name,
@@ -4095,16 +4096,26 @@ export class AgentRuntime {
     }));
   }
 
-  /** 每轮把允许的子代理模型列给模型看；池为空时什么都不加。 */
+  /** Advertise current choices for both explicitly selected and inherited models. */
   private subagentModelsExtension(): ExtensionFactory {
-    return ((pi) => { pi.on("before_agent_start", event => {
-      const extra = subagentModelsPrompt(this.subagentModelOptions());
-      if (!extra) return;
-      const current = event.systemPromptOptions.appendSystemPrompt.trim();
-      event.systemPromptOptions.appendSystemPrompt = current ? `${current}\n\n${extra}` : extra;
+    return ((pi) => { pi.on("before_agent_start", (event, ctx) => {
+      const options = this.subagentModelOptions();
+      const inherited = ctx.model;
+      const messages = [subagentModelsPrompt(options)];
+      if (inherited) {
+        const levels = options.find(ref => ref.provider === inherited.provider && ref.modelId === inherited.id)?.thinkingLevels
+          ?? thinkingLevelsFor(inherited);
+        messages.push(`When spawn_agent inherits your model, its allowed reasoning_effort values are: ${levels.join(", ") || "none available"}.`);
+      }
+      const extra = messages.filter(Boolean).join("\n");
+      if (extra) event.systemPromptOptions.appendSystemPrompt += `\n\n${extra}`;
     }); }) as ExtensionFactory;
   }
 
+  /**
+   * 为 agent 树创建子会话：独立 Pi 会话、独立上下文，继承父会话的模型、思考强度、
+   * 沙箱工具和指令；explore 追加只读守卫并只保留只读工具。
+   */
   private async createChildSession(entry: Conversation, input: AgentSessionRequest): Promise<AgentSession> {
     if (entry.budget?.exhausted) throw new Error("任务用量已到上限，不能再创建子代理。");
     const directory = await this.readyDirectory();
@@ -4114,11 +4125,14 @@ export class AgentRuntime {
       throw new Error("先选择一个已登录或已配置密钥的模型");
     }
     // 子代理用派生时选的模型；它已不在模型池里或不可用了（比如用户后来改了设置）就退回父代理的模型。
+    const pool = directory.availableSubagentModels();
     const chosen = input.model
-      ? directory.availableSubagentModels().find((item) => item.provider === input.model!.provider && item.id === input.model!.modelId)
+      ? pool.find(({ model }) => model.provider === input.model!.provider && model.id === input.model!.modelId)
       : undefined;
-    const model = chosen ?? parentModel;
-    const childThinking = chosen ? modelThinkingLevel(chosen, parentSession.thinkingLevel) : parentSession.thinkingLevel;
+    const model = chosen?.model ?? parentModel;
+    const allowed = chosen ?? pool.find(item => item.model.provider === model.provider && item.model.id === model.id);
+    const level = closestSubagentLevel(model, input.thinkingLevel ?? parentSession.thinkingLevel, allowed?.thinkingLevels ?? thinkingLevelsFor(model));
+    const childThinking = modelThinkingLevel(model, level);
     const cwd = entry.snapshot.cwd;
     const childNativeTools = () => this.tools.child(input.kind);
     const settingsManager = SettingsManager.inMemory({ defaultTools: childNativeTools() });
@@ -4151,6 +4165,7 @@ export class AgentRuntime {
         ...base,
         ...(instructions ? [instructions] : []),
         agentKindPrompt(input.kind),
+        ...(isUltra(level) ? [ultraInstructions] : []),
         ...(workspaceFoldersInstructions(cwd, this.options.workspaceFolders?.(cwd) ?? []) ?? []),
         ...(this.options.browserRepl && input.kind === "general" ? [this.browserInstructions()] : []),
       ],
@@ -4197,6 +4212,7 @@ export class AgentRuntime {
     catch (error) { await this.closeSession(session); throw error; }
     session.setActiveToolsByName(this.mcpActiveTools(session, childNativeTools()));
     session.setSessionName(input.path);
+    input.onThinkingLevelResolved?.(isUltra(level) ? level : session.thinkingLevel);
     return session;
   }
 

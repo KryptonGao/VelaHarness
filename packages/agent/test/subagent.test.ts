@@ -162,11 +162,11 @@ describe("子代理模型池提示", () => {
 
   it("列出可选模型和特性，并说明默认不选", () => {
     const prompt = subagentModelsPrompt([
-      { provider: "anthropic", modelId: "claude-haiku", name: "Haiku", reasoning: false, vision: true, contextWindow: 200000 },
-      { provider: "openai", modelId: "gpt-5", name: "GPT-5", reasoning: true },
+      { provider: "anthropic", modelId: "claude-haiku", name: "Haiku", thinkingLevels: ["off"], reasoning: false, vision: true, contextWindow: 200000 },
+      { provider: "openai", modelId: "gpt-5", name: "GPT-5", thinkingLevels: ["medium", "high"], reasoning: true },
     ]) ?? "";
     assert.match(prompt, /anthropic\/claude-haiku \(Haiku; vision, 200K context\)/);
-    assert.match(prompt, /openai\/gpt-5 \(GPT-5; reasoning\)/);
+    assert.match(prompt, /openai\/gpt-5 \(GPT-5; reasoning\) — reasoning_effort: medium, high/);
     assert.match(prompt, /Omit it to use your own model/);
   });
 });

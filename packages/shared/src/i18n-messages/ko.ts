@@ -1,6 +1,8 @@
 import { hooksKo } from "./hooks";
 import { workspaceOverviewKo } from "./workspace-overview";
 const messages: Record<string, string> = {
+  "设置 {0} 的推理强度": "{0}의 추론 강도 설정",
+  "可用推理强度": "선택 가능한 추론 강도",
   ...hooksKo,
   ...workspaceOverviewKo,
   "合并模型与思考强度": "모델과 사고 강도 통합",

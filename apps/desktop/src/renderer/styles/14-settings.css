@@ -1338,3 +1338,27 @@ button.settings-radio:hover:not(:disabled) { background: var(--bg-hover); }
 .subagent-pool-flag { font-size: 11px; color: var(--text-muted); }
 .subagent-pool-move { color: var(--text-muted); }
 .subagent-pool-empty { margin: 0; padding: 12px 8px; font-size: 12px; color: var(--text-muted); }
+
+.subagent-pool-entry { display: flex; align-items: center; gap: 2px; }
+.subagent-pool-entry .subagent-pool-row { min-width: 0; flex: 1; }
+.subagent-effort-button {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+.subagent-effort-button:hover:not(:disabled) { background: var(--bg-hover); color: var(--text-primary); }
+.subagent-effort-button:disabled { opacity: .45; cursor: default; }
+.subagent-effort-content { padding: 24px; }
+.subagent-effort-model { min-height: 40px; }
+.subagent-effort-model .workspace-settings-folder { font-size: calc(15px * var(--ui-scale)); color: var(--text-primary); }
+.subagent-effort-option { justify-content: space-between; }
+.subagent-effort-option:hover { background: var(--bg-sidebar-hover); }
+.subagent-effort-option > svg { color: var(--accent-blue); }
+.subagent-effort-dialog .subagent-effort-option:focus-visible { outline-offset: -3px; }
+.subagent-effort-dialog .workspace-settings-actions { justify-content: flex-end; }

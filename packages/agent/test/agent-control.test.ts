@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { AgentMessage } from "@earendil-works/pi-agent-core";
 import type { AgentSession, AgentSessionEvent } from "@earendil-works/pi-coding-agent";
-import type { ModelRef, SubagentLimits } from "@vela/shared";
+import type { ModelRef, SubagentModelRef, SubagentLimits } from "@vela/shared";
 import {
   AgentControl,
   maxConcurrentAgents,
@@ -106,7 +106,7 @@ async function waitFor(predicate: () => boolean, label: string): Promise<void> {
   throw new Error(`等待超时: ${label}`);
 }
 
-function createControl(limits?: () => SubagentLimits, modelPool?: () => ModelRef[]): { control: AgentControl; host: FakeHost; root: FakeSession } {
+function createControl(limits?: () => SubagentLimits, modelPool?: () => SubagentModelRef[]): { control: AgentControl; host: FakeHost; root: FakeSession } {
   const host = new FakeHost();
   const control = new AgentControl({ conversationId: "root-id", host, ...(limits ? { limits } : {}), ...(modelPool ? { modelPool } : {}) });
   const root = new FakeSession();
@@ -670,6 +670,20 @@ describe("子代理模型池", () => {
     assert.deepEqual(host.requests[0]?.model, pool[0]);
     await waitFor(() => control.list().find((item) => item.id === agent.id)?.status === "completed", "完成");
     assert.deepEqual(control.storedAgents().find((item) => item.id === agent.id)?.model, pool[0]);
+  });
+
+  it("checks the chosen effort for explicit and inherited models before starting a child", async () => {
+    const ref: SubagentModelRef = { provider: "test", modelId: "scout", thinkingLevels: ["low", "high"] };
+    const { control, host, root } = createControl(undefined, () => [ref]);
+    root.model = { provider: ref.provider, id: ref.modelId };
+    for (const model of [undefined, "test/scout"]) {
+      const input = { kind: "explore" as const, task: "inspect", model };
+      assert.throws(() => control.spawn("root-id", { ...input, thinkingLevel: "medium" }), /Allowed levels: low, high/);
+      control.spawn("root-id", { ...input, thinkingLevel: "low" });
+    }
+    await waitFor(() => host.requests.length === 2, "create sessions");
+    assert.deepEqual(host.requests.map(request => request.thinkingLevel), ["low", "low"]);
+    assert.ok(control.storedAgents().every(agent => agent.thinkingLevel === "low"));
   });
 
   it("模型 id 里带斜杠也能匹配，唯一的纯 modelId 也行", async () => {

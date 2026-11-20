@@ -1,4 +1,5 @@
 import { parseOutcomeSubmission, parseRecommendedActions, parseVisualDemo, recommendedActionsToolName, visualToolName, type ModelRef, type SubagentKind, type ToolActivity, type ToolPlanItem, type ToolStep } from "@vela/shared";
+import { isThinkingLevel } from "./thinking-level";
 import { followupTaskToolName, sendMessageToolName, spawnAgentToolName } from "./subagent";
 import { presentationFromCall, presentationFromExecution } from "./tool-presentation";
 
@@ -171,6 +172,7 @@ function agentExecutionActivity(
   const path = readString(details, "path");
   const agent = readAgent(details) ?? readAgent(args);
   const model = readModel(details);
+  const effort = readString(details, "thinkingLevel");
   const steps = readSteps(details);
   const mutated = readMutated(details);
   const text = textOf(result);
@@ -182,6 +184,7 @@ function agentExecutionActivity(
     ...(agentId ? { agentId } : {}),
     ...(path ? { agentPath: path } : {}),
     ...(model ? { model } : {}),
+    ...(effort && isThinkingLevel(effort) ? { thinkingLevel: effort } : {}),
     ...(steps ? { steps } : {}),
     ...(mutated ? { mutated } : {}),
     body,

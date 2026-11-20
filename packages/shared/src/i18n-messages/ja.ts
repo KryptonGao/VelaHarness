@@ -1,6 +1,8 @@
 import { hooksJa } from "./hooks";
 import { workspaceOverviewJa } from "./workspace-overview";
 const messages: Record<string, string> = {
+  "设置 {0} 的推理强度": "{0} の推論強度を設定",
+  "可用推理强度": "選択可能な推論強度",
   ...hooksJa,
   ...workspaceOverviewJa,
   "合并模型与思考强度": "モデルと推論強度をまとめる",

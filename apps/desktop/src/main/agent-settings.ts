@@ -1,4 +1,4 @@
-import { maxSubagentModels, thinkingLevels, type AgentSettings, type ModelRef, type NewConversationSelection, type ThinkingLevel } from "@vela/shared";
+import { maxSubagentModels, parseSubagentThinkingLevels, thinkingLevels, type AgentSettings, type SubagentModelRef, type NewConversationSelection, type ThinkingLevel } from "@vela/shared";
 
 export function parseId(value: unknown, label: string): string {
   if (typeof value !== "string") throw new Error(`${label}不正确`);
@@ -15,13 +15,14 @@ export function parseThinkingLevel(value: unknown): ThinkingLevel {
 }
 
 /** 子代理模型池：缺省表示保持原值；给了就必须是不超过上限的 {provider, modelId} 列表。 */
-function parseSubagentModels(value: unknown): ModelRef[] | undefined {
+function parseSubagentModels(value: unknown): SubagentModelRef[] | undefined {
   if (value === undefined) return undefined;
   if (!Array.isArray(value) || value.length > maxSubagentModels) throw new Error("子代理模型池不正确");
   return value.map((item) => {
     if (!item || typeof item !== "object") throw new Error("子代理模型池不正确");
     const record = item as Record<string, unknown>;
-    return { provider: parseId(record.provider, "模型"), modelId: parseId(record.modelId, "模型") };
+    const levels = parseSubagentThinkingLevels(record.thinkingLevels);
+    return { provider: parseId(record.provider, "模型"), modelId: parseId(record.modelId, "模型"), ...(levels && { thinkingLevels: levels }) };
   });
 }
 

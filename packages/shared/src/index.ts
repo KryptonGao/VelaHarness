@@ -488,6 +488,19 @@ export interface ModelRef {
   modelId: string;
 }
 
+export interface SubagentModelRef extends ModelRef {
+  /** Omitted to allow all levels supported by the model, including future additions. */
+  thinkingLevels?: ThinkingLevel[];
+}
+
+export function parseSubagentThinkingLevels(value: unknown): ThinkingLevel[] | undefined {
+  if (value === undefined) return undefined;
+  if (!Array.isArray(value) || !value.length || value.some(level => !thinkingLevels.includes(level))) {
+    throw new Error("子代理模型推理强度不正确");
+  }
+  return thinkingLevels.filter(level => value.includes(level));
+}
+
 /** 子代理模型池最多放这么多个模型。 */
 export const maxSubagentModels = 32;
 
@@ -502,7 +515,7 @@ export interface AgentSettings {
    * 允许模型在派生子代理时自行选择的模型池；空表示不开放选择，子代理沿用父代理的模型。
    * 保存时缺省表示保持原值。
    */
-  subagentModels?: ModelRef[];
+  subagentModels?: SubagentModelRef[];
 }
 
 export const customModelApis = [
@@ -962,6 +975,10 @@ export interface AgentInfo {
   pauseRequested: boolean;
   /** 派生时从模型池里选定的模型；缺省表示沿用父代理的模型。 */
   model?: ModelRef | null;
+  /** Requested at spawn. Omitted to inherit on session creation. */
+  thinkingLevel?: ThinkingLevel;
+  /** Vela effort in the created session, including Ultra. */
+  effectiveThinkingLevel?: ThinkingLevel;
   createdAt: number;
   updatedAt: number;
 }
@@ -1008,6 +1025,7 @@ export interface ToolActivity {
   agentPath?: string;
   /** spawn_agent 时从模型池选定的模型；没选（沿用父代理）时缺省。 */
   model?: ModelRef;
+  thinkingLevel?: ThinkingLevel;
   /** task 子代理已经跑过的工具步骤 */
   steps?: ToolStep[];
   /** task 是否可能改动了工作区，供 Git 刷新判断 */

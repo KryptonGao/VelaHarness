@@ -4,6 +4,7 @@ import { useSecondClock } from "../hooks/useSecondClock";
 import { ActivityIndicator } from "./ActivityIndicator";
 import { ThinkingModelCatalogContext } from "./ThinkingGroupModeContext";
 import { tr, trf } from "../locale";
+import { thinkingLabel } from "./ModelControls";
 import { Icon } from "./icons";
 
 export interface AgentWorkspaceValue {
@@ -179,14 +180,20 @@ export function agentKindLabel(kind: AgentInfo["kind"] | SubagentKind | undefine
 }
 
 /** 子代理实际使用的模型；旧记录没存模型时不显示。 */
-export function AgentModelTag({ model }: { model: ModelRef | null | undefined }) {
+export function AgentModelTag({ model, thinkingLevel }: { model: ModelRef | null | undefined; thinkingLevel?: AgentInfo["thinkingLevel"] }) {
   const catalog = useContext(ThinkingModelCatalogContext);
   if (!model) return null;
   // 显示模型列表里的名称(如 GPT-6.1 Sol)，目录里找不到时才退回 id；悬停仍给完整的 provider/id。
   const name = catalog.find((item) => item.provider === model.provider && item.id === model.modelId)?.name ?? model.modelId;
+  const effort = thinkingLevel && thinkingLabel(thinkingLevel);
+  const fullId = `${model.provider}/${model.modelId}`;
+  const title = effort
+    ? trf("模型与思考强度：{0} · {1}", "Model & reasoning effort: {0} · {1}", fullId, effort)
+    : `${tr("模型", "Model")}: ${fullId}`;
   return (
-    <span className="agent-model" title={`${tr("模型", "Model")}: ${model.provider}/${model.modelId}`}>
-      {name}
+    <span className="agent-model" title={title}>
+      <span className="agent-model-name">{name}</span>
+      {effort && <span className="agent-model-effort"> · {effort}</span>}
     </span>
   );
 }

@@ -40,6 +40,14 @@ export function modelThinkingLevel(model: Model<Api> | undefined, level: Thinkin
   return isUltra(level) ? peakThinkingLevel(model) : (clampThinkingLevelFor(model, level) as ModelThinkingLevel);
 }
 
+/** Preserve the inherited effort when possible, preferring the lower level on a tie. */
+export function closestSubagentLevel(model: Model<Api>, preferred: ThinkingLevel, allowed: readonly ThinkingLevel[]): ThinkingLevel {
+  if (!allowed.length) throw new Error("No reasoning effort is available for this subagent model.");
+  const target = clampThinkingLevelFor(model, preferred);
+  const distance = (level: ThinkingLevel) => Math.abs(thinkingLevels.indexOf(level) - thinkingLevels.indexOf(target));
+  return allowed.reduce((best, level) => distance(level) < distance(best) ? level : best);
+}
+
 /** Ultra 不改推理预算，只让模型更积极地并行使用 SubAgent。 */
 export const ultraInstructions = `Ultra mode is on. The user wants this work finished faster by spending more compute in parallel.
 Whenever a task splits into independent pieces (searching or reading across many files or modules, separate implementations, independent checks, reviews, research), delegate them to subagents with ${spawnAgentToolName} and run them concurrently instead of working through them one by one.

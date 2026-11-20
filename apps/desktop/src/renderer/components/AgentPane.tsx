@@ -203,7 +203,7 @@ function VisibleAgentPane({
           <AgentStatusMark status={agent.status} />
           <AgentBreadcrumb agent={agent} agents={agents} onSwitch={onSwitch} />
           <span className="agent-kind">{agentKindLabel(agent.kind)}</span>
-          <AgentModelTag model={agent.model} />
+          <AgentModelTag model={agent.model} thinkingLevel={agent.effectiveThinkingLevel ?? agent.thinkingLevel} />
           <span className={`agent-state is-${agent.status}`}>{agentStateText(agent)}</span>
         </div>
         <div className="agent-pane-actions">
@@ -394,7 +394,7 @@ function AgentRosterMenu({
                 <AgentStatusMark status={item.status} />
                 <span className="agent-roster-menu-path">{item.path}</span>
                 <span className="agent-roster-menu-meta">{agentKindLabel(item.kind)}</span>
-                <AgentModelTag model={item.model} />
+                <AgentModelTag model={item.model} thinkingLevel={item.effectiveThinkingLevel ?? item.thinkingLevel} />
               </button>
               <div className="agent-roster-row-detail">
                 <span className={`agent-state is-${item.status}`}>{agentStateText(item)}</span>

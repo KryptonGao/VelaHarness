@@ -464,17 +464,19 @@
   color: var(--text-muted);
 }
 .agent-model {
-  flex: none;
-  max-width: 14em;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  display: inline-flex;
+  min-width: 0;
+  max-width: 18em;
+  align-items: baseline;
   white-space: nowrap;
   padding: 0 5px;
   border-radius: 5px;
   background: var(--bg-surface-subtle);
   color: var(--text-muted);
 }
-.agent-summary .agent-model, .agent-summary-text .agent-model { display: inline-block; margin-bottom: 4px; }
+.agent-model-name { overflow: hidden; text-overflow: ellipsis; }
+.agent-model-effort { flex: none; white-space: pre; }
+.agent-summary .agent-model, .agent-summary-text .agent-model { margin-bottom: 4px; }
 .agent-state { flex: none; color: var(--text-muted); }
 .agent-state.is-running { color: var(--tool-accent); }
 .agent-state.is-paused { color: var(--warning); }

@@ -16,7 +16,8 @@ import {
   type UsageLimits,
   type UsageLimitWindow,
   type ModelSummary,
-  type ModelRef,
+  type SubagentModelRef,
+  parseSubagentThinkingLevels,
   type NewConversationSelection,
   maxSubagentModels,
   type ProviderSummary,
@@ -37,7 +38,7 @@ export interface ModelSelection {
   newConversationSelection: NewConversationSelection;
   instructions: string;
   /** 允许模型派生子代理时自行选择的模型池。 */
-  subagentModels: ModelRef[];
+  subagentModels: SubagentModelRef[];
 }
 
 /** 上一次在对话中使用过的模型与思考强度,供「沿用上次使用」的新对话取用。 */
@@ -353,16 +354,19 @@ export class ModelDirectory {
       thinkingLevel: this.selection.thinkingLevel,
       newConversationSelection: this.selection.newConversationSelection,
       instructions: this.selection.instructions,
-      subagentModels: this.selection.subagentModels.map((ref) => ({ ...ref })),
+      subagentModels: structuredClone(this.selection.subagentModels),
     };
   }
 
   /** 模型池里当前仍然可用的模型（按池内顺序）；子代理派生时只能从这里选。 */
-  availableSubagentModels(): Model<Api>[] {
-    const result: Model<Api>[] = [];
+  availableSubagentModels() {
+    const result: { model: Model<Api>; thinkingLevels: ThinkingLevel[] }[] = [];
     for (const ref of this.selection.subagentModels) {
       const model = this.runtime.getModel(ref.provider, ref.modelId);
-      if (model && this.isAvailable(model)) result.push(model);
+      if (model && this.isAvailable(model)) {
+        const levels = thinkingLevelsFor(model).filter(level => !ref.thinkingLevels || ref.thinkingLevels.includes(level));
+        result.push({ model, thinkingLevels: levels });
+      }
     }
     return result;
   }
@@ -708,13 +712,13 @@ function readLastUsed(value: unknown): LastUsedSelection {
 }
 
 /** 读取模型池：去重、丢弃格式不对的项。strict 时（来自界面的保存）格式不对或超过上限直接报错。 */
-function normalizeModelRefs(value: unknown, strict: boolean): ModelRef[] {
+function normalizeModelRefs(value: unknown, strict: boolean): SubagentModelRef[] {
   if (!Array.isArray(value)) {
     if (strict) throw new Error("子代理模型池格式不正确");
     return [];
   }
   const seen = new Set<string>();
-  const result: ModelRef[] = [];
+  const result: SubagentModelRef[] = [];
   for (const item of value) {
     const record = item && typeof item === "object" ? item as Record<string, unknown> : null;
     const provider = typeof record?.provider === "string" ? record.provider : "";
@@ -725,8 +729,13 @@ function normalizeModelRefs(value: unknown, strict: boolean): ModelRef[] {
     }
     const key = modelKey({ provider, id: modelId });
     if (seen.has(key)) continue;
-    seen.add(key);
-    result.push({ provider, modelId });
+    try {
+      const levels = parseSubagentThinkingLevels(record?.thinkingLevels);
+      result.push({ provider, modelId, ...(levels && { thinkingLevels: levels }) });
+      seen.add(key);
+    } catch (error) {
+      if (strict) throw error;
+    }
   }
   if (result.length > maxSubagentModels) {
     if (strict) throw new Error("子代理模型池里的模型太多");

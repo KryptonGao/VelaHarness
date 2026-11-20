@@ -1,14 +1,16 @@
-import { maxSubagentModels, type AgentSettings, type ModelCatalog, type ModelRef, type ModelSummary } from "@vela/shared";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { maxSubagentModels, type AgentSettings, type ModelCatalog, type ModelRef, type ModelSummary, type SubagentModelRef, type ThinkingLevel } from "@vela/shared";
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { modelKey } from "../../hooks/usePreferences";
-import { localizeError } from "../../locale";
+import { localizeError, tr, trf } from "../../locale";
+import { Icon } from "../icons";
+import { thinkingLabel } from "../ModelControls";
 import type { SettingsCopy } from "../settings-copy";
 import { SettingsBlock, SettingsGroup } from "./primitives";
 
 type SaveStatus = "idle" | "saving" | "saved" | "error";
 
 interface PoolEntry {
-  ref: ModelRef;
+  ref: SubagentModelRef;
   /** 目录里找得到且可用；找不到或已退出登录时为 null,仍留在池里供用户移除。 */
   model: ModelSummary | null;
 }
@@ -44,6 +46,7 @@ export function SubagentModelsPage({
   const [status, setStatus] = useState<SaveStatus>("idle");
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  const [editingKey, setEditingKey] = useState<string | null>(null);
   // 与 AgentDefaultsPage 相同的保存策略:请求串行,后发的覆盖先发的,失败回到上次确认的值。
   const target = useRef<AgentSettings | null>(null);
   const confirmed = useRef<AgentSettings | null>(null);
@@ -72,7 +75,7 @@ export function SubagentModelsPage({
     };
   }, [text.loadError]);
 
-  const persist = useCallback((subagentModels: ModelRef[]) => {
+  const persist = useCallback((subagentModels: SubagentModelRef[]) => {
     const api = window.vela;
     const base = target.current;
     if (!api || !base) return;
@@ -89,9 +92,10 @@ export function SubagentModelsPage({
         if (pending.current === 1) {
           target.current = saved;
           setSettings(saved);
+          setStatus("saved");
         }
-        setStatus("saved");
       } catch (caught) {
+        if (pending.current > 1) return;
         const back = confirmed.current;
         target.current = back;
         setSettings(back);
@@ -109,6 +113,7 @@ export function SubagentModelsPage({
     ref,
     model: catalog?.models.find((model) => model.provider === ref.provider && model.id === ref.modelId && model.available) ?? null,
   })), [catalog, pool]);
+  const editing = right.find(({ ref }) => modelKey(ref.provider, ref.modelId) === editingKey);
   const leftCount = left.reduce((sum, group) => sum + group.models.length, 0);
   const full = pool.length >= maxSubagentModels;
 
@@ -179,19 +184,31 @@ export function SubagentModelsPage({
               </header>
               <div className="subagent-pool-list">
                 {right.length === 0 ? <p className="subagent-pool-empty">{text.allowedEmpty}</p> : right.map(({ ref, model }) => (
-                  <button
-                    key={modelKey(ref.provider, ref.modelId)}
-                    type="button"
-                    className="subagent-pool-row"
-                    data-unavailable={model ? undefined : "true"}
-                    title={`${text.remove}: ${model?.name ?? ref.modelId}`}
-                    onClick={() => remove(ref)}
-                  >
-                    <span className="subagent-pool-move" aria-hidden="true">←</span>
-                    <span className="subagent-pool-name">{model?.name ?? ref.modelId}</span>
-                    <span className="subagent-pool-provider">{model?.providerName ?? ref.provider}</span>
-                    {model ? null : <span className="subagent-pool-flag">{text.unavailable}</span>}
-                  </button>
+                  <div key={modelKey(ref.provider, ref.modelId)} className="subagent-pool-entry">
+                    <button
+                      type="button"
+                      className="subagent-pool-row"
+                      data-unavailable={model ? undefined : "true"}
+                      title={`${text.remove}: ${model?.name ?? ref.modelId}`}
+                      onClick={() => remove(ref)}
+                    >
+                      <span className="subagent-pool-move" aria-hidden="true">←</span>
+                      <span className="subagent-pool-name">{model?.name ?? ref.modelId}</span>
+                      <span className="subagent-pool-provider">{model?.providerName ?? ref.provider}</span>
+                      {model ? null : <span className="subagent-pool-flag">{text.unavailable}</span>}
+                    </button>
+                    <button
+                      type="button"
+                      className="subagent-effort-button"
+                      disabled={!model}
+                      aria-haspopup="dialog"
+                      aria-label={trf("设置 {0} 的推理强度", "Configure reasoning effort for {0}", model?.name ?? ref.modelId)}
+                      title={tr("可用推理强度", "Allowed reasoning efforts")}
+                      onClick={() => setEditingKey(modelKey(ref.provider, ref.modelId))}
+                    >
+                      <Icon name="sliders" size={14} />
+                    </button>
+                  </div>
                 ))}
               </div>
             </div>
@@ -199,6 +216,77 @@ export function SubagentModelsPage({
           <p className="settings-note">{full ? text.full : pool.length === 0 ? text.emptyNote : text.note}</p>
         </SettingsBlock>
       </SettingsGroup>
+      {editing?.model && <EffortDialog
+        model={editing.model}
+        configured={editing.ref.thinkingLevels}
+        onClose={() => setEditingKey(null)}
+        onSave={levels => {
+          const ref = { provider: editing.ref.provider, modelId: editing.ref.modelId };
+          persist(pool.map(item => item === editing.ref ? { ...ref, ...(levels && { thinkingLevels: levels }) } : item));
+          setEditingKey(null);
+        }}
+      />}
     </section>
+  );
+}
+
+function EffortDialog({ model, configured, onClose, onSave }: {
+  model: ModelSummary;
+  configured?: ThinkingLevel[];
+  onClose: () => void;
+  onSave: (levels?: ThinkingLevel[]) => void;
+}) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
+  const [selected, setSelected] = useState(configured ?? model.thinkingLevels);
+  const levels = model.thinkingLevels.filter(level => selected.includes(level));
+
+  useLayoutEffect(() => {
+    const dialog = dialogRef.current;
+    const opener = document.activeElement;
+    dialog?.showModal();
+    return () => {
+      dialog?.close();
+      if (opener instanceof HTMLElement && opener.isConnected) opener.focus();
+    };
+  }, []);
+
+  return (
+    <dialog ref={dialogRef} className="workspace-settings-dialog subagent-effort-dialog" aria-labelledby={titleId}
+      onKeyDown={event => event.stopPropagation()}
+      onCancel={event => { event.preventDefault(); onClose(); }}
+      onMouseDown={event => { if (event.target === event.currentTarget) onClose(); }}>
+      <div className="subagent-effort-content">
+        <header className="workspace-settings-head">
+          <h2 id={titleId}>{tr("推理强度", "Reasoning effort")}</h2>
+          <button type="button" className="workspace-settings-close" aria-label={tr("关闭", "Close")} onClick={onClose}>
+            <Icon name="close" size={18} />
+          </button>
+        </header>
+        <div className="workspace-settings-name subagent-effort-model">
+          <Icon name="chip" size={16} />
+          <span className="workspace-settings-folder" title={model.name}>{model.name}</span>
+          <span className="subagent-pool-provider">{model.providerName}</span>
+        </div>
+        <div className="workspace-settings-label" id={`${titleId}-levels`}>{tr("可用推理强度", "Allowed reasoning efforts")}</div>
+        <div className="workspace-settings-folders" role="group" aria-labelledby={`${titleId}-levels`}>
+          {model.thinkingLevels.map(level => (
+            <button key={level} type="button" className="workspace-settings-row subagent-effort-option"
+              aria-pressed={levels.includes(level)}
+              onClick={() => setSelected(current => current.includes(level) ? current.filter(value => value !== level) : [...current, level])}>
+              {thinkingLabel(level)}
+              {levels.includes(level) && <Icon name="check" size={16} />}
+            </button>
+          ))}
+        </div>
+        <footer className="workspace-settings-actions">
+          <button type="button" className="workspace-settings-cancel" onClick={onClose}>{tr("取消", "Cancel")}</button>
+          <button type="button" className="workspace-settings-save" disabled={!levels.length}
+            onClick={() => onSave(levels.length === model.thinkingLevels.length ? undefined : levels)}>
+            {tr("保存", "Save")}
+          </button>
+        </footer>
+      </div>
+    </dialog>
   );
 }

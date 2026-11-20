@@ -1,6 +1,8 @@
 import { hooksZhTW } from "./hooks";
 import { workspaceOverviewZhTW } from "./workspace-overview";
 const messages: Record<string, string> = {
+  "设置 {0} 的推理强度": "設定 {0} 的推理強度",
+  "可用推理强度": "可用推理強度",
   ...hooksZhTW,
   ...workspaceOverviewZhTW,
   "合并模型与思考强度": "合併模型與思考強度",

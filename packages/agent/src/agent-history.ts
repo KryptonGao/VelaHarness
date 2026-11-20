@@ -1,5 +1,5 @@
 import type { AgentMessage } from "@earendil-works/pi-agent-core";
-import { agentStatuses, emptyAgentUsage, type AgentInfo, type AgentUsage, type ModelRef, type TranscriptMessage } from "@vela/shared";
+import { agentStatuses, emptyAgentUsage, thinkingLevels, type ThinkingLevel, type AgentInfo, type AgentUsage, type ModelRef, type TranscriptMessage } from "@vela/shared";
 
 /** 子代理索引；完整消息保存在独立的 Pi JSONL 会话里。 */
 export interface StoredAgent extends AgentInfo {
@@ -51,6 +51,8 @@ export function normalizeStoredAgents(value: unknown): StoredAgent[] {
       runningSince: null,
       pauseRequested: false,
       model: modelRef(record.model),
+      ...(thinkingLevels.includes(record.thinkingLevel as ThinkingLevel) && { thinkingLevel: record.thinkingLevel as ThinkingLevel }),
+      ...(thinkingLevels.includes(record.effectiveThinkingLevel as ThinkingLevel) && { effectiveThinkingLevel: record.effectiveThinkingLevel as ThinkingLevel }),
       createdAt: finiteNumber(record.createdAt),
       updatedAt: finiteNumber(record.updatedAt),
       sessionFile: typeof record.sessionFile === "string" ? record.sessionFile : null,

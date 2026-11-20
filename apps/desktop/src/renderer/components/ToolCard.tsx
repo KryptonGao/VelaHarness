@@ -246,7 +246,7 @@ function AgentToolCard({ tool, compact = false }: { tool: ToolTrace; compact?: b
       contentClassName="process-thinking-text agent-summary-text"
       ariaLabel={tr("子代理任务概况，可在区域内滚动", "Subagent summary, scrollable")}
     >
-      <AgentModelTag model={live?.model ?? activity.model} />
+      <AgentModelTag model={live?.model ?? activity.model} thinkingLevel={live?.model ? live.effectiveThinkingLevel ?? live.thinkingLevel : activity.thinkingLevel} />
       {task && task !== title ? (
         <div className="agent-summary-task">
           <Markdown text={task} />

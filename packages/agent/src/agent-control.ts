@@ -6,7 +6,8 @@ import {
   type AgentSessionEvent,
   type ToolDefinition,
 } from "@earendil-works/pi-coding-agent";
-import { emptyAgentUsage, isAgentBusy, type AgentInfo, type AgentStatus, type AgentUsage, type ModelRef, type SubagentKind, type SubagentLimits } from "@vela/shared";
+import { emptyAgentUsage, isAgentBusy, thinkingLevels, type ThinkingLevel, type SubagentModelRef, type AgentInfo, type AgentStatus, type AgentUsage, type ModelRef, type SubagentKind, type SubagentLimits } from "@vela/shared";
+import { thinkingLevelsFor } from "./thinking-level";
 import { randomUUID } from "node:crypto";
 import { Type } from "typebox";
 import { normalizeStoredAgents, type StoredAgent } from "./agent-history";
@@ -48,6 +49,8 @@ export interface AgentSessionRequest {
   forkMessages: AgentMessage[];
   /** 派生时从模型池选定的模型；缺省沿用父代理的模型。宿主应再核对它仍在池里且可用。 */
   model?: ModelRef | null;
+  thinkingLevel?: ThinkingLevel;
+  onThinkingLevelResolved?: (level: ThinkingLevel) => void;
   /** 控制面为这个子代理生成的 agent 树工具；运行时并入沙箱工具后注册。 */
   customTools: ToolDefinition[];
   /**
@@ -92,7 +95,7 @@ export interface AgentControlOptions {
   /** 每次派生前读取，设置改动立即生效；缺省时用 maxAgentsPerTree，且允许嵌套。 */
   limits?: () => SubagentLimits;
   /** 每次派生前读取：允许模型自选的、当前可用的子代理模型池；缺省或为空时不开放选择。 */
-  modelPool?: () => ModelRef[];
+  modelPool?: () => SubagentModelRef[];
 }
 
 interface AgentTaskOutcome {
@@ -253,6 +256,9 @@ export class AgentControl {
         notify_on_finish: Type.Optional(
           Type.Boolean({ description: "Also wake you when the subagent finishes successfully while you are idle. Default false; failures always wake you." }),
         ),
+        reasoning_effort: Type.Optional(Type.Union(thinkingLevels.map(level => Type.Literal(level)), {
+          description: "Reasoning effort for the subagent. Choose an allowed level for its model, or omit to inherit the closest allowed level.",
+        })),
         model: Type.Optional(
           Type.String({ description: "Model for the subagent, as provider/modelId from the allowed subagent model list in your instructions. Omit to use your own model. Only available when that list exists; pick a cheaper model for simple work and a stronger one for hard work." }),
         ),
@@ -265,6 +271,7 @@ export class AgentControl {
           fork: params.fork,
           notify: params.notify_on_finish,
           model: params.model,
+          thinkingLevel: params.reasoning_effort,
         });
         return {
           content: [{ type: "text", text: spawnText(info, params.fork ?? "none") }],
@@ -274,6 +281,7 @@ export class AgentControl {
             kind: info.kind,
             status: info.status,
             model: info.model ?? null,
+            thinkingLevel: info.thinkingLevel,
           },
         };
       },
@@ -336,7 +344,7 @@ export class AgentControl {
   /** 创建一个子代理节点并立刻返回；会话创建和首个任务在后台完成。 */
   spawn(
     callerId: string,
-    input: { kind: SubagentKind; task: string; name?: string; fork?: ContextFork; notify?: boolean; model?: string },
+    input: { kind: SubagentKind; task: string; name?: string; fork?: ContextFork; notify?: boolean; model?: string; thinkingLevel?: ThinkingLevel },
   ): AgentInfo {
     const caller = this.requireAgent(callerId);
     const kind = input.kind;
@@ -359,7 +367,15 @@ export class AgentControl {
     }
     const task = input.task.trim();
     if (!task) throw new Error("任务不能为空。");
-    const model = this.resolveModel(input.model);
+    const pool = this.options.modelPool?.() ?? [];
+    const choice = this.resolveModel(input.model, pool);
+    const parentModel = caller.session?.model;
+    const effective = choice ?? pool.find(ref => ref.provider === parentModel?.provider && ref.modelId === parentModel.id);
+    const levels = effective?.thinkingLevels ?? (parentModel && !choice ? thinkingLevelsFor(parentModel) : undefined);
+    if (levels?.length === 0 || (input.thinkingLevel !== undefined && !levels?.includes(input.thinkingLevel))) {
+      throw new Error(`Invalid reasoning_effort for this model. Allowed levels: ${levels?.join(", ") || "none"}.`);
+    }
+    const model = choice ? { provider: choice.provider, modelId: choice.modelId } : null;
     const name = this.uniqueName(caller, kind, input.name);
     const path = `${caller.info.path}/${name}`;
     const now = Date.now();
@@ -381,6 +397,7 @@ export class AgentControl {
       runningSince: null,
       pauseRequested: false,
       model,
+      ...(input.thinkingLevel && { thinkingLevel: input.thinkingLevel }),
       createdAt: now,
       updatedAt: now,
     };
@@ -412,14 +429,13 @@ export class AgentControl {
    * 把工具参数里的 provider/modelId 对到模型池。没写就沿用父代理（null）；
    * 池为空或写的不在池里就报错，并列出可选项，让模型自己改正。
    */
-  private resolveModel(raw: string | undefined): ModelRef | null {
+  private resolveModel(raw: string | undefined, pool: SubagentModelRef[]): SubagentModelRef | null {
     const text = raw?.trim();
     if (!text) return null;
-    const pool = this.options.modelPool?.() ?? [];
     if (pool.length === 0) throw new Error("没有开放子代理模型选择，请省略 model 参数，子代理会使用你自己的模型。");
     const exact = pool.find((ref) => `${ref.provider}/${ref.modelId}` === text);
     const loose = exact ? [exact] : pool.filter((ref) => ref.modelId === text);
-    if (loose.length === 1 && loose[0]) return { ...loose[0] };
+    if (loose.length === 1 && loose[0]) return loose[0];
     const options = pool.map((ref) => `${ref.provider}/${ref.modelId}`).join("、");
     throw new Error(loose.length > 1
       ? `模型 ${text} 在多个提供方下都有，请写成 provider/modelId。可选：${options}。`
@@ -769,6 +785,8 @@ export class AgentControl {
       path: agent.info.path,
       forkMessages: selectForkMessages(parentSession.messages, agent.fork),
       model: agent.info.model ?? null,
+      thinkingLevel: agent.info.thinkingLevel,
+      onThinkingLevelResolved: level => { agent.info.effectiveThinkingLevel = level; },
       customTools: this.createAgentTools(agent.info.id),
       beforeToolCall: () => this.checkpoint(agent),
       sessionFile: agent.sessionFile,
@@ -778,8 +796,8 @@ export class AgentControl {
       else session.dispose();
       throw new Error("子代理已结束。");
     }
-    // 记录子会话实际使用的模型(没指定时就是父代理当时的模型)；恢复旧会话时它可能已不是原来的，不覆盖。
-    if (!agent.sessionFile && session.model) {
+    // Keep the displayed model and effort together when a restored child resumes on a fallback model.
+    if (session.model) {
       agent.info.model = { provider: session.model.provider, modelId: session.model.id };
     }
     agent.session = session;

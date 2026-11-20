@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
-import { mkdir, mkdtemp, readFile, rm, stat } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it, type TestContext } from "node:test";
@@ -110,6 +110,33 @@ describe("runHeadless", () => {
     assert.equal(result.finalText, "Main saw the child result.");
     assert.ok(result.tokens && result.tokens.subagents.length === 1, "sub-agent usage is reported separately");
     assert.deepEqual(result.subagentFailures, []);
+  });
+
+  it("sends the child effort chosen by the parent to the model provider", { timeout: 60_000 }, async t => {
+    const f = await fixture(t, request => {
+      if (request.index === 0) return { toolCalls: [
+        { name: "spawn_agent", arguments: { agent: "explore", task: "Check explicit effort", model: "fake-local/fake-model", reasoning_effort: "high" } },
+        { name: "spawn_agent", arguments: { agent: "explore", task: "Check inherited effort" } },
+      ] };
+      return "Done.";
+    });
+    await writeModelConfig(f.configDir, f.model.url, { reasoning: true });
+    const path = join(f.configDir, "selection.json");
+    const settings = JSON.parse(await readFile(path, "utf8"));
+    settings.subagentModels = [{ provider: "fake-local", modelId: "fake-model", thinkingLevels: ["low", "high"] }];
+    await writeFile(path, JSON.stringify(settings));
+    const result = await f.run();
+    assert.equal(result.status, "completed");
+    assert.deepEqual(result.subagentFailures, []);
+    assert.match(JSON.stringify(f.model.requests[0]?.body.messages), /reasoning_effort: low, high/);
+    const effortFor = (task: string) => f.model.requests.find(({ body }) =>
+      JSON.stringify(body.messages.at(-1)?.content).includes(task))?.body.reasoning_effort;
+    assert.equal(effortFor("Check explicit effort"), "high");
+    assert.equal(effortFor("Check inherited effort"), "low");
+    const index = JSON.parse(await readFile(join(result.runDir, "agent", "conversations.json"), "utf8"));
+    const agents: { task: string; effectiveThinkingLevel?: string }[] = index.conversations[0].agents;
+    assert.equal(agents.find(agent => agent.task === "Check explicit effort")?.effectiveThinkingLevel, "high");
+    assert.equal(agents.find(agent => agent.task === "Check inherited effort")?.effectiveThinkingLevel, "low");
   });
 
   it("times out and leaves no background process behind", { timeout: 60_000 }, async (t) => {
