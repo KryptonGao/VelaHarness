@@ -1,4 +1,5 @@
 import { isAgentBusy, type AgentControlAction, type AgentInfo } from "@vela/shared";
+import { webChatMessages } from "./web-chat-messages";
 import { VisualToolCard } from "./VisualToolCard";
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type MutableRefObject, type ReactNode } from "react";
 import { useDismissable } from "../hooks/useDismissable";
@@ -83,7 +84,7 @@ function VisibleAgentPane({
   toolDisplay, toolFold = "message", onSwitch, ensureMessages, onControl, onSend, sendButtonIcon, follow,
 }: AgentPaneProps & { follow: MutableRefObject<AgentFollow> }) {
   const storedMessages = useMessages(messageStore, conversationId, agent.id);
-  const messages = useNamedThinkingMessages(messageStore ? storedMessages : providedMessages ?? emptyMessages);
+  const messages = webChatMessages(useNamedThinkingMessages(messageStore ? storedMessages : providedMessages ?? emptyMessages));
   const coherent = groupsByReply(useThinkingGroupMode()) && messages.some(supportsThinkingGroups);
   const positional = toolFold === "position" || coherent;
   // 按位置折叠或连贯模式时由 AgentProcessSequence 自己归组;否则把没有思考的后续几轮的工具并进前一段标题思考。

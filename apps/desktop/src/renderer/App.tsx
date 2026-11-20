@@ -51,6 +51,7 @@ import { BrowserViewHost } from "./components/browser/BrowserViewHost";
 import { ButtonTooltip } from "./components/ButtonTooltip";
 import { useBrowserTabs } from "./browser/useBrowserTabs";
 import { useReplyFocus } from "./browser/reply-store";
+import { BrowserPanelLinkContext } from "./components/ConversationLinkContext";
 import { routeConversationLink } from "./browser/conversation-link-policy";
 import { useModels } from "./hooks/useModels";
 import { usePreferences } from "./hooks/usePreferences";
@@ -1014,6 +1015,7 @@ export function App() {
         <RaceActionsContext.Provider value={raceActions}>
         <ConflictContext.Provider value={conflictContext}>
         <ComposerSeedContext.Provider value={composerSeedContext}>
+        <BrowserPanelLinkContext.Provider value={openBrowserTab}>
         <SideChatLauncherContext.Provider value={openSideChatTab}>
         <div className="app-screens">
           <ButtonTooltip />
@@ -1377,6 +1379,7 @@ export function App() {
           <WhatsNewCard notes={whatsNew} locale={preferences.locale} onClose={() => { writeWhatsNewSeen(whatsNew.version); setWhatsNew(null); }} />
         ) : null}
         </SideChatLauncherContext.Provider>
+        </BrowserPanelLinkContext.Provider>
         </ComposerSeedContext.Provider>
         </ConflictContext.Provider>
         </RaceActionsContext.Provider>

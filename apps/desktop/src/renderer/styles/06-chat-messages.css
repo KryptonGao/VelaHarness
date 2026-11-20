@@ -748,9 +748,8 @@
 .tool-kind-edit { --tool-accent: var(--tool-edit); --tool-tint: var(--tool-edit-tint); }
 .tool-kind-write { --tool-accent: var(--tool-write); --tool-tint: var(--tool-write-tint); }
 .tool-kind-other { --tool-accent: var(--tool-other); --tool-tint: var(--tool-other-tint); }
-.tool-card.is-web { --tool-accent: var(--tool-icon-web); --tool-tint: color-mix(in srgb, var(--tool-icon-web) 14%, transparent); }
 .tool-card[class*="tool-group-"] { --tool-accent: var(--tool-group-color); --tool-tint: color-mix(in srgb, var(--tool-group-color) 14%, transparent); }
-.tool-card:is(.is-web, .is-intent, [class*="tool-group-"]) .tool-kind-label { width: auto; min-width: 44px; white-space: nowrap; }
+.tool-card:is(.is-intent, [class*="tool-group-"]) .tool-kind-label { width: auto; min-width: 44px; white-space: nowrap; }
 .tool-card-head {
   display: flex;
   align-items: center;

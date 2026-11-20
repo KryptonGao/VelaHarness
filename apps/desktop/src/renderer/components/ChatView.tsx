@@ -2,6 +2,7 @@ import { displayConversationTitle } from "./conversation-title";
 import { QuestionContext } from "./QuestionContext";
 import { LazyMount } from "./LazyMount";
 import { VersionControlView } from "./version-control/VersionControlView";
+import { webChatMessages } from "./web-chat-messages";
 import { TraceView } from "./trace/TraceView";
 import { UsageView } from "./usage/UsageView";
 import { isAgentBusy, visualToolName, type AppState, type AskUserQuestionRequest, type InteractionMode, type ToolTrace } from "@vela/shared";
@@ -1141,7 +1142,7 @@ export function ChatView({
                     {toolFold === "position" || (groupsByReply(thinkingGroupMode) && turn.assistants.some(supportsThinkingGroups)) ? (
                       <article className="assistant-block">
                         <ToolSequence
-                          messages={turn.assistants}
+                          messages={webChatMessages(turn.assistants)}
                           activeAssistantId={activeAssistantId}
                           entering={entering}
                           toolDisplay={toolDisplay}
@@ -1160,7 +1161,7 @@ export function ChatView({
                       </article>
                     ) : (
                       // 每一步 assistant 的思考都跟着自己的工具调用走;Thinking 组件负责运行中展开、结束后折叠。
-                      attachFollowerTools(turn.assistants).map(({ message, memberIds }) => (
+                      attachFollowerTools(webChatMessages(turn.assistants)).map(({ message, memberIds }) => (
                         <Message
                           key={message.id}
                           message={message}
@@ -1842,9 +1843,9 @@ const CompletedAssistantTurn = memo(function CompletedAssistantTurn({
   const quotaWindows = useTurnQuota(startedAt);
   const processId = useId();
   const isFinalReply = (message: UiMessage) => finalReplies.some((reply) => reply.id === message.id);
-  const hasProcess = messages.some((message) => (
-    !isFinalReply(message) && Boolean(message.text || message.thinking || message.tools.length > 0)
-  )) || finalReplies.some((message) => Boolean(message.thinking || message.tools.some((tool) => tool.name !== visualToolName)));
+  const visibleMessages = webChatMessages(messages);
+  const hasProcess = visibleMessages.some(message => message.thinking || (!isFinalReply(message) && message.text)
+    || message.tools.some(tool => tool.name !== visualToolName || !isFinalReply(message)));
   const triggerContent = (
     <>
       <span>{!displayedElapsed ? tr("查看过程", "View process") : stopped ? trf("你在 {0}后停止了", "You stopped after {0}", displayedElapsed) : trf("用时 {0}", "Took {0}", displayedElapsed)}</span>
@@ -1879,7 +1880,7 @@ const CompletedAssistantTurn = memo(function CompletedAssistantTurn({
             {toolFold === "position" || (groupsByReply(thinkingGroupMode) && messages.some(supportsThinkingGroups)) ? (
               <article className="assistant-block assistant-turn-process-item">
                 <ToolSequence
-                  messages={messages}
+                  messages={visibleMessages}
                   includeText={(message) => !isFinalReply(message)}
                   includeTool={(tool, message) => !(tool.name === visualToolName && isFinalReply(message))}
                   toolDisplay={toolDisplay ?? "card"}
@@ -1888,7 +1889,7 @@ const CompletedAssistantTurn = memo(function CompletedAssistantTurn({
                 />
               </article>
             ) : (
-              attachFollowerTools(messages).map(({ message }) => (
+              attachFollowerTools(visibleMessages).map(({ message }) => (
                 <article className="assistant-block assistant-turn-process-item" key={message.id}>
                   <AssistantMessageContent
                     message={message}

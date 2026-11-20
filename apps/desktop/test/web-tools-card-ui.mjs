@@ -35,11 +35,26 @@ const searchBody = [
   "   ## Inner heading",
   "",
   "   second line",
+  "2. Guide",
+  "   URL: https://example.org/guide",
+  "3. Unsafe",
+  "   URL: javascript:void(0)",
+  "4. Duplicate",
+  "   URL: https://example.org/guide",
   "</untrusted_web_content>",
 ].join("\n");
 const tools = JSON.stringify([
   { id: "s1", name: "web_search", status: "done", activity: { command: "deepseek", body: searchBody } },
-  { id: "f1", name: "web_fetch", status: "running", activity: { command: "https://api-docs.deepseek.com/updates", body: fetchBody } },
+  { id: "mixed-error", name: "web_search", status: "error", activity: { command: "rejected query", body: "Provider rejected the request (400)" } },
+  { id: "f1", name: "web_fetch", status: "done", activity: { command: "https://api-docs.deepseek.com/updates", body: fetchBody } },
+  { id: "e1", name: "web_fetch", status: "error", activity: { command: "https://example.org/", body: "Permission denied" } },
+  { id: "s2", name: "web_search", status: "done", activity: { command: "query", body: searchBody.replace('Change Log', 'Another title').replace('2. Guide', '5. More\n   URL: https://example.org/more\n2. Guide') } },
+  { id: "b1", name: "read", status: "done", activity: { path: "file" } },
+  { id: "s4", name: "web_search", status: "error", activity: { command: "bad query", body: "Permission denied" } },
+  { id: "b2", name: "read", status: "done", activity: { path: "file" } },
+  { id: "s5", name: "web_search", status: "running", activity: { command: "pending" } },
+  { id: "b3", name: "read", status: "done", activity: { path: "file" } },
+  { id: "s3", name: "web_search", status: "done", activity: { command: "empty", body: "No results." } },
 ]);
 
 if (!process.versions.electron) {
@@ -52,9 +67,12 @@ if (!process.versions.electron) {
       import React from 'react';
       import { createRoot } from 'react-dom/client';
       import { ToolList } from './apps/desktop/src/renderer/components/ToolCard';
+      import { BrowserPanelLinkContext } from './apps/desktop/src/renderer/components/ConversationLinkContext';
+      window.opened = [];
       const root = createRoot(document.getElementById('root'));
-      const tools = ${tools};
-      window.renderTools = (display) => root.render(<ToolList tools={tools} display={display} />);
+      import { webChatMessages } from './apps/desktop/src/renderer/components/web-chat-messages';
+      const tools = webChatMessages([{ role: 'assistant', text: '', thinking: '', tools: ${tools} }])[0].tools;
+      window.renderTools = (display) => root.render(<BrowserPanelLinkContext.Provider value={url => window.opened.push(url)}><ToolList key={display} tools={tools} display={display} /></BrowserPanelLinkContext.Provider>);
       window.renderTools('card');
     `,
         resolveDir: resolve(here, "../../.."),
@@ -98,6 +116,9 @@ if (!process.versions.electron) {
       webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false, backgroundThrottling: false },
     });
     try {
+      win.webContents.session.protocol.handle('https', request => request.url === 'https://icons.duckduckgo.com/ip3/api-docs.deepseek.com.ico'
+        ? new Response('<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><circle cx="8" cy="8" r="7"/></svg>', { headers: { 'Content-Type': 'image/svg+xml' } })
+        : new Response(null, { status: 404 }));
       await win.loadFile(join(process.env.VELA_WEB_CARD_TEMP, "index.html"));
       const evaluate = (code) => win.webContents.executeJavaScript(code);
       const until = async (code) => {
@@ -111,39 +132,45 @@ if (!process.versions.electron) {
 
       for (const display of ["card", "compact"]) {
         await evaluate(`window.renderTools(${JSON.stringify(display)})`);
-        await until("document.querySelectorAll('.tool-card').length === 2");
-        const icons = await evaluate("Array.from(document.querySelectorAll('.tool-card-icon svg')).map(node => node.dataset.icon)");
-        assert.equal(icons.length, 2);
-        assert.notEqual(icons[0], icons[1], display + ": search and fetch have different icons");
-        assert.deepEqual(icons, ["web-search", "web-fetch"], display + ": dedicated icons rather than the wrench");
-        assert.ok(!icons.includes("tool"), display + ": the generic wrench is not used");
-        assert.equal(await evaluate("document.querySelectorAll('.tool-card.is-web').length"), 2);
-        // 运行中的图标周围没有脉冲光圈。
-        const style = await evaluate("(() => { const style = getComputedStyle(document.querySelector('.tool-card.is-running .tool-card-icon')); return { animation: style.animationName, shadow: style.boxShadow }; })()");
-        assert.equal(style.animation, "none", display + ": no icon animation while running");
-        assert.equal(style.shadow, "none");
-        console.log("PASS " + display + " web tool cards use dedicated icons without a pulse ring");
+        await until(`document.querySelector('.tool-card-list').classList.contains('is-compact') === ${display === 'compact'} && document.querySelectorAll('.web-call').length === 3`);
+        assert.equal(await evaluate(`document.querySelectorAll('.web-call-head[aria-expanded="false"]').length`), 2);
+        assert.equal(await evaluate("document.querySelector('.web-call-subject').textContent"), 'deepseek · query');
+        assert.equal(await evaluate("getComputedStyle(document.querySelector('.web-call-pages')).borderInlineStartWidth"), '0px');
+        assert.ok(await evaluate("Array.from(document.querySelectorAll('.web-call .tool-collapse')).every(el => el.inert && el.offsetHeight === 0)"));
+        await evaluate("document.querySelectorAll('.web-call-head:not(:disabled)').forEach(button => button.click())");
+        await until("Array.from(document.querySelectorAll('.web-call .tool-collapse')).every(el => !el.inert && el.offsetHeight > 0 && !el.getAnimations().length)");
+        assert.ok(await evaluate("document.querySelector('.web-page-chip').getBoundingClientRect().left === document.querySelector('.web-call-head').getBoundingClientRect().left"), 'chips align with the search header');
+        assert.deepEqual(await evaluate("Array.from(document.querySelectorAll('.web-page-title'), el => el.textContent)"), ["Change Log", "Guide", "More"]);
+        assert.deepEqual(await evaluate("Array.from(document.querySelectorAll('.web-call-head > svg:first-child'), el => el.dataset.icon).slice(0, 2)"), ["search", "search"]);
+        // The test window is hidden; do not wait on Chromium's lazy-image viewport heuristic.
+        await evaluate("document.querySelectorAll('.web-page-icon img').forEach(img => img.loading = 'eager')");
+        await until("document.querySelector('.web-page-icon img')?.naturalWidth === 16 && document.querySelectorAll('.web-page-icon')[1].textContent === 'E'");
+        assert.equal(await evaluate("document.querySelectorAll('.web-call-note').length"), 1);
+        assert.doesNotMatch(await evaluate("document.getElementById('root').textContent"), /Provider rejected|Permission denied|bad query|rejected query/);
+        assert.ok(await evaluate("document.querySelectorAll('.web-call-head')[1].disabled"));
+        await evaluate("window.opened = []; document.querySelectorAll('.web-page-chip')[1].click(); document.querySelectorAll('.web-page-chip')[2].click()");
+        assert.deepEqual(await evaluate("window.opened"), ["https://example.org/guide", "https://example.org/more"]);
+        const region = "document.querySelector('.web-call .tool-collapse')";
+        const expandedHeight = await evaluate(`${region}.offsetHeight`);
+        assert.ok(expandedHeight > 0);
+        const motion = await evaluate("!matchMedia('(prefers-reduced-motion: reduce)').matches");
+        await evaluate("document.querySelector('.web-call-head').click()");
+        if (motion) await until(`${region}.getAnimations().length > 0`);
+        await until(`${region}.inert && ${region}.offsetHeight === 0`);
+        await evaluate("document.querySelector('.web-call-head').click()");
+        if (motion) await until(`${region}.getAnimations().length > 0`);
+        await until(`!${region}.inert && ${region}.offsetHeight === ${expandedHeight}`);
+        console.log(`PASS ${display}: page chips, safe targets, panel actions, disclosure, running, empty and error states`);
       }
 
-      await evaluate("window.renderTools('card')");
-      await until("document.querySelectorAll('.tool-card').length === 2");
-      await evaluate("document.querySelectorAll('.tool-card-head')[1].click()");
-      await until("!!document.querySelector('.tool-card.is-running .tool-markdown')");
-      const html = await evaluate("document.querySelector('.tool-card.is-running .tool-markdown').innerHTML");
-      assert.ok(/<h2[^>]*>Date: 2024-07-25<\/h2>/.test(html), html);
-      assert.equal((html.match(/<li>/g) ?? []).length, 4, html);
-      assert.ok(html.includes("Change Log | DeepSeek API Docs"));
-      assert.ok(html.includes('href="https://api-docs.deepseek.com/updates"'));
-      assert.ok(!html.includes("untrusted_web_content") && !html.includes("Untrusted web content"), html);
-      assert.ok(!html.includes("\\#"));
-      console.log("PASS fetched page details render as Markdown, with escapes restored and wrappers hidden");
-
-      await evaluate("document.querySelectorAll('.tool-card-head')[0].click()");
-      await until("document.querySelectorAll('.tool-markdown').length === 2");
-      const search = await evaluate("document.querySelectorAll('.tool-markdown')[0].innerHTML");
-      assert.ok(search.includes("<ol>") && search.includes("Change Log") && search.includes("<h2>Inner heading</h2>"), search);
-      assert.ok(!search.includes("untrusted_web_content"), search);
-      console.log("PASS search results render as a Markdown list");
+      const chipWidth = "document.querySelector('.web-page-chip').getBoundingClientRect().width";
+      const wide = await evaluate(chipWidth);
+      await evaluate("document.querySelectorAll('.web-page-chip')[2].style.display = 'none'");
+      assert.ok(await evaluate(chipWidth) > wide, 'fewer visible chips receive more space');
+      await evaluate("document.querySelectorAll('.web-page-chip')[2].style.display = ''; document.querySelector('#root').style.width = '640px'");
+      assert.ok(await evaluate(chipWidth) < wide, 'three columns resize with the pane');
+      await evaluate("document.querySelector('#root').style.width = '260px'");
+      assert.ok(await evaluate("(() => { const [first, second] = document.querySelectorAll('.web-page-chip'); return second.offsetTop > first.offsetTop && document.querySelector('.web-call').scrollWidth <= 260; })()"), "chips wrap in narrow panes");
 
       if (process.env.VELA_WEB_CARD_CAPTURE) {
         await new Promise((resolve) => setTimeout(resolve, 400));

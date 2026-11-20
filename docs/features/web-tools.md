@@ -74,16 +74,15 @@
 
 `ToolCard.tsx` 对 `web_search`、`web_fetch` 有专属展示：
 
-- 专属图标 `WebSearchIcon`（带经纬线的放大镜）和 `WebFetchIcon`（浏览器窗口加向下箭头），配色 `--tool-icon-web`；不再使用通用的扳手图标，运行中图标周围也没有脉冲光圈（运行状态只由右侧的转圈标出）。
-- 展开后的详情按 Markdown 渲染：去掉给模型看的「不可信内容」提示行和 `<untrusted_web_content>` 包裹，标题与来源整理在顶部，搜索结果是编号列表（多行字段在 `formatSearchResults` 里缩进到条目内），页面正文按 Markdown 渲染。
-- 有些抓取服务返回反斜杠转义过的 Markdown（如 DeepSeek 的 `\#\# 标题`、`2024\-07\-25`）。`unescapeMarkdown`（`packages/shared/src/web-tools.ts`）只在转义明显密集时还原，服务端抓取结果与界面展示（含历史会话）都会用到。
+- Chat hides `web_fetch` and combines adjacent visible `web_search` calls into one collapsed row. Expanding it shows page-title chips deduplicated by URL. Trace retains each original search and fetch call.
+- Selecting a chip opens its HTTP(S) URL in the right-hand browser panel. This explicit action is independent of the setting for ordinary conversation links.
 - 文案有 zh-CN、en 以及 zh-TW、ja、ko 译文（`settings-copy.ts`、`packages/shared/src/i18n-messages/`）。
 
 ## 验证
 
 ```bash
 pnpm --filter @vela/desktop test:web-tools     # 服务、工具、运行时、IPC host、设置页模型
-pnpm --filter @vela/desktop test:web-tools:ui  # 真实 Electron 渲染层：设置页（密钥只写、选择与开关、测试、自定义提供商、删除、加密不可用、中文文案）和工具卡片（专属图标、无脉冲、Markdown 详情）
+pnpm --filter @vela/desktop test:web-tools:ui  # 真实 Electron 渲染层：设置页（密钥只写、选择与开关、测试、自定义提供商、删除、加密不可用、中文文案）和工具卡片（页面胶囊、折叠、面板链接）
 pnpm test                                       # typecheck + 全部单元测试
 ```
 

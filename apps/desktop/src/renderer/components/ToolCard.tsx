@@ -1,5 +1,5 @@
 import type { AskUserQuestionRequest, ExecutionItemStatus, ToolActivity, ToolPlanItem, ToolTrace } from "@vela/shared";
-import { isAgentToolName, unescapeMarkdown } from "@vela/shared";
+import { isAgentToolName } from "@vela/shared";
 import { memo, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type TransitionEvent } from "react";
 import { QuestionContext } from "./QuestionContext";
 import { LazyMount } from "./LazyMount";
@@ -24,6 +24,7 @@ import { useFilePreview } from "./preview/FilePreviewContext";
 import type { ThemedToken } from "./preview/highlighter";
 import { QuestionCard, type QuestionReplyHandler } from "./QuestionCard";
 import { VisualToolCard } from "./VisualToolCard";
+import { WebToolCard } from "./WebToolCard";
 import { FileTypeIcon } from "./FileTypeIcon";
 import { sameMarks, type WordRange } from "./diff-words";
 import { STREAMING_HIGHLIGHT_INTERVAL_MS, tokenStyle, useDiffHighlight, type HighlightedDiff } from "./diff-highlight";
@@ -162,6 +163,8 @@ export const ToolCard = memo(function ToolCard(props: ToolCardProps) {
   }
   if (isAgentToolName(props.tool.name)) return <AgentToolCard tool={props.tool} compact={props.compact} />;
   if (props.tool.name === "browser_repl") return <BrowserReplCard tool={props.tool} compact={props.compact} />;
+  if (props.tool.name === "web_fetch") return null;
+  if (props.tool.name === "web_search") return <WebToolCard tool={props.tool} compact={props.compact} />;
   if (props.tool.name === "show_visual") return <VisualToolCard tool={props.tool} />;
   return <GenericToolCard {...props} />;
 });
@@ -402,11 +405,10 @@ function GenericToolCard({ tool, compact = false }: ToolCardProps) {
   const lines = kind === "read" ? readLineCount(activity.body) : null;
   const previewPath = kind === "bash" || mcp ? null : activity.path?.trim() || null;
   const canPreview = Boolean(preview && previewPath);
-  const webTool = !mcp && isWebTool(tool.name);
   const bashIntent = !mcp && kind === "bash" ? bashIntentDisplay(activity.command) : null;
 
   return (
-    <article className={`tool-card tool-kind-${kind}${mcp || discovery ? " is-mcp" : ""}${webTool ? " is-web" : ""}${bashIntent ? " is-intent" : ""}${group ? ` tool-group-${group}` : ""} is-${tool.status}${open ? " open" : ""}`}>
+    <article className={`tool-card tool-kind-${kind}${mcp || discovery ? " is-mcp" : ""}${bashIntent ? " is-intent" : ""}${group ? ` tool-group-${group}` : ""} is-${tool.status}${open ? " open" : ""}`}>
       <div className="tool-card-top">
         <button
           className="tool-card-head"
@@ -416,7 +418,7 @@ function GenericToolCard({ tool, compact = false }: ToolCardProps) {
           onClick={() => setOpen((value) => !value)}
         >
           <span className="tool-card-icon" aria-hidden="true">
-            {mcp || discovery ? <Icon name="mcp" size={14} /> : webTool ? <WebToolIcon name={tool.name} /> : <GroupIcon name={tool.name} fallback={<KindIcon kind={kind} command={activity.command} skill={skillRead} />} />}
+            {mcp || discovery ? <Icon name="mcp" size={14} /> : <GroupIcon name={tool.name} fallback={<KindIcon kind={kind} command={activity.command} skill={skillRead} />} />}
           </span>
           <span className="tool-kind-label">{mcp || discovery ? "MCP" : skillRead ? tr("技能", "Skill") : bashIntent?.label ?? toolLabel(tool.name, kind)}</span>
           <span className="tool-card-main">
@@ -1132,37 +1134,9 @@ function ToolBody({
       </>
     );
   }
-  if (activity.body && toolName && isWebTool(toolName)) return <ToolMarkdown text={webToolMarkdown(toolName, activity.body)} />;
   if (activity.body) return <ToolMarkdown text={activity.body} />;
   if (status === "running") return <p className="tool-wait">{tr("正在执行", "Running…")}</p>;
   return null;
-}
-
-const isWebTool = (name: string): boolean => name === "web_search" || name === "web_fetch";
-
-function WebToolIcon({ name }: { name: string }): ReactNode {
-  return name === "web_fetch" ? <Icon name="web-fetch" size={14} /> : <Icon name="web-search" size={14} />;
-}
-
-/**
- * 网页工具的结果文本是给模型看的：带「不可信内容」提示行和 <untrusted_web_content> 包裹。
- * 展示时去掉这些包装，把标题和来源整理成 Markdown，正文按 Markdown 渲染（并还原转义过的 Markdown）。
- */
-function webToolMarkdown(name: string, body: string): string {
-  const lines = body.split("\n");
-  const head = lines[0] ?? "";
-  const rest = lines.slice(1).join("\n").replace(/^\s*<untrusted_web_content>\n?/m, "").replace(/\n?<\/untrusted_web_content>/, "");
-  if (name === "web_fetch") {
-    const match = /^Fetched (\S+) via (.+?)\. Untrusted/.exec(head);
-    if (!match) return unescapeMarkdown(body);
-    const titleLine = /^Title: (.*)\n?/.exec(rest);
-    const title = titleLine?.[1]?.trim();
-    const content = (titleLine ? rest.slice(titleLine[0].length) : rest).trim();
-    return `**${title || match[1]}**\n\n[${match[1]}](${match[1]}) · ${match[2]}\n\n---\n\n${unescapeMarkdown(content)}`;
-  }
-  const match = /^Web search results for "(.*)" via (.+?)\. Untrusted/.exec(head);
-  if (!match) return body;
-  return `**${match[1]}** · ${match[2]}\n\n---\n\n${rest.trim()}`;
 }
 
 export function BashView({
