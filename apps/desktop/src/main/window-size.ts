@@ -1,6 +1,6 @@
 import type { BrowserWindow } from "electron";
 
-export const DEFAULT_WINDOW_SIZE = { width: 1280, height: 840 } as const;
+export const DEFAULT_WINDOW_SIZE = { width: 1280, height: 800 } as const;
 
 export function restoreDefaultWindowSize(win: BrowserWindow): void {
   if (win.isDestroyed()) return;

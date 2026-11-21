@@ -21,13 +21,13 @@ class WindowStub extends EventEmitter {
   leaveMaximized() { this.maximized = false; this.emit("unmaximize"); }
 }
 
-it("restores a resized window to 1280 × 840 and is repeatable", () => {
+it("restores a resized window to 1280 × 800 and is repeatable", () => {
   const win = new WindowStub();
   win.resetSize();
-  assert.deepEqual(win.size, [1280, 840]);
+  assert.deepEqual(win.size, [1280, 800]);
   win.size = [1000, 700];
   win.resetSize();
-  assert.deepEqual(win.size, [1280, 840]);
+  assert.deepEqual(win.size, [1280, 800]);
 });
 
 it("waits for native full-screen exit before resizing", () => {
@@ -37,7 +37,7 @@ it("waits for native full-screen exit before resizing", () => {
   assert.deepEqual(win.calls, ["fullscreen:false"]);
   assert.deepEqual(win.size, [1600, 1000]);
   win.leaveFullscreen();
-  assert.deepEqual(win.size, [1280, 840]);
+  assert.deepEqual(win.size, [1280, 800]);
   assert.equal(win.listenerCount("leave-full-screen"), 0);
 });
 
@@ -48,7 +48,7 @@ it("waits for unmaximizing before resizing", () => {
   assert.deepEqual(win.calls, ["unmaximize"]);
   win.leaveMaximized();
   assert.deepEqual(win.calls, ["unmaximize", "resize"]);
-  assert.deepEqual(win.size, [1280, 840]);
+  assert.deepEqual(win.size, [1280, 800]);
 });
 
 it("handles full screen entered from a maximized window", () => {
@@ -58,7 +58,7 @@ it("handles full screen entered from a maximized window", () => {
   win.leaveFullscreen();
   assert.deepEqual(win.calls, ["fullscreen:false", "unmaximize"]);
   win.leaveMaximized();
-  assert.deepEqual(win.size, [1280, 840]);
+  assert.deepEqual(win.size, [1280, 800]);
 });
 
 it("ignores windows closed before or during a transition", () => {
