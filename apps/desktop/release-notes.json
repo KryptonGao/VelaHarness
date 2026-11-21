@@ -1,144 +1,134 @@
 {
-  "version": "1.2.38",
+  "version": "1.2.39",
   "locales": {
     "en": {
-      "summary": "Vela 1.2.38 adds selectable start pages for new chats, shows live file changes and per-turn quota usage near the composer, and makes Resident Agent follow-ups and subagent chats more reliable.",
+      "summary": "Expand the workbench to fill the window and keep your conversation within reach in a floating chat.",
       "highlights": [
         {
-          "title": "Start page styles",
-          "body": "Choose Atelier, Command Deck, Classic, or Minimal for new chats under Settings → Interface. Atelier is the new default."
+          "title": "Fullscreen workbench",
+          "body": "Open a workbench tab full screen. Move, resize, or hide the floating chat, or switch to the Chat tab for the full conversation."
         },
         {
-          "title": "Live file changes",
-          "body": "Files changed during the current turn appear above the composer while the agent works."
+          "title": "Web search results",
+          "body": "Expand a group of consecutive searches and select a page title to open it in the browser panel."
         },
         {
-          "title": "Per-turn quota usage",
-          "body": "The 5h and 1w quota a turn consumed shows in a small capsule next to the elapsed time."
+          "title": "Subagent reasoning effort",
+          "body": "Choose the reasoning levels available to each subagent model. A subagent can inherit the closest allowed level."
         },
         {
-          "title": "Resident Agent follow-ups",
-          "body": "Resident Agent tasks support follow-ups and event-driven replies, and composer messages go through the agent conversation."
+          "title": "Codex quota ring",
+          "body": "Check your remaining Codex quota above Settings in the navigation rail. Set the percentage at which the ring turns yellow."
         }
       ],
       "improvements": [
-        "Turn changes show file icons and emphasized filenames, with a compact-diff toggle on line counts.",
-        "The changes review file tree can be toggled at any width.",
-        "The settings sidebar can be resized in navigation rail mode.",
-        "Subagent chats batch background results, identify senders, and count their usage in cumulative chat tokens.",
-        "Conversation mode switches stay responsive, and rendered entries no longer replay arrival animations."
+        "Floating environment cards leave room for chat content, and conflict warnings stay with the turn that triggered them.",
+        "The default window size is 1280 × 800. Agent mode appears as Build in chat controls.",
+        "Scheduled tasks can reuse the cached prompt prefix across turns on the same day."
       ]
     },
     "zh-CN": {
-      "summary": "Vela 1.2.38 新增可选的新对话起始页样式，在输入框附近显示实时文件改动与单轮额度消耗，并提升常驻 Agent 跟进与子代理对话的可靠性。",
+      "summary": "工作台现在可以铺满窗口。使用悬浮聊天窗，就能边查看工作台内容边继续对话。",
       "highlights": [
         {
-          "title": "起始页样式",
-          "body": "在「设置 → 界面」中为新对话选择静纸稿台、星航指挥舱、经典或极简样式，静纸稿台为新的默认样式。"
+          "title": "全屏工作台",
+          "body": "将工作台标签页展开至全屏。聊天浮窗可以移动、调整高度或隐藏，也可以切到聊天标签页查看完整对话。"
         },
         {
-          "title": "实时文件改动",
-          "body": "本轮对话中改动的文件会在 Agent 工作时显示在输入框上方。"
+          "title": "网页搜索结果",
+          "body": "连续的网页搜索会合并显示。展开后，点击网页标题即可在浏览器面板中打开。"
         },
         {
-          "title": "单轮额度消耗",
-          "body": "一轮对话消耗的 5 小时与 1 周额度，以小胶囊显示在耗时旁边。"
+          "title": "子代理推理强度",
+          "body": "为每个子代理模型选择允许使用的推理强度。子代理可以继承最接近的可用档位。"
         },
         {
-          "title": "常驻 Agent 跟进",
-          "body": "常驻 Agent 任务支持跟进与事件驱动的回复，输入框消息统一通过 Agent 对话发送。"
+          "title": "Codex 额度圆环",
+          "body": "在导航栏的设置按钮上方查看剩余额度。可自行设定圆环变黄的提醒阈值。"
         }
       ],
       "improvements": [
-        "本轮改动显示文件图标并突出文件名，点击行数可切换紧凑差异。",
-        "改动审阅的文件树在任意宽度下都可展开或收起。",
-        "导航栏模式下可调整设置侧边栏的宽度。",
-        "子代理对话会合并后台结果、标明发送者，并把其用量计入对话累计 Token。",
-        "切换对话模式更流畅，已渲染的条目不再重复播放出现动画。"
+        "对话内容会为悬浮环境卡片留出空间，冲突提示只显示在触发它的那轮对话中。",
+        "默认窗口大小调整为 1280 × 800，聊天控件中的 Agent 模式显示为 Build。",
+        "定时任务可在同一天的多轮对话中复用提示词前缀缓存。"
       ]
     },
     "zh-TW": {
-      "summary": "Vela 1.2.38 新增可選的新對話起始頁樣式，在輸入框附近顯示即時檔案變更與單輪額度消耗，並提升常駐 Agent 跟進與子代理對話的可靠性。",
+      "summary": "工作台現在可以填滿視窗。透過聊天浮窗，你可以一邊查看工作台內容，一邊繼續對話。",
       "highlights": [
         {
-          "title": "起始頁樣式",
-          "body": "在「設定 → 介面」中為新對話選擇靜紙稿台、星航指揮艙、經典或極簡樣式，靜紙稿台為新的預設樣式。"
+          "title": "全螢幕工作台",
+          "body": "將工作台分頁展開至全螢幕。聊天浮窗可以移動、調整高度或隱藏，也可以切到聊天分頁查看完整對話。"
         },
         {
-          "title": "即時檔案變更",
-          "body": "本輪對話中變更的檔案會在 Agent 工作時顯示在輸入框上方。"
+          "title": "網頁搜尋結果",
+          "body": "連續的網頁搜尋會合併顯示。展開後，點選網頁標題即可在瀏覽器面板中開啟。"
         },
         {
-          "title": "單輪額度消耗",
-          "body": "一輪對話消耗的 5 小時與 1 週額度，以小膠囊顯示在耗時旁邊。"
+          "title": "子代理推理強度",
+          "body": "為每個子代理模型選擇允許使用的推理強度。子代理可以繼承最接近的可用等級。"
         },
         {
-          "title": "常駐 Agent 跟進",
-          "body": "常駐 Agent 任務支援跟進與事件驅動的回覆，輸入框訊息統一透過 Agent 對話送出。"
+          "title": "Codex 額度圓環",
+          "body": "在導覽列的設定按鈕上方查看剩餘額度。你可以設定圓環變黃的提醒門檻。"
         }
       ],
       "improvements": [
-        "本輪變更顯示檔案圖示並突顯檔名，點擊行數可切換精簡差異。",
-        "變更審閱的檔案樹在任何寬度下都可展開或收合。",
-        "導覽列模式下可調整設定側邊欄的寬度。",
-        "子代理對話會合併背景結果、標明傳送者，並將其用量計入對話累計 Token。",
-        "切換對話模式更流暢，已渲染的項目不再重複播放出現動畫。"
+        "對話內容會為浮動環境卡片留出空間，衝突提示只會顯示在觸發它的那一輪對話中。",
+        "預設視窗大小調整為 1280 × 800，聊天控制項中的 Agent 模式顯示為 Build。",
+        "排程任務可在同一天的多輪對話中重複使用提示詞前綴快取。"
       ]
     },
     "ja": {
-      "summary": "Vela 1.2.38 では、新規チャットの開始ページのスタイルを選べるようになり、入力欄の近くにファイル変更のライブ表示とターンごとのクォータ消費を表示し、常駐エージェントのフォローアップとサブエージェントのチャットの信頼性を高めました。",
+      "summary": "ワークベンチをウィンドウいっぱいに広げ、作業しながらフローティングチャットで会話を続けられます。",
       "highlights": [
         {
-          "title": "開始ページのスタイル",
-          "body": "「設定 → インターフェース」で、新規チャットにアトリエ、コマンドデッキ、クラシック、ミニマルから選べます。新しい既定はアトリエです。"
+          "title": "全画面ワークベンチ",
+          "body": "ワークベンチのタブを全画面で開けます。チャットは移動、高さの調整、非表示ができ、チャットタブに切り替えると会話全体を読めます。"
         },
         {
-          "title": "ライブのファイル変更",
-          "body": "現在のターンで変更されたファイルが、エージェントの作業中に入力欄の上へ表示されます。"
+          "title": "ウェブ検索結果",
+          "body": "連続した検索をまとめて表示します。展開してページ名を選ぶと、ブラウザーパネルで開きます。"
         },
         {
-          "title": "ターンごとのクォータ消費",
-          "body": "ターンで消費した 5 時間枠と 1 週間枠のクォータを、経過時間の横に小さなカプセルで表示します。"
+          "title": "サブエージェントの推論強度",
+          "body": "モデルごとに使用できる推論強度を選べます。サブエージェントは、許可された中で最も近いレベルを引き継げます。"
         },
         {
-          "title": "常駐エージェントのフォローアップ",
-          "body": "常駐エージェントのタスクがフォローアップとイベント駆動の返信に対応し、入力欄のメッセージはエージェントの会話を通して送信されます。"
+          "title": "Codex の残量リング",
+          "body": "ナビゲーションバーの設定ボタンの上で Codex の残りの利用枠を確認できます。リングが黄色に変わる残量も設定できます。"
         }
       ],
       "improvements": [
-        "ターンの変更にファイルアイコンとファイル名の強調を追加し、行数でコンパクト差分を切り替えられます。",
-        "変更レビューのファイルツリーを、どの幅でも開閉できます。",
-        "ナビゲーションレールモードで設定のサイドバーの幅を変更できます。",
-        "サブエージェントのチャットはバックグラウンド結果をまとめ、送信者を表示し、使用量を累計トークンに含めます。",
-        "会話モードの切り替えが滑らかになり、描画済みの項目が登場アニメーションを再生しなくなりました。"
+        "環境カードが会話に重ならないよう余白を確保し、競合の警告は該当するターンに表示するようにしました。",
+        "既定のウィンドウサイズを 1280 × 800 に変更し、チャットの Agent モードの表記を Build に統一しました。",
+        "スケジュールタスクでは、同じ日の複数のターンでプロンプトの先頭部分のキャッシュを再利用できます。"
       ]
     },
     "ko": {
-      "summary": "Vela 1.2.38은 새 채팅 시작 페이지 스타일을 선택할 수 있게 하고, 입력창 근처에 실시간 파일 변경과 턴별 할당량 사용량을 보여주며, 상주 에이전트 후속 작업과 서브에이전트 채팅의 안정성을 높였습니다.",
+      "summary": "워크벤치를 창 전체로 넓히고 플로팅 채팅에서 대화를 이어갈 수 있습니다.",
       "highlights": [
         {
-          "title": "시작 페이지 스타일",
-          "body": "'설정 → 인터페이스'에서 새 채팅에 아틀리에, 커맨드 덱, 클래식, 미니멀 중 하나를 고를 수 있습니다. 새 기본값은 아틀리에입니다."
+          "title": "전체 화면 워크벤치",
+          "body": "워크벤치 탭을 전체 화면으로 열 수 있습니다. 채팅 창을 옮기거나 높이를 조절하거나 숨길 수 있고, 채팅 탭에서는 전체 대화를 볼 수 있습니다."
         },
         {
-          "title": "실시간 파일 변경",
-          "body": "현재 턴에서 변경된 파일이 에이전트가 작업하는 동안 입력창 위에 표시됩니다."
+          "title": "웹 검색 결과",
+          "body": "연속된 검색을 한데 묶어 표시합니다. 묶음을 펼치고 페이지 제목을 선택하면 브라우저 패널에서 열립니다."
         },
         {
-          "title": "턴별 할당량 사용량",
-          "body": "한 턴에서 소모한 5시간 및 1주 할당량을 경과 시간 옆의 작은 캡슐로 보여줍니다."
+          "title": "하위 에이전트 추론 강도",
+          "body": "하위 에이전트 모델마다 허용할 추론 강도를 선택할 수 있습니다. 하위 에이전트는 허용된 단계 중 가장 가까운 값을 물려받을 수 있습니다."
         },
         {
-          "title": "상주 에이전트 후속 작업",
-          "body": "상주 에이전트 작업이 후속 작업과 이벤트 기반 답변을 지원하며, 입력창 메시지는 에이전트 대화를 통해 전송됩니다."
+          "title": "Codex 잔여 한도",
+          "body": "탐색 모음의 설정 버튼 위에 있는 링에서 남은 Codex 한도를 확인할 수 있습니다. 링이 노란색으로 바뀌는 기준도 설정할 수 있습니다."
         }
       ],
       "improvements": [
-        "턴 변경에 파일 아이콘과 강조된 파일명을 표시하고, 줄 수를 눌러 간결한 diff로 전환할 수 있습니다.",
-        "변경 검토의 파일 트리를 어떤 너비에서도 열고 닫을 수 있습니다.",
-        "내비게이션 레일 모드에서 설정 사이드바의 너비를 조절할 수 있습니다.",
-        "서브에이전트 채팅은 백그라운드 결과를 묶고 발신자를 표시하며 사용량을 누적 토큰에 포함합니다.",
-        "대화 모드 전환이 더 매끄러워졌고, 이미 렌더링된 항목이 등장 애니메이션을 다시 재생하지 않습니다."
+        "채팅 내용이 플로팅 환경 카드에 가리지 않도록 공간을 확보하고, 충돌 경고는 해당 턴에만 표시합니다.",
+        "기본 창 크기를 1280 × 800으로 변경하고 채팅 컨트롤의 Agent 모드를 Build로 표시합니다.",
+        "예약 작업은 같은 날 여러 턴에 걸쳐 프롬프트 접두사 캐시를 재사용할 수 있습니다."
       ]
     }
   }

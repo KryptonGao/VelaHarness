@@ -1,48 +1,41 @@
-# Vela 1.2.38
+# Vela 1.2.39
 
-Vela 1.2.38 adds selectable start pages for new chats, shows live file changes and per-turn quota usage near the composer, and makes Resident Agent follow-ups and subagent chats more reliable.
+Expand the workbench to fill the window and keep the conversation close in a floating chat. This release also groups web search results, adds reasoning controls for subagent models, and shows remaining Codex quota in the navigation rail.
 
 ## New
 
-- **Start page styles**: choose how an empty chat looks under Settings → Interface → Start page style. **Atelier** is the new default, a left-aligned editorial desk with a workspace masthead, mode rail, and tabbed starter index; **Command Deck** shows live repository changes or recent commits with a ⌘1–⌘4 shortcut matrix; **Classic** keeps the centered greeting and prompt cards; **Minimal** shows only the composer. Installations that had Minimal start page turned on stay on Minimal.
-- **Live file changes above the composer**: files changed during the current turn appear above the chat composer while the agent works.
-- **Resident Agent follow-ups**: Resident Agent tasks support follow-ups and event-driven replies, and composer messages in a Resident Agent view go through the agent conversation.
-- **Per-turn quota usage**: the 5h and 1w quota consumed by a turn appears in a small capsule next to the elapsed time, rounded to whole percent and shown as <1% below one percent.
+- **Fullscreen workbench.** Open a workbench tab full screen and keep chatting in a floating window. Drag the chat by its header, adjust its height, or hide it. Select the Chat tab to return to the full conversation.
+- **Web search results.** Consecutive searches share one expandable row. Select a page title to open it in the browser panel. The trace keeps the individual search and fetch calls.
+- **Subagent reasoning effort.** Choose which reasoning levels a subagent may use with each model. When a subagent inherits a level, it uses the closest allowed setting.
+- **Codex quota ring.** The ring above Settings in the navigation rail shows your remaining quota. In interface settings, you can adjust the low-quota threshold or hide the ring.
 
 ## Improved
 
-- **Turn changes**: file icons and emphasized filenames, a compact-diff toggle on line counts, and a changes review file tree that can be toggled at any width.
-- **Composer usage metrics**: usage figures sit side by side in the composer.
-- **Settings sidebar**: the settings sidebar can be resized in navigation rail mode.
-- **Subagent chats**: background results are batched and each message identifies its sender; cumulative chat tokens now include subagent usage.
-- **Responsiveness**: switching conversation modes stays responsive and consistent, previously rendered entries no longer replay arrival animations, and the startup model hint is no longer rewritten for unchanged snapshots.
-- **Localization**: new start page and usage copy is available in all five languages.
+- Floating environment cards leave room for chat content. Resident Agent chats keep the latest message in view as the composer changes height.
+- Conflict warnings stay with the turn that triggered them. The file change summary above the composer can now be toggled in settings.
+- The default window size is 1280 × 800. Chat controls label agent mode as **Build**.
+- Scheduled tasks keep the date, weekday, and time zone in the prompt so its prefix can be cached across turns on the same day. The scheduling tool still provides the exact time when needed.
 
 ## Upgrade
 
-Installed copies of Vela 1.0.6 and later receive this update automatically: Vela downloads it in the background and prompts you to restart. Versions 1.0.5 and earlier cannot update themselves, so install this version manually once: quit Vela completely, replace the application with this version, and reopen it.
+Vela 1.0.6 and later downloads the update in the background and prompts you to restart. For Vela 1.0.5 and earlier, quit the app, replace it with the copy from the DMG, and reopen it. Keep your existing `~/.vela` directory or the directory set in `VELA_USER_DATA` to retain your conversations.
 
-Keep your existing `~/.vela` directory (or the directory specified by `VELA_USER_DATA`); no data reset is needed. Existing conversations open as before.
-
-The macOS build is not notarized and uses an ad-hoc signature. If macOS blocks first launch, use **Open Anyway** in System Settings → Privacy & Security. Because the code signature differs between versions, macOS may ask you to confirm privacy or keychain access again after an update.
+The macOS build uses an ad-hoc signature and is distributed without notarization. If macOS blocks the first launch, choose **Open Anyway** in System Settings → Privacy & Security. macOS may ask you to confirm privacy or keychain access again after updating.
 
 ## Download
 
-| File | Platform |
+| File | Purpose |
 | --- | --- |
-| `Vela-1.2.38-arm64.dmg` | macOS Apple Silicon installer |
-| `Vela-1.2.38-arm64.zip` | macOS Apple Silicon application bundle (`.app`); also the package used by in-app updates |
-| `SHA256SUMS.txt` | SHA-256 checksums for both packages |
-| `SHA256SUMS.txt.sig` | Ed25519 signature of `SHA256SUMS.txt`, verified by the in-app updater |
+| `Vela-1.2.39-arm64.dmg` | macOS Apple Silicon installer |
+| `Vela-1.2.39-arm64.zip` | macOS Apple Silicon application bundle used by the in-app updater |
+| `SHA256SUMS.txt` | SHA-256 checksums for both downloads |
+| `SHA256SUMS.txt.sig` | Ed25519 signature the updater uses to verify the checksums |
 
-Package version: `1.2.38`. macOS bundle and download version: `1.2.38`.
+Both packages contain Vela 1.2.39.
 
 ## Validation
 
-- Release metadata verified: all package and macOS bundle version fields are `1.2.38`; all five in-app release-note languages contain four highlights and five improvements.
-- Production build and macOS arm64 packaging completed, followed by ad-hoc signing of `Vela.app` and regeneration of the DMG and ZIP from the signed bundle.
-- The app extracted from the ZIP and the app in the mounted DMG passed strict code-signature verification and bundle version checks; the bundle identifier is `com.vela.desktop`.
-- The ZIP has a single top-level `Vela.app` and passed archive-integrity verification. The DMG passed checksum verification and mounted successfully.
-- `SHA256SUMS.txt` was generated and signed with the release key, whose public key is bundled in the app.
-
-The automated test suites were not run for this release, as requested.
+- The production build completed for macOS Apple Silicon. All five package and bundle version fields match 1.2.39, and the built release notes match the source in all five languages.
+- The DMG mounted successfully. Its app and the app extracted from the ZIP passed strict code-signature verification. Both bundles report version 1.2.39 and the identifier `com.vela.desktop`.
+- The ZIP contains a single top-level `Vela.app` with an arm64 executable.
+- Both package checksums match the signed manifest. The updater's signature verifier accepted the manifest using the bundled public key.
