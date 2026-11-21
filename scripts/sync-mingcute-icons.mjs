@@ -17,6 +17,7 @@ const ICONS = {
   "chevron-up": "up",
   "chevron-down": "down",
   plus: "add",
+  minus: "minimize",
   close: "close",
   check: "check",
   "check-circle": "check-circle",

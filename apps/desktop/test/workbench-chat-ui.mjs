@@ -137,7 +137,209 @@ if (!process.versions.electron) {
         } finally { pane.remove(); }
       })()`);
       for (const c of overlapChecks) assert.ok(c.overlap && c.shieldInside && c.lastVisible, JSON.stringify(c));
+      const expandSidebar = 'button[aria-label="展开侧边栏"]';
+      const collapseSidebar = '.sidebar-left button[aria-label="收起侧边栏"]';
+      const fillsWorkspace = "document.querySelector('.workbench-canvas').clientWidth === document.querySelector('.main-stage-pane').clientWidth";
+      const sidebarUsable = `(() => {
+        const item = document.querySelector('.sidebar-left .subchat-item');
+        const rect = item.getBoundingClientRect();
+        const panel = document.querySelector('.workbench-canvas').getBoundingClientRect();
+        return item.contains(document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2)) && panel.left >= rect.right;
+      })()`;
+      await click(".main-chat-header " + expandSidebar);
       await newTab(); await capture("start-light");
+      const panelWidth = () => evaluate("document.querySelector('.workbench-panel').getBoundingClientRect().width");
+      await until("document.querySelector('.workbench-panel').getAnimations().length === 0");
+      const splitWidth = await panelWidth();
+      await click(".workbench-fullscreen-button");
+      await until(fillsWorkspace);
+      await until(sidebarUsable);
+      const collapsedFloat = '.main-chat-view[data-floating-chat="collapsed"]';
+      const expandedFloat = '.main-chat-view[data-floating-chat="expanded"]';
+      const doubleClickHeader = () => evaluate("document.querySelector('.floating-chat-header').dispatchEvent(new MouseEvent('dblclick', {bubbles:true}))");
+      const checkSettingsResize = async () => {
+        const result = await evaluate(`(async () => {
+          const chat = document.querySelector("[data-floating-chat]");
+          const button = chat.querySelector(".floating-composer-options");
+          const dock = chat.querySelector(".chat-dock-wrapper");
+          const measure = () => [chat.offsetHeight, dock.offsetHeight];
+          await new Promise(requestAnimationFrame);
+          await Promise.allSettled(chat.getAnimations({ subtree: true }).filter(a => a instanceof CSSTransition).map(a => a.finished));
+          const before = measure();
+          async function toggle() {
+            button.click();
+            const frames = [];
+            do {
+              await new Promise(requestAnimationFrame);
+              frames.push(measure());
+            } while (chat.querySelector(".floating-composer-settings").getAnimations().length);
+            return frames;
+          }
+          const opening = await toggle(), closing = await toggle();
+          return { before, opening, closing, reduced: matchMedia("(prefers-reduced-motion: reduce)").matches };
+        })()`);
+        const { before, opening, closing } = result;
+        const opened = opening.at(-1);
+        assert.ok(opened[1] > before[1] && Math.abs((opened[0] - before[0]) - (opened[1] - before[1])) <= 1, JSON.stringify(result));
+        assert.deepEqual(closing.at(-1), before);
+        for (const frames of [opening, closing]) {
+          assert.ok(frames.every(([height, dock]) => Math.abs((height - before[0]) - (dock - before[1])) <= 1), JSON.stringify(result));
+          if (!result.reduced) assert.ok(frames.some(([height]) => height > before[0] && height < opened[0]), JSON.stringify(result));
+        }
+      };
+      const checkContextUsage = async () => {
+        const trigger = "[data-floating-chat] .context-usage-trigger";
+        await until(`(() => {
+          const button = document.querySelector('${trigger}');
+          const rect = button?.getBoundingClientRect();
+          return rect?.width > 0 && button.contains(document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2));
+        })()`);
+        await evaluate(`(() => {
+          const rect = document.querySelector('${trigger}').getBoundingClientRect();
+          document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2).click();
+        })()`);
+        await until(`(() => {
+          const button = document.querySelector('${trigger}[aria-expanded=true]');
+          const dialog = button && document.getElementById(button.getAttribute("aria-controls"));
+          const rect = dialog?.getBoundingClientRect();
+          return rect?.height > 0 && dialog.contains(document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2));
+        })()`);
+        await click(".context-popover-close");
+        await until(`document.activeElement.matches('${trigger}[aria-expanded=false]') && !document.querySelector('.context-usage-popover')`);
+      };
+      const checkCollapsed = () => until(`(() => {
+        const chat = document.querySelector(${JSON.stringify(collapsedFloat)});
+        if (!chat || chat.offsetHeight > 100 || chat.querySelector(".chat-scroll-area").offsetHeight) return false;
+        const input = chat.querySelector(".rich-input"), rect = input.getBoundingClientRect();
+        return rect.width > 50 && rect.height > 20 && input.contains(document.elementFromPoint(rect.x + 10, rect.y + 10));
+      })()`);
+      await checkCollapsed();
+      await capture("fullscreen-panel");
+      const floatRect = "document.querySelector('[data-floating-chat]').getBoundingClientRect()";
+      const origin = await evaluate(`${floatRect}.toJSON()`);
+      const start = { x: Math.round(origin.x + 35), y: Math.round(origin.y + 20) };
+      function dragPointer(from, to) {
+        win.webContents.sendInputEvent({ type: "mouseMove", ...from });
+        win.webContents.sendInputEvent({ type: "mouseDown", ...from, button: "left", clickCount: 1 });
+        win.webContents.sendInputEvent({ type: "mouseMove", ...to, button: "left" });
+        win.webContents.sendInputEvent({ type: "mouseUp", ...to, button: "left", clickCount: 1 });
+      }
+      dragPointer(start, { x: start.x - 64, y: start.y - 96 });
+      await until(`Math.abs(${floatRect}.x - ${origin.x - 64}) < 1 && Math.abs(${floatRect}.bottom - ${origin.bottom - 96}) < 1`);
+      await input(collapsedFloat + " .rich-input", "浮窗草稿");
+      await click(".floating-chat-hide");
+      await until(`${floatRect}.width === 0 && document.activeElement.matches('.floating-chat-restore')`);
+      await click(".floating-chat-restore");
+      await checkCollapsed();
+      assert.equal(await evaluate("document.activeElement.textContent"), "浮窗草稿");
+      assert.ok(await evaluate(`Math.abs(${floatRect}.x - ${origin.x - 64}) < 1 && Math.abs(${floatRect}.bottom - ${origin.bottom - 96}) < 1`));
+      await input(collapsedFloat + " .rich-input", "");
+      const edgePoint = () => evaluate(`(() => {
+        const rect = document.querySelector('.floating-chat-resize').getBoundingClientRect();
+        return { x: Math.round(rect.left + rect.width / 2), y: Math.round(rect.top + 3) };
+      })()`);
+      const beforeResize = await evaluate(`${floatRect}.toJSON()`);
+      const edge = await edgePoint();
+      dragPointer(edge, { x: edge.x + 15, y: edge.y - 180 });
+      const resized = (delta) => `Math.abs(${floatRect}.height - ${beforeResize.height + delta}) <= 1 &&
+        Math.abs(${floatRect}.bottom - ${beforeResize.bottom}) <= 1 && Math.abs(${floatRect}.left - ${beforeResize.left}) <= 1`;
+      await until(resized(180));
+      const raised = await edgePoint();
+      dragPointer(raised, { x: raised.x, y: raised.y + 60 });
+      await until(resized(120));
+      await click(".floating-chat-hide");
+      await click(".floating-chat-restore");
+      await until(resized(120));
+      const lowered = await edgePoint();
+      dragPointer(lowered, { x: lowered.x, y: 1 });
+      await until(`Math.abs(${floatRect}.top - document.querySelector('.workbench-tabbar').getBoundingClientRect().bottom - 12) <= 1 &&
+        Math.abs(${floatRect}.bottom - ${beforeResize.bottom}) <= 1`);
+      const ceiling = await edgePoint();
+      dragPointer(ceiling, { x: ceiling.x, y: Math.round(beforeResize.bottom) });
+      await checkCollapsed();
+      await until(resized(0));
+      await checkSettingsResize();
+      // Sample both directions and reverse an in-flight close. Reduced motion settles immediately.
+      for (const [surface, toggle] of [
+        ["[data-floating-chat] .chat-scroll-area", ".floating-chat-header button[aria-expanded]"],
+        [".floating-composer-settings", ".floating-composer-options"],
+      ]) {
+        const sizes = await evaluate(`(async () => {
+          const el = document.querySelector(${JSON.stringify(surface)}), button = document.querySelector(${JSON.stringify(toggle)});
+          const height = () => el.getBoundingClientRect().height;
+          const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+          async function toggleAndMeasure(finish) {
+            button.click();
+            await Promise.resolve();
+            height();
+            const animation = el.getAnimations().find(a => a.transitionProperty === "height");
+            if (reduced) {
+              if (animation) throw new Error("Unexpected disclosure animation with reduced motion");
+            } else {
+              if (!animation) throw new Error("Missing height transition for " + el.className);
+              animation.pause();
+              animation.currentTime = animation.effect.getTiming().duration / 3;
+            }
+            const mid = height();
+            if (finish) animation?.finish();
+            return mid;
+          }
+          const closed = height(), opening = await toggleAndMeasure(true), opened = height();
+          const closing = await toggleAndMeasure(false);
+          await toggleAndMeasure(true);
+          const reopened = height();
+          await toggleAndMeasure(true);
+          return { reduced, closed, opening, opened, closing, reopened, final: height() };
+        })()`);
+        assert.ok(sizes.opened > sizes.closed && Math.abs(sizes.final - sizes.closed) <= 1 && Math.abs(sizes.reopened - sizes.opened) <= 1, JSON.stringify(sizes));
+        if (!sizes.reduced) for (const mid of [sizes.opening, sizes.closing]) {
+          assert.ok(mid > sizes.closed && mid < sizes.opened, JSON.stringify(sizes));
+        }
+      }
+      await doubleClickHeader();
+      await until(`document.querySelector('${expandedFloat} .chat-scroll-area')?.clientHeight > 100`);
+      await capture("fullscreen-floating-history");
+      await checkSettingsResize();
+      await click(".floating-chat-header button[aria-expanded]");
+      await checkCollapsed();
+      await click(".floating-composer-options");
+      await until("document.querySelector('[data-floating-chat] .mode-pill')?.clientWidth > 0");
+      await checkContextUsage();
+      await click(".floating-composer-options");
+      const parked = await evaluate(`${floatRect}.toJSON()`);
+      dragPointer({ x: Math.round(parked.x + 35), y: Math.round(parked.y + 20) }, { x: 1, y: 1 });
+      const atWorkspaceCorner = `(() => {
+        const chat = document.querySelector('[data-floating-chat]'), rect = chat.getBoundingClientRect();
+        const stage = chat.offsetParent.getBoundingClientRect(), tabs = document.querySelector('.workbench-tabbar').getBoundingClientRect();
+        return Math.abs(rect.left - stage.left - 12) <= 1 && Math.abs(rect.top - tabs.bottom - 12) <= 2;
+      })()`;
+      await until(atWorkspaceCorner);
+      await input(collapsedFloat + " .rich-input", "检查浮窗");
+      await click(collapsedFloat + " .send");
+      await until(`document.querySelector('${expandedFloat} .stop')?.disabled === false`);
+      await until(`${floatRect}.height > 400 && ${atWorkspaceCorner}`);
+      await click(".floating-chat-hide");
+      await evaluate("chatFixture.finish('main-chat')");
+      await until(`document.querySelector('${collapsedFloat}')?.hidden && ${floatRect}.width === 0`);
+      await click(".floating-chat-restore");
+      await checkCollapsed();
+      const mainInput = ".main-stage-pane > .main-chat-view .rich-input";
+      await click(".sidebar-left .subchat-item");
+      await until("document.querySelector('.workbench-pinned-chat[aria-pressed=true]') && document.querySelector('.main-stage-pane > .main-chat-view').clientHeight > 100");
+      await input(mainInput, "全屏聊天草稿");
+      await evaluate("document.dispatchEvent(new KeyboardEvent('keydown', { code: 'Digit2', metaKey: true, bubbles: true }))");
+      await until("!document.querySelector('.showing-pinned-chat') && document.querySelector('.workbench-tabpanel:not(.is-inactive) .start-view')");
+      await evaluate("document.dispatchEvent(new KeyboardEvent('keydown', { code: 'Digit1', metaKey: true, bubbles: true }))");
+      await until("document.querySelector('.showing-pinned-chat')");
+      assert.equal(await evaluate(`document.querySelector(${JSON.stringify(mainInput)}).textContent`), "全屏聊天草稿");
+      await capture("fullscreen-chat");
+      await click(".workbench-restore");
+      await until("!document.querySelector('.workbench-fullscreen') && document.querySelector('.workbench-panel').getAnimations().length === 0");
+      assert.equal(await panelWidth(), splitWidth);
+      await until(sidebarUsable);
+      await click(collapseSidebar);
+      await input(mainInput, "");
+
       await click(chatOption);
       await until(`document.querySelector(${JSON.stringify(panel + ' .rich-input')}) && !document.querySelector(${JSON.stringify(panel + ' .rich-input')}).disabled`);
       assert.equal(await evaluate("chatFixture.active()"), "main-chat");
@@ -384,6 +586,65 @@ if (!process.versions.electron) {
       await click(".nav-history-buttons button:first-child");
       await until(`document.querySelectorAll(${JSON.stringify(main + ' .model-choice-pill')}).length === 2`);
       console.log("PASS opt-in combined picker adjusts effort, navigates to configured models, and switches back to separate controls");
+      await evaluate("localStorage.setItem('vela.composerLayout', JSON.stringify('capsule')); localStorage.setItem('vela.workbenchSplit', 'true'); localStorage.setItem('vela.navLayout', JSON.stringify('rail'))");
+      await win.loadFile(join(temporary, "index.html"));
+      await until("document.querySelector('.main-chat-view')");
+      await newTab();
+      await newTab();
+      await until("document.querySelectorAll('.workbench-tab').length === 2");
+      await evaluate("document.querySelector('.workbench-tab[aria-selected=true]').dispatchEvent(new KeyboardEvent('keydown', {key:'ArrowDown', altKey:true, shiftKey:true, bubbles:true}))");
+      await until("document.querySelectorAll('.workbench-group').length === 2");
+      await evaluate("document.querySelector('.workbench-split-handle').dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }))");
+      const groups = () => evaluate("({tabs: Array.from(document.querySelectorAll('.workbench-group'), g => [g.dataset.workbenchPane, g.querySelector('.workbench-tab').id]), ratio: document.querySelector('.workbench-split-handle').ariaValueNow})");
+      const splitGroups = await groups();
+      await click(".workbench-fullscreen-button");
+      await until("document.querySelectorAll('.workbench-group').length === 1 && document.querySelectorAll('.workbench-tab').length === 2");
+      win.setSize(900, 900);
+      await until(`innerWidth <= 900 && ${fillsWorkspace}`);
+      await until("document.querySelector('.workbench-fullscreen.nav-rail-layout.left-collapsed .nav-rail').clientWidth > 0");
+      await click(".workbench-tabbar " + expandSidebar);
+      await until(sidebarUsable);
+      await click(".workbench-pinned-chat");
+      win.setContentSize(1280, 840);
+      await evaluate(`(async () => {
+        await window.vela.prompt("长表格");
+        const rows = Array.from({length: 48}, (_, i) => "| Item " + i + " | " + i + " |");
+        chatFixture.emit({type:"text_delta", conversationId:"main-chat", delta:["", "", "| Item | Value |", "| --- | --- |", ...rows, "", "End of table"].join("\\n")});
+      })()`);
+      const pinned = ".showing-pinned-chat > .main-chat-view";
+      await until(`document.querySelector(${JSON.stringify(pinned + " table")})?.rows.length >= 48`);
+      const composerLayout = await evaluate(`(() => {
+        const chat = document.querySelector(${JSON.stringify(pinned)});
+        const scroll = chat.querySelector(".chat-scroll-area");
+        return { composerBottom: chat.querySelector(".floating-input-card").getBoundingClientRect().bottom,
+          viewportBottom: innerHeight, scrollable: scroll.scrollHeight > scroll.clientHeight };
+      })()`);
+      assert.ok(composerLayout.composerBottom <= composerLayout.viewportBottom && composerLayout.scrollable, JSON.stringify(composerLayout));
+      await capture("fullscreen-chat-long-table");
+      await click(".workbench-restore");
+      await until("document.querySelectorAll('.workbench-group').length === 2");
+      assert.deepEqual(await groups(), splitGroups);
+      await click(".workbench-fullscreen-button");
+      await until(`document.querySelector('${expandedFloat} table')?.rows.length >= 48`);
+      await checkSettingsResize();
+      await click(".floating-composer-options");
+      await checkContextUsage();
+      await click(".floating-composer-options");
+      assert.ok(await evaluate(`(() => {
+        const chat = document.querySelector('${expandedFloat}'), scroll = chat.querySelector(".chat-scroll-area");
+        return scroll.scrollHeight > scroll.clientHeight && scroll.getBoundingClientRect().bottom <= chat.querySelector(".rich-input").getBoundingClientRect().top;
+      })()`));
+      await evaluate("chatFixture.finish('main-chat')");
+      await checkCollapsed();
+      await doubleClickHeader();
+      await evaluate("chatFixture.changeMain()");
+      await until("document.querySelector('.floating-chat-header .chat-active-title')?.textContent === '另一条主聊天'");
+      await checkCollapsed();
+      await click(".workbench-tab-close");
+      await until("document.querySelectorAll('.workbench-tab').length === 1");
+      await click(".workbench-tab-close");
+      await until("!document.querySelector('.workbench-panel') && !document.querySelector('.workbench-fullscreen') && document.querySelector('.main-chat-view').clientWidth > 0");
+      console.log("PASS workbench fullscreen, pinned chat, numbered shortcuts, draft retention, split restoration and last-tab close");
       assert.equal(errors.length, 0, errors.join("\n"));
       console.log("PASS chat creation, isolated streams/controls, shared rewind history, retained drafts, keyboard tabs, failure/retry and close races");
       win.destroy(); app.exit(0);

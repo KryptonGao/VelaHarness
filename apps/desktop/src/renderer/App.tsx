@@ -258,6 +258,15 @@ export function App() {
   const [fileTabReplacement, setFileTabReplacement] = useState<{ from: string; to: string } | null>(null);
   const [tabOrder, setTabOrder] = useState<string[]>([]);
   const [activeWorkbenchTabId, setActiveWorkbenchTabId] = useState<string | null>(null);
+  const [workbenchView, setWorkbenchView] = useState<"split" | "panel" | "chat">("split");
+  const focusWorkbenchTab = useCallback((id: string) => {
+    setActiveWorkbenchTabId(id);
+    setWorkbenchView(view => view === "chat" ? "panel" : view);
+  }, []);
+  const openMainConversation = useCallback((id: string) => {
+    setWorkbenchView(view => view === "split" ? view : "chat");
+    void session.switchTo(id);
+  }, [session.switchTo]);
   const [visibleWorkbenchTabIds, setVisibleWorkbenchTabIds] = useState<string[]>([]);
   const [workbenchCollapsed, setWorkbenchCollapsed] = useState(false);
   useEffect(() => { setWorkbenchCollapsed(false); }, [activeWorkbenchTabId]);
@@ -287,8 +296,8 @@ export function App() {
     if (!browser.tabs.some(tab => tab.id === focus.tabId)) return;
     setSettingsOpen(false);
     setWorkbenchCollapsed(false);
-    setActiveWorkbenchTabId(focus.tabId);
-  }, [browser.state.focusRequest, browser.tabs]);
+    focusWorkbenchTab(focus.tabId);
+  }, [browser.state.focusRequest, browser.tabs, focusWorkbenchTab]);
   // 点输入框上方的元素批注卡片：展开面板并切到对应的浏览器标签页，页面里的标记随后闪烁。
   const replyFocus = useReplyFocus();
   const replyFocusNonce = useRef<number | null>(null);
@@ -298,9 +307,9 @@ export function App() {
     if (!browser.allTabs.some(tab => tab.id === replyFocus.tabId)) return;
     setSettingsOpen(false);
     setWorkbenchCollapsed(false);
-    setActiveWorkbenchTabId(replyFocus.tabId);
+    focusWorkbenchTab(replyFocus.tabId);
     browser.select(replyFocus.tabId);
-  }, [replyFocus, browser.allTabs, browser.select]);
+  }, [replyFocus, browser.allTabs, browser.select, focusWorkbenchTab]);
   // 终端与文件浏览标签不按工作区拆开存:工作区状态加载前(地址为空)创建的标签
   // 不能因为工作区地址随后确定而消失;真正切换工作区时再统一关闭。
   const [terminalTabState, setTerminalTabState] = useState<{ id: string; sessionId: string; label: string }[]>([]);
@@ -349,8 +358,8 @@ export function App() {
 
   const openPlan = useCallback((planId: string) => {
     dispatchPlanDocument({ type: "open", planId });
-    setActiveWorkbenchTabId(scopedTabId("plan", conversationKey));
-  }, [conversationKey, dispatchPlanDocument]);
+    focusWorkbenchTab(scopedTabId("plan", conversationKey));
+  }, [conversationKey, dispatchPlanDocument, focusWorkbenchTab]);
 
   const closePlan = useCallback(() => dispatchPlanDocument({ type: "close" }), [dispatchPlanDocument]);
   const selectPlanRevision = useCallback(
@@ -363,8 +372,8 @@ export function App() {
       ...current,
       [conversationKey]: [...new Set([...(current[conversationKey] ?? []), agentId])],
     }));
-    setActiveWorkbenchTabId(scopedTabId("agent", conversationKey, agentId));
-  }, [conversationKey]);
+    focusWorkbenchTab(scopedTabId("agent", conversationKey, agentId));
+  }, [conversationKey, focusWorkbenchTab]);
 
   const openChanges = useCallback((path?: string) => {
     setChangesByWorkspace((current) => {
@@ -374,24 +383,24 @@ export function App() {
         [workspaceKey]: { open: true, initialPath: path ?? null, requestKey: existing.requestKey + 1 },
       };
     });
-    setActiveWorkbenchTabId(scopedTabId("changes", workspaceKey));
-  }, [workspaceKey]);
+    focusWorkbenchTab(scopedTabId("changes", workspaceKey));
+  }, [workspaceKey, focusWorkbenchTab]);
 
   const onReviewTurn = useCallback((request: TurnReviewRequest) => {
     showTurnReview(request);
     setReviewTargets(current => { const next = { ...current }; delete next[turnReviewTabId]; return next; });
-    setActiveWorkbenchTabId(turnReviewTabId);
-  }, [showTurnReview, turnReviewTabId]);
+    focusWorkbenchTab(turnReviewTabId);
+  }, [showTurnReview, turnReviewTabId, focusWorkbenchTab]);
   const onOpenAcceptance = useCallback((request: AcceptanceRequest) => {
     showAcceptance(request);
-    setActiveWorkbenchTabId(acceptanceTabId);
-  }, [showAcceptance, acceptanceTabId]);
+    focusWorkbenchTab(acceptanceTabId);
+  }, [showAcceptance, acceptanceTabId, focusWorkbenchTab]);
   const onAcceptanceDiff = useCallback((request: AcceptanceRequest, path: string, diffToolId?: string) => {
     if (!request.changes?.files.some(file => file.path === path)) return;
     showTurnReview({ turnId: request.turnId, changes: request.changes });
     setReviewTargets(current => ({ ...current, [turnReviewTabId]: { path, diffToolId, requestKey: (current[turnReviewTabId]?.requestKey ?? 0) + 1 } }));
-    setActiveWorkbenchTabId(turnReviewTabId);
-  }, [showTurnReview, turnReviewTabId]);
+    focusWorkbenchTab(turnReviewTabId);
+  }, [showTurnReview, turnReviewTabId, focusWorkbenchTab]);
 
   const onOpenFile = useCallback((file: PreviewFileDescriptor, replacedId?: string) => {
     fileWorkspaceRef.current = workspaceKey;
@@ -414,8 +423,8 @@ export function App() {
     setTabOrder((current) => current.includes(id) ? current
       : from && current.includes(from) ? current.map(item => item === from ? id : item) : [...current, id]);
     setWorkbenchCollapsed(false);
-    setActiveWorkbenchTabId(id);
-  }, [workspaceKey, fileTabsByWorkspace, filesTabOpen, activeWorkbenchTabId]);
+    focusWorkbenchTab(id);
+  }, [workspaceKey, fileTabsByWorkspace, filesTabOpen, activeWorkbenchTabId, focusWorkbenchTab]);
 
   const onCloseFileTab = useCallback((fileId: string) => {
     const owner = fileWorkspaceRef.current ?? workspaceKey;
@@ -446,8 +455,8 @@ export function App() {
     tabSeq.current += 1;
     const id = `start:${tabSeq.current}`;
     setStartTabState((current) => current.some((tab) => tab.id === id) ? current : [...current, { id }]);
-    setActiveWorkbenchTabId(id);
-  }, []);
+    focusWorkbenchTab(id);
+  }, [focusWorkbenchTab]);
 
   const openTerminalTab = useCallback(() => {
     tabSeq.current += 1;
@@ -457,8 +466,8 @@ export function App() {
       ...current,
       { id, sessionId, label: trf("终端 {0}", "Terminal {0}", current.length + 1) },
     ]);
-    setActiveWorkbenchTabId(id);
-  }, []);
+    focusWorkbenchTab(id);
+  }, [focusWorkbenchTab]);
 
   /**
    * 打开本项目的侧边聊天标签（没有就新建），停在聊天列表。对话里选中的文字送进来时，
@@ -470,22 +479,22 @@ export function App() {
     const existing = sideChatTabState.find((tab) => tab.workspace === workspace);
     if (existing) {
       if (item.length > 0) setSideChatTabState((current) => current.map((tab) => tab.id === existing.id ? { ...tab, inbox: [...tab.inbox, ...item] } : tab));
-      setActiveWorkbenchTabId(existing.id);
+      focusWorkbenchTab(existing.id);
       return;
     }
     tabSeq.current += 1;
     const id = `side-chat:${tabSeq.current}`;
     setSideChatTabState((current) => [...current, { id, workspace, inbox: item }]);
-    setActiveWorkbenchTabId(id);
-  }, [sideChatTabState, workspaceKey]);
+    focusWorkbenchTab(id);
+  }, [sideChatTabState, workspaceKey, focusWorkbenchTab]);
   const consumeSideChatInbox = useCallback((tabId: string, count: number) => {
     setSideChatTabState((current) => current.map((tab) => tab.id === tabId ? { ...tab, inbox: tab.inbox.slice(count) } : tab));
   }, []);
 
   const openFilesTab = useCallback(() => {
     setFilesTabOpen(true);
-    setActiveWorkbenchTabId(filesTabId);
-  }, []);
+    focusWorkbenchTab(filesTabId);
+  }, [focusWorkbenchTab]);
 
   // 在赛道对话里工作区会变成赛道的 worktree，所以也要按赛道的 worktree 匹配，面板才不会凭空消失。
   const workspaceRaces = useMemo(() => raceState.state.races
@@ -493,8 +502,8 @@ export function App() {
     .sort((left, right) => right.createdAt - left.createdAt), [raceState.state.races, workspaceKey]);
   const openRaceTab = useCallback(() => {
     setRaceTabOpen(true);
-    setActiveWorkbenchTabId(raceTabId);
-  }, []);
+    focusWorkbenchTab(raceTabId);
+  }, [focusWorkbenchTab]);
   // 三个 context 的 value 保持引用稳定，避免 App 每次渲染都让所有消费者跟着重渲染。
   const recipeActions = useMemo((): ContextType<typeof RecipeActionsContext> => ({
     conversationId: session.activeConversationId,
@@ -509,7 +518,7 @@ export function App() {
     dismissedTurns: dismissedConflictTurns,
     dismissTurn: (id, turnStartedAt) => setDismissedConflictTurns(current => new Map(current).set(id, turnStartedAt)),
     openOverview: () => setConflictsOpen(true),
-    openConversation: id => { void session.switchTo(id); },
+    openConversation: openMainConversation,
     moveToWorktree: async conversationId => {
       const api = window.vela?.conflicts;
       if (!api) throw new Error("会话服务不可用");
@@ -518,11 +527,11 @@ export function App() {
       await session.switchTo(moved.conversationId);
       setComposerSeed({ id: crypto.randomUUID(), conversationId: moved.conversationId, text: moved.seed });
     },
-  }), [conflicts.state, dismissedConflictTurns, session.switchTo]);
+  }), [conflicts.state, dismissedConflictTurns, session.switchTo, openMainConversation]);
   const openBackgroundTab = useCallback(() => {
     setBackgroundTabOpen(true);
-    setActiveWorkbenchTabId(backgroundTabId);
-  }, []);
+    focusWorkbenchTab(backgroundTabId);
+  }, [focusWorkbenchTab]);
   const raceActions = useMemo(() => ({ started: openRaceTab, open: openRaceTab, count: workspaceRaces.length }),
     [openRaceTab, workspaceRaces.length]);
   const composerSeedContext = useMemo(() => ({ seed: composerSeed, consume: consumeComposerSeed, offer: offerComposerSeed }),
@@ -537,8 +546,8 @@ export function App() {
       log.error("could not open browser tab", error);
     });
     setWorkbenchCollapsed(false);
-    setActiveWorkbenchTabId(id);
-  }, [browser.open]);
+    focusWorkbenchTab(id);
+  }, [browser.open, focusWorkbenchTab]);
 
   const openConversationLink = useCallback((url: string) =>
     routeConversationLink(url, preferences.conversationLinkTarget, openBrowserTab),
@@ -790,6 +799,11 @@ export function App() {
   }, [workbenchTabs, dispatchPlanDocument, workspaceKey, changesState, conversationKey, dismissTurnReview, dismissAcceptance, browser.close]);
 
   const workbenchOpen = workbenchTabs.length > 0;
+  const fullscreen = workbenchView !== "split" && workbenchOpen && !workbenchCollapsed && !pageOpen && overviewWorkspace === null;
+  const floatingChat = fullscreen && workbenchView === "panel";
+  useEffect(() => {
+    if (!workbenchOpen || workbenchCollapsed) setWorkbenchView("split");
+  }, [workbenchOpen, workbenchCollapsed]);
   const previousWorkbenchOpen = useRef(false);
   useEffect(() => {
     // Only the opening edge folds the card; a manual expansion stays open.
@@ -923,7 +937,7 @@ export function App() {
       setSettingsOpen(entry.page === "settings"); setScheduledTasksOpen(entry.page === "scheduledTasks"); setRecipesOpen(entry.page === "recipes");
       setAgentInboxOpen(entry.page === "agentInbox"); setPrInboxOpen(entry.page === "prInbox");
       setOverviewWorkspace(entry.page === "home" ? entry.overview : null);
-      if (entry.page === "home" && !entry.overview && entry.conversationId && entry.conversationId !== session.activeConversationId) void session.switchTo(entry.conversationId);
+      if (entry.page === "home" && !entry.overview && entry.conversationId && entry.conversationId !== session.activeConversationId) openMainConversation(entry.conversationId);
     });
   };
   const goBack = () => { const entry = navHistory.back(navEntryValid); if (entry) showNavEntry(entry); };
@@ -935,14 +949,17 @@ export function App() {
     action();
   });
   const cycleWorkbenchTab = (step: 1 | -1) => {
-    const count = workbenchTabs.length;
+    const count = workbenchTabs.length + Number(fullscreen);
     if (count === 0) return;
     showHomeThen(() => {
-      const index = workbenchTabs.findIndex(tab => tab.id === activeWorkbenchTabId);
-      const next = workbenchTabs[index === -1 ? (step === 1 ? 0 : count - 1) : (index + step + count) % count];
+      const index = fullscreen && workbenchView === "chat" ? 0
+        : workbenchTabs.findIndex(tab => tab.id === activeWorkbenchTabId) + Number(fullscreen);
+      const nextIndex = index < 0 ? (step === 1 ? 0 : count - 1) : (index + step + count) % count;
+      if (fullscreen && nextIndex === 0) { setWorkbenchView("chat"); return; }
+      const next = workbenchTabs[nextIndex - Number(fullscreen)];
       setWorkbenchCollapsed(false);
       if (next.kind === "browser") browser.select(next.id);
-      setActiveWorkbenchTabId(next.id);
+      focusWorkbenchTab(next.id);
     });
   };
   // 侧边栏的排序与优先级存在界面存储里,这里按按键时刻的状态读取。
@@ -952,7 +969,7 @@ export function App() {
     { priorityConversations: readStoredState<Record<string, boolean>>("vela.priorityConversations", {}, isBooleanRecord), waitingConversationIds: session.waitingConversationIds },
     tr("新对话", "New chat"),
   );
-  const openConversationFromShortcut = (id: string) => showHomeThen(() => { void session.switchTo(id); });
+  const openConversationFromShortcut = (id: string) => showHomeThen(() => openMainConversation(id));
   const switchChatBy = (step: 1 | -1) => {
     const target = adjacentConversation(sidebarOrder(), session.activeConversationId, step);
     if (target) openConversationFromShortcut(target.id);
@@ -963,7 +980,7 @@ export function App() {
   };
   menuActionHandler.current = (action) => {
     switch (action) {
-      case "new-chat": showHomeThen(() => { void session.newChat(); }); break;
+      case "new-chat": showHomeThen(() => { if (workbenchView !== "split") setWorkbenchView("chat"); void session.newChat(); }); break;
       case "new-tab": showHomeThen(openStartTab); break;
       case "toggle-settings": toggleSettings(); break;
       case "toggle-sidebar": setLeftCollapsed(value => !value); break;
@@ -1058,7 +1075,7 @@ export function App() {
             </div>
           </ScreenPresence>
           <ScreenPresence present={onboardingComplete} className="app-screen-main">
-            <div className={`vela-window platform-${platform}${railMode ? " nav-rail-layout" : ""}${railAway ? " rail-away" : ""}${leftCollapsed || railAway ? " left-collapsed" : ""}${!contextSidebarOpen ? " right-collapsed" : ""}${floatingInfo ? " layout-floating" : ""}`}>
+            <div className={`vela-window platform-${platform}${railMode ? " nav-rail-layout" : ""}${fullscreen ? " workbench-fullscreen" : ""}${railAway ? " rail-away" : ""}${leftCollapsed || railAway ? " left-collapsed" : ""}${!contextSidebarOpen ? " right-collapsed" : ""}${floatingInfo ? " layout-floating" : ""}`}>
               {railMode ? <NavRail active={navCategory} platform={platform} agentInboxBadge={agentInbox.badge} onSelect={selectNavCategory} /> : null}
               <Sidebar
                 prInboxOpen={prInboxOpen}
@@ -1084,12 +1101,13 @@ export function App() {
                 onToggle={() => setLeftCollapsed((value) => !value)}
                 onOpenSettings={toggleSettings}
                 onNewChat={(cwd) => leaveRecipes(() => {
+                  if (workbenchView !== "split") setWorkbenchView("chat");
                   setOverviewWorkspace(null); setPrInboxOpen(false); setAgentInboxOpen(false); setScheduledTasksOpen(false); setSettingsOpen(false); void session.newChat(cwd);
                 })}
                 workspaces={project.workspace?.recents}
                 onEditWorkspace={setEditingWorkspace}
                 onSwitchConversation={(id) => leaveRecipes(() => {
-                  setOverviewWorkspace(null); setPrInboxOpen(false); setAgentInboxOpen(false); setScheduledTasksOpen(false); setSettingsOpen(false); void session.switchTo(id);
+                  setOverviewWorkspace(null); setPrInboxOpen(false); setAgentInboxOpen(false); setScheduledTasksOpen(false); setSettingsOpen(false); openMainConversation(id);
                 })}
                 onArchiveConversation={(id) => void session.archive(id)}
                 onRenameConversation={openRenameConversation}
@@ -1101,7 +1119,7 @@ export function App() {
                   onCloseFileTab={onCloseFileTab}
                   onCloseAllFileTabs={onCloseAllFileTabs}
                 >
-                  <Presence present={!settingsOpen && !scheduledTasksOpen && !recipesOpen && !prInboxOpen && !agentInboxOpen && overviewWorkspace === null} keepMounted={scheduledTasksOpen || recipesOpen || prInboxOpen || agentInboxOpen || overviewWorkspace !== null} className="main-stage-pane">
+                  <Presence present={!settingsOpen && !scheduledTasksOpen && !recipesOpen && !prInboxOpen && !agentInboxOpen && overviewWorkspace === null} keepMounted={scheduledTasksOpen || recipesOpen || prInboxOpen || agentInboxOpen || overviewWorkspace !== null} className={`main-stage-pane${fullscreen && workbenchView === "chat" ? " showing-pinned-chat" : ""}`}>
                     <PlanDocumentProvider
                       plans={session.state?.session.planRevisions ?? []}
                       draft={session.planDraft}
@@ -1122,12 +1140,13 @@ export function App() {
                           state={session.state}
                           sendError={session.sendError}
                           platform={platform}
-                          leftCollapsed={leftCollapsed}
+                          floatingChat={floatingChat}
+                          leftCollapsed={leftCollapsed && !fullscreen}
                           onToggleLeft={toggleLeft}
                           onRenameConversation={openRenameConversation}
                           rightCollapsed={floatingInfo ? environmentCollapsed : rightCollapsed}
                           onToggleRight={toggleInfo}
-                          floatingInfo={floatingInfo}
+                          floatingInfo={floatingInfo && !floatingChat}
                           infoCards={infoCards}
                           onResumeGoal={resumeGoal}
                           environmentCollapsed={environmentCollapsed}
@@ -1175,6 +1194,11 @@ export function App() {
                       </AgentWorkspaceProvider>
                       <WorkbenchPanel
                         layoutKey={workspaceKey}
+                        fullscreen={fullscreen}
+                        showingChat={fullscreen && workbenchView === "chat"}
+                        onShowChat={() => setWorkbenchView("chat")}
+                        onExpandSidebar={leftCollapsed ? toggleLeft : undefined}
+                        onToggleFullscreen={() => setWorkbenchView(fullscreen ? "split" : "panel")}
                         splitEnabled={preferences.workbenchSplit}
                         onVisibleTabsChange={setVisibleWorkbenchTabIds}
                         browserOperating={browser.state.operating.includes(conversationKey)}
@@ -1197,7 +1221,7 @@ export function App() {
                         onAcceptanceDiff={onAcceptanceDiff}
                         races={workspaceRaces}
                         backgroundShells={session.backgroundShells}
-                        onOpenConversation={id => { void session.switchTo(id); }}
+                        onOpenConversation={openMainConversation}
                         onOpenAcceptance={onOpenAcceptance}
                         agents={allAgents}
                         messageStore={session.messageStore}
@@ -1217,7 +1241,7 @@ export function App() {
                         renderChat={tab => <WorkbenchChatView key={tab.conversationId}
                           conversationId={tab.conversationId} preferences={preferences} project={project}
                           onRenameConversation={openRenameConversation}
-                          onOpenConversation={id => { void session.switchTo(id); }}
+                          onOpenConversation={openMainConversation}
                           onNewTab={openStartTab} onShowDiff={openChanges} onOpenWebLink={openConversationLink} />}
                         renderSideChat={(tab, visible) => {
                           const state = sideChatTabState.find(item => item.id === tab.id);
@@ -1234,7 +1258,7 @@ export function App() {
                         gitAvailable={Boolean(project.git?.repo)}
                         onActivateTab={(tab) => {
                           if (tab.kind === "browser") browser.select(tab.id);
-                          setActiveWorkbenchTabId(tab.id);
+                          focusWorkbenchTab(tab.id);
                         }}
                         onCloseTab={closeWorkbenchTab}
                         onTabCloseRequested={tab => { if (chatRequests.current.has(tab.id)) cancelledChatTabs.current.add(tab.id); }}
@@ -1252,9 +1276,9 @@ export function App() {
                         onOpenChanges={openAllChanges}
                       /> : null}
                     </PlanDocumentProvider>
-                    <PanelLayoutActions platform={platform} workbenchOpen={workbenchTabs.length > 0 && !workbenchCollapsed}
+                    {!fullscreen && <PanelLayoutActions platform={platform} workbenchOpen={workbenchTabs.length > 0 && !workbenchCollapsed}
                       onToggleWorkbench={toggleWorkbench}
-                      contextOpen={contextSidebarOpen} onToggleContext={!floatingInfo && !conversationEmpty ? toggleInfo : undefined} />
+                      contextOpen={contextSidebarOpen} onToggleContext={!floatingInfo && !conversationEmpty ? toggleInfo : undefined} />}
                   </Presence>
                 </FilePreviewProvider>
                 <Presence present={overviewWorkspace !== null} className="main-stage-pane scheduled-tasks-stage">
@@ -1262,27 +1286,27 @@ export function App() {
                     conversations={session.conversations} workspaces={project.workspace?.recents ?? []}
                     waitingConversationIds={session.waitingConversationIds}
                     sidebarCollapsed={leftCollapsed && !railMode} onToggleSidebar={toggleLeft}
-                    onOpenConversation={id => { setOverviewWorkspace(null); void session.switchTo(id); }}
+                    onOpenConversation={id => { setOverviewWorkspace(null); openMainConversation(id); }}
                     onNewChat={cwd => leaveRecipes(() => { setOverviewWorkspace(null); void session.newChat(cwd); })}
                     onEditWorkspace={setEditingWorkspace} onOpenScheduledTasks={openScheduledTasks} /> : null}
                 </Presence>
                 <Presence present={prInboxOpen} keepMounted className="main-stage-pane scheduled-tasks-stage">
                   <PrInboxPage active={prInboxOpen} sidebarCollapsed={leftCollapsed && !railMode} onToggleSidebar={toggleLeft}
-                    onOpenConversation={(id) => { setPrInboxOpen(false); setAgentInboxOpen(false); void session.switchTo(id); }} />
+                    onOpenConversation={(id) => { setPrInboxOpen(false); setAgentInboxOpen(false); openMainConversation(id); }} />
                 </Presence>
                 <Presence present={agentInboxOpen} keepMounted className="main-stage-pane scheduled-tasks-stage">
                   <AgentInboxPage active={agentInboxOpen} sidebarCollapsed={leftCollapsed && !railMode} onToggleSidebar={toggleLeft}
                     messageStore={session.messageStore} ensureTranscript={session.ensureTranscript}
                     navigation={agentInboxNav} onNavigationHandled={handleAgentInboxNavigated}
                     catalog={models.catalog} catalogError={models.catalogError}
-                    onOpenConversation={(id) => { setAgentInboxOpen(false); void session.switchTo(id); }} />
+                    onOpenConversation={(id) => { setAgentInboxOpen(false); openMainConversation(id); }} />
                 </Presence>
                 <Presence present={recipesOpen} className="main-stage-pane scheduled-tasks-stage">
                   <TaskRecipesPage catalog={models.catalog} workspace={project.workspace?.current ?? null}
                     workspaces={[...new Set([...(project.workspace?.recents.map(r => r.path) ?? []), ...session.conversations.filter(c => c.hasWorkspace !== false).map(conversationWorkspace)])]}
                     locale={preferences.locale} sidebarCollapsed={leftCollapsed && !railMode} onToggleSidebar={toggleLeft}
                     seed={recipeSeed} onConsumeSeed={consumeRecipeSeed} selectedRecipe={recipeToUse} onConsumeSelection={consumeRecipeSelection} registerLeaveGuard={registerRecipeLeave}
-                    onOpenConversation={id => leaveRecipes(() => { void session.switchTo(id); })} />
+                    onOpenConversation={id => leaveRecipes(() => { openMainConversation(id); })} />
                 </Presence>
                 <Presence present={scheduledTasksOpen} className="main-stage-pane scheduled-tasks-stage">
                   <ScheduledTasksPage
@@ -1294,7 +1318,7 @@ export function App() {
                     onToggleSidebar={toggleLeft}
                     onOpenConversation={(id) => {
                       setPrInboxOpen(false); setAgentInboxOpen(false); setScheduledTasksOpen(false);
-                      void session.switchTo(id);
+                      openMainConversation(id);
                     }}
                   />
                 </Presence>

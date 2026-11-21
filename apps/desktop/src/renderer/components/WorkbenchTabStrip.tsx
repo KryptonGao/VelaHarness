@@ -1,14 +1,17 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { modKeyLabel } from "../platform";
+import { isShortcutRecording, useShortcutOverrides } from "../shortcuts";
 import { tr, trf } from "../locale";
 import type { WorkbenchTab } from "./WorkbenchPanel";
 import type { WorkbenchDropEdge } from "./workbench-layout";
 import { Icon } from "./icons";
 
 export function WorkbenchTabStrip({ tabs, splitEnabled, draggingId, selected, split, maximized, renderLabel, tabButtonId, tabPanelId,
-  onActivate, onClose, onNewTab, onMerge, onMaximize, onPlace, onEqualize, onSplit, onTabPointerDown,
+  fullscreen, showingChat, onShowChat, onExpandSidebar, onToggleFullscreen, onActivate, onClose, onNewTab, onMerge, onMaximize, onPlace, onEqualize, onSplit, onTabPointerDown,
 }: {
   tabs: WorkbenchTab[]; splitEnabled: boolean; draggingId: string | null; selected: string; split: boolean; maximized: boolean;
+  fullscreen: boolean; showingChat: boolean; onShowChat?: () => void; onExpandSidebar?: () => void; onToggleFullscreen?: () => void;
   renderLabel: (tab: WorkbenchTab) => ReactNode; tabButtonId: (tab: WorkbenchTab) => string; tabPanelId: (tab: WorkbenchTab) => string;
   onActivate: (tab: WorkbenchTab) => void; onClose: (tab: WorkbenchTab) => void; onNewTab: () => void;
   onMerge: () => void; onMaximize: () => void; onPlace: () => void; onEqualize: () => void;
@@ -90,13 +93,53 @@ export function WorkbenchTabStrip({ tabs, splitEnabled, draggingId, selected, sp
     return () => { document.removeEventListener("pointerdown", close); document.removeEventListener("keydown", key, true); window.removeEventListener("resize", resize); window.removeEventListener("scroll", scroll, true); };
   }, [menu]);
   const activate = (tab: WorkbenchTab) => { onActivate(tab); requestAnimationFrame(() => buttons.current.get(tab.id)?.focus()); };
+  const platform = window.vela?.platform ?? "darwin";
+  const mod = modKeyLabel(platform);
+  const overrides = useShortcutOverrides();
+  const shortcutsEnabled = !split && !!onToggleFullscreen;
+  const shortcutAvailable = (digit: number) => shortcutsEnabled && digit <= 9 &&
+    !Object.values(overrides).some(bindings => bindings?.includes(`Mod+${digit}`));
+  const chatButton = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!shortcutsEnabled) return;
+    const key = (event: KeyboardEvent) => {
+      const digit = Number(/^Digit([1-9])$/.exec(event.code)?.[1]);
+      const modOnly = platform === "darwin" ? event.metaKey && !event.ctrlKey : event.ctrlKey && !event.metaKey;
+      if (!digit || !modOnly || event.altKey || event.shiftKey || event.defaultPrevented || event.isComposing || !shortcutAvailable(digit)) return;
+      const panel = barRef.current?.closest(".workbench-panel");
+      if (!panel || panel.closest("[inert], .is-hidden") || document.querySelector("dialog[open], .sheet-presence") || isShortcutRecording()) return;
+      if (!fullscreen && !panel.contains(document.activeElement)) return;
+      const tab = tabs[digit - (fullscreen ? 2 : 1)];
+      if (!tab && !(fullscreen && digit === 1)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      if (tab) activate(tab);
+      else { onShowChat?.(); chatButton.current?.focus(); }
+    };
+    document.addEventListener("keydown", key, true);
+    return () => document.removeEventListener("keydown", key, true);
+  });
+  const restoreLabel = tr("回到分栏模式", "Return to split view");
+  const fullscreenLabel = tr("全屏显示工作面板", "Show workbench in fullscreen");
   return <div className="workbench-tabbar" ref={barRef}
     onPointerEnter={event => { if (event.pointerType !== "touch") { hovered.current = true; setPinned(current => current ?? tabWidth); } }}
     onPointerLeave={() => { hovered.current = false; setPinned(null); }}>
+    {fullscreen && <>
+      {onExpandSidebar && <button className="workbench-group-action" type="button" onClick={onExpandSidebar}
+        title={`${tr("展开侧边栏", "Expand sidebar")} (${mod}B)`} aria-label={tr("展开侧边栏", "Expand sidebar")}>
+        <Icon name="sidebar" size={14} />
+      </button>}
+      <button ref={chatButton} className="workbench-pinned-chat" type="button" aria-pressed={showingChat} onClick={onShowChat}>
+        {tr("聊天", "Chat")}
+      </button>
+      <button type="button" className="workbench-group-action workbench-restore" title={restoreLabel} aria-label={restoreLabel} onClick={onToggleFullscreen}>
+        <Icon name="chevron-right" size={12} />
+      </button>
+    </>}
     <nav className="workbench-tablist" role="tablist" ref={listRef} aria-label={tr("工作面板标签", "Workbench tabs")}>
       {tabs.map(tab => <button key={tab.id} ref={node => { if (node) buttons.current.set(tab.id, node); else buttons.current.delete(tab.id); }}
         id={tabButtonId(tab)} className="workbench-tab" type="button" role="tab" draggable={false} data-dragging={tab.id === draggingId || undefined}
-        aria-selected={tab.id === selected} aria-controls={tabPanelId(tab)} tabIndex={tab.id === selected ? 0 : -1}
+        aria-selected={!showingChat && tab.id === selected} aria-controls={tabPanelId(tab)} tabIndex={tab.id === selected ? 0 : -1}
         title={tab.title ?? tab.label} style={tabWidth ? { width: tabWidth } : undefined}
         onClick={() => onActivate(tab)} onPointerDown={event => onTabPointerDown(event, tab)} onDragStart={event => event.preventDefault()}
         onKeyDown={event => {
@@ -126,6 +169,8 @@ export function WorkbenchTabStrip({ tabs, splitEnabled, draggingId, selected, sp
       }}><Icon name="more" size={14} /></button>}
     {split && <button className="workbench-group-action is-secondary" type="button" aria-label={tr("关闭窗口，保留标签", "Close pane and keep tabs")}
       title={tr("关闭窗口，保留标签", "Close pane and keep tabs")} onClick={onMerge}><Icon name="close" size={12} /></button>}
+    {!fullscreen && onToggleFullscreen && <button className="workbench-group-action workbench-fullscreen-button" type="button"
+      title={fullscreenLabel} aria-label={fullscreenLabel} onClick={onToggleFullscreen}><Icon name="maximize" size={14} /></button>}
     {splitEnabled && menu && createPortal(<div ref={menuRef} id={menuId} className="workbench-pane-menu" role="menu" style={menu}>
       <button type="button" role="menuitem" onClick={() => { setMenu(null); onPlace(); }}>{tr("移动当前标签", "Move current tab")}</button>
       {split && <><button type="button" role="menuitem" onClick={() => { setMenu(null); onMaximize(); }}>{maximized ? tr("还原窗口", "Restore pane") : tr("放大窗口", "Maximize pane")}</button>

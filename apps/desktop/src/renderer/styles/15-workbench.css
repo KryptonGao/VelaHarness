@@ -225,6 +225,49 @@
 /* Folding hides boxes only: mounted guests keep history, forms and scroll positions. */
 .vela-window .workbench-panel.is-collapsed { display: none; }
 
+/* The tab strip remains visible above the mounted main chat when it is selected. */
+.workbench-fullscreen .main-stage-pane > .sidebar-right { display: none; }
+.workbench-fullscreen .main-stage-pane { flex-direction: column; }
+.vela-window.workbench-fullscreen .workbench-clip { order: -1; display: flex; flex: 1; min-height: 0; }
+.vela-window.workbench-fullscreen .showing-pinned-chat > .workbench-clip { flex: 0 0 var(--header-height); }
+.vela-window.workbench-fullscreen .workbench-clip > .workbench-panel {
+  position: relative;
+  inset: auto;
+  width: 100%;
+  min-width: 0;
+  box-shadow: none;
+  transition: none;
+  --paper-left-radius: var(--glass-fillet);
+}
+.showing-pinned-chat > .main-chat-view { min-height: 0; }
+.showing-pinned-chat > .main-chat-view::after { top: 0; }
+.nav-rail-layout.workbench-fullscreen .showing-pinned-chat > .main-chat-view { mask-position: 0 0, 0 bottom, 0 0; }
+.workbench-fullscreen .showing-pinned-chat > .main-chat-view > .main-chat-header {
+  flex: 0 0 42px;
+  padding-left: 20px;
+}
+.workbench-fullscreen .workbench-panel::before,
+.workbench-fullscreen .workbench-panel::after { box-shadow: none; }
+.workbench-fullscreen .workbench-canvas { width: 100%; }
+.workbench-fullscreen.left-collapsed .workbench-tabbar {
+  padding-left: max(16px, calc(var(--nav-history-left) + var(--nav-history-width) + 8px - var(--nav-rail-width, 0px) - var(--glass-edge-inset)));
+}
+.workbench-pinned-chat {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 28px;
+  min-width: 80px;
+  padding: 0 8px;
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  -webkit-app-region: no-drag;
+}
+.workbench-pinned-chat[aria-pressed="true"] { color: var(--text-primary); background: var(--bg-surface-subtle); }
+.workbench-pinned-chat:hover { color: var(--text-primary); background: var(--bg-hover); }
+.workbench-pinned-chat:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: -2px; }
+
 /* ---------- 拖动分屏：标签组与内容保持各自稳定的 DOM 父节点 ---------- */
 /* Content uses its destination width throughout the outer panel transition. */
 .workbench-canvas { width: var(--workbench-content-width); flex: 1; min-height: 0; overflow: hidden; z-index: auto; }
@@ -682,3 +725,157 @@
 .terminal-close-actions .terminal-close-cancel:hover { background: var(--accent-blue-hover); }
 .terminal-close-actions button:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 2px; }
 
+
+/* Keep the main session mounted above the active workbench tab, including browser guests. */
+.workbench-fullscreen .main-stage-pane > .main-chat-view[data-floating-chat] {
+  position: absolute;
+  --float-width: min(560px, calc(100% - 24px));
+  right: clamp(12px, var(--float-right, 12px), calc(100% - var(--float-width) - 12px));
+  bottom: clamp(12px, var(--float-bottom, 12px), calc(100% - var(--header-height) - var(--float-height, 0px) - 12px));
+  z-index: 28;
+  width: var(--float-width);
+  max-height: calc(100% - var(--header-height) - 24px);
+  border: 1px solid var(--border-subtle);
+  border-radius: 20px;
+  background: var(--bg-chat);
+  box-shadow: var(--shadow-dock);
+  mask: none;
+}
+.main-chat-view[data-floating-chat][hidden] { display: none; }
+.floating-chat-restore {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 28;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border-subtle);
+  border-radius: 50%;
+  color: var(--text-primary);
+  background: var(--bg-chat);
+  box-shadow: var(--shadow-dock);
+  cursor: pointer;
+}
+.floating-chat-restore:hover { background: var(--bg-hover); }
+.main-chat-view[data-floating-chat]::before,
+.main-chat-view[data-floating-chat]::after { content: none; }
+.floating-chat-resize {
+  position: absolute;
+  inset: -1px 16px auto;
+  height: 8px;
+  z-index: 3;
+  cursor: ns-resize;
+  touch-action: none;
+  user-select: none;
+  -webkit-app-region: no-drag;
+}
+.floating-chat-resize:is(:hover, :focus-visible, :active)::after {
+  content: "";
+  display: block;
+  width: 32px;
+  height: 3px;
+  margin: 2px auto;
+  border-radius: 2px;
+  background: var(--text-muted);
+}
+.floating-chat-header {
+  flex: none;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 9px 0 15px;
+  touch-action: none;
+  cursor: grab;
+  user-select: none;
+  -webkit-app-region: no-drag;
+}
+.floating-chat-header:active { cursor: grabbing; }
+.floating-chat-header .chat-active-title { flex: 1; max-width: none; font-size: calc(14px * var(--ui-scale)); }
+.floating-chat-header .view-icon-btn { flex: none; }
+[data-floating-chat="expanded"] .floating-chat-header button[aria-expanded] svg { transform: rotate(180deg); }
+/* The transcript and dock size the float independently, up to the available workspace height. */
+[data-floating-chat] .chat-conversation-pane { flex: 1 1 auto; }
+[data-floating-chat] .chat-scroll-area { flex: 0 1 auto; height: 0; padding: 0 12px; clip-path: none; }
+[data-floating-chat="expanded"] .chat-scroll-area {
+  height: var(--float-transcript-height, min(546px, 65dvh));
+  mask-image: linear-gradient(to bottom, transparent, #000 16px);
+}
+[data-floating-chat] .chat-message-surface { padding-block: 16px; }
+[data-floating-chat="collapsed"] .chat-scroll-area { opacity: 0; }
+[data-floating-chat="collapsed"] .chat-jump-latest { display: none; }
+[data-floating-chat] .chat-dock-wrapper {
+  position: relative;
+  flex: none;
+  padding: 0;
+  border-top: 1px solid var(--border-subtle);
+  --composer-overhang: 0px;
+}
+[data-floating-chat] .chat-dock-wrapper::after { display: none; }
+.main-chat-view[data-floating-chat] .floating-input-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 5px 8px;
+  background: transparent;
+  box-shadow: none;
+  border: 0;
+  border-radius: 0 0 20px 20px;
+}
+[data-floating-chat] .composer-capsule { border: 0; padding: 0; background: none; box-shadow: none; }
+[data-floating-chat] .floating-input-card .rich-input {
+  min-height: 32px;
+  max-height: min(140px, 22vh);
+  padding-block: 5px;
+}
+[data-floating-chat] .floating-input-card .composer-action-slot,
+[data-floating-chat] .floating-input-card .attach-btn { margin: 0; }
+[data-floating-chat] .floating-input-card .attach-btn { background: transparent; }
+[data-floating-chat] .composer-capsule-main { align-items: center; }
+
+/* Arrange the classic composer's existing editor and actions in one row without remounting the editor. */
+.main-chat-view[data-floating-chat] .floating-input-card:not(.layout-capsule) {
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-auto-flow: row dense;
+  align-items: center;
+  column-gap: 4px;
+  row-gap: 0;
+}
+[data-floating-chat] .floating-input-card > * { grid-column: 1 / -1; }
+[data-floating-chat] .floating-input-card > .dock-controls-row,
+[data-floating-chat] .floating-input-card > .dock-controls-row > div { display: contents; }
+[data-floating-chat] .floating-input-card > .dock-controls-row .composer-chip-anchor { order: 1; grid-column: 1; }
+[data-floating-chat] .floating-input-card > .composer-entry { order: 1; grid-column: 2; }
+[data-floating-chat] .floating-composer-options { grid-column: 3; }
+[data-floating-chat] .dock-controls-right > :is(.floating-composer-options, .composer-action-slot) { order: 1; }
+[data-floating-chat] .dock-controls-right > .composer-action-slot { grid-column: 4; }
+
+.floating-composer-settings {
+  order: 2;
+  height: 0;
+  min-width: 0;
+  overflow: clip;
+  opacity: 0;
+}
+.floating-composer-settings[data-open="true"] { height: auto; opacity: 1; overflow: visible; }
+.floating-composer-settings > :first-child { padding-top: 6px; }
+
+@media (prefers-reduced-motion: no-preference) {
+  [data-floating-chat] .chat-scroll-area {
+    transition: height 200ms var(--motion-ease-enter), opacity 150ms ease;
+  }
+  [data-float-resizing] .chat-scroll-area { transition: none; }
+  .floating-chat-header button[aria-expanded] svg { transition: transform 200ms var(--motion-ease-enter); }
+  .floating-composer-settings {
+    interpolate-size: allow-keywords;
+    transition: height 220ms ease-in-out, opacity 150ms ease;
+  }
+  /* Let menus extend beyond the tray once its opening animation has finished. */
+  .floating-composer-settings[data-open="true"] {
+    transition: height 220ms ease-in-out, opacity 150ms ease, overflow 0s 220ms allow-discrete;
+  }
+}

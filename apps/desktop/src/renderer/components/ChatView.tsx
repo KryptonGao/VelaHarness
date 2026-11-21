@@ -10,6 +10,7 @@ import { Fragment, memo, startTransition, useCallback, useContext, useEffect, us
 import { useAgentWorkspace } from "./AgentPanel";
 import { modKeyLabel } from "../platform";
 import { readModelHint, writeModelHint } from "../startup-hint";
+import { useFloatingChatDrag } from "../hooks/useFloatingChatDrag";
 import { useSecondClock } from "../hooks/useSecondClock";
 import { finishTurnQuota, startTurnQuota, useTurnQuota } from "../hooks/useTurnQuota";
 import { usageLimitProvider } from "../hooks/useUsageLimits";
@@ -221,6 +222,7 @@ function TurnProgressHeader({ startedAt, quota }: { startedAt: number; quota: bo
 export interface ChatViewProps {
   /** 工作面板内复用消息与输入框，省去窗口级操作。 */
   embedded?: boolean;
+  floatingChat?: boolean;
   messages: UiMessage[];
   state: AppState | null;
   sendError: string | null;
@@ -284,6 +286,7 @@ export interface ChatViewProps {
 
 export function ChatView({
   embedded = false,
+  floatingChat = false,
   messages: sourceMessages,
   state,
   sendError,
@@ -368,7 +371,7 @@ export function ChatView({
   );
   const savedView = views[viewKey] ?? "chat";
   const emptyConversation = messages.length === 0;
-  const view = (savedView === "versionControl" && !hasWorkspace) || isEmptyConversationView(savedView, emptyConversation) ? "chat" : savedView;
+  const view = floatingChat || (savedView === "versionControl" && !hasWorkspace) || isEmptyConversationView(savedView, emptyConversation) ? "chat" : savedView;
   const setView = (next: ConversationViewKey) => {
     if (next === "versionControl" && !hasWorkspace) return;
     if (next === "versionControl") setVcMounted(true);
@@ -411,6 +414,26 @@ export function ChatView({
     session?.thinkingLevel, thinkingLevelsKey,
   ]);
   const streaming = session?.status === "streaming";
+  const [manuallyExpanded, setManuallyExpanded] = useState(false);
+  useLayoutEffect(() => { setManuallyExpanded(false); }, [activeConversationId, floatingChat, streaming]);
+  const [floatHidden, setFloatHidden] = useState(false);
+  const { chatRef, headerEvents, resizeHandle, resizeEvents } = useFloatingChatDrag(floatingChat && !floatHidden, streaming, setManuallyExpanded);
+  const restoreFloatRef = useRef<HTMLButtonElement>(null);
+  const focusAfterFloatToggle = useRef(false);
+  useLayoutEffect(() => {
+    if (!floatingChat || !focusAfterFloatToggle.current) return;
+    focusAfterFloatToggle.current = false;
+    const target = floatHidden ? restoreFloatRef.current : chatRef.current?.querySelector<HTMLElement>(".rich-input");
+    target?.focus({ preventScroll: true });
+  }, [floatingChat, floatHidden, chatRef]);
+  function toggleFloatHidden() {
+    focusAfterFloatToggle.current = true;
+    setFloatHidden(hidden => !hidden);
+  }
+  const floatExpanded = streaming || manuallyExpanded;
+  const floatToggleLabel = floatExpanded ? tr("收起聊天浮窗", "Collapse floating chat") : tr("展开聊天浮窗", "Expand floating chat");
+  const floatHideLabel = tr("隐藏聊天浮窗", "Hide floating chat");
+  const floatShowLabel = tr("显示聊天浮窗", "Show floating chat");
   // 服务限额类报错在对话流里显示成卡片,输入框上方不再重复一行红字。
   const providerError = useMemo(() => parseProviderError(sendError), [sendError]);
   // 只有正在运行的这一轮里最新一次提交的待办还在进行;已结束的轮次和被取代的待办都算已结束。
@@ -449,9 +472,9 @@ export function ChatView({
   const startPageStyle = useStartPageStyle();
   const minimalStart = startPageStyle === "minimal";
   const homePromptsEnabled = useHomePrompts();
-  const homeLayout = !embedded && messages.length === 0 && !minimalStart;
+  const homeLayout = !floatingChat && !embedded && messages.length === 0 && !minimalStart;
   const activeHomeStyle: StartPageStyle | undefined = homeLayout ? startPageStyle : undefined;
-  const homeComposerStyle = activeHomeStyle === "atelier" || activeHomeStyle === "deck" ? activeHomeStyle : undefined;
+  const homeComposerStyle = !embedded && emptyConversation && (startPageStyle === "atelier" || startPageStyle === "deck") ? startPageStyle : undefined;
   const hasProjectWorkspace = Boolean(project.workspace?.current);
   const modelMissing = session?.status === "ready" && !session.modelReady;
   const showHomePrompts = homeLayout && hasProjectWorkspace && !modelMissing && homePromptsEnabled;
@@ -769,7 +792,7 @@ export function ChatView({
   const turns = useMemo(() => groupMessagesIntoTurns(messages, previousTurns.current), [messages]);
   useLayoutEffect(() => { previousTurns.current = turns; }, [turns]);
   const turnNavItems = useMemo(() => (turns.length >= TURN_NAV_MIN_TURNS ? buildTurnNavItems(turns) : []), [turns]);
-  const showTurnNav = view === "chat" && !homeLayout && turnNavItems.length >= TURN_NAV_MIN_TURNS;
+  const showTurnNav = !floatingChat && view === "chat" && !homeLayout && turnNavItems.length >= TURN_NAV_MIN_TURNS;
 
   const computeActiveTurn = useCallback(() => {
     if (!showTurnNav || jumpLockRef.current) return;
@@ -922,8 +945,25 @@ export function ChatView({
   return (
     <QuestionContext.Provider value={question}>
     <ThinkingSummaryContext.Provider value={thinkingSummaries ?? null}>
-    <main className={`main-chat-view${embedded ? " panel-chat-view" : ""}`} data-tool-display={toolDisplay} tabIndex={-1}>
-      <header className="main-chat-header">
+    {floatingChat && floatHidden && <button ref={restoreFloatRef} type="button" className="floating-chat-restore"
+      aria-label={floatShowLabel} title={floatShowLabel} onClick={toggleFloatHidden}><Icon name="chat" size={20} /></button>}
+    <main ref={chatRef} hidden={floatingChat && floatHidden} className={`main-chat-view${embedded ? " panel-chat-view" : ""}`} data-floating-chat={floatingChat ? (floatExpanded ? "expanded" : "collapsed") : undefined} data-tool-display={toolDisplay} tabIndex={-1}>
+      {floatingChat && <div className="floating-chat-resize" role="separator" aria-orientation="horizontal" tabIndex={0}
+        aria-label={tr("调整聊天浮窗高度", "Resize floating chat height")} aria-controls={`${tabIdPrefix}-messages`}
+        ref={resizeHandle} {...resizeEvents} />}
+      {floatingChat ? (
+        <header className="floating-chat-header" {...headerEvents} onDoubleClick={() => setManuallyExpanded(!floatExpanded)}>
+          <Icon name="folder" size={14} />
+          <span className="chat-active-title" title={title}>{title}</span>
+          <button type="button" className="view-icon-btn" disabled={streaming}
+            aria-expanded={floatExpanded} aria-controls={`${tabIdPrefix}-messages`} aria-label={floatToggleLabel} title={floatToggleLabel}
+            onDoubleClick={event => event.stopPropagation()} onClick={() => setManuallyExpanded(!floatExpanded)}>
+            <Icon name="chevron-up" size={14} />
+          </button>
+          <button type="button" className="view-icon-btn floating-chat-hide" aria-label={floatHideLabel} title={floatHideLabel}
+            onClick={toggleFloatHidden}><Icon name="minus" size={14} /></button>
+        </header>
+      ) : <header className="main-chat-header">
         <div className="chat-title-group">
           {!embedded && leftCollapsed ? (
             <button
@@ -1005,9 +1045,9 @@ export function ChatView({
             {infoCards ? <Icon name="cards" size={14} /> : <Icon name="list" size={14} />}
           </button> : null}
         </div>
-      </header>
+      </header>}
 
-      <ConversationViewTabs idPrefix={tabIdPrefix} view={view} showVersionControl={hasWorkspace && !embedded} emptyConversation={emptyConversation} onChange={setView} />
+      {!floatingChat && <ConversationViewTabs idPrefix={tabIdPrefix} view={view} showVersionControl={hasWorkspace && !embedded} emptyConversation={emptyConversation} onChange={setView} />}
       {view === "trace" || view === "usage" || view === "context" || view === "budget" ? (
         <div className="conversation-view-panel" role="tabpanel" id={conversationPanelId(tabIdPrefix, view)} aria-labelledby={conversationTabId(tabIdPrefix, view)}>
           {view === "trace" ? <TraceView key={viewKey} state={state} onConversation={() => setView("chat")} onAbort={onAbort} pendingInteraction={pendingInteraction} /> : null}
@@ -1025,7 +1065,7 @@ export function ChatView({
         onAbort={onAbort}
         onOpenFile={(absolutePath) => void project.openFile(absolutePath)}
       /> : null}
-      <div className="chat-conversation-pane" role="tabpanel" id={conversationPanelId(tabIdPrefix, "chat")} aria-labelledby={conversationTabId(tabIdPrefix, "chat")} data-home={homeLayout ? "true" : undefined} data-home-style={activeHomeStyle} data-prompts={showHomePrompts ? "true" : undefined} data-turn-nav={showTurnNav ? "true" : undefined} hidden={view !== "chat"} inert={view !== "chat" ? true : undefined}>
+      <div className="chat-conversation-pane" role={floatingChat ? undefined : "tabpanel"} id={conversationPanelId(tabIdPrefix, "chat")} aria-labelledby={floatingChat ? undefined : conversationTabId(tabIdPrefix, "chat")} data-home={homeLayout ? "true" : undefined} data-home-style={activeHomeStyle} data-prompts={showHomePrompts ? "true" : undefined} data-turn-nav={showTurnNav ? "true" : undefined} hidden={view !== "chat"} inert={view !== "chat" ? true : undefined}>
       {activeHomeStyle === "classic" ? <VelaMark /> : null}
       {activeHomeStyle === "atelier" ? <AtelierBackdrop /> : null}
       {floatingInfo && infoCards && !emptyConversation ? (
@@ -1043,7 +1083,7 @@ export function ChatView({
       ) : null}
       <PlanLiveContext.Provider value={planLive}>
       <ConversationLinkContext.Provider value={onOpenWebLink ?? null}>
-      <div className="chat-scroll-area" ref={scrollerRef}>
+      <div className="chat-scroll-area" id={`${tabIdPrefix}-messages`} inert={floatingChat && !floatExpanded} ref={scrollerRef}>
         <div
           className="chat-message-surface"
           key={messageSurfaceKey}
@@ -1064,7 +1104,7 @@ export function ChatView({
         <RecipeChatCard />
         {messages.length === 0 ? (
           <EmptyState
-            style={embedded ? "classic" : startPageStyle}
+            style={floatingChat ? "minimal" : embedded ? "classic" : startPageStyle}
             project={project}
             workspace={project.workspace?.current ?? null}
             modelMissing={modelMissing}
@@ -1254,6 +1294,7 @@ export function ChatView({
           </button>
         ) : null}
         embedded={embedded}
+        floatingChat={floatingChat}
         sandboxMode={session?.sandboxMode}
         ref={dockRef}
         disabled={session?.status !== "ready" && session?.status !== "streaming"}
@@ -1276,9 +1317,9 @@ export function ChatView({
         conversationId={state?.activeConversationId ?? null}
         models={models}
         mode={mode}
-        sendError={providerError ? null : sendError}
+        sendError={providerError && (!floatingChat || floatExpanded) ? null : sendError}
         usage={state?.context ?? null}
-        contextPopover={floatingInfo}
+        contextPopover={floatingChat || floatingInfo}
         project={project}
         onSend={onSend}
         replies={replies}

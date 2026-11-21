@@ -84,6 +84,7 @@ export interface ComposerProps {
   changeSummary?: ReactNode;
   conflictBanner?: ReactNode;
   embedded?: boolean;
+  floatingChat?: boolean;
   /** 还没有任何消息的新对话：草稿共用一份，下次新建对话时恢复。 */
   newChat?: boolean;
   sandboxMode?: import("@vela/shared").SandboxMode;
@@ -166,6 +167,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
   changeSummary,
   conflictBanner,
   embedded = false,
+  floatingChat = false,
   newChat = false,
   sandboxMode,
   disabled,
@@ -212,6 +214,9 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
   const [raceOpen, setRaceOpen] = useState(false);
   const locale = useAppLocale();
   const layout = useComposerLayout();
+  const [optionsOpen, setOptionsOpen] = useState(false);
+  useEffect(() => { setOptionsOpen(false); }, [floatingChat, conversationId, streaming]);
+  const compact = floatingChat && !optionsOpen;
   const [recipes, setRecipes] = useState<TaskRecipe[] | null>(null);
   const [recipesError, setRecipesError] = useState<string | null>(null);
   const recipeRun = useRecipeRun();
@@ -615,6 +620,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
         return false;
       }
       options.onConsume?.();
+      if (compact) setOptionsOpen(true);
       setModelOpenRequest((count) => count + 1);
       return true;
     }
@@ -632,6 +638,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
       }
       if (!rawArgs) {
         options.onConsume?.();
+        if (compact) setOptionsOpen(true);
         setThinkingOpenRequest((count) => count + 1);
         return true;
       }
@@ -665,6 +672,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
       }
       if (!rawArgs) {
         options.onConsume?.();
+        if (compact) setOptionsOpen(true);
         setModeOpenRequest((count) => count + 1);
         return true;
       }
@@ -968,17 +976,16 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
   <RecipeStageDock run={recipeRun} />
   );
 
+  const setupChips = showSetupControls && <>
+    <WorkspaceChip project={project} />
+    <EnvironmentChip project={project} />
+    <BranchChip project={project} />
+  </>;
   const statusBar = (
     <>
-      {showSetupControls || showError || attachNotice || dictation.error ? (
+      {(setupChips && !floatingChat) || showError || attachNotice || dictation.error ? (
         <div className="composer-status-bar">
-          {showSetupControls ? (
-            <>
-              <WorkspaceChip project={project} />
-              <EnvironmentChip project={project} />
-              <BranchChip project={project} />
-            </>
-          ) : null}
+          {!floatingChat && setupChips}
           {showError ? (
             <span className="composer-status-notice" role="alert" title={showError}>
               {showError}
@@ -1256,6 +1263,9 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
     />
   );
 
+  const optionsButton = floatingChat && <button className="view-icon-btn floating-composer-options" type="button"
+    title={tr("输入选项", "Composer options")} aria-label={tr("输入选项", "Composer options")}
+    aria-expanded={optionsOpen} aria-controls={`${instanceId}-options`} onClick={() => setOptionsOpen(open => !open)}><Icon name="sliders" size={14} /></button>;
   const actions = (
     <ComposerActions sendButtonIcon={sendButtonIcon} streaming={streaming} sendHint={sendHint} steerHint={steerHint}
       canQueue={Boolean(prompt) || hasReplyText} disabled={disabled || recipeActive || !modelReady || (!prompt && !hasReplyText && !suggestion)}
@@ -1312,6 +1322,17 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
   ) : null;
 
   const useCapsule = layout === "capsule" && !homeStyle;
+  const capsuleTray = useCapsule && (
+    <ComposerTray>
+      <div className="composer-tray-left">
+        <div className="composer-tray-chips">{modePicker}</div>
+      </div>
+      <div className="composer-tray-right">
+        {stats}
+        {modelControls}
+      </div>
+    </ComposerTray>
+  );
   const above = (
     <>
       {approvalSlots}
@@ -1358,20 +1379,10 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
               <div className="composer-capsule-main">
                 {attachMenu}
                 {entry}
+                {optionsButton}
                 {actions}
               </div>
             </div>
-            <ComposerTray>
-              <div className="composer-tray-left">
-                <div className="composer-tray-chips">
-                  {modePicker}
-                </div>
-              </div>
-              <div className="composer-tray-right">
-                {showStats ? <ComposerStatsRow usage={usage} contextPopover={contextPopover} /> : null}
-                {modelControls}
-              </div>
-            </ComposerTray>
           </>
         ) : (
           <>
@@ -1380,16 +1391,29 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
             <div className="dock-controls-row">
               <div className="dock-controls-left">
                 {attachMenu}
-                {modePicker}
+                {!floatingChat && modePicker}
               </div>
               <div className="dock-controls-right">
-                {modelControls}
+                {!floatingChat && modelControls}
+                {optionsButton}
                 {actions}
               </div>
             </div>
-            {stats}
+            {!floatingChat && stats}
           </>
         )}
+        {floatingChat ? (
+          <div id={`${instanceId}-options`} className="floating-composer-settings" data-open={optionsOpen} inert={!optionsOpen}>
+            {setupChips && <div className="composer-status-bar">{setupChips}</div>}
+            {useCapsule ? capsuleTray : <>
+              <div className="dock-controls-row">
+                <div className="dock-controls-left">{modePicker}</div>
+                <div className="dock-controls-right">{modelControls}</div>
+              </div>
+              {stats}
+            </>}
+          </div>
+        ) : capsuleTray}
       </form>
       {raceOpen && raceActions && workspacePath ? (
         <RaceSetupDialog workspace={workspacePath} initialPrompt={prompt} models={models}

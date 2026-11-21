@@ -60,6 +60,11 @@ interface WorkbenchPanelProps {
   splitEnabled?: boolean;
   onVisibleTabsChange?: (ids: string[]) => void;
   collapsed?: boolean;
+  fullscreen?: boolean;
+  showingChat?: boolean;
+  onShowChat?: () => void;
+  onExpandSidebar?: () => void;
+  onToggleFullscreen?: () => void;
   browserOperating?: boolean;
   activeTabId: string | null;
   contextOpen: boolean;
@@ -138,7 +143,7 @@ export function WorkbenchPanel(props: WorkbenchPanelProps) {
 const rectStyle = (r: WorkbenchRect): CSSProperties => ({ left: r.x, top: r.y, width: r.width, height: r.height });
 function WorkbenchPanelContent(props: WorkbenchPanelProps & { closing: boolean; finishExit: () => void; onLastTabClose: (tab: WorkbenchTab, complete: () => void) => void }) {
   const { tabs, activeTabId, collapsed = false, contextOpen, leftOpen, resize, closing, finishExit, onLastTabClose,
-    project, onShowDiff, onVisibleTabsChange } = props;
+    fullscreen = false, showingChat = false, project, onShowDiff, onVisibleTabsChange } = props;
   // Keep the content mounted while folding, and hide its boxes only after the slide finishes.
   const foldPresence = useMotionPresence(!collapsed, 160);
   const exiting = closing || (collapsed && foldPresence.mounted);
@@ -148,18 +153,20 @@ function WorkbenchPanelContent(props: WorkbenchPanelProps & { closing: boolean; 
   const [layouts, setLayouts] = useState<Record<string, WorkbenchLayout>>({});
   const scope = props.layoutKey ?? "workbench";
   const stored = layouts[scope] ?? emptyWorkbenchLayout();
-  const splitEnabled = props.splitEnabled ?? false;
+  const splitEnabled = !!props.splitEnabled && !fullscreen;
   const lastReplacement = useRef(props.tabReplacement);
   const replacement = props.tabReplacement;
   const replaced = replacement && lastReplacement.current !== replacement
     ? replaceWorkbenchTab(stored, replacement.from, replacement.to) : stored;
   const reconciled = reconcileWorkbenchLayout(replaced, tabs.map(t => t.id));
-  const synced = splitEnabled ? reconciled : collapseWorkbenchLayout(reconciled);
+  const synced = props.splitEnabled ? reconciled : collapseWorkbenchLayout(reconciled);
   const activeRef = useRef<{ scope: string; id: string | null }>({ scope: "", id: null });
   // 只响应外部真正切换的标签，不让另一个窗口的局部选择被全局激活值盖回去。
   const externalChanged = activeRef.current.scope !== scope || activeRef.current.id !== activeTabId;
-  const layout = externalChanged && activeTabId ? selectWorkbenchTab(synced, activeTabId) : synced;
-  const layoutRef = useRef(layout); layoutRef.current = layout;
+  const savedLayout = externalChanged && activeTabId ? selectWorkbenchTab(synced, activeTabId) : synced;
+  // Fullscreen projects the saved panes into one tab strip. Only the split layout is stored.
+  const layout = fullscreen ? collapseWorkbenchLayout(savedLayout) : savedLayout;
+  const layoutRef = useRef(savedLayout); layoutRef.current = savedLayout;
   const mutate = useCallback((change: (current: WorkbenchLayout) => WorkbenchLayout) => {
     setLayouts(current => {
       const before = layoutRef.current, next = change(before);
@@ -171,8 +178,8 @@ function WorkbenchPanelContent(props: WorkbenchPanelProps & { closing: boolean; 
     lastReplacement.current = replacement;
     // Browser Host 可能先给出待激活 ID，再异步投影该标签；真正出现后才能消费这次激活。
     if (!activeTabId || tabs.some(tab => tab.id === activeTabId)) activeRef.current = { scope, id: activeTabId };
-    if (layouts[scope] !== layout) setLayouts(current => ({ ...current, [scope]: layout }));
-  }, [scope, activeTabId, layout, layouts, tabs, replacement]);
+    if (layouts[scope] !== savedLayout) setLayouts(current => ({ ...current, [scope]: savedLayout }));
+  }, [scope, activeTabId, savedLayout, layouts, tabs, replacement]);
   const [drag, setDrag] = useState<{ key: string; placing: boolean } | null>(null);
   const dragRef = useRef(drag); dragRef.current = drag;
   const [drop, setDrop] = useState<{ pane: string; edge: WorkbenchDropEdge; rect: WorkbenchRect; index?: number; marker?: WorkbenchRect } | null>(null);
@@ -194,14 +201,14 @@ function WorkbenchPanelContent(props: WorkbenchPanelProps & { closing: boolean; 
   useEffect(() => {
     const key = (event: KeyboardEvent) => {
       // 输入框、终端和输入法组合中的 Esc 属于它们自己(取消候选、vim 退出插入模式等),不拿来还原窗口。
-      if (event.key === "Escape" && layoutRef.current.maximized) {
+      if (!fullscreen && event.key === "Escape" && layoutRef.current.maximized) {
         const target = event.target instanceof Element ? event.target : null;
         if (event.defaultPrevented || event.isComposing || target?.closest("input, textarea, select, [contenteditable], .xterm")) return;
         mutate(current => ({ ...current, maximized: null })); return;
       }
       // macOS 上 Option+数字的 key 是 ¡™£¢,按物理键位 code 匹配才能在所有平台生效。
       const digit = /^Digit([1-4])$/.exec(event.code)?.[1];
-      if (event.altKey && !event.shiftKey && !event.ctrlKey && !event.metaKey && digit) {
+      if (!fullscreen && event.altKey && !event.shiftKey && !event.ctrlKey && !event.metaKey && digit) {
         const id = workbenchPaneOrder(layoutRef.current.root)[Number(digit) - 1];
         const pane = layoutRef.current.panes.find(p => p.id === id), tab = tabs.find(t => t.id === pane?.selected);
         if (tab) { event.preventDefault(); activateTab(tab); }
@@ -226,7 +233,7 @@ function WorkbenchPanelContent(props: WorkbenchPanelProps & { closing: boolean; 
     if (exiting && panelRef.current) panelRef.current.style.setProperty("--workbench-exit-width", `${panelRef.current.getBoundingClientRect().width}px`);
   }, [exiting]);
   const visibleIds = layout.panes.filter(p => !layout.maximized || p.id === layout.maximized).map(p => p.selected);
-  const visibleKey = !collapsed && !closing ? visibleIds.join("\0") : "";
+  const visibleKey = !showingChat && !collapsed && !closing ? visibleIds.join("\0") : "";
   useLayoutEffect(() => { onVisibleTabsChange?.(visibleKey ? visibleKey.split("\0") : []); }, [visibleKey, onVisibleTabsChange]);
   useEffect(() => () => onVisibleTabsChange?.([]), [onVisibleTabsChange]);
   const geometry = useMemo(() => workbenchGeometry(layout, size.width, size.height), [layout, size]);
@@ -243,6 +250,7 @@ function WorkbenchPanelContent(props: WorkbenchPanelProps & { closing: boolean; 
     props.onActivateTab(tab);
   }
   function focusPane(paneId: string) {
+    if (fullscreen) return;
     const pane = layoutRef.current.panes.find(p => p.id === paneId), tab = tabs.find(t => t.id === pane?.selected);
     if (tab && (layoutRef.current.focused !== paneId || activeTabId !== tab.id)) activateTab(tab);
   }
@@ -285,7 +293,7 @@ function WorkbenchPanelContent(props: WorkbenchPanelProps & { closing: boolean; 
     const nextId = owner?.tabs[index + 1] ?? owner?.tabs[index - 1];
     const complete = () => { if (tab.kind === "file") preview?.closeTab(tab.path); props.onCloseTab(tab); };
     if (tabs.length === 1 && tab.kind !== "browser") onLastTabClose(tab, complete);
-    else { complete(); if (owner?.selected === tab.id && nextId) { const next = tabs.find(t => t.id === nextId); if (next) activateTab(next); } }
+    else { complete(); if (!showingChat && owner?.selected === tab.id && nextId) { const next = tabs.find(t => t.id === nextId); if (next) activateTab(next); } }
   }
   const splitEdge = (edge: WorkbenchDropEdge) => edge === "left" || edge === "right" || edge === "top" || edge === "bottom";
   /** 拆分后会有窗口小于最小尺寸时视为不可用:不给预览,松手也不生效。 */
@@ -413,6 +421,13 @@ function WorkbenchPanelContent(props: WorkbenchPanelProps & { closing: boolean; 
         onSwitch={agentId => { const next = tabs.find(t => t.kind === "agent" && t.agent.id === agentId); if (next) activateTab(next); else props.onOpenAgent(agentId); }} />;
     }
   }
+  function toggleFullscreen() {
+    props.onToggleFullscreen?.();
+    requestAnimationFrame(() => {
+      const selector = fullscreen ? ".workbench-group:not([hidden]) .workbench-fullscreen-button" : ".workbench-restore";
+      panelRef.current?.querySelector<HTMLButtonElement>(selector)?.focus();
+    });
+  }
   const canvasBounds = canvasRef.current?.getBoundingClientRect();
   const syncCornerMask = (started = false) => {
     const panel = panelRef.current;
@@ -429,15 +444,19 @@ function WorkbenchPanelContent(props: WorkbenchPanelProps & { closing: boolean; 
         if (event.propertyName === "margin-right") { finishExit(); foldPresence.finishExit(); }
       }
     }}>
-    <SidebarResizeHandle target="workbench" resize={resize} contextOpen={contextOpen} leftOpen={leftOpen} />
+    {!fullscreen && <SidebarResizeHandle target="workbench" resize={resize} contextOpen={contextOpen} leftOpen={leftOpen} />}
     <div ref={canvasRef} className={`workbench-content workbench-canvas${layout.panes.length > 1 && !layout.maximized ? " is-split" : ""}`}>
       {workbenchPaneOrder(layout.root).map((paneId, index) => {
         const pane = layout.panes.find(p => p.id === paneId)!;
-        const paneTabs = pane.tabs.map(id => tabs.find(t => t.id === id)).filter((t): t is WorkbenchTab => !!t);
-        return <section key={paneId} className={`workbench-group${layout.focused === paneId ? " is-focused" : ""}`} data-workbench-pane={paneId} data-top-row={paneRect(paneId).y < 1}
-          data-right-edge={paneRect(paneId).x + paneRect(paneId).width >= size.width - 1}
-          hidden={!!layout.maximized && layout.maximized !== paneId} style={rectStyle(paneRect(paneId))} aria-label={trf("窗口 {0}", "Pane {0}", index + 1)}>
+        const paneTabs = fullscreen ? tabs : pane.tabs.map(id => tabs.find(t => t.id === id)).filter((t): t is WorkbenchTab => !!t);
+        const rect = paneRect(paneId);
+        const topRow = rect.y < 1, rightEdge = rect.x + rect.width >= size.width - 1;
+        return <section key={paneId} className={`workbench-group${layout.focused === paneId ? " is-focused" : ""}`} data-workbench-pane={paneId} data-top-row={topRow}
+          data-right-edge={rightEdge}
+          hidden={!!layout.maximized && layout.maximized !== paneId} style={rectStyle(rect)} aria-label={trf("窗口 {0}", "Pane {0}", index + 1)}>
           <WorkbenchTabStrip splitEnabled={splitEnabled} tabs={paneTabs} draggingId={drag && !drag.placing ? drag.key : null} selected={pane.selected} split={layout.panes.length > 1} maximized={layout.maximized === paneId}
+            fullscreen={fullscreen} showingChat={showingChat} onShowChat={props.onShowChat} onExpandSidebar={props.onExpandSidebar}
+            onToggleFullscreen={topRow && rightEdge && props.onToggleFullscreen ? toggleFullscreen : undefined}
             tabButtonId={tabButtonId} tabPanelId={tabPanelId} renderLabel={tab => <><TabIcon tab={tab} />{tab.kind === "browser" ? <BrowserTabLabel controller={tab.controller} /> : <span className="workbench-tab-label">{tab.label}</span>}</>}
             onActivate={activateTab} onClose={closeTab} onNewTab={() => { focusPane(paneId); props.onNewTab(); }}
             onMaximize={() => mutate(current => ({ ...current, focused: paneId, maximized: current.maximized === paneId ? null : paneId }))}
@@ -451,7 +470,7 @@ function WorkbenchPanelContent(props: WorkbenchPanelProps & { closing: boolean; 
       {/* 所有内容都是同一父节点下的稳定 key；拖动只改矩形，绝不跨父节点重新挂载。 */}
       {tabs.map(tab => {
         const owner = ownerOf(tab.id); if (!owner) return null;
-        const r = paneRect(owner.id), visible = owner.selected === tab.id && (!layout.maximized || layout.maximized === owner.id);
+        const r = paneRect(owner.id), visible = !showingChat && owner.selected === tab.id && (!layout.maximized || layout.maximized === owner.id);
         return <WorkbenchTabPanel key={tab.id} id={tabPanelId(tab)} role="tabpanel" aria-labelledby={tabButtonId(tab)} hidden={!visible}
           data-top-row={r.y < 1} data-right-edge={r.x + r.width >= size.width - 1} data-bottom-row={r.y + r.height >= size.height - 1}
           data-workbench-content-pane={owner.id} style={rectStyle({ ...r, y: r.y + headerHeight, height: Math.max(0, r.height - headerHeight) })}
