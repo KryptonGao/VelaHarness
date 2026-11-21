@@ -246,9 +246,26 @@ if (!process.versions.electron) {
     win.webContents.debugger.detach();
     console.log("PASS prefers-reduced-motion 无位移、无可见 transition, 显隐与交互状态正确");
 
-    // 旧环境卡仍采用 10% 预算:过窄时保持文字自然宽度,不套用新卡片规则。
-    await win.loadURL(`${process.env.VELA_INFO_CARDS_URL}?layout=floating`);
-    await until("!!document.querySelector('.floating-environment') && !!document.querySelector('.chat-message-surface')", "旧悬浮环境卡模式");
+    // Match the reported layout: 52px navigation rail, 6px inset and 264px sidebar.
+    await evaluate(`localStorage.setItem('vela.navLayout', JSON.stringify('rail'));
+      localStorage.setItem('vela.sidebar.widths', JSON.stringify({ left: 264 })); true`);
+    win.setContentSize(1280, 800);
+    await win.loadURL(`${process.env.VELA_INFO_CARDS_URL}?layout=floating&table`);
+    await until(`!!document.querySelector('.nav-rail-layout .floating-environment')
+      && !!document.querySelector('.assistant-block .md-table-scroll table')
+      && document.querySelector('.chat-conversation-pane').getBoundingClientRect().left === 322`, "截图中的导航、侧栏和表格");
+    const geometry = await evaluate(`(() => {
+      const pane = document.querySelector('.chat-conversation-pane');
+      const card = pane.querySelector('.floating-environment').getBoundingClientRect();
+      const gap = parseFloat(getComputedStyle(pane.querySelector('.chat-scroll-area')).paddingLeft);
+      const selectors = ['.user-msg-container', '.assistant-block', '.md-table-scroll'];
+      const gaps = selectors.map(selector => card.left - pane.querySelector(selector).getBoundingClientRect().right);
+      return { gap, gaps, width: window.innerWidth, height: window.innerHeight };
+    })()`);
+    assert.deepEqual([geometry.width, geometry.height], [1280, 800]);
+    assert.ok(geometry.gap > 0 && geometry.gaps.every(gap => gap >= geometry.gap - 1),
+      `Floating information must clear messages and the table: ${JSON.stringify(geometry)}`);
+    console.log(`PASS 1280 × 800 floating information gaps: ${geometry.gaps.join(", ")} px`);
     await resize(narrow);
     await until(`(() => {
       const pane = document.querySelector('.chat-conversation-pane');
@@ -256,17 +273,17 @@ if (!process.versions.electron) {
       return !document.querySelector('.info-card-stack') &&
         (parseFloat(style.getPropertyValue('--chat-lane-shift')) || 0) === 0 &&
         (parseFloat(style.getPropertyValue('--chat-lane-shrink')) || 0) === 0;
-    })()`, "旧环境卡保留 10% 收窄预算");
+    })()`, "单张环境卡达到收窄上限");
     const legacy = await evaluate(`(() => {
       const card = document.querySelector('.floating-environment'), pane = card.parentElement;
       const natural = Math.min(pane.querySelector('.chat-message-surface').getBoundingClientRect().width, 760);
       const region = card.getBoundingClientRect().left - pane.getBoundingClientRect().left;
       return { cardShrink: Math.max(0, natural - region), natural, concealed: card.hasAttribute('data-concealed') };
     })()`);
-    assert.ok(legacy.cardShrink >= legacy.natural * 0.1, "旧模式应实际触发 10% 预算边界而不避让");
+    assert.ok(legacy.cardShrink >= legacy.natural * 0.4, "窄面板达到 40% 收窄上限时应保留文字宽度");
     assert.equal(legacy.concealed, false);
     assert.deepEqual(diagnostics, [], "预览页面不应产生渲染错误");
-    console.log("PASS layout=floating 保留旧环境卡布局规则");
+    console.log("PASS layout=floating 窄面板保留文字宽度");
     app.exit(0);
   } catch (error) {
     console.error(error);

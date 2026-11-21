@@ -48,9 +48,6 @@ body.info-card-dragging, body.info-card-dragging * { cursor: grabbing !important
   pointer-events: auto;
   color: var(--text-primary);
   background: var(--bg-card-surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-dock);
   transition: transform 240ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 200ms ease, border-color 200ms ease;
 }
 .info-card[data-entering] { animation: info-card-in 340ms cubic-bezier(0.16, 1, 0.3, 1); }
@@ -67,7 +64,7 @@ body.info-card-dragging, body.info-card-dragging * { cursor: grabbing !important
   box-shadow: 0 0 0 3px var(--accent-tint), var(--shadow-dock);
 }
 
-.info-card-head { position: relative; display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 12px 0 14px; }
+.info-card-head { position: relative; display: flex; align-items: center; gap: 8px; }
 .info-card-ico { display: grid; place-items: center; color: var(--text-muted); }
 .info-card-title {
   display: flex; flex: 1; align-items: center; gap: 6px; min-width: 0; height: 40px;
@@ -112,7 +109,7 @@ body.info-card-dragging, body.info-card-dragging * { cursor: grabbing !important
 .info-card[data-collapsed] .info-card-body { grid-template-rows: 0fr; }
 /* 定位后才能裁住内部的绝对定位元素（如待办里的 .sr-only），否则它们越过折叠的卡片把栈撑出滚动高度。 */
 .info-card-inner { position: relative; min-height: 0; overflow: hidden; }
-.info-card-content { padding: 0 14px 14px 16px; font-size: calc(13px * var(--ui-scale)); }
+.info-card-content { font-size: calc(13px * var(--ui-scale)); }
 
 /* ---- 内容 ---- */
 .info-card-rows { display: flex; flex-direction: column; gap: 2px; }

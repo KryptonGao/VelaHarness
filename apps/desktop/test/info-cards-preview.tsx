@@ -61,7 +61,9 @@ window.vela = {
     { id: `a-${index}`, role: "assistant", text: params.has("only") ? "" : "已确定方案，提交计划如下。", thinking: "检查了现有面板与消息结构。", tools: [], planIds: [plan.id], turnStartedAt: 1000, turnCompletedAt: 4000, timestamp: 4000 },
   ]) : [
     { id: "u-0", role: "user", text: "增加界面新模式：右侧一系列卡片，可以用户自由排序", thinking: "", tools: [] },
-    { id: "a-0", role: "assistant", text: "好的，我先梳理现有右栏，再把卡片注册表和拖拽排序做出来。", thinking: "", turnStartedAt: 1000, turnCompletedAt: 4000, timestamp: 4000, tools: [
+    { id: "a-0", role: "assistant", text: params.has("table")
+      ? "以下为项目概览。\n\n| 项目 | 数值 |\n| --- | ---: |\n| 文件总数 | 24 |"
+      : "好的，我先梳理现有右栏，再把卡片注册表和拖拽排序做出来。", thinking: "", turnStartedAt: 1000, turnCompletedAt: 4000, timestamp: 4000, tools: [
       tool("t-1", "update_todos", { plan: [
         { text: "梳理现有右栏结构", status: "completed" }, { text: "定义卡片注册表与布局模型", status: "completed" },
         { text: "实现拖拽排序与持久化", status: "in_progress" }, { text: "补 i18n 与测试", status: "pending" } ] }),

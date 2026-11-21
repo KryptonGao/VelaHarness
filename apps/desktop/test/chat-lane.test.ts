@@ -29,8 +29,8 @@ describe("planInfoCardLane", () => {
     assert.deepEqual(planInfoCardLane({ ...input, cardLeft: 446.5 }), { shift: 0, shrink: 0, concealed: true });
   });
 
-  it("replaces the 10% shrink limit only in card mode", () => {
-    const geometry = { ...input, cardLeft: 700 };
+  it("allows the card stack to exceed the floating environment shrink limit", () => {
+    const geometry = { ...input, cardLeft: 470 };
     assert.deepEqual(planChatLane(geometry), { shift: 0, shrink: 0 });
     const result = planInfoCardLane(geometry);
     assert.equal(result.concealed, false);
@@ -115,16 +115,13 @@ describe("planChatLane", () => {
     assert.ok(result.shrink < 760 * chatLaneMaxShrinkRatio);
   });
 
-  it("leaves the card covering the column once the needed shrink reaches 10%", () => {
-    // 需要收窄 84px,超过 10%。
-    assert.deepEqual(plan({ cardLeft: 700 }), { shift: 0, shrink: 0 });
-    // 恰好 10%(region 684)也不收。
-    assert.deepEqual(plan({ cardLeft: 708 }), { shift: 0, shrink: 0 });
-    // 少 1px 就还算小于 10%。
-    const almost = plan({ cardLeft: 709 });
-    assert.equal(almost.shrink, 123);
-    assert.equal(laneBox(almost).left, 48);
-    assert.equal(laneBox(almost).right, 685);
+  it("keeps the natural width at the 40% shrink limit and reserves both gutters just above the minimum region", () => {
+    // A 456px region leaves 60% of the natural 760px column before gutters.
+    assert.deepEqual(plan({ cardLeft: 479 }), { shift: 0, shrink: 0 });
+    assert.deepEqual(plan({ cardLeft: 480 }), { shift: 0, shrink: 0 });
+    const box = laneBox(plan({ cardLeft: 481 }));
+    assert.equal(box.left, 48);
+    assert.equal(box.right, 457);
   });
 
   it("leaves space even when the natural column only touches the card", () => {

@@ -560,6 +560,21 @@ html[data-thinking-fade="false"][data-thinking-pop="false"] .fade-thinking .md-f
 
 /* 按需悬浮信息:卡片属于对话区域，固定右栏完全卸载。 */
 .floating-environment,
+.info-card {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-dock);
+}
+.floating-environment .repo-card-header,
+.info-card-head {
+  min-height: 40px;
+  padding: 0 12px 0 14px;
+}
+.floating-environment .repo-card-content,
+.info-card-content {
+  padding: 0 14px 14px 16px;
+}
+.floating-environment,
 .context-usage-popover {
   /* 跟随当前窗口主题，深色基底不再固定为白底卡片。 */
   color: var(--text-primary);
@@ -573,12 +588,19 @@ html[data-thinking-fade="false"][data-thinking-pop="false"] .fade-thinking .md-f
   width: min(300px, calc(100% - 24px));
   max-height: max(100px, calc(100% - var(--composer-clearance) - 24px));
   overflow: auto;
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-dock);
 }
 .floating-environment .repo-card {
-  background: var(--bg-card-surface);
+  padding: 0;
+  gap: 0;
+  border: 0;
+  background: transparent;
 }
+.floating-environment .repo-card-content:not([hidden]) {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.floating-environment .repo-sources { display: none; }
 .repo-card-content { display: contents; }
 .repo-card-content[hidden] { display: none; }
 .environment-toggle { display: flex; align-items: center; gap: 6px; min-height: 24px; min-width: 0; color: inherit; text-align: left; border-radius: var(--radius-sm); flex: 1; }

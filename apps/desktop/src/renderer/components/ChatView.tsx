@@ -671,7 +671,7 @@ export function ChatView({
   const messageSurfaceRef = useContentArrival(messageSurfaceKey, 180, 6);
 
   const [infoCardsConcealed, setInfoCardsConcealed] = useState(true);
-  // 信息卡片按避让后的文字宽度决定显隐;旧环境卡片保留 10% 收窄预算。
+  // 信息卡片按避让后的文字宽度决定显隐;单张环境卡片按对话列的收窄预算避让。
   // 隐藏后仍测量卡片未变换的布局位置,避免隐藏释放空间后又立即显示。
   useLayoutEffect(() => {
     const pane = scrollerRef.current?.parentElement;

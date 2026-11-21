@@ -4,8 +4,8 @@
  *   1. 自然居中已经留足卡片间距时,不做任何挪动;
  *   2. 间距不足时,把对话列放到「左侧边栏分界 → 卡片左缘」之间居中,
  *      让列左缘到分界的距离等于列右缘到卡片左缘的距离,且至少保留滚动区的横向 padding(默认 24px);
- *   3. 原始宽度放不下时,允许为卡片收窄不到 10%,再额外预留两侧间距;
- *      卡片本身需要收窄 10% 以上就保持原样,让卡片盖住对话流。
+ *   3. 原始宽度放不下时,按 chatLaneMaxShrinkRatio 判断是否能为卡片收窄,再额外预留两侧间距;
+ *      达到收窄上限时保留原列宽。
  * 信息卡片模式改用 planInfoCardLane:文字区域不足卡片实体宽度的 1.25 倍时隐藏卡片。
  * 纯几何计算,便于单测;DOM 测量留在 ChatView 里。
  */
@@ -32,13 +32,13 @@ export interface ChatLaneInput {
   maxShrinkRatio?: number;
 }
 
-export const chatLaneMaxShrinkRatio = 0.1;
+export const chatLaneMaxShrinkRatio = 0.4;
 export const chatLaneMinGap = 24;
 export const infoCardMinTextWidthRatio = 1.25;
 /** 与 CSS 的 --chat-lane-max 保持一致;能读到变量时以变量为准。 */
 export const chatLaneDefaultMaxWidth = 760;
 
-/** 信息卡片只按避让后的文字宽度决定显隐,不再受旧的 10% 收窄预算限制。 */
+/** 信息卡片只按避让后的文字宽度决定显隐,不使用单张环境卡的收窄上限。 */
 export function planInfoCardLane(input: ChatLaneInput & { cardWidth: number }): ChatLanePlan & { concealed: boolean } {
   const minGap = Math.max(0, input.minGap ?? chatLaneMinGap);
   const textWidth = Math.min(input.laneWidth, input.cardLeft - input.laneLimitLeft - minGap * 2);
@@ -65,7 +65,6 @@ export function planChatLane(input: ChatLaneInput): ChatLanePlan {
   if (!(availableWidth > 0)) return noChange;
   const cardShrink = Math.max(0, laneWidth - region);
   const shrink = Math.max(0, laneWidth - availableWidth);
-  // 恰好 10% 也算收得过多:小于 10% 才值得为卡片让位。
   if (cardShrink >= laneWidth * (input.maxShrinkRatio ?? chatLaneMaxShrinkRatio)) return noChange;
   // 以分界为参照居中:左右两侧留出相同距离,最少为 minGap。
   // 收窄后列会重新居中,左缘右移 shrink/2,要从左移量里扣掉。
