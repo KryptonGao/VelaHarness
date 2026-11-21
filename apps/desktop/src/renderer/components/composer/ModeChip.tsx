@@ -8,7 +8,7 @@ import { Icon } from "../icons";
 const modes: InteractionMode[] = ["agent", "plan", "goal"];
 
 const modeLabels: Record<InteractionMode, string> = {
-  agent: "Agent",
+  agent: "Build",
   plan: "Plan",
   goal: "Goal",
 };

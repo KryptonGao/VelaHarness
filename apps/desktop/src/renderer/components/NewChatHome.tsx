@@ -433,7 +433,7 @@ export function AtelierBackdrop() {
 }
 
 const atelierModes: { id: InteractionMode; label: string }[] = [
-  { id: "agent", label: "Agent" },
+  { id: "agent", label: "Build" },
   { id: "plan", label: "Plan" },
   { id: "goal", label: "Goal" },
 ];
