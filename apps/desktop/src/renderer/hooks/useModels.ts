@@ -124,6 +124,29 @@ export function useModels(setAppState: (state: AppState) => void, conversationId
     return mutate(() => api.removeModel(provider, id), true);
   }, [mutate]);
 
+  const addProviderAccount = useCallback(async (builtinId: string) => {
+    const api = window.vela;
+    if (!api) return null;
+    setActionError(null);
+    try {
+      const id = await api.addProviderAccount(builtinId);
+      await reload();
+      return id;
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : "模型操作失败");
+      return null;
+    }
+  }, [reload]);
+
+  const setProviderNote = (id: string, note: string) => {
+    const api = window.vela;
+    return api ? mutate(() => api.setProviderNote(id, note), true) : Promise.resolve("应用还没准备好");
+  };
+  const removeProviderAccount = (id: string) => {
+    const api = window.vela;
+    return api ? mutate(() => api.removeProviderAccount(id), true) : Promise.resolve("应用还没准备好");
+  };
+
   const logout = useCallback((providerId: string) => {
     const api = window.vela;
     if (!api) return Promise.resolve();
@@ -179,6 +202,9 @@ export function useModels(setAppState: (state: AppState) => void, conversationId
     remove,
     logout,
     loginProvider,
+    addProviderAccount,
+    setProviderNote,
+    removeProviderAccount,
     replyLogin,
     cancelLogin,
     dismissLogin,

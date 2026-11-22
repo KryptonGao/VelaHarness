@@ -1,8 +1,9 @@
-import { customModelApis, type AuthMethodType, type CustomModelApi, type ModelSummary, type ProviderSummary } from "@vela/shared";
+import { customModelApis, maxProviderNoteLength, type AuthMethodType, type CustomModelApi, type ModelSummary, type ProviderSummary } from "@vela/shared";
 import { useState } from "react";
 import type { useModels } from "../../hooks/useModels";
 import type { PreferencesApi } from "../../hooks/usePreferences";
 import type { SettingsCopy } from "../settings-copy";
+import { ProviderLoginButton } from "../ProviderLoginButton";
 import {
   ApiSelect,
   countOrNull,
@@ -12,7 +13,7 @@ import {
   ProviderLogo,
   type ModelDraft,
 } from "./models-parts";
-import { authSourceKind, formatContext, providerStatus } from "./models-view";
+import { authSourceKind, formatContext, loginMethodLabel, providerStatus } from "./models-view";
 import { SettingsSwitch } from "./primitives";
 import { Icon } from "../icons";
 
@@ -27,9 +28,10 @@ interface ProviderDetailProps {
   models: ModelsApi;
   preferences: PreferencesApi;
   onRemoved: () => void;
+  onLogin: (providerId: string, method: AuthMethodType) => void;
 }
 
-export function ProviderDetail({ copy, provider, providerModels, models, preferences, onRemoved }: ProviderDetailProps) {
+export function ProviderDetail({ copy, provider, providerModels, models, preferences, onRemoved, onLogin }: ProviderDetailProps) {
   const text = copy.models;
   const status = providerStatus(provider);
   const listed = providerModels.filter((model) => model.available);
@@ -54,15 +56,17 @@ export function ProviderDetail({ copy, provider, providerModels, models, prefere
             for (const model of listed) preferences.setModelHidden(model.provider, model.id, !next);
           }}
         />
-        {provider.custom || provider.stored ? (
+        {provider.custom || provider.stored || provider.builtinId || provider.note ? (
           <RemoveProvider text={text} provider={provider} providerModels={providerModels} models={models} onRemoved={onRemoved} />
         ) : null}
       </div>
 
+      <ProviderNote key={provider.note ?? ""} text={text} provider={provider} models={models} />
+
       {provider.custom ? (
         <CustomConnection key={provider.id} text={text} provider={provider} providerModels={providerModels} models={models} />
       ) : (
-        <AccountCard text={text} provider={provider} status={status} models={models} />
+        <AccountCard text={text} provider={provider} status={status} models={models} onLogin={onLogin} />
       )}
 
       <ModelList
@@ -78,7 +82,31 @@ export function ProviderDetail({ copy, provider, providerModels, models, prefere
   );
 }
 
-function AccountCard({ text, provider, status, models }: { text: ModelsCopy; provider: ProviderSummary; status: ReturnType<typeof providerStatus>; models: ModelsApi }) {
+function ProviderNote({ text, provider, models }: { text: ModelsCopy; provider: ProviderSummary; models: ModelsApi }) {
+  const [note, setNote] = useState(provider.note ?? "");
+  const [saving, setSaving] = useState(false);
+  const dirty = note.trim() !== (provider.note ?? "");
+
+  async function save() {
+    if (!dirty || saving) return;
+    setSaving(true);
+    try { await models.setProviderNote(provider.id, note.trim()); }
+    finally { setSaving(false); }
+  }
+
+  return (
+    <form className="models-note" onSubmit={event => { event.preventDefault(); void save(); }}>
+      <label className="models-field">
+        <span>{text.providerNote}</span>
+        <input value={note} maxLength={maxProviderNoteLength} placeholder={text.providerNotePlaceholder}
+          disabled={saving} onChange={event => setNote(event.target.value)} />
+      </label>
+      {dirty && <button type="submit" className="models-btn" disabled={saving}>{saving ? text.saving : text.save}</button>}
+    </form>
+  );
+}
+
+function AccountCard({ text, provider, status, models, onLogin }: { text: ModelsCopy; provider: ProviderSummary; status: ReturnType<typeof providerStatus>; models: ModelsApi; onLogin: ProviderDetailProps["onLogin"] }) {
   const kind = authSourceKind(provider.authSource);
   const title = status === "disconnected" ? text.accountNone : status === "attention" ? text.attentionStatus : text.connectedStatus;
   const detail = status === "disconnected"
@@ -96,14 +124,17 @@ function AccountCard({ text, provider, status, models }: { text: ModelsCopy; pro
         </div>
         <div className="models-account-actions">
           {provider.methods.map((method) => (
-            <button
+            <ProviderLoginButton
               key={method.type}
-              type="button"
+              providerId={provider.id}
+              builtinId={provider.builtinId}
+              method={method.type}
+              copy={text}
               className={status !== "connected" && method.type === provider.methods[0].type ? "models-btn primary" : "models-btn"}
-              onClick={() => void models.loginProvider(provider.id, method.type as AuthMethodType)}
+              onLogin={onLogin}
             >
-              {method.type === "oauth" ? (status === "disconnected" ? text.login : text.relogin) : text.apiKey}
-            </button>
+              {method.type === "oauth" ? loginMethodLabel(method, text, status === "disconnected" ? text.login : text.relogin) : text.apiKey}
+            </ProviderLoginButton>
           ))}
           {provider.stored ? (
             <button type="button" className="models-btn" onClick={() => void models.logout(provider.id)}>
@@ -360,11 +391,11 @@ function ModelList({
 
 /**
  * 垃圾桶按钮,点两次才生效。自定义供应商会删掉它的全部自定义模型;
- * 内置提供方只是清掉本机保存的凭据(退出登录),列表里随之消失。失败原因由 models.actionError 在页面顶部显示。
+ * Removing a built-in account also clears its saved note and credentials.
  */
 function RemoveProvider({ text, provider, providerModels, models, onRemoved }: { text: ModelsCopy; provider: ProviderSummary; providerModels: ModelSummary[]; models: ModelsApi; onRemoved: () => void }) {
   const [armed, setArmed] = useState(false);
-  const label = armed ? text.confirmRemove : provider.custom ? text.remove : text.logout;
+  const label = armed ? text.confirmRemove : text.remove;
 
   async function remove(): Promise<void> {
     if (!armed) {
@@ -373,7 +404,7 @@ function RemoveProvider({ text, provider, providerModels, models, onRemoved }: {
     }
     setArmed(false);
     if (!provider.custom) {
-      await models.logout(provider.id);
+      if (await models.removeProviderAccount(provider.id) === null) onRemoved();
       return;
     }
     for (const model of providerModels.filter((item) => item.custom)) {

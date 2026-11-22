@@ -291,6 +291,9 @@ export const IpcChannel = {
   installMarketplaceSkill: "skills:install-marketplace",
   loadMarketplace: "skills:load-marketplace",
   registerModel: "models:register",
+  addProviderAccount: "models:add-provider-account",
+  removeProviderAccount: "models:remove-provider-account",
+  setProviderNote: "models:set-provider-note",
   terminalCreate: "terminal:create",
   terminalWrite: "terminal:write",
   terminalResize: "terminal:resize",
@@ -576,7 +579,16 @@ export interface ProviderEndpoint {
   api: string;
 }
 
+export { maxProviderNoteLength, parseProviderProfile, type ProviderProfile } from "./provider-profiles";
+
+export function providerDisplayName(provider: Pick<ProviderSummary, "name" | "note">): string {
+  return provider.note ? `${provider.name} · ${provider.note}` : provider.name;
+}
+
 export interface ProviderSummary {
+  /** Original Pi provider for an additional built-in account. */
+  builtinId?: string;
+  note?: string;
   id: string;
   name: string;
   authenticated: boolean;
@@ -3280,6 +3292,9 @@ export interface VelaApi extends McpApi, PluginApi, HooksApi {
   addModel(input: CustomModelInput): Promise<AppState>;
   /** 测试并登记自定义模型,不切换当前对话,也不改默认模型。 */
   registerModel(input: CustomModelInput): Promise<AppState>;
+  addProviderAccount(builtinId: string): Promise<string>;
+  removeProviderAccount(id: string): Promise<AppState>;
+  setProviderNote(id: string, note: string): Promise<AppState>;
   removeModel(provider: string, id: string): Promise<AppState>;
   getAgentSettings(): Promise<AgentSettings>;
   saveAgentSettings(settings: AgentSettings): Promise<AgentSettings>;

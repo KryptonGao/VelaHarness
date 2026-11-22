@@ -251,3 +251,15 @@ it("validates the selection and the profile pairing", async t => {
   await assert.rejects(previewProductionSync(f.runtime, ["settings"], f.destination, f.destination), /无需同步/);
   await assert.rejects(rollbackProductionSync(f.runtime, "../escape", f.destination), /不存在/);
 });
+
+it("imports provider account labels without copying credentials", async t => {
+  const f = await fixture(t);
+  const id = "openai@a6ec51a7-5171-4b6e-905b-f29331f3b9d3";
+  const account = { builtinId: "openai", number: 2 };
+  await put(join(f.source, "provider-profiles.json"), { [id]: { account, note: "Work", apiKey: "fixture" } });
+  await put(join(f.source, "auth.json"), { [id]: { type: "api_key", key: "fixture" } });
+  const result = await runProductionSync(f.runtime, ["models"], f.source, f.destination);
+  assert.equal(result.restartRequired, true);
+  assert.deepEqual(await json(join(f.destination, "provider-profiles.json")), { [id]: { account, note: "Work" } });
+  assert.equal((await json(join(f.destination, "auth.json")))[id], undefined);
+});

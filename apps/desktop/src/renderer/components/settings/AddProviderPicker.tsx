@@ -1,18 +1,23 @@
 import type { ProviderSummary } from "@vela/shared";
 import type { SettingsCopy } from "../settings-copy";
+import { loginMethodLabel } from "./models-view";
 import { ProviderLogo } from "./models-parts";
 import { Icon } from "../icons";
 
-/** 「添加供应商」页:尚未接入的内置提供方,加上创建自定义供应商的入口。 */
+/** 「添加供应商」页:可重复添加的内置提供方,加上创建自定义供应商的入口。 */
 export function AddProviderPicker({
   copy,
   builtins,
+  busy,
+  error,
   onPick,
   onCustom,
   onBack,
 }: {
   copy: SettingsCopy;
   builtins: ProviderSummary[];
+  busy: boolean;
+  error: string | null;
   onPick: (providerId: string) => void;
   onCustom: () => void;
   onBack: () => void;
@@ -21,22 +26,23 @@ export function AddProviderPicker({
   return (
     <div className="models-add">
       <div className="models-toolbar">
-        <button type="button" className="models-back" onClick={onBack}>
+        <button type="button" disabled={busy} className="models-back" onClick={onBack}>
           <Icon name="arrow-left" size={16} />
           {text.add}
         </button>
       </div>
 
       <div className="models-add-body">
+        {error && <p role="alert" className="settings-error">{error}</p>}
         <div className="models-add-group">{text.groupBuiltin}</div>
         {builtins.length === 0 ? <p className="settings-note">{text.pickBuiltinEmpty}</p> : (
           <div className="models-cards">
             {builtins.map((provider) => (
-              <button type="button" className="models-card" key={provider.id} onClick={() => onPick(provider.id)}>
+              <button type="button" disabled={busy} className="models-card" key={provider.id} onClick={() => onPick(provider.id)}>
                 <ProviderLogo provider={provider} size="lg" />
                 <span className="models-card-copy">
                   <span className="models-card-title">{provider.name}</span>
-                  <span className="models-card-sub">{provider.methods.map((method) => (method.type === "oauth" ? text.methodOauth : text.methodKey)).join(" / ")}</span>
+                  <span className="models-card-sub">{provider.methods.map((method) => (method.type === "oauth" ? loginMethodLabel(method, text, text.methodOauth) : text.methodKey)).join(" / ")}</span>
                 </span>
                 <Icon name="chevron-right" size={14} />
               </button>
@@ -46,7 +52,7 @@ export function AddProviderPicker({
 
         <div className="models-add-group">{text.pickOther}</div>
         <div className="models-cards">
-          <button type="button" className="models-card" onClick={onCustom}>
+          <button type="button" disabled={busy} className="models-card" onClick={onCustom}>
             <span className="models-logo lg plain"><Icon name="plus" size={16} /></span>
             <span className="models-card-copy">
               <span className="models-card-title">{text.createCustom}</span>

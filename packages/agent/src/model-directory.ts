@@ -2,6 +2,10 @@ import { type Api, type AuthEvent, type AuthInteraction, type AuthPrompt, type A
 import { ModelRuntime } from "@earendil-works/pi-coding-agent";
 import {
   customModelApis,
+  maxProviderNoteLength,
+  parseProviderProfile,
+  type ProviderProfile,
+  providerDisplayName,
   customReasoningLevels,
   parseCustomReasoningEfforts,
   thinkingLevels,
@@ -25,10 +29,11 @@ import {
   type ProviderSummary,
   type ThinkingLevel,
 } from "@vela/shared";
+import { createProviderAccount } from "./provider-account";
 import { randomUUID } from "node:crypto";
 import { constants } from "node:fs";
 import { clampThinkingLevelFor, thinkingLevelsFor } from "./thinking-level";
-import { chmod, copyFile, mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { chmod, copyFile, link, mkdir, readFile, rename, unlink, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
 const defaultThinkingLevel: ThinkingLevel = "medium";
@@ -121,6 +126,7 @@ export class ModelDirectory {
     thinkingLevel: defaultThinkingLevel,
   };
 
+  private profiles = new Map<string, ProviderProfile>();
   private readonly authListeners = new Set<(event: ModelAuthEvent) => void>();
   private readonly pending = new Map<string, PendingPrompt>();
   private loginAbort: AbortController | null = null;
@@ -156,6 +162,7 @@ export class ModelDirectory {
       allowModelNetwork: false,
     });
     const directory = new ModelDirectory(configDir, runtime, options);
+    await directory.loadProviderProfiles();
     const stored = await directory.readSelection();
     directory.selection = stored.selection;
     directory.lastUsed = stored.lastUsed;
@@ -202,7 +209,7 @@ export class ModelDirectory {
    * 让界面保留上一次的数值，而不是把圆环藏起来。
    */
   async usageLimits(providerId: string): Promise<UsageLimits | null> {
-    if (providerId !== codexProviderId || process.env.PI_OFFLINE !== undefined) return null;
+    if ((this.profiles.get(providerId)?.account?.builtinId ?? providerId) !== codexProviderId || process.env.PI_OFFLINE !== undefined) return null;
     const result = await this.runtime.getAuth(providerId);
     const token = result?.auth.apiKey;
     const accountId = token ? chatgptAccountId(token) : null;
@@ -241,18 +248,21 @@ export class ModelDirectory {
     const models: ModelSummary[] = [];
 
     for (const provider of this.runtime.getProviders()) {
-      const methods = authMethods(provider.auth, provider.id);
+      const methods = authMethods(provider.auth);
       const status = this.runtime.getProviderAuthStatus(provider.id);
       const endpoint = customEndpoint(file.providers[provider.id]);
       const customProvider = provider.id in file.providers;
       const providerModels = provider.getModels();
       if (methods.length === 0 && !status.configured && !customProvider) continue;
       // This is Vela's chat catalog. Pi 1.0 also supplies classifier-only providers.
-      if (providerModels.length === 0 && !customProvider) continue;
+      const profile = this.profiles.get(provider.id);
+      if (providerModels.length === 0 && !customProvider && !profile?.account) continue;
 
+      const name = this.providerName(provider.id);
       providers.push({
-        id: provider.id,
-        name: provider.name || provider.id,
+        id: provider.id, name,
+        ...(profile?.account && { builtinId: profile.account.builtinId }),
+        ...(profile?.note && { note: profile.note }),
         authenticated: status.configured,
         stored: stored.has(provider.id),
         custom: customProvider,
@@ -263,7 +273,7 @@ export class ModelDirectory {
       });
 
       for (const model of providerModels) {
-        models.push(summarizeModel(model, provider.name || provider.id, available.has(modelKey(model)), custom.has(modelKey(model))));
+        models.push(summarizeModel(model, providerDisplayName({ name, note: profile?.note }), available.has(modelKey(model)), custom.has(modelKey(model))));
       }
     }
 
@@ -319,7 +329,7 @@ export class ModelDirectory {
       .getAvailableSnapshot()
       .some((item) => item.provider !== model.provider && baseName(item).toLowerCase() === key);
     if (!clash) return name;
-    return `${this.runtime.getProvider(model.provider)?.name || model.provider} · ${name}`;
+    return `${providerDisplayName({ name: this.providerName(model.provider), note: this.profiles.get(model.provider)?.note })} · ${name}`;
   }
 
   isAvailable(model: { provider: string; id: string }): boolean {
@@ -487,15 +497,91 @@ export class ModelDirectory {
     else file.providers[providerId] = { ...current, models: remaining };
     await this.writeModelsFile(file);
     await this.reloadModels();
+    if (!file.providers[providerId] && this.profiles.has(providerId)) {
+      await this.writeProviderProfile(providerId, undefined);
+    }
     if (this.selection.provider === providerId && this.selection.modelId === modelId) {
       this.selection = { ...this.selection, provider: null, modelId: null };
       await this.writeSelection();
     }
   }
 
+  private providerName(id: string): string {
+    const name = this.runtime.getProvider(id)?.name || id;
+    return id === "openai-codex" && name === "OpenAI Codex (legacy)" ? "OpenAI Codex OAuth" : name;
+  }
+
+  private async loadProviderProfiles(): Promise<void> {
+    let raw: string;
+    try { raw = await readFile(join(this.dir, "provider-profiles.json"), "utf8"); }
+    catch (error) { if (isMissingFile(error)) return; throw error; }
+    for (const [id, value] of Object.entries(JSON.parse(raw) as Record<string, unknown>)) {
+      const profile = parseProviderProfile(id, value);
+      if (!profile) continue;
+      const { account } = profile;
+      if (account) {
+        if (this.runtime.getProvider(id) || !this.runtime.getProvider(account.builtinId)) continue;
+        this.runtime.registerNativeProvider(await createProviderAccount(account.builtinId, id,
+          `${this.providerName(account.builtinId)} #${account.number}`));
+      }
+      this.profiles.set(id, profile);
+    }
+    if ([...this.profiles.values()].some(profile => profile.account)) await this.reloadModels();
+  }
+
+  private async writeProviderProfile(id: string, profile: ProviderProfile | undefined): Promise<void> {
+    const next = new Map(this.profiles);
+    if (profile?.account || profile?.note) next.set(id, profile);
+    else if (!next.delete(id)) return;
+    await writePrivateJson(join(this.dir, "provider-profiles.json"), Object.fromEntries(next));
+    this.profiles = next;
+  }
+
+  async addProviderAccount(builtinId: string): Promise<string> {
+    this.assertWritable();
+    const base = this.runtime.getProvider(builtinId);
+    if (!base || this.profiles.get(builtinId)?.account || (await this.readModelsFile()).providers[builtinId] ||
+        !authMethods(base.auth).length) throw new Error("找不到这个内置提供方");
+    if (!this.runtime.getProviderAuthStatus(builtinId).configured && !this.profiles.get(builtinId)?.note) return builtinId;
+
+    const numbers = [...this.profiles.values()].flatMap(({ account }) => account?.builtinId === builtinId ? [account.number] : []);
+    const number = Math.max(1, ...numbers) + 1;
+    const id = `${builtinId}@${randomUUID()}`;
+    const provider = await createProviderAccount(builtinId, id, `${this.providerName(builtinId)} #${number}`);
+    await this.writeProviderProfile(id, { account: { builtinId, number } });
+    this.runtime.registerNativeProvider(provider);
+    this.emit({ type: "catalog" });
+    return id;
+  }
+
+  async setProviderNote(id: string, value: string): Promise<void> {
+    this.assertWritable();
+    if (!this.runtime.getProvider(id)) throw new Error("找不到这个提供方");
+    const note = optionalText(value, "供应商备注", maxProviderNoteLength);
+    await this.writeProviderProfile(id, { ...this.profiles.get(id), note });
+    this.emit({ type: "catalog" });
+  }
+
+  async removeProviderAccount(id: string): Promise<void> {
+    this.assertWritable();
+    if ((await this.readModelsFile()).providers[id]) throw new Error("只能移除内置提供方账号");
+    const account = this.profiles.get(id)?.account;
+    await this.runtime.logout(id);
+    await this.writeProviderProfile(id, undefined);
+    if (account) {
+      this.runtime.unregisterProvider(id);
+      if (this.selection.provider === id) {
+        this.selection = { ...this.selection, provider: null, modelId: null };
+        await this.writeSelection();
+      }
+    }
+    this.emit({ type: "catalog" });
+  }
+
   async logout(providerId: string): Promise<void> {
     this.assertWritable();
     await this.runtime.logout(providerId);
+    this.emit({ type: "catalog" });
   }
 
   async login(providerId: string, type: AuthType): Promise<"ok" | "cancelled"> {
@@ -503,7 +589,7 @@ export class ModelDirectory {
     if (this.loginAbort) throw new Error("已有一个登录在进行");
     const provider = this.runtime.getProvider(providerId);
     if (!provider) throw new Error("找不到这个提供方");
-    if (type === "oauth" && !authMethods(provider.auth, provider.id).some(method => method.type === "oauth")) {
+    if (type === "oauth" && !provider.auth.oauth) {
       throw new Error("这个提供方不支持登录");
     }
     if (type === "api_key" && !provider.auth.apiKey?.login) throw new Error("这个提供方不支持填写密钥");
@@ -511,7 +597,13 @@ export class ModelDirectory {
     const abort = new AbortController();
     this.loginAbort = abort;
     try {
-      await this.runtime.login(providerId, type, this.interaction(abort.signal));
+      const builtinId = this.profiles.get(providerId)?.account?.builtinId ?? providerId;
+      const installationId = builtinId === "openai" && type === "oauth"
+        ? await openAIInstallationId(this.dir)
+        : undefined;
+      await this.runtime.login(providerId, type, this.interaction(abort.signal),
+        installationId ? { agentName: "Vela", getDeviceId: () => installationId } : undefined);
+      this.emit({ type: "catalog" });
       return abort.signal.aborted ? "cancelled" : "ok";
     } catch (error) {
       if (abort.signal.aborted || isCancelled(error)) return "cancelled";
@@ -798,12 +890,10 @@ function summarizeModel(model: Model<Api>, providerName: string, available: bool
   };
 }
 
-function authMethods(auth: { apiKey?: { name?: string; login?: unknown }; oauth?: { name?: string; loginLabel?: string } }, providerId: string): AuthMethodSummary[] {
+function authMethods(auth: { apiKey?: { name?: string; login?: unknown }; oauth?: { name?: string; loginLabel?: string } }): AuthMethodSummary[] {
   const methods: AuthMethodSummary[] = [];
   if (auth.apiKey?.login) methods.push({ type: "api_key", label: auth.apiKey.name || "API 密钥" });
-  // Pi 1.0's new OpenAI ChatGPT flow requires host-managed installation identity.
-  // Preserve Vela's API-key / openai-codex flows until that login is integrated.
-  if (auth.oauth && providerId !== "openai") methods.push({ type: "oauth", label: auth.oauth.loginLabel || auth.oauth.name || "登录" });
+  if (auth.oauth) methods.push({ type: "oauth", label: auth.oauth.loginLabel || auth.oauth.name || "登录" });
   return methods;
 }
 
@@ -923,6 +1013,29 @@ function httpUrl(value: string): string | null {
 
 function clip(value: string, max: number): string {
   return value.length > max ? `${value.slice(0, max)}…` : value;
+}
+
+async function openAIInstallationId(dir: string): Promise<string> {
+  const path = join(dir, "openai-installation-id");
+  try {
+    return (await readFile(path, "utf8")).trim();
+  } catch (error) {
+    if (!isMissingFile(error)) throw error;
+  }
+
+  // Publish a complete ID atomically, even when two Vela processes first sign in together.
+  const id = randomUUID();
+  const temporary = `${path}.${id}.tmp`;
+  await writeFile(temporary, id, { mode: 0o600, flag: "wx" });
+  try {
+    await link(temporary, path);
+    return id;
+  } catch (error) {
+    if (!(error instanceof Error && "code" in error && error.code === "EEXIST")) throw error;
+    return (await readFile(path, "utf8")).trim();
+  } finally {
+    await unlink(temporary);
+  }
 }
 
 async function writePrivateJson(path: string, value: unknown): Promise<void> {

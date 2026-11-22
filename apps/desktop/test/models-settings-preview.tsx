@@ -66,6 +66,31 @@ function Harness() {
     actionError: null,
     refreshing,
     refreshFromPi: async () => { setRefreshing(true); await delay(900); setRefreshing(false); return { catalog, offline: false, errors: [] }; },
+    addProviderAccount: async (builtinId: string) => {
+      const base = catalog.providers.find(item => item.id === builtinId)!;
+      if (!base.stored && !base.authenticated && !base.note) return builtinId;
+      const id = `${builtinId}@${crypto.randomUUID()}`;
+      const number = catalog.providers.filter(item => item.builtinId === builtinId).length + 2;
+      setCatalog(current => ({ ...current, providers: [...current.providers,
+        { ...base, id, name: `${base.name} #${number}`, builtinId, note: undefined, authenticated: false, stored: false, authSource: null }],
+        models: [...current.models, ...current.models.filter(m => m.provider === builtinId).map(m => ({
+          ...m, provider: id, providerName: `${base.name} #${number}`, available: false,
+        }))] }));
+      return id;
+    },
+    setProviderNote: async (id: string, note: string) => {
+      setCatalog(current => ({ ...current, providers: current.providers.map(p => p.id === id ? { ...p, note } : p) }));
+      return null;
+    },
+    removeProviderAccount: async (id: string) => {
+      setCatalog(current => ({ ...current,
+        providers: current.providers.filter(p => p.id !== id || !p.builtinId)
+          .map(p => p.id === id ? { ...p, note: "", authenticated: false, stored: false } : p),
+        models: current.models.filter(m => m.provider !== id || !current.providers.find(p => p.id === id)?.builtinId)
+          .map(m => m.provider === id ? { ...m, available: false } : m),
+      }));
+      return null;
+    },
     register: async (input: CustomModelInput) => {
       await delay();
       if (!input.baseUrl.startsWith("http")) return "接口地址需要以 http:// 或 https:// 开头";
@@ -95,7 +120,7 @@ function Harness() {
       return null;
     },
     logout: async (providerId: string) => setCatalog((current) => ({ ...current, providers: current.providers.map((item) => item.id === providerId ? { ...item, authenticated: false, stored: false } : item) })),
-    loginProvider: async (providerId: string) => { await delay(); setCatalog((current) => ({ ...current, providers: current.providers.map((item) => item.id === providerId ? { ...item, authenticated: true, stored: true, authSource: "stored" } : item) })); },
+    loginProvider: async (providerId: string) => { await delay(); setCatalog((current) => ({ ...current, providers: current.providers.map((item) => item.id === providerId ? { ...item, authenticated: true, stored: true, authSource: "stored" } : item), models: current.models.map(m => m.provider === providerId ? { ...m, available: true } : m) })); },
   } as unknown as ReturnType<typeof useModels>;
   const copy = settingsCopy(prefs.locale);
   return (

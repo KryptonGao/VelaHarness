@@ -13,7 +13,7 @@ import { readModelHint, writeModelHint } from "../startup-hint";
 import { useFloatingChatDrag } from "../hooks/useFloatingChatDrag";
 import { useSecondClock } from "../hooks/useSecondClock";
 import { finishTurnQuota, startTurnQuota, useTurnQuota } from "../hooks/useTurnQuota";
-import { usageLimitProvider } from "../hooks/useUsageLimits";
+import { quotaProviderId } from "../hooks/useUsageLimits";
 import { TurnQuotaPill } from "./TurnQuotaPill";
 import { speakReply, stopSpeaking, useSpeechPlayback, useSpeechState } from "../hooks/useSpeech";
 import { trackEnteredMessages, type EnterTrack } from "./message-motion";
@@ -199,12 +199,12 @@ function formatWholeSeconds(ms: number): string {
  * 运行中的轮次在最终回复出现前显示“已处理 xx”。回复完成后这一行会被
  * CompletedAssistantTurn 的“用时 xx”触发器接替,位置与分界线保持不变。
  */
-function TurnProgressHeader({ startedAt, quota }: { startedAt: number; quota: boolean }) {
+function TurnProgressHeader({ startedAt, quota }: { startedAt: number; quota: string | null }) {
   const now = useSecondClock();
   const windows = useTurnQuota(startedAt);
   useEffect(() => {
     if (!quota) return;
-    startTurnQuota(startedAt);
+    startTurnQuota(startedAt, quota);
     // 本轮结束（或离开这一轮）时补读最终额度。
     return () => finishTurnQuota(startedAt);
   }, [quota, startedAt]);
@@ -1181,7 +1181,7 @@ export function ChatView({
                   />
                 ) : turn.assistants.length > 0 ? (
                   <div className="assistant-live-turn" data-turn-id={!turn.user ? turn.id : undefined}>
-                    {liveStartedAt !== undefined ? <TurnProgressHeader startedAt={liveStartedAt} quota={session?.modelProvider === usageLimitProvider} /> : null}
+                    {liveStartedAt !== undefined ? <TurnProgressHeader startedAt={liveStartedAt} quota={quotaProviderId(session?.modelProvider)} /> : null}
                     {toolFold === "position" || (groupsByReply(thinkingGroupMode) && turn.assistants.some(supportsThinkingGroups)) ? (
                       <article className="assistant-block">
                         <ToolSequence

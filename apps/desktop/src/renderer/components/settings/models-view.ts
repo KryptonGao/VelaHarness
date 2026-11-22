@@ -1,4 +1,9 @@
-import type { AuthSource, ModelSummary, ProviderSummary } from "@vela/shared";
+import type { AuthMethodSummary, AuthSource, ModelSummary, ProviderSummary } from "@vela/shared";
+import type { SettingsCopy } from "../settings-copy";
+
+export function loginMethodLabel(method: AuthMethodSummary, copy: SettingsCopy["models"], fallback: string): string {
+  return method.label === "Sign in with ChatGPT" ? copy.chatgptLogin : fallback;
+}
 
 export type ProviderStatus = "connected" | "attention" | "disconnected";
 
@@ -14,12 +19,11 @@ export function providerStatus(provider: ProviderSummary): ProviderStatus {
  * 以及这次在「添加供应商」里刚挑出来、还没来得及登录的。其余内置提供方只出现在添加页。
  */
 export function listedProviders(providers: ProviderSummary[], picked: ReadonlySet<string>): ProviderSummary[] {
-  return providers.filter((provider) => provider.custom || providerStatus(provider) !== "disconnected" || picked.has(provider.id));
+  return providers.filter((provider) => provider.custom || provider.builtinId || provider.note || providerStatus(provider) !== "disconnected" || picked.has(provider.id));
 }
 
-export function unlistedBuiltins(providers: ProviderSummary[], picked: ReadonlySet<string>): ProviderSummary[] {
-  const listed = new Set(listedProviders(providers, picked).map((provider) => provider.id));
-  return providers.filter((provider) => !listed.has(provider.id) && !provider.custom);
+export function builtinTemplates(providers: ProviderSummary[]): ProviderSummary[] {
+  return providers.filter((provider) => !provider.custom && !provider.builtinId && provider.methods.length > 0);
 }
 
 /** 内置提供方在前,自定义在后;组内保持目录给出的顺序。 */

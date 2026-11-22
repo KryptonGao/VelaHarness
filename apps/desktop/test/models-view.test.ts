@@ -10,7 +10,7 @@ import {
   providerMonogram,
   providerStatus,
   resolveSelection,
-  unlistedBuiltins,
+  builtinTemplates,
 } from "../src/renderer/components/settings/models-view.ts";
 
 const provider = (id: string, patch: Partial<ProviderSummary> = {}): ProviderSummary => ({
@@ -20,7 +20,7 @@ const provider = (id: string, patch: Partial<ProviderSummary> = {}): ProviderSum
   stored: false,
   custom: false,
   authSource: null,
-  methods: [],
+  methods: [{ type: "api_key", label: "API key" }],
   endpoint: null,
   modelCount: 0,
   ...patch,
@@ -47,9 +47,11 @@ test("the list keeps connected and custom providers and the ones just picked", (
   assert.deepEqual(listedProviders(providers, new Set(["google"])).map((item) => item.id), ["anthropic", "openai", "copilot", "google", "deepseek", "ollama"]);
 });
 
-test("the add page offers only built-in providers that are not listed yet", () => {
-  assert.deepEqual(unlistedBuiltins(providers, new Set()).map((item) => item.id), ["google"]);
-  assert.deepEqual(unlistedBuiltins(providers, new Set(["google"])), []);
+test("adding offers each built-in once, including providers with existing accounts", () => {
+  const duplicate = provider("anthropic@id", { builtinId: "anthropic" });
+  const noted = provider("zai", { note: "Work" });
+  assert.deepEqual(builtinTemplates([...providers, duplicate]).map(item => item.id), ["anthropic", "openai", "copilot", "google"]);
+  assert.deepEqual(listedProviders([duplicate, noted], new Set()), [duplicate, noted]);
 });
 
 test("listed providers split into built-in and custom groups in order", () => {

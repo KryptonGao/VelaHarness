@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { providerDisplayName } from "@vela/shared";
+import { useRef, useState } from "react";
 import type { useModels } from "../../hooks/useModels";
 import type { PreferencesApi } from "../../hooks/usePreferences";
 import { localizeError } from "../../locale";
@@ -6,7 +7,7 @@ import type { SettingsCopy } from "../settings-copy";
 import { AddProviderPicker } from "./AddProviderPicker";
 import { CustomProviderForm } from "./CustomProviderForm";
 import { ProviderLogo } from "./models-parts";
-import { groupListed, listedProviders, providerStatus, resolveSelection, unlistedBuiltins } from "./models-view";
+import { groupListed, listedProviders, providerStatus, resolveSelection, builtinTemplates } from "./models-view";
 import { ProviderDetail } from "./ProviderDetail";
 import { Icon } from "../icons";
 
@@ -18,6 +19,8 @@ export function ModelsPage({ copy, models, preferences }: { copy: SettingsCopy; 
   const catalog = models.catalog;
   const providers = catalog?.providers ?? [];
   const [view, setView] = useState<"list" | "add">("list");
+  const freshAccount = useRef<string | null>(null);
+  const [adding, setAdding] = useState(false);
   const [drafting, setDrafting] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
   const [picked, setPicked] = useState<ReadonlySet<string>>(new Set());
@@ -39,8 +42,25 @@ export function ModelsPage({ copy, models, preferences }: { copy: SettingsCopy; 
   }
 
   function select(providerId: string): void {
+    freshAccount.current = null;
     setDrafting(false);
     setSelected(providerId);
+  }
+
+  async function pickBuiltin(builtinId: string) {
+    setAdding(true);
+    try {
+      const id = await models.addProviderAccount(builtinId);
+      if (id) {
+        setPicked(current => new Set(current).add(id));
+        select(id);
+        if (id !== builtinId) freshAccount.current = id;
+        setView("list");
+      }
+      return id;
+    } finally {
+      setAdding(false);
+    }
   }
 
   if (view === "add") {
@@ -48,13 +68,11 @@ export function ModelsPage({ copy, models, preferences }: { copy: SettingsCopy; 
       <section className="settings-section models-page">
         <AddProviderPicker
           copy={copy}
-          builtins={unlistedBuiltins(providers, picked)}
+          builtins={builtinTemplates(providers)}
+          busy={adding}
+          error={models.actionError && localizeError(models.actionError)}
           onBack={() => setView("list")}
-          onPick={(providerId) => {
-            setPicked((current) => new Set(current).add(providerId));
-            select(providerId);
-            setView("list");
-          }}
+          onPick={(id) => void pickBuiltin(id)}
           onCustom={() => {
             setDrafting(true);
             setView("list");
@@ -76,7 +94,10 @@ export function ModelsPage({ copy, models, preferences }: { copy: SettingsCopy; 
         onClick={() => select(provider.id)}
       >
         <ProviderLogo provider={provider} />
-        <span className="models-provider-name">{provider.name}</span>
+        <span className="models-provider-copy" title={providerDisplayName(provider)}>
+          <span className="models-provider-name">{provider.name}</span>
+          {provider.note && <span className="models-provider-note">{provider.note}</span>}
+        </span>
         <span
           className={`models-dot ${status}`}
           title={status === "connected" ? text.connectedStatus : status === "attention" ? text.attentionStatus : text.disconnectedStatus}
@@ -157,7 +178,25 @@ export function ModelsPage({ copy, models, preferences }: { copy: SettingsCopy; 
                 providerModels={(catalog?.models ?? []).filter((model) => model.provider === active.id)}
                 models={models}
                 preferences={preferences}
-                onRemoved={() => setSelected(null)}
+                onLogin={async (id, method) => {
+                  const unused = freshAccount.current === active.id && !active.stored && !active.note;
+                  freshAccount.current = null;
+                  const target = id === active.id ? id : await pickBuiltin(id);
+                  if (!target) return;
+                  if (target !== active.id && unused) {
+                    await models.removeProviderAccount(active.id);
+                  }
+                  freshAccount.current = null;
+                  void models.loginProvider(target, method);
+                }}
+                onRemoved={() => {
+                  setPicked(current => {
+                    const next = new Set(current);
+                    next.delete(active.id);
+                    return next;
+                  });
+                  setSelected(null);
+                }}
               />
             ) : null}
           </div>

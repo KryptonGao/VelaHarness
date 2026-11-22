@@ -291,6 +291,16 @@ export class SessionHost {
       await this.runtime.addModel(parseCustomModel(raw));
       return this.currentState();
     });
+    ipcMain.handle(IpcChannel.addProviderAccount, (_event, id: unknown) => this.runtime.addProviderAccount(parseId(id, "提供方")));
+    ipcMain.handle(IpcChannel.setProviderNote, async (_event, id: unknown, note: unknown) => {
+      if (typeof note !== "string") throw new Error("供应商备注不正确");
+      await this.runtime.setProviderNote(parseId(id, "提供方"), note);
+      return this.currentState();
+    });
+    ipcMain.handle(IpcChannel.removeProviderAccount, async (_event, id: unknown) => {
+      await this.runtime.removeProviderAccount(parseId(id, "提供方"));
+      return this.currentState();
+    });
     ipcMain.handle(IpcChannel.registerModel, async (_event, raw: unknown) => {
       await this.runtime.registerModel(parseCustomModel(raw));
       return this.currentState();

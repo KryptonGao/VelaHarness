@@ -1092,6 +1092,21 @@
   font-size: calc(15px * var(--ui-scale));
 }
 .sheet-footer { padding: 8px 16px 16px; justify-content: flex-end; }
+.provider-login-choice {
+  margin: auto;
+  width: min(460px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  padding: 0;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-dock);
+  font: inherit;
+}
+.provider-login-choice::backdrop { background: var(--overlay); }
+.provider-login-choice p { margin: 4px 16px 12px; line-height: 1.5; }
+.provider-login-choice .sheet-footer { flex-wrap: wrap; }
 .login-card { z-index: 50; }
 .login-body,
 .login-options,

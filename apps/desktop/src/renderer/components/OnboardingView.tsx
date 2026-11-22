@@ -1,14 +1,13 @@
 import { appLocaleNames, type ReleaseNotes } from "@vela/shared";
 import {
   customModelApis,
+  providerDisplayName,
   thinkingLevels,
   type AgentSettings,
-  type AuthMethodType,
   type CustomModelInput,
   type ExternalSkillCandidate,
   type ExternalSkillScan,
   type ExternalSkillSource,
-  type ProviderSummary,
   type ResidentSettings,
   type SkillMigrationResult,
   type ThinkingLevel,
@@ -39,6 +38,8 @@ import { Label, Note, Opt, fill } from "./onboarding-ui";
 import { modeLabel } from "./resident-agent-model";
 import type { SettingsPageId } from "./settings/settings-registry";
 import { CustomReasoningFields } from "./settings/CustomReasoningFields";
+import { loginMethodLabel } from "./settings/models-view";
+import { ProviderLoginButton } from "./ProviderLoginButton";
 import { LoginDialog } from "./ModelControls";
 import { SheetPresence } from "./Presence";
 import "../onboarding.css";
@@ -145,7 +146,7 @@ export function OnboardingView({ preferences, models, project, mode = "full", in
   const normalizedThinking = clampThinking(modelThinkingLevels, thinkingLevel);
   const connected = Boolean(selectedProvider && (selectedProvider.authenticated || selectedProvider.stored));
   const filteredProviders = providers.filter((provider) =>
-    provider.name.toLocaleLowerCase().includes(providerQuery.trim().toLocaleLowerCase()),
+    providerDisplayName(provider).toLocaleLowerCase().includes(providerQuery.trim().toLocaleLowerCase()),
   );
   const chosenSkills = scan?.skills.filter((skill) => selectedSkills.has(skill.id)) ?? [];
 
@@ -311,14 +312,14 @@ export function OnboardingView({ preferences, models, project, mode = "full", in
     }
   }
 
-  function pickProvider(provider: ProviderSummary): void {
-    setProviderId(provider.id);
+  function pickProvider(id: string): void {
+    setProviderId(id);
     setCustomProviderMode(false);
     setProviderError(null);
-    if (savedAgentSettings?.provider === provider.id && savedAgentSettings.modelId) {
+    if (savedAgentSettings?.provider === id && savedAgentSettings.modelId) {
       setSelectedModelId(savedAgentSettings.modelId);
     } else {
-      const first = models.catalog?.models.find((model) => model.provider === provider.id && model.available);
+      const first = models.catalog?.models.find((model) => model.provider === id && model.available);
       setSelectedModelId(first?.id ?? "");
     }
   }
@@ -652,9 +653,9 @@ export function OnboardingView({ preferences, models, project, mode = "full", in
                   const isConnected = provider.authenticated || provider.stored;
                   const count = models.catalog?.models.filter((model) => model.provider === provider.id && model.available).length ?? 0;
                   return (
-                    <Opt key={provider.id} className="provider" selected={providerId === provider.id} onClick={() => pickProvider(provider)}>
+                    <Opt key={provider.id} className="provider" selected={providerId === provider.id} onClick={() => pickProvider(provider.id)}>
                       <u style={{ background: providerColors[index % providerColors.length] }}>{provider.name.slice(0, 1).toLocaleUpperCase()}</u>
-                      <span className="info"><b>{provider.name}</b><span>{copy.providerModelCount(count)}</span></span>
+                      <span className="info"><b>{providerDisplayName(provider)}</b><span>{copy.providerModelCount(count)}</span></span>
                       <em className={isConnected ? "" : "n"}>{isConnected ? copy.providerConnected : copy.providerNeedsConnection}</em>
                     </Opt>
                   );
@@ -664,13 +665,25 @@ export function OnboardingView({ preferences, models, project, mode = "full", in
             ) : null}
             {selectedProvider && !customProviderMode ? (
               <div className="ob-sheet provider-detail tilt-l">
-                <div className="head"><b>{selectedProvider.name}</b>{connected ? <span className="ob-count">{copy.providerConnected}</span> : null}</div>
+                <div className="head"><b>{providerDisplayName(selectedProvider)}</b>{connected ? <span className="ob-count">{copy.providerConnected}</span> : null}</div>
                 {!selectedProvider.custom ? (
                   <div className="methods">
                     {selectedProvider.methods.map((method) => (
-                      <button key={method.type} type="button" className={`ob-pill${method.type === "oauth" ? " fill" : ""}`} onClick={() => void models.loginProvider(selectedProvider.id, method.type as AuthMethodType)}>
-                        {method.type === "oauth" ? settings.models.login : settings.models.apiKey}
-                      </button>
+                      <ProviderLoginButton key={method.type} providerId={selectedProvider.id} builtinId={selectedProvider.builtinId} method={method.type} copy={settings.models}
+                        className={`ob-pill${method.type === "oauth" ? " fill" : ""}`}
+                        onLogin={async (id, type) => {
+                          if (id === selectedProvider.id) {
+                            void models.loginProvider(id, type);
+                            return;
+                          }
+                          const target = await models.addProviderAccount(id);
+                          if (target) {
+                            pickProvider(target);
+                            void models.loginProvider(target, type);
+                          }
+                        }}>
+                        {method.type === "oauth" ? loginMethodLabel(method, settings.models, settings.models.login) : settings.models.apiKey}
+                      </ProviderLoginButton>
                     ))}
                     {selectedProvider.methods.length === 0 && !connected ? <small>{copy.providerNeedsConnection}</small> : null}
                   </div>

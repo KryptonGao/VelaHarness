@@ -75,8 +75,9 @@ function normalize(value: string): string {
 }
 
 /** 找不到对应图标时返回 null,调用方退回通用图标或首字母头像。 */
-export function providerIconName(provider: { id?: string; name: string }): string | null {
-  if (provider.id && byId[provider.id]) return byId[provider.id];
+export function providerIconName(provider: { id?: string; builtinId?: string; name: string }): string | null {
+  const brand = provider.builtinId ?? provider.id;
+  if (brand && byId[brand]) return byId[brand];
   const key = normalize(provider.name);
   if (byName[key]) return byName[key];
   const id = provider.id ? normalize(provider.id) : "";

@@ -2052,6 +2052,31 @@ export class AgentRuntime {
     });
   }
 
+  addProviderAccount(builtinId: string): Promise<string> {
+    return this.exclusive(async () => (await this.readyDirectory()).addProviderAccount(builtinId));
+  }
+
+  setProviderNote(id: string, note: string): Promise<void> {
+    return this.exclusive(async () => {
+      await (await this.readyDirectory()).setProviderNote(id, note);
+      for (const entry of this.conversations.values()) {
+        if (entry.session?.model?.provider === id) this.syncFromSession(entry);
+      }
+    });
+  }
+
+  removeProviderAccount(id: string): Promise<void> {
+    return this.exclusive(async () => {
+      const directory = await this.readyDirectory();
+      await directory.removeProviderAccount(id);
+      for (const entry of this.conversations.values()) {
+        if (entry.session?.model?.provider !== id) continue;
+        if (!directory.isAvailable(entry.session.model)) clearSessionModel(entry.session);
+        this.syncFromSession(entry);
+      }
+    });
+  }
+
   logout(providerId: string): Promise<SessionSnapshot> {
     return this.exclusive(async () => {
       const directory = await this.readyDirectory();
@@ -2066,7 +2091,11 @@ export class AgentRuntime {
     return this.exclusive(async () => {
       const directory = await this.readyDirectory();
       const result = await directory.login(providerId, type);
-      if (result === "ok") await this.applySavedModel();
+      if (result === "ok") {
+        const active = this.activeConversation();
+        if (active?.session?.model && directory.isAvailable(active.session.model)) this.syncFromSession(active);
+        else await this.applySavedModel();
+      }
       return result;
     });
   }

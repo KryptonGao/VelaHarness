@@ -712,6 +712,9 @@ function groupModels(
 }
 
 const knownText: Record<string, [string, string]> = {
+  "Complete sign-in in your browser. If the callback does not complete, paste the final redirect URL here.": ["在浏览器中完成登录。如果未自动返回，请将最终跳转的网址粘贴到这里。", "Complete sign-in in your browser. If the callback does not complete, paste the final redirect URL here."],
+  "Complete login in your browser, or paste the final redirect URL here:": ["在浏览器中完成登录，或粘贴最终跳转的网址", "Complete login in your browser, or paste the final redirect URL here:"],
+  "Exchanging authorization code for tokens...": ["正在验证授权码…", "Exchanging authorization code for tokens..."],
   "Select OpenAI Codex login method:": ["选择 Codex 登录方式", "Select a Codex sign-in method"],
   "Browser login (default)": ["浏览器登录", "Sign in with browser (default)"],
   "Device code login (headless)": ["设备码登录", "Sign in with device code (headless)"],

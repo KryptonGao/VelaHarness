@@ -1076,7 +1076,7 @@ export function App() {
           </ScreenPresence>
           <ScreenPresence present={onboardingComplete} className="app-screen-main">
             <div className={`vela-window platform-${platform}${railMode ? " nav-rail-layout" : ""}${fullscreen ? " workbench-fullscreen" : ""}${railAway ? " rail-away" : ""}${leftCollapsed || railAway ? " left-collapsed" : ""}${!contextSidebarOpen ? " right-collapsed" : ""}${floatingInfo ? " layout-floating" : ""}`}>
-              {railMode ? <NavRail active={navCategory} platform={platform} agentInboxBadge={agentInbox.badge} onSelect={selectNavCategory} /> : null}
+              {railMode ? <NavRail active={navCategory} modelProvider={session.state?.session.modelProvider} platform={platform} agentInboxBadge={agentInbox.badge} onSelect={selectNavCategory} /> : null}
               <Sidebar
                 prInboxOpen={prInboxOpen}
                 onOpenPrInbox={openPrInbox}

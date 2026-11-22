@@ -1,6 +1,7 @@
 import type { AgentRuntime } from "@vela/agent";
 import {
   productionSyncCategories,
+  parseProviderProfile,
   type ProductionSyncBatch,
   type ProductionSyncCategory,
   type ProductionSyncCategoryResult,
@@ -60,7 +61,7 @@ interface ApplyContext {
 }
 
 /** 需要重启开发版才会生效的文件：对应服务在启动时读取并缓存。 */
-const restartFiles = new Set(["vela-settings.json", "selection.json"]);
+const restartFiles = new Set(["vela-settings.json", "selection.json", "provider-profiles.json"]);
 const settingsKeys: ReadonlyArray<readonly [string, readonly string[]]> = [
   ["vela-settings.json", ["sandboxMode"]],
   ["selection.json", ["thinkingLevel", "newConversationSelection", "instructions"]],
@@ -307,6 +308,14 @@ async function planModels(source: string, destination: string): Promise<Plan> {
         entries.push({ file: "models.json", path: ["providers", id], value, mode: "missing" });
         if (hadSecrets) stripped.add(id);
       }
+    }
+  } catch (error) { if (!(error instanceof UnsafeSource)) throw error; unavailable++; }
+  try {
+    const profiles = await readSourceObject(source, "provider-profiles.json");
+    for (const [id, raw] of Object.entries(profiles ?? {})) {
+      const profile = parseProviderProfile(id, raw);
+      if (profile) entries.push({ file: "provider-profiles.json", path: [id], value: profile, mode: "missing" });
+      else unavailable++;
     }
   } catch (error) { if (!(error instanceof UnsafeSource)) throw error; unavailable++; }
   const plan = await entryPlan(destination, entries, { unavailable });

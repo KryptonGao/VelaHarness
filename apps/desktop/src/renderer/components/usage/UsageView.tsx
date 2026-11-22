@@ -1,5 +1,5 @@
 import { useId, useMemo, useState } from "react";
-import { formatCost, hasCost, type CostByCurrency, type ProviderSummary, type TraceAgentRequest, type TraceRequest, type TraceSummaryRequest } from "@vela/shared";
+import { providerDisplayName, formatCost, hasCost, type CostByCurrency, type ProviderSummary, type TraceAgentRequest, type TraceRequest, type TraceSummaryRequest } from "@vela/shared";
 import { useTrace } from "../../hooks/useTrace";
 import { useModelPrices } from "../../model-prices";
 import { localizeError, tr, trf, activeIntlLocale, getActiveLocale } from "../../locale";
@@ -105,7 +105,7 @@ export function UsageReport({ requests, agentRequests = [], summaries = [], prov
     return summarizeCost(summarizeUsage([...latest, ...latestTaskAgentRequests(latest, agentRequests)]).models, prices);
   }, [requests, agentRequests, prices, settings]);
   const summaryStats = useMemo(() => summarizeUsage(summaries), [summaries]);
-  const providerNames = useMemo(() => new Map(providers.map(provider => [provider.id, provider.name])), [providers]);
+  const providerNames = useMemo(() => new Map(providers.map(provider => [provider.id, providerDisplayName(provider)])), [providers]);
   const providerName = (id: string) => providerNames.get(id) ?? (id || tr("未知提供方", "Unknown provider"));
   const [tab, setTab] = useState<UsageTab>("overview");
   const [search, setSearch] = useState("");

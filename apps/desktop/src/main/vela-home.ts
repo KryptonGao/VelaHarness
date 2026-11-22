@@ -6,7 +6,7 @@ import { createLogger } from "@vela/shared";
 
 const log = createLogger("home");
 
-const agentFiles = ["auth.json", "models.json", "selection.json"] as const;
+const agentFiles = ["auth.json", "models.json", "selection.json", "provider-profiles.json"] as const;
 
 /** 安装版使用 ~/.vela，源码开发版使用 ~/.vela-dev。 */
 export function resolveVelaHome(isPackaged = true): string {

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { Server } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it, type TestContext } from "node:test";
@@ -253,9 +254,51 @@ describe("released Pi SDK compatibility", () => {
     assert.equal(await readFile(join(root, "auth.json"), "utf8"), auth);
     const catalog = await directory.catalog();
     assert.equal(catalog.providers.some(provider => provider.id === "typesafe"), false);
-    assert.deepEqual(catalog.providers.find(provider => provider.id === "openai")?.methods.map(method => method.type), ["api_key"]);
+    assert.deepEqual(catalog.providers.find(provider => provider.id === "openai")?.methods.map(method => method.type), ["api_key", "oauth"]);
     assert.ok(catalog.providers.find(provider => provider.id === "openai-codex")?.methods.some(method => method.type === "oauth"));
-    await assert.rejects(directory.login("openai", "oauth"), /不支持登录/);
     assert.equal(await readFile(join(root, "auth.json"), "utf8"), auth);
+  });
+
+  it("signs in through OpenAI with a stable Vela identity and keeps the credential after a cancelled reconnect", async t => {
+    const root = await mkdtemp(join(tmpdir(), "vela-chatgpt-"));
+    t.after(() => rm(root, { recursive: true, force: true }));
+    // Exercise Pi's manual redirect flow without reserving the user's OAuth callback port.
+    const listen = Server.prototype.listen;
+    t.mock.method(Server.prototype, "listen", function (this: Server, _port: number, host: string, ready: () => void) {
+      return Reflect.apply(listen, this, [0, host, ready]);
+    });
+    const exchange = t.mock.method(globalThis, "fetch", async (url: string, init: RequestInit) => {
+      assert.equal(String(url), "https://auth.openai.com/api/accounts/oauth/token");
+      const body = new URLSearchParams(String(init.body));
+      assert.equal(body.get("client_id"), "test-client");
+      assert.equal(body.get("code"), "test-code");
+      return Response.json({ access_token: hostIds.length > 2 ? "second-access" : "test-access", refresh_token: "test-refresh", id_token: "test-id",
+        scope: "chatgpt.tokens.use.direct", expires_in: 3600 });
+    });
+    const hostIds: string[] = [];
+    for (const scenario of ["initial", "cancel", "additional"]) {
+      const directory = await ModelDirectory.open(root);
+      const providerId = scenario === "additional" ? await directory.addProviderAccount("openai") : "openai";
+      let redirect: URL;
+      directory.subscribeAuth(event => {
+        if (event.type === "notice" && event.notice.type === "auth_url") {
+          const params = new URL(event.notice.url).searchParams;
+          assert.equal(params.get("agent_name_hint"), "Vela");
+          const hostId = params.get("ext_agent_host_id") ?? "";
+          assert.match(hostId, /^urn:uuid:[0-9a-f-]{36}$/);
+          hostIds.push(hostId);
+          redirect = new URL(params.get("redirect_uri")!);
+          redirect.search = new URLSearchParams({ state: params.get("state")!, code: "test-code", client_id: "test-client" }).toString();
+        } else if (event.type === "prompt") {
+          directory.replyLogin(event.request.id, scenario === "cancel" ? null : redirect.href);
+        }
+      });
+      assert.equal(await directory.login(providerId, "oauth"), scenario === "cancel" ? "cancelled" : "ok");
+      if (scenario === "additional") assert.equal((await directory.runtime.getAuth(providerId))?.auth.apiKey, "second-access");
+      assert.equal((await directory.runtime.getAuth("openai"))?.auth.apiKey, "test-access");
+    }
+    assert.equal(exchange.mock.callCount(), 2);
+    assert.equal(hostIds.length, 3);
+    assert.equal(new Set(hostIds).size, 1);
   });
 });

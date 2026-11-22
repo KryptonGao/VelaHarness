@@ -1,6 +1,9 @@
 import { hooksKo } from "./hooks";
 import { workspaceOverviewKo } from "./workspace-overview";
 const messages: Record<string, string> = {
+  "供应商备注": "공급자 메모",
+  "例如：工作账号": "예: 업무용 계정",
+  "暂无可添加的内置提供方。": "추가할 수 있는 기본 제공 공급자가 없습니다.",
   "调整聊天浮窗高度": "플로팅 채팅 창 높이 조절",
   "隐藏聊天浮窗": "플로팅 채팅 창 숨기기",
   "显示聊天浮窗": "플로팅 채팅 창 표시",
@@ -2079,6 +2082,14 @@ const messages: Record<string, string> = {
   "环境变量": "환경 변수",
   "已保存密钥": "저장된 API 키",
   "未登录": "로그인 안 됨",
+  "选择 OpenAI 登录方式": "OpenAI 로그인 방식 선택",
+  "建议使用 OpenAI Codex OAuth，方便在 Vela 中查看剩余额度。使用 ChatGPT 登录时，Vela 无法查询剩余额度。": "Vela에서 남은 사용량을 확인하려면 OpenAI Codex OAuth를 권장합니다. ChatGPT로 로그인하면 Vela에서 남은 사용량을 조회할 수 없습니다.",
+  "继续使用 ChatGPT 登录": "ChatGPT로 계속",
+  "使用 OpenAI Codex OAuth": "OpenAI Codex OAuth 사용",
+  "使用 ChatGPT 登录": "ChatGPT로 로그인",
+  "在浏览器中完成登录。如果未自动返回，请将最终跳转的网址粘贴到这里。": "브라우저에서 로그인하세요. 자동으로 돌아오지 않으면 마지막으로 이동한 URL을 여기에 붙여 넣으세요.",
+  "在浏览器中完成登录，或粘贴最终跳转的网址": "브라우저에서 로그인하거나 마지막으로 이동한 URL을 붙여 넣으세요",
+  "正在验证授权码…": "인증 코드를 확인하는 중…",
   "选择 Codex 登录方式": "Codex 로그인 방식 선택",
   "浏览器登录": "브라우저 로그인",
   "设备码登录": "기기 코드 로그인",

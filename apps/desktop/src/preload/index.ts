@@ -498,6 +498,9 @@ const api: VelaApi = {
   selectModel: (provider, id, conversationId) => ipcRenderer.invoke(IpcChannel.selectModel, provider, id, conversationId) as Promise<AppState>,
   setThinkingLevel: (level, conversationId) => ipcRenderer.invoke(IpcChannel.setThinkingLevel, level, conversationId) as Promise<AppState>,
   addModel: (input: CustomModelInput) => ipcRenderer.invoke(IpcChannel.addModel, input) as Promise<AppState>,
+  addProviderAccount: (id) => ipcRenderer.invoke(IpcChannel.addProviderAccount, id),
+  removeProviderAccount: (id) => ipcRenderer.invoke(IpcChannel.removeProviderAccount, id),
+  setProviderNote: (id, note) => ipcRenderer.invoke(IpcChannel.setProviderNote, id, note),
   registerModel: (input: CustomModelInput) =>
     ipcRenderer.invoke(IpcChannel.registerModel, input) as Promise<AppState>,
   getAgentSettings: () => ipcRenderer.invoke(IpcChannel.getAgentSettings) as Promise<AgentSettings>,

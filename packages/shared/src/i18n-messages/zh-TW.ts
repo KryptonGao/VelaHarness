@@ -1,6 +1,9 @@
 import { hooksZhTW } from "./hooks";
 import { workspaceOverviewZhTW } from "./workspace-overview";
 const messages: Record<string, string> = {
+  "供应商备注": "供應商備註",
+  "例如：工作账号": "例如：工作帳號",
+  "暂无可添加的内置提供方。": "目前沒有可新增的內建供應商。",
   "调整聊天浮窗高度": "調整聊天浮窗高度",
   "隐藏聊天浮窗": "隱藏聊天浮窗",
   "显示聊天浮窗": "顯示聊天浮窗",
@@ -2079,6 +2082,14 @@ const messages: Record<string, string> = {
   "环境变量": "環境變數",
   "已保存密钥": "已儲存密鑰",
   "未登录": "未登入",
+  "选择 OpenAI 登录方式": "選擇 OpenAI 登入方式",
+  "建议使用 OpenAI Codex OAuth，方便在 Vela 中查看剩余额度。使用 ChatGPT 登录时，Vela 无法查询剩余额度。": "建議使用 OpenAI Codex OAuth，方便在 Vela 中查看剩餘額度。使用 ChatGPT 登入時，Vela 無法查詢剩餘額度。",
+  "继续使用 ChatGPT 登录": "繼續使用 ChatGPT 登入",
+  "使用 OpenAI Codex OAuth": "使用 OpenAI Codex OAuth",
+  "使用 ChatGPT 登录": "使用 ChatGPT 登入",
+  "在浏览器中完成登录。如果未自动返回，请将最终跳转的网址粘贴到这里。": "請在瀏覽器中完成登入。如果未自動返回，請將最終重新導向的網址貼到這裡。",
+  "在浏览器中完成登录，或粘贴最终跳转的网址": "在瀏覽器中完成登入，或貼上最終重新導向的網址",
+  "正在验证授权码…": "正在驗證授權碼…",
   "选择 Codex 登录方式": "選擇 Codex 登入方式",
   "浏览器登录": "瀏覽器登入",
   "设备码登录": "設備碼登入",
