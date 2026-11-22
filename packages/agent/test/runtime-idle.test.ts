@@ -77,6 +77,21 @@ describe("createRunConversation", () => {
     assert.equal(entry.titleManuallySet, true);
   });
 
+  it("updates an open conversation when its custom model's reasoning efforts change", async (t) => {
+    const f = await fixture(t);
+    const model = { providerId: "idle-local", providerName: "Idle fixture", modelId: "idle-model", modelName: "",
+      api: "openai-completions" as const, baseUrl: "http://127.0.0.1:1/v1", apiKey: "", reasoning: true, contextWindow: null, maxTokens: null };
+    await f.runtime.registerModel({ ...model, reasoningEfforts: ["low", "xhigh"] });
+    assert.deepEqual(f.runtime.getSnapshot(f.id).thinkingLevels, ["low", "xhigh", "ultra"]);
+    assert.equal(f.entry.session.thinkingLevel, "low");
+    await f.runtime.setThinkingLevel("xhigh", f.id);
+    assert.equal(f.entry.session.model?.thinkingLevelMap?.xhigh, "xhigh");
+    await f.runtime.registerModel({ ...model, reasoningEfforts: ["max"] });
+    assert.equal(f.runtime.getSnapshot(f.id).thinkingLevel, "max");
+    await f.runtime.registerModel({ ...model, reasoningEfforts: [] });
+    assert.equal(f.runtime.getSnapshot(f.id).thinkingLevel, "off");
+  });
+
   it("only offers read access to long-term memory and no recommended actions", async (t) => {
     const f = await fixture(t);
     const tools = f.entry.session.getActiveToolNames();

@@ -171,3 +171,64 @@ describe("subagent model pool settings", () => {
     assert.deepEqual(directory.availableSubagentModels(), []);
   });
 });
+
+describe("custom model reasoning efforts", () => {
+  const input = {
+    providerId: "custom-efforts", providerName: "Custom", baseUrl: "http://127.0.0.1:1/v1",
+    api: "openai-completions" as const, apiKey: "test", modelId: "local", modelName: "",
+    reasoning: true, contextWindow: null, maxTokens: null,
+  };
+
+  it("sends xhigh, clamps missing levels and clears all efforts", async () => {
+    const dir = await tempDir();
+    const directory = await ModelDirectory.open(dir);
+    await directory.addCustom({ ...input, reasoningEfforts: ["max", "xhigh", "low"] });
+    const reopened = await ModelDirectory.open(dir);
+    const model = reopened.requireAvailable(input.providerId, input.modelId);
+    let sentEffort: unknown;
+    await reopened.runtime.completeSimple(model, { messages: [{ role: "user", content: "test", timestamp: 1 }] }, {
+      reasoning: "xhigh",
+      onPayload(payload) {
+        sentEffort = (payload as { reasoning_effort?: unknown }).reasoning_effort;
+        throw new Error("Captured the request before transmission");
+      },
+    });
+    assert.equal(sentEffort, "xhigh");
+    const summary = (await reopened.catalog()).models.find(item => item.provider === input.providerId)!;
+    assert.deepEqual(summary.reasoningEfforts, ["low", "xhigh", "max"]);
+    assert.deepEqual(summary.thinkingLevels, ["low", "xhigh", "max", "ultra"]);
+    const settings = await reopened.saveSettings({ ...reopened.getSettings(), provider: input.providerId, modelId: input.modelId, thinkingLevel: "medium" });
+    assert.equal(settings.thinkingLevel, "xhigh");
+    await directory.addCustom({ ...input, baseUrl: "http://127.0.0.1:2/v1" });
+    assert.equal(directory.requireAvailable(input.providerId, input.modelId).thinkingLevelMap?.xhigh, "xhigh");
+    await directory.addCustom({ ...input, reasoningEfforts: [] });
+    const cleared = (await directory.catalog()).models.find(item => item.provider === input.providerId)!;
+    assert.equal(cleared.reasoning, false);
+    assert.deepEqual(cleared.thinkingLevels, ["off", "ultra"]);
+    assert.deepEqual(cleared.reasoningEfforts, []);
+  });
+
+  it("normalizes an already saved extra-high alias when the model is saved again", async () => {
+    const dir = await tempDir();
+    await writeFile(join(dir, "models.json"), JSON.stringify({ providers: {
+      [input.providerId]: { api: input.api, baseUrl: input.baseUrl, apiKey: input.apiKey,
+        models: [{ id: input.modelId, reasoning: true, thinkingLevelMap: { xhigh: "extra", low: null } }] },
+    } }));
+    const directory = await ModelDirectory.open(dir);
+    await directory.addCustom(input);
+    assert.deepEqual(directory.requireAvailable(input.providerId, input.modelId).thinkingLevelMap, { xhigh: "xhigh", low: null });
+  });
+
+  it("keeps the SDK defaults for legacy models and rejects noncanonical efforts", async () => {
+    const directory = await ModelDirectory.open(await tempDir());
+    await directory.addCustom(input);
+    const summary = (await directory.catalog()).models.find(item => item.provider === input.providerId)!;
+    assert.deepEqual(summary.reasoningEfforts, ["low", "medium", "high"]);
+    assert.ok(summary.thinkingLevels.includes("minimal"));
+    for (const alias of ["extra", "extra high"]) {
+      // @ts-expect-error Validate raw values from untyped clients.
+      await assert.rejects(directory.addCustom({ ...input, reasoningEfforts: [alias] }), /不支持这个思考强度/);
+    }
+    assert.equal(directory.requireAvailable(input.providerId, input.modelId).thinkingLevelMap, undefined);
+  });
+});

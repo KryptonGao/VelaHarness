@@ -2009,7 +2009,7 @@ export class AgentRuntime {
   addModel(input: CustomModelInput): Promise<SessionSnapshot> {
     return this.exclusive(async () => {
       const directory = await this.readyDirectory();
-      const added = await directory.addCustom(input);
+      const added = await this.saveCustomModel(directory, input);
       const model = directory.requireAvailable(added.providerId, added.modelId);
       await this.applyModel(model, clampToModel(model, this.liveThinking(directory)));
       return this.getSnapshot();
@@ -2020,8 +2020,23 @@ export class AgentRuntime {
   registerModel(input: CustomModelInput): Promise<void> {
     return this.exclusive(async () => {
       const directory = await this.readyDirectory();
-      await directory.addCustom(input);
+      await this.saveCustomModel(directory, input);
     });
+  }
+
+  private async saveCustomModel(directory: ModelDirectory, input: CustomModelInput) {
+    const added = await directory.addCustom(input);
+    const updated = directory.runtime.getModel(added.providerId, added.modelId);
+    if (!updated) return added;
+    for (const entry of this.conversations.values()) {
+      const session = entry.session;
+      const current = session?.model;
+      if (!session || !current || current.provider !== updated.provider || current.id !== updated.id) continue;
+      session.agent.state.model = { ...current, reasoning: updated.reasoning, thinkingLevelMap: updated.thinkingLevelMap };
+      this.setEntryThinking(entry, updated, entry.ultra ? "ultra" : session.thinkingLevel);
+      this.syncFromSession(entry);
+    }
+    return added;
   }
 
   removeModel(provider: string, id: string): Promise<SessionSnapshot> {

@@ -2,6 +2,8 @@ import { type Api, type AuthEvent, type AuthInteraction, type AuthPrompt, type A
 import { ModelRuntime } from "@earendil-works/pi-coding-agent";
 import {
   customModelApis,
+  customReasoningLevels,
+  parseCustomReasoningEfforts,
   thinkingLevels,
   type AuthMethodSummary,
   type AuthNotice,
@@ -431,6 +433,18 @@ export class ModelDirectory {
     }
     if (!current && !apiKey) throw new Error("新接口需要填写密钥");
 
+    const efforts = parseCustomReasoningEfforts(input.reasoningEfforts);
+    const existingMap = this.runtime.getModel(providerId, modelId)?.thinkingLevelMap;
+    let thinkingLevelMap: Model<Api>["thinkingLevelMap"];
+    if (efforts) {
+      thinkingLevelMap = { off: null, minimal: null };
+      for (const level of customReasoningLevels) {
+        const wireValue = level === "xhigh" ? level : existingMap?.[level] ?? level;
+        thinkingLevelMap[level] = efforts.includes(level) ? wireValue : null;
+      }
+    } else if (existingMap?.xhigh === "extra" || existingMap?.xhigh === "extra high") {
+      thinkingLevelMap = { ...existingMap, xhigh: "xhigh" };
+    }
     const nextProvider: ProviderRecord = {
       ...(current ?? {}),
       baseUrl,
@@ -439,7 +453,8 @@ export class ModelDirectory {
         id: modelId,
         ...(modelName ? { name: modelName } : {}),
         api,
-        reasoning: input.reasoning,
+        reasoning: efforts ? efforts.length > 0 : input.reasoning,
+        ...(thinkingLevelMap && { thinkingLevelMap }),
         ...(contextWindow ? { contextWindow } : {}),
         ...(maxTokens ? { maxTokens } : {}),
       }),
@@ -767,6 +782,7 @@ function baseName(model: { name?: string; provider: string; id: string }): strin
 }
 
 function summarizeModel(model: Model<Api>, providerName: string, available: boolean, custom: boolean): ModelSummary {
+  const levels = supportedLevels(model);
   return {
     provider: model.provider,
     providerName,
@@ -777,7 +793,8 @@ function summarizeModel(model: Model<Api>, providerName: string, available: bool
     contextWindow: model.contextWindow,
     available,
     custom,
-    thinkingLevels: supportedLevels(model),
+    thinkingLevels: levels,
+    ...(custom && { reasoningEfforts: customReasoningLevels.filter(level => levels.includes(level)) }),
   };
 }
 

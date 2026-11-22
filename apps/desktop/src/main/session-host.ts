@@ -3,6 +3,7 @@ import {
   IpcChannel,
   agentControlActions,
   customModelApis,
+  parseCustomReasoningEfforts,
   type AgentControlAction,
   type AgentStreamEvent,
   type AppState,
@@ -607,6 +608,7 @@ function parseCustomModel(raw: unknown): CustomModelInput {
     modelId: requiredText(record.modelId, "模型 ID"),
     modelName: optionalText(record.modelName),
     reasoning: record.reasoning === true,
+    reasoningEfforts: parseCustomReasoningEfforts(record.reasoningEfforts),
     contextWindow: optionalCount(record.contextWindow),
     maxTokens: optionalCount(record.maxTokens),
   };

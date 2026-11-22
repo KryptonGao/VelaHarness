@@ -528,6 +528,17 @@ export const customModelApis = [
   "google-generative-ai",
 ] as const;
 
+export const customReasoningLevels = ["low", "medium", "high", "xhigh", "max"] as const;
+export type CustomReasoningEffort = (typeof customReasoningLevels)[number];
+
+export function parseCustomReasoningEfforts(value: unknown): CustomReasoningEffort[] | undefined {
+  if (value === undefined) return undefined;
+  if (!Array.isArray(value) || value.some(item => !customReasoningLevels.includes(item))) {
+    throw new Error("不支持这个思考强度");
+  }
+  return customReasoningLevels.filter(level => value.includes(level));
+}
+
 export type CustomModelApi = (typeof customModelApis)[number];
 
 export type AuthMethodType = "api_key" | "oauth";
@@ -551,6 +562,7 @@ export interface ModelSummary {
   contextWindow: number;
   available: boolean;
   custom: boolean;
+  reasoningEfforts?: CustomReasoningEffort[];
   thinkingLevels: ThinkingLevel[];
 }
 
@@ -620,6 +632,8 @@ export interface CustomModelInput {
   modelId: string;
   modelName: string;
   reasoning: boolean;
+  /** When provided, these efforts define the model’s reasoning capability. */
+  reasoningEfforts?: CustomReasoningEffort[];
   contextWindow: number | null;
   maxTokens: number | null;
 }
