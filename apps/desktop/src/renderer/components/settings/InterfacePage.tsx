@@ -8,7 +8,7 @@ import { notificationSoundKinds, type NotifySound } from "../../notification-sou
 import type { SettingsCopy } from "../settings-copy";
 import { setStartPageStyle, startPageStyles, useStartPageStyle, type StartPageStyle } from "../../hooks/useStartPageStyle";
 import { setHomePrompts, useHomePrompts } from "../../hooks/useHomePrompts";
-import { setUsageRingPrefs, useUsageRingPrefs } from "../../hooks/useUsageRingPrefs";
+import { plusUsageWindows, setUsageRingPrefs, useUsageRingPrefs, type PlusUsageWindow } from "../../hooks/useUsageRingPrefs";
 import { UsageRingThresholdControl } from "./UsageRingThresholdControl";
 import { setCombinedModelPicker, useCombinedModelPicker } from "../../hooks/useCombinedModelPicker";
 import { setCombinedModePicker, useCombinedModePicker } from "../../hooks/useCombinedModePicker";
@@ -80,6 +80,9 @@ export function InterfacePage({
   };
   const sidebarItems = useSidebarItems();
   const usageRing = useUsageRingPrefs();
+  const plusWindowLabels: Record<PlusUsageWindow, string> = {
+    lowest: text.usageRingLowest, "5h": text.usageRingFiveHour, "1w": text.usageRingWeekly,
+  };
   const navLayout = useNavLayout();
   const navLayoutLabels: Record<NavLayout, string> = { classic: text.navLayoutClassic, rail: text.navLayoutRail };
   const versionControlLayout = useVersionControlLayout();
@@ -178,6 +181,15 @@ export function InterfacePage({
         </SettingsBlock>
         <SettingsBlock id="usage-ring" title={text.usageRing} hint={text.usageRingHint} layout="inline">
           <SettingsSwitch label={text.usageRing} checked={usageRing.enabled} onChange={enabled => setUsageRingPrefs({ enabled })} />
+        </SettingsBlock>
+        <SettingsBlock id="usage-ring-logo" title={text.usageRingLogo} layout="inline">
+          <SettingsSwitch label={text.usageRingLogo} checked={usageRing.showCodexLogo} disabled={!usageRing.enabled}
+            onChange={showCodexLogo => setUsageRingPrefs({ showCodexLogo })} />
+        </SettingsBlock>
+        <SettingsBlock id="usage-ring-plus-window" title={text.usageRingPlusWindow} layout="inline">
+          <SettingsSelect label={text.usageRingPlusWindow} value={usageRing.plusWindow} disabled={!usageRing.enabled}
+            options={plusUsageWindows.map(value => ({ value, label: plusWindowLabels[value] }))}
+            onChange={value => setUsageRingPrefs({ plusWindow: value as PlusUsageWindow })} />
         </SettingsBlock>
         <SettingsBlock id="usage-ring-threshold" title={text.usageRingThreshold} hint={text.usageRingThresholdHint} layout="inline">
           <UsageRingThresholdControl label={text.usageRingThreshold} value={usageRing.threshold} disabled={!usageRing.enabled}

@@ -20,17 +20,24 @@ if (!process.versions.electron) {
         import { createRoot } from 'react-dom/client';
         import { NavRail } from './apps/desktop/src/renderer/components/NavRail';
         import { AppLocaleProvider, setActiveLocale } from './apps/desktop/src/renderer/locale';
+        import { InterfacePage } from './apps/desktop/src/renderer/components/settings/InterfacePage';
+        import { settingsCopy } from './apps/desktop/src/renderer/components/settings-copy';
         const plan = new URLSearchParams(location.search).get('plan');
         const windows = plan === 'pro' ? [{ windowMinutes: 10080, usedPercent: 4, resetsAt: Date.now() + 3 * 86400000 }]
           : [{ windowMinutes: 300, usedPercent: 30, resetsAt: Date.now() + 3600000 }, { windowMinutes: 10080, usedPercent: 92, resetsAt: Date.now() + 3 * 86400000 }];
         window.usageCalls = 0;
         if (plan !== 'none') window.vela = { getUsageLimits: async () => { window.usageCalls += 1; return plan === 'none' ? null : { provider: 'openai-codex', plan: plan || 'plus', windows, fetchedAt: Date.now() }; } };
         setActiveLocale('zh-CN');
-        createRoot(document.getElementById('root')).render(<AppLocaleProvider locale="zh-CN">
-          <div className="vela-window platform-darwin nav-rail-layout" style={{ height: '100vh' }}>
-            <NavRail active="home" platform="darwin" agentInboxBadge={0} onSelect={() => {}} />
-            <div className="main-stage"><main className="main-chat-view" style={{ flex: 1 }} /></div>
-          </div></AppLocaleProvider>);
+        function Preview() {
+          const [page, setPage] = React.useState('home');
+          return <div className="vela-window platform-darwin nav-rail-layout" style={{ height: '100vh' }}>
+            <NavRail active={page} platform="darwin" agentInboxBadge={0} onSelect={setPage} />
+            <div className="main-stage"><main className="main-chat-view" style={{ flex: 1, overflow: 'auto' }}>
+              {page === 'settings' && <InterfacePage copy={settingsCopy('zh-CN')} preferences={{ locale: 'zh-CN', infoLayout: 'sidebar' }} onPreviewSound={() => {}} />}
+            </main></div>
+          </div>;
+        }
+        createRoot(document.getElementById('root')).render(<AppLocaleProvider locale="zh-CN"><Preview /></AppLocaleProvider>);
       `, resolveDir: resolve(here, "../../.."), loader: "tsx" },
       bundle: true, platform: "browser", format: "iife", jsx: "automatic",
       outfile: join(temporary, "ui.js"), loader: { ".svg": "dataurl" },
@@ -59,10 +66,17 @@ if (!process.versions.electron) {
     try {
       const shots = process.env.VELA_RING_SCREENSHOT;
       if (shots) mkdirSync(shots, { recursive: true });
-      for (const [plan, prefs] of [["plus", ""], ["pro", ""], ["none", ""], ["plus", '{"enabled":false,"threshold":20}'], ["plus", '{"enabled":true,"threshold":5}'], ["pro", '{"enabled":true,"threshold":97}']]) {
-        const variant = prefs.includes("false") ? "off" : prefs.includes('"threshold":5') ? "low5" : prefs.includes("97") ? "pro96" : plan;
+      const cases = [
+        { plan: "plus", variant: "plus", remaining: 8, tone: "low" },
+        { plan: "pro", variant: "pro", remaining: 96, tone: "ok" },
+        { plan: "none", variant: "none" },
+        { plan: "plus", variant: "off", prefs: { enabled: false, threshold: 20 } },
+        { plan: "plus", variant: "low5", prefs: { threshold: 5 }, remaining: 8, tone: "ok" },
+        { plan: "pro", variant: "pro96", prefs: { threshold: 97 }, remaining: 96, tone: "low" },
+      ];
+      for (const { plan, variant, prefs = {}, remaining, tone } of cases) {
         const win = new BrowserWindow({ show: false, width: 700, height: 520, useContentSize: true, webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false, backgroundThrottling: false } });
-        await win.loadFile(join(process.env.VELA_RING_TEMP, "index.html"), { query: { plan, prefs } });
+        await win.loadFile(join(process.env.VELA_RING_TEMP, "index.html"), { query: { plan, prefs: JSON.stringify(prefs) } });
         const evaluate = code => win.webContents.executeJavaScript(code);
         const until = async code => {
           const deadline = Date.now() + 5000;
@@ -90,16 +104,16 @@ if (!process.versions.electron) {
         const order = await evaluate("[...document.querySelectorAll('.nav-rail-footer > *')].map(node => node.classList.contains('nav-usage') ? 'ring' : node.getAttribute('aria-label'))");
         assert.deepEqual(order, ["ring", "设置"], "Ring sits directly above Settings");
         const values = await evaluate("[...document.querySelectorAll('.nav-usage-value')].map(node => node.getAttribute('stroke-dasharray'))");
-        if (plan === "plus") assert.deepEqual(values, ["70 100", "8 100"], "Plus draws 5-hour and weekly arcs of remaining quota");
-        else assert.deepEqual(values, ["96 100"], "Pro draws one full ring");
+        assert.deepEqual(values, [`${remaining} ${100 - remaining}`], "Quota uses one segment of the outline");
+        assert.equal(await evaluate("document.querySelectorAll('.nav-usage-ring circle').length"), 0);
+        assert.equal(await evaluate("document.querySelector('.nav-usage-ring').querySelectorAll('path').length"), 3, "Only the track, progress and terminal prompt are drawn");
+        assert.equal(await evaluate("document.querySelector('.nav-usage-value').getAttribute('d') === document.querySelector('.nav-usage-track').getAttribute('d')"), true);
         const tones = await evaluate("[...document.querySelectorAll('.nav-usage-value')].map(node => node.dataset.tone)");
         const colors = await evaluate("[...document.querySelectorAll('.nav-usage-value')].map(node => getComputedStyle(node).stroke)");
-        const expected = { plus: ["ok", "low"], low5: ["ok", "ok"], pro: ["ok"], pro96: ["low"] }[variant];
-        assert.deepEqual(tones, expected, "Arcs turn low only below the user's threshold");
-        assert.deepEqual(colors.map((color, index) => color === colors[0] ? "same" : "different").slice(0, 1), ["same"]);
+        assert.deepEqual(tones, [tone]);
         const warning = await evaluate("(() => { const probe = document.createElement('i'); probe.style.color = getComputedStyle(document.querySelector('.nav-usage')).getPropertyValue('--usage-low'); document.body.append(probe); const color = getComputedStyle(probe).color; probe.remove(); return color; })()");
         tones.forEach((tone, index) => assert.equal(colors[index] === warning, tone === "low", `Arc ${index} is yellow exactly when low`));
-        assert.equal(await evaluate("document.querySelectorAll('.nav-usage-track').length"), plan === "plus" ? 2 : 1);
+        assert.equal(await evaluate("document.querySelectorAll('.nav-usage-track').length"), 1);
         assert.equal(await evaluate("document.querySelector('.nav-usage-popover')"), null, "Details start closed");
         if (shots) { await new Promise(done => setTimeout(done, 400)); require_write(shots, `${variant}-closed.png`, await win.webContents.capturePage()); }
         await evaluate("document.querySelector('.nav-usage-button').click()");
@@ -115,6 +129,22 @@ if (!process.versions.electron) {
         if (shots) { await new Promise(done => setTimeout(done, 400)); require_write(shots, `${variant}-open.png`, await win.webContents.capturePage()); }
         await evaluate("document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))");
         await until("!document.querySelector('.nav-usage-popover')");
+        if (variant === "plus") {
+          await evaluate("document.querySelector('.nav-rail-footer button[aria-label=设置]').click()");
+          const logoSwitch = "document.querySelector('[data-setting-id=usage-ring-logo] button')";
+          const windowSelect = "document.querySelector('[data-setting-id=usage-ring-plus-window] button')";
+          await until(windowSelect);
+          await evaluate(`${windowSelect}.click()`);
+          assert.deepEqual(await evaluate("[...document.querySelectorAll('[role=option]')].map(node => node.textContent)"), ["剩余比例最低", "5 小时额度", "每周额度"]);
+          await evaluate("[...document.querySelectorAll('[role=option]')].find(node => node.textContent === '5 小时额度').click()");
+          await until("document.querySelector('.nav-usage-button').getAttribute('aria-label') === 'Codex 5 小时额度，剩余 70%'");
+          await evaluate(`${logoSwitch}.click()`);
+          await until("document.querySelector('.nav-usage-ring').dataset.logo === 'false'");
+          assert.equal(await evaluate("document.querySelector('.nav-usage-prompt')"), null);
+          await win.loadFile(join(process.env.VELA_RING_TEMP, "index.html"), { query: { plan } });
+          await until("document.querySelector('.nav-usage-value')?.getAttribute('stroke-dasharray') === '70 30'");
+          assert.equal(await evaluate("document.querySelector('.nav-usage-ring').dataset.logo"), "false");
+        }
         win.destroy();
       }
     } catch (error) {

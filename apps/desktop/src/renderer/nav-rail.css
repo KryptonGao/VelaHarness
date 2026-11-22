@@ -233,10 +233,14 @@
 /* 主题里的 --warning 偏橙，额度偏低要的是黄色，所以单独定义。 */
 .nav-usage { --usage-low: #e5a50a; position: relative; -webkit-app-region: no-drag; }
 [data-scheme="dark"] .nav-usage { --usage-low: #facc15; }
-/* 剩余额度高于提醒线时用常态前景色（深色主题里是白色），低于时变黄。 */
+/* 传统圆环使用常态前景色。 */
 .nav-usage-button { color: var(--text-primary); }
 .nav-usage-button[aria-expanded="true"] { background: var(--bg-sidebar-hover); }
 .nav-usage-ring { width: 24px; height: 24px; }
+.nav-usage-ring[data-logo="true"] { color: color-mix(in srgb, var(--text-muted) 85%, var(--border-strong)); }
+.nav-usage-ring[data-logo="true"] :is(.nav-usage-track, .nav-usage-value) { stroke-width: 1.38; stroke-linejoin: round; }
+.nav-usage-ring[data-logo="true"] .nav-usage-track { stroke: color-mix(in srgb, var(--border-strong) 60%, var(--text-muted)); }
+.nav-usage-prompt { fill: none; stroke: var(--text-muted); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 .nav-usage-track,
 .nav-usage-value { fill: none; stroke-width: 2.4; }
 .nav-usage-track { stroke: var(--border-strong); }

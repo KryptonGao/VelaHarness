@@ -5,15 +5,20 @@ import { createLogger } from "../logger";
 
 const log = createLogger("preferences");
 
+export const plusUsageWindows = ["lowest", "5h", "1w"] as const;
+export type PlusUsageWindow = typeof plusUsageWindows[number];
+
 export interface UsageRingPrefs {
   /** 是否在导航栏设置上方显示 Codex 剩余额度圆环。 */
   enabled: boolean;
   /** 剩余额度（%）低于该值时圆环变黄，否则保持常态颜色（白色）。 */
   threshold: number;
+  showCodexLogo: boolean;
+  plusWindow: PlusUsageWindow;
 }
 
 export const usageRingThresholdRange = { min: 0, max: 100 } as const;
-export const defaultUsageRingPrefs: UsageRingPrefs = { enabled: true, threshold: 20 };
+export const defaultUsageRingPrefs: UsageRingPrefs = { enabled: true, threshold: 20, showCodexLogo: true, plusWindow: "lowest" };
 
 const key = "vela.usageRing";
 
@@ -29,6 +34,8 @@ export function normalizeUsageRingPrefs(value: Partial<UsageRingPrefs>): UsageRi
   return {
     enabled: typeof value.enabled === "boolean" ? value.enabled : defaultUsageRingPrefs.enabled,
     threshold: typeof value.threshold === "number" ? clampUsageRingThreshold(value.threshold) : defaultUsageRingPrefs.threshold,
+    showCodexLogo: typeof value.showCodexLogo === "boolean" ? value.showCodexLogo : defaultUsageRingPrefs.showCodexLogo,
+    plusWindow: value.plusWindow && plusUsageWindows.includes(value.plusWindow) ? value.plusWindow : defaultUsageRingPrefs.plusWindow,
   };
 }
 

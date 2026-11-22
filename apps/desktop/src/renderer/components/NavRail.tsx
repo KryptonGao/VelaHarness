@@ -51,7 +51,7 @@ export function NavRail({ active, modelProvider, platform, agentInboxBadge, onSe
       {items.prInbox ? button("prInbox", "Pull Request", <Icon name="pull-request" size={18} filled={active === "prInbox"} />) : null}
     </div>
     <div className="nav-rail-group nav-rail-footer">
-      {usage.limits ? <NavUsageRing limits={usage.limits} threshold={usageRing.threshold} onOpen={refreshUsage} /> : null}
+      {usage.limits ? <NavUsageRing limits={usage.limits} prefs={usageRing} onOpen={refreshUsage} /> : null}
       {button("settings", tr("设置", "Settings"), <Icon name="settings" size={18} filled={active === "settings"} />, { title: `${tr("设置", "Settings")} (${mod},)` })}
     </div>
   </nav>;

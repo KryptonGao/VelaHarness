@@ -1,4 +1,5 @@
 import type { UsageLimits, UsageLimitWindow } from "@vela/shared";
+import type { PlusUsageWindow } from "../hooks/useUsageRingPrefs";
 import { activeIntlLocale, tr, trf } from "../locale";
 
 const warnPercent = 75;
@@ -56,18 +57,23 @@ export type UsageRingLayout =
   | { kind: "split"; short: UsageLimitWindow; long: UsageLimitWindow }
   | { kind: "single"; window: UsageLimitWindow };
 
-/**
- * Plus 有 5 小时和每周两个额度：顶部约 100° 画 5 小时，其余画每周。
- * Pro 整圈只画一个额度（最长的那个窗口，即每周额度），详情里仍列出所有窗口。
- * 其他套餐按窗口数量决定：两个窗口分段，一个窗口整圈。
- */
-export function usageRingLayout(limits: UsageLimits): UsageRingLayout | null {
+export function usageRingLayout(limits: UsageLimits, plusWindow: PlusUsageWindow = "lowest"): UsageRingLayout | null {
   const windows = [...limits.windows].sort((a, b) => a.windowMinutes - b.windowMinutes);
   if (windows.length === 0) return null;
+  const plan = limits.plan?.trim().toLowerCase();
+  const fiveHour = windows.find((window) => window.windowMinutes === 300);
+  if (plan === "plus") {
+    const weekly = windows.find((window) => window.windowMinutes === 10080);
+    if (plusWindow === "5h" && fiveHour) return { kind: "single", window: fiveHour };
+    if (plusWindow === "1w" && weekly) return { kind: "single", window: weekly };
+    const candidates = [fiveHour, weekly].filter((window): window is UsageLimitWindow => window !== undefined);
+    const available = candidates.length ? candidates : windows;
+    const lowest = available.reduce((a, b) => a.usedPercent >= b.usedPercent ? a : b);
+    return { kind: "single", window: lowest };
+  }
   const long = windows[windows.length - 1];
-  const short = windows.find((window) => window.windowMinutes === 300) ?? windows[0];
-  const pro = (limits.plan ?? "").toLowerCase().startsWith("pro");
-  if (pro || windows.length === 1 || short === long) return { kind: "single", window: long };
+  const short = fiveHour ?? windows[0];
+  if (plan?.startsWith("pro") || short === long) return { kind: "single", window: long };
   return { kind: "split", short, long };
 }
 

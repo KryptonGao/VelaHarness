@@ -29,13 +29,22 @@ describe("usage limit menu helpers", () => {
     const window = (usedPercent: number, windowMinutes: number) => ({ usedPercent, windowMinutes, resetsAt: null });
     const limits = (plan: string | null, ...windows: ReturnType<typeof window>[]) => ({ provider: "p", plan, fetchedAt: 0, windows });
 
-    it("splits the ring between the 5-hour and weekly windows on Plus", () => {
-      const layout = usageRingLayout(limits("plus", window(25, 10080), window(4, 300)));
-      assert.equal(layout?.kind, "split");
-      if (layout?.kind === "split") {
-        assert.equal(layout.short.windowMinutes, 300);
-        assert.equal(layout.long.windowMinutes, 10080);
+    it("shows only the lower remaining Plus quota, with the 5-hour window winning ties", () => {
+      for (const [shortUsed, weekUsed, minutes] of [[90, 20, 300], [10, 90, 10080], [50, 50, 300]]) {
+        const short = window(shortUsed, 300);
+        const week = window(weekUsed, 10080);
+        assert.deepEqual(usageRingLayout(limits("Plus", week, short)), { kind: "single", window: minutes === 300 ? short : week });
       }
+    });
+
+    it("pins one Plus window and falls back to available quota if it is missing", () => {
+      const short = window(20, 300);
+      const week = window(80, 10080);
+      assert.deepEqual(usageRingLayout(limits("plus", short, week), "5h"), { kind: "single", window: short });
+      assert.deepEqual(usageRingLayout(limits("plus", short, week), "1w"), { kind: "single", window: week });
+      assert.deepEqual(usageRingLayout(limits("plus", short), "1w"), { kind: "single", window: short });
+      assert.deepEqual(usageRingLayout(limits("plus", week), "5h"), { kind: "single", window: week });
+      assert.deepEqual(usageRingLayout(limits("team", short, week), "5h"), { kind: "split", short, long: week });
     });
 
     it("draws one full ring for Pro, even when the API also returns a 5-hour window", () => {
@@ -75,7 +84,9 @@ describe("usage limit menu helpers", () => {
 
     it("falls back to defaults and clamps stored values", () => {
       assert.deepEqual(normalizeUsageRingPrefs({}), defaultUsageRingPrefs);
-      assert.deepEqual(normalizeUsageRingPrefs({ enabled: false, threshold: 150 }), { enabled: false, threshold: 100 });
+      assert.deepEqual(normalizeUsageRingPrefs({ enabled: false, threshold: 150 }), { ...defaultUsageRingPrefs, enabled: false, threshold: 100 });
+      assert.deepEqual(normalizeUsageRingPrefs({ plusWindow: "both" as never, showCodexLogo: 0 as never }), defaultUsageRingPrefs);
+      assert.equal(normalizeUsageRingPrefs({ showCodexLogo: false }).showCodexLogo, false);
       assert.equal(normalizeUsageRingPrefs({ threshold: -3 }).threshold, 0);
       assert.equal(normalizeUsageRingPrefs({ threshold: Number.NaN }).threshold, defaultUsageRingPrefs.threshold);
       assert.equal(normalizeUsageRingPrefs({ enabled: "yes" as never }).enabled, true);
