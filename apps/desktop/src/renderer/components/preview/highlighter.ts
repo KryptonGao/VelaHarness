@@ -2,6 +2,7 @@ import {
   createHighlighterCore,
   type GrammarState,
   type HighlighterCore,
+  type LanguageRegistration,
   type ThemeRegistrationAny,
   type ThemedToken,
 } from "shiki/core";
@@ -44,7 +45,7 @@ const velaTheme: ThemeRegistrationAny = {
   ],
 };
 
-type LangImport = () => Promise<{ default: unknown }>;
+type LangImport = () => Promise<{ default: LanguageRegistration[] }>;
 
 /** 显式列出语言的动态导入,Vite 才能做静态分析与分包。 */
 const langImports: Record<string, LangImport> = {
@@ -156,12 +157,13 @@ async function ensureLanguage(highlighter: HighlighterCore, lang: string): Promi
     const load = langImports[lang];
     if (!load) return false;
     pending = load()
-      .then((module) => highlighter.loadLanguage(module as never))
+      .then((module) => highlighter.loadLanguage(module.default))
       .then(() => true)
       .catch((error) => {
         log.error(`language load failed: ${lang}`, error);
         return false;
-      });
+      })
+      .finally(() => pendingLangs.delete(lang));
     pendingLangs.set(lang, pending);
   }
   return pending;
