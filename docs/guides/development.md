@@ -23,7 +23,9 @@
 
 正式版用 `VELA_USER_DATA` 改过资料目录时，用 `VELA_PRODUCTION_HOME` 指向它。
 
-`VELA_SYSTEM_PROMPT` 切换主会话与子代理的系统提示档位：`v2`（默认，Vela 身份与工作规则）、`v1`（Pi 原有基础段，旧名 `legacy`）、`v2-visual`（v2 再加视觉成品自检）。例如 `VELA_SYSTEM_PROMPT=v1 pnpm dev` 切回旧提示词，详见 [requirements/system-prompt-optimization.md](../requirements/system-prompt-optimization.md)。
+Choose a system prompt under Settings → Defaults & permissions → System prompt, then quit and reopen Vela. Auto reads `VELA_SYSTEM_PROMPT` at startup. The headless runner also reads this variable. Available profiles are `v2` (default Vela rules), `v1` (original Pi rules, also called `legacy`), `v2-visual` (Vela rules with visual checks), and `codex` (the original Codex instructions adapted to Vela). For example, run `VELA_SYSTEM_PROMPT=codex pnpm dev` with Auto selected. See the [system prompt design notes](../requirements/system-prompt-optimization.md) for background.
+
+All prompt profiles follow the same mode rules. In Run View, Agent and Goal use `update_todos` for multi-step work or `update_plan` when the conversation has an approved execution plan. Simple tasks can skip the todo list. Plan mode stays read-only and returns a complete `<proposed_plan>` for approval. Goal completion requires a current `record_goal_validation` even when every checklist item is complete.
 
 ## 开发工具
 

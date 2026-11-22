@@ -61,6 +61,7 @@ import { TerminalHost } from "./terminal-host";
 import { configureVelaProfile, noWorkspaceCwd, prepareVelaHome } from "./vela-home";
 import { registerDevelopmentIpc } from "./development-host";
 import { UiStorage } from "./ui-storage";
+import { readPromptPreference } from "../system-prompt-preference";
 import { SideChatHost } from "./side-chat-host";
 import { SideChatStore } from "./side-chat-store";
 import { registerUiBrowserSecurity } from "./browser-security";
@@ -388,6 +389,9 @@ async function start(): Promise<void> {
   setUpdateMenuAction(() => { void updateHost?.checkFromMenu().catch(error => log.error("update check from menu failed", error)); });
   // 开发版只提供手动检查，不在后台联网，也不会替换 Electron 开发二进制。
   if (app.isPackaged) updateHost.service.start();
+  let systemPromptProfile = systemPromptProfileFrom(process.env.VELA_SYSTEM_PROMPT);
+  try { systemPromptProfile = readPromptPreference(uiStorage) ?? systemPromptProfile; }
+  catch (error) { log.warn("Could not read system prompt preference", error); }
   runtimeHost = createRuntimeHost({
     sandbox,
     onCleanupIssue: message => log.warn("runtime shutdown", message),
@@ -415,8 +419,7 @@ async function start(): Promise<void> {
     isWorkspaceCwd: (cwd) => (cwd !== fallbackCwd && cwd !== legacyFallbackCwd) || workspaceManager.getState().recents.some(recent => recent.path === cwd),
     agentDir: home,
     onRecipeStop: id => taskRecipes?.stopConversation(id),
-    // 系统提示档位：v2（默认）、v1（Pi 原有基础段）、v2-visual。
-    systemPromptProfile: systemPromptProfileFrom(process.env.VELA_SYSTEM_PROMPT),
+    systemPromptProfile,
     // 激活会话变化时让工作区跟随,保证输入区与仓库卡片显示的目录即会话目录。
     onActiveCwd: (cwd, hasWorkspace, repository) => void project?.syncConversationWorkspace(cwd, hasWorkspace, repository ?? null),
   });

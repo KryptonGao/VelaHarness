@@ -12,6 +12,9 @@ export * from "./task-budget";
 export * from "./model-pricing";
 export * from "./task-cost";
 export * from "./context-limit";
+
+export const systemPromptProfiles = ["v1", "v2", "v2-visual", "codex"] as const;
+export type SystemPromptProfile = (typeof systemPromptProfiles)[number];
 import type { ContextLimitSettings, ConversationContextLimit } from "./context-limit";
 import type { MarketplaceSkillEntry, MarketplaceSkillId } from "./marketplace-protocol";
 import type { ConversationTaskBudget, TaskBudgetSettings, TaskBudgetState } from "./task-budget";

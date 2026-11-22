@@ -1,4 +1,6 @@
-import type { InteractionMode, SubagentKind } from "@vela/shared";
+import { systemPromptProfiles, type SystemPromptProfile, type InteractionMode, type SubagentKind } from "@vela/shared";
+
+import { codexRules } from "./codex-system-prompt";
 
 /**
  * Vela 自己的系统提示基础段，替换 Pi 的身份句、工具摘要、规则与文档导览。
@@ -6,11 +8,10 @@ import type { InteractionMode, SubagentKind } from "@vela/shared";
  * - v1：保持 Pi 默认基础段，作为对照与回退（旧名 legacy 仍可用）。
  * - v2：只换身份与规则，默认档。
  * - v2-visual：v2 加视觉成品自检、Intelligent UI 范围限定和浏览器截图提示。
+ * - codex: the original coding-agent instructions adapted to Vela tools and modes.
  * 评测要能把「换规则」与「视觉自检」分开归因，所以两档分开。
  */
-export type SystemPromptProfile = "v1" | "v2" | "v2-visual";
-
-export const systemPromptProfiles: readonly SystemPromptProfile[] = ["v1", "v2", "v2-visual"];
+export { systemPromptProfiles, type SystemPromptProfile };
 
 export const defaultSystemPromptProfile: SystemPromptProfile = "v2";
 
@@ -56,6 +57,10 @@ export interface RuleContext {
 
 const readOnlyKinds = new Set<RuleKind>(["plan", "explore"]);
 
+export function rulesForProfile(profile: SystemPromptProfile, context: RuleContext): string {
+  return profile === "codex" ? codexRules(context) : velaRules(context);
+}
+
 export function velaRules(context: RuleContext): string {
   const tools = new Set(context.tools);
   const readOnly = readOnlyKinds.has(context.kind);
@@ -64,6 +69,9 @@ export function velaRules(context: RuleContext): string {
 
   if (!readOnly) {
     rules.push("Finish what was asked. Do not stop at a plan or a partial result unless the user asked for a plan or the mode instructions below say otherwise.");
+  }
+  if (tools.size) {
+    rules.push("Before using tools, tell the user what you will do next. Give one update per group of related calls, not one per call; skip it for an isolated trivial read. Use 1–2 short, friendly sentences (about 8–12 words for a quick update). When work is underway, connect what you just found or finished to your next concrete step.");
   }
   rules.push("Read every tool result before moving on. A non-zero exit code, an error, or an unexpectedly empty output is something to investigate, not to skip.");
   // 网页、MCP、文件和工作区说明文件里的文字都可能被第三方写入；browser_repl 操作的页面还带着用户已登录的状态。

@@ -15,6 +15,8 @@ import { SandboxPermissionManager } from "../../workspace/src/sandbox-permission
 import { createSandboxedToolDefinitions } from "../../workspace/src/sandbox-tools.ts";
 import {
   intelligentUiScopeNote,
+  rulesForProfile,
+  systemPromptProfiles,
   systemPromptProfileFrom,
   velaPreamble,
   velaRules,
@@ -82,6 +84,15 @@ describe("velaRules", () => {
     assert.equal(velaRules({ kind: "agent", tools: [...work, "grep"], imageInput: true, visualCheck: false }).includes("Use bash for file operations"), false);
   });
 
+  it("asks for grouped progress updates only when tools are available", () => {
+    const base = { kind: "agent" as const, imageInput: true, visualCheck: false };
+    const rules = velaRules({ ...base, tools: ["read"] });
+    assert.match(rules, /Before using tools, tell the user what you will do next/);
+    assert.match(rules, /one update per group of related calls/);
+    assert.match(rules, /skip it for an isolated trivial read/);
+    assert.doesNotMatch(velaRules({ ...base, tools: [] }), /Before using tools/);
+  });
+
   it("names the writing language, covers progress notes, and is a pure function of the language", () => {
     const base = { kind: "agent" as const, tools: work, imageInput: true, visualCheck: false };
     const zhTW = velaRules({ ...base, language: "Traditional Chinese (Taiwan)" });
@@ -97,6 +108,7 @@ describe("velaRules", () => {
   it("parses the switch, accepts legacy as v1 and defaults to v2", () => {
     assert.equal(systemPromptProfileFrom("v2"), "v2");
     assert.equal(systemPromptProfileFrom(" V2-Visual "), "v2-visual");
+    assert.equal(systemPromptProfileFrom(" Codex "), "codex");
     assert.equal(systemPromptProfileFrom("v1"), "v1");
     assert.equal(systemPromptProfileFrom("legacy"), "v1");
     assert.equal(systemPromptProfileFrom("other"), "v2");
@@ -207,6 +219,31 @@ describe("system prompt in real sessions", () => {
     assert.ok(prompts.explore!.indexOf("Working rules") < prompts.explore!.indexOf("read-only investigation subagent"));
   });
 
+  it("uses the adapted Codex prompt across mode switches and child sessions", { timeout: 20_000 }, async t => {
+    const prompts = await scenarios(t, "codex");
+    for (const [kind, prompt] of Object.entries(prompts)) {
+      assert.ok(prompt.startsWith(velaPreamble), kind);
+      assert.ok(splitSystemPrompt(prompt).addendum?.includes("## Ambition vs. precision"), kind);
+      assert.doesNotMatch(prompt, /Codex CLI|apply_patch|sandbox_permissions|Working rules/, kind);
+      assert.equal(prompt.includes("Use edit for targeted changes"), ["agent", "goal", "general"].includes(kind), kind);
+    }
+    assert.match(prompts.plan!, /You are in Plan mode/);
+    assert.match(prompts.explore!, /read-only investigation subagent/);
+    assert.match(prompts.goal!, /record_goal_validation/);
+  });
+
+  it("describes only the checklist tool offered to the Codex profile", () => {
+    const base = { kind: "agent", imageInput: true, visualCheck: false, language: "Japanese" } as const;
+    for (const tool of ["update_plan", "update_todos"]) {
+      const prompt = rulesForProfile("codex", { ...base, tools: [tool] });
+      assert.ok(prompt.includes(tool));
+      assert.ok(!prompt.includes(tool === "update_plan" ? "update_todos" : "update_plan"));
+      assert.match(prompt, /defaulting to Japanese/);
+    }
+    const resident = rulesForProfile("codex", { ...base, kind: "resident", tools: ["list_workspaces"] });
+    assert.doesNotMatch(resident, /update_plan|update_todos|Use edit|Use read|Use write|searching with bash/);
+  });
+
   it("uses v2 without the visual review when no profile is given", { timeout: 20_000 }, async t => {
     const prompts = await scenarios(t);
     for (const [name, prompt] of Object.entries(prompts)) {
@@ -242,7 +279,7 @@ describe("system prompt in real sessions", () => {
     if (!dir) { t.skip("set VELA_PROMPT_BASELINE_DIR to export"); return; }
     await mkdir(dir, { recursive: true });
     const summary: Record<string, Record<string, Record<string, number>>> = {};
-    for (const profile of ["v1", "v2", "v2-visual"] as const) {
+    for (const profile of systemPromptProfiles) {
       const prompts = await scenarios(t, profile);
       summary[profile] = {};
       for (const [name, prompt] of Object.entries(prompts)) {

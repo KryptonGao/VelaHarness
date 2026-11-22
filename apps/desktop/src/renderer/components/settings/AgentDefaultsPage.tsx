@@ -1,4 +1,6 @@
-import type { AgentSettings, ModelCatalog, NewConversationSelection, SandboxMode, ThinkingLevel } from "@vela/shared";
+import { systemPromptProfiles, type SystemPromptProfile, type AgentSettings, type ModelCatalog, type NewConversationSelection, type SandboxMode, type ThinkingLevel } from "@vela/shared";
+import { promptPreferenceKey, readPromptPreference } from "../../../system-prompt-preference";
+import { uiStorage } from "../../ui-storage";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ProjectApi } from "../../hooks/useProject";
 import { localizeError } from "../../locale";
@@ -26,6 +28,12 @@ export function AgentDefaultsPage({
   const text = copy.agent;
   const [settings, setSettings] = useState<AgentSettings | null>(null);
   const [instructions, setInstructions] = useState("");
+  const [promptProfile, setPromptProfile] = useState<SystemPromptProfile | "auto" | null>(null);
+  const [promptError, setPromptError] = useState<string | null>(null);
+  useEffect(() => {
+    try { setPromptProfile(readPromptPreference(uiStorage) ?? "auto"); }
+    catch (caught) { setPromptError(caught instanceof Error ? caught.message : text.loadError); }
+  }, [text.loadError]);
   const [status, setStatus] = useState<SaveStatus>("idle");
   const [error, setError] = useState<string | null>(null);
   // 最近一次发起的目标值(含尚未落盘的乐观修改)与最近一次落盘确认的值。
@@ -212,6 +220,29 @@ export function AgentDefaultsPage({
       </SettingsGroup>
 
       <SettingsGroup title={copy.sections.instructionsPermissions}>
+      <SettingsBlock id="system-prompt" title={text.systemPrompt} hint={text.systemPromptHint} layout="inline">
+        <SettingsSelect
+          label={text.systemPrompt}
+          value={promptProfile ?? "auto"}
+          disabled={promptProfile === null}
+          options={[
+            { value: "auto", label: text.promptAuto },
+            ...systemPromptProfiles.map(value => ({ value, label: text.promptProfiles[value] })),
+          ]}
+          onChange={value => {
+            const profile = systemPromptProfiles.find(item => item === value);
+            try {
+              if (profile) uiStorage.setItem(promptPreferenceKey, profile);
+              else uiStorage.removeItem(promptPreferenceKey);
+              setPromptProfile(profile ?? "auto");
+              setPromptError(null);
+              setStatus("saved");
+            } catch (caught) { setPromptError(caught instanceof Error ? caught.message : text.loadError); }
+          }}
+        />
+        {promptError && <span role="alert" className="settings-error">{localizeError(promptError)}</span>}
+      </SettingsBlock>
+
       <SettingsBlock id="instructions" title={text.instructions} hint={text.instructionsHint}>
         <textarea
           className="settings-textarea"

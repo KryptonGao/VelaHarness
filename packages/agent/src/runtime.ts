@@ -132,7 +132,7 @@ import { ModelPriceStore } from "./model-price-store";
 import { TaskCostHistoryStore } from "./task-cost-history";
 import { IntelligentUiSettings } from "./intelligent-ui-settings";
 import { intelligentUiInstructions } from "./intelligent-ui-prompt";
-import { browserVisualCheckNote, checksVisualWork, defaultSystemPromptProfile, intelligentUiScopeNote, usesVelaPrompt, velaHeadlessPreamble, velaPreamble, velaRules, type RuleKind, type SystemPromptProfile } from "./system-prompt";
+import { browserVisualCheckNote, checksVisualWork, defaultSystemPromptProfile, intelligentUiScopeNote, usesVelaPrompt, velaHeadlessPreamble, velaPreamble, rulesForProfile, type RuleKind, type SystemPromptProfile } from "./system-prompt";
 import { createResidentTools, residentInstructions, type ResidentToolHost } from "./resident-tools";
 import { createMemoryContextExtension, memoryTargetsFor } from "./memory-context";
 import { workspaceFoldersInstructions } from "./workspace-folders";
@@ -4159,7 +4159,7 @@ export class AgentRuntime {
         ...mcp.factories(),
       ],
       appendSystemPromptOverride: (base) => [
-        ...(usesVelaPrompt(this.promptProfile) ? [velaRules({ kind: input.kind, imageInput: model.input.includes("image"),
+        ...(usesVelaPrompt(this.promptProfile) ? [rulesForProfile(this.promptProfile, { kind: input.kind, imageInput: model.input.includes("image"),
           visualCheck: checksVisualWork(this.promptProfile), language: this.writingLanguage(),
           tools: [...childNativeTools(), ...(this.options.browserRepl && input.kind === "general" ? ["browser_repl"] : [])] })] : []),
         ...base,
@@ -4406,7 +4406,7 @@ export class AgentRuntime {
     if (!usesVelaPrompt(this.promptProfile)) return [];
     const visualCheck = checksVisualWork(this.promptProfile);
     return [{ name: "vela-rules", hidden: true, factory: ((pi) => { pi.on("before_agent_start", (event, ctx) => {
-      const rules = velaRules({ kind: kind(), tools: event.systemPromptOptions.selectedTools,
+      const rules = rulesForProfile(this.promptProfile, { kind: kind(), tools: event.systemPromptOptions.selectedTools,
         imageInput: ctx.model?.input.includes("image") ?? false, visualCheck, language: this.writingLanguage() });
       const current = event.systemPromptOptions.appendSystemPrompt.trim();
       event.systemPromptOptions.appendSystemPrompt = current ? `${rules}\n\n${current}` : rules;

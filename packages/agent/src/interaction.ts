@@ -47,7 +47,7 @@ export const goalTurnLimit = 20;
 
 export const goalTurnLimitNote = "已达到本轮自动执行上限，可以继续；完成前仍需提交交付验证。";
 
-const planPrompt = `You are in Plan mode. You may only inspect code; you must not modify files or run commands that change the system. You can read long-term memory with ${memoryReadToolName}, but you cannot write to it.
+const planPrompt = `You are in Plan mode. You may only inspect code; you must not modify files or run commands that change the system. Treat long-term memory as read-only.
 
 First understand the user's goal and proactively explore the codebase to establish the facts needed for implementation: relevant modules, data flow, interfaces, persistence, tests, and existing issues.
 Anything you can find in the repository, configuration, documentation, or source code you must look up yourself; do not hand questions the repository can answer back to the user.
@@ -67,7 +67,7 @@ State the plan title in one sentence on the first line; the UI uses it as the ti
 Write the plan in Markdown, including sections as needed such as Goal, Current Architecture, Proposed Architecture, Data Model Changes, Runtime Changes, UI Changes, Persistence / Migration, Error Handling / Edge Cases, Testing, and Implementation Steps.
 Name the concrete files or modules, interfaces / classes / functions, data flow, state lifecycle, API or IPC changes, persistence and migration strategy, UI behavior, test strategy, compatibility, and edge cases; do not write a list of steps with no anchor in the code, and do not give only a diff.
 If the user asks for changes to an existing plan, output the complete revised plan as a new revision; do not rewrite the old version in place.
-After outputting the plan, do not use ask_user_question to ask for confirmation to execute, and do not modify files; once the plan is generated, the UI lets the user approve it, keep revising, or execute it in a fresh context.`;
+After outputting the plan, do not use ask_user_question to ask for confirmation to execute, and do not modify files; end the turn with the proposal. Execution requires a separate approval.`;
 
 const goalPrompt = `You are in Goal mode. The goal is already recorded in the conversation, and you must keep working until it is done.
 
@@ -94,7 +94,9 @@ const todoPromptWithPlan =
 
 const outcomePrompt = `If you modified files or ran verification in this turn, consider calling submit_outcome before writing your final reply. This is optional: a suggestion, not a requirement, and you may skip it when the change is small or a plain summary in your reply is enough. If you do submit, submit one item per user requirement, with its actual completion status and any risks, assumptions, or decisions still needing confirmation.
 Only cite files changed by completed edit/write calls and bash tool call ids completed in this turn. Leave verificationIds empty if you did not run verification; never invent files, ids, or results. If submission is rejected, correct the invalid references and retry before finishing.
-In Goal mode, call record_goal_validation before submit_outcome (record_goal_validation is still required to complete the goal; submit_outcome is not), then update_goal to complete when appropriate. Pure questions and answers with no changes or verification need no outcome submission.`;
+Pure questions and answers with no changes or verification need no outcome submission.`;
+
+const goalOutcomePrompt = `In Goal mode, call record_goal_validation before submit_outcome (record_goal_validation is still required to complete the goal; submit_outcome is not), then update_goal to complete when appropriate.`;
 
 const recommendedActionsPrompt = `When you finish the user's request and there is a clear, useful next step the user would probably want (for example committing the changes, running a broader check, or continuing with a follow-up task), call ${recommendedActionsToolName} as the very last step, after your final reply text. The UI shows it as a dismissible card under your reply with one button per action; clicking a button sends that action's prompt to you as the user's next message.
 Give 1-${recommendedActionLimits.maxActions} actions. Each prompt must be complete and self-contained, written from the user's point of view as an instruction to you, because it is sent verbatim. Do not call it when the request was a plain question, when you are still working or blocked on the user, or when there is no natural next step; it is optional, and never use it to repeat your reply. After it returns, end your turn without writing anything more.`;
@@ -111,11 +113,11 @@ const workTools = ["read", "bash", "edit", "write", ...agentToolNames];
 export function toolNamesFor(mode: InteractionMode, hasExecutionPlan: boolean, runView = false): string[] {
   if (mode === "plan") return ["read", "bash", "ask_user_question"];
   // 运行视图下提供待办清单工具(简单任务可不用);有已批准执行方案时由 update_plan 承担,不再重复提供。
-  const todos = runView && !hasExecutionPlan ? [updateTodosToolName] : [];
-  if (mode === "goal") return [...workTools, ...todos, "record_goal_validation", "submit_outcome", "update_goal"];
-  return hasExecutionPlan
-    ? [...workTools, "update_plan", "submit_outcome", "ask_user_question"]
-    : [...workTools, ...todos, "submit_outcome", "ask_user_question"];
+  const checklist = hasExecutionPlan ? "update_plan" : updateTodosToolName;
+  const trackSteps = runView || (mode === "agent" && hasExecutionPlan);
+  const tools = trackSteps ? [...workTools, checklist] : [...workTools];
+  if (mode === "goal") return [...tools, "record_goal_validation", "submit_outcome", "update_goal"];
+  return [...tools, "submit_outcome", "ask_user_question"];
 }
 
 export function modeSystemPrompt(
@@ -124,13 +126,26 @@ export function modeSystemPrompt(
   runView = false,
   recommendedActions = false,
   visualDemo = false,
+  selectedTools?: readonly string[],
 ): string {
-  const visual = visualDemo ? visualDemoPrompt : "";
-  if (mode === "plan") return [planPrompt, visual].filter(Boolean).join("\n\n");
-  const todo = runView ? (hasExecutionPlan ? todoPromptWithPlan : todoPrompt) : "";
-  const recommend = recommendedActions ? recommendedActionsPrompt : "";
-  if (mode === "goal") return [goalPrompt, todo, outcomePrompt, recommend, visual, agentTreePrompt].filter(Boolean).join("\n\n");
-  return [hasExecutionPlan ? agentPlanPrompt : "", todo, outcomePrompt, recommend, visual, agentTreePrompt].filter(Boolean).join("\n\n");
+  const tools = selectedTools ?? toolNamesFor(mode, hasExecutionPlan, runView);
+  const visual = visualDemo && (selectedTools?.includes(visualToolName) ?? true) ? visualDemoPrompt : "";
+  if (mode === "plan") return [tools.includes("read") ? planPrompt : "", visual].filter(Boolean).join("\n\n");
+
+  const executionChecklist = tools.includes("update_plan");
+  const sections: string[] = [];
+  if (mode === "goal" && tools.includes("update_goal")) sections.push(goalPrompt);
+  if (mode === "agent" && executionChecklist) sections.push(agentPlanPrompt);
+  if (runView && executionChecklist) sections.push(todoPromptWithPlan);
+  if (runView && tools.includes(updateTodosToolName)) sections.push(todoPrompt);
+  if (tools.includes("submit_outcome")) {
+    sections.push(outcomePrompt);
+    if (mode === "goal") sections.push(goalOutcomePrompt);
+  }
+  if (recommendedActions && (selectedTools?.includes(recommendedActionsToolName) ?? true)) sections.push(recommendedActionsPrompt);
+  if (visual) sections.push(visual);
+  if (tools.includes("spawn_agent")) sections.push(agentTreePrompt);
+  return sections.join("\n\n");
 }
 
 // ---------- Tool policy ----------
@@ -216,6 +231,7 @@ export function createModeExtension(
         state.runView === true,
         state.recommendedActions === true,
         state.visualDemo === true,
+        event.systemPromptOptions.selectedTools,
       );
       if (!extra) return;
       const current = event.systemPromptOptions.appendSystemPrompt.trim();

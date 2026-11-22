@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
 import { UiStorage } from "../src/main/ui-storage.ts";
+import { promptPreferenceKey, readPromptPreference } from "../src/system-prompt-preference.ts";
 import { createUiStorage } from "../src/renderer/ui-storage.ts";
 import { parseStoredSummaries, serializeStoredSummaries, thinkingDigest, thinkingSummaryKey } from "../src/renderer/thinking-summary.ts";
 import { readThinkingSummaries, thinkingSummariesStorageKey } from "../src/renderer/thinking-summary-storage.ts";
@@ -36,6 +37,20 @@ function browserStorage(values: Record<string, string> = {}): Storage {
 }
 
 describe("durable UI storage", () => {
+  it("retains a desktop prompt choice across launches and clears it for automatic selection", () => withStore(file => {
+    const storage = createUiStorage(bridge(new UiStorage(file)), () => browserStorage());
+    const readOnLaunch = () => readPromptPreference(new UiStorage(file));
+    assert.equal(readOnLaunch(), undefined);
+    for (const profile of ["v1", "v2", "v2-visual", "codex"]) {
+      storage.setItem(promptPreferenceKey, profile);
+      assert.equal(readOnLaunch(), profile);
+    }
+    storage.removeItem(promptPreferenceKey);
+    assert.equal(readOnLaunch(), undefined);
+    storage.setItem(promptPreferenceKey, "unknown");
+    assert.equal(readOnLaunch(), undefined);
+  }));
+
   it("recovers v1 summaries after upgrading to v2 and keeps newer summaries across restarts", () => withStore((file) => {
     const store = new UiStorage(file);
     const oldKey = thinkingSummaryKey("history", "zh-CN", thinkingDigest("old thinking"));

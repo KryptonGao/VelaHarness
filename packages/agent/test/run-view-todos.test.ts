@@ -30,6 +30,23 @@ describe("运行视图的待办清单", () => {
     assert.ok(modeToolNames.includes(updateTodosToolName));
   });
 
+  it("matches checklist instructions to the tool offered in all mode and Run View combinations", () => {
+    for (const mode of ["agent", "goal", "plan"] as const) {
+      for (const approved of [false, true]) {
+        for (const runView of [false, true]) {
+          const tools = toolNamesFor(mode, approved, runView);
+          const prompt = modeSystemPrompt(mode, approved, runView);
+          const expectsPlan = mode !== "plan" && approved && (mode === "agent" || runView);
+          const expectsTodos = mode !== "plan" && !approved && runView;
+          for (const [name, expected] of [["update_plan", expectsPlan], [updateTodosToolName, expectsTodos]] as const) {
+            assert.equal(tools.includes(name), expected, `${mode} approved=${approved} runView=${runView}: ${name}`);
+            assert.equal(prompt.includes(name), expected);
+          }
+        }
+      }
+    }
+  });
+
   it("提示词鼓励多步骤任务提交 2-7 项清单、允许简单任务跳过,关闭时不出现", () => {
     for (const mode of ["agent", "goal"] as const) {
       assert.match(modeSystemPrompt(mode, false, true), /Run View/);
@@ -74,6 +91,11 @@ describe("运行视图的待办清单", () => {
     assert.equal(loadout.active(chat).includes(updateTodosToolName), true);
     assert.equal(loadout.active({ ...chat, scheduledTaskConversation: true }).includes(updateTodosToolName), false);
     assert.equal(loadout.active({ ...chat, recipeExecution: {} }).includes(updateTodosToolName), false);
+    assert.equal(loadout.active({ ...chat, backgroundExecution: true }).includes(updateTodosToolName), false);
+    for (const selected of [loadout.readOnlyStage(chat), ["list_workspaces", "delegate_workspace_task", "ask_user_question"]]) {
+      const prompt = modeSystemPrompt("agent", false, true, true, true, selected);
+      assert.doesNotMatch(prompt, /Run View|update_todos|update_plan|spawn_agent|submit_outcome|recommend_actions|show_visual/);
+    }
     assert.ok(loadout.registered().includes(updateTodosToolName));
   });
 });

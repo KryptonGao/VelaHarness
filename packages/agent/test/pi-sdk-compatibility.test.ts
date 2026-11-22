@@ -5,7 +5,8 @@ import { join } from "node:path";
 import { describe, it, type TestContext } from "node:test";
 import type { AgentSession } from "@earendil-works/pi-coding-agent";
 import type { StreamFn } from "@earendil-works/pi-agent-core";
-import { createAssistantMessageEventStream, type AssistantMessage, type Context, type ToolCall } from "@earendil-works/pi-ai";
+import { createAssistantMessageEventStream, getCurrentSystemMessage, getCurrentTools, getSystemMessageText, type AssistantMessage, type Context, type ToolCall } from "@earendil-works/pi-ai";
+import type { SystemPromptProfile } from "@vela/shared";
 import { AgentRuntime, type RuntimeEvent } from "../src/runtime.ts";
 import { TraceRecorder } from "../src/trace.ts";
 import { ModelDirectory } from "../src/model-directory.ts";
@@ -13,7 +14,7 @@ import type { AgentSessionRequest } from "../src/agent-control.ts";
 import { SandboxPermissionManager } from "../../workspace/src/sandbox-permission-manager.ts";
 import { createSandboxedToolDefinitions } from "../../workspace/src/sandbox-tools.ts";
 
-async function fixture(t: TestContext) {
+async function fixture(t: TestContext, systemPromptProfile?: SystemPromptProfile) {
   const root = await mkdtemp(join(tmpdir(), "vela-pi-sdk-"));
   const cwd = join(root, "workspace");
   const agentDir = join(root, "agent");
@@ -28,7 +29,7 @@ async function fixture(t: TestContext) {
   };`);
   const permission = new SandboxPermissionManager(join(root, "permissions.json"));
   await permission.setMode("ask");
-  const runtime = new AgentRuntime({ cwd, agentDir,
+  const runtime = new AgentRuntime({ cwd, agentDir, systemPromptProfile,
     toolFactory: cwd => createSandboxedToolDefinitions({ cwd, workspace: cwd, permission }) });
   const approvalIds: string[] = [];
   permission.subscribe(event => { if (event.type === "request") approvalIds.push(event.request.id); });
@@ -139,6 +140,58 @@ describe("released Pi SDK compatibility", () => {
     await assert.rejects(readFile(join(f.cwd, "forbidden-shell.txt")), { code: "ENOENT" });
     await f.runtime.setMode(f.id, "agent");
     assert.deepEqual(f.session.getActiveToolNames(), [...work, ...memory]);
+  });
+
+  it("keeps the Codex instructions and declared tools in sync from Run View through Plan approval and Goal completion", async t => {
+    const f = await fixture(t, "codex");
+    const step = "Review the requested behavior";
+    function checkRequest(checklist: "update_plan" | "update_todos" | null) {
+      const messages = f.requests.at(-1)!.messages;
+      const prompt = getSystemMessageText(getCurrentSystemMessage(messages)!);
+      const names = getCurrentTools(messages).map(tool => tool.name);
+      assert.match(prompt, /As a coding agent in Vela/);
+      for (const tool of ["update_plan", "update_todos"]) {
+        assert.equal(names.includes(tool), tool === checklist, tool);
+        assert.equal(prompt.includes(tool), tool === checklist, tool);
+      }
+      return prompt;
+    }
+
+    f.runtime.setRunView(true);
+    f.script([[call("todo", "update_todos", { todos: [{ step, status: "completed" }] })], "Reviewed."]);
+    await f.runtime.prompt(f.id, "Review the requested behavior.");
+    assert.match(checkRequest("update_todos"), /2-7 concrete items/);
+
+    await f.runtime.setMode(f.id, "plan");
+    f.script(["<proposed_plan>\n# Review\n\nDocument the requested behavior.\n</proposed_plan>"]);
+    await f.runtime.prompt(f.id, "Propose a plan.");
+    assert.match(checkRequest(null), /<proposed_plan>/);
+    assert.doesNotMatch(checkRequest(null), /High-quality plans|no more than 10 lines|Run View/);
+
+    f.script([[call("execute", "update_plan", { plan: [{ step, status: "in_progress" }] })], "Review started."]);
+    await f.runtime.executePlan(f.id);
+    assert.match(checkRequest("update_plan"), /before your first change/);
+    assert.equal(f.runtime.getSnapshot(f.id).executionPlan?.items[0]?.status, "in_progress");
+
+    await f.runtime.setMode(f.id, "goal");
+    f.script([
+      [call("finish-step", "update_plan", { plan: [{ step, status: "completed" }] })],
+      [call("validate", "record_goal_validation", { risk: "low", checks: [], knownIssues: [],
+        skipped: ["diff", "test", "build", "typecheck", "regression"].map(category => ({ category, reason: "Text-only review with no file changes." })) })],
+      [call("finish-goal", "update_goal", { status: "complete" })],
+      "Reviewed.",
+    ]);
+    await f.runtime.prompt(f.id, "Finish the approved review.");
+    assert.match(checkRequest("update_plan"), /must call record_goal_validation/);
+    const snapshot = f.runtime.getSnapshot(f.id);
+    assert.equal(snapshot.executionPlan?.items[0]?.status, "completed");
+    assert.equal(snapshot.goal?.status, "complete");
+
+    f.runtime.setRunView(false);
+    await f.runtime.setMode(f.id, "agent");
+    f.script(["Done."]);
+    await f.runtime.prompt(f.id, "Summarize.");
+    assert.doesNotMatch(checkRequest("update_plan"), /Run View/);
   });
 
   it("preserves approval and error results for a real bash command with a nonzero exit", async t => {
