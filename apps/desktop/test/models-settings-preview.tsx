@@ -22,7 +22,8 @@ const provider = (id: string, name: string, patch: Partial<ProviderSummary> = {}
 });
 const model = (providerId: string, providerName: string, id: string, patch: Partial<ModelSummary> = {}): ModelSummary => ({
   provider: providerId, providerName, id, name: id, reasoning: false, vision: false, contextWindow: 200_000, available: true, custom: false,
-  thinkingLevels: ["off", "low", "medium", "high"], ...patch,
+  thinkingLevels: patch.reasoning ? ["off", "low", "medium", "high", "ultra"] : ["off", "ultra"],
+  ...(patch.custom && { reasoningEfforts: patch.reasoning ? ["low", "medium", "high"] : [] }), ...patch,
 });
 const ds = (id: string, reasoning = false, vision = false, contextWindow = 1_000_000) => model("deepseek", "DeepSeek", id, { custom: true, reasoning, vision, contextWindow });
 
@@ -74,7 +75,12 @@ function Harness() {
           ? current.providers.map((item) => item.id === input.providerId ? { ...item, endpoint: { baseUrl: input.baseUrl, api: input.api } } : item)
           : [...current.providers, provider(input.providerId, input.providerName, { custom: true, authenticated: true, endpoint: { baseUrl: input.baseUrl, api: input.api } })];
         const rest = current.models.filter((item) => !(item.provider === input.providerId && item.id === input.modelId));
-        const entry = model(input.providerId, input.providerName, input.modelId, { name: input.modelName || input.modelId, reasoning: input.reasoning, contextWindow: input.contextWindow ?? 0, custom: true });
+        const previous = current.models.find(item => item.provider === input.providerId && item.id === input.modelId);
+        const efforts = input.reasoningEfforts;
+        const entry = model(input.providerId, input.providerName, input.modelId, {
+          ...previous, name: input.modelName || input.modelId, reasoning: input.reasoning, contextWindow: input.contextWindow ?? previous?.contextWindow ?? 0, custom: true,
+          ...(efforts && { reasoningEfforts: efforts, thinkingLevels: efforts.length ? [...efforts, "ultra"] : ["off", "ultra"] }),
+        });
         return { ...current, providers, models: [...rest, entry] };
       });
       return null;

@@ -38,6 +38,7 @@ import {
 import { Label, Note, Opt, fill } from "./onboarding-ui";
 import { modeLabel } from "./resident-agent-model";
 import type { SettingsPageId } from "./settings/settings-registry";
+import { CustomReasoningFields } from "./settings/CustomReasoningFields";
 import { LoginDialog } from "./ModelControls";
 import { SheetPresence } from "./Presence";
 import "../onboarding.css";
@@ -70,6 +71,7 @@ const emptyCustomModel: CustomModelInput = {
   modelId: "",
   modelName: "",
   reasoning: false,
+  reasoningEfforts: [],
   contextWindow: null,
   maxTokens: null,
 };
@@ -899,7 +901,8 @@ function CustomProviderForm({
       <label><span>{copy.apiKeyField}</span><input type="password" value={form.apiKey} placeholder={copy.apiKeyPlaceholder} autoComplete="off" spellCheck={false} onChange={(event) => setForm({ ...form, apiKey: event.target.value })} /></label>
       <label><span>{copy.modelId}</span><input value={form.modelId} placeholder={modelCopy.modelIdPlaceholder} spellCheck={false} onChange={(event) => setForm({ ...form, modelId: event.target.value })} required /></label>
       <label><span>{copy.modelName}</span><input value={form.modelName} placeholder={copy.modelNamePlaceholder} onChange={(event) => setForm({ ...form, modelName: event.target.value })} /></label>
-      <label className="check"><input type="checkbox" checked={form.reasoning} onChange={(event) => setForm({ ...form, reasoning: event.target.checked })} /><span>{copy.supportsReasoning}</span></label>
+      <CustomReasoningFields copy={modelCopy} efforts={form.reasoningEfforts ?? []}
+        onChange={reasoningEfforts => setForm({ ...form, reasoningEfforts, reasoning: reasoningEfforts.length > 0 })} />
       <button type="submit" className="ob-pill fill" disabled={busy}>{busy ? copy.connecting : `${copy.addProvider} →`}</button>
     </form>
   );

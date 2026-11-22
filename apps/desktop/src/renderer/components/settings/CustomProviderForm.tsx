@@ -43,7 +43,8 @@ export function CustomProviderForm({
       apiKey: apiKey.trim(),
       modelId: model.modelId.trim(),
       modelName: model.modelName.trim(),
-      reasoning: model.reasoning,
+      reasoning: model.reasoningEfforts.length > 0,
+      reasoningEfforts: model.reasoningEfforts,
       contextWindow: countOrNull(model.contextWindow),
       maxTokens: countOrNull(model.maxTokens),
     });

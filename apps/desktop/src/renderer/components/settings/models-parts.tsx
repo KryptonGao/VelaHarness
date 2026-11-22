@@ -1,4 +1,5 @@
-import { customModelApis, type CustomModelApi } from "@vela/shared";
+import { customModelApis, type CustomModelApi, type CustomReasoningEffort } from "@vela/shared";
+import { CustomReasoningFields } from "./CustomReasoningFields";
 import { useState } from "react";
 import type { SettingsCopy } from "../settings-copy";
 import { providerMonogram } from "./models-view";
@@ -50,19 +51,19 @@ export function ProviderLogo({ provider, size = "sm" }: { provider: { id?: strin
 export interface ModelDraft {
   modelId: string;
   modelName: string;
-  reasoning: boolean;
+  reasoningEfforts: CustomReasoningEffort[];
   contextWindow: string;
   maxTokens: string;
 }
 
-export const emptyModelDraft: ModelDraft = { modelId: "", modelName: "", reasoning: false, contextWindow: "", maxTokens: "" };
+export const emptyModelDraft: ModelDraft = { modelId: "", modelName: "", reasoningEfforts: [], contextWindow: "", maxTokens: "" };
 
 export function countOrNull(value: string): number | null {
   const digits = value.replace(/\D/g, "");
   return digits ? Number(digits) : null;
 }
 
-/** 模型 ID、显示名称、上下文长度、最大输出和推理开关;新增和编辑共用。 */
+/** 模型 ID、显示名称、上下文长度、最大输出和支持的推理档位;新增和编辑共用。 */
 export function ModelFields({
   copy,
   value,
@@ -111,10 +112,7 @@ export function ModelFields({
           onChange={(event) => onChange({ ...value, maxTokens: event.target.value.replace(/\D/g, "") })}
         />
       </label>
-      <label className="check-row models-fields-wide">
-        <input type="checkbox" checked={value.reasoning} onChange={(event) => onChange({ ...value, reasoning: event.target.checked })} />
-        <span>{copy.reasoning}</span>
-      </label>
+      <CustomReasoningFields copy={copy} efforts={value.reasoningEfforts} onChange={reasoningEfforts => onChange({ ...value, reasoningEfforts })} />
     </div>
   );
 }

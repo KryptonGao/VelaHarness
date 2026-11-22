@@ -175,8 +175,25 @@
 /* 行内编辑 */
 .models-editor { display: flex; flex-direction: column; gap: 12px; padding: 14px; border: 1px solid var(--border-strong); border-radius: var(--radius-md); background: var(--bg-surface-subtle); }
 .models-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.models-fields-wide { grid-column: 1 / -1; }
-
+.models-reasoning-fields { grid-column: 1 / -1; min-width: 0; margin: 0; padding: 0; border: 0; }
+.models-reasoning-fields legend { padding: 0; margin-bottom: 6px; color: var(--text-muted); font-size: calc(13px * var(--ui-scale)); }
+.models-reasoning-options {
+  display: grid;
+  width: 100%;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 66px), 1fr));
+}
+.models-reasoning-options .settings-segment-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  padding: 4px;
+  font-family: inherit;
+  font-weight: 400;
+  font-size: calc(13px * var(--ui-scale));
+  cursor: pointer;
+}
+.models-reasoning-options button:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: -2px; }
 
 /* 添加供应商页 */
 .models-add { flex: 1; min-height: 0; display: flex; flex-direction: column; }

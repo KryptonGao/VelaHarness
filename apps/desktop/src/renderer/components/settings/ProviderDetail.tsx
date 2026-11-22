@@ -203,7 +203,7 @@ function CustomConnection({ text, provider, providerModels, models }: { text: Mo
   );
 }
 
-type Editing = { mode: "add" } | { mode: "edit"; modelId: string };
+type Editing = { mode: "add" } | { mode: "edit"; model: ModelSummary };
 
 function ModelList({
   text,
@@ -227,11 +227,11 @@ function ModelList({
   const endpoint = provider.endpoint;
 
   function startEdit(model: ModelSummary): void {
-    setEditing({ mode: "edit", modelId: model.id });
+    setEditing({ mode: "edit", model });
     setDraft({
       modelId: model.id,
       modelName: model.name === model.id ? "" : model.name,
-      reasoning: model.reasoning,
+      reasoningEfforts: model.reasoningEfforts ?? [],
       contextWindow: model.contextWindow ? String(model.contextWindow) : "",
       maxTokens: "",
     });
@@ -242,6 +242,7 @@ function ModelList({
     if (!endpoint) return;
     setSaving(true);
     setError(null);
+    const unchangedEfforts = editing?.mode === "edit" && draft.reasoningEfforts === editing.model.reasoningEfforts;
     const message = await models.register({
       providerId: provider.id,
       providerName: provider.name,
@@ -250,7 +251,8 @@ function ModelList({
       apiKey: "",
       modelId: draft.modelId.trim(),
       modelName: draft.modelName.trim(),
-      reasoning: draft.reasoning,
+      reasoning: unchangedEfforts ? editing.model.reasoning : draft.reasoningEfforts.length > 0,
+      reasoningEfforts: unchangedEfforts ? undefined : draft.reasoningEfforts,
       contextWindow: countOrNull(draft.contextWindow),
       maxTokens: countOrNull(draft.maxTokens),
     });
