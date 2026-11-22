@@ -11,7 +11,7 @@ import {
   WorkspaceManager,
   createWorktree, removeWorktree,
 } from "@vela/workspace";
-import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, nativeTheme, Notification, powerMonitor, session, shell, Tray, webContents } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, nativeTheme, Notification, powerMonitor, powerSaveBlocker, session, shell, Tray, webContents } from "electron";
 import type { BrowserWindowConstructorOptions } from "electron";
 import { createLogger, IpcChannel, isAgentBusy, isAppLocale, localizeZh, type ResidentSettings } from "@vela/shared";
 import { existsSync, readFileSync, statSync, watch as fsWatch, writeFileSync } from "node:fs";
@@ -30,6 +30,7 @@ import { UiSandboxHost } from "./ui-sandbox-host";
 import { registerOpenTargetIpc } from "./open-targets";
 import { ProjectHost } from "./project-host";
 import { SessionHost } from "./session-host";
+import { preventAgentIdleSleep } from "./agent-power-save";
 import { ScheduledTaskScheduler } from "./scheduled-task-service";
 import { TaskRecipeService } from "./task-recipe-service";
 import { TaskRecipeHost } from "./task-recipe-host";
@@ -424,6 +425,7 @@ async function start(): Promise<void> {
     onActiveCwd: (cwd, hasWorkspace, repository) => void project?.syncConversationWorkspace(cwd, hasWorkspace, repository ?? null),
   });
   const runtime = runtimeHost.runtime;
+  app.once("will-quit", preventAgentIdleSleep(runtime, runtimeHost.backgroundShells, powerSaveBlocker));
   // 已登记工作区：当前选择、最近使用和已有会话的工作目录，供配方与记忆管理共用。
   const registeredWorkspaces = () => [...new Set([
     workspaceManager.getState().current,
