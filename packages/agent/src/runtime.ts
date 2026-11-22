@@ -118,6 +118,8 @@ import {
   type GoalValidationDraft,
   type GoalValidationEvidence,
 } from "./goal-validation";
+import { codexSpeedPayload } from "./codex-speed";
+import { isCodexSpeed, type CodexSpeedTier } from "@vela/shared";
 import { ModelDirectory, type ModelDirectoryOptions } from "./model-directory";
 import { MemoryService } from "./memory";
 import { MemoryDistiller } from "./memory-distill";
@@ -1835,6 +1837,10 @@ export class AgentRuntime {
     return directory.refreshCatalogNow();
   }
 
+  async getCodexSpeedTiers(provider: string, model: string): Promise<CodexSpeedTier[]> {
+    return (await this.readyDirectory()).codexSpeedTiers(provider, model);
+  }
+
   async getUsageLimits(provider: string): Promise<UsageLimits | null> {
     const directory = await this.readyDirectory();
     return directory.usageLimits(provider);
@@ -1896,6 +1902,20 @@ export class AgentRuntime {
       await this.applyModel(model, level, conversationId);
       await directory.rememberLastUsed(model.provider, model.id, level);
       return this.getSnapshot(conversationId);
+    });
+  }
+
+  setCodexSpeed(provider: string, model: string, speed: unknown, conversationId?: string): Promise<SessionSnapshot> {
+    return this.exclusive(async () => {
+      const id = conversationId ?? this.activeId;
+      if (!id) throw new Error("对话不存在或已结束");
+      if (!isCodexSpeed(speed) || (speed !== "standard" && !(await this.getCodexSpeedTiers(provider, model)).includes(speed))) {
+        throw new Error("当前模型不支持此速度");
+      }
+      const entry = this.requireIdle(id);
+      if (entry.session?.model?.provider !== provider || entry.session.model.id !== model) throw new Error("当前模型不支持此速度");
+      this.patchEntry(entry, { codexSpeed: speed });
+      return this.getSnapshot(id);
     });
   }
 
@@ -2291,6 +2311,8 @@ export class AgentRuntime {
     const selection = request.model ?? intended;
     const model = selection ? directory.requireAvailable(selection.provider, selection.id) : directory.modelForSelection();
     if (!model || !directory.isAvailable(model)) throw new Error("先选择一个已登录或已配置密钥的模型");
+    if (request.codexSpeed && request.codexSpeed !== "standard" &&
+        !(await directory.codexSpeedTiers(model.provider, model.id)).includes(request.codexSpeed)) throw new Error("当前模型不支持此速度");
     const memoryEnabled = this.memorySettings.enabled;
     const memory = memoryEnabled
       ? await Promise.all(memoryTargetsFor(entry
@@ -3176,6 +3198,8 @@ export class AgentRuntime {
       if (chosen) {
         this.patchEntry(entry, {
           model: directory.displayName(chosen) ?? modelLabel(chosen),
+          codexSpeed: chosen.provider === entry.snapshot.modelProvider && chosen.id === entry.snapshot.modelId
+            ? entry.snapshot.codexSpeed : undefined,
           modelProvider: chosen.provider,
           modelId: chosen.id,
           thinkingLevel: isThinkingLevel(thinkingLevel) ? thinkingLevel : "medium",
@@ -3318,6 +3342,14 @@ export class AgentRuntime {
           ],
         });
         session = created.session;
+        const preparePayload = session.agent.onPayload;
+        session.agent.onPayload = async (payload, wireModel) => {
+          const body = await preparePayload?.(payload, wireModel) ?? payload;
+          const selected = session.model;
+          if (!selected || selected.provider !== entry.snapshot.modelProvider || selected.id !== wireModel.id ||
+              selected.id !== entry.snapshot.modelId || wireModel.api !== selected.api) return body;
+          return codexSpeedPayload(body, selected, entry.snapshot.codexSpeed);
+        };
       } catch (error) {
         await control.dispose();
         throw error;
@@ -3782,6 +3814,8 @@ export class AgentRuntime {
       model: intended ? directory?.displayName(intended) ?? modelLabel(intended) : entry.recipeExecution ? `${entry.recipeExecution.model.provider}/${entry.recipeExecution.model.id}` : null,
       modelProvider: intended?.provider ?? entry.recipeExecution?.model.provider ?? null,
       modelId: intended?.id ?? entry.recipeExecution?.model.id ?? null,
+      codexSpeed: intended?.provider === entry.snapshot.modelProvider && intended?.id === entry.snapshot.modelId
+        ? entry.snapshot.codexSpeed : undefined,
       modelReady: Boolean(active && directory?.isAvailable(active)),
       thinkingLevel: isThinkingLevel(thinkingLevel) ? thinkingLevel : "medium",
       thinkingLevels: intended ? levelsFor(intended) : ["off"],

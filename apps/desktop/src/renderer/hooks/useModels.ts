@@ -4,6 +4,7 @@ import type {
   AuthNotice,
   AuthPromptRequest,
   CustomModelInput,
+  CodexSpeed,
   ModelAuthEvent,
   ModelCatalog,
   ModelRefreshResult,
@@ -94,6 +95,12 @@ export function useModels(setAppState: (state: AppState) => void, conversationId
     const api = window.vela;
     if (!api) return Promise.resolve();
     return mutate(() => api.selectModel(provider, id, conversationId), false);
+  }, [mutate, conversationId]);
+
+  const setCodexSpeed = useCallback((provider: string, model: string, speed: CodexSpeed) => {
+    const api = window.vela;
+    if (!api) return Promise.resolve("应用还没准备好");
+    return mutate(() => api.setCodexSpeed(provider, model, speed, conversationId), false);
   }, [mutate, conversationId]);
 
   const setThinking = useCallback((level: ThinkingLevel) => {
@@ -197,6 +204,7 @@ export function useModels(setAppState: (state: AppState) => void, conversationId
     refreshFromPi,
     select,
     setThinking,
+    setCodexSpeed,
     add,
     register,
     remove,

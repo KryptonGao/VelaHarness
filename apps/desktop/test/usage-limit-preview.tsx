@@ -1,8 +1,9 @@
 /** GPT usage ring beside the model name. ?plan=plus|pro (pro is weekly only), ?high=1, ?theme=dark, ?en, ?provider=anthropic. */
 import React from "react";
 import { createRoot } from "react-dom/client";
-import type { UsageLimits } from "@vela/shared";
+import type { CodexSpeed, UsageLimits } from "@vela/shared";
 import { ModelControls } from "../src/renderer/components/ModelControls";
+import { setCombinedModelPicker } from "../src/renderer/hooks/useCombinedModelPicker";
 import { AppLocaleProvider, setActiveLocale } from "../src/renderer/locale";
 import "../src/renderer/styles.css";
 
@@ -23,12 +24,17 @@ const limits: UsageLimits = {
     { windowMinutes: 10080, usedPercent: high ? 78 : 25, resetsAt: Date.now() + 80 * hour },
   ],
 };
-(window as unknown as { vela: unknown }).vela = { getUsageLimits: async () => limits };
+(window as unknown as { vela: unknown }).vela = {
+  getUsageLimits: async () => limits,
+  getCodexSpeedTiers: async () => params.get("speed") === "ultrafast" ? ["priority", "ultrafast"] : params.has("speed") ? ["priority"] : [],
+};
+setCombinedModelPicker(params.has("combined"));
 
 const provider = params.get("provider") ?? "openai-codex";
 const noop = async () => undefined;
-createRoot(document.getElementById("root")!).render(
-  <AppLocaleProvider locale={locale}>
+function Preview() {
+  const [speed, setSpeed] = React.useState<CodexSpeed>("standard");
+  return <AppLocaleProvider locale={locale}>
     <div style={{ padding: "180px 40px 40px", display: "flex", justifyContent: "flex-end", background: "var(--bg-chat)", minHeight: "100vh" }}>
       <div className="dock-controls-row" style={{ position: "relative" }}>
         <ModelControls
@@ -36,10 +42,12 @@ createRoot(document.getElementById("root")!).render(
           thinkingLevel="high" thinkingLevels={["low", "medium", "high", "xhigh"]}
           disabled={false} catalog={null} catalogError={null} actionError={null} hiddenModels={[]}
           login={{ active: false, notices: [], progress: null, prompt: null, error: null }}
+          codexSpeed={speed} onSpeed={async (_provider, _model, next) => setSpeed(next)}
           onSelect={noop} onThinking={noop}
           onReplyLogin={async () => undefined} onCancelLogin={async () => undefined} onDismissLogin={() => undefined}
         />
       </div>
     </div>
-  </AppLocaleProvider>,
-);
+  </AppLocaleProvider>;
+}
+createRoot(document.getElementById("root")!).render(<Preview />);

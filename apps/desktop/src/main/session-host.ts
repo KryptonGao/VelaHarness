@@ -276,6 +276,13 @@ export class SessionHost {
     });
     ipcMain.handle(IpcChannel.getCatalog, () => this.runtime.getCatalog());
     ipcMain.handle(IpcChannel.refreshCatalog, () => this.runtime.refreshCatalog());
+    ipcMain.handle(IpcChannel.codexSpeedTiers, (_event, provider: unknown, model: unknown) =>
+      this.runtime.getCodexSpeedTiers(parseId(provider, "提供方"), parseId(model, "模型")));
+    ipcMain.handle(IpcChannel.setCodexSpeed, async (_event, provider: unknown, model: unknown, speed: unknown, rawConversation: unknown) => {
+      const conversationId = parseOptionalConversationId(rawConversation);
+      await this.runtime.setCodexSpeed(parseId(provider, "提供方"), parseId(model, "模型"), speed, conversationId);
+      return this.currentState(conversationId);
+    });
     ipcMain.handle(IpcChannel.usageLimits, (_event, provider: unknown) => this.runtime.getUsageLimits(parseId(provider, "提供方")));
     ipcMain.handle(IpcChannel.selectModel, async (_event, provider: unknown, id: unknown, rawConversation: unknown) => {
       const conversationId = parseOptionalConversationId(rawConversation);

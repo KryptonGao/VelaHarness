@@ -116,6 +116,8 @@ export const IpcChannel = {
   getCatalog: "models:get-catalog",
   refreshCatalog: "models:refresh-catalog",
   usageLimits: "models:usage-limits",
+  codexSpeedTiers: "models:codex-speed-tiers",
+  setCodexSpeed: "models:set-codex-speed",
   selectModel: "models:select",
   setThinkingLevel: "models:thinking",
   addModel: "models:add",
@@ -554,6 +556,13 @@ export type AuthSource =
   | "models_json_key"
   | "models_json_command";
 
+export type CodexSpeedTier = "priority" | "ultrafast";
+export type CodexSpeed = "standard" | CodexSpeedTier;
+
+export function isCodexSpeed(value: unknown): value is CodexSpeed {
+  return value === "standard" || value === "priority" || value === "ultrafast";
+}
+
 export interface ModelSummary {
   provider: string;
   providerName: string;
@@ -821,6 +830,7 @@ export interface SessionSnapshot {
   modelProvider: string | null;
   modelId: string | null;
   modelReady: boolean;
+  codexSpeed?: CodexSpeed;
   thinkingLevel: ThinkingLevel;
   thinkingLevels: ThinkingLevel[];
   tools: string[];
@@ -3286,6 +3296,8 @@ export interface VelaApi extends McpApi, PluginApi, HooksApi {
   /** 立即从 Pi 重新获取模型列表，忽略 4 小时的检查间隔。 */
   refreshCatalog(): Promise<ModelRefreshResult>;
   /** 读取订阅额度；不支持或没有登录时返回 null，网络等临时失败会抛错。 */
+  getCodexSpeedTiers(provider: string, model: string): Promise<CodexSpeedTier[]>;
+  setCodexSpeed(provider: string, model: string, speed: CodexSpeed, conversationId?: string): Promise<AppState>;
   getUsageLimits(provider: string): Promise<UsageLimits | null>;
   selectModel(provider: string, id: string, conversationId?: string): Promise<AppState>;
   setThinkingLevel(level: ThinkingLevel, conversationId?: string): Promise<AppState>;

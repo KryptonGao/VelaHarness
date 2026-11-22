@@ -1,4 +1,4 @@
-import type { AppLocale, MemoryLoadReport, SideChatEvent, SideChatStoredEntry, SideChatThread, ThinkingLevel } from "@vela/shared";
+import type { AppLocale, CodexSpeed, MemoryLoadReport, SideChatEvent, SideChatStoredEntry, SideChatThread, ThinkingLevel } from "@vela/shared";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import type { useModels } from "../hooks/useModels";
 import type { SendButtonIcon } from "../hooks/usePreferences";
@@ -69,6 +69,7 @@ export function SideChatView({ workspace, threadId, number, initialEntries, onBa
   defaultChoice: SideChatModelChoice | null;
 }) {
   const [choice, setChoice] = useState(() => readSideChatChoice(defaultChoice));
+  const [codexSpeed, setCodexSpeed] = useState<CodexSpeed>("standard");
   const modelInfo = sideChatModelInfo(models.catalog, choice);
   const choose = (next: SideChatModelChoice) => {
     setChoice(next);
@@ -161,6 +162,7 @@ export function SideChatView({ workspace, threadId, number, initialEntries, onBa
       requestId: id, conversationId, locale, messages: sideChatRequestMessages(history),
       ...(choice ? { model: { provider: choice.provider, id: choice.id } } : {}),
       thinkingLevel: modelInfo.level,
+      ...(codexSpeed !== "standard" && { codexSpeed }),
     }).then((result) => {
       setContext({ memory: result.memory, memoryEnabled: result.memoryEnabled });
       update((current) => current.flatMap((entry) => {
@@ -178,7 +180,7 @@ export function SideChatView({ workspace, threadId, number, initialEntries, onBa
       if (requestRef.current === id) requestRef.current = null;
       setRequestId((current) => current === id ? null : current);
     });
-  }, [conversationId, locale, choice, modelInfo.level, update, persist]);
+  }, [conversationId, locale, choice, codexSpeed, modelInfo.level, update, persist]);
 
   const submit = (event?: FormEvent) => {
     event?.preventDefault();
@@ -304,7 +306,12 @@ export function SideChatView({ workspace, threadId, number, initialEntries, onBa
             actionError={models.actionError}
             hiddenModels={hiddenModels}
             login={models.login}
-            onSelect={(provider, id) => choose({ provider, id, thinkingLevel: choice?.thinkingLevel ?? modelInfo.level })}
+            codexSpeed={codexSpeed}
+            onSpeed={async (_provider, _model, speed) => setCodexSpeed(speed)}
+            onSelect={(provider, id) => {
+              if (provider !== choice?.provider || id !== choice.id) setCodexSpeed("standard");
+              return choose({ provider, id, thinkingLevel: choice?.thinkingLevel ?? modelInfo.level });
+            }}
             onThinking={(level: ThinkingLevel) => choice ? choose({ ...choice, thinkingLevel: level }) : Promise.resolve()}
             onReplyLogin={models.replyLogin}
             onCancelLogin={models.cancelLogin}

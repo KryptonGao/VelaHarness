@@ -1,6 +1,7 @@
 import {
   thinkingLevelLabel,
   type AuthNotice,
+  type CodexSpeed,
   type ModelCatalog,
   type ModelSummary,
   type SandboxMode,
@@ -12,12 +13,13 @@ import { useEscapeKey } from "../hooks/useDismissable";
 import { useReducedMotion } from "../hooks/useMotionPresence";
 import type { LoginState } from "../hooks/useModels";
 import { modelKey } from "../hooks/usePreferences";
-import { useUsageLimits } from "../hooks/useUsageLimits";
+import { quotaProviderId, useUsageLimits } from "../hooks/useUsageLimits";
 import { PopoverPresence } from "./MotionPresence";
 import { SheetPresence } from "./Presence";
 import { UsageLimitMenu } from "./UsageLimitMenu";
 import { localizeError, tr, trf } from "../locale";
 import { Icon } from "./icons";
+import { CodexSpeedControl, SpeedGlyph, speedLabel, useCodexSpeedTiers } from "./CodexSpeedControl";
 
 const thinkingLabelsEn: Record<ThinkingLevel, string> = {
   off: "Off",
@@ -48,6 +50,8 @@ interface ModelControlsProps {
   hiddenModels: string[];
   login: LoginState;
   onSelect: (provider: string, id: string) => Promise<unknown>;
+  codexSpeed?: CodexSpeed;
+  onSpeed: (provider: string, model: string, speed: CodexSpeed) => Promise<unknown>;
   onThinking: (level: ThinkingLevel) => Promise<unknown>;
   onReplyLogin: (promptId: string, value: string | null) => Promise<void>;
   onCancelLogin: () => Promise<void>;
@@ -62,6 +66,41 @@ interface ModelControlsProps {
 
 /** Ultra 标签「更快使用算力」替换「Ultra」的停留时间。 */
 const ultraFlashMs = 2400;
+
+const gptParticleSpacing: Record<CodexSpeed, number> = { standard: 30, priority: 20, ultrafast: 13 };
+
+function GptParticle({ index }: { index: number }) {
+  const [style] = useState(() => ({
+    // Space the starting phases apart, then jitter each dot independently.
+    "--particle-offset": (0.17 + index * 0.618034 + Math.random() * 0.07) % 1,
+    "--size": `${1 + Math.random() * 0.75}px`,
+    "--pace": 0.92 + Math.random() * 0.16,
+    "--sway-period": `${1.4 + Math.random() * 1.7}s`,
+    "--sway-distance": `${0.3 + Math.random() * 0.55}px`,
+    "--sway-delay": `${-Math.random() * 6}s`,
+    top: `${14 + Math.random() * 64}%`,
+  } as CSSProperties));
+  return <span className="thinking-particle" style={style} />;
+}
+
+function GptParticles({ speed }: { speed: CodexSpeed }) {
+  const layer = useRef<HTMLDivElement>(null);
+  const [count, setCount] = useState(0);
+  useLayoutEffect(() => {
+    const element = layer.current;
+    if (!element) return;
+    const measure = () => setCount(Math.round(element.clientWidth / gptParticleSpacing[speed]));
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [speed]);
+  return (
+    <div ref={layer} className="thinking-particles" data-speed={speed}>
+      {Array.from({ length: count }, (_, index) => <GptParticle key={index} index={index} />)}
+    </div>
+  );
+}
 
 /**
  * 思考强度胶囊里的小标记：calm 布局显示信号格，capsule 布局显示弧形撥盘，classic 不显示。
@@ -136,6 +175,13 @@ export function ModelControls(props: ModelControlsProps) {
   const particleDuration = `${(3.4 - sliderProgress * 2.65).toFixed(2)}s`;
   const ultraSelected = sliderThinking === "ultra";
   const [ultraFlash, setUltraFlash] = useState(false);
+  const { modelProvider, modelId } = props;
+  const codexProvider = quotaProviderId(modelProvider);
+  const tiers = useCodexSpeedTiers(codexProvider, modelId, menu === "thinking", props.catalog);
+  const speed = codexProvider ? props.codexSpeed ?? "standard" : "standard";
+  const isGptSlider = Boolean(codexProvider) || /(?:^|\/)gpt(?:-|$)/i.test(modelId ?? "");
+  const speedEnabled = tiers.length > 0 || speed !== "standard";
+  const activeSpeedGlyph = speed !== "standard" && <SpeedGlyph speed={speed} />;
   const usage = useUsageLimits(props.modelProvider);
   const refreshUsage = usage.refresh;
 
@@ -226,6 +272,7 @@ export function ModelControls(props: ModelControlsProps) {
     };
     const onKey = (event: KeyboardEvent) => {
       if (event.key !== "Escape" || event.isComposing) return;
+      if (rootRef.current?.querySelector(".codex-speed-menu:popover-open")) return;
       if (combined && menu === "model") openPicker("thinking");
       else if (combined && menu === "thinking") closePicker();
       else setMenu(null);
@@ -252,27 +299,35 @@ export function ModelControls(props: ModelControlsProps) {
       >
         {ultraFlash ? tr("更快使用算力", "Faster compute") : thinkingLabel(sliderThinking)}
       </span>
-      <span className="thinking-model-label">{props.modelLabel ?? chooseModel}</span>
+      <span className="thinking-heading-model">
+        <span className="thinking-model-label">{props.modelLabel ?? chooseModel}</span>
+        {combined && <Icon className="combined-thinking-arrow" name="chevron-right" size={12} />}
+      </span>
     </>
   );
 
   const thinkingContent = (
     <>
-      {combined ? (
-        <button
-          className="thinking-popover-heading combined-thinking-heading"
-          type="button"
-          title={chooseModel}
-          disabled={props.disabled}
-          autoFocus
-          onClick={() => openPicker("model")}
-        >
-          {thinkingHeading}
-          <Icon className="combined-thinking-arrow" name="chevron-right" size={12} />
-        </button>
-      ) : (
-        <div className="thinking-popover-heading">{thinkingHeading}</div>
-      )}
+      <div className={`thinking-heading-row${speedEnabled ? " thinking-heading-with-speed" : ""}`}>
+        {speedEnabled && codexProvider && modelId && (
+          <CodexSpeedControl key={modelKey(codexProvider, modelId)} speed={speed} tiers={tiers}
+            disabled={props.disabled} onChange={value => props.onSpeed(codexProvider, modelId, value)} />
+        )}
+        {combined ? (
+          <button
+            className="thinking-popover-heading combined-thinking-heading"
+            type="button"
+            title={chooseModel}
+            disabled={props.disabled}
+            autoFocus
+            onClick={() => openPicker("model")}
+          >
+            {thinkingHeading}
+          </button>
+        ) : (
+          <div className="thinking-popover-heading">{thinkingHeading}</div>
+        )}
+      </div>
       <div
         className={`thinking-slider${ultraSelected ? " is-ultra" : ""}`}
         style={{
@@ -284,15 +339,19 @@ export function ModelControls(props: ModelControlsProps) {
           <div className="thinking-fill-frame">
             {sliderProgress > 0 ? (
               <div className="thinking-slider-fill">
-                <div className="thinking-particles">
-                  {[0, 1, 2, 3, 4].map((particle) => (
-                    <span
-                      key={particle}
-                      className={`thinking-particle particle-${particle + 1}`}
-                      style={{ "--thinking-particle-delay": `${particle * -0.31}s` } as CSSProperties}
-                    />
-                  ))}
-                </div>
+                {isGptSlider ? (
+                  (speed !== "standard" || ultraSelected) && <GptParticles speed={speed} />
+                ) : (
+                  <div className="thinking-particles">
+                    {[0, 1, 2, 3, 4].map((particle) => (
+                      <span
+                        key={particle}
+                        className={`thinking-particle particle-${particle + 1}`}
+                        style={{ "--thinking-particle-delay": `${particle * -0.31}s` } as CSSProperties}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
             ) : null}
           </div>
@@ -383,7 +442,7 @@ export function ModelControls(props: ModelControlsProps) {
             className="model-choice-pill model-pill combined-model-pill"
             type="button"
             title={combinedLabel}
-            aria-label={combinedLabel}
+            aria-label={speed === "standard" ? combinedLabel : `${combinedLabel} · ${speedLabel(speed)}`}
             aria-controls={pickerOpen ? thinkingPopoverId : undefined}
             aria-expanded={pickerOpen}
             disabled={props.disabled}
@@ -392,6 +451,7 @@ export function ModelControls(props: ModelControlsProps) {
               else openPicker("thinking");
             }}
           >
+            {activeSpeedGlyph}
             <span className="model-pill-label">{props.modelLabel ?? combinedLabel}</span>
             {props.modelLabel ? (
               <span className={`combined-effort-label${shownThinking === "ultra" ? " is-ultra" : ""}`}>
@@ -423,7 +483,7 @@ export function ModelControls(props: ModelControlsProps) {
               title={thinkingChoices.length < 2 ? tr("当前模型不支持调整思考强度", "The current model does not support adjustable reasoning") : `${reasoningLabel}: ${thinkingLabel(shownThinking)}`}
               aria-controls={thinkingPopoverId}
               aria-expanded={menu === "thinking"}
-              disabled={props.disabled || thinkingChoices.length < 2}
+              disabled={props.disabled || (thinkingChoices.length < 2 && !speedEnabled)}
               onClick={() => {
                 if (menu === "thinking") {
                   setMenu(null);
@@ -455,6 +515,7 @@ export function ModelControls(props: ModelControlsProps) {
               disabled={props.disabled}
               onClick={() => setMenu((current) => (current === "model" ? null : "model"))}
             >
+              {activeSpeedGlyph}
               <span className="model-pill-label">{props.modelLabel ?? tr("选择模型", "Choose a model")}</span>
               <Chevron />
             </button>

@@ -2,6 +2,7 @@ import { type Api, type AssistantMessage, type Message, type Model } from "@eare
 import type { ModelRuntime } from "@earendil-works/pi-coding-agent";
 import {
   isAppLocale,
+  isCodexSpeed,
   thinkingLevels,
   memoryLoadReport,
   modelLanguageName,
@@ -13,6 +14,7 @@ import {
   type ThinkingLevel,
 } from "@vela/shared";
 import { memoryContextBlock } from "./memory-context";
+import { codexSpeedPayload } from "./codex-speed";
 import { openCodeSessionHeaders } from "./provider-headers";
 import { modelThinkingLevel } from "./thinking-level";
 
@@ -62,7 +64,9 @@ export function parseSideChatRequest(raw: unknown): SideChatRequest {
     if (!(thinkingLevels as readonly unknown[]).includes(input.thinkingLevel)) throw new Error("侧边聊天推理强度不正确");
     thinkingLevel = input.thinkingLevel as ThinkingLevel;
   }
+  if (input.codexSpeed !== undefined && !isCodexSpeed(input.codexSpeed)) throw new Error("当前模型不支持此速度");
   return {
+    ...(input.codexSpeed && { codexSpeed: input.codexSpeed }),
     requestId: input.requestId,
     conversationId: input.conversationId as string | null,
     locale: input.locale,
@@ -154,6 +158,7 @@ export class SideChatService {
         systemPrompt: sideChatSystemPrompt(request.locale, memory),
         messages: toModelMessages(model, sideChatHistory(request.messages)),
       }, {
+        ...(request.codexSpeed && { onPayload: (body: unknown) => codexSpeedPayload(body, model, request.codexSpeed) }),
         signal: controller.signal,
         ...(thinkingLevel !== "off" ? { reasoning: thinkingLevel } : {}),
         sessionId: request.requestId,

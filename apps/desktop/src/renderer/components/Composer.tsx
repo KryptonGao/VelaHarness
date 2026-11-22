@@ -3,6 +3,7 @@ import {
   parseSlashInvocation,
   thinkingLevelLabel,
   type ContextUsage,
+  type CodexSpeed,
   type CustomCommand,
   type FileAttachmentPayload,
   type ImageAttachment,
@@ -100,6 +101,7 @@ export interface ComposerProps {
   modelProvider: string | null;
   modelId: string | null;
   modelReady: boolean;
+  codexSpeed?: CodexSpeed;
   thinkingLevel: ThinkingLevel;
   thinkingLevels: ThinkingLevel[];
   /** 在输入框模型列表中隐藏的模型，key 为 `provider/id`。 */
@@ -179,6 +181,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
   modelProvider,
   modelId,
   modelReady,
+  codexSpeed,
   thinkingLevel,
   thinkingLevels,
   hiddenModels,
@@ -1249,6 +1252,8 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
       hiddenModels={hiddenModels}
       login={models.login}
       onSelect={models.select}
+      codexSpeed={codexSpeed}
+      onSpeed={models.setCodexSpeed}
       onThinking={models.setThinking}
       fullAccess={sandboxMode ? undefined : { mode: project.sandboxMode, onEnable: () => project.setSandboxMode("full") }}
       onReplyLogin={models.replyLogin}

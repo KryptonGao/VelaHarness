@@ -107,6 +107,7 @@ const ICONS = {
   visual: "layout-grid",
   expand: "fullscreen-2",
   code: "code",
+  lightning: "lightning",
   gauge: "dashboard",
   home: "home-3",
   history: "history-anticlockwise",

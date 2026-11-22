@@ -1,6 +1,6 @@
 import type { AppLocale } from "./i18n";
 import type { MemoryLoadReport } from "./memory";
-import type { ThinkingLevel } from "./index";
+import type { CodexSpeed, ThinkingLevel } from "./index";
 
 /**
  * 侧边聊天：只和模型对话，不提供 Agent 工具，带入全局与当前项目的长期记忆。
@@ -27,6 +27,7 @@ export interface SideChatRequest {
   model?: { provider: string; id: string };
   /** 推理强度；不指定或为 off 时不开启推理。超出模型支持范围时就近调整。 */
   thinkingLevel?: ThinkingLevel;
+  codexSpeed?: CodexSpeed;
 }
 
 export interface SideChatResult {

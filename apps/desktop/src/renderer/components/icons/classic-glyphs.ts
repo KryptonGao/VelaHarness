@@ -10,7 +10,14 @@ export interface ClassicGlyph {
   fillViewBox?: string;
 }
 
+const lightningPath = "M12.9 2.9c.75-.83 2.05-.15 1.87.91l-.83 4.7a.45.45 0 0 0 .44.53h5.14c.96 0 1.39 1.1.75 1.84l-9.47 10.77c-.72.83-2.04.18-1.86-.9l.86-5.12a.45.45 0 0 0-.44-.53H4.48c-.97 0-1.46-1.12-.81-1.85Z";
+
 export const classicGlyphs: Record<IconName, ClassicGlyph> = {
+  lightning: {
+    viewBox: "0 0 24 24",
+    line: `<path d="${lightningPath}" fill="none" stroke="currentColor" stroke-width="1.8"/>`,
+    fill: `<path d="${lightningPath}" fill="currentColor"/>`,
+  },
   "chevron-right": { viewBox: "0 0 24 24", line: "<g fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><polyline points=\"9 6 15 12 9 18\"></polyline></g>" },
   "chevron-left": { viewBox: "0 0 24 24", line: "<g fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m14.5 6-6 6 6 6\"/></g>" },
   "chevron-up": { viewBox: "0 0 24 24", line: "<g fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><polyline points=\"6 15 12 9 18 15\"/></g>" },

@@ -747,20 +747,24 @@
   overflow: auto;
 }
 .combined-thinking-heading {
-  position: relative;
-  flex-shrink: 0;
-  padding: 6px 24px;
+  width: fit-content;
+  max-width: 100%;
+  margin-inline: auto;
+  padding: 6px 8px;
   border-radius: var(--radius-md);
 }
 .combined-thinking-heading:hover:not(:disabled),
 .combined-model-back:hover {
   background: var(--bg-hover);
 }
+.thinking-heading-model {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  max-width: 100%;
+}
 .combined-thinking-arrow {
-  position: absolute;
-  inset-inline-end: 8px;
-  top: 50%;
-  transform: translateY(-50%);
+  flex-shrink: 0;
   color: var(--text-secondary);
 }
 .combined-thinking-page .thinking-slider { flex-shrink: 0; }
@@ -795,6 +799,53 @@
   grid-row: 1;
   color: var(--accent-blue);
 }
+.thinking-heading-with-speed {
+  position: relative;
+  padding-inline: 30px;
+}
+.codex-speed-button {
+  position: absolute;
+  inset: 0 auto auto 0;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+}
+.codex-speed-button:hover, .codex-speed-menu button:hover { background: var(--bg-hover); }
+.codex-speed-button.is-active { color: var(--accent-blue); }
+.codex-speed-glyph { position: relative; display: inline-flex; flex-shrink: 0; }
+.codex-speed-glyph.is-double { width: 18px; }
+.codex-speed-glyph .speed-outline { position: absolute; right: 0; }
+.codex-speed-menu {
+  position: fixed;
+  inset: auto;
+  position-area: right span-bottom;
+  position-try-fallbacks: flip-block, flip-inline, flip-block flip-inline;
+  align-self: start;
+  margin: 0 4px;
+  padding: 4px;
+  min-width: 170px;
+  max-width: min(240px, 80vw);
+  color: var(--text-primary);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-dock);
+}
+.codex-speed-menu button {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  width: 100%;
+  padding: 5px 8px;
+  border-radius: var(--radius-md);
+  text-align: start;
+}
+.codex-speed-menu small { grid-column: 1 / -1; color: var(--text-secondary); }
+.codex-speed-error { display: block; padding-inline-start: 30px; color: var(--text-secondary); }
 .thinking-popover-heading {
   display: flex;
   flex-direction: column;
@@ -870,6 +921,43 @@
 .thinking-particle.particle-3 { top: 43%; width: 2px; height: 2px; }
 .thinking-particle.particle-4 { top: 77%; width: 2px; height: 2px; }
 .thinking-particle.particle-5 { top: 17%; }
+.thinking-particles[data-speed] {
+  /* Measure the visible fill up to the edge of the 30px thumb. */
+  right: 15px;
+  container-type: inline-size;
+  --flow-period: 2.4s;
+}
+.thinking-particles[data-speed="ultrafast"] { --flow-period: 1s; }
+.thinking-particles[data-speed="standard"] { --flow-period: 3.2s; }
+.thinking-particles[data-speed] .thinking-particle {
+  --anchor: calc(5% + 90% * var(--particle-offset));
+  --period: calc(var(--flow-period) * var(--pace));
+  width: var(--size);
+  height: var(--size);
+  animation:
+    thinking-particle-flow var(--period) linear infinite reverse,
+    thinking-particle-sway var(--sway-period) ease-in-out infinite alternate;
+  animation-delay: calc(-1 * var(--period) * var(--particle-offset)), var(--sway-delay);
+}
+.thinking-particles[data-speed="standard"] .thinking-particle {
+  left: var(--anchor);
+  opacity: 0.85;
+  animation-name: thinking-particle-drift, thinking-particle-sway;
+  animation-timing-function: ease-in-out;
+}
+@keyframes thinking-particle-flow {
+  0% { transform: translateX(0); opacity: 0; }
+  12%, 88% { opacity: 0.9; }
+  100% { transform: translateX(100cqw); opacity: 0; }
+}
+@keyframes thinking-particle-drift {
+  0%, 100% { transform: translateX(-2px); }
+  65% { transform: translateX(2px); }
+}
+@keyframes thinking-particle-sway {
+  from { translate: 0 calc(-1 * var(--sway-distance)); }
+  to { translate: 0 var(--sway-distance); }
+}
 .thinking-slider-markers {
   pointer-events: none;
 }
@@ -884,6 +972,9 @@
 }
 .thinking-slider-markers > span.is-active {
   background: rgba(255, 255, 255, 0.46);
+}
+.thinking-slider-track:has(.thinking-particles[data-speed]) .thinking-slider-markers > .is-active {
+  display: none;
 }
 .thinking-slider-input {
   position: absolute;
@@ -979,6 +1070,11 @@
 }
 .thinking-ultra-tip button:hover { background: var(--bg-surface-subtle); }
 @media (prefers-reduced-motion: reduce) {
+  .thinking-particles[data-speed] .thinking-particle {
+    animation: none;
+    left: var(--anchor);
+    opacity: 0.85;
+  }
   .thinking-level-value.is-ultra-flash,
   .thinking-level-value.is-ultra:not(.is-ultra-flash) { animation: none; }
 }

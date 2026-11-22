@@ -19,6 +19,7 @@ import {
   type ModelAuthEvent,
   type ModelCatalog,
   type ModelRefreshResult,
+  type CodexSpeedTier,
   type UsageLimits,
   type UsageLimitWindow,
   type ModelSummary,
@@ -29,6 +30,7 @@ import {
   type ProviderSummary,
   type ThinkingLevel,
 } from "@vela/shared";
+import { parseCodexSpeedCatalog } from "./codex-speed";
 import { createProviderAccount } from "./provider-account";
 import { randomUUID } from "node:crypto";
 import { constants } from "node:fs";
@@ -126,6 +128,7 @@ export class ModelDirectory {
     thinkingLevel: defaultThinkingLevel,
   };
 
+  private readonly speedCatalogs = new Map<string, { accountId: string; expires: number; result: Promise<Map<string, CodexSpeedTier[]>> }>();
   private profiles = new Map<string, ProviderProfile>();
   private readonly authListeners = new Set<(event: ModelAuthEvent) => void>();
   private readonly pending = new Map<string, PendingPrompt>();
@@ -230,6 +233,35 @@ export class ModelDirectory {
       }
     }
     throw failure instanceof Error ? failure : new Error("无法读取额度");
+  }
+
+  async codexSpeedTiers(provider: string, model: string): Promise<CodexSpeedTier[]> {
+    if ((this.profiles.get(provider)?.account?.builtinId ?? provider) !== codexProviderId ||
+        this.runtime.getModel(provider, model)?.api !== "openai-codex-responses" || process.env.PI_OFFLINE !== undefined) return [];
+    const credentials = await this.runtime.listCredentials();
+    if (!credentials.some(credential => credential.providerId === provider && credential.type === "oauth")) return [];
+    const token = (await this.runtime.getAuth(provider))?.auth.apiKey;
+    const accountId = token && chatgptAccountId(token);
+    if (!token || !accountId) return [];
+    let cached = this.speedCatalogs.get(provider);
+    if (!cached || cached.accountId !== accountId || cached.expires <= Date.now()) {
+      const result = fetch("https://chatgpt.com/backend-api/codex/models?client_version=0.171.0", {
+        headers: { Authorization: `Bearer ${token}`, "ChatGPT-Account-Id": accountId, originator: "codex_cli_rs", Accept: "application/json" },
+        signal: AbortSignal.timeout(10_000),
+        redirect: "error",
+      }).then(async response => {
+        if (!response.ok) throw new Error(`Codex model catalog HTTP ${response.status}`);
+        return parseCodexSpeedCatalog(await response.json());
+      });
+      cached = { accountId, expires: Date.now() + 5 * 60_000, result };
+      this.speedCatalogs.set(provider, cached);
+    }
+    try {
+      return (await cached.result).get(model) ?? [];
+    } catch (error) {
+      if (this.speedCatalogs.get(provider) === cached) this.speedCatalogs.delete(provider);
+      throw error;
+    }
   }
 
   subscribeAuth(listener: (event: ModelAuthEvent) => void): () => void {
@@ -566,6 +598,7 @@ export class ModelDirectory {
     this.assertWritable();
     if ((await this.readModelsFile()).providers[id]) throw new Error("只能移除内置提供方账号");
     const account = this.profiles.get(id)?.account;
+    this.speedCatalogs.delete(id);
     await this.runtime.logout(id);
     await this.writeProviderProfile(id, undefined);
     if (account) {
@@ -580,6 +613,7 @@ export class ModelDirectory {
 
   async logout(providerId: string): Promise<void> {
     this.assertWritable();
+    this.speedCatalogs.delete(providerId);
     await this.runtime.logout(providerId);
     this.emit({ type: "catalog" });
   }
@@ -603,6 +637,7 @@ export class ModelDirectory {
         : undefined;
       await this.runtime.login(providerId, type, this.interaction(abort.signal),
         installationId ? { agentName: "Vela", getDeviceId: () => installationId } : undefined);
+      this.speedCatalogs.delete(providerId);
       this.emit({ type: "catalog" });
       return abort.signal.aborted ? "cancelled" : "ok";
     } catch (error) {

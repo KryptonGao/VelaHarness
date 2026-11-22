@@ -1307,6 +1307,7 @@ export function ChatView({
         modelProvider={session?.modelProvider ?? hintModel?.provider ?? null}
         modelId={session?.modelId ?? hintModel?.id ?? null}
         modelReady={session?.modelReady ?? false}
+        codexSpeed={session?.codexSpeed}
         thinkingLevel={session?.modelProvider ? session.thinkingLevel : hintModel?.thinkingLevel ?? session?.thinkingLevel ?? "medium"}
         thinkingLevels={session?.modelProvider ? session.thinkingLevels : hintModel?.thinkingLevels ?? session?.thinkingLevels ?? ["off"]}
         hiddenModels={hiddenModels}

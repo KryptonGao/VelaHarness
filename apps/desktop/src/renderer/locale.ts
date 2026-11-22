@@ -133,6 +133,7 @@ const knownErrors: Record<string, string> = {
   "搜索失败": "Search failed.",
   "找不到这个模型": "Model not found.",
   "这个模型还不能使用，请先登录或填写密钥": "This model is unavailable. Sign in or enter an API key first.",
+  "当前模型不支持此速度": "This model does not support the selected speed.",
   "不支持这个思考强度": "This reasoning effort is not supported.",
   "需要同时选择提供方和模型": "Select both a provider and a model.",
   "额外指令过长": "Additional instructions are too long.",
