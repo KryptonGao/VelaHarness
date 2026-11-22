@@ -53,8 +53,8 @@ if (!process.versions.electron) {
                         thinkingLevel={thinkingLevel} thinkingLevels={['low', 'medium', 'high', 'xhigh']}
                         disabled={false} catalog={null} catalogError={null} actionError={null} hiddenModels={[]}
                         login={{active: false, notices: [], progress: null, prompt: null, error: null}}
-                        onSelect={noop} onThinking={noop} onAdd={async () => null} onRemove={noop} onLogout={noop}
-                        onLogin={noop} onReplyLogin={noop} onCancelLogin={noop} onDismissLogin={() => {}}
+                        onSelect={noop} onThinking={noop}
+                        onReplyLogin={noop} onCancelLogin={noop} onDismissLogin={() => {}}
                       />
                     </div>
                   </ComposerTray>

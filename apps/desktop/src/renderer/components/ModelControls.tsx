@@ -1,17 +1,12 @@
 import {
-  customModelApis,
   thinkingLevelLabel,
-  type AuthMethodType,
   type AuthNotice,
-  type CustomModelApi,
-  type CustomModelInput,
   type ModelCatalog,
   type ModelSummary,
-  type ProviderSummary,
   type SandboxMode,
   type ThinkingLevel,
 } from "@vela/shared";
-import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useCombinedModelPicker } from "../hooks/useCombinedModelPicker";
 import { useEscapeKey } from "../hooks/useDismissable";
 import { useReducedMotion } from "../hooks/useMotionPresence";
@@ -54,10 +49,6 @@ interface ModelControlsProps {
   login: LoginState;
   onSelect: (provider: string, id: string) => Promise<unknown>;
   onThinking: (level: ThinkingLevel) => Promise<unknown>;
-  onAdd: (input: CustomModelInput) => Promise<string | null>;
-  onRemove: (provider: string, id: string) => Promise<unknown>;
-  onLogout: (providerId: string) => Promise<unknown>;
-  onLogin: (providerId: string, type: AuthMethodType) => Promise<unknown>;
   onReplyLogin: (promptId: string, value: string | null) => Promise<void>;
   onCancelLogin: () => Promise<void>;
   onDismissLogin: () => void;
@@ -125,8 +116,6 @@ export function ModelControls(props: ModelControlsProps) {
   const reducedMotion = useReducedMotion();
   const [menu, setMenu] = useState<"model" | "thinking" | "usage" | null>(null);
   const [modelSelection, setModelSelection] = useState<{ provider: string; id: string } | null>(null);
-  const [accountsOpen, setAccountsOpen] = useState(false);
-  const [addOpen, setAddOpen] = useState(false);
   const [sliderLevel, setSliderLevel] = useState(props.thinkingLevel);
   const rootRef = useRef<HTMLDivElement>(null);
   const combinedTriggerRef = useRef<HTMLButtonElement>(null);
@@ -382,14 +371,6 @@ export function ModelControls(props: ModelControlsProps) {
           if (typeof result === "string") clearSelection();
         }, clearSelection);
       }}
-      onAdd={() => {
-        setMenu(null);
-        setAddOpen(true);
-      }}
-      onAccounts={() => {
-        setMenu(null);
-        setAccountsOpen(true);
-      }}
     />
   );
 
@@ -495,27 +476,6 @@ export function ModelControls(props: ModelControlsProps) {
         />
       ) : null}
 
-      <SheetPresence present={accountsOpen}>
-        <AccountSheet
-          catalog={props.catalog}
-          actionError={props.actionError}
-          onClose={() => setAccountsOpen(false)}
-          onLogin={props.onLogin}
-          onLogout={props.onLogout}
-          onRemove={props.onRemove}
-        />
-      </SheetPresence>
-      <SheetPresence present={addOpen}>
-        <AddModelSheet
-          catalog={props.catalog}
-          onClose={() => setAddOpen(false)}
-          onAdd={async (input) => {
-            const message = await props.onAdd(input);
-            if (!message) setAddOpen(false);
-            return message;
-          }}
-        />
-      </SheetPresence>
       <SheetPresence present={props.login.active}>
         <LoginDialog
           login={props.login}
@@ -538,8 +498,6 @@ function ModelMenu({
   selecting,
   onBack,
   onSelect,
-  onAdd,
-  onAccounts,
 }: {
   catalog: ModelCatalog | null;
   catalogError: string | null;
@@ -550,13 +508,10 @@ function ModelMenu({
   selecting: boolean;
   onBack?: () => void;
   onSelect: (provider: string, id: string) => void;
-  onAdd: () => void;
-  onAccounts: () => void;
 }) {
-  const [query, setQuery] = useState("");
   const groups = useMemo(
-    () => groupModels(catalog?.models ?? [], query, hiddenModels, provider, modelId),
-    [catalog, query, hiddenModels, provider, modelId],
+    () => groupModels(catalog?.models ?? [], hiddenModels, provider, modelId),
+    [catalog, hiddenModels, provider, modelId],
   );
   const hiddenCount = useMemo(() => {
     return (catalog?.models ?? []).filter(
@@ -576,23 +531,13 @@ function ModelMenu({
           type="button"
           title={tr("返回思考强度", "Back to reasoning effort")}
           aria-label={tr("返回思考强度", "Back to reasoning effort")}
+          autoFocus
           onClick={onBack}
         >
           <Icon name="chevron-left" size={14} />
           {tr("选择模型", "Choose a model")}
         </button>
       ) : null}
-      <input
-        className="menu-search"
-        placeholder={tr("搜索模型", "Search models")}
-        aria-label={tr("搜索模型", "Search models")}
-        autoFocus
-        value={query}
-        onChange={(event) => setQuery(event.target.value)}
-        onKeyDown={(event) => {
-          if (event.key === "Enter") event.preventDefault();
-        }}
-      />
       <div className="menu-scroll" aria-busy={selecting || undefined}>
         {catalogError ? <p className="menu-note">{localizeError(catalogError)}</p> : null}
         {actionError ? <p className="menu-note menu-note-error">{localizeError(actionError)}</p> : null}
@@ -613,15 +558,12 @@ function ModelMenu({
                   key={`${model.provider}/${model.id}`}
                   className={`menu-row${selected ? " active" : ""}`}
                   type="button"
+                  autoFocus={!onBack && model === groups[0]?.models[0]}
                   disabled={selecting}
                   aria-current={selected || undefined}
                   onClick={() => onSelect(model.provider, model.id)}
                 >
-                  <span className="menu-row-title">
-                    {model.name}
-                    {model.custom ? <em>{tr("自定义", "Custom")}</em> : null}
-                  </span>
-                  {!onBack || model.id !== model.name ? <span className="menu-row-meta">{model.id}</span> : null}
+                  <span className="menu-row-title">{model.name?.trim() || model.id}</span>
                   {onBack && selected ? <Icon className="combined-model-check" name="check" size={14} /> : null}
                 </button>
               );
@@ -634,247 +576,6 @@ function ModelMenu({
           {trf("已隐藏 {0} 个模型，可在设置里调整", "{0} hidden · manage in settings", hiddenCount)}
         </p>
       ) : null}
-      <div className="menu-footer">
-        <button className="menu-footer-btn" type="button" onClick={onAccounts}>{tr("账号", "Accounts")}</button>
-        <button className="menu-footer-btn" type="button" onClick={onAdd}>{tr("添加模型", "Add model")}</button>
-      </div>
-    </div>
-  );
-}
-
-function AccountSheet({
-  catalog,
-  actionError,
-  onClose,
-  onLogin,
-  onLogout,
-  onRemove,
-}: {
-  catalog: ModelCatalog | null;
-  actionError: string | null;
-  onClose: () => void;
-  onLogin: (providerId: string, type: AuthMethodType) => Promise<unknown>;
-  onLogout: (providerId: string) => Promise<unknown>;
-  onRemove: (provider: string, id: string) => Promise<unknown>;
-}) {
-  const [query, setQuery] = useState("");
-  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
-  const providers = (catalog?.providers ?? []).filter((provider) => {
-    const haystack = `${provider.name} ${provider.id}`.toLowerCase();
-    return haystack.includes(query.trim().toLowerCase());
-  });
-  const dialogRef = useEscapeKey<HTMLDivElement>(true, onClose);
-
-  return (
-    <div className="sheet-backdrop" onMouseDown={onClose}>
-      <div
-        ref={dialogRef}
-        className="sheet-card"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="account-sheet-title"
-        onMouseDown={(event) => event.stopPropagation()}
-      >
-        <header className="sheet-header">
-          <h2 id="account-sheet-title">{tr("账号", "Accounts")}</h2>
-          <button className="sheet-close" type="button" onClick={onClose}>{tr("关闭", "Close")}</button>
-        </header>
-        <input
-          className="menu-search sheet-search"
-          placeholder={tr("搜索提供方", "Search providers")}
-          aria-label={tr("搜索提供方", "Search providers")}
-          autoFocus
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-        />
-        {actionError ? <p className="menu-note menu-note-error">{localizeError(actionError)}</p> : null}
-        <div className="sheet-scroll">
-          <p className="menu-note">{tr("登录和密钥保存在 Vela 自己的目录里。", "Sign-ins and API keys are stored in Vela's data directory.")}</p>
-          {providers.map((provider) => (
-            <ProviderRow
-              key={provider.id}
-              provider={provider}
-              models={(catalog?.models ?? []).filter((model) => model.provider === provider.id && model.custom)}
-              pendingDelete={pendingDelete}
-              onLogin={onLogin}
-              onLogout={onLogout}
-              onRemove={async (model) => {
-                const key = `${model.provider}/${model.id}`;
-                if (pendingDelete !== key) {
-                  setPendingDelete(key);
-                  return;
-                }
-                setPendingDelete(null);
-                await onRemove(model.provider, model.id);
-              }}
-            />
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ProviderRow({
-  provider,
-  models,
-  pendingDelete,
-  onLogin,
-  onLogout,
-  onRemove,
-}: {
-  provider: ProviderSummary;
-  models: ModelSummary[];
-  pendingDelete: string | null;
-  onLogin: (providerId: string, type: AuthMethodType) => Promise<unknown>;
-  onLogout: (providerId: string) => Promise<unknown>;
-  onRemove: (model: ModelSummary) => Promise<unknown>;
-}) {
-  return (
-    <article className="provider-row">
-      <div className="provider-row-head">
-        <div>
-          <div className="menu-row-title">{provider.name}</div>
-          <div className="menu-row-meta">{providerStatus(provider)}</div>
-        </div>
-        <div className="provider-actions">
-          {provider.methods.map((method) => (
-            <button key={method.type} className="menu-footer-btn" type="button" onClick={() => void onLogin(provider.id, method.type)}>
-              {method.type === "oauth" ? tr("登录", "Sign in") : tr("填写密钥", "Enter API key")}
-            </button>
-          ))}
-          {provider.stored ? (
-            <button className="menu-footer-btn" type="button" onClick={() => void onLogout(provider.id)}>{tr("退出", "Sign out")}</button>
-          ) : null}
-        </div>
-      </div>
-      {models.map((model) => {
-        const key = `${model.provider}/${model.id}`;
-        return (
-          <div className="custom-model-row" key={key}>
-            <span>{model.name}</span>
-            <button className="menu-footer-btn" type="button" onClick={() => void onRemove(model)}>
-              {pendingDelete === key ? tr("确认删除", "Confirm delete") : tr("删除", "Delete")}
-            </button>
-          </div>
-        );
-      })}
-    </article>
-  );
-}
-
-function AddModelSheet({
-  catalog,
-  onClose,
-  onAdd,
-}: {
-  catalog: ModelCatalog | null;
-  onClose: () => void;
-  onAdd: (input: CustomModelInput) => Promise<string | null>;
-}) {
-  const [form, setForm] = useState<CustomModelInput>({
-    providerId: "",
-    providerName: "",
-    baseUrl: "",
-    api: "openai-completions",
-    apiKey: "",
-    modelId: "",
-    modelName: "",
-    reasoning: false,
-    contextWindow: null,
-    maxTokens: null,
-  });
-  const [error, setError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-  const dialogRef = useEscapeKey<HTMLFormElement>(!saving, onClose);
-
-  function fillKnownProvider(): void {
-    const match = catalog?.providers.find((provider) => provider.id === form.providerId.trim());
-    if (!match?.endpoint) return;
-    setForm((current) => ({
-      ...current,
-      baseUrl: current.baseUrl || match.endpoint?.baseUrl || "",
-      api: isCustomApi(match.endpoint?.api) ? match.endpoint.api : current.api,
-    }));
-  }
-
-  return (
-    <div className="sheet-backdrop" onMouseDown={onClose}>
-      <form
-        ref={dialogRef}
-        className="sheet-card"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="add-model-sheet-title"
-        onMouseDown={(event) => event.stopPropagation()}
-        onSubmit={(event) => {
-          event.preventDefault();
-          setSaving(true);
-          setError(null);
-          void onAdd(form).then((message) => {
-            if (!message) return;
-            setError(message);
-            setSaving(false);
-          });
-        }}
-      >
-        <header className="sheet-header">
-          <h2 id="add-model-sheet-title">{tr("添加模型", "Add model")}</h2>
-          <button className="sheet-close" type="button" onClick={onClose}>{tr("关闭", "Close")}</button>
-        </header>
-        <div className="sheet-scroll form-grid">
-          <p className="menu-note">{tr("用于 OpenAI、Anthropic 或 Google 兼容接口。内置提供方请用账号登录，Codex 走 ChatGPT 登录。", "For OpenAI, Anthropic, or Google compatible APIs. Sign in to built-in providers; use ChatGPT sign-in for Codex.")}</p>
-          <Field label={tr("提供方 ID", "Provider ID")}>
-            <input value={form.providerId} placeholder="ollama" onBlur={fillKnownProvider} onChange={(event) => setForm({ ...form, providerId: event.target.value })} />
-          </Field>
-          <Field label={tr("显示名称", "Display name")}>
-            <input value={form.providerName} placeholder={tr("可选", "Optional")} onChange={(event) => setForm({ ...form, providerName: event.target.value })} />
-          </Field>
-          <Field label={tr("接口类型", "API type")}>
-            <select value={form.api} onChange={(event) => setForm({ ...form, api: event.target.value as CustomModelApi })}>
-              {customModelApis.map((api) => (
-                <option key={api} value={api}>{apiLabel[api]}</option>
-              ))}
-            </select>
-          </Field>
-          <Field label={tr("接口地址", "API URL")}>
-            <input value={form.baseUrl} placeholder="http://127.0.0.1:11434/v1" onChange={(event) => setForm({ ...form, baseUrl: event.target.value })} />
-          </Field>
-          <Field label={tr("密钥", "API key")}>
-            <input type="password" value={form.apiKey} placeholder={tr("已有接口可以留空", "Leave blank if already configured")} onChange={(event) => setForm({ ...form, apiKey: event.target.value })} />
-          </Field>
-          <Field label={tr("模型 ID", "Model ID")}>
-            <input value={form.modelId} placeholder="qwen2.5-coder:7b" onChange={(event) => setForm({ ...form, modelId: event.target.value })} />
-          </Field>
-          <Field label={tr("模型名称", "Model name")}>
-            <input value={form.modelName} placeholder={tr("可选", "Optional")} onChange={(event) => setForm({ ...form, modelName: event.target.value })} />
-          </Field>
-          <label className="check-row">
-            <input type="checkbox" checked={form.reasoning} onChange={(event) => setForm({ ...form, reasoning: event.target.checked })} />
-            <span>{tr("支持思考强度", "Supports reasoning effort")}</span>
-          </label>
-          <Field label={tr("上下文长度", "Context window")}>
-            <input
-              inputMode="numeric"
-              value={form.contextWindow ?? ""}
-              placeholder={tr("可选", "Optional")}
-              onChange={(event) => setForm({ ...form, contextWindow: event.target.value ? Number(event.target.value) : null })}
-            />
-          </Field>
-          <Field label={tr("输出上限", "Maximum output tokens")}>
-            <input
-              inputMode="numeric"
-              value={form.maxTokens ?? ""}
-              placeholder={tr("可选", "Optional")}
-              onChange={(event) => setForm({ ...form, maxTokens: event.target.value ? Number(event.target.value) : null })}
-            />
-          </Field>
-          {error ? <p className="menu-note menu-note-error">{localizeError(error)}</p> : null}
-        </div>
-        <div className="sheet-footer">
-          <button className="primary-btn" type="submit" disabled={saving}>{saving ? tr("正在添加", "Adding…") : tr("添加", "Add")}</button>
-        </div>
-      </form>
     </div>
   );
 }
@@ -986,15 +687,6 @@ function Notice({ notice }: { notice: AuthNotice }) {
   return null;
 }
 
-function Field({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <label className="field">
-      <span>{label}</span>
-      {children}
-    </label>
-  );
-}
-
 function Chevron() {
   return (
     <Icon name="chevron-down" size={12} />
@@ -1003,44 +695,21 @@ function Chevron() {
 
 function groupModels(
   models: ModelSummary[],
-  query: string,
   hidden: string[],
   selectedProvider: string | null,
   selectedId: string | null,
 ): { provider: string; name: string; models: ModelSummary[] }[] {
-  const needle = query.trim().toLowerCase();
   const groups = new Map<string, { provider: string; name: string; models: ModelSummary[] }>();
   for (const model of models) {
     if (!model.available) continue;
     const current = model.provider === selectedProvider && model.id === selectedId;
     if (!current && hidden.includes(modelKey(model.provider, model.id))) continue;
-    const haystack = `${model.providerName} ${model.name} ${model.id}`.toLowerCase();
-    if (needle && !haystack.includes(needle)) continue;
     const group = groups.get(model.provider) ?? { provider: model.provider, name: model.providerName, models: [] };
     group.models.push(model);
     groups.set(model.provider, group);
   }
   return [...groups.values()];
 }
-
-function providerStatus(provider: ProviderSummary): string {
-  if (provider.stored) return tr("已登录", "Signed in");
-  if (provider.authSource === "environment") return tr("环境变量", "Environment variable");
-  if (provider.authSource === "models_json_key" || provider.authSource === "models_json_command") return tr("已保存密钥", "Saved API key");
-  if (provider.authenticated) return tr("可用", "Available");
-  return tr("未登录", "Not signed in");
-}
-
-function isCustomApi(value: string | undefined): value is CustomModelApi {
-  return !!value && (customModelApis as readonly string[]).includes(value);
-}
-
-const apiLabel: Record<CustomModelApi, string> = {
-  "openai-completions": "OpenAI Chat Completions",
-  "openai-responses": "OpenAI Responses",
-  "anthropic-messages": "Anthropic Messages",
-  "google-generative-ai": "Google Generative AI",
-};
 
 const knownText: Record<string, [string, string]> = {
   "Select OpenAI Codex login method:": ["选择 Codex 登录方式", "Select a Codex sign-in method"],

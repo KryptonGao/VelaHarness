@@ -36,8 +36,8 @@ createRoot(document.getElementById("root")!).render(
           thinkingLevel="high" thinkingLevels={["low", "medium", "high", "xhigh"]}
           disabled={false} catalog={null} catalogError={null} actionError={null} hiddenModels={[]}
           login={{ active: false, notices: [], progress: null, prompt: null, error: null }}
-          onSelect={noop} onThinking={noop} onAdd={async () => null} onRemove={noop} onLogout={noop}
-          onLogin={noop} onReplyLogin={async () => undefined} onCancelLogin={async () => undefined} onDismissLogin={() => undefined}
+          onSelect={noop} onThinking={noop}
+          onReplyLogin={async () => undefined} onCancelLogin={async () => undefined} onDismissLogin={() => undefined}
         />
       </div>
     </div>

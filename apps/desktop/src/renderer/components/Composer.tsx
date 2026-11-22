@@ -1251,10 +1251,6 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
       onSelect={models.select}
       onThinking={models.setThinking}
       fullAccess={sandboxMode ? undefined : { mode: project.sandboxMode, onEnable: () => project.setSandboxMode("full") }}
-      onAdd={models.add}
-      onRemove={models.remove}
-      onLogout={models.logout}
-      onLogin={models.loginProvider}
       onReplyLogin={models.replyLogin}
       onCancelLogin={models.cancelLogin}
       onDismissLogin={models.dismissLogin}

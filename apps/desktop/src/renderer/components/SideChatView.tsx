@@ -306,15 +306,6 @@ export function SideChatView({ workspace, threadId, number, initialEntries, onBa
             login={models.login}
             onSelect={(provider, id) => choose({ provider, id, thinkingLevel: choice?.thinkingLevel ?? modelInfo.level })}
             onThinking={(level: ThinkingLevel) => choice ? choose({ ...choice, thinkingLevel: level }) : Promise.resolve()}
-            // 只登记模型并在侧边聊天里选中，不改动主对话的模型。
-            onAdd={async (input) => {
-              const failure = await models.register(input);
-              if (!failure) await choose({ provider: input.providerId, id: input.modelId, thinkingLevel: modelInfo.level });
-              return failure;
-            }}
-            onRemove={models.remove}
-            onLogout={models.logout}
-            onLogin={models.loginProvider}
             onReplyLogin={models.replyLogin}
             onCancelLogin={models.cancelLogin}
             onDismissLogin={models.dismissLogin}

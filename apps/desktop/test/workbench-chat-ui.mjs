@@ -560,13 +560,14 @@ if (!process.versions.electron) {
       }
       await until(`document.querySelector(${JSON.stringify(combinedPopover + ' .menu-row[aria-current=true]')})?.textContent.includes('Model One')`);
       assert.equal(await evaluate(`window.openPickerPanel === document.querySelector(${JSON.stringify(combinedPopover)})`), true);
-      assert.deepEqual(await evaluate(`Array.from(window.openPickerPanel.querySelectorAll('.menu-row-title'), n => n.textContent)`), ["Model One", "Model Two"]);
+      assert.deepEqual(await evaluate(`Array.from(window.openPickerPanel.querySelectorAll('.menu-row'), n => n.textContent)`), ["Model One", "Model Two", "unnamed"]);
+      assert.equal(await evaluate("window.openPickerPanel.querySelectorAll('input, .menu-footer-btn').length"), 0);
       await capture("combined-models");
       assert.equal(await evaluate(`(() => { const frame = document.querySelector(${JSON.stringify(panel)}).getBoundingClientRect(); const popover = window.openPickerPanel.getBoundingClientRect(); return popover.left >= frame.left && popover.right <= frame.right; })()`), true);
       await click(panel + " .combined-model-back");
       await until(`${thinkingValue} === '低'`);
       await click(panel + " .combined-thinking-heading");
-      await until(`document.activeElement === document.querySelector(${JSON.stringify(combinedPopover + ' .menu-search')})`);
+      await until(`document.activeElement === document.querySelector(${JSON.stringify(combinedPopover + ' .combined-model-back')})`);
       await evaluate("document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))");
       await until(`${thinkingValue} === '低'`);
       await click(panel + " .combined-thinking-heading");
