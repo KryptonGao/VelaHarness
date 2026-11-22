@@ -166,7 +166,18 @@
 .models-account-actions .models-btn.primary { background: var(--text-primary); }
 
 /* 模型列表 */
-.models-list { flex: 1; min-height: 0; overflow-x: hidden; overflow-y: auto; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); background: var(--bg-card-surface); }
+.models-list {
+  --scroll-fade-background: var(--bg-card-surface);
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-card-surface);
+}
+.models-list > .thinking-scroll-viewport { height: 100%; max-height: none; overflow-x: hidden; }
+.models-list .thinking-text { padding: 0; color: inherit; font: inherit; }
+.models-list > .thinking-scroll-fade { max-height: 32px; }
 .models-list-empty { margin: 0; padding: 22px 12px; text-align: center; color: var(--text-muted); font-size: calc(13px * var(--ui-scale)); }
 .models-row { display: flex; align-items: center; gap: 8px; min-height: 42px; padding: 6px 12px; }
 .models-row + .models-row { border-top: 1px solid var(--border-subtle); }

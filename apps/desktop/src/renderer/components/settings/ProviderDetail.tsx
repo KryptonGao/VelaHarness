@@ -4,6 +4,7 @@ import type { useModels } from "../../hooks/useModels";
 import type { PreferencesApi } from "../../hooks/usePreferences";
 import type { SettingsCopy } from "../settings-copy";
 import { ProviderLoginButton } from "../ProviderLoginButton";
+import { ScrollFade } from "../ScrollFade";
 import {
   ApiSelect,
   countOrNull,
@@ -339,7 +340,7 @@ function ModelList({
         </div>
       ) : error ? <p className="settings-error">{error}</p> : null}
 
-      <div className="models-list">
+      <ScrollFade className="models-list" ariaLabel={text.visibility}>
         {listed.length === 0 ? (
           <p className="models-list-empty">
             {provider.custom ? text.noModelsCustom : providerStatus(provider) === "connected" ? text.noModels : text.noModelsBuiltin}
@@ -384,7 +385,7 @@ function ModelList({
             </div>
           );
         })}
-      </div>
+      </ScrollFade>
     </div>
   );
 }
