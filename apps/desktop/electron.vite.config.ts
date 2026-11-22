@@ -60,6 +60,8 @@ export default defineConfig({
     },
   },
   renderer: {
+    // Standalone Vite previews and tests rebuild the default dependency cache.
+    cacheDir: resolve(root, "node_modules/.vite-renderer"),
     resolve: { alias: { "@vela/shared": shared } },
     plugins: [react()],
   },
