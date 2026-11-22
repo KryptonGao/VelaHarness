@@ -80,6 +80,7 @@ import { localizeError, tr, useAppLocale, trf } from "../locale";
 import { useInputPrediction } from "../hooks/useInputPrediction";
 import { useComposerLayout } from "../hooks/useComposerLayout";
 import { Icon } from "./icons";
+import { FileTypeIcon } from "./FileTypeIcon";
 
 export interface ComposerProps {
   changeSummary?: ReactNode;
@@ -1292,7 +1293,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
         const element = isElementReply(reply);
         const track = tracking.get(reply.id);
         const stale = element && (!track || track.status === "stale");
-        const label = element ? reply.data.element.selector : reply.quote;
+        const label = element ? reply.data.element.selector : reply.kind === "code" ? reply.text : reply.quote;
         return (
           <div className={`reply-quote-card${element ? " is-element" : ""}${stale ? " is-stale" : ""}`} key={reply.id}>
             <span className="reply-quote-bar" aria-hidden="true" />
@@ -1302,9 +1303,18 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
             ) : (
               <p className="reply-quote-text" title={label}>{replyCardText(reply)}</p>
             )}
-            <span className="reply-quote-badge">
-              {element ? trf("批注 {0}", "Note {0}", elementNumber(replies, reply.id)) : tr("回复", "Reply")}
-            </span>
+            {reply.kind === "code" ? (
+              <span className="reply-quote-badge code-comment-badge" tabIndex={0}
+                data-path-tooltip={reply.filePath} aria-description={reply.filePath}>
+                <FileTypeIcon path={reply.filePath} fallback={<Icon name="file" size={14} />} />
+                <span className="code-comment-filename">{reply.filePath.split(/[\\/]/).pop()}</span>
+                <span>{reply.quote.slice(reply.quote.lastIndexOf(":"))}</span>
+              </span>
+            ) : (
+              <span className="reply-quote-badge">
+                {element ? trf("批注 {0}", "Note {0}", elementNumber(replies, reply.id)) : tr("回复", "Reply")}
+              </span>
+            )}
             {stale && <span className="reply-quote-note">{tr("元素已不在页面上，仍会发送文字和元素描述", "The element is gone. The note is still sent with its description")}</span>}
             {element && !stale && track?.shot === "failed" && <span className="reply-quote-note">{tr("未能截图", "Screenshot unavailable")}</span>}
             <button

@@ -55,7 +55,7 @@ export function isDisclosureToggle(button: TooltipElement): boolean {
 
 /** 从事件目标找到应该弹提示的按钮;不适用时返回 null。 */
 export function findTooltipButton<T extends TooltipElement>(target: T | null): T | null {
-  const button = (target?.closest("button, [role='button']") ?? null) as T | null;
+  const button = (target?.closest("button, [role='button'], [data-path-tooltip]") ?? null) as T | null;
   if (!button) return null;
   if (button.closest(TOOLTIP_EXCLUDED)) return null;
   if (isDisclosureToggle(button)) return null;
@@ -67,6 +67,8 @@ export function findTooltipButton<T extends TooltipElement>(target: T | null): T
  * 图标按钮里带角标等文字时,加 data-tooltip 显式加入。优先 title,否则 aria-label。
  */
 export function tooltipSource(button: TooltipElement): string | null {
+  const path = button.getAttribute("data-path-tooltip");
+  if (path) return path;
   if (button.textContent?.trim() && button.getAttribute("data-tooltip") === null) return null;
   return button.getAttribute("title")?.trim() || button.getAttribute("aria-label")?.trim() || null;
 }

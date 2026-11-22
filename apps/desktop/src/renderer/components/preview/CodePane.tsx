@@ -4,6 +4,8 @@ import { useFilePreview } from "./FilePreviewContext";
 import { localizeError, tr, trf } from "../../locale";
 import { highlightDocument, type ThemedToken } from "./highlighter";
 import { ImageViewer, type ImageViewerRequest } from "../ImageViewer";
+import { SelectionActions } from "../SelectionActions";
+import { replyStore } from "../../browser/reply-store";
 
 /** 超大文件只渲染前若干行,避免一次性创建过多 DOM。 */
 const maxRenderRows = 8000;
@@ -18,7 +20,11 @@ interface CodeRow {
   tokens: ThemedToken[] | null;
 }
 
-export function CodePane({ onOpenExternal }: { onOpenExternal: (absolutePath: string) => void }) {
+export function CodePane({ onOpenExternal, commentConversationId, onCommentAdded }: {
+  onOpenExternal: (absolutePath: string) => void;
+  commentConversationId?: string | null;
+  onCommentAdded?: () => void;
+}) {
   const preview = useFilePreview();
   const tab = preview?.activeTab ?? null;
   const content = preview?.activeContent ?? null;
@@ -27,6 +33,8 @@ export function CodePane({ onOpenExternal }: { onOpenExternal: (absolutePath: st
   const [activeLine, setActiveLine] = useState<{ tabId: string; line: number } | null>(null);
   const [imageView, setImageView] = useState<ImageViewerRequest | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const rowsRef = useRef<HTMLDivElement>(null);
+  const anchorLine = useRef(0);
 
   const arrivalRef = useContentArrival(`${tab?.id ?? "empty"}:${content?.kind ?? (preview?.contentLoading ? "loading" : "empty")}`);
   const sourceText = content?.kind === "text" ? content.content ?? "" : "";
@@ -37,6 +45,7 @@ export function CodePane({ onOpenExternal }: { onOpenExternal: (absolutePath: st
     setActiveLine(null);
     setHighlight(null);
     setImageView(null);
+    anchorLine.current = 0;
   }, [tab?.id]);
 
   // 读取完成后异步高亮;只有文本变化才重新分词,主题色由 CSS 变量决定。
@@ -107,11 +116,33 @@ export function CodePane({ onOpenExternal }: { onOpenExternal: (absolutePath: st
   }, [tab?.jumpLine, rows]);
 
   const currentTabId = tab?.id;
+  const readCodeLocation = useCallback((range: Range) => {
+    const root = rowsRef.current;
+    if (!root || !currentTabId) return null;
+    const first = boundaryRow(root, range.startContainer, range.startOffset, false);
+    const last = boundaryRow(root, range.endContainer, range.endOffset, true);
+    if (!first || !last) return null;
+    const start = Number(first.dataset.line);
+    let end = Number(last.dataset.line);
+    // A selection ending just before the next line's first character excludes that line.
+    if (end > start) {
+      const prefix = range.cloneRange();
+      prefix.setStart(last.querySelector(".code-row-content")!, 0);
+      if (prefix.collapsed || !prefix.toString()) end--;
+    }
+    return `${currentTabId}:${start}${end === start ? "" : `-${end}`}`;
+  }, [currentTabId]);
   const selectLine = useCallback(
-    (line: number) => {
+    (line: number, gutter: boolean, extend: boolean) => {
       if (currentTabId) setActiveLine({ tabId: currentTabId, line });
+      const selection = window.getSelection();
+      if (!commentConversationId || !rowsRef.current || !selection || (!gutter && !selection.isCollapsed)) return;
+      if (!extend || !anchorLine.current) anchorLine.current = line;
+      const first = rowsRef.current.children[Math.min(line, anchorLine.current) - 1]?.querySelector(".code-row-content");
+      const last = rowsRef.current.children[Math.max(line, anchorLine.current) - 1]?.querySelector(".code-row-content");
+      if (first && last) selection.setBaseAndExtent(first, 0, last, last.childNodes.length);
     },
-    [currentTabId],
+    [currentTabId, commentConversationId],
   );
 
   if (!preview || !tab) return null;
@@ -206,7 +237,7 @@ export function CodePane({ onOpenExternal }: { onOpenExternal: (absolutePath: st
     }
     return (
       <>
-        <div className="code-rows">
+        <div className="code-rows" ref={rowsRef}>
           {rows.map((row) => (
             <CodeRowView
               key={row.line}
@@ -216,6 +247,13 @@ export function CodePane({ onOpenExternal }: { onOpenExternal: (absolutePath: st
             />
           ))}
         </div>
+        {commentConversationId && (
+          <SelectionActions key={`${commentConversationId}:${tabId}`} containerRef={rowsRef} readCodeLocation={readCodeLocation}
+            onReply={(location, text) => {
+              replyStore.addText(commentConversationId, location, text, content.absolutePath);
+              onCommentAdded?.();
+            }} />
+        )}
         {plainLines.length > maxRenderRows ? (
           <div className="code-note">
             {trf("文件较长，仅显示前 {0} 行（共 {1} 行）。", "File is long. Showing the first {0} of {1} lines.", maxRenderRows.toLocaleString(), plainLines.length.toLocaleString())}
@@ -234,14 +272,15 @@ const CodeRowView = memo(function CodeRowView({
 }: {
   row: CodeRow;
   active: boolean;
-  onSelect: (line: number) => void;
+  onSelect: (line: number, gutter: boolean, extend: boolean) => void;
 }) {
   const clipped = clipRow(row);
   return (
-    <div className={`code-row${active ? " active" : ""}`} data-line={row.line} onClick={() => onSelect(row.line)}>
+    <div className={`code-row${active ? " active" : ""}`} data-line={row.line}
+      onClick={event => onSelect(row.line, event.target instanceof Element && event.target.matches(".code-row-gutter"), event.shiftKey)}>
       <span className="code-row-gutter">{row.line}</span>
       <span className="code-row-content">
-        {clipped.tokens
+        {clipped.tokens && row.text.length > 0
           ? clipped.tokens.map((token, index) => (
               <span key={index} style={tokenStyle(token)}>
                 {token.content}
@@ -253,6 +292,13 @@ const CodeRowView = memo(function CodeRowView({
     </div>
   );
 });
+
+function boundaryRow(root: HTMLElement, node: Node, offset: number, end: boolean): HTMLElement | null {
+  // Selecting whole rows can put a range endpoint between two children of the rows container.
+  const element = node === root ? root.childNodes[offset - Number(end)]
+    : node instanceof Element ? node : node.parentElement;
+  return element instanceof Element ? element.closest<HTMLElement>(".code-row") : null;
+}
 
 /** 把过长的行裁到 maxRenderLineChars 个字符以内。 */
 function clipRow(row: CodeRow): { text: string; tokens: ThemedToken[] | null; clipped: boolean } {
@@ -302,7 +348,7 @@ function tokenStyle(token: ThemedToken): { color?: string; fontStyle?: "italic" 
 
 function splitLines(text: string): string[] {
   if (!text) return [];
-  const lines = text.split("\n");
+  const lines = text.split(/\r?\n/);
   if (lines.length > 1 && lines[lines.length - 1] === "") lines.pop();
   return lines;
 }

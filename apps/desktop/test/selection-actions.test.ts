@@ -33,6 +33,12 @@ describe("选中文字引用", () => {
     assert.equal(hasReplyText([{ quote: "甲", text: " " }, { quote: "乙", text: "好" }]), true);
   });
 
+  it("quotes the file and line range alongside the comment and existing draft", () => {
+    const comment: ReplyCard = { id: "code", kind: "code", filePath: "/project/src/demo.md", quote: "src/demo.md:2-6", text: "Review this" };
+    assert.equal(replyMessage([{ quote: "Earlier", text: "Yes" }, comment], "My draft"),
+      "> Earlier\n\nYes\n\n> src/demo.md:2-6\n\nReview this\n\nMy draft");
+  });
+
   it("侧边聊天的多张引用按顺序排在问题前面", () => {
     assert.equal(composeQuotes(["甲", "乙"], "问题"), "> 甲\n\n> 乙\n\n问题");
     assert.equal(composeQuotes([], "问题"), "问题");

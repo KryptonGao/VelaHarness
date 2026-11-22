@@ -23,5 +23,13 @@
 }
 .button-tooltip-keys { display: inline-flex; align-items: center; gap: 5px; color: #b4b6bb; flex: none; }
 .button-tooltip-keys kbd { font: inherit; }
+.button-tooltip.is-path {
+  max-width: min(320px, calc(100vw - 16px));
+  padding: 7px 14px;
+  border-radius: 16px;
+  font: 400 calc(13px * var(--ui-scale))/1.4 var(--font-mono);
+  text-align: center;
+  overflow-wrap: anywhere;
+}
 @keyframes button-tooltip-in { from { opacity: 0; transform: translateY(-2px); } }
 @media (prefers-reduced-motion: reduce) { .button-tooltip { animation: none; transition: none; } }

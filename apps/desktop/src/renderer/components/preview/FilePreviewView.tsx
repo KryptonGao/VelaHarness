@@ -12,9 +12,13 @@ import { Icon } from "../icons";
 export function FilePreviewView({
   project,
   onShowDiff,
+  commentConversationId,
+  onCommentAdded,
 }: {
   project: ProjectApi;
   onShowDiff: (path: string) => void;
+  commentConversationId?: string | null;
+  onCommentAdded?: () => void;
 }) {
   const preview = useFilePreview();
   const [explorerOpen, setExplorerOpen] = useState(true);
@@ -150,7 +154,8 @@ export function FilePreviewView({
             revision={preview.revision}
           />
         ) : (
-          <CodePane onOpenExternal={(absolutePath) => project.openFile(absolutePath)} />
+          <CodePane onOpenExternal={(absolutePath) => project.openFile(absolutePath)}
+            commentConversationId={commentConversationId} onCommentAdded={onCommentAdded} />
         )}
         {explorerOpen ? <ExplorerPane /> : null}
       </div>

@@ -12,6 +12,7 @@ const EDGE = 8;
 
 interface Anchor extends TooltipContent {
   rect: DOMRect;
+  isPath: boolean;
 }
 
 /**
@@ -50,7 +51,9 @@ export function ButtonTooltip() {
       if (!visible) setPosition(null);
       visible = true;
       lastShown = Date.now();
-      setAnchor({ ...parseTooltip(source), rect: button.getBoundingClientRect() });
+      const isPath = button.hasAttribute("data-path-tooltip");
+      const content = isPath ? { label: source, keys: [] } : parseTooltip(source);
+      setAnchor({ ...content, isPath, rect: button.getBoundingClientRect() });
     };
     const start = (button: HTMLElement, immediate = false) => {
       const source = tooltipSource(button);
@@ -166,7 +169,8 @@ export function ButtonTooltip() {
     const { rect } = anchor;
     const left = Math.max(EDGE, Math.min(rect.left + rect.width / 2 - width / 2, window.innerWidth - width - EDGE));
     const below = rect.bottom + GAP;
-    const top = below + height > window.innerHeight - EDGE ? Math.max(EDGE, rect.top - GAP - height) : below;
+    const above = rect.top - GAP - height;
+    const top = (anchor.isPath && above >= EDGE) || below + height > window.innerHeight - EDGE ? Math.max(EDGE, above) : below;
     setPosition({ left, top });
   }, [anchor]);
 
@@ -174,7 +178,7 @@ export function ButtonTooltip() {
   return (
     <div
       ref={ref}
-      className="button-tooltip"
+      className={anchor.isPath ? "button-tooltip is-path" : "button-tooltip"}
       popover="manual"
       role="tooltip"
       style={position ? { left: position.left, top: position.top } : { visibility: "hidden" }}

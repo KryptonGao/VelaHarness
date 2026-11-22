@@ -26,10 +26,16 @@ export function composeReply(quote: string | null, text: string): string {
 /** 选中文字后写好的回复：选中的文字和回复内容是一体的，在输入框上方显示成一张卡片。 */
 export interface TextReplyDraft {
   kind?: "text";
-  /** 选中的原文，发送时作为引用块。 */
+  /** Selected chat text or a file and line range, sent as a blockquote. */
   quote: string;
   /** 回复内容；为空时卡片显示原文，回复在输入框里写。 */
   text: string;
+}
+
+export interface CodeReplyDraft extends Omit<TextReplyDraft, "kind"> {
+  kind: "code";
+  /** Absolute path reported by the file preview, even when the quote is workspace-relative. */
+  filePath: string;
 }
 
 /** 浏览器里点选元素写下的批注：与文字回复同是下一条消息的一部分。 */
@@ -42,7 +48,7 @@ export interface ElementReplyDraft {
   data: ElementAnnotationData;
 }
 
-export type ReplyDraft = TextReplyDraft | ElementReplyDraft;
+export type ReplyDraft = TextReplyDraft | CodeReplyDraft | ElementReplyDraft;
 
 export function isElementReply<T extends ReplyDraft>(reply: T): reply is Extract<T, { kind: "element" }> {
   return reply.kind === "element";

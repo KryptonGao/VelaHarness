@@ -404,7 +404,13 @@ function WorkbenchPanelContent(props: WorkbenchPanelProps & { closing: boolean; 
       case "side-chat": return props.renderSideChat?.(tab, visible && !collapsed);
       case "browser": return <BrowserPanel controller={tab.controller} tabId={tab.id} operating={props.browserOperating}
         onAbort={() => { if (props.conversationId) void window.vela?.abort(props.conversationId); }} />;
-      case "file": return preview ? <FilePreviewScope path={tab.path} visible={visible && !collapsed}><FilePreviewView project={project} onShowDiff={onShowDiff} /></FilePreviewScope> : null;
+      case "file": return preview ? (
+        <FilePreviewScope path={tab.path} visible={visible && !collapsed}>
+          <FilePreviewView project={project} onShowDiff={onShowDiff}
+            commentConversationId={visible && !collapsed && !showingChat ? props.conversationId : null}
+            onCommentAdded={fullscreen ? props.onShowChat : undefined} />
+        </FilePreviewScope>
+      ) : null;
       case "plan": return <PlanDocumentPane busy={props.busy} execution={props.execution} onRevise={props.onRevise} onExecutePlan={props.onExecutePlan} visible={visible} />;
       case "changes": return <WorkspaceChangesView project={project} messageStore={props.messageStore} conversationId={props.conversationId} streaming={props.streaming}
         initialPath={props.initialDiffPath} initialPathRequestKey={props.initialDiffPathRequestKey} visible={visible} onClose={() => closeTab(tab)} />;

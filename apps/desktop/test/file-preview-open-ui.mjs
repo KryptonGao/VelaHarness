@@ -54,11 +54,12 @@ if (!process.versions.electron) {
   const openFile = async path => {
     const pane = await evaluate("document.querySelector('.workbench-group.is-focused').dataset.workbenchPane");
     const target = `${visible}[data-workbench-content-pane="${pane}"]`;
-    const selector = `${target} .explorer-tree-item.file[title="${path}"]`;
-    await evaluate(`(() => { const panel = document.querySelector(${JSON.stringify(target)}); Array.from(panel.querySelectorAll('.explorer-mode-chip')).find(n => n.textContent === '文件').click(); const i = panel.querySelector('.explorer-search-input'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(i, ''); i.dispatchEvent(new Event('input', {bubbles:true})); })()`);
+    const query = path.includes("/") ? path : "";
+    const selector = `${target} ${query ? ".explorer-result" : ".explorer-tree-item.file"}[title="${path}"]`;
+    await evaluate(`(() => { const panel = document.querySelector(${JSON.stringify(target)}); Array.from(panel.querySelectorAll('.explorer-mode-chip')).find(n => n.textContent === '文件').click(); const i = panel.querySelector('.explorer-search-input'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(i, ${JSON.stringify(query)}); i.dispatchEvent(new Event('input', {bubbles:true})); })()`);
     await until(`!!document.querySelector(${JSON.stringify(selector)})`);
     await evaluate(`document.querySelector(${JSON.stringify(selector)}).click()`);
-    await until(`document.querySelector(${JSON.stringify(target + ' .preview-crumb.current')})?.textContent === ${JSON.stringify(path)}`);
+    await until(`document.querySelector(${JSON.stringify(target + ' .preview-crumb.current')})?.textContent === ${JSON.stringify(path.split("/").pop())}`);
     await until(`document.querySelector(${JSON.stringify(target)})?.textContent.includes(${JSON.stringify(`Contents of ${path}`)})`);
   };
   const newFilesTab = async () => {
@@ -71,6 +72,90 @@ if (!process.versions.electron) {
     await evaluate(`Array.from(document.querySelectorAll('.workbench-tab')).find(n => n.querySelector('.workbench-tab-label')?.textContent === ${JSON.stringify(label)}).click()`);
     await until(`document.querySelector('.workbench-tab[aria-selected="true"] .workbench-tab-label')?.textContent === ${JSON.stringify(label)}`);
   };
+  async function checkCodeComments() {
+    const file = "apps/desktop/src/renderer/components/example.ts";
+    await openFile(file);
+    const panel = `${visible} .code-rows`;
+    await until(`document.querySelector('${panel} [data-line="2"] .code-row-content span')`);
+    const point = (line, part) => evaluate(`(() => {
+      const rect = document.querySelector('${panel} [data-line="${line}"] .code-row-${part}').getBoundingClientRect();
+      return { x: Math.round(rect.left + 18), y: Math.round(rect.top + 9) };
+    })()`);
+    const openComment = async location => {
+      await until("document.querySelector('.selection-actions[role=toolbar] button')?.textContent === '评论'");
+      await evaluate("document.querySelector('.selection-actions button').click()");
+      await until("document.activeElement?.matches('.selection-reply-row textarea')");
+      assert.equal(await evaluate("document.querySelector('.selection-actions[role=dialog]').textContent"), location + "插入聊天框");
+    };
+    const key = key => evaluate(`document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: ${JSON.stringify(key)}, bubbles: true, cancelable: true }))`);
+    const clickLine = async (line, modifiers = []) => {
+      const position = await point(line, "gutter");
+      for (const type of ["mouseDown", "mouseUp"]) win.webContents.sendInputEvent({ type, ...position, button: "left", clickCount: 1, modifiers });
+    };
+    const capture = async name => {
+      if (!process.env.VELA_CODE_COMMENT_CAPTURE) return;
+      await new Promise(done => setTimeout(done, 250));
+      writeFileSync(join(process.env.VELA_CODE_COMMENT_CAPTURE, name), (await win.webContents.capturePage()).toPNG());
+    };
+
+    await evaluate("document.querySelector('.rich-input').focus()");
+    await win.webContents.insertText("Keep this draft.");
+    await clickLine(2);
+    await openComment(`${file}:2`);
+    assert.equal(await evaluate("document.querySelector('.selection-reply-insert').disabled"), true);
+    await key("Escape");
+    await until("!document.querySelector('.selection-actions')");
+    assert.equal(await evaluate("document.querySelectorAll('.reply-quote-card').length"), 0);
+
+    // Drag backwards across highlighted tokens and a blank line.
+    const start = await point(5, "content");
+    const end = await point(3, "content");
+    win.webContents.sendInputEvent({ type: "mouseDown", ...start, button: "left", clickCount: 1 });
+    win.webContents.sendInputEvent({ type: "mouseMove", ...end, button: "left" });
+    win.webContents.sendInputEvent({ type: "mouseUp", ...end, button: "left", clickCount: 1 });
+    await openComment(`${file}:3-5`);
+    await win.webContents.insertText("Can we make this configurable?");
+    await capture("comment.png");
+    await evaluate("document.querySelector('.selection-reply-insert').click()");
+    await until("document.querySelector('.reply-quote-text')?.textContent === 'Can we make this configurable?'");
+    assert.equal(await evaluate("document.querySelector('.reply-quote-badge').textContent"), "example.ts:3-5");
+    assert.ok(await evaluate("document.querySelector('.code-comment-badge .file-type-icon')?.naturalWidth > 0"));
+    assert.equal(await evaluate("document.querySelector('.rich-input').textContent"), "Keep this draft.");
+    await capture("draft.png");
+    const badgeCenter = await evaluate(`(() => {
+      const r = document.querySelector('.code-comment-badge').getBoundingClientRect();
+      return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) };
+    })()`);
+    win.webContents.sendInputEvent({ type: "mouseMove", ...badgeCenter });
+    await until(`document.querySelector('.button-tooltip.is-path:popover-open')?.textContent === ${JSON.stringify("/projects/VelaHarness/" + file)}`);
+    assert.ok(await evaluate("document.querySelector('.button-tooltip.is-path').scrollWidth <= document.querySelector('.button-tooltip.is-path').clientWidth"));
+    await capture("path-tooltip.png");
+    win.webContents.sendInputEvent({ type: "mouseMove", x: 5, y: 400 });
+    await until("!document.querySelector('.button-tooltip.is-path')");
+
+    await evaluate("document.querySelector('.workbench-fullscreen-button').click()");
+    await until("document.querySelector('.vela-window.workbench-fullscreen') && !document.querySelector('.workbench-panel').getAnimations().length");
+    await clickLine(3);
+    await clickLine(5, ["shift"]);
+    await openComment(`${file}:3-5`);
+    await win.webContents.insertText("Another comment");
+    await key("Enter");
+    await until("document.querySelectorAll('.reply-quote-card').length === 2");
+    await until("document.querySelector('.showing-pinned-chat')");
+    await evaluate("document.querySelectorAll('.reply-quote-remove')[1].click()");
+    assert.equal(await evaluate("chatFixture.calls.some(call => call.name === 'prompt')"), false);
+    await evaluate("document.querySelector('.send-action-blue-btn.send').click()");
+    await until("chatFixture.calls.some(call => call.name === 'prompt')");
+    const sent = await evaluate("chatFixture.calls.find(call => call.name === 'prompt')");
+    assert.equal(sent.id, "main-chat");
+    assert.equal(sent.text, `> ${file}:3-5\n\nCan we make this configurable?\n\nKeep this draft.`);
+    await evaluate("chatFixture.finish('main-chat')");
+    await evaluate("document.querySelector('.workbench-restore').click()");
+    await until("!document.querySelector('.vela-window.workbench-fullscreen')");
+    await evaluate("document.querySelector('.workbench-tab-close[aria-label=\"关闭 example.ts\"]').click()");
+    await until("!Array.from(document.querySelectorAll('.workbench-tab-label')).some(n => n.textContent === 'example.ts')");
+    console.log("PASS file comments quote only the file and line range, preserve drafts and send once with the selected chat");
+  }
   try {
     await win.loadFile(join(temporary, "index.html"));
     await until("document.querySelector('.chat-active-title')?.textContent === '主聊天'");
@@ -83,6 +168,8 @@ if (!process.versions.electron) {
     await openFile("first.txt");
     assert.deepEqual(await labels(), ["first.txt", "second.txt"]);
     console.log("PASS default mode reuses empty Files tab, adds new files, and activates existing files");
+    await checkCodeComments();
+    await activate("first.txt");
 
     await evaluate("window.dispatchEvent(new KeyboardEvent('keydown', {key:',', code:'Comma', metaKey:true, bubbles:true}))");
     await until("!!document.querySelector('.settings-nav-item')");

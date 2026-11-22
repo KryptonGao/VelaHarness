@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react";
 import { maxElementAnnotations, type BrowserAnnotationTrack } from "@vela/shared";
-import { isElementReply, type ElementReplyDraft, type ReplyCard, type TextReplyDraft } from "../components/selection-actions";
+import { isElementReply, type ElementReplyDraft, type ReplyCard } from "../components/selection-actions";
 
 /**
  * 按对话保存的回复卡片：选中文字后的回复与浏览器里的元素批注是同一种东西，
@@ -37,9 +37,9 @@ export class ReplyStore {
     this.emit();
   }
 
-  addText(key: string, quote: string, text: string): void {
-    const card: ReplyCard = { id: crypto.randomUUID(), kind: "text", quote, text } satisfies TextReplyDraft & { id: string };
-    this.set(key, [...this.get(key), card]);
+  addText(key: string, quote: string, text: string, filePath?: string): void {
+    const reference = filePath ? { kind: "code" as const, filePath } : { kind: "text" as const };
+    this.set(key, [...this.get(key), { id: crypto.randomUUID(), quote, text, ...reference }]);
   }
   /** 一条消息最多引用 20 条元素批注；超出时返回 false。 */
   canAddElement(key: string): boolean {

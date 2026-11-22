@@ -1,6 +1,7 @@
 /* 选中对话文字后的浮层，以及输入框上方的回复引用卡片。 */
 .selection-actions {
   position: fixed;
+  -webkit-app-region: no-drag;
   z-index: 80;
   display: flex;
   align-items: center;
@@ -22,6 +23,14 @@
   transition: background-color 100ms ease;
 }
 .selection-actions button:hover { background: var(--bg-hover); }
+.selection-actions button:disabled { opacity: 0.45; }
+.selection-actions .selection-reply-insert { flex: none; background: var(--bg-code); }
+.selection-reply-location {
+  overflow-wrap: anywhere;
+  font-family: var(--font-mono);
+  font-size: calc(12px * var(--ui-scale));
+  color: var(--text-muted);
+}
 .selection-actions.is-replying {
   flex-direction: column;
   align-items: stretch;
@@ -122,6 +131,8 @@
 }
 .reply-quote-badge {
   align-self: flex-start;
+  max-width: 100%;
+  overflow-wrap: anywhere;
   padding: 1px 8px;
   border: 1px solid var(--border-strong);
   border-radius: 999px;
@@ -141,6 +152,14 @@
   color: var(--text-dim);
   background: transparent;
 }
+.code-comment-badge {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+.code-comment-badge > :first-child { flex: none; margin-right: 4px; }
+.code-comment-filename { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.code-comment-badge > :last-child { flex: none; }
 .reply-quote-remove:hover { background: var(--bg-hover); color: var(--text-primary); }
 
 /* 元素批注卡片：与回复卡片同一排，点文字可在浏览器里定位元素。 */
