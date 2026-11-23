@@ -3,8 +3,6 @@ import { QuestionContext } from "./QuestionContext";
 import { LazyMount } from "./LazyMount";
 import { VersionControlView } from "./version-control/VersionControlView";
 import { webChatMessages } from "./web-chat-messages";
-import { TraceView } from "./trace/TraceView";
-import { UsageView } from "./usage/UsageView";
 import { isAgentBusy, visualToolName, type AppState, type AskUserQuestionRequest, type InteractionMode, type ToolTrace } from "@vela/shared";
 import { Fragment, memo, startTransition, useCallback, useContext, useEffect, useEffectEvent, useId, useLayoutEffect, useMemo, useOptimistic, useRef, useState, type ReactNode } from "react";
 import { useAgentWorkspace } from "./AgentPanel";
@@ -31,7 +29,6 @@ import { PlanLiveContext } from "./PlanLiveContext";
 import { latestTodoTool } from "../run-view";
 import { JumpOrb } from "./JumpOrb";
 import type { OrbActivity } from "./jump-orb";
-import { ContextTab } from "./ContextTab";
 import {
   AtelierBackdrop,
   NewChatAtelierHeader,
@@ -45,7 +42,6 @@ import {
 import { useStartPageStyle, type StartPageStyle } from "../hooks/useStartPageStyle";
 import { useHomePrompts } from "../hooks/useHomePrompts";
 import { RaceActionsContext } from "./race-actions-context";
-import { TaskBudgetTab } from "./TaskBudgetTab";
 import { useContentArrival } from "./BatchMotion";
 import { Markdown } from "./Markdown";
 import { AssistantMarkdown } from "./intelligent-ui/AssistantMarkdown";
@@ -84,7 +80,9 @@ import {
 import { outcomeByFinalMessage, type AcceptanceRequest } from "./acceptance";
 import { createLiveChangesSelector, summarizeTurnChanges, type TurnChanges, type TurnReviewRequest } from "./turn-changes";
 import { chatLaneDefaultMaxWidth, planChatLane, planInfoCardLane } from "../chat-lane";
-import { ConversationViewTabs, conversationPanelId, conversationTabId, isEmptyConversationView, type ConversationViewKey } from "./ConversationViewTabs";
+import { ConversationViewTabs, conversationPanelId, conversationTabId } from "./ConversationViewTabs";
+import { isConversationDetail, isEmptyConversationView, type ConversationViewKey } from "./conversation-detail";
+import { ConversationDetailView } from "./ConversationDetailView";
 import type { QuestionReplyHandler } from "./QuestionCard";
 import { RecommendedActionsCard } from "./RecommendedActionsCard";
 import { latestRecommendedActions } from "./recommended-actions";
@@ -223,6 +221,8 @@ export interface ChatViewProps {
   /** 工作面板内复用消息与输入框，省去窗口级操作。 */
   embedded?: boolean;
   floatingChat?: boolean;
+  conversationWorkbenchTabs?: boolean;
+  onOpenWorkspaceOverview?: (workspace: string) => void;
   messages: UiMessage[];
   state: AppState | null;
   sendError: string | null;
@@ -287,6 +287,8 @@ export interface ChatViewProps {
 export function ChatView({
   embedded = false,
   floatingChat = false,
+  conversationWorkbenchTabs = false,
+  onOpenWorkspaceOverview,
   messages: sourceMessages,
   state,
   sendError,
@@ -371,7 +373,8 @@ export function ChatView({
   );
   const savedView = views[viewKey] ?? "chat";
   const emptyConversation = messages.length === 0;
-  const view = floatingChat || (savedView === "versionControl" && !hasWorkspace) || isEmptyConversationView(savedView, emptyConversation) ? "chat" : savedView;
+  const showViewTabs = !floatingChat && !conversationWorkbenchTabs;
+  const view = !showViewTabs || (savedView === "versionControl" && !hasWorkspace) || isEmptyConversationView(savedView, emptyConversation) ? "chat" : savedView;
   const setView = (next: ConversationViewKey) => {
     if (next === "versionControl" && !hasWorkspace) return;
     if (next === "versionControl") setVcMounted(true);
@@ -942,6 +945,12 @@ export function ChatView({
     return ordinal;
   }, [messages]);
 
+  const projectPath = project.workspace?.current;
+  const overviewLabel = `${tr("工作区总览", "Workspace overview")} · ${projectPath ?? ""}`;
+  const projectLabel = <>
+    <span className="chat-project-name">{projectPath?.split(/[\\/]/).filter(Boolean).pop()}</span>
+    {project.git?.branch ? <span className="chat-project-branch">{project.git.branch}</span> : null}
+  </>;
   return (
     <QuestionContext.Provider value={question}>
     <ThinkingSummaryContext.Provider value={thinkingSummaries ?? null}>
@@ -987,11 +996,11 @@ export function ChatView({
           ) : <span className="chat-active-title" title={title}>{title}</span>}
         </div>
         <div className="chat-header-actions">
-          {!embedded && project.workspace?.current ? (
-            <span className="chat-project-context" title={project.workspace.current}>
-              <span className="chat-project-name">{project.workspace.current.split(/[\\/]/).filter(Boolean).pop()}</span>
-              {project.git?.branch ? <span className="chat-project-branch">{project.git.branch}</span> : null}
-            </span>
+          {!embedded && projectPath ? (onOpenWorkspaceOverview ?
+            <button type="button" className="chat-project-context chat-project-link" title={overviewLabel} aria-label={overviewLabel}
+              onClick={() => onOpenWorkspaceOverview(projectPath)}>
+              <Icon name="folder" size={14} />{projectLabel}
+            </button> : <span className="chat-project-context" title={projectPath}>{projectLabel}</span>
           ) : null}
           {!embedded ? <OpenInAppButton path={project.workspace?.current ?? null} /> : null}
           {subagents.length > 0 ? (
@@ -1047,16 +1056,14 @@ export function ChatView({
         </div>
       </header>}
 
-      {!floatingChat && <ConversationViewTabs idPrefix={tabIdPrefix} view={view} showVersionControl={hasWorkspace && !embedded} emptyConversation={emptyConversation} onChange={setView} />}
-      {view === "trace" || view === "usage" || view === "context" || view === "budget" ? (
+      {showViewTabs && <ConversationViewTabs idPrefix={tabIdPrefix} view={view} showVersionControl={hasWorkspace && !embedded} emptyConversation={emptyConversation} onChange={setView} />}
+      {isConversationDetail(view) ? (
         <div className="conversation-view-panel" role="tabpanel" id={conversationPanelId(tabIdPrefix, view)} aria-labelledby={conversationTabId(tabIdPrefix, view)}>
-          {view === "trace" ? <TraceView key={viewKey} state={state} onConversation={() => setView("chat")} onAbort={onAbort} pendingInteraction={pendingInteraction} /> : null}
-          {view === "usage" ? <UsageView key={viewKey} conversationId={state?.activeConversationId ?? null} providers={models.catalog?.providers ?? []} /> : null}
-          {view === "context" ? <ContextTab key={viewKey} conversationId={state?.activeConversationId ?? null} context={state?.context} /> : null}
-          {view === "budget" ? <TaskBudgetTab key={viewKey} conversationId={state?.activeConversationId ?? null} budget={session?.taskBudget} /> : null}
+          <ConversationDetailView key={viewKey} view={view} state={state} providers={models.catalog?.providers ?? []}
+            onConversation={() => setView("chat")} onAbort={onAbort} pendingInteraction={pendingInteraction} />
         </div>
       ) : null}
-      {hasWorkspace && vcMounted ? <VersionControlView
+      {!conversationWorkbenchTabs && hasWorkspace && vcMounted ? <VersionControlView
         project={project}
         session={session ?? null}
         hidden={view !== "versionControl"}
@@ -1065,7 +1072,7 @@ export function ChatView({
         onAbort={onAbort}
         onOpenFile={(absolutePath) => void project.openFile(absolutePath)}
       /> : null}
-      <div className="chat-conversation-pane" role={floatingChat ? undefined : "tabpanel"} id={conversationPanelId(tabIdPrefix, "chat")} aria-labelledby={floatingChat ? undefined : conversationTabId(tabIdPrefix, "chat")} data-home={homeLayout ? "true" : undefined} data-home-style={activeHomeStyle} data-prompts={showHomePrompts ? "true" : undefined} data-turn-nav={showTurnNav ? "true" : undefined} hidden={view !== "chat"} inert={view !== "chat" ? true : undefined}>
+      <div className="chat-conversation-pane" role={showViewTabs ? "tabpanel" : undefined} id={conversationPanelId(tabIdPrefix, "chat")} aria-labelledby={showViewTabs ? conversationTabId(tabIdPrefix, "chat") : undefined} data-home={homeLayout ? "true" : undefined} data-home-style={activeHomeStyle} data-prompts={showHomePrompts ? "true" : undefined} data-turn-nav={showTurnNav ? "true" : undefined} hidden={view !== "chat"} inert={view !== "chat" ? true : undefined}>
       {activeHomeStyle === "classic" ? <VelaMark /> : null}
       {activeHomeStyle === "atelier" ? <AtelierBackdrop /> : null}
       {floatingInfo && infoCards && !emptyConversation ? (

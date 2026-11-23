@@ -65,6 +65,10 @@
 .usage-view {
   border-radius: 0 0 var(--paper-right-radius) var(--paper-left-radius);
 }
+.wo-shell > :is(.vc-root, .vc-empty) {
+  border-top-left-radius: var(--paper-left-radius);
+  border-top-right-radius: var(--paper-right-radius);
+}
 .trace-view,
 .vc-root,
 .vc-empty,

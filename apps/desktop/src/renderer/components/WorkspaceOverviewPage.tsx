@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentProps, type ReactNode } from "react";
 import type { ConversationSummary, GitInProgressOperation, ScheduledTask, WorkspaceOverviewGit, WorkspaceRecent } from "@vela/shared";
 import { useAutoHideScrollbarsWithin } from "../hooks/useAutoHideScrollbar";
 import { useWorkspaceOverview } from "../hooks/useWorkspaceOverview";
 import type { ActivityOptions } from "./conversation-activity";
 import { displayConversationTitle } from "./conversation-title";
-import { activeIntlLocale, tr, trf } from "../locale";
+import { activeIntlLocale, localizeError, tr, trf } from "../locale";
 import { findWorkspace, folderName, workspaceTitle } from "./workspace-names";
 import {
   attentionItems,
@@ -14,6 +14,7 @@ import {
   scheduleSummary,
   workspaceConversations,
 } from "./workspace-overview-model";
+import { VersionControlView } from "./version-control/VersionControlView";
 import { FileTypeIcon } from "./FileTypeIcon";
 import { Icon } from "./icons";
 // 页面外壳(.scheduled-tasks-page-shell 等)的样式在这份表里,与定时任务页共用。
@@ -22,6 +23,13 @@ import "../workspace-overview.css";
 
 interface WorkspaceOverviewPageProps {
   workspace: string;
+  versionControl?: {
+    viewProps: Omit<ComponentProps<typeof VersionControlView>, "hidden">;
+    open: boolean;
+    switchFailed: boolean;
+    onOpen: () => void;
+    onBack: () => void;
+  };
   conversations: ConversationSummary[];
   workspaces: readonly WorkspaceRecent[];
   waitingConversationIds: readonly string[];
@@ -65,7 +73,7 @@ function operationLabel(operation: GitInProgressOperation | string): string {
 }
 
 export function WorkspaceOverviewPage({
-  workspace, conversations, workspaces, waitingConversationIds, sidebarCollapsed, onToggleSidebar,
+  workspace, versionControl, conversations, workspaces, waitingConversationIds, sidebarCollapsed, onToggleSidebar,
   onOpenConversation, onNewChat, onEditWorkspace, onOpenScheduledTasks,
 }: WorkspaceOverviewPageProps) {
   const pageRef = useRef<HTMLElement>(null);
@@ -89,6 +97,12 @@ export function WorkspaceOverviewPage({
   const byId = useMemo(() => new Map(list.map(item => [item.id, item])), [list]);
   const empty = list.length === 0;
 
+  const project = versionControl?.viewProps.project;
+  const activeWorkspace = project?.workspace?.current === workspace;
+  const repositoryOpen = versionControl?.open;
+  // A workspace-change event can precede its Git snapshot. Wait for the same checkout before offering Git actions.
+  const repositoryReady = activeWorkspace && git && project?.git?.repo?.root === git.repoRoot && project.git.repo.subdir === git.subdir;
+
   return <main className="scheduled-tasks-page-shell wo-shell" ref={pageRef}>
     <header className="main-chat-header scheduled-tasks-page-toolbar">
       <div className="chat-title-group">
@@ -96,10 +110,17 @@ export function WorkspaceOverviewPage({
           title={tr("展开侧边栏", "Expand sidebar")} aria-label={tr("展开侧边栏", "Expand sidebar")}>
           <Icon name="sidebar" size={16} />
         </button>}
-        <span className="chat-active-title">{tr("工作区总览", "Workspace overview")}</span>
+        {repositoryOpen && <button type="button" className="view-icon-btn" onClick={versionControl.onBack}
+          title={tr("工作区总览", "Workspace overview")} aria-label={tr("工作区总览", "Workspace overview")}><Icon name="arrow-left" size={16} /></button>}
+        <span className="chat-active-title">{repositoryOpen ? `${tr("版本控制", "Version Control")} · ${name}` : tr("工作区总览", "Workspace overview")}</span>
       </div>
     </header>
-    <div className="scheduled-tasks-page-scroll autohide-scrollbar">
+    {repositoryOpen && (repositoryReady ? <VersionControlView {...versionControl.viewProps} hidden={false}
+      session={versionControl.viewProps.session?.cwd === workspace ? versionControl.viewProps.session : null}
+      pendingInteraction={versionControl.viewProps.session?.cwd === workspace && versionControl.viewProps.pendingInteraction} />
+      : <div className="vc-empty" role="status">{data.snapshotError ? tr("无法读取仓库信息", "Couldn't read repository details")
+        : !git && !data.loading ? tr("这个工作区不是 Git 仓库", "This workspace isn't a Git repository") : tr("正在读取…", "Loading…")}</div>)}
+    <div className="scheduled-tasks-page-scroll autohide-scrollbar" hidden={repositoryOpen}>
       <section className="wo-page" aria-label={`${tr("工作区总览", "Workspace overview")} · ${name}`}>
         <header className="wo-head">
           <span className="wo-tile" aria-hidden="true"><Icon name="folder" size={24} /></span>
@@ -118,12 +139,17 @@ export function WorkspaceOverviewPage({
             </div>
           </div>
           <div className="wo-actions">
+            {versionControl && git && <button className="wo-btn" type="button" onClick={versionControl.onOpen}>
+              <Icon name="branch" size={16} />{activeWorkspace ? tr("版本控制", "Version Control")
+                : tr("切换到此工作区并打开版本控制", "Switch to this workspace and open Version Control")}
+            </button>}
             <button className="wo-btn wo-icon-btn" type="button" title={tr("工作区设置", "Workspace settings")} aria-label={tr("工作区设置", "Workspace settings")}
               onClick={() => onEditWorkspace(workspace)}><Icon name="sliders" size={16} /></button>
             <button className="wo-btn wo-primary" type="button" onClick={() => onNewChat(workspace)}><Icon name="compose" size={16} />{tr("新对话", "New chat")}</button>
           </div>
         </header>
 
+        {versionControl?.switchFailed && project?.error ? <p className="wo-error" role="alert">{localizeError(project.error)}</p> : null}
         {data.snapshotError && !data.snapshot ? <p className="wo-error" role="alert">{tr("无法读取仓库信息", "Couldn't read repository details")}</p> : null}
 
         {attention.length > 0 ? <section className="wo-card wo-attention" aria-labelledby="wo-attention-title">

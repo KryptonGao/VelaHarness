@@ -8,6 +8,8 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState, type Con
 import { type AgentInboxNavigation, type MenuAction, type ReleaseNotes, type TaskRecipe } from "@vela/shared";
 import { AgentWorkspaceProvider } from "./components/AgentPanel";
 import { SessionChatView } from "./components/SessionChatView";
+import { ConversationDetailView } from "./components/ConversationDetailView";
+import { conversationDetails, isConversationDetail, isEmptyConversationView, type ConversationDetail } from "./components/conversation-detail";
 import { ContextPanel } from "./components/ContextPanel";
 import { PanelLayoutActions } from "./components/PanelLayoutActions";
 import { useMessagesEmpty } from "./hooks/useMessages";
@@ -134,9 +136,10 @@ function writeWhatsNewSeen(version: string): void {
   }
 }
 
-/** overview 是主页上打开的工作区总览(它所属工作区的路径);其余页面为 null。 */
-interface NavEntry { page: NavCategory; conversationId: string | null; overview: string | null }
-const navEntryKey = (entry: NavEntry) => `${entry.page}:${entry.conversationId ?? ""}:${entry.overview ?? ""}`;
+type WorkspacePage = "overview" | "versionControl";
+type WorkspaceTarget = { cwd: string; page: WorkspacePage | "opening" | "switchFailed" };
+interface NavEntry { page: NavCategory; conversationId: string | null; overview: string | null; versionControl: boolean }
+const navEntryKey = (entry: NavEntry) => `${entry.page}:${entry.conversationId ?? ""}:${entry.versionControl}:${entry.overview ?? ""}`;
 
 export function App() {
   const preferences = usePreferences();
@@ -180,7 +183,14 @@ export function App() {
   const [scheduledTasksOpen, setScheduledTasksOpen] = useState(false);
   const [prInboxOpen, setPrInboxOpen] = useState(false);
   // 工作区总览属于主页:侧栏保持可见,只是替换掉对话区。
-  const [overviewWorkspace, setOverviewWorkspace] = useState<string | null>(null);
+  const [workspaceTarget, setWorkspaceTarget] = useState<WorkspaceTarget | null>(null);
+  const overviewWorkspace = workspaceTarget?.cwd ?? null;
+  // The selection IPC can finish before the renderer receives the workspace event.
+  if (workspaceTarget?.page === "opening" && project.workspace?.current === workspaceTarget.cwd) {
+    setWorkspaceTarget({ ...workspaceTarget, page: "versionControl" });
+  }
+  const repositoryOpen = preferences.conversationWorkbenchTabs && (workspaceTarget?.page === "opening"
+    || (workspaceTarget?.page === "versionControl" && project.workspace?.current === overviewWorkspace));
   const lastOverviewWorkspace = useRef<string | null>(null);
   if (overviewWorkspace !== null) lastOverviewWorkspace.current = overviewWorkspace;
   const [agentInboxOpen, setAgentInboxOpen] = useState(false);
@@ -199,7 +209,7 @@ export function App() {
     const leave = () => { setRecipesOpen(false); action(); };
     if (recipeLeaveGuard.current) recipeLeaveGuard.current(leave); else leave();
   }, []);
-  const openRecipes = useCallback(() => { setSettingsOpen(false); setOverviewWorkspace(null); setPrInboxOpen(false); setAgentInboxOpen(false); setScheduledTasksOpen(false); setRecipesOpen(true); }, []);
+  const openRecipes = useCallback(() => { setSettingsOpen(false); setWorkspaceTarget(null); setPrInboxOpen(false); setAgentInboxOpen(false); setScheduledTasksOpen(false); setRecipesOpen(true); }, []);
   const consumeRecipeSeed = useCallback(() => setRecipeSeed(null), []);
   // 通知点击、菜单栏入口：主进程要求打开收件箱的某个位置。窗口刚创建时订阅还没建立，先取走暂存的请求。
   useEffect(() => {
@@ -209,7 +219,7 @@ export function App() {
     const open = (target: AgentInboxNavigation) => {
       if (!live) return;
       leaveRecipes(() => {
-        setSettingsOpen(false); setOverviewWorkspace(null); setScheduledTasksOpen(false); setPrInboxOpen(false); setAgentInboxOpen(true);
+        setSettingsOpen(false); setWorkspaceTarget(null); setScheduledTasksOpen(false); setPrInboxOpen(false); setAgentInboxOpen(true);
         agentInboxNavNonce.current += 1;
         setAgentInboxNav({ target, nonce: agentInboxNavNonce.current });
       });
@@ -273,6 +283,7 @@ export function App() {
   const [workbenchCollapsed, setWorkbenchCollapsed] = useState(false);
   useEffect(() => { setWorkbenchCollapsed(false); }, [activeWorkbenchTabId]);
   const [startTabState, setStartTabState] = useState<{ id: string }[]>([]);
+  const [detailTabs, setDetailTabs] = useState<{ id: string; conversationId: string; view: ConversationDetail }[]>([]);
   const [chatTabState, setChatTabState] = useState<{ id: string; conversationId: string }[]>([]);
   /**
    * 侧边聊天按项目（工作区目录）保存：每个项目一个标签，里面是这个项目的聊天列表；
@@ -557,6 +568,14 @@ export function App() {
 
   /** 起始页选好入口后关闭起始标签,换成对应内容。 */
   const handleStartAction = useCallback((tab: WorkbenchTab, action: StartTabAction) => {
+    if (isConversationDetail(action)) {
+      if (!preferences.conversationWorkbenchTabs || !conversationKey || isEmptyConversationView(action, conversationEmpty)) return;
+      const existing = detailTabs.find(item => item.conversationId === conversationKey && item.view === action);
+      if (!existing) setDetailTabs(current => [...current, { id: tab.id, conversationId: conversationKey, view: action }]);
+      setStartTabState(current => current.filter(item => item.id !== tab.id));
+      focusWorkbenchTab(existing?.id ?? tab.id);
+      return;
+    }
     if (action === "chat") {
       const api = window.vela;
       if (!api || chatRequests.current.has(tab.id)) return;
@@ -585,7 +604,7 @@ export function App() {
     else if (action === "terminal") openTerminalTab();
     else if (action === "background") openBackgroundTab();
     else openFilesTab();
-  }, [openChanges, openSideChatTab, openTerminalTab, openFilesTab, openBackgroundTab, workspaceKey]);
+  }, [openChanges, openSideChatTab, openTerminalTab, openFilesTab, openBackgroundTab, workspaceKey, preferences.conversationWorkbenchTabs, conversationKey, conversationEmpty, detailTabs, focusWorkbenchTab]);
 
   const handleStartBrowse = useCallback((tab: WorkbenchTab, url: string) => {
     setStartTabState((current) => current.filter((candidate) => candidate.id !== tab.id));
@@ -655,6 +674,10 @@ export function App() {
     kind: "side-chat",
     label: tr("侧边聊天", "Side chat"),
   })), [sideChatTabState, workspaceKey, preferences.locale]);
+  const conversationDetailTabs = useMemo<WorkbenchTab[]>(() => preferences.conversationWorkbenchTabs
+    ? detailTabs.filter(tab => tab.conversationId === conversationKey && !isEmptyConversationView(tab.view, conversationEmpty))
+      .map(tab => ({ id: tab.id, kind: "conversation-detail", view: tab.view, label: conversationDetails[tab.view].label() }))
+    : [], [detailTabs, conversationKey, conversationEmpty, preferences.conversationWorkbenchTabs, preferences.locale]);
   const unorderedTabs = useMemo<WorkbenchTab[]>(() => [
     ...fileTabs,
     ...(planTab ? [planTab] : []),
@@ -667,10 +690,11 @@ export function App() {
     ...(filesTab ? [filesTab] : []),
     ...terminalTabs,
     ...chatTabs,
+    ...conversationDetailTabs,
     ...sideChatTabs,
     ...browser.tabs.map((tab): WorkbenchTab => ({ ...tab, kind: "browser", label: tr("浏览器", "Browser") })),
     ...startTabItems,
-  ], [fileTabs, planTab, changeTab, reviewTab, acceptanceTab, raceTab, backgroundTab, agentTabs, filesTab, terminalTabs, chatTabs, sideChatTabs, browser.tabs, startTabItems]);
+  ], [fileTabs, planTab, changeTab, reviewTab, acceptanceTab, raceTab, backgroundTab, agentTabs, filesTab, terminalTabs, chatTabs, conversationDetailTabs, sideChatTabs, browser.tabs, startTabItems]);
   const workbenchTabs = useMemo(() => {
     const tabIdSet = new Set(unorderedTabs.map((tab) => tab.id));
     return [
@@ -787,6 +811,8 @@ export function App() {
       }));
     } else if (tab.kind === "terminal") {
       setTerminalTabState((current) => current.filter((candidate) => candidate.id !== tab.id));
+    } else if (tab.kind === "conversation-detail") {
+      setDetailTabs(current => current.filter(item => item.id !== tab.id));
     } else if (tab.kind === "chat") {
       setChatTabState(current => current.filter(candidate => candidate.id !== tab.id));
     } else if (tab.kind === "side-chat") {
@@ -888,22 +914,43 @@ export function App() {
     return () => { active = false; };
   }, [onboardingComplete]);
 
-  const openPrInbox = () => leaveRecipes(() => { setSettingsOpen(false); setOverviewWorkspace(null); setScheduledTasksOpen(false); setAgentInboxOpen(false); setPrInboxOpen(true); });
-  const openAgentInbox = () => leaveRecipes(() => { setSettingsOpen(false); setOverviewWorkspace(null); setScheduledTasksOpen(false); setPrInboxOpen(false); setAgentInboxOpen(true); });
+  const openPrInbox = () => leaveRecipes(() => { setSettingsOpen(false); setWorkspaceTarget(null); setScheduledTasksOpen(false); setAgentInboxOpen(false); setPrInboxOpen(true); });
+  const openAgentInbox = () => leaveRecipes(() => { setSettingsOpen(false); setWorkspaceTarget(null); setScheduledTasksOpen(false); setPrInboxOpen(false); setAgentInboxOpen(true); });
   const openScheduledTasks = () => leaveRecipes(() => {
-    setSettingsOpen(false); setOverviewWorkspace(null);
+    setSettingsOpen(false); setWorkspaceTarget(null);
     setPrInboxOpen(false); setAgentInboxOpen(false); setScheduledTasksOpen(true);
   });
-  const toggleSettings = () => leaveRecipes(() => { setOverviewWorkspace(null); setPrInboxOpen(false); setAgentInboxOpen(false); setScheduledTasksOpen(false); setSettingsOpen((open) => !open); });
-  const goHome = () => leaveRecipes(() => { setOverviewWorkspace(null); setPrInboxOpen(false); setAgentInboxOpen(false); setScheduledTasksOpen(false); setSettingsOpen(false); });
-  const openWorkspaceOverview = (cwd: string) => leaveRecipes(() => {
-    setSettingsOpen(false); setPrInboxOpen(false); setAgentInboxOpen(false); setScheduledTasksOpen(false); setOverviewWorkspace(cwd);
+  const toggleSettings = () => leaveRecipes(() => { setWorkspaceTarget(null); setPrInboxOpen(false); setAgentInboxOpen(false); setScheduledTasksOpen(false); setSettingsOpen((open) => !open); });
+  const goHome = () => leaveRecipes(() => { setWorkspaceTarget(null); setPrInboxOpen(false); setAgentInboxOpen(false); setScheduledTasksOpen(false); setSettingsOpen(false); });
+  const showWorkspacePage = (cwd: string, page: WorkspacePage) => {
+    const switching = workspaceTarget?.page === "opening";
+    if (page === "versionControl" && switching && workspaceTarget.cwd === cwd) return;
+    if (page === "versionControl" && (switching || project.workspace?.current !== cwd)) {
+      const target: WorkspaceTarget = { cwd, page: "opening" };
+      setWorkspaceTarget(target);
+      void project.selectRecentWorkspace(cwd).then(ok => {
+        if (!ok) setWorkspaceTarget(current => current === target ? { cwd, page: "switchFailed" } : current);
+      });
+      return;
+    }
+    setWorkspaceTarget({ cwd, page });
+  };
+  const openWorkspaceOverview = (cwd: string, page: WorkspacePage = "overview") => leaveRecipes(() => {
+    setSettingsOpen(false); setPrInboxOpen(false); setAgentInboxOpen(false); setScheduledTasksOpen(false);
+    showWorkspacePage(cwd, page);
   });
+  const focusMainChat = () => {
+    setWorkbenchView(current => current === "split" ? current : "chat");
+    requestAnimationFrame(() => document.querySelector<HTMLElement>(".main-stage-pane > .main-chat-view")?.focus());
+  };
+  const pendingConversationInteraction = Boolean(session.question || (project.approval &&
+    (!project.approval.conversationId || project.approval.conversationId === session.activeConversationId)));
   // 前进/后退历史：记录「页面 + 主页上的当前对话」；回退时先登记目标，等界面落到目标后再放行记录，避免回退被当成新导航。
   const navEntry: NavEntry = {
     page: navCategory,
     conversationId: navCategory === "home" && overviewWorkspace === null ? session.activeConversationId : null,
     overview: navCategory === "home" ? overviewWorkspace : null,
+    versionControl: navCategory === "home" && repositoryOpen,
   };
   const navKey = navEntryKey(navEntry);
   const navEntryRef = useRef(navEntry);
@@ -929,7 +976,8 @@ export function App() {
     recordNav();
   }, [navKey, onboardingComplete, recordNav]);
   const conversationIds = useMemo(() => new Set(session.conversations.map(item => item.id)), [session.conversations]);
-  const navEntryValid = useCallback((entry: NavEntry) => !entry.conversationId || conversationIds.has(entry.conversationId), [conversationIds]);
+  const navEntryValid = useCallback((entry: NavEntry) => (!entry.conversationId || conversationIds.has(entry.conversationId))
+    && (!entry.versionControl || preferences.conversationWorkbenchTabs), [conversationIds, preferences.conversationWorkbenchTabs]);
   const showNavEntry = (entry: NavEntry) => {
     const key = navEntryKey(entry);
     if (navPending.current) window.clearTimeout(navPending.current.timer);
@@ -938,7 +986,8 @@ export function App() {
     leaveRecipes(() => {
       setSettingsOpen(entry.page === "settings"); setScheduledTasksOpen(entry.page === "scheduledTasks"); setRecipesOpen(entry.page === "recipes");
       setAgentInboxOpen(entry.page === "agentInbox"); setPrInboxOpen(entry.page === "prInbox");
-      setOverviewWorkspace(entry.page === "home" ? entry.overview : null);
+      if (entry.page === "home" && entry.overview) showWorkspacePage(entry.overview, entry.versionControl ? "versionControl" : "overview");
+      else setWorkspaceTarget(null);
       if (entry.page === "home" && !entry.overview && entry.conversationId && entry.conversationId !== session.activeConversationId) openMainConversation(entry.conversationId);
     });
   };
@@ -947,7 +996,7 @@ export function App() {
   navActions.current = { back: goBack, forward: goForward };
   // 工作台标签只在主页上可见:先离开设置、收件箱等页面再打开。
   const showHomeThen = (action: () => void) => leaveRecipes(() => {
-    setSettingsOpen(false); setOverviewWorkspace(null); setPrInboxOpen(false); setAgentInboxOpen(false); setScheduledTasksOpen(false);
+    setSettingsOpen(false); setWorkspaceTarget(null); setPrInboxOpen(false); setAgentInboxOpen(false); setScheduledTasksOpen(false);
     action();
   });
   const cycleWorkbenchTab = (step: 1 | -1) => {
@@ -1098,18 +1147,19 @@ export function App() {
                 activeConversationId={scheduledTasksOpen || recipesOpen || prInboxOpen || agentInboxOpen || overviewWorkspace !== null ? null : session.activeConversationId}
                 overviewWorkspace={overviewWorkspace}
                 onOpenWorkspaceOverview={openWorkspaceOverview}
+                onOpenVersionControl={preferences.conversationWorkbenchTabs ? cwd => openWorkspaceOverview(cwd, "versionControl") : undefined}
                 settingsOpen={settingsOpen}
                 settingsLabel={tr("设置", "Settings")}
                 onToggle={() => setLeftCollapsed((value) => !value)}
                 onOpenSettings={toggleSettings}
                 onNewChat={(cwd) => leaveRecipes(() => {
                   if (workbenchView !== "split") setWorkbenchView("chat");
-                  setOverviewWorkspace(null); setPrInboxOpen(false); setAgentInboxOpen(false); setScheduledTasksOpen(false); setSettingsOpen(false); void session.newChat(cwd);
+                  setWorkspaceTarget(null); setPrInboxOpen(false); setAgentInboxOpen(false); setScheduledTasksOpen(false); setSettingsOpen(false); void session.newChat(cwd);
                 })}
                 workspaces={project.workspace?.recents}
                 onEditWorkspace={setEditingWorkspace}
                 onSwitchConversation={(id) => leaveRecipes(() => {
-                  setOverviewWorkspace(null); setPrInboxOpen(false); setAgentInboxOpen(false); setScheduledTasksOpen(false); setSettingsOpen(false); openMainConversation(id);
+                  setWorkspaceTarget(null); setPrInboxOpen(false); setAgentInboxOpen(false); setScheduledTasksOpen(false); setSettingsOpen(false); openMainConversation(id);
                 })}
                 onArchiveConversation={(id) => void session.archive(id)}
                 onRenameConversation={openRenameConversation}
@@ -1143,6 +1193,8 @@ export function App() {
                           sendError={session.sendError}
                           platform={platform}
                           floatingChat={floatingChat}
+                          conversationWorkbenchTabs={preferences.conversationWorkbenchTabs}
+                          onOpenWorkspaceOverview={preferences.conversationWorkbenchTabs ? openWorkspaceOverview : undefined}
                           leftCollapsed={leftCollapsed && !fullscreen}
                           onToggleLeft={toggleLeft}
                           onRenameConversation={openRenameConversation}
@@ -1240,6 +1292,11 @@ export function App() {
                         onStartBrowse={handleStartBrowse}
                         pendingStartTabIds={pendingChatTabs}
                         startErrors={startErrors}
+                        conversationWorkbenchTabs={preferences.conversationWorkbenchTabs && !!conversationKey}
+                        emptyConversation={conversationEmpty}
+                        renderConversationDetail={view => <ConversationDetailView view={view} state={session.state}
+                          providers={models.catalog?.providers ?? []} onAbort={session.abort}
+                          pendingInteraction={pendingConversationInteraction} onConversation={focusMainChat} />}
                         renderChat={tab => <WorkbenchChatView key={tab.conversationId}
                           conversationId={tab.conversationId} preferences={preferences} project={project}
                           onRenameConversation={openRenameConversation}
@@ -1284,12 +1341,19 @@ export function App() {
                   </Presence>
                 </FilePreviewProvider>
                 <Presence present={overviewWorkspace !== null} className="main-stage-pane scheduled-tasks-stage">
-                  {lastOverviewWorkspace.current !== null ? <WorkspaceOverviewPage workspace={lastOverviewWorkspace.current}
+                  {lastOverviewWorkspace.current !== null ? <WorkspaceOverviewPage key={lastOverviewWorkspace.current} workspace={lastOverviewWorkspace.current}
+                    versionControl={preferences.conversationWorkbenchTabs && overviewWorkspace !== null ? {
+                      open: repositoryOpen, switchFailed: workspaceTarget?.page === "switchFailed",
+                      onOpen: () => showWorkspacePage(overviewWorkspace, "versionControl"),
+                      onBack: () => showWorkspacePage(overviewWorkspace, "overview"),
+                      viewProps: { project, session: session.state?.session ?? null, pendingInteraction: pendingConversationInteraction,
+                        onOpenConversation: () => { goHome(); focusMainChat(); }, onAbort: session.abort, onOpenFile: project.openFile },
+                    } : undefined}
                     conversations={session.conversations} workspaces={project.workspace?.recents ?? []}
                     waitingConversationIds={session.waitingConversationIds}
                     sidebarCollapsed={leftCollapsed && !railMode} onToggleSidebar={toggleLeft}
-                    onOpenConversation={id => { setOverviewWorkspace(null); openMainConversation(id); }}
-                    onNewChat={cwd => leaveRecipes(() => { setOverviewWorkspace(null); void session.newChat(cwd); })}
+                    onOpenConversation={id => { setWorkspaceTarget(null); openMainConversation(id); }}
+                    onNewChat={cwd => leaveRecipes(() => { setWorkspaceTarget(null); void session.newChat(cwd); })}
                     onEditWorkspace={setEditingWorkspace} onOpenScheduledTasks={openScheduledTasks} /> : null}
                 </Presence>
                 <Presence present={prInboxOpen} keepMounted className="main-stage-pane page-stage">

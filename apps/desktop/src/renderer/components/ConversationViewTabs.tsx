@@ -2,23 +2,9 @@ import { useLayoutEffect, type KeyboardEvent } from "react";
 import { tr, useAppLocale } from "../locale";
 import { useSlidingTabIndicator } from "./useSlidingTabIndicator";
 
-export type ConversationViewKey = "chat" | "trace" | "versionControl" | "usage" | "context" | "budget";
+import { conversationDetails, isEmptyConversationView, type ConversationViewKey } from "./conversation-detail";
 
-const TABS: ReadonlyArray<readonly [ConversationViewKey, string, string]> = [
-  ["chat", "对话", "Conversation"],
-  ["trace", "轨迹", "Trace"],
-  ["versionControl", "版本控制", "Version Control"],
-  ["usage", "使用统计", "Usage"],
-  ["context", "上下文", "Context"],
-  ["budget", "上限设置", "Limit settings"],
-];
-
-/** 尚无任何消息时没有内容可看的视图;用量限制是设置项,空对话也能用。 */
-const NEEDS_MESSAGES: ReadonlySet<ConversationViewKey> = new Set(["trace", "usage", "context"]);
-
-export function isEmptyConversationView(key: ConversationViewKey, emptyConversation: boolean) {
-  return emptyConversation && NEEDS_MESSAGES.has(key);
-}
+const TABS: readonly ConversationViewKey[] = ["chat", "trace", "versionControl", "usage", "context", "budget"];
 
 /** 分页按钮与它控制的面板共用的 id；面板不在 DOM 里的视图（版本控制）没有对应面板。 */
 export const conversationTabId = (prefix: string, key: ConversationViewKey) => `${prefix}-tab-${key}`;
@@ -64,7 +50,7 @@ export function ConversationViewTabs({ idPrefix, view, showVersionControl, empty
     return () => { observer.disconnect(); nav.removeEventListener("scroll", updateFade); };
   }, [tabs.navRef, showVersionControl, locale]);
 
-  const visible = TABS.filter(([key]) => key !== "versionControl" || showVersionControl);
+  const visible = TABS.filter(key => key !== "versionControl" || showVersionControl);
 
   // 方向键只移动焦点（手动激活）：轨迹、使用统计会按需加载数据，不该随方向键反复触发；Enter / 空格选中。
   const onKeyDown = (event: KeyboardEvent<HTMLElement>) => {
@@ -94,7 +80,9 @@ export function ConversationViewTabs({ idPrefix, view, showVersionControl, empty
       onPointerLeave={tabs.onPointerLeave}
       onKeyDown={onKeyDown}
     >
-      {visible.map(([key, chinese, english]) => {
+      {visible.map(key => {
+        const label = key === "chat" ? tr("对话", "Conversation")
+          : key === "versionControl" ? tr("版本控制", "Version Control") : conversationDetails[key].label();
         const unavailable = isEmptyConversationView(key, emptyConversation);
         const reason = tr("发送第一条消息后可用", "Available after the first message");
         return (
@@ -108,12 +96,12 @@ export function ConversationViewTabs({ idPrefix, view, showVersionControl, empty
             aria-selected={view === key}
             aria-controls={conversationPanelId(idPrefix, key)}
             aria-disabled={unavailable || undefined}
-            aria-label={unavailable ? `${tr(chinese, english)} – ${reason}` : tr(chinese, english)}
-            title={unavailable ? reason : tr(chinese, english)}
+            aria-label={unavailable ? `${label} – ${reason}` : label}
+            title={unavailable ? reason : label}
             ref={tabs.registerTab(key)}
             onClick={() => { if (!unavailable) onChange(key); }}
           >
-            {tr(chinese, english)}
+            {label}
           </button>
         );
       })}

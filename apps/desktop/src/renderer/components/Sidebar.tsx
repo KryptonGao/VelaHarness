@@ -56,6 +56,7 @@ interface SidebarProps {
   overviewWorkspace?: string | null;
   /** 点击工作区左侧的文件夹图标:打开这个工作区的总览。 */
   onOpenWorkspaceOverview?: (cwd: string) => void;
+  onOpenVersionControl?: (cwd: string) => void;
   onSwitchConversation: (id: string) => void;
   onArchiveConversation: (id: string) => void;
   onRenameConversation?: (id: string) => void;
@@ -92,6 +93,7 @@ export function Sidebar({
   onEditWorkspace,
   overviewWorkspace = null,
   onOpenWorkspaceOverview,
+  onOpenVersionControl,
   onSwitchConversation,
   onArchiveConversation,
   onRenameConversation,
@@ -240,6 +242,7 @@ export function Sidebar({
           onEdit={onEditWorkspace ? () => onEditWorkspace(group.cwd) : undefined}
           overviewOpen={overviewWorkspace === group.cwd}
           onOpenOverview={onOpenWorkspaceOverview ? () => onOpenWorkspaceOverview(group.cwd) : undefined}
+          onOpenVersionControl={onOpenVersionControl ? () => onOpenVersionControl(group.cwd) : undefined}
           onNewChat={() => onNewChat(group.cwd)} />
         <div id={listId} className={`session-group-content${isCollapsed ? "" : " is-open"}`}
           inert={isCollapsed} aria-hidden={isCollapsed || undefined}>
@@ -424,10 +427,10 @@ function activityReasonLabel(reason: ActivityReason, conversation: ConversationS
   }
 }
 
-function WorkspaceGroupRow({ cwd, name, folders, chatCount, collapsed, listId, pinned, overviewOpen, onToggleCollapsed, onTogglePin, onEdit, onOpenOverview, onNewChat }: {
+function WorkspaceGroupRow({ cwd, name, folders, chatCount, collapsed, listId, pinned, overviewOpen, onToggleCollapsed, onTogglePin, onEdit, onOpenOverview, onOpenVersionControl, onNewChat }: {
   cwd: string; name: string; folders: readonly string[]; chatCount: number; collapsed: boolean; listId: string; pinned: boolean;
   overviewOpen: boolean;
-  onToggleCollapsed: () => void; onTogglePin: () => void; onEdit?: () => void; onOpenOverview?: () => void; onNewChat: () => void;
+  onToggleCollapsed: () => void; onTogglePin: () => void; onEdit?: () => void; onOpenOverview?: () => void; onOpenVersionControl?: () => void; onNewChat: () => void;
 }) {
   const rowRef = useRef<HTMLDivElement>(null);
   const timer = useRef<number | undefined>(undefined);
@@ -463,6 +466,11 @@ function WorkspaceGroupRow({ cwd, name, folders, chatCount, collapsed, listId, p
         <span className="session-group-name">{name}</span>
         <span className="session-group-count">{chatCount}</span>
       </button>
+      {onOpenVersionControl ? <button className="subchat-action session-group-version-control" type="button"
+        title={tr("版本控制", "Version Control")} aria-label={`${tr("版本控制", "Version Control")} · ${name}`}
+        onClick={() => { schedule(false, 0); onOpenVersionControl(); }}>
+        <Icon name="branch" size={14} />
+      </button> : null}
       {onEdit ? <button className="subchat-action session-group-settings" type="button"
         title={tr("工作区设置", "Workspace settings")}
         aria-label={`${tr("工作区设置", "Workspace settings")} · ${name}`}

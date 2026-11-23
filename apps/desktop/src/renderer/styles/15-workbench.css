@@ -102,6 +102,8 @@
   /* 宽度变化(增减标签、锁定/解冻、拉宽面板)都走这条过渡 */
   transition: width var(--transition-smooth), background var(--transition-smooth), color var(--transition-smooth);
 }
+.workbench-tab[data-kind="conversation-detail"] { min-width: calc(52px + 4em); padding-inline: 8px 26px; gap: 5px; }
+.workbench-tabpanel .trace-filters { flex-wrap: wrap; }
 .workbench-tab > .tool-activity-loader { margin-left: 0; }
 .workbench-tab > .file-type-icon { width: 20px; height: 20px; }
 .workbench-tab:hover { background: var(--bg-hover); color: var(--text-primary); }
@@ -531,6 +533,7 @@
 @container (min-width: 400px) {
   /* 按列填充:左列先排满再排右列(6 项 → 3 + 3),键盘 Tab 顺序也沿列向下 */
   .start-options { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(3, auto); grid-auto-flow: column; }
+  .start-conversation-options { grid-template-rows: repeat(2, auto); }
 }
 .start-address-form { position: relative; display: block; }
 .start-address-icon { position: absolute; inset: 0 auto 0 14px; display: grid; place-items: center; color: var(--text-muted); pointer-events: none; }

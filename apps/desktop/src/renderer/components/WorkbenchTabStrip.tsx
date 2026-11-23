@@ -138,7 +138,7 @@ export function WorkbenchTabStrip({ tabs, splitEnabled, draggingId, selected, sp
     </>}
     <nav className="workbench-tablist" role="tablist" ref={listRef} aria-label={tr("工作面板标签", "Workbench tabs")}>
       {tabs.map(tab => <button key={tab.id} ref={node => { if (node) buttons.current.set(tab.id, node); else buttons.current.delete(tab.id); }}
-        id={tabButtonId(tab)} className="workbench-tab" type="button" role="tab" draggable={false} data-dragging={tab.id === draggingId || undefined}
+        id={tabButtonId(tab)} className="workbench-tab" data-kind={tab.kind} type="button" role="tab" draggable={false} data-dragging={tab.id === draggingId || undefined}
         aria-selected={!showingChat && tab.id === selected} aria-controls={tabPanelId(tab)} tabIndex={tab.id === selected ? 0 : -1}
         title={tab.title ?? tab.label} style={tabWidth ? { width: tabWidth } : undefined}
         onClick={() => onActivate(tab)} onPointerDown={event => onTabPointerDown(event, tab)} onDragStart={event => event.preventDefault()}

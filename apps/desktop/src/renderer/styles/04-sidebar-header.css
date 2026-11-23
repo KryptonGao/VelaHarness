@@ -672,8 +672,10 @@
 }
 .chat-project-name { color: var(--text-secondary); font-weight: 500; }
 .chat-project-branch { color: var(--text-muted); }
+.chat-project-link { padding: 4px 6px; border-radius: var(--radius-sm); }
+.chat-project-link:hover { background: var(--bg-hover); }
 @container chat (max-width: 860px) {
-  .chat-project-context { display: none; }
+  .chat-project-context:not(.chat-project-link), .chat-project-link :is(.chat-project-name, .chat-project-branch) { display: none; }
 }
 
 .view-icon-btn.active {

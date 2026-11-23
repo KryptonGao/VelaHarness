@@ -87,28 +87,27 @@ export function useProject(notify: NotifySound = noSound) {
     const api = window.vela;
     if (!api) return;
     let active = true;
+    let workspaceChanged = false;
 
     void (async () => {
       // 工作区只读本地记录,很快就返回;Git / 分支 / PR 要跑子进程或联网,可能慢得多。
       // 工作区单独先落地,避免启动时先显示空工作区、等 Git 查完才跳到上次的工作区。
-      const workspaceRequest = api.getWorkspaceState().catch(() => null);
-      void workspaceRequest.then((value) => {
-        if (active && value) setWorkspace(value);
-      });
+      void api.getWorkspaceState().then(value => {
+        if (active && !workspaceChanged) setWorkspace(value);
+      }).catch(() => undefined);
       // 执行权限同样只读本地设置,单独先落地,不必等 Git / 分支 / PR。
       void api.getSandboxMode().then((value) => {
         if (active) setSandboxModeState(value);
       }).catch(() => undefined);
-      const [nextWorkspace, nextEnv, nextEnvs, nextGit, nextBranches, nextPr] = await Promise.all([
-        workspaceRequest,
+      const [nextEnv, nextEnvs, nextGit, nextBranches, nextPr] = await Promise.all([
         api.getEnvironment().catch(() => null),
         api.listEnvironments().catch(() => [] as ExecutionEnvironment[]),
         api.getGitStatus().catch(() => null),
         api.listBranches().catch(() => [] as BranchSummary[]),
         api.getPullRequest().catch(() => null),
       ]);
-      if (!active) return;
-      setWorkspace(nextWorkspace);
+      // A workspace event already refreshed these values for the newly selected repository.
+      if (!active || workspaceChanged) return;
       setEnvironmentState(nextEnv);
       setEnvironments(nextEnvs);
       setGit(nextGit);
@@ -118,6 +117,7 @@ export function useProject(notify: NotifySound = noSound) {
     })();
 
     const offWorkspace = api.onWorkspaceEvent((event) => {
+      workspaceChanged = true;
       setGitHint(null);
       setWorkspace(event.workspace);
       setEnvironmentState(event.environment);

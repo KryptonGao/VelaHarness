@@ -30,6 +30,7 @@ import { TerminalView } from "./TerminalView";
 import { TerminalCloseDialog } from "./TerminalCloseDialog";
 import { BrowserPanel, BrowserTabIcon, BrowserTabLabel } from "./browser/BrowserPanel";
 import type { BrowserController } from "../browser/browser-controller";
+import { conversationDetails, type ConversationDetail } from "./conversation-detail";
 import { WorkbenchTabStrip } from "./WorkbenchTabStrip";
 import { Icon } from "./icons";
 import { collapseWorkbenchLayout, dropWorkbenchTab, emptyWorkbenchLayout, mergeWorkbenchPane, reconcileWorkbenchLayout, replaceWorkbenchTab, resizeWorkbenchDivider,
@@ -37,6 +38,7 @@ import { collapseWorkbenchLayout, dropWorkbenchTab, emptyWorkbenchLayout, mergeW
   type WorkbenchDivider, type WorkbenchDropEdge, type WorkbenchLayout, type WorkbenchRect } from "./workbench-layout";
 
 export type WorkbenchTab =
+  | { id: string; kind: "conversation-detail"; label: string; title?: string; view: ConversationDetail }
   | { id: string; kind: "chat"; label: string; title?: string; conversationId: string }
   | { id: string; kind: "side-chat"; label: string; title?: string }
   | { id: string; kind: "plan"; label: string; title?: string }
@@ -100,6 +102,9 @@ interface WorkbenchPanelProps {
   onStartBrowse: (tab: WorkbenchTab, url: string) => void;
   pendingStartTabIds?: readonly string[];
   startErrors?: Record<string, string>;
+  conversationWorkbenchTabs?: boolean;
+  emptyConversation?: boolean;
+  renderConversationDetail?: (view: ConversationDetail) => ReactNode;
   renderChat?: (tab: Extract<WorkbenchTab, { kind: "chat" }>) => ReactNode;
   renderSideChat?: (tab: Extract<WorkbenchTab, { kind: "side-chat" }>, visible: boolean) => ReactNode;
   gitAvailable: boolean;
@@ -111,6 +116,7 @@ function safeId(value: string): string {
   return Array.from(value, character => /[a-zA-Z0-9_-]/.test(character) ? character : `_${character.codePointAt(0)!.toString(16)}_`).join("");
 }
 function TabIcon({ tab }: { tab: WorkbenchTab }) {
+  if (tab.kind === "conversation-detail") return <Icon name={conversationDetails[tab.view].icon} size={12} />;
   if (tab.kind === "file") return <FileTypeIcon path={tab.path} />;
   if (tab.kind === "changes") return <Icon name="file-diff" size={12} />;
   if (tab.kind === "turn-review") return <Icon name="file" size={12} />;
@@ -400,6 +406,7 @@ function WorkbenchPanelContent(props: WorkbenchPanelProps & { closing: boolean; 
   }
   function renderTab(tab: WorkbenchTab, visible: boolean): ReactNode {
     switch (tab.kind) {
+      case "conversation-detail": return props.renderConversationDetail?.(tab.view);
       case "chat": return props.renderChat?.(tab);
       case "side-chat": return props.renderSideChat?.(tab, visible && !collapsed);
       case "browser": return <BrowserPanel controller={tab.controller} tabId={tab.id} operating={props.browserOperating}
@@ -419,7 +426,8 @@ function WorkbenchPanelContent(props: WorkbenchPanelProps & { closing: boolean; 
       case "race": return <RacePanel races={props.races ?? []} onOpenConversation={props.onOpenConversation ?? (() => {})} onOpenAcceptance={props.onOpenAcceptance ?? (() => {})} />;
       case "background": return <BackgroundTasksPanel conversationId={props.conversationId ?? null} shells={props.backgroundShells ?? []} />;
       case "files": return <FileBrowserView />;
-      case "start": return <StartView gitAvailable={props.gitAvailable} onAction={action => props.onStartAction(tab, action)} onBrowse={url => props.onStartBrowse(tab, url)} pending={props.pendingStartTabIds?.includes(tab.id)} error={props.startErrors?.[tab.id]} />;
+      case "start": return <StartView gitAvailable={props.gitAvailable} conversationWorkbenchTabs={props.conversationWorkbenchTabs} emptyConversation={props.emptyConversation}
+        onAction={action => props.onStartAction(tab, action)} onBrowse={url => props.onStartBrowse(tab, url)} pending={props.pendingStartTabIds?.includes(tab.id)} error={props.startErrors?.[tab.id]} />;
       case "terminal": return <TerminalView sessionId={tab.sessionId} visible={visible && !collapsed} />;
       case "agent": return <AgentPane agent={tab.agent} agents={props.agents} messages={props.getAgentMessages?.(tab.agent.id)} messageStore={props.messageStore}
         conversationId={props.conversationId} toolDisplay={props.toolDisplay} toolFold={props.toolFold} visible={visible} ensureMessages={props.ensureAgentMessages} onControl={props.onControlAgent}

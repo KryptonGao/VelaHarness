@@ -2,9 +2,10 @@ import { useState, type ReactNode } from "react";
 import { normalizeBrowserAddress } from "../../browser-policy";
 import { tr } from "../locale";
 import { Icon } from "./icons";
+import { conversationDetailKeys, conversationDetails, isEmptyConversationView, type ConversationDetail } from "./conversation-detail";
 
 /** 起始页入口;宿主据此打开对应标签页。 */
-export type StartTabAction = "chat" | "side-chat" | "changes" | "terminal" | "files" | "background";
+export type StartTabAction = "chat" | "side-chat" | "changes" | "terminal" | "files" | "background" | ConversationDetail;
 
 function StartOption({
   icon,
@@ -40,12 +41,16 @@ function StartOption({
  */
 export function StartView({
   gitAvailable,
+  conversationWorkbenchTabs = false,
+  emptyConversation = false,
   onAction,
   onBrowse,
   pending = false,
   error = null,
 }: {
   gitAvailable: boolean;
+  conversationWorkbenchTabs?: boolean;
+  emptyConversation?: boolean;
   onAction: (action: StartTabAction) => void;
   /** 地址栏回车:宿主把当前起始标签换成打开该网址的浏览器标签。 */
   onBrowse: (url: string) => void;
@@ -82,6 +87,16 @@ export function StartView({
         </form>
         {invalid ? <p className="start-error" role="alert">{tr("请输入有效的 HTTP 或 HTTPS 网址", "Enter a valid HTTP or HTTPS address")}</p> : null}
         {error ? <p className="start-error" role="alert">{error}</p> : null}
+        {conversationWorkbenchTabs && <fieldset className="start-options start-conversation-options" disabled={pending}
+          aria-label={tr("会话视图", "Conversation view")}>
+          {conversationDetailKeys.map(key => {
+            const detail = conversationDetails[key];
+            const disabled = isEmptyConversationView(key, emptyConversation);
+            return <StartOption key={key} icon={<Icon name={detail.icon} size={18} />} title={detail.label()}
+              disabled={disabled} hint={disabled ? tr("发送第一条消息后可用", "Available after the first message") : undefined}
+              onSelect={() => onAction(key)} />;
+          })}
+        </fieldset>}
         <fieldset className="start-options" disabled={pending} aria-busy={pending}>
           <StartOption
             icon={<Icon name="chat" size={18} />}

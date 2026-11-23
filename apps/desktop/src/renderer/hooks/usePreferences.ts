@@ -97,6 +97,7 @@ const thinkingSummaryKey = "vela.thinkingSummary";
 const thinkingSummaryStyleKey = "vela.thinkingSummaryStyle";
 const thinkingSummaryModelKey = "vela.thinkingSummaryModel";
 const inputPredictionKey = "vela.inputPrediction";
+const conversationWorkbenchTabsKey = "vela.conversationWorkbenchTabs";
 const workbenchSplitKey = "vela.workbenchSplit";
 const elasticScrollKey = "vela.elasticScroll";
 const inputPredictionModelKey = "vela.inputPredictionModel";
@@ -312,6 +313,7 @@ export function usePreferences() {
   const [thinkingSummaryModel, setThinkingSummaryModel] = useState<ThinkingSummaryModel | null>(() =>
     readStoredJson(thinkingSummaryModelKey, isThinkingSummaryModel, null),
   );
+  const [conversationWorkbenchTabs, setConversationWorkbenchTabs] = useState(() => readStoredFlag(conversationWorkbenchTabsKey, false));
   /** 工作面板分屏（实验性）：默认关闭，关闭时工作面板只有一个窗口，也不能拖动标签。 */
   const [workbenchSplit, setWorkbenchSplit] = useState(() => readStoredFlag(workbenchSplitKey, false));
   /** 弹性滚动（实验性）：默认关闭。开启后 diff 等内层滚动区滚到头可以越界拉出皮筋，并在满足条件时带动外层容器；关闭时内层滚动永远不会带动外层。 */
@@ -513,6 +515,7 @@ export function usePreferences() {
   useEffect(() => writeStored(thinkingSummaryStyleKey, thinkingSummaryStyle), [thinkingSummaryStyle]);
   useEffect(() => writeStored(thinkingSummaryModelKey, JSON.stringify(thinkingSummaryModel)), [thinkingSummaryModel]);
   useEffect(() => writeStored(inputPredictionKey, String(inputPrediction)), [inputPrediction]);
+  useEffect(() => writeStored(conversationWorkbenchTabsKey, String(conversationWorkbenchTabs)), [conversationWorkbenchTabs]);
   useEffect(() => writeStored(workbenchSplitKey, String(workbenchSplit)), [workbenchSplit]);
   useEffect(() => {
     document.documentElement.dataset.elasticScroll = String(elasticScroll);
@@ -671,6 +674,8 @@ export function usePreferences() {
     thinkingSummaryModel,
     inputPrediction,
     inputPredictionModel,
+    conversationWorkbenchTabs,
+    setConversationWorkbenchTabs,
     workbenchSplit,
     setWorkbenchSplit,
     elasticScroll,

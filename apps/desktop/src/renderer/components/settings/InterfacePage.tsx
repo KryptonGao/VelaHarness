@@ -148,6 +148,9 @@ export function InterfacePage({
           <Segmented label={text.previewBreadcrumbMode} value={previewBreadcrumbMode}
             options={previewBreadcrumbModes.map(id => ({ id, label: previewBreadcrumbModeLabels[id] }))} onChange={setPreviewBreadcrumbMode} />
         </SettingsBlock>
+        <SettingsBlock id="conversation-workbench-tabs" title={text.conversationWorkbenchTabs} hint={text.conversationWorkbenchTabsHint} layout="inline">
+          <SettingsSwitch label={text.conversationWorkbenchTabs} checked={preferences.conversationWorkbenchTabs} onChange={preferences.setConversationWorkbenchTabs} />
+        </SettingsBlock>
         <SettingsBlock id="workbench-split" title={text.workbenchSplit} hint={text.workbenchSplitHint} layout="inline">
           <SettingsSwitch label={text.workbenchSplit} checked={preferences.workbenchSplit} onChange={preferences.setWorkbenchSplit} />
         </SettingsBlock>
