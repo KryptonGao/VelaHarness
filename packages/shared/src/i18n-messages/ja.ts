@@ -413,6 +413,8 @@ const messages: Record<string, string> = {
   "明体西文当前使用：Anthropic Serif": "セリフ体の欧文は現在 Anthropic Serif を使用中",
   "明体西文当前使用：Georgia（未检测到 Anthropic Serif，安装后重启 Vela 即可使用）": "セリフ体の欧文は現在 Georgia を使用中（Anthropic Serif が見つかりません。インストール後に Vela を再起動してください）",
   "文件图标": "ファイルアイコン",
+  "统一图标": "アイコンの統一",
+  "把界面里的图标换成同一套线条风格（MingCute）。关闭时使用原版图标。": "画面のアイコンを MingCute のラインアイコンに統一します。オフにすると元のアイコンを使用します。",
   "图标主题": "アイコンテーマ",
   "语言": "言語",
   "中文": "中国語",
