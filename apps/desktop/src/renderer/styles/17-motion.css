@@ -644,14 +644,14 @@ html[data-thinking-fade="false"][data-thinking-pop="false"] .fade-thinking .md-f
 .context-popover-close:hover { background: var(--bg-surface-subtle); color: var(--text-primary); }
 /* 此模式下工作面板保持并排，卡片的锚点始终是实际可见的对话区域。 */
 @media (max-width: 1100px) {
-  .vela-window.layout-floating .workbench-panel {
+  .vela-window:is(.layout-floating, .borderless-interface:where(.right-collapsed)) .workbench-panel {
     position: relative;
     inset: auto;
     z-index: auto;
     --workbench-content-width: min(var(--workbench-width, 640px), max(0px, calc(100vw - var(--sidebar-left-width) - 360px)));
     box-shadow: inset 1px 0 0 var(--border-strong);
   }
-  .vela-window.layout-floating.left-collapsed .workbench-panel {
+  .vela-window:is(.layout-floating, .borderless-interface:where(.right-collapsed)).left-collapsed .workbench-panel {
     --workbench-content-width: min(var(--workbench-width, 640px), max(0px, calc(100vw - 360px)));
   }
 }

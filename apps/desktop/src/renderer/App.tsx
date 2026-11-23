@@ -70,6 +70,7 @@ import { useNavLayout } from "./hooks/useNavLayout";
 import { useSession } from "./hooks/useSession";
 import { indexAgentHistory, mergeAgentRoster } from "./agent-roster";
 import { useSidebarResize } from "./hooks/useSidebarResize";
+import { observeTrafficLightMaterial } from "./traffic-light-material";
 import { useAcceptance } from "./hooks/useAcceptance";
 import type { AcceptanceRequest } from "./components/acceptance";
 import { useTurnReview } from "./hooks/useTurnReview";
@@ -239,7 +240,8 @@ export function App() {
     if (floatingInfo) setEnvironmentCollapsed(value => !value);
     else setRightCollapsed(value => !value);
   }, [floatingInfo]);
-  const resize = useSidebarResize(!leftCollapsed, contextSidebarOpen, floatingInfo);
+  const borderlessInterface = preferences.conversationWorkbenchTabs && preferences.borderlessInterface;
+  const resize = useSidebarResize(!leftCollapsed, contextSidebarOpen, floatingInfo || (borderlessInterface && !contextSidebarOpen));
   const [settingsOpen, setSettingsOpen] = useState(false);
   // In rail layout each category supplies the sidebar next to the icon rail.
   const railMode = useNavLayout() === "rail";
@@ -249,6 +251,8 @@ export function App() {
   const navCategory: NavCategory = settingsOpen ? "settings" : scheduledTasksOpen ? "scheduledTasks" : recipesOpen ? "recipes"
     : agentInboxOpen ? "agentInbox" : prInboxOpen ? "prInbox" : "home";
   const pageResize = railMode ? resize : undefined;
+  const materialRef = useCallback((stage: HTMLDivElement | null) =>
+    observeTrafficLightMaterial(stage, navCategory), [navCategory]);
   const navActions = useRef({ back: () => {}, forward: () => {} });
   const menuActionHandler = useRef<(action: MenuAction) => void>(() => {});
   const workspaceKey = project.workspace?.current ?? "";
@@ -827,7 +831,9 @@ export function App() {
   }, [workbenchTabs, dispatchPlanDocument, workspaceKey, changesState, conversationKey, dismissTurnReview, dismissAcceptance, browser.close]);
 
   const workbenchOpen = workbenchTabs.length > 0;
-  const fullscreen = workbenchView !== "split" && workbenchOpen && !workbenchCollapsed && !pageOpen && overviewWorkspace === null;
+  const workbenchVisible = workbenchOpen && !workbenchCollapsed;
+  const fullscreen = workbenchView !== "split" && workbenchVisible && !pageOpen && overviewWorkspace === null;
+  const splitControls = borderlessInterface && !fullscreen && (workbenchVisible || contextSidebarOpen);
   const floatingChat = fullscreen && workbenchView === "panel";
   useEffect(() => {
     if (!workbenchOpen || workbenchCollapsed) setWorkbenchView("split");
@@ -1126,7 +1132,7 @@ export function App() {
             </div>
           </ScreenPresence>
           <ScreenPresence present={onboardingComplete} className="app-screen-main">
-            <div className={`vela-window platform-${platform}${railMode ? " nav-rail-layout" : ""}${fullscreen ? " workbench-fullscreen" : ""}${railAway ? " rail-away" : ""}${leftCollapsed ? " left-collapsed" : ""}${!contextSidebarOpen ? " right-collapsed" : ""}${floatingInfo ? " layout-floating" : ""}`}>
+            <div className={`vela-window platform-${platform}${railMode ? " nav-rail-layout" : ""}${fullscreen ? " workbench-fullscreen" : ""}${railAway ? " rail-away" : ""}${leftCollapsed ? " left-collapsed" : ""}${!contextSidebarOpen ? " right-collapsed" : ""}${floatingInfo ? " layout-floating" : ""}${borderlessInterface ? " borderless-interface" : ""}`}>
               {railMode ? <NavRail active={navCategory} modelProvider={session.state?.session.modelProvider} platform={platform} agentInboxBadge={agentInbox.badge} onSelect={selectNavCategory} /> : null}
               <Sidebar
                 prInboxOpen={prInboxOpen}
@@ -1164,7 +1170,7 @@ export function App() {
                 onArchiveConversation={(id) => void session.archive(id)}
                 onRenameConversation={openRenameConversation}
               />
-              <div className="main-stage">
+              <div className="main-stage" ref={borderlessInterface && platform === "darwin" ? materialRef : undefined} data-split-controls={splitControls || undefined}>
                 <FilePreviewProvider
                   onOpenFile={onOpenFile}
                   replaceTabId={filePreviewOpenMode === "current-tab" && activeWorkbenchTab?.kind === "file" ? activeWorkbenchTab.path : null}
@@ -1247,6 +1253,7 @@ export function App() {
                         />
                       </AgentWorkspaceProvider>
                       <WorkbenchPanel
+                        borderless={borderlessInterface}
                         layoutKey={workspaceKey}
                         fullscreen={fullscreen}
                         showingChat={fullscreen && workbenchView === "chat"}
@@ -1335,7 +1342,7 @@ export function App() {
                         onOpenChanges={openAllChanges}
                       /> : null}
                     </PlanDocumentProvider>
-                    {!fullscreen && <PanelLayoutActions platform={platform} workbenchOpen={workbenchTabs.length > 0 && !workbenchCollapsed}
+                    {!fullscreen && <PanelLayoutActions platform={platform} workbenchOpen={workbenchVisible}
                       onToggleWorkbench={toggleWorkbench}
                       contextOpen={contextSidebarOpen} onToggleContext={!floatingInfo && !conversationEmpty ? toggleInfo : undefined} />}
                   </Presence>

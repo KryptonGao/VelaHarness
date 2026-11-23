@@ -17,7 +17,7 @@
 }
 @media (max-width: 1100px) {
   .workbench-clip { display: contents; }
-  .vela-window.layout-floating .workbench-clip { display: flex; }
+  .vela-window:is(.layout-floating, .borderless-interface:where(.right-collapsed)) .workbench-clip { display: flex; }
 }
 
 .workbench-panel {
@@ -67,16 +67,23 @@
   -webkit-app-region: drag;
 }
 .workbench-tablist {
+  --tab-max-width: 220px;
+  --tab-gap: 4px;
   flex: 1;
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--tab-gap);
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-width: none;
 }
 .workbench-tablist::-webkit-scrollbar { display: none; }
+/* Keep New tab next to the last tab and the panel controls at the window edge. */
+.borderless-interface .main-stage[data-split-controls] .workbench-tablist {
+  max-width: calc(var(--workbench-tab-count) * (var(--tab-max-width) + var(--tab-gap)) - var(--tab-gap));
+}
+.borderless-interface .main-stage[data-split-controls] .workbench-new-tab { margin-right: auto; }
 /*
  * 标签页等宽:宽度由 WorkbenchPanel 按数量算好、写成内联 width(夹在 72–220px),
  * 标签变多就一起变窄;收到 72px 下限就不再缩,剩下的交给 .workbench-tablist 横向滚动 ——
@@ -88,7 +95,7 @@
 .workbench-tab {
   flex: none;
   min-width: 72px;
-  max-width: 220px;
+  max-width: var(--tab-max-width);
   height: 28px;
   display: inline-flex;
   align-items: center;
@@ -794,6 +801,11 @@
   cursor: grab;
   user-select: none;
   -webkit-app-region: no-drag;
+}
+.floating-chat-header,
+.floating-chat-header::before {
+  border-top-left-radius: inherit;
+  border-top-right-radius: inherit;
 }
 .floating-chat-header:active { cursor: grabbing; }
 .floating-chat-header .chat-active-title { flex: 1; max-width: none; font-size: calc(14px * var(--ui-scale)); }

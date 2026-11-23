@@ -170,7 +170,7 @@ import {
   type WorkspaceState,
   type WorkspaceUpdateInput,
 } from "@vela/shared";
-import { contextBridge, ipcRenderer, webUtils, type IpcRendererEvent } from "electron";
+import { contextBridge, ipcRenderer, webFrame, webUtils, type IpcRendererEvent } from "electron";
 import { isStreamEvent } from "./stream-event";
 
 const api: VelaApi = {
@@ -402,6 +402,7 @@ const api: VelaApi = {
     shouldAnnounce: () => ipcRenderer.invoke(ReleaseNotesIpc.shouldAnnounce),
   },
   platform: process.platform,
+  getZoomFactor: () => webFrame.getZoomFactor(),
   development: ipcRenderer.sendSync(IpcChannel.appIsDevelopment) ? {
     syncProductionConversations: () => ipcRenderer.invoke(IpcChannel.appSyncProductionConversations) as Promise<ConversationSyncResult>,
     previewProductionSync: categories => ipcRenderer.invoke(IpcChannel.appSyncPreview, categories),

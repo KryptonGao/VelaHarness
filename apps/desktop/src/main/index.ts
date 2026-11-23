@@ -20,6 +20,7 @@ import { fileURLToPath } from "node:url";
 import { ConversationExportHost } from "./conversation-export-host";
 import { getApplicationLocale, setApplicationLocale, setDiagnosticsMenuActions, setMenuAccelerators, setUpdateMenuAction } from "./menu";
 import { DEFAULT_WINDOW_SIZE } from "./window-size";
+import { trafficLightPosition } from "../traffic-light-position";
 import { LogService } from "./log-service";
 import { installCrashHandlers, LogHost, systemInfo } from "./log-host";
 import { StorageHost } from "./storage-host";
@@ -147,7 +148,7 @@ let uiSandboxHost: UiSandboxHost | null = null;
  */
 const windowChrome: BrowserWindowConstructorOptions =
   process.platform === "darwin"
-    ? { vibrancy: "sidebar", visualEffectState: "active", backgroundColor: "#00000000" }
+    ? { vibrancy: "sidebar", visualEffectState: "active", backgroundColor: "#00000000", titleBarOverlay: true }
     : { backgroundColor: nativeTheme.shouldUseDarkColors ? "#1c1c1c" : "#ffffff" };
 
 function createWindow(): BrowserWindow {
@@ -160,7 +161,7 @@ function createWindow(): BrowserWindow {
     // Windows/Linux 的窗口图标;macOS 用 Dock 图标,见 whenReady。
     icon: appIconPath,
     titleBarStyle: "hiddenInset",
-    trafficLightPosition: { x: 16, y: 18 },
+    trafficLightPosition,
     ...windowChrome,
     webPreferences: {
       preload: preloadPath,

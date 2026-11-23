@@ -151,6 +151,11 @@ export function InterfacePage({
         <SettingsBlock id="conversation-workbench-tabs" title={text.conversationWorkbenchTabs} hint={text.conversationWorkbenchTabsHint} layout="inline">
           <SettingsSwitch label={text.conversationWorkbenchTabs} checked={preferences.conversationWorkbenchTabs} onChange={preferences.setConversationWorkbenchTabs} />
         </SettingsBlock>
+        {preferences.conversationWorkbenchTabs && (
+          <SettingsBlock id="borderless-interface" title={text.borderlessInterface} hint={text.borderlessInterfaceHint} layout="inline">
+            <SettingsSwitch label={text.borderlessInterface} checked={preferences.borderlessInterface} onChange={preferences.setBorderlessInterface} />
+          </SettingsBlock>
+        )}
         <SettingsBlock id="workbench-split" title={text.workbenchSplit} hint={text.workbenchSplitHint} layout="inline">
           <SettingsSwitch label={text.workbenchSplit} checked={preferences.workbenchSplit} onChange={preferences.setWorkbenchSplit} />
         </SettingsBlock>

@@ -103,6 +103,7 @@ interface WorkbenchPanelProps {
   pendingStartTabIds?: readonly string[];
   startErrors?: Record<string, string>;
   conversationWorkbenchTabs?: boolean;
+  borderless?: boolean;
   emptyConversation?: boolean;
   renderConversationDetail?: (view: ConversationDetail) => ReactNode;
   renderChat?: (tab: Extract<WorkbenchTab, { kind: "chat" }>) => ReactNode;
@@ -487,7 +488,7 @@ function WorkbenchPanelContent(props: WorkbenchPanelProps & { closing: boolean; 
         const r = paneRect(owner.id), visible = !showingChat && owner.selected === tab.id && (!layout.maximized || layout.maximized === owner.id);
         return <WorkbenchTabPanel key={tab.id} id={tabPanelId(tab)} role="tabpanel" aria-labelledby={tabButtonId(tab)} hidden={!visible}
           data-top-row={r.y < 1} data-right-edge={r.x + r.width >= size.width - 1} data-bottom-row={r.y + r.height >= size.height - 1}
-          data-workbench-content-pane={owner.id} style={rectStyle({ ...r, y: r.y + headerHeight, height: Math.max(0, r.height - headerHeight) })}
+          data-workbench-content-pane={owner.id} style={rectStyle(props.borderless ? r : { ...r, y: r.y + headerHeight, height: Math.max(0, r.height - headerHeight) })}
           onPointerDownCapture={() => focusPane(owner.id)} onFocusCapture={() => focusPane(owner.id)}>{renderTab(tab, visible && !closing)}</WorkbenchTabPanel>;
       })}
       {!layout.maximized && geometry.dividers.map(divider => <div key={divider.id} className={`workbench-split-handle axis-${divider.axis}`} role="separator" tabIndex={0}

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { modKeyLabel } from "../platform";
 import { isShortcutRecording, useShortcutOverrides } from "../shortcuts";
@@ -136,7 +136,8 @@ export function WorkbenchTabStrip({ tabs, splitEnabled, draggingId, selected, sp
         <Icon name="chevron-right" size={12} />
       </button>
     </>}
-    <nav className="workbench-tablist" role="tablist" ref={listRef} aria-label={tr("工作面板标签", "Workbench tabs")}>
+    <nav className="workbench-tablist" role="tablist" ref={listRef} aria-label={tr("工作面板标签", "Workbench tabs")}
+      style={{ "--workbench-tab-count": tabs.length } as CSSProperties}>
       {tabs.map(tab => <button key={tab.id} ref={node => { if (node) buttons.current.set(tab.id, node); else buttons.current.delete(tab.id); }}
         id={tabButtonId(tab)} className="workbench-tab" data-kind={tab.kind} type="button" role="tab" draggable={false} data-dragging={tab.id === draggingId || undefined}
         aria-selected={!showingChat && tab.id === selected} aria-controls={tabPanelId(tab)} tabIndex={tab.id === selected ? 0 : -1}

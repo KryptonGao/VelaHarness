@@ -3209,6 +3209,7 @@ export interface VelaApi extends McpApi, PluginApi, HooksApi {
   releaseNotes?: ReleaseNotesApi;
   browser?: import("./browser").BrowserPanelApi;
   platform: string;
+  getZoomFactor(): number;
   /** Present in the desktop app; browser-only previews use localStorage. */
   uiStorage?: {
     getItem(key: string): string | null | undefined;

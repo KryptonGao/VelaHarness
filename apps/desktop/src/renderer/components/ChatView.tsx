@@ -840,7 +840,8 @@ export function ChatView({
     syncJumpToLatest();
     setActiveTurnIndex(index);
 
-    const targetTop = Math.max(0, target.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop - 20);
+    const topInset = parseFloat(getComputedStyle(scroller).paddingTop);
+    const targetTop = Math.max(0, target.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop - topInset);
     if (Math.abs(scroller.scrollTop - targetTop) < 1) return;
 
     const reduced = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -862,7 +863,7 @@ export function ChatView({
       cleanup();
       // 跨过 .turn-deferred（content-visibility: auto）时，落点附近高度可能展开，微调到准确位置。
       if (target.isConnected) {
-        const delta = target.getBoundingClientRect().top - scroller.getBoundingClientRect().top - 20;
+        const delta = target.getBoundingClientRect().top - scroller.getBoundingClientRect().top - topInset;
         if (Math.abs(delta) > 24) {
           scroller.scrollTop = Math.max(0, scroller.scrollTop + delta);
         }

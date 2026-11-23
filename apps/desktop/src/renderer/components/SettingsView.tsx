@@ -94,8 +94,9 @@ export function SettingsView({
   );
 
   const entries = useMemo(
-    () => resolveSettingsEntries(copy).filter((entry) => pages.includes(entry.page)),
-    [copy, pages],
+    () => resolveSettingsEntries(copy).filter((entry) => pages.includes(entry.page)
+      && (entry.id !== "borderless-interface" || preferences.conversationWorkbenchTabs)),
+    [copy, pages, preferences.conversationWorkbenchTabs],
   );
   const results = useMemo(() => searchSettings(query, entries), [query, entries]);
   useSettingsJump(contentRef, jump, page);
@@ -126,10 +127,13 @@ export function SettingsView({
   }
 
   const pageMeta = copy.pages[page];
+  const borderless = preferences.conversationWorkbenchTabs && preferences.borderlessInterface;
 
   return (
     <main className="page-view settings-view">
-      <header className="page-header settings-header" />
+      <header className="page-header settings-header">
+        {borderless && <h2 className="page-topbar-title">{pageMeta.label}</h2>}
+      </header>
       <PageColumns className="settings-body" resize={sidebarResize} navigation={
         <SettingsNav
           copy={copy}
@@ -144,7 +148,7 @@ export function SettingsView({
         />
       }>
         <div className={`page-content settings-content autohide-scrollbar${page === "models" ? " fill" : ""}`} ref={contentRef}>
-          {pagesWithOwnHeader.has(page) ? null : (
+          {borderless || pagesWithOwnHeader.has(page) ? null : (
             <header className="settings-page-header">
               <h2>{pageMeta.label}</h2>
             </header>

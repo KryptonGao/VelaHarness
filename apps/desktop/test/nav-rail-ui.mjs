@@ -20,6 +20,7 @@ if (!process.versions.electron) {
         import { createRoot } from 'react-dom/client';
         import { Sidebar } from './apps/desktop/src/renderer/components/Sidebar';
         import { NavRail } from './apps/desktop/src/renderer/components/NavRail';
+        import { observeTrafficLightMaterial } from './apps/desktop/src/renderer/traffic-light-material';
         import { AppLocaleProvider, setActiveLocale } from './apps/desktop/src/renderer/locale';
         import { installFocusModality } from './apps/desktop/src/renderer/focus-modality';
         installFocusModality();
@@ -32,18 +33,20 @@ if (!process.versions.electron) {
         function Fixture() {
           const [category, setCategory] = useState('home');
           const away = category !== 'home';
+          const [borderless, setBorderless] = useState(false);
+          window.setBorderless = setBorderless;
           const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
           const collapsed = away || sidebarCollapsed;
           window.setSidebarCollapsed = setSidebarCollapsed;
           window.setCategory = setCategory;
-          return <AppLocaleProvider locale="zh-CN"><div className={'vela-window platform-darwin nav-rail-layout right-collapsed' + (away ? ' rail-away' : '') + (sidebarCollapsed ? ' left-collapsed' : '')} style={{height:'100vh'}}>
+          return <AppLocaleProvider locale="zh-CN"><div className={'vela-window platform-darwin nav-rail-layout right-collapsed' + (away ? ' rail-away' : '') + (sidebarCollapsed ? ' left-collapsed' : '') + (borderless ? ' borderless-interface' : '')} style={{height:'100vh'}}>
             <NavRail active={category} platform="darwin" agentInboxBadge={3} onSelect={next => { window.selected.push(next); setCategory(next); }} />
             <Sidebar railMode collapsed={collapsed} platform="darwin" resize={{widths:{left:248,right:300,workbench:500},startResize(){},nudge(){},reset(){}}}
               conversations={conversations} activeConversationId="a0" settingsOpen={false} settingsLabel="设置"
               onToggle={()=>setSidebarCollapsed(value => !value)} onOpenSettings={()=>{}} onNewChat={()=>{ window.newChatCalls = (window.newChatCalls || 0) + 1; }} onSwitchConversation={()=>{}}
               onArchiveConversation={()=>{}} onOpenPrInbox={()=>{}} prInboxOpen={false} onOpenAgentInbox={()=>{}} agentInboxOpen={false} agentInboxBadge={3}
               onOpenRecipes={()=>{}} recipesOpen={false} onOpenScheduledTasks={()=>{}} scheduledTasksOpen={false}/>
-            <div className="main-stage"><div className="main-stage-pane is-hidden is-overlay" inert><div id="ghost-header" style={{ WebkitAppRegion: "drag" }} /></div><div className="main-stage-pane"><main className="main-chat-view" style={{flex:1}}><div className="main-chat-header"><span className="chat-active-title" id="stage-title">{category}</span></div></main></div></div>
+            <div className="main-stage" ref={borderless ? observeTrafficLightMaterial : undefined}><div className="main-stage-pane is-hidden is-overlay" inert><div id="ghost-header" style={{ WebkitAppRegion: "drag" }} /></div><div className="main-stage-pane"><main className="main-chat-view" style={{flex:1}}><div className="main-chat-header"><span className="chat-active-title" id="stage-title">{category}</span></div></main></div></div>
           </div></AppLocaleProvider>;
         }
         setActiveLocale('zh-CN');
@@ -70,7 +73,8 @@ if (!process.versions.electron) {
   const { app, BrowserWindow } = await import("electron");
   app.setPath("userData", join(process.env.VELA_NAV_RAIL_TEMP, "profile"));
   void app.whenReady().then(async () => {
-    const win = new BrowserWindow({ show: false, width: 1000, height: 640, webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false, backgroundThrottling: false } });
+    const nativeControls = process.platform === "darwin" ? { titleBarStyle: "hiddenInset", trafficLightPosition: { x: 16, y: 18 }, titleBarOverlay: true } : {};
+    const win = new BrowserWindow({ ...nativeControls, show: false, width: 1000, height: 640, webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false, backgroundThrottling: false } });
     try {
       await win.loadFile(join(process.env.VELA_NAV_RAIL_TEMP, "index.html"));
       const evaluate = code => win.webContents.executeJavaScript(code);
@@ -136,6 +140,42 @@ if (!process.versions.electron) {
       const expectedAlphas = [1, 0.6, 0.7, 0.5, 0, 0.2, 0.5, 0, 1, 1];
       expectedAlphas.forEach((expected, i) => assert.ok(Math.abs(glassAlphas[i] - expected) <= 1 / 255,
         `Expected glass alpha ${expected}, got ${glassAlphas[i]}`));
+      if (process.platform === "darwin") {
+        await evaluate(`document.documentElement.classList.add('platform-darwin');
+          document.documentElement.style.setProperty('--glass-opacity', '0.4'); window.setBorderless(true)`);
+        const mode = "document.querySelector('.vela-window').dataset.trafficLightMaterial";
+        // Black/white backdrops measure effective alpha after all CSS layers are composited.
+        const backdropResponse = async () => {
+          const sample = async color => {
+            await evaluate(`document.body.style.background = '${color}'; new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))`);
+            const image = await win.webContents.capturePage();
+            const bitmap = image.toBitmap({ scaleFactor: 1 });
+            return [22, 55, 65].map(x => bitmap[(24 * image.getSize().width + x) * 4]);
+          };
+          const black = await sample('black'), white = await sample('white');
+          return white.map((v, i) => v - black[i]);
+        };
+        await until(`${mode} === 'list'`);
+        const divider = "getComputedStyle(document.querySelector('.nav-rail'), '::after')";
+        assert.deepEqual(await evaluate(`[${divider}.width, ${divider}.left, ${divider}.top, ${divider}.pointerEvents]`), ['1px', '55px', '52px', 'none'], 'Hairline sits in the gutter below the titlebar');
+        // 40% base glass + the list's 45% tint leaves 33% backdrop contribution.
+        assert.ok((await backdropResponse()).every(d => Math.abs(d - 255 * 0.33) < 3), 'Rail, gutter and list use the higher translucent alpha');
+        await evaluate('window.setSidebarCollapsed(true)');
+        await until(`${mode} === 'paper' && document.querySelector('.main-stage').offsetLeft === 58`);
+        assert.equal(await evaluate(`${divider}.content`), 'none', 'No list divider when the sidebar is collapsed');
+        assert.deepEqual(await backdropResponse(), [0, 0, 0], 'No backdrop shows through when the lights cross onto paper');
+        win.webContents.setZoomFactor(2);
+        await until(`${mode} === undefined && innerWidth === 500`);
+        assert.ok((await backdropResponse())[0] > 0, 'Glass returns when the lights fit inside the rail');
+        win.webContents.setZoomFactor(1);
+        await until(`${mode} === 'paper'`);
+        await evaluate('window.setSidebarCollapsed(false)');
+        await until(`${mode} === 'list'`);
+        await evaluate('window.setBorderless(false)');
+        // Layout rounds to 1/64px before the animated glass/shadow inset reaches its endpoint.
+        await until(`${mode} === undefined && parseFloat(getComputedStyle(document.querySelector('.vela-window')).getPropertyValue('--nav-open')) === document.querySelector('.sidebar-left').offsetWidth`);
+        await evaluate(`document.documentElement.classList.remove('platform-darwin'); document.documentElement.style.removeProperty('--glass-opacity'); document.body.style.removeProperty('background')`);
+      }
       const screenshot = process.env.VELA_NAV_RAIL_SCREENSHOT;
       if (screenshot) writeFileSync(screenshot, (await win.webContents.capturePage()).toPNG());
       // 玻璃只在窗口上画一层，各区域不再各自叠一层半透明。
