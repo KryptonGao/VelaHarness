@@ -43,26 +43,22 @@ export function useSlidingTabIndicator({ activeKey, expand = 6 }: SlidingTabIndi
     const navRect = nav.getBoundingClientRect();
     const rect = button.getBoundingClientRect();
     const pad = expandedRef.current ? expandRef.current : 0;
-    const width = `${(rect.width + pad * 2).toFixed(2)}px`;
-    const transform = `translateX(${(rect.left - navRect.left + nav.scrollLeft - pad).toFixed(2)}px)`;
-    if (animate && !reducedMotion) {
-      indicator.style.width = width;
-      indicator.style.transform = transform;
-      return;
-    }
+    const { width: previousWidth, transform: previousTransform } = indicator.style;
+    indicator.style.width = `${(rect.width + pad * 2).toFixed(2)}px`;
+    indicator.style.transform = `translateX(${(rect.left - navRect.left + nav.scrollLeft - pad).toFixed(2)}px)`;
+    if (animate && previousWidth && !reducedMotion) return;
+
+    // Selecting a bold tab can trigger ResizeObserver after the slide starts.
+    // A second measurement of the same destination should leave that slide running.
+    if (indicator.style.width === previousWidth && indicator.style.transform === previousTransform) return;
     // 首次挂载或窗口/字体/语言变化时直接落位,不让布局抖动被补间放大。
     indicator.style.transition = "none";
-    indicator.style.width = width;
-    indicator.style.transform = transform;
     void indicator.offsetWidth;
     indicator.style.transition = "";
   }, [reducedMotion]);
 
-  const mounted = useRef(false);
   useLayoutEffect(() => {
-    const animate = mounted.current;
-    mounted.current = true;
-    measure(animate);
+    measure(true);
   }, [activeKey, expanded, measure]);
 
   // 文字宽度会随语言/字体变化,用 ResizeObserver 兜住这些没有 activeKey 变化的场景。

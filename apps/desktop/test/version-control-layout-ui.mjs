@@ -168,6 +168,37 @@ if (!process.versions.electron) {
         assert.ok(b.composer.top >= b.scroll.bottom - 1, JSON.stringify(b));
         await screenshot("classic-light");
       });
+      await check("page underline slides through tab size changes and respects reduced motion", async () => {
+        const debuggerApi = win.webContents.debugger;
+        debuggerApi.attach('1.3');
+        try {
+          for (const motion of ['no-preference', 'reduce']) {
+            await debuggerApi.sendCommand('Emulation.setEmulatedMedia', {
+              features: [{ name: 'prefers-reduced-motion', value: motion }],
+            });
+            await nextFrame();
+            for (const key of ['pr', 'history', 'changes']) {
+              const result = await evaluate(`(async () => {
+                const tab = document.querySelector('.vc-subtabs [data-tab-key="${key}"]');
+                const line = document.querySelector('.vc-subtabs .tab-indicator');
+                tab.click();
+                await new Promise(requestAnimationFrame);
+                const transitions = line.getAnimations();
+                await Promise.all(transitions.map(animation => animation.finished));
+                const target = tab.getBoundingClientRect(), actual = line.getBoundingClientRect();
+                return {
+                  slid: transitions.some(animation => animation.transitionProperty === 'transform'),
+                  aligned: Math.abs(actual.left - target.left) < 1 && Math.abs(actual.right - target.right) < 1,
+                };
+              })()`);
+              assert.deepEqual(result, { slid: motion === 'no-preference', aligned: true }, `${motion}: ${key}`);
+            }
+          }
+        } finally {
+          await debuggerApi.sendCommand('Emulation.setEmulatedMedia', { features: [] });
+          debuggerApi.detach();
+        }
+      });
       await check("real layout select preserves draft node, text, filter and selected scope in both directions", async () => {
         await edit('.vc-commit-title', 'feat: preserve live review draft');
         await edit('.vc-commit-body', 'Unsubmitted details survive the optional layout switch.');
