@@ -155,7 +155,7 @@ code,
  * 把叠色提到约 85% 不透明,让外框沉下来,仍保留一点透出的质感。
  */
 :root[data-scheme="dark"] {
-  --glass-fill: rgb(from var(--bg-sidebar-glass) r g b / var(--glass-opacity, 0.85));
+  --focused-glass-fill: rgb(from var(--bg-sidebar-glass) r g b / var(--glass-opacity, 0.85));
 }
 
 /*
@@ -165,31 +165,34 @@ code,
  * 这些回退值要与 glass-opacity.ts 的 defaultGlassOpacity 保持一致。
  */
 :root[data-glass-tint="neutral"][data-scheme="light"] {
-  --glass-fill: rgb(255 255 255 / var(--glass-opacity, 0.6));
+  --focused-glass-fill: rgb(255 255 255 / var(--glass-opacity, 0.6));
 }
 :root[data-glass-tint="neutral"][data-scheme="dark"] {
-  --glass-fill: rgb(0 0 0 / var(--glass-opacity, 0.62));
+  --focused-glass-fill: rgb(0 0 0 / var(--glass-opacity, 0.62));
 }
-/*
- * 窗口失焦时,所有半透明玻璃改为不透明:不再透出桌面,也不随系统失焦变灰。
- * 底色取自各染色方式对应的实色,放在染色规则之后以覆盖它们。
- */
+/* Each tint retains its original solid color for the opaque unfocused mode. */
 :root {
   --glass-solid: color-mix(in srgb, rgb(from var(--bg-sidebar-glass) r g b / 1) 55%, var(--bg-chat));
 }
 :root[data-glass-tint="neutral"][data-scheme="light"] { --glass-solid: #f4f4f4; }
 :root[data-glass-tint="neutral"][data-scheme="dark"] { --glass-solid: #151515; }
 :root[data-glass-tint="none"] {
-  --glass-fill: transparent;
+  /* Start at zero alpha, keeping a surface color for an absolute increase on blur. */
+  --focused-glass-fill: rgb(from var(--glass-solid) r g b / 0);
 }
 /* 深色下「不染色」会透出发灰发亮的系统毛玻璃,与近黑纸面反差过大,所以回退为「明暗」的深色效果。 */
 :root[data-glass-tint="none"][data-scheme="dark"] {
-  --glass-fill: rgb(0 0 0 / var(--glass-opacity, 0.62));
+  --focused-glass-fill: rgb(0 0 0 / var(--glass-opacity, 0.62));
   --glass-solid: #151515;
 }
-/* 属性数量要不少于上面的明暗染色规则,否则失焦时压不过它们。 */
-:root[data-window-focused="false"][data-glass-tint][data-scheme] {
+:root[data-window-focused="false"]:not([data-unfocused-glass="unchanged"]) {
   --glass-fill: var(--glass-solid);
+}
+:root[data-window-focused="false"][data-unfocused-glass="relative"] {
+  --glass-fill: rgb(from var(--focused-glass-fill) r g b / min(1, alpha * (1 + var(--unfocused-glass-increase))));
+}
+:root[data-window-focused="false"][data-unfocused-glass="absolute"] {
+  --glass-fill: rgb(from var(--focused-glass-fill) r g b / min(1, alpha + var(--unfocused-glass-increase)));
 }
 
 .sidebar-left,

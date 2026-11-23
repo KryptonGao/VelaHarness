@@ -108,6 +108,34 @@ if (!process.versions.electron) {
       assert.equal(await evaluate("document.querySelector('.nav-rail').getBoundingClientRect().width"), 52);
       const midline = await evaluate("(() => { const box = document.querySelector('.titlebar-drag-row .icon-btn-ghost').getBoundingClientRect(); return box.top + box.height / 2; })()");
       assert.equal(midline, 26, "Sidebar collapse button sits on the 52px top bar midline");
+      // Sample the actual rail fill as an 8-bit alpha, independent of CSS color serialization.
+      const glassAlphas = await evaluate(`(() => {
+        const root = document.documentElement, shell = document.querySelector('.vela-window');
+        root.classList.add('platform-darwin');
+        root.style.setProperty('--glass-opacity', '0.5');
+        root.style.setProperty('--unfocused-glass-increase', '0.2');
+        const ctx = document.createElement('canvas').getContext('2d', {willReadFrequently: true});
+        const sample = (mode, focused, tint = 'theme') => {
+          Object.assign(root.dataset, {unfocusedGlass: mode, windowFocused: String(focused), glassTint: tint});
+          ctx.clearRect(0, 0, 1, 1);
+          ctx.fillStyle = getComputedStyle(shell).backgroundColor;
+          ctx.fillRect(0, 0, 1, 1);
+          return ctx.getImageData(0, 0, 1, 1).data[3] / 255;
+        };
+        const alphas = [sample('opaque', false), sample('relative', false), sample('absolute', false),
+          sample('absolute', true), sample('relative', false, 'none'), sample('absolute', false, 'none')];
+        alphas.push(sample('unchanged', false), sample('unchanged', false, 'none'));
+        root.style.setProperty('--glass-opacity', '0.95');
+        alphas.push(sample('relative', false), sample('absolute', false));
+        root.classList.remove('platform-darwin');
+        for (const key of ['unfocusedGlass', 'windowFocused', 'glassTint']) delete root.dataset[key];
+        root.style.removeProperty('--glass-opacity');
+        root.style.removeProperty('--unfocused-glass-increase');
+        return alphas;
+      })()`);
+      const expectedAlphas = [1, 0.6, 0.7, 0.5, 0, 0.2, 0.5, 0, 1, 1];
+      expectedAlphas.forEach((expected, i) => assert.ok(Math.abs(glassAlphas[i] - expected) <= 1 / 255,
+        `Expected glass alpha ${expected}, got ${glassAlphas[i]}`));
       const screenshot = process.env.VELA_NAV_RAIL_SCREENSHOT;
       if (screenshot) writeFileSync(screenshot, (await win.webContents.capturePage()).toPNG());
       // 玻璃只在窗口上画一层，各区域不再各自叠一层半透明。

@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { applyGlassOpacity, clampGlassOpacity, glassOpacityRange } from "../../glass-opacity";
+import { clampGlassOpacity, glassOpacityRange } from "../../glass-opacity";
 import { TaskBudgetSlider } from "./TaskBudgetSlider";
 
 /**
@@ -7,23 +7,26 @@ import { TaskBudgetSlider } from "./TaskBudgetSlider";
  * 拖动中只在本地记草稿、直接写根节点的 CSS 变量,松手才提交偏好:
  * 否则每动一档都会重渲染整个界面并写一次本地存储,拖起来会不跟手。
  */
-export function GlassOpacityControl({ label, resetLabel, value, isCustom, disabled, onChange, onReset }: {
+export function GlassOpacityControl({ label, resetLabel, value, isCustom, disabled = false, valueFormat = "{0}%", onPreview, onChange, onReset }: {
   label: string;
   resetLabel: string;
   value: number;
   isCustom: boolean;
-  disabled: boolean;
+  disabled?: boolean;
+  valueFormat?: string;
+  onPreview?: (next: number | null) => void;
   onChange: (next: number) => void;
   onReset: () => void;
 }) {
   const [draft, setDraft] = useState<number | null>(null);
   const draftRef = useRef<number | null>(null);
   const shown = draft ?? value;
+  const format = (amount: number) => valueFormat.replace("{0}", String(amount));
   const change = (next: number) => {
     const clamped = clampGlassOpacity(glassOpacityRange.min + next);
     draftRef.current = clamped;
     setDraft(clamped);
-    applyGlassOpacity(document.documentElement, clamped);
+    onPreview?.(clamped);
   };
   const commit = () => {
     const pending = draftRef.current;
@@ -31,7 +34,7 @@ export function GlassOpacityControl({ label, resetLabel, value, isCustom, disabl
     setDraft(null);
     if (pending !== null && pending !== value) onChange(pending);
     // 没有真正改动时,把拖动中写入的临时值还原成偏好里的当前值。
-    else applyGlassOpacity(document.documentElement, isCustom ? value : null);
+    else onPreview?.(isCustom ? value : null);
   };
   return (
     <div className="tb-limit glass-opacity-control" data-disabled={disabled}>
@@ -41,12 +44,12 @@ export function GlassOpacityControl({ label, resetLabel, value, isCustom, disabl
           {isCustom && !disabled ? (
             <button type="button" className="tb-reset" onClick={onReset}>{resetLabel}</button>
           ) : null}
-          <span className="tb-limit-readout-inline">{shown}%</span>
+          <span className="tb-limit-readout-inline">{format(shown)}</span>
         </span>
       </div>
       <TaskBudgetSlider
         label={label}
-        valueText={`${shown}%`}
+        valueText={format(shown)}
         max={glassOpacityRange.max - glassOpacityRange.min}
         value={shown - glassOpacityRange.min}
         disabled={disabled}
@@ -54,7 +57,7 @@ export function GlassOpacityControl({ label, resetLabel, value, isCustom, disabl
         onChange={change}
         onCommit={commit}
       />
-      <div className="tb-scale" aria-hidden="true"><span>0%</span><span>100%</span></div>
+      <div className="tb-scale" aria-hidden="true"><span>{format(0)}</span><span>{format(100)}</span></div>
     </div>
   );
 }

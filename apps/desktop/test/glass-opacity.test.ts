@@ -6,6 +6,7 @@ import {
   clampGlassOpacity,
   defaultGlassOpacity,
   glassOpacityApplies,
+  isUnfocusedGlassMode,
   parseGlassOpacity,
 } from "../src/renderer/glass-opacity.ts";
 
@@ -23,6 +24,11 @@ test("parseGlassOpacity only accepts stored integers in range", () => {
   assert.equal(parseGlassOpacity(""), null);
   assert.equal(parseGlassOpacity("0.5"), null);
   assert.equal(parseGlassOpacity(null), null);
+});
+
+test("stored unfocused glass modes include the option to keep the focused opacity", () => {
+  for (const mode of ["opaque", "unchanged", "relative", "absolute"]) assert.ok(isUnfocusedGlassMode(mode));
+  assert.equal(isUnfocusedGlassMode("unknown"), false);
 });
 
 test("defaults match the CSS fallbacks in 02-base.css", () => {
@@ -59,6 +65,8 @@ test("glass tint and opacity copy is translated in every locale", () => {
   const keys = [
     "glassTint", "glassTintHint", "glassTintTheme", "glassTintNone",
     "glassOpacity", "glassOpacityHint", "glassOpacityReset",
+    "unfocusedGlass", "unfocusedGlassOpaque", "unfocusedGlassUnchanged", "unfocusedGlassRelative", "unfocusedGlassAbsolute",
+    "unfocusedGlassIncrease", "percentagePoints",
   ] as const;
   for (const locale of ["zh-CN", "zh-TW", "ja", "ko"] as const) {
     const copy = settingsCopy(locale).appearance;

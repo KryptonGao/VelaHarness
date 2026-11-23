@@ -174,7 +174,7 @@ function createWindow(): BrowserWindow {
     },
   });
 
-  // 窗口失焦时玻璃改为不透明:用系统窗口焦点而不是页面的 blur,焦点进入内嵌浏览器时页面也会收到 blur。
+  // Native focus also covers the embedded browser, where the renderer receives a page blur.
   const sendFocus = (focused: boolean) => { if (!win.isDestroyed()) win.webContents.send(IpcChannel.appWindowFocusChange, focused); };
   win.on("focus", () => sendFocus(true));
   win.on("blur", () => sendFocus(false));

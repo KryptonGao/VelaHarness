@@ -36,7 +36,7 @@ import {
   parseFontSize,
   uiFontSizeRange,
 } from "../font-size";
-import { applyGlassOpacity, clampGlassOpacity, parseGlassOpacity } from "../glass-opacity";
+import { applyGlassOpacity, clampGlassOpacity, defaultUnfocusedGlassIncrease, isUnfocusedGlassMode, parseGlassOpacity } from "../glass-opacity";
 
 export type InfoLayout = "sidebar" | "floating" | "cards";
 export type Appearance = "system" | "light" | "dark";
@@ -105,6 +105,8 @@ const composerCapsulesKey = "vela.composerCapsules";
 const glassTintKey = "vela.glassTint";
 const sidebarCardGlassKey = "vela.sidebarCardGlass";
 const glassOpacityKey = "vela.glassOpacity";
+const unfocusedGlassModeKey = "vela.unfocusedGlassMode";
+const unfocusedGlassIncreaseKey = "vela.unfocusedGlassIncrease";
 const sendButtonIconKey = "vela.sendButtonIcon";
 const uiFontLatinKey = "vela.font.ui.latin";
 const uiFontCjkKey = "vela.font.ui.cjk";
@@ -379,6 +381,12 @@ export function usePreferences() {
     (value: number | null) => setGlassOpacityState(value === null ? null : clampGlassOpacity(value)),
     [],
   );
+  const [unfocusedGlassMode, setUnfocusedGlassMode] = useState(() =>
+    readStored(unfocusedGlassModeKey, isUnfocusedGlassMode, "opaque"),
+  );
+  const [unfocusedGlassIncrease, setUnfocusedGlassIncrease] = useState(() =>
+    parseGlassOpacity(readStored(unfocusedGlassIncreaseKey, isString, "")) ?? defaultUnfocusedGlassIncrease,
+  );
   const [sendButtonIcon, setSendButtonIcon] = useState<SendButtonIcon>(() =>
     readStored(sendButtonIconKey, isSendButtonIcon, "paper-plane"),
   );
@@ -592,7 +600,7 @@ export function usePreferences() {
     document.documentElement.dataset.composerCapsules = String(composerCapsules);
     writeStored(composerCapsulesKey, String(composerCapsules));
   }, [composerCapsules]);
-  // 窗口失焦时玻璃改为不透明(见 styles.css 的 data-window-focused)。浏览器预览没有 window.vela,视为一直聚焦。
+  // Use native window focus so moving focus into the embedded browser keeps the active glass.
   useEffect(() => {
     const root = document.documentElement;
     const apply = (focused: boolean) => { root.dataset.windowFocused = String(focused); };
@@ -607,6 +615,14 @@ export function usePreferences() {
     applyGlassOpacity(document.documentElement, glassOpacity);
     writeStored(glassOpacityKey, glassOpacity === null ? "" : String(glassOpacity));
   }, [glassOpacity]);
+  useEffect(() => {
+    document.documentElement.dataset.unfocusedGlass = unfocusedGlassMode;
+    writeStored(unfocusedGlassModeKey, unfocusedGlassMode);
+  }, [unfocusedGlassMode]);
+  useEffect(() => {
+    document.documentElement.style.setProperty("--unfocused-glass-increase", String(unfocusedGlassIncrease / 100));
+    writeStored(unfocusedGlassIncreaseKey, String(unfocusedGlassIncrease));
+  }, [unfocusedGlassIncrease]);
   useEffect(() => {
     document.documentElement.dataset.sidebarCard = sidebarCardGlass ? "glass" : "solid";
     writeStored(sidebarCardGlassKey, String(sidebarCardGlass));
@@ -669,6 +685,10 @@ export function usePreferences() {
     setSidebarCardGlass,
     glassOpacity,
     setGlassOpacity,
+    unfocusedGlassMode,
+    setUnfocusedGlassMode,
+    unfocusedGlassIncrease,
+    setUnfocusedGlassIncrease,
     sendButtonIcon,
     setSendButtonIcon,
     uiFontLatin,

@@ -23,12 +23,18 @@ import { setUnifiedIcons, useUnifiedIcons } from "../../hooks/useUnifiedIcons";
 import { ThemeGroup } from "./ThemeGroup";
 import { FontSizeControl } from "./FontSizeControl";
 import { GlassOpacityControl } from "./GlassOpacityControl";
-import { defaultGlassOpacity, glassOpacityApplies } from "../../glass-opacity";
+import { applyGlassOpacity, defaultGlassOpacity, defaultUnfocusedGlassIncrease, glassOpacityApplies } from "../../glass-opacity";
 import { codeFontSizeRange, uiFontSizeRange } from "../../font-size";
 
 export function AppearancePage({ copy, preferences }: { copy: SettingsCopy; preferences: PreferencesApi }) {
   const { appearance, theme, lightTheme, darkTheme, customThemes, fileIconTheme, setAppearance, setFileIconTheme } = preferences;
   const text = copy.appearance;
+  const unfocusedGlassHints = {
+    opaque: text.unfocusedGlassOpaqueHint,
+    unchanged: text.unfocusedGlassUnchangedHint,
+    relative: text.unfocusedGlassRelativeHint,
+    absolute: text.unfocusedGlassAbsoluteHint,
+  };
   const unifiedIcons = useUnifiedIcons();
   const [editing, setEditing] = useState<{ theme: CustomTheme; isNew: boolean; randomStart?: boolean } | null>(null);
   // 固定为另一种明暗时,点选主题顺带切过去,否则点了看不到效果。
@@ -167,9 +173,35 @@ export function AppearancePage({ copy, preferences }: { copy: SettingsCopy; pref
           value={preferences.glassOpacity ?? defaultGlassOpacity(preferences.glassTint, preferences.scheme)}
           isCustom={preferences.glassOpacity !== null}
           disabled={!glassOpacityApplies(preferences.glassTint, preferences.scheme)}
+          onPreview={(next) => applyGlassOpacity(document.documentElement, next)}
           onChange={preferences.setGlassOpacity}
           onReset={() => preferences.setGlassOpacity(null)}
         />
+      </SettingsBlock>
+      <SettingsBlock id="unfocused-glass" title={text.unfocusedGlass} hint={unfocusedGlassHints[preferences.unfocusedGlassMode]} layout="inline">
+        <Segmented
+          menu
+          label={text.unfocusedGlass}
+          value={preferences.unfocusedGlassMode}
+          options={[
+            { id: "opaque", label: text.unfocusedGlassOpaque },
+            { id: "unchanged", label: text.unfocusedGlassUnchanged },
+            { id: "relative", label: text.unfocusedGlassRelative },
+            { id: "absolute", label: text.unfocusedGlassAbsolute },
+          ]}
+          onChange={preferences.setUnfocusedGlassMode}
+        />
+        {(preferences.unfocusedGlassMode === "relative" || preferences.unfocusedGlassMode === "absolute") && (
+          <GlassOpacityControl
+            label={text.unfocusedGlassIncrease}
+            resetLabel={text.glassOpacityReset}
+            value={preferences.unfocusedGlassIncrease}
+            valueFormat={preferences.unfocusedGlassMode === "absolute" ? text.percentagePoints : undefined}
+            isCustom={preferences.unfocusedGlassIncrease !== defaultUnfocusedGlassIncrease}
+            onChange={preferences.setUnfocusedGlassIncrease}
+            onReset={() => preferences.setUnfocusedGlassIncrease(defaultUnfocusedGlassIncrease)}
+          />
+        )}
       </SettingsBlock>
       <SettingsBlock id="sidebar-card-glass" title={text.sidebarCardGlass} hint={text.sidebarCardGlassHint} layout="inline">
         <Segmented
