@@ -240,19 +240,6 @@
   padding-top: 24px;
   padding-bottom: 36px;
 }
-/* 顶部柔光直接铺在内容纸面（.main-chat-view::after）上，顺着顶角自然延伸到「对话 / 轨迹 / 版本控制」标签栏背后，不在标签栏下沿切出白边。 */
-.main-chat-view:has(> .chat-conversation-pane[data-home-style="atelier"]:not([hidden]))::after {
-  background:
-    radial-gradient(62% 340px at 18% 0%, color-mix(in srgb, var(--accent-blue) 9%, transparent), transparent 72%),
-    radial-gradient(48% 300px at 86% 24px, color-mix(in srgb, var(--violet) 5%, transparent), transparent 74%),
-    var(--bg-chat);
-}
-[data-scheme="dark"] .main-chat-view:has(> .chat-conversation-pane[data-home-style="atelier"]:not([hidden]))::after {
-  background:
-    radial-gradient(62% 340px at 18% 0%, color-mix(in srgb, var(--accent-blue) 14%, transparent), transparent 72%),
-    radial-gradient(48% 300px at 86% 24px, color-mix(in srgb, var(--violet) 8%, transparent), transparent 74%),
-    var(--bg-chat);
-}
 .atelier-backdrop {
   position: absolute;
   inset: 0;
@@ -609,12 +596,6 @@
   overflow-x: hidden;
   padding-top: 22px;
   padding-bottom: 28px;
-}
-/* 顶部径向氛围光直接铺在内容纸面上，自然延伸到顶部标签栏背后。 */
-.main-chat-view:has(> .chat-conversation-pane[data-home-style="deck"]:not([hidden]))::after {
-  background:
-    radial-gradient(48% 360px at 50% 0%, color-mix(in srgb, var(--accent-blue) 12%, transparent), transparent 76%),
-    var(--bg-chat);
 }
 .chat-conversation-pane[data-home-style="deck"]::before {
   content: "";
