@@ -18,21 +18,7 @@ export function Presence({
   keepMounted?: boolean;
 }) {
   const [mounted, setMounted] = useState(present);
-  const [shown, setShown] = useState(present);
-
-  if (present && !mounted) {
-    setMounted(true);
-    setShown(false);
-  }
-
-  useEffect(() => {
-    if (!present) {
-      setShown(false);
-      return;
-    }
-    const frame = requestAnimationFrame(() => setShown(true));
-    return () => cancelAnimationFrame(frame);
-  }, [present]);
+  if (present && !mounted) setMounted(true);
 
   useEffect(() => {
     if (present || !mounted || keepMounted) return;
@@ -48,13 +34,12 @@ export function Presence({
     if (!present && !keepMounted) setMounted(false);
   }
 
-  const hidden = !shown || !present;
   return (
     <div
-      className={[className, hidden ? "is-hidden" : "", !present ? "is-overlay" : ""].filter(Boolean).join(" ")}
+      className={[className, !present && "is-hidden is-overlay"].filter(Boolean).join(" ")}
       onTransitionEnd={onTransitionEnd}
-      inert={keepMounted && !present}
-      aria-hidden={(keepMounted && !present) || undefined}
+      inert={!present}
+      aria-hidden={!present || undefined}
     >
       {children}
     </div>

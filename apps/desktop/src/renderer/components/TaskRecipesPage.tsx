@@ -7,12 +7,14 @@ import { useAutoHideScrollbarsWithin } from '../hooks/useAutoHideScrollbar';
 import '../task-recipes.css';
 import { RecipeGeneratePanel, RecipeSchedulePanel } from './RecipeEnhancements';
 import { RecipeStageEditor, RecipeStagePreview, RecipeRunProgress, RecipeRunOutcome, RecipeComparison, RecipeTeamPanel } from './RecipeWorkflow';
+import type { SidebarResize } from "../hooks/useSidebarResize";
+import { PageColumns, PageNav, PageNavItem } from "./PageNavigation";
 import { Icon } from "./icons";
 
 export interface RecipeMessageSeed { text: string; conversationId: string; messageId?: string; planId?: string }
 export interface TaskRecipesPageProps {
   catalog: ModelCatalog | null; workspace: string | null; workspaces: string[]; locale: AppLocale;
-  sidebarCollapsed: boolean; onToggleSidebar: () => void; onOpenConversation: (id: string) => void;
+  sidebarResize?: SidebarResize; sidebarCollapsed: boolean; onToggleSidebar: () => void; onOpenConversation: (id: string) => void;
   selectedRecipe?: TaskRecipe | null; onConsumeSelection?: () => void;
   seed?: RecipeMessageSeed | null; onConsumeSeed: () => void;
   registerLeaveGuard: (guard: ((action: () => void) => void) | null) => void;
@@ -22,6 +24,7 @@ const blankRecipe = (): TaskRecipeInput => ({ name: '', description: '', tags: [
 const api = () => window.vela?.taskRecipes;
 const status = (run: RecipeRun) => ({ starting: tr('正在启动', 'Starting'), running: tr('运行中', 'Running'), waiting_for_user: tr('等待响应', 'Waiting for user'), responded: tr('回复已生成', 'Reply generated'), failed: tr('失败', 'Failed'), stopped: tr('已停止', 'Stopped'), interrupted: tr('已中断', 'Interrupted') })[run.status];
 const date = (time: number | null) => time ? new Date(time).toLocaleString() : tr('尚未使用', 'Not used yet');
+const originIcons = { builtin: "clipboard", user: "user", project: "folder", team: "subagent" } as const;
 const originLabel = (origin: TaskRecipe['origin']) => origin === 'builtin' ? tr('内置', 'Built-in') : origin === 'project' ? tr('项目', 'Project') : origin === 'team' ? tr('团队', 'Team') : tr('我的', 'Personal');
 type Editor = { recipe: TaskRecipeInput; original: string; id?: string; revision?: number; projectWorkspace?: string; teamWorkspace?: string; teamFingerprint?: string };
 
@@ -76,15 +79,22 @@ export function TaskRecipesPage(props: TaskRecipesPageProps) {
     const latest = (id: string) => Math.max(0, ...state.runs.filter(r => r.recipeId === id).map(r => r.startedAt));
     return latest(b.id) - latest(a.id) || a.name.localeCompare(b.name);
   }), [state, origin, search]);
-  const origins = useMemo(() => [{ id: 'all', label: tr('全部', 'All'), count: state.recipes.length }, ...(['builtin', 'user', 'project', 'team'] as const).map(id => ({ id, label: originLabel(id), count: state.recipes.filter(r => r.origin === id).length })).filter(o => o.count > 0 || o.id === origin)], [state.recipes, origin]);
+  const origins = useMemo(() => [{ id: 'all', icon: 'list' as const, label: tr('全部', 'All'), count: state.recipes.length }, ...(['builtin', 'user', 'project', 'team'] as const).map(id => ({ id, icon: originIcons[id], label: originLabel(id), count: state.recipes.filter(r => r.origin === id).length })).filter(o => o.count > 0 || o.id === origin)], [state.recipes, origin]);
   const runs = state.runs.filter(r => history === '*' || r.recipeId === history).sort((a, b) => b.startedAt - a.startedAt);
   const choose = (recipe: TaskRecipe, run?: RecipeRun) => guard(() => { setEditor(null); setUsing({ recipe, run }); setError(null); });
-  return <section className="scheduled-tasks-page-shell recipe-page-shell" ref={pageRef}>
-    <header className="scheduled-tasks-page-toolbar main-chat-header">
+  return <section className="page-view scheduled-tasks-page-shell recipe-page-shell" ref={pageRef}>
+    <header className="page-header scheduled-tasks-page-toolbar main-chat-header">
       {props.sidebarCollapsed && <button type="button" className="header-toggle" aria-label={tr('展开侧栏', 'Show sidebar')} onClick={props.onToggleSidebar}><Icon name="sidebar" size={16} /></button>}
-      <span className="page-topbar-title">{tr('任务配方', 'Task Recipes')}</span>
+      <span className="page-topbar-title">{editor ? (editor.recipe.name || tr('创建配方', 'Create recipe')) : using?.recipe.name || origins.find(item => item.id === origin)?.label}</span>
     </header>
-    <div className="scheduled-tasks-page-scroll autohide-scrollbar"><div className={`scheduled-tasks-page recipe-page${editor ? ' is-editing' : ''}`}>
+    <PageColumns resize={props.sidebarResize} navigation={
+      <PageNav title={tr('任务配方', 'Task Recipes')} label={tr('来源', 'Source')}>
+        {origins.map(item => <PageNavItem key={item.id} icon={item.icon} label={item.label} trailing={item.count}
+          active={!editor && !using && origin === item.id} disabled={pending || generating}
+          onClick={() => guard(() => { setEditor(null); setUsing(null); setOrigin(item.id); })} />)}
+      </PageNav>
+    }>
+    <div className="page-content scheduled-tasks-page-scroll autohide-scrollbar"><div className={`scheduled-tasks-page recipe-page${editor ? ' is-editing' : ''}`}>
       {!editor && <div className="scheduled-tasks-header recipe-page-heading"><div><h1>{tr('任务配方', 'Task Recipes')}</h1><p className="scheduled-tasks-note">{tr('把常用任务保存为配方，下次填写参数即可开始。', 'Save repeatable tasks. Fill in the parameters and start again anytime.')}</p></div>
         <div className="scheduled-task-actions"><button type="button" className="recipe-primary" disabled={pending || !!state.error} onClick={() => edit()}><Icon name="plus" size={14} />{tr('创建配方', 'Create recipe')}</button>
           <button type="button" disabled={pending || !!state.error} onClick={() => guard(() => { void api()!.importFile().then(result => { if (result) { setImports(result); setEditor(null); setUsing(null); } }).catch(e => setError((e as Error).message)); })}>{tr('导入配方', 'Import recipes')}</button>
@@ -107,7 +117,6 @@ export function TaskRecipesPage(props: TaskRecipesPageProps) {
         {imports.length > 0 && <section className="scheduled-task-form"><h2>{tr('导入预览', 'Import preview')}</h2><p>{tr('导入内容尚未保存或执行。每项会以新 ID 保存，重名不会覆盖；请审阅正文和 Skill 依赖。', 'Nothing is saved or executed yet. Each template gets a new ID; duplicate names do not overwrite recipes. Review its text and Skill dependencies.')}</p>{imports.map((input, index) => <article key={index}><h3>{input.name}</h3><p>{input.description}</p><p>{input.parameters.length} {tr('个参数', 'parameters')} · {input.requiredSkills?.join(', ')}</p><button type="button" onClick={() => { setEditor({ recipe: input, original: JSON.stringify(blankRecipe()) }); setImports(imports.filter((_, i) => i !== index)); }}>{tr('编辑并保存', 'Review and save')}</button></article>)}<button type="button" onClick={() => setImports([])}>{tr('放弃剩余导入', 'Discard remaining imports')}</button></section>}
         <div className="recipe-toolbar">
           <label className="recipe-search"><Icon name="search" size={14} /><input type="search" aria-label={tr('搜索配方', 'Search recipes')} value={search} onChange={e => setSearch(e.target.value)} placeholder={tr('搜索名称、说明或标签', 'Search name, description, or tags')} /></label>
-          <div className="recipe-chips" role="group" aria-label={tr('来源', 'Source')}>{origins.map(o => <button key={o.id} type="button" className="recipe-chip" aria-pressed={origin === o.id} onClick={() => setOrigin(o.id)}>{o.label}<span>{o.count}</span></button>)}</div>
           <button type="button" className="recipe-history-toggle" aria-pressed={history === '*'} onClick={() => { setHistory(history === '*' ? null : '*'); setPage(0); }}><Icon name="history" size={14} />{tr('使用记录', 'History')} <span>{state.runs.length}</span></button></div>
         {loading && <p role="status" className="scheduled-tasks-note">{tr('加载中…', 'Loading…')}</p>}
         {!loading && !state.error && !state.recipes.some(r => r.origin === 'user') && !search && origin === 'all' && <p className="recipe-hint"><Icon name="sparkles" size={14} />{tr('还没有个人配方：创建一个，或复制下方内置示例。', 'No personal recipes yet. Create one, or duplicate a built-in example below.')}</p>}
@@ -140,6 +149,7 @@ export function TaskRecipesPage(props: TaskRecipesPageProps) {
         </section>}
       </>}
     </div></div>
+    </PageColumns>
     {deleting && <RecipeDialog title={tr('删除配方', 'Delete recipe')} onDismiss={pending ? undefined : () => setDeleting(null)}><p>{tr('删除', 'Delete')}「{deleting.name}」？{tr('已有对话、使用记录和运行中的快照会保留。', 'Existing chats, records, and running snapshots are retained.')}</p>
       <div className="recipe-dialog-actions"><button type="button" autoFocus disabled={pending} onClick={() => setDeleting(null)}>{tr('取消', 'Cancel')}</button><button type="button" className="recipe-danger" disabled={pending} onClick={async () => { setPending(true); try { await api()!.delete(deleting.id, deleting.teamFingerprint); setDeleting(null); } catch (e) { setError((e as Error).message); } finally { setPending(false); } }}>{tr('删除', 'Delete')}</button></div></RecipeDialog>}
     {leave && <RecipeDialog title={tr('尚未保存', 'Unsaved changes')} onDismiss={pending ? undefined : () => setLeave(null)}><p>{tr('配方有未保存的修改。离开前要保存吗？', 'This recipe has unsaved changes. Save before leaving?')}</p><div className="recipe-dialog-actions">

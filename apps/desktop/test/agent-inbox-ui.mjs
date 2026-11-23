@@ -343,18 +343,18 @@ if (!process.versions.electron) {
       await evaluate("document.documentElement.dataset.scheme = 'light'");
 
       await evaluate("window.renderInbox('zh-CN')");
-      await until("document.querySelector('.agent-inbox-topbar h1')?.textContent === 'Agent 收件箱'");
+      await until("document.querySelector('.agent-inbox-nav h1')?.textContent === 'Agent 收件箱'");
       assert.match(await text(".agent-inbox-nav"), /需要处理/);
       for (const [locale, title] of [["zh-TW", "Agent 收件匣"], ["ja", "Agent 受信トレイ"], ["ko", "Agent 받은편지함"]]) {
         await evaluate(`window.renderInbox(${JSON.stringify(locale)})`);
-        await until(`document.querySelector('.agent-inbox-topbar h1')?.textContent === ${JSON.stringify(title)}`);
+        await until(`document.querySelector('.agent-inbox-nav h1')?.textContent === ${JSON.stringify(title)}`);
       }
       await capture("ko");
       console.log("PASS all five languages render the page");
 
       // ---------- Phase 4-7: Resident Agent, delegate approvals, Intelligent UI content ----------
       await evaluate("window.renderInbox('en')");
-      await until("document.querySelector('.agent-inbox-topbar h1')?.textContent === 'Agent Inbox'");
+      await until("document.querySelector('.agent-inbox-nav h1')?.textContent === 'Agent Inbox'");
       const setField = (selector, value) => evaluate(`(() => { const node = document.querySelector(${JSON.stringify(selector)}); const proto = node instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : node instanceof HTMLSelectElement ? HTMLSelectElement.prototype : HTMLInputElement.prototype; Object.getOwnPropertyDescriptor(proto, 'value').set.call(node, ${JSON.stringify(value)}); node.dispatchEvent(new Event(node instanceof HTMLSelectElement ? 'change' : 'input', { bubbles: true })); })()`);
       const uiFence = (label, text) => "Pick one\n\n```vela-ui\n" + [
         '{"op":"begin","id":"plan","version":1,"title":"Plan"}',

@@ -5,14 +5,16 @@ import { cleanErrorMessage } from "../hooks/useProject";
 import { useAutoHideScrollbarsWithin } from "../hooks/useAutoHideScrollbar";
 import "../scheduled-tasks.css";
 import { scheduledStatusText as statusText, scheduledDateText as dateText, scheduledStatusTone as statusTone, scheduledDays as days, scheduledScheduleText as scheduleText } from "./scheduled-task-format";
+import type { SidebarResize } from "../hooks/useSidebarResize";
+import { PageColumns, PageNav, PageNavItem } from "./PageNavigation";
 import { Icon } from "./icons";
 
 const emptyState: ScheduledTasksState = { tasks: [], runs: [] };
 const baseName = (path: string) => path.split(/[\\/]/).filter(Boolean).pop() ?? path;
 
-export function ScheduledTasksPage({ workspace, workspaces, onOpenConversation, sidebarCollapsed, onToggleSidebar, catalog, catalogError }: {
+export function ScheduledTasksPage({ workspace, workspaces, onOpenConversation, sidebarCollapsed, onToggleSidebar, sidebarResize, catalog, catalogError }: {
   workspace: string | null; workspaces: string[]; onOpenConversation: (id: string) => void;
-  sidebarCollapsed: boolean; onToggleSidebar: () => void; catalog: ModelCatalog | null; catalogError: string | null;
+  sidebarResize?: SidebarResize; sidebarCollapsed: boolean; onToggleSidebar: () => void; catalog: ModelCatalog | null; catalogError: string | null;
 }) {
   const pageRef = useRef<HTMLElement>(null);
   useAutoHideScrollbarsWithin(pageRef);
@@ -24,7 +26,7 @@ export function ScheduledTasksPage({ workspace, workspaces, onOpenConversation, 
   const [editor, setEditor] = useState<ScheduledTask | "new" | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
-  const [scope, setScope] = useState("all");
+  const [scope, setScope] = useState<"all" | "current">("all");
   useEffect(() => { document.querySelector<HTMLElement>(".scheduled-tasks-page h1")?.focus(); }, []);
   useEffect(() => {
     if (!api) { setLoading(false); return; }
@@ -41,17 +43,24 @@ export function ScheduledTasksPage({ workspace, workspaces, onOpenConversation, 
   }
   const choices = [...new Set([...(workspace ? [workspace] : []), ...workspaces, ...state.tasks.map(task => task.workspace)])];
   const tasks = state.tasks.filter(task => scope === "all" || task.workspace === workspace).sort((a, b) => b.createdAt - a.createdAt);
-  return <main className="scheduled-tasks-page-shell" ref={pageRef}>
-    <header className="main-chat-header scheduled-tasks-page-toolbar">
+  const scopeLabels = { all: tr("全部工作区", "All workspaces"), current: tr("当前工作区", "Current workspace") };
+  return <main className="page-view scheduled-tasks-page-shell" ref={pageRef}>
+    <header className="page-header main-chat-header scheduled-tasks-page-toolbar">
       <div className="chat-title-group">
         {sidebarCollapsed && <button className="view-icon-btn" type="button" onClick={onToggleSidebar}
           title={tr("展开侧边栏", "Expand sidebar")} aria-label={tr("展开侧边栏", "Expand sidebar")}>
           <Icon name="sidebar" size={16} />
         </button>}
-        <span className="chat-active-title">{tr("定时任务", "Scheduled Tasks")}</span>
+        <span className="chat-active-title">{scopeLabels[scope]}</span>
       </div>
     </header>
-    <div className="scheduled-tasks-page-scroll autohide-scrollbar">
+    <PageColumns resize={sidebarResize} navigation={
+      <PageNav title={tr("定时任务", "Scheduled Tasks")}>
+        {(["all", "current"] as const).map(value => <PageNavItem key={value} icon={value === "all" ? "stack" : "folder"}
+          label={scopeLabels[value]} active={scope === value} onClick={() => setScope(value)} />)}
+      </PageNav>
+    }>
+    <div className="page-content scheduled-tasks-page-scroll autohide-scrollbar">
     <section className="scheduled-tasks-page st-page" aria-label={tr("定时任务", "Scheduled Tasks")}>
     <header className="scheduled-tasks-header"><div><h1 tabIndex={-1}>{tr("定时任务", "Scheduled Tasks")}</h1><p>{tr("让 Vela 在指定时间开始一段新对话。", "Start a new chat at a scheduled time.")}</p>
       <p className="scheduled-tasks-note">{tr("应用运行时调度。睡眠或退出后，恢复时按策略补执行一次或跳过；每个任务保留最近 100 条已结束记录。", "Runs while the app is open. After sleep or exit, catch up once or skip. Keeps the latest 100 settled runs per task.")}</p></div>
@@ -65,10 +74,7 @@ export function ScheduledTasksPage({ workspace, workspaces, onOpenConversation, 
         const saved = await action(() => editor === "new" ? api.create(input) : api.update(editor!.id, { ...input, status: editor!.status === "paused" ? "paused" : "active" }));
         if (saved) setEditor(null);
       }} />}
-    <div className="scheduled-tasks-filter"><span className="scheduled-tasks-count">{tr(`${tasks.length} 个任务`, tasks.length === 1 ? "1 task" : `${tasks.length} tasks`)}</span>
-      <label>{tr("显示", "Show")} <select value={scope} onChange={event => setScope(event.target.value)}>
-        <option value="all">{tr("全部工作区", "All workspaces")}</option><option value="current">{tr("当前工作区", "Current workspace")}</option>
-      </select></label></div>
+    <div className="scheduled-tasks-filter"><span className="scheduled-tasks-count">{tr(`${tasks.length} 个任务`, tasks.length === 1 ? "1 task" : `${tasks.length} tasks`)}</span></div>
     {loading && <p role="status">{tr("加载中…", "Loading…")}</p>}
     {!loading && tasks.length === 0 && <div className="scheduled-tasks-empty"><strong>{tr("暂无定时任务", "No scheduled tasks yet")}</strong><span>{tr("创建一个提醒或周期任务，或在对话中输入：每天晚上 10 点提醒我复习英语。", "Create a reminder or recurring task, or ask in chat: remind me to study English every day at 10 pm.")}</span></div>}
     <div className="scheduled-tasks-list">{tasks.map(task => {
@@ -105,7 +111,7 @@ export function ScheduledTasksPage({ workspace, workspaces, onOpenConversation, 
         </li>)}</ol>}
       </article>;
     })}</div>
-  </section></div></main>;
+  </section></div></PageColumns></main>;
 }
 
 function TaskForm({ task, workspaces, workspace, pending, catalog, catalogError, onCancel, onSave }: {

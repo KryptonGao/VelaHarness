@@ -5,15 +5,17 @@ import { filterInbox, loadedCount } from './pr-inbox-model';
 import { PrInboxDetailView } from './PrInboxDetailView';
 import { usePrInboxCache } from '../hooks/usePrInboxCache';
 import { useAutoHideScrollbarsWithin } from '../hooks/useAutoHideScrollbar';
-import { useSlidingTabIndicator } from './useSlidingTabIndicator';
 import { defaultPrInboxQuery } from './pr-inbox-cache';
 import '../pr-inbox.css';
+import type { SidebarResize } from "../hooks/useSidebarResize";
+import { PageColumns, PageNav, PageNavItem } from "./PageNavigation";
 import { Icon, type IconName } from "./icons";
 
 export const relationLabels: Record<PrRelation | 'all', [string, string]> = {
   all: ['全部关联', 'All related'], authored: ['我创建的', 'Authored'], reviewRequested: ['待我审查', 'Review requested'],
   assigned: ['分配给我', 'Assigned'], mentioned: ['提及我', 'Mentioned'],
 };
+const relationIcons = { all: 'inbox', authored: 'edit', reviewRequested: 'eye', assigned: 'user', mentioned: 'chat' } as const;
 export const checkLabels = {
   unknown: ['未知', 'Unknown'], none: ['无检查', 'No checks'], passing: ['检查通过', 'Checks passed'], failing: ['检查失败', 'Checks failed'],
   pending: ['检查运行中', 'Checks pending'], skipped: ['检查已跳过', 'Checks skipped'], cancelled: ['检查已取消', 'Checks cancelled'],
@@ -45,11 +47,10 @@ export function PrUpdatedTime({ value }: { value: string }) {
 }
 function errorText(error: unknown): string { return error instanceof Error ? error.message : String(error); }
 
-export function PrInboxPage({ active, sidebarCollapsed, onToggleSidebar, onOpenConversation }: { active: boolean; sidebarCollapsed: boolean; onToggleSidebar: () => void; onOpenConversation: (id: string) => void }) {
+export function PrInboxPage({ active, sidebarCollapsed, onToggleSidebar, sidebarResize, onOpenConversation }: { sidebarResize?: SidebarResize; active: boolean; sidebarCollapsed: boolean; onToggleSidebar: () => void; onOpenConversation: (id: string) => void }) {
   const { cache, api, version } = usePrInboxCache();
   const [query, setQuery] = useState<PrInboxQuery>(defaultPrInboxQuery);
   const [relation, setRelation] = useState<PrRelation | 'all'>('all');
-  const relationTabs = useSlidingTabIndicator({ activeKey: relation });
   const [keyword, setKeyword] = useState('');
   const [sort, setSort] = useState('attention');
   const list = cache.getList(query);
@@ -135,29 +136,37 @@ export function PrInboxPage({ active, sidebarCollapsed, onToggleSidebar, onOpenC
 
   const repositories = [...new Set((list?.items ?? []).map(i => `${i.target.owner}/${i.target.repo}`))].sort();
   if (query.repository && !repositories.includes(query.repository)) repositories.unshift(query.repository);
-  const resetPage = () => { setPage(0); scrollPosition.current = 0; };
+  const resetPage = () => {
+    setPage(0);
+    scrollPosition.current = 0;
+    if (scrollRef.current) scrollRef.current.scrollTop = 0;
+  };
   const selectedItem = selected ? items.find(i => i.key === `${selected.host}/${selected.owner}/${selected.repo}#${selected.number}`.toLowerCase()) ?? null : null;
   const open = (item: PrInboxItem) => { scrollPosition.current = scrollRef.current?.scrollTop ?? 0; setSelected(item.target); };
 
-  return <section className="pr-inbox-page" ref={pageRef} aria-label="Pull Request">
-    <header className="pr-inbox-topbar main-chat-header">
+  return <section className="page-view pr-inbox-page" ref={pageRef} aria-label="Pull Request">
+    <header className="page-header pr-inbox-topbar main-chat-header">
       {sidebarCollapsed && <button type="button" onClick={onToggleSidebar} aria-label={tr('展开侧栏', 'Show sidebar')}><Icon name="sidebar" size={16} /></button>}
-      <span className="page-topbar-title">Pull Requests</span>
+      <span className="page-topbar-title">{selected ? `${selected.owner}/${selected.repo} #${selected.number}` : tr(...relationLabels[relation])}</span>
       <span className="pr-inbox-sync">{list?.syncedAt ? `${list.stale ? tr('缓存 · ', 'Cached · ') : ''}${tr('同步于 ', 'Synced ')}${new Date(list.syncedAt).toLocaleTimeString()}` : ''}</span>
       <span className="pr-inbox-account">{list?.identity ? `@${list.identity.login}` : tr('GitHub 身份未确认', 'GitHub identity unavailable')}</span>
       <button type="button" disabled={loading} onClick={() => void refresh(true)}>{loading ? tr('读取中…', 'Loading…') : tr('刷新', 'Refresh')}</button>
     </header>
+    <PageColumns resize={sidebarResize} navigation={
+      <PageNav title="Pull Requests" className="pr-inbox-relations" label={tr('关联类型', 'Relationships')}>
+        {(Object.keys(relationLabels) as Array<PrRelation | 'all'>).map(value =>
+          <PageNavItem key={value} icon={relationIcons[value]} label={tr(...relationLabels[value])} active={relation === value}
+            trailing={list ? loadedCount(list, value) : '—'} onClick={() => {
+              setSelected(null); setRelation(value); resetPage();
+            }} />)}
+      </PageNav>
+    }>
+    <div className="page-content page-detail">
     {selected && identityKey ? <PrInboxDetailView key={`${identityKey}:${selected.owner}/${selected.repo}#${selected.number}`} active={active}
       summary={selectedItem} target={selected} identityKey={identityKey} onBack={() => setSelected(null)} related={!!selectedItem} onOpenConversation={onOpenConversation} /> :
       <div ref={scrollRef} className="pr-inbox-scroll autohide-scrollbar">
         <div className="pr-inbox-content">
           <div className="pr-inbox-sticky">
-            <nav ref={relationTabs.navRef} className="conversation-view-tabs pr-inbox-relations" role="tablist" aria-label={tr('关联类型', 'Relationships')}
-              onPointerMove={relationTabs.onPointerMove} onPointerLeave={relationTabs.onPointerLeave}>
-              {(Object.keys(relationLabels) as Array<PrRelation | 'all'>).map(value => <button type="button" role="tab" key={value} data-tab-key={value} ref={relationTabs.registerTab(value)}
-                aria-selected={relation === value} onClick={() => { setRelation(value); resetPage(); }}>{tr(...relationLabels[value])}<span>{list ? loadedCount(list, value) : '—'}</span></button>)}
-              {relationTabs.indicator}
-            </nav>
             <div className="pr-inbox-filters">
               <label className="pr-inbox-search"><Icon name="search" size={14} />
                 <input ref={searchRef} value={keyword} aria-label={tr('搜索已加载 PR', 'Search loaded PRs')} placeholder={tr('搜索已加载 PR：标题、仓库或 #编号', 'Search loaded PRs: title, repository or #number')} onChange={e => { setKeyword(e.target.value); resetPage(); }} /></label>
@@ -197,5 +206,7 @@ export function PrInboxPage({ active, sidebarCollapsed, onToggleSidebar, onOpenC
             {list.pages.some(p => p.nextPage !== null) && <button type="button" disabled={loading} onClick={() => void refresh(false, true)}>{tr('从 GitHub 加载更多', 'Load more from GitHub')}</button>}</footer>}
         </div>
       </div>}
+    </div>
+    </PageColumns>
   </section>;
 }

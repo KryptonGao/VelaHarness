@@ -52,14 +52,13 @@ process.env.PATH=temp+'/bin:'+process.env.PATH;
 win.webContents.on('console-message',details=>{if(details.message.startsWith('PR_MODE:'))writeFileSync(temp+'/mode',details.message.slice(8));if(details.message.startsWith('PR_DELAY:'))writeFileSync(temp+'/delay',details.message.slice(9));if(details.message.startsWith('PR_TITLE:'))writeFileSync(temp+'/title',details.message.slice(9));if(details.message.startsWith('PR_SHOT:'))setTimeout(()=>void win.webContents.capturePage().then(image=>writeFileSync(shots+'/'+details.message.slice(8)+'.png',image.toPNG())),100);});
 win.webContents.once('did-finish-load',async()=>{try{
 const result=await win.webContents.executeJavaScript(\`(async()=>{
-const wait=async(read,label)=>{for(let i=0;i<500;i++){const v=await read();if(v)return v;await new Promise(r=>setTimeout(r,20));}throw new Error(label)};
+const wait=async(read,label,timeout=10000)=>{const end=performance.now()+timeout;while(performance.now()<end){const v=await read();if(v)return v;await new Promise(r=>setTimeout(r,20));}throw new Error(label)};
 const assert=(v,label)=>{if(!v)throw new Error(label)};const visible=n=>n&&!n.closest('.is-hidden')&&n.getClientRects().length;
 const buttons=(s=document)=>[...s.querySelectorAll('button')].filter(visible);const click=(text,s=document)=>{const b=buttons(s).find(b=>b.textContent.trim()===text);assert(b,'Missing button '+text);assert(!b.disabled,'Disabled '+text);b.click()};
 const fill=(selector,value)=>{const n=document.querySelector(selector);Object.getOwnPropertyDescriptor(n.tagName==='SELECT'?HTMLSelectElement.prototype:HTMLInputElement.prototype,'value').set.call(n,value);n.dispatchEvent(new Event(n.tagName==='SELECT'?'change':'input',{bubbles:true}));};
 await wait(()=>document.querySelector('.sidebar-quick-actions'),'Sidebar missing');const before=await window.vela.getState();
-// Accelerate only the PR idle interval and its session clock; gh still uses the real clock and forced reads.
+// Advance cache age, then allow the existing 15-second application timer to refresh the hidden page.
 const realNow=Date.now;window.PR_CLOCK=0;Date.now=()=>realNow()+window.PR_CLOCK;
-const realInterval=window.setInterval.bind(window);window.setInterval=(fn,ms,...args)=>realInterval(fn,ms===15000?100:ms,...args);
 click('Pull Request');await wait(()=>document.querySelectorAll('.pr-inbox-row').length===2,'Cross-repository rows missing');
 await wait(()=>document.querySelector('.pr-inbox-account')?.textContent==='@fixture','Identity missing');assert((await window.vela.getWorkspaceState()).current===null,'Fixture must have no workspace');
 await new Promise(r=>setTimeout(r,450));console.log('PR_SHOT:inbox');await new Promise(r=>setTimeout(r,250));
@@ -73,7 +72,7 @@ assert([...responseDialog.querySelectorAll('footer button')].find(b=>b.classList
 console.log('PR_SHOT:response');await new Promise(r=>setTimeout(r,250));click('取消');await wait(()=>!document.querySelector('.pr-response-dialog[open]'),'Response dialog not closed');
 click('变更 3');await wait(()=>document.querySelector('.pr-inbox-file-tree nav button'),'Files missing');await wait(()=>document.querySelector('.pr-inbox-diff-header')?.textContent.includes('src/new name.ts'),'Renamed diff missing');assert(document.querySelector('.diff-line.add')?.textContent.includes('newValue'),'Remote diff missing');
 assert(document.querySelectorAll('.diff-line.ctx .diff-line-number').length===2,'Unified diff line numbers missing');await new Promise(r=>setTimeout(r,300));console.log('PR_SHOT:changes');await new Promise(r=>setTimeout(r,250));const fileButtons=[...document.querySelectorAll('.pr-inbox-file-tree nav button')];fileButtons.find(b=>b.textContent.includes('binary.png')).click();await wait(()=>document.querySelector('.pr-inbox-file-diff').textContent.includes('没有可用的文本差异'),'Binary state missing');fileButtons.find(b=>b.textContent.includes('large.ts')).click();await wait(()=>buttons().some(b=>b.textContent.includes('展开更多差异')),'Large diff progressive rendering');
-click('← 返回列表');await wait(()=>document.querySelector('.pr-inbox-search input')?.value==='#128','Search not restored');assert(document.querySelector('.pr-inbox-relations [aria-selected="true"]').textContent.startsWith('待我审查'),'Relation not restored');
+click('← 返回列表');await wait(()=>document.querySelector('.pr-inbox-search input')?.value==='#128','Search not restored');assert(document.querySelector('.pr-inbox-relations [aria-current="page"]').textContent.startsWith('待我审查'),'Relation not restored');
 console.log('PR_DELAY:350');await new Promise(r=>setTimeout(r,80));
 document.querySelector('.pr-inbox-row').click();await new Promise(r=>setTimeout(r,60));
 assert(document.querySelector('.pr-inbox-overview')?.textContent.includes('Read PRs without'),'Cached detail was not shown before slow revalidation');
@@ -84,7 +83,7 @@ click('← 返回列表');await wait(()=>document.querySelector('.pr-inbox-row')
 console.log('PR_DELAY:0');await new Promise(r=>setTimeout(r,80));
 click('定时任务');await wait(()=>!visible(document.querySelector('.pr-inbox-page')),'PR page not hidden for idle refresh');
 console.log('PR_TITLE: (idle-refreshed)');await new Promise(r=>setTimeout(r,80));window.PR_CLOCK+=61000;
-await wait(()=>document.querySelector('.pr-inbox-row')?.textContent.includes('idle-refreshed'),'Loaded PRs did not refresh while working outside the inbox');
+await wait(()=>document.querySelector('.pr-inbox-row')?.textContent.includes('idle-refreshed'),'Loaded PRs did not refresh while working outside the inbox',30000);
 assert(!document.querySelector('.pr-inbox-topbar').textContent.includes('读取中'),'Idle refresh showed a loading state');
 console.log('PR_DELAY:350');await new Promise(r=>setTimeout(r,80));click('Pull Request');await new Promise(r=>setTimeout(r,60));
 assert(document.querySelector('.pr-inbox-row')?.textContent.includes('idle-refreshed'),'Returning to the inbox did not immediately show the idle-updated cache');

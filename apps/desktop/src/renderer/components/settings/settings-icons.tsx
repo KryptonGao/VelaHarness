@@ -27,5 +27,5 @@ const pageIcons = {
 } as const satisfies Record<SettingsPageId, IconName>;
 
 export function SettingsPageIcon({ page }: { page: SettingsPageId }) {
-  return <Icon name={pageIcons[page]} size={16} className="settings-nav-icon" />;
+  return <Icon name={pageIcons[page]} size={16} className="page-nav-icon" />;
 }

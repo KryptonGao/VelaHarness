@@ -21,6 +21,8 @@ import {
   type AgentInboxView,
 } from "./agent-inbox-model";
 import "../agent-inbox.css";
+import type { SidebarResize } from "../hooks/useSidebarResize";
+import { PageColumns, PageNav, PageNavItem } from "./PageNavigation";
 import { Icon } from "./icons";
 
 const viewLabels: Record<AgentInboxView, () => string> = {
@@ -29,6 +31,8 @@ const viewLabels: Record<AgentInboxView, () => string> = {
   activity: () => tr("动态", "Activity"),
   archive: () => tr("归档", "Archive"),
 };
+
+const viewIcons = { overview: "grid", needs_action: "inbox", activity: "heartbeat", archive: "archive" } as const;
 
 const typeLabels: Record<AgentInboxItemType, () => string> = {
   approval: () => tr("工具审批", "Tool approval"),
@@ -204,8 +208,9 @@ function Detail({ item, busy, notice, onDecide, onArchive, onBack, onOpenConvers
   </article>;
 }
 
-export function AgentInboxPage({ active, sidebarCollapsed, onToggleSidebar, onOpenConversation, messageStore, ensureTranscript, navigation, onNavigationHandled, catalog = null, catalogError = null }: {
+export function AgentInboxPage({ active, sidebarCollapsed, onToggleSidebar, sidebarResize, onOpenConversation, messageStore, ensureTranscript, navigation, onNavigationHandled, catalog = null, catalogError = null }: {
   active: boolean;
+  sidebarResize?: SidebarResize;
   sidebarCollapsed: boolean;
   onToggleSidebar: () => void;
   onOpenConversation: (id: string) => void;
@@ -282,30 +287,31 @@ export function AgentInboxPage({ active, sidebarCollapsed, onToggleSidebar, onOp
     : filtering ? tr("没有匹配的事项。", "No matching items.")
     : tr("审批、提问和后台任务的结果会出现在这里。", "Approvals, questions and background results show up here.");
 
-  return <section className="agent-inbox-page" ref={pageRef} aria-label={tr("Agent 收件箱", "Agent Inbox")}>
-    <header className="agent-inbox-topbar main-chat-header">
+  return <section className="page-view agent-inbox-page" ref={pageRef} aria-label={tr("Agent 收件箱", "Agent Inbox")}>
+    <header className="page-header agent-inbox-topbar main-chat-header">
       {sidebarCollapsed && <button type="button" onClick={onToggleSidebar} aria-label={tr("展开侧栏", "Show sidebar")}><Icon name="sidebar" size={16} /></button>}
-      <h1 className="page-topbar-title">{tr("Agent 收件箱", "Agent Inbox")}</h1>
+      <span className="page-topbar-title">{section === "resident" ? "Resident Agent" : viewLabels[view]()}</span>
       <span className="agent-inbox-summary" role="status">
         {snapshot.badge > 0 ? trf("{0} 项需要处理", "{0} need your attention", snapshot.badge) : tr("没有待处理事项", "All caught up")}
       </span>
       {unread > 0 ? <span className="agent-inbox-unread-count" role="status">{trf("{0} 项未读", "{0} unread", unread)}</span> : null}
     </header>
+    <PageColumns resize={sidebarResize} navigation={
+      <PageNav className="agent-inbox-nav" title={tr("Agent 收件箱", "Agent Inbox")} label={tr("收件箱视图", "Inbox views")}>
+        {agentInboxViews.map(value => <PageNavItem key={value} icon={viewIcons[value]} label={viewLabels[value]()}
+          active={section === "inbox" && view === value}
+          onClick={() => { setSection("inbox"); setView(value); setSelectedId(null); }}
+          trailing={<span className="agent-inbox-count" data-urgent={value === "needs_action" && snapshot.badge > 0 ? "" : undefined}>
+            {value === "needs_action" ? snapshot.badge : agentInboxViewCount(snapshot.items, value)}</span>} />)}
+        <PageNavItem icon="subagent" label="Resident Agent" active={section === "resident"} onClick={openResident}
+          trailing={<span className="resident-dot resident-nav-dot" role="img"
+            aria-label={resident.status ? stateLabel(resident.status.state) : tr("未运行", "Offline")}
+            title={resident.status ? stateLabel(resident.status.state) : undefined} data-state={resident.status?.state ?? "offline"} />} />
+      </PageNav>
+    }>
+    <div className="page-content page-detail">
     {snapshot.loadError || snapshot.error ? <p className="agent-inbox-banner" role="alert">{snapshot.loadError ?? snapshot.error}</p> : null}
     <div className="agent-inbox-body" data-mode={section === "resident" ? "resident" : selected ? "detail" : "list"}>
-      <nav className="agent-inbox-nav autohide-scrollbar" aria-label={tr("收件箱视图", "Inbox views")}>
-        {agentInboxViews.map(value => <button type="button" key={value} aria-current={section === "inbox" && view === value ? "page" : undefined}
-          onClick={() => { setSection("inbox"); setView(value); setSelectedId(null); }}>
-          <span>{viewLabels[value]()}</span>
-          <span className="agent-inbox-count" data-urgent={value === "needs_action" && snapshot.badge > 0 ? "" : undefined}>{value === "needs_action" ? snapshot.badge : agentInboxViewCount(snapshot.items, value)}</span>
-        </button>)}
-        <button type="button" className="agent-inbox-nav-resident" aria-current={section === "resident" ? "page" : undefined}
-          onClick={openResident}>
-          <span>Resident Agent</span>
-          <span className="resident-dot resident-nav-dot" role="img" aria-label={resident.status ? stateLabel(resident.status.state) : tr("未运行", "Offline")} title={resident.status ? stateLabel(resident.status.state) : undefined}
-            data-state={resident.status?.state ?? "offline"} />
-        </button>
-      </nav>
       {section === "resident" ? <div className="agent-inbox-resident">
         <ResidentAgentView active={active} api={resident.api} status={resident.status} settings={resident.settings} rules={resident.rules} error={resident.error}
           messageStore={messageStore} ensureTranscript={ensureTranscript} onOpenConversation={onOpenConversation} onSettings={resident.setSettings}
@@ -346,5 +352,7 @@ export function AgentInboxPage({ active, sidebarCollapsed, onToggleSidebar, onOp
       </div>
       </>}
     </div>
+    </div>
+    </PageColumns>
   </section>;
 }

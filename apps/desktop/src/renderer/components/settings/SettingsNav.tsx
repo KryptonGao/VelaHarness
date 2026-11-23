@@ -4,6 +4,7 @@ import type { SettingsCopy } from "../settings-copy";
 import { groupOfPage, settingsGroups, type SettingsPageId } from "./settings-registry";
 import { SettingsPageIcon } from "./settings-icons";
 import type { SettingsSearchResult } from "./settings-search";
+import { PageNav } from "../PageNavigation";
 import { Icon } from "../icons";
 
 interface SettingsNavProps {
@@ -30,8 +31,7 @@ export function SettingsNav({ copy, page, pages, onPage, query, onQuery, results
   const optionId = (index: number) => `${listId}-${index}`;
 
   return (
-    <nav className="settings-nav autohide-scrollbar" ref={navRef} aria-label={copy.title}>
-      <h1 className="settings-nav-title">{copy.title}</h1>
+    <PageNav className="settings-nav" navRef={navRef} title={copy.title}>
       <div className="settings-search">
         <Icon name="search" size={14} />
         <input
@@ -125,7 +125,7 @@ export function SettingsNav({ copy, page, pages, onPage, query, onQuery, results
                 <button
                   key={id}
                   type="button"
-                  className={`settings-nav-item${page === id ? " active" : ""}`}
+                  className={`page-nav-item settings-nav-item${page === id ? " active" : ""}`}
                   aria-current={page === id ? "page" : undefined}
                   onClick={() => onPage(id)}
                 >
@@ -137,6 +137,6 @@ export function SettingsNav({ copy, page, pages, onPage, query, onQuery, results
           );
         })
       )}
-    </nav>
+    </PageNav>
   );
 }

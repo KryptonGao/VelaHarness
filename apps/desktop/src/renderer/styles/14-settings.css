@@ -19,7 +19,6 @@
   -webkit-app-region: drag;
   transition: padding-left var(--transition-sidebar);
 }
-.settings-nav-item,
 .settings-choice,
 .settings-segment-item,
 .settings-secondary,
@@ -39,41 +38,6 @@
   --settings-frame: color-mix(in srgb, var(--bg-chat) 95%, var(--text-primary));
   --settings-track: color-mix(in srgb, var(--text-primary) 6%, transparent);
   --settings-pressed: color-mix(in srgb, var(--text-primary) 8%, transparent);
-}
-.settings-body {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  position: relative;
-  z-index: 1;
-}
-.settings-view { --settings-nav-width: calc(244px * max(1, var(--ui-scale))); }
-/* 内容纸面从导航右侧(减去垫在下面的 12px)开始铺,导航后面是窗口玻璃而不是白纸,
- * 这样半透明的侧栏卡片和主页一样叠在玻璃上,颜色才一致。 */
-.settings-view::after { left: calc(var(--settings-nav-width) - 12px); }
-@media (max-width: 760px) { .settings-view::after { left: 0; } }
-.settings-nav {
-  width: var(--settings-nav-width);
-  flex-shrink: 0;
-  padding: 0 8px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  overflow-y: auto;
-  /* 与主页侧栏同一块卡片:同样的面色,左侧圆角,右边多伸出 12px 垫在内容纸面的圆角下面 */
-  position: relative;
-  z-index: 0;
-  margin-right: -12px;
-  padding-right: 20px;
-  background: var(--bg-surface-subtle);
-  border-radius: var(--glass-fillet) 0 0 var(--glass-fillet);
-}
-:root[data-sidebar-card="glass"][data-scheme="light"] .nav-rail-layout .settings-nav { background: rgb(from var(--bg-surface-subtle) r g b / 0.65); }
-:root[data-sidebar-card="glass"][data-scheme="dark"] .nav-rail-layout .settings-nav { background: rgb(from var(--bg-surface-subtle) r g b / 0.5); }
-.settings-nav-title {
-  padding: 18px 8px 12px;
-  font-size: calc(17px * var(--ui-scale));
-  font-weight: 650;
 }
 /* 设置页两侧的滚动条:动画作用在可继承的颜色上,淡出时保留宽度与拖动命中区。 */
 @property --autohide-scrollbar-color {
@@ -101,31 +65,6 @@
   font-size: calc(15px * var(--ui-scale));
   font-weight: 600;
 }
-.settings-nav-item {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  text-align: left;
-  min-height: 34px;
-  padding: 0 10px;
-  border-radius: var(--radius-md);
-  color: var(--text-primary);
-  font-size: calc(15px * var(--ui-scale));
-  font-weight: 400;
-}
-.settings-nav-icon { color: var(--text-secondary); flex-shrink: 0; }
-/* 标签永远单行:放不下时省略,而不是折成两行把图标挤变形 */
-.settings-nav-item > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-/* 与主页侧栏的条目同一套:悬停淡底,当前项是浮起的白色块 */
-.settings-nav-item:hover { background: var(--bg-sidebar-hover); color: var(--text-primary); }
-.settings-nav-item.active {
-  background: var(--bg-sidebar-active);
-  color: var(--text-primary);
-  font-weight: 600;
-  box-shadow: var(--shadow-active-item);
-}
-.settings-nav-item.active .settings-nav-icon { color: var(--text-primary); }
 .settings-search {
   position: relative;
   display: flex;
@@ -362,26 +301,6 @@ button.settings-select-trigger:hover:not(:disabled) { background-color: var(--se
 }
 @media (prefers-reduced-motion: reduce) {
   .setting-flash { animation: none; outline: 2px solid var(--accent-blue); outline-offset: 6px; }
-}
-@media (max-width: 760px) {
-  .settings-body { flex-direction: column; }
-  .settings-nav { width: auto; max-height: 40%; border-bottom: 1px solid var(--border-subtle); }
-  .settings-body > .sidebar-resize-handle { display: none; }
-}
-@media (width > 760px) {
-  .nav-rail-layout .settings-view { --settings-nav-width: var(--sidebar-left-width); }
-  .nav-rail-layout .settings-view::after {
-    left: var(--settings-nav-width);
-    border-top-left-radius: 0;
-    border-bottom-left-radius: 0;
-  }
-  .nav-rail-layout .settings-nav { margin-right: 0; padding-right: 8px; }
-  .nav-rail-layout .settings-content { border-radius: 0; }
-  .settings-body > .sidebar-resize-handle {
-    left: var(--settings-nav-width);
-    right: auto;
-    transform: translateX(-50%);
-  }
 }
 .settings-hint,
 .settings-note,

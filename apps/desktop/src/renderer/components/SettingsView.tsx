@@ -9,7 +9,7 @@ import { useStoredState } from "../hooks/useStoredState";
 import type { NotifySound } from "../notification-sounds";
 import { LoginDialog } from "./ModelControls";
 import { SheetPresence } from "./Presence";
-import { SidebarResizeHandle } from "./SidebarResizeHandle";
+import { PageColumns } from "./PageNavigation";
 import { IntegrationsSection } from "./IntegrationsSection";
 import { McpSettingsSection } from "./McpSettingsSection";
 import { HooksSettingsSection } from "./HooksSettingsSection";
@@ -128,9 +128,9 @@ export function SettingsView({
   const pageMeta = copy.pages[page];
 
   return (
-    <main className="settings-view">
-      <header className="settings-header" />
-      <div className="settings-body">
+    <main className="page-view settings-view">
+      <header className="page-header settings-header" />
+      <PageColumns className="settings-body" resize={sidebarResize} navigation={
         <SettingsNav
           copy={copy}
           page={page}
@@ -142,8 +142,8 @@ export function SettingsView({
           onPick={pickResult}
           searchRef={searchRef}
         />
-        {sidebarResize && <SidebarResizeHandle target="left" resize={sidebarResize} />}
-        <div className={`settings-content autohide-scrollbar${page === "models" ? " fill" : ""}`} ref={contentRef}>
+      }>
+        <div className={`page-content settings-content autohide-scrollbar${page === "models" ? " fill" : ""}`} ref={contentRef}>
           {pagesWithOwnHeader.has(page) ? null : (
             <header className="settings-page-header">
               <h2>{pageMeta.label}</h2>
@@ -198,7 +198,7 @@ export function SettingsView({
             <DevelopmentPage copy={copy} development={development} onRestartOnboarding={onRestartOnboarding} />
           </div> : null}
         </div>
-      </div>
+      </PageColumns>
       <SheetPresence present={models.login.active}>
         <LoginDialog
           login={models.login}

@@ -12,10 +12,7 @@
 .agent-inbox-unread-count { font-variant-numeric:tabular-nums; }
 .agent-inbox-banner { flex:none; margin:0; padding:8px 20px; font-size:calc(13px * var(--ui-scale)); color:var(--danger); background:color-mix(in srgb, var(--danger) 8%, transparent); }
 
-.agent-inbox-body { position:relative; z-index:1; flex:1; min-height:0; display:grid; grid-template-columns:184px minmax(300px,400px) minmax(0,1fr); border-radius:var(--paper-left-radius) var(--paper-right-radius) var(--paper-right-radius) var(--paper-left-radius); overflow:hidden; }
-.agent-inbox-nav { display:flex; flex-direction:column; gap:2px; padding:10px 8px; border-right:1px solid var(--border-subtle); overflow:auto; }
-.agent-inbox-nav button { display:flex; align-items:center; justify-content:space-between; gap:8px; text-align:left; font-size:calc(13px * var(--ui-scale)); }
-.agent-inbox-nav button[aria-current="page"] { background:var(--bg-hover); font-weight:550; }
+.agent-inbox-body { position:relative; z-index:1; flex:1; min-height:0; display:grid; grid-template-columns:minmax(280px, 40%) minmax(0,1fr); border-radius:var(--paper-left-radius) var(--paper-right-radius) var(--paper-right-radius) var(--paper-left-radius); overflow:hidden; }
 .agent-inbox-count { min-width:20px; box-sizing:border-box; text-align:center; font-size:calc(11px * var(--ui-scale)); line-height:16px; color:var(--text-muted); font-variant-numeric:tabular-nums; background:var(--bg-surface-subtle); border-radius:8px; padding:0 6px; }
 .agent-inbox-count[data-urgent] { color:var(--accent-contrast); background:var(--accent-blue); }
 
@@ -77,8 +74,7 @@
 .agent-inbox-question { box-shadow:none; }
 
 /* Resident Agent：占据列表与详情两列。 */
-.agent-inbox-body[data-mode="resident"] { grid-template-columns:184px minmax(0,1fr); }
-.agent-inbox-nav .agent-inbox-nav-resident { margin-top:10px; border-top:1px solid var(--border-subtle); border-radius:0 0 7px 7px; padding-top:10px; }
+.agent-inbox-body[data-mode="resident"] { grid-template-columns:minmax(0,1fr); }
 .resident-nav-dot { flex:none; }
 .resident-nav-dot[data-state="ready"] { background:var(--success); }
 .resident-nav-dot[data-state="working"] { background:var(--accent-blue); animation:resident-pulse 1.6s ease-in-out infinite; }
@@ -204,16 +200,13 @@
   .resident-rule { grid-template-columns:minmax(0,1fr); }
   .resident-rule-buttons { justify-content:flex-start; }
 }
-/* 窄窗口：视图栏变成横条，列表和详情二选一。 */
-@media (max-width: 1100px) {
-  .agent-inbox-body { grid-template-columns:minmax(0,1fr); grid-template-rows:auto minmax(0,1fr); }
-  .agent-inbox-nav { flex-direction:row; border-right:0; border-bottom:1px solid var(--border-subtle); overflow-x:auto; }
-  .agent-inbox-nav button { flex:none; }
+/* Show the list or the detail when the remaining reading area is narrow. */
+@container page-detail (max-width: 760px) {
+  .agent-inbox-body { grid-template-columns:minmax(0,1fr); }
   .agent-inbox-feed { border-right:0; }
   .agent-inbox-body[data-mode="list"] .agent-inbox-detail-pane { display:none; }
   .agent-inbox-body[data-mode="detail"] .agent-inbox-feed { display:none; }
   .agent-inbox-body[data-mode="resident"] { grid-template-columns:minmax(0,1fr); }
-  .agent-inbox-nav .agent-inbox-nav-resident { margin-top:0; border-top:0; }
   .agent-inbox-back { display:inline-flex; }
 }
 @media (prefers-reduced-motion: reduce) { .agent-inbox-page * { transition:none!important; animation:none!important; } }

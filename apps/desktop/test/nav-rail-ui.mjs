@@ -36,7 +36,7 @@ if (!process.versions.electron) {
           const collapsed = away || sidebarCollapsed;
           window.setSidebarCollapsed = setSidebarCollapsed;
           window.setCategory = setCategory;
-          return <AppLocaleProvider locale="zh-CN"><div className={'vela-window platform-darwin nav-rail-layout right-collapsed' + (away ? ' rail-away' : '') + (collapsed ? ' left-collapsed' : '')} style={{height:'100vh'}}>
+          return <AppLocaleProvider locale="zh-CN"><div className={'vela-window platform-darwin nav-rail-layout right-collapsed' + (away ? ' rail-away' : '') + (sidebarCollapsed ? ' left-collapsed' : '')} style={{height:'100vh'}}>
             <NavRail active={category} platform="darwin" agentInboxBadge={3} onSelect={next => { window.selected.push(next); setCategory(next); }} />
             <Sidebar railMode collapsed={collapsed} platform="darwin" resize={{widths:{left:248,right:300,workbench:500},startResize(){},nudge(){},reset(){}}}
               conversations={conversations} activeConversationId="a0" settingsOpen={false} settingsLabel="设置"
@@ -176,7 +176,14 @@ if (!process.versions.electron) {
       assert.equal(open.paperRadius, "0px", "Category paper has a square top-left corner while open");
       const paperCorners = () => evaluate("(() => { const style = getComputedStyle(document.querySelector('.main-chat-view'), '::after'); return [style.borderTopLeftRadius, style.borderTopRightRadius, style.borderBottomRightRadius, style.borderBottomLeftRadius]; })()");
       assert.deepEqual(await paperCorners(), ["0px", "12px", "12px", "0px"], "Only the category paper's left corners are square");
-      await evaluate("document.querySelector('.nav-rail-item[aria-label=\"定时任务\"]').click()");
+      const selectCategory = label => evaluate(`new Promise(resolve => {
+        document.querySelector('.nav-rail-item[aria-label=' + CSS.escape(${JSON.stringify(label)}) + ']').click();
+        requestAnimationFrame(() => resolve(document.querySelector('.main-stage').getBoundingClientRect().left));
+      })`);
+      assert.equal(await selectCategory("定时任务"), open.cardLeft, "Category sidebar occupies the home sidebar slot on the first frame");
+      assert.equal(await selectCategory("主页"), open.paperLeft, "Returning home immediately restores the open sidebar");
+      assert.deepEqual(await evaluate("window.selected"), ["scheduledTasks", "home"]);
+      await evaluate("document.querySelector('.titlebar-drag-row .icon-btn-ghost').click()");
       // 收起时直角纸面滑到固定的圆角遮罩下，侧栏原地不动、内容不挤压不淡出。
       let sawSliding = false;
       let previousLeft = open.paperLeft;
@@ -202,16 +209,12 @@ if (!process.versions.electron) {
       assert.deepEqual(await paperCorners(), ["0px", "12px", "12px", "0px"], "Collapsed paper stays square underneath the corner mask");
       assert.equal(closed.paperLeft, open.cardLeft, "Paper and card share the same left edge, open or closed");
       assert.equal(await evaluate("document.querySelector('.sidebar-left').inert"), true, "Hidden sidebar leaves the tab order");
-      assert.equal(await evaluate("document.querySelector('.nav-rail-item[aria-current=page]').getAttribute('aria-label')"), "定时任务");
-      await evaluate("document.querySelector('.nav-rail-item[aria-label=\"主页\"]').click()");
-      await until("(() => { const paper = document.querySelector('.main-chat-view').getBoundingClientRect().left; const sidebar = document.querySelector('.sidebar-left').getBoundingClientRect(); return paper === sidebar.right; })()");
-      assert.deepEqual(await evaluate("window.selected"), ["scheduledTasks", "home"]);
-      assert.deepEqual(await paperCorners(), ["0px", "12px", "12px", "0px"], "Returning home restores square sidebar seams");
-      await evaluate("document.querySelector('.titlebar-drag-row .icon-btn-ghost').click()");
-      await until("document.querySelector('.vela-window').classList.contains('left-collapsed') && document.querySelector('.main-chat-view').getBoundingClientRect().left === document.querySelector('.nav-rail').getBoundingClientRect().right + 6");
-      assert.deepEqual(await paperCorners(), ["0px", "12px", "12px", "0px"], "Manual collapse does not switch the paper's shape");
+      assert.equal(await selectCategory("定时任务"), open.cardLeft);
+      assert.equal(await selectCategory("主页"), closed.paperLeft, "Returning home preserves a manually collapsed sidebar");
       await evaluate("window.setSidebarCollapsed(false)");
-      await until("!document.querySelector('.vela-window').classList.contains('left-collapsed') && document.querySelector('.main-chat-view').getBoundingClientRect().left === document.querySelector('.sidebar-left').getBoundingClientRect().right");
+      await until("!document.querySelector('.vela-window').classList.contains('left-collapsed')");
+      assert.equal(await selectCategory("设置"), open.cardLeft);
+      assert.equal(await selectCategory("主页"), open.paperLeft, "A rapid round trip finishes an interrupted manual toggle");
       assert.deepEqual(await paperCorners(), ["0px", "12px", "12px", "0px"], "Reopening the home sidebar restores square left corners");
       // 定格展开/收起的中间帧并检查真实像素：圆弧留在窗口左侧，不跟纸面走，
       // 同一位移的画面不受 left-collapsed 状态影响（不能先切角再开始移动）。

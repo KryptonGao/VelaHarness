@@ -231,12 +231,14 @@ export function App() {
   }, [floatingInfo]);
   const resize = useSidebarResize(!leftCollapsed, contextSidebarOpen, floatingInfo);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  // 分类视图：最左侧多一列图标栏；离开主页（打开任何页面）时侧栏整体收起。
+  // In rail layout each category supplies the sidebar next to the icon rail.
   const railMode = useNavLayout() === "rail";
   const pageOpen = settingsOpen || scheduledTasksOpen || recipesOpen || prInboxOpen || agentInboxOpen;
   const railAway = railMode && pageOpen;
+  const settingsVisible = settingsOpen && !scheduledTasksOpen && !recipesOpen && !prInboxOpen && !agentInboxOpen;
   const navCategory: NavCategory = settingsOpen ? "settings" : scheduledTasksOpen ? "scheduledTasks" : recipesOpen ? "recipes"
     : agentInboxOpen ? "agentInbox" : prInboxOpen ? "prInbox" : "home";
+  const pageResize = railMode ? resize : undefined;
   const navActions = useRef({ back: () => {}, forward: () => {} });
   const menuActionHandler = useRef<(action: MenuAction) => void>(() => {});
   const workspaceKey = project.workspace?.current ?? "";
@@ -1075,7 +1077,7 @@ export function App() {
             </div>
           </ScreenPresence>
           <ScreenPresence present={onboardingComplete} className="app-screen-main">
-            <div className={`vela-window platform-${platform}${railMode ? " nav-rail-layout" : ""}${fullscreen ? " workbench-fullscreen" : ""}${railAway ? " rail-away" : ""}${leftCollapsed || railAway ? " left-collapsed" : ""}${!contextSidebarOpen ? " right-collapsed" : ""}${floatingInfo ? " layout-floating" : ""}`}>
+            <div className={`vela-window platform-${platform}${railMode ? " nav-rail-layout" : ""}${fullscreen ? " workbench-fullscreen" : ""}${railAway ? " rail-away" : ""}${leftCollapsed ? " left-collapsed" : ""}${!contextSidebarOpen ? " right-collapsed" : ""}${floatingInfo ? " layout-floating" : ""}`}>
               {railMode ? <NavRail active={navCategory} modelProvider={session.state?.session.modelProvider} platform={platform} agentInboxBadge={agentInbox.badge} onSelect={selectNavCategory} /> : null}
               <Sidebar
                 prInboxOpen={prInboxOpen}
@@ -1290,26 +1292,27 @@ export function App() {
                     onNewChat={cwd => leaveRecipes(() => { setOverviewWorkspace(null); void session.newChat(cwd); })}
                     onEditWorkspace={setEditingWorkspace} onOpenScheduledTasks={openScheduledTasks} /> : null}
                 </Presence>
-                <Presence present={prInboxOpen} keepMounted className="main-stage-pane scheduled-tasks-stage">
-                  <PrInboxPage active={prInboxOpen} sidebarCollapsed={leftCollapsed && !railMode} onToggleSidebar={toggleLeft}
+                <Presence present={prInboxOpen} keepMounted className="main-stage-pane page-stage">
+                  <PrInboxPage sidebarResize={pageResize} active={prInboxOpen} sidebarCollapsed={leftCollapsed && !railMode} onToggleSidebar={toggleLeft}
                     onOpenConversation={(id) => { setPrInboxOpen(false); setAgentInboxOpen(false); openMainConversation(id); }} />
                 </Presence>
-                <Presence present={agentInboxOpen} keepMounted className="main-stage-pane scheduled-tasks-stage">
-                  <AgentInboxPage active={agentInboxOpen} sidebarCollapsed={leftCollapsed && !railMode} onToggleSidebar={toggleLeft}
+                <Presence present={agentInboxOpen} keepMounted className="main-stage-pane page-stage">
+                  <AgentInboxPage sidebarResize={pageResize} active={agentInboxOpen} sidebarCollapsed={leftCollapsed && !railMode} onToggleSidebar={toggleLeft}
                     messageStore={session.messageStore} ensureTranscript={session.ensureTranscript}
                     navigation={agentInboxNav} onNavigationHandled={handleAgentInboxNavigated}
                     catalog={models.catalog} catalogError={models.catalogError}
                     onOpenConversation={(id) => { setAgentInboxOpen(false); openMainConversation(id); }} />
                 </Presence>
-                <Presence present={recipesOpen} className="main-stage-pane scheduled-tasks-stage">
-                  <TaskRecipesPage catalog={models.catalog} workspace={project.workspace?.current ?? null}
+                <Presence present={recipesOpen} className="main-stage-pane page-stage">
+                  <TaskRecipesPage sidebarResize={pageResize} catalog={models.catalog} workspace={project.workspace?.current ?? null}
                     workspaces={[...new Set([...(project.workspace?.recents.map(r => r.path) ?? []), ...session.conversations.filter(c => c.hasWorkspace !== false).map(conversationWorkspace)])]}
                     locale={preferences.locale} sidebarCollapsed={leftCollapsed && !railMode} onToggleSidebar={toggleLeft}
                     seed={recipeSeed} onConsumeSeed={consumeRecipeSeed} selectedRecipe={recipeToUse} onConsumeSelection={consumeRecipeSelection} registerLeaveGuard={registerRecipeLeave}
                     onOpenConversation={id => leaveRecipes(() => { openMainConversation(id); })} />
                 </Presence>
-                <Presence present={scheduledTasksOpen} className="main-stage-pane scheduled-tasks-stage">
+                <Presence present={scheduledTasksOpen} className="main-stage-pane page-stage scheduled-tasks-stage">
                   <ScheduledTasksPage
+                    sidebarResize={pageResize}
                     catalog={models.catalog}
                     catalogError={models.catalogError}
                     workspace={project.workspace?.current ?? null}
@@ -1322,9 +1325,9 @@ export function App() {
                     }}
                   />
                 </Presence>
-                <Presence present={settingsOpen && !scheduledTasksOpen && !recipesOpen && !prInboxOpen && !agentInboxOpen} className="main-stage-pane">
+                <Presence present={settingsVisible} className="main-stage-pane page-stage settings-stage">
                   <SettingsView
-                    sidebarResize={railMode ? resize : undefined}
+                    sidebarResize={pageResize}
                     onPreviewSound={sounds.preview}
                     preferences={preferences}
                     platform={platform}

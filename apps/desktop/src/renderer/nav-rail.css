@@ -1,8 +1,12 @@
 /*
  * 分类视图：最左侧是一列图标栏，与侧栏共用同一套毛玻璃；
- * 主页显示「侧栏 + 对话」，其余分类收起侧栏，内容区纸面直接贴着图标栏。
+ * 主页与各分类的侧栏共用图标栏旁的位置。
  */
-.vela-window.nav-rail-layout { --nav-rail-width: 52px; }
+.vela-window.nav-rail-layout {
+  --nav-rail-width: 52px;
+  --nav-rail-item-size: 36px;
+  --nav-rail-group-inset: 2px;
+}
 
 /*
  * 整个窗口只有一张玻璃：图标栏、侧栏、对话区顶栏和四周的窄边都不再各画一层，
@@ -101,7 +105,7 @@
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  padding: 2px 0;
+  padding: var(--nav-rail-group-inset) 0;
 }
 .nav-rail-footer {
   margin-top: auto;
@@ -110,8 +114,8 @@
 
 .nav-rail-item {
   position: relative;
-  width: 36px;
-  height: 36px;
+  width: var(--nav-rail-item-size);
+  height: var(--nav-rail-item-size);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -130,6 +134,26 @@
   box-shadow: 0 1px 5px rgba(0, 0, 0, 0.08);
 }
 .nav-rail-icon { display: flex; }
+
+/* Align the home wordmark and category headings with the first rail button. */
+.nav-rail-layout .page-nav-title {
+  display: flex;
+  align-items: center;
+  min-height: var(--nav-rail-item-size);
+  margin-block: var(--nav-rail-group-inset) 4px;
+  padding-block: 0;
+}
+.sidebar-left.is-rail .sidebar-left-header {
+  padding-top: 0;
+  gap: var(--nav-rail-group-inset);
+}
+.sidebar-left.is-rail .titlebar-drag-row {
+  height: var(--header-height);
+  margin-bottom: 0;
+}
+.sidebar-left.is-rail .workspace-title-row { min-height: var(--nav-rail-item-size); }
+.sidebar-left.is-rail .workspace-dropdown-trigger { display: flex; }
+.sidebar-left.is-rail .vela-lockup { top: auto; }
 
 .nav-rail-badge {
   position: absolute;
@@ -152,9 +176,9 @@
 .nav-rail-layout.platform-darwin .titlebar-drag-row { padding-left: 12px; }
 /* 红绿灯的原生点击区比圆点大一圈，第一个控件要与经典布局落在同一位置（距窗口左缘约 78px 起），否则会被红绿灯吃掉点击。 */
 .nav-rail-layout.platform-darwin.left-collapsed .main-chat-header,
-.nav-rail-layout.platform-darwin.left-collapsed .settings-header,
+.nav-rail-layout.platform-darwin:is(.left-collapsed, .rail-away) .settings-header,
 .nav-rail-layout.left-collapsed:not(.platform-darwin) .main-chat-header,
-.nav-rail-layout.left-collapsed:not(.platform-darwin) .settings-header {
+.nav-rail-layout:is(.left-collapsed, .rail-away):not(.platform-darwin) .settings-header {
   /* 前进/后退按钮浮在窗口左上角，图标栏（+6px 边）之外的第一个控件要排到它们右边。 */
   padding-left: calc(var(--nav-history-left) + var(--nav-history-width) + 8px - var(--nav-rail-width, 52px) - 6px);
 }
@@ -165,7 +189,7 @@
  *   · 对话区的左缘 = 图标栏 + 6px 边 + --nav-open（负外边距实现，纸面盖在侧栏上方）；
  *   · 侧栏只露出这条边左侧的部分（clip-path），被盖住的内容直接被裁掉，不淡出、不挤压。
  * 左侧圆角遮罩固定在收起位置，纸面从遮罩下抽出；收起后的纸面与卡片左缘都离图标栏 6px。
- * 离开主页时同样收起，不动用户保存的折叠状态。
+ * 只有主页侧栏的手动开合使用这个动画。
  */
 @property --nav-open {
   syntax: "<length>";
@@ -177,7 +201,11 @@
   transition: --nav-open var(--transition-sidebar);
 }
 .vela-window.nav-rail-layout.left-collapsed { --nav-open: 0px; }
-/* 拖动侧栏宽度时跟着指针走，不要追动画。 */
+/* Category panes include their own sidebar. Place them at the rail immediately
+ * while the window retains the user's home sidebar width and collapse state. */
+.nav-rail-layout.rail-away > :is(.sidebar-left, .main-stage) { --nav-open: 0px; }
+/* Finish a manual toggle when leaving home. Resizing also tracks the pointer immediately. */
+.vela-window.nav-rail-layout.rail-away,
 :root[data-resizing="true"] .vela-window.nav-rail-layout { transition: none; }
 
 .nav-rail-layout .sidebar-left,
@@ -217,7 +245,7 @@
   right: -12px;
   z-index: -1;
   border-radius: var(--glass-fillet) 0 0 var(--glass-fillet);
-  background: var(--bg-surface-subtle);
+  background: var(--sidebar-card-fill);
   pointer-events: none;
 }
 /*
@@ -225,8 +253,9 @@
  * 叠加后的不透明度比四周玻璃高一档（亮色约 83%、深色约 93%），颜色也与玻璃叠色不同，仍能与边框区分开。
  * 再提高叠色的不透明度，窗口底层的毛玻璃就看不出来了；想更透就调低。
  */
-:root[data-sidebar-card="glass"][data-scheme="light"] .sidebar-left.is-rail::before { background: rgb(from var(--bg-surface-subtle) r g b / 0.65); }
-:root[data-sidebar-card="glass"][data-scheme="dark"] .sidebar-left.is-rail::before { background: rgb(from var(--bg-surface-subtle) r g b / 0.5); }
+:root { --sidebar-card-fill: var(--bg-surface-subtle); }
+:root[data-sidebar-card="glass"][data-scheme="light"] { --sidebar-card-fill: rgb(from var(--bg-surface-subtle) r g b / 0.65); }
+:root[data-sidebar-card="glass"][data-scheme="dark"] { --sidebar-card-fill: rgb(from var(--bg-surface-subtle) r g b / 0.5); }
 .sidebar-left.is-rail .sidebar-scroll-area { margin-bottom: var(--glass-edge-inset); }
 
 /* 设置上方的 Codex 剩余额度圆环；弹窗向右展开，盖在内容区上。 */

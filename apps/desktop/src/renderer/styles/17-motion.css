@@ -17,7 +17,7 @@
 }
 .vela-window.left-collapsed .main-stage { --stage-left-inset: var(--glass-edge-inset); }
 .vela-window.right-collapsed .main-stage,
-.main-stage:has(.settings-view) { --stage-right-inset: var(--glass-edge-inset); }
+.main-stage:has(> .settings-stage:not(.is-overlay)) { --stage-right-inset: var(--glass-edge-inset); }
 .main-stage-pane {
   position: relative;
   flex: 1;
@@ -25,7 +25,12 @@
   min-height: 0;
   display: flex;
   opacity: 1;
+}
+.vela-window:not(.nav-rail-layout) .main-stage-pane {
   transition: opacity var(--transition-smooth);
+}
+@starting-style {
+  .vela-window:not(.nav-rail-layout) .main-stage-pane { opacity: 0; }
 }
 .main-stage-pane.is-hidden {
   opacity: 0;

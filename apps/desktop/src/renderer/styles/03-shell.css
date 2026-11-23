@@ -74,7 +74,8 @@
   clip-path: inset(0 round 0 0 var(--paper-right-radius) var(--paper-left-radius));
 }
 .workbench-content,
-.settings-body {
+.settings-body,
+.page-columns {
   border-radius: var(--paper-left-radius) var(--paper-right-radius) var(--paper-right-radius) var(--paper-left-radius);
   overflow: clip;
 }
@@ -138,12 +139,10 @@
   outline: none;
 }
 /* 玻璃侧栏接缝在悬停和拖动时也不画线,键盘聚焦时保留可见提示。 */
-.sidebar-left > .sidebar-resize-handle::after,
-.sidebar-right > .sidebar-resize-handle::after {
+:is(.sidebar-left, .sidebar-right, .page-columns) > .sidebar-resize-handle::after {
   content: none;
 }
-.sidebar-left > .sidebar-resize-handle:focus-visible,
-.sidebar-right > .sidebar-resize-handle:focus-visible {
+:is(.sidebar-left, .sidebar-right, .page-columns) > .sidebar-resize-handle:focus-visible {
   outline: 2px solid var(--accent-blue);
   outline-offset: -2px;
 }
