@@ -6,6 +6,7 @@
   --radius-xl: 20px;
   --radius-2xl: 22px;
   --radius-pill: 9999px;
+  --shadow-change-summary: 0 1px 2px rgb(0 0 0 / 8%);
   /*
    * 字体按「西文 / 中日韩文」分开选:同一条栈里西文字体在前、中日韩字体在后,
    * 浏览器逐字符取第一个有该字形的字体,所以两者可以各选各的。
@@ -87,6 +88,7 @@
   --bg-card-surface: #ffffff;
   --bg-surface-subtle: #f7f7f8;
   --bg-elevated: #ffffff;
+  --bg-change-summary: #ffffff;
   --bg-code: #f5f5f6;
   --bg-hover: #f0f1f2;
   --scrollbar-thumb: rgba(0, 0, 0, 0.12);
@@ -95,6 +97,8 @@
   --overlay: rgba(15, 23, 42, 0.18);
   --text-primary: #202124;
   --text-secondary: #484b50;
+  --text-change-summary: #484b50;
+  --text-change-summary-hover: #202124;
   --text-muted: #686d75;
   --text-dim: #a1a6ad;
   --accent-blue: #2563eb;
@@ -149,6 +153,7 @@
   --bg-card-surface: #242424;
   --bg-surface-subtle: #2a2a2a;
   --bg-elevated: #262626;
+  --bg-change-summary: var(--bg-chat);
   --bg-code: #161616;
   --bg-hover: rgba(255, 255, 255, 0.06);
   --scrollbar-thumb: rgba(255, 255, 255, 0.18);
@@ -157,6 +162,8 @@
   --overlay: rgba(0, 0, 0, 0.5);
   --text-primary: #ececec;
   --text-secondary: #c4c4c4;
+  --text-change-summary: var(--text-secondary);
+  --text-change-summary-hover: var(--text-primary);
   --text-muted: #8c8c8c;
   --text-dim: #6c6c6c;
   --accent-blue: #4f8cff;
