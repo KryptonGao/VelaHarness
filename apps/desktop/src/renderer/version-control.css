@@ -712,6 +712,7 @@
 
 .vc-changes {
   flex: 1;
+  min-width: 0;
   min-height: 0;
   display: flex;
   flex-direction: row;
@@ -941,6 +942,10 @@
   flex-direction: column;
 }
 
+.vc-root[data-vc-layout="classic"] .vc-diff-pane {
+  container: classic-diff / inline-size;
+}
+
 .vc-diff-head {
   flex: 0 0 46px;
   padding: 0 16px;
@@ -967,6 +972,30 @@
 
 .vc-diff-head .vc-stats {
   margin-left: auto;
+}
+
+.vc-diff-head .vc-chip {
+  min-height: calc(24px * var(--ui-scale));
+  white-space: nowrap;
+}
+
+.vc-diff-head > .vc-icon-btn {
+  flex-shrink: 0;
+}
+
+@container classic-diff (max-width: 38em) {
+  .vc-diff-head {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    flex: none;
+    padding-block: 7px;
+  }
+
+  .vc-diff-head .vc-diff-options {
+    grid-column: 1 / 3;
+    flex-wrap: wrap;
+    margin-left: 0;
+  }
 }
 
 .vc-diff-scroll {
