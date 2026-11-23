@@ -1,134 +1,134 @@
 {
-  "version": "1.2.39",
+  "version": "1.3.0",
   "locales": {
     "en": {
-      "summary": "Expand the workbench to fill the window and keep your conversation within reach in a floating chat.",
+      "summary": "Work in a borderless window with translucent sidebars, and connect multiple accounts per provider, including ChatGPT sign-in.",
       "highlights": [
         {
-          "title": "Fullscreen workbench",
-          "body": "Open a workbench tab full screen. Move, resize, or hide the floating chat, or switch to the Chat tab for the full conversation."
+          "title": "Borderless layout",
+          "body": "Switch to a borderless window with translucent sidebars, and set how transparent the glass is when the window is not focused."
         },
         {
-          "title": "Web search results",
-          "body": "Expand a group of consecutive searches and select a page title to open it in the browser panel."
+          "title": "Multiple accounts and ChatGPT sign-in",
+          "body": "Add several accounts for one provider and sign in with ChatGPT to use Codex. The Codex logo shows your remaining quota."
         },
         {
-          "title": "Subagent reasoning effort",
-          "body": "Choose the reasoning levels available to each subagent model. A subagent can inherit the closest allowed level."
+          "title": "Codex speed and reasoning levels",
+          "body": "Choose Codex response speed and define the reasoning levels each custom model offers. Open sessions pick up changes right away."
         },
         {
-          "title": "Codex quota ring",
-          "body": "Check your remaining Codex quota above Settings in the navigation rail. Set the percentage at which the ring turns yellow."
+          "title": "File preview comments",
+          "body": "Add line comments to a file preview and send them to the chat as context."
         }
       ],
       "improvements": [
-        "Floating environment cards leave room for chat content, and conflict warnings stay with the turn that triggered them.",
-        "The default window size is 1280 × 800. Agent mode appears as Build in chat controls.",
-        "Scheduled tasks can reuse the cached prompt prefix across turns on the same day."
+        "The category pages share one resizable navigation column. Conversation details open in workbench tabs, and Git opens directly from a workspace.",
+        "Vela can prevent idle sleep while agents are running. The chat model picker is simpler, and model length fields show token units.",
+        "Classic diff controls fit narrow panes, tab indicators stay in place when tabs resize, and syntax grammars that fail to load are retried."
       ]
     },
     "zh-CN": {
-      "summary": "工作台现在可以铺满窗口。使用悬浮聊天窗，就能边查看工作台内容边继续对话。",
+      "summary": "使用带半透明侧边栏的无边框窗口，并为同一服务商连接多个账号，包括 ChatGPT 登录。",
       "highlights": [
         {
-          "title": "全屏工作台",
-          "body": "将工作台标签页展开至全屏。聊天浮窗可以移动、调整高度或隐藏，也可以切到聊天标签页查看完整对话。"
+          "title": "无边框布局",
+          "body": "切换到带半透明侧边栏的无边框窗口，并可设置窗口失焦时玻璃效果的透明度。"
         },
         {
-          "title": "网页搜索结果",
-          "body": "连续的网页搜索会合并显示。展开后，点击网页标题即可在浏览器面板中打开。"
+          "title": "多账号与 ChatGPT 登录",
+          "body": "可为同一服务商添加多个账号，并通过 ChatGPT 登录使用 Codex。Codex 标志会显示剩余额度。"
         },
         {
-          "title": "子代理推理强度",
-          "body": "为每个子代理模型选择允许使用的推理强度。子代理可以继承最接近的可用档位。"
+          "title": "Codex 速度与推理强度",
+          "body": "可选择 Codex 的响应速度，并为每个自定义模型设定可用的推理强度。已打开的对话会立即同步更改。"
         },
         {
-          "title": "Codex 额度圆环",
-          "body": "在导航栏的设置按钮上方查看剩余额度。可自行设定圆环变黄的提醒阈值。"
+          "title": "文件预览评论",
+          "body": "可在文件预览中添加行评论，并作为上下文发送到聊天。"
         }
       ],
       "improvements": [
-        "对话内容会为悬浮环境卡片留出空间，冲突提示只显示在触发它的那轮对话中。",
-        "默认窗口大小调整为 1280 × 800，聊天控件中的 Agent 模式显示为 Build。",
-        "定时任务可在同一天的多轮对话中复用提示词前缀缓存。"
+        "各分类页面共用一栏可调整宽度的导航。对话详情可在工作台标签页中打开，也可直接从工作区打开 Git。",
+        "智能体运行期间，Vela 可阻止系统空闲休眠。聊天模型选择器更简洁，模型长度字段会显示 token 单位。",
+        "经典差异视图的控件适配窄面板，标签页尺寸变化时指示条保持位置，语法高亮加载失败时会自动重试。"
       ]
     },
     "zh-TW": {
-      "summary": "工作台現在可以填滿視窗。透過聊天浮窗，你可以一邊查看工作台內容，一邊繼續對話。",
+      "summary": "使用帶半透明側邊欄的無邊框視窗，並為同一服務商連接多個帳號，包括 ChatGPT 登入。",
       "highlights": [
         {
-          "title": "全螢幕工作台",
-          "body": "將工作台分頁展開至全螢幕。聊天浮窗可以移動、調整高度或隱藏，也可以切到聊天分頁查看完整對話。"
+          "title": "無邊框版面",
+          "body": "切換到帶半透明側邊欄的無邊框視窗，並可設定視窗失焦時玻璃效果的透明度。"
         },
         {
-          "title": "網頁搜尋結果",
-          "body": "連續的網頁搜尋會合併顯示。展開後，點選網頁標題即可在瀏覽器面板中開啟。"
+          "title": "多帳號與 ChatGPT 登入",
+          "body": "可為同一服務商新增多個帳號，並透過 ChatGPT 登入使用 Codex。Codex 標誌會顯示剩餘額度。"
         },
         {
-          "title": "子代理推理強度",
-          "body": "為每個子代理模型選擇允許使用的推理強度。子代理可以繼承最接近的可用等級。"
+          "title": "Codex 速度與推理強度",
+          "body": "可選擇 Codex 的回應速度，並為每個自訂模型設定可用的推理強度。已開啟的對話會立即同步變更。"
         },
         {
-          "title": "Codex 額度圓環",
-          "body": "在導覽列的設定按鈕上方查看剩餘額度。你可以設定圓環變黃的提醒門檻。"
+          "title": "檔案預覽評論",
+          "body": "可在檔案預覽中新增行評論，並作為上下文傳送到聊天。"
         }
       ],
       "improvements": [
-        "對話內容會為浮動環境卡片留出空間，衝突提示只會顯示在觸發它的那一輪對話中。",
-        "預設視窗大小調整為 1280 × 800，聊天控制項中的 Agent 模式顯示為 Build。",
-        "排程任務可在同一天的多輪對話中重複使用提示詞前綴快取。"
+        "各分類頁面共用一欄可調整寬度的導覽。對話詳情可在工作台分頁中開啟，也可直接從工作區開啟 Git。",
+        "代理執行期間，Vela 可防止系統閒置休眠。聊天模型選擇器更簡潔，模型長度欄位會顯示 token 單位。",
+        "經典差異檢視的控制項適應窄面板，分頁尺寸變化時指示條保持位置，語法高亮載入失敗時會自動重試。"
       ]
     },
     "ja": {
-      "summary": "ワークベンチをウィンドウいっぱいに広げ、作業しながらフローティングチャットで会話を続けられます。",
+      "summary": "半透明のサイドバーを備えたボーダーレスウィンドウで作業できます。プロバイダーごとに複数のアカウントを接続でき、ChatGPT でのサインインにも対応します。",
       "highlights": [
         {
-          "title": "全画面ワークベンチ",
-          "body": "ワークベンチのタブを全画面で開けます。チャットは移動、高さの調整、非表示ができ、チャットタブに切り替えると会話全体を読めます。"
+          "title": "ボーダーレスレイアウト",
+          "body": "半透明のサイドバーを備えたボーダーレスウィンドウに切り替えられます。ウィンドウが非アクティブのときのガラスの透明度も設定できます。"
         },
         {
-          "title": "ウェブ検索結果",
-          "body": "連続した検索をまとめて表示します。展開してページ名を選ぶと、ブラウザーパネルで開きます。"
+          "title": "複数アカウントと ChatGPT サインイン",
+          "body": "1 つのプロバイダーに複数のアカウントを追加でき、ChatGPT でサインインして Codex を使えます。Codex のロゴに残りの利用枠が表示されます。"
         },
         {
-          "title": "サブエージェントの推論強度",
-          "body": "モデルごとに使用できる推論強度を選べます。サブエージェントは、許可された中で最も近いレベルを引き継げます。"
+          "title": "Codex の速度と推論強度",
+          "body": "Codex の応答速度を選び、カスタムモデルごとに使える推論強度を設定できます。開いているセッションにはすぐ反映されます。"
         },
         {
-          "title": "Codex の残量リング",
-          "body": "ナビゲーションバーの設定ボタンの上で Codex の残りの利用枠を確認できます。リングが黄色に変わる残量も設定できます。"
+          "title": "ファイルプレビューのコメント",
+          "body": "ファイルプレビューの行にコメントを付け、コンテキストとしてチャットに送れます。"
         }
       ],
       "improvements": [
-        "環境カードが会話に重ならないよう余白を確保し、競合の警告は該当するターンに表示するようにしました。",
-        "既定のウィンドウサイズを 1280 × 800 に変更し、チャットの Agent モードの表記を Build に統一しました。",
-        "スケジュールタスクでは、同じ日の複数のターンでプロンプトの先頭部分のキャッシュを再利用できます。"
+        "カテゴリページで幅を変更できるナビゲーションを共有します。会話の詳細はワークベンチのタブで開け、ワークスペースから直接 Git も開けます。",
+        "エージェントの実行中は、アイドルスリープを防止できます。チャットのモデルピッカーを簡素化し、モデルの長さ欄にトークンの単位を表示します。",
+        "従来の差分表示のコントロールを狭いペインに収め、タブのサイズが変わってもインジケーターの位置を保ちます。構文グラマーの読み込みに失敗した場合は再試行します。"
       ]
     },
     "ko": {
-      "summary": "워크벤치를 창 전체로 넓히고 플로팅 채팅에서 대화를 이어갈 수 있습니다.",
+      "summary": "반투명 사이드바가 있는 테두리 없는 창에서 작업하고, 제공업체마다 여러 계정을 연결할 수 있습니다. ChatGPT 로그인도 지원합니다.",
       "highlights": [
         {
-          "title": "전체 화면 워크벤치",
-          "body": "워크벤치 탭을 전체 화면으로 열 수 있습니다. 채팅 창을 옮기거나 높이를 조절하거나 숨길 수 있고, 채팅 탭에서는 전체 대화를 볼 수 있습니다."
+          "title": "테두리 없는 레이아웃",
+          "body": "반투명 사이드바가 있는 테두리 없는 창으로 전환할 수 있습니다. 창이 비활성일 때 유리 효과의 투명도도 설정할 수 있습니다."
         },
         {
-          "title": "웹 검색 결과",
-          "body": "연속된 검색을 한데 묶어 표시합니다. 묶음을 펼치고 페이지 제목을 선택하면 브라우저 패널에서 열립니다."
+          "title": "여러 계정과 ChatGPT 로그인",
+          "body": "한 제공업체에 계정을 여러 개 추가하고 ChatGPT로 로그인해 Codex를 사용할 수 있습니다. Codex 로고에 남은 한도가 표시됩니다."
         },
         {
-          "title": "하위 에이전트 추론 강도",
-          "body": "하위 에이전트 모델마다 허용할 추론 강도를 선택할 수 있습니다. 하위 에이전트는 허용된 단계 중 가장 가까운 값을 물려받을 수 있습니다."
+          "title": "Codex 속도와 추론 강도",
+          "body": "Codex 응답 속도를 고르고 사용자 지정 모델마다 사용할 추론 강도를 정할 수 있습니다. 열려 있는 세션에는 바로 반영됩니다."
         },
         {
-          "title": "Codex 잔여 한도",
-          "body": "탐색 모음의 설정 버튼 위에 있는 링에서 남은 Codex 한도를 확인할 수 있습니다. 링이 노란색으로 바뀌는 기준도 설정할 수 있습니다."
+          "title": "파일 미리보기 댓글",
+          "body": "파일 미리보기의 줄에 댓글을 달고 컨텍스트로 채팅에 보낼 수 있습니다."
         }
       ],
       "improvements": [
-        "채팅 내용이 플로팅 환경 카드에 가리지 않도록 공간을 확보하고, 충돌 경고는 해당 턴에만 표시합니다.",
-        "기본 창 크기를 1280 × 800으로 변경하고 채팅 컨트롤의 Agent 모드를 Build로 표시합니다.",
-        "예약 작업은 같은 날 여러 턴에 걸쳐 프롬프트 접두사 캐시를 재사용할 수 있습니다."
+        "카테고리 페이지가 너비를 조절할 수 있는 탐색 영역을 공유합니다. 대화 상세 정보는 워크벤치 탭에서 열 수 있고, 작업 공간에서 바로 Git을 열 수도 있습니다.",
+        "에이전트가 실행되는 동안 유휴 절전을 막을 수 있습니다. 채팅 모델 선택기가 더 간결해졌고, 모델 길이 필드에 토큰 단위가 표시됩니다.",
+        "기본 diff 컨트롤이 좁은 창에 맞게 표시되고, 탭 크기가 바뀌어도 표시선 위치가 유지됩니다. 구문 문법 로드에 실패하면 다시 시도합니다."
       ]
     }
   }
