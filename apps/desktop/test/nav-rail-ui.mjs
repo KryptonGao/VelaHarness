@@ -145,12 +145,12 @@ if (!process.versions.electron) {
           document.documentElement.style.setProperty('--glass-opacity', '0.4'); window.setBorderless(true)`);
         const mode = "document.querySelector('.vela-window').dataset.trafficLightMaterial";
         // Black/white backdrops measure effective alpha after all CSS layers are composited.
-        const backdropResponse = async () => {
+        const backdropResponse = async (y = 24, xs = [22, 55, 65]) => {
           const sample = async color => {
             await evaluate(`document.body.style.background = '${color}'; new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))`);
             const image = await win.webContents.capturePage();
             const bitmap = image.toBitmap({ scaleFactor: 1 });
-            return [22, 55, 65].map(x => bitmap[(24 * image.getSize().width + x) * 4]);
+            return xs.map(x => bitmap[(y * image.getSize().width + x) * 4]);
           };
           const black = await sample('black'), white = await sample('white');
           return white.map((v, i) => v - black[i]);
@@ -160,7 +160,23 @@ if (!process.versions.electron) {
         assert.deepEqual(await evaluate(`[${divider}.width, ${divider}.left, ${divider}.top, ${divider}.pointerEvents]`), ['1px', '55px', '52px', 'none'], 'Hairline sits in the gutter below the titlebar');
         // 40% base glass + the list's 45% tint leaves 33% backdrop contribution.
         assert.ok((await backdropResponse()).every(d => Math.abs(d - 255 * 0.33) < 3), 'Rail, gutter and list use the higher translucent alpha');
-        await evaluate('window.setSidebarCollapsed(true)');
+        const slide = "document.querySelector('.vela-window').getAnimations().find(a => a.transitionProperty === '--nav-open')";
+        await evaluate(`document.querySelector('.titlebar-drag-row .icon-btn-ghost').click();
+          new Promise(requestAnimationFrame).then(() => ${slide}.pause())`);
+        assert.ok(await evaluate("document.querySelector('.main-stage').offsetLeft > navigator.windowControlsOverlay.getTitlebarAreaRect().left"),
+          'The first collapse frame still exposes the list under the traffic lights');
+        const assertCollapsingList = async () => {
+          const [listLeft, paperLeft] = await evaluate("['.sidebar-left', '.main-stage'].map(s => document.querySelector(s).getBoundingClientRect().left)");
+          assert.ok(paperLeft > listLeft + 2, 'The list is still exposed');
+          const listCenter = Math.floor((listLeft + paperLeft) / 2);
+          assert.deepEqual(await backdropResponse(350, [22, 55, listCenter]), [0, 0, 0], 'Rail, gutter and exposed list are opaque');
+          const [railBase, listBase] = await evaluate("['.vela-window', '.sidebar-left'].map(s => getComputedStyle(document.querySelector(s)).backgroundColor)");
+          assert.equal(listBase, railBase, 'The sliding list paints the same opaque backing as the rail');
+        };
+        await assertCollapsingList();
+        await evaluate(`${slide}.currentTime = ${slide}.effect.getTiming().duration / 2`);
+        await assertCollapsingList();
+        await evaluate(`${slide}.play()`);
         await until(`${mode} === 'paper' && document.querySelector('.main-stage').offsetLeft === 58`);
         assert.equal(await evaluate(`${divider}.content`), 'none', 'No list divider when the sidebar is collapsed');
         assert.deepEqual(await backdropResponse(), [0, 0, 0], 'No backdrop shows through when the lights cross onto paper');

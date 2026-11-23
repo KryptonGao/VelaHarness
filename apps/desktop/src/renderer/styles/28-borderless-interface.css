@@ -55,7 +55,11 @@
     linear-gradient(var(--list-tint), var(--list-tint)) left / calc(var(--nav-rail-width) + var(--glass-edge-inset)) 100% no-repeat;
 }
 .vela-window.borderless-interface[data-traffic-light-material="paper"] { background: var(--bg-chat); }
-.vela-window.nav-rail-layout[data-traffic-light-material="paper"] {
+/* Paint the still-visible home list with the collapsed rail's material as soon as
+ * the slide starts. The window needs that backing where the traffic lights cross. */
+.vela-window.nav-rail-layout[data-traffic-light-material="paper"],
+.vela-window.nav-rail-layout.left-collapsed:not(.rail-away)[data-traffic-light-material="list"],
+.borderless-interface.nav-rail-layout.left-collapsed:not(.rail-away) > .sidebar-left {
   background: linear-gradient(var(--glass-fill), var(--glass-fill)), var(--bg-chat);
 }
 .borderless-interface :is(.sidebar-left-header, .sidebar-quick-actions) { position: relative; z-index: 1; }
