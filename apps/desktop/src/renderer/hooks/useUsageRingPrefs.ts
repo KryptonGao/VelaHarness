@@ -18,7 +18,7 @@ export interface UsageRingPrefs {
 }
 
 export const usageRingThresholdRange = { min: 0, max: 100 } as const;
-export const defaultUsageRingPrefs: UsageRingPrefs = { enabled: true, threshold: 20, showCodexLogo: true, plusWindow: "lowest" };
+export const defaultUsageRingPrefs: UsageRingPrefs = { enabled: true, threshold: 10, showCodexLogo: true, plusWindow: "lowest" };
 
 const key = "vela.usageRing";
 

@@ -19,6 +19,7 @@ delete process.env.ELECTRON_RENDERER_URL;
 delete process.env.VELA_CAPTURE;
 writeFileSync(join(velaData, "ui-state.json"), JSON.stringify({
   "vela.onboarding.complete": "true", "vela.appearance": "light", "vela.locale": "en",
+  "vela.navLayout": '"classic"', "vela.borderlessInterface": "false",
 }));
 const requests = new Map();
 const server = createServer((request, response) => {

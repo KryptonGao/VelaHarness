@@ -34,9 +34,9 @@ test("stored unfocused glass modes include the option to keep the focused opacit
 test("defaults match the CSS fallbacks in 02-base.css", () => {
   assert.equal(defaultGlassOpacity("theme", "light"), 55);
   assert.equal(defaultGlassOpacity("theme", "dark"), 85);
-  assert.equal(defaultGlassOpacity("neutral", "light"), 60);
-  assert.equal(defaultGlassOpacity("neutral", "dark"), 62);
-  assert.equal(defaultGlassOpacity("none", "dark"), 62);
+  assert.equal(defaultGlassOpacity("neutral", "light"), 15);
+  assert.equal(defaultGlassOpacity("neutral", "dark"), 15);
+  assert.equal(defaultGlassOpacity("none", "dark"), 15);
 });
 
 test("opacity does not apply to the light-mode None tint", () => {

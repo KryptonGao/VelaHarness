@@ -84,8 +84,8 @@ describe("filterSkills", () => {
 describe("prompt formatting", () => {
   it("turns a kebab-case name into a title", () => {
     assert.equal(skillTitle("apple-design"), "Apple Design");
-    assert.equal(skillOriginLabel("user"), "个人");
-    assert.equal(skillOriginLabel("project"), "项目");
+    assert.equal(skillOriginLabel("user"), "個人");
+    assert.equal(skillOriginLabel("project"), "專案");
   });
 
   it("parses a sent skill command back into a chip and the remaining request", () => {

@@ -11,10 +11,10 @@ describe("usage limit menu helpers", () => {
   });
 
   it("names windows by their length", () => {
-    assert.equal(windowLabel(300), "5 小时额度");
-    assert.equal(windowLabel(10080), "每周额度");
-    assert.equal(windowLabel(1440), "1 天额度");
-    assert.equal(windowLabel(120), "2 小时额度");
+    assert.equal(windowLabel(300), "5 小時額度");
+    assert.equal(windowLabel(10080), "每週額度");
+    assert.equal(windowLabel(1440), "1 天額度");
+    assert.equal(windowLabel(120), "2 小時額度");
   });
 
   it("omits the reset text when the time is unknown and adds a weekday for resets beyond a day", () => {

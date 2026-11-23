@@ -70,6 +70,7 @@ const suites = {
     { name: "notification-sounds-electron-smoke", runner: "electron" },
     { name: "conversation-workbench-electron-smoke", runner: "electron" },
     { name: "settings-electron-smoke", runner: "electron" },
+    { name: "preferences-defaults-electron-smoke", runner: "electron" },
     { name: "font-size-electron-smoke", runner: "electron" },
     { name: "thinking-blur-electron-smoke", runner: "electron" },
   ],

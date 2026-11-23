@@ -1,10 +1,11 @@
 import { app, BrowserWindow, Menu, shell, type MenuItemConstructorOptions } from "electron";
 import { IpcChannel, isMenuAction, localizeZh, type AppLocale, type MenuAction } from "@vela/shared";
 import desktopPackage from "../../package.json";
+import { defaultDesktopLocale } from "../desktop-locale";
 import { restoreDefaultWindowSize } from "./window-size";
 
 const repoUrl = "https://github.com/KryptonGao/VelaHarness";
-let activeLocale: AppLocale = "zh-CN";
+let activeLocale: AppLocale = defaultDesktopLocale;
 let diagnostics: DiagnosticsMenuActions | null = null;
 let checkForUpdates: (() => void) | null = null;
 

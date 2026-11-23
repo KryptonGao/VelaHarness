@@ -1,10 +1,11 @@
 import { intlLocale, localizeTemplate, localizeZh, localizeZhTemplate, type AppLocale } from "@vela/shared";
 import { createContext, createElement, useContext, type ReactNode } from "react";
+import { defaultDesktopLocale } from "../desktop-locale";
 
 export type { AppLocale };
 
-let activeLocale: AppLocale = "zh-CN";
-const LocaleContext = createContext<AppLocale>("zh-CN");
+let activeLocale: AppLocale = defaultDesktopLocale;
+const LocaleContext = createContext<AppLocale>(defaultDesktopLocale);
 
 export function AppLocaleProvider({ locale, children }: { locale: AppLocale; children: ReactNode }) {
   return createElement(LocaleContext.Provider, { value: locale }, children);

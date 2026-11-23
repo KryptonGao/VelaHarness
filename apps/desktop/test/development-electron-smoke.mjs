@@ -15,7 +15,10 @@ app.setPath("userData", electronData);
 process.env.VELA_PRODUCTION_HOME = production;
 process.env.VELA_USER_DATA = velaData; process.env.VELA_CWD = temporary;
 delete process.env.ELECTRON_RENDERER_URL; delete process.env.VELA_CAPTURE;
-writeFileSync(join(velaData, "ui-state.json"), JSON.stringify({ "vela.onboarding.complete": "true", "vela.appearance": "light", "vela.locale": "en" }));
+writeFileSync(join(velaData, "ui-state.json"), JSON.stringify({
+  "vela.onboarding.complete": "true", "vela.appearance": "light", "vela.locale": "en",
+  "vela.navLayout": '"classic"',
+}));
 const pause = ms => new Promise(r => setTimeout(r, ms));
 async function until(check, label) {
   console.log("waiting for", label); for (let i = 0; i < 100; i++) { if (await check()) return; await pause(50); } throw new Error(`Timed out: ${label}`); }

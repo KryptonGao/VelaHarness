@@ -5,7 +5,7 @@ import { isBoolean, readStoredState } from "./useStoredState";
 
 const key = "vela.combinedModelPicker";
 const log = createLogger("preferences");
-let current = readStoredState(key, false, isBoolean);
+let current = readStoredState(key, true, isBoolean);
 const listeners = new Set<() => void>();
 
 function subscribe(listener: () => void) {

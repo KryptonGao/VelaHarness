@@ -32,8 +32,8 @@ describe("composer stats", () => {
 
   it("reports cache hit rate and the session token total together", () => {
     const stats = composerStats(usage({ sessionTokens: 257_000, cacheHitRate: 0.968 }));
-    assert.equal(stats.cacheHit, "缓存命中 97%");
-    assert.equal(stats.total, "累计 257K tok");
+    assert.equal(stats.cacheHit, "快取命中 97%");
+    assert.equal(stats.total, "累計 257K tok");
   });
 
   it("localizes the session token total in every interface language", (t) => {
@@ -47,11 +47,11 @@ describe("composer stats", () => {
 
   it("can report either metric independently", () => {
     const cacheOnly = composerStats(usage({ cacheHitRate: 0 }));
-    assert.equal(cacheOnly.cacheHit, "缓存命中 0%");
+    assert.equal(cacheOnly.cacheHit, "快取命中 0%");
     assert.equal(cacheOnly.total, null);
     const totalOnly = composerStats(usage({ sessionTokens: 940 }));
     assert.equal(totalOnly.cacheHit, null);
-    assert.equal(totalOnly.total, "累计 940 tok");
+    assert.equal(totalOnly.total, "累計 940 tok");
   });
 
   it("omits fields the provider has not reported", () => {

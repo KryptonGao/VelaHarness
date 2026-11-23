@@ -19,6 +19,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { ConversationExportHost } from "./conversation-export-host";
 import { getApplicationLocale, setApplicationLocale, setDiagnosticsMenuActions, setMenuAccelerators, setUpdateMenuAction } from "./menu";
+import { defaultDesktopLocale } from "../desktop-locale";
 import { DEFAULT_WINDOW_SIZE } from "./window-size";
 import { trafficLightPosition } from "../traffic-light-position";
 import { LogService } from "./log-service";
@@ -765,7 +766,7 @@ app.whenReady().then(async () => {
     if (appearance === "system" || appearance === "light" || appearance === "dark") nativeTheme.themeSource = appearance;
   });
   ipcMain.on(IpcChannel.appSetShortcuts, (_event, accelerators: unknown) => setMenuAccelerators(accelerators));
-  setApplicationLocale("zh-CN");
+  setApplicationLocale(defaultDesktopLocale);
 
   log.info("app started", systemInfo());
   setDiagnosticsMenuActions({

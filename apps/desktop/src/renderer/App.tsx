@@ -235,7 +235,7 @@ export function App() {
   // 只订阅「是否为空」：流式回复每帧发布新消息数组，订阅整个数组会让整棵应用逐帧重渲染。
   const conversationEmpty = useMessagesEmpty(session.messageStore, session.activeConversationId);
   const contextSidebarOpen = !floatingInfo && !rightCollapsed && !conversationEmpty && !scheduledTasksOpen && !recipesOpen && !prInboxOpen && !agentInboxOpen && overviewWorkspace === null;
-  const [environmentCollapsed, setEnvironmentCollapsed] = useStoredState("vela.environmentCollapsed", false, isBoolean);
+  const [environmentCollapsed, setEnvironmentCollapsed] = useStoredState("vela.environmentCollapsed", true, isBoolean);
   const toggleInfo = useCallback(() => {
     if (floatingInfo) setEnvironmentCollapsed(value => !value);
     else setRightCollapsed(value => !value);

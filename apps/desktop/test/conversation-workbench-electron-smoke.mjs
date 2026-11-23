@@ -40,6 +40,8 @@ async function run() {
   });
   writeJson("conversations.json", { version: 2, conversations });
   writeJson("ui-state.json", { "vela.onboarding.complete": "true", "vela.locale": "zh-CN", "vela.appearance": "light",
+    "vela.navLayout": '"classic"', "vela.infoLayout": "sidebar", "vela.composerLayout": '"classic"',
+    "vela.conversationWorkbenchTabs": "false", "vela.borderlessInterface": "false", "vela.sidebarCardGlass": "false",
     "vela.pinnedWorkspaces": JSON.stringify({ [second]: true }) });
   await import("../out/main/index.mjs");
   while (!BrowserWindow.getAllWindows().length) await pause(50);

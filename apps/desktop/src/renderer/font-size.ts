@@ -1,10 +1,10 @@
 /**
  * 界面字号和代码字号。样式表里所有 ≤20px 的字号都写成 `calc(Npx * var(--ui-scale))`
  * （等宽字体的写成 `--code-scale`），这里只负责把设置里的 px 值换算成这两个比例。
- * 默认值对应原本的设计：回复正文 15px、聊天里的代码块 14px。
+ * 样式表以回复正文 15px、代码块 14px 为基准。默认字号可以独立于基准调整。
  */
-export const uiFontSizeRange = { min: 11, max: 15, fallback: 15 } as const;
-export const codeFontSizeRange = { min: 8, max: 24, fallback: 14 } as const;
+export const uiFontSizeRange = { min: 11, max: 15, fallback: 15, base: 15 } as const;
+export const codeFontSizeRange = { min: 8, max: 24, fallback: 15, base: 14 } as const;
 
 type FontSizeRange = { min: number; max: number; fallback: number };
 
@@ -20,8 +20,8 @@ export function parseFontSize(range: FontSizeRange, raw: unknown): number {
   return value >= range.min && value <= range.max ? value : range.fallback;
 }
 
-export function fontScale(range: FontSizeRange, size: number): number {
-  return clampFontSize(range, size) / range.fallback;
+export function fontScale(range: FontSizeRange & { base: number }, size: number): number {
+  return clampFontSize(range, size) / range.base;
 }
 
 export function applyFontSizes(root: HTMLElement, uiSize: number, codeSize: number): void {

@@ -17,6 +17,7 @@ delete process.env.ELECTRON_RENDERER_URL;
 delete process.env.VELA_CAPTURE;
 writeFileSync(join(velaData, "ui-state.json"), JSON.stringify({
   "vela.onboarding.complete": "true", "vela.appearance": "light", "vela.locale": "en",
+  "vela.navLayout": '"classic"',
 }));
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 async function until(check, label) {
@@ -46,13 +47,17 @@ async function run() {
     })()`);
     const count = () => evaluate("window.soundStarts.length");
     const emit = event => win.webContents.send("session:event", event);
+    const soundsSwitch = "document.querySelector('[data-setting-id=\"sound-effects\"] [role=\"switch\"]')";
     const openSettings = async () => {
       await evaluate("document.querySelector('.sidebar-user-pill').click()");
       await until(() => evaluate("!!document.querySelector('.settings-nav-item')"), "settings");
       await evaluate("Array.from(document.querySelectorAll('.settings-nav-item')).find(n => n.textContent === 'Interface').click()");
     };
     await openSettings();
-    assert.equal(await evaluate("document.querySelectorAll('[aria-label=\"Task sounds\"] button')[1].getAttribute('aria-checked')"), "true");
+    assert.equal(await evaluate(soundsSwitch + ".getAttribute('aria-checked')"), "false");
+    assert.equal(await evaluate("document.querySelector('[aria-label=\"Preview sounds\"]')"), null);
+    await evaluate(soundsSwitch + ".click()");
+    await until(() => evaluate("window.vela.uiStorage.getItem('vela.soundEffects') === 'true'"), "enable task sounds");
     for (let i = 0; i < 4; i++) {
       await evaluate(`document.querySelectorAll('[aria-label="Preview sounds"] button')[${i}].click()`);
       await until(async () => await count() === i + 1, `preview ${i}`);
@@ -112,19 +117,18 @@ async function run() {
     console.log("PASS manual stop stays silent");
 
     await openSettings();
-    await evaluate("document.querySelector('[aria-label=\"Task sounds\"] button').click()");
+    await evaluate(soundsSwitch + ".click()");
     await until(() => evaluate("window.vela.uiStorage.getItem('vela.soundEffects') === 'false'"), "saved mute preference");
     emit({ type: "error", conversationId: id, message: "Muted failure" });
     await pause(100);
     assert.equal(await count(), 9);
-    await evaluate("document.querySelector('[aria-label=\"Preview sounds\"] button').click()");
-    await until(async () => await count() === 10, "explicit preview while muted");
+    assert.equal(await evaluate("document.querySelector('[aria-label=\"Preview sounds\"]')"), null);
     await win.webContents.reload();
     await until(() => evaluate("!!document.querySelector('.sidebar-user-pill')"), "reloaded renderer");
     await openSettings();
-    assert.equal(await evaluate("document.querySelector('[aria-label=\"Task sounds\"] button').getAttribute('aria-checked')"), "true");
+    assert.equal(await evaluate(soundsSwitch + ".getAttribute('aria-checked')"), "false");
     assert.deepEqual(rendererErrors, []);
-    console.log("PASS immediate mute, preview while muted, persisted mute on reload and no renderer errors");
+    console.log("PASS immediate mute, hidden previews, persisted mute on reload and no renderer errors");
     clearTimeout(watchdog);
     app.quit();
   } catch (error) {

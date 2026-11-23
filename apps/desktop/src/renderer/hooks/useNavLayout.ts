@@ -12,7 +12,7 @@ export type NavLayout = (typeof navLayouts)[number];
 const key = "vela.navLayout";
 const accept = (value: unknown): value is NavLayout => navLayouts.some(layout => layout === value);
 
-let current: NavLayout = readStoredState<NavLayout>(key, "classic", accept);
+let current: NavLayout = readStoredState<NavLayout>(key, "rail", accept);
 const listeners = new Set<() => void>();
 
 export function setNavLayout(layout: NavLayout) {

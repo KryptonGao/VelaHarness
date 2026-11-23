@@ -28,6 +28,7 @@ import {
 } from "../themes";
 import { isAppLocale, type AppLocale, type ThinkingSummaryModel } from "@vela/shared";
 import { isConversationLinkTarget, type ConversationLinkTarget } from "../browser/conversation-link-policy";
+import { defaultDesktopLocale } from "../../desktop-locale";
 import { soundEffectsKey } from "../notification-sounds";
 import {
   applyFontSizes,
@@ -185,7 +186,7 @@ function readToolIconColor(): ToolIconColor {
   const stored = readStored(
     toolIconColorKey,
     (value): value is string => ["color", "theme", "gray", "true", "false"].includes(value as string),
-    "color",
+    "gray",
   );
   return stored === "true" ? "color" : stored === "false" ? "gray" : (stored as ToolIconColor);
 }
@@ -244,13 +245,13 @@ function systemScheme(): ColorScheme {
 
 export function usePreferences() {
   const [soundEffects, setSoundEffects] = useState(() =>
-    readStored(soundEffectsKey, (value): value is string => value === "true" || value === "false", "true") === "true",
+    readStoredFlag(soundEffectsKey, false),
   );
   const [conversationLinkTarget, setConversationLinkTarget] = useState<ConversationLinkTarget>(() =>
     readStored(conversationLinkTargetKey, isConversationLinkTarget, "embedded"),
   );
   const [infoLayout, setInfoLayout] = useState<InfoLayout>(() =>
-    readStored(infoLayoutKey, (value): value is InfoLayout => value === "sidebar" || value === "floating" || value === "cards", "sidebar"),
+    readStored(infoLayoutKey, (value): value is InfoLayout => value === "sidebar" || value === "floating" || value === "cards", "floating"),
   );
   const [appearance, setAppearance] = useState<Appearance>(() => readStored(appearanceKey, isAppearance, "system"));
   const [customThemes, setCustomThemes] = useState<CustomTheme[]>(() =>
@@ -272,7 +273,7 @@ export function usePreferences() {
   });
   const [system, setSystem] = useState<ColorScheme>(systemScheme);
   const [locale, setLocale] = useState<AppLocale>(() => {
-    const value = readStored(localeKey, isLocale, "zh-CN");
+    const value = readStored(localeKey, isLocale, defaultDesktopLocale);
     document.documentElement.lang = value;
     return value;
   });
@@ -280,22 +281,22 @@ export function usePreferences() {
     readStored(toolDisplayKey, isToolDisplay, "compact"),
   );
   const [toolFold, setToolFold] = useState<ToolFold>(() =>
-    readStored(toolFoldKey, isToolFold, "message"),
+    readStored(toolFoldKey, isToolFold, "none"),
   );
   /** 紧凑过程行的耗时标签与折叠记忆:默认关闭,与开启前的行为一致。 */
   const [toolProcessDetails, setToolProcessDetails] = useState(() =>
     readStored(toolProcessDetailsKey, (value): value is string => value === "true", "false") === "true",
   );
-  /** 运行视图:运行中在本轮过程末尾显示待办清单与当前步骤状态,并要求模型提交待办清单。默认关闭。 */
+  /** 运行视图:运行中在本轮过程末尾显示待办清单与当前步骤状态,并要求模型提交待办清单。默认开启。 */
   const [runView, setRunView] = useState(() =>
-    readStored(runViewKey, (value): value is string => value === "true", "false") === "true",
+    readStoredFlag(runViewKey, true),
   );
   const [showChangeSummary, setShowChangeSummary] = useState(() =>
     readStored(changeSummaryKey, (value): value is string => value === "true" || value === "false", "true") === "true",
   );
-  /** 读取/编辑/创建文件行是否显示所在目录路径。默认显示。 */
+  /** 读取/编辑/创建文件行是否显示所在目录路径。默认隐藏。 */
   const [filePath, setFilePath] = useState(() =>
-    readStored(filePathKey, (value): value is string => value === "true" || value === "false", "true") === "true",
+    readStoredFlag(filePathKey, false),
   );
   /** 极简模式:紧凑工具调用显示独有,文件行不显示图标和路径,文件名灰色虚线下划线。默认关闭。 */
   const [minimalMode, setMinimalMode] = useState(() =>
@@ -309,13 +310,13 @@ export function usePreferences() {
     readStored(thinkingSummaryKey, (value): value is string => value === "true", "false") === "true",
   );
   const [thinkingSummaryStyle, setThinkingSummaryStyle] = useState<ThinkingSummaryStyle>(() =>
-    readStored(thinkingSummaryStyleKey, isThinkingSummaryStyle, "inline"),
+    readStored(thinkingSummaryStyleKey, isThinkingSummaryStyle, "prose"),
   );
   const [thinkingSummaryModel, setThinkingSummaryModel] = useState<ThinkingSummaryModel | null>(() =>
     readStoredJson(thinkingSummaryModelKey, isThinkingSummaryModel, null),
   );
-  const [conversationWorkbenchTabs, setConversationWorkbenchTabs] = useState(() => readStoredFlag(conversationWorkbenchTabsKey, false));
-  const [borderlessInterface, setBorderlessInterface] = useState(() => readStoredFlag(borderlessInterfaceKey, false));
+  const [conversationWorkbenchTabs, setConversationWorkbenchTabs] = useState(() => readStoredFlag(conversationWorkbenchTabsKey, true));
+  const [borderlessInterface, setBorderlessInterface] = useState(() => readStoredFlag(borderlessInterfaceKey, true));
   /** 工作面板分屏（实验性）：默认关闭，关闭时工作面板只有一个窗口，也不能拖动标签。 */
   const [workbenchSplit, setWorkbenchSplit] = useState(() => readStoredFlag(workbenchSplitKey, false));
   /** 弹性滚动（实验性）：默认关闭。开启后 diff 等内层滚动区滚到头可以越界拉出皮筋，并在满足条件时带动外层容器；关闭时内层滚动永远不会带动外层。 */
@@ -336,7 +337,7 @@ export function usePreferences() {
   const [toolIconColor, setToolIconColor] = useState<ToolIconColor>(readToolIconColor);
   /** 思考分组展开区、以及其中命令/编辑详情的最大高度(px),通过根节点 CSS 变量作用到界面。 */
   const [thinkingGroupMode, setThinkingGroupMode] = useState<ThinkingGroupMode>(() =>
-    readStored(thinkingGroupModeKey, isThinkingGroupMode, "single"),
+    readStored(thinkingGroupModeKey, isThinkingGroupMode, "codex"),
   );
   const [thinkingActivityDelayEnabled, setThinkingActivityDelayEnabled] = useState(() => readStoredFlag(thinkingActivityDelayEnabledKey, true));
   const [thinkingActivityDelayMs, setThinkingActivityDelayMsState] = useState(() => clampThinkingActivityDelayMs(Number(
@@ -362,21 +363,21 @@ export function usePreferences() {
   const setToolDetailHeight = useCallback((value: number) => setToolDetailHeightState(clampHeight(toolDetailHeightStops, value)), []);
   /** 分组实际高度不足设定值时,详情高度按「详情上限 ÷ 分组上限」同比缩小。默认开启。 */
   const [toolDetailHeightScale, setToolDetailHeightScale] = useState(() => readStoredFlag(toolDetailHeightScaleKey, true));
-  /** 展开命令或编辑详情时增高分组,优先于按比例缩小。默认关闭,保留旧行为。 */
-  const [thinkingGroupHeightGrow, setThinkingGroupHeightGrow] = useState(() => readStoredFlag(thinkingGroupHeightGrowKey, false));
-  /** 思考标题（OpenAI 思考总结的首行标题）的字重与颜色，通过根节点属性由 CSS 切换。默认加粗灰色。 */
+  /** 展开命令或编辑详情时增高分组,优先于按比例缩小。 */
+  const [thinkingGroupHeightGrow, setThinkingGroupHeightGrow] = useState(() => readStoredFlag(thinkingGroupHeightGrowKey, true));
+  /** 思考标题（OpenAI 思考总结的首行标题）的字重与颜色，通过根节点属性由 CSS 切换。默认正常字重、灰色。 */
   const [thinkingTitleStyle, setThinkingTitleStyle] = useState<ThinkingTitleStyle>(() =>
-    readStored(thinkingTitleStyleKey, isThinkingTitleStyle, "bold-muted"),
+    readStored(thinkingTitleStyleKey, isThinkingTitleStyle, "normal-muted"),
   );
   const [replyFade, setReplyFade] = useState(() => readStoredFlag(replyFadeKey, true));
-  const [replyPop, setReplyPop] = useState(() => readStoredFlag(replyPopKey, true));
+  const [replyPop, setReplyPop] = useState(() => readStoredFlag(replyPopKey, false));
   const [thinkingFade, setThinkingFade] = useState(() => readStoredFlag(thinkingFadeKey, true));
-  const [thinkingPop, setThinkingPop] = useState(() => readStoredFlag(thinkingPopKey, true));
+  const [thinkingPop, setThinkingPop] = useState(() => readStoredFlag(thinkingPopKey, false));
   const [composerCapsules, setComposerCapsules] = useState(() =>
     readStored(composerCapsulesKey, (value): value is string => value === "true", "false") === "true",
   );
-  const [glassTint, setGlassTint] = useState<GlassTint>(() => readStored(glassTintKey, isGlassTint, "theme"));
-  const [sidebarCardGlass, setSidebarCardGlass] = useState(() => readStoredFlag(sidebarCardGlassKey, false));
+  const [glassTint, setGlassTint] = useState<GlassTint>(() => readStored(glassTintKey, isGlassTint, "neutral"));
+  const [sidebarCardGlass, setSidebarCardGlass] = useState(() => readStoredFlag(sidebarCardGlassKey, true));
   /** 玻璃叠色的不透明度(0–100);null 表示沿用当前染色的默认值。 */
   const [glassOpacity, setGlassOpacityState] = useState<number | null>(() =>
     parseGlassOpacity(readStored(glassOpacityKey, (value): value is string => typeof value === "string", "")),
@@ -386,13 +387,13 @@ export function usePreferences() {
     [],
   );
   const [unfocusedGlassMode, setUnfocusedGlassMode] = useState(() =>
-    readStored(unfocusedGlassModeKey, isUnfocusedGlassMode, "opaque"),
+    readStored(unfocusedGlassModeKey, isUnfocusedGlassMode, "absolute"),
   );
   const [unfocusedGlassIncrease, setUnfocusedGlassIncrease] = useState(() =>
     parseGlassOpacity(readStored(unfocusedGlassIncreaseKey, isString, "")) ?? defaultUnfocusedGlassIncrease,
   );
   const [sendButtonIcon, setSendButtonIcon] = useState<SendButtonIcon>(() =>
-    readStored(sendButtonIconKey, isSendButtonIcon, "paper-plane"),
+    readStored(sendButtonIconKey, isSendButtonIcon, "arrow-up"),
   );
   const [uiFontLatin, setUiFontLatin] = useState<UiFontFace>(() => readStored(uiFontLatinKey, isUiFontFace, "sans"));
   const [uiFontCjk, setUiFontCjk] = useState<UiFontFace>(() => readStored(uiFontCjkKey, isUiFontFace, "sans"));

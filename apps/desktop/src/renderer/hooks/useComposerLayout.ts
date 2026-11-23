@@ -12,7 +12,7 @@ export type ComposerLayout = (typeof composerLayouts)[number];
 const key = "vela.composerLayout";
 const accept = (value: unknown): value is ComposerLayout => composerLayouts.includes(value as ComposerLayout);
 
-let current: ComposerLayout = readStoredState<ComposerLayout>(key, "classic", accept);
+let current: ComposerLayout = readStoredState<ComposerLayout>(key, "capsule", accept);
 const listeners = new Set<() => void>();
 
 function applyDataset() {

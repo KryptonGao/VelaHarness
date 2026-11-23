@@ -7,14 +7,14 @@ export const glassOpacityRange = { min: 0, max: 100 } as const;
 
 export type GlassTintKind = "theme" | "neutral" | "none";
 export type UnfocusedGlassMode = "opaque" | "unchanged" | "relative" | "absolute";
-export const defaultUnfocusedGlassIncrease = 20;
+export const defaultUnfocusedGlassIncrease = 40;
 
 export function isUnfocusedGlassMode(value: unknown): value is UnfocusedGlassMode {
   return value === "opaque" || value === "unchanged" || value === "relative" || value === "absolute";
 }
 
 export function defaultGlassOpacity(tint: GlassTintKind, scheme: "light" | "dark"): number {
-  if (tint === "neutral" || tint === "none") return scheme === "dark" ? 62 : 60;
+  if (tint === "neutral" || tint === "none") return 15;
   return scheme === "dark" ? 85 : 55;
 }
 
