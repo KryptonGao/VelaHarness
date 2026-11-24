@@ -23,6 +23,7 @@ if (!process.versions.electron) {
         import { ComposerStatsRow } from './apps/desktop/src/renderer/components/composer/ComposerStatsRow';
         import { ComposerTray } from './apps/desktop/src/renderer/components/composer/ComposerTray';
         import { ModelControls } from './apps/desktop/src/renderer/components/ModelControls';
+        import { setCombinedModelPicker } from './apps/desktop/src/renderer/hooks/useCombinedModelPicker';
         import { AppLocaleProvider, setActiveLocale } from './apps/desktop/src/renderer/locale';
         const hour = 3600000;
         window.vela = { getUsageLimits: async () => ({
@@ -30,6 +31,8 @@ if (!process.versions.electron) {
           windows: [{windowMinutes: 300, usedPercent: 40, resetsAt: Date.now() + hour}, {windowMinutes: 10080, usedPercent: 25, resetsAt: Date.now() + 80 * hour}],
         }) };
         const noop = async () => undefined;
+        // Exercise the individual reasoning dial and model button as the tray narrows.
+        setCombinedModelPicker(false);
         const root = createRoot(document.getElementById('root'));
         const usage = {tokens: 52000, contextWindow: 200000, percent: 26, outputSpeed: 241, sessionTokens: 257000, cacheHitRate: 0.97};
         window.mount = (locale, thinkingLevel, sandbox, width, modelLabel = 'GPT-6.1 Sol', outputSpeed = 241) => {

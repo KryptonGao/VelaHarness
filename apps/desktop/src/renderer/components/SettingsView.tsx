@@ -94,9 +94,8 @@ export function SettingsView({
   );
 
   const entries = useMemo(
-    () => resolveSettingsEntries(copy).filter((entry) => pages.includes(entry.page)
-      && (entry.id !== "borderless-interface" || preferences.conversationWorkbenchTabs)),
-    [copy, pages, preferences.conversationWorkbenchTabs],
+    () => resolveSettingsEntries(copy).filter((entry) => pages.includes(entry.page)),
+    [copy, pages],
   );
   const results = useMemo(() => searchSettings(query, entries), [query, entries]);
   useSettingsJump(contentRef, jump, page);

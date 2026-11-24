@@ -512,25 +512,22 @@ if (!process.versions.electron) {
         await until("document.querySelector('.main-chat-view')"); await newTab();
         assert.equal(await evaluate(`document.querySelector(${JSON.stringify(chatOption + ' .start-option-title')}).textContent`), label);
       }
-      // The opt-in picker shares the panel's choices and keeps both pages within the narrow pane.
+      // The default combined picker shares the panel's choices and keeps both pages within the narrow pane.
       await win.loadFile(join(temporary, "index.html"));
       await until("document.querySelector('.chat-active-title')?.textContent === '主聊天'");
       await newTab(); await click(chatOption);
-      await until(`document.querySelector(${JSON.stringify(panel + ' .model-pill')})?.textContent.includes('Model One')`);
+      await until(`document.querySelector(${JSON.stringify(panel + ' .combined-model-pill')})?.textContent.includes('Model One')`);
       await evaluate("document.documentElement.style.setProperty('--workbench-width', '360px'); document.documentElement.dataset.scheme = 'dark'; document.documentElement.dataset.theme = 'midnight'");
-      const combinedSwitch = '[data-setting-id="combined-model-picker"] [role="switch"]';
       const combinedPill = panel + " .combined-model-pill";
       const combinedPopover = panel + " .combined-model-popover";
       const openInterface = async () => {
         await evaluate("window.dispatchEvent(new KeyboardEvent('keydown', { key:',', code:'Comma', metaKey:true }))");
         await until("document.querySelector('.settings-nav-item')");
         await evaluate("[...document.querySelectorAll('.settings-nav-item')].find(n => n.textContent === '界面').click()");
-        await until(`document.querySelector(${JSON.stringify(combinedSwitch)})`);
+        await until("document.querySelector('[data-setting-id=\"info-layout\"]')");
       };
       await openInterface();
-      assert.equal(await evaluate(`document.querySelector(${JSON.stringify(combinedSwitch)}).getAttribute('aria-checked')`), "false");
-      await click(combinedSwitch);
-      assert.equal(await evaluate("localStorage.getItem('vela.combinedModelPicker')"), "true");
+      assert.equal(await evaluate('document.querySelector(\'[data-setting-id="combined-model-picker"]\')'), null);
       await click(".nav-history-buttons button:first-child");
       await until("!document.querySelector('.settings-view')");
       await click(combinedPill);
@@ -580,13 +577,11 @@ if (!process.versions.electron) {
       assert.match(await evaluate(`document.querySelector(${JSON.stringify(combinedPill)}).textContent`), /Model Two/);
       await setThinkingSlider(1);
       await until("chatFixture.state('panel-1').session.thinkingLevel === 'minimal'");
+      await evaluate("localStorage.setItem('vela.combinedModelPicker', 'false')");
       await win.loadFile(join(temporary, "index.html"));
-      await until(`document.querySelector(${JSON.stringify(main + ' .combined-model-pill')})`);
-      await openInterface();
-      await click(combinedSwitch);
-      await click(".nav-history-buttons button:first-child");
       await until(`document.querySelectorAll(${JSON.stringify(main + ' .model-choice-pill')}).length === 2`);
-      console.log("PASS opt-in combined picker adjusts effort, navigates to configured models, and switches back to separate controls");
+      await evaluate("localStorage.removeItem('vela.combinedModelPicker')");
+      console.log("PASS combined picker adjusts effort, navigates to configured models, stays hidden in Settings, and honors config override to separate controls");
       await evaluate("localStorage.setItem('vela.composerLayout', JSON.stringify('capsule')); localStorage.setItem('vela.workbenchSplit', 'true'); localStorage.setItem('vela.navLayout', JSON.stringify('rail'))");
       await win.loadFile(join(temporary, "index.html"));
       await until("document.querySelector('.main-chat-view')");

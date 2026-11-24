@@ -71,11 +71,16 @@ async function run() {
       && getComputedStyle(${el(title)}, '::before').pointerEvents === 'none'`);
     if (scroller) await until(`Math.abs(${rect(scroller)}.top - ${rect(title)}.top) < 1`);
   };
-  const toggle = el('[data-setting-id="conversation-workbench-tabs"] [role=switch]');
-  const borderless = el('[data-setting-id="borderless-interface"] [role=switch]');
   const openInterface = async () => {
     await click(el(".sidebar-user-pill"));
     await click(button(".settings-nav-item", "界面"));
+    await until(el('[data-setting-id="info-layout"]'));
+  };
+  const setUiStateAndReload = async entries => {
+    const loaded = new Promise(done => win.webContents.once("did-finish-load", done));
+    await js(`(() => { for (const [k, v] of Object.entries(${JSON.stringify(entries)})) window.vela.uiStorage.setItem(k, v); window.location.reload(); })()`);
+    await loaded;
+    await until(el(".main-chat-view, .settings-view"));
   };
   const leaveSettings = async () => {
     await click(el(".nav-history-buttons button:first-child:not(:disabled)"));
@@ -90,14 +95,15 @@ async function run() {
   await until(`${el('[data-tab-key="trace"]')}.getAttribute('aria-disabled') === null`);
   assert.equal(await js("document.querySelectorAll('.conversation-view-tabs [role=tab]').length"), 6);
   await openInterface();
-  assert.equal(await js(borderless), null);
-  await click(toggle);
-  await until(`${borderless}?.getAttribute('aria-checked') === 'false'`);
-  await leaveSettings();
+  assert.equal(await js(el('[data-setting-id="conversation-workbench-tabs"]')), null);
+  assert.equal(await js(el('[data-setting-id="borderless-interface"]')), null);
+  assert.equal(await js(el('[data-setting-id="nav-layout"]')), null);
+  await setUiStateAndReload({ "vela.conversationWorkbenchTabs": "true", "vela.borderlessInterface": "false" });
+  await until("!document.querySelector('.conversation-view-tabs')");
   assert.equal(await js(chatVersionControl), null);
   await capture("framed");
+  await setUiStateAndReload({ "vela.borderlessInterface": "true" });
   await openInterface();
-  await click(borderless);
   await assertFloatingTitle(".settings-header", ".settings-content");
   assert.equal(await js(`${el(".settings-header h2")}.textContent`), "界面");
   await js(`${el(".settings-content")}.scrollTo(0, 420)`);
@@ -239,14 +245,12 @@ async function run() {
   await until(el(".main-chat-view"));
   assert.equal(await js(el(".conversation-view-tabs")), null);
   await until(el(".borderless-interface"));
-  await openInterface();
-  assert.equal(await js(`${borderless}.getAttribute('aria-checked')`), "true");
   if (process.platform === "darwin") {
-    const navLayout = '[data-setting-id="nav-layout"] button';
-    await click(button(navLayout, "分类"));
+    await setUiStateAndReload({ "vela.navLayout": '"rail"' });
+    await click(el('.nav-rail-item[aria-label^="设置"]'));
     const material = `${el('.vela-window')}.dataset.trafficLightMaterial`;
     const divider = `getComputedStyle(${el('.nav-rail')}, '::after')`;
-    const settledSettings = `${material} === 'list' && ${rect('.settings-nav')}.left === 58 && getComputedStyle(${el('.settings-stage')}).opacity === '1'`;
+    const settledSettings = `${material} === 'list' && ${rect('.settings-nav')}.left === 58 && getComputedStyle(${el('.settings-stage')}).opacity === '1' && !document.querySelector('.main-stage-pane.is-overlay') && getComputedStyle(${el('.settings-view')}.closest('.main-stage-pane')).opacity === '1'`;
     await until(settledSettings);
     await js(`document.documentElement.style.setProperty('--glass-opacity', '0.4'); document.documentElement.dataset.windowFocused = 'true'`);
     // Vary what is behind the window glass. A gray card or a white layer under the navigator has zero response.
@@ -301,21 +305,18 @@ async function run() {
     await until(`!${el('.settings-view')} && ${material} === 'list' && ${rect('.main-stage')}.left === ${rect('.sidebar-left')}.right`);
     const homeGlass = await transmission();
     assert.ok(homeGlass.slice(0, 4).every((v, i) => Math.abs(v - settings[i]) < 3), `Settings glass matches home: ${settings} vs ${homeGlass}`);
-    await selectCategory("设置");
-    await until(settledSettings);
-    await click(borderless);
-    await until(`!${el('.borderless-interface')}`);
+    await setUiStateAndReload({ "vela.borderlessInterface": "false" });
+    await click(el('.nav-rail-item[aria-label^="设置"]'));
+    await until(`${el('.settings-nav')} && !${el('.borderless-interface')} && !document.querySelector('.main-stage-pane.is-overlay') && getComputedStyle(${el('.settings-view')}.closest('.main-stage-pane')).opacity === '1'`);
+    await js(`document.documentElement.style.setProperty('--glass-opacity', '0.4'); document.documentElement.dataset.windowFocused = 'true'`);
     assert.equal(await js(`${divider}.content`), 'none', 'Framed settings has no rail divider');
     assert.equal((await transmission())[3], 0, 'Framed settings retains its original opaque navigation card');
     await js(`document.body.style.removeProperty('background-color'); document.documentElement.style.removeProperty('--glass-opacity')`);
-    await click(button(navLayout, "经典"));
-    await click(borderless);
     console.log('PASS settings rail and page list match home glass, clear the traffic lights, and restore framed styles');
   }
-  await click(toggle);
-  await until(`!${borderless} && !${el(".borderless-interface")}`);
-  await leaveSettings();
+  await setUiStateAndReload({ "vela.navLayout": '"classic"', "vela.borderlessInterface": "true", "vela.conversationWorkbenchTabs": "false" });
   await until(el(".conversation-view-tabs"));
+  assert.equal(await js(el(".borderless-interface")), null);
   assert.equal(await js(el(".session-group-version-control")), null);
   assert.equal(await js("document.querySelectorAll('.conversation-view-tabs [role=tab]').length"), 6);
   await until("window.vela.getState().then(state => state.session.status === 'ready')");

@@ -1,6 +1,4 @@
 import { appLocaleNames, appLocales } from "@vela/shared";
-import { navLayouts, setNavLayout, useNavLayout, type NavLayout } from "../../hooks/useNavLayout";
-import { setVersionControlLayout, useVersionControlLayout, versionControlLayouts, type VersionControlLayout } from "../../hooks/useVersionControlLayout";
 import { setSidebarItem, sidebarItemIds, useSidebarItems } from "../../hooks/useSidebarItems";
 import type { AppLocale, InfoLayout, PreferencesApi } from "../../hooks/usePreferences";
 import type { ConversationLinkTarget } from "../../browser/conversation-link-policy";
@@ -9,15 +7,10 @@ import type { SettingsCopy } from "../settings-copy";
 import { setStartPageStyle, startPageStyles, useStartPageStyle, type StartPageStyle } from "../../hooks/useStartPageStyle";
 import { setHomePrompts, useHomePrompts } from "../../hooks/useHomePrompts";
 import { plusUsageWindows, setUsageRingPrefs, useUsageRingPrefs, type PlusUsageWindow } from "../../hooks/useUsageRingPrefs";
-import { UsageRingThresholdControl } from "./UsageRingThresholdControl";
-import { setCombinedModelPicker, useCombinedModelPicker } from "../../hooks/useCombinedModelPicker";
-import { setCombinedModePicker, useCombinedModePicker } from "../../hooks/useCombinedModePicker";
-import { composerLayouts, setComposerLayout, useComposerLayout, type ComposerLayout } from "../../hooks/useComposerLayout";
 import { Segmented, SettingsBlock, SettingsGroup, SettingsSwitch } from "./primitives";
 import { SpeechSettings } from "./SpeechSettings";
 import { SettingsSelect } from "./SettingsSelect";
 import { filePreviewOpenModes, setFilePreviewOpenMode, useFilePreviewOpenMode, type FilePreviewOpenMode } from "../../hooks/useFilePreviewOpenMode";
-import { previewBreadcrumbModes, setPreviewBreadcrumbMode, usePreviewBreadcrumbMode, type PreviewBreadcrumbMode } from "../../hooks/usePreviewBreadcrumbMode";
 
 export function InterfacePage({
   copy,
@@ -35,25 +28,13 @@ export function InterfacePage({
     setInfoLayout,
     conversationLinkTarget,
     setConversationLinkTarget,
-    composerCapsules,
-    setComposerCapsules,
-    sendButtonIcon,
-    setSendButtonIcon,
   } = preferences;
   const text = copy.appearance;
-  const previewBreadcrumbMode = usePreviewBreadcrumbMode();
-  const previewBreadcrumbModeLabels: Record<PreviewBreadcrumbMode, string> = {
-    scroll: text.previewBreadcrumbModeScroll,
-    hover: text.previewBreadcrumbModeHover,
-  };
   const filePreviewOpenMode = useFilePreviewOpenMode();
   const filePreviewOpenModeLabels: Record<FilePreviewOpenMode, string> = {
     "new-tab": text.filePreviewOpenModeNewTab,
     "current-tab": text.filePreviewOpenModeCurrentTab,
   };
-  const composerLayout = useComposerLayout();
-  const combinedModelPicker = useCombinedModelPicker();
-  const combinedModePicker = useCombinedModePicker();
   const startPageStyle = useStartPageStyle();
   const startPageStyleLabels: Record<StartPageStyle, string> = {
     atelier: text.startPageStyleAtelier,
@@ -68,27 +49,10 @@ export function InterfacePage({
     minimal: text.startPageStyleMinimalHint,
   };
   const homePrompts = useHomePrompts();
-  const composerLayoutLabels: Record<ComposerLayout, string> = {
-    classic: text.composerLayoutClassic,
-    calm: text.composerLayoutCalm,
-    capsule: text.composerLayoutCapsule,
-  };
-  const composerLayoutHints: Record<ComposerLayout, string> = {
-    classic: text.composerLayoutClassicHint,
-    calm: text.composerLayoutCalmHint,
-    capsule: text.composerLayoutCapsuleHint,
-  };
   const sidebarItems = useSidebarItems();
   const usageRing = useUsageRingPrefs();
   const plusWindowLabels: Record<PlusUsageWindow, string> = {
     lowest: text.usageRingLowest, "5h": text.usageRingFiveHour, "1w": text.usageRingWeekly,
-  };
-  const navLayout = useNavLayout();
-  const navLayoutLabels: Record<NavLayout, string> = { classic: text.navLayoutClassic, rail: text.navLayoutRail };
-  const versionControlLayout = useVersionControlLayout();
-  const versionControlLayoutLabels: Record<VersionControlLayout, string> = {
-    classic: text.versionControlLayoutClassic,
-    review: text.versionControlLayoutReview,
   };
   const soundLabels = {
     error: text.soundError, complete: text.soundComplete,
@@ -144,18 +108,6 @@ export function InterfacePage({
           <Segmented label={text.filePreviewOpenMode} value={filePreviewOpenMode}
             options={filePreviewOpenModes.map(id => ({ id, label: filePreviewOpenModeLabels[id] }))} onChange={setFilePreviewOpenMode} />
         </SettingsBlock>
-        <SettingsBlock id="preview-breadcrumb-mode" title={text.previewBreadcrumbMode} hint={text.previewBreadcrumbModeHint} layout="inline">
-          <Segmented label={text.previewBreadcrumbMode} value={previewBreadcrumbMode}
-            options={previewBreadcrumbModes.map(id => ({ id, label: previewBreadcrumbModeLabels[id] }))} onChange={setPreviewBreadcrumbMode} />
-        </SettingsBlock>
-        <SettingsBlock id="conversation-workbench-tabs" title={text.conversationWorkbenchTabs} hint={text.conversationWorkbenchTabsHint} layout="inline">
-          <SettingsSwitch label={text.conversationWorkbenchTabs} checked={preferences.conversationWorkbenchTabs} onChange={preferences.setConversationWorkbenchTabs} />
-        </SettingsBlock>
-        {preferences.conversationWorkbenchTabs && (
-          <SettingsBlock id="borderless-interface" title={text.borderlessInterface} hint={text.borderlessInterfaceHint} layout="inline">
-            <SettingsSwitch label={text.borderlessInterface} checked={preferences.borderlessInterface} onChange={preferences.setBorderlessInterface} />
-          </SettingsBlock>
-        )}
         <SettingsBlock id="workbench-split" title={text.workbenchSplit} hint={text.workbenchSplitHint} layout="inline">
           <SettingsSwitch label={text.workbenchSplit} checked={preferences.workbenchSplit} onChange={preferences.setWorkbenchSplit} />
         </SettingsBlock>
@@ -164,14 +116,6 @@ export function InterfacePage({
         </SettingsBlock>
       </SettingsGroup>
       <SettingsGroup title={copy.sections.navLayout}>
-        <SettingsBlock id="nav-layout" title={text.navLayout} hint={text.navLayoutHint} layout="inline">
-          <Segmented label={text.navLayout} value={navLayout}
-            options={navLayouts.map(id => ({ id, label: navLayoutLabels[id] }))} onChange={setNavLayout} />
-        </SettingsBlock>
-        <SettingsBlock id="version-control-layout" title={text.versionControlLayout} hint={text.versionControlLayoutHint} layout="inline">
-          <Segmented label={text.versionControlLayout} value={versionControlLayout}
-            options={versionControlLayouts.map(id => ({ id, label: versionControlLayoutLabels[id] }))} onChange={setVersionControlLayout} />
-        </SettingsBlock>
         <SettingsBlock id="info-layout" title={text.infoLayout} hint={text.infoLayoutHint} extraHint={infoLayoutHints[infoLayout]} layout="inline">
           <Segmented menu label={text.infoLayout} value={infoLayout} options={infoLayoutOptions} onChange={setInfoLayout} />
         </SettingsBlock>
@@ -190,18 +134,10 @@ export function InterfacePage({
         <SettingsBlock id="usage-ring" title={text.usageRing} hint={text.usageRingHint} layout="inline">
           <SettingsSwitch label={text.usageRing} checked={usageRing.enabled} onChange={enabled => setUsageRingPrefs({ enabled })} />
         </SettingsBlock>
-        <SettingsBlock id="usage-ring-logo" title={text.usageRingLogo} layout="inline">
-          <SettingsSwitch label={text.usageRingLogo} checked={usageRing.showCodexLogo} disabled={!usageRing.enabled}
-            onChange={showCodexLogo => setUsageRingPrefs({ showCodexLogo })} />
-        </SettingsBlock>
         <SettingsBlock id="usage-ring-plus-window" title={text.usageRingPlusWindow} layout="inline">
           <SettingsSelect label={text.usageRingPlusWindow} value={usageRing.plusWindow} disabled={!usageRing.enabled}
             options={plusUsageWindows.map(value => ({ value, label: plusWindowLabels[value] }))}
             onChange={value => setUsageRingPrefs({ plusWindow: value as PlusUsageWindow })} />
-        </SettingsBlock>
-        <SettingsBlock id="usage-ring-threshold" title={text.usageRingThreshold} hint={text.usageRingThresholdHint} layout="inline">
-          <UsageRingThresholdControl label={text.usageRingThreshold} value={usageRing.threshold} disabled={!usageRing.enabled}
-            onChange={threshold => setUsageRingPrefs({ threshold })} />
         </SettingsBlock>
         <SettingsBlock id="start-page-style" title={text.startPageStyle} hint={text.startPageStyleHint} extraHint={startPageStyleHints[startPageStyle]} layout="inline">
           <Segmented
@@ -214,36 +150,6 @@ export function InterfacePage({
         </SettingsBlock>
         <SettingsBlock id="home-prompts" title={text.homePrompts} hint={text.homePromptsHint} layout="inline">
           <SettingsSwitch label={text.homePrompts} checked={homePrompts} onChange={setHomePrompts} />
-        </SettingsBlock>
-      </SettingsGroup>
-      <SettingsGroup title={copy.sections.composer}>
-        <SettingsBlock id="composer-layout" title={text.composerLayout} hint={text.composerLayoutHint} extraHint={composerLayoutHints[composerLayout]} layout="inline">
-          <Segmented
-            label={text.composerLayout}
-            value={composerLayout}
-            options={composerLayouts.map(id => ({ id, label: composerLayoutLabels[id] }))}
-            onChange={setComposerLayout}
-          />
-        </SettingsBlock>
-        <SettingsBlock id="combined-mode-picker" title={text.combinedModePicker} hint={text.combinedModePickerHint} layout="inline">
-          <SettingsSwitch label={text.combinedModePicker} checked={combinedModePicker} onChange={setCombinedModePicker} />
-        </SettingsBlock>
-        <SettingsBlock id="combined-model-picker" title={text.combinedModelPicker} hint={text.combinedModelPickerHint} layout="inline">
-          <SettingsSwitch label={text.combinedModelPicker} checked={combinedModelPicker} onChange={setCombinedModelPicker} />
-        </SettingsBlock>
-        <SettingsBlock id="composer-capsules" title={text.composerCapsules} hint={text.composerCapsulesHint} layout="inline">
-          <SettingsSwitch label={text.composerCapsules} checked={composerCapsules} onChange={setComposerCapsules} />
-        </SettingsBlock>
-        <SettingsBlock id="send-button-icon" title={text.sendButtonIcon} layout="inline">
-          <Segmented
-            label={text.sendButtonIcon}
-            value={sendButtonIcon}
-            options={[
-              { id: "paper-plane", label: text.sendButtonIconPaperPlane },
-              { id: "arrow-up", label: text.sendButtonIconArrowUp },
-            ]}
-            onChange={setSendButtonIcon}
-          />
         </SettingsBlock>
       </SettingsGroup>
     </section>

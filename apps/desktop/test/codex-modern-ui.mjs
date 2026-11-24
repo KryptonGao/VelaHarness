@@ -147,8 +147,8 @@ if (!process.versions.electron) {
       assert.ok((await measure()).height > 400);
 
       await evaluate("window.updateFixture({settings:true})");
-      await until("document.querySelector('[data-setting-id=thinking-group-mode]')");
-      assert.ok(await evaluate("document.querySelector('[data-setting-id=thinking-group-mode]').textContent.includes('新版 Codex 风格')"));
+      await until("document.querySelector('[data-setting-id=thinking-summary]')");
+      assert.equal(await evaluate("document.querySelector('[data-setting-id=thinking-group-mode]')"), null);
       await preference("setToolDisplay", "compact");
       await evaluate("window.updateFixture({chat:true})");
       await until("document.querySelector('#main-chat .assistant-turn-trigger')");

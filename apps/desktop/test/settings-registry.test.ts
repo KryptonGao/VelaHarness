@@ -90,33 +90,27 @@ test("search finds settings across languages through keywords", () => {
   }
 });
 
-test("tool headline delay is searchable and localized in all five languages", () => {
-  for (const locale of ["zh-CN", "en", "zh-TW", "ja", "ko"] as const) {
-    const copy = settingsCopy(locale);
-    const entries = resolveSettingsEntries(copy);
-    for (const query of ["门槛", "延迟", "threshold", "flicker"]) {
-      assert.ok(searchSettings(query, entries).some((result) => result.entry.id === "thinking-activity-delay"), `${locale}: ${query}`);
-    }
-    assert.ok(copy.appearance.thinkingActivityDelay);
-    assert.ok(copy.appearance.thinkingActivityDelayHint);
-    assert.ok(copy.appearance.thinkingActivityDelayThreshold);
-    if (locale !== "en") {
-      assert.notEqual(copy.appearance.thinkingActivityDelay, settingsCopy("en").appearance.thinkingActivityDelay, locale);
-    }
-  }
-});
-
-test("modern Codex grouping is searchable and localized in all five languages", () => {
-  for (const locale of ["zh-CN", "en", "zh-TW", "ja", "ko"] as const) {
-    const copy = settingsCopy(locale);
-    const entries = resolveSettingsEntries(copy);
-    assert.ok(searchSettings("modern Codex", entries).some(result => result.entry.id === "thinking-group-mode"), locale);
-    assert.ok(copy.appearance.thinkingGroupModeCodexModernHint);
-    if (locale !== "en") {
-      assert.notEqual(copy.appearance.thinkingGroupModeCodexModern, settingsCopy("en").appearance.thinkingGroupModeCodexModern, locale);
-      assert.notEqual(copy.appearance.thinkingGroupModeCodexModernHint, settingsCopy("en").appearance.thinkingGroupModeCodexModernHint, locale);
-    }
-  }
+test("hidden UI settings stay out of the registry while explicitly kept layout settings remain searchable", () => {
+  const hiddenIds = [
+    "glass-tint", "glass-opacity", "unfocused-glass", "sidebar-card-glass", "unified-icons",
+    "nav-layout", "version-control-layout", "preview-breadcrumb-mode", "conversation-workbench-tabs",
+    "borderless-interface", "usage-ring-logo", "usage-ring-threshold", "combined-mode-picker",
+    "combined-model-picker", "composer-capsules",
+    "tool-display", "tool-fold", "tool-icon-color", "tool-process-details", "change-summary",
+    "minimal-mode", "file-path", "thinking-summary-style", "thinking-group-mode",
+    "thinking-activity-delay", "thinking-title-style", "thinking-group-height",
+    "reply-animation", "thinking-animation", "intelligent-ui-metrics",
+  ];
+  const keptIds = ["info-layout", "start-page-style", "workbench-split", "elastic-scroll"];
+  const registered = new Set(settingsEntries.map((entry) => entry.id));
+  for (const id of hiddenIds) assert.equal(registered.has(id), false, `${id} should stay hidden from Settings`);
+  for (const id of keptIds) assert.equal(registered.has(id), true, `${id} should remain in Settings`);
+  const zh = resolveSettingsEntries(settingsCopy("zh-CN"));
+  const en = resolveSettingsEntries(settingsCopy("en"));
+  assert.ok(searchSettings("右侧信息布局", zh).some((result) => result.entry.id === "info-layout"));
+  assert.ok(searchSettings("start page", en).some((result) => result.entry.id === "start-page-style"));
+  assert.ok(searchSettings("分屏", zh).some((result) => result.entry.id === "workbench-split"));
+  assert.ok(searchSettings("elastic scroll", en).some((result) => result.entry.id === "elastic-scroll"));
 });
 
 test("search requires every word, normalizes case and width, and ranks title hits first", () => {
@@ -128,21 +122,4 @@ test("search requires every word, normalizes case and width, and ranks title hit
   assert.equal(ranked[0].entry.id, "palette", "exact page/title prefix should outrank keyword-only hits");
   assert.ok(searchSettings("DARK mode", en).some((result) => result.entry.id === "theme"));
   assert.equal(searchSettings("theme zzzz", en).length, 0);
-});
-
-test("breadcrumb display is searchable on Interface and translated in all five locales", () => {
-  const english = settingsCopy("en").appearance;
-  for (const locale of ["zh-CN", "en", "zh-TW", "ja", "ko"] as const) {
-    const copy = settingsCopy(locale);
-    const entries = resolveSettingsEntries(copy);
-    for (const query of ["面包屑", "触控板", "完整路径", "breadcrumb", "trackpad", "right panel"]) {
-      const result = searchSettings(query, entries).find(result => result.entry.id === "preview-breadcrumb-mode");
-      assert.equal(result?.entry.page, "interface", `${locale}: ${query}`);
-    }
-    for (const field of ["previewBreadcrumbMode", "previewBreadcrumbModeHint", "previewBreadcrumbModeScroll", "previewBreadcrumbModeHover"] as const) {
-      assert.ok(copy.appearance[field], `${locale}: ${field}`);
-      if (locale !== "en") assert.notEqual(copy.appearance[field], english[field], `${locale}: ${field}`);
-    }
-    assert.ok(searchSettings(copy.appearance.previewBreadcrumbMode, entries).some(result => result.entry.id === "preview-breadcrumb-mode"));
-  }
 });

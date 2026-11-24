@@ -4,6 +4,7 @@ import { PreviewBreadcrumbs } from "../src/renderer/components/preview/PreviewBr
 import { InterfacePage } from "../src/renderer/components/settings/InterfacePage";
 import { settingsCopy } from "../src/renderer/components/settings-copy";
 import { usePreferences } from "../src/renderer/hooks/usePreferences";
+import { setPreviewBreadcrumbMode } from "../src/renderer/hooks/usePreviewBreadcrumbMode";
 import { AppLocaleProvider } from "../src/renderer/locale";
 
 const longPath = ["VelaHarness", "apps", "desktop", "src", "renderer", "components", "preview"];
@@ -11,7 +12,7 @@ const longPath = ["VelaHarness", "apps", "desktop", "src", "renderer", "componen
 function Fixture() {
   const preferences = usePreferences();
   const [short, setShort] = useState(false);
-  Object.assign(window, { setShortPath: setShort });
+  Object.assign(window, { setShortPath: setShort, setPreviewBreadcrumbMode });
   return <AppLocaleProvider locale={preferences.locale}>
     <div id="panel" style={{ width: 500, margin: 24 }}>
       <div className="preview-subbar">

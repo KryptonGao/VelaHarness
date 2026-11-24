@@ -114,12 +114,12 @@ test("storage failures preserve a usable session and invalid runtime choices fal
   assert.equal(values.get(key), '"classic"');
 });
 
-test("version control layout setting is searchable and localized in all five languages", () => {
+test("version control layout setting stays hidden from Settings search while its copy remains localized in all five languages", () => {
   for (const locale of ["zh-CN", "en", "zh-TW", "ja", "ko"] as const) {
     const copy = settingsCopy(locale);
     const entries = resolveSettingsEntries(copy);
     for (const query of ["版本控制", "审查布局", "git", "version control", "file rail"]) {
-      assert.ok(searchSettings(query, entries).some(result => result.entry.id === "version-control-layout"), `${locale}: ${query}`);
+      assert.equal(searchSettings(query, entries).some(result => result.entry.id === "version-control-layout"), false, `${locale}: ${query}`);
     }
     const text = copy.appearance;
     assert.ok(text.versionControlLayout);

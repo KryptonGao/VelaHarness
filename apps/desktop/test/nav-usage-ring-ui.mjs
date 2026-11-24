@@ -131,19 +131,19 @@ if (!process.versions.electron) {
         await until("!document.querySelector('.nav-usage-popover')");
         if (variant === "plus") {
           await evaluate("document.querySelector('.nav-rail-footer button[aria-label=设置]').click()");
-          const logoSwitch = "document.querySelector('[data-setting-id=usage-ring-logo] button')";
           const windowSelect = "document.querySelector('[data-setting-id=usage-ring-plus-window] button')";
           await until(windowSelect);
+          assert.equal(await evaluate("document.querySelector('[data-setting-id=usage-ring-logo]')"), null);
+          assert.equal(await evaluate("document.querySelector('[data-setting-id=usage-ring-threshold]')"), null);
           await evaluate(`${windowSelect}.click()`);
           assert.deepEqual(await evaluate("[...document.querySelectorAll('[role=option]')].map(node => node.textContent)"), ["剩余比例最低", "5 小时额度", "每周额度"]);
           await evaluate("[...document.querySelectorAll('[role=option]')].find(node => node.textContent === '5 小时额度').click()");
           await until("document.querySelector('.nav-usage-button').getAttribute('aria-label') === 'Codex 5 小时额度，剩余 70%'");
-          await evaluate(`${logoSwitch}.click()`);
-          await until("document.querySelector('.nav-usage-ring').dataset.logo === 'false'");
-          assert.equal(await evaluate("document.querySelector('.nav-usage-prompt')"), null);
+          await evaluate("localStorage.setItem('vela.usageRing', JSON.stringify({ ...JSON.parse(localStorage.getItem('vela.usageRing') || '{}'), showCodexLogo: false }))");
           await win.loadFile(join(process.env.VELA_RING_TEMP, "index.html"), { query: { plan } });
           await until("document.querySelector('.nav-usage-value')?.getAttribute('stroke-dasharray') === '70 30'");
           assert.equal(await evaluate("document.querySelector('.nav-usage-ring').dataset.logo"), "false");
+          assert.equal(await evaluate("document.querySelector('.nav-usage-prompt')"), null);
         }
         win.destroy();
       }

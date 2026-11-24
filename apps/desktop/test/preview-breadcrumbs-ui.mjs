@@ -48,9 +48,9 @@ if (!process.versions.electron) {
   const nav = "document.querySelector('.preview-breadcrumbs-text')";
   const state = () => evaluate(`(() => { const n = ${nav}; return {left: n.scrollLeft, max: n.scrollWidth - n.clientWidth, start: n.dataset.fadeStart, end: n.dataset.fadeEnd}; })()`);
   const wheel = (deltaX, deltaY, extra = {}) => evaluate(`(() => { const e = new WheelEvent('wheel', ${JSON.stringify({ deltaX, deltaY, bubbles: true, cancelable: true, ...extra })}); ${nav}.dispatchEvent(e); return e.defaultPrevented; })()`);
-  const choose = async label => {
-    await evaluate(`Array.from(document.querySelectorAll('[data-setting-id="preview-breadcrumb-mode"] [role="radio"]')).find(n => n.textContent === ${JSON.stringify(label)}).click()`);
-    await until(`${nav}.dataset.mode === ${JSON.stringify(label === "悬停展开" ? "hover" : "scroll")}`);
+  const choose = async mode => {
+    await evaluate(`window.setPreviewBreadcrumbMode(${JSON.stringify(mode)})`);
+    await until(`${nav}.dataset.mode === ${JSON.stringify(mode)}`);
   };
   try {
     await win.loadFile(join(process.env.VELA_BREADCRUMBS_TEMP, "index.html"));
@@ -114,7 +114,8 @@ if (!process.versions.electron) {
     await until(`${nav}.dataset.fadeStart === 'true' && ${nav}.dataset.fadeEnd === 'false'`);
     console.log("PASS keyboard access, panel resizing, no-overflow behavior and path changes");
 
-    await choose("悬停展开");
+    assert.equal(await evaluate('document.querySelector(\'[data-setting-id="preview-breadcrumb-mode"]\')'), null);
+    await choose("hover");
     assert.equal(await evaluate("localStorage.getItem('vela.previewBreadcrumbMode')"), '"hover"');
     assert.ok(await evaluate("Array.from(document.querySelectorAll('.preview-breadcrumbs-text')).every(n => n.dataset.mode === 'hover')"));
     await until(`${nav}.querySelector('[data-fade="true"]') !== null`);
@@ -125,13 +126,13 @@ if (!process.versions.electron) {
     await until(`getComputedStyle(${nav}.querySelector('.preview-crumb')).flexShrink === '0'`);
     await win.loadFile(join(process.env.VELA_BREADCRUMBS_TEMP, "index.html"));
     await until(`${nav}?.dataset.mode === 'hover'`);
-    await choose("完整路径滚动");
+    await choose("scroll");
     await until(`${nav}.scrollLeft > 0`);
     assert.equal(await evaluate("localStorage.getItem('vela.previewBreadcrumbMode')"), '"scroll"');
     await win.loadFile(join(process.env.VELA_BREADCRUMBS_TEMP, "index.html"));
     await until(`${nav}?.dataset.mode === 'scroll' && ${nav}.scrollLeft > 0`);
     assert.deepEqual(errors, []);
-    console.log("PASS live setting changes, hover expansion, synchronized previews and persistence across reloads");
+    console.log("PASS hidden UI setting, config-backed hover expansion, synchronized previews and persistence across reloads");
     app.quit();
   } catch (error) { console.error(error); console.error(errors); app.exit(1); }
   });

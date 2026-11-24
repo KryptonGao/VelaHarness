@@ -64,11 +64,33 @@ async function run() {
       ? "rgb(0 0 0 / 0.15)" : "rgb(255 255 255 / 0.15)",
   });
   await evaluate(() => document.querySelector(".nav-rail-footer .nav-rail-item:last-child").click());
-  await until(() => evaluate(() => Boolean(document.querySelector('[data-setting-id="usage-ring-threshold"]'))), "settings");
+  await until(() => evaluate(() => Boolean(document.querySelector('[data-setting-id="theme"]'))), "appearance settings");
   assert.deepEqual(await evaluate(() => ({
-    usageThreshold: document.querySelector('[data-setting-id="usage-ring-threshold"] input[type="number"]').value,
-    combinedModelPicker: document.querySelector('[data-setting-id="combined-model-picker"] [role="switch"]').getAttribute("aria-checked"),
-  })), { usageThreshold: "10", combinedModelPicker: "true" });
+    glassTint: Boolean(document.querySelector('[data-setting-id="glass-tint"]')),
+    glassOpacity: Boolean(document.querySelector('[data-setting-id="glass-opacity"]')),
+    unfocusedGlass: Boolean(document.querySelector('[data-setting-id="unfocused-glass"]')),
+    sidebarCardGlass: Boolean(document.querySelector('[data-setting-id="sidebar-card-glass"]')),
+    unifiedIcons: Boolean(document.querySelector('[data-setting-id="unified-icons"]')),
+  })), { glassTint: false, glassOpacity: false, unfocusedGlass: false, sidebarCardGlass: false, unifiedIcons: false });
+  await evaluate(() => [...document.querySelectorAll(".settings-nav-item")][1].click());
+  await until(() => evaluate(() => Boolean(document.querySelector('[data-setting-id="info-layout"]'))), "interface settings");
+  assert.deepEqual(await evaluate(() => ({
+    sendButtonIcon: Boolean(document.querySelector('[data-setting-id="send-button-icon"]')),
+    composerLayout: Boolean(document.querySelector('[data-setting-id="composer-layout"]')),
+    navLayout: Boolean(document.querySelector('[data-setting-id="nav-layout"]')),
+    borderlessInterface: Boolean(document.querySelector('[data-setting-id="borderless-interface"]')),
+    conversationWorkbenchTabs: Boolean(document.querySelector('[data-setting-id="conversation-workbench-tabs"]')),
+    usageRingThreshold: Boolean(document.querySelector('[data-setting-id="usage-ring-threshold"]')),
+    combinedModelPicker: Boolean(document.querySelector('[data-setting-id="combined-model-picker"]')),
+    infoLayout: Boolean(document.querySelector('[data-setting-id="info-layout"]')),
+    startPageStyle: Boolean(document.querySelector('[data-setting-id="start-page-style"]')),
+    workbenchSplit: Boolean(document.querySelector('[data-setting-id="workbench-split"]')),
+    elasticScroll: Boolean(document.querySelector('[data-setting-id="elastic-scroll"]')),
+  })), {
+    sendButtonIcon: false, composerLayout: false, navLayout: false, borderlessInterface: false,
+    conversationWorkbenchTabs: false, usageRingThreshold: false, combinedModelPicker: false,
+    infoLayout: true, startPageStyle: true, workbenchSplit: true, elasticScroll: true,
+  });
   console.log("PASS default appearance, interface and conversation preferences on a fresh profile");
 
   const overrides = {
