@@ -58,7 +58,6 @@ export type ThinkingTitleStyle = "bold-dark" | "bold-muted" | "normal-dark" | "n
 /** 半透明玻璃上叠的颜色:当前主题色、按明暗固定的白/黑、或不叠色。 */
 export type GlassTint = "theme" | "neutral" | "none";
 export type FileIconTheme = "devicon" | "material" | "catppuccin" | "pierre";
-export type SendButtonIcon = "paper-plane" | "arrow-up";
 /** 字体风格:sans 为无衬线,serif 为明体(衬线);回复字体另有 inherit,表示沿用界面字体。 */
 export type UiFontFace = "sans" | "serif";
 export type ReplyFontFace = UiFontFace | "inherit";
@@ -110,7 +109,6 @@ const sidebarCardGlassKey = "vela.sidebarCardGlass";
 const glassOpacityKey = "vela.glassOpacity";
 const unfocusedGlassModeKey = "vela.unfocusedGlassMode";
 const unfocusedGlassIncreaseKey = "vela.unfocusedGlassIncrease";
-const sendButtonIconKey = "vela.sendButtonIcon";
 const uiFontLatinKey = "vela.font.ui.latin";
 const uiFontCjkKey = "vela.font.ui.cjk";
 const replyFontLatinKey = "vela.font.reply.latin";
@@ -221,10 +219,6 @@ function isGlassTint(value: unknown): value is GlassTint {
 
 function isFileIconTheme(value: unknown): value is FileIconTheme {
   return value === "devicon" || value === "material" || value === "catppuccin" || value === "pierre";
-}
-
-function isSendButtonIcon(value: unknown): value is SendButtonIcon {
-  return value === "paper-plane" || value === "arrow-up";
 }
 
 function isString(value: unknown): value is string {
@@ -392,9 +386,6 @@ export function usePreferences() {
   const [unfocusedGlassIncrease, setUnfocusedGlassIncrease] = useState(() =>
     parseGlassOpacity(readStored(unfocusedGlassIncreaseKey, isString, "")) ?? defaultUnfocusedGlassIncrease,
   );
-  const [sendButtonIcon, setSendButtonIcon] = useState<SendButtonIcon>(() =>
-    readStored(sendButtonIconKey, isSendButtonIcon, "arrow-up"),
-  );
   const [uiFontLatin, setUiFontLatin] = useState<UiFontFace>(() => readStored(uiFontLatinKey, isUiFontFace, "sans"));
   const [uiFontCjk, setUiFontCjk] = useState<UiFontFace>(() => readStored(uiFontCjkKey, isUiFontFace, "sans"));
   const [replyFontLatin, setReplyFontLatin] = useState<ReplyFontFace>(() =>
@@ -527,7 +518,6 @@ export function usePreferences() {
   }, [elasticScroll]);
   useEffect(() => writeStored(inputPredictionModelKey, JSON.stringify(inputPredictionModel)), [inputPredictionModel]);
   useEffect(() => writeStored(fileIconThemeKey, fileIconTheme), [fileIconTheme]);
-  useEffect(() => writeStored(sendButtonIconKey, sendButtonIcon), [sendButtonIcon]);
   useEffect(() => writeStored(hiddenModelsKey, JSON.stringify(hiddenModels)), [hiddenModels]);
   useEffect(() => {
     // data-tool-icon-color 仍是「是否上色」的开关,主题色模式再叠加 data-tool-icon-theme。
@@ -700,8 +690,6 @@ export function usePreferences() {
     setUnfocusedGlassMode,
     unfocusedGlassIncrease,
     setUnfocusedGlassIncrease,
-    sendButtonIcon,
-    setSendButtonIcon,
     uiFontLatin,
     setUiFontLatin,
     uiFontCjk,

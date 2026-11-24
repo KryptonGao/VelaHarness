@@ -1227,7 +1227,6 @@ export function App() {
                           predictionModel={preferences.inputPredictionModel}
                           locale={preferences.locale}
                           hiddenModels={preferences.hiddenModels}
-                          sendButtonIcon={preferences.sendButtonIcon}
                           onSend={session.send}
                           onRemoveInstruction={session.removeInstruction}
                           onEdit={session.edit}
@@ -1294,7 +1293,6 @@ export function App() {
                         ensureAgentMessages={session.ensureAgentMessages}
                         onControlAgent={session.controlAgent}
                         onSendAgentMessage={session.sendAgentMessage}
-                        sendButtonIcon={preferences.sendButtonIcon}
                         onOpenAgent={openAgentPane}
                         onNewTab={openStartTab}
                         onStartAction={handleStartAction}
@@ -1317,7 +1315,6 @@ export function App() {
                           workspace={state.workspace} visible={visible} inbox={state.inbox}
                           onInboxConsumed={count => consumeSideChatInbox(tab.id, count)}
                           conversationId={session.activeConversationId} locale={preferences.locale}
-                          sendButtonIcon={preferences.sendButtonIcon}
                           models={models} hiddenModels={preferences.hiddenModels}
                           defaultChoice={session.state?.session.modelProvider && session.state.session.modelId
                             ? { provider: session.state.session.modelProvider, id: session.state.session.modelId, thinkingLevel: session.state.session.thinkingLevel }

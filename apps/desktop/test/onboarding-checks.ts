@@ -121,21 +121,17 @@ export async function runOnboardingChecks() {
       assert(byText(".ob-opt.pick", "Info cards").getAttribute("aria-checked") === "true" && cards()[0]!.getAttribute("aria-checked") === "false", "info cards not selected");
       await press(cards()[1]!);
       assert(cards()[1]!.getAttribute("aria-checked") === "true" && byText(".ob-opt.pick", "Info cards").getAttribute("aria-checked") === "false", "floating not selected");
-      // 导航与输入框布局存在模块级的存储里，在预览清空 localStorage 之前就读过一次，所以这里不假设起点，两边都点一遍。
+      // The navigation preference loads before the preview clears storage, so exercise both choices.
       await press(cards()[3]!);
       assert(cards()[3]!.getAttribute("aria-checked") === "true" && cards()[4]!.getAttribute("aria-checked") === "false", "classic navigation not selected");
       await press(byText(".ob-opt.pick", "Categories"));
       assert(byText(".ob-opt.pick", "Categories").getAttribute("aria-checked") === "true" && cards()[3]!.getAttribute("aria-checked") === "false", "categories navigation not selected");
     });
 
-    await check("composer layout has its own page with diagrams and persists the Intelligent UI preference", async () => {
+    await check("the interactive interface step offers only the response preference and saves it", async () => {
       await next("step-4");
-      const cards = () => all<HTMLButtonElement>(".ob-opt.pick");
-      assert(cards().length === 3 && cards().every((item) => item.querySelector(".ob-lay")), "three composer cards with diagrams expected");
-      await press(cards()[0]!);
-      assert(cards()[0]!.getAttribute("aria-checked") === "true" && document.documentElement.dataset.composerLayout === "classic", "classic composer layout not applied");
-      await press(byText(".ob-opt.pick", "Capsule"));
-      assert(byText(".ob-opt.pick", "Capsule").getAttribute("aria-checked") === "true" && document.documentElement.dataset.composerLayout === "capsule", "capsule composer layout not applied");
+      const groups = all('[role="radiogroup"]');
+      assert(groups.length === 1 && groups[0]!.getAttribute("aria-label") === "Interactive interface", "expected only the interactive interface options");
       await press(byText(".ob-seg button", "Visual first"));
       await until(() => calls("setIntelligentUi").length === 1, "Intelligent UI preference saved");
       assert(calls("setIntelligentUi")[0].arg === "visual_first", "wrong Intelligent UI preference");

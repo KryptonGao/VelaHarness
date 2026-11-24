@@ -1,7 +1,5 @@
 import { isAgentBusy, type AgentInfo } from "@vela/shared";
 import { forwardRef, useLayoutEffect, useRef, useState } from "react";
-import type { SendButtonIcon } from "../hooks/usePreferences";
-import { useComposerLayout } from "../hooks/useComposerLayout";
 import { localizeError, tr } from "../locale";
 import { ComposerActions } from "./Composer";
 import { serializeEditor, setEditorText } from "./composer/skill-editor";
@@ -13,16 +11,13 @@ function maxInputHeight(input: HTMLElement): number {
 }
 
 /**
- * 右侧 Agent Pane 底部的输入框：沿用主输入框的外壳和样式类，所以 classic / calm / capsule 布局、
- * 发送按钮图标等全局设置自动生效；只保留纯文本发送，没有模型、模式、附件等主对话专属控件。
+ * 右侧 Agent Pane 底部沿用主对话的胶囊输入框，仅支持纯文本发送。
  * 子代理正在跑时消息排在当前回合之后处理，所以这里始终是「发送」，不会出现停止按钮（停止在面板顶部）。
  */
 export const AgentComposer = forwardRef<HTMLDivElement, {
   agent: AgentInfo;
-  sendButtonIcon?: SendButtonIcon;
   onSend: (agentId: string, text: string) => Promise<void>;
-}>(function AgentComposer({ agent, sendButtonIcon = "paper-plane", onSend }, ref) {
-  const layout = useComposerLayout();
+}>(function AgentComposer({ agent, onSend }, ref) {
   const inputRef = useRef<HTMLDivElement>(null);
   const submitting = useRef(false);
   const [value, setValue] = useState("");
@@ -120,7 +115,7 @@ export const AgentComposer = forwardRef<HTMLDivElement, {
     </div>
   );
   const actions = (
-    <ComposerActions sendButtonIcon={sendButtonIcon} streaming={false} sendHint={sendHint} steerHint=""
+    <ComposerActions streaming={false} sendHint={sendHint} steerHint=""
       canQueue={false} disabled={!canSend} onSteer={() => undefined} onAbort={async () => undefined} />
   );
   const status = error ? (
@@ -135,31 +130,17 @@ export const AgentComposer = forwardRef<HTMLDivElement, {
   return (
     <div className="chat-dock-wrapper" ref={ref}>
       <form
-        className={`floating-input-card${layout === "capsule" ? " layout-capsule" : ""}`}
+        className="floating-input-card layout-capsule"
         onSubmit={(event) => { event.preventDefault(); void submit(); }}
       >
-        {layout === "capsule" ? (
-          <>
-            {status}
-            {hint}
-            <div className="composer-capsule">
-              <div className="composer-capsule-main">
-                {entry}
-                {actions}
-              </div>
-            </div>
-          </>
-        ) : (
-          <>
-            {status}
-            {hint}
+        {status}
+        {hint}
+        <div className="composer-capsule">
+          <div className="composer-capsule-main">
             {entry}
-            <div className="dock-controls-row">
-              <div className="dock-controls-left" />
-              <div className="dock-controls-right">{actions}</div>
-            </div>
-          </>
-        )}
+            {actions}
+          </div>
+        </div>
       </form>
     </div>
   );

@@ -605,9 +605,6 @@
 .panel-chat-view .conversation-view-tabs.chat-view-tabs { padding-inline: 6px; }
 .panel-chat-plan-toolbar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; font-size: calc(13px * var(--ui-scale)); }
 @container chat (max-width: 520px) {
-  .panel-chat-view .dock-controls-row { flex-direction: column; align-items: stretch; }
-  .panel-chat-view .dock-controls-left { flex: none; }
-  .panel-chat-view .dock-controls-right { flex: none; width: 100%; }
   .panel-chat-view .model-controls { flex: 1; }
   .panel-chat-view .dock-popover { max-width: calc(100cqi - 64px); }
 }
@@ -851,23 +848,6 @@
 [data-floating-chat] .floating-input-card .attach-btn { margin: 0; }
 [data-floating-chat] .floating-input-card .attach-btn { background: transparent; }
 [data-floating-chat] .composer-capsule-main { align-items: center; }
-
-/* Arrange the classic composer's existing editor and actions in one row without remounting the editor. */
-.main-chat-view[data-floating-chat] .floating-input-card:not(.layout-capsule) {
-  grid-template-columns: auto minmax(0, 1fr) auto auto;
-  grid-auto-flow: row dense;
-  align-items: center;
-  column-gap: 4px;
-  row-gap: 0;
-}
-[data-floating-chat] .floating-input-card > * { grid-column: 1 / -1; }
-[data-floating-chat] .floating-input-card > .dock-controls-row,
-[data-floating-chat] .floating-input-card > .dock-controls-row > div { display: contents; }
-[data-floating-chat] .floating-input-card > .dock-controls-row .composer-chip-anchor { order: 1; grid-column: 1; }
-[data-floating-chat] .floating-input-card > .composer-entry { order: 1; grid-column: 2; }
-[data-floating-chat] .floating-composer-options { grid-column: 3; }
-[data-floating-chat] .dock-controls-right > :is(.floating-composer-options, .composer-action-slot) { order: 1; }
-[data-floating-chat] .dock-controls-right > .composer-action-slot { grid-column: 4; }
 
 .floating-composer-settings {
   order: 2;

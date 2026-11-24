@@ -4,7 +4,7 @@ import { VisualToolCard } from "./VisualToolCard";
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type MutableRefObject, type ReactNode } from "react";
 import { useDismissable } from "../hooks/useDismissable";
 import { useEntryArrival } from "../hooks/useEntryArrival";
-import type { SendButtonIcon, ToolDisplay, ToolFold } from "../hooks/usePreferences";
+import type { ToolDisplay, ToolFold } from "../hooks/usePreferences";
 import { useFrameTask } from "../hooks/useFrameTask";
 import { emptyMessages, type MessageStore } from "../hooks/message-store";
 import { useMessages } from "../hooks/useMessages";
@@ -47,8 +47,6 @@ interface AgentPaneProps {
   onControl: (agentId: string, action: AgentControlAction) => void;
   /** 用户直接给这个子代理发消息；失败时抛出。 */
   onSend: (agentId: string, text: string) => Promise<void>;
-  /** 与主输入框一致的发送按钮图标。 */
-  sendButtonIcon?: SendButtonIcon;
 }
 
 /**
@@ -81,7 +79,7 @@ export const AgentPane = memo(function AgentPane(props: AgentPaneProps) {
 
 function VisibleAgentPane({
   agent, agents, messages: providedMessages, messageStore, conversationId = null,
-  toolDisplay, toolFold = "message", onSwitch, ensureMessages, onControl, onSend, sendButtonIcon, follow,
+  toolDisplay, toolFold = "message", onSwitch, ensureMessages, onControl, onSend, follow,
 }: AgentPaneProps & { follow: MutableRefObject<AgentFollow> }) {
   const storedMessages = useMessages(messageStore, conversationId, agent.id);
   const messages = webChatMessages(useNamedThinkingMessages(messageStore ? storedMessages : providedMessages ?? emptyMessages));
@@ -275,7 +273,7 @@ function VisibleAgentPane({
       >
         <JumpOrb activity={jumpActivity} commandKey={runningBash?.id} running={showJumpToLatest} />
       </button>
-      <AgentComposer key={agentId} ref={dockRef} agent={agent} sendButtonIcon={sendButtonIcon} onSend={onSend} />
+      <AgentComposer key={agentId} ref={dockRef} agent={agent} onSend={onSend} />
     </section>
   );
 }

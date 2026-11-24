@@ -1,19 +1,5 @@
-/* ---------- 输入框布局(外观设置):classic 为原样,calm / capsule 在其上覆盖 ----------
- * 三种布局都不为输入框聚焦添加高亮;思考强度滑块的弹窗样式不随布局改变。 */
+/* Capsule composer and control tray */
 .thinking-glyph { display: none; }
-.thinking-bars {
-  display: inline-flex;
-  align-items: flex-end;
-  gap: 2px;
-  height: 14px;
-}
-.thinking-bars i {
-  width: 3px;
-  border-radius: 1.5px;
-  background: var(--border-strong);
-  transition: background-color 150ms ease;
-}
-.thinking-bars i.on { background: var(--accent-blue); }
 .thinking-dial {
   width: 22px;
   height: 22px;
@@ -23,26 +9,6 @@
 .thinking-dial-track { stroke: var(--border-strong); stroke-dasharray: 28.27 100; }
 .thinking-dial-progress { stroke: var(--accent-blue); transition: stroke-dasharray 200ms var(--motion-ease-enter); }
 
-/* calm:结构不变,控制行更紧凑,统计行沉成底部淡色脚注带。 */
-:root[data-composer-layout="calm"] .floating-input-card {
-  padding: 14px 16px 0;
-  border-radius: 22px;
-}
-:root[data-composer-layout="calm"] .dock-controls-row { padding-bottom: 8px; }
-:root[data-composer-layout="calm"] .composer-stats-row {
-  margin: 0 -16px;
-  padding: 8px 18px;
-  border-top: 1px solid var(--border-subtle);
-  background: var(--bg-surface-subtle);
-  border-radius: 0 0 calc(22px - 1px) calc(22px - 1px);
-  font-size: calc(12.5px * var(--ui-scale));
-}
-:root[data-composer-layout="calm"] .composer-stats-row > .composer-stat-context { margin-left: auto; }
-:root[data-composer-layout="calm"] .thinking-glyph { display: inline-flex; align-items: flex-end; }
-:root[data-composer-layout="calm"] .thinking-dial { display: none; }
-:root[data-composer-layout="calm"] .thinking-label { --thinking-chevron-gap: 7px; }
-
-/* capsule:输入收成一条膠囊,模式、权限和统计挪到下方托盘。 */
 .floating-input-card.layout-capsule {
   background: transparent;
   border: 0;
@@ -102,7 +68,6 @@
 .composer-tray .model-controls .dock-menu:has(.model-pill) { max-width: 200px; }
 .composer-tray .thinking-label { --thinking-chevron-gap: 5px; }
 .composer-tray .thinking-glyph { display: inline-flex; align-items: center; }
-.composer-tray .thinking-bars { display: none; }
 /* 思考强度和模型名两个胶囊之间只留一小段间距：缩小控件间距，并去掉两侧胶囊靠在一起的内边距。 */
 .composer-tray .model-controls { gap: 2px; }
 .composer-tray .model-choice-pill:has(.thinking-glyph) { padding-right: 4px; }

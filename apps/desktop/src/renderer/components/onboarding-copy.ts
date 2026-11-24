@@ -2,7 +2,7 @@ import { localizeCopy } from "@vela/shared";
 import type { AppLocale } from "../hooks/usePreferences";
 
 const zh = {
-  steps: ["外观", "对话显示", "信息栏与界面", "输入框与交互", "迁移 Skills", "添加供应商", "默认模型", "个性化", "后台与更新"],
+  steps: ["外观", "对话显示", "信息栏与界面", "交互式界面", "迁移 Skills", "添加供应商", "默认模型", "个性化", "后台与更新"],
   optional: "可跳过",
   previous: "上一步",
   next: "继续",
@@ -110,12 +110,6 @@ const zh = {
   navGroup: "导航布局",
   navClassicHint: "只有左侧边栏，对话和各个页面入口都在里面。",
   navRailHint: "最左侧多一列图标栏放主页、定时任务和设置，侧边栏只留对话。",
-  composerTitle: "输入框想要什么样子？",
-  composerHint: "选择输入框的结构和统计信息的位置，再决定 Agent 是否可以用交互式界面回答。",
-  composerGroup: "输入框布局",
-  composerClassicHint: "原有样式，工具栏和统计都在输入框里。",
-  composerCalmHint: "保留结构，把统计收成底部脚注。",
-  composerCapsuleHint: "输入收成一条，模式、权限和模型放在下方托盘。",
   layoutGroup: "信息栏位置",
   infoSidebar: "右侧边栏",
   infoSidebarHint: "固定在右侧的半透明边栏，信息一直可见。",
@@ -124,7 +118,7 @@ const zh = {
   infoCardsHint: "右侧一列浮在对话上的卡片，可拖动排序、折叠或隐藏。",
   layoutChat: "对话",
   layoutInfo: "信息",
-  interactiveGroup: "交互式界面",
+  interactiveTitle: "你希望 Agent 怎样回答？",
   personalizeTitle: "让 Vela 记住你的习惯",
   personalizeHint: "记忆和额外指令让 Agent 在每次对话里了解你的偏好。这一步可以跳过，之后也能在设置里查看和修改。",
   memoryTitle: "记忆",
@@ -267,7 +261,7 @@ type Widen<T> = T extends (...args: never[]) => unknown
         : T;
 
 const en: Widen<typeof zh> = {
-  steps: ["Appearance", "Chat display", "Info panel & UI", "Composer & interactivity", "Migrate skills", "Add provider", "Default model", "Personalize", "Background & updates"],
+  steps: ["Appearance", "Chat display", "Info panel & UI", "Interactive interface", "Migrate skills", "Add provider", "Default model", "Personalize", "Background & updates"],
   optional: "Optional",
   previous: "Back",
   next: "Continue",
@@ -375,12 +369,6 @@ const en: Widen<typeof zh> = {
   navGroup: "Navigation layout",
   navClassicHint: "Just the left sidebar, holding chats and every page.",
   navRailHint: "An icon rail on the far left for Home, Scheduled tasks and Settings; the sidebar keeps only chats.",
-  composerTitle: "What should the composer look like?",
-  composerHint: "Choose how the composer is built and where stats go, then whether the agent may answer with interactive interfaces.",
-  composerGroup: "Composer layout",
-  composerClassicHint: "The original style, with tools and stats inside the box.",
-  composerCalmHint: "Same structure, with stats folded into a footnote.",
-  composerCapsuleHint: "One-line input, with mode, permissions and model in a tray below.",
   layoutGroup: "Info panel position",
   infoSidebar: "Right sidebar",
   infoSidebarHint: "A translucent panel fixed on the right, so details are always visible.",
@@ -389,7 +377,7 @@ const en: Widen<typeof zh> = {
   infoCardsHint: "A column of cards over the chat. Drag to reorder, collapse or hide them.",
   layoutChat: "Chat",
   layoutInfo: "Info",
-  interactiveGroup: "Interactive interface",
+  interactiveTitle: "How should the agent respond?",
   personalizeTitle: "Let Vela remember how you work",
   personalizeHint: "Memory and extra instructions help the agent know your preferences in every conversation. You can skip this and review it later in Settings.",
   memoryTitle: "Memory",

@@ -21,7 +21,8 @@ import { darkThemes, defaultDarkTheme, defaultLightTheme, isCustomThemeId, light
 import { localizeError } from "../locale";
 import { settingsCopy } from "./settings-copy";
 import { onboardingCopy, type OnboardingCopy } from "./onboarding-copy";
-import { AssistSection, BackgroundStep, ComposerStep, LayoutStep, PersonalizeStep } from "./OnboardingExtraSteps";
+import { AssistSection, BackgroundStep, InteractiveUiStep, LayoutStep, PersonalizeStep } from "./OnboardingExtraSteps";
+import { uiCopy } from "./intelligent-ui/copy";
 import { FeatureScreen, HelloScreen, LanguageScreen, NewsScreen, TourScreen, Brand } from "./OnboardingIntro";
 import { ObDefs, ObPanel, ObSail, ObSea, obColor } from "./onboarding-art";
 import {
@@ -589,7 +590,7 @@ export function OnboardingView({ preferences, models, project, mode = "full", in
       case "step-3":
         return <SetupFrame {...frame(3, copy.layoutTitle, copy.layoutHint)}><LayoutStep copy={copy} settings={settings} preferences={preferences} /></SetupFrame>;
       case "step-4":
-        return <SetupFrame {...frame(4, copy.composerTitle, copy.composerHint)}><ComposerStep copy={copy} settings={settings} /></SetupFrame>;
+        return <SetupFrame {...frame(4, copy.interactiveTitle, uiCopy.setting.description())}><InteractiveUiStep /></SetupFrame>;
       case "step-5":
         return (
           <SetupFrame {...frame(5, copy.migrateTitle, copy.migrateHint)}>

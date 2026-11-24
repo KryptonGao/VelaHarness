@@ -250,6 +250,7 @@
 .ob-body h3 { font-size: 42px; font-weight: 600; line-height: 1.25; }
 .ob-root:lang(en) .ob-body h3 { font-size: 38px; }
 .ob-lead { font-size: calc(16px * var(--ui-scale)); line-height: 1.75; opacity: .8; margin: 6px 0 4px; max-width: 660px; }
+.ob-lead + .ob-seg { margin-top: 12px; }
 
 .ob-appearance { display: grid; grid-template-columns: 456px 1fr; gap: 40px; }
 .ob-dots { display: flex; align-items: flex-start; gap: 16px; font-size: calc(12.5px * var(--ui-scale)); font-weight: 600; margin-bottom: 14px; }
@@ -286,7 +287,7 @@
 .ob-lay.floating { grid-template-columns: 30px 1fr; }
 .ob-lay.floating .c { position: absolute; right: 18px; top: 18px; width: 84px; height: 54px; box-shadow: 3px 4px 0 rgba(19, 27, 69, .25); transform: rotate(2deg); }
 
-/* 布局选项的线框小图：信息栏、导航、输入框。每组选项并排，所以比单独一张预览更矮。 */
+/* Layout previews for the info panel and navigation choices. */
 .ob-three { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
 .ob-three .ob-opt.pick { padding: 12px 14px 14px; }
 .ob-three .ob-opt.pick b { font-size: calc(19px * var(--ui-scale)); }
@@ -305,21 +306,6 @@
 .ob-lay.nav .side { display: flex; flex-direction: column; gap: 7px; background: var(--ob-sky); padding: 10px 9px; }
 .ob-lay.nav .side i { display: block; height: 7px; border-radius: 4px; background: rgba(19, 27, 69, .4); }
 .ob-lay.nav .side i:nth-child(2) { width: 70%; }
-.ob-lay.cmp { height: 96px; padding: 8px; gap: 6px; display: flex; flex-direction: column; }
-.ob-lay.cmp .b { flex: 1; min-height: 0; padding: 5px 8px; }
-.ob-lay.cmp .box { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; padding: 6px 7px; border-radius: 8px; background: #fff; border: 1.5px solid var(--ob-ink); }
-.ob-lay.cmp .box em, .ob-lay.cmp .pill i { display: block; height: 5px; border-radius: 3px; background: rgba(19, 27, 69, .3); }
-.ob-lay.cmp .box em { flex: 1; }
-.ob-lay.cmp.classic .box em { flex: 1 0 100%; width: 55%; }
-.ob-lay.cmp .chips { display: flex; gap: 4px; flex: 1; padding: 0; background: none; border-radius: 0; }
-.ob-lay.cmp .chips i { width: 18px; height: 6px; border-radius: 3px; background: var(--ob-sky); }
-.ob-lay.cmp .go { width: 10px; height: 10px; border-radius: 50%; background: var(--ob-coral); margin-left: auto; }
-.ob-lay.cmp .foot { display: flex; justify-content: center; padding: 0; background: none; border-radius: 0; }
-.ob-lay.cmp .foot i { width: 50%; height: 4px; border-radius: 2px; background: rgba(19, 27, 69, .25); }
-.ob-lay.cmp .pill { display: flex; align-items: center; height: 18px; padding: 0 9px; border-radius: 999px; background: #fff; border: 1.5px solid var(--ob-ink); }
-.ob-lay.cmp .pill i { width: 45%; }
-.ob-lay.cmp .tray { display: flex; justify-content: center; gap: 5px; padding: 0; background: none; border-radius: 0; }
-.ob-lay.cmp .tray i { width: 22px; height: 6px; border-radius: 3px; background: var(--ob-sky); }
 
 .sk h4 { display: flex; justify-content: space-between; font-size: calc(16px * var(--ui-scale)); font-weight: 700; margin-bottom: 4px; }
 .sk h4 button { font-size: calc(12.5px * var(--ui-scale)); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; opacity: .7; }

@@ -37,7 +37,6 @@ if (!process.versions.electron) {
         const usage = {tokens: 52000, contextWindow: 200000, percent: 26, outputSpeed: 241, sessionTokens: 257000, cacheHitRate: 0.97};
         window.mount = (locale, thinkingLevel, sandbox, width, modelLabel = 'GPT-6.1 Sol', outputSpeed = 241) => {
           setActiveLocale(locale);
-          document.documentElement.dataset.composerLayout = 'capsule';
           flushSync(() => root.render(
             <AppLocaleProvider locale={locale}>
               <div id="lane" style={{width: width + 'px', paddingTop: '420px'}}>

@@ -2,13 +2,12 @@ import { isUiPreference, residentModes, type ResidentMode, type ResidentSettings
 import { useEffect, useState } from "react";
 import type { InfoLayout, PreferencesApi } from "../hooks/usePreferences";
 import { tr } from "../locale";
-import { setComposerLayout, useComposerLayout, type ComposerLayout } from "../hooks/useComposerLayout";
 import { setNavLayout, useNavLayout, type NavLayout } from "../hooks/useNavLayout";
 import { uiCopy } from "./intelligent-ui/copy";
 import { publishIntelligentUiState } from "./intelligent-ui/ui-settings-store";
 import { modeDescription, modeLabel } from "./resident-agent-model";
 import type { OnboardingCopy } from "./onboarding-copy";
-import { ComposerPreview, InfoPreview, LayoutOption, NavPreview, type InfoLayoutKind } from "./OnboardingLayouts";
+import { InfoPreview, LayoutOption, NavPreview, type InfoLayoutKind } from "./OnboardingLayouts";
 import { Label, Note, Seg, ToggleRow } from "./onboarding-ui";
 import type { SettingsCopy } from "./settings-copy";
 
@@ -59,10 +58,7 @@ export function LayoutStep({ copy, settings, preferences }: { copy: OnboardingCo
   );
 }
 
-/** 第 4 步：输入框布局，以及交互式界面偏好。 */
-export function ComposerStep({ copy, settings }: { copy: OnboardingCopy; settings: SettingsCopy }) {
-  const composerLayout = useComposerLayout();
-  const look = settings.appearance;
+export function InteractiveUiStep() {
   const [preference, setPreference] = useState<UiPreference | null>(null);
   const [failed, setFailed] = useState(false);
   const text = uiCopy.setting;
@@ -90,23 +86,10 @@ export function ComposerStep({ copy, settings }: { copy: OnboardingCopy; setting
     );
   }
 
-  const composerOptions: { id: ComposerLayout; title: string; hint: string }[] = [
-    { id: "classic", title: look.composerLayoutClassic, hint: copy.composerClassicHint },
-    { id: "calm", title: look.composerLayoutCalm, hint: copy.composerCalmHint },
-    { id: "capsule", title: look.composerLayoutCapsule, hint: copy.composerCapsuleHint },
-  ];
   const hints: Record<UiPreference, string> = { auto: text.autoHint(), text_only: text.textOnlyHint(), visual_first: text.visualFirstHint() };
   const current = preference ?? "auto";
   return (
     <>
-      <div className="ob-three" role="radiogroup" aria-label={copy.composerGroup} style={{ marginTop: 20 }}>
-        {composerOptions.map((option) => (
-          <LayoutOption key={option.id} selected={composerLayout === option.id} title={option.title} hint={option.hint} onPick={() => setComposerLayout(option.id)}>
-            <ComposerPreview kind={option.id} chat={copy.layoutChat} />
-          </LayoutOption>
-        ))}
-      </div>
-      <Label title={copy.interactiveGroup} hint={text.description()} style={{ marginTop: 26 }} />
       <Seg<UiPreference>
         label={text.title()}
         value={current}

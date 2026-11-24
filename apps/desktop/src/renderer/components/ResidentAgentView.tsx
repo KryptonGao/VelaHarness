@@ -244,7 +244,7 @@ function Chat({ api, status, settings, messageStore, notice, setNotice }: {
           placeholder={tr("和 Resident Agent 对话，或交给它一个任务", "Talk to Resident Agent or hand it a task")}
           onChange={event => setText(event.target.value)}
           onKeyDown={event => { if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); void send(); } }} />
-        <button type="submit" className="send-action-blue-btn send send-icon-arrow-up" title={tr("发送 (Enter)", "Send (Enter)")} aria-label={tr("发送", "Send")}
+        <button type="submit" className="send-action-blue-btn send" title={tr("发送 (Enter)", "Send (Enter)")} aria-label={tr("发送", "Send")}
           disabled={!text.trim() || sending || Boolean(blocked)}><Icon name="arrow-up" size={16} /></button>
       </form>
       {settings?.mode === "disabled" ? null : <p className="agent-inbox-muted resident-hint">{tr("Resident 不能读写文件或运行命令；需要动手时它会请你批准后在工作区里创建后台任务。", "Resident can't read files or run commands. When work is needed it asks you to approve a background task in a workspace.")}</p>}

@@ -33,7 +33,7 @@ export function configStepNumber(screen: OnboardingScreen): number | null {
 
 export const optionalConfigSteps: readonly number[] = [5, 8];
 
-/** 读取上次停下的画面；旧版本存的是数字（0 欢迎、1–8 设定、9 完成），第 4 步起要给后来插入的「输入框」页让位。 */
+/** 旧版以数字保存进度（0 欢迎、1–8 设定、9 完成），第 4 步起需要顺延一页。 */
 export function restoreScreen(stored: string | null | undefined, legacyStep: string | null | undefined): OnboardingScreen {
   if (isOnboardingScreen(stored)) return stored;
   const step = Number(legacyStep);

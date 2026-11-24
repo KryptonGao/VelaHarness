@@ -52,7 +52,7 @@ export function WorkbenchChatView({ conversationId, preferences, project, onRena
                 summaryEnabled={preferences.thinkingSummary} summaryStyle={preferences.thinkingSummaryStyle}
                 summaryModel={preferences.thinkingSummaryModel} locale={preferences.locale}
                 recommendedActionsEnabled={preferences.recommendedActions} predictionEnabled={preferences.inputPrediction} predictionModel={preferences.inputPredictionModel}
-                hiddenModels={preferences.hiddenModels} sendButtonIcon={preferences.sendButtonIcon}
+                hiddenModels={preferences.hiddenModels}
                 models={models} onSend={session.send} onRemoveInstruction={session.removeInstruction}
                 onEdit={session.edit} onAbort={session.abort} onMode={session.setMode}
                 question={session.question} getQuestion={session.getQuestion}

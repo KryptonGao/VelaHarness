@@ -1,7 +1,6 @@
 import type { AppLocale, CodexSpeed, MemoryLoadReport, SideChatEvent, SideChatStoredEntry, SideChatThread, ThinkingLevel } from "@vela/shared";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import type { useModels } from "../hooks/useModels";
-import type { SendButtonIcon } from "../hooks/usePreferences";
 import { localizeError, tr, trf } from "../locale";
 import { Markdown } from "./Markdown";
 import { usePacedText } from "../hooks/usePacedText";
@@ -38,7 +37,7 @@ function PacedReply({ text, pending = false }: { text: string; pending?: boolean
   return <Markdown text={paced} streaming={pending || paced.length < text.length} fade="reply" />;
 }
 
-export function SideChatView({ workspace, threadId, number, initialEntries, onBack, onPersisted, onBusyChange, onDeleted, onInboxConsumed, conversationId, locale, visible, inbox, sendButtonIcon = "paper-plane", models, hiddenModels, defaultChoice }: {
+export function SideChatView({ workspace, threadId, number, initialEntries, onBack, onPersisted, onBusyChange, onDeleted, onInboxConsumed, conversationId, locale, visible, inbox, models, hiddenModels, defaultChoice }: {
   /** 这段侧边聊天所属的项目目录（没有项目为空字符串）。 */
   workspace: string;
   threadId: string;
@@ -61,8 +60,6 @@ export function SideChatView({ workspace, threadId, number, initialEntries, onBa
   visible: boolean;
   /** 从对话里选中文字送来的引用和已写好的问题；取走后经 onInboxConsumed 通知。 */
   inbox?: readonly SideChatInboxItem[];
-  /** 与主输入框一致的发送按钮图标。 */
-  sendButtonIcon?: SendButtonIcon;
   models: ReturnType<typeof useModels>;
   hiddenModels: string[];
   /** 没有记住的选择时，打开标签那一刻主对话的模型与推理强度。 */
@@ -323,9 +320,9 @@ export function SideChatView({ workspace, threadId, number, initialEntries, onBa
               <span className="stop-square" />
             </button>
           ) : (
-            <button type="submit" className={`send-action-blue-btn send${sendButtonIcon === "arrow-up" ? " send-icon-arrow-up" : ""}`} disabled={!draft.trim()}
+            <button type="submit" className="send-action-blue-btn send" disabled={!draft.trim()}
               aria-label={tr("发送", "Send")} title={trf("发送 ({0})", "Send ({0})", "Enter")}>
-              {sendButtonIcon === "arrow-up" ? <Icon name="arrow-up" size={16} /> : <Icon name="send" size={16} />}
+              <Icon name="arrow-up" size={16} />
             </button>
           )}
         </div>

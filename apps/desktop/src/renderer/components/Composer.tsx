@@ -19,7 +19,6 @@ import type { ReactNode } from "react";
 import { forwardRef, useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { useModels } from "../hooks/useModels";
 import type { ProjectApi } from "../hooks/useProject";
-import type { SendButtonIcon } from "../hooks/usePreferences";
 import { DictationButton } from "./composer/DictationButton";
 import { useDictation } from "../hooks/useDictation";
 import { useSpeechState } from "../hooks/useSpeech";
@@ -78,7 +77,6 @@ import { collectAnnotationImages, planAnnotationImages } from "./annotation-imag
 import { useAnnotationTracking } from "../browser/reply-store";
 import { localizeError, tr, useAppLocale, trf } from "../locale";
 import { useInputPrediction } from "../hooks/useInputPrediction";
-import { useComposerLayout } from "../hooks/useComposerLayout";
 import { Icon } from "./icons";
 import { FileTypeIcon } from "./FileTypeIcon";
 
@@ -107,7 +105,6 @@ export interface ComposerProps {
   thinkingLevels: ThinkingLevel[];
   /** 在输入框模型列表中隐藏的模型，key 为 `provider/id`。 */
   hiddenModels: string[];
-  sendButtonIcon?: SendButtonIcon;
   /** 输入预测开关；关闭时完全不请求模型。 */
   predictionEnabled?: boolean;
   /** 预测所用的模型；null 表示跟随当前对话模型。 */
@@ -136,8 +133,6 @@ export interface ComposerProps {
   onRemoveInstruction: (instructionId: string) => Promise<void>;
   onAbort: () => Promise<void>;
   onMode: (mode: InteractionMode) => void;
-  /** 新对话起始页专属输入框外壳样式；仅在空对话起始页生效，内部控件沿用原生固定控件。 */
-  homeStyle?: "atelier" | "deck";
   /** 递增时打开多模型竞速弹窗（供星航指挥舱的 Race 按钮联动）。 */
   raceOpenRequest?: number;
 }
@@ -186,7 +181,6 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
   thinkingLevel,
   thinkingLevels,
   hiddenModels,
-  sendButtonIcon = "paper-plane",
   predictionEnabled = false,
   predictionModel = null,
   predictionKey = null,
@@ -206,7 +200,6 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
   onRemoveInstruction,
   onAbort,
   onMode,
-  homeStyle,
   raceOpenRequest,
 }, ref) {
   const instanceId = useId();
@@ -217,7 +210,6 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
   const raceActions = useContext(RaceActionsContext);
   const [raceOpen, setRaceOpen] = useState(false);
   const locale = useAppLocale();
-  const layout = useComposerLayout();
   const [optionsOpen, setOptionsOpen] = useState(false);
   useEffect(() => { setOptionsOpen(false); }, [floatingChat, conversationId, streaming]);
   const compact = floatingChat && !optionsOpen;
@@ -1269,7 +1261,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
     title={tr("输入选项", "Composer options")} aria-label={tr("输入选项", "Composer options")}
     aria-expanded={optionsOpen} aria-controls={`${instanceId}-options`} onClick={() => setOptionsOpen(open => !open)}><Icon name="sliders" size={14} /></button>;
   const actions = (
-    <ComposerActions sendButtonIcon={sendButtonIcon} streaming={streaming} sendHint={sendHint} steerHint={steerHint}
+    <ComposerActions streaming={streaming} sendHint={sendHint} steerHint={steerHint}
       canQueue={Boolean(prompt) || hasReplyText} disabled={disabled || recipeActive || !modelReady || (!prompt && !hasReplyText && !suggestion)}
       onSteer={() => void submit(true)} onAbort={onAbort}
       dictation={speech.configured ? (
@@ -1332,8 +1324,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
     </div>
   ) : null;
 
-  const useCapsule = layout === "capsule" && !homeStyle;
-  const capsuleTray = useCapsule && (
+  const tray = (
     <ComposerTray>
       <div className="composer-tray-left">
         <div className="composer-tray-chips">{modePicker}</div>
@@ -1343,17 +1334,6 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
         {modelControls}
       </div>
     </ComposerTray>
-  );
-  const above = (
-    <>
-      {approvalSlots}
-      {useCapsule ? null : statusBar}
-      {skillMenu}
-      {statusPanel}
-      {instructionRow}
-      {quoteCard}
-      {attachmentRow}
-    </>
   );
 
   return (
@@ -1365,7 +1345,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
       {changeSummary}
       {conflictBanner}
       <form
-        className={`floating-input-card${useCapsule ? " layout-capsule" : ""}${homeStyle ? ` home-composer-${homeStyle}` : ""}${dragging ? " dragging" : ""}`}
+        className={`floating-input-card layout-capsule${dragging ? " dragging" : ""}`}
         onSubmit={(event) => {
           event.preventDefault();
           void submit();
@@ -1382,49 +1362,27 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
         }}
         onDrop={(event) => void handleDrop(event)}
       >
-        {useCapsule ? (
-          <>
-            {statusBar}
-            <div className="composer-capsule">
-              {above}
-              <div className="composer-capsule-main">
-                {attachMenu}
-                {entry}
-                {optionsButton}
-                {actions}
-              </div>
-            </div>
-          </>
-        ) : (
-          <>
-            {above}
+        {statusBar}
+        <div className="composer-capsule">
+          {approvalSlots}
+          {skillMenu}
+          {statusPanel}
+          {instructionRow}
+          {quoteCard}
+          {attachmentRow}
+          <div className="composer-capsule-main">
+            {attachMenu}
             {entry}
-            <div className="dock-controls-row">
-              <div className="dock-controls-left">
-                {attachMenu}
-                {!floatingChat && modePicker}
-              </div>
-              <div className="dock-controls-right">
-                {!floatingChat && modelControls}
-                {optionsButton}
-                {actions}
-              </div>
-            </div>
-            {!floatingChat && stats}
-          </>
-        )}
+            {optionsButton}
+            {actions}
+          </div>
+        </div>
         {floatingChat ? (
           <div id={`${instanceId}-options`} className="floating-composer-settings" data-open={optionsOpen} inert={!optionsOpen}>
             {setupChips && <div className="composer-status-bar">{setupChips}</div>}
-            {useCapsule ? capsuleTray : <>
-              <div className="dock-controls-row">
-                <div className="dock-controls-left">{modePicker}</div>
-                <div className="dock-controls-right">{modelControls}</div>
-              </div>
-              {stats}
-            </>}
+            {tray}
           </div>
-        ) : capsuleTray}
+        ) : tray}
       </form>
       {raceOpen && raceActions && workspacePath ? (
         <RaceSetupDialog workspace={workspacePath} initialPrompt={prompt} models={models}
@@ -1443,8 +1401,7 @@ function attachmentKey(entry: FileAttachmentPayload): string {
   return id;
 }
 
-export function ComposerActions({ sendButtonIcon, streaming, sendHint, steerHint, canQueue, disabled, onSteer, onAbort, dictation }: {
-  sendButtonIcon: SendButtonIcon;
+export function ComposerActions({ streaming, sendHint, steerHint, canQueue, disabled, onSteer, onAbort, dictation }: {
   streaming: boolean; sendHint: string; steerHint: string; canQueue: boolean; disabled: boolean;
   onSteer: () => void; onAbort: () => Promise<void>;
   /** 语音输入按钮，显示在发送按钮左边；没有配置密钥时不传。 */
@@ -1458,10 +1415,10 @@ export function ComposerActions({ sendButtonIcon, streaming, sendHint, steerHint
     {dictation}
     {steerButton}
     <span className="composer-action-stack">
-      <button className={`send-action-blue-btn send${sendButtonIcon === "arrow-up" ? " send-icon-arrow-up" : ""}`} type="submit" title={sendHint}
+      <button className="send-action-blue-btn send" type="submit" title={sendHint}
         aria-label={streaming ? tr("排队发送", "Queue") : tr("发送", "Send")} disabled={disabled}
         inert={streaming && !canQueue} aria-hidden={streaming && !canQueue} tabIndex={streaming && !canQueue ? -1 : undefined}>
-        {sendButtonIcon === "arrow-up" ? <Icon name="arrow-up" size={16} /> : <Icon name="send" size={16} />}
+        <Icon name="arrow-up" size={16} />
       </button>
       <button className="send-action-blue-btn stop" type="button"
         title={tr("停止生成", "Stop generating")} aria-label={tr("停止生成", "Stop generating")}

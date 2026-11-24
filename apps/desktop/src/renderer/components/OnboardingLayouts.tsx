@@ -7,7 +7,6 @@ import { Opt } from "./onboarding-ui";
  */
 export type InfoLayoutKind = "sidebar" | "floating" | "cards";
 export type NavLayoutKind = "classic" | "rail";
-export type ComposerLayoutKind = "classic" | "calm" | "capsule";
 
 export function InfoPreview({ kind, chat, info }: { kind: InfoLayoutKind; chat: string; info: string }) {
   return (
@@ -26,18 +25,6 @@ export function NavPreview({ kind, chat }: { kind: NavLayoutKind; chat: string }
       {kind === "rail" ? <span className="rail"><i /><i /><i /><i /></span> : null}
       <span className="side"><i /><i /><i /></span>
       <span className="b">{chat}</span>
-    </span>
-  );
-}
-
-export function ComposerPreview({ kind, chat }: { kind: ComposerLayoutKind; chat: string }) {
-  return (
-    <span className={`ob-lay cmp ${kind}`} aria-hidden="true">
-      <span className="b">{chat}</span>
-      {kind === "capsule"
-        ? <><span className="pill"><i /></span><span className="tray"><i /><i /><i /></span></>
-        : <span className="box"><em />{kind === "classic" ? <span className="chips"><i /><i /><i /></span> : null}<i className="go" /></span>}
-      {kind === "calm" ? <span className="foot"><i /></span> : null}
     </span>
   );
 }

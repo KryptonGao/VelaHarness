@@ -1,7 +1,6 @@
 import type { AppLocale, SideChatThread } from "@vela/shared";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { useModels } from "../hooks/useModels";
-import type { SendButtonIcon } from "../hooks/usePreferences";
 import { tr } from "../locale";
 import { ConfirmDeleteButton } from "./ConfirmDeleteButton";
 import type { SideChatInboxItem } from "./selection-actions";
@@ -19,7 +18,6 @@ import { Icon } from "./icons";
 interface ChatProps {
   conversationId: string | null;
   locale: AppLocale;
-  sendButtonIcon?: SendButtonIcon;
   models: ReturnType<typeof useModels>;
   hiddenModels: string[];
   defaultChoice: SideChatModelChoice | null;

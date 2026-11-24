@@ -17,7 +17,7 @@ import { speakReply, stopSpeaking, useSpeechPlayback, useSpeechState } from "../
 import { trackEnteredMessages, type EnterTrack } from "./message-motion";
 import type { useModels } from "../hooks/useModels";
 import type { ProjectApi } from "../hooks/useProject";
-import type { SendButtonIcon, ToolDisplay, ToolFold } from "../hooks/usePreferences";
+import type { ToolDisplay, ToolFold } from "../hooks/usePreferences";
 import type { UiMessage } from "../hooks/useSession";
 import { RepoCard } from "./RepoCard";
 import { Composer } from "./Composer";
@@ -248,7 +248,6 @@ export interface ChatViewProps {
   thinkingSummaries?: ThinkingSummariesApi;
   /** 在输入框模型列表中隐藏的模型，key 为 `provider/id`。 */
   hiddenModels?: string[];
-  sendButtonIcon?: SendButtonIcon;
   /** 输入预测：回复结束后在空输入框里以灰色显示预测内容。 */
   predictionEnabled?: boolean;
   /** 预测使用的模型；null 表示跟随当前对话模型。 */
@@ -312,7 +311,6 @@ export function ChatView({
   showChangeSummary = true,
   thinkingSummaries,
   hiddenModels = [],
-  sendButtonIcon = "paper-plane",
   predictionEnabled = false,
   predictionModel = null,
   recommendedActionsEnabled = true,
@@ -479,7 +477,6 @@ export function ChatView({
   const homePromptsEnabled = useHomePrompts();
   const homeLayout = !floatingChat && !embedded && messages.length === 0 && !minimalStart;
   const activeHomeStyle: StartPageStyle | undefined = homeLayout ? startPageStyle : undefined;
-  const homeComposerStyle = !embedded && emptyConversation && (startPageStyle === "atelier" || startPageStyle === "deck") ? startPageStyle : undefined;
   const hasProjectWorkspace = Boolean(project.workspace?.current);
   const modelMissing = session?.status === "ready" && !session.modelReady;
   const showHomePrompts = homeLayout && hasProjectWorkspace && !modelMissing && homePromptsEnabled;
@@ -1327,7 +1324,6 @@ export function ChatView({
         thinkingLevel={session?.modelProvider ? session.thinkingLevel : hintModel?.thinkingLevel ?? session?.thinkingLevel ?? "medium"}
         thinkingLevels={session?.modelProvider ? session.thinkingLevels : hintModel?.thinkingLevels ?? session?.thinkingLevels ?? ["off"]}
         hiddenModels={hiddenModels}
-        sendButtonIcon={sendButtonIcon}
         predictionEnabled={predictionEnabled}
         predictionModel={predictionModel}
         predictionKey={predictionKey}
@@ -1351,7 +1347,6 @@ export function ChatView({
         onRemoveInstruction={onRemoveInstruction}
         onAbort={onAbort}
         onMode={changeMode}
-        homeStyle={homeComposerStyle}
         raceOpenRequest={raceOpenRequest}
       />
       {showHomePrompts ? (

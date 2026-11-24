@@ -80,13 +80,13 @@ if (!process.versions.electron) {
       await until("document.querySelector('.conflict-banner-files')?.textContent.includes('b.ts')");
       await win.loadFile(join(temporary, "index.html"));
       await until("document.querySelector('.chat-active-title')?.textContent === '主聊天'");
-      // 首页的卡片与胶囊都只用柔和的环境影，不用 dock 的向下投影；对话页仍保留浮动 dock 的层次。
+      // The inner capsule carries the shadow on both the start page and the conversation.
       assert.deepEqual(await evaluate(`(() => {
         const root = document.documentElement;
         const previous = { scheme: root.dataset.scheme, theme: root.dataset.theme };
         const fixture = document.createElement('div');
         fixture.className = 'chat-conversation-pane';
-        fixture.innerHTML = '<div class="floating-input-card"><div class="composer-capsule"></div></div>';
+        fixture.innerHTML = '<form class="floating-input-card layout-capsule"><div class="composer-capsule"></div></form>';
         document.body.append(fixture);
         try {
           return ['light', 'dark'].map(scheme => {
@@ -95,14 +95,12 @@ if (!process.versions.electron) {
             fixture.dataset.home = '';
             const card = fixture.firstElementChild;
             const capsule = card.firstElementChild;
-            const dock = getComputedStyle(root).getPropertyValue('--shadow-dock').trim();
-            const capsuleShadow = getComputedStyle(capsule).boxShadow;
-            // 卡片与胶囊都有柔和的环境影,不能是向下晕开的 dock 阴影。
-            const cardShadow = getComputedStyle(card).boxShadow;
-            const flat = [cardShadow, capsuleShadow].every(value => value !== 'none' && value !== dock);
-            const bordered = [card, capsule].every(el => getComputedStyle(el).borderTopWidth === '1px');
+            const homeShadow = getComputedStyle(capsule).boxShadow;
+            const flat = getComputedStyle(card).boxShadow === 'none' && homeShadow !== 'none';
+            const bordered = getComputedStyle(capsule).borderTopWidth === '1px';
             delete fixture.dataset.home;
-            const floating = [card, capsule].every(el => getComputedStyle(el).boxShadow !== 'none');
+            const dockShadow = getComputedStyle(capsule).boxShadow;
+            const floating = dockShadow !== 'none' && dockShadow !== homeShadow;
             return { flat, bordered, floating };
           });
         } finally {
@@ -118,20 +116,20 @@ if (!process.versions.electron) {
         const pane = document.createElement('section');
         pane.className = 'chat-conversation-pane';
         pane.style.cssText = 'position:fixed;inset:0 auto auto 0;height:480px;display:flex;flex-direction:column;--composer-clearance:160px';
-        pane.innerHTML = '<div class="chat-scroll-area"><div class="chat-message-surface"><article class="assistant-block" style="min-height:1200px">Reply</article></div></div><div class="chat-dock-wrapper"><form class="floating-input-card"><div class="composer-capsule" style="min-height:64px"></div></form></div>';
+        pane.innerHTML = '<div class="chat-scroll-area"><div class="chat-message-surface"><article class="assistant-block" style="min-height:1200px">Reply</article></div></div><div class="chat-dock-wrapper"><form class="floating-input-card layout-capsule"><div class="composer-capsule" style="min-height:64px"></div></form></div>';
         document.body.append(pane);
         try {
           const list = pane.querySelector('.chat-scroll-area'), reply = pane.querySelector('article');
           const form = pane.querySelector('form'), dock = form.parentElement, checks = [];
-          for (const width of [400, 1000]) for (const capsule of [false, true]) {
-            pane.style.width = width + 'px'; form.classList.toggle('layout-capsule', capsule);
-            const surface = (capsule ? form.firstElementChild : form).getBoundingClientRect();
+          for (const width of [400, 1000]) {
+            pane.style.width = width + 'px';
+            const surface = form.firstElementChild.getBoundingClientRect();
             const shield = dock.getBoundingClientRect().top + parseFloat(getComputedStyle(dock, '::after').top);
             list.scrollTop = 0;
             const row = reply.getBoundingClientRect();
             const overlap = row.left > surface.left && row.right < surface.right && row.bottom > surface.bottom && list.getBoundingClientRect().bottom >= surface.bottom;
             list.scrollTop = list.scrollHeight;
-            checks.push({width, capsule, overlap, shieldInside: shield > surface.top && shield < surface.bottom, lastVisible: reply.getBoundingClientRect().bottom <= surface.top});
+            checks.push({width, overlap, shieldInside: shield > surface.top && shield < surface.bottom, lastVisible: reply.getBoundingClientRect().bottom <= surface.top});
           }
           return checks;
         } finally { pane.remove(); }
@@ -582,7 +580,7 @@ if (!process.versions.electron) {
       await until(`document.querySelectorAll(${JSON.stringify(main + ' .model-choice-pill')}).length === 2`);
       await evaluate("localStorage.removeItem('vela.combinedModelPicker')");
       console.log("PASS combined picker adjusts effort, navigates to configured models, stays hidden in Settings, and honors config override to separate controls");
-      await evaluate("localStorage.setItem('vela.composerLayout', JSON.stringify('capsule')); localStorage.setItem('vela.workbenchSplit', 'true'); localStorage.setItem('vela.navLayout', JSON.stringify('rail'))");
+      await evaluate("localStorage.setItem('vela.workbenchSplit', 'true'); localStorage.setItem('vela.navLayout', JSON.stringify('rail'))");
       await win.loadFile(join(temporary, "index.html"));
       await until("document.querySelector('.main-chat-view')");
       await newTab();

@@ -99,10 +99,8 @@
   min-height: 3lh;
 }
 .chat-conversation-pane[data-home] .floating-input-card { margin-right: 0; }
-/* 首页输入区在内容流中，不用浮动 dock 的向下投影（暗色下会向托盘扩散成黑晕），
-   改用一层柔和的环境影加一层贴边细影，让输入框明显浮起。经典/静谧布局的阴影在卡片上，
-   胶囊布局的卡片透明，阴影在内层胶囊上。 */
-.chat-conversation-pane[data-home] :is(.floating-input-card:not(.layout-capsule), .composer-capsule) {
+/* The start page uses a softer shadow around the capsule. */
+.chat-conversation-pane[data-home] .composer-capsule {
   box-shadow:
     0 4px 24px color-mix(in srgb, #1e2a50 12%, transparent),
     0 1px 4px color-mix(in srgb, #000 8%, transparent);
@@ -451,26 +449,6 @@
   color: var(--text-muted);
 }
 
-/* 方案一专属起始页输入框外壳（内部固定控件原样保留，聚焦时不加蓝色高亮） */
-.chat-conversation-pane[data-home-style="atelier"] .floating-input-card.home-composer-atelier {
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-xl);
-  padding: 14px 16px 10px;
-  gap: 8px;
-  background: var(--bg-elevated);
-  box-shadow:
-    0 10px 30px -14px color-mix(in srgb, #141c2e 16%, transparent),
-    0 2px 6px -2px color-mix(in srgb, #000 7%, transparent);
-}
-[data-scheme="dark"] .chat-conversation-pane[data-home-style="atelier"] .floating-input-card.home-composer-atelier {
-  box-shadow:
-    0 18px 44px -16px rgba(0, 0, 0, 0.52),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
-}
-.chat-conversation-pane[data-home-style="atelier"] .floating-input-card.home-composer-atelier .input-textarea {
-  min-height: 58px;
-}
-
 /* 方案一：两列编号目录索引 */
 .atelier-ledger {
   width: min(calc(100% - 48px), 740px);
@@ -768,30 +746,6 @@
   margin: 2px 0 0;
   font-size: calc(12.5px * var(--ui-scale));
   color: var(--text-muted);
-}
-
-/* 方案二专属起始页精密输入框外壳（内部固定控件原样保留，聚焦时不加蓝色高亮） */
-.chat-conversation-pane[data-home-style="deck"] .floating-input-card.home-composer-deck {
-  border: 1px solid var(--border-strong);
-  border-radius: 18px;
-  padding: 14px 16px 10px;
-  gap: 8px;
-  background: var(--bg-elevated);
-  box-shadow:
-    0 14px 38px -16px color-mix(in srgb, #0f172a 22%, transparent),
-    0 2px 6px -2px color-mix(in srgb, #000 9%, transparent);
-}
-[data-scheme="dark"] .chat-conversation-pane[data-home-style="deck"] .floating-input-card.home-composer-deck {
-  box-shadow:
-    0 20px 52px -18px rgba(0, 0, 0, 0.62),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
-}
-.chat-conversation-pane[data-home-style="deck"] .floating-input-card.home-composer-deck .input-textarea {
-  min-height: 52px;
-}
-.chat-conversation-pane[data-home-style="deck"] .floating-input-card.home-composer-deck .dock-controls-row {
-  padding-top: 8px;
-  border-top: 1px solid var(--border-subtle);
 }
 
 /* 方案二：非对称 Bento 行动舱 + 底部能力条 */

@@ -39,7 +39,7 @@ async function run() {
     "theme.custom": "[]", "font.code.size": "15", glassTint: "neutral", sidebarCardGlass: "true",
     unfocusedGlassMode: "absolute", unfocusedGlassIncrease: "40",
     infoLayout: "floating", environmentCollapsed: "true", conversationWorkbenchTabs: "true",
-    borderlessInterface: "true", sendButtonIcon: "arrow-up", soundEffects: "false",
+    borderlessInterface: "true", soundEffects: "false",
     toolDisplay: "compact", toolFold: "none", toolIconColor: "gray", filePath: "false",
     runView: "true", thinkingGroupMode: "codex", thinkingTitleStyle: "normal-muted",
     thinkingGroupHeight: "280", commandDetailHeight: "240", toolDetailHeight: "240",
@@ -49,17 +49,20 @@ async function run() {
 
   await until(() => evaluate(() => Boolean(document.querySelector(".nav-rail-layout.layout-floating.borderless-interface"))), "default layout");
   assert.deepEqual(await readPreferences(defaults), defaults);
+  const sendIcon = () => evaluate(() => document.querySelector(".send-action-blue-btn.send [data-icon]")?.getAttribute("data-icon"));
+  const hasCapsuleComposer = () => evaluate(() => Boolean(document.querySelector(".floating-input-card > .composer-capsule:has([role=textbox]) + .composer-tray")));
+  assert.equal(await sendIcon(), "arrow-up");
+  assert.ok(await hasCapsuleComposer(), "the default start page uses the capsule composer");
   assert.deepEqual(await evaluate(() => {
     const root = document.documentElement;
     return {
       lang: root.lang,
-      composer: root.dataset.composerLayout,
       startPage: document.querySelector("[data-home-style]")?.dataset.homeStyle,
       codeScale: Number(root.style.getPropertyValue("--code-scale")),
       focusedGlass: getComputedStyle(root).getPropertyValue("--focused-glass-fill").trim(),
     };
   }), {
-    lang: "zh-TW", composer: "capsule", startPage: "atelier", codeScale: 15 / 14,
+    lang: "zh-TW", startPage: "atelier", codeScale: 15 / 14,
     focusedGlass: await evaluate(() => document.documentElement.dataset.scheme === "dark")
       ? "rgb(0 0 0 / 0.15)" : "rgb(255 255 255 / 0.15)",
   });
@@ -94,17 +97,22 @@ async function run() {
   console.log("PASS default appearance, interface and conversation preferences on a fresh profile");
 
   const overrides = {
-    locale: "en", navLayout: '"classic"', composerLayout: '"calm"', "font.code.size": "14",
+    locale: "en", navLayout: '"classic"', startPageStyle: '"deck"', "font.code.size": "14",
     infoLayout: "sidebar", toolFold: "message", toolIconColor: "true", soundEffects: "true",
     conversationWorkbenchTabs: "false", borderlessInterface: "false", runView: "false",
     glassTint: "theme", glassOpacity: "42", toolDetailHeight: "320",
   };
   await evaluate(entries => {
     for (const [key, value] of Object.entries(entries)) window.vela.uiStorage.setItem("vela." + key, value);
+    window.vela.uiStorage.setItem("vela.sendButtonIcon", "paper-plane");
+    window.vela.uiStorage.setItem("vela.composerLayout", JSON.stringify("calm"));
     window.vela.uiStorage.removeItem("vela.commandDetailHeight");
   }, overrides);
   window.webContents.reload();
   await until(() => evaluate(() => Boolean(document.querySelector(".sidebar-user-pill"))), "saved classic layout");
+  assert.equal(await sendIcon(), "arrow-up");
+  assert.equal(await evaluate(() => document.querySelector("[data-home-style]")?.dataset.homeStyle), "deck");
+  assert.ok(await hasCapsuleComposer(), "a saved Calm layout still opens the capsule composer");
   assert.deepEqual(await readPreferences({ ...overrides, commandDetailHeight: "320" }), {
     ...overrides, toolIconColor: "color", commandDetailHeight: "320",
   });

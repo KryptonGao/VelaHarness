@@ -103,30 +103,16 @@ function GptParticles({ speed }: { speed: CodexSpeed }) {
 }
 
 /**
- * 思考强度胶囊里的小标记：calm 布局显示信号格，capsule 布局显示弧形撥盘，classic 不显示。
- * 刻度只按模型自己的强度档位算（最高档即满格），Ultra 同样满格，只把强调色换成蓝紫渐变。
+ * The dial uses the model's own effort range. Ultra fills the dial with a gradient.
  */
 function ThinkingGlyph({ choices, level }: { choices: ThinkingLevel[]; level: ThinkingLevel }) {
   const gradientId = useId();
   const ultra = level === "ultra";
   const scale = choices.filter((choice) => choice !== "ultra");
   const index = ultra ? scale.length - 1 : Math.max(0, scale.indexOf(level));
-  const lit = level === "off" ? -1 : index;
   const fraction = ultra ? 1 : scale.length > 1 && level !== "off" ? index / (scale.length - 1) : 0;
   return (
     <span className={`thinking-glyph${ultra ? " is-ultra" : ""}`} aria-hidden="true">
-      <span className="thinking-bars">
-        {scale.map((choice, i) => (
-          <i
-            key={choice}
-            className={i <= lit ? "on" : undefined}
-            style={{
-              height: `${4 + (scale.length > 1 ? (i / (scale.length - 1)) * 10 : 10)}px`,
-              ...(ultra ? { background: `color-mix(in srgb, #8b5cf6 ${scale.length > 1 ? Math.round((i / (scale.length - 1)) * 100) : 100}%, #3b82f6)` } : null),
-            }}
-          />
-        ))}
-      </span>
       <svg className="thinking-dial" viewBox="0 0 24 24">
         {ultra ? (
           <defs>
