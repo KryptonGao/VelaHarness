@@ -1382,6 +1382,8 @@ export interface GitOperationState {
 }
 
 export interface GitStatusSnapshot {
+  /** Workspace directory used to collect this snapshot. Older cached snapshots may omit it. */
+  workspace?: string;
   /** null 表示当前工作区不是 Git 仓库 */
   repo: GitRepoInfo | null;
   branch: string | null;

@@ -223,6 +223,7 @@ export interface ChatViewProps {
   floatingChat?: boolean;
   conversationWorkbenchTabs?: boolean;
   onOpenWorkspaceOverview?: (workspace: string) => void;
+  onOpenVersionControl?: (workspace: string) => void;
   messages: UiMessage[];
   state: AppState | null;
   sendError: string | null;
@@ -289,6 +290,7 @@ export function ChatView({
   floatingChat = false,
   conversationWorkbenchTabs = false,
   onOpenWorkspaceOverview,
+  onOpenVersionControl,
   messages: sourceMessages,
   state,
   sendError,
@@ -997,6 +999,12 @@ export function ChatView({
           ) : <span className="chat-active-title" title={title}>{title}</span>}
         </div>
         <div className="chat-header-actions">
+          {!embedded && hasWorkspace && projectPath && onOpenVersionControl ? (
+            <button type="button" className="view-icon-btn" title={tr("版本控制", "Version Control")}
+              aria-label={`${tr("版本控制", "Version Control")} · ${projectPath}`} onClick={() => onOpenVersionControl(projectPath)}>
+              <Icon name="branch" size={16} />
+            </button>
+          ) : null}
           {!embedded && projectPath ? (onOpenWorkspaceOverview ?
             <button type="button" className="chat-project-context chat-project-link" title={overviewLabel} aria-label={overviewLabel}
               onClick={() => onOpenWorkspaceOverview(projectPath)}>

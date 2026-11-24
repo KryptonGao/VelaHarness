@@ -84,6 +84,7 @@ async function run() {
   const openStart = () => click(el(".workbench-new-tab, .workbench-expand"));
   const option = label => button(".start-option", label);
   const pane = ".workbench-tabpanel:not(.is-inactive) ";
+  const chatVersionControl = el('.chat-header-actions button[title="版本控制"]');
   await until(el(".conversation-view-tabs"));
   await js(`window.vela.switchConversation(${JSON.stringify(conversations[0].id)})`);
   await until(`${el('[data-tab-key="trace"]')}.getAttribute('aria-disabled') === null`);
@@ -93,6 +94,7 @@ async function run() {
   await click(toggle);
   await until(`${borderless}?.getAttribute('aria-checked') === 'false'`);
   await leaveSettings();
+  assert.equal(await js(chatVersionControl), null);
   await capture("framed");
   await openInterface();
   await click(borderless);
@@ -115,6 +117,21 @@ async function run() {
   await js(`${el(scroll)}.scrollTop = ${el(scroll)}.scrollHeight / 2`);
   await until(`${el(scroll)}.scrollTop > 100`);
   await capture("borderless-chat");
+  await until(`${chatVersionControl}?.nextElementSibling.matches('.chat-project-link')`);
+  await click(chatVersionControl);
+  await until(`${el('.wo-shell .vc-files')}?.textContent.includes('file-0.txt')`);
+  await click(el(".nav-history-buttons button:first-child"));
+  await until(`${chatVersionControl}?.checkVisibility() && !${chatVersionControl}.closest('[inert]')`);
+
+  const plain = join(temporary, "Plain");
+  mkdirSync(plain);
+  await js(`window.vela.selectWorkspace(${JSON.stringify(plain)})`);
+  await until(`${el('.chat-project-name')}?.textContent === 'Plain'`);
+  assert.equal(await js(chatVersionControl), null);
+  await until(`window.vela.getState().then(state => state.session.cwd === ${JSON.stringify(plain)})`);
+  await js(`window.vela.switchConversation(${JSON.stringify(conversations[0].id)})`);
+  await until(`${chatVersionControl}?.getAttribute('aria-label') === ${JSON.stringify("版本控制 · " + first)}`);
+  console.log("PASS borderless chat shortcut opens the current Git workspace and hides for ordinary folders");
   await click(el(".chat-dock-wrapper .mode-pill"));
   await until(el(".dock-popover"));
   assert.ok(await js(`(() => {

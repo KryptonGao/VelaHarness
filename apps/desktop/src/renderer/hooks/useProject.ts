@@ -280,6 +280,7 @@ export function useProject(notify: NotifySound = noSound) {
     environment,
     environments,
     git: shownGit,
+    hasWorkspaceRepository: Boolean(git?.repo && git.workspace === currentWorkspace),
     branches,
     pr,
     sandboxMode,

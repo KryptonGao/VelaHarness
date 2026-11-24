@@ -945,6 +945,7 @@ export function App() {
     setSettingsOpen(false); setPrInboxOpen(false); setAgentInboxOpen(false); setScheduledTasksOpen(false);
     showWorkspacePage(cwd, page);
   });
+  const openWorkspaceVersionControl = (cwd: string) => openWorkspaceOverview(cwd, "versionControl");
   const focusMainChat = () => {
     setWorkbenchView(current => current === "split" ? current : "chat");
     requestAnimationFrame(() => document.querySelector<HTMLElement>(".main-stage-pane > .main-chat-view")?.focus());
@@ -1153,7 +1154,7 @@ export function App() {
                 activeConversationId={scheduledTasksOpen || recipesOpen || prInboxOpen || agentInboxOpen || overviewWorkspace !== null ? null : session.activeConversationId}
                 overviewWorkspace={overviewWorkspace}
                 onOpenWorkspaceOverview={openWorkspaceOverview}
-                onOpenVersionControl={preferences.conversationWorkbenchTabs ? cwd => openWorkspaceOverview(cwd, "versionControl") : undefined}
+                onOpenVersionControl={preferences.conversationWorkbenchTabs ? openWorkspaceVersionControl : undefined}
                 settingsOpen={settingsOpen}
                 settingsLabel={tr("设置", "Settings")}
                 onToggle={() => setLeftCollapsed((value) => !value)}
@@ -1201,6 +1202,7 @@ export function App() {
                           floatingChat={floatingChat}
                           conversationWorkbenchTabs={preferences.conversationWorkbenchTabs}
                           onOpenWorkspaceOverview={preferences.conversationWorkbenchTabs ? openWorkspaceOverview : undefined}
+                          onOpenVersionControl={borderlessInterface && project.hasWorkspaceRepository ? openWorkspaceVersionControl : undefined}
                           leftCollapsed={leftCollapsed && !fullscreen}
                           onToggleLeft={toggleLeft}
                           onRenameConversation={openRenameConversation}

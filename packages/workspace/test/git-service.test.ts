@@ -93,6 +93,7 @@ describe("collectStatus", () => {
     const root = await createRepo();
     await commitFile(root, "sub/inner.txt", "x\n", "base");
     const status = await collectStatus(join(root, "sub"));
+    assert.equal(status?.workspace, join(root, "sub"));
     assert.equal(status?.repo?.root, root);
     assert.equal(status?.repo?.subdir, "sub");
     assert.equal(status?.repo?.empty, false);

@@ -1747,6 +1747,7 @@ export async function collectStatus(cwd: string): Promise<GitStatusSnapshot | nu
   const resolvedGitDir = await resolveGitDir(cwd);
   const remotes = await readRemotes(cwd);
   const snapshot: GitStatusSnapshot = {
+    workspace: cwd,
     repo: {
       root,
       name: basename(root),
