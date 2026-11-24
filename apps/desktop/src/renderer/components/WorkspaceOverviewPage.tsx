@@ -33,8 +33,6 @@ interface WorkspaceOverviewPageProps {
   conversations: ConversationSummary[];
   workspaces: readonly WorkspaceRecent[];
   waitingConversationIds: readonly string[];
-  sidebarCollapsed: boolean;
-  onToggleSidebar: () => void;
   onOpenConversation: (id: string) => void;
   onNewChat: (cwd: string) => void;
   onEditWorkspace: (cwd: string) => void;
@@ -73,7 +71,7 @@ function operationLabel(operation: GitInProgressOperation | string): string {
 }
 
 export function WorkspaceOverviewPage({
-  workspace, versionControl, conversations, workspaces, waitingConversationIds, sidebarCollapsed, onToggleSidebar,
+  workspace, versionControl, conversations, workspaces, waitingConversationIds,
   onOpenConversation, onNewChat, onEditWorkspace, onOpenScheduledTasks,
 }: WorkspaceOverviewPageProps) {
   const pageRef = useRef<HTMLElement>(null);
@@ -106,10 +104,6 @@ export function WorkspaceOverviewPage({
   return <main className="scheduled-tasks-page-shell wo-shell" ref={pageRef}>
     <header className="main-chat-header scheduled-tasks-page-toolbar">
       <div className="chat-title-group">
-        {sidebarCollapsed && <button className="view-icon-btn" type="button" onClick={onToggleSidebar}
-          title={tr("展开侧边栏", "Expand sidebar")} aria-label={tr("展开侧边栏", "Expand sidebar")}>
-          <Icon name="sidebar" size={16} />
-        </button>}
         {repositoryOpen && <button type="button" className="view-icon-btn" onClick={versionControl.onBack}
           title={tr("工作区总览", "Workspace overview")} aria-label={tr("工作区总览", "Workspace overview")}><Icon name="arrow-left" size={16} /></button>}
         <span className="chat-active-title">{repositoryOpen ? `${tr("版本控制", "Version Control")} · ${name}` : tr("工作区总览", "Workspace overview")}</span>

@@ -57,8 +57,8 @@ function Fixture() {
     { id: "f", role: "assistant", text: done ? "已经完成重构，测试全部通过。" : "", thinking: "", tools: [], turnStartedAt: t0, ...(done ? { turnCompletedAt: Date.now() } : {}) },
   ];
   return <div style={{ display: "flex", height: 520 }}><ChatView messages={done ? messages : messages.slice(0, 2)} state={state(done ? "ready" : "streaming")}
-    toolDisplay="card" toolFold="position" sendError={null} platform="darwin" leftCollapsed rightCollapsed
-    project={project} models={models} onToggleLeft={noop} onToggleRight={noop} onSend={ready} onAbort={ready}
+    toolDisplay="card" toolFold="position" sendError={null} platform="darwin" rightCollapsed
+    project={project} models={models} onToggleRight={noop} onSend={ready} onAbort={ready}
     onMode={noop} getQuestion={() => null} onReplyQuestion={noop} onBranch={noop} onRemoveInstruction={ready}
     showNewTab={false} onNewTab={noop} onOpenChanges={noop} /></div>;
 }

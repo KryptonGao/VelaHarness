@@ -228,8 +228,6 @@ export interface ChatViewProps {
   state: AppState | null;
   sendError: string | null;
   platform: string;
-  leftCollapsed: boolean;
-  onToggleLeft: () => void;
   onRenameConversation?: (id: string) => void;
   floatingInfo?: boolean;
   /** 悬浮信息布局下，用可排序的信息卡片栈代替单张环境卡片。 */
@@ -294,8 +292,6 @@ export function ChatView({
   state,
   sendError,
   platform,
-  leftCollapsed,
-  onToggleLeft,
   onRenameConversation,
   rightCollapsed,
   onToggleRight,
@@ -974,17 +970,6 @@ export function ChatView({
         </header>
       ) : <header className="main-chat-header">
         <div className="chat-title-group">
-          {!embedded && leftCollapsed ? (
-            <button
-              className="view-icon-btn"
-              type="button"
-              title={`${tr("展开侧边栏", "Expand sidebar")} (${mod}B)`}
-              aria-label={tr("展开侧边栏", "Expand sidebar")}
-              onClick={onToggleLeft}
-            >
-              <Icon name="sidebar" size={14} />
-            </button>
-          ) : null}
           {state?.activeConversationId && onRenameConversation ? (
             <button
               className="chat-active-title chat-title-rename"

@@ -208,11 +208,9 @@ function Detail({ item, busy, notice, onDecide, onArchive, onBack, onOpenConvers
   </article>;
 }
 
-export function AgentInboxPage({ active, sidebarCollapsed, onToggleSidebar, sidebarResize, onOpenConversation, messageStore, ensureTranscript, navigation, onNavigationHandled, catalog = null, catalogError = null }: {
+export function AgentInboxPage({ active, sidebarResize, onOpenConversation, messageStore, ensureTranscript, navigation, onNavigationHandled, catalog = null, catalogError = null }: {
   active: boolean;
   sidebarResize?: SidebarResize;
-  sidebarCollapsed: boolean;
-  onToggleSidebar: () => void;
   onOpenConversation: (id: string) => void;
   messageStore: MessageStore;
   ensureTranscript: (conversationId: string) => void;
@@ -289,7 +287,6 @@ export function AgentInboxPage({ active, sidebarCollapsed, onToggleSidebar, side
 
   return <section className="page-view agent-inbox-page" ref={pageRef} aria-label={tr("Agent 收件箱", "Agent Inbox")}>
     <header className="page-header agent-inbox-topbar main-chat-header">
-      {sidebarCollapsed && <button type="button" onClick={onToggleSidebar} aria-label={tr("展开侧栏", "Show sidebar")}><Icon name="sidebar" size={16} /></button>}
       <span className="page-topbar-title">{section === "resident" ? "Resident Agent" : viewLabels[view]()}</span>
       <span className="agent-inbox-summary" role="status">
         {snapshot.badge > 0 ? trf("{0} 项需要处理", "{0} need your attention", snapshot.badge) : tr("没有待处理事项", "All caught up")}

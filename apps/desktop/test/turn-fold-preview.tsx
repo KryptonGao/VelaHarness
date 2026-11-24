@@ -35,8 +35,8 @@ function Fixture() {
   const [frame, setFrame] = useState<Frame>({ messages: [], state: baseState, display: "card" });
   update = next => flushSync(() => setFrame(next));
   return <div style={{ display: "flex", height: 700 }}><ChatView messages={frame.messages} state={frame.state}
-    toolDisplay={frame.display} toolFold="position" sendError={null} platform="darwin" leftCollapsed rightCollapsed
-    project={project} models={models} onToggleLeft={noop} onToggleRight={noop} onSend={ready} onAbort={ready}
+    toolDisplay={frame.display} toolFold="position" sendError={null} platform="darwin" rightCollapsed
+    project={project} models={models} onToggleRight={noop} onSend={ready} onAbort={ready}
     onMode={noop} getQuestion={() => null} onReplyQuestion={noop} onBranch={noop} onRemoveInstruction={ready}
     showNewTab={false} onNewTab={noop} onOpenChanges={noop} /></div>;
 }

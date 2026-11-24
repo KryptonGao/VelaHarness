@@ -26,6 +26,8 @@ const ICONS = {
   trash: "delete-2",
   settings: "settings-3",
   sidebar: "layout-left",
+  "sidebar-expanded": "sidebar-left",
+  "sidebar-collapsed": "sidebar-left-collapse",
   clock: "time",
   inbox: "inbox",
   star: "star",

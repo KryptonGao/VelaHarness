@@ -60,7 +60,7 @@ function Fixture() {
   return <div style={{ display: "flex", width: 900, height: 800 }}>
     <SessionChatView messageStore={session.messageStore} state={session.state} question={session.question}
       summaryEnabled={false} summaryStyle="inline" locale="en" sendError={null} platform="darwin"
-      leftCollapsed rightCollapsed project={project} models={models} onToggleLeft={noop} onToggleRight={noop}
+      rightCollapsed project={project} models={models} onToggleRight={noop}
       onSend={ready} onAbort={ready} onMode={noop} getQuestion={session.getQuestion} onReplyQuestion={noop}
       onBranch={noop} showNewTab={false} onNewTab={noop} onOpenChanges={noop} />
   </div>;

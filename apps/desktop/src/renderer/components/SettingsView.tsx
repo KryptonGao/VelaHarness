@@ -46,6 +46,7 @@ type ModelsApi = ReturnType<typeof useModels>;
 
 interface SettingsViewProps {
   sidebarResize?: SidebarResize;
+  onShowNavigation?: () => void;
   onPreviewSound: NotifySound;
   preferences: PreferencesApi;
   platform: string;
@@ -62,6 +63,7 @@ interface SettingsViewProps {
 
 export function SettingsView({
   sidebarResize,
+  onShowNavigation,
   onPreviewSound,
   preferences,
   platform,
@@ -106,12 +108,15 @@ export function SettingsView({
       const modifier = platform === "darwin" ? event.metaKey : event.ctrlKey;
       if (!modifier || event.altKey || event.key.toLowerCase() !== "f") return;
       event.preventDefault();
-      searchRef.current?.focus();
-      searchRef.current?.select();
+      onShowNavigation?.();
+      requestAnimationFrame(() => {
+        searchRef.current?.focus();
+        searchRef.current?.select();
+      });
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [platform]);
+  }, [platform, onShowNavigation]);
 
   function pickResult(result: SettingsSearchResult): void {
     setStoredPage(result.entry.page);

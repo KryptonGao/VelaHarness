@@ -38,7 +38,7 @@ import { MemoryDistillDialog } from "./components/MemoryDistillDialog";
 import { ScheduledTasksPage } from "./components/ScheduledTasksPage";
 import { Sidebar } from "./components/Sidebar";
 import { NavRail, type NavCategory } from "./components/NavRail";
-import { NavHistoryButtons } from "./components/NavHistoryButtons";
+import { WindowNavigation } from "./components/WindowNavigation";
 import { NavHistory } from "./nav-history";
 import { RenameConversationDialog } from "./components/RenameConversationDialog";
 import { WorkspaceSettingsDialog } from "./components/WorkspaceSettingsDialog";
@@ -357,6 +357,7 @@ export function App() {
     window.vela?.setShortcuts(shortcutRecording ? {} : acceleratorMap(shortcutBindings, platform));
   }, [shortcutBindings, shortcutRecording, platform]);
   const toggleLeft = useCallback(() => setLeftCollapsed(value => !value), [setLeftCollapsed]);
+  const showLeft = useCallback(() => setLeftCollapsed(false), [setLeftCollapsed]);
   const resumeGoal = useCallback(() => { void session.resumeGoal(); }, [session.resumeGoal]);
   const replyQuestion = useCallback((id: string, answer: string | null) => session.replyQuestion(id, answer), [session.replyQuestion]);
   const branchTurn = useCallback((index: number) => { void session.branch(index); }, [session.branch]);
@@ -1041,7 +1042,7 @@ export function App() {
       case "new-chat": showHomeThen(() => { if (workbenchView !== "split") setWorkbenchView("chat"); void session.newChat(); }); break;
       case "new-tab": showHomeThen(openStartTab); break;
       case "toggle-settings": toggleSettings(); break;
-      case "toggle-sidebar": setLeftCollapsed(value => !value); break;
+      case "toggle-sidebar": toggleLeft(); break;
       case "toggle-info": toggleInfo(); break;
       case "go-back": goBack(); break;
       case "go-forward": goForward(); break;
@@ -1157,7 +1158,6 @@ export function App() {
                 onOpenVersionControl={preferences.conversationWorkbenchTabs ? openWorkspaceVersionControl : undefined}
                 settingsOpen={settingsOpen}
                 settingsLabel={tr("设置", "Settings")}
-                onToggle={() => setLeftCollapsed((value) => !value)}
                 onOpenSettings={toggleSettings}
                 onNewChat={(cwd) => leaveRecipes(() => {
                   if (workbenchView !== "split") setWorkbenchView("chat");
@@ -1203,8 +1203,6 @@ export function App() {
                           conversationWorkbenchTabs={preferences.conversationWorkbenchTabs}
                           onOpenWorkspaceOverview={preferences.conversationWorkbenchTabs ? openWorkspaceOverview : undefined}
                           onOpenVersionControl={borderlessInterface && project.hasWorkspaceRepository ? openWorkspaceVersionControl : undefined}
-                          leftCollapsed={leftCollapsed && !fullscreen}
-                          onToggleLeft={toggleLeft}
                           onRenameConversation={openRenameConversation}
                           rightCollapsed={floatingInfo ? environmentCollapsed : rightCollapsed}
                           onToggleRight={toggleInfo}
@@ -1259,7 +1257,6 @@ export function App() {
                         fullscreen={fullscreen}
                         showingChat={fullscreen && workbenchView === "chat"}
                         onShowChat={() => setWorkbenchView("chat")}
-                        onExpandSidebar={leftCollapsed ? toggleLeft : undefined}
                         onToggleFullscreen={() => setWorkbenchView(fullscreen ? "split" : "panel")}
                         splitEnabled={preferences.workbenchSplit}
                         onVisibleTabsChange={setVisibleWorkbenchTabIds}
@@ -1357,17 +1354,16 @@ export function App() {
                     } : undefined}
                     conversations={session.conversations} workspaces={project.workspace?.recents ?? []}
                     waitingConversationIds={session.waitingConversationIds}
-                    sidebarCollapsed={leftCollapsed && !railMode} onToggleSidebar={toggleLeft}
                     onOpenConversation={id => { setWorkspaceTarget(null); openMainConversation(id); }}
                     onNewChat={cwd => leaveRecipes(() => { setWorkspaceTarget(null); void session.newChat(cwd); })}
                     onEditWorkspace={setEditingWorkspace} onOpenScheduledTasks={openScheduledTasks} /> : null}
                 </Presence>
                 <Presence present={prInboxOpen} keepMounted className="main-stage-pane page-stage">
-                  <PrInboxPage sidebarResize={pageResize} active={prInboxOpen} sidebarCollapsed={leftCollapsed && !railMode} onToggleSidebar={toggleLeft}
+                  <PrInboxPage sidebarResize={pageResize} active={prInboxOpen}
                     onOpenConversation={(id) => { setPrInboxOpen(false); setAgentInboxOpen(false); openMainConversation(id); }} />
                 </Presence>
                 <Presence present={agentInboxOpen} keepMounted className="main-stage-pane page-stage">
-                  <AgentInboxPage sidebarResize={pageResize} active={agentInboxOpen} sidebarCollapsed={leftCollapsed && !railMode} onToggleSidebar={toggleLeft}
+                  <AgentInboxPage sidebarResize={pageResize} active={agentInboxOpen}
                     messageStore={session.messageStore} ensureTranscript={session.ensureTranscript}
                     navigation={agentInboxNav} onNavigationHandled={handleAgentInboxNavigated}
                     catalog={models.catalog} catalogError={models.catalogError}
@@ -1376,7 +1372,7 @@ export function App() {
                 <Presence present={recipesOpen} className="main-stage-pane page-stage">
                   <TaskRecipesPage sidebarResize={pageResize} catalog={models.catalog} workspace={project.workspace?.current ?? null}
                     workspaces={[...new Set([...(project.workspace?.recents.map(r => r.path) ?? []), ...session.conversations.filter(c => c.hasWorkspace !== false).map(conversationWorkspace)])]}
-                    locale={preferences.locale} sidebarCollapsed={leftCollapsed && !railMode} onToggleSidebar={toggleLeft}
+                    locale={preferences.locale}
                     seed={recipeSeed} onConsumeSeed={consumeRecipeSeed} selectedRecipe={recipeToUse} onConsumeSelection={consumeRecipeSelection} registerLeaveGuard={registerRecipeLeave}
                     onOpenConversation={id => leaveRecipes(() => { openMainConversation(id); })} />
                 </Presence>
@@ -1387,8 +1383,6 @@ export function App() {
                     catalogError={models.catalogError}
                     workspace={project.workspace?.current ?? null}
                     workspaces={project.workspace?.recents.map(recent => recent.path) ?? []}
-                    sidebarCollapsed={leftCollapsed && !railMode}
-                    onToggleSidebar={toggleLeft}
                     onOpenConversation={(id) => {
                       setPrInboxOpen(false); setAgentInboxOpen(false); setScheduledTasksOpen(false);
                       openMainConversation(id);
@@ -1398,6 +1392,7 @@ export function App() {
                 <Presence present={settingsVisible} className="main-stage-pane page-stage settings-stage">
                   <SettingsView
                     sidebarResize={pageResize}
+                    onShowNavigation={railMode ? showLeft : undefined}
                     onPreviewSound={sounds.preview}
                     preferences={preferences}
                     platform={platform}
@@ -1424,7 +1419,8 @@ export function App() {
                 </Presence>
               </div>
               {/* 放在最后：拖动区按文档顺序合成，no-drag 必须排在侧栏和各顶栏的 drag 之后，按钮才点得动。 */}
-              <NavHistoryButtons platform={platform} canGoBack={navHistory.canGoBack(navEntryValid)} canGoForward={navHistory.canGoForward(navEntryValid)}
+              <WindowNavigation platform={platform} sidebarCollapsed={leftCollapsed} onToggleSidebar={toggleLeft}
+                canGoBack={navHistory.canGoBack(navEntryValid)} canGoForward={navHistory.canGoForward(navEntryValid)}
                 onBack={goBack} onForward={goForward} />
             </div>
           </ScreenPresence>

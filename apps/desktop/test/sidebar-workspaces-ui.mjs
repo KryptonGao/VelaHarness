@@ -35,7 +35,7 @@ if (!process.versions.electron) {
             <Sidebar collapsed={false} platform="darwin" resize={{widths:{left:248,right:300,workbench:500},startResize(){},nudge(){},reset(){}}}
               conversations={items} activeConversationId={active} settingsOpen={false} settingsLabel="设置"
               workspaces={[{path:'/projects/VelaHarness',name:'VelaHarness',lastUsedAt:now,folders:['/projects/shared-lib']}]} onEditWorkspace={cwd=>{window.edited=cwd;}}
-              onToggle={()=>{}} onOpenSettings={()=>{}} onNewChat={()=>{}} onSwitchConversation={setActive}
+              onOpenSettings={()=>{}} onNewChat={()=>{}} onSwitchConversation={setActive}
               onArchiveConversation={id=>setItems(items=>items.map(item=>item.id===id?{...item,archivedAt:now}:item))}
               onOpenPrInbox={()=>{}} prInboxOpen={false} onOpenAgentInbox={()=>{}} agentInboxOpen={false} agentInboxBadge={0}
               onOpenRecipes={()=>{}} recipesOpen={false} onOpenScheduledTasks={()=>{}} scheduledTasksOpen={false}/>

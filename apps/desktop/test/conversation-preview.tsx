@@ -64,14 +64,14 @@ function Fixture() {
   return <div className="vela-window platform-darwin right-collapsed" style={{ height: "100vh" }}>
     <Sidebar collapsed={false} platform="darwin" resize={{ widths: { left: 248, right: 300, workbench: 500 }, startResize() {}, nudge() {}, reset() {} }}
       conversations={conversations} waitingConversationIds={["waiting"]} activeConversationId={activeId} settingsOpen={false} settingsLabel="设置"
-      onToggle={() => {}} onOpenSettings={() => {}} onNewChat={() => {}} onSwitchConversation={setActiveId}
+      onOpenSettings={() => {}} onNewChat={() => {}} onSwitchConversation={setActiveId}
       onArchiveConversation={id => setConversations(items => items.map(item => item.id === id ? { ...item, archivedAt: Date.now() } : item))}
       onRenameConversation={openRename} />
     <ChatView messages={params.has("empty") ? [] : [
       { id: "u", role: "user", text: "先做侧边栏搜索和手动改名。", images: [], thinking: "", tools: [], timestamp: 1, planIds: [] },
       { id: "r", role: "assistant", text: "可以按标题和工作区检索会话，也可以给会话设置便于识别的名称。", images: [], thinking: "", tools: [], timestamp: 2, planIds: [] },
-    ] as never} state={state} project={project} sendError={null} platform="darwin" leftCollapsed={false} rightCollapsed
-      models={models} onToggleLeft={() => {}} onToggleRight={() => {}} onRenameConversation={openRename}
+    ] as never} state={state} project={project} sendError={null} platform="darwin" rightCollapsed
+      models={models} onToggleRight={() => {}} onRenameConversation={openRename}
       onSend={async () => {}} onAbort={async () => {}} onMode={() => {}} getQuestion={() => null}
       onReplyQuestion={() => {}} onBranch={() => {}} showNewTab={false} onNewTab={() => {}} onOpenChanges={() => {}} />
     {editing ? <RenameConversationDialog key={editing.id} conversation={editing} onClose={() => setEditing(null)}

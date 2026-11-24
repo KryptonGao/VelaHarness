@@ -37,7 +37,7 @@
 .borderless-interface:not(.nav-rail-layout, .left-collapsed) .page-nav {
   border-left: 1px solid var(--border-subtle);
 }
-.borderless-interface:is(:not(.left-collapsed), :has(> .main-stage > .page-stage:not(.is-overlay))) .nav-rail::after {
+.borderless-interface:not(.left-collapsed) .nav-rail::after {
   content: "";
   position: absolute;
   top: var(--header-height);
@@ -49,15 +49,17 @@
 }
 
 /* Extend the list tint across the rail and its gutter, over the same window glass. */
+.nav-rail::before {
+  position: absolute;
+  inset: 0 calc(-1 * var(--glass-edge-inset)) 0 0;
+  z-index: -1;
+  pointer-events: none;
+}
 [data-window-focused="false"] .borderless-interface:not([data-traffic-light-material="paper"]),
 .borderless-interface[data-traffic-light-material="list"] {
-  &:is(:not(.left-collapsed), .rail-away) .nav-rail::before {
+  &:not(.left-collapsed) .nav-rail::before {
     content: "";
-    position: absolute;
-    inset: 0 calc(-1 * var(--glass-edge-inset)) 0 0;
-    z-index: -1;
     background: var(--list-tint);
-    pointer-events: none;
   }
 }
 .vela-window.borderless-interface[data-traffic-light-material="paper"] { background: var(--bg-chat); }
@@ -67,6 +69,25 @@
 .vela-window.nav-rail-layout.left-collapsed:not(.rail-away)[data-traffic-light-material="list"],
 .borderless-interface.nav-rail-layout.left-collapsed:not(.rail-away) > .sidebar-left {
   background: linear-gradient(var(--glass-fill), var(--glass-fill)), var(--bg-chat);
+}
+/* Both exposed columns turn solid on click, including the titlebar above the sliding list. */
+.nav-rail-layout.rail-away.left-collapsed {
+  --collapsed-nav-fill: linear-gradient(var(--glass-fill), var(--glass-fill)), var(--bg-chat);
+  & > .nav-rail::before {
+    content: "";
+    background: var(--collapsed-nav-fill);
+  }
+  @media (width > 760px) {
+    & .page-view::before {
+      content: "";
+      right: auto;
+      width: var(--page-nav-width);
+      background: var(--collapsed-nav-fill);
+    }
+  }
+  @media (max-width: 760px) {
+    & .page-nav { background: var(--collapsed-nav-fill); }
+  }
 }
 .borderless-interface :is(.sidebar-left-header, .sidebar-quick-actions) { position: relative; z-index: 1; }
 .borderless-interface .sidebar-scroll-area {

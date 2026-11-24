@@ -53,7 +53,7 @@ if (!process.versions.electron) {
             return <RecipeActionsContext.Provider value={{conversationId: 'navigation-chat',
               open: () => setRecipesOpen(true), fromMessage: next => {setSeed(next); setRecipesOpen(true);} }}>
               {recipesOpen ? <TaskRecipesPage catalog={null} workspace={null} workspaces={[]} locale="zh-CN"
-                sidebarCollapsed={false} onToggleSidebar={() => {}} onOpenConversation={() => {}}
+                onOpenConversation={() => {}}
                 seed={seed} onConsumeSeed={() => setSeed(null)} registerLeaveGuard={() => {}} /> :
                 <header className="main-chat-header"><span className="chat-active-title">Hello</span><div className="chat-header-actions">
                   <ChatActionsMenu messages={fixture.messages} streaming={false} />

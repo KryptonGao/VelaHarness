@@ -65,7 +65,6 @@ interface WorkbenchPanelProps {
   fullscreen?: boolean;
   showingChat?: boolean;
   onShowChat?: () => void;
-  onExpandSidebar?: () => void;
   onToggleFullscreen?: () => void;
   browserOperating?: boolean;
   activeTabId: string | null;
@@ -469,7 +468,7 @@ function WorkbenchPanelContent(props: WorkbenchPanelProps & { closing: boolean; 
           data-right-edge={rightEdge}
           hidden={!!layout.maximized && layout.maximized !== paneId} style={rectStyle(rect)} aria-label={trf("窗口 {0}", "Pane {0}", index + 1)}>
           <WorkbenchTabStrip splitEnabled={splitEnabled} tabs={paneTabs} draggingId={drag && !drag.placing ? drag.key : null} selected={pane.selected} split={layout.panes.length > 1} maximized={layout.maximized === paneId}
-            fullscreen={fullscreen} showingChat={showingChat} onShowChat={props.onShowChat} onExpandSidebar={props.onExpandSidebar}
+            fullscreen={fullscreen} showingChat={showingChat} onShowChat={props.onShowChat}
             onToggleFullscreen={topRow && rightEdge && props.onToggleFullscreen ? toggleFullscreen : undefined}
             tabButtonId={tabButtonId} tabPanelId={tabPanelId} renderLabel={tab => <><TabIcon tab={tab} />{tab.kind === "browser" ? <BrowserTabLabel controller={tab.controller} /> : <span className="workbench-tab-label">{tab.label}</span>}</>}
             onActivate={activateTab} onClose={closeTab} onNewTab={() => { focusPane(paneId); props.onNewTab(); }}

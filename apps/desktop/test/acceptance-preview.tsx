@@ -105,8 +105,8 @@ function Fixture() {
       style={{ height: "calc(100vh - 36px)", "--workbench-width": `${width}px` } as React.CSSProperties}>
       <div className="main-stage"><div className="main-stage-pane">
         <ChatView messages={source} state={state} project={project} sendError={null} platform="darwin"
-          leftCollapsed rightCollapsed floatingInfo environmentCollapsed toolDisplay={display} toolFold={fold}
-          models={models} onToggleLeft={noop} onToggleRight={noop} onSend={async () => {}} onAbort={async () => {}}
+          rightCollapsed floatingInfo environmentCollapsed toolDisplay={display} toolFold={fold}
+          models={models} onToggleRight={noop} onSend={async () => {}} onAbort={async () => {}}
           onMode={async () => {}} getQuestion={() => null} onReplyQuestion={noop} onBranch={noop}
           showNewTab={false} onNewTab={noop} onOpenChanges={noop} onOpenAcceptance={openAcceptance}
           onReviewTurn={request => { review.open(request); setActive(review.tabId); }} />

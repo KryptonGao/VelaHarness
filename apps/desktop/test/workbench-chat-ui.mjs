@@ -136,7 +136,7 @@ if (!process.versions.electron) {
       })()`);
       for (const c of overlapChecks) assert.ok(c.overlap && c.shieldInside && c.lastVisible, JSON.stringify(c));
       const expandSidebar = 'button[aria-label="展开侧边栏"]';
-      const collapseSidebar = '.sidebar-left button[aria-label="收起侧边栏"]';
+      const collapseSidebar = 'button[aria-label="收起侧边栏"]';
       const fillsWorkspace = "document.querySelector('.workbench-canvas').clientWidth === document.querySelector('.main-stage-pane').clientWidth";
       const sidebarUsable = `(() => {
         const item = document.querySelector('.sidebar-left .subchat-item');
@@ -144,7 +144,7 @@ if (!process.versions.electron) {
         const panel = document.querySelector('.workbench-canvas').getBoundingClientRect();
         return item.contains(document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2)) && panel.left >= rect.right;
       })()`;
-      await click(".main-chat-header " + expandSidebar);
+      await click(expandSidebar);
       await newTab(); await capture("start-light");
       const panelWidth = () => evaluate("document.querySelector('.workbench-panel').getBoundingClientRect().width");
       await until("document.querySelector('.workbench-panel').getAnimations().length === 0");
@@ -596,7 +596,7 @@ if (!process.versions.electron) {
       win.setSize(900, 900);
       await until(`innerWidth <= 900 && ${fillsWorkspace}`);
       await until("document.querySelector('.workbench-fullscreen.nav-rail-layout.left-collapsed .nav-rail').clientWidth > 0");
-      await click(".workbench-tabbar " + expandSidebar);
+      await click(expandSidebar);
       await until(sidebarUsable);
       await click(".workbench-pinned-chat");
       win.setContentSize(1280, 840);

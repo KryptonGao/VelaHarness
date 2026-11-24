@@ -76,12 +76,12 @@ function Fixture() {
   return <div className="vela-window platform-darwin right-collapsed" style={{ height: "100vh", "--sidebar-left-width": "216px", "--workbench-width": "520px" } as React.CSSProperties}>
     <Sidebar collapsed={false} platform="darwin" resize={resize}
       conversations={conversations} activeConversationId="demo-0" settingsOpen={false} settingsLabel="设置"
-      onToggle={noop} onOpenSettings={noop} onNewChat={noop} onSwitchConversation={noop} onArchiveConversation={noop} onRenameConversation={noop} />
+      onOpenSettings={noop} onNewChat={noop} onSwitchConversation={noop} onArchiveConversation={noop} onRenameConversation={noop} />
     <div className="main-stage"><div className="main-stage-pane">
       <AgentWorkspaceProvider agents={state.agents ?? []} activeAgentId={activeId} openAgent={openAgent} closeAgent={() => setActiveId(null)}>
         <ChatView messages={scene === "subagents" ? collaborationMessages : compactMessages} state={state} project={project}
-          sendError={null} platform="darwin" leftCollapsed={false} rightCollapsed floatingInfo environmentCollapsed toolDisplay="compact" toolFold="message"
-          models={models} onToggleLeft={noop} onToggleRight={noop} onRenameConversation={noop}
+          sendError={null} platform="darwin" rightCollapsed floatingInfo environmentCollapsed toolDisplay="compact" toolFold="message"
+          models={models} onToggleRight={noop} onRenameConversation={noop}
           onSend={async () => {}} onAbort={async () => {}} onMode={noop} getQuestion={() => null} onReplyQuestion={noop}
           onBranch={noop} showNewTab={tabs.length === 0} onNewTab={noop} onOpenChanges={noop} />
       </AgentWorkspaceProvider>

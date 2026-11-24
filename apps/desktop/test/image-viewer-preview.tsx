@@ -93,7 +93,7 @@ function Fixture() {
   return (
     <div style={{ height: "100vh", display: "flex", background: "var(--bg-chat)" }}>
       <ChatView messages={messages as never} state={state} project={project} sendError={null} platform="darwin"
-        leftCollapsed rightCollapsed models={models} onToggleLeft={() => {}} onToggleRight={() => {}}
+        rightCollapsed models={models} onToggleRight={() => {}}
         onSend={async () => {}} onAbort={async () => {}} onMode={() => {}} getQuestion={() => null}
         onReplyQuestion={() => {}} onBranch={() => {}} showNewTab={false} onNewTab={() => {}} onOpenChanges={() => {}} />
     </div>

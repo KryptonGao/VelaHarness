@@ -12,9 +12,9 @@ import { Icon } from "./icons";
 const emptyState: ScheduledTasksState = { tasks: [], runs: [] };
 const baseName = (path: string) => path.split(/[\\/]/).filter(Boolean).pop() ?? path;
 
-export function ScheduledTasksPage({ workspace, workspaces, onOpenConversation, sidebarCollapsed, onToggleSidebar, sidebarResize, catalog, catalogError }: {
+export function ScheduledTasksPage({ workspace, workspaces, onOpenConversation, sidebarResize, catalog, catalogError }: {
   workspace: string | null; workspaces: string[]; onOpenConversation: (id: string) => void;
-  sidebarResize?: SidebarResize; sidebarCollapsed: boolean; onToggleSidebar: () => void; catalog: ModelCatalog | null; catalogError: string | null;
+  sidebarResize?: SidebarResize; catalog: ModelCatalog | null; catalogError: string | null;
 }) {
   const pageRef = useRef<HTMLElement>(null);
   useAutoHideScrollbarsWithin(pageRef);
@@ -47,10 +47,6 @@ export function ScheduledTasksPage({ workspace, workspaces, onOpenConversation, 
   return <main className="page-view scheduled-tasks-page-shell" ref={pageRef}>
     <header className="page-header main-chat-header scheduled-tasks-page-toolbar">
       <div className="chat-title-group">
-        {sidebarCollapsed && <button className="view-icon-btn" type="button" onClick={onToggleSidebar}
-          title={tr("展开侧边栏", "Expand sidebar")} aria-label={tr("展开侧边栏", "Expand sidebar")}>
-          <Icon name="sidebar" size={16} />
-        </button>}
         <span className="chat-active-title">{scopeLabels[scope]}</span>
       </div>
     </header>

@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { modKeyLabel } from "../platform";
 import { isShortcutRecording, useShortcutOverrides } from "../shortcuts";
 import { tr, trf } from "../locale";
 import type { WorkbenchTab } from "./WorkbenchPanel";
@@ -8,10 +7,10 @@ import type { WorkbenchDropEdge } from "./workbench-layout";
 import { Icon } from "./icons";
 
 export function WorkbenchTabStrip({ tabs, splitEnabled, draggingId, selected, split, maximized, renderLabel, tabButtonId, tabPanelId,
-  fullscreen, showingChat, onShowChat, onExpandSidebar, onToggleFullscreen, onActivate, onClose, onNewTab, onMerge, onMaximize, onPlace, onEqualize, onSplit, onTabPointerDown,
+  fullscreen, showingChat, onShowChat, onToggleFullscreen, onActivate, onClose, onNewTab, onMerge, onMaximize, onPlace, onEqualize, onSplit, onTabPointerDown,
 }: {
   tabs: WorkbenchTab[]; splitEnabled: boolean; draggingId: string | null; selected: string; split: boolean; maximized: boolean;
-  fullscreen: boolean; showingChat: boolean; onShowChat?: () => void; onExpandSidebar?: () => void; onToggleFullscreen?: () => void;
+  fullscreen: boolean; showingChat: boolean; onShowChat?: () => void; onToggleFullscreen?: () => void;
   renderLabel: (tab: WorkbenchTab) => ReactNode; tabButtonId: (tab: WorkbenchTab) => string; tabPanelId: (tab: WorkbenchTab) => string;
   onActivate: (tab: WorkbenchTab) => void; onClose: (tab: WorkbenchTab) => void; onNewTab: () => void;
   onMerge: () => void; onMaximize: () => void; onPlace: () => void; onEqualize: () => void;
@@ -94,7 +93,6 @@ export function WorkbenchTabStrip({ tabs, splitEnabled, draggingId, selected, sp
   }, [menu]);
   const activate = (tab: WorkbenchTab) => { onActivate(tab); requestAnimationFrame(() => buttons.current.get(tab.id)?.focus()); };
   const platform = window.vela?.platform ?? "darwin";
-  const mod = modKeyLabel(platform);
   const overrides = useShortcutOverrides();
   const shortcutsEnabled = !split && !!onToggleFullscreen;
   const shortcutAvailable = (digit: number) => shortcutsEnabled && digit <= 9 &&
@@ -125,10 +123,6 @@ export function WorkbenchTabStrip({ tabs, splitEnabled, draggingId, selected, sp
     onPointerEnter={event => { if (event.pointerType !== "touch") { hovered.current = true; setPinned(current => current ?? tabWidth); } }}
     onPointerLeave={() => { hovered.current = false; setPinned(null); }}>
     {fullscreen && <>
-      {onExpandSidebar && <button className="workbench-group-action" type="button" onClick={onExpandSidebar}
-        title={`${tr("展开侧边栏", "Expand sidebar")} (${mod}B)`} aria-label={tr("展开侧边栏", "Expand sidebar")}>
-        <Icon name="sidebar" size={14} />
-      </button>}
       <button ref={chatButton} className="workbench-pinned-chat" type="button" aria-pressed={showingChat} onClick={onShowChat}>
         {tr("聊天", "Chat")}
       </button>

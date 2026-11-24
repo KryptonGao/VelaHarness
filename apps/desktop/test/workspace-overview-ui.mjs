@@ -77,14 +77,14 @@ if (!process.versions.electron) {
                 conversations={items} activeConversationId={null} settingsOpen={false} settingsLabel="设置"
                 workspaces={[{ path: WS, name: 'VelaHarness', lastUsedAt: now, folders: ['/projects/shared-lib', '/projects/docs'] }]}
                 overviewWorkspace={overview} onOpenWorkspaceOverview={cwd => { window.overviewOpened.push(cwd); }}
-                onToggle={() => {}} onOpenSettings={() => {}} onNewChat={() => {}} onSwitchConversation={() => {}} onArchiveConversation={() => {}}
+                onOpenSettings={() => {}} onNewChat={() => {}} onSwitchConversation={() => {}} onArchiveConversation={() => {}}
                 onOpenPrInbox={() => {}} prInboxOpen={false} onOpenAgentInbox={() => {}} agentInboxOpen={false} agentInboxBadge={0}
                 onOpenRecipes={() => {}} recipesOpen={false} onOpenScheduledTasks={() => {}} scheduledTasksOpen={false} />
             </div>
             <div className="main-stage"><div className="main-stage-pane scheduled-tasks-stage">
               <WorkspaceOverviewPage workspace={workspace} conversations={items}
                 workspaces={[{ path: WS, name: 'VelaHarness', lastUsedAt: now, folders: ['/projects/shared-lib', '/projects/docs'] }]}
-                waitingConversationIds={['wait']} sidebarCollapsed={false} onToggleSidebar={() => {}}
+                waitingConversationIds={['wait']}
                 onOpenConversation={id => window.opened.push(id)} onNewChat={cwd => window.newChats.push(cwd)}
                 onEditWorkspace={cwd => window.edited.push(cwd)} onOpenScheduledTasks={() => { window.schedules += 1; }} />
             </div></div>

@@ -68,7 +68,7 @@ function Fixture() {
   const preferences = usePreferences();
   return <div className="vela-window platform-darwin right-collapsed" style={{ height: "100vh", "--sidebar-left-width": "216px" } as React.CSSProperties}>
     <Sidebar collapsed={false} platform="darwin" resize={resize} conversations={conversations} activeConversationId="demo-0"
-      settingsOpen settingsLabel={locale === "en" ? "Settings" : "设置"} onToggle={noop} onOpenSettings={noop} onNewChat={noop}
+      settingsOpen settingsLabel={locale === "en" ? "Settings" : "设置"} onOpenSettings={noop} onNewChat={noop}
       onSwitchConversation={noop} onArchiveConversation={noop} onRenameConversation={noop} />
     <div className="main-stage"><div className="main-stage-pane">
       <SettingsView onPreviewSound={(() => {}) as never} preferences={preferences} platform="darwin" models={models} project={project}

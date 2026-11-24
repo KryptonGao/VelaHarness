@@ -96,13 +96,13 @@ function Fixture() {
   } });
   return <div style={{ height: "100vh", display: "flex", background: "var(--bg-chat)" }}>
     <Sidebar collapsed={false} resize={resize} platform="darwin" conversations={conversations} activeConversationId={active}
-      settingsOpen={false} settingsLabel="Settings" onToggle={() => {}} onOpenSettings={() => {}}
+      settingsOpen={false} settingsLabel="Settings" onOpenSettings={() => {}}
       onNewChat={() => setConversations((current) => [makeConversation(`new-${current.length}`, Date.now()), ...current])}
       onSwitchConversation={setActive} onArchiveConversation={(id) => setConversations((current) => current.filter((item) => item.id !== id))} />
     <div style={{ flex: 1, minWidth: 0, display: "flex" }}>
       <ChatView messages={messages as never} state={state} project={{ ...project, workspace: { ...project.workspace!, current: workspace } }}
-        sendError={null} platform="darwin" leftCollapsed={false} rightCollapsed={false} models={models}
-        onToggleLeft={() => {}} onToggleRight={() => {}} onSend={async (text, _images, deliverAs) => {
+        sendError={null} platform="darwin" rightCollapsed={false} models={models}
+        onToggleRight={() => {}} onSend={async (text, _images, deliverAs) => {
           if (deliverAs) flushSync(() => setInstructions((current) => [...current, { id: `i-${current.length}`, mode: deliverAs, text, createdAt: Date.now() }]));
           else setStreaming(true);
         }} onAbort={async () => setStreaming(false)}

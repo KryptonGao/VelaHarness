@@ -47,7 +47,7 @@ export function PrUpdatedTime({ value }: { value: string }) {
 }
 function errorText(error: unknown): string { return error instanceof Error ? error.message : String(error); }
 
-export function PrInboxPage({ active, sidebarCollapsed, onToggleSidebar, sidebarResize, onOpenConversation }: { sidebarResize?: SidebarResize; active: boolean; sidebarCollapsed: boolean; onToggleSidebar: () => void; onOpenConversation: (id: string) => void }) {
+export function PrInboxPage({ active, sidebarResize, onOpenConversation }: { sidebarResize?: SidebarResize; active: boolean; onOpenConversation: (id: string) => void }) {
   const { cache, api, version } = usePrInboxCache();
   const [query, setQuery] = useState<PrInboxQuery>(defaultPrInboxQuery);
   const [relation, setRelation] = useState<PrRelation | 'all'>('all');
@@ -146,7 +146,6 @@ export function PrInboxPage({ active, sidebarCollapsed, onToggleSidebar, sidebar
 
   return <section className="page-view pr-inbox-page" ref={pageRef} aria-label="Pull Request">
     <header className="page-header pr-inbox-topbar main-chat-header">
-      {sidebarCollapsed && <button type="button" onClick={onToggleSidebar} aria-label={tr('展开侧栏', 'Show sidebar')}><Icon name="sidebar" size={16} /></button>}
       <span className="page-topbar-title">{selected ? `${selected.owner}/${selected.repo} #${selected.number}` : tr(...relationLabels[relation])}</span>
       <span className="pr-inbox-sync">{list?.syncedAt ? `${list.stale ? tr('缓存 · ', 'Cached · ') : ''}${tr('同步于 ', 'Synced ')}${new Date(list.syncedAt).toLocaleTimeString()}` : ''}</span>
       <span className="pr-inbox-account">{list?.identity ? `@${list.identity.login}` : tr('GitHub 身份未确认', 'GitHub identity unavailable')}</span>

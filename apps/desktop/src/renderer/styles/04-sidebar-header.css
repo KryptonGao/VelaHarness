@@ -541,14 +541,9 @@
   transition: padding-left var(--transition-sidebar);
 }
 
-/* 左栏收起后红绿灯落在主区顶栏上,标题需要让出位置。 */
-.platform-darwin.left-collapsed .main-chat-header,
-.platform-darwin.left-collapsed .settings-header {
-  padding-left: calc(var(--nav-history-left) + var(--nav-history-width) + 8px);
-}
-.left-collapsed:not(.platform-darwin) .main-chat-header,
-.left-collapsed:not(.platform-darwin) .settings-header {
-  padding-left: calc(var(--nav-history-left) + var(--nav-history-width) + 8px);
+/* Only headers at the top of the window share space with window navigation. */
+.main-stage-pane > :is(.main-chat-view, .wo-shell, .page-view) > :is(.main-chat-header, .settings-header) {
+  padding-left: max(20px, var(--titlebar-inset, 0px));
 }
 
 .chat-title-group {

@@ -20,7 +20,7 @@ export function PanelLayoutActions({ workbenchOpen, onToggleWorkbench, contextOp
     </button>}
     {onToggleContext && <button className="view-icon-btn context-sidebar-toggle" type="button"
       title={`${contextLabel} (${modKeyLabel(platform)}J)`} aria-label={contextLabel} aria-expanded={contextOpen} onClick={onToggleContext}>
-      <Icon name="panel-right" size={14} />
+      <Icon name={contextOpen ? "sidebar-expanded" : "sidebar-collapsed"} size={16} />
     </button>}
   </div>;
 }

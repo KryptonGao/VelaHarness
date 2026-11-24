@@ -69,9 +69,27 @@
   flex-direction: column;
   overflow: hidden;
 }
+/* Animate the exposed part of the category list. Its saved width still follows the resize handle directly. */
+@property --page-nav-open {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 1;
+}
+.nav-rail-layout .page-stage:not(.is-overlay) > .page-view { transition: --page-nav-open var(--transition-sidebar); }
+.nav-rail-layout.left-collapsed .page-view { --page-nav-open: 0; }
+.nav-rail-layout.left-collapsed .page-nav { interactivity: inert; }
+.nav-rail-layout.left-collapsed .page-columns > .sidebar-resize-handle { display: none; }
+@container style(--page-nav-open: 0) {
+  .nav-rail-layout.left-collapsed .page-nav { display: none; }
+}
 @media (width > 760px) {
-  .nav-rail-layout .page-view { --page-nav-width: var(--sidebar-left-width); }
-  .nav-rail-layout .page-nav { background: var(--sidebar-card-fill); }
+  .nav-rail-layout .page-view { --page-nav-width: calc(var(--sidebar-left-width) * var(--page-nav-open)); }
+  .nav-rail-layout .page-nav {
+    width: var(--sidebar-left-width);
+    margin-right: calc(var(--page-nav-width) - var(--sidebar-left-width));
+    clip-path: inset(0 calc(var(--sidebar-left-width) - var(--page-nav-width)) 0 0);
+    background: var(--sidebar-card-fill);
+  }
   .nav-rail-layout .page-columns > .page-content { border-radius: 0; }
   .page-columns > .sidebar-resize-handle {
     left: var(--page-nav-width);
@@ -79,7 +97,7 @@
     transform: translateX(-50%);
   }
   .vela-window .main-stage .page-view > .page-header {
-    padding-left: calc(var(--page-nav-width) + 20px);
+    padding-left: max(calc(var(--page-nav-width) + 20px), var(--titlebar-inset, 0px));
     /* The title tracks the same live column edge as the detail below it. */
     transition: none;
   }
@@ -88,5 +106,10 @@
   .settings-body, .page-columns { flex-direction: column; }
   .page-view::after { left: 0; }
   .page-nav { width: 100%; max-height: 40%; }
+  .nav-rail-layout .page-nav {
+    height: calc-size(auto, size * var(--page-nav-open));
+    max-height: calc(40% * var(--page-nav-open));
+    padding-bottom: calc(16px * var(--page-nav-open));
+  }
   .page-columns > .sidebar-resize-handle { display: none; }
 }

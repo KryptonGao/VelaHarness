@@ -150,7 +150,7 @@ if (!process.versions.electron) {
       let nonce = 0;
       const ensureTranscript = (id) => { window.transcripts.push(id); };
       const handled = (value) => { window.handled.push(value); if (navigation?.nonce === value) { navigation = null; window.renderInbox(currentLocale); } };
-      window.renderInbox = (locale) => { currentLocale = locale; setActiveLocale(locale); root.render(<AgentInboxPage key={locale} active={active} sidebarCollapsed={false} onToggleSidebar={() => {}} onOpenConversation={(id) => window.opened.push(id)}
+      window.renderInbox = (locale) => { currentLocale = locale; setActiveLocale(locale); root.render(<AgentInboxPage key={locale} active={active} onOpenConversation={(id) => window.opened.push(id)}
         messageStore={window.messageStore} ensureTranscript={ensureTranscript} navigation={navigation} onNavigationHandled={handled}
         catalog={{ providers: [], error: null, models: [
           { provider: 'anthropic', providerName: 'Anthropic', id: 'big', name: 'Big', reasoning: true, contextWindow: 200000, available: true, custom: false, thinkingLevels: ['off', 'low', 'high'] },

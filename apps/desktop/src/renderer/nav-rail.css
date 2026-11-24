@@ -172,17 +172,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* 红绿灯落在图标栏上，侧栏和主区顶栏不再为它们让位。 */
-.nav-rail-layout.platform-darwin .titlebar-drag-row { padding-left: 12px; }
-/* 红绿灯的原生点击区比圆点大一圈，第一个控件要与经典布局落在同一位置（距窗口左缘约 78px 起），否则会被红绿灯吃掉点击。 */
-.nav-rail-layout.platform-darwin.left-collapsed .main-chat-header,
-.nav-rail-layout.platform-darwin:is(.left-collapsed, .rail-away) .settings-header,
-.nav-rail-layout.left-collapsed:not(.platform-darwin) .main-chat-header,
-.nav-rail-layout:is(.left-collapsed, .rail-away):not(.platform-darwin) .settings-header {
-  /* 前进/后退按钮浮在窗口左上角，图标栏（+6px 边）之外的第一个控件要排到它们右边。 */
-  padding-left: calc(var(--nav-history-left) + var(--nav-history-width) + 8px - var(--nav-rail-width, 52px) - 6px);
-}
-
 /*
  * 侧栏开合：侧栏原地不动，右侧对话纸面像一张纸向左滑过去盖住它，再滑回来露出。
  * 位置全由一个动画变量 --nav-open（侧栏当前露出的宽度，展开 = 侧栏宽度，收起 = 0）驱动：
@@ -227,9 +216,12 @@
 /* 对话区左缘本身就是纸面左缘：不再留左侧玻璃边（6px 的间距由侧栏的外边距承担）。 */
 .vela-window.nav-rail-layout .main-stage {
   --stage-left-inset: 0px;
+  --titlebar-inset: calc(var(--window-nav-end) - var(--nav-rail-width) - var(--glass-edge-inset) - var(--nav-open));
   padding-left: 0;
   margin-left: calc(var(--nav-open) - var(--sidebar-left-width));
 }
+/* The inset already follows the sidebar animation on every frame. */
+.nav-rail-layout .main-chat-header { transition: none; }
 
 /*
  * 侧栏是一张不透明的卡片：从顶栏下沿开始，底部留出玻璃边，左侧圆角；

@@ -94,6 +94,14 @@ async function run() {
   await js(`window.vela.switchConversation(${JSON.stringify(conversations[0].id)})`);
   await until(`${el('[data-tab-key="trace"]')}.getAttribute('aria-disabled') === null`);
   assert.equal(await js("document.querySelectorAll('.conversation-view-tabs [role=tab]').length"), 6);
+  const sidebarToggle = '.window-navigation > button';
+  await until(`${el('.app-screen-main')}.getAnimations().length === 0`);
+  const anchor = await js(`${rect(sidebarToggle)}.toJSON()`);
+  await click(el(sidebarToggle));
+  await until(`${rect('.sidebar-left')}.width === 0 && ${el(sidebarToggle)}.ariaExpanded === 'false'`);
+  assert.deepEqual(await js(`${rect(sidebarToggle)}.toJSON()`), anchor);
+  await click(el(sidebarToggle));
+  await until(`!${el('.sidebar-left')}.inert`);
   await openInterface();
   assert.equal(await js(el('[data-setting-id="conversation-workbench-tabs"]')), null);
   assert.equal(await js(el('[data-setting-id="borderless-interface"]')), null);
@@ -270,7 +278,37 @@ async function run() {
     assert.deepEqual(await js(`[${divider}.width, ${divider}.top]`), ['1px', '52px']);
     await capture('borderless-settings-rail');
     const nav = '.page-stage:not(.is-overlay) .page-nav';
+    const detail = '.page-stage:not(.is-overlay) .page-content';
     const settingsWidth = await js(`${rect(nav)}.width`);
+    win.webContents.debugger.attach('1.3');
+    await win.webContents.debugger.sendCommand('Emulation.setEmulatedMedia', {
+      features: [{ name: 'prefers-reduced-motion', value: 'no-preference' }],
+    });
+    const checkSidebarMotion = async label => {
+      const slide = `${el(nav)}.closest('.page-view').getAnimations().find(a => a.transitionProperty === '--page-nav-open')`;
+      const open = await js(`${rect(nav)}.toJSON()`);
+      const started = await js(`${el(sidebarToggle)}.click(); new Promise(requestAnimationFrame).then(() => {
+        const animation = ${slide};
+        if (!animation) return false;
+        animation.pause(); animation.currentTime = 0; return true;
+      })`);
+      assert.ok(started, `${label} starts a sidebar transition`);
+      assert.equal(await js(`${rect(detail)}.left`), open.right, label);
+      assert.deepEqual((await transmission()).slice(0, 4), [0, 0, 0, 0], `${label} rail, gutter and list are opaque on the first frame`);
+      await js(`${slide}.currentTime = ${slide}.effect.getTiming().duration / 2`);
+      const edge = await js(`${rect(detail)}.left`);
+      assert.ok(edge > 65 && edge < open.right, `${label} detail slides over the exposed list`);
+      assert.deepEqual(await js(`${rect(nav)}.toJSON()`), open, `${label} list stays in place at its full width`);
+      assert.deepEqual((await transmission()).slice(0, 4), [0, 0, 0, 0], `${label} columns stay opaque during the slide`);
+      if (label === '设置') await capture('category-sidebar-midpoint');
+      await js(`${slide}.play()`);
+      await until(`!${el(nav)}.checkVisibility() && ${el(sidebarToggle)}.ariaExpanded === 'false'`);
+      assert.deepEqual(await js(`${rect(sidebarToggle)}.toJSON()`), anchor, label);
+      assert.equal(await js(`${rect(detail)}.left`), open.left, label);
+      assert.ok(await js(`${rect('.window-navigation')}.right <= ${rect('.page-stage:not(.is-overlay) .page-header :is(.chat-active-title, .page-topbar-title)')}.left`), label);
+      await click(el(sidebarToggle));
+      await until(`${rect(detail)}.left === ${open.right} && ${el(sidebarToggle)}.ariaExpanded === 'true'`);
+    };
     const selectCategory = async label => {
       const item = el(`.nav-rail-item[aria-label^="${label}"]`);
       const frame = await js(`new Promise(resolve => {
@@ -292,7 +330,7 @@ async function run() {
       assert.deepEqual(frame, { active: 'page', listInPlace: true, detailInPlace: true, opacity: '1', oldPaneVisible: false },
         `${label} replaces the sidebar and detail in place on the first frame`);
     };
-    for (const label of ["定时任务", "任务配方", "Agent 收件箱", "Pull Request"]) {
+    for (const label of ["定时任务", "任务配方", "Agent 收件箱", "Pull Request", "设置"]) {
       await selectCategory(label);
       await until(`${material} === 'list' && ${el(nav)}?.getBoundingClientRect().width === ${settingsWidth}
         && getComputedStyle(${el(nav)}.closest('.page-stage')).opacity === '1'`);
@@ -300,6 +338,7 @@ async function run() {
       assert.ok(values.every((v, i) => Math.abs(v - settings[i]) < 3), `${label} matches settings glass and opaque detail: ${values}`);
       assert.equal(await js(`getComputedStyle(${el(nav)}).borderRightWidth`), '0px');
       assert.equal(await js(`${divider}.content`), '""');
+      await checkSidebarMotion(label);
     }
     await selectCategory("主页");
     await until(`!${el('.settings-view')} && ${material} === 'list' && ${rect('.main-stage')}.left === ${rect('.sidebar-left')}.right`);
@@ -311,6 +350,9 @@ async function run() {
     await js(`document.documentElement.style.setProperty('--glass-opacity', '0.4'); document.documentElement.dataset.windowFocused = 'true'`);
     assert.equal(await js(`${divider}.content`), 'none', 'Framed settings has no rail divider');
     assert.equal((await transmission())[3], 0, 'Framed settings retains its original opaque navigation card');
+    await selectCategory("定时任务");
+    await checkSidebarMotion("Framed scheduled tasks");
+    win.webContents.debugger.detach();
     await js(`document.body.style.removeProperty('background-color'); document.documentElement.style.removeProperty('--glass-opacity')`);
     console.log('PASS settings rail and page list match home glass, clear the traffic lights, and restore framed styles');
   }

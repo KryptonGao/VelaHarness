@@ -20,6 +20,7 @@ if (!process.versions.electron) {
         import { createRoot } from 'react-dom/client';
         import { Sidebar } from './apps/desktop/src/renderer/components/Sidebar';
         import { NavRail } from './apps/desktop/src/renderer/components/NavRail';
+        import { WindowNavigation } from './apps/desktop/src/renderer/components/WindowNavigation';
         import { observeTrafficLightMaterial } from './apps/desktop/src/renderer/traffic-light-material';
         import { AppLocaleProvider, setActiveLocale } from './apps/desktop/src/renderer/locale';
         import { installFocusModality } from './apps/desktop/src/renderer/focus-modality';
@@ -43,10 +44,12 @@ if (!process.versions.electron) {
             <NavRail active={category} platform="darwin" agentInboxBadge={3} onSelect={next => { window.selected.push(next); setCategory(next); }} />
             <Sidebar railMode collapsed={collapsed} platform="darwin" resize={{widths:{left:248,right:300,workbench:500},startResize(){},nudge(){},reset(){}}}
               conversations={conversations} activeConversationId="a0" settingsOpen={false} settingsLabel="设置"
-              onToggle={()=>setSidebarCollapsed(value => !value)} onOpenSettings={()=>{}} onNewChat={()=>{ window.newChatCalls = (window.newChatCalls || 0) + 1; }} onSwitchConversation={()=>{}}
+              onOpenSettings={()=>{}} onNewChat={()=>{ window.newChatCalls = (window.newChatCalls || 0) + 1; }} onSwitchConversation={()=>{}}
               onArchiveConversation={()=>{}} onOpenPrInbox={()=>{}} prInboxOpen={false} onOpenAgentInbox={()=>{}} agentInboxOpen={false} agentInboxBadge={3}
               onOpenRecipes={()=>{}} recipesOpen={false} onOpenScheduledTasks={()=>{}} scheduledTasksOpen={false}/>
             <div className="main-stage" ref={borderless ? observeTrafficLightMaterial : undefined}><div className="main-stage-pane is-hidden is-overlay" inert><div id="ghost-header" style={{ WebkitAppRegion: "drag" }} /></div><div className="main-stage-pane"><main className="main-chat-view" style={{flex:1}}><div className="main-chat-header"><span className="chat-active-title" id="stage-title">{category}</span></div></main></div></div>
+            <WindowNavigation platform="darwin" sidebarCollapsed={sidebarCollapsed} onToggleSidebar={() => setSidebarCollapsed(value => !value)}
+              canGoBack={false} canGoForward={false} onBack={() => {}} onForward={() => {}} />
           </div></AppLocaleProvider>;
         }
         setActiveLocale('zh-CN');
@@ -110,8 +113,9 @@ if (!process.versions.electron) {
       assert.equal(await evaluate("window.newChatCalls"), 1);
       assert.ok(await evaluate("document.querySelector('.sidebar-left').getBoundingClientRect().width") > 200, "Home keeps the sidebar");
       assert.equal(await evaluate("document.querySelector('.nav-rail').getBoundingClientRect().width"), 52);
-      const midline = await evaluate("(() => { const box = document.querySelector('.titlebar-drag-row .icon-btn-ghost').getBoundingClientRect(); return box.top + box.height / 2; })()");
-      assert.equal(midline, 26, "Sidebar collapse button sits on the 52px top bar midline");
+      const toggle = "document.querySelector('.window-navigation > button')";
+      const midline = await evaluate(`(() => { const box = ${toggle}.getBoundingClientRect(); return box.top + box.height / 2; })()`);
+      assert.ok(Math.abs(midline - 26) <= 1, "Sidebar toggle aligns with the window titlebar");
       // Sample the actual rail fill as an 8-bit alpha, independent of CSS color serialization.
       const glassAlphas = await evaluate(`(() => {
         const root = document.documentElement, shell = document.querySelector('.vela-window');
@@ -161,7 +165,7 @@ if (!process.versions.electron) {
         // 40% base glass + the list's 45% tint leaves 33% backdrop contribution.
         assert.ok((await backdropResponse()).every(d => Math.abs(d - 255 * 0.33) < 3), 'Rail, gutter and list use the higher translucent alpha');
         const slide = "document.querySelector('.vela-window').getAnimations().find(a => a.transitionProperty === '--nav-open')";
-        await evaluate(`document.querySelector('.titlebar-drag-row .icon-btn-ghost').click();
+        await evaluate(`${toggle}.click();
           new Promise(requestAnimationFrame).then(() => ${slide}.pause())`);
         assert.ok(await evaluate("document.querySelector('.main-stage').offsetLeft > navigator.windowControlsOverlay.getTitlebarAreaRect().left"),
           'The first collapse frame still exposes the list under the traffic lights');
@@ -200,7 +204,18 @@ if (!process.versions.electron) {
       assert.notEqual(await evaluate("getComputedStyle(document.querySelector('.vela-window')).backdropFilter"), "none");
       // 被隐藏、inert 的页面（如一直挂载的 PR 收件箱）不能再占着拖动区，否则会盖住主页顶栏的按钮。
       assert.equal(await evaluate("getComputedStyle(document.querySelector('#ghost-header')).getPropertyValue('-webkit-app-region')"), "none", "Hidden inert panes leave no drag region");
-      const measure = () => evaluate("(() => { const rect = selector => document.querySelector(selector).getBoundingClientRect(); const sidebar = rect('.sidebar-left'); const header = document.querySelector('.sidebar-left-header'); return { sidebarLeft: sidebar.left, sidebarWidth: sidebar.width, contentLeft: rect('.sidebar-left-header').left, contentWidth: rect('.sidebar-left-header').width, contentOpacity: getComputedStyle(header).opacity, railRight: rect('.nav-rail').right, paperLeft: rect('.main-chat-view').left, paperRadius: getComputedStyle(document.querySelector('.main-chat-view'), '::after').borderTopLeftRadius, cardLeft: sidebar.left }; })()");
+      const measure = () => evaluate(`(() => {
+        const rect = selector => document.querySelector(selector).getBoundingClientRect();
+        const sidebar = rect('.sidebar-left'), header = document.querySelector('.sidebar-left-header');
+        const content = header.getBoundingClientRect();
+        return {
+          sidebarLeft: sidebar.left, sidebarWidth: sidebar.width, cardLeft: sidebar.left,
+          contentLeft: content.left, contentWidth: content.width, contentOpacity: getComputedStyle(header).opacity,
+          railRight: rect('.nav-rail').right, paperLeft: rect('.main-chat-view').left,
+          paperRadius: getComputedStyle(document.querySelector('.main-chat-view'), '::after').borderTopLeftRadius,
+          titleClearance: rect('#stage-title').left - rect('.window-navigation').right,
+        };
+      })()`);
       const open = await measure();
       const shadowBounds = () => evaluate("(() => { const stage = document.querySelector('.main-stage'); const box = stage.getBoundingClientRect(); const style = getComputedStyle(stage, '::before'); return { left: box.left + parseFloat(style.left), right: box.right - parseFloat(style.right), top: box.top + parseFloat(style.top), bottom: box.bottom - parseFloat(style.bottom), shadow: style.boxShadow, pointerEvents: style.pointerEvents }; })()");
       const openShadow = await shadowBounds();
@@ -239,7 +254,7 @@ if (!process.versions.electron) {
       assert.equal(await selectCategory("定时任务"), open.cardLeft, "Category sidebar occupies the home sidebar slot on the first frame");
       assert.equal(await selectCategory("主页"), open.paperLeft, "Returning home immediately restores the open sidebar");
       assert.deepEqual(await evaluate("window.selected"), ["scheduledTasks", "home"]);
-      await evaluate("document.querySelector('.titlebar-drag-row .icon-btn-ghost').click()");
+      await evaluate(`${toggle}.click()`);
       // 收起时直角纸面滑到固定的圆角遮罩下，侧栏原地不动、内容不挤压不淡出。
       let sawSliding = false;
       let previousLeft = open.paperLeft;
@@ -253,6 +268,7 @@ if (!process.versions.electron) {
         assert.equal(now.contentOpacity, "1", "Sidebar content never fades");
         assert.equal(now.paperRadius, "0px", "Paper itself stays square while sliding under the fixed corner mask");
         assert.ok(now.paperLeft <= previousLeft + 0.01, "Paper only moves left");
+        assert.ok(now.titleClearance >= 0, "The sliding title clears the fixed navigation buttons");
         previousLeft = now.paperLeft;
         if (now.paperLeft > now.railRight + 7 && now.paperLeft < open.paperLeft - 1) sawSliding = true;
         if (now.paperLeft === now.railRight + 6) break;

@@ -175,33 +175,40 @@
   padding-top: 12px;
 }
 
-/* 折叠按钮与右侧顶栏（52px 高）、红绿灯同在 y=26 的中线上；下方内容位置保持不变。 */
 .titlebar-drag-row {
   height: 28px;
   margin-bottom: 2px;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
   -webkit-app-region: drag;
 }
 
 .platform-darwin .titlebar-drag-row {
-  padding-left: 68px;
   margin-bottom: 6px;
 }
 
-/* 前进/后退：浮在窗口左上角红绿灯右侧，不随侧栏开合移动；与折叠按钮、顶栏标题同在 y=26 的中线上。 */
-.vela-window { --nav-history-width: 54px; --nav-history-left: 12px; }
-.platform-darwin.vela-window { --nav-history-left: 94px; }
-.nav-history-buttons {
+/* Keep the window controls anchored to the native titlebar, including at non-default zoom. */
+.vela-window {
+  --window-nav-left: 12px;
+  --window-nav-width: 80px;
+  --window-nav-end: calc(var(--window-nav-left) + var(--window-nav-width) + 8px);
+  --titlebar-inset: calc(var(--window-nav-end) - var(--sidebar-left-width));
+}
+.vela-window.platform-darwin {
+  --window-nav-left: env(titlebar-area-x, 94px);
+  --window-nav-height: env(titlebar-area-height, var(--header-height));
+}
+.vela-window.left-collapsed { --titlebar-inset: var(--window-nav-end); }
+.window-navigation {
   position: absolute;
   z-index: 30;
-  top: 14px;
-  left: var(--nav-history-left);
+  top: calc(var(--window-nav-height, var(--header-height)) / 2);
+  transform: translateY(-50%);
+  left: var(--window-nav-left);
+  width: var(--window-nav-width);
   display: flex;
-  gap: 2px;
+  justify-content: space-between;
   -webkit-app-region: no-drag;
 }
+.nav-history-buttons { display: flex; gap: 2px; }
 .nav-history-buttons .icon-btn-ghost:disabled { opacity: 0.35; pointer-events: none; }
 
 .icon-btn-ghost,

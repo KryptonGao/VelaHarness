@@ -222,6 +222,7 @@
 }
 .panel-layout-actions > button:hover { background: var(--bg-hover); color: var(--text-primary); }
 .panel-layout-actions > button:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: -2px; }
+.context-sidebar-toggle > svg { transform: scaleX(-1); }
 /* Reserve space in the visible header underneath the fixed controls. */
 .main-stage-pane:has(> .panel-layout-actions) { --panel-layout-actions-width: 48px; }
 .main-stage-pane:has(> .panel-layout-actions[data-controls="2"]) { --panel-layout-actions-width: 76px; }
@@ -258,8 +259,8 @@
 .workbench-fullscreen .workbench-panel::before,
 .workbench-fullscreen .workbench-panel::after { box-shadow: none; }
 .workbench-fullscreen .workbench-canvas { width: 100%; }
-.workbench-fullscreen.left-collapsed .workbench-tabbar {
-  padding-left: max(16px, calc(var(--nav-history-left) + var(--nav-history-width) + 8px - var(--nav-rail-width, 0px) - var(--glass-edge-inset)));
+.workbench-fullscreen .workbench-tabbar {
+  padding-left: max(16px, var(--titlebar-inset, 0px));
 }
 .workbench-pinned-chat {
   flex: none;

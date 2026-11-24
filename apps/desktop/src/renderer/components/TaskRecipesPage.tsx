@@ -14,7 +14,7 @@ import { Icon } from "./icons";
 export interface RecipeMessageSeed { text: string; conversationId: string; messageId?: string; planId?: string }
 export interface TaskRecipesPageProps {
   catalog: ModelCatalog | null; workspace: string | null; workspaces: string[]; locale: AppLocale;
-  sidebarResize?: SidebarResize; sidebarCollapsed: boolean; onToggleSidebar: () => void; onOpenConversation: (id: string) => void;
+  sidebarResize?: SidebarResize; onOpenConversation: (id: string) => void;
   selectedRecipe?: TaskRecipe | null; onConsumeSelection?: () => void;
   seed?: RecipeMessageSeed | null; onConsumeSeed: () => void;
   registerLeaveGuard: (guard: ((action: () => void) => void) | null) => void;
@@ -84,7 +84,6 @@ export function TaskRecipesPage(props: TaskRecipesPageProps) {
   const choose = (recipe: TaskRecipe, run?: RecipeRun) => guard(() => { setEditor(null); setUsing({ recipe, run }); setError(null); });
   return <section className="page-view scheduled-tasks-page-shell recipe-page-shell" ref={pageRef}>
     <header className="page-header scheduled-tasks-page-toolbar main-chat-header">
-      {props.sidebarCollapsed && <button type="button" className="header-toggle" aria-label={tr('展开侧栏', 'Show sidebar')} onClick={props.onToggleSidebar}><Icon name="sidebar" size={16} /></button>}
       <span className="page-topbar-title">{editor ? (editor.recipe.name || tr('创建配方', 'Create recipe')) : using?.recipe.name || origins.find(item => item.id === origin)?.label}</span>
     </header>
     <PageColumns resize={props.sidebarResize} navigation={

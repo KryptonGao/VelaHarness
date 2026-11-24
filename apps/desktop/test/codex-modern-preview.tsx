@@ -83,7 +83,7 @@ function Fixture() {
           { id: "process", role: "assistant", model, text: "", thinking: thought, tools: list },
           { id: "reply", role: "assistant", model, text: "Settings inspected.", thinking: "", tools: [] },
         ]} state={state} project={project} models={models} toolDisplay={preferences.toolDisplay} sendError={null} platform="darwin"
-          leftCollapsed rightCollapsed onToggleLeft={noop} onToggleRight={noop} onSend={ready} onAbort={ready} onMode={noop}
+          rightCollapsed onToggleRight={noop} onSend={ready} onAbort={ready} onMode={noop}
           getQuestion={() => null} onReplyQuestion={noop} onBranch={noop} onRemoveInstruction={ready}
           showNewTab={false} onNewTab={noop} onOpenChanges={noop} />
       </div>

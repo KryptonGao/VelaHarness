@@ -32,7 +32,8 @@ if (!process.versions.electron) {
   const temporary = process.env.VELA_NAV_HISTORY_TEMP;
   app.setPath("userData", join(temporary, "profile"));
   void app.whenReady().then(async () => {
-    const win = new BrowserWindow({ show: false, width: 1440, height: 900,
+    const nativeControls = process.platform === "darwin" ? { titleBarStyle: "hiddenInset", trafficLightPosition: { x: 16, y: 18 }, titleBarOverlay: true } : {};
+    const win = new BrowserWindow({ ...nativeControls, show: false, width: 1280, height: 800,
       webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false, backgroundThrottling: false } });
     const errors = [];
     win.webContents.on("console-message", event => { if (event.level === "error" || event.level >= 3) errors.push(event.message); });
@@ -50,11 +51,13 @@ if (!process.versions.electron) {
     };
     const back = "document.querySelector('.nav-history-buttons button:first-child')";
     const forward = "document.querySelector('.nav-history-buttons button:last-child')";
+    const toggle = "document.querySelector('.window-navigation > button')";
+    const toggleBounds = () => evaluate(`${toggle}.getBoundingClientRect().toJSON()`);
     const title = "document.querySelector('.main-stage-pane > .main-chat-view .chat-active-title')?.textContent";
     // Electron 按文档顺序合成 -webkit-app-region（不看遮挡/层级），elementFromPoint 看不出点击会不会被拖动区吞掉，这里自己合成。
     const clickable = () => evaluate(`(() => {
       const regions = [...document.querySelectorAll('*')].map(el => [el, getComputedStyle(el).getPropertyValue('-webkit-app-region')]).filter(([, value]) => value === 'drag' || value === 'no-drag');
-      return [...document.querySelectorAll('.nav-history-buttons button')].map(button => {
+      return [...document.querySelectorAll('.window-navigation button')].map(button => {
         const r = button.getBoundingClientRect(); const x = r.left + r.width / 2; const y = r.top + r.height / 2;
         let state = 'none';
         for (const [el, value] of regions) { const b = el.getBoundingClientRect(); if (x >= b.left && x <= b.right && y >= b.top && y <= b.bottom) state = value; }
@@ -80,7 +83,6 @@ if (!process.versions.electron) {
       await until(`${title} === '另一条主聊天'`);
       await until(`!${back}.disabled && ${forward}.disabled`);
 
-      // 设置页也是一个落脚点：⌘, 打开，⌘[ 回到对话，⌘] 再回到设置。
       // 快捷键：⌘[ 后退、⌘] 前进。
       await key({ code: "BracketLeft", key: "[", metaKey: true });
       await until(`${title} === '主聊天'`);
@@ -90,33 +92,49 @@ if (!process.versions.electron) {
       await key({ code: "BracketLeft", key: "[", metaKey: true });
       await until(`${title} === '主聊天'`);
 
-      // 侧栏收起时按钮在红绿灯右侧，且不压住折叠按钮和标题。
-      const layout = await evaluate(`(() => {
-        const box = el => { const r = el.getBoundingClientRect(); return { left: r.left, right: r.right, top: r.top, bottom: r.bottom }; };
-        const buttons = box(document.querySelector('.nav-history-buttons'));
-        const toggle = box(document.querySelector('.main-stage-pane > .main-chat-view .view-icon-btn'));
-        const heading = box(document.querySelector('.main-stage-pane > .main-chat-view .chat-active-title'));
-        return { buttons, toggle, heading };
-      })()`);
-      assert.ok(layout.buttons.left >= 90, `buttons clear the traffic lights: ${layout.buttons.left}`);
-      assert.ok(layout.buttons.right <= layout.toggle.left, "buttons end before the sidebar toggle");
-      assert.ok(layout.buttons.right <= layout.heading.left, "buttons end before the title");
-      assert.ok(Math.abs((layout.buttons.top + layout.buttons.bottom) / 2 - 26) <= 1, `buttons share the header midline: ${layout.buttons.top} ${layout.buttons.bottom} toggle ${layout.toggle.top} ${layout.toggle.bottom}`);
-      assert.deepEqual(await clickable(), ["no-drag", "no-drag"], "buttons are not swallowed by a drag region (collapsed)");
+      await until("document.querySelector('.app-screen-main').getAnimations().length === 0");
+      const anchor = await toggleBounds();
+      const history = await evaluate("document.querySelector('.nav-history-buttons').getBoundingClientRect().toJSON()");
+      assert.ok(anchor.left >= 90 && anchor.right <= history.left, "Sidebar toggle sits between the traffic lights and history");
+      assert.ok(Math.abs(anchor.y + anchor.height / 2 - 26) <= 1, "Toggle aligns with the titlebar");
+      assert.ok(history.right <= await evaluate("document.querySelector('.chat-active-title').getBoundingClientRect().left"));
+      assert.deepEqual(await clickable(), ["no-drag", "no-drag", "no-drag"]);
       await capture("nav-history-collapsed");
 
-      // 侧栏展开后按钮仍在原位，折叠按钮在侧栏另一端。
       await key({ code: "KeyB", key: "b", metaKey: true });
-      await until("!document.querySelector('.vela-window').classList.contains('left-collapsed')");
-      await evaluate("new Promise(done => setTimeout(done, 400))");
-      const expanded = await evaluate(`(() => {
-        const buttons = document.querySelector('.nav-history-buttons').getBoundingClientRect();
-        const toggle = document.querySelector('.sidebar-left .titlebar-drag-row .icon-btn-ghost').getBoundingClientRect();
-        return { buttonsRight: buttons.right, toggleLeft: toggle.left };
-      })()`);
-      assert.ok(expanded.buttonsRight <= expanded.toggleLeft, "buttons do not cover the sidebar toggle");
-      assert.deepEqual(await clickable(), ["no-drag", "no-drag"], "buttons are not swallowed by a drag region (expanded)");
+      await until(`${toggle}.ariaExpanded === 'true' && !document.querySelector('.sidebar-left').inert`);
+      assert.deepEqual(await toggleBounds(), anchor);
+      assert.deepEqual(await clickable(), ["no-drag", "no-drag", "no-drag"]);
       await capture("nav-history-expanded");
+
+      await key({ code: "Comma", key: ",", metaKey: true });
+      const settingsNav = "document.querySelector('.settings-nav')";
+      await until(`${settingsNav}?.checkVisibility()`);
+      await evaluate(`${toggle}.click()`);
+      await until(`${toggle}.ariaExpanded === 'false' && !${settingsNav}.checkVisibility()`);
+      assert.deepEqual(await toggleBounds(), anchor);
+      assert.ok(history.right <= await evaluate("document.querySelector('.settings-header h2').getBoundingClientRect().left"));
+      await capture("nav-history-settings-collapsed");
+      await key({ code: "KeyF", key: "f", metaKey: true });
+      await until("document.activeElement.matches('.settings-search-input')");
+      assert.equal(await evaluate(`${toggle}.ariaExpanded`), "true");
+      await evaluate(`${back}.click()`);
+      await until(`!${settingsNav} && ${title} === '主聊天'`);
+      assert.deepEqual(await toggleBounds(), anchor);
+
+      await key({ code: "KeyT", key: "t", metaKey: true });
+      await until("document.querySelector('.workbench-fullscreen-button')");
+      await evaluate("document.querySelector('.workbench-fullscreen-button').click()");
+      await until("document.querySelector('.workbench-pinned-chat')");
+      await evaluate(`${toggle}.click()`);
+      await until(`${toggle}.ariaExpanded === 'false' && document.querySelector('.vela-window').getAnimations().length === 0`);
+      assert.deepEqual(await toggleBounds(), anchor);
+      assert.ok(history.right <= await evaluate("document.querySelector('.workbench-pinned-chat').getBoundingClientRect().left"));
+      if (process.platform === "darwin") {
+        win.webContents.setZoomFactor(0.8);
+        await until(`navigator.windowControlsOverlay.getTitlebarAreaRect().left > ${anchor.left}
+          && ${toggle}.getBoundingClientRect().left === navigator.windowControlsOverlay.getTitlebarAreaRect().left`);
+      }
       assert.deepEqual(errors, []);
       app.exit(0);
     } catch (error) {

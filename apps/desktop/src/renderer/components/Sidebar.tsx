@@ -46,7 +46,6 @@ interface SidebarProps {
   activeConversationId: string | null;
   settingsOpen: boolean;
   settingsLabel: string;
-  onToggle: () => void;
   onOpenSettings: () => void;
   onNewChat: (cwd?: string) => void;
   /** 已登记的工作区,用于显示自定义名称。 */
@@ -86,7 +85,6 @@ export function Sidebar({
   activeConversationId,
   settingsOpen,
   settingsLabel,
-  onToggle,
   onOpenSettings,
   onNewChat,
   workspaces,
@@ -268,17 +266,7 @@ export function Sidebar({
     <aside ref={sidebarRef} className={`sidebar-left${collapsed ? " collapsed" : ""}${railMode ? " is-rail" : ""}`} inert={collapsed ? true : undefined}>
       <SidebarResizeHandle target="left" resize={resize} />
       <div className="sidebar-left-header">
-        <div className="titlebar-drag-row">
-          <button
-            className="icon-btn-ghost"
-            type="button"
-            title={`${tr("收起侧边栏", "Collapse sidebar")} (${mod}B)`}
-            aria-label={tr("收起侧边栏", "Collapse sidebar")}
-            onClick={onToggle}
-          >
-            <Icon name="sidebar" size={14} />
-          </button>
-        </div>
+        <div className="titlebar-drag-row" />
         <div className="workspace-title-row">
           <div className="workspace-dropdown-trigger">
             <VelaLogoLockup />

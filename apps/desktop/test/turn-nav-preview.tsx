@@ -149,10 +149,8 @@ function Fixture() {
         project={project}
         sendError={null}
         platform="darwin"
-        leftCollapsed
         rightCollapsed
         models={models}
-        onToggleLeft={() => {}}
         onToggleRight={() => {}}
         onSend={async () => {}}
         onRemoveInstruction={async () => {}}

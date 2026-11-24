@@ -45,7 +45,7 @@ export function WorkbenchChatView({ conversationId, preferences, project, onRena
               <SessionChatView embedded
                 messageStore={session.messageStore} state={session.state} sendError={session.sendError}
                 platform={window.vela?.platform ?? "darwin"} project={scopedProject}
-                leftCollapsed={false} onToggleLeft={() => {}} rightCollapsed onToggleRight={() => {}}
+                rightCollapsed onToggleRight={() => {}}
                 onRenameConversation={onRenameConversation}
                 toolDisplay={preferences.toolDisplay} toolFold={preferences.toolFold} runView={preferences.runView}
                 toolProcessDetails={preferences.toolProcessDetails}

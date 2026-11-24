@@ -96,8 +96,8 @@ function Fixture() {
     <div className="vela-window platform-darwin left-collapsed right-collapsed layout-floating" style={{ height: "calc(100vh - 42px)" }}>
       <div className="main-stage"><div className="main-stage-pane">
         <SessionChatView key={mount} messageStore={messageStore} summaryEnabled={false} summaryStyle="inline" locale="zh-CN"
-          state={state} project={project} sendError={null} platform="darwin" leftCollapsed rightCollapsed floatingInfo environmentCollapsed
-          toolDisplay={display} toolFold={fold} models={models} onToggleLeft={noop} onToggleRight={noop}
+          state={state} project={project} sendError={null} platform="darwin" rightCollapsed floatingInfo environmentCollapsed
+          toolDisplay={display} toolFold={fold} models={models} onToggleRight={noop}
           toolProcessDetails={details}
           onSend={async () => {}} onAbort={async () => {}} onMode={noop} getQuestion={() => null} onReplyQuestion={noop} onBranch={noop}
           showNewTab={false} onNewTab={noop} onOpenChanges={noop} />
