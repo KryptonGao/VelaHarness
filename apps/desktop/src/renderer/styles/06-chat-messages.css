@@ -1394,7 +1394,7 @@ button.compact-diff-card-name:focus-visible {
   border-top: 3px solid var(--border-subtle);
   background: var(--bg-card-surface);
 }
-.tool-compact-out { margin: 0 8px 4px; }
+.tool-compact-out { margin: 6px 8px 4px; }
 
 
 /* 设置里的「思考标题样式」只作用于模型 CoT 总结的每行标题（单段分组的标题、连贯模式组内每段思考的标题）；
