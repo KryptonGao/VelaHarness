@@ -48,11 +48,17 @@
   pointer-events: none;
 }
 
-/* Back the lighter glass rather than recoloring it. An already opaque surface
- * (e.g. an unfocused window) is unaffected by anything painted behind it. */
-.vela-window.nav-rail-layout[data-traffic-light-material="list"] {
-  background: linear-gradient(var(--glass-fill), var(--glass-fill)),
-    linear-gradient(var(--list-tint), var(--list-tint)) left / calc(var(--nav-rail-width) + var(--glass-edge-inset)) 100% no-repeat;
+/* Extend the list tint across the rail and its gutter, over the same window glass. */
+[data-window-focused="false"] .borderless-interface:not([data-traffic-light-material="paper"]),
+.borderless-interface[data-traffic-light-material="list"] {
+  &:is(:not(.left-collapsed), .rail-away) .nav-rail::before {
+    content: "";
+    position: absolute;
+    inset: 0 calc(-1 * var(--glass-edge-inset)) 0 0;
+    z-index: -1;
+    background: var(--list-tint);
+    pointer-events: none;
+  }
 }
 .vela-window.borderless-interface[data-traffic-light-material="paper"] { background: var(--bg-chat); }
 /* Paint the still-visible home list with the collapsed rail's material as soon as
