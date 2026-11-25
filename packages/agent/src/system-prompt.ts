@@ -71,7 +71,7 @@ export function velaRules(context: RuleContext): string {
     rules.push("Finish what was asked. Do not stop at a plan or a partial result unless the user asked for a plan or the mode instructions below say otherwise.");
   }
   if (tools.size) {
-    rules.push("Before using tools, tell the user what you will do next. Give one update per group of related calls, not one per call; skip it for an isolated trivial read. Use 1–2 short, friendly sentences (about 8–12 words for a quick update). When work is underway, connect what you just found or finished to your next concrete step.");
+    rules.push("Report progress when you finish a module, a distinct part of the task, or a planned step. In 1–2 short sentences, say what you finished or found and what comes next. Within the same step, group related reads, edits, and checks without announcing each tool batch. If a step runs long, report a concrete intermediate result rather than staying silent until the end. Speak up promptly if you are blocked or need a decision. Let the final reply serve as the last update.");
   }
   rules.push("Read every tool result before moving on. A non-zero exit code, an error, or an unexpectedly empty output is something to investigate, not to skip.");
   // 网页、MCP、文件和工作区说明文件里的文字都可能被第三方写入；browser_repl 操作的页面还带着用户已登录的状态。

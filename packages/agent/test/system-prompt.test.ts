@@ -84,13 +84,15 @@ describe("velaRules", () => {
     assert.equal(velaRules({ kind: "agent", tools: [...work, "grep"], imageInput: true, visualCheck: false }).includes("Use bash for file operations"), false);
   });
 
-  it("asks for grouped progress updates only when tools are available", () => {
+  it("asks for milestone updates rather than tool-batch announcements only when tools are available", () => {
     const base = { kind: "agent" as const, imageInput: true, visualCheck: false };
     const rules = velaRules({ ...base, tools: ["read"] });
-    assert.match(rules, /Before using tools, tell the user what you will do next/);
-    assert.match(rules, /one update per group of related calls/);
-    assert.match(rules, /skip it for an isolated trivial read/);
-    assert.doesNotMatch(velaRules({ ...base, tools: [] }), /Before using tools/);
+    assert.match(rules, /when you finish a module, a distinct part of the task, or a planned step/);
+    assert.match(rules, /without announcing each tool batch/);
+    assert.match(rules, /report a concrete intermediate result/);
+    assert.match(rules, /blocked or need a decision/);
+    assert.match(rules, /final reply serve as the last update/);
+    assert.doesNotMatch(velaRules({ ...base, tools: [] }), /Report progress/);
   });
 
   it("names the writing language, covers progress notes, and is a pure function of the language", () => {
@@ -249,6 +251,8 @@ describe("system prompt in real sessions", () => {
     for (const [name, prompt] of Object.entries(prompts)) {
       assert.ok(prompt.startsWith(velaPreamble), name);
       assert.ok(prompt.includes("Working rules"), name);
+      assert.match(prompt, /Report progress when you finish a module/, name);
+      assert.doesNotMatch(prompt, /Before using tools, tell the user/, name);
       assert.equal(prompt.includes(render), false, name);
       assert.equal(prompt.includes(intelligentUiScopeNote), false, name);
     }
