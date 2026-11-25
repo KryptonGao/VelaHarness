@@ -696,7 +696,7 @@ export function ChatView({
   // 隐藏后仍测量卡片未变换的布局位置,避免隐藏释放空间后又立即显示。
   useLayoutEffect(() => {
     const pane = scrollerRef.current?.parentElement;
-    if (!floatingInfo || (environmentCollapsed && !infoCards) || !pane) return;
+    if (!floatingInfo || !pane) return;
 
     // 消息面会在工作区/会话切换时按 key 重建,每次测量都重新取一遍实时元素。
     const measure = () => {
@@ -720,7 +720,7 @@ export function ChatView({
         laneWidth,
         minGap: Number.parseFloat(getComputedStyle(scroller).paddingLeft),
         // offsetLeft 不受进出场 transform 影响;阴影内边距不计入卡片实体。
-        cardLeft: isStack ? paneLeft + card.offsetLeft + paddingLeft : card.getBoundingClientRect().left,
+        cardLeft: paneLeft + card.offsetLeft + (isStack ? paddingLeft : 0),
         laneLimitLeft: paneLeft,
       };
       return isStack
@@ -734,8 +734,11 @@ export function ChatView({
       const scroller = scrollerRef.current;
       if (scroller) pane.style.setProperty("--chat-scrollbar-width", `${scroller.offsetWidth - scroller.clientWidth}px`);
       setInfoCardsConcealed(plan.concealed);
-      pane.style.setProperty("--chat-lane-shift", `${environmentCollapsed ? 0 : plan.shift}px`);
-      pane.style.setProperty("--chat-lane-shrink", `${environmentCollapsed ? 0 : plan.shrink}px`);
+      // 只写完全展开时的几何。自动收起时沿用上一次目标，CSS 会随抽屉进度平滑归零。
+      if (!plan.concealed) {
+        pane.style.setProperty("--info-lane-shift", `${plan.shift}px`);
+        pane.style.setProperty("--info-lane-shrink", `${plan.shrink}px`);
+      }
     };
 
     // 栈可能在数据到达后才挂载,或在所有卡片都不可用时卸载。
@@ -747,8 +750,8 @@ export function ChatView({
       if (card) observer.observe(card);
       else {
         setInfoCardsConcealed(true);
-        pane.style.setProperty("--chat-lane-shift", "0px");
-        pane.style.setProperty("--chat-lane-shrink", "0px");
+        pane.style.removeProperty("--info-lane-shift");
+        pane.style.removeProperty("--info-lane-shrink");
       }
       apply();
     };
@@ -759,10 +762,10 @@ export function ChatView({
       children.disconnect();
       observer.disconnect();
       pane.style.removeProperty("--chat-scrollbar-width");
-      pane.style.removeProperty("--chat-lane-shift");
-      pane.style.removeProperty("--chat-lane-shrink");
+      pane.style.removeProperty("--info-lane-shift");
+      pane.style.removeProperty("--info-lane-shrink");
     };
-  }, [floatingInfo, infoCards, environmentCollapsed, messageSurfaceKey]);
+  }, [floatingInfo, infoCards, messageSurfaceKey]);
 
   const enterTrack = useRef<EnterTrack | null>(null);
   enterTrack.current = trackEnteredMessages(
@@ -1071,8 +1074,9 @@ export function ChatView({
           backgroundShells={backgroundShells} onOpenBackgroundTasks={onOpenBackgroundTasks} changesActive={changesActive} onOpenChanges={onOpenChanges} onOpenPlan={onOpenPlan}
           onResumeGoal={onResumeGoal} onOpenFile={openOutputFile} />
       ) : null}
-      {floatingInfo && !infoCards && !environmentCollapsed && !emptyConversation ? (
-        <div className="floating-environment">
+      {floatingInfo && !infoCards && !emptyConversation ? (
+        <div className="info-drawer floating-environment" data-concealed={environmentCollapsed || undefined}
+          inert={environmentCollapsed || undefined} aria-hidden={environmentCollapsed || undefined}>
           <RepoCard project={project} onOpenChanges={onOpenChanges} activeChanges={changesActive}
             plan={planReferenceModel(session?.proposedPlan ?? null, planDraft, session?.executionPlan ?? null)}
             onOpenPlan={onOpenPlan}

@@ -310,7 +310,9 @@ export function InfoCardStack(props: InfoCardStackProps) {
     let frame = 0;
     const measure = () => {
       const composer = pane.querySelector<HTMLElement>(".floating-input-card");
-      const overlaps = Boolean(composer) && composer!.getBoundingClientRect().right > pane.getBoundingClientRect().left + root.offsetLeft;
+      // 与对话列避让使用同一条卡片实体边缘，不把阴影内边距或进出场位移算作重叠。
+      const cardLeft = pane.getBoundingClientRect().left + root.offsetLeft + parseFloat(getComputedStyle(root).paddingLeft);
+      const overlaps = composer && composer.getBoundingClientRect().right > cardLeft;
       root.style.setProperty("--info-stack-clearance", overlaps ? "var(--composer-clearance)" : "0px");
     };
     const schedule = () => { cancelAnimationFrame(frame); frame = requestAnimationFrame(measure); };
@@ -320,13 +322,18 @@ export function InfoCardStack(props: InfoCardStackProps) {
     observer.observe(pane);
     const composer = pane.querySelector<HTMLElement>(".floating-input-card");
     if (composer) observer.observe(composer);
-    return () => { cancelAnimationFrame(frame); observer.disconnect(); };
+    // 仅有水平位移时，输入框尺寸不变，不会触发 ResizeObserver。
+    const onSlideEnd = (event: TransitionEvent) => {
+      if (event.target === pane && event.propertyName === "--info-drawer-open") schedule();
+    };
+    pane.addEventListener("transitionend", onSlideEnd);
+    return () => { cancelAnimationFrame(frame); observer.disconnect(); pane.removeEventListener("transitionend", onSlideEnd); };
   }, [present]);
 
   if (!present) return null;
 
   return (
-    <div className={`info-card-stack${shown.length === 0 ? " is-empty" : ""}`} ref={rootRef}
+    <div className={`info-drawer info-card-stack${shown.length === 0 ? " is-empty" : ""}`} ref={rootRef}
       data-concealed={props.concealed ? "true" : undefined} inert={props.concealed ? true : undefined}
       aria-hidden={props.concealed ? true : undefined} role="region" aria-label={tr("信息卡片", "Info cards")}>
       <div className="info-card-list" ref={listRef}

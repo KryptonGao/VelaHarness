@@ -237,12 +237,13 @@
 
 /* Agent trace: compact observability surfaces, independent of the workspace inspector. */
 /* 悬浮环境卡片占住对话区右上角时,给对话列一条共享车道:--chat-lane-shift 让列整体左移,
-   --chat-lane-shrink 收窄列宽;两个值由 ChatView 按实测几何写入,默认都不让位。 */
+   --chat-lane-shrink 收窄列宽。让位幅度由实测几何和当前抽屉进度共同决定。 */
 .chat-conversation-pane {
   flex: 1; min-height: 0; display: flex; flex-direction: column; position: relative; z-index: 1;
   --chat-lane-max: 760px;
-  --chat-lane-shift: 0px;
-  --chat-lane-shrink: 0px;
+  --info-drawer-open: 0;
+  --chat-lane-shift: calc(var(--info-lane-shift, 0px) * var(--info-drawer-open));
+  --chat-lane-shrink: calc(var(--info-lane-shrink, 0px) * var(--info-drawer-open));
 }
 .chat-conversation-pane[hidden] { display: none; }
 /* 对话区自成层叠上下文(z-index 1),低于选项卡(2)和顶栏(3);首页或小窗里向上展开的弹层
@@ -561,6 +562,34 @@ html[data-thinking-fade="false"][data-thinking-pop="false"] .fade-thinking .md-f
 @media (prefers-reduced-motion: reduce) {
   :is(.composer-chip, .mode-pill, .sandbox-pill, .composer-skill):active { transform: none; }
   .explorer-branch-inner { transition-delay: 0s; }
+}
+
+/* 单卡和卡片栈沿同一路径进出；退场时立即 inert，但保留画面直到移出。 */
+@property --info-drawer-open {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
+}
+.chat-conversation-pane:has(> .info-drawer) {
+  --info-drawer-duration: 320ms;
+  transition: --info-drawer-open var(--info-drawer-duration) var(--motion-ease-enter);
+}
+.chat-conversation-pane:has(> .info-drawer:not([data-concealed])) { --info-drawer-open: 1; }
+@starting-style {
+  .chat-conversation-pane:has(> .info-drawer:not([data-concealed])) { --info-drawer-open: 0; }
+}
+.info-drawer {
+  transform: translateX(calc((1 - var(--info-drawer-open)) * (100% + 24px)));
+  opacity: var(--info-drawer-open);
+}
+.info-drawer[data-concealed] {
+  visibility: hidden;
+  transition: visibility 0s var(--info-drawer-duration);
+}
+.info-drawer[data-concealed] [popover] { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .chat-conversation-pane:has(> .info-drawer), .info-drawer[data-concealed] { transition: none; }
+  .info-drawer { transform: none; }
 }
 
 /* 按需悬浮信息:卡片属于对话区域，固定右栏完全卸载。 */

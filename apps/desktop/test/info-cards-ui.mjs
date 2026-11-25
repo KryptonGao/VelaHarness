@@ -73,7 +73,7 @@ if (!process.versions.electron) {
     throw new Error(`等待超时：${label}`);
   };
   const metricsCode = `(() => {
-    const root = document.querySelector('.info-card-stack');
+    const root = document.querySelector('.info-drawer');
     const pane = root?.parentElement;
     const surface = pane?.querySelector('.chat-message-surface');
     const scroller = pane?.querySelector('.chat-scroll-area');
@@ -84,12 +84,15 @@ if (!process.versions.electron) {
     const region = root.offsetLeft + parseFloat(style.paddingLeft);
     const natural = Math.min(surface.getBoundingClientRect().width, parseFloat(paneStyle.getPropertyValue('--chat-lane-max')) || 760);
     const x = style.transform === 'none' ? 0 : new DOMMatrixReadOnly(style.transform).m41;
+    const message = pane.querySelector('.user-msg-container');
+    const messageWidth = message.getBoundingClientRect().width;
+    const composer = pane.querySelector('.floating-input-card').getBoundingClientRect();
     return { paneWidth: pane.getBoundingClientRect().width, rootWidth: root.offsetWidth, cardWidth, gap, region, natural,
       textWidth: Math.min(natural, region - gap * 2), threshold: cardWidth * 1.25,
       concealed: root.dataset.concealed === 'true', inert: root.inert, ariaHidden: root.getAttribute('aria-hidden'),
-      shift: parseFloat(paneStyle.getPropertyValue('--chat-lane-shift')) || 0,
-      shrink: parseFloat(paneStyle.getPropertyValue('--chat-lane-shrink')) || 0,
-      messageWidth: pane.querySelector('.user-msg-container')?.getBoundingClientRect().width,
+      shift: parseFloat(getComputedStyle(message).marginRight) / 2, shrink: natural - messageWidth,
+      messageWidth, replyRight: pane.querySelector('.assistant-block').getBoundingClientRect().right,
+      composerCenter: composer.left + composer.width / 2,
       x, opacity: parseFloat(style.opacity), visibility: style.visibility, transition: style.transitionDuration,
       sameRoot: window.__infoRoot === root };
   })()`;
@@ -97,9 +100,9 @@ if (!process.versions.electron) {
   const settled = async concealed => {
     await until(`(() => { const m = ${metricsCode}; return m && m.concealed === ${concealed} && m.opacity === ${concealed ? 0 : 1} && m.visibility === '${concealed ? "hidden" : "visible"}' && ${concealed ? "m.x > m.rootWidth" : "Math.abs(m.x) < 0.01"}; })()`, `卡片${concealed ? "隐藏" : "显示"}动画完成`);
   };
-  const resize = async width => {
-    win.setContentSize(Math.round(width), 1000);
-    await until(`window.innerWidth === ${Math.round(width)}`, "窗口尺寸更新");
+  const resize = async (width, height = 1000) => {
+    win.setContentSize(Math.round(width), height);
+    await until(`window.innerWidth === ${Math.round(width)} && window.innerHeight === ${height}`, "窗口尺寸更新");
     await evaluate("new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve(true))))");
   };
   const setPaneWidth = async width => {
@@ -126,6 +129,23 @@ if (!process.versions.electron) {
     assert.ok(concealed ? moving.at(-1).x > moving[0].x : moving.at(-1).x < moving[0].x, `${label}方向错误`);
     assert.ok(frames.every(frame => frame.sameRoot), `${label}不应卸载卡片栈`);
   };
+  const checkToggle = async (action, concealed, label) => {
+    const before = await metrics();
+    const frames = await capture(action);
+    assertSlide(frames, concealed, label);
+    await settled(concealed);
+    const after = await metrics();
+    const moving = frames.filter(frame => frame.opacity > 0.05 && frame.opacity < 0.95);
+    assert.ok(moving.length >= 2, `${label}应有可测的联动中间帧`);
+    for (const key of ['messageWidth', 'replyRight', 'composerCenter']) {
+      assert.ok(Math.abs(after[key] - before[key]) > 2, `${label}: ${key} 应随卡片移动`);
+      for (const frame of moving) {
+        const progress = concealed ? 1 - frame.opacity : frame.opacity;
+        const expected = before[key] + progress * (after[key] - before[key]);
+        assert.ok(Math.abs(frame[key] - expected) < 1, `${label}: ${key} 未同步 (${frame[key]} vs ${expected})`);
+      }
+    }
+  };
   try {
     await win.loadURL(`${process.env.VELA_INFO_CARDS_URL}?reset=1`);
     await until("!!document.querySelector('.info-card-stack .info-card')", "全 App 内存 IPC fixture 挂载");
@@ -143,13 +163,30 @@ if (!process.versions.electron) {
     const wide = Math.round(boundary + 130);
     // 真实窗口缩放使用远离边界的尺寸,避免系统窗口约束/布局断点带来的误差。
     const narrow = Math.round(boundary - 80);
-    await resize(wide);
+    await resize(wide, 680);
     await settled(false);
     const squeezed = await metrics();
     assert.ok(squeezed.textWidth >= squeezed.threshold);
     assert.ok((squeezed.natural - squeezed.region) / squeezed.natural > 0.1, "新规则应允许超过旧 10% 收窄预算仍显示");
     assert.ok(squeezed.shrink > squeezed.natural * 0.1);
     assert.ok(Math.abs(squeezed.messageWidth - squeezed.textWidth) < 1, "可见文字列应正确避让卡片");
+
+    const stackBounds = `(() => {
+      const root = window.__infoRoot, pane = root.parentElement;
+      const dock = pane.querySelector('.chat-dock-wrapper');
+      const composer = dock.querySelector('.floating-input-card').getBoundingClientRect();
+      const stack = root.getBoundingClientRect(), card = root.querySelector('.info-card').getBoundingClientRect();
+      return { inShadow: composer.right > stack.left, overlaps: composer.right > card.left,
+        scrollable: root.scrollHeight > root.clientHeight, bottom: stack.bottom,
+        paneBottom: pane.getBoundingClientRect().bottom, dockTop: dock.getBoundingClientRect().top };
+    })()`;
+    const beside = await evaluate(stackBounds);
+    assert.ok(beside.scrollable && beside.inShadow && !beside.overlaps, `输入框只进入阴影留白：${JSON.stringify(beside)}`);
+    assert.ok(beside.paneBottom - beside.bottom <= 16, `并排时卡片应使用面板全高：${JSON.stringify(beside)}`);
+    await evaluate(`window.__infoRoot.parentElement.querySelector('.chat-dock-wrapper').style.setProperty('--composer-overhang', '48px'); true`);
+    await until(`(() => { const b = ${stackBounds}; return b.overlaps && b.bottom <= b.dockTop; })()`, "输入框实际压到卡片时才预留底部空间");
+    await evaluate(`window.__infoRoot.parentElement.querySelector('.chat-dock-wrapper').style.removeProperty('--composer-overhang'); true`);
+    await until(`(() => { const b = ${stackBounds}; return !b.overlaps && b.bottom === ${beside.bottom}; })()`, "输入框不再重叠时恢复卡片高度");
 
     await resize(narrow);
     await settled(true);
@@ -215,11 +252,9 @@ if (!process.versions.electron) {
       const button = document.querySelector('.main-chat-header button[aria-label*="信息卡片"]');
       if (!button) throw new Error('缺少信息卡片切换按钮'); button.click(); return true;
     })()`);
-    assertSlide(await capture(toggle), true, "手动向右退出");
-    await settled(true);
+    await checkToggle(toggle, true, "手动向右退出");
     assert.equal((await metrics()).inert, true);
-    assertSlide(await capture(toggle), false, "手动从右进入");
-    await settled(false);
+    await checkToggle(toggle, false, "手动从右进入");
     assert.equal(await evaluate("window.__stateCard === window.__infoRoot.querySelector('.info-card') && window.__stateCard.hasAttribute('data-collapsed')"), true);
     assert.equal(await evaluate("localStorage.getItem('vela.infoCards') === window.__cardState"), true);
     console.log("PASS 手动按钮折叠/展开双向动画并保留卡片内部状态");
@@ -254,6 +289,8 @@ if (!process.versions.electron) {
     await until(`!!document.querySelector('.nav-rail-layout .floating-environment')
       && !!document.querySelector('.assistant-block .md-table-scroll table')
       && document.querySelector('.chat-conversation-pane').getBoundingClientRect().left === 322`, "截图中的导航、侧栏和表格");
+    await evaluate("window.__infoRoot = document.querySelector('.floating-environment'); true");
+    await settled(false);
     const geometry = await evaluate(`(() => {
       const pane = document.querySelector('.chat-conversation-pane');
       const card = pane.querySelector('.floating-environment').getBoundingClientRect();
@@ -266,13 +303,15 @@ if (!process.versions.electron) {
     assert.ok(geometry.gap > 0 && geometry.gaps.every(gap => gap >= geometry.gap - 1),
       `Floating information must clear messages and the table: ${JSON.stringify(geometry)}`);
     console.log(`PASS 1280 × 800 floating information gaps: ${geometry.gaps.join(", ")} px`);
+    const toggleEnvironment = () => evaluate(`document.querySelector('.main-chat-header button[aria-label*="环境卡片"]').click(); true`);
+    await checkToggle(toggleEnvironment, true, "单张环境卡向右退出");
+    assert.equal((await metrics()).inert, true);
+    await checkToggle(toggleEnvironment, false, "单张环境卡从右进入");
+    console.log("PASS 单卡与卡片栈进退场时消息、回复和输入框逐帧同步");
     await resize(narrow);
     await until(`(() => {
-      const pane = document.querySelector('.chat-conversation-pane');
-      const style = getComputedStyle(pane);
-      return !document.querySelector('.info-card-stack') &&
-        (parseFloat(style.getPropertyValue('--chat-lane-shift')) || 0) === 0 &&
-        (parseFloat(style.getPropertyValue('--chat-lane-shrink')) || 0) === 0;
+      const m = ${metricsCode};
+      return !document.querySelector('.info-card-stack') && m.shift === 0 && m.shrink === 0;
     })()`, "单张环境卡达到收窄上限");
     const legacy = await evaluate(`(() => {
       const card = document.querySelector('.floating-environment'), pane = card.parentElement;
