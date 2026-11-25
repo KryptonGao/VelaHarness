@@ -1,4 +1,4 @@
-import { useId, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
+import { useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
 import {
   chartDomain,
   chartTable,
@@ -35,8 +35,37 @@ function measure(value: number | null, props: Props): string {
   return `${str(props.prefix)}${formatUiNumber(value, props.digits as number | undefined)}${props.unit ? ` ${str(props.unit)}` : ""}`;
 }
 
-function shortLabel(label: string, limit = 12): string {
-  return label.length > limit ? `${label.slice(0, limit - 1)}…` : label;
+function CategoryTick({ label, left, right, centre, y }: {
+  label: string; left: number; right: number; centre?: number; y: number;
+}) {
+  const id = useId();
+  const text = useRef<SVGTextElement>(null);
+  const [length, setLength] = useState(0);
+  useLayoutEffect(() => {
+    const node = text.current!;
+    const measure = () => setLength(node.getComputedTextLength());
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(node); // 字体或 UI 缩放变化时，SVG 用户坐标里的字宽也可能变化。
+    return () => observer.disconnect();
+  }, [label]);
+
+  const space = right - left;
+  const overflow = length > space;
+  const x = overflow ? left : centre === undefined ? right : Math.min(right - length / 2, Math.max(left + length / 2, centre));
+  return <>
+    {overflow && <defs>
+      <linearGradient id={`${id}-fade`}>
+        <stop offset={1 - Math.min(0.25, 12 / space)} stopColor="white" />
+        <stop offset="1" stopColor="white" stopOpacity="0" />
+      </linearGradient>
+      <mask id={id} maskUnits="userSpaceOnUse" x={left} y={0} width={space} height={height}>
+        <rect x={left} width={space} height={height} fill={`url(#${id}-fade)`} />
+      </mask>
+    </defs>}
+    <text ref={text} className="iui-axis-text" x={x} y={y} textAnchor={overflow ? "start" : centre === undefined ? "end" : "middle"}
+      mask={overflow ? `url(#${id})` : undefined}>{label}</text>
+  </>;
 }
 
 function seriesClass(index: number): string {
@@ -223,11 +252,16 @@ function CartesianChart({ props, kind }: { props: Props; kind: "bar" | "line" })
       : <g key={tick}><line className="iui-grid-line" x1={leftPad} x2={leftPad + plotW} y1={position} y2={position} />
         <text className="iui-axis-text" x={leftPad - 8} y={position + 4} textAnchor="end">{formatUiNumber(tick)}</text></g>;
   });
-  const categoryLabels = data.labels.map((label, index) => index % labelStep === 0
-    ? horizontal
-      ? <text key={index} className="iui-axis-text" x={leftPad - 8} y={centre(index) + 4} textAnchor="end">{shortLabel(label, 18)}</text>
-      : <text key={index} className="iui-axis-text" x={centre(index)} y={topPad + plotH + 16} textAnchor="middle">{shortLabel(label)}</text>
-    : null);
+  const categoryLabels = data.labels.map((label, index) => {
+    if (index % labelStep !== 0) return null;
+    const tick = centre(index);
+    if (horizontal) return <CategoryTick key={index} label={label} left={2} right={leftPad - 8} y={tick + 4} />;
+    // 相邻可见刻度的中线划分可用空间；首尾可使用图框边缘的留白。
+    const halfStep = band * labelStep / 2;
+    const left = index === 0 ? 0 : tick - halfStep;
+    const right = index + labelStep >= count ? width : tick + halfStep;
+    return <CategoryTick key={index} label={label} left={left + 2} right={right - 2} centre={tick} y={topPad + plotH + 16} />;
+  });
 
   const marks = visible.map(({ entry, index: seriesIndex }, visibleIndex) => {
     if (kind === "bar") {
