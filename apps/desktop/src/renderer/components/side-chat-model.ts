@@ -117,18 +117,17 @@ export function isSideChatDeleted(threadId: string): boolean {
 }
 
 const oneLine = (text: string) => text.replace(/\s+/g, " ").trim();
-const clip = (text: string, length: number) => text.length > length ? `${text.slice(0, length).trimEnd()}…` : text;
 
-/** 聊天列表里的名字：第一条用户消息（单行截断），还没有消息时叫「新聊天」。 */
+/** 聊天列表里的名字：第一条用户消息（单行），还没有消息时叫「新聊天」。 */
 export function sideChatTitle(entries: readonly SideChatStoredEntry[]): string {
   const first = entries.find((entry) => entry.role === "user" && oneLine(entry.text));
-  return first ? clip(oneLine(first.text), 40) : tr("新聊天", "New chat");
+  return first ? oneLine(first.text) : tr("新聊天", "New chat");
 }
 
 /** 列表里的预览：最后一条消息，单行。 */
 export function sideChatPreview(entries: readonly SideChatStoredEntry[]): string {
   const last = [...entries].reverse().find((entry) => oneLine(entry.text));
-  return last ? clip(oneLine(last.text), 120) : "";
+  return last ? oneLine(last.text) : "";
 }
 
 export interface SideChatSearchHit {
@@ -149,10 +148,11 @@ export function searchSideChats(threads: readonly SideChatThread[], query: strin
       const at = text.toLowerCase().indexOf(needle);
       if (at < 0) continue;
       const start = Math.max(0, at - 18);
+      const after = text.slice(at + needle.length);
       snippet = {
         before: `${start > 0 ? "…" : ""}${text.slice(start, at)}`,
         match: text.slice(at, at + needle.length),
-        after: clip(text.slice(at + needle.length), 80),
+        after: after.length > 80 ? `${after.slice(0, 80).trimEnd()}…` : after,
       };
       break;
     }

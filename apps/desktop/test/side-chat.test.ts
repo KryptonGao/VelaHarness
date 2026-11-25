@@ -61,7 +61,10 @@ describe("side chat model", () => {
     ];
     assert.equal(sideChatTitle(entries), "How does satisfies work?");
     assert.equal(sideChatPreview(entries), "It checks without widening.");
-    assert.equal(sideChatTitle([{ id: "1", role: "user", text: "x".repeat(60) }]), `${"x".repeat(40)}…`);
+    const longMessage = "x".repeat(160);
+    const longChat = [{ id: "1", role: "user" as const, text: longMessage }];
+    assert.equal(sideChatTitle(longChat), longMessage);
+    assert.equal(sideChatPreview(longChat), longMessage);
     setActiveLocale("en");
     assert.equal(sideChatTitle([]), "New chat");
     setActiveLocale("zh-CN");

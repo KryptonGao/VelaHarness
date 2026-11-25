@@ -209,6 +209,7 @@ export function SideChatView({ workspace, threadId, number, initialEntries, onBa
 
   const retryHistory = sideChatRetryHistory(entries);
   const memoryLabel = sideChatMemoryLabel(context);
+  const title = sideChatTitle(sideChatStoredEntries(entries));
 
   return (
     <div className="side-chat">
@@ -218,7 +219,7 @@ export function SideChatView({ workspace, threadId, number, initialEntries, onBa
           <Icon name="arrow-left" size={14} />
         </button>
         <div className="side-chat-heading">
-          <span className="side-chat-title" title={sideChatTitle(sideChatStoredEntries(entries))}>{sideChatTitle(sideChatStoredEntries(entries))}</span>
+          <span className="side-chat-title" title={title}>{title}</span>
           <span className="side-chat-meta">
             <span className="side-chat-chip">{tr("仅聊天 · 不使用工具", "Chat only · no tools")}</span>
             <span className="side-chat-chip" title={context?.memory.filter(item => item.path).map(item => item.path).join("\n") || undefined}>
