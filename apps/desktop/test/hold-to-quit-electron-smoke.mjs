@@ -53,20 +53,24 @@ async function run() {
   const down = (repeat = false) => input.post(0, cmd, 12, repeat);
   const up = () => input.post(1, cmd, 12, false);
   const releaseCommand = () => input.post(2, 0, 55, false);
-  const capture = name => {
-    const hud = input.snapshot(screenshots ? join(screenshots, name + '.png') : null);
-    assert.ok(hud?.roundedMaterial, 'the window material mask needs four transparent corners and a filled center');
+  const capture = async (name, title) => {
+    // Inspect the mask on the same visible HUD snapshot that identifies the hint.
+    const hud = await until(() => {
+      const snapshot = input.snapshot(screenshots ? join(screenshots, name + '.png') : null);
+      return snapshot?.title === title && snapshot;
+    }, `${name} hint: ${title}`);
+    assert.equal(hud.roundedMaterial, true, `${name}: the window material mask needs four transparent corners and a filled center`);
   };
   assert.ok(!input.snapshot());
   input.post(0, cmd | shift, 12, false); await delay(100); assert.ok(!input.snapshot());
-  down(); await until(() => input.snapshot()?.title === '退出 Vela', 'neutral hint');
-  await delay(630); capture('idle'); up(); // Keep Command held, even after the original deadline.
+  down(); await capture('idle', '退出 Vela');
+  up(); // Keep Command held, even after the original deadline.
   await delay(1650); assert.ok(!win.isDestroyed()); releaseCommand();
   console.log('PASS exact modifiers, idle hint and Q-first cancellation');
   await evaluate(`void window.vela.prompt('检查项目的测试覆盖情况。')`);
   await until(() => evaluate(`window.vela.getState().then(s => s.session.status === 'streaming')`), 'active turn');
-  down(); await until(() => input.snapshot()?.title === '退出会中断正在运行的任务', 'running task warning');
-  await delay(730); capture('running'); releaseCommand(); await delay(1650);
+  down(); await capture('running', '退出会中断正在运行的任务');
+  releaseCommand(); await delay(1650);
   assert.ok(await evaluate(`window.vela.getState().then(s => s.session.status === 'streaming')`));
   console.log('PASS active work warning and Command-first cancellation leaves task running');
   down(); await delay(100); win.hide(); await delay(1600); assert.ok(!input.snapshot());

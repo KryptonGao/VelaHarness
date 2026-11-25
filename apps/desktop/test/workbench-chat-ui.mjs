@@ -173,6 +173,8 @@ if (!process.versions.electron) {
       assert.equal(await evaluate("!!document.querySelector('.conflict-banner')"), false);
       await evaluate("chatFixture.finish('main-chat'); window.vela.prompt('next turn')");
       await until("document.querySelector('.conflict-banner-files')?.textContent.includes('b.ts')");
+      // Exercise the separate model and effort controls in the panel-isolation scenario.
+      await evaluate("localStorage.setItem('vela.combinedModelPicker', 'false')");
       await win.loadFile(join(temporary, "index.html"));
       await until("document.querySelector('.chat-active-title')?.textContent === '主聊天'");
       // The inner capsule carries the shadow on both the start page and the conversation.
@@ -615,6 +617,7 @@ if (!process.versions.electron) {
         assert.equal(await evaluate(`document.querySelector(${JSON.stringify(chatOption + ' .start-option-title')}).textContent`), label);
       }
       // The default combined picker shares the panel's choices and keeps both pages within the narrow pane.
+      await evaluate("localStorage.removeItem('vela.combinedModelPicker')");
       await win.loadFile(join(temporary, "index.html"));
       await until("document.querySelector('.chat-active-title')?.textContent === '主聊天'");
       await newTab(); await click(chatOption);
