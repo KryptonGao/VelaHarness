@@ -35,7 +35,13 @@ if (!process.versions.electron) {
         setCombinedModelPicker(false);
         const root = createRoot(document.getElementById('root'));
         const usage = {tokens: 52000, contextWindow: 200000, percent: 26, outputSpeed: 241, sessionTokens: 257000, cacheHitRate: 0.97};
-        window.mount = (locale, thinkingLevel, sandbox, width, modelLabel = 'GPT-6.1 Sol', outputSpeed = 241) => {
+        function TrayModePicker({ initialSandbox, locked }) {
+          const [mode, setMode] = React.useState('agent');
+          const [permission, setPermission] = React.useState(initialSandbox);
+          return <ModePicker mode={mode} sandboxMode={permission} sandboxLocked={locked} disabled={false}
+            onMode={setMode} onSandboxMode={setPermission} race={{ onStart: () => {}, onShow: () => {}, count: 2 }} />;
+        }
+        window.mount = (locale, thinkingLevel, sandbox, width, modelLabel = 'GPT-6.1 Sol', outputSpeed = 241, locked = false) => {
           setActiveLocale(locale);
           flushSync(() => root.render(
             <AppLocaleProvider locale={locale}>
@@ -45,7 +51,7 @@ if (!process.versions.electron) {
                   <ComposerTray>
                     <div className="composer-tray-left">
                       <div className="composer-tray-chips">
-                        <ModePicker mode="agent" sandboxMode={sandbox} disabled={false} onMode={() => {}} onSandboxMode={noop} race={{ onStart: () => {}, onShow: () => {}, count: 2 }} />
+                        <TrayModePicker key={sandbox} initialSandbox={sandbox} locked={locked} />
                       </div>
                     </div>
                     <div className="composer-tray-right">
@@ -265,8 +271,47 @@ if (!process.versions.electron) {
         await new Promise(done => setTimeout(done, 400));
         writeFileSync(join(shots, "mode-popover.png"), (await win.webContents.capturePage()).toPNG());
       }
+      const click = async selector => {
+        await evaluate(`document.querySelector(${JSON.stringify(selector)}).click()`);
+        await settle();
+      };
+      const shortcut = async key => {
+        await evaluate(`document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: ${JSON.stringify(key)}, bubbles: true }))`);
+        await settle();
+      };
+      const selectedPermission = () => evaluate("document.querySelector('.mode-goal-permissions [aria-pressed=true]')?.textContent");
+      const modeLabel = () => evaluate("document.querySelector('.mode-combined').getAttribute('aria-label')");
+      await evaluate("window.setWidth(800)");
+      await click('.mode-option[aria-keyshortcuts="5"]');
+      assert.equal(await selectedPermission(), "完全访问", "entering Goal inherits the current permission and reveals the choices");
+      const labels = ["自动", "手动", "完全访问"];
+      assert.deepEqual(await evaluate("[...document.querySelectorAll('.mode-goal-permissions button')].map(b => b.textContent)"), labels);
+      for (const [index, label] of labels.entries()) {
+        await click(`.mode-goal-permissions button:nth-child(${index + 1})`);
+        assert.equal(await modeLabel(), `Goal · ${label}`);
+        assert.equal(await evaluate("document.querySelector('.mode-combined').getAttribute('aria-expanded')"), "false");
+        await click(".mode-combined");
+        assert.equal(await selectedPermission(), label);
+      }
+      await evaluate("window.setWidth(240)");
+      await settle();
+      checkLayout(await evaluate("window.measure()"), "Goal at 240px");
+      assert.equal(await evaluate("document.querySelector('.mode-combined').innerText"), "Goal");
+      await shortcut("2");
+      assert.equal(await modeLabel(), "手动", "the top-level shortcut still selects the regular agent mode");
+
+      await evaluate("window.mount('en', 'medium', 'ask', 800, undefined, undefined, true)");
+      await click(".mode-combined");
+      await shortcut("5");
+      assert.equal(await selectedPermission(), "Manual");
+      assert.equal(await evaluate("document.querySelectorAll('.mode-goal-permissions button:disabled').length"), 3);
+      await click(".mode-goal-permissions button:last-child");
+      await shortcut("3");
+      assert.equal(await modeLabel(), "Goal · Manual", "a locked permission cannot change through clicks or shortcuts");
+      assert.equal(await evaluate("document.querySelector('.mode-combined').getAttribute('aria-expanded')"), "true");
       assert.deepEqual(failures, []);
       assert.deepEqual(errors, []);
+      console.log("PASS Goal permission selection, inherited and locked permissions, and mode shortcuts");
       console.log(`PASS: 托盘 ${widths.length} 次宽窄切换 × 6 组语言/权限/强度；40 组字号/长模型名；速度恢复和隐藏后重现，无重叠、无溢出、无过度收起`);
     } catch (error) { console.error(error); process.exitCode = 1; }
     finally { win.destroy(); app.exit(process.exitCode ?? 0); }

@@ -114,7 +114,7 @@
 .input-textarea::placeholder { color: var(--text-muted); }
 .input-textarea:disabled,
 .input-textarea[aria-disabled="true"] { opacity: 0.6; }
-/* 输入框是 contenteditable：Skill 芯片和文字在同一行流里。 */
+/* Let the editable's wrapped lines set its height; only scroll past the CSS cap. */
 .rich-input {
   overflow-x: hidden;
   overflow-y: auto;

@@ -24,7 +24,7 @@ function updateResizeRange(chat: HTMLElement, handle: HTMLElement) {
   handle.setAttribute("aria-valuenow", String(chat.offsetHeight));
 }
 
-export function useFloatingChatDrag(visible: boolean, streaming: boolean, setExpanded: (expanded: boolean) => void) {
+export function useFloatingChatDrag(visible: boolean, setExpanded: (expanded: boolean) => void) {
   const chatRef = useRef<HTMLElement>(null);
   const resizeHandle = useRef<HTMLDivElement>(null);
   const stopGesture = useRef<(() => void) | null>(null);
@@ -88,7 +88,7 @@ export function useFloatingChatDrag(visible: boolean, streaming: boolean, setExp
 
   function applyResize(bounds: ResizeBounds, delta: number) {
     const chat = chatRef.current!;
-    const height = Math.min(bounds.max, Math.max(streaming ? 32 : 0, bounds.height + delta));
+    const height = Math.min(bounds.max, Math.max(0, bounds.height + delta));
     // Moving a docked float can leave its preferred bottom beyond the workspace.
     // Anchor this gesture to the actual bottom so resizing never moves the dock.
     chat.style.setProperty("--float-bottom", `${bounds.bottom}px`);

@@ -67,6 +67,7 @@
   -webkit-app-region: drag;
 }
 .workbench-tablist {
+  position: relative; /* Stable offset parent for tab sorting and close controls. */
   --tab-max-width: 220px;
   --tab-gap: 4px;
   flex: 1;
@@ -308,6 +309,8 @@
 .workbench-group[data-top-row="true"] .workbench-tabbar { background: transparent; }
 .workbench-group[data-top-row="false"] .workbench-tabbar { background: var(--glass-fill); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); }
 .workbench-group-action { display: grid; place-items: center; flex: none; width: 24px; height: 26px; border-radius: 5px; color: var(--text-muted); -webkit-app-region: no-drag; }
+/* Keep only the upper-right and lower-left corners for workbench fullscreen. */
+.workbench-fullscreen-button > svg { mask-image: repeating-conic-gradient(#000 0 90deg, transparent 90deg 180deg); }
 .workbench-group-action:hover { color: var(--text-primary); background: var(--bg-hover); }
 .workbench-group-action:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: -2px; }
 .workbench-split-handle { position: absolute; z-index: 26; touch-action: none; }
@@ -322,8 +325,17 @@
 .workbench-drag-surface { position: fixed; z-index: 40; -webkit-app-region: no-drag; }
 .workbench-drag-surface[data-placing] { cursor: crosshair; }
 .workbench-drag-surface:not([data-placing]) { cursor: grabbing; }
-/* 被拖动的标签留在原处但变淡,和落点预览对应起来 */
-.workbench-tab[data-dragging] { opacity: 0.45; }
+/* Outside the source strip, retain the dimmed origin for split/merge previews. */
+.workbench-tab[data-dragging] { opacity: 0.45; cursor: grabbing; }
+.workbench-tablist[data-sorting] .workbench-tab { translate: var(--tab-shift, 0px); }
+.workbench-tablist[data-sorting] .workbench-tab[data-dragging] {
+  position: relative; z-index: 1; opacity: 1; color: var(--text-primary); background: var(--bg-elevated);
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+}
+.workbench-tablist:is([data-sorting], [data-settling]) ~ .workbench-tab-close-layer { visibility: hidden; }
+@media (prefers-reduced-motion: no-preference) {
+  .workbench-tablist[data-sorting] .workbench-tab:not([data-dragging]) { transition: translate 160ms var(--motion-ease-enter); }
+}
 /* 分屏时没有焦点的窗口把选中标签降一级,聚焦窗口一眼可辨("+"和快捷键作用于聚焦窗口) */
 .workbench-canvas.is-split .workbench-group:not(.is-focused) .workbench-tab[aria-selected="true"] { color: var(--text-secondary); background: transparent; }
 .workbench-drop-preview { position: absolute; pointer-events: none; border: 2px solid var(--accent-blue); border-radius: 7px; background: color-mix(in srgb, var(--accent-blue) 17%, transparent); }

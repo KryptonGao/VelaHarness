@@ -32,13 +32,6 @@
   max-width: 45%;
 }
 .composer-status-notice[role="status"] { color: var(--text-muted); }
-.composer-queue-hint {
-  margin: 0;
-  padding: 0 12px 4px;
-  font-size: calc(12px * var(--ui-scale));
-  line-height: 1.4;
-  color: var(--text-muted);
-}
 .composer-popover {
   top: calc(100% + 8px);
   bottom: auto;
@@ -432,8 +425,14 @@ button.environment-row:not(:disabled):hover { background: var(--bg-surface-subtl
 .mode-pill.mode-full { color: var(--warning-strong); }
 /* 合并后的模式按钮不按模式着色。 */
 .mode-pill.mode-combined { color: var(--text-secondary); }
+.mode-pill-permission { font-weight: 400; }
 /* .composer-popover 把 overflow 设成 visible，超过 .dock-popover 的 max-height 时内容会溢出到菜单外，所以这里显式限高并滚动。 */
-.mode-popover { width: 360px; max-height: min(600px, calc(100vh - 96px)); overflow-y: auto; overscroll-behavior: contain; }
+.mode-popover {
+  width: min(max(360px, 20rem), calc(100vw - 24px));
+  max-height: min(600px, calc(100vh - 96px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
 .mode-popover > * { flex-shrink: 0; }
 .mode-popover .mode-option { padding-top: 7px; padding-bottom: 7px; }
 .mode-popover .mode-option-desc { font-size: calc(13.5px * var(--ui-scale)); line-height: 1.4; }
@@ -492,6 +491,40 @@ button.environment-row:not(:disabled):hover { background: var(--bg-surface-subtl
 }
 .mode-option-check { flex-shrink: 0; width: 16px; display: grid; place-items: center; color: var(--accent-blue); }
 .mode-option-key { flex-shrink: 0; min-width: 1ch; text-align: right; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+
+.mode-option-compact[aria-expanded="true"] { border-radius: var(--radius-md) var(--radius-md) 0 0; }
+.mode-goal-permissions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  padding: 1px 8px 8px;
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  background: var(--bg-card-blue);
+}
+.mode-goal-permissions button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 30px;
+  padding: 4px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  font-size: calc(13.5px * var(--ui-scale));
+  line-height: 1.35;
+}
+.mode-goal-permissions button:hover:not(:disabled) { background: var(--bg-hover); color: var(--text-primary); }
+.mode-goal-permissions button > svg { flex-shrink: 0; }
+.mode-goal-permissions button > span { min-width: 0; overflow-wrap: anywhere; text-wrap: balance; }
+.mode-goal-permissions button[aria-pressed="true"] {
+  border-color: color-mix(in srgb, var(--accent-blue) 48%, var(--border-subtle));
+  color: var(--accent-blue);
+  font-weight: 600;
+}
+.mode-goal-permissions button:disabled { cursor: default; }
+.mode-goal-permissions button:disabled[aria-pressed="false"] { opacity: 0.5; }
 
 .mode-card {
   background: var(--bg-card-surface);

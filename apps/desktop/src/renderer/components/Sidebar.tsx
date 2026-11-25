@@ -1,6 +1,7 @@
 import { displayConversationTitle } from "./conversation-title";
 import { overlapsForConversation, type ConversationSummary, type WorkspaceRecent } from "@vela/shared";
-import { useContext, useEffect, useId, useMemo, useRef, useState } from "react";
+import { useContext, useEffect, useId, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { composerDrafts } from "./composer/composer-drafts";
 import { isBoolean, isBooleanRecord, useStoredState } from "../hooks/useStoredState";
 import { modKeyLabel } from "../platform";
 import { tr, trf, useAppLocale } from "../locale";
@@ -483,6 +484,15 @@ function ConversationRow({ conversation, active, activity, reason, priority, loc
   onTogglePriority: (id: string) => void; onRename?: (id: string) => void; onArchive: (id: string) => void;
 }) {
   const title = displayConversationTitle(conversation.title);
+  const draftLocation = useSyncExternalStore(composerDrafts.subscribePresence,
+    () => composerDrafts.conversationDraftLocation(conversation.id), () => null);
+  const draftHint = draftLocation === "workbench"
+    ? tr("工作面板中有未发送的内容", "Unsent content in the workbench")
+    : tr("有未发送的内容", "Unsent content");
+  const titleLabel = <>
+    <span className="subchat-title"><span>{title}</span></span>
+    {draftLocation && <span className="subchat-draft" title={draftHint} aria-hidden="true"><Icon name="document" size={14} /></span>}
+  </>;
   const conflictState = useContext(ConflictContext).state;
   const conflictCount = useMemo(() => overlapsForConversation(conflictState, conversation.id).length, [conflictState, conversation.id]);
   const conflictLabel = conflictCount > 0 ? trf("与其他对话改了同一处（{0} 个文件）", "Edits the same files as another chat ({0})", conflictCount) : "";
@@ -498,11 +508,11 @@ function ConversationRow({ conversation, active, activity, reason, priority, loc
   return <div className={`subchat-row${activity ? " activity-row" : ""}${onRename ? " has-rename" : ""}`}>
     <button className={`subchat-item${active ? " active" : ""}`} type="button"
       title={activity ? [title, workspaceLabel ? conversation.cwd : "", worktreeLabel, `${statusLabel} · ${updatedAt.toLocaleString(locale)}`].filter(Boolean).join("\n") : title}
-      aria-label={activity ? [title, workspaceLabel, worktreeLabel, statusLabel, conflictLabel].filter(Boolean).join(", ") : [title, worktreeLabel, conflictLabel].filter(Boolean).join(", ")}
+      aria-label={[title, draftLocation && draftHint, activity && workspaceLabel, worktreeLabel, activity && statusLabel, conflictLabel].filter(Boolean).join(", ")}
       aria-current={active ? "page" : undefined} onClick={() => onSelect(conversation.id)}>
       {activity ? <span className="activity-row-content">
         <span className="activity-row-heading">
-          <span className="subchat-title">{title}</span>
+          {titleLabel}
           {worktreeLabel ? <span className="subchat-worktree" role="img" aria-label={worktreeLabel} title={worktreeLabel}><Icon name="branch" size={12} /></span> : null}
           {conflictCount > 0 ? <span className="subchat-conflict" role="img" aria-label={conflictLabel} title={conflictLabel} /> : null}
           {workspaceLabel ? <span className="activity-workspace">{workspaceLabel}</span> : null}
@@ -515,7 +525,7 @@ function ConversationRow({ conversation, active, activity, reason, priority, loc
           <time className="activity-time" dateTime={updatedAt.toISOString()}>{timeLabel}</time>
         </span>
       </span> : <>
-        <span className="subchat-title">{title}</span>
+        {titleLabel}
         {worktreeLabel ? <span className="subchat-worktree" role="img" aria-label={worktreeLabel} title={worktreeLabel}><Icon name="branch" size={12} /></span> : null}
         {conflictCount > 0 ? <span className="subchat-conflict" role="img" aria-label={conflictLabel} title={conflictLabel} /> : null}
         {conversation.status === "streaming" ? <span className="subchat-streaming-dot" role="img" aria-label={tr("正在回复", "Replying")} title={tr("正在回复", "Replying")} /> : null}

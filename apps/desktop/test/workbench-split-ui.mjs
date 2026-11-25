@@ -44,7 +44,7 @@ if (!process.versions.electron) {
         return [...root.children].map(button => { const r = button.getBoundingClientRect(); return {
           right: stage.right - r.right, centerY: r.top + r.height / 2 - stage.top,
           workbench: button.matches('.workbench-collapse,.workbench-expand'),
-          icon: button.querySelector('svg')?.dataset.icon,
+          icon: button.querySelector('svg')?.dataset.icon, expanded: button.ariaExpanded === 'true',
           hit: document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)?.closest('button') === button,
           insidePanel: !!button.closest('.workbench-panel,.sidebar-right')
         }; });
@@ -58,7 +58,7 @@ if (!process.versions.electron) {
       });
       assert.equal(controls[0].workbench, true, '信息栏按钮位于工作面板按钮右侧');
       assert.equal(controls[0].icon, expectedCount === 2 ? 'panel-columns' : 'panel-right', '无右侧信息栏按钮时工作面板按钮使用两栏图标');
-      if (expectedCount === 2) assert.equal(controls[1].icon, 'panel-right', '信息栏按钮始终使用两栏图标');
+      if (expectedCount === 2) assert.equal(controls[1].icon, controls[1].expanded ? 'sidebar-expanded' : 'sidebar-collapsed', '信息栏图标反映展开状态');
     }
     const reset = async (kind = "chat") => { await js(`splitFixture.reset(${JSON.stringify(kind)})`); await until("document.querySelectorAll('.workbench-group').length===1"); await pause(); };
     const box = name => js(`(()=>{const r=${paneExpr(name)}.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height}})()`);
@@ -93,6 +93,22 @@ if (!process.versions.electron) {
       for (const k of ["x", "y"]) assert.ok(Math.abs(preview[k] - actual[k] - 5) < 1, "预览位置应等于落点");
       for (const k of ["width", "height"]) assert.ok(Math.abs(preview[k] - actual[k] + 10) < 1, "预览尺寸应等于落点");
       assert.deepEqual(await names(), before);
+    }
+    const tabPoint = (name, offset) => js(`(()=>{const r=${tabExpr(name)}.getBoundingClientRect();return {x:Math.round(r.left+${offset}),y:Math.round(r.top+r.height/2)}})()`);
+    const stripOrder = () => js("[...document.querySelectorAll('.workbench-tab')].map(t=>t.textContent.trim())");
+    async function sortTab(name, target, cancel = false) {
+      const from = await tabPoint(name, 22), to = await tabPoint(target, 22);
+      to.x += from.x > to.x ? 10 : -10;
+      win.webContents.sendInputEvent({ type: 'mouseMove', ...from });
+      win.webContents.sendInputEvent({ type: 'mouseDown', ...from, button: 'left', clickCount: 1 });
+      win.webContents.sendInputEvent({ type: 'mouseMove', ...to, button: 'left' });
+      await until("document.querySelector('.workbench-tablist[data-sorting]')");
+      const held = await tabPoint(name, 22);
+      assert.ok(Math.abs(held.x - to.x) < 2, 'grab point tracks the pointer');
+      if (cancel) await key('body', 'Escape');
+      win.webContents.sendInputEvent({ type: 'mouseUp', ...to, button: 'left', clickCount: 1 });
+      if (!cancel) await until("document.getAnimations().some(a => a.id === 'workbench-tab-settle')");
+      await until("!document.querySelector('[data-sorting], [data-settling]')");
     }
     async function pointerDrag(selector, deltaX, deltaY = 0) {
       const point = await js(`(()=>{const r=document.querySelector(${JSON.stringify(selector)}).getBoundingClientRect();return {x:Math.round(r.left+r.width/2),y:Math.round(r.top+Math.min(80,r.height/2))}})()`);
@@ -264,7 +280,7 @@ if (!process.versions.electron) {
       await hover("C", "B", "right"); assert.equal(await js("Boolean(document.querySelector('.workbench-drop-preview'))"), false, "拆分后窗格过窄时不应给出落点"); await key("body", "Escape"); await releasePointer();
       assert.equal(await count(), 2);
       await setPanelWidth(1000);
-      // 同窗口重排：拖动中有插入线、被拖标签变淡；松手后顺序改变并选中被拖标签。
+      // Same-strip sorting previews the gap before committing the DOM order.
       await reset(); await drop("B", "A", "right"); await drop("C", "B", "tabbar");
       const order = () => js(`[...${paneExpr("B")}.querySelectorAll('.workbench-tab')].map(t=>t.textContent.trim())`);
       assert.deepEqual(await order(), ["B", "C"]);
@@ -273,8 +289,9 @@ if (!process.versions.electron) {
       win.webContents.sendInputEvent({ type: "mouseMove", ...from }); win.webContents.sendInputEvent({ type: "mouseDown", ...from, button: "left", clickCount: 1 });
       win.webContents.sendInputEvent({ type: "mouseMove", x: from.x - 12, y: from.y, button: "left" }); await until("document.querySelector('.workbench-drag-surface')");
       win.webContents.sendInputEvent({ type: "mouseMove", ...to, button: "left" }); await pause();
-      assert.equal(await js("Boolean(document.querySelector('.workbench-drop-marker'))"), true, "重排时应有插入线");
-      assert.equal(await js(`${tabExpr("C")}.hasAttribute('data-dragging')`), true); assert.equal(await js(`getComputedStyle(${tabExpr("C")}).opacity<1`), true);
+      assert.equal(await js(`${tabExpr("C")}.hasAttribute('data-dragging')`), true);
+      assert.ok(await js(`parseFloat(getComputedStyle(${tabExpr("B")}).translate)`) > 0, 'neighbour makes room before release');
+      assert.deepEqual(await order(), ["B", "C"]);
       assert.equal(await js("getComputedStyle(document.querySelector('.workbench-drag-surface')).cursor"), "grabbing");
       win.webContents.sendInputEvent({ type: "mouseUp", ...to, button: "left", clickCount: 1 }); await until("!document.querySelector('.workbench-drag-surface')"); await pause();
       assert.deepEqual(await order(), ["C", "B"]); assert.equal(await js(`${tabExpr("C")}.getAttribute('aria-selected')`), "true");
@@ -309,7 +326,7 @@ if (!process.versions.electron) {
         }
         win.webContents.sendInputEvent({ type: "mouseUp", x: Math.round(canvas.x + canvas.w * 0.5), y: Math.round(canvas.y + canvas.h * 0.62), button: "left", clickCount: 1 });
         await until("!document.querySelector('.workbench-drag-surface')"); await pause(); assert.equal(await count(), 2); }
-      // 实验性开关：关闭时合并回单窗口、标签不能拖动、没有窗口操作菜单；重新开启后可再次拆分。
+      // Turning off splitting still permits sorting, but not layout drops.
       await reset(); await drop("B", "A", "right"); await drop("C", "B", "bottom"); assert.equal(await count(), 3);
       await js("splitFixture.setSplit(false)"); await until("document.querySelectorAll('.workbench-group').length===1"); await pause();
       assert.deepEqual(await names(), ["A", "B", "C", "D"]);
@@ -322,7 +339,14 @@ if (!process.versions.electron) {
         win.webContents.sendInputEvent({ type: "mouseUp", x: begin.x - 40, y: begin.y + 300, button: "left", clickCount: 1 }); await pause();
       }
       await js(`${tabExpr("A")}.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',altKey:true,shiftKey:true,bubbles:true,cancelable:true}))`); await pause(); assert.equal(await count(), 1);
+      await reset(); await sortTab('C', 'A', true); assert.deepEqual(await stripOrder(), ['A','B','C','D']);
+      await sortTab('C', 'A'); assert.deepEqual(await stripOrder(), ['C','A','B','D']);
+      await js('splitFixture.setFullscreen(true)'); await pause(); assert.deepEqual(await stripOrder(), ['C','A','B','D']);
+      const chatX = () => js("document.querySelector('.workbench-pinned-chat').getBoundingClientRect().x");
+      const pinned = await chatX(); await sortTab('A', 'D'); assert.deepEqual(await stripOrder(), ['C','B','D','A']); assert.equal(await chatX(), pinned);
+      await js('splitFixture.setFullscreen(false)'); await pause(); assert.deepEqual(await stripOrder(), ['C','B','D','A']);
       await js("splitFixture.setSplit(true)"); await pause(); await drop("B", "A", "right"); assert.equal(await count(), 2);
+      console.log('PASS animated sidebar and fullscreen tab sorting, Escape, pinned chat and shared order');
       await reset(); await drop("C", "A", "bottom"); await drop("B", "A", "right");
       await checkLayoutControls(1);
       const preferredFoldWidth = await js("document.documentElement.style.getPropertyValue('--workbench-width')");

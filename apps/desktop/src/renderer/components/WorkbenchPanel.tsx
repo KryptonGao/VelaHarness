@@ -1,6 +1,6 @@
 import type { AgentControlAction, AgentInfo, BackgroundShellItem, ExecutionPlan, PlanExecutionContextStrategy, Race } from "@vela/shared";
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import { createPortal } from "react-dom";
+import { createPortal, flushSync } from "react-dom";
 import type { ProjectApi } from "../hooks/useProject";
 import type { SidebarResize } from "../hooks/useSidebarResize";
 import type { ToolDisplay, ToolFold } from "../hooks/usePreferences";
@@ -32,8 +32,9 @@ import { BrowserPanel, BrowserTabIcon, BrowserTabLabel } from "./browser/Browser
 import type { BrowserController } from "../browser/browser-controller";
 import { conversationDetails, type ConversationDetail } from "./conversation-detail";
 import { WorkbenchTabStrip } from "./WorkbenchTabStrip";
+import { startWorkbenchTabSort } from "./workbench-tab-sort";
 import { Icon } from "./icons";
-import { collapseWorkbenchLayout, dropWorkbenchTab, emptyWorkbenchLayout, mergeWorkbenchPane, reconcileWorkbenchLayout, replaceWorkbenchTab, resizeWorkbenchDivider,
+import { collapseWorkbenchLayout, dropWorkbenchTab, emptyWorkbenchLayout, mergeWorkbenchPane, reconcileWorkbenchLayout, reorderWorkbenchStrip, replaceWorkbenchTab, resizeWorkbenchDivider,
   selectWorkbenchTab, workbenchDropTarget, workbenchFits, workbenchGeometry, workbenchPaneOrder, workbenchRatioBounds, WORKBENCH_GAP, WORKBENCH_HEADER_HEIGHT,
   type WorkbenchDivider, type WorkbenchDropEdge, type WorkbenchLayout, type WorkbenchRect } from "./workbench-layout";
 
@@ -58,7 +59,8 @@ interface WorkbenchPanelProps {
   tabs: WorkbenchTab[];
   tabReplacement?: { from: string; to: string } | null;
   layoutKey?: string;
-  /** 实验性分屏开关;关闭时只有一个窗口,标签不能拖动,已有分屏合并回单窗口。 */
+  onTabOrderChange?: (order: string[]) => void;
+  /** Controls splitting and cross-pane moves, not sorting inside a strip. */
   splitEnabled?: boolean;
   onVisibleTabsChange?: (ids: string[]) => void;
   collapsed?: boolean;
@@ -117,8 +119,7 @@ function safeId(value: string): string {
 function TabIcon({ tab }: { tab: WorkbenchTab }) {
   if (tab.kind === "conversation-detail") return <Icon name={conversationDetails[tab.view].icon} size={12} />;
   if (tab.kind === "file") return <FileTypeIcon path={tab.path} />;
-  if (tab.kind === "changes") return <Icon name="file-diff" size={12} />;
-  if (tab.kind === "turn-review") return <Icon name="file" size={12} />;
+  if (tab.kind === "changes" || tab.kind === "turn-review") return <Icon name="file-diff" size={12} />;
   if (tab.kind === "acceptance") return <Icon name="acceptance" size={12} />;
   if (tab.kind === "race") return <Icon name="branch" size={12} />;
   if (tab.kind === "background" || tab.kind === "terminal") return <Icon name="terminal" size={12} />;
@@ -192,7 +193,10 @@ function WorkbenchPanelContent(props: WorkbenchPanelProps & { closing: boolean; 
   const tabDragCleanup = useRef<(() => void) | null>(null);
   const clearDrag = useCallback(() => { tabDragCleanup.current?.(); dragRef.current = null; setDrag(null); setDrop(null); }, []);
   const resizeCleanup = useRef<(() => void) | null>(null);
-  useEffect(() => { clearDrag(); return () => { tabDragCleanup.current?.(); resizeCleanup.current?.(); }; }, [scope, collapsed, clearDrag]);
+  const dragLayoutKey = JSON.stringify(fullscreen ? tabs.map(t => t.id) : layout.panes.map(p => [p.id, ...p.tabs]));
+  useEffect(() => { clearDrag(); return () => { tabDragCleanup.current?.(); resizeCleanup.current?.(); }; }, [scope, collapsed, fullscreen, splitEnabled, clearDrag]);
+  // A tab can close or be replaced asynchronously while the pointer is captured.
+  useLayoutEffect(() => { if (tabDragCleanup.current) clearDrag(); }, [dragLayoutKey, layout.maximized, clearDrag]);
   useEffect(() => {
     if (!drag) return;
     document.documentElement.dataset.workbenchDragging = "true";
@@ -317,21 +321,26 @@ function WorkbenchPanelContent(props: WorkbenchPanelProps & { closing: boolean; 
     return { index, x: list ? Math.max(list.left, Math.min(list.right, edge)) : edge };
   }
   function commitDrop(key: string, pane: string, edge: WorkbenchDropEdge, index?: number) {
-    const current = layoutRef.current, next = dropWorkbenchTab(current, key, pane, edge, index);
+    const current = layoutRef.current;
+    const sorting = edge === "tabbar" && index !== undefined && ownerOf(key)?.id === pane;
+    const sorted = sorting ? reorderWorkbenchStrip(current, tabs.map(t => t.id), key, index, fullscreen) : null;
+    const next = sorting ? sorted?.layout ?? current : dropWorkbenchTab(current, key, pane, edge, index);
     if (next !== current && splitEdge(edge) && !splitFits(next)) {
       clearDrag(); setAnnouncement(tr("空间不足，无法再拆分", "Not enough room to split")); return;
     }
     clearDrag(); if (next === current) return;
     mutate(() => next);
+    if (sorted) props.onTabOrderChange?.(sorted.order);
     const tab = tabs.find(t => t.id === key); if (tab) props.onActivateTab(tab);
     if (tab?.kind === "file") preview?.setActiveTab(tab.path);
-    setAnnouncement(edge === "tabbar" ? (index !== undefined && current.panes.some(p => p.id === pane && p.tabs.includes(key)) ? tr("标签已重新排序", "Tab reordered") : tr("标签已合并", "Tab merged")) : edge === "center" ? tr("标签已互换", "Tabs swapped") : tr("标签已移至新的区域", "Tab moved to a new area"));
+    setAnnouncement(edge === "tabbar" ? (sorting ? tr("标签已重新排序", "Tab reordered") : tr("标签已合并", "Tab merged")) : edge === "center" ? tr("标签已互换", "Tabs swapped") : tr("标签已移至新的区域", "Tab moved to a new area"));
     requestAnimationFrame(() => document.getElementById(tab ? tabButtonId(tab) : "")?.focus());
   }
   function updateDrop(x: number, y: number) {
     const currentDrag = dragRef.current, r = canvasRef.current?.getBoundingClientRect();
     if (!currentDrag || !r) { setDrop(null); return null; }
     const current = layoutRef.current, target = workbenchDropTarget(current, r.width, r.height, x - r.left, y - r.top, ownerOf(currentDrag.key)?.id);
+    if (!currentDrag.placing && target?.edge === "tabbar" && target.pane === ownerOf(currentDrag.key)?.id) { setDrop(null); return null; }
     const slot = target?.edge === "tabbar" ? insertionAt(target.pane, x) : null;
     const next = target ? dropWorkbenchTab(current, currentDrag.key, target.pane, target.edge, slot?.index) : current;
     if (!target || next === current || (splitEdge(target.edge) && !workbenchFits(next, r.width, r.height))) { setDrop(null); return null; }
@@ -347,12 +356,15 @@ function WorkbenchPanelContent(props: WorkbenchPanelProps & { closing: boolean; 
   }
   /** 不进入 Chromium/macOS 原生 HTML 拖拽循环；指针捕获保证跨 guest 和标签栏仍持续收到坐标。 */
   function startTabPointerDrag(event: React.PointerEvent<HTMLButtonElement>, tab: WorkbenchTab) {
-    if (event.button !== 0 || closing || collapsed || !splitEnabled) return;
+    const pane = ownerOf(tab.id), canSplit = splitEnabled && !layout.maximized;
+    if (!event.isPrimary || event.button !== 0 || closing || collapsed || !pane || (!canSplit && pane.tabs.length < 2)) return;
     clearDrag();
     const button = event.currentTarget, pointerId = event.pointerId, startX = event.clientX, startY = event.clientY;
+    const sort = startWorkbenchTabSort(button, startX);
     let started = false;
     button.setPointerCapture(pointerId);
     const cleanup = () => {
+      sort.reset();
       window.removeEventListener("pointermove", move, true); window.removeEventListener("pointerup", up, true);
       window.removeEventListener("pointercancel", cancel, true); window.removeEventListener("blur", cancel);
       button.removeEventListener("lostpointercapture", cancel);
@@ -368,7 +380,9 @@ function WorkbenchPanelContent(props: WorkbenchPanelProps & { closing: boolean; 
         const value = { key: tab.id, placing: false };
         dragRef.current = value; setDrag(value);
       }
-      e.preventDefault(); updateDrop(e.clientX, e.clientY);
+      e.preventDefault();
+      if (sort.move(e.clientX, e.clientY) !== null || !canSplit) setDrop(null);
+      else updateDrop(e.clientX, e.clientY);
     };
     const up = (e: PointerEvent) => {
       if (e.pointerId !== pointerId) return;
@@ -377,7 +391,9 @@ function WorkbenchPanelContent(props: WorkbenchPanelProps & { closing: boolean; 
       const swallowClick = (click: MouseEvent) => { click.preventDefault(); click.stopImmediatePropagation(); };
       window.addEventListener("click", swallowClick, true);
       window.setTimeout(() => window.removeEventListener("click", swallowClick, true), 0);
-      const target = updateDrop(e.clientX, e.clientY);
+      const index = sort.move(e.clientX, e.clientY);
+      if (index !== null) { sort.settle(() => flushSync(() => commitDrop(tab.id, pane.id, "tabbar", index))); return; }
+      const target = canSplit ? updateDrop(e.clientX, e.clientY) : null;
       if (target) commitDrop(tab.id, target.pane, target.edge, target.index); else clearDrag();
     };
     tabDragCleanup.current = cleanup;
@@ -477,6 +493,7 @@ function WorkbenchPanelContent(props: WorkbenchPanelProps & { closing: boolean; 
             onEqualize={() => mutate(current => geometry.dividers.reduce((result, divider) => resizeWorkbenchDivider(result, divider.id, 0.5, dividerBounds(divider)), current))}
             onPlace={() => { mutate(current => ({ ...current, maximized: null, focused: paneId })); setDrag({ key: pane.selected, placing: true }); setAnnouncement(tr("选择落点，Esc 取消", "Choose a drop location; Esc to cancel")); }}
             onSplit={(tab, edge) => commitDrop(tab.id, paneId, edge)}
+            onReorder={(tab, slot) => commitDrop(tab.id, paneId, "tabbar", slot)}
             onTabPointerDown={startTabPointerDrag} />
         </section>;
       })}
@@ -502,7 +519,7 @@ function WorkbenchPanelContent(props: WorkbenchPanelProps & { closing: boolean; 
         setTerminalClosePrompt(null);
         if (closeContext.current?.scope === terminalClosePrompt.scope) closeContext.current.close(terminalClosePrompt.tab);
       }} />, document.body)}
-    {drag && canvasBounds && !collapsed && createPortal(<div className="workbench-drag-surface" data-placing={drag.placing || undefined}
+    {drag && splitEnabled && !layout.maximized && canvasBounds && !collapsed && createPortal(<div className="workbench-drag-surface" data-placing={drag.placing || undefined}
       style={{ left: canvasBounds.left, top: canvasBounds.top, width: canvasBounds.width, height: canvasBounds.height }}
       onPointerMove={event => { if (drag.placing) updateDrop(event.clientX, event.clientY); }} onPointerLeave={() => setDrop(null)}
       onClick={event => { if (!drag.placing) return; const target = updateDrop(event.clientX, event.clientY); if (target) commitDrop(drag.key, target.pane, target.edge, target.index); }}>

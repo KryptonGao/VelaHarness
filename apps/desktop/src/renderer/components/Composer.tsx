@@ -16,7 +16,7 @@ import {
   type ThinkingSummaryModel,
 } from "@vela/shared";
 import type { ReactNode } from "react";
-import { forwardRef, useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { forwardRef, useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import type { useModels } from "../hooks/useModels";
 import type { ProjectApi } from "../hooks/useProject";
 import { DictationButton } from "./composer/DictationButton";
@@ -24,7 +24,6 @@ import { useDictation } from "../hooks/useDictation";
 import { useSpeechState } from "../hooks/useSpeech";
 import { dictationSeparator } from "../dictation-audio";
 import { MotionList } from "./BatchMotion";
-import { useReducedMotion } from "../hooks/useMotionPresence";
 import { PopoverPresence } from "./MotionPresence";
 import { ModelControls } from "./ModelControls";
 import { RecipeStageDock, useRecipeRun } from "./RecipeChatContext";
@@ -155,12 +154,6 @@ function commandCardView(card: CommandCard, usage: ContextUsage | null): { title
   return { title: tr("上下文已压缩", "Context compacted"), items, busy: false, tone: "info" };
 }
 
-/** 上限由样式表决定（随字号和窗口高度变化）；读不到时退回 140px。 */
-function maxInputHeight(input: HTMLElement): number {
-  const value = Number.parseFloat(getComputedStyle(input).maxHeight);
-  return Number.isFinite(value) ? value : 140;
-}
-
 export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Composer({
   changeSummary,
   conflictBanner,
@@ -217,7 +210,11 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
   const [recipesError, setRecipesError] = useState<string | null>(null);
   const recipeRun = useRecipeRun();
   const recipeActive = !!recipeRun?.stages && ["starting", "running", "waiting_for_user"].includes(recipeRun.status);
-  const [value, setValue] = useState("");
+  const draftKey = composerDraftKey(conversationId, embedded, newChat);
+  const draftKeyRef = useRef<string | null>(null);
+  const draft = useSyncExternalStore(composerDrafts.subscribe, () => composerDrafts.get(draftKey));
+  const { text: value, attachments } = draft;
+  const setValue = (text: string) => composerDrafts.set(draftKey, { text });
   const [skills, setSkills] = useState<SkillSummary[] | null>(null);
   const [skillsError, setSkillsError] = useState<string | null>(null);
   const [customCommands, setCustomCommands] = useState<CustomCommand[] | null>(null);
@@ -232,13 +229,8 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
   const cardToken = useRef(0);
   const usageRef = useRef(usage);
   usageRef.current = usage;
-  const [attachments, setAttachments] = useState<FileAttachmentPayload[]>([]);
-  const attachmentsRef = useRef<FileAttachmentPayload[]>([]);
-  attachmentsRef.current = attachments;
   const [attachNotice, setAttachNotice] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
-  const reducedMotion = useReducedMotion();
-  const measuredInput = useRef(false);
   const inputRef = useRef<HTMLDivElement>(null);
   const iconsRef = useRef<HTMLSpanElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -289,52 +281,6 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
   // 只有空输入框（没有文字、技能和附件）才显示预测；一旦开始输入就让位。
   const suggestion = !prompt && !hasReplyText && attachments.length === 0 && !streaming ? prediction : "";
 
-  useLayoutEffect(() => {
-    const input = inputRef.current;
-    if (!input) return;
-    let appliedHeight = -1;
-    const fit = () => {
-      const currentHeight = input.getBoundingClientRect().height;
-      // Measure at natural height without animating the temporary auto value.
-      input.style.transition = "none";
-      input.style.height = "auto";
-      const targetHeight = Math.min(input.scrollHeight, maxInputHeight(input));
-      if (targetHeight === appliedHeight) {
-        input.style.height = `${targetHeight}px`;
-        input.style.transition = "";
-        return;
-      }
-      input.style.height = `${currentHeight}px`;
-      void input.offsetHeight;
-      input.style.transition = measuredInput.current && !reducedMotion ? "" : "none";
-      input.style.height = `${targetHeight}px`;
-      appliedHeight = targetHeight;
-      measuredInput.current = true;
-    };
-    fit();
-    let measuredWidth = input.getBoundingClientRect().width;
-    const resizeObserver = new ResizeObserver(() => {
-      // Width changes (sidebar resize/window resize) can change line wrapping too.
-      if (Math.abs(input.getBoundingClientRect().width - measuredWidth) < 1) return;
-      measuredWidth = input.getBoundingClientRect().width;
-      appliedHeight = -1;
-      fit();
-    });
-    resizeObserver.observe(input);
-    // 输入法组字（注音、拼音）会直接改 DOM 而不一定带来 value 变化；换行那一刻也要跟着撑高，
-    // 否则要多输入几个字才会长高。
-    const mutationObserver = new MutationObserver(fit);
-    mutationObserver.observe(input, { childList: true, characterData: true, subtree: true });
-    input.addEventListener("compositionupdate", fit);
-    input.addEventListener("compositionend", fit);
-    return () => {
-      resizeObserver.disconnect();
-      mutationObserver.disconnect();
-      input.removeEventListener("compositionupdate", fit);
-      input.removeEventListener("compositionend", fit);
-    };
-  }, [value, reducedMotion]);
-
   useEffect(() => {
     setActiveIndex(0);
   }, [slash?.start, slash?.query]);
@@ -356,28 +302,20 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
   }, []);
 
   // 草稿按对话保存：切换对话或输入框重新挂载时，换回该对话上次没发出的内容。
-  // draftKeyRef 先于保存生效，避免切换瞬间把上一个对话的文字写到新对话名下。
-  const draftKey = composerDraftKey(conversationId, embedded, newChat);
-  const draftKeyRef = useRef<string | null>(null);
   useLayoutEffect(() => {
+    const switched = draftKeyRef.current !== draftKey;
     draftKeyRef.current = draftKey;
+    if (switched) { setAttachNotice(null); setSlash(null); }
     const root = inputRef.current;
     if (!root) return;
-    const draft = composerDrafts.get(draftKey);
-    if (serializeEditor(root) === draft) return;
-    // 切换时不抢焦点：只有输入框本来就有焦点才把光标放到末尾。
-    if (document.activeElement === root) setEditorText(root, draft);
-    else root.replaceChildren(...(draft ? [document.createTextNode(draft)] : []));
-    setValue(draft);
+    const current = serializeEditor(root);
+    if (current === value || (!switched && !current.trim() && !value)) return;
+    // 切换时不抢焦点；普通输入不重建 DOM，以保留选区和 Skill 芯片。
+    if (document.activeElement === root) setEditorText(root, value);
+    else root.replaceChildren(...(value ? [document.createTextNode(value)] : []));
     setSlash(null);
-  }, [draftKey]);
-  useEffect(() => {
-    const key = draftKeyRef.current;
-    const root = inputRef.current;
-    // 值还没跟上输入框（刚挂载或刚换对话，恢复的草稿尚未同步进 value）时不保存，免得把草稿冲掉。
-    if (key === null || (root && serializeEditor(root) !== value)) return;
-    composerDrafts.set(key, value);
-  }, [value]);
+  }, [draftKey, value]);
+  useLayoutEffect(() => () => { draftKeyRef.current = null; }, []);
 
   // 任务交接包等外部预填：只在目标对话的输入框里取走，并把光标放到末尾方便补一句指令。
   useComposerSeed(recipeActions?.conversationId ?? null, text => setText(text));
@@ -475,7 +413,8 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
   function addAttachments(payloads: FileAttachmentPayload[], failed = 0): void {
     // 粘贴图片没有路径，用图片数据本身去重，避免同一张图被剪贴板的多个表示重复加入。
     const keyOf = (entry: FileAttachmentPayload) => entry.path || entry.image?.data || entry.name;
-    const current = attachmentsRef.current;
+    // 选择器、拖放和粘贴都可能在切换对话后才返回；用发起时闭包里的键。
+    const current = composerDrafts.get(draftKey).attachments;
     const known = new Set(current.map(keyOf));
     const merged = [...current];
     let overflow = 0;
@@ -486,12 +425,11 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
       if (merged.length >= maxAttachments) { overflow += 1; continue; }
       merged.push(payload);
     }
-    attachmentsRef.current = merged;
-    setAttachments(merged);
+    if (merged.length !== current.length) composerDrafts.set(draftKey, { attachments: merged });
     const notes: string[] = [];
     if (overflow > 0) notes.push(trf("已忽略 {0} 个文件：最多附加 {1} 个", "Ignored {0} files: up to {1} attachments", overflow, maxAttachments));
     if (failed > 0) notes.push(trf("{0} 个文件无法读取", "{0} files could not be read", failed));
-    if (notes.length > 0) setAttachNotice(notes.join("；"));
+    if (notes.length > 0 && draftKeyRef.current === draftKey) setAttachNotice(notes.join("；"));
   }
 
   async function handleDrop(event: React.DragEvent): Promise<void> {
@@ -581,8 +519,6 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
 
   function clearEditor(): void {
     inputRef.current?.replaceChildren();
-    // 发送后立刻清掉草稿：同一次渲染里对话键可能已从「新对话」切走，不能指望随后的保存。
-    if (draftKeyRef.current !== null) composerDrafts.set(draftKeyRef.current, "");
     setValue("");
     setSlash(null);
   }
@@ -829,11 +765,11 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
   }
 
   async function dispatchPrompt(outbound: string, steerIntent: boolean, draftRestoreText: string): Promise<void> {
-    if (submitting.current) return;
+    if (submitting.current || draftKeyRef.current !== draftKey) return;
     const cards = replies;
     // 取回元素截图需要一点时间；这段时间内不重复提交。发出之后运行中的追加指令仍可继续提交。
     submitting.current = true;
-    let prepared: { text: string; images: ImageAttachment[]; draftAttachments: FileAttachmentPayload[]; sent: readonly ReplyCard[] } | null = null;
+    let prepared: { text: string; images: ImageAttachment[]; sent: readonly ReplyCard[] } | null = null;
     try {
       const userImages = attachments
         .map((entry) => entry.image)
@@ -843,18 +779,22 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
       const plan = planAnnotationImages(cards, tracking, capacity);
       const annotation = await collectAnnotationImages(cards, plan, userImages.length + 1,
         (tabId, ids) => window.vela?.browser?.annotationImages(tabId, ids) ?? Promise.resolve({}));
-      const text = replyMessage(cards, outbound, { stale: annotation.stale, images: annotation.refs, t: tr });
+      // 准备截图期间若换了对话或改了草稿，不发送过期快照，也不清掉新内容。
+      if (draftKeyRef.current !== draftKey || composerDrafts.get(draftKey) !== draft) return;
+      const message = replyMessage(cards, outbound, { stale: annotation.stale, images: annotation.refs, t: tr });
+      const filePaths = attachments.filter(entry => entry.kind === "file").map(entry => `- ${entry.path}`);
+      const text = [message, filePaths.join("\n")].filter(Boolean).join("\n\n");
       if (text) {
-        const draftAttachments = attachments;
-        clearEditor();
-        setAttachments([]);
-        prepared = { text, images: [...userImages, ...annotation.images], draftAttachments, sent: onBeginReplies?.() ?? [] };
+        inputRef.current?.replaceChildren();
+        setSlash(null);
+        composerDrafts.set(draftKey, { text: "", attachments: [] });
+        prepared = { text, images: [...userImages, ...annotation.images], sent: onBeginReplies?.() ?? [] };
       }
     } finally {
       submitting.current = false;
     }
     if (!prepared) return;
-    const { text, images, draftAttachments, sent } = prepared;
+    const { text, images, sent } = prepared;
     // 运行中按追加指令投递:Enter 排队,⌘/Ctrl+Enter 调整当前任务。
     const deliverAs: RuntimeInstructionMode | undefined = streaming
       ? (steerIntent ? "steer" : "queue")
@@ -867,7 +807,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
     }
     onSettleReplies?.(sent, kept);
     // 消息没有留下(没进对话也没排上队)时把草稿放回去;卡片已原样放回,用户已经开始写新内容就不覆盖。
-    if (!kept) restoreDraft(draftRestoreText, draftAttachments);
+    if (!kept) composerDrafts.restoreIfEmpty(draftKey, { text: draftRestoreText, attachments });
   }
 
   async function submit(steerIntent = false): Promise<void> {
@@ -918,13 +858,6 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
 
     if (disabled || recipeActive || !modelReady) return;
     await dispatchPrompt(typed, steerIntent, typed);
-  }
-
-  function restoreDraft(text: string, draftAttachments: FileAttachmentPayload[]): void {
-    const root = inputRef.current;
-    if (!root || serializeEditor(root).trim()) return;
-    setText(text);
-    setAttachments((current) => (current.length === 0 ? draftAttachments : current));
   }
 
   // 压缩完成的提示和轻提示几秒后自行收起；状态卡片和报错保留到用户关闭。
@@ -1079,7 +1012,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
   );
 
   const attachmentRow = (
-    <MotionList className="attachment-row" items={attachments} keyOf={attachmentKey} horizontal>
+    <MotionList key={draftKey} className="attachment-row" items={attachments} keyOf={attachmentKey} horizontal>
         {(entry) => (
           <div className={`attachment-chip attachment-${entry.kind}`}>
             {entry.image ? (
@@ -1100,7 +1033,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
               type="button"
               className="attachment-remove"
               title={tr("移除附件", "Remove attachment")}
-              onClick={() => setAttachments((current) => current.filter((item) => item !== entry))}
+              onClick={() => composerDrafts.set(draftKey, { attachments: composerDrafts.get(draftKey).attachments.filter(item => item !== entry) })}
             >
               <Icon name="close" size={10} />
             </button>

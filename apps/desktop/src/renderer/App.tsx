@@ -1262,6 +1262,7 @@ export function App() {
                         onVisibleTabsChange={setVisibleWorkbenchTabIds}
                         browserOperating={browser.state.operating.includes(conversationKey)}
                         tabs={workbenchTabs}
+                        onTabOrderChange={setTabOrder}
                         tabReplacement={fileTabReplacement}
                         collapsed={workbenchCollapsed}
                         activeTabId={activeWorkbenchTabId}

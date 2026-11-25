@@ -811,7 +811,6 @@ html[data-thinking-fade="false"][data-thinking-pop="false"] .fade-thinking .md-f
 .context-usage-details-inner { min-height: 0; overflow: hidden; opacity: 0; transition: opacity 120ms ease; }
 .context-usage-details.open .context-usage-details-inner { opacity: 1; }
 
-.input-textarea { transition: height 120ms var(--motion-ease-enter); }
 .composer-action-slot { display: inline-flex; align-items: center; gap: 6px; flex: none; min-height: 32px; }
 .composer-action-stack { display: inline-grid; grid-auto-flow: column; align-items: center; gap: 6px; }
 .composer-action-stack > .send-action-blue-btn {

@@ -83,15 +83,16 @@ export async function runBatch2MotionChecks(setReducedMotion: (value: boolean) =
       node<HTMLButtonElement>(".context-usage-title").click(); await wait(260);
       assert(node(".context-usage-details").getBoundingClientRect().height < 1 && node(".context-usage-details").inert, "usage legend did not collapse");
     });
-    await check("Composer height smoothly grows/shrinks and reaches its 140px cap", async () => {
-      inputValue("short"); await wait(160);
+    await check("Composer grows on wrap, scrolls at its CSS cap and shrinks on deletion", async () => {
+      inputValue("short");
       const input = node<HTMLDivElement>(".input-textarea");
       const small = input.getBoundingClientRect().height;
-      inputValue(Array.from({ length: 20 }, () => "a line of text").join("\n")); await wait(25);
-      assert(input.getAnimations().length > 0, "textarea has no height transition");
-      await wait(160);
-      assert(Math.abs(input.getBoundingClientRect().height - 140) < 1, "textarea cap changed");
-      inputValue("short"); await wait(160);
+      inputValue("a line of text\na second line");
+      assert(input.clientHeight > small && input.scrollHeight <= input.clientHeight + 1, "second line did not fit");
+      inputValue(Array.from({ length: 30 }, () => "a line of text").join("\n"));
+      const cap = parseFloat(getComputedStyle(input).maxHeight);
+      assert(Math.abs(input.clientHeight - cap) <= 1 && input.scrollHeight > input.clientHeight, "long draft did not scroll at its cap");
+      inputValue("short");
       assert(Math.abs(input.getBoundingClientRect().height - small) < 1, "textarea failed to shrink");
     });
     await check("composer queues and steers while streaming, then stop restores send", async () => {

@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { providerIconsPlugin } from "./provider-icons-plugin.mjs";
 import { spawn } from "node:child_process";
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
@@ -28,12 +28,12 @@ if (!process.versions.electron) {
     } finally { clearTimeout(timer); }
   } finally { rmSync(temporary, { recursive: true, force: true }); }
 } else {
-  const { app, BrowserWindow } = await import("electron");
+  const { app, BrowserWindow, session } = await import("electron");
   const temporary = process.env.VELA_WORKBENCH_CHAT_TEMP;
   app.setPath("userData", join(temporary, "profile"));
   void app.whenReady().then(async () => {
     const win = new BrowserWindow({ show: false, width: 1440, height: 900,
-      webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false, backgroundThrottling: false } });
+      webPreferences: { webviewTag: true, sandbox: true, contextIsolation: true, nodeIntegration: false, backgroundThrottling: false } });
     const errors = [];
     win.webContents.on("console-message", event => { if (event.level === "error" || event.level >= 3) errors.push(event.message); });
     const evaluate = async code => {
@@ -61,9 +61,104 @@ if (!process.versions.electron) {
       await evaluate("window.dispatchEvent(new KeyboardEvent('keydown', {code:'KeyT', key:'t', metaKey:true, bubbles:true}))");
       await until("document.querySelector('.workbench-tabpanel:not(.is-inactive) .start-view')");
     };
-    const chatOption = ".workbench-tabpanel:not(.is-inactive) .start-option:first-child";
+    const chatOption = ".workbench-tabpanel:not(.is-inactive) .start-options:not(.start-conversation-options) > .start-option:first-child";
     try {
       await win.loadFile(join(temporary, "index.html"));
+      await until("document.querySelector('.chat-active-title')?.textContent === '主聊天'");
+      // Exercise the rail layout with a loaded guest; a blank tab doesn't cover the float.
+      session.fromPartition('persist:vela-ui-browser').protocol.handle('https', () =>
+        new Response('<title>Browser fixture</title><input>', { headers: { 'Content-Type': 'text/html' } }));
+      await newTab();
+      await evaluate(`(() => { const address = document.querySelector('.start-address');
+        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(address, 'https://fixture.test/');
+        address.dispatchEvent(new Event('input', { bubbles: true })); })()`);
+      await evaluate("document.querySelector('.start-address-form').requestSubmit()");
+      await until("document.querySelector('.browser-page-title')?.textContent === 'Browser fixture'");
+      await click('.workbench-fullscreen-button');
+      await until("document.querySelector('.nav-rail-layout.workbench-fullscreen [data-floating-chat] .rich-input')");
+      const hitCenter = selector => evaluate(`(() => { const el = document.querySelector(${JSON.stringify(selector)});
+        const { x, y, width, height } = el.getBoundingClientRect();
+        return el.contains(document.elementFromPoint(x + width / 2, y + height / 2)); })()`);
+      await until(`(() => { const r = document.querySelector('.browser-webview').getBoundingClientRect();
+        const p = document.querySelector('[data-floating-chat] .rich-input').getBoundingClientRect();
+        return r.left < p.left && r.bottom >= p.bottom && document.elementFromPoint(r.left + 16, r.top + 16)?.matches('webview'); })()`);
+      await until("document.querySelector('.app-screen-main').getAnimations().length === 0");
+      assert.ok(await hitCenter('[data-floating-chat] .rich-input'), 'Main chat composer must be above the loaded webview');
+      await click('.floating-chat-hide');
+      assert.ok(await hitCenter('.floating-chat-restore'), 'Restore button must be above the loaded webview');
+      await click('.floating-chat-restore');
+      assert.ok(await hitCenter('[data-floating-chat] .rich-input'));
+      console.log('PASS fullscreen browser hit testing for page, main chat and restore button');
+      await win.loadFile(join(temporary, 'index.html'));
+      await until("document.querySelector('.chat-active-title')?.textContent === '主聊天'");
+      // A wrapped draft should grow the capsule upward, not scroll its first few lines.
+      await evaluate("Promise.allSettled(document.getAnimations().filter(a => a.effect?.getComputedTiming().endTime < Infinity).map(a => a.finished))");
+      const measureInput = () => evaluate(`(() => {
+        const el = document.querySelector('#prompt');
+        const {top, bottom} = el.closest('.composer-capsule').getBoundingClientRect();
+        return {top, bottom, height: el.clientHeight, content: el.scrollHeight, cap: parseFloat(getComputedStyle(el).maxHeight)};
+      })()`);
+      await input('#prompt', '单行');
+      const oneLine = await measureInput();
+      for (const text of ['这是一段用来检查输入框自动折行的中文。'.repeat(6), '第一行\n第二行\n第三行']) {
+        await input('#prompt', text);
+        const wrapped = await measureInput();
+        assert.ok(wrapped.top < oneLine.top && Math.abs(wrapped.bottom - oneLine.bottom) <= 1 && wrapped.content <= wrapped.height + 1, JSON.stringify({oneLine, wrapped}));
+      }
+      // A font-size change reflows the same draft without an input or width change.
+      await evaluate("document.querySelector('#prompt').style.fontSize = '22px'");
+      const scaled = await measureInput();
+      assert.ok(scaled.height > oneLine.height && scaled.content <= scaled.height + 1, JSON.stringify(scaled));
+      await evaluate("document.querySelector('#prompt').style.removeProperty('font-size')");
+      await input('#prompt', Array(60).fill('较长的草稿').join('\n'));
+      const capped = await measureInput();
+      assert.ok(Math.abs(capped.height - capped.cap) <= 1 && capped.content > capped.height, JSON.stringify(capped));
+      await input('#prompt', '');
+      assert.equal((await measureInput()).height, oneLine.height);
+      console.log('PASS: multiline composer growth, cap and shrink');
+      // Keep the picker pending across a switch; inspect the actual conversation prompt arguments.
+      const logPath = join(temporary, 'build.log');
+      writeFileSync(logPath, 'fixture log');
+      const image = {type: 'image', mimeType: 'image/png', data: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/6xkAAAAASUVORK5CYII='};
+      const pickedFile = {kind: 'file', name: 'build.log', path: logPath, image: null};
+      const pickedImage = {kind: 'image', name: 'a.png', path: '/tmp/a.png', image};
+      const sidebarChat = id => `.subchat-row:has([data-conversation-id="${id}"]) .subchat-item`;
+      const mainBadge = `document.querySelector('${sidebarChat("main-chat")} .subchat-draft')`;
+      await evaluate(`window.vela.pickAttachments = async () => [${JSON.stringify(pickedImage)}]; void 0`);
+      await click('.attach-btn'); await click('.attach-menu-row');
+      await until("document.querySelector('.attachment-chip.attachment-image')");
+      await until(`${mainBadge}?.querySelector('[data-icon="document"]') && ${mainBadge}.textContent === ''`);
+      await input('#prompt', '查看日志');
+      await evaluate(`window.vela.pickAttachments = () => new Promise(resolve => { window.finishPick = () => resolve([${JSON.stringify(pickedFile)}]); }); void 0`);
+      await click('.attach-btn'); await click('.attach-menu-row');
+      await until('typeof window.finishPick === "function"');
+      await evaluate('chatFixture.changeMain()');
+      await until("document.querySelector('.chat-active-title')?.textContent === '另一条主聊天'");
+      await evaluate('window.finishPick()');
+      await input('#prompt', 'B 的独立消息'); await click('.main-chat-view .send');
+      await until("chatFixture.calls.some(c => c.name === 'prompt' && c.id === 'other-main')");
+      assert.deepEqual(await evaluate("chatFixture.calls.find(c => c.name === 'prompt')"),
+        {name: 'prompt', id: 'other-main', text: 'B 的独立消息'});
+      await click('button[aria-label="展开侧边栏"]');
+      await until(`${mainBadge}?.closest('button').getAttribute('aria-label').includes('有未发送的内容') && !${mainBadge}.closest('.active')`);
+      await until(`document.querySelector('${sidebarChat("other-main")}.active') && !document.querySelector('${sidebarChat("other-main")} .subchat-draft')`);
+      await capture("sidebar-draft-activity");
+      await click('.sidebar-activity-trigger');
+      await until(`document.querySelector('.session-group .subchat-draft') === ${mainBadge} && ${mainBadge}`);
+      await capture("sidebar-draft-workspace");
+      await click(sidebarChat("main-chat"));
+      await until("document.querySelector('#prompt')?.textContent === '查看日志' && document.querySelectorAll('.attachment-chip').length === 2");
+      await click('.main-chat-view .send');
+      await until("chatFixture.calls.some(c => c.name === 'prompt' && c.id === 'main-chat')");
+      const sent = await evaluate("chatFixture.calls.find(c => c.name === 'prompt' && c.id === 'main-chat')");
+      assert.deepEqual(sent.images, [image]);
+      assert.equal(sent.text, `查看日志\n\n- ${logPath}`);
+      assert.equal(readFileSync(sent.text.split('\n- ').at(-1), 'utf8'), 'fixture log');
+      await until("!document.querySelector('.attachment-chip')");
+      await until(`!${mainBadge}`);
+      await click('.sidebar-activity-trigger');
+      console.log('PASS: file path delivery and cross-chat attachment drafts');
+      await win.loadFile(join(temporary, 'index.html'));
       await until("document.querySelector('.chat-active-title')?.textContent === '主聊天'");
       await evaluate("window.vela.prompt('first turn'); chatFixture.setOverlaps(['a.ts'])");
       await until("!!document.querySelector('.chat-dock-wrapper > .conflict-banner + .floating-input-card')");
@@ -316,6 +411,14 @@ if (!process.versions.electron) {
       await click(collapsedFloat + " .send");
       await until(`document.querySelector('${expandedFloat} .stop')?.disabled === false`);
       await until(`${floatRect}.height > 400 && ${atWorkspaceCorner}`);
+      const floatToggle = '.floating-chat-header button[aria-expanded]';
+      await click(`${floatToggle}[aria-expanded="true"]`);
+      await until(`document.querySelector('${collapsedFloat} .chat-scroll-area')?.offsetHeight === 0`);
+      await evaluate("chatFixture.emit({type:'text_delta', conversationId:'main-chat', delta:'浮窗收起后收到的回复'})");
+      await until(`document.querySelector('${collapsedFloat} .chat-scroll-area')?.textContent.includes('浮窗收起后收到的回复')`);
+      assert.equal(await evaluate(`document.querySelector('${collapsedFloat} .stop')?.disabled`), false);
+      await click(`${floatToggle}[aria-expanded="false"]`);
+      await until(`document.querySelector('${expandedFloat} .chat-scroll-area')?.clientHeight > 100`);
       await click(".floating-chat-hide");
       await evaluate("chatFixture.finish('main-chat')");
       await until(`document.querySelector('${collapsedFloat}')?.hidden && ${floatRect}.width === 0`);
@@ -351,6 +454,7 @@ if (!process.versions.electron) {
       await click(panel + " .stop");
       await until("chatFixture.calls.some(c => c.name === 'abort' && c.id === 'panel-1')");
       await input(panel + " .rich-input", "保留这段草稿");
+      await until(`document.querySelector('${sidebarChat("panel-1")} .subchat-draft')?.title === '工作面板中有未发送的内容'`);
       await capture("chat-light");
       await newTab(); await click(chatOption);
       await until("document.querySelectorAll('.panel-chat-view').length === 2");

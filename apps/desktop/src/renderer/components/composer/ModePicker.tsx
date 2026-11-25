@@ -1,6 +1,6 @@
 import { PopoverPresence } from "../MotionPresence";
 import type { InteractionMode, SandboxMode } from "@vela/shared";
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useId, useRef, useState } from "react";
 import { useDismissable } from "../../hooks/useDismissable";
 import { tr, trf } from "../../locale";
 import {
@@ -34,6 +34,7 @@ const hints: Partial<Record<CombinedModeId, [string, string]>> = {
 };
 
 const sandboxNames: Record<SandboxMode, CombinedModeId> = { smart: "auto", ask: "manual", full: "full" };
+const permissionOptions = combinedModeOptions.filter((option) => option.sandbox);
 
 function label(id: CombinedModeId): string {
   const [chinese, english] = labels[id];
@@ -60,8 +61,8 @@ interface CompactRow {
 }
 
 /**
- * 把「对话模式」和「执行权限」合并成一个选择器。
- * 两者在底层仍是独立状态：Plan / Goal 只切换对话模式，其余三项同时设置执行权限。
+ * Combines chat mode and execution permissions. Entering Goal keeps the current
+ * permission, and the controls under Goal can change it without leaving the mode.
  */
 export function ModePicker({
   mode,
@@ -86,12 +87,17 @@ export function ModePicker({
   race?: { onStart: () => void; onShow: () => void; count: number };
 }) {
   const [open, setOpen] = useState(false);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const goalPermissionsId = useId();
   const lastOpenRequest = useRef(openRequest ?? 0);
   const ref = useDismissable<HTMLDivElement>(open, () => setOpen(false));
   const current = currentCombinedMode(mode, sandboxMode);
-  // Plan / Goal 保持当前权限不变；权限放在气泡提示和菜单脚注里，避免 Goal + 完全访问被藏起来。
-  const keptPermission = current === "plan" || current === "goal" ? label(sandboxNames[sandboxMode]) : null;
-  const title = keptPermission ? `${description(current)} · ${keptPermission}` : description(current);
+  const permissionLabel = label(sandboxNames[sandboxMode]);
+  const goalPermissionsLabel = sandboxLocked
+    ? tr("执行权限", "Execution permissions")
+    : tr("应用默认权限", "App default permissions");
+  const showsPermission = current === "plan" || current === "goal";
+  const title = showsPermission ? `${description(current)} · ${permissionLabel}` : description(current);
 
   useEffect(() => {
     if (disabled) setOpen(false);
@@ -103,19 +109,22 @@ export function ModePicker({
     if (!disabled) setOpen(true);
   }, [openRequest, disabled]);
 
+  function finishSelection() {
+    setOpen(false);
+    trigger.current?.focus({ preventScroll: true });
+  }
+
   function select(id: CombinedModeId) {
     const change = combinedModeChange(id, { interaction: mode, sandbox: sandboxMode }, { sandboxLocked });
     if (change.sandbox) void onSandboxMode(change.sandbox);
     if (change.interaction) onMode(change.interaction);
-    setOpen(false);
+    if (id !== "goal" || current === "goal") finishSelection();
   }
 
   function run(action: () => void) {
     action();
     setOpen(false);
   }
-
-  const permissionOptions = combinedModeOptions.filter((option) => option.sandbox);
 
   // Plan / Goal 和赛马用紧凑的单行：赛马不是对话模式而是启动动作，排在模式之后，沿用同样的行样式和数字键。
   const compactRows: CompactRow[] = [
@@ -124,7 +133,7 @@ export function ModePicker({
       .map((option): CompactRow => ({
         id: option.id,
         name: label(option.id),
-        hint: tr(...(hints[option.id] ?? ["", ""])),
+        hint: option.id === "goal" && mode === "goal" ? goalPermissionsLabel : tr(...(hints[option.id] ?? ["", ""])),
         title: description(option.id),
         active: option.id === current,
         run: () => select(option.id),
@@ -145,7 +154,7 @@ export function ModePicker({
                 name: trf("查看赛马记录（{0}）", "View races ({0})", race.count),
                 hint: "",
                 title: tr("回看、比较或采用之前的赛马结果。", "Review, compare or adopt the results of earlier races."),
-                    active: false,
+                active: false,
                 run: () => run(race.onShow),
               }]
             : []),
@@ -157,33 +166,36 @@ export function ModePicker({
   useEffect(() => {
     if (!open) return;
     const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && ref.current?.contains(document.activeElement)) {
+        trigger.current?.focus({ preventScroll: true });
+        return;
+      }
       if (event.metaKey || event.ctrlKey || event.altKey || isTyping(event.target)) return;
-      const number = Number(event.key);
-      if (!Number.isInteger(number) || number < 1) return;
-      const permission = permissionOptions[number - 1];
-      const compact = compactRows[number - firstCompactKey];
-      if (!permission && !compact) return;
+      if (!/^[1-9]$/.test(event.key)) return;
+      const option = ref.current?.querySelector<HTMLButtonElement>(`button[aria-keyshortcuts="${event.key}"]`);
+      if (!option || option.disabled) return;
       event.preventDefault();
-      if (permission) select(permission.id);
-      else compact?.run();
+      option.click();
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  });
+  }, [open, ref]);
 
   return (
     <div className="composer-chip-anchor" ref={ref}>
       <button
+        ref={trigger}
         type="button"
         className={`mode-pill mode-combined mode-${current}`}
         title={title}
-        aria-label={keptPermission ? `${label(current)} · ${keptPermission}` : label(current)}
+        aria-label={showsPermission ? `${label(current)} · ${permissionLabel}` : label(current)}
         disabled={disabled}
         aria-haspopup="true"
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
       >
         <span>{label(current)}</span>
+        {current === "goal" && <span className="mode-pill-permission">· {permissionLabel}</span>}
       </button>
       <PopoverPresence present={open}>
         <div className="dock-popover composer-popover up mode-popover">
@@ -213,22 +225,47 @@ export function ModePicker({
           })}
           <div className="mode-popover-divider" role="separator" />
           {compactRows.map((row, index) => (
-            <button
-              type="button"
-              key={row.id}
-              className={`mode-option mode-option-compact${row.active ? " active" : ""}`}
-              title={row.title}
-              aria-keyshortcuts={String(firstCompactKey + index)}
-              onClick={row.run}
-            >
-              <span className="mode-option-name">{row.name}</span>
-              <span className="mode-option-hint">{row.hint}</span>
-              <span className="mode-option-check" aria-hidden="true">{row.active ? <Icon name="check" size={14} /> : null}</span>
-              <span className="mode-option-key" aria-hidden="true">{firstCompactKey + index}</span>
-            </button>
+            <Fragment key={row.id}>
+              <button
+                type="button"
+                className={`mode-option mode-option-compact${row.active ? " active" : ""}`}
+                title={row.title}
+                aria-keyshortcuts={String(firstCompactKey + index)}
+                aria-expanded={row.id === "goal" ? row.active : undefined}
+                aria-controls={row.id === "goal" && row.active ? goalPermissionsId : undefined}
+                onClick={row.run}
+              >
+                <span className="mode-option-name">{row.name}</span>
+                <span className="mode-option-hint">{row.hint}</span>
+                <span className="mode-option-check" aria-hidden="true">{row.active ? <Icon name="check" size={14} /> : null}</span>
+                <span className="mode-option-key" aria-hidden="true">{firstCompactKey + index}</span>
+              </button>
+              {row.id === "goal" && row.active && (
+                <div id={goalPermissionsId} className="mode-goal-permissions" role="group"
+                  aria-label={`${row.name} · ${goalPermissionsLabel}`}>
+                  {permissionOptions.map(({ id, sandbox }) => (
+                    <button
+                      key={id}
+                      type="button"
+                      aria-pressed={sandbox === sandboxMode}
+                      title={description(id)}
+                      disabled={sandboxLocked}
+                      autoFocus={sandbox === sandboxMode && !sandboxLocked}
+                      onClick={() => {
+                        if (sandbox && sandbox !== sandboxMode) void onSandboxMode(sandbox);
+                        finishSelection();
+                      }}
+                    >
+                      {sandbox === sandboxMode && <Icon name="check" size={12} />}
+                      <span>{label(id)}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </Fragment>
           ))}
-          {keptPermission ? (
-            <div className="composer-popover-footnote">{trf("执行权限保持为「{0}」。", "Execution permissions stay on “{0}”.", keptPermission)}</div>
+          {current === "plan" ? (
+            <div className="composer-popover-footnote">{trf("执行权限保持为「{0}」。", "Execution permissions stay on “{0}”.", permissionLabel)}</div>
           ) : null}
           {sandboxLocked ? (
             <div className="composer-popover-footnote">{tr("此对话使用配方启动时的权限快照；应用默认权限不受影响。", "This chat uses the permission snapshot from its recipe launch. App defaults are unchanged.")}</div>

@@ -121,11 +121,32 @@ export function collapseWorkbenchLayout(layout: WorkbenchLayout): WorkbenchLayou
 export function reorderWorkbenchTab(layout: WorkbenchLayout, tabId: string, index: number): WorkbenchLayout {
   const owner = layout.panes.find(p => p.tabs.includes(tabId));
   if (!owner) return layout;
-  const from = owner.tabs.indexOf(tabId), clamped = Math.max(0, Math.min(owner.tabs.length, index));
-  const to = clamped > from ? clamped - 1 : clamped;
-  if (to === from) return layout;
-  const tabs = owner.tabs.filter(id => id !== tabId); tabs.splice(to, 0, tabId);
+  const tabs = moveTabToSlot(owner.tabs, tabId, index);
+  if (tabs === owner.tabs) return layout;
   return { ...layout, focused: owner.id, panes: layout.panes.map(p => p === owner ? { ...p, tabs, selected: tabId } : p) };
+}
+function moveTabToSlot(ids: string[], id: string, slot: number): string[] {
+  const from = ids.indexOf(id), clamped = Math.max(0, Math.min(ids.length, slot));
+  const to = clamped > from ? clamped - 1 : clamped;
+  if (from < 0 || from === to) return ids;
+  const next = [...ids]; next.splice(from, 1); next.splice(to, 0, id);
+  return next;
+}
+
+/** Reorder the visible strip without moving tabs between the saved split panes. */
+export function reorderWorkbenchStrip(layout: WorkbenchLayout, order: string[], id: string, slot: number, fullscreen: boolean) {
+  const owner = layout.panes.find(p => p.tabs.includes(id));
+  if (!owner) return null;
+  const strip = fullscreen ? order : owner.tabs;
+  const sorted = moveTabToSlot(strip, id, slot);
+  if (sorted === strip) return null;
+  // In a pane, replace just its slots in the global shortcut/fullscreen order.
+  // In fullscreen, project the new relative order back onto the owning pane.
+  let i = 0;
+  const global = fullscreen ? sorted : order.map(key => strip.includes(key) ? sorted[i++] : key);
+  const local = fullscreen ? sorted.filter(key => owner.tabs.includes(key)) : sorted;
+  const next = selectWorkbenchTab(layout, id);
+  return { order: global, layout: { ...next, panes: next.panes.map(p => p.id === owner.id ? { ...p, tabs: local } : p) } };
 }
 /** 拆分后是否每个窗口都不小于最小尺寸。 */
 export function workbenchFits(layout: WorkbenchLayout, width: number, height: number): boolean {

@@ -1,6 +1,6 @@
 # 工作面板分屏（实验性）
 
-> **实验性功能，默认关闭。** 在「设置 → 界面 → 工作面板分屏（实验性）」中开启，偏好保存为 `vela.workbenchSplit`。关闭时工作面板只有一个窗口，标签不能拖动，也没有「窗口操作」菜单；已有的分屏会合并回单窗口（标签按窗口顺序拼接，保留聚焦窗口当前显示的标签，不会关闭任何标签）。重新开启后从单窗口开始，不恢复之前的布局。
+> **Splitting is experimental and off by default.** Enable it in Settings → Interface → Workbench split view (`vela.workbenchSplit`). Turning it off merges panes in pane order and keeps the focused selection without closing any tabs. Re-enabling starts with a single pane. Tab sorting works independently of this setting.
 
 右侧工作面板可以同时显示最多四个窗口。主对话保持独立；界面不提供窗口数量切换器，也不显示布局名称。顶栏继续使用原有半透明玻璃，标签栏保持原来的 52px 高度、胶囊尺寸和留白。
 
@@ -11,7 +11,7 @@
 - 拖到其他窗口的标签栏，把被拖动的页面收回到这一栏，并切换显示该标签。源窗口空了就自动收拢；源窗口仍有其他标签则保留。标签栏优先于边缘命中，只在栏上显示强调色示意，不触发分屏或页面互换。
 - 拖到其他窗口的中间，与该窗口当前显示的标签原位互换，不改变窗口数量、位置和分隔比例。其他标签的顺序不变；若拖动的是源窗口的非当前标签，源窗口继续显示原来的页面。
 - 三窗口既可以左右排列，也可以上排两个、下排一个，或上排一个、下排两个；排列由落点决定。
-- 每个窗口独立切换标签；标签栏的 `+` 在对应窗口中新建标签。拖动标签到自己或其他窗口的标签栏时，出现蓝色插入线，松手后落在该位置，可以在窗口内重排标签；被拖动的标签会变淡。
+- Each pane has its own selection and `+` button. Drag horizontally in a pane or in fullscreen to sort: neighbours slide aside, and the tab settles into place on release. Press `Esc` to cancel, or focus a tab and use `Shift + Left/Right` to reorder without dragging. Fullscreen keeps Chat pinned; sorting does not change saved pane membership or divider positions.
 - 每个窗口有最小尺寸（宽 240px、高 200px）。拆分后会让任何窗口低于这个尺寸时，不显示落点预览，松手或键盘拆分也不生效并提示“空间不足”；内部分隔线同样不能拖到低于该尺寸。窗口较窄（≤340px）时，「放大窗口」和「关闭窗口，保留标签」按钮收进「窗口操作」菜单。
 - 分屏时没有焦点的窗口，选中标签的文字降一级，聚焦窗口一眼可辨；`+` 和 `Alt + 1`–`Alt + 4` 作用于聚焦窗口。
 - 拖动内部的分隔线调整比例，双击恢复均分。聚焦分隔线后可用方向键微调，`Home` 恢复均分。

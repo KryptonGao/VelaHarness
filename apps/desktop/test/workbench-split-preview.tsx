@@ -54,7 +54,8 @@ function Fixture() {
   const rail = new URLSearchParams(location.search).has("rail");
   const [tabs, setTabs] = useState<WorkbenchTab[]>(["A", "B", "C", "D"].map(id => ({ id, kind: "chat", label: id, conversationId: id })));
   const [active, setActive] = useState<string | null>("A"), [visible, setVisible] = useState<string[]>([]), [scope, setScope] = useState(0), [collapsed, setCollapsed] = useState(false);
-  const [split, setSplit] = useState(true);
+  const [split, setSplit] = useState(true), [fullscreen, setFullscreen] = useState(false);
+  fixture.setFullscreen = (value: boolean) => flushSync(() => setFullscreen(value));
   const [contextEnabled, setContextEnabled] = useState(false), [contextCollapsed, setContextCollapsed] = useState(false);
   const [locale, setLocale] = useState<AppLocale>("zh-CN");
   fixture.setLocale = (next: AppLocale) => flushSync(() => { setActiveLocale(next); document.documentElement.lang = next; setLocale(next); });
@@ -83,11 +84,12 @@ function Fixture() {
     setTabs(current => current.some(t => t.id === tab.id) ? current : [...current, tab]); setActive(tab.id);
   }} onCloseFileTab={path => setTabs(current => current.filter(t => t.id !== `file:${path}`))}>
     <Controls /><BrowserViewHost tabs={browserTabs} activeTabId={active} visibleTabIds={visible} visible={!collapsed} hosted command={command} />
-    <div className={`vela-window ${rail ? "nav-rail-layout platform-darwin" : "left-collapsed"}`} style={{ height: "100vh", display: "flex", background: rail ? "linear-gradient(135deg, #b7c7db, #dfc9b5)" : undefined, "--context-panel-overlay-width": "min(var(--sidebar-right-width), calc(100vw - 24px))" } as React.CSSProperties}>
+    <div className={`vela-window ${fullscreen ? "workbench-fullscreen" : ""} ${rail ? "nav-rail-layout platform-darwin" : "left-collapsed"}`} style={{ height: "100vh", display: "flex", background: rail ? "linear-gradient(135deg, #b7c7db, #dfc9b5)" : undefined, "--context-panel-overlay-width": "min(var(--sidebar-right-width), calc(100vw - 24px))" } as React.CSSProperties}>
       {rail && <div style={{ width: 306, flex: "none" }} />}
       <div className={rail ? "main-stage" : undefined} style={{ display: "flex", flex: 1, minWidth: 0 }}><div className="main-stage-pane" style={{ display: "flex", flex: 1, minWidth: 0 }}>
       <main className="main-chat-view" style={{ flex: 1, minWidth: 0 }}><header className="main-chat-header"><h2>主对话</h2></header></main>
-      <WorkbenchPanel splitEnabled={split} tabs={tabs} layoutKey={String(scope)} activeTabId={active} onVisibleTabsChange={setVisible} collapsed={collapsed}
+      <WorkbenchPanel splitEnabled={split} fullscreen={fullscreen} tabs={tabs}
+        onTabOrderChange={order => setTabs(current => order.map(id => current.find(tab => tab.id === id)!))} layoutKey={String(scope)} activeTabId={active} onVisibleTabsChange={setVisible} collapsed={collapsed}
         contextOpen={contextOpen} leftOpen={rail} resize={resize} project={{ git: null, openFile: noop } as any} busy={false} execution={null} onRevise={noop} onExecutePlan={noop}
         initialDiffPath={null} initialDiffPathRequestKey={0} onShowDiff={noop} agents={[]} ensureAgentMessages={noop} onControlAgent={noop} onOpenAgent={noop}
         onNewTab={() => fixture.add()} onStartAction={noop} gitAvailable={false} onActivateTab={tab => setActive(tab.id)}
@@ -101,4 +103,5 @@ function Fixture() {
     </div></div></div>
   </FilePreviewProvider></AppLocaleProvider>;
 }
+setActiveLocale("zh-CN");
 createRoot(document.getElementById("root")!).render(<Fixture />);

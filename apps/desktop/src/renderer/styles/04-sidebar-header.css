@@ -221,7 +221,18 @@
   min-width: 0;
   white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
+  container: subchat-title / scroll-state;
+}
+.subchat-title > span { display: block; }
+.subchat-draft {
+  display: inline-flex;
+  flex: none;
+  color: var(--text-muted);
+}
+@container subchat-title scroll-state(scrollable: right) {
+  .subchat-title > span {
+    mask-image: var(--overflow-fade-right);
+  }
 }
 
 .subchat-worktree {

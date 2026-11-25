@@ -7,7 +7,7 @@ import type { WorkbenchDropEdge } from "./workbench-layout";
 import { Icon } from "./icons";
 
 export function WorkbenchTabStrip({ tabs, splitEnabled, draggingId, selected, split, maximized, renderLabel, tabButtonId, tabPanelId,
-  fullscreen, showingChat, onShowChat, onToggleFullscreen, onActivate, onClose, onNewTab, onMerge, onMaximize, onPlace, onEqualize, onSplit, onTabPointerDown,
+  fullscreen, showingChat, onShowChat, onToggleFullscreen, onActivate, onClose, onNewTab, onMerge, onMaximize, onPlace, onEqualize, onSplit, onReorder, onTabPointerDown,
 }: {
   tabs: WorkbenchTab[]; splitEnabled: boolean; draggingId: string | null; selected: string; split: boolean; maximized: boolean;
   fullscreen: boolean; showingChat: boolean; onShowChat?: () => void; onToggleFullscreen?: () => void;
@@ -15,6 +15,7 @@ export function WorkbenchTabStrip({ tabs, splitEnabled, draggingId, selected, sp
   onActivate: (tab: WorkbenchTab) => void; onClose: (tab: WorkbenchTab) => void; onNewTab: () => void;
   onMerge: () => void; onMaximize: () => void; onPlace: () => void; onEqualize: () => void;
   onSplit: (tab: WorkbenchTab, edge: WorkbenchDropEdge) => void;
+  onReorder: (tab: WorkbenchTab, slot: number) => void;
   onTabPointerDown: (event: ReactPointerEvent<HTMLButtonElement>, tab: WorkbenchTab) => void;
 }) {
   const listRef = useRef<HTMLElement>(null), barRef = useRef<HTMLDivElement>(null);
@@ -40,19 +41,20 @@ export function WorkbenchTabStrip({ tabs, splitEnabled, draggingId, selected, sp
     const list = listRef.current, bar = barRef.current;
     if (!list || !bar) return;
     const reveal = () => {
-      const button = buttons.current.get(selected); if (!button) return;
-      const a = list.getBoundingClientRect(), b = button.getBoundingClientRect();
-      if (b.left < a.left) list.scrollLeft -= a.left - b.left;
-      else if (b.right > a.right) list.scrollLeft += b.right - a.right;
+      const button = buttons.current.get(selected); if (!button || list.hasAttribute("data-sorting")) return;
+      const left = button.offsetLeft, right = left + button.offsetWidth;
+      if (left < list.scrollLeft) list.scrollLeft = left;
+      else if (right > list.scrollLeft + list.clientWidth) list.scrollLeft = right - list.clientWidth;
     };
     const update = () => {
       const a = list.getBoundingClientRect(), b = bar.getBoundingClientRect();
       const next: typeof positions = {};
       for (const tab of tabs) {
-        const rect = buttons.current.get(tab.id)?.getBoundingClientRect(); if (!rect) continue;
-        const left = Math.max(rect.left, a.left), right = Math.min(rect.right, a.right);
+        const button = buttons.current.get(tab.id); if (!button) continue;
+        const start = a.left + button.offsetLeft - list.scrollLeft, end = start + button.offsetWidth;
+        const left = Math.max(start, a.left), right = Math.min(end, a.right);
         if (right - left < 24) continue;
-        next[tab.id] = { left: right - b.left - 24, top: rect.top - b.top + (rect.height - 24) / 2, clipped: rect.right > a.right + 1 };
+        next[tab.id] = { left: right - b.left - 24, top: a.top - b.top + button.offsetTop + (button.offsetHeight - 24) / 2, clipped: end > a.right + 1 };
       }
       setPositions(current => JSON.stringify(current) === JSON.stringify(next) ? current : next);
     };
@@ -135,12 +137,15 @@ export function WorkbenchTabStrip({ tabs, splitEnabled, draggingId, selected, sp
       {tabs.map(tab => <button key={tab.id} ref={node => { if (node) buttons.current.set(tab.id, node); else buttons.current.delete(tab.id); }}
         id={tabButtonId(tab)} className="workbench-tab" data-kind={tab.kind} type="button" role="tab" draggable={false} data-dragging={tab.id === draggingId || undefined}
         aria-selected={!showingChat && tab.id === selected} aria-controls={tabPanelId(tab)} tabIndex={tab.id === selected ? 0 : -1}
-        title={tab.title ?? tab.label} style={tabWidth ? { width: tabWidth } : undefined}
+        aria-keyshortcuts="Shift+ArrowLeft Shift+ArrowRight" title={tab.title ?? tab.label} style={tabWidth ? { width: tabWidth } : undefined}
         onClick={() => onActivate(tab)} onPointerDown={event => onTabPointerDown(event, tab)} onDragStart={event => event.preventDefault()}
         onKeyDown={event => {
           const edges: Record<string, WorkbenchDropEdge> = { ArrowLeft: "left", ArrowRight: "right", ArrowUp: "top", ArrowDown: "bottom" };
           if (splitEnabled && event.altKey && event.shiftKey && edges[event.key]) { event.preventDefault(); onSplit(tab, edges[event.key]); return; }
           const index = tabs.findIndex(t => t.id === tab.id);
+          if (event.shiftKey && !event.altKey && !event.metaKey && !event.ctrlKey && (event.key === "ArrowLeft" || event.key === "ArrowRight")) {
+            event.preventDefault(); event.stopPropagation(); onReorder(tab, index + (event.key === "ArrowLeft" ? -1 : 2)); return;
+          }
           const target = event.key === "ArrowRight" ? tabs[(index + 1) % tabs.length] : event.key === "ArrowLeft" ? tabs[(index - 1 + tabs.length) % tabs.length]
             : event.key === "Home" ? tabs[0] : event.key === "End" ? tabs.at(-1) : undefined;
           if (target) { event.preventDefault(); activate(target); }

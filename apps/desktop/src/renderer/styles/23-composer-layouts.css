@@ -37,12 +37,9 @@
 .composer-capsule > :is(.instruction-row, .attachment-row) { padding-inline: 8px; }
 /* 工作区/环境/分支芯片挪到胶囊外,贴在胶囊上方,与下方托盘同样的左右内边距。 */
 .layout-capsule > .composer-status-bar { padding: 0 12px 6px; contain: inline-size; }
-.layout-capsule > .composer-queue-hint { padding: 0 12px 6px; contain: inline-size; }
 .composer-capsule > :first-child:is(.instruction-row, .attachment-row) { padding-top: 4px; }
 /* 浮在正文上的文字只给自身垫底，不遮掉整行。 */
-.layout-capsule > .composer-status-bar :is(.composer-chip-anchor, .composer-status-notice),
-.layout-capsule > .composer-queue-hint { background-color: var(--bg-chat); }
-.layout-capsule > .composer-queue-hint { align-self: flex-start; contain: none; }
+.layout-capsule > .composer-status-bar :is(.composer-chip-anchor, .composer-status-notice) { background-color: var(--bg-chat); }
 .composer-capsule-main {
   display: flex;
   align-items: flex-end;
@@ -109,7 +106,8 @@
 .composer-tray[data-collapsed~="speed"] .composer-stat-speed,
 .composer-tray[data-collapsed~="cache"] .composer-stat-cache { display: none; }
 .composer-tray[data-collapsed~="percent"] .composer-stat-context .composer-stat-text { display: none; }
-.composer-tray[data-collapsed~="permission"] :is(.sandbox-pill, .mode-pill.mode-combined) > span { display: none; }
+.composer-tray[data-collapsed~="permission"] :is(.sandbox-pill, .mode-combined:not(.mode-goal)) > span,
+.composer-tray[data-collapsed~="permission"] .mode-pill-permission { display: none; }
 .composer-tray[data-collapsed~="context"] .composer-stats-row { display: none; }
 .composer-tray[data-collapsed~="reasoning"] .model-choice-pill:has(.thinking-glyph) { padding-right: 6px; }
 .composer-tray[data-collapsed~="reasoning"] .model-choice-pill:has(.thinking-glyph) :is(.thinking-label-text, .thinking-chevron) { display: none; }

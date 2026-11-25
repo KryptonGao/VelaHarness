@@ -1,7 +1,7 @@
 /** 真实 App 与内存会话服务；聊天标签的 Electron 交互夹具。 */
 import React from "react";
 import { createRoot } from "react-dom/client";
-import type { AgentStreamEvent, AppState, AskUserQuestionEvent, SessionSnapshot, TranscriptMessage, VelaApi } from "@vela/shared";
+import type { AgentStreamEvent, AppState, AskUserQuestionEvent, ImageAttachment, SessionSnapshot, TranscriptMessage, VelaApi } from "@vela/shared";
 import { defaultContextLimitSettings, defaultTaskBudgetSettings, emptyConflictsState } from "@vela/shared";
 import { App } from "../src/renderer/App";
 import "../src/renderer/styles.css";
@@ -34,7 +34,7 @@ const state = (id = active): AppState => structuredClone({ activeConversationId:
 });
 const emit = (event: AgentStreamEvent) => { for (const listener of events) listener(event); };
 const broadcast = () => emit({ type: "state", state: state() });
-const calls: { name: string; id?: string; text?: string; options?: unknown }[] = [];
+const calls: { name: string; id?: string; text?: string; images?: ImageAttachment[]; options?: unknown }[] = [];
 const conflictListeners = new Set<() => void>();
 let conflictState = emptyConflictsState;
 const fixture = {
@@ -81,8 +81,8 @@ window.vela = {
     if (options?.activate !== false) active = id;
     broadcast(); return state(id);
   },
-  prompt: async (text, _images, id = active, deliverAs) => {
-    calls.push({ name: deliverAs ?? "prompt", id, text });
+  prompt: async (text, images, id = active, deliverAs) => {
+    calls.push({ name: deliverAs ?? "prompt", id, text, ...(images && { images }) });
     const session = sessions.get(id)!;
     if (!deliverAs) {
       messages.set(id, [...messages.get(id) ?? [], { id: `u-${id}`, role: "user", text, thinking: "", tools: [] }]);

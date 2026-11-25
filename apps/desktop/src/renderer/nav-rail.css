@@ -15,6 +15,10 @@
  */
 .vela-window.nav-rail-layout {
   background: linear-gradient(var(--glass-fill), var(--glass-fill)), var(--bg-chat);
+}
+/* Keep the glass on the common ancestor: filtering .vela-window traps the
+ * floating chat below the persistent browser guest in the sibling view host. */
+.app-screens:has(> .app-screen-main > .nav-rail-layout) {
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
 }

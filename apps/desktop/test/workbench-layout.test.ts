@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { dropWorkbenchTab, emptyWorkbenchLayout, mergeWorkbenchPane, reconcileWorkbenchLayout, replaceWorkbenchTab, resizeWorkbenchDivider,
-  selectWorkbenchTab, workbenchDropTarget, workbenchFits, workbenchGeometry, workbenchPaneOrder, workbenchRatioBounds, reorderWorkbenchTab,
+  selectWorkbenchTab, workbenchDropTarget, workbenchFits, workbenchGeometry, workbenchPaneOrder, workbenchRatioBounds, reorderWorkbenchTab, reorderWorkbenchStrip,
   WORKBENCH_MIN_PANE_HEIGHT, WORKBENCH_MIN_PANE_WIDTH, type WorkbenchLayout } from "../src/renderer/components/workbench-layout.ts";
 const initial = () => reconcileWorkbenchLayout(emptyWorkbenchLayout(), ["browser", "code", "terminal", "agent"]);
 const owner = (s: WorkbenchLayout, tab: string) => s.panes.find(p => p.tabs.includes(tab))!.id;
@@ -195,6 +195,21 @@ test("同一窗口内重排标签:落在第几个标签之前,选中被拖标签
   assert.equal(reorderWorkbenchTab(s, "code", 1), s); assert.equal(reorderWorkbenchTab(s, "code", 2), s);
   assert.deepEqual(reorderWorkbenchTab(s, "code", 99).panes[0].tabs, ["browser", "terminal", "agent", "code"]);
   assert.equal(dropWorkbenchTab(s, "code", id, "tabbar"), s);
+});
+test("pane and fullscreen sorting share shortcut order without moving content between panes", () => {
+  const order = initial().panes[0].tabs;
+  const split = dropWorkbenchTab(initial(), "code", "pane-1", "right");
+  const local = reorderWorkbenchStrip(split, order, "agent", 0, false)!;
+  assert.deepEqual(local.order, ["agent", "code", "browser", "terminal"]);
+  const full = reorderWorkbenchStrip(local.layout, local.order, "agent", 4, true)!;
+  assert.deepEqual(full.order, ["code", "browser", "terminal", "agent"]);
+  assert.equal(full.layout.root, split.root);
+  assert.deepEqual(full.layout.panes.map(p => p.tabs), [["browser", "terminal", "agent"], ["code"]]);
+  assert.equal(full.layout.panes[0].selected, "agent");
+  const across = reorderWorkbenchStrip(full.layout, full.order, "code", 4, true)!;
+  assert.deepEqual(across.order, ["browser", "terminal", "agent", "code"]);
+  assert.equal(across.layout.focused, owner(split, "code"));
+  assert.equal(reorderWorkbenchStrip(across.layout, across.order, "code", 3, true), null);
 });
 test("拖到其他窗口标签栏时可指定插入位置", () => {
   let s = dropWorkbenchTab(initial(), "code", "pane-1", "right"); const target = owner(s, "browser");

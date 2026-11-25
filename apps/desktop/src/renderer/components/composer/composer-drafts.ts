@@ -1,17 +1,51 @@
+import type { FileAttachmentPayload } from "@vela/shared";
+
+interface ComposerDraft {
+  text: string;
+  attachments: readonly FileAttachmentPayload[];
+}
+
+const emptyDraft: ComposerDraft = { text: "", attachments: [] };
+
 /**
  * 输入框草稿：按对话分开保存，切到别的对话、新窗口或输入框被卸载之后再回来仍然保留。
  * 只存在于渲染进程内存里（重启应用后不保留）。新窗口还没有对话 ID，共用一份。
  */
 export function createComposerDrafts() {
-  const drafts = new Map<string, string>();
+  const drafts = new Map<string, ComposerDraft>();
+  const listeners = new Set<() => void>();
+  const presenceListeners = new Set<() => void>();
+  const get = (key: string) => drafts.get(key) ?? emptyDraft;
+  function set(key: string, patch: Partial<ComposerDraft>): void {
+    const current = get(key);
+    const { text, attachments } = { ...current, ...patch };
+    const nextText = text.trim() ? text : "";
+    if (nextText === current.text && (attachments === current.attachments || (!attachments.length && !current.attachments.length))) return;
+    const hadDraft = current !== emptyDraft;
+    const hasDraft = Boolean(nextText || attachments.length);
+    if (hasDraft) drafts.set(key, { text: nextText, attachments });
+    else drafts.delete(key);
+    if (hadDraft !== hasDraft) {
+      for (const listener of presenceListeners) listener();
+    }
+    for (const listener of listeners) listener();
+  }
   return {
-    get(key: string): string {
-      return drafts.get(key) ?? "";
+    get, set,
+    conversationDraftLocation(id: string): "main" | "workbench" | null {
+      if (drafts.has(composerDraftKey(id, false))) return "main";
+      return drafts.has(composerDraftKey(id, true)) ? "workbench" : null;
     },
-    set(key: string, text: string): void {
-      // 只有空白的内容不值得保留，也避免 Map 里堆积空条目。
-      if (text.trim()) drafts.set(key, text);
-      else drafts.delete(key);
+    subscribePresence(listener: () => void) {
+      presenceListeners.add(listener);
+      return () => { presenceListeners.delete(listener); };
+    },
+    restoreIfEmpty(key: string, draft: ComposerDraft): void {
+      if (get(key) === emptyDraft) set(key, draft);
+    },
+    subscribe(listener: () => void) {
+      listeners.add(listener);
+      return () => { listeners.delete(listener); };
     },
   };
 }

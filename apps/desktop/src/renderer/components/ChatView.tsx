@@ -413,10 +413,10 @@ export function ChatView({
     session?.thinkingLevel, thinkingLevelsKey,
   ]);
   const streaming = session?.status === "streaming";
-  const [manuallyExpanded, setManuallyExpanded] = useState(false);
-  useLayoutEffect(() => { setManuallyExpanded(false); }, [activeConversationId, floatingChat, streaming]);
+  const [floatExpanded, setFloatExpanded] = useState(streaming);
+  useLayoutEffect(() => { setFloatExpanded(streaming); }, [activeConversationId, floatingChat, streaming]);
   const [floatHidden, setFloatHidden] = useState(false);
-  const { chatRef, headerEvents, resizeHandle, resizeEvents } = useFloatingChatDrag(floatingChat && !floatHidden, streaming, setManuallyExpanded);
+  const { chatRef, headerEvents, resizeHandle, resizeEvents } = useFloatingChatDrag(floatingChat && !floatHidden, setFloatExpanded);
   const restoreFloatRef = useRef<HTMLButtonElement>(null);
   const focusAfterFloatToggle = useRef(false);
   useLayoutEffect(() => {
@@ -429,7 +429,6 @@ export function ChatView({
     focusAfterFloatToggle.current = true;
     setFloatHidden(hidden => !hidden);
   }
-  const floatExpanded = streaming || manuallyExpanded;
   const floatToggleLabel = floatExpanded ? tr("收起聊天浮窗", "Collapse floating chat") : tr("展开聊天浮窗", "Expand floating chat");
   const floatHideLabel = tr("隐藏聊天浮窗", "Hide floating chat");
   const floatShowLabel = tr("显示聊天浮窗", "Show floating chat");
@@ -960,12 +959,12 @@ export function ChatView({
         aria-label={tr("调整聊天浮窗高度", "Resize floating chat height")} aria-controls={`${tabIdPrefix}-messages`}
         ref={resizeHandle} {...resizeEvents} />}
       {floatingChat ? (
-        <header className="floating-chat-header" {...headerEvents} onDoubleClick={() => setManuallyExpanded(!floatExpanded)}>
+        <header className="floating-chat-header" {...headerEvents} onDoubleClick={() => setFloatExpanded(expanded => !expanded)}>
           <Icon name="folder" size={14} />
-          <span className="chat-active-title" title={title}>{title}</span>
-          <button type="button" className="view-icon-btn" disabled={streaming}
+          <span className="chat-active-title overflow-fade-text" title={title}>{title}</span>
+          <button type="button" className="view-icon-btn"
             aria-expanded={floatExpanded} aria-controls={`${tabIdPrefix}-messages`} aria-label={floatToggleLabel} title={floatToggleLabel}
-            onDoubleClick={event => event.stopPropagation()} onClick={() => setManuallyExpanded(!floatExpanded)}>
+            onDoubleClick={event => event.stopPropagation()} onClick={() => setFloatExpanded(expanded => !expanded)}>
             <Icon name="chevron-up" size={14} />
           </button>
           <button type="button" className="view-icon-btn floating-chat-hide" aria-label={floatHideLabel} title={floatHideLabel}
