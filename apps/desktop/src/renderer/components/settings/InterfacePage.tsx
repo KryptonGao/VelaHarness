@@ -108,6 +108,11 @@ export function InterfacePage({
           <Segmented label={text.filePreviewOpenMode} value={filePreviewOpenMode}
             options={filePreviewOpenModes.map(id => ({ id, label: filePreviewOpenModeLabels[id] }))} onChange={setFilePreviewOpenMode} />
         </SettingsBlock>
+      </SettingsGroup>
+      <SettingsGroup title={copy.sections.experimental}>
+        <SettingsBlock id="race" title={text.race} hint={text.raceHint} layout="inline">
+          <SettingsSwitch label={text.race} checked={preferences.raceEnabled} onChange={preferences.setRaceEnabled} />
+        </SettingsBlock>
         <SettingsBlock id="workbench-split" title={text.workbenchSplit} hint={text.workbenchSplitHint} layout="inline">
           <SettingsSwitch label={text.workbenchSplit} checked={preferences.workbenchSplit} onChange={preferences.setWorkbenchSplit} />
         </SettingsBlock>

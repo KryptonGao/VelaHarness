@@ -39,7 +39,7 @@ async function run() {
     "theme.custom": "[]", "font.code.size": "15", glassTint: "neutral", sidebarCardGlass: "true",
     unfocusedGlassMode: "absolute", unfocusedGlassIncrease: "40",
     infoLayout: "floating", environmentCollapsed: "true", conversationWorkbenchTabs: "true",
-    borderlessInterface: "true", soundEffects: "false",
+    borderlessInterface: "true", soundEffects: "false", raceEnabled: "false",
     toolDisplay: "compact", toolFold: "none", toolIconColor: "gray", filePath: "false",
     runView: "true", thinkingGroupMode: "codex", thinkingTitleStyle: "normal-muted",
     thinkingGroupHeight: "280", commandDetailHeight: "240", toolDetailHeight: "240",
@@ -77,6 +77,17 @@ async function run() {
   })), { glassTint: false, glassOpacity: false, unfocusedGlass: false, sidebarCardGlass: false, unifiedIcons: false });
   await evaluate(() => [...document.querySelectorAll(".settings-nav-item")][1].click());
   await until(() => evaluate(() => Boolean(document.querySelector('[data-setting-id="info-layout"]'))), "interface settings");
+  const raceSwitch = '[data-setting-id="race"] [role="switch"]';
+  const raceChecked = () => evaluate(selector => document.querySelector(selector)?.getAttribute("aria-checked"), raceSwitch);
+  assert.equal(await raceChecked(), "false");
+  assert.equal(await evaluate(selector => document.querySelector(selector).closest(".settings-group").querySelector("h3").textContent, raceSwitch), "實驗性功能");
+  const startRace = () => evaluate(() => window.vela.races.start({}));
+  await assert.rejects(startRace, /实验性功能/);
+  await evaluate(selector => document.querySelector(selector).focus(), raceSwitch);
+  window.webContents.sendInputEvent({ type: "keyDown", keyCode: "Space" });
+  window.webContents.sendInputEvent({ type: "keyUp", keyCode: "Space" });
+  await until(async () => await raceChecked() === "true", "Race enabled with the keyboard");
+  assert.deepEqual(await evaluate(() => window.vela.races.list()), { races: [], error: null });
   assert.deepEqual(await evaluate(() => ({
     sendButtonIcon: Boolean(document.querySelector('[data-setting-id="send-button-icon"]')),
     composerLayout: Boolean(document.querySelector('[data-setting-id="composer-layout"]')),
@@ -117,6 +128,12 @@ async function run() {
     ...overrides, toolIconColor: "color", commandDetailHeight: "320",
   });
   assert.equal(await evaluate(() => document.documentElement.style.getPropertyValue("--code-scale")), "1");
+  await evaluate(() => document.querySelector(".sidebar-user-pill").click());
+  await until(async () => await raceChecked() === "true", "saved Race switch after reload");
+  await evaluate(selector => document.querySelector(selector).click(), raceSwitch);
+  await until(async () => await raceChecked() === "false", "Race switched off again");
+  await assert.rejects(startRace, /实验性功能/);
+  console.log("PASS experimental Race defaults off, follows the switch immediately and persists across reloads");
   console.log("PASS saved choices and legacy preferences win over new defaults");
 }
 

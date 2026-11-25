@@ -65,6 +65,11 @@ export const settingsEntries: readonly SettingsEntry[] = [
   { id: "usage-ring", page: "interface", title: (c) => c.appearance.usageRing, hint: (c) => c.appearance.usageRingHint, keywords: { zh: ["额度", "圆环", "剩余额度", "Codex", "导航栏", "用量"], en: ["usage", "quota", "ring", "limit", "codex", "navigation rail"] } },
   { id: "usage-ring-plus-window", page: "interface", title: (c) => c.appearance.usageRingPlusWindow, keywords: { zh: ["Codex", "5 小时", "每周", "剩余", "圆环"], en: ["Codex", "Plus", "quota", "5h", "1w", "weekly", "lowest"] } },
   { id: "start-page-style", page: "interface", title: (c) => c.appearance.startPageStyle, hint: (c) => c.appearance.startPageStyleHint, keywords: { zh: ["起始页", "首页", "新对话", "静纸", "稿台", "星航", "指挥舱", "经典", "极简", "问候", "预设"], en: ["start page", "home", "new chat", "atelier", "command deck", "deck", "classic", "minimal", "greeting", "prompts"] } },
+  {
+    id: "race", page: "interface", title: (c) => c.appearance.race,
+    hint: (c) => `${c.sections.experimental} · ${c.appearance.raceHint}`,
+    keywords: { zh: ["赛马", "竞速", "多模型", "实验性功能"], en: ["race", "/race", "parallel", "experimental features"] },
+  },
   { id: "workbench-split", page: "interface", title: (c) => c.appearance.workbenchSplit, hint: (c) => c.appearance.workbenchSplitHint, keywords: { zh: ["分屏", "实验性", "拆分", "窗口", "工作面板", "标签"], en: ["split", "experimental", "panes", "workbench", "tabs", "drag"] } },
   { id: "elastic-scroll", page: "interface", title: (c) => c.appearance.elasticScroll, hint: (c) => c.appearance.elasticScrollHint, keywords: { zh: ["弹性", "滚动", "皮筋", "回弹", "实验性", "嵌套", "外层"], en: ["elastic", "scroll", "rubber band", "bounce", "experimental", "nested", "overscroll"] } },
   { id: "file-preview-open-mode", page: "interface", title: (c) => c.appearance.filePreviewOpenMode, hint: (c) => c.appearance.filePreviewOpenModeHint, keywords: { zh: ["文件打开方式", "文件预览", "新标签页", "当前标签页", "文件树", "复用"], en: ["file opening", "file preview", "new tab", "current tab", "file tree", "reuse"] } },

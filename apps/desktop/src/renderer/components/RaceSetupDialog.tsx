@@ -134,7 +134,7 @@ export function RaceSetupDialog({ workspace, initialPrompt, models, onClose, onS
       });
       const race = await api.start({ workspace, prompt: prompt.trim(), lanes: configs, sandboxMode, ...(verifyCommand.trim() ? { verifyCommand: verifyCommand.trim() } : {}) });
       remember(lanes, verifyCommand.trim());
-      onStarted(race);
+      if (dialogRef.current) onStarted(race);
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : String(failure));
     } finally {

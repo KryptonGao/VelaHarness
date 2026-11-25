@@ -117,6 +117,9 @@ export class RaceService {
 
   subscribe(listener: () => void): () => void { this.listeners.add(listener); return () => { this.listeners.delete(listener); }; }
 
+  /** In-process setup, lanes/verification, or adopt/discard; never load records for this check. */
+  hasRunningWork(): boolean { return this.busy.size > 0 || this.runs.size > 0; }
+
   list(): RacesState {
     if (!this.loaded) this.load();
     return structuredClone({ races: this.store.races, error: this.error });
@@ -153,13 +156,20 @@ export class RaceService {
     const draft = parseRaceDraft(raw);
     if (!this.runtime.workspaces().includes(draft.workspace)) throw new Error("工作区未登记");
     if (this.store.races.filter(race => race.status === "running").length >= maxActiveRaces) throw new Error(`最多同时进行 ${maxActiveRaces} 场赛马，请先等待或丢弃其中一场`);
+    // Preparation and failure cleanup can outlive the start request's first turn, before runs has an entry.
+    const id = randomUUID();
+    this.busy.add(id);
+    try { return await this.startRace(id, draft); }
+    finally { this.busy.delete(id); }
+  }
+
+  private async startRace(id: string, draft: RaceDraft): Promise<Race> {
     let head: { sha: string; branch: string | null };
     try { head = await currentHead(draft.workspace); }
     catch { throw new Error("赛马需要 git 仓库，且至少有一个提交"); }
     const executions: RaceLane["resolvedExecution"][] = [];
     for (const lane of draft.lanes) executions.push(await this.runtime.resolveExecution(lane, draft.sandboxMode));
 
-    const id = randomUUID();
     const now = Date.now();
     const lanes: RaceLane[] = draft.lanes.map((config, index) => {
       const branch = raceBranchName(id, index);
@@ -209,7 +219,10 @@ export class RaceService {
   }
 
   private async runRace(race: Race, draft: RaceDraft): Promise<void> {
-    await Promise.all(race.lanes.map(lane => this.runLane(race, lane, draft)));
+    // A failed state write in one lane must not release the run while a sibling is still executing.
+    const lanes = await Promise.allSettled(race.lanes.map(lane => this.runLane(race, lane, draft)));
+    const failure = lanes.find(lane => lane.status === "rejected");
+    if (failure) throw failure.reason;
     if (this.stopped) return;
     const verify = this.runtime.verify ?? runVerifyCommand;
     if (race.verifyCommand) {

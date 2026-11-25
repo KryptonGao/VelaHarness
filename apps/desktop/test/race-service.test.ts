@@ -132,6 +132,34 @@ it("start 建立每条赛道的 worktree，并行执行后给出客观证据", a
   assert.equal(await readFile(join(f.workspace, "a.txt"), "utf8"), "one\ntwo\nthree\n");
 });
 
+it("hasRunningWork covers setup, lanes, verification and adoption, not preflight or ready worktrees", async t => {
+  let verifying!: () => void, releaseVerify!: () => void;
+  const enteredVerify = new Promise<void>(resolve => { verifying = resolve; });
+  const gate = new Promise<void>(resolve => { releaseVerify = resolve; });
+  const f = await fixture(t, { fast: { hang: true, files: { "a.txt": "change\n" } } }, async () => {
+    verifying(); await gate;
+    return { exitCode: 0, timedOut: false, durationMs: 1, outputTail: "" };
+  });
+  const preview = f.service.preflight(f.workspace);
+  assert.equal(f.service.hasRunningWork(), false);
+  await preview;
+  const start = f.service.start(f.draft({ verifyCommand: "true" }));
+  assert.equal(f.service.list().races.length, 0);
+  assert.equal(f.service.hasRunningWork(), true);
+  const race = await start;
+  assert.equal(f.service.hasRunningWork(), true);
+  f.releases.get(lane(race, "l1").conversationId)!();
+  await enteredVerify;
+  assert.ok(f.service.list().races[0].lanes.every(item => item.status === "responded"));
+  assert.equal(f.service.hasRunningWork(), true);
+  releaseVerify(); await f.settle(race.id);
+  assert.equal(f.service.hasRunningWork(), false);
+  const adopting = f.service.adopt(race.id, "l1");
+  assert.equal(f.service.hasRunningWork(), true);
+  assert.ok((await adopting).ok);
+  assert.equal(f.service.hasRunningWork(), false);
+});
+
 it("没有任何改动的赛道不可采用，也不跑统一验证", async t => {
   const calls: string[] = [];
   const f = await fixture(t, { fast: { files: { "a.txt": "x\n" } }, careful: {} }, async (_command, cwd) => { calls.push(cwd); return { exitCode: 0, timedOut: false, durationMs: 1, outputTail: "" }; });
@@ -281,6 +309,19 @@ it("失败的赛道保留错误信息但不影响其他赛道", async t => {
   assert.equal((await f.service.adopt(race.id, "l1")).ok, true);
 });
 
+it("a lane failure during finalization does not hide its still-running sibling", async t => {
+  const f = await fixture(t, { fast: { hang: true }, careful: { hang: true } });
+  const race = await f.service.start(f.draft());
+  const fast = lane(race, "l1").conversationId;
+  f.runtime.laneStats = id => { if (id === fast) throw new Error("stats unavailable"); return null; };
+  f.releases.get(fast)!();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(f.service.hasRunningWork(), true);
+  f.releases.get(lane(race, "l2").conversationId)!();
+  assert.equal((await f.settle(race.id)).status, "interrupted");
+  assert.equal(f.service.hasRunningWork(), false);
+});
+
 it("discard 丢弃整场：停止运行中的赛道，清掉所有 worktree 与分支", async t => {
   const f = await fixture(t, { fast: { hang: true }, careful: { hang: true } });
   const started = await f.service.start(f.draft());
@@ -305,7 +346,11 @@ it("重启后进行中的赛马标为 interrupted，仍可 discard 清理残留 
   assert.ok(race.lanes.every(item => item.status === "interrupted" && item.finishedAt !== null));
   assert.ok(race.lanes.every(item => existsSync(item.worktree)));
   assert.equal((await reborn.adopt(race.id, "l1")).ok, false);
-  await reborn.discard(race.id);
+  assert.equal(reborn.hasRunningWork(), false);
+  const discarding = reborn.discard(race.id);
+  assert.equal(reborn.hasRunningWork(), true);
+  await discarding;
+  assert.equal(reborn.hasRunningWork(), false);
   assert.ok(reborn.list().races[0].lanes.every(item => !existsSync(item.worktree)));
   assert.equal(f.branches(), "");
   for (const release of f.releases.values()) release();
@@ -343,6 +388,7 @@ it("start 的输入校验：赛道数量、非 git、未登记工作区、不可
   assert.equal(f.service.list().races.length, 0);
   assert.equal(f.branches(), "");
   assert.equal(existsSync(join(f.root, "worktrees")), false);
+  assert.equal(f.service.hasRunningWork(), false);
 });
 
 it("非 git 目录：preflight 报告不可用，start 拒绝", async t => {

@@ -1,6 +1,7 @@
 import {
   expandCustomCommand,
   parseSlashInvocation,
+  raceDisabledMessage,
   thinkingLevelLabel,
   type ContextUsage,
   type CodexSpeed,
@@ -204,6 +205,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
   const recipeActions = useContext(RecipeActionsContext);
   const raceActions = useContext(RaceActionsContext);
   const [raceOpen, setRaceOpen] = useState(false);
+  useEffect(() => { if (!raceActions) setRaceOpen(false); }, [raceActions]);
   const locale = useAppLocale();
   const [optionsOpen, setOptionsOpen] = useState(false);
   useEffect(() => { setOptionsOpen(false); }, [floatingChat, conversationId, streaming]);
@@ -642,11 +644,9 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
 
     if (id === "race") {
       if (!canRace) {
-        showCommandNotice(
-          tr("当前无法发起赛马", "Cannot start a race right now"),
-          "error",
-          !workspacePath ? tr("请先选择一个工作区", "Select a workspace first") : undefined,
-        );
+        const hint = !raceActions && !embedded ? localizeError(raceDisabledMessage)
+          : !workspacePath ? tr("请先选择一个工作区", "Select a workspace first") : undefined;
+        showCommandNotice(tr("当前无法发起赛马", "Cannot start a race right now"), "error", hint);
         return false;
       }
       options.onConsume?.();
@@ -1139,15 +1139,15 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
   );
 
   const combinedModePicker = useCombinedModePicker();
-  const raceMenu = raceActions && workspacePath && window.vela?.races && modelReady ? { onStart: () => setRaceOpen(true), onShow: raceActions.open, count: raceActions.count } : undefined;
+  const raceMenu = canRace && raceActions ? { onStart: () => setRaceOpen(true), onShow: raceActions.open, count: raceActions.count } : undefined;
   const lastRaceOpenRequest = useRef(raceOpenRequest ?? 0);
   useEffect(() => {
     if (!raceOpenRequest || raceOpenRequest === lastRaceOpenRequest.current) return;
     lastRaceOpenRequest.current = raceOpenRequest;
-    if (raceActions && workspacePath && window.vela?.races && modelReady && !disabled && !streaming && !recipeActive) {
+    if (canRace && !disabled && !streaming) {
       setRaceOpen(true);
     }
-  }, [raceOpenRequest, raceActions, workspacePath, modelReady, disabled, streaming, recipeActive]);
+  }, [raceOpenRequest, canRace, disabled, streaming]);
   const modePicker = combinedModePicker ? (
     <ModePicker
       mode={mode}

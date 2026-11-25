@@ -331,11 +331,13 @@ export function App() {
   // 不能因为工作区地址随后确定而消失;真正切换工作区时再统一关闭。
   const [terminalTabState, setTerminalTabState] = useState<{ id: string; sessionId: string; label: string }[]>([]);
   const [filesTabOpen, setFilesTabOpen] = useState(false);
-  const raceState = useRaces();
+  const { raceEnabled } = preferences;
+  const raceState = useRaces(raceEnabled);
   const conflicts = useConflicts();
   const [dismissedConflictTurns, setDismissedConflictTurns] = useState(() => new Map<string, number>());
   const [conflictsOpen, setConflictsOpen] = useState(false);
   const [raceTabOpen, setRaceTabOpen] = useState(false);
+  useEffect(() => { if (!raceEnabled) setRaceTabOpen(false); }, [raceEnabled]);
   const [backgroundTabOpen, setBackgroundTabOpen] = useState(false);
   const lastKnownWorkspace = useRef("");
   const tabSeq = useRef(0);
@@ -515,9 +517,9 @@ export function App() {
   }, [focusWorkbenchTab]);
 
   // 在赛道对话里工作区会变成赛道的 worktree，所以也要按赛道的 worktree 匹配，面板才不会凭空消失。
-  const workspaceRaces = useMemo(() => raceState.state.races
+  const workspaceRaces = useMemo(() => raceState.races
     .filter(race => race.status !== "discarded" && (race.workspace === workspaceKey || race.lanes.some(lane => lane.worktree === workspaceKey)))
-    .sort((left, right) => right.createdAt - left.createdAt), [raceState.state.races, workspaceKey]);
+    .sort((left, right) => right.createdAt - left.createdAt), [raceState.races, workspaceKey]);
   const openRaceTab = useCallback(() => {
     setRaceTabOpen(true);
     focusWorkbenchTab(raceTabId);
@@ -550,8 +552,8 @@ export function App() {
     setBackgroundTabOpen(true);
     focusWorkbenchTab(backgroundTabId);
   }, [focusWorkbenchTab]);
-  const raceActions = useMemo(() => ({ started: openRaceTab, open: openRaceTab, count: workspaceRaces.length }),
-    [openRaceTab, workspaceRaces.length]);
+  const raceActions = useMemo(() => raceEnabled ? { started: openRaceTab, open: openRaceTab, count: workspaceRaces.length } : null,
+    [raceEnabled, openRaceTab, workspaceRaces.length]);
   const composerSeedContext = useMemo(() => ({ seed: composerSeed, consume: consumeComposerSeed, offer: offerComposerSeed }),
     [composerSeed, consumeComposerSeed, offerComposerSeed]);
 
@@ -661,9 +663,9 @@ export function App() {
   const backgroundTab = useMemo<WorkbenchTab | null>(() => backgroundTabOpen
     ? { id: backgroundTabId, kind: "background", label: tr("后台任务", "Background tasks") }
     : null, [backgroundTabOpen, preferences.locale]);
-  const raceTab = useMemo<WorkbenchTab | null>(() => raceTabOpen
+  const raceTab = useMemo<WorkbenchTab | null>(() => raceEnabled && raceTabOpen
     ? { id: raceTabId, kind: "race", label: tr("赛马", "Race") }
-    : null, [raceTabOpen, preferences.locale]);
+    : null, [raceEnabled, raceTabOpen, preferences.locale]);
   const startTabItems = useMemo<WorkbenchTab[]>(() => startTabState.map((tab) => ({
     id: tab.id,
     kind: "start",

@@ -13,7 +13,7 @@ import {
 } from "@vela/workspace";
 import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, nativeTheme, Notification, powerMonitor, powerSaveBlocker, session, shell, Tray, webContents } from "electron";
 import type { BrowserWindowConstructorOptions } from "electron";
-import { createLogger, IpcChannel, isAgentBusy, isAppLocale, localizeZh, type ResidentSettings } from "@vela/shared";
+import { createLogger, IpcChannel, isAgentBusy, isAppLocale, localizeZh, raceEnabledStorageKey, type ResidentSettings } from "@vela/shared";
 import { existsSync, readFileSync, statSync, watch as fsWatch, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -122,7 +122,6 @@ let taskScheduler: ScheduledTaskScheduler | null = null;
 let taskRecipeHost: TaskRecipeHost | null = null;
 let taskRecipes: TaskRecipeService | null = null;
 let raceHost: RaceHost | null = null;
-let races: RaceService | null = null;
 let conflictHost: ConflictHost | null = null;
 let conflicts: ConflictService | null = null;
 let host: SessionHost | null = null;
@@ -493,8 +492,8 @@ async function start(): Promise<void> {
     sandboxMode: () => sandbox.getMode(),
     worktreePath: branch => join(home, "worktrees", branch.replace("/", "-")),
   });
-  raceService.init(); races = raceService;
-  raceHost = new RaceHost(raceService); raceHost.register();
+  raceHost = new RaceHost(raceService, () => uiStorage.getItem(raceEnabledStorageKey) === "true");
+  raceHost.register();
   // 跨对话冲突提醒：记录近期 edit / write 的文件，仅在仍运行的对话之间提醒重叠。
   const conflictService = new ConflictService(join(home, "conversation-edits.json"), {
     conversation: id => {
@@ -819,8 +818,8 @@ app.on("before-quit", (event) => {
   uiSandboxHost = null;
   try { taskRecipes?.stop(); } catch (error) { log.error("recipe shutdown write failed", error); }
   taskRecipeHost?.dispose(); taskRecipeHost = null;
-  try { races?.stop(); } catch (error) { log.error("race shutdown failed", error); }
-  raceHost?.dispose(); raceHost = null;
+  try { raceHost?.dispose(); } catch (error) { log.error("race shutdown failed", error); }
+  raceHost = null;
   try { conflicts?.dispose(); } catch (error) { log.error("conflict shutdown failed", error); }
   conflictHost?.dispose(); conflictHost = null;
   scheduledTaskHost?.dispose();

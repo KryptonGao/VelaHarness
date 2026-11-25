@@ -68,6 +68,7 @@ const knownErrors: Record<string, string> = {
   "费用上限超出范围": "The cost limit is out of range (0.01–1,000,000).",
   "模型价格格式不正确": "The model prices are not in a valid format.",
   "请输入数字": "Enter a number.",
+  "请先在「设置 → 界面 → 实验性功能」中开启赛马。": "Turn on Race in Settings → Interface → Experimental features.",
   "赛马需要 git 仓库，且至少有一个提交": "Racing needs a git repository with at least one commit.",
   "工作区未登记": "This workspace is not registered.",
   "赛道数量需要在 2 到 4 之间": "A race needs between 2 and 4 lanes.",

@@ -83,10 +83,14 @@ test("search finds settings across languages through keywords", () => {
   assert.ok(searchSettings("theme", zh).some((result) => result.entry.id === "theme"));
   assert.ok(searchSettings("主题", en).some((result) => result.entry.id === "theme"));
   assert.ok(searchSettings("sandbox", zh).some((result) => result.entry.id === "permissions"));
+  assert.equal(searchSettings("实验性功能 赛马", zh)[0]?.entry.id, "race");
+  assert.equal(searchSettings("experimental /race", en)[0]?.entry.id, "race");
   for (const locale of ["zh-CN", "en", "zh-TW", "ja", "ko"] as const) {
-    const entries = resolveSettingsEntries(settingsCopy(locale));
+    const copy = settingsCopy(locale);
+    const entries = resolveSettingsEntries(copy);
+    assert.equal(searchSettings(`${copy.sections.experimental} ${copy.appearance.race}`, entries)[0]?.entry.id, "race", locale);
     assert.equal(searchSettings("Catppuccin", entries)[0]?.entry.id, "file-icon-theme", locale);
-    assert.equal(settingsCopy(locale).appearance.catppuccinIconTheme, "Catppuccin");
+    assert.equal(copy.appearance.catppuccinIconTheme, "Catppuccin");
   }
 });
 

@@ -4,6 +4,8 @@
 
 ## 使用方式
 
+Race is off by default. Turn it on in **Settings → Interface → Experimental features → Race**. Turning it off hides the launchers and Race tab. Active races continue, and turning it back on restores access to their results.
+
 1. 在输入框的模式菜单（Agent / Plan / Goal）里选择「赛马」。赛马不是新的对话模式，只是一个启动动作；当前对话的模式不变。
 2. 设置对话框里写任务（默认取输入框内容），为每条赛道选择模型、思考强度和可选的附加提示，也可以填一条「统一验证」指令（例如 `pnpm test`）。非 git 仓库、没有任何提交时无法开始。
 3. 开始后右侧 Workbench 打开「赛马」分页，每条赛道一张卡片，实时显示状态、耗时、token、改动、验证结果。

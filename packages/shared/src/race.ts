@@ -2,6 +2,9 @@ import type { SandboxMode, ThinkingLevel } from "./index";
 
 /** 赛马：同一个任务在 N 个独立 worktree 里并行尝试，用客观证据并排比较后采用其一。 */
 
+export const raceEnabledStorageKey = "vela.raceEnabled";
+export const raceDisabledMessage = "请先在「设置 → 界面 → 实验性功能」中开启赛马。";
+
 export const raceLimits = {
   minLanes: 2,
   maxLanes: 4,
