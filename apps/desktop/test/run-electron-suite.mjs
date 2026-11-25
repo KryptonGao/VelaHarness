@@ -56,6 +56,7 @@ const suites = {
     { name: "info-cards-ui", runner: "node" },
     { name: "composer-tray-ui", runner: "node" },
     { name: "turn-nav-ui", runner: "node" },
+    { name: "usage-heatmap-ui", runner: "node" },
   ],
   smoke: [
     { name: "pi-sdk-electron-smoke", runner: "node" },

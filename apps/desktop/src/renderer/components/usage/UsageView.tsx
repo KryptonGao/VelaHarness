@@ -1,11 +1,11 @@
-import { useId, useMemo, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { providerDisplayName, formatCost, hasCost, type CostByCurrency, type ProviderSummary, type TraceAgentRequest, type TraceRequest, type TraceSummaryRequest } from "@vela/shared";
 import { useTrace } from "../../hooks/useTrace";
 import { useModelPrices } from "../../model-prices";
 import { localizeError, tr, trf, activeIntlLocale, getActiveLocale } from "../../locale";
 import { useSlidingTabIndicator } from "../useSlidingTabIndicator";
 import {
-  formatUsageNumber, formatUsagePercent, latestTaskAgentRequests, latestTaskRequests, summarizeCost, summarizeUsage, usageCacheHitRate,
+  formatHeatmapTokens, formatUsageNumber, formatUsagePercent, latestTaskAgentRequests, latestTaskRequests, summarizeCost, summarizeUsage, usageCacheHitRate,
   usageCalendar, usageCoverage, usageInputTokens, type CostSummary, type ModelCost, type UsageTotals,
 } from "./usage-model";
 import "./usage.css";
@@ -273,6 +273,24 @@ export function UsageReport({ requests, agentRequests = [], summaries = [], prov
   </section>;
 }
 
+const HEATMAP_TOOLTIP_GAP = 8;
+const HEATMAP_TOOLTIP_EDGE = 8;
+
+function formatHeatmapDetail(dayStats: UsageTotals | undefined, excluded: boolean): string {
+  if (excluded) return tr("不在所选范围", "Outside selected range");
+  const count = dayStats?.requests ?? 0;
+  const metered = dayStats?.metered ?? 0;
+  if (count > 0 && metered === 0) {
+    return trf("{0} 次请求 · Token 未计量", count === 1 ? "{0} request · Unmetered tokens" : "{0} requests · Unmetered tokens", count);
+  }
+  return trf(
+    "{0} 次请求 · {1} Token",
+    count === 1 ? "{0} request · {1} tokens" : "{0} requests · {1} tokens",
+    count,
+    formatHeatmapTokens(dayStats?.totalTokens ?? 0),
+  );
+}
+
 function UsageActivity({ days, start, end }: { days: Map<string, UsageTotals>; start: string; end: string }) {
   const lastDay = end ? new Date(`${end}T12:00:00`) : new Date();
   const calendar = usageCalendar(lastDay);
@@ -281,6 +299,43 @@ function UsageActivity({ days, start, end }: { days: Map<string, UsageTotals>; s
   const maximum = Math.max(1, ...[...days.values()].map(day => day.requests));
   const locale = activeIntlLocale();
   const gridTemplateColumns = `repeat(${Math.ceil(cells.length / 7)}, minmax(10px, 1fr))`;
+  const [hovered, setHovered] = useState<{ day: string; rect: DOMRect } | null>(null);
+  const [tooltipPosition, setTooltipPosition] = useState<{ left: number; top: number } | null>(null);
+  const tooltipRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!hovered) return;
+    const dismiss = () => setHovered(null);
+    document.addEventListener("scroll", dismiss, true);
+    window.addEventListener("blur", dismiss);
+    return () => {
+      document.removeEventListener("scroll", dismiss, true);
+      window.removeEventListener("blur", dismiss);
+    };
+  }, [hovered !== null]);
+
+  useLayoutEffect(() => {
+    const node = tooltipRef.current;
+    if (!hovered || !node) {
+      setTooltipPosition(null);
+      return;
+    }
+    try { if (!node.matches(":popover-open")) node.showPopover(); } catch { /* fallback to fixed positioning */ }
+    const { width, height } = node.getBoundingClientRect();
+    const { rect } = hovered;
+    const left = Math.max(
+      HEATMAP_TOOLTIP_EDGE,
+      Math.min(rect.left + rect.width / 2 - width / 2, window.innerWidth - width - HEATMAP_TOOLTIP_EDGE),
+    );
+    const above = rect.top - HEATMAP_TOOLTIP_GAP - height;
+    const below = rect.bottom + HEATMAP_TOOLTIP_GAP;
+    const top = above >= HEATMAP_TOOLTIP_EDGE ? above : Math.min(below, window.innerHeight - height - HEATMAP_TOOLTIP_EDGE);
+    setTooltipPosition({ left, top });
+  }, [hovered]);
+
+  const hoveredExcluded = hovered ? Boolean((start && hovered.day < start) || (end && hovered.day > end)) : false;
+  const hoveredDetail = hovered ? formatHeatmapDetail(days.get(hovered.day), hoveredExcluded) : "";
+
   return <section className="usage-activity" aria-label={tr("每日活动", "Daily activity")}>
     <h2>{tr("每日活动", "Daily activity")}</h2>
     <p className="usage-note">{tr("按每日请求数显示最近一年，颜色越深表示请求越多。", "Requests per day over the last year. Darker cells indicate more requests.")}</p>
@@ -291,19 +346,45 @@ function UsageActivity({ days, start, end }: { days: Map<string, UsageTotals>; s
           return <span key={index}>{date ? new Date(`${date}T12:00:00`).toLocaleDateString(locale, { month: "short" }) : ""}</span>;
         })}
       </div>
-      <div className="usage-heatmap" style={{ gridTemplateColumns }}>
+      <div
+        className="usage-heatmap"
+        style={{ gridTemplateColumns }}
+        onPointerOver={event => {
+          if (event.pointerType === "touch") return;
+          const target = event.target instanceof Element ? event.target.closest<HTMLElement>(".usage-heatmap-cell[data-day]") : null;
+          if (target?.dataset.day) {
+            setHovered({ day: target.dataset.day, rect: target.getBoundingClientRect() });
+          } else if (event.target instanceof Element && event.target.closest(".usage-heatmap-blank")) {
+            setHovered(null);
+          }
+        }}
+        onPointerLeave={() => setHovered(null)}
+      >
         {cells.map((day, index) => {
           if (!day) return <span key={`blank-${index}`} className="usage-heatmap-blank" />;
-          const count = days.get(day)?.requests ?? 0;
+          const dayStats = days.get(day);
+          const count = dayStats?.requests ?? 0;
           const excluded = Boolean((start && day < start) || (end && day > end));
           const level = count === 0 ? 0 : Math.max(1, Math.ceil(count / maximum * 4));
-          const label = excluded ? trf("{0}：不在所选范围", "{0}: outside selected range", day)
-            : trf("{0}：{1} 次请求", "{0}: {1} requests", day, count);
-          return <span key={day} className={`usage-heatmap-cell level-${level}${excluded ? " excluded" : ""}`}
-            role="img" aria-label={label} title={label} />;
+          const detail = formatHeatmapDetail(dayStats, excluded);
+          const label = `${day} · ${detail}`;
+          return <span key={day} data-day={day} className={`usage-heatmap-cell level-${level}${excluded ? " excluded" : ""}`}
+            role="img" aria-label={label} />;
         })}
       </div>
     </div>
+    {hovered ? (
+      <div
+        ref={tooltipRef}
+        className="usage-heatmap-tooltip"
+        popover="manual"
+        role="tooltip"
+        style={tooltipPosition ? { left: tooltipPosition.left, top: tooltipPosition.top } : { visibility: "hidden" }}
+      >
+        <span className="usage-heatmap-tooltip-date">{hovered.day}</span>
+        <span className="usage-heatmap-tooltip-metric">{hoveredDetail}</span>
+      </div>
+    ) : null}
     <div className="usage-heatmap-legend" aria-label={tr("活动强度：少到多", "Activity intensity: less to more")}>
       <span>{tr("少", "Less")}</span>{[0, 1, 2, 3, 4].map(level => <span key={level} className={`usage-heatmap-cell level-${level}`} aria-hidden="true" />)}<span>{tr("多", "More")}</span>
     </div>

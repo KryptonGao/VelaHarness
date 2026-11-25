@@ -213,3 +213,17 @@ export function formatUsageNumber(value: number, locale: AppLocale = "zh-CN"): s
 export function formatUsagePercent(value: number | null): string {
   return value === null ? "—" : `${Number((value * 100).toFixed(1))}%`;
 }
+
+const ONE_MILLION = 1_000_000;
+const ONE_BILLION = 1_000_000_000;
+/** Values at or above 999.95M round to 1000.0M, so switch to B at this boundary. */
+const BILLION_DISPLAY_THRESHOLD = 999_950_000;
+
+/** Format token counts in M or B with one decimal place for heatmap tooltips. */
+export function formatHeatmapTokens(value: number): string {
+  const safe = Number.isFinite(value) ? Math.max(0, value) : 0;
+  if (safe >= BILLION_DISPLAY_THRESHOLD) {
+    return `${(safe / ONE_BILLION).toFixed(1)}B`;
+  }
+  return `${(safe / ONE_MILLION).toFixed(1)}M`;
+}

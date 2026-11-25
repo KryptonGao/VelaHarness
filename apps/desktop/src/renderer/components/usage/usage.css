@@ -122,6 +122,33 @@
 .usage-heatmap-cell.level-3 { background: color-mix(in srgb, var(--success) 75%, var(--bg-card-surface)); }
 .usage-heatmap-cell.level-4 { background: var(--success); }
 .usage-heatmap-cell.excluded { opacity: .35; }
+.usage-heatmap .usage-heatmap-cell { cursor: default; }
+.usage-heatmap .usage-heatmap-cell:hover { outline: 1.5px solid color-mix(in srgb, var(--text-primary) 55%, transparent); outline-offset: 1px; }
+.usage-heatmap-tooltip {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: #0d0d0f;
+  color: #f4f4f5;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.28);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: max-content;
+  max-width: calc(100vw - 16px);
+  font: 500 calc(12px * var(--ui-scale))/1.35 var(--font-sans);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  pointer-events: none;
+  overflow: visible;
+  transition: left 90ms var(--motion-ease-enter), top 90ms var(--motion-ease-enter);
+}
+.usage-heatmap-tooltip-date { color: #b4b6bb; font-family: var(--font-mono); }
+.usage-heatmap-tooltip-metric { color: #f4f4f5; }
+@media (prefers-reduced-motion: reduce) { .usage-heatmap-tooltip { transition: none; } }
 .usage-heatmap-legend { display: flex; align-items: center; justify-content: flex-end; gap: 4px; margin-top: 10px; color: var(--text-muted); font-size: calc(12px * var(--ui-scale)); }
 .usage-heatmap-legend .usage-heatmap-cell { width: 10px; }
 .usage-daily-details { margin-top: 12px; color: var(--text-muted); font-size: calc(12px * var(--ui-scale)); }

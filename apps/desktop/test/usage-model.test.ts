@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { TraceRequest } from "@vela/shared";
 import {
-  formatUsageNumber, formatUsagePercent, summarizeUsage,
+  formatHeatmapTokens, formatUsageNumber, formatUsagePercent, summarizeUsage,
   usageCacheHitRate, usageCoverage, usageInputTokens,
   collectUsageRequests, filterUsageRequests, latestTaskAgentRequests, requestDate, usageCalendar, usageDateKey,
 } from "../src/renderer/components/usage/usage-model.ts";
@@ -121,6 +121,21 @@ describe("conversation usage statistics", () => {
     assert.equal(formatUsagePercent(341 / 347), "98.3%");
     assert.equal(formatUsagePercent(1), "100%");
     assert.ok(Object.keys(summarizeUsage([request("1")]).totals).every(key => !/price|cost/i.test(key)));
+  });
+
+  it("formats heatmap token totals in M or B with one decimal place", () => {
+    assert.equal(formatHeatmapTokens(0), "0.0M");
+    assert.equal(formatHeatmapTokens(49_999), "0.0M");
+    assert.equal(formatHeatmapTokens(50_000), "0.1M");
+    assert.equal(formatHeatmapTokens(1_000_000), "1.0M");
+    assert.equal(formatHeatmapTokens(42_848_000), "42.8M");
+    assert.equal(formatHeatmapTokens(999_949_999), "999.9M");
+    assert.equal(formatHeatmapTokens(999_950_000), "1.0B");
+    assert.equal(formatHeatmapTokens(1_000_000_000), "1.0B");
+    assert.equal(formatHeatmapTokens(1_250_000_000), "1.3B");
+    assert.equal(formatHeatmapTokens(12_340_000_000), "12.3B");
+    assert.equal(formatHeatmapTokens(-100), "0.0M");
+    assert.equal(formatHeatmapTokens(Number.NaN), "0.0M");
   });
 });
 
