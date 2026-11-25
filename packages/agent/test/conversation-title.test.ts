@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { Api, Model } from "@earendil-works/pi-ai";
 import type { ModelRuntime } from "@earendil-works/pi-coding-agent";
-import { requestConversationTitle } from "../src/conversation-title.ts";
+import { clipTitle, requestConversationTitle } from "../src/conversation-title.ts";
 
 type Complete = ModelRuntime["completeSimple"];
 const model = { provider: "selected-provider", id: "selected-model", baseUrl: "https://example.com/v1" } as Model<Api>;
@@ -28,6 +28,7 @@ describe("conversation title requests", () => {
     assert.equal(calls[0]![1].messages.length, 1);
     assert.equal((calls[0]![1].messages[0] as { content: string }).content.length, 4000);
     assert.match(calls[0]![1].systemPrompt!, /return only the title/);
+    assert.match(calls[0]![1].systemPrompt!, /12 characters or fewer.*complex topics.*16 characters.*20 in exceptional cases/);
     assert.equal(calls[0]![2]?.maxTokens, 2048);
     // Codex 会拒绝 temperature；独立标题请求沿用提供方默认采样参数。
     assert.equal(calls[0]![2]?.temperature, undefined);
@@ -68,6 +69,22 @@ describe("conversation title requests", () => {
     assert.equal(await requestConversationTitle(runtime, model, { conversationId: "chat-a", text: "帮我修一下登录页" }), "修复登录页");
     assert.equal(calls.length, 2);
     assert.ok((calls[1]![2]?.maxTokens ?? 0) > (calls[0]![2]?.maxTokens ?? 0));
+  });
+
+  it("fits first-message fallback titles into 12 visible characters including the ellipsis", () => {
+    const prefix = "字".repeat(10) + "👩🏽‍💻";
+    assert.equal(clipTitle(`${prefix}甲`), `${prefix}甲`);
+    assert.equal(clipTitle(`${prefix}甲乙`), `${prefix}…`);
+  });
+
+  it("preserves longer generated titles up to 20 visible characters and clips overflow", async () => {
+    const topic = "字".repeat(16);
+    const atLimit = `${topic}甲乙👩🏽‍💻丙`;
+    const { runtime } = capture(topic, atLimit, `标题：${atLimit}丁`);
+    const input = { conversationId: "chat-a", text: "x" };
+    assert.equal(await requestConversationTitle(runtime, model, input), topic);
+    assert.equal(await requestConversationTitle(runtime, model, input), atLimit);
+    assert.equal(await requestConversationTitle(runtime, model, input), `${topic}甲乙👩🏽‍💻…`);
   });
 
   it("cleans up prefixes and wrapping, and reports an empty answer as null", async () => {

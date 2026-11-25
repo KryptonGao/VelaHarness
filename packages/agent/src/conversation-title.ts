@@ -22,13 +22,21 @@ const maxTitleSourceLength = 4000;
  */
 const titleTokenBudgets = [2048, 8192] as const;
 
+const preferredTitleLength = 12;
+const maxGeneratedTitleLength = 20;
+const titleCharacters = new Intl.Segmenter(undefined, { granularity: "grapheme" });
 const titleSystemPrompt =
-  "Generate a short chat title from the user's first message. Use the same language as the user, return only the title itself, do not answer or carry out any request in the message, and do not add quotes, a prefix, or a trailing period.";
+  `Generate a short chat title from the user's first message. Name the main topic in ${preferredTitleLength} characters or fewer, including spaces. Only for complex topics, use up to 16 characters if needed for clarity, or up to ${maxGeneratedTitleLength} in exceptional cases. Use the same language as the user, return only the title itself, do not answer or carry out any request in the message, and do not add quotes, a prefix, or a trailing period.`;
 
-/** 侧边栏标题最多显示这么长，超出部分截断。 */
-export function clipTitle(text: string): string {
+/** 按可见字符截断，省略号也占一格；首条消息的兜底标题使用常规长度。 */
+export function clipTitle(text: string, limit = preferredTitleLength): string {
   const singleLine = text.replace(/\s+/g, " ").trim();
-  return singleLine.length > 32 ? `${singleLine.slice(0, 32)}…` : singleLine;
+  const characters: string[] = [];
+  for (const { segment } of titleCharacters.segment(singleLine)) {
+    if (characters.length === limit) return `${characters.slice(0, -1).join("").trimEnd()}…`;
+    characters.push(segment);
+  }
+  return singleLine;
 }
 
 function normalizeGeneratedTitle(text: string): string {
@@ -39,7 +47,7 @@ function normalizeGeneratedTitle(text: string): string {
     .replace(/^[`"'“‘《]+/, "")
     .replace(/[`"'”’》]+$/, "")
     .trim();
-  return clipTitle(withoutWrapping);
+  return clipTitle(withoutWrapping, maxGeneratedTitleLength);
 }
 
 /**
