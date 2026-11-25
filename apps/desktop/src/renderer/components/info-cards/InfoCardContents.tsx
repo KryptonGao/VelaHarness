@@ -344,7 +344,7 @@ export const infoCardDefinitions: Record<InfoCardId, InfoCardDefinition> = {
     Body: ChangesBody,
   },
   agents: {
-    Icon: ({ size }) => <Icon name="subagent" size={snapIconSize(size ?? 13)} />,
+    Icon: ({ size }) => <Icon name="bot" size={snapIconSize(size ?? 13)} />,
     title: () => tr("子代理", "Subagents"),
     available: (ctx) => subagentsOf(ctx).length > 0,
     summary: (ctx) => {

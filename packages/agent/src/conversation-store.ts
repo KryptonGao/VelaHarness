@@ -5,7 +5,7 @@ import { latestPlan, migrateLegacyPlan, sortPlans, type LegacyPlanRecord } from 
 import { readFile } from "node:fs/promises";
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
-import { createLogger, parseContextLimitSettings, parseTaskBudgetSettings, type ContextLimitSettings, type TaskBudgetSettings } from "@vela/shared";
+import { createLogger, isCodexSpeed, parseContextLimitSettings, parseTaskBudgetSettings, type CodexSpeed, type ContextLimitSettings, type TaskBudgetSettings } from "@vela/shared";
 
 const log = createLogger("conversations");
 
@@ -28,6 +28,7 @@ export interface StoredConversation {
   /** 创建对话时快照的额外指令。之后修改设置不会改写已有对话。 */
   instructions: string;
   mode: InteractionMode;
+  subagentCodexSpeed?: CodexSpeed;
   /** 全部 ProposedPlan revision,按 revision 升序;旧版本只读保留。 */
   plans: ProposedPlanItem[];
   /** 最新 revision 的 id,供界面快速定位。 */
@@ -263,6 +264,7 @@ function normalize(entry: unknown): StoredConversation | null {
     sessionFile: typeof record.sessionFile === "string" ? record.sessionFile : null,
     instructions: typeof record.instructions === "string" ? record.instructions : "",
     mode,
+    subagentCodexSpeed: isCodexSpeed(record.subagentCodexSpeed) ? record.subagentCodexSpeed : undefined,
     plans,
     latestProposedPlanId,
     executionPlans,

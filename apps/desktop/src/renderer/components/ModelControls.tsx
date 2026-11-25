@@ -51,6 +51,8 @@ interface ModelControlsProps {
   login: LoginState;
   onSelect: (provider: string, id: string) => Promise<unknown>;
   codexSpeed?: CodexSpeed;
+  subagentSpeed?: CodexSpeed;
+  onSubagentSpeed?: (speed: CodexSpeed) => Promise<unknown>;
   onSpeed: (provider: string, model: string, speed: CodexSpeed) => Promise<unknown>;
   onThinking: (level: ThinkingLevel) => Promise<unknown>;
   onReplyLogin: (promptId: string, value: string | null) => Promise<void>;
@@ -167,6 +169,10 @@ export function ModelControls(props: ModelControlsProps) {
   const speed = codexProvider ? props.codexSpeed ?? "standard" : "standard";
   const isGptSlider = Boolean(codexProvider) || /(?:^|\/)gpt(?:-|$)/i.test(modelId ?? "");
   const speedEnabled = tiers.length > 0 || speed !== "standard";
+  // The child may choose a different model/account from the main agent.
+  const showSubagentSpeed = Boolean(props.onSubagentSpeed && (codexProvider ||
+    props.catalog?.models.some(item => item.available && quotaProviderId(item.provider)) ||
+    (props.subagentSpeed && props.subagentSpeed !== "standard")));
   const activeSpeedGlyph = speed !== "standard" && <SpeedGlyph speed={speed} />;
   const usage = useUsageLimits(props.modelProvider);
   const refreshUsage = usage.refresh;
@@ -294,10 +300,14 @@ export function ModelControls(props: ModelControlsProps) {
 
   const thinkingContent = (
     <>
-      <div className={`thinking-heading-row${speedEnabled ? " thinking-heading-with-speed" : ""}`}>
+      <div className={`thinking-heading-row${speedEnabled || showSubagentSpeed ? " thinking-heading-with-speed" : ""}${showSubagentSpeed ? " has-subagent-speed" : ""}`}>
         {speedEnabled && codexProvider && modelId && (
           <CodexSpeedControl key={modelKey(codexProvider, modelId)} speed={speed} tiers={tiers}
             disabled={props.disabled} onChange={value => props.onSpeed(codexProvider, modelId, value)} />
+        )}
+        {showSubagentSpeed && props.onSubagentSpeed && (
+          <CodexSpeedControl subagent speed={props.subagentSpeed ?? "standard"} tiers={["priority", "ultrafast"]}
+            disabled={false} onChange={props.onSubagentSpeed} />
         )}
         {combined ? (
           <button
@@ -431,7 +441,7 @@ export function ModelControls(props: ModelControlsProps) {
             aria-label={speed === "standard" ? combinedLabel : `${combinedLabel} · ${speedLabel(speed)}`}
             aria-controls={pickerOpen ? thinkingPopoverId : undefined}
             aria-expanded={pickerOpen}
-            disabled={props.disabled}
+            disabled={props.disabled && !showSubagentSpeed}
             onClick={() => {
               if (pickerOpen) closePicker();
               else openPicker("thinking");
@@ -469,7 +479,7 @@ export function ModelControls(props: ModelControlsProps) {
               title={thinkingChoices.length < 2 ? tr("当前模型不支持调整思考强度", "The current model does not support adjustable reasoning") : `${reasoningLabel}: ${thinkingLabel(shownThinking)}`}
               aria-controls={thinkingPopoverId}
               aria-expanded={menu === "thinking"}
-              disabled={props.disabled || (thinkingChoices.length < 2 && !speedEnabled)}
+              disabled={!showSubagentSpeed && (props.disabled || (thinkingChoices.length < 2 && !speedEnabled))}
               onClick={() => {
                 if (menu === "thinking") {
                   setMenu(null);

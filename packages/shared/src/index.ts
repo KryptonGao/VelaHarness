@@ -118,6 +118,7 @@ export const IpcChannel = {
   usageLimits: "models:usage-limits",
   codexSpeedTiers: "models:codex-speed-tiers",
   setCodexSpeed: "models:set-codex-speed",
+  setSubagentCodexSpeed: "models:set-subagent-codex-speed",
   selectModel: "models:select",
   setThinkingLevel: "models:thinking",
   addModel: "models:add",
@@ -846,6 +847,8 @@ export interface SessionSnapshot {
   modelId: string | null;
   modelReady: boolean;
   codexSpeed?: CodexSpeed;
+  /** Explicit tier for supported child models in this conversation only; unset means standard. */
+  subagentCodexSpeed?: CodexSpeed;
   thinkingLevel: ThinkingLevel;
   thinkingLevels: ThinkingLevel[];
   tools: string[];
@@ -3322,6 +3325,7 @@ export interface VelaApi extends McpApi, PluginApi, HooksApi {
   /** 读取订阅额度；不支持或没有登录时返回 null，网络等临时失败会抛错。 */
   getCodexSpeedTiers(provider: string, model: string): Promise<CodexSpeedTier[]>;
   setCodexSpeed(provider: string, model: string, speed: CodexSpeed, conversationId?: string): Promise<AppState>;
+  setSubagentCodexSpeed(speed: CodexSpeed, conversationId: string): Promise<AppState>;
   getUsageLimits(provider: string): Promise<UsageLimits | null>;
   selectModel(provider: string, id: string, conversationId?: string): Promise<AppState>;
   setThinkingLevel(level: ThinkingLevel, conversationId?: string): Promise<AppState>;

@@ -19,6 +19,8 @@ import {
   type ModelAuthEvent,
   type ModelCatalog,
   type ModelRefreshResult,
+  isCodexSpeed,
+  type CodexSpeed,
   type CodexSpeedTier,
   type UsageLimits,
   type UsageLimitWindow,
@@ -51,11 +53,12 @@ export interface ModelSelection {
   subagentModels: SubagentModelRef[];
 }
 
-/** 上一次在对话中使用过的模型与思考强度,供「沿用上次使用」的新对话取用。 */
+/** 上一次在对话中使用过的模型、思考强度与速度。 */
 interface LastUsedSelection {
   provider: string | null;
   modelId: string | null;
   thinkingLevel: ThinkingLevel;
+  codexSpeed?: CodexSpeed;
 }
 
 const maxInstructionLength = 4000;
@@ -340,16 +343,20 @@ export class ModelDirectory {
     return this.lastUsed.thinkingLevel;
   }
 
-  /** 记录最近一次在对话中使用的模型与思考强度,供新对话沿用。 */
-  async rememberLastUsed(provider: string, modelId: string, thinkingLevel: ThinkingLevel): Promise<void> {
+  lastUsedCodexSpeed(): CodexSpeed | undefined {
+    return this.lastUsed.codexSpeed;
+  }
+
+  async rememberLastUsed(provider: string, modelId: string, thinkingLevel: ThinkingLevel, codexSpeed?: CodexSpeed): Promise<void> {
     if (
       this.lastUsed.provider === provider &&
       this.lastUsed.modelId === modelId &&
-      this.lastUsed.thinkingLevel === thinkingLevel
+      this.lastUsed.thinkingLevel === thinkingLevel &&
+      this.lastUsed.codexSpeed === codexSpeed
     ) {
       return;
     }
-    this.lastUsed = { provider, modelId, thinkingLevel };
+    this.lastUsed = { provider, modelId, thinkingLevel, codexSpeed };
     if (this.readOnly) return;
     await this.writeSelection();
   }
@@ -757,11 +764,7 @@ export class ModelDirectory {
       body.modelId = this.selection.modelId;
     }
     if (this.lastUsed.provider && this.lastUsed.modelId) {
-      body.lastUsed = {
-        provider: this.lastUsed.provider,
-        modelId: this.lastUsed.modelId,
-        thinkingLevel: this.lastUsed.thinkingLevel,
-      };
+      body.lastUsed = this.lastUsed;
     }
     await writePrivateJson(this.selectionPath, body);
   }
@@ -851,7 +854,7 @@ function readLastUsed(value: unknown): LastUsedSelection {
   const thinkingLevel = typeof record.thinkingLevel === "string" && isThinkingLevel(record.thinkingLevel)
     ? record.thinkingLevel
     : defaultThinkingLevel;
-  return { provider, modelId, thinkingLevel };
+  return { provider, modelId, thinkingLevel, codexSpeed: isCodexSpeed(record.codexSpeed) ? record.codexSpeed : undefined };
 }
 
 /** 读取模型池：去重、丢弃格式不对的项。strict 时（来自界面的保存）格式不对或超过上限直接报错。 */

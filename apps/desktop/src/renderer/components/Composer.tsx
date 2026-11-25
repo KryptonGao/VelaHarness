@@ -100,6 +100,7 @@ export interface ComposerProps {
   modelId: string | null;
   modelReady: boolean;
   codexSpeed?: CodexSpeed;
+  subagentCodexSpeed?: CodexSpeed;
   thinkingLevel: ThinkingLevel;
   thinkingLevels: ThinkingLevel[];
   /** 在输入框模型列表中隐藏的模型，key 为 `provider/id`。 */
@@ -171,6 +172,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
   modelId,
   modelReady,
   codexSpeed,
+  subagentCodexSpeed,
   thinkingLevel,
   thinkingLevels,
   hiddenModels,
@@ -1180,6 +1182,8 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
       onSelect={models.select}
       codexSpeed={codexSpeed}
       onSpeed={models.setCodexSpeed}
+      subagentSpeed={subagentCodexSpeed}
+      onSubagentSpeed={conversationId && !recipeActive ? value => models.setSubagentCodexSpeed(value, conversationId) : undefined}
       onThinking={models.setThinking}
       fullAccess={sandboxMode ? undefined : { mode: project.sandboxMode, onEnable: () => project.setSandboxMode("full") }}
       onReplyLogin={models.replyLogin}

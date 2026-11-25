@@ -103,6 +103,12 @@ export function useModels(setAppState: (state: AppState) => void, conversationId
     return mutate(() => api.setCodexSpeed(provider, model, speed, conversationId), false);
   }, [mutate, conversationId]);
 
+  const setSubagentCodexSpeed = useCallback((speed: CodexSpeed, targetConversationId: string) => {
+    const api = window.vela;
+    if (!api) return Promise.resolve("应用还没准备好");
+    return mutate(() => api.setSubagentCodexSpeed(speed, targetConversationId), false);
+  }, [mutate]);
+
   const setThinking = useCallback((level: ThinkingLevel) => {
     const api = window.vela;
     if (!api) return Promise.resolve();
@@ -205,6 +211,7 @@ export function useModels(setAppState: (state: AppState) => void, conversationId
     select,
     setThinking,
     setCodexSpeed,
+    setSubagentCodexSpeed,
     add,
     register,
     remove,

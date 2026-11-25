@@ -498,6 +498,7 @@ const api: VelaApi = {
   refreshCatalog: () => ipcRenderer.invoke(IpcChannel.refreshCatalog) as Promise<ModelRefreshResult>,
   getCodexSpeedTiers: (provider, model) => ipcRenderer.invoke(IpcChannel.codexSpeedTiers, provider, model) as Promise<CodexSpeedTier[]>,
   setCodexSpeed: (provider, model, speed, conversationId) => ipcRenderer.invoke(IpcChannel.setCodexSpeed, provider, model, speed, conversationId) as Promise<AppState>,
+  setSubagentCodexSpeed: (speed, conversationId) => ipcRenderer.invoke(IpcChannel.setSubagentCodexSpeed, speed, conversationId) as Promise<AppState>,
   getUsageLimits: (provider: string) => ipcRenderer.invoke(IpcChannel.usageLimits, provider) as Promise<UsageLimits | null>,
   selectModel: (provider, id, conversationId) => ipcRenderer.invoke(IpcChannel.selectModel, provider, id, conversationId) as Promise<AppState>,
   setThinkingLevel: (level, conversationId) => ipcRenderer.invoke(IpcChannel.setThinkingLevel, level, conversationId) as Promise<AppState>,

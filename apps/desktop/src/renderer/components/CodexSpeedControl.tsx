@@ -32,7 +32,8 @@ export function SpeedGlyph({ speed }: { speed: CodexSpeed }) {
   );
 }
 
-export function CodexSpeedControl({ speed, tiers, disabled, onChange }: {
+export function CodexSpeedControl({ speed, tiers, disabled, onChange, subagent = false }: {
+  subagent?: boolean;
   speed: CodexSpeed;
   tiers: CodexSpeedTier[];
   disabled: boolean;
@@ -42,9 +43,10 @@ export function CodexSpeedControl({ speed, tiers, disabled, onChange }: {
   const menu = useRef<HTMLDivElement>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const label = tr("响应速度", "Response speed");
+  const label = subagent ? tr("子代理加速", "Subagent speed") : tr("响应速度", "Response speed");
+  const tierLabel = (tier: CodexSpeed) => subagent && tier === "standard" ? tr("不加速", "Off") : speedLabel(tier);
   const choices: CodexSpeed[] = ["standard", ...tiers];
-  const menuRequired = tiers.includes("ultrafast");
+  const menuRequired = subagent || tiers.includes("ultrafast");
   const change = async (next: CodexSpeed) => {
     menu.current?.hidePopover();
     setSaving(true);
@@ -60,18 +62,21 @@ export function CodexSpeedControl({ speed, tiers, disabled, onChange }: {
   };
   return (
     <>
-      <button type="button" className={`codex-speed-button${speed !== "standard" ? " is-active" : ""}`}
-        title={`${label} · ${speedLabel(speed)}`} aria-label={`${label} · ${speedLabel(speed)}`}
+      <button type="button" className={`codex-speed-button${subagent ? " subagent-speed-button" : ""}${speed !== "standard" ? " is-active" : ""}`}
+        title={`${label} · ${tierLabel(speed)}`} aria-label={`${label} · ${tierLabel(speed)}`}
         aria-pressed={menuRequired ? undefined : speed !== "standard"} disabled={disabled || saving}
         popoverTarget={menuRequired ? id : undefined}
         onClick={menuRequired ? undefined : () => void change(speed === "standard" ? "priority" : "standard")}>
-        <SpeedGlyph speed={speed} />
+        {subagent ? <Icon name="bot" size={16} /> : <SpeedGlyph speed={speed} />}
       </button>
       {menuRequired && (
         <div ref={menu} id={id} popover="auto" className="codex-speed-menu" role="group" aria-label={label}>
+          {subagent && <header className="subagent-speed-note"><strong>{label}</strong>
+            <small>{tr("仅用于本对话中支持所选档位的子代理。并行加速会消耗更多额度。", "Only supported subagents in this chat use the selected speed. Parallel use consumes more quota.")}</small>
+          </header>}
           {choices.map(tier => (
             <button key={tier} type="button" disabled={disabled || saving} aria-pressed={speed === tier} onClick={() => void change(tier)}>
-              <span>{speedLabel(tier)}</span>
+              <span>{tierLabel(tier)}</span>
               {speed === tier && <Icon name="check" size={14} />}
               <small>{tier === "standard" ? tr("默认速度", "Default speed") : tier === "priority"
                 ? tr("更快响应，用量更高", "Faster responses, higher usage")

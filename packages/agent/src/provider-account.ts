@@ -1,6 +1,6 @@
 import {
   InMemoryCredentialStore, lazyStream, normalizeContext,
-  type AssistantMessage, type AssistantMessageEvent, type Provider, type TranscriptContext,
+  type AssistantMessage, type AssistantMessageEvent, type Provider, type StreamOptions, type TranscriptContext,
 } from "@earendil-works/pi-ai";
 import { ModelRuntime } from "@earendil-works/pi-coding-agent";
 
@@ -35,6 +35,11 @@ export async function createProviderAccount(builtinId: string, id: string, name:
       return message;
     }),
   });
+  // Payload hooks must see the account ID, not the native transport's provider ID.
+  const accountOptions = <T extends StreamOptions>(options: T | undefined): T | undefined => {
+    const onPayload = options?.onPayload;
+    return onPayload ? { ...options, onPayload: (payload, model) => onPayload(payload, { ...model, provider: id }) } : options;
+  };
   // The native transport needs its original provider ID (e.g. OpenAI OAuth).
   // Keep the account ID in Vela's catalog, assistant messages and deferred handles.
   return {
@@ -50,9 +55,9 @@ export async function createProviderAccount(builtinId: string, id: string, name:
     getModels: () => base.getModels().map(model => ({ ...model, provider: id })),
     getAllModels: () => (base.getAllModels?.() ?? base.getModels()).map(model => ({ ...model, provider: id })),
     stream: (model, context, options) => lazyStream(model, async () =>
-      accountEvents(base.stream({ ...model, provider: builtinId }, wireContext(context), options), id)),
+      accountEvents(base.stream({ ...model, provider: builtinId }, wireContext(context), accountOptions(options)), id)),
     streamSimple: (model, context, options) => lazyStream(model, async () =>
-      accountEvents(base.streamSimple({ ...model, provider: builtinId }, wireContext(context), options), id)),
+      accountEvents(base.streamSimple({ ...model, provider: builtinId }, wireContext(context), accountOptions(options)), id)),
     fetchDeferred: base.fetchDeferred && ((model, handle, options) => lazyStream(model, async () =>
       accountEvents(base.fetchDeferred!({ ...model, provider: builtinId }, { ...handle, provider: builtinId }, options), id))),
     cancelDeferred: base.cancelDeferred && ((model, handle, options) =>

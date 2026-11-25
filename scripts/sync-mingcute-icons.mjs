@@ -60,6 +60,7 @@ const ICONS = {
   "arrow-down": "arrow-down",
   monitor: "monitor",
   subagent: "folder-tree",
+  bot: "robot",
   shield: "safe-shield",
   eye: "eye",
   "eye-off": "eye-close",

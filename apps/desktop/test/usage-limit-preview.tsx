@@ -34,6 +34,7 @@ const provider = params.get("provider") ?? "openai-codex";
 const noop = async () => undefined;
 function Preview() {
   const [speed, setSpeed] = React.useState<CodexSpeed>("standard");
+  const [subagentSpeed, setSubagentSpeed] = React.useState<CodexSpeed>("standard");
   return <AppLocaleProvider locale={locale}>
     <div style={{ padding: "180px 40px 40px", display: "flex", justifyContent: "flex-end", background: "var(--bg-chat)", minHeight: "100vh" }}>
       <div className="dock-controls-row" style={{ position: "relative" }}>
@@ -43,6 +44,7 @@ function Preview() {
           disabled={false} catalog={null} catalogError={null} actionError={null} hiddenModels={[]}
           login={{ active: false, notices: [], progress: null, prompt: null, error: null }}
           codexSpeed={speed} onSpeed={async (_provider, _model, next) => setSpeed(next)}
+          subagentSpeed={subagentSpeed} onSubagentSpeed={async next => setSubagentSpeed(next)}
           onSelect={noop} onThinking={noop}
           onReplyLogin={async () => undefined} onCancelLogin={async () => undefined} onDismissLogin={() => undefined}
         />

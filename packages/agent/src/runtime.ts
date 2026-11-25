@@ -119,7 +119,7 @@ import {
   type GoalValidationEvidence,
 } from "./goal-validation";
 import { codexSpeedPayload } from "./codex-speed";
-import { isCodexSpeed, type CodexSpeedTier } from "@vela/shared";
+import { isCodexSpeed, type CodexSpeed, type CodexSpeedTier } from "@vela/shared";
 import { ModelDirectory, type ModelDirectoryOptions } from "./model-directory";
 import { MemoryService } from "./memory";
 import { MemoryDistiller } from "./memory-distill";
@@ -352,6 +352,12 @@ interface PendingInstruction {
   queued: boolean;
 }
 
+interface ConversationSelection {
+  model: Model<Api> | undefined;
+  thinkingLevel: ThinkingLevel;
+  codexSpeed?: CodexSpeed;
+}
+
 interface Conversation {
   hasWorkspace: boolean;
   /** 运行在受管 worktree 里时的归属;cwd 即 worktree 目录。 */
@@ -373,6 +379,7 @@ interface Conversation {
   sessionManager: SessionManager | null;
   sessionFile: string | null;
   snapshot: SessionSnapshot;
+  subagentCodexSpeedRevision?: number;
   /** 首条消息最多请求一次会话当前模型生成标题。 */
   titleGenerationStarted: boolean;
   titleManuallySet: boolean;
@@ -606,6 +613,7 @@ export class AgentRuntime {
     const snapshot = active ? active.snapshot : this.createSnapshot("starting");
     return {
       ...snapshot,
+      subagentCodexSpeed: snapshot.subagentCodexSpeed ?? "standard",
       tools: [...snapshot.tools],
       thinkingLevels: [...snapshot.thinkingLevels],
       proposedPlan: cloneProposedPlan(snapshot.proposedPlan),
@@ -713,7 +721,7 @@ export class AgentRuntime {
     return this.exclusive(async () => {
       await this.ready();
       // 新对话可能沿用「上次使用」,所以先把当前对话正在用的选择记下来。
-      await this.rememberActiveSelection();
+      await this.rememberSelection();
       const entry = this.addEntry(cwd, options);
       await this.startInternal(entry);
       return this.getSnapshot(entry.id);
@@ -1225,7 +1233,7 @@ export class AgentRuntime {
       const branched = SessionManager.open(branchedFile, this.sessionDir(), source.snapshot.cwd);
       copyTurnTimings(sourceTimings, branched);
       const branchedSources = transcriptSourcesFromProjection(branched.buildSessionProjection());
-      await this.rememberActiveSelection();
+      await this.rememberSelection();
       const entry = this.addEntry(source.snapshot.cwd, {
         hasWorkspace: source.hasWorkspace,
         ...(source.worktree ? { worktree: source.worktree } : {}),
@@ -1822,7 +1830,7 @@ export class AgentRuntime {
         this.emitStatus(entry);
         return this.getSnapshot();
       }
-      await this.rememberActiveSelection();
+      await this.rememberSelection();
       const entry = this.addEntry(cwd, { hasWorkspace });
       return this.startInternal(entry);
     });
@@ -1901,8 +1909,9 @@ export class AgentRuntime {
       const model = directory.requireAvailable(provider, id);
       const level = clampToModel(model, this.liveThinking(directory, conversationId));
       await this.applyModel(model, level, conversationId);
-      await directory.rememberLastUsed(model.provider, model.id, level);
-      return this.getSnapshot(conversationId);
+      const snapshot = this.getSnapshot(conversationId);
+      await directory.rememberLastUsed(model.provider, model.id, level, snapshot.codexSpeed);
+      return snapshot;
     });
   }
 
@@ -1916,8 +1925,21 @@ export class AgentRuntime {
       const entry = this.requireIdle(id);
       if (entry.session?.model?.provider !== provider || entry.session.model.id !== model) throw new Error("当前模型不支持此速度");
       this.patchEntry(entry, { codexSpeed: speed });
+      await this.rememberSelection(entry);
       return this.getSnapshot(id);
     });
+  }
+
+  async setSubagentCodexSpeed(speed: unknown, conversationId: string): Promise<SessionSnapshot> {
+    if (!isCodexSpeed(speed)) throw new Error("不支持这个子代理速度");
+    await this.ready();
+    // Allow revocation during a turn without waiting for model or catalog operations.
+    const entry = this.requireConversation(conversationId);
+    if ((entry.snapshot.subagentCodexSpeed ?? "standard") !== speed) {
+      entry.subagentCodexSpeedRevision = (entry.subagentCodexSpeedRevision ?? 0) + 1;
+      this.patchEntry(entry, { subagentCodexSpeed: speed });
+    }
+    return this.getSnapshot(conversationId);
   }
 
   setThinkingLevel(level: ThinkingLevel, conversationId?: string): Promise<SessionSnapshot> {
@@ -1931,7 +1953,7 @@ export class AgentRuntime {
       if (active?.session) this.setEntryThinking(active, model, next);
       if (active?.recipeExecution) active.recipeExecution = { ...active.recipeExecution, thinkingLevel: next };
       if (active) this.syncFromSession(active);
-      if (model) await directory.rememberLastUsed(model.provider, model.id, next);
+      if (model) await directory.rememberLastUsed(model.provider, model.id, next, active?.snapshot.codexSpeed);
       return this.getSnapshot(conversationId);
     });
   }
@@ -3019,6 +3041,7 @@ export class AgentRuntime {
           id: stored.id,
           title: stored.title,
           mode: stored.mode,
+          subagentCodexSpeed: stored.subagentCodexSpeed,
           ...(stored.recipeExecution ? { sandboxMode: stored.recipeExecution.sandboxMode } : {}),
           proposedPlan: cloneProposedPlan(latestPlan(stored.plans)),
           planRevisions: stored.plans.map((plan) => ({ ...plan })),
@@ -3181,7 +3204,7 @@ export class AgentRuntime {
     return entry;
   }
 
-  private async startInternal(entry: Conversation, selection?: { model: Model<Api> | undefined; thinkingLevel: ThinkingLevel }): Promise<SessionSnapshot> {
+  private async startInternal(entry: Conversation, selection?: ConversationSelection): Promise<SessionSnapshot> {
     if (this.disposed) throw new Error("Vela runtime has closed");
     const existing = this.sessionStarting.get(entry.id);
     if (existing) return existing;
@@ -3190,23 +3213,23 @@ export class AgentRuntime {
     try { return await starting; } finally { this.sessionStarting.delete(entry.id); }
   }
 
-  private async startInternalOnce(entry: Conversation, selection?: { model: Model<Api> | undefined; thinkingLevel: ThinkingLevel }): Promise<SessionSnapshot> {
+  private async startInternalOnce(entry: Conversation, selection?: ConversationSelection): Promise<SessionSnapshot> {
     this.patchEntry(entry, { status: "starting", error: null });
     try {
       const directory = await this.readyDirectory();
       const recipeModel = entry.recipeExecution ? directory.runtime.getModel(entry.recipeExecution.model.provider, entry.recipeExecution.model.id) : undefined;
-      const { model: chosen, thinkingLevel } = selection ?? (entry.recipeExecution ? {
+      const { model: chosen, thinkingLevel, codexSpeed }: ConversationSelection = selection ?? (entry.recipeExecution ? {
         // History remains readable when its original model/account is unavailable.
         model: recipeModel && directory.isAvailable(recipeModel) ? recipeModel : undefined,
         thinkingLevel: entry.recipeExecution.thinkingLevel,
-      } : this.conversationSelection(directory));
+      } : await this.newChatSelection(directory));
       const cwd = entry.snapshot.cwd;
       // 模型在这里就已确定,不必等技能 / MCP / 资源加载完才显示;modelReady 仍待会话就绪后再置真。
       if (chosen) {
         this.patchEntry(entry, {
           model: directory.displayName(chosen) ?? modelLabel(chosen),
           codexSpeed: chosen.provider === entry.snapshot.modelProvider && chosen.id === entry.snapshot.modelId
-            ? entry.snapshot.codexSpeed : undefined,
+            ? entry.snapshot.codexSpeed : codexSpeed,
           modelProvider: chosen.provider,
           modelId: chosen.id,
           thinkingLevel: isThinkingLevel(thinkingLevel) ? thinkingLevel : "medium",
@@ -3404,11 +3427,15 @@ export class AgentRuntime {
    * 「设置默认」取设置页的默认选择,「上次使用」取最近一次在对话中用过的选择,
    * 上次使用的模型不可用时回退到设置默认。
    */
-  private conversationSelection(directory: ModelDirectory): { model: Model<Api> | undefined; thinkingLevel: ThinkingLevel } {
+  private conversationSelection(directory: ModelDirectory): ConversationSelection {
     if (directory.selection.newConversationSelection === "lastUsed") {
       const lastUsed = directory.availableLastUsed();
       if (lastUsed) {
-        return { model: lastUsed, thinkingLevel: clampToModel(lastUsed, directory.lastUsedThinkingLevel()) };
+        return {
+          model: lastUsed,
+          thinkingLevel: clampToModel(lastUsed, directory.lastUsedThinkingLevel()),
+          codexSpeed: directory.lastUsedCodexSpeed(),
+        };
       }
     }
     const model = directory.availableSelection();
@@ -3418,24 +3445,34 @@ export class AgentRuntime {
     };
   }
 
-  /** 把当前对话正在使用的模型与思考强度记为「上次使用」;没有会话时不动。 */
-  private async rememberActiveSelection(): Promise<void> {
-    const directory = this.directory;
-    const session = this.activeConversation()?.session;
-    if (!directory || !session?.model) return;
-    await directory.rememberLastUsed(session.model.provider, session.model.id, this.activeConversation()?.ultra ? "ultra" : session.thinkingLevel);
+  private async newChatSelection(directory: ModelDirectory): Promise<ConversationSelection> {
+    const selection = this.conversationSelection(directory);
+    const { model, codexSpeed } = selection;
+    if (!model || !codexSpeed || codexSpeed === "standard") return selection;
+    // 账号支持的档位可能已变化。无法确认时仍用原模型，以标准速度启动。
+    const tiers = await directory.codexSpeedTiers(model.provider, model.id).catch(() => [] as CodexSpeedTier[]);
+    return tiers.includes(codexSpeed) ? selection : { model, thinkingLevel: selection.thinkingLevel };
+  }
+
+  private async rememberSelection(entry = this.activeConversation()): Promise<void> {
+    const session = entry?.session;
+    if (!entry || !this.directory || !session?.model) return;
+    await this.directory.rememberLastUsed(session.model.provider, session.model.id,
+      entry.ultra ? "ultra" : session.thinkingLevel, entry.snapshot.codexSpeed);
   }
 
   private async applySavedModel(): Promise<void> {
     const directory = this.directory;
     if (!directory) return;
-    const { model: chosen, thinkingLevel } = this.conversationSelection(directory);
+    const { model: chosen, thinkingLevel, codexSpeed } = await this.newChatSelection(directory);
     if (!chosen) {
       const active = this.activeConversation();
       if (active) this.syncFromSession(active);
       return;
     }
     await this.applyModel(chosen, thinkingLevel);
+    const entry = this.activeConversation();
+    if (entry?.session) this.patchEntry(entry, { codexSpeed });
   }
 
   /** 套用用户选的强度；Ultra 换成模型的最高强度交给底层会话，并在 entry 上记下。 */
@@ -3885,6 +3922,7 @@ export class AgentRuntime {
       sessionFile: entry.sessionFile,
       instructions: entry.instructions,
       mode: entry.snapshot.mode,
+      subagentCodexSpeed: entry.snapshot.subagentCodexSpeed,
       plans: entry.plans,
       latestProposedPlanId: entry.latestProposedPlanId,
       executionPlans: entry.executionPlans,
@@ -4290,6 +4328,17 @@ export class AgentRuntime {
         ...(input.kind === "general" ? this.browserTools(entry, input.agentId, input.kind) : []),
       ],
     });
+    const preparePayload = session.agent.onPayload;
+    session.agent.onPayload = async (payload, wireModel) => {
+      const body = await preparePayload?.(payload, wireModel) ?? payload;
+      const speed = entry.snapshot.subagentCodexSpeed;
+      if (!speed || speed === "standard" || wireModel.api !== "openai-codex-responses") return body;
+      const revision = entry.subagentCodexSpeedRevision;
+      const tiers = await directory.codexSpeedTiers(wireModel.provider, wireModel.id).catch(() => [] as CodexSpeedTier[]);
+      // A change (even away and back) invalidates the pending request's opt-in.
+      if (this.conversations.get(entry.id) !== entry || entry.subagentCodexSpeedRevision !== revision || !tiers.includes(speed)) return body;
+      return codexSpeedPayload(body, wireModel, speed);
+    };
     this.registerContextLimit(session, settingsManager, entry);
     mcp.attach(session);
     if (this.disposed) { await mcp.close(); session.dispose(); throw new Error("Vela runtime has closed"); }
@@ -5021,7 +5070,7 @@ export class AgentRuntime {
   /** fresh 策略：新开一个只带原始目标与已批准方案的对话，不继承规划阶段的搜索与 reasoning。 */
   private async startFreshExecution(source: Conversation, plan: ProposedPlanItem): Promise<Conversation> {
     await this.ready();
-    await this.rememberActiveSelection();
+    await this.rememberSelection();
     const entry = this.addEntry(source.snapshot.cwd, {
       hasWorkspace: source.hasWorkspace,
       title: freshExecutionTitle(source.snapshot.title),

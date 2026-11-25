@@ -284,6 +284,11 @@ export class SessionHost {
       await this.runtime.setCodexSpeed(parseId(provider, "提供方"), parseId(model, "模型"), speed, conversationId);
       return this.currentState(conversationId);
     });
+    ipcMain.handle(IpcChannel.setSubagentCodexSpeed, async (_event, speed: unknown, rawConversation: unknown) => {
+      const conversationId = parseConversationId(rawConversation, "对话");
+      await this.runtime.setSubagentCodexSpeed(speed, conversationId);
+      return this.currentState(conversationId);
+    });
     ipcMain.handle(IpcChannel.usageLimits, (_event, provider: unknown) => this.runtime.getUsageLimits(parseId(provider, "提供方")));
     ipcMain.handle(IpcChannel.selectModel, async (_event, provider: unknown, id: unknown, rawConversation: unknown) => {
       const conversationId = parseOptionalConversationId(rawConversation);

@@ -54,6 +54,23 @@ describe("new conversation selection settings", () => {
     assert.equal(reopened.lastUsedThinkingLevel(), "xhigh");
   });
 
+  it("persists speed-only changes and reads old or invalid speeds as standard", async () => {
+    const dir = await tempDir();
+    const directory = await ModelDirectory.open(dir);
+    const provider = "openai-codex@work";
+    const model = "gpt-test";
+    for (const speed of ["priority", "ultrafast", "standard"] as const) {
+      await directory.rememberLastUsed(provider, model, "high", speed);
+      assert.equal((await ModelDirectory.open(dir)).lastUsedCodexSpeed(), speed);
+    }
+    for (const codexSpeed of [undefined, "unknown"]) {
+      await writeFile(join(dir, "selection.json"), JSON.stringify({ lastUsed: { provider, modelId: model, thinkingLevel: "high", codexSpeed } }));
+      const reopened = await ModelDirectory.open(dir);
+      assert.equal(reopened.lastUsedThinkingLevel(), "high");
+      assert.equal(reopened.lastUsedCodexSpeed(), undefined);
+    }
+  });
+
   it("falls back to defaults when stored data is missing or malformed", async () => {
     const dir = await tempDir();
     await writeFile(join(dir, "selection.json"), JSON.stringify({
