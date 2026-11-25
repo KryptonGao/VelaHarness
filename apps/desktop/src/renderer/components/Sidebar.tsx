@@ -510,7 +510,7 @@ function ConversationRow({ conversation, active, activity, reason, priority, loc
         <span className="activity-row-detail">
           <span className={`activity-status activity-status-${reason}`}>
             {reason === "streaming" || reason === "starting" ? <span className="subchat-streaming-dot" aria-hidden="true" /> : null}
-            {statusLabel}
+            <span className="overflow-fade-text">{statusLabel}</span>
           </span>
           <time className="activity-time" dateTime={updatedAt.toISOString()}>{timeLabel}</time>
         </span>

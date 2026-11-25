@@ -96,7 +96,6 @@
   color: var(--text-primary);
   background: var(--bg-elevated);
   overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
   transition: background 0.15s ease;
 }

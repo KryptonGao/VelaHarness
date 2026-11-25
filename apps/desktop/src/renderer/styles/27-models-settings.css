@@ -95,8 +95,8 @@
 .models-provider[aria-selected="true"] { background: var(--bg-chat); border-color: var(--border-strong); color: var(--text-primary); font-weight: 600; }
 .models-provider:has(.models-provider-note) { height: 52px; }
 .models-provider-copy { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.models-provider-note { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-muted); font-size: calc(12px * var(--ui-scale)); font-weight: 400; }
-.models-provider-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.models-provider-note { overflow: hidden; animation: vela-overflow-fade auto linear both; animation-timeline: scroll(self inline); white-space: nowrap; color: var(--text-muted); font-size: calc(12px * var(--ui-scale)); font-weight: 400; }
+.models-provider-name { flex: 1; min-width: 0; overflow: hidden; animation: vela-overflow-fade auto linear both; animation-timeline: scroll(self inline); white-space: nowrap; }
 .models-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; background: var(--text-dim); opacity: 0.6; }
 .models-dot.connected { background: var(--success); opacity: 1; }
 .models-dot.attention { background: var(--warning); opacity: 1; }
@@ -114,7 +114,7 @@
 .models-detail > .models-models { flex: 1 1 0; min-height: 200px; }
 .models-detail-head { display: flex; align-items: center; gap: 12px; min-height: 32px; }
 .models-detail-head h3 { flex: 1; min-width: 0; margin: 0; display: flex; align-items: center; gap: 10px; font-size: calc(16px * var(--ui-scale)); font-weight: 650; }
-.models-detail-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.models-detail-name { min-width: 0; overflow: hidden; animation: vela-overflow-fade auto linear both; animation-timeline: scroll(self inline); white-space: nowrap; }
 .models-name-input { flex: 1; min-width: 0; padding: 4px 0; border-bottom: 1px dashed var(--border-strong); background: transparent; font: inherit; font-weight: 650; outline: none; }
 .models-chip { padding: 2px 8px; border-radius: var(--radius-pill); background: var(--bg-surface-subtle); color: var(--text-muted); font-size: calc(12px * var(--ui-scale)); font-weight: 550; white-space: nowrap; }
 .models-chip.connected { color: var(--success); background: color-mix(in srgb, var(--success) 12%, transparent); }
@@ -182,7 +182,7 @@
 .models-row { display: flex; align-items: center; gap: 8px; min-height: 42px; padding: 6px 12px; }
 .models-row + .models-row { border-top: 1px solid var(--border-subtle); }
 .models-row-main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; }
-.models-row-id { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--font-mono); font-size: calc(13px * var(--code-scale)); }
+.models-row-id { min-width: 0; overflow: hidden; animation: vela-overflow-fade auto linear both; animation-timeline: scroll(self inline); white-space: nowrap; font-family: var(--font-mono); font-size: calc(13px * var(--code-scale)); }
 .models-row.off .models-row-id { color: var(--text-muted); }
 .models-row-actions { display: flex; align-items: center; gap: 2px; margin-right: 6px; }
 .models-row-actions .models-icon-btn { width: 28px; height: 28px; }
@@ -234,8 +234,8 @@
 }
 .models-card:hover { background: var(--bg-hover); border-color: var(--border-strong); }
 .models-card-copy { flex: 1; min-width: 0; display: flex; flex-direction: column; color: var(--text-primary); }
-.models-card-title { font-weight: 550; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.models-card-sub { font-size: calc(12px * var(--ui-scale)); color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.models-card-title { font-weight: 550; overflow: hidden; animation: vela-overflow-fade auto linear both; animation-timeline: scroll(self inline); white-space: nowrap; }
+.models-card-sub { font-size: calc(12px * var(--ui-scale)); color: var(--text-muted); overflow: hidden; animation: vela-overflow-fade auto linear both; animation-timeline: scroll(self inline); white-space: nowrap; }
 
 /* 空状态 */
 .models-empty { margin: auto 0; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 64px 24px; text-align: center; color: var(--text-muted); border: 1px dashed var(--border-strong); border-radius: var(--radius-lg); }

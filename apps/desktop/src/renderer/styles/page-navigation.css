@@ -20,7 +20,7 @@
   padding: 0 8px 16px;
   background: var(--bg-surface-subtle);
 }
-.page-header .page-topbar-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.page-header .page-topbar-title { min-width: 0; overflow: hidden; animation: vela-overflow-fade auto linear both; animation-timeline: scroll(self inline); }
 .page-nav-title {
   margin: 0;
   padding: 18px 8px 12px;
@@ -43,7 +43,7 @@
   font-weight: 400;
 }
 .page-nav-icon { flex: none; color: var(--text-secondary); }
-.page-nav-item > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.page-nav-item > span { min-width: 0; overflow: hidden; animation: vela-overflow-fade auto linear both; animation-timeline: scroll(self inline); white-space: nowrap; }
 .page-nav .page-nav-item:hover:not(:disabled) { background: var(--bg-sidebar-hover); }
 .page-nav .page-nav-item[aria-current="page"],
 .page-nav .page-nav-item[aria-current="page"]:hover {

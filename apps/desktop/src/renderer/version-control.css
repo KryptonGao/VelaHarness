@@ -46,6 +46,39 @@
   outline-offset: 1px;
 }
 
+/* Only fade the single-line text, never a control or a badge surface. */
+.vc-repo-path,
+.vc-status-row b,
+.vc-file-name,
+.vc-file-dir,
+.vc-git-state-path,
+.vc-diff-path,
+.vc-commit-subject,
+.vc-commit-meta > :first-child,
+.vc-detail-meta > span:not(.vc-detail-refs),
+.vc-diff-title-name,
+.vc-changed-path,
+.vc-repo-value,
+.vc-branch-value,
+.vc-md-bar .vc-hint,
+.vc-scope-label em,
+.vc-scope-msg,
+.vc-check-name,
+.vc-branch-name,
+.vc-op-step em,
+.vc-hunk-meta,
+.vc-hunk-label,
+.vc-remote-url,
+.vc-worktree-path,
+.vc-stash-msg {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  animation: vela-overflow-fade auto linear both;
+  animation-timeline: scroll(self inline);
+}
+
 /* ---------- 空状态 ---------- */
 
 .vc-empty {
@@ -77,9 +110,7 @@
   font: calc(12px * var(--code-scale)) var(--font-mono);
   color: var(--text-secondary);
   max-width: 90%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  text-align: start;
 }
 
 /* ---------- 按钮与控件 ---------- */
@@ -454,9 +485,6 @@
   color: var(--text-muted);
   font: calc(11px * var(--code-scale)) var(--font-mono);
   max-width: 520px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .vc-controls {
@@ -521,10 +549,6 @@
   margin-left: auto;
   color: var(--text-secondary);
   font-weight: 500;
-  text-align: right;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
   max-width: 240px;
 }
 
@@ -645,8 +669,6 @@
   background: var(--bg-surface-subtle);
   color: var(--text-muted);
   font-size: calc(12px * var(--ui-scale));
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .vc-host {
@@ -878,13 +900,6 @@
   flex-direction: column;
 }
 
-.vc-file-name,
-.vc-file-dir {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .vc-file-name {
   color: var(--text-primary);
   font-size: calc(12px * var(--ui-scale));
@@ -928,9 +943,6 @@
 
 .vc-git-state-path {
   margin-left: auto;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
   max-width: 45%;
 }
 
@@ -956,10 +968,6 @@
 }
 
 .vc-diff-path {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
   color: var(--text-secondary);
   font: calc(11px * var(--code-scale)) var(--font-mono);
 }
@@ -1400,9 +1408,6 @@
 }
 
 .vc-commit-subject {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
   font-size: calc(13px * var(--ui-scale));
   font-weight: 560;
   color: var(--text-primary);
@@ -1425,11 +1430,7 @@
 }
 
 .vc-commit-meta > :first-child {
-  min-width: 0;
   max-width: 120px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
   flex: 0 1 auto;
 }
 
@@ -1444,7 +1445,6 @@
   max-width: 190px;
   padding: 1px 6px;
   overflow: hidden;
-  text-overflow: ellipsis;
   border-radius: 5px;
   background: color-mix(in srgb, var(--accent-blue) 10%, transparent);
   color: color-mix(in srgb, var(--accent-blue) 80%, var(--text-primary));
@@ -1549,14 +1549,9 @@
   font-size: calc(12px * var(--ui-scale));
 }
 
-.vc-detail-meta > span {
+.vc-detail-meta > .vc-detail-refs {
   min-width: 0;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.vc-detail-meta > .vc-detail-refs {
   grid-column: 1 / -1;
   flex-wrap: wrap;
   white-space: normal;
@@ -1611,15 +1606,8 @@
   align-items: baseline;
   gap: 8px;
   overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
   font: 600 calc(12px * var(--code-scale)) var(--font-mono);
-}
-
-.vc-diff-title-name {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .vc-diff-title-path small {
@@ -1657,11 +1645,7 @@
 }
 
 .vc-changed-path {
-  min-width: 0;
   flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .vc-diff-title {
@@ -1800,7 +1784,6 @@
   min-width: 0;
   flex: 1;
   overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -1852,18 +1835,8 @@
   font-size: calc(11px * var(--ui-scale));
 }
 
-.vc-repo-value {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--text-secondary);
-  font: calc(11px * var(--code-scale)) var(--font-mono);
-}
-
+.vc-repo-value,
 .vc-branch-value {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
   color: var(--text-secondary);
   font: calc(11px * var(--code-scale)) var(--font-mono);
 }
@@ -1907,10 +1880,6 @@
 
 .vc-md-bar .vc-hint {
   flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .vc-description {
@@ -2091,10 +2060,6 @@
 }
 
 .vc-scope-label em {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
   color: var(--text-dim);
   font-style: normal;
   font-family: var(--font-mono);
@@ -2125,11 +2090,7 @@
 }
 
 .vc-scope-msg {
-  min-width: 0;
   flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .vc-scope-message {
@@ -2286,11 +2247,7 @@
 }
 
 .vc-check-name {
-  min-width: 0;
   flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
   color: var(--text-secondary);
 }
 
@@ -2324,9 +2281,6 @@
 
 .vc-branch-name {
   max-width: 160px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .vc-branch-popover {
@@ -2378,8 +2332,11 @@
   align-items: center;
   gap: 5px;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+}
+
+.vc-branch-item-name > svg,
+.vc-ref > svg {
+  flex: none;
 }
 
 .vc-branch-item-meta {
@@ -2472,9 +2429,6 @@
 .vc-op-step em {
   font-style: normal;
   color: var(--text-secondary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .vc-op-step-failed {
@@ -2746,9 +2700,6 @@
   color: var(--text-dim);
   font: calc(11px * var(--code-scale)) var(--font-mono);
   padding: 0 4px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .vc-hunk-bar {
@@ -2786,10 +2737,6 @@
 
 .vc-hunk-label {
   flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
   color: var(--text-muted);
   font-size: calc(12px * var(--ui-scale));
 }
@@ -2995,9 +2942,6 @@
 .vc-worktree-path {
   color: var(--text-muted);
   font: calc(11px * var(--code-scale)) var(--font-mono);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .vc-remote-actions,
@@ -3028,10 +2972,6 @@
 
 .vc-stash-msg {
   flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .vc-stash-id {

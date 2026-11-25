@@ -91,7 +91,7 @@ function Fixture() {
       <button onClick={() => setFold(value => value === "message" ? "position" : "message")}>Fold: {fold}</button>
       <button onClick={() => preferences.setToolProcessDetails(!details)}>Details: {details ? "on" : "off"}</button>
       <button onClick={() => { document.documentElement.dataset.scheme = document.documentElement.dataset.scheme === "light" ? "dark" : "light"; }}>Theme</button>
-      <output id="check-result">Ready</output>
+      <output id="check-result" className="overflow-fade-text">Ready</output>
     </div>
     <div className="vela-window platform-darwin left-collapsed right-collapsed layout-floating" style={{ height: "calc(100vh - 42px)" }}>
       <div className="main-stage"><div className="main-stage-pane">
@@ -112,7 +112,7 @@ function Fixture() {
   </>;
 }
 const style = document.createElement("style");
-style.textContent = ".fixture-controls{height:42px;display:flex;align-items:center;gap:8px;padding:0 12px;font-size:12px}.fixture-controls button{padding:4px 8px;border:1px solid var(--border-subtle);border-radius:4px}.fixture-controls output{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.main-chat-view{min-width:0}";
+style.textContent = ".fixture-controls{height:42px;display:flex;align-items:center;gap:8px;padding:0 12px;font-size:12px}.fixture-controls button{padding:4px 8px;border:1px solid var(--border-subtle);border-radius:4px}.main-chat-view{min-width:0}";
 document.head.append(style);
 createRoot(document.getElementById("root")!).render(<AppLocaleProvider locale="zh-CN"><Fixture /></AppLocaleProvider>);
 

@@ -520,9 +520,9 @@ export function NewChatAtelierHeader({
             <strong className="atelier-ws-name" title={project.workspace?.current ?? undefined}>{wsName}</strong>
             {project.workspace?.current ? <span className="atelier-sep">/</span> : null}
             {kind !== "nogit" && branch ? (
-              <span className="atelier-git-pill">{branch}</span>
+              <span className="atelier-git-pill"><span className="overflow-fade-text">{branch}</span></span>
             ) : project.workspace?.current ? (
-              <span className="atelier-git-pill">{tr("普通目录", "Folder")}</span>
+              <span className="atelier-git-pill"><span className="overflow-fade-text">{tr("普通目录", "Folder")}</span></span>
             ) : null}
             {kind === "dirty" ? (
               <button

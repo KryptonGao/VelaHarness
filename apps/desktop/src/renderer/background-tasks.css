@@ -17,7 +17,7 @@
 .bg-task { border-radius: var(--radius-md, 10px); background: var(--bg-hover); overflow: hidden; }
 .bg-task-head { display: flex; align-items: center; gap: 8px; min-height: 34px; padding: 0 10px 0 6px; }
 .bg-task-toggle { display: flex; flex: 1; align-items: center; gap: 6px; min-width: 0; min-height: 34px; text-align: left; color: var(--text-primary); }
-.bg-task-command { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bg-task-command { flex: 1; min-width: 0; overflow: hidden; animation: vela-overflow-fade auto linear both; animation-timeline: scroll(self inline); white-space: nowrap; }
 .bg-task-time { flex: none; font-size: calc(12px * var(--ui-scale)); color: var(--text-muted); font-variant-numeric: tabular-nums; }
 .bg-task-status { flex: none; font-size: calc(12px * var(--ui-scale)); color: var(--text-muted); }
 .bg-task-status.is-failed { color: var(--danger); }

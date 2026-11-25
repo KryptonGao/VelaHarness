@@ -493,15 +493,16 @@ if (!process.versions.electron) {
           await expectActivity(label.bash);
           await expectLowerBash(command, "", true);
           const overflow = await evaluate(`(() => {
-            const text = document.querySelector(${JSON.stringify(activity)});
+            const text = document.querySelector(${JSON.stringify(activity)}).closest('.overflow-fade-text');
             const style = getComputedStyle(text);
             const button = document.querySelector(${JSON.stringify(headline)});
-            return { overflow: style.overflow, ellipsis: style.textOverflow, nowrap: style.whiteSpace,
+            return { overflow: style.overflow, textOverflow: style.textOverflow, mask: style.maskImage, nowrap: style.whiteSpace,
               clipped: text.scrollWidth > text.clientWidth, width: button.getBoundingClientRect().width,
               container: document.querySelector('.assistant-block').getBoundingClientRect().width };
           })()`);
           assert.equal(overflow.overflow, "hidden", `${currentCase}: generic operation keeps overflow protection`);
-          assert.equal(overflow.ellipsis, "ellipsis", `${currentCase}: generic operation keeps ellipsis protection`);
+          assert.equal(overflow.textOverflow, "clip", `${currentCase}: generic operation never inserts layout punctuation`);
+          assert.equal(overflow.mask, "none", `${currentCase}: a fitting generic title remains fully opaque`);
           assert.equal(overflow.nowrap, "nowrap", `${currentCase}: generic operation remains one line`);
           assert.equal(overflow.clipped, false, `${currentCase}: a long command does not leak into or truncate the generic title`);
           assert.ok(overflow.width <= overflow.container + 1, `${currentCase}: a long command does not widen the group`);

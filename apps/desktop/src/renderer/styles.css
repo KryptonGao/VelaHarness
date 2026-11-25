@@ -1,5 +1,7 @@
 @import "./styles/01-tokens-themes.css";
 @import "./styles/02-base.css";
+@import "./styles/overflow-fade.css";
+@import "./styles/clamp-fade.css";
 @import "./styles/03-shell.css";
 @import "./styles/04-sidebar-header.css";
 @import "./styles/05-chat-home.css";

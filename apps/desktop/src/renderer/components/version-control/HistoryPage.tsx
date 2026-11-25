@@ -36,12 +36,12 @@ function RefBadges({ refs, limit = 3 }: { refs: GitRefLabel[]; limit?: number })
         <span key={`${ref.kind}:${ref.name}`} className={`vc-ref vc-ref-${ref.kind}`}>
           {ref.kind === "tag" ? <Icon name="tag" size={10} /> : null}
           {ref.kind === "local" || ref.kind === "head" ? <Icon name="branch" size={10} /> : null}
-          {refLabel(ref)}
+          <span className="overflow-fade-text">{refLabel(ref)}</span>
         </span>
       ))}
       {refs.length > limit && !expanded ? (
         <button type="button" className="vc-ref vc-ref-more" onClick={(event) => { event.stopPropagation(); setExpanded(true); }}>
-          +{refs.length - limit}
+          <span className="overflow-fade-text">+{refs.length - limit}</span>
         </button>
       ) : null}
     </span>

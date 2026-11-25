@@ -88,7 +88,6 @@
   --bg-card-surface: #ffffff;
   --bg-surface-subtle: #f7f7f8;
   --bg-elevated: #ffffff;
-  --bg-change-summary: #ffffff;
   --bg-code: #f5f5f6;
   --bg-hover: #f0f1f2;
   --scrollbar-thumb: rgba(0, 0, 0, 0.12);
@@ -153,7 +152,6 @@
   --bg-card-surface: #242424;
   --bg-surface-subtle: #2a2a2a;
   --bg-elevated: #262626;
-  --bg-change-summary: var(--bg-chat);
   --bg-code: #161616;
   --bg-hover: rgba(255, 255, 255, 0.06);
   --scrollbar-thumb: rgba(255, 255, 255, 0.18);

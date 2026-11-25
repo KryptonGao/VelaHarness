@@ -251,7 +251,7 @@ export function GroupSidebar(props: GroupSidebarProps) {
     const bucket = counts(entry.taskIds);
     return (
       <button key={entry.id} className={`tc-group ${props.active === entry.id ? "active" : ""}`} onClick={() => props.onSelect(entry.id)}>
-        <span className="tc-group-title">{entry.title}</span>
+        <span className="overflow-fade-text">{entry.title}</span>
         <span className="tc-group-count">{entry.taskIds.length}</span>
         <span className="tc-group-bar">
           {bucket.failed > 0 ? <i className="failed" style={{ flexGrow: bucket.failed }} /> : null}
@@ -265,7 +265,7 @@ export function GroupSidebar(props: GroupSidebarProps) {
   return (
     <nav className="tc-sidebar">
       <button className={`tc-group ${props.active === "all" ? "active" : ""}`} onClick={() => props.onSelect("all")}>
-        <span className="tc-group-title">全部任务</span>
+        <span className="overflow-fade-text">全部任务</span>
         <span className="tc-group-count">{props.tasks.length}</span>
       </button>
       {entries.map(row)}
@@ -318,7 +318,7 @@ export function TaskRow(props: TaskRowProps) {
         <button className="tc-row-main" onClick={props.onToggleExpand}>
           <StatusDot status={status} />
           <span className="tc-row-title">{props.task.title}</span>
-          <span className="tc-row-path">{props.task.path}</span>
+          <span className="tc-row-path overflow-fade-text">{props.task.path}</span>
           {props.task.kind === "ui" ? <span className="tc-badge">浏览器</span> : null}
           {subtests.length > 0 ? <span className="tc-row-subtests">{subtests.length} 项</span> : null}
           <span className="tc-row-duration">{formatDuration(props.result?.durationMs)}</span>
@@ -337,7 +337,7 @@ export function TaskRow(props: TaskRowProps) {
               {subtests.map((subtest) => (
                 <li key={subtest.testId} className={`tc-subtest ${statusMeta[subtest.status].tone}`}>
                   <StatusDot status={subtest.status} />
-                  <span className="tc-subtest-name" style={{ paddingLeft: `${Math.max(0, subtest.nesting - 1) * 14}px` }}>
+                  <span className="tc-subtest-name overflow-fade-text" style={{ paddingLeft: `${Math.max(0, subtest.nesting - 1) * 14}px` }}>
                     {subtest.name}
                   </span>
                   <span className="tc-subtest-duration">{formatDuration(subtest.durationMs)}</span>

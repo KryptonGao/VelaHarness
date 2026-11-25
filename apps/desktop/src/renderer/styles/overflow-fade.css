@@ -1,0 +1,19 @@
+:root {
+  --overflow-fade-right: linear-gradient(to right, #000 calc(100% - min(16px, 45%)), transparent);
+}
+
+/* A self scroll timeline is inactive when the text fits. Identical keyframes
+   make this a static mask, not a time-based transition or a JS measurement. */
+@keyframes vela-overflow-fade {
+  from, to { mask-image: var(--overflow-fade-mask, var(--overflow-fade-right)); }
+}
+
+/* Apply to the text, not its button, icon, or badge background. */
+.overflow-fade-text {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  animation: vela-overflow-fade auto linear both;
+  animation-timeline: scroll(self inline);
+}

@@ -16,7 +16,6 @@
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
 }
 .repo-card-more {
   width: 24px;
@@ -45,7 +44,8 @@
 .repo-branch-btn:hover { background: var(--bg-surface-subtle); }
 .repo-branch-name {
   overflow: hidden;
-  text-overflow: ellipsis;
+  animation: vela-overflow-fade auto linear both;
+  animation-timeline: scroll(self inline);
   white-space: nowrap;
   max-width: 150px;
 }
@@ -92,9 +92,10 @@
   color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
+  animation: vela-overflow-fade auto linear both;
+  animation-timeline: scroll(self inline);
 }
-.repo-pr-meta { font-size: calc(15px * var(--ui-scale)); color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.repo-pr-meta { font-size: calc(15px * var(--ui-scale)); color: var(--text-muted); white-space: nowrap; overflow: hidden; animation: vela-overflow-fade auto linear both; animation-timeline: scroll(self inline); }
 .repo-pr-hint { padding: 6px 0 2px; font-size: calc(15px * var(--ui-scale)); color: var(--text-muted); }
 .repo-changes-entry {
   width: 100%;
@@ -127,7 +128,7 @@
 .repo-plan-entry:hover { background: var(--bg-surface-subtle); }
 .repo-plan-entry:focus-visible, .plan-preview-card:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 2px; }
 .repo-plan-icon { display: flex; flex-shrink: 0; color: var(--text-secondary); }
-.repo-plan-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: calc(15px * var(--ui-scale)); }
+.repo-plan-title { min-width: 0; overflow: hidden; animation: vela-overflow-fade auto linear both; animation-timeline: scroll(self inline); white-space: nowrap; font-size: calc(15px * var(--ui-scale)); }
 .repo-plan-status { flex-shrink: 0; font-size: calc(12px * var(--ui-scale)); color: var(--text-muted); }
 .repo-sources { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--bg-surface-subtle); }
 .repo-sources-header {
@@ -179,7 +180,8 @@
 }
 .repo-source-recent span {
   overflow: hidden;
-  text-overflow: ellipsis;
+  animation: vela-overflow-fade auto linear both;
+  animation-timeline: scroll(self inline);
   white-space: nowrap;
 }
 .repo-source-recent:hover { background: var(--bg-surface-subtle); color: var(--text-primary); }
@@ -259,8 +261,8 @@
 .changes-file-row:hover { background: var(--bg-surface-subtle); }
 .changes-file-row.active { background: var(--bg-card-blue); }
 .changes-file-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-.changes-file-name { font-size: calc(15px * var(--ui-scale)); color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.changes-file-dir { font-size: calc(15px * var(--ui-scale)); color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.changes-file-name { font-size: calc(15px * var(--ui-scale)); color: var(--text-primary); white-space: nowrap; overflow: hidden; animation: vela-overflow-fade auto linear both; animation-timeline: scroll(self inline); }
+.changes-file-dir { font-size: calc(15px * var(--ui-scale)); color: var(--text-muted); white-space: nowrap; overflow: hidden; animation: vela-overflow-fade auto linear both; animation-timeline: scroll(self inline); }
 /* 操作按钮浮在行尾,避免占用文件名宽度造成过度截断。 */
 .changes-file-actions {
   position: absolute;
@@ -336,7 +338,7 @@
   color: var(--text-secondary);
   border-bottom: 1px solid var(--border-subtle);
 }
-.changes-diff-path { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.changes-diff-path { flex: 1; min-width: 0; overflow: hidden; animation: vela-overflow-fade auto linear both; animation-timeline: scroll(self inline); white-space: nowrap; }
 .changes-diff-head .preview-view-toggle { flex: none; font-family: var(--font-sans); }
 .changes-diff-body {
   flex: 1;

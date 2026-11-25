@@ -20,14 +20,15 @@
   max-width: 220px;
   transition: background var(--transition-smooth), color var(--transition-smooth);
 }
-.composer-chip span:nth-of-type(1) { overflow: hidden; text-overflow: ellipsis; }
+.composer-chip span:nth-of-type(1) { overflow: hidden; animation: vela-overflow-fade auto linear both; animation-timeline: scroll(self inline); }
 .composer-status-notice {
   margin-left: auto;
   font-size: calc(15px * var(--ui-scale));
   color: var(--danger);
   white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
+  animation: vela-overflow-fade auto linear both;
+  animation-timeline: scroll(self inline);
   max-width: 45%;
 }
 .composer-status-notice[role="status"] { color: var(--text-muted); }
@@ -73,7 +74,8 @@
   color: var(--text-muted);
   white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
+  animation: vela-overflow-fade auto linear both;
+  animation-timeline: scroll(self inline);
 }
 .workspace-action-row {
   width: 100%;
@@ -106,7 +108,7 @@
 .workspace-recent-main:hover { background: var(--bg-surface-subtle); color: var(--text-primary); }
 .workspace-recent-main.active,
 .workspace-recent-row.active .workspace-recent-main { background: var(--bg-card-blue); color: var(--text-primary); }
-.workspace-recent-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; }
+.workspace-recent-name { flex: 1; min-width: 0; overflow: hidden; animation: vela-overflow-fade auto linear both; animation-timeline: scroll(self inline); white-space: nowrap; text-align: left; }
 .workspace-recent-main > svg:last-child:not(:first-child) { flex-shrink: 0; margin-left: auto; }
 .workspace-search {
   display: flex;
@@ -212,7 +214,7 @@
 .workspace-settings-add { border-top: 1px solid var(--border-subtle); }
 .workspace-settings-row > svg,
 .workspace-settings-add > svg { flex-shrink: 0; color: var(--text-muted); }
-.workspace-settings-folder { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.workspace-settings-folder { flex: 1; min-width: 0; overflow: hidden; animation: vela-overflow-fade auto linear both; animation-timeline: scroll(self inline); white-space: nowrap; }
 .workspace-settings-primary,
 .workspace-settings-promote {
   flex-shrink: 0;
@@ -257,7 +259,8 @@
   font-weight: 600;
   font-size: calc(15px * var(--ui-scale));
   overflow: hidden;
-  text-overflow: ellipsis;
+  animation: vela-overflow-fade auto linear both;
+  animation-timeline: scroll(self inline);
   white-space: nowrap;
 }
 .branch-ahead-behind { display: inline-flex; gap: 6px; margin-left: auto; font-size: calc(15px * var(--ui-scale)); }
@@ -314,7 +317,7 @@
 }
 .branch-item:hover { background: var(--bg-card-blue); color: var(--text-primary); }
 .branch-item.active { background: var(--bg-card-blue); color: var(--accent-blue); font-weight: 600; }
-.branch-item-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.branch-item-name { overflow: hidden; animation: vela-overflow-fade auto linear both; animation-timeline: scroll(self inline); white-space: nowrap; }
 .branch-item-tag {
   margin-left: auto;
   font-size: calc(15px * var(--ui-scale));
@@ -350,7 +353,8 @@ button.environment-row:not(:disabled):hover { background: var(--bg-surface-subtl
   font-size: calc(15px * var(--ui-scale));
   color: var(--text-muted);
   overflow: hidden;
-  text-overflow: ellipsis;
+  animation: vela-overflow-fade auto linear both;
+  animation-timeline: scroll(self inline);
   white-space: nowrap;
 }
 .environment-result {
@@ -480,7 +484,8 @@ button.environment-row:not(:disabled):hover { background: var(--bg-surface-subtl
   flex: 1;
   min-width: 0;
   overflow: hidden;
-  text-overflow: ellipsis;
+  animation: vela-overflow-fade auto linear both;
+  animation-timeline: scroll(self inline);
   white-space: nowrap;
   font-size: calc(13.5px * var(--ui-scale));
   color: var(--text-muted);

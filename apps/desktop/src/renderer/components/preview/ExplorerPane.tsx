@@ -243,7 +243,7 @@ export function FileTree({
             title={node.path}
           >
             <FileTypeIcon path={node.path} />
-            <span className="explorer-name"><span>{node.name}</span></span>
+            <span className="explorer-name">{node.name}</span>
             {renderFileMeta ? <span className="explorer-tree-meta">{renderFileMeta(node.path)}</span> : null}
           </button>
         ),

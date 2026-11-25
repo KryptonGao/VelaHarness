@@ -47,7 +47,7 @@
 .race-toolbar > .race-status { margin-right: auto; }
 .race-confirm-inline { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 6px; color: var(--text-secondary); font-size: calc(12px * var(--ui-scale)); }
 .race-summary { flex: none; padding: 12px 14px 4px; display: flex; flex-direction: column; gap: 6px; }
-.race-prompt { margin: 0; line-height: 1.55; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.race-prompt { margin: 0; line-height: 1.55; overflow-wrap: anywhere; display: block; max-height: 4lh; overflow: hidden; }
 .race-meta { margin: 0; color: var(--text-muted); font-size: calc(12px * var(--ui-scale)); overflow-wrap: anywhere; }
 .race-meta code, .race-message code, .race-files code { font: calc(11px * var(--code-scale))/1.5 var(--font-mono); }
 .race-message { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 8px 10px; border-radius: 8px; background: var(--bg-card-surface); font-size: calc(12px * var(--ui-scale)); overflow-wrap: anywhere; }

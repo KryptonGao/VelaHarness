@@ -130,8 +130,7 @@
   transition: flex-shrink 90ms cubic-bezier(0.22, 1, 0.36, 1) 0ms;
 }
 .preview-crumb-text[data-fade="true"] {
-  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - min(16px, 45%)), transparent);
-  mask-image: linear-gradient(to right, #000 calc(100% - min(16px, 45%)), transparent);
+  mask-image: var(--overflow-fade-right);
 }
 .preview-crumb[data-active="true"] {
   flex-shrink: 0;
@@ -557,7 +556,8 @@
 .explorer-branch-inner { position: relative; }
 .explorer-name {
   overflow: hidden;
-  text-overflow: ellipsis;
+  animation: vela-overflow-fade auto linear both;
+  animation-timeline: scroll(self inline);
   min-width: 0;
 }
 .explorer-empty {
@@ -602,7 +602,8 @@
 .explorer-result-dir {
   color: var(--text-muted);
   overflow: hidden;
-  text-overflow: ellipsis;
+  animation: vela-overflow-fade auto linear both;
+  animation-timeline: scroll(self inline);
   white-space: nowrap;
 }
 .explorer-result-name {
@@ -621,7 +622,8 @@
   color: var(--text-muted);
   white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
+  animation: vela-overflow-fade auto linear both;
+  animation-timeline: scroll(self inline);
 }
 
 /* 工具卡片上的预览按钮(与展开按钮并排) */
@@ -746,7 +748,8 @@
   min-width: 0;
   overflow: hidden;
   text-align: left;
-  text-overflow: ellipsis;
+  animation: vela-overflow-fade auto linear both;
+  animation-timeline: scroll(self inline);
   white-space: nowrap;
 }
 .turn-changes-directory { color: var(--text-muted); }

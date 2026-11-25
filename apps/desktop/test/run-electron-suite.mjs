@@ -29,6 +29,8 @@ const suites = {
     { name: "compact-diff-ui", runner: "node" },
     { name: "version-control-layout-ui", runner: "node" },
     { name: "preview-breadcrumbs-ui", runner: "node" },
+    { name: "overflow-fade-ui", runner: "electron" },
+    { name: "clamp-fade-ui", runner: "node" },
     { name: "thinking-activity-ui", runner: "node" },
     { name: "thinking-activity-settings-ui", runner: "node" },
     { name: "expand-chevron-ui", runner: "node" },

@@ -223,13 +223,13 @@
 .ob-news-body:not(:has(.ob-news-imp)) { grid-template-columns: minmax(0, 1fr); }
 .ob-news-new { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 18px; }
 .ob-news-new .ob-strip { margin: 0; padding: 13px 17px; height: 150px; }
-.ob-news-new .ob-strip span, .ob-news-imp li span { display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; }
-.ob-news-new .ob-strip span { -webkit-line-clamp: 4; }
+.ob-news-new .ob-strip span, .ob-news-imp li span { display: block; overflow: hidden; }
+.ob-news-new .ob-strip span { max-height: 4lh; }
 .ob-news-imp { background: var(--ob-sky); color: var(--ob-ink); border-radius: 18px; padding: 16px 20px; transform: rotate(1.1deg); box-shadow: 4px 5px 0 rgba(19, 27, 69, .35); }
 .ob-news-imp h4 { font-size: calc(16px * var(--ui-scale)); font-weight: 700; margin-bottom: 6px; }
 .ob-news-imp ul { list-style: none; }
 .ob-news-imp li { padding: 7px 0; border-top: 2px dashed rgba(19, 27, 69, .22); font-size: calc(13px * var(--ui-scale)); line-height: 1.5; }
-.ob-news-imp li span { -webkit-line-clamp: 2; }
+.ob-news-imp li span { max-height: 2lh; }
 
 /* ───── 设置步骤 ───── */
 .ob-rail-in { position: absolute; left: 72px; top: 0; width: 250px; height: 100%; color: var(--ob-cream); z-index: 2; }
@@ -277,7 +277,7 @@
 .ob-pv .l { display: flex; gap: 8px; align-items: center; padding: 3px 2px; }
 .ob-pv u { width: 11px; height: 11px; border-radius: 3px; background: var(--ob-cobalt); text-decoration: none; flex: none; }
 .ob-pv u.coral { background: var(--ob-coral); } .ob-pv u.green { background: var(--ob-green); }
-.ob-pv em { font-style: normal; font-weight: 500; opacity: .6; font-family: ui-monospace, Menlo, monospace; font-size: calc(12px * var(--code-scale)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ob-pv em { font-style: normal; font-weight: 500; opacity: .6; font-family: ui-monospace, Menlo, monospace; font-size: calc(12px * var(--code-scale)); overflow: hidden; animation: vela-overflow-fade auto linear both; animation-timeline: scroll(self inline); white-space: nowrap; }
 
 .ob-lay { background: var(--ob-sheet); border-radius: 12px; height: 128px; padding: 9px; display: grid; grid-template-columns: 30px 1fr 84px; gap: 8px; position: relative; font-size: calc(12px * var(--ui-scale)); font-weight: 700; }
 .ob-lay > span { border-radius: 8px; padding: 7px 8px; opacity: 1 !important; font-size: calc(12px * var(--ui-scale)) !important; font-weight: 700 !important; margin: 0 !important; }
@@ -327,7 +327,7 @@
 .ob-opt.provider { display: flex; align-items: center; gap: 9px; padding: 11px 12px; min-width: 0; }
 .ob-opt.provider u { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; color: var(--ob-cream); font-weight: 700; font-size: calc(17px * var(--ui-scale)); text-decoration: none; flex: none; }
 .ob-opt.provider .info { min-width: 0; font-size: calc(12px * var(--ui-scale)); opacity: 1; }
-.ob-opt.provider .info b { font-size: calc(15.5px * var(--ui-scale)); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.4; }
+.ob-opt.provider .info b { font-size: calc(15.5px * var(--ui-scale)); font-weight: 600; white-space: nowrap; overflow: hidden; animation: vela-overflow-fade auto linear both; animation-timeline: scroll(self inline); line-height: 1.4; }
 .ob-opt.provider .info span { display: block; font-size: calc(12px * var(--ui-scale)); font-weight: 600; opacity: .8; }
 .ob-opt.provider em { font-style: normal; font-size: calc(12px * var(--ui-scale)); font-weight: 700; padding: 0 8px; border-radius: 5px; background: var(--ob-green); color: var(--ob-cream); margin-left: auto; text-align: right; line-height: 1.35; max-width: 82px; }
 .ob-opt.provider em.n { background: transparent; color: var(--ob-ink); opacity: .55; padding: 0; }
@@ -367,7 +367,7 @@
 .ob-ticket dl { display: grid; grid-template-columns: 1fr 1fr; column-gap: 30px; }
 .ob-summary-row { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 2px dashed rgba(19, 27, 69, .1); font-size: calc(14px * var(--ui-scale)); min-width: 0; }
 .ob-summary-row dt { opacity: .6; flex: none; }
-.ob-summary-row dd { font-weight: 600; text-align: right; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ob-summary-row dd { font-weight: 600; text-align: right; min-width: 0; overflow: hidden; animation: vela-overflow-fade auto linear both; animation-timeline: scroll(self inline); white-space: nowrap; }
 .ob-nexts { position: absolute; left: 600px; top: 452px; width: 612px; }
 
 /* ───── 更新后的「新到港」卡片（盖在主界面上） ───── */
@@ -378,7 +378,7 @@
 .ob-wn-sheet .ob-burst { right: 48px; top: 26px; width: 138px; height: 138px; }
 .ob-wn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 18px; margin-top: 34px; }
 .ob-wn-grid .ob-strip { margin: 0; min-height: 124px; }
-.ob-wn-grid .ob-strip span { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }
+.ob-wn-grid .ob-strip span { display: block; max-height: 3lh; overflow: hidden; }
 .ob-wn-more { margin-top: 18px; background: var(--ob-sky); color: var(--ob-ink); border-radius: 18px; padding: 14px 20px; box-shadow: 4px 5px 0 rgba(19, 27, 69, .35); }
 .ob-wn-more li { list-style: none; padding: 6px 0; border-top: 2px dashed rgba(19, 27, 69, .22); font-size: calc(13.5px * var(--ui-scale)); line-height: 1.55; }
 .ob-wn-more li:first-child { border-top: 0; }

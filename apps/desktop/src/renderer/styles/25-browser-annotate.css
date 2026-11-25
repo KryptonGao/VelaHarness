@@ -64,7 +64,8 @@
 .annotation-popover-head code {
   min-width: 0;
   overflow: hidden;
-  text-overflow: ellipsis;
+  animation: vela-overflow-fade auto linear both;
+  animation-timeline: scroll(self inline);
   white-space: nowrap;
   font-size: calc(12px * var(--code-scale));
   color: var(--text-secondary);
@@ -115,20 +116,20 @@
 .changes-filter { position: relative; min-width: 0; }
 .changes-filter-trigger { max-width: 100%; }
 .changes-filter-trigger .settings-select-value { display: flex; align-items: center; gap: 7px; }
-.changes-filter-detail { max-width: 110px; overflow: hidden; text-overflow: ellipsis; color: var(--text-muted); font-size: calc(11px * var(--ui-scale)); }
+.changes-filter-detail { max-width: 110px; overflow: hidden; animation: vela-overflow-fade auto linear both; animation-timeline: scroll(self inline); color: var(--text-muted); font-size: calc(11px * var(--ui-scale)); }
 .changes-filter-menu {
   position: absolute; top: calc(100% + 6px); left: 0; z-index: 10;
   display: flex; flex-direction: column;
   width: min(280px, calc(100vw - 60px));
 }
 .changes-filter-item { width: 100%; text-align: left; }
-.changes-filter-item > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.changes-filter-item > span { min-width: 0; overflow: hidden; animation: vela-overflow-fade auto linear both; animation-timeline: scroll(self inline); white-space: nowrap; }
 .changes-filter-item svg { flex: none; }
 .changes-filter-item:hover, .changes-filter-item:focus-visible { background: var(--settings-track); }
 .changes-filter-separator { flex: none; height: 1px; margin: 5px 10px; background: var(--border-subtle); }
 .changes-filter-back { justify-content: flex-start; color: var(--text-secondary); }
 .changes-filter-options { max-height: 55vh; overflow-y: auto; }
-.changes-filter-commit > span { overflow: hidden; text-overflow: ellipsis; }
+.changes-filter-commit > span { overflow: hidden; animation: vela-overflow-fade auto linear both; animation-timeline: scroll(self inline); }
 .changes-filter-empty { padding: 14px 10px; color: var(--text-muted); }
 .changes-filter-notice { padding: 10px 14px; color: var(--text-secondary); background: var(--bg-surface-subtle); font-size: calc(12px * var(--ui-scale)); }
 .changes-filter-retry { margin-left: 8px; color: var(--accent-blue); cursor: pointer; }

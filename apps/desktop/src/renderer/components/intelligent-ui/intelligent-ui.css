@@ -177,7 +177,7 @@ h3.iui-heading { font-size: calc(16px * var(--ui-scale)); } h4.iui-heading { fon
 .iui-sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; padding: 0; }
 
 @media (prefers-reduced-motion: reduce) {
-  .iui-frame *, .iui-frame { animation: none !important; transition: none !important; }
+  .iui-frame *, .iui-frame { transition: none !important; }
 }
 @media (forced-colors: active) {
   .iui-segment.is-selected { outline: 2px solid Highlight; }
@@ -293,7 +293,7 @@ h3.iui-heading { font-size: calc(16px * var(--ui-scale)); } h4.iui-heading { fon
 .iui-badge-empty { color: var(--text-muted); }
 .iui-badge-app { border-color: var(--warning); color: var(--warning); }
 .iui-provenance code { font-size: calc(11.5px * var(--code-scale)); }
-.iui-subject { max-width: 28ch; display: inline-block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; }
+.iui-subject { max-width: min(100%, 28ch); display: inline-block; overflow: hidden; animation: vela-overflow-fade auto linear both; animation-timeline: scroll(self inline); white-space: nowrap; vertical-align: bottom; }
 
 /* ---------- 沙盒微应用（IUI-14） ---------- */
 .iui-app-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }

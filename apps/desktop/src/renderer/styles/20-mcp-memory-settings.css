@@ -36,7 +36,6 @@
   line-height: 1.5;
   white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
 }
 .mcp-tool-details { min-width: 0; padding-bottom: 6px; border-bottom: 1px solid var(--border-subtle); font-size: calc(14px * var(--ui-scale)); line-height: 1.65; user-select: text; }
 .conversation-view-tabs.mcp-detail-tabs { height: 34px; flex: none; padding: 0; }

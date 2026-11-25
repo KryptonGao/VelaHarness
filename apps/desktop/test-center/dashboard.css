@@ -238,12 +238,6 @@ body {
   box-shadow: var(--shadow-card);
 }
 
-.tc-group-title {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .tc-group-count {
   color: var(--text-dim);
   font-size: 11.5px;
@@ -345,10 +339,6 @@ body {
 
 .tc-row-path {
   flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
   color: var(--text-dim);
   font-family: var(--font-mono);
   font-size: 11.5px;
@@ -453,13 +443,7 @@ body {
   background: color-mix(in srgb, var(--danger) 8%, transparent);
 }
 
-.tc-subtest-name {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
+.tc-subtest-name { flex: 1; }
 
 .tc-subtest-duration {
   color: var(--text-dim);

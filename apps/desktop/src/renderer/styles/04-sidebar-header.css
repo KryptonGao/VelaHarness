@@ -100,13 +100,15 @@
   min-width: 0;
   overflow: hidden;
   white-space: nowrap;
-  text-overflow: ellipsis;
+  animation: vela-overflow-fade auto linear both;
+  animation-timeline: scroll(self inline);
 }
 .conversation-search-workspace {
   max-width: 32%;
   overflow: hidden;
   white-space: nowrap;
-  text-overflow: ellipsis;
+  animation: vela-overflow-fade auto linear both;
+  animation-timeline: scroll(self inline);
   font-size: calc(13px * var(--ui-scale));
   color: var(--text-muted);
 }
@@ -375,7 +377,8 @@
   flex: 1;
   min-width: 0;
   overflow: hidden;
-  text-overflow: ellipsis;
+  animation: vela-overflow-fade auto linear both;
+  animation-timeline: scroll(self inline);
   white-space: nowrap;
 }
 .session-group-count {
@@ -434,7 +437,7 @@
 .workspace-hover-card svg { flex: none; color: var(--text-muted); }
 .workspace-hover-card-head svg { color: var(--text-primary); }
 .workspace-hover-card-line { align-items: center; }
-.workspace-hover-card-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.workspace-hover-card-name { flex: 1; min-width: 0; overflow: hidden; animation: vela-overflow-fade auto linear both; animation-timeline: scroll(self inline); white-space: nowrap; }
 .workspace-hover-card-paths { margin-top: 2px; padding-top: 8px; border-top: 1px solid var(--border-subtle); }
 .workspace-hover-card-paths > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
 .workspace-hover-card-path { overflow-wrap: anywhere; line-height: 1.35; }
@@ -564,7 +567,6 @@
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 /* 各页面顶栏左上角的页面标题：与主页的对话标题（.chat-active-title）同一套字号字重。 */
@@ -588,7 +590,7 @@
   -webkit-app-region: no-drag;
 }
 .chat-title-rename svg { flex: none; color: var(--text-muted); }
-.chat-title-rename > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chat-title-rename > span { min-width: 0; overflow: hidden; animation: vela-overflow-fade auto linear both; animation-timeline: scroll(self inline); white-space: nowrap; }
 .chat-title-rename:hover { color: var(--accent-blue); }
 
 .rename-conversation-dialog {
@@ -662,7 +664,8 @@
 .chat-project-name,
 .chat-project-branch {
   overflow: hidden;
-  text-overflow: ellipsis;
+  animation: vela-overflow-fade auto linear both;
+  animation-timeline: scroll(self inline);
   white-space: nowrap;
 }
 .chat-project-name { color: var(--text-secondary); font-weight: 500; }
@@ -757,7 +760,8 @@
   flex: 1;
   min-width: 0;
   overflow: hidden;
-  text-overflow: ellipsis;
+  animation: vela-overflow-fade auto linear both;
+  animation-timeline: scroll(self inline);
   white-space: nowrap;
 }
 .open-in-row > svg {

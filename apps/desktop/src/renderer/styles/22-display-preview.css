@@ -69,7 +69,8 @@
 .dp-name {
   min-width: 0;
   overflow: hidden;
-  text-overflow: ellipsis;
+  animation: vela-overflow-fade auto linear both;
+  animation-timeline: scroll(self inline);
   white-space: nowrap;
   color: var(--text-muted);
   font-family: var(--font-mono);
@@ -133,8 +134,8 @@
 .dp-think-row { display: flex; align-items: center; gap: 10px; min-width: 0; font-size: calc(15px * var(--ui-scale)); color: var(--text-muted); }
 .dp-think-label { display: inline-flex; align-items: center; gap: 5px; flex: none; font-weight: 500; }
 .dp-think-label.is-headline { flex: 0 1 auto; min-width: 0; }
-.dp-think-label.is-headline > span:nth-child(2) { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.dp-summary-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: calc(13px * var(--ui-scale)); }
+.dp-think-label.is-headline > span:nth-child(2) { min-width: 0; overflow: hidden; animation: vela-overflow-fade auto linear both; animation-timeline: scroll(self inline); white-space: nowrap; }
+.dp-summary-text { min-width: 0; overflow: hidden; white-space: nowrap; font-size: calc(13px * var(--ui-scale)); }
 .dp-swap { display: grid; }
 .dp-swap > * { grid-area: 1 / 1; align-self: start; }
 .dp-prose { font-size: calc(14px * var(--ui-scale)); line-height: 1.6; color: var(--text-primary); }

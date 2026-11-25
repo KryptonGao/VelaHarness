@@ -61,7 +61,6 @@
   min-width: 0;
   max-width: 260px;
   overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
   padding: 0 7px;
   border-radius: 999px;
@@ -177,7 +176,8 @@
   min-width: 0;
   margin-left: 6px;
   overflow: hidden;
-  text-overflow: ellipsis;
+  animation: vela-overflow-fade auto linear both;
+  animation-timeline: scroll(self inline);
   white-space: nowrap;
   font-family: var(--font-mono);
   font-size: calc(12px * var(--code-scale));
@@ -332,7 +332,7 @@
 .web-call-head:disabled { opacity: 1; cursor: default; }
 .web-call-head:not(:disabled):hover { color: var(--text-primary); }
 .web-call-head svg, .web-call-label { flex: none; }
-.web-call-subject, .web-page-title { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.web-call-subject, .web-page-title { min-width: 0; overflow: hidden; white-space: nowrap; animation: vela-overflow-fade auto linear both; animation-timeline: scroll(self inline); }
 .web-call-pages {
   display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
   gap: 10px 8px; margin: 8px 0 4px;
@@ -405,7 +405,7 @@
 .plan-status-icon { flex: none; }
 /* 24-run-view.css 里的 .run-todo-mark 之后加载,这里要提高优先级才能保持行内。 */
 .tool-card-name.has-plan-icon { display: flex; align-items: center; }
-.tool-card-name-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.tool-card-name-text { min-width: 0; overflow: hidden; animation: vela-overflow-fade auto linear both; animation-timeline: scroll(self inline); }
 /* Match the text's optical center without interfering with the spinner's transform. */
 .tool-card-name .plan-status-inline { display: grid; flex: none; justify-self: auto; width: 13px; height: 13px; margin-right: 8px; position: relative; top: calc(-1px * var(--ui-scale)); }
 .task-steps {
@@ -435,7 +435,8 @@
 .task-step-summary {
   min-width: 0;
   overflow: hidden;
-  text-overflow: ellipsis;
+  animation: vela-overflow-fade auto linear both;
+  animation-timeline: scroll(self inline);
   white-space: nowrap;
   color: var(--text-primary);
 }
@@ -443,7 +444,8 @@
 .agent-path {
   min-width: 0;
   overflow: hidden;
-  text-overflow: ellipsis;
+  animation: vela-overflow-fade auto linear both;
+  animation-timeline: scroll(self inline);
   white-space: nowrap;
   font-family: var(--font-mono);
   color: var(--text-primary);
@@ -474,7 +476,7 @@
   background: var(--bg-surface-subtle);
   color: var(--text-muted);
 }
-.agent-model-name { overflow: hidden; text-overflow: ellipsis; }
+.agent-model-name { overflow: hidden; animation: vela-overflow-fade auto linear both; animation-timeline: scroll(self inline); }
 .agent-model-effort { flex: none; white-space: pre; }
 .agent-summary .agent-model, .agent-summary-text .agent-model { margin-bottom: 4px; }
 .agent-state { flex: none; color: var(--text-muted); }
@@ -577,7 +579,6 @@
   flex: 0 1 auto;
   min-width: 0;
   overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
   padding: 0;
   border: none;

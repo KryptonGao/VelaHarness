@@ -978,7 +978,7 @@ export function ChatView({
               aria-label={`${tr("重命名对话", "Rename chat")} “${title}”`}
               onClick={() => onRenameConversation(state.activeConversationId!)}
             ><span>{title}</span><Icon name="edit" size={14} /></button>
-          ) : <span className="chat-active-title" title={title}>{title}</span>}
+          ) : <span className="chat-active-title overflow-fade-text" title={title}>{title}</span>}
         </div>
         <div className="chat-header-actions">
           {!embedded && hasWorkspace && projectPath && onOpenVersionControl ? (

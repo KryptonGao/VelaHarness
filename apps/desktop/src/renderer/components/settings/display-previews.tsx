@@ -342,7 +342,7 @@ function ThinkingContent({ style, summary, withBody }: { style: ThinkingSummaryS
         <div className="dp-think-row">
           {label}
           <span className="dp-fade-out" style={delay(1300)}><Dots /></span>
-          <span className="dp-summary-text dp-slide-in" style={delay(1500)}>{text}</span>
+          <span className="dp-summary-text dp-slide-in" style={delay(1500)}><span className="overflow-fade-text">{text}</span></span>
         </div>
       ) : null}
       {variant === "headline" ? (

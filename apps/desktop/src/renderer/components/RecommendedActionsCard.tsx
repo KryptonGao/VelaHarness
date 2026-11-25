@@ -55,7 +55,7 @@ export function RecommendedActionsCard({
             disabled={busy}
             onClick={() => void select(action)}
           >
-            {action.label}
+            <span className="overflow-fade-text">{action.label}</span>
           </button>
         ))}
       </div>

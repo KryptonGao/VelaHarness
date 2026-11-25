@@ -68,7 +68,7 @@
 .vc-review-toolbar .vc-repo-path { max-width: 240px; font-size: calc(12px * var(--code-scale)); }
 .vc-review-toolbar .vc-branch-menu { min-width: 0; }
 .vc-review-toolbar .vc-branch-btn { max-width: 280px; }
-.vc-review-toolbar .vc-branch-name { overflow: hidden; text-overflow: ellipsis; font: calc(12px * var(--code-scale))/1.5 var(--font-mono); }
+.vc-review-toolbar .vc-branch-name { font: calc(12px * var(--code-scale))/1.5 var(--font-mono); }
 .vc-review-sync-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; min-width: 0; flex-wrap: wrap; }
 .vc-review-sync-actions .vc-sync-summary { height: 32px; gap: 8px; padding: 0 8px; border-radius: var(--radius-md); background: transparent; font-size: calc(12px * var(--ui-scale)); }
 .vc-review-ahead { padding: 1px 5px; border-radius: var(--radius-xs); color: var(--accent-blue); background: var(--accent-tint); font: calc(12px * var(--code-scale))/1.5 var(--font-mono); }

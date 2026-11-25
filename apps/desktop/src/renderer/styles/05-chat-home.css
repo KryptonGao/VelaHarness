@@ -308,7 +308,8 @@
   font-weight: 600;
   max-width: 240px;
   overflow: hidden;
-  text-overflow: ellipsis;
+  animation: vela-overflow-fade auto linear both;
+  animation-timeline: scroll(self inline);
   white-space: nowrap;
 }
 .atelier-sep { color: var(--text-dim); }
@@ -324,7 +325,6 @@
   color: var(--text-secondary);
   max-width: 180px;
   overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
 .atelier-diff-badge {
@@ -536,7 +536,8 @@
   font-weight: 500;
   color: var(--text-primary);
   overflow: hidden;
-  text-overflow: ellipsis;
+  animation: vela-overflow-fade auto linear both;
+  animation-timeline: scroll(self inline);
   white-space: nowrap;
 }
 .atelier-row-tag {
@@ -552,7 +553,8 @@
   font-size: calc(11.5px * var(--ui-scale));
   color: var(--text-muted);
   overflow: hidden;
-  text-overflow: ellipsis;
+  animation: vela-overflow-fade auto linear both;
+  animation-timeline: scroll(self inline);
   white-space: nowrap;
 }
 .atelier-row-arrow {
@@ -633,7 +635,8 @@
   color: var(--text-primary);
   max-width: 200px;
   overflow: hidden;
-  text-overflow: ellipsis;
+  animation: vela-overflow-fade auto linear both;
+  animation-timeline: scroll(self inline);
   white-space: nowrap;
 }
 .deck-telemetry-sep {
@@ -649,7 +652,8 @@
   color: var(--text-muted);
   max-width: 160px;
   overflow: hidden;
-  text-overflow: ellipsis;
+  animation: vela-overflow-fade auto linear both;
+  animation-timeline: scroll(self inline);
   white-space: nowrap;
 }
 .deck-telemetry-pulse {
@@ -842,7 +846,8 @@
   font-size: calc(12px * var(--ui-scale));
   color: var(--text-secondary);
   overflow: hidden;
-  text-overflow: ellipsis;
+  animation: vela-overflow-fade auto linear both;
+  animation-timeline: scroll(self inline);
   white-space: nowrap;
 }
 .deck-signal-row:hover .deck-file-name { color: var(--text-primary); }
@@ -949,7 +954,8 @@
   color: var(--text-primary);
   line-height: 1.3;
   overflow: hidden;
-  text-overflow: ellipsis;
+  animation: vela-overflow-fade auto linear both;
+  animation-timeline: scroll(self inline);
   white-space: nowrap;
 }
 

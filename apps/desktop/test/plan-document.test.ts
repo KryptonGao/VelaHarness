@@ -191,15 +191,18 @@ describe("Plan 未完成 / 执行动作", () => {
 
 describe("长文档与执行进度", () => {
   it("ContextPanel 引用只含标题、版本和进度，不带 Markdown 正文", () => {
-    const long = `# 大方案\n\n## Goal\n\n${"很长的正文。".repeat(200)}`;
+    const title = "计划标题".repeat(25);
+    const section = "章节名称".repeat(12);
+    const long = `# ${title}\n\n## Goal\n\n${"很长的正文。".repeat(200)}\n\n## ${section}`;
     const info = planPreviewInfo(long);
-    assert.equal(info.title, "大方案");
+    assert.equal(info.title, title);
+    assert.deepEqual(info.sections, ["Goal", section]);
     assert.ok((info.overview?.length ?? 0) <= 220);
 
     const reference = planReferenceModel(plan("p1", 1, long, "approved"), null, null);
     assert.ok(reference);
     assert.equal("markdown" in reference, false);
-    assert.equal(reference.title, "大方案");
+    assert.equal(reference.title, title);
     assert.equal(reference.status, "approved");
   });
 
@@ -234,6 +237,10 @@ describe("长文档与执行进度", () => {
   it("通用 # Plan 标题回退到 objective 或首段", () => {
     assert.equal(planPreviewInfo("# Plan\n\n## Goal\n\n说明", "原始目标").title, "原始目标");
     assert.equal(planPreviewInfo("# Plan\n\n## Goal\n\n说明").title, "说明");
+    const paragraph = "正文".repeat(60);
+    const excerpt = `${paragraph.slice(0, 79)}…`;
+    assert.equal(planPreviewInfo(`# Plan\n\n## Goal\n\n${paragraph}`).title, excerpt);
+    assert.equal(planPreviewInfo("# Plan", paragraph).title, excerpt);
   });
 
   it("预览按顺序收集一轮里的多个 plan", () => {

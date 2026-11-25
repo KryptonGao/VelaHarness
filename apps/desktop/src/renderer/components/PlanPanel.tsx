@@ -117,7 +117,7 @@ function PlanPreviewCard({ planId }: { planId: string }) {
           <span className="plan-preview-open" aria-hidden="true">↗</span>
         </span>
       </span>
-      <span className="plan-preview-title">{info.title || tr("未命名计划", "Untitled plan")}</span>
+      <span className="plan-preview-title overflow-fade-text">{info.title || tr("未命名计划", "Untitled plan")}</span>
       {resolved.streaming ? (
         <span className="plan-preview-overview is-streaming">{tr("正在生成完整方案…", "Writing the full plan…")}</span>
       ) : info.overview ? (
@@ -129,7 +129,7 @@ function PlanPreviewCard({ planId }: { planId: string }) {
       {!resolved.streaming && info.sections.length > 0 ? (
         <span className="plan-preview-sections" aria-hidden="true">
           {info.sections.slice(0, 5).map((section) => (
-            <span className="plan-preview-chip" key={section}>{section}</span>
+            <span className="plan-preview-chip" key={section}><span className="overflow-fade-text">{section}</span></span>
           ))}
         </span>
       ) : null}

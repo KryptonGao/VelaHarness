@@ -89,16 +89,6 @@
 .turn-review-sidebar[hidden] { display: none; }
 .turn-review-sidebar .explorer-tree-meta { margin-left: auto; padding-left: 6px; flex: none; }
 .turn-review-sidebar .explorer-tree-item.file { font-size: calc(13px * var(--ui-scale)); }
-.turn-review-sidebar .explorer-tree-item.file .explorer-name {
-  container: explorer-file-name / scroll-state;
-  text-overflow: clip;
-}
-@container explorer-file-name scroll-state(scrollable: right) {
-  .explorer-name > span {
-    display: block;
-    mask-image: linear-gradient(to right, #000 calc(100% - min(16px, 45%)), transparent);
-  }
-}
 .turn-review-sidebar .turn-review-stats { font-size: calc(11px * var(--ui-scale) + 1px); font-weight: 500; gap: 4px; }
 .turn-review-view button:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: -2px; }
 .turn-review-view.is-compact .turn-review-sidebar { position: absolute; top: 0; right: 0; bottom: 0; z-index: 3; width: min(280px, 90%); box-shadow: var(--shadow-card); }

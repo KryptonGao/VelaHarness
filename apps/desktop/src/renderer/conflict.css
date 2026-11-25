@@ -11,7 +11,7 @@
 .conflict-banner-text { display: flex; flex: 1; flex-direction: column; gap: 2px; min-width: 0; font-size: calc(13px * var(--ui-scale)); line-height: 1.5; }
 .conflict-banner-text strong { font-size: calc(13.5px * var(--ui-scale)); font-weight: 600; }
 .conflict-banner-text span { color: var(--text-muted); }
-.conflict-banner-text .conflict-banner-files { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-secondary); font: calc(12px * var(--code-scale)) var(--font-mono, ui-monospace, monospace); }
+.conflict-banner-text .conflict-banner-files { overflow: hidden; animation: vela-overflow-fade auto linear both; animation-timeline: scroll(self inline); white-space: nowrap; color: var(--text-secondary); font: calc(12px * var(--code-scale)) var(--font-mono, ui-monospace, monospace); }
 .conflict-banner-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
 .conflict-banner-actions .conflict-links { display: flex; gap: 10px; }
 .conflict-link { border: 0; background: transparent; padding: 0; color: var(--text-secondary); font-size: calc(12px * var(--ui-scale)); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
@@ -42,13 +42,13 @@
 .conflict-card { border: 1px solid var(--border-subtle); border-radius: 10px; padding: 10px 12px; background: var(--bg-card-surface); }
 .conflict-card.has-overlap { border-color: var(--warning); }
 .conflict-card-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.conflict-card-title { min-width: 0; border: 0; background: transparent; padding: 0; color: inherit; font: inherit; font-weight: 600; text-align: left; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.conflict-card-title { min-width: 0; max-width: 100%; border: 0; background: transparent; padding: 0; color: inherit; font: inherit; font-weight: 600; text-align: left; cursor: pointer; overflow: hidden; white-space: nowrap; }
 .conflict-card-title:hover { text-decoration: underline; text-underline-offset: 2px; }
 .conflict-card-title:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 2px; border-radius: 3px; }
-.conflict-card-meta { margin-top: 2px; font-size: calc(11.5px * var(--ui-scale)); color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.conflict-card-meta { margin-top: 2px; font-size: calc(11.5px * var(--ui-scale)); color: var(--text-muted); overflow: hidden; animation: vela-overflow-fade auto linear both; animation-timeline: scroll(self inline); white-space: nowrap; }
 .conflict-files { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
 .conflict-files li { display: flex; align-items: baseline; gap: 8px; min-width: 0; font-size: calc(12px * var(--ui-scale)); }
-.conflict-files code { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; background: transparent; padding: 0; }
+.conflict-files code { min-width: 0; overflow: hidden; animation: vela-overflow-fade auto linear both; animation-timeline: scroll(self inline); white-space: nowrap; background: transparent; padding: 0; }
 .conflict-files time { margin-left: auto; flex: none; color: var(--text-muted); font-variant-numeric: tabular-nums; }
 .conflict-flag { flex: none; padding: 0 6px; border-radius: 4px; font-size: calc(11px * var(--ui-scale)); line-height: 18px; color: var(--warning); background: var(--warning-tint-strong); }
 .conflict-overlap-who { margin-top: 4px; font-size: calc(12px * var(--ui-scale)); color: var(--text-secondary); }

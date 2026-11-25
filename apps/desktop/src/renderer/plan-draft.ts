@@ -297,11 +297,11 @@ export function planPreviewInfo(markdown: string, fallbackTitle: string | null =
   const resolvedTitle =
     title && !genericTitles.has(normalizeHeading(title))
       ? title
-      : fallback || firstParagraph || preferred || title;
+      : clipText(fallback || firstParagraph || preferred || title, 80);
   return {
-    title: clipText(resolvedTitle, 80),
+    title: resolvedTitle,
     overview: preferred ? clipText(preferred, 220) : null,
-    sections: sections.slice(0, 8).map((section) => clipText(section, 40)),
+    sections: sections.slice(0, 8),
   };
 }
 

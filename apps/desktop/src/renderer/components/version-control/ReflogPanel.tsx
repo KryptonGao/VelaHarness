@@ -218,7 +218,9 @@ export function ReflogPanel({
               <span className="vc-p2-meta">{entry.message}</span>
               {entry.refs.length > 0 ? (
                 <span className="vc-refs">
-                  {entry.refs.map((ref) => <span key={ref} className="vc-ref">{ref}</span>)}
+                  {entry.refs.map((ref) => (
+                    <span key={ref} className="vc-ref"><span className="overflow-fade-text">{ref}</span></span>
+                  ))}
                 </span>
               ) : null}
               {entry.current ? <span className="vc-badge">{tr("当前", "Current")}</span> : null}

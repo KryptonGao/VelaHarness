@@ -118,7 +118,7 @@ export function BranchPanel({
             >
               <span className="vc-branch-item-name">
                 {branch.current ? <Icon name="check" size={12} /> : <Icon name="branch" size={12} />}
-                {branch.name}
+                <span className="overflow-fade-text">{branch.name}</span>
               </span>
               <span className="vc-branch-item-meta">
                 {branch.upstream ? <span title={branch.upstream}>{tr("跟踪", "tracks")} {branch.upstream}</span> : null}

@@ -46,7 +46,6 @@
 .agent-breadcrumb-segment {
   max-width: 150px;
   overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--text-muted);
 }
@@ -200,7 +199,8 @@
   min-width: 0;
   flex: 1;
   overflow: hidden;
-  text-overflow: ellipsis;
+  animation: vela-overflow-fade auto linear both;
+  animation-timeline: scroll(self inline);
   white-space: nowrap;
   font-family: var(--font-mono);
 }
@@ -247,16 +247,14 @@
 .tool-terminal-cmd-text {
   min-width: 0;
   flex: 1;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  display: block;
+  max-height: 2lh;
   overflow: hidden;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
 .tool-terminal-cmd.is-expanded .tool-terminal-cmd-text {
-  display: block;
-  -webkit-line-clamp: unset;
+  max-height: none;
 }
 .tool-terminal-cmd.is-toggle .tool-terminal-cmd-text { cursor: pointer; }
 .tool-terminal-cmd-text:focus-visible {

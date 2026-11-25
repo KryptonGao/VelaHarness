@@ -16,7 +16,7 @@
   padding: 5px 11px;
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-pill);
-  background: var(--bg-change-summary);
+  background: var(--bg-elevated);
   box-shadow: var(--shadow-change-summary);
   color: var(--text-change-summary);
   font-size: calc(14px * var(--ui-scale));
@@ -71,7 +71,8 @@
 }
 .composer-stat-text {
   overflow: hidden;
-  text-overflow: ellipsis;
+  animation: vela-overflow-fade auto linear both;
+  animation-timeline: scroll(self inline);
 }
 .composer-stat-icon {
   display: grid;
@@ -131,7 +132,8 @@
   height: 1.5em;
   margin-bottom: -1.5em;
   overflow: hidden;
-  text-overflow: ellipsis;
+  animation: vela-overflow-fade auto linear both;
+  animation-timeline: scroll(self inline);
   white-space: nowrap;
 }
 .rich-input .composer-skill {
@@ -181,7 +183,8 @@
 }
 .composer-skill-name {
   overflow: hidden;
-  text-overflow: ellipsis;
+  animation: vela-overflow-fade auto linear both;
+  animation-timeline: scroll(self inline);
   white-space: nowrap;
 }
 .composer-skill-remove {
@@ -262,7 +265,8 @@
 }
 .skill-menu-name {
   overflow: hidden;
-  text-overflow: ellipsis;
+  animation: vela-overflow-fade auto linear both;
+  animation-timeline: scroll(self inline);
   white-space: nowrap;
   font-weight: 600;
   font-size: calc(15px * var(--ui-scale));
@@ -275,7 +279,8 @@
 }
 .skill-menu-desc {
   overflow: hidden;
-  text-overflow: ellipsis;
+  animation: vela-overflow-fade auto linear both;
+  animation-timeline: scroll(self inline);
 }
 .status-card {
   display: flex;
@@ -327,7 +332,7 @@
 }
 .status-card-row { min-width: 0; display: flex; gap: 10px; font-size: calc(15px * var(--ui-scale)); }
 .status-card-row dt { flex: none; color: var(--text-muted); }
-.status-card-row dd { margin: 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-primary); }
+.status-card-row dd { margin: 0; min-width: 0; overflow: hidden; animation: vela-overflow-fade auto linear both; animation-timeline: scroll(self inline); white-space: nowrap; color: var(--text-primary); }
 .skill-menu-empty {
   padding: 8px 12px 12px;
   color: var(--text-muted);
@@ -403,14 +408,16 @@
 .model-pill-label {
   min-width: 0;
   overflow: hidden;
-  text-overflow: ellipsis;
+  animation: vela-overflow-fade auto linear both;
+  animation-timeline: scroll(self inline);
 }
 .dock-error {
   color: var(--danger);
   font-size: calc(15px * var(--ui-scale));
   white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
+  animation: vela-overflow-fade auto linear both;
+  animation-timeline: scroll(self inline);
 }
 
 .send-action-blue-btn {
@@ -462,7 +469,8 @@
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
+  animation: vela-overflow-fade auto linear both;
+  animation-timeline: scroll(self inline);
 }
 
 .sidebar-right-scroll {
@@ -541,7 +549,8 @@
   font-size: calc(14px * var(--code-scale));
   color: var(--text-secondary);
   overflow: hidden;
-  text-overflow: ellipsis;
+  animation: vela-overflow-fade auto linear both;
+  animation-timeline: scroll(self inline);
   white-space: nowrap;
   user-select: text;
 }
@@ -791,7 +800,8 @@
   display: block;
   grid-column: 1;
   overflow: hidden;
-  text-overflow: ellipsis;
+  animation: vela-overflow-fade auto linear both;
+  animation-timeline: scroll(self inline);
   white-space: nowrap;
 }
 .combined-model-page .menu-row-title { font-weight: 500; }
@@ -867,7 +877,8 @@
   color: var(--text-secondary);
   font-size: calc(15px * var(--ui-scale));
   line-height: 17px;
-  text-overflow: ellipsis;
+  animation: vela-overflow-fade auto linear both;
+  animation-timeline: scroll(self inline);
   white-space: nowrap;
 }
 .thinking-slider {

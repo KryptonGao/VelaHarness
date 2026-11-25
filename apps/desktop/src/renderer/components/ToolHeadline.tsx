@@ -136,7 +136,7 @@ export function BrowserHeadlineSteps({ steps }: { steps: readonly BrowserStep[] 
     {steps.map((step, index) => (
       <span className="browser-call-step-wrap" key={index}>
         {index > 0 ? <Icon name="arrow-right" size={10} /> : null}
-        <span className={`browser-call-step is-${step.kind}`}>{browserStepLabel(step)}</span>
+        <span className={`browser-call-step is-${step.kind}`}><span className="overflow-fade-text">{browserStepLabel(step)}</span></span>
       </span>
     ))}
   </span>;
@@ -173,7 +173,7 @@ export function ToolHeadlineDetails({ tool }: { tool: ToolTrace }) {
   const kind = toolKind(tool.name);
   if (activity.mcp) return <>
     <span className="tool-card-name grow">{activity.mcp.tool}</span>
-    <span className="tool-mcp-source">{activity.mcp.server}</span>
+    <span className="tool-mcp-source"><span className="overflow-fade-text">{activity.mcp.server}</span></span>
   </>;
   if (isAgentToolName(tool.name)) {
     const live = findAgentInfo(roster, activity.agentId, activity.agentPath);
@@ -188,7 +188,7 @@ export function ToolHeadlineDetails({ tool }: { tool: ToolTrace }) {
   const subject = subjectOf(kind, activity, tool.name);
   if (kind === "read" || kind === "edit" || kind === "write") return <>
     <FileTypeIcon path={activity.path?.trim() || subject.name} />
-    <span className="tool-compact-name is-static">{skillName || subject.name}</span>
+    <span className="tool-compact-name is-static overflow-fade-text">{skillName || subject.name}</span>
     {!skillName && subject.dir ? <span className="tool-compact-dir is-file-path">{subject.dir}</span> : null}
   </>;
   return <>

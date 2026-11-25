@@ -48,7 +48,7 @@ function ConversationCard({ summary, now, onClose }: { summary: ConversationEdit
   return <li className={`conflict-card${overlapPaths.size > 0 ? " has-overlap" : ""}`}>
     <div className="conflict-card-head">
       <div style={{ minWidth: 0 }}>
-        <button type="button" className="conflict-card-title" title={summary.title} onClick={() => { openConversation(summary.conversationId); onClose(); }}>{summary.title}</button>
+        <button type="button" className="conflict-card-title" title={summary.title} onClick={() => { openConversation(summary.conversationId); onClose(); }}><span className="overflow-fade-text">{summary.title}</span></button>
         <div className="conflict-card-meta" title={summary.cwd}>{summary.cwd}</div>
       </div>
       {overlapPaths.size > 0 ? <div className="conflict-card-actions"><MoveToWorktreeButton conversationId={summary.conversationId} onMoved={onClose} /></div> : null}

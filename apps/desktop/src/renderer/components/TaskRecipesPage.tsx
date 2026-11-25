@@ -130,7 +130,7 @@ export function TaskRecipesPage(props: TaskRecipesPageProps) {
             {recipe.description && <p className="recipe-desc">{recipe.description}</p>}
             {recipe.tags.length > 0 && <div className="recipe-tag-list">{recipe.tags.map(tag => <span key={tag}>{tag}</span>)}</div>}
             <div className="recipe-meta">
-              {location && <span className="recipe-meta-path" title={location}><Icon name="folder" size={14} />{location}{recipe.origin === 'team' ? ` · ${recipe.teamPermission === 'write' ? tr('可写', 'Writable') : tr('只读', 'Read only')}` : ''}</span>}
+              {location && <span className="recipe-meta-path" title={location}><Icon name="folder" size={14} /><span className="overflow-fade-text">{location}{recipe.origin === 'team' ? ` · ${recipe.teamPermission === 'write' ? tr('可写', 'Writable') : tr('只读', 'Read only')}` : ''}</span></span>}
               <span>{tr('最近使用', 'Last used')} {latest ? date(latest.startedAt) : tr('尚未使用', 'Not used yet')}</span><span>r{recipe.revision}</span></div>
             <div className="recipe-card-actions"><button className="recipe-primary" type="button" disabled={!!state.error} onClick={() => choose(recipe)}>{tr('使用配方', 'Use recipe')}</button>
               <span className="recipe-card-tools">

@@ -310,12 +310,12 @@ function AgentBreadcrumb({
           title={trf("切换到 {0}", "Switch to {0}", accumulated)}
           onClick={() => onSwitch(target.id)}
         >
-          {part}
+          <span className="overflow-fade-text">{part}</span>
         </button>
       ) : (
         <span
           key={accumulated}
-          className={`agent-breadcrumb-segment${index === parts.length - 1 ? " is-current" : ""}`}
+          className={`agent-breadcrumb-segment overflow-fade-text${index === parts.length - 1 ? " is-current" : ""}`}
         >
           {part}
         </span>

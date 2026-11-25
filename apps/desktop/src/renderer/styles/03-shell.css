@@ -283,14 +283,15 @@
   flex-shrink: 0;
   max-width: 38%;
   overflow: hidden;
-  text-overflow: ellipsis;
+  animation: vela-overflow-fade auto linear both;
+  animation-timeline: scroll(self inline);
   white-space: nowrap;
   color: var(--text-muted);
   font-size: calc(12px * var(--ui-scale));
   font-weight: 400;
 }
 .activity-row-detail { justify-content: space-between; font-size: calc(12px * var(--ui-scale)); font-weight: 400; color: var(--text-muted); }
-.activity-status { display: flex; align-items: center; gap: 5px; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.activity-status { display: flex; align-items: center; gap: 5px; min-width: 0; overflow: hidden; white-space: nowrap; }
 .activity-status-waiting { color: color-mix(in srgb, var(--warning) 70%, var(--text-primary)); }
 .activity-status-error { color: var(--danger); }
 .activity-status-priority { color: color-mix(in srgb, var(--accent-blue) 80%, var(--text-primary)); }

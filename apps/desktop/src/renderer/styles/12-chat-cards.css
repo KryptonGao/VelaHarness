@@ -62,7 +62,7 @@
   background: color-mix(in srgb, var(--accent-blue) 14%, transparent);
   color: var(--accent-blue);
 }
-.instruction-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.instruction-text { overflow: hidden; animation: vela-overflow-fade auto linear both; animation-timeline: scroll(self inline); white-space: nowrap; min-width: 0; }
 .instruction-remove {
   flex: none;
   width: 20px;
@@ -99,7 +99,7 @@
   color: var(--accent-blue);
   flex-shrink: 0;
 }
-.attachment-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.attachment-name { overflow: hidden; animation: vela-overflow-fade auto linear both; animation-timeline: scroll(self inline); white-space: nowrap; }
 .attachment-remove {
   position: absolute;
   top: -6px;
@@ -339,7 +339,7 @@
 .provider-error-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; }
 .provider-error-head strong { font-size: calc(13.5px * var(--ui-scale)); font-weight: 600; }
 .provider-error-meta { color: var(--text-muted); font-size: calc(12px * var(--ui-scale)); }
-.provider-error-text p { margin: 0; color: var(--text-secondary); display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.provider-error-text p { margin: 0; color: var(--text-secondary); display: block; max-height: 4lh; overflow: hidden; }
 
 /* ---------- 设置页:审批记录 ---------- */
 .approval-record { display: flex; flex-direction: column; gap: 10px; padding: 12px; border-radius: var(--radius-md); background: var(--bg-surface-subtle); }
@@ -384,7 +384,8 @@
 .visual-tool-title {
   color: var(--text-dim);
   overflow: hidden;
-  text-overflow: ellipsis;
+  animation: vela-overflow-fade auto linear both;
+  animation-timeline: scroll(self inline);
   white-space: nowrap;
 }
 .visual-tool-stream-meta {

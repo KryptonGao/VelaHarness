@@ -48,9 +48,8 @@
   font-size: calc(14px * var(--ui-scale));
   line-height: 1.4;
   color: var(--text-muted);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  display: block;
+  max-height: 2lh;
   overflow: hidden;
   overflow-wrap: anywhere;
 }
@@ -122,9 +121,8 @@
   font-size: calc(14px * var(--ui-scale));
   line-height: 1.45;
   color: var(--text-secondary);
-  display: -webkit-box;
-  -webkit-line-clamp: 4;
-  -webkit-box-orient: vertical;
+  display: block;
+  max-height: 4lh;
   overflow: hidden;
   overflow-wrap: anywhere;
   white-space: pre-wrap;
@@ -158,7 +156,7 @@
   white-space: nowrap;
 }
 .code-comment-badge > :first-child { flex: none; margin-right: 4px; }
-.code-comment-filename { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.code-comment-filename { min-width: 0; overflow: hidden; animation: vela-overflow-fade auto linear both; animation-timeline: scroll(self inline); }
 .code-comment-badge > :last-child { flex: none; }
 .reply-quote-remove:hover { background: var(--bg-hover); color: var(--text-primary); }
 

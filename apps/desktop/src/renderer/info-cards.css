@@ -120,8 +120,8 @@ body.info-card-dragging, body.info-card-dragging * { cursor: grabbing !important
 button.info-card-row:hover:not(:disabled), .info-card-row.is-active { background: var(--bg-hover); }
 .info-card-row:disabled { cursor: default; }
 .info-card-row > svg { flex: none; color: var(--text-muted); }
-.info-card-row-main { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.info-card-row-note { flex: none; max-width: 48%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: calc(12px * var(--ui-scale)); color: var(--text-muted); }
+.info-card-row-main { flex: 1; min-width: 0; overflow: hidden; animation: vela-overflow-fade auto linear both; animation-timeline: scroll(self inline); white-space: nowrap; }
+.info-card-row-note { flex: none; max-width: 48%; overflow: hidden; animation: vela-overflow-fade auto linear both; animation-timeline: scroll(self inline); white-space: nowrap; font-size: calc(12px * var(--ui-scale)); color: var(--text-muted); }
 .info-card-file-icon { display: grid; place-items: center; width: 16px; height: 16px; flex: none; }
 .info-card-file-icon img, .info-card-file-icon svg { width: 16px; height: 16px; }
 .info-card-branch { position: relative; }

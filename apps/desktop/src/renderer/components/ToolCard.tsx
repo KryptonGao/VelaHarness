@@ -293,7 +293,7 @@ function AgentToolCard({ tool, compact = false }: { tool: ToolTrace; compact?: b
             title={canOpen ? trf("在右侧查看 {0}", "Open {0} in pane", title) : titleText}
             onClick={openInPane}
           >
-            {title}
+            <span className="overflow-fade-text">{title}</span>
           </button>
           <button
             className="agent-compact-toggle is-tail"
@@ -428,7 +428,7 @@ function GenericToolCard({ tool, compact = false }: ToolCardProps) {
             </span>
             {subject.dir ? <span className={`tool-card-dir${kind === "read" || kind === "edit" || kind === "write" ? " is-file-path" : ""}`}>{subject.dir}</span> : null}
           </span>
-          {mcp || discoveryServer ? <span className="tool-mcp-source" aria-label={trf("MCP 服务器：{0}", "MCP server: {0}", (mcp?.server ?? discoveryServer)!)}>{mcp?.server ?? discoveryServer}</span> : null}
+          {mcp || discoveryServer ? <span className="tool-mcp-source" aria-label={trf("MCP 服务器：{0}", "MCP server: {0}", (mcp?.server ?? discoveryServer)!)}><span className="overflow-fade-text">{mcp?.server ?? discoveryServer}</span></span> : null}
           {stat ? (
             <span className="tool-stat">
               {stat.added > 0 ? <span className="tool-stat-add">+{stat.added}</span> : null}
@@ -869,10 +869,10 @@ export const CompactToolLine = memo(function CompactToolLine({
             title={`${tr("预览", "Preview")} ${previewPath ?? ""}`}
             onClick={() => preview?.openFile(previewPath ?? "")}
           >
-            {skillName || subject.name}
+            <span className="overflow-fade-text">{skillName || subject.name}</span>
           </button>
         ) : (
-          <span className="tool-compact-name is-static">{skillName || subject.name}</span>
+          <span className="tool-compact-name is-static overflow-fade-text">{skillName || subject.name}</span>
         )}
         {skillName ? <span className="tool-compact-action">{skillActionParts().after}</span> : null}
         {skillName ? null : hasFileDetails && subject.dir ? (
@@ -982,8 +982,8 @@ function CompactDiffCard({ fileName, filePath, diff, note, streaming = false, sh
               type="button"
               title={trf("在{0}中显示", "Show in {0}", fileManagerName(window.vela?.platform ?? "darwin"))}
               onClick={() => { void window.vela?.revealFile(filePath).catch(() => undefined); }}
-            >{fileName}</button>
-          : <span className="compact-diff-card-name" title={fileName}>{fileName}</span>}
+            ><span className="overflow-fade-text">{fileName}</span></button>
+          : <span className="compact-diff-card-name overflow-fade-text" title={fileName}>{fileName}</span>}
         {stat ? (
           <span className="compact-diff-card-stat">
             {stat.added > 0 ? <span className="tool-stat-add">+{stat.added}</span> : null}

@@ -297,7 +297,7 @@ export function Thinking({
     <div className="thinking-header">
       <button className={`time-spent-trigger thinking-headline-trigger${coherent ? "" : " thinking-cot-title"}${toolActivity ? ` has-tool-activity tool-kind-${toolActivity.kind === "tools" ? "other" : toolActivity.kind}` : ""}${expandSignal ? " is-running" : ""}`} type="button" aria-expanded={open} aria-controls={bodyId} onClick={toggle} title={groupTitle}>
         {toolActivity ? <span className="tool-compact-icon" aria-hidden="true"><ToolHeadlineIcon tool={toolActivity.tool} /></span> : coherent ? leadingIcon : icon}
-        <span className={`thinking-summary-excerpt${toolActivity ? " thinking-tool-activity" : ""}`}>{groupTitle}</span>
+        <span className="overflow-fade-text"><span className={`thinking-summary-excerpt${toolActivity ? " thinking-tool-activity" : ""}`}>{groupTitle}</span></span>
         {failedCount > 0 && !open ? (
           <span className="thinking-group-failed" role="img" aria-label={trf("{0} 个工具失败", "{0} tools failed", failedCount)} title={trf("{0} 个工具失败", "{0} tools failed", failedCount)} />
         ) : null}
@@ -311,7 +311,7 @@ export function Thinking({
     <div className="thinking-header">
       <button className="time-spent-trigger thinking-headline-trigger" type="button" aria-expanded={open} aria-controls={bodyId} onClick={toggle} title={summary.text}>
         {icon}
-        <span className="thinking-summary-excerpt summary-arrival">{summary.text}</span>
+        <span className="overflow-fade-text"><span className="thinking-summary-excerpt summary-arrival">{summary.text}</span></span>
         {arrow}
       </button>
     </div>
@@ -357,7 +357,7 @@ export function Thinking({
             <div className="thinking-summary-inline">
               {!open && summary?.status === "done" ? (
                 <button className="thinking-summary-preview" type="button" onClick={toggle} title={summary.text} aria-expanded={open} aria-controls={bodyId}>
-                  <span className="thinking-summary-excerpt summary-arrival">{summary.text}</span>
+                  <span className="overflow-fade-text"><span className="thinking-summary-excerpt summary-arrival">{summary.text}</span></span>
                 </button>
               ) : null}
               {!open && summary?.status === "pending" ? (

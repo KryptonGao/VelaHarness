@@ -79,7 +79,7 @@ export function RepoCard({
             <span className="repo-card-name" title={repo?.root ?? currentWorkspace ?? undefined}>{name}</span>
             <span aria-hidden="true" className={`environment-chevron${collapsed ? " collapsed" : ""}`}><Icon name="chevron-down" size={12} /></span>
           </button>
-        ) : <span className="repo-card-title" title={repo?.root ?? currentWorkspace ?? undefined}>
+        ) : <span className="repo-card-title overflow-fade-text" title={repo?.root ?? currentWorkspace ?? undefined}>
           {name}
         </span>}
         <div className="repo-card-more-anchor" ref={menuRef}>

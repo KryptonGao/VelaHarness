@@ -111,7 +111,7 @@ export function VersionControlView({
         <Icon name="folder" size={24} />
         <h2>{tr("当前目录不是 Git 仓库", "This folder is not a Git repository")}</h2>
         <p>{tr("本地 Git 功能需要仓库支持；首期不提供初始化或克隆。若 Git 未安装，请先安装并配置。", "Version control needs a Git repository. Initializing or cloning is not part of this release. If Git is missing, install and configure it first.")}</p>
-        <div className="vc-empty-path">{workspace}</div>
+        <div className="vc-empty-path"><span className="overflow-fade-text">{workspace}</span></div>
       </div>
     );
   }
@@ -358,9 +358,11 @@ export function VersionControlView({
         </nav>
         <div className="vc-layout-controls">
         <div className="vc-scope-note">
-          {status.detached
-            ? tr("Detached HEAD · 请创建或切换分支", "Detached HEAD · create or switch to a branch")
-            : trf("工作区 {0}", "Workspace {0}", branch ?? "")}
+          <span className="overflow-fade-text">
+            {status.detached
+              ? tr("Detached HEAD · 请创建或切换分支", "Detached HEAD · create or switch to a branch")
+              : trf("工作区 {0}", "Workspace {0}", branch ?? "")}
+          </span>
         </div>
         <SettingsSelect label={layoutCopy.versionControlLayout} value={layout}
           options={[

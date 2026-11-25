@@ -1,0 +1,19 @@
+@supports (animation-timeline: scroll(self block)) {
+  :where(
+    .agent-inbox-row-subject, .checkpoint-node-text, .recipe-page .recipe-desc,
+    .race-prompt, .st-page .scheduled-task-prompt:not(details *),
+    .ob-news-new .ob-strip span, .ob-news-imp li span, .ob-wn-grid .ob-strip span,
+    .selection-reply-quote p, .reply-quote-text,
+    .turn-nav-popover-prompt, .turn-nav-popover-reply,
+    .tool-terminal-cmd:not(.is-expanded) > .tool-terminal-cmd-text,
+    .plan-preview-overview, .provider-error-text p, .skill-migration-desc
+  ) {
+    /* Don't pass the opaque top layer down to nested single-line labels. */
+    & > :where(*) { --overflow-fade-mask: var(--overflow-fade-right); }
+
+    --overflow-fade-mask: linear-gradient(to bottom, #000 calc(100% - 1lh), transparent calc(100% - 1lh)),
+                          var(--overflow-fade-right);
+    animation: vela-overflow-fade auto linear both;
+    animation-timeline: scroll(self block);
+  }
+}

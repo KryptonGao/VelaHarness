@@ -80,7 +80,7 @@ button.wo-chip:hover { background: var(--bg-hover); color: var(--text-primary); 
 .wo-attention-icon.wo-waiting { color: var(--warning); background: color-mix(in srgb, var(--warning) 13%, transparent); }
 .wo-attention-icon.wo-error, .wo-attention-icon.wo-operation { color: var(--danger); background: color-mix(in srgb, var(--danger) 12%, transparent); }
 .wo-attention-text { flex: 1; min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); }
-.wo-attention-text b { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wo-attention-text b { font-weight: 500; white-space: nowrap; overflow: hidden; animation: vela-overflow-fade auto linear both; animation-timeline: scroll(self inline); }
 .wo-attention-text span { color: var(--text-muted); font-size: calc(12px * var(--ui-scale)); }
 
 /* 概况 */
@@ -107,7 +107,7 @@ button.wo-chip:hover { background: var(--bg-hover); color: var(--text-primary); 
 .wo-repo-cols > * { min-width: 0; align-self: start; }
 .wo-repo-side { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
 .wo-branch-line { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.wo-branch { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wo-branch { font-weight: 600; overflow: hidden; animation: vela-overflow-fade auto linear both; animation-timeline: scroll(self inline); white-space: nowrap; }
 .wo-sync { margin-left: auto; display: flex; gap: 8px; color: var(--text-muted); font-size: calc(12px * var(--ui-scale)); }
 .wo-sec { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; color: var(--text-dim); font-size: calc(11px * var(--ui-scale)); font-weight: 600; letter-spacing: 0.02em; }
 .wo-splitbar { display: flex; gap: 2px; height: 6px; overflow: hidden; border-radius: 3px; background: var(--border-subtle); }
@@ -122,14 +122,14 @@ button.wo-chip:hover { background: var(--bg-hover); color: var(--text-primary); 
 .wo-file { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; font-size: calc(15px * var(--ui-scale)); font-weight: 500; line-height: 1.5; color: var(--text-muted); transition: color 100ms ease; }
 .wo-file:hover { color: var(--text-primary); }
 .wo-file .file-type-icon { flex: none; }
-.wo-file-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wo-file-name { min-width: 0; overflow: hidden; animation: vela-overflow-fade auto linear both; animation-timeline: scroll(self inline); white-space: nowrap; }
 .wo-worktrees, .wo-commits { display: grid; grid-template-columns: minmax(0, 1fr); gap: 5px; font-size: calc(12px * var(--ui-scale)); }
 .wo-worktrees li { display: flex; align-items: center; gap: 8px; }
 .wo-worktrees svg { color: var(--violet); flex: none; }
-.wo-wt-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wo-wt-name { flex: 1; min-width: 0; overflow: hidden; animation: vela-overflow-fade auto linear both; animation-timeline: scroll(self inline); white-space: nowrap; }
 .wo-commits li { display: flex; align-items: baseline; gap: 8px; }
 .wo-hash { color: var(--text-dim); font-size: calc(11px * var(--code-scale)); }
-.wo-commit-subject { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-secondary); }
+.wo-commit-subject { flex: 1; min-width: 0; overflow: hidden; animation: vela-overflow-fade auto linear both; animation-timeline: scroll(self inline); white-space: nowrap; color: var(--text-secondary); }
 
 /* 活动 */
 .wo-big { display: flex; align-items: baseline; gap: 8px; margin-bottom: 12px; }
@@ -147,7 +147,7 @@ button.wo-chip:hover { background: var(--bg-hover); color: var(--text-primary); 
 .wo-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; }
 .wo-list li { display: flex; align-items: center; gap: 10px; min-height: 30px; padding: 4px 0; }
 .wo-list-label { width: 56px; flex: none; color: var(--text-muted); }
-.wo-clamp { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wo-clamp { flex: 1; min-width: 0; overflow: hidden; animation: vela-overflow-fade auto linear both; animation-timeline: scroll(self inline); white-space: nowrap; }
 .wo-servers { display: flex; flex-wrap: wrap; gap: 4px 12px; min-width: 0; }
 .wo-server { display: inline-flex; align-items: center; gap: 6px; }
 

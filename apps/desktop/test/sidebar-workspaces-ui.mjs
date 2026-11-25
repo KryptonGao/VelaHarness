@@ -87,6 +87,15 @@ if (!process.versions.electron) {
     await until(`${rows}.length === 5`);
     assert.equal(await evaluate(`${more}.textContent`), "展开显示");
     assert.equal(await evaluate(`${group}.querySelectorAll('.session-group-folder svg').length`), 1);
+    const titleRow = `${rows}[2]`;
+    const title = `${titleRow}.querySelector('.subchat-title')`;
+    const mask = `getComputedStyle(${title}.firstElementChild).maskImage`;
+    await evaluate(`${titleRow}.style.width = '64px'`);
+    await until(`${title}.scrollWidth > ${title}.clientWidth && ${mask}.includes('linear-gradient')`);
+    assert.equal(await evaluate(`getComputedStyle(${title}).textOverflow`), 'clip');
+    assert.equal(await evaluate(`${titleRow}.querySelector('.subchat-item').title`), '统一界面设计');
+    await evaluate(`${titleRow}.style.removeProperty('width')`);
+    await until(`${title}.scrollWidth === ${title}.clientWidth && ${mask} === 'none'`);
     assert.equal(await evaluate(`document.getElementById(${more}.getAttribute('aria-controls')).contains(${rows}[0])`), true);
     await evaluate(`${more}.focus()`);
     win.webContents.sendInputEvent({ type: "keyDown", keyCode: "Space" });
@@ -229,9 +238,10 @@ if (!process.versions.electron) {
     assert.equal(await evaluate("document.querySelector('.sidebar-workspaces-title').textContent"), "工作区");
     await until("document.querySelectorAll('.session-group').length === 2");
     await evaluate("document.querySelector('.sidebar-pinned-workspaces .sidebar-section-toggle').click()");
-    await until("document.querySelectorAll('.sidebar-pinned-workspaces .session-group').length === 0");
+    const pinnedContent = "document.querySelector('.sidebar-pinned-workspaces > .session-group-content')";
+    await until(`${pinnedContent}.inert && ${pinnedContent}.getBoundingClientRect().height === 0`);
     await evaluate("document.querySelector('.sidebar-pinned-workspaces .sidebar-section-toggle').click()");
-    await until("document.querySelectorAll('.sidebar-pinned-workspaces .session-group').length === 1");
+    await until(`!${pinnedContent}.inert && ${pinnedContent}.getBoundingClientRect().height > 0 && !${pinnedContent}.getAnimations({subtree: true}).some(a => a.timeline === document.timeline)`);
     // The pointer last rested on the unmounted card; a fresh hover must still open the next one.
     await hoverRow(0);
     await until(`${card}?.querySelector('.workspace-hover-card-pin[aria-pressed="true"]')`);

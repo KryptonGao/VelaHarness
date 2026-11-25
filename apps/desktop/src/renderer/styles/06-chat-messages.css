@@ -318,11 +318,8 @@
   font-size: calc(12px * var(--ui-scale));
   font-weight: 500;
 }
-.thinking-summary-excerpt {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
+/* Keep shimmer and arrival on the text, separate from its overflow mask. */
+.thinking-summary-excerpt { display: block; }
 .thinking-summary-status {
   display: inline-flex;
   align-items: center;
@@ -341,13 +338,12 @@
   overflow-wrap: anywhere;
 }
 .thinking-summary-panel p { margin: 5px 0 0; }
-/* 总结作为标题:整行可点,超出时省略号截断;展开后换回“思考”标题。 */
+/* 总结作为标题:整行可点,超出时右侧渐隐;展开后换回“思考”标题。 */
 .thinking-header > .thinking-headline-trigger {
   flex: 1;
   min-width: 0;
 }
 .thinking-headline-trigger:hover { color: var(--text-primary); }
-.thinking-headline-trigger .thinking-summary-excerpt { min-width: 0; }
 .thinking-headline-trigger .time-spent-trigger-arrow { flex-shrink: 0; }
 /* 进行中的标题:一道高光从左到右反复划过文字,停顿一拍再来下一道。 */
 .thinking-headline-trigger.is-running .thinking-summary-excerpt {
@@ -617,7 +613,8 @@
 .coherent-thought-title {
   min-width: 0;
   overflow: hidden;
-  text-overflow: ellipsis;
+  animation: vela-overflow-fade auto linear both;
+  animation-timeline: scroll(self inline);
   white-space: nowrap;
 }
 .coherent-thought-arrow {
@@ -792,7 +789,8 @@
 .tool-card-name {
   min-width: 0;
   overflow: hidden;
-  text-overflow: ellipsis;
+  animation: vela-overflow-fade auto linear both;
+  animation-timeline: scroll(self inline);
   white-space: nowrap;
   color: var(--text-primary);
   font-weight: 600;
@@ -807,7 +805,8 @@
   flex: 1;
   min-width: 0;
   overflow: hidden;
-  text-overflow: ellipsis;
+  animation: vela-overflow-fade auto linear both;
+  animation-timeline: scroll(self inline);
   white-space: nowrap;
   color: var(--text-muted);
   font-size: calc(15px * var(--ui-scale));
@@ -916,7 +915,8 @@
   flex: 1;
   min-width: 0;
   overflow: hidden;
-  text-overflow: ellipsis;
+  animation: vela-overflow-fade auto linear both;
+  animation-timeline: scroll(self inline);
   white-space: nowrap;
   color: var(--text-secondary);
   font-size: calc(15px * var(--ui-scale));
@@ -1012,7 +1012,8 @@ button.tool-compact-line:focus-visible > .tool-compact-chevron,
   flex: 0 1 auto;
   min-width: 0;
   overflow: hidden;
-  text-overflow: ellipsis;
+  animation: vela-overflow-fade auto linear both;
+  animation-timeline: scroll(self inline);
   white-space: nowrap;
   color: var(--text-secondary);
 }
@@ -1020,7 +1021,8 @@ button.tool-compact-line:focus-visible > .tool-compact-chevron,
   flex: 0 1 auto;
   min-width: 0;
   overflow: hidden;
-  text-overflow: ellipsis;
+  animation: vela-overflow-fade auto linear both;
+  animation-timeline: scroll(self inline);
   white-space: nowrap;
   color: var(--text-muted);
   font-size: calc(14px * var(--ui-scale));
@@ -1125,7 +1127,6 @@ button.tool-compact-line:focus-visible {
   flex: 0 0.001 auto;
   min-width: 0;
   overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
   padding: 0;
   border: none;
@@ -1140,7 +1141,8 @@ button.tool-compact-name:hover { text-decoration: underline; text-underline-offs
   flex: 0 1 auto;
   min-width: 0;
   overflow: hidden;
-  text-overflow: ellipsis;
+  animation: vela-overflow-fade auto linear both;
+  animation-timeline: scroll(self inline);
   white-space: nowrap;
   color: var(--text-muted);
 }
@@ -1176,7 +1178,8 @@ button.tool-compact-line:hover .tool-compact-cmd {
   flex: 0 1 auto;
   min-width: 0;
   overflow: hidden;
-  text-overflow: ellipsis;
+  animation: vela-overflow-fade auto linear both;
+  animation-timeline: scroll(self inline);
   white-space: nowrap;
   font-family: var(--font-mono);
   color: var(--text-secondary);
@@ -1516,9 +1519,8 @@ button.compact-diff-card-name:focus-visible {
   font-weight: 600;
   line-height: 1.4;
   color: var(--text-primary);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  display: block;
+  max-height: 2lh;
   overflow: hidden;
   overflow-wrap: anywhere;
 }
@@ -1529,9 +1531,8 @@ button.compact-diff-card-name:focus-visible {
   font-weight: 400;
   line-height: 1.45;
   color: var(--text-muted);
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
+  display: block;
+  max-height: 3lh;
   overflow: hidden;
   overflow-wrap: anywhere;
 }

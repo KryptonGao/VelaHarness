@@ -29,6 +29,7 @@ export function BrowserPanel({ controller, tabId, operating, onAbort }: { contro
   const pageError = state.error && !addressError ? describeBrowserError(state.error, state.url) : null;
   const failedUrl = state.error?.url || (state.url !== UI_BROWSER_BLANK_URL ? state.url : "");
   const blank = state.url === UI_BROWSER_BLANK_URL;
+  const addressPlaceholder = tr("输入网址", "Enter a URL");
   const annotateDisabled = !state.ready || blank || !!state.error || !!operating;
   const annotateLabel = state.annotating ? tr("退出批注", "Exit annotation") : tr("批注", "Annotate");
   const favorites = useBrowserFavorites();
@@ -56,7 +57,7 @@ export function BrowserPanel({ controller, tabId, operating, onAbort }: { contro
       </button>
       <form className="browser-address-form" onSubmit={(event) => { event.preventDefault(); controller.navigate(); }}>
         <input className="browser-address" aria-label={tr("网页地址", "Web address")}
-          placeholder={tr("输入网址", "Enter a URL")} value={state.address}
+          placeholder={addressPlaceholder} value={state.address}
           autoComplete="off" spellCheck={false} aria-invalid={state.error?.code === "invalid-address" || undefined}
           onChange={(event) => controller.setAddress(event.target.value)}
           onFocus={(event) => { controller.beginAddressEdit(); event.currentTarget.select(); }}
@@ -64,6 +65,7 @@ export function BrowserPanel({ controller, tabId, operating, onAbort }: { contro
           onKeyDown={(event) => {
             if (event.key === "Escape") { controller.resetAddress(); event.currentTarget.blur(); }
           }} />
+        <span aria-hidden="true" className="browser-address-display overflow-fade-text">{state.address || addressPlaceholder}</span>
       </form>
       <button type="button" className="browser-nav browser-favorite" aria-label={favoriteLabelText} title={favoriteLabelText}
         aria-pressed={favorited} disabled={blank || !!state.error}
@@ -97,7 +99,7 @@ export function BrowserPanel({ controller, tabId, operating, onAbort }: { contro
         <span className="browser-error-icon" aria-hidden="true"><Icon name="alert" size={24} /></span>
         <h2>{pageError.title}</h2>
         <p>{pageError.hint}</p>
-        {failedUrl && <code className="browser-error-url" title={failedUrl}>{failedUrl}</code>}
+        {failedUrl && <code className="browser-error-url" title={failedUrl}><span className="overflow-fade-text">{failedUrl}</span></code>}
         {pageError.technical && <span className="browser-error-code">{pageError.technical}</span>}
         <button type="button" className="browser-error-retry" onClick={controller.retry}>
           <Icon name="refresh" size={14} />{tr("重试", "Try again")}
