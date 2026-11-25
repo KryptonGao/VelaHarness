@@ -1265,6 +1265,8 @@ button.settings-radio:hover:not(:disabled) { background: var(--bg-hover); }
 
 .subagent-pool-entry { display: flex; align-items: center; gap: 2px; }
 .subagent-pool-entry .subagent-pool-row { min-width: 0; flex: 1; }
+.subagent-description-input { display: block; width: 100%; min-height: 76px; resize: vertical; font: inherit; font-size: 12px; line-height: 1.45; }
+.subagent-effort-content .subagent-description-input { margin: 6px 0 16px; }
 .subagent-effort-button {
   display: grid;
   place-items: center;

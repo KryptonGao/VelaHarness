@@ -497,8 +497,23 @@ export interface ModelRef {
 }
 
 export interface SubagentModelRef extends ModelRef {
+  /** User-supplied notes for the parent when choosing a model. */
+  description?: string;
   /** Omitted to allow all levels supported by the model, including future additions. */
   thinkingLevels?: ThinkingLevel[];
+}
+
+export const maxSubagentModelDescriptionLength = 500;
+
+export function parseSubagentModelDescription(value: unknown, strict = true): string | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value === "string") {
+    const text = value.replace(/\r\n?/g, "\n").trim();
+    if (text.length <= maxSubagentModelDescriptionLength) return text || undefined;
+  }
+  // Ignore a damaged note when reading disk without removing an otherwise valid model.
+  if (!strict) return undefined;
+  throw new Error(`子代理模型简介必须是不超过 ${maxSubagentModelDescriptionLength} 个字符的文本`);
 }
 
 export function parseSubagentThinkingLevels(value: unknown): ThinkingLevel[] | undefined {

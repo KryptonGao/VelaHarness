@@ -123,12 +123,18 @@ describe("runHeadless", () => {
     await writeModelConfig(f.configDir, f.model.url, { reasoning: true });
     const path = join(f.configDir, "selection.json");
     const settings = JSON.parse(await readFile(path, "utf8"));
-    settings.subagentModels = [{ provider: "fake-local", modelId: "fake-model", thinkingLevels: ["low", "high"] }];
+    settings.subagentModels = [
+      { provider: "fake-local", modelId: "fake-model", thinkingLevels: ["low", "high"], description: "Fast for read-only reviews" },
+      { provider: "offline", modelId: "missing", description: "Unavailable model note" },
+    ];
     await writeFile(path, JSON.stringify(settings));
     const result = await f.run();
     assert.equal(result.status, "completed");
     assert.deepEqual(result.subagentFailures, []);
-    assert.match(JSON.stringify(f.model.requests[0]?.body.messages), /reasoning_effort: low, high/);
+    const parentMessages = JSON.stringify(f.model.requests[0]?.body.messages);
+    assert.match(parentMessages, /reasoning_effort: low, high/);
+    assert.match(parentMessages, /Fast for read-only reviews/);
+    assert.doesNotMatch(parentMessages, /Unavailable model note/);
     const effortFor = (task: string) => f.model.requests.find(({ body }) =>
       JSON.stringify(body.messages.at(-1)?.content).includes(task))?.body.reasoning_effort;
     assert.equal(effortFor("Check explicit effort"), "high");

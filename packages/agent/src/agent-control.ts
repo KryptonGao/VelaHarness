@@ -260,7 +260,7 @@ export class AgentControl {
           description: "Reasoning effort for the subagent. Choose an allowed level for its model, or omit to inherit the closest allowed level.",
         })),
         model: Type.Optional(
-          Type.String({ description: "Model for the subagent, as provider/modelId from the allowed subagent model list in your instructions. Omit to use your own model. Only available when that list exists; pick a cheaper model for simple work and a stronger one for hard work." }),
+          Type.String({ description: "Choose a provider/modelId from the allowed subagent model list using the task, model capabilities, and any user descriptions. Omit to inherit your own model if no listed model is a better fit or no list is provided." }),
         ),
       }),
       execute: async (_toolCallId, params) => {

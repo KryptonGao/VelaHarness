@@ -1,4 +1,4 @@
-import { maxSubagentModels, type AgentSettings, type ModelCatalog, type ModelRef, type ModelSummary, type SubagentModelRef, type ThinkingLevel } from "@vela/shared";
+import { maxSubagentModelDescriptionLength, maxSubagentModels, type AgentSettings, type ModelCatalog, type ModelRef, type ModelSummary, type SubagentModelRef, type ThinkingLevel } from "@vela/shared";
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { modelKey } from "../../hooks/usePreferences";
 import { localizeError, tr, trf } from "../../locale";
@@ -118,12 +118,17 @@ export function SubagentModelsPage({
   const full = pool.length >= maxSubagentModels;
 
   const add = (models: readonly ModelSummary[]) => {
-    const room = maxSubagentModels - pool.length;
-    if (room <= 0 || models.length === 0) return;
-    persist([...pool, ...models.slice(0, room).map((model) => ({ provider: model.provider, modelId: model.id }))]);
+    const current = target.current?.subagentModels ?? [];
+    const currentKeys = new Set(current.map((ref) => modelKey(ref.provider, ref.modelId)));
+    const additions = models.filter((model) => !currentKeys.has(modelKey(model.provider, model.id)));
+    const room = maxSubagentModels - current.length;
+    if (room <= 0 || additions.length === 0) return;
+    persist([...current, ...additions.slice(0, room).map((model) => ({ provider: model.provider, modelId: model.id }))]);
   };
-  const remove = (ref: ModelRef) => persist(pool.filter((item) => item.provider !== ref.provider || item.modelId !== ref.modelId));
-
+  const remove = (ref: ModelRef) => {
+    const current = target.current?.subagentModels ?? [];
+    persist(current.filter((item) => item.provider !== ref.provider || item.modelId !== ref.modelId));
+  };
   return (
     <section className="settings-section">
       <div className="settings-autosave" role="status" aria-live="polite">
@@ -202,8 +207,8 @@ export function SubagentModelsPage({
                       className="subagent-effort-button"
                       disabled={!model}
                       aria-haspopup="dialog"
-                      aria-label={trf("设置 {0} 的推理强度", "Configure reasoning effort for {0}", model?.name ?? ref.modelId)}
-                      title={tr("可用推理强度", "Allowed reasoning efforts")}
+                      aria-label={trf("设置 {0} 的模型", "Configure {0} model", model?.name ?? ref.modelId)}
+                      title={tr("模型设置", "Model settings")}
                       onClick={() => setEditingKey(modelKey(ref.provider, ref.modelId))}
                     >
                       <Icon name="sliders" size={14} />
@@ -219,10 +224,19 @@ export function SubagentModelsPage({
       {editing?.model && <EffortDialog
         model={editing.model}
         configured={editing.ref.thinkingLevels}
+        description={editing.ref.description}
         onClose={() => setEditingKey(null)}
-        onSave={levels => {
-          const ref = { provider: editing.ref.provider, modelId: editing.ref.modelId };
-          persist(pool.map(item => item === editing.ref ? { ...ref, ...(levels && { thinkingLevels: levels }) } : item));
+        onSave={(levels, description) => {
+          const current = target.current?.subagentModels ?? [];
+          persist(current.map(item => {
+            if (item.provider !== editing.ref.provider || item.modelId !== editing.ref.modelId) return item;
+            const next = { ...item };
+            if (levels) next.thinkingLevels = levels;
+            else delete next.thinkingLevels;
+            if (description?.trim()) next.description = description;
+            else delete next.description;
+            return next;
+          }));
           setEditingKey(null);
         }}
       />}
@@ -230,15 +244,18 @@ export function SubagentModelsPage({
   );
 }
 
-function EffortDialog({ model, configured, onClose, onSave }: {
+function EffortDialog({ model, configured, description: initialDescription, onClose, onSave }: {
   model: ModelSummary;
   configured?: ThinkingLevel[];
+  description?: string;
   onClose: () => void;
-  onSave: (levels?: ThinkingLevel[]) => void;
+  onSave: (levels: ThinkingLevel[] | undefined, description: string) => void;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleId = useId();
+  const descriptionId = useId();
   const [selected, setSelected] = useState(configured ?? model.thinkingLevels);
+  const [description, setDescription] = useState(initialDescription ?? "");
   const levels = model.thinkingLevels.filter(level => selected.includes(level));
 
   useLayoutEffect(() => {
@@ -258,7 +275,7 @@ function EffortDialog({ model, configured, onClose, onSave }: {
       onMouseDown={event => { if (event.target === event.currentTarget) onClose(); }}>
       <div className="subagent-effort-content">
         <header className="workspace-settings-head">
-          <h2 id={titleId}>{tr("推理强度", "Reasoning effort")}</h2>
+          <h2 id={titleId}>{tr("模型设置", "Model settings")}</h2>
           <button type="button" className="workspace-settings-close" aria-label={tr("关闭", "Close")} onClick={onClose}>
             <Icon name="close" size={18} />
           </button>
@@ -268,6 +285,15 @@ function EffortDialog({ model, configured, onClose, onSave }: {
           <span className="workspace-settings-folder" title={model.name}>{model.name}</span>
           <span className="subagent-pool-provider">{model.providerName}</span>
         </div>
+        <div className="workspace-settings-label" id={descriptionId}>{tr("模型简介（可选）", "Model description (optional)")}</div>
+        <textarea
+          className="settings-input subagent-description-input"
+          aria-labelledby={descriptionId}
+          rows={3}
+          maxLength={maxSubagentModelDescriptionLength}
+          value={description}
+          onChange={event => setDescription(event.target.value)}
+        />
         <div className="workspace-settings-label" id={`${titleId}-levels`}>{tr("可用推理强度", "Allowed reasoning efforts")}</div>
         <div className="workspace-settings-folders" role="group" aria-labelledby={`${titleId}-levels`}>
           {model.thinkingLevels.map(level => (
@@ -282,7 +308,7 @@ function EffortDialog({ model, configured, onClose, onSave }: {
         <footer className="workspace-settings-actions">
           <button type="button" className="workspace-settings-cancel" onClick={onClose}>{tr("取消", "Cancel")}</button>
           <button type="button" className="workspace-settings-save" disabled={!levels.length}
-            onClick={() => onSave(levels.length === model.thinkingLevels.length ? undefined : levels)}>
+            onClick={() => onSave(levels.length === model.thinkingLevels.length ? undefined : levels, description)}>
             {tr("保存", "Save")}
           </button>
         </footer>

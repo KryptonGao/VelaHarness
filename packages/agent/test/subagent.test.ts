@@ -174,13 +174,19 @@ describe("子代理模型池提示", () => {
     assert.equal(subagentModelsPrompt([]), null);
   });
 
-  it("列出可选模型和特性，并说明默认不选", () => {
+  it("列出可选模型的特性和用户简介，让父代理按任务比较", () => {
+    const note = '低成本，适合"查阅"\n长文本';
     const prompt = subagentModelsPrompt([
-      { provider: "anthropic", modelId: "claude-haiku", name: "Haiku", thinkingLevels: ["off"], reasoning: false, vision: true, contextWindow: 200000 },
+      { provider: "anthropic", modelId: "claude-haiku", name: "Haiku", description: note, thinkingLevels: ["off"], reasoning: false, vision: true, contextWindow: 200000 },
       { provider: "openai", modelId: "gpt-5", name: "GPT-5", thinkingLevels: ["medium", "high"], reasoning: true },
     ]) ?? "";
     assert.match(prompt, /anthropic\/claude-haiku \(Haiku; vision, 200K context\)/);
     assert.match(prompt, /openai\/gpt-5 \(GPT-5; reasoning\) — reasoning_effort: medium, high/);
-    assert.match(prompt, /Omit it to use your own model/);
+    const rows = prompt.split("\n").filter(line => line.startsWith("- "));
+    assert.equal(rows.length, 2);
+    assert.ok(rows[0]?.endsWith(`user description: ${JSON.stringify(note)}`));
+    assert.doesNotMatch(rows[1]!, /user description/);
+    assert.match(prompt, /compare these models for the specific task/i);
+    assert.match(prompt, /omit model to inherit your own/i);
   });
 });

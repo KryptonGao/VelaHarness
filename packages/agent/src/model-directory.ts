@@ -24,6 +24,7 @@ import {
   type UsageLimitWindow,
   type ModelSummary,
   type SubagentModelRef,
+  parseSubagentModelDescription,
   parseSubagentThinkingLevels,
   type NewConversationSelection,
   maxSubagentModels,
@@ -404,12 +405,12 @@ export class ModelDirectory {
 
   /** 模型池里当前仍然可用的模型（按池内顺序）；子代理派生时只能从这里选。 */
   availableSubagentModels() {
-    const result: { model: Model<Api>; thinkingLevels: ThinkingLevel[] }[] = [];
+    const result: { model: Model<Api>; thinkingLevels: ThinkingLevel[]; description?: string }[] = [];
     for (const ref of this.selection.subagentModels) {
       const model = this.runtime.getModel(ref.provider, ref.modelId);
       if (model && this.isAvailable(model)) {
         const levels = thinkingLevelsFor(model).filter(level => !ref.thinkingLevels || ref.thinkingLevels.includes(level));
-        result.push({ model, thinkingLevels: levels });
+        result.push({ model, thinkingLevels: levels, ...(ref.description && { description: ref.description }) });
       }
     }
     return result;
@@ -873,7 +874,8 @@ function normalizeModelRefs(value: unknown, strict: boolean): SubagentModelRef[]
     if (seen.has(key)) continue;
     try {
       const levels = parseSubagentThinkingLevels(record?.thinkingLevels);
-      result.push({ provider, modelId, ...(levels && { thinkingLevels: levels }) });
+      const description = parseSubagentModelDescription(record?.description, strict);
+      result.push({ provider, modelId, ...(levels && { thinkingLevels: levels }), ...(description && { description }) });
       seen.add(key);
     } catch (error) {
       if (strict) throw error;

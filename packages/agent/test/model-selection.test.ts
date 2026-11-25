@@ -160,7 +160,9 @@ describe("subagent model pool settings", () => {
     const many = Array.from({ length: 33 }, (_, index) => ({ provider: "p", modelId: `m${index}` }));
     await assert.rejects(directory.saveSettings({ ...base, subagentModels: many }), /太多/);
 
-    await writeFile(join(dir, "selection.json"), JSON.stringify({ subagentModels: [{ provider: "ok", modelId: "m" }, { provider: 1 }, "x"] }));
+    const invalidNote = { provider: "ok", modelId: "m", description: 123 };
+    await assert.rejects(directory.saveSettings({ ...base, subagentModels: [{ ...invalidNote, description: "a".repeat(501) }] }), /模型简介/);
+    await writeFile(join(dir, "selection.json"), JSON.stringify({ subagentModels: [invalidNote, { provider: 1 }, "x"] }));
     const reopened = await ModelDirectory.open(dir);
     assert.deepEqual(reopened.getSettings().subagentModels, [{ provider: "ok", modelId: "m" }]);
   });

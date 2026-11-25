@@ -3,6 +3,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
+import { maxSubagentModelDescriptionLength } from "@vela/shared";
 import { ModelDirectory } from "../../../packages/agent/src/model-directory.ts";
 import { parseAgentSettings } from "../src/main/agent-settings.ts";
 
@@ -31,15 +32,28 @@ describe("parseAgentSettings (IPC boundary)", () => {
     }
   });
 
+  it("bounds model descriptions and omits whitespace-only notes", () => {
+    const ref = { provider: "p", modelId: "m" };
+    const parse = (description: unknown) => parseAgentSettings({ ...base, subagentModels: [{ ...ref, description }] }).subagentModels;
+    const max = "a".repeat(maxSubagentModelDescriptionLength);
+    assert.deepEqual(parse(max), [{ ...ref, description: max }]);
+    assert.deepEqual(parse(" \r\n "), [ref]);
+    for (const bad of [max + "a", 42, null]) assert.throws(() => parse(bad), /模型简介/);
+  });
+
   it("a pool saved through the parser comes back from the stored settings", async () => {
     const dir = await mkdtemp(join(tmpdir(), "vela-agent-settings-"));
     try {
       const directory = await ModelDirectory.open(dir);
-      const pool = [{ provider: "anthropic", modelId: "claude-haiku", thinkingLevels: ["low", "high"] }];
-      const saved = await directory.saveSettings(parseAgentSettings({ ...base, subagentModels: pool }));
-      assert.deepEqual(saved.subagentModels, pool);
+      const ref = { provider: "anthropic", modelId: "claude-haiku", thinkingLevels: ["low", "high"] };
+      const note = "适合快速查阅\n成本较低";
+      const saveNote = (description: string) => directory.saveSettings(parseAgentSettings({ ...base, subagentModels: [{ ...ref, description }] }));
+      const saved = await saveNote(`  ${note}  `);
+      assert.deepEqual(saved.subagentModels, [{ ...ref, description: note }]);
       await directory.saveSettings(parseAgentSettings({ ...base, instructions: "Be brief" }));
-      assert.deepEqual((await ModelDirectory.open(dir)).getSettings().subagentModels, pool);
+      assert.deepEqual((await ModelDirectory.open(dir)).getSettings().subagentModels, saved.subagentModels);
+      await saveNote("");
+      assert.deepEqual((await ModelDirectory.open(dir)).getSettings().subagentModels, [ref]);
     } finally {
       await rm(dir, { recursive: true, force: true });
     }

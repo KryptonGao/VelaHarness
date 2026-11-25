@@ -4170,8 +4170,9 @@ export class AgentRuntime {
 
   /** 模型池里当前可用的模型，附带提示用的名称与特性；每次现读，设置改动立即生效。 */
   private subagentModelOptions(): SubagentModelOption[] {
-    return (this.directory?.availableSubagentModels() ?? []).map(({ model, thinkingLevels }) => ({
+    return (this.directory?.availableSubagentModels() ?? []).map(({ model, thinkingLevels, description }) => ({
       thinkingLevels,
+      description,
       provider: model.provider,
       modelId: model.id,
       name: model.name,

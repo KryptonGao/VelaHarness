@@ -138,6 +138,7 @@ const knownErrors: Record<string, string> = {
   "不支持这个思考强度": "This reasoning effort is not supported.",
   "需要同时选择提供方和模型": "Select both a provider and a model.",
   "额外指令过长": "Additional instructions are too long.",
+  "子代理模型简介必须是不超过 500 个字符的文本": "Subagent model description must be text no longer than 500 characters.",
   "模型没有加载成功": "Could not load models.",
   "已有一个登录在进行": "A sign-in is already in progress.",
   "找不到这个提供方": "Provider not found.",

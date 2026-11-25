@@ -38,14 +38,27 @@ const catalog: ModelCatalog = {
 let settings: AgentSettings = {
   provider: null, modelId: null, thinkingLevel: "medium", newConversationSelection: "default", instructions: "",
   subagentModels: params.has("stale")
-    ? [{ provider: "anthropic", modelId: "claude-haiku" }, { provider: "google", modelId: "gemini-pro" }]
-    : params.has("empty") ? [] : [{ provider: "anthropic", modelId: "claude-haiku" }],
+    ? [{ provider: "anthropic", modelId: "claude-haiku", description: "Keep this note when removing other entries" }, { provider: "google", modelId: "gemini-pro" }]
+    : params.has("empty") ? [] : [{ provider: "anthropic", modelId: "claude-haiku", description: "Existing model note" }],
 };
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+const writes: AgentSettings[] = [];
 const api: Record<string, unknown> = {
   getAgentSettings: async () => { await delay(150); return settings; },
-  saveAgentSettings: async (next: AgentSettings) => { await delay(250); settings = next; return settings; },
+  saveAgentSettings: async (next: AgentSettings) => {
+    writes.push(next);
+    await delay(250);
+    settings = { ...next, subagentModels: next.subagentModels?.map(ref => ({
+      ...ref,
+      ...(ref.description === undefined ? {} : { description: ref.description.trim() || undefined }),
+    })) };
+    return settings;
+  },
+};
+(window as unknown as { subagentSettingsTest: unknown }).subagentSettingsTest = {
+  getSettings: () => settings,
+  getWrites: () => writes,
 };
 // Preferences call a handful of other host methods; anything not stubbed above is a no-op.
 (window as unknown as { vela: unknown }).vela = new Proxy(api, { get: (target, key) => target[key as string] ?? (() => undefined) });
