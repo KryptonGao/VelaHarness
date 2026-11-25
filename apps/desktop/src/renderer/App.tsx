@@ -1299,7 +1299,7 @@ export function App() {
                         startErrors={startErrors}
                         conversationWorkbenchTabs={preferences.conversationWorkbenchTabs && !!conversationKey}
                         emptyConversation={conversationEmpty}
-                        renderConversationDetail={view => <ConversationDetailView view={view} state={session.state}
+                        renderConversationDetail={view => <ConversationDetailView view={view} state={session.state} agents={allAgents} messageStore={session.messageStore}
                           providers={models.catalog?.providers ?? []} onAbort={session.abort}
                           pendingInteraction={pendingConversationInteraction} onConversation={focusMainChat} />}
                         renderChat={tab => <WorkbenchChatView key={tab.conversationId}

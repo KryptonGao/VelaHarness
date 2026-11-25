@@ -1,8 +1,8 @@
-import { isAgentBusy, type AgentControlAction, type AgentInfo } from "@vela/shared";
+import type { AgentControlAction, AgentInfo } from "@vela/shared";
 import { webChatMessages } from "./web-chat-messages";
 import { VisualToolCard } from "./VisualToolCard";
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type MutableRefObject, type ReactNode } from "react";
-import { useDismissable } from "../hooks/useDismissable";
+import { AgentRosterMenu } from "./AgentRosterMenu";
 import { useEntryArrival } from "../hooks/useEntryArrival";
 import type { ToolDisplay, ToolFold } from "../hooks/usePreferences";
 import { useFrameTask } from "../hooks/useFrameTask";
@@ -14,7 +14,7 @@ import { ActivityIndicator } from "./ActivityIndicator";
 import { AgentAvatar } from "./AgentAvatar";
 import { AgentComposer } from "./AgentComposer";
 import {
-  AgentControls, AgentModelTag, AgentRunStats, AgentStatusMark, agentKindLabel, agentStateText, findAgentInfo, formatTokenCount, useAgentClock,
+  AgentControls, AgentModelTag, AgentRunStats, AgentStatusMark, agentKindLabel, agentStateText, findAgentInfo, useAgentClock,
 } from "./AgentPanel";
 import { Markdown } from "./Markdown";
 import { AssistantMarkdown } from "./intelligent-ui/AssistantMarkdown";
@@ -326,84 +326,6 @@ function AgentBreadcrumb({
     <nav className="agent-breadcrumb" aria-label={tr("agent 路径", "Agent path")}>
       {nodes}
     </nav>
-  );
-}
-
-/** SubAgents 面板：每个子代理的状态、token、耗时，以及单独的暂停 / 继续 / 取消。 */
-function AgentRosterMenu({
-  agents,
-  activeId,
-  onSelect,
-  onControl,
-}: {
-  agents: readonly AgentInfo[];
-  activeId: string;
-  onSelect: (agentId: string) => void;
-  onControl: (agentId: string, action: AgentControlAction) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const ref = useDismissable<HTMLDivElement>(open, () => setOpen(false));
-  const items = useMemo(
-    () => agents.filter((item) => item.kind !== "root").sort((a, b) => a.createdAt - b.createdAt),
-    [agents],
-  );
-  const now = useAgentClock(open ? items : []);
-  if (items.length === 0) return null;
-  const active = items.filter((item) => isAgentBusy(item.status)).length;
-  const totalTokens = items.reduce((sum, item) => sum + item.usage.total, 0);
-  return (
-    <div className="agent-roster-menu-anchor" ref={ref}>
-      <button
-        className={`view-icon-btn${open ? " active" : ""}`}
-        type="button"
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        title={tr("子代理面板", "Subagents panel")}
-        aria-label={tr("子代理面板", "Subagents panel")}
-        onClick={() => setOpen((value) => !value)}
-      >
-        <Icon name="branch" size={14} />
-      </button>
-      {open ? (
-        <div className="agent-roster-menu" role="listbox" aria-label={tr("子代理列表", "Subagent list")}>
-          <div className="agent-roster-summary">
-            <span>{trf("{0} 个子代理 · {1} 个进行中", "{0} subagents · {1} active", items.length, active)}</span>
-            <span className="agent-run-stat" title={tr("所有子代理累计 token", "Total tokens across all subagents")}>
-              {formatTokenCount(totalTokens)} tok
-            </span>
-          </div>
-          {items.map((item) => (
-            <div
-              key={item.id}
-              className={`agent-roster-row${item.id === activeId ? " is-active" : ""}`}
-              style={{ paddingLeft: 10 + Math.max(0, item.depth - 1) * 14 }}
-            >
-              <button
-                className="agent-roster-menu-item"
-                type="button"
-                role="option"
-                aria-selected={item.id === activeId}
-                onClick={() => {
-                  onSelect(item.id);
-                  setOpen(false);
-                }}
-              >
-                <AgentAvatar agentId={item.id} />
-                <AgentStatusMark status={item.status} />
-                <span className="agent-roster-menu-path">{item.path}</span>
-                <span className="agent-roster-menu-meta">{agentKindLabel(item.kind)}</span>
-                <AgentModelTag model={item.model} thinkingLevel={item.effectiveThinkingLevel ?? item.thinkingLevel} />
-              </button>
-              <div className="agent-roster-row-detail">
-                <span className={`agent-state is-${item.status}`}>{agentStateText(item)}</span>
-                <AgentRunStats agent={item} now={now} />
-                <AgentControls agent={item} onControl={onControl} />
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : null}
-    </div>
   );
 }
 

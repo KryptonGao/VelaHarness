@@ -103,7 +103,7 @@ export const SessionChatView = memo(function SessionChatView({ messageStore, sum
   }), [sessionId, uiOrdinals, toolIndex, modelReady, streaming, onSend]);
   return <ToolProcessProvider sessionId={sessionId} store={foldStore} compact={props.toolDisplay === "compact"} enabled={toolProcessDetails}>
     <UiHostProvider value={uiHost}>
-      <ChatView {...props} messages={messages} thinkingSummaries={thinkingSummaries} />
+      <ChatView {...props} messageStore={messageStore} messages={messages} thinkingSummaries={thinkingSummaries} />
     </UiHostProvider>
   </ToolProcessProvider>;
 });

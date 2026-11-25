@@ -39,8 +39,8 @@ function MainPane() {
 function SummaryPane({ compact }: { compact: boolean }) {
   const [count, setCount] = useState(8);
   const tool: ToolTrace = {
-    id: compact ? "blur-compact" : "blur-card", name: "spawn_agent", status: "done",
-    activity: { agentPath: "/root/summary", body: `Fixture task\n${count ? longText(count) : "Short conclusion."}` },
+    id: compact ? "blur-compact" : "blur-card", name: "followup_task", status: "done",
+    activity: { agentPath: "/root/summary", agentPrompt: "Fixture task", body: count ? longText(count) : "Short conclusion." },
   };
   return (
     <div className={compact ? "blur-summary-compact" : "blur-summary-card"} style={{ width: 460 }}>

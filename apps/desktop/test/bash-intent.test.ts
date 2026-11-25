@@ -125,6 +125,11 @@ describe("describeBashCommand", () => {
     });
   });
 
+  it("长脚本的显示名称保留完整首行，但不包含后续行", () => {
+    const firstLine = `print('${"a".repeat(180)}')`;
+    assert.equal(describeBashCommand(`python3 - <<'EOF'\n# comment\n${firstLine}\nprint(2)\nEOF`)?.query, firstLine);
+  });
+
   it("python -m、交互解释器、bash -c、没写结束行的 heredoc 保持原样", () => {
     assert.equal(describeBashCommand("python3 -m pytest"), null);
     assert.equal(describeBashCommand("python3"), null);

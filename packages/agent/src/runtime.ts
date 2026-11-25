@@ -186,6 +186,7 @@ import {
   inputAttribution,
   isVisibleTranscriptMessage,
   countTranscriptActivity,
+  ownedAgentTranscript,
   transcriptFromMessages,
   transcriptFromProjection,
   transcriptSourcesFromProjection,
@@ -2225,7 +2226,7 @@ export class AgentRuntime {
   private recordAgentUsage(entry: Conversation, agentId: string, message: Extract<AgentMessage, { role: "assistant" }>): void {
     if (!this.traces) return;
     const path = entry.control?.list().find(agent => agent.id === agentId)?.path ?? `/root/${agentId}`;
-    try { this.trace(entry.id).recordAgentRequest(path, message); }
+    try { this.trace(entry.id).recordAgentRequest(path, message, agentId); }
     catch (error) { log.debug("agent usage trace failed", error); }
   }
 
@@ -2461,12 +2462,18 @@ export class AgentRuntime {
    * 某个常驻 agent 自己的消息历史；右侧 Agent Pane 首次打开时用它回填。
    * agentId 等于对话 id 时返回主代理消息。
    */
-  getAgentMessages(conversationId: string, agentId: string): TranscriptMessage[] {
+  getAgentMessages(conversationId: string, agentId: string, scope?: "owned"): TranscriptMessage[] {
     const entry = this.conversations.get(conversationId);
     if (!entry) return [];
     const session = agentId === entry.id ? entry.session : entry.control?.getSession(agentId) ?? null;
-    if (session) return this.decorateMcpTranscript(conversationId, session, transcriptFromMessages(session.messages));
     const stored = entry.storedAgents.find((agent) => agent.id === agentId);
+    if (scope === "owned") {
+      if (agentId === entry.id || !stored) return [];
+      const manager = session?.sessionManager ?? (stored.sessionFile && existsSync(stored.sessionFile)
+        ? SessionManager.open(stored.sessionFile, this.childSessionDir(entry.id), entry.snapshot.cwd) : null);
+      return manager ? this.decorateMcpTranscript(conversationId, session, ownedAgentTranscript(manager.getBranch(), stored.path)) : [];
+    }
+    if (session) return this.decorateMcpTranscript(conversationId, session, transcriptFromMessages(session.messages));
     if (stored?.sessionFile && existsSync(stored.sessionFile)) {
       const manager = SessionManager.open(stored.sessionFile, this.childSessionDir(entry.id), entry.snapshot.cwd);
       return this.decorateMcpTranscript(conversationId, null, transcriptFromProjection(manager.buildSessionProjection()));
@@ -3673,7 +3680,7 @@ export class AgentRuntime {
       this.emit({ type: "agent_event", conversationId, agentId, event: streamEvent });
     };
     if (event.type === "message_start" && event.message.role === "assistant") {
-      emit({ type: "assistant_start", ...this.assistantMetadata(`${conversationId}:${agentId}`, "start", event.message) });
+      emit({ type: "assistant_start", sourceTimestamp: event.message.timestamp, ...this.assistantMetadata(`${conversationId}:${agentId}`, "start", event.message) });
       return;
     }
     if (event.type === "message_update") {
@@ -3688,7 +3695,7 @@ export class AgentRuntime {
     if (event.type === "message_end") {
       const message = event.message;
       if (message.role === "assistant") {
-        emit({ type: "assistant_end", ...this.assistantMetadata(`${conversationId}:${agentId}`, "end", message) });
+        emit({ type: "assistant_end", sourceTimestamp: message.timestamp, ...this.assistantMetadata(`${conversationId}:${agentId}`, "end", message) });
         // 子代理的请求同样计入任务费用。
         const owner = this.conversations.get(conversationId);
         if (owner) {
@@ -3700,7 +3707,7 @@ export class AgentRuntime {
       }
       if (message.role === "user") {
         const text = userMessageText(message);
-        if (text.trim()) emit({ type: "user_message", text, ...inputAttribution(message) });
+        if (text.trim()) emit({ type: "user_message", text, sourceTimestamp: message.timestamp, ...inputAttribution(message) });
         return;
       }
       const failure = message.role === "assistant" ? message.errorMessage?.trim() : undefined;

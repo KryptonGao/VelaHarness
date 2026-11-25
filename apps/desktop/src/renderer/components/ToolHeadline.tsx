@@ -142,8 +142,8 @@ export function BrowserHeadlineSteps({ steps }: { steps: readonly BrowserStep[] 
   </span>;
 }
 
-export function taskTitle(body: string | undefined): string {
-  const line = body?.split("\n").find((item) => item.trim())?.replace(/\s+/g, " ").trim();
+export function taskTitle(activity: ToolActivity): string {
+  const line = (activity.agentPrompt ?? activity.body)?.match(/[^\s].*/)?.[0]?.slice(0, 500).trim();
   return line || tr("子代理", "Subagent");
 }
 
@@ -179,7 +179,7 @@ export function ToolHeadlineDetails({ tool }: { tool: ToolTrace }) {
     const live = findAgentInfo(roster, activity.agentId, activity.agentPath);
     return <>
       <span className="tool-compact-action">{agentKindLabel(live?.kind ?? activity.agent)}</span>
-      <span className="agent-compact-name">{live?.path ?? activity.agentPath ?? taskTitle(activity.body)}</span>
+      <span className="agent-compact-name overflow-fade-text">{live?.path ?? activity.agentPath ?? activity.agentId ?? taskTitle(activity)}</span>
     </>;
   }
   if (kind === "browser") return <BrowserHeadlineSteps steps={summarizeBrowserCode(activity.command)} />;

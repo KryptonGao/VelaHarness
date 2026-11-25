@@ -23,7 +23,7 @@ const agents: AgentInfo[] = ["research", "frontend", "tests"].map((name, index) 
 }));
 const tools: ToolTrace[] = agents.map(agent => ({
   id: `spawn-${agent.id}`, name: "spawn_agent", status: "done",
-  activity: { agentId: agent.id, agentPath: agent.path, agent: agent.kind === "explore" ? "explore" : "general", body: agent.task, ...(agent.model ? { model: agent.model } : {}) },
+  activity: { agentId: agent.id, agentPath: agent.path, agent: agent.kind === "explore" ? "explore" : "general", agentPrompt: agent.task, thinkingLevel: "high", ...(agent.model ? { model: agent.model } : {}) },
 }));
 
 function Preview() {

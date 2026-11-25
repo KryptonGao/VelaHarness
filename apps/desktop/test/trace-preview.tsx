@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { createRoot } from "react-dom/client";
 import type {
+  AgentInfo,
   AppState,
   TraceDetails,
   TraceNode,
@@ -11,9 +12,19 @@ import type {
   AgentStreamEvent,
 } from "@vela/shared";
 import { TraceView } from "../src/renderer/components/trace/TraceView";
+import { createMessageStore, messageScope } from "../src/renderer/hooks/message-store";
 import "../src/renderer/styles.css";
+const messageStore = createMessageStore();
 const base = Date.parse("2026-09-25T19:14:34.567+08:00");
 const count = Number(new URLSearchParams(location.search).get("count") ?? 24);
+const agentScenario = new URLSearchParams(location.search).get("scenario") === "agents";
+const agents: AgentInfo[] = agentScenario ? ["review", "review/tests"].map((path, index) => ({
+  id: path, parentId: index ? "review" : "root", path: `/root/${path}`, name: path.split("/").at(-1)!,
+  kind: "general", status: "completed", depth: index + 1, task: `Task: ${path}`, finalText: `Result: ${path}`,
+  steps: [], mutated: false, error: null, model: { provider: "test", id: "child" },
+  usage: { input: 900, output: 100, cacheRead: 0, cacheWrite: 0, total: 1000 },
+  pauseRequested: false, activeMs: 1500, runningSince: null, createdAt: base + index, updatedAt: base + index + 1500,
+})) : [];
 const request: TraceRequest = {
   id: "request-1",
   number: 1,
@@ -179,9 +190,16 @@ window.vela = {
     version,
     nodes: [...nodes],
     requests,
+    agentRequests: agents.map((agent) => ({ ...request, id: `req-${agent.id}`, agentPath: agent.path,
+      model: "test/child", agentId: agent.id, usage: { input: 900, output: 100, cacheRead: 0, cacheWrite: 0, totalTokens: 1000 } })),
     summaries: [],
     warning: null,
   }),
+  getAgentMessages: async (_c: string, id: string) => [
+    { id: "user", role: "user", inputSender: "/root", text: `Task: ${id}`, thinking: "", tools: [], timestamp: base },
+    { id: "assistant", role: "assistant", provider: "test", model: "child", text: `Result: ${id}`,
+      thinking: `Thinking for ${id} only`, tools: [], timestamp: base + 500 },
+  ],
   getTraceDetails: async (_c: string, id: string) => {
     const node = nodes.find((n) => n.id === id);
     return node ? details(node) : null;
@@ -193,7 +211,8 @@ window.vela = {
 } as unknown as VelaApi;
 function Fixture() {
   const [preview, setPreview] = useState(false),
-    [chat, setChat] = useState(false);
+    [chat, setChat] = useState(false),
+    [conversationId, setConversationId] = useState("fixture");
   return (
     <div
       style={{
@@ -227,6 +246,15 @@ function Fixture() {
           鹈鹕骑自行车 SVG 动画
         </p>
         <p style={{ marginTop: 40 }}>UI test fixture</p>
+        {agentScenario && <button id="child-delta" onClick={() => {
+          messageStore.publish(messageScope("fixture", "review"), [{
+            id: "live", role: "assistant", text: "Scoped live reply", thinking: "", tools: [],
+          }]);
+          messageStore.flush();
+        }}>追加子代理回复</button>}
+        {agentScenario && <button id="switch-chat" onClick={() => setConversationId((id) => id === "fixture" ? "other" : "fixture")}>
+          切换会话
+        </button>}
         <button id="toggle-preview" onClick={() => setPreview((v) => !v)}>
           切换文件预览
         </button>
@@ -277,16 +305,18 @@ function Fixture() {
           <p>Conversation input</p>
         ) : (
           <TraceView
+            messageStore={messageStore}
             state={
               {
-                activeConversationId: "fixture",
-                session: { status: "ready" },
+                activeConversationId: conversationId,
+                agents: conversationId === "fixture" ? agents : [],
+                session: { status: agentScenario ? "streaming" : "ready" },
                 context: { percent: 4 },
               } as AppState
             }
             onConversation={() => setChat(true)}
             onAbort={async () => {}}
-            pendingInteraction={false}
+            pendingInteraction={agentScenario}
           />
         )}
       </main>

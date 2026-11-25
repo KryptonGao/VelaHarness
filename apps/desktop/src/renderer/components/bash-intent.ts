@@ -194,7 +194,7 @@ function firstCodeLine(code: string): string {
   for (const raw of code.split("\n")) {
     const line = raw.trim().replace(/\s+/g, " ");
     if (!line || /^(#|\/\/)/.test(line) || /^(import|from)\s/.test(line)) continue;
-    return line.length > 160 ? `${line.slice(0, 160)}…` : line;
+    return line;
   }
   return "";
 }

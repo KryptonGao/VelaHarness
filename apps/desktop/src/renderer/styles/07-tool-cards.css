@@ -478,7 +478,6 @@
 }
 .agent-model-name { overflow: hidden; animation: vela-overflow-fade auto linear both; animation-timeline: scroll(self inline); }
 .agent-model-effort { flex: none; white-space: pre; }
-.agent-summary .agent-model, .agent-summary-text .agent-model { margin-bottom: 4px; }
 .agent-state { flex: none; color: var(--text-muted); }
 .agent-state.is-running { color: var(--tool-accent); }
 .agent-state.is-paused { color: var(--warning); }
@@ -533,19 +532,19 @@
 .agent-summary-scroll .thinking-scroll-viewport .thinking-text {
   padding: 7px 10px 7px 0;
 }
-.agent-summary-task { color: var(--text-secondary); }
-.agent-summary-report {
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px solid var(--border-subtle);
-  color: var(--text-primary);
+.agent-call-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  font-size: calc(12px * var(--ui-scale));
 }
-.agent-summary-error {
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px solid var(--border-subtle);
-  color: var(--danger);
-}
+.agent-call-meta strong { color: var(--text-secondary); font-weight: 500; }
+.agent-call-fields { margin: 0; }
+.agent-call-fields dt { margin: 8px 0 2px; font-size: calc(12px * var(--ui-scale)); }
+.agent-call-fields dd { margin: 0; color: var(--text-primary); overflow-wrap: anywhere; }
+.agent-call-fields .agent-call-prompt, .agent-call-fields .agent-call-error { white-space: pre-wrap; }
+.agent-call-fields .agent-call-error { color: var(--danger); }
 
 /* 紧凑模式下的一行：点名称去右侧 Pane，点其他区域开合概况 */
 .agent-compact-line {

@@ -107,6 +107,20 @@ describe("MCP history identity", () => {
   });
 });
 
+it("restores each subagent prompt and returned text by call id, not by agent id", () => {
+  const name = "send_message";
+  const calls = ["first", "second"].map(id => ({ type: "toolCall", id, name, arguments: { agent_id: "/root/review", message: `${id}\n  check` } }));
+  const messages = [
+    { role: "assistant", content: calls, timestamp: 0 },
+    ...[...calls].reverse().map(({ id }) => ({ role: "toolResult", toolCallId: id, toolName: name,
+      content: [{ type: "text", text: `received ${id}` }], isError: false, details: { path: "/root/review", thinkingLevel: "low" }, timestamp: 1 })),
+  ] as unknown as AgentMessage[];
+  const [restored] = transcriptFromProjection(projection(messages.map((message, index) => entry(String(index), message))));
+  assert.deepEqual(restored!.tools.map(({ activity }) => [activity.agentPrompt, activity.body, activity.thinkingLevel]), [
+    ["first\n  check", "received first", "low"], ["second\n  check", "received second", "low"],
+  ]);
+});
+
 describe("assistant 模型来源", () => {
   it("主会话投影与子代理消息都保留每条 SDK 消息的 model/provider", () => {
     const messages = [

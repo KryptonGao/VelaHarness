@@ -54,6 +54,8 @@ export interface TraceSummaryRequest {
 }
 /** A model request made by a subagent session; counted in usage but not part of the main turn flow. */
 export interface TraceAgentRequest extends TraceSummaryRequest {
+  /** Stable owner across rewinds that may reuse a tree path; absent on older records. */
+  agentId?: string;
   /** Tree path of the subagent that made the request, such as /root/backend. */
   agentPath: string;
 }

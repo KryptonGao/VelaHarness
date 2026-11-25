@@ -19,6 +19,7 @@ import type { useModels } from "../hooks/useModels";
 import type { ProjectApi } from "../hooks/useProject";
 import type { ToolDisplay, ToolFold } from "../hooks/usePreferences";
 import type { UiMessage } from "../hooks/useSession";
+import type { MessageStore } from "../hooks/message-store";
 import { RepoCard } from "./RepoCard";
 import { Composer } from "./Composer";
 import { TaskBudgetBanner } from "./TaskBudgetBanner";
@@ -225,6 +226,7 @@ export interface ChatViewProps {
   onOpenWorkspaceOverview?: (workspace: string) => void;
   onOpenVersionControl?: (workspace: string) => void;
   messages: UiMessage[];
+  messageStore?: MessageStore;
   state: AppState | null;
   sendError: string | null;
   platform: string;
@@ -289,6 +291,7 @@ export function ChatView({
   onOpenWorkspaceOverview,
   onOpenVersionControl,
   messages: sourceMessages,
+  messageStore,
   state,
   sendError,
   platform,
@@ -1052,7 +1055,7 @@ export function ChatView({
       {showViewTabs && <ConversationViewTabs idPrefix={tabIdPrefix} view={view} showVersionControl={hasWorkspace && !embedded} emptyConversation={emptyConversation} onChange={setView} />}
       {isConversationDetail(view) ? (
         <div className="conversation-view-panel" role="tabpanel" id={conversationPanelId(tabIdPrefix, view)} aria-labelledby={conversationTabId(tabIdPrefix, view)}>
-          <ConversationDetailView key={viewKey} view={view} state={state} providers={models.catalog?.providers ?? []}
+          <ConversationDetailView key={viewKey} view={view} state={state} agents={roster} messageStore={messageStore} providers={models.catalog?.providers ?? []}
             onConversation={() => setView("chat")} onAbort={onAbort} pendingInteraction={pendingInteraction} />
         </div>
       ) : null}

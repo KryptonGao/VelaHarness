@@ -2,7 +2,10 @@ import {
   useEffect, useLayoutEffect, useMemo, useRef, useState,
   type PointerEvent as ReactPointerEvent,
 } from "react";
-import type { AppState, TraceNode } from "@vela/shared";
+import type { AgentInfo, AppState, TraceNode } from "@vela/shared";
+import { AgentRosterMenu } from "../AgentRosterMenu";
+import type { MessageStore } from "../../hooks/message-store";
+import { useSubagentTrace } from "../../hooks/useSubagentTrace";
 import { useTrace } from "../../hooks/useTrace";
 import { useEntryArrival } from "../../hooks/useEntryArrival";
 import { tr, trf } from "../../locale";
@@ -83,19 +86,27 @@ function TraceRowMain({ node }: { node: TraceNode }) {
 }
 const zoomLabel = (zoom: number) =>
   `${Number.isInteger(zoom) ? zoom : zoom.toFixed(1)}×`;
-export function TraceView({
-  state,
-  onConversation,
-  onAbort,
-  pendingInteraction,
-}: {
+interface TraceViewProps {
   state: AppState | null;
+  agents?: readonly AgentInfo[];
+  messageStore?: MessageStore;
   onConversation: () => void;
   onAbort: () => Promise<void>;
   pendingInteraction: boolean;
-}) {
+}
+
+export function TraceView(props: TraceViewProps) {
+  return <ConversationTrace key={props.state?.activeConversationId} {...props} />;
+}
+
+function ConversationTrace({ state, agents = state?.agents ?? [], messageStore, onConversation, onAbort, pendingInteraction }: TraceViewProps) {
   const conversationId = state?.activeConversationId ?? null;
-  const { trace, loading, error } = useTrace(conversationId);
+  const [agentId, setAgentId] = useState<string | null>(null);
+  const agent = agents.find((item) => item.id === agentId && item.kind !== "root") ?? null;
+  const main = useTrace(conversationId);
+  const child = useSubagentTrace({ conversationId, agent, mainTrace: main.trace, messageStore });
+  const { trace, loading, error } = agent ? child : main;
+  const scope = JSON.stringify([conversationId, agent?.id ?? null]);
   const [selected, setSelected] = useState<string | null>(null),
     [inspector, setInspector] = useState(true),
     [mode, setMode] = useState<TimelineMode>("sequence"),
@@ -116,7 +127,7 @@ export function TraceView({
     suppressClick = useRef(false);
   const running =
     trace.nodes.some((n) => n.status === "Running") ||
-    state?.session.status === "streaming";
+    (agent ? agent.status === "running" : state?.session.status === "streaming");
   useEffect(() => {
     if (!running) return;
     const timer = setInterval(() => setNow(Date.now()), 500);
@@ -161,7 +172,17 @@ export function TraceView({
         : null,
     [range, geometry.bars, geometry.width, indexById],
   );
-  useEffect(() => setRange(null), [conversationId]);
+  useLayoutEffect(() => {
+    setRange(null);
+    setSelected(null);
+    setFilter("all");
+    setZoom(1);
+    setFollow(true);
+    selectionPause.current = false;
+    followRef.current = true;
+    zoomAnchor.current = null;
+    if (timeline.current) timeline.current.scrollLeft = 0;
+  }, [scope]);
   useEffect(() => {
     if (!range) return;
     const onKey = (e: KeyboardEvent) => {
@@ -271,7 +292,7 @@ export function TraceView({
   useLayoutEffect(() => {
     if (followRef.current && list.current)
       list.current.scrollTop = list.current.scrollHeight;
-  }, [rows.length, trace.version]);
+  }, [rows.length, trace.version, scope]);
   const choose = (node: TraceNode) => {
     selectionPause.current = true;
     setSelected(node.id);
@@ -331,7 +352,7 @@ export function TraceView({
           x: (i + groupStart) * groupSize + 8,
           label: `${mode === "turn" ? tr("轮次", "Turn") : tr("请求", "Request")} #${i + groupStart + 1}`,
         }));
-  const arrivalRef = useEntryArrival(conversationId ?? "empty", arrivalKeys);
+  const arrivalRef = useEntryArrival(scope, arrivalKeys);
   return (
     <section
       ref={arrivalRef}
@@ -339,6 +360,7 @@ export function TraceView({
       aria-label={tr("Agent 执行轨迹", "Agent execution trace")}
     >
       <div className="trace-toolbar">
+        <AgentRosterMenu agents={agents} activeId={agent?.id ?? null} onSelect={setAgentId} onSelectRoot={() => setAgentId(null)} />
         <div
           className="trace-dimensions"
           role="group"
@@ -419,7 +441,7 @@ export function TraceView({
               {zoomLabel(zoom)}
             </button>
           </div>
-          {running ? (
+          {running && !agent ? (
             <button className="trace-stop" onClick={() => void onAbort()}>
               {tr("停止运行", "Stop")}
             </button>
@@ -557,7 +579,7 @@ export function TraceView({
           )}
         </div>
       </div>
-      {pendingInteraction ? (
+      {pendingInteraction && !agent ? (
         <div className="trace-interaction-notice" role="status">
           <span>
             {tr(
@@ -600,7 +622,7 @@ export function TraceView({
               ))}
             </div>
           ) : null}
-          <button
+          {(!agent || initialSystem) && <button
             className={`trace-system-row${selectedNode?.id === initialSystem?.id ? " selected" : ""}`}
             disabled={!initialSystem}
             onClick={() => {
@@ -616,7 +638,7 @@ export function TraceView({
                 ? tr("提示词与工具", "Prompt & tools")
                 : tr("首次请求后记录", "Recorded on first request")}
             </span>
-          </button>
+          </button>}
           <div
             className="trace-list"
             ref={list}
@@ -680,6 +702,8 @@ export function TraceView({
                 <span className="trace-spinner" />
                 {tr("正在加载轨迹…", "Loading trace…")}
               </div>
+            ) : !nodes.length && agent ? (
+              <div className="trace-empty">{tr("没有可展示的运行记录。", "No run output to show.")}</div>
             ) : !nodes.length ? (
               <div className="trace-empty">
                 <TraceIcon kind="thinking" size={24} />
@@ -786,8 +810,9 @@ export function TraceView({
         </div>
         {inspector && selectedNode && conversationId ? (
           <TraceInspector
-            key={selectedNode.id}
+            key={`${scope}:${selectedNode.id}`}
             conversationId={conversationId}
+            localDetails={agent ? child.getDetails(selectedBar?.sourceNodeId ?? selectedNode.id) : undefined}
             node={selectedNode}
             sourceNodeId={selectedBar?.sourceNodeId}
             onClose={() => setInspector(false)}
@@ -823,12 +848,12 @@ export function TraceView({
           {tr("缓存命中", "Cache hit")}{" "}
           {metrics.cache === null ? "—" : `${Math.round(metrics.cache * 100)}%`}
         </span>
-        <span>
+        {!agent && <span>
           {tr("上下文", "Context")}{" "}
           {state?.context.percent == null
             ? "—"
             : `${state.context.percent.toFixed(0)}%`}
-        </span>
+        </span>}
         <button
           disabled={!slowest}
           onClick={() => {

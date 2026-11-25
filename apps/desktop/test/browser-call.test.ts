@@ -20,6 +20,16 @@ nodeRepl.emitImage(await tab.screenshot());`);
     ]);
   });
 
+  it("keeps the complete target in open and click steps", () => {
+    const path = `docs/${"section/".repeat(6)}end?q=query`;
+    const label = "A long button label with its distinguishing words at the end";
+    assert.deepEqual(summarizeBrowserCode(`await tab.goto('https://www.example.com/${path}'); await tab.click('${label}')`), [
+      { kind: "open", target: `example.com/${path}` },
+      { kind: "click", target: label },
+    ]);
+    assert.equal(shortenUrl(path), path);
+  });
+
   it("falls back to connect, then script", () => {
     assert.deepEqual(summarizeBrowserCode(`const browser = await agent.browsers.get("iab");`), [{ kind: "connect", target: "" }]);
     assert.deepEqual(summarizeBrowserCode("1 + 1"), [{ kind: "script", target: "" }]);

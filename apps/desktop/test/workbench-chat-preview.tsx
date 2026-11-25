@@ -60,6 +60,7 @@ window.vela = {
     moveToWorktree: async () => { throw new Error("Not implemented"); } },
   platform: "darwin", setLocale() {}, setAppearance: async () => {}, setRunView: async () => {}, setRecommendedActions: async () => {}, setShortcuts() {},
   getState: async id => state(id), getMessages: async id => structuredClone(messages.get(id) ?? []), getAgentMessages: async () => [],
+  getTrace: async () => ({ version: 1, nodes: [], requests: [], summaries: [], warning: null }),
   onEvent: listener => { events.add(listener); return () => { events.delete(listener); }; },
   onQuestionEvent: listener => { questions.add(listener); return () => { questions.delete(listener); }; },
   onModelEvent: subscribe, onWorkspaceEvent: subscribe, onGitEvent: subscribe, onApprovalEvent: subscribe, onMenuAction: subscribe,

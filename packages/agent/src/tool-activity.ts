@@ -13,9 +13,8 @@ export function activityFromCall(toolName: string, args: unknown): ToolActivity 
 }
 
 function rawActivityFromCall(toolName: string, args: unknown): ToolActivity {
-  if (toolName === spawnAgentToolName) return spawnCallActivity(args);
-  if (toolName === sendMessageToolName || toolName === followupTaskToolName) {
-    return agentMessageCallActivity(toolName, args);
+  if (toolName === spawnAgentToolName || toolName === sendMessageToolName || toolName === followupTaskToolName) {
+    return agentCallActivity(toolName, args);
   }
   if (isChecklistTool(toolName)) return planActivity(args);
   if (toolName === "submit_outcome") {
@@ -138,25 +137,17 @@ function rawActivityFromExecution(
 
 const maxAgentSteps = 40;
 
-/** spawn_agent 开始时卡片标题就是任务摘要。 */
-function spawnCallActivity(args: unknown): ToolActivity {
+/** Keep each call's input separate from its eventual receipt or report, including in restored history. */
+function agentCallActivity(toolName: string, args: unknown): ToolActivity {
   const agent = readAgent(args);
+  const ref = readString(args, "agent_id")?.trim();
+  const prompt = readString(args, toolName === sendMessageToolName ? "message" : "task");
+  const effort = readString(args, "reasoning_effort");
   return {
     ...(agent ? { agent } : {}),
-    body: oneLine(readString(args, "task") ?? ""),
-  };
-}
-
-/** 发消息和追加任务开始时先展示目标，路径等结果里有了再补。 */
-function agentMessageCallActivity(toolName: string, args: unknown): ToolActivity {
-  const ref = readString(args, "agent_id")?.trim() ?? "";
-  const body =
-    toolName === sendMessageToolName
-      ? oneLine(readString(args, "message") ?? "")
-      : oneLine(readString(args, "task") ?? "");
-  return {
-    ...(ref.startsWith("/") ? { agentPath: ref } : {}),
-    body: ref ? `${ref}\n${body}` : body,
+    ...(ref ? (ref.startsWith("/") ? { agentPath: ref } : { agentId: ref }) : {}),
+    ...(prompt !== undefined ? { agentPrompt: clip(prompt) } : {}),
+    ...(effort && isThinkingLevel(effort) ? { thinkingLevel: effort } : {}),
   };
 }
 
@@ -170,41 +161,23 @@ function agentExecutionActivity(
   const details = detailsOf(result);
   const agentId = readString(details, "agentId");
   const path = readString(details, "path");
-  const agent = readAgent(details) ?? readAgent(args);
+  const kind = readString(details, "kind");
   const model = readModel(details);
   const effort = readString(details, "thinkingLevel");
   const steps = readSteps(details);
   const mutated = readMutated(details);
   const text = textOf(result);
-  const title = agentTaskTitle(toolName, args);
-  const summary = isError ? text || "执行失败" : text;
-  const body = summary && summary !== title ? `${title}\n\n${clip(summary)}` : title;
   return {
-    ...(agent ? { agent } : {}),
+    ...agentCallActivity(toolName, args),
+    ...(kind === "explore" || kind === "general" ? { agent: kind } : {}),
     ...(agentId ? { agentId } : {}),
     ...(path ? { agentPath: path } : {}),
     ...(model ? { model } : {}),
     ...(effort && isThinkingLevel(effort) ? { thinkingLevel: effort } : {}),
     ...(steps ? { steps } : {}),
     ...(mutated ? { mutated } : {}),
-    body,
+    body: clip(text) || (isError ? "执行失败" : undefined),
   };
-}
-
-function agentTaskTitle(toolName: string, args: unknown): string {
-  if (toolName === spawnAgentToolName) return oneLine(readString(args, "task") ?? "");
-  if (toolName === followupTaskToolName) {
-    return oneLine(readString(args, "task") ?? "") || oneLine(readString(args, "agent_id") ?? "");
-  }
-  const target = readString(args, "agent_id")?.trim();
-  const message = oneLine(readString(args, "message") ?? "");
-  return target ? `${target}\n${message}` : message;
-}
-
-function oneLine(text: string): string {
-  const single = text.replace(/\s+/g, " ").trim();
-  if (!single) return "子代理";
-  return single.length > 500 ? `${single.slice(0, 500)}…` : single;
 }
 
 function readAgent(source: unknown): SubagentKind | undefined {

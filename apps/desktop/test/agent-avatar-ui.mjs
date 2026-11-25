@@ -26,7 +26,7 @@ if (!process.versions.electron) {
         import { WorkbenchPanel } from './apps/desktop/src/renderer/components/WorkbenchPanel';
         import { ToolCard } from './apps/desktop/src/renderer/components/ToolCard';
         import { infoCardDefinitions } from './apps/desktop/src/renderer/components/info-cards/InfoCardContents';
-        import { AppLocaleProvider } from './apps/desktop/src/renderer/locale';
+        import { AppLocaleProvider, setActiveLocale } from './apps/desktop/src/renderer/locale';
         const root = createRoot(document.getElementById('root'));
         const noop = () => {};
         const firstId = ${JSON.stringify(firstId)};
@@ -42,7 +42,20 @@ if (!process.versions.electron) {
           pauseRequested: false, createdAt: index + 1, updatedAt: index + 1,
         }));
         const tools = initial.map(agent => ({id: 'spawn-' + agent.id, name: 'spawn_agent', status: 'done',
-          activity: {agentId: agent.id, agentPath: agent.path, agent: agent.kind, body: agent.task}}));
+          activity: {agentId: agent.id, agentPath: agent.path, agent: agent.kind, agentPrompt: agent.task}}));
+        window.renderCalls = (display) => {
+          setActiveLocale('en');
+          const agent = {...initial[0], status: 'completed', effectiveThinkingLevel: 'high'};
+          const calls = [
+            ['spawn_agent', 'Create\\n  with indentation', 'Spawn receipt'],
+            ['send_message', 'Follow-up message', 'Send receipt'],
+            ['followup_task', 'Wait for agent', 'Archived result'],
+          ];
+          flushSync(() => root.render(<AppLocaleProvider locale="en"><AgentWorkspaceProvider agents={[agent]} activeAgentId={null} openAgent={noop} closeAgent={noop}>
+            {calls.map(([name, agentPrompt, body]) => <ToolCard key={name} compact={display === 'compact'} tool={{id: name, name, status: 'done',
+              activity: {agentId: agent.id, agentPrompt, body, ...(name === 'send_message' && {thinkingLevel: 'low'})}}} />)}
+          </AgentWorkspaceProvider></AppLocaleProvider>));
+        };
         function Fixture({display}) {
           const [agents, setAgents] = useState(initial);
           const [activeId, setActiveId] = useState(firstId);
@@ -76,6 +89,7 @@ if (!process.versions.electron) {
         }
         let revision = 0;
         window.renderCase = (scheme, display) => {
+          setActiveLocale('zh-CN');
           document.documentElement.dataset.scheme = scheme;
           window.lastAgentControl = null;
           flushSync(() => root.render(<Fixture key={++revision} display={display} />));
@@ -210,6 +224,16 @@ if (!process.versions.electron) {
           }
           await until(imagesReady);
         }
+      }
+      for (const display of ['card', 'compact']) {
+        currentCase = `call details/${display}`;
+        await evaluate(`window.renderCalls('${display}')`);
+        const buttons = display === 'compact' ? '.agent-compact-toggle.is-tail' : '.tool-card-open[aria-expanded]';
+        await evaluate(`[...document.querySelectorAll('${buttons}')].forEach(button => button.click())`);
+        await until(`document.querySelectorAll('.agent-call-details').length === 3 && document.body.innerText.includes('Archived result')`);
+        const rows = await evaluate(`[...document.querySelectorAll('.agent-call-details')].map(row => [row.querySelector('strong').textContent, row.querySelector('dt').textContent, row.querySelector('dd').textContent.trim()])`);
+        assert.deepEqual(rows, [['High', 'Prompt', 'Create\n  with indentation'], ['Low', 'Prompt', 'Follow-up message'], ['High', 'Result', 'Archived result']], currentCase);
+        assert.doesNotMatch(await evaluate('document.body.innerText'), /Spawn receipt|Send receipt|Wait for agent|检查完成/);
       }
       assert.deepEqual(external, [], "头像加载不依赖任何外部网络请求");
       assert.deepEqual(errors, [], "组件加载与交互不产生控制台错误");

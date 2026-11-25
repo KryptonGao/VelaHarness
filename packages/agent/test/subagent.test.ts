@@ -42,10 +42,13 @@ describe("agent 树工具开关", () => {
 });
 
 describe("agent 工具活动", () => {
-  it("spawn_agent 开始时用任务摘要做标题", () => {
-    const activity = activityFromCall("spawn_agent", { agent: "explore", task: "  查会话启动\n相关文件  " });
+  it("spawn_agent 在执行开始时保留原始任务与显式推理强度", () => {
+    const task = `  查会话启动\n${"相关文件".repeat(180)}  `;
+    const activity = activityFromCall("spawn_agent", { agent: "explore", task, reasoning_effort: "high" });
     assert.equal(activity.agent, "explore");
-    assert.equal(activity.body, "查会话启动 相关文件");
+    assert.equal(activity.agentPrompt, task);
+    assert.equal(activity.thinkingLevel, "high");
+    assert.equal(activity.body, undefined);
     assert.equal(activity.agentId, undefined);
   });
 
@@ -62,7 +65,7 @@ describe("agent 工具活动", () => {
     assert.equal(activity.agent, "general");
     assert.equal(activity.agentId, "agent-1");
     assert.equal(activity.agentPath, "/root/title");
-    assert.match(activity.body ?? "", /改标题/);
+    assert.equal(activity.agentPrompt, "改标题");
     assert.match(activity.body ?? "", /已启动子代理/);
   });
 
@@ -80,6 +83,17 @@ describe("agent 工具活动", () => {
     assert.equal(run(null).model, undefined);
     assert.equal(run({ provider: "anthropic" }).model, undefined);
     assert.equal(run("anthropic/claude-haiku").model, undefined);
+  });
+
+  it("消息投递失败时也保留发送原文，错误不混入 prompt", () => {
+    const args = { agent_id: "agent-1", message: "请再检查：\n\n  1. 超时\n  2. 重试" };
+    const call = activityFromCall("send_message", args);
+    assert.equal(call.agentId, args.agent_id);
+    assert.equal(call.agentPrompt, args.message);
+    assert.equal(call.body, undefined);
+    const failed = activityFromExecution("send_message", args, { content: "目标不可用" }, true);
+    assert.equal(failed.agentPrompt, args.message);
+    assert.equal(failed.body, "目标不可用");
   });
 
   it("followup_task 结束后保留步骤和改动标记", () => {
@@ -108,8 +122,8 @@ describe("agent 工具活动", () => {
       { id: "2", name: "edit", summary: "README.md", status: "done" },
       { id: "3", name: "bash", summary: "git status", status: "done" },
     ]);
-    assert.match(activity.body ?? "", /再改一次/);
-    assert.match(activity.body ?? "", /改好了/);
+    assert.equal(activity.agentPrompt, "再改一次");
+    assert.equal(activity.body, "[/root/title · general]\n\n改好了");
   });
 });
 

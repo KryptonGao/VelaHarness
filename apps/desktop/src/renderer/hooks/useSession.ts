@@ -32,6 +32,9 @@ import { didCompleteTask, noSound, streamNotificationSound, type NotifySound } f
 const emptyShells: BackgroundShellItem[] = [];
 
 export interface UiMessage {
+  /** SDK identity for matching an agent stream to its persisted message/request. */
+  sourceTimestamp?: number;
+  assistantEnded?: boolean;
   id: string;
   role: "user" | "assistant";
   inputSender?: string;
@@ -893,15 +896,22 @@ export function applyAgentStreamEvent(
 function applyAgentToMessages(messages: UiMessage[], event: AgentRuntimeStreamEvent): UiMessage[] {
   if (event.type === "user_message") {
     const last = messages[messages.length - 1];
-    if (last?.role === "user" && last.text === event.text && last.inputSender === event.inputSender) return messages;
-    return [...messages, { id: crypto.randomUUID(), role: "user", text: event.text, inputSender: event.inputSender, thinking: "", tools: [] }];
+    if (last?.role === "user" && last.text === event.text && last.inputSender === event.inputSender && last.sourceTimestamp === event.sourceTimestamp) return messages;
+    return [...messages, { id: crypto.randomUUID(), role: "user", text: event.text, inputSender: event.inputSender, ...agentTimestamp(event), thinking: "", tools: [] }];
   }
   if (event.type === "assistant_start") {
     const last = messages[messages.length - 1];
-    if (last?.role === "assistant" && !last.text && !last.thinking && last.tools.length === 0) return applyAssistantMetadata(messages, event);
-    return [...messages, { id: crypto.randomUUID(), role: "assistant", text: "", thinking: "", tools: [], ...modelMetadata(event) }];
+    if (last?.role === "assistant" && !last.historical && !last.text && !last.thinking && last.tools.length === 0) {
+      return [...messages.slice(0, -1), { ...last, ...modelMetadata(event), ...agentTimestamp(event) }];
+    }
+    return [...messages, { id: crypto.randomUUID(), role: "assistant", text: "", thinking: "", tools: [], ...modelMetadata(event), ...agentTimestamp(event) }];
   }
-  if (event.type === "assistant_update" || event.type === "assistant_end") return applyAssistantMetadata(messages, event);
+  if (event.type === "assistant_update") return applyAssistantMetadata(messages, event);
+  if (event.type === "assistant_end") {
+    const next = ensureAssistant(messages);
+    Object.assign(next[next.length - 1]!, modelMetadata(event), agentTimestamp(event), { assistantEnded: true });
+    return next;
+  }
   const next = ensureAssistant(messages);
   const last = next[next.length - 1];
   if (!last || last.role !== "assistant") return next;
@@ -947,6 +957,10 @@ function applyAgentToMessages(messages: UiMessage[], event: AgentRuntimeStreamEv
   }
 
   return next;
+}
+
+function agentTimestamp(value: { sourceTimestamp?: unknown }) {
+  return typeof value.sourceTimestamp === "number" && Number.isFinite(value.sourceTimestamp) ? { sourceTimestamp: value.sourceTimestamp } : {};
 }
 
 function modelMetadata(value: { model?: unknown; provider?: unknown }): { model?: string; provider?: string } {
@@ -1120,10 +1134,10 @@ export function sanitizeAgentEvent(value: unknown): AgentRuntimeStreamEvent | nu
   const type = event.type;
   if (type === "user_message") {
     return typeof event.text === "string"
-      ? { type, text: event.text, ...(typeof event.inputSender === "string" ? { inputSender: event.inputSender } : {}) }
+      ? { type, text: event.text, ...agentTimestamp(event), ...(typeof event.inputSender === "string" ? { inputSender: event.inputSender } : {}) }
       : null;
   }
-  if (type === "assistant_start" || type === "assistant_update" || type === "assistant_end") return { type, ...modelMetadata(event) };
+  if (type === "assistant_start" || type === "assistant_update" || type === "assistant_end") return { type, ...modelMetadata(event), ...agentTimestamp(event) };
   if (type === "text_delta" || type === "thinking_delta") {
     return typeof event.delta === "string" ? { type, delta: event.delta } : null;
   }

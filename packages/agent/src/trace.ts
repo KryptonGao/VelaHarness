@@ -232,11 +232,12 @@ export class TraceRecorder {
   }
 
   /** Records a model request made by a subagent so its tokens and cost count toward usage. */
-  recordAgentRequest(agentPath: string, message: AssistantMessage): void {
+  recordAgentRequest(agentPath: string, message: AssistantMessage, agentId?: string): void {
     const id = `agent-${this.agentRequests.size + 1}`;
     this.agentRequests.set(id, {
       id,
       agentPath,
+      ...(agentId ? { agentId } : {}),
       model: `${message.provider}/${message.model}`,
       status: message.stopReason === "error" || message.stopReason === "aborted" ? "Failed" : "Completed",
       startedAt: Number.isFinite(message.timestamp) ? message.timestamp : null,

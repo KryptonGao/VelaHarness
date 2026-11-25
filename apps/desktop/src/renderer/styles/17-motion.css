@@ -325,6 +325,13 @@
 .trace-view button:focus-visible, .trace-view summary:focus-visible, .trace-list:focus-visible { outline: 2px solid var(--trace-selected); outline-offset: -2px; }
 .trace-view code { font-family: var(--font-mono); }
 .trace-toolbar { min-height: 32px; display: flex; align-items: center; gap: 12px; padding: 0 10px; border-bottom: 1px solid var(--border-subtle); flex: 0 0 auto; }
+.trace-toolbar .agent-roster-menu-anchor { min-width: 0; max-width: min(185px, 32cqw); }
+.trace-agent-trigger { display: inline-flex; align-items: center; gap: 5px; min-width: 0; height: 26px; padding: 0 6px; border-radius: var(--radius-xs); color: var(--text-secondary); }
+.trace-agent-trigger > :not(span) { flex: none; }
+.trace-agent-trigger:not(:disabled):hover, .trace-agent-trigger[aria-expanded="true"] { background: var(--bg-hover); color: var(--text-primary); }
+.trace-toolbar .agent-roster-menu { left: 0; right: auto; width: min(380px, calc(100cqw - 20px)); }
+.trace-root-option { padding-left: 10px; }
+@container trace (max-width: 540px) { .trace-toolbar { flex-wrap: wrap; gap: 2px 5px; padding-block: 2px; } }
 .trace-dimensions { display: flex; align-items: center; gap: 4px; }
 .trace-dimensions button { height: 26px; background: none; border: 0; color: var(--text-muted); padding: 0 6px; border-radius: 3px; white-space: nowrap; }
 .trace-dimensions button[aria-pressed="true"] { color: var(--text-primary); background: var(--bg-hover); }

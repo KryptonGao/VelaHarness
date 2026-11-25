@@ -6,6 +6,7 @@ import { LazyMount } from "./LazyMount";
 import { ContentSwap } from "./BatchMotion";
 import { ActivityIndicator } from "./ActivityIndicator";
 import { AgentAvatar } from "./AgentAvatar";
+import { AgentCallDetails } from "./AgentCallDetails";
 import { Markdown } from "./Markdown";
 import { McpToolDetails } from "./McpToolDetails";
 import { ToolResultDetails } from "./ToolResultDetails";
@@ -14,7 +15,6 @@ import { ScrollFade } from "./ScrollFade";
 import {
   AgentStatusMark,
   agentKindLabel,
-  AgentModelTag,
   agentStatusLabel,
   findAgentInfo,
   useAgentRoster,
@@ -216,8 +216,7 @@ function ToolCollapse({
 }
 
 /**
- * 主对话里的子代理摘要卡：只展示路径、状态、任务和最终结论，
- * 完整运行流在右侧 Agent Pane；点击卡片直接打开对应 Pane。
+ * The disclosure describes this tool invocation; the agent name opens its full run.
  */
 function AgentToolCard({ tool, compact = false }: { tool: ToolTrace; compact?: boolean }) {
   const [open, setOpen] = useToolExpanded(foldRowId(tool.id), compact);
@@ -226,10 +225,7 @@ function AgentToolCard({ tool, compact = false }: { tool: ToolTrace; compact?: b
   const roster = useAgentRoster();
   const activity = tool.activity ?? {};
   const live = findAgentInfo(roster, activity.agentId, activity.agentPath);
-  const task = taskTitle(activity.body);
-  const title = live?.path ?? activity.agentPath ?? task;
-  const conclusion = live?.error ?? live?.finalText ?? null;
-  const report = conclusion ?? (live ? "" : taskReport(activity.body));
+  const title = live?.path ?? activity.agentPath ?? activity.agentId ?? taskTitle(activity);
   const label = agentKindLabel(live?.kind ?? activity.agent);
   const targetId = live?.id ?? activity.agentId ?? null;
   const avatarId = targetId ?? activity.agentPath;
@@ -238,27 +234,9 @@ function AgentToolCard({ tool, compact = false }: { tool: ToolTrace; compact?: b
     if (targetId) openAgent(targetId);
   };
   const toggle = (): void => setOpen((value) => !value);
-  const summaryLabel = open ? tr("收起任务概况", "Collapse summary") : tr("展开任务概况", "Expand summary");
+  const summaryLabel = open ? tr("收起", "Collapse") : tr("展开", "Expand");
   const titleText = live ? `${live.path} · ${agentStatusLabel(live.status)}` : title;
-  const summary = (
-    <ScrollFade
-      className="agent-summary-scroll"
-      contentClassName="process-thinking-text agent-summary-text"
-      ariaLabel={tr("子代理任务概况，可在区域内滚动", "Subagent summary, scrollable")}
-    >
-      <AgentModelTag model={live?.model ?? activity.model} thinkingLevel={live?.model ? live.effectiveThinkingLevel ?? live.thinkingLevel : activity.thinkingLevel} />
-      {task && task !== title ? (
-        <div className="agent-summary-task">
-          <Markdown text={task} />
-        </div>
-      ) : null}
-      {report ? (
-        <div className={live?.error ? "agent-summary-error" : "agent-summary-report"}>
-          <Markdown text={live?.error ? localizeError(live.error) : report} />
-        </div>
-      ) : null}
-    </ScrollFade>
-  );
+  const summary = <AgentCallDetails tool={tool} agent={live} />;
 
   // 紧凑模式是一行：点名称去右侧 Pane，点其他任何地方开合概况。
   if (compact) {
@@ -378,13 +356,6 @@ function AgentToolCard({ tool, compact = false }: { tool: ToolTrace; compact?: b
       </ToolCollapse>
     </article>
   );
-}
-
-function taskReport(body: string | undefined): string {
-  if (!body) return "";
-  const split = body.indexOf("\n");
-  if (split < 0) return "";
-  return body.slice(split + 1).trim();
 }
 
 function GenericToolCard({ tool, compact = false }: ToolCardProps) {

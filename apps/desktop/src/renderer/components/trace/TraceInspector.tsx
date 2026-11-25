@@ -223,7 +223,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
     </section>
   );
 }
-function Timing({ details }: { details: TraceDetails }) {
+function Timing({ details, local }: { details: TraceDetails; local: boolean }) {
   const { node, request } = details,
     tool = node.kind === "tool-call" || node.kind === "tool-result";
   return (
@@ -265,7 +265,7 @@ function Timing({ details }: { details: TraceDetails }) {
               "会话时间戳；精确耗时未记录",
               "Session timestamp; duration not recorded",
             )
-          : tr("运行时单调时钟", "Runtime monotonic clock")}
+          : local ? tr("未记录", "Not recorded") : tr("运行时单调时钟", "Runtime monotonic clock")}
       </Field>
     </dl>
   );
@@ -286,15 +286,17 @@ export function TraceInspector({
   conversationId,
   node,
   sourceNodeId,
+  localDetails,
   onClose,
 }: {
   conversationId: string;
   node: TraceNode;
   sourceNodeId?: string;
+  localDetails?: TraceDetails | null;
   onClose: () => void;
 }) {
   const [storedDetails, setDetails] = useState<TraceDetails | null>(null),
-    [error, setError] = useState<string | null>(null),
+    [fetchError, setError] = useState<string | null>(null),
     [tab, setTab] = useState(
       node.kind === "system"
         ? "prompt"
@@ -302,7 +304,9 @@ export function TraceInspector({
           ? "result"
           : "overview",
     );
+  const local = localDetails !== undefined;
   useEffect(() => {
+    if (local) return;
     let alive = true;
     setError(null);
     if (!window.vela) {
@@ -323,15 +327,14 @@ export function TraceInspector({
     return () => {
       alive = false;
     };
-  }, [conversationId, node.id, node.version, sourceNodeId]);
-  const details = storedDetails && sourceNodeId
-    ? {
-        ...storedDetails,
-        node,
-        content: stringify(storedDetails.responseBlocks),
-        raw: storedDetails.responseBlocks,
-      }
-    : storedDetails;
+  }, [local, conversationId, node.id, node.version, sourceNodeId]);
+  const record = local ? localDetails : storedDetails;
+  const error = local ? (record ? null : tr("未找到节点详情", "Node details unavailable")) : fetchError;
+  // A projected model request has its recorded metrics, but no raw SDK response blocks.
+  const requestPayload = local && !record?.responseBlocks.length ? record?.request : record?.responseBlocks;
+  const details = record && sourceNodeId
+    ? { ...record, node, content: stringify(requestPayload), raw: requestPayload }
+    : record;
   const system = node.kind === "system",
     tool = node.kind === "tool-call" || node.kind === "tool-result",
     model = node.kind === "thinking" || node.kind === "assistant";
@@ -529,7 +532,7 @@ export function TraceInspector({
                 )}
                 {model ? (
                   <Section title={tr("请求计时", "Request timing")}>
-                    <Timing details={details} />
+                    <Timing details={details} local={local} />
                   </Section>
                 ) : null}
               </>
@@ -557,7 +560,7 @@ export function TraceInspector({
             {actualTab === "raw" ? (
               <TraceCode
                 content={
-                  model
+                  model && details.responseBlocks.length > 0
                     ? details.responseBlocks
                         .map((b, i) => {
                           const block = (b ?? {}) as {
@@ -643,7 +646,7 @@ export function TraceInspector({
             ) : null}
             {actualTab === "timing" ? (
               <>
-                <Timing details={details} />
+                <Timing details={details} local={local} />
                 {tool ? (
                   <dl className="trace-fields">
                     <Field label={tr("调用产生时间", "Call emitted")}>

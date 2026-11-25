@@ -1,5 +1,5 @@
 import type { AgentMessage } from "@earendil-works/pi-agent-core";
-import type { SessionProjection } from "@earendil-works/pi-coding-agent";
+import type { SessionEntry, SessionProjection } from "@earendil-works/pi-coding-agent";
 import type { ProposedPlanItem, TranscriptMessage, TranscriptTool } from "@vela/shared";
 import { randomUUID } from "node:crypto";
 import { userMessageText } from "./context-usage";
@@ -130,7 +130,22 @@ export function branchLeafForTurn(sources: TranscriptSource[], turnIndex: number
   return leaf;
 }
 
-function transcriptFromSources(sources: TranscriptSource[], plans: readonly ProposedPlanItem[], timings: ReadonlyMap<string, TurnTiming> = new Map()): TranscriptMessage[] {
+/** createChildSession writes fork messages, then names the session with its path,
+ * then starts its first prompt. Forks copy messages, never session_info entries.
+ * Read actual message entries (not compacted context), even across later restores
+ * that append the same name again. Without the boundary, ownership is unknown. */
+export function ownedAgentTranscript(branch: readonly SessionEntry[], agentPath: string): TranscriptMessage[] {
+  const start = branch.findIndex(entry => entry.type === "session_info" && entry.name === agentPath);
+  if (start < 0) return [];
+  const sources = branch.slice(start + 1).flatMap(entry => {
+    if (entry.type !== "message") return [];
+    const time = Date.parse(entry.timestamp);
+    return [{ message: entry.message, entryId: entry.id, timestamp: Number.isFinite(time) ? time : null }];
+  });
+  return transcriptFromSources(sources, [], new Map(), true);
+}
+
+function transcriptFromSources(sources: TranscriptSource[], plans: readonly ProposedPlanItem[], timings: ReadonlyMap<string, TurnTiming> = new Map(), owned = false): TranscriptMessage[] {
   const result: TranscriptMessage[] = [];
   const argsByCall = new Map<string, unknown>();
   // plan 正文已从 assistant 文本里剥离，这里按 markdown 内容把它对应回 revision id。
@@ -148,6 +163,8 @@ function transcriptFromSources(sources: TranscriptSource[], plans: readonly Prop
   };
   for (const source of sources) {
     const message = source.message;
+    const identity = () => ({ id: owned && source.entryId ? source.entryId : randomUUID(),
+      ...(owned && "timestamp" in message && Number.isFinite(message.timestamp) ? { sourceTimestamp: message.timestamp } : {}) });
     if (message.role === "user") {
       const parts = typeof message.content === "string"
         ? [{ type: "text" as const, text: message.content }]
@@ -157,7 +174,7 @@ function transcriptFromSources(sources: TranscriptSource[], plans: readonly Prop
         .filter((part) => part.type === "image")
         .map((part) => ({ type: "image" as const, data: part.data, mimeType: part.mimeType }));
       if ((!text.trim() && images.length === 0) || isPlanExecutionPrompt(text)) continue;
-      result.push({ id: randomUUID(), role: "user", ...inputAttribution(message), text, images, thinking: "", tools: [], timestamp: source.timestamp });
+      result.push({ ...identity(), role: "user", ...inputAttribution(message), text, images, thinking: "", tools: [], timestamp: source.timestamp });
       continue;
     }
 
@@ -174,6 +191,7 @@ function transcriptFromSources(sources: TranscriptSource[], plans: readonly Prop
             id: part.id,
             name: part.name,
             status: "done",
+            ...(owned ? { resultRecorded: false } : {}),
             activity: activityFromCall(part.name, part.arguments),
           });
         }
@@ -187,7 +205,7 @@ function transcriptFromSources(sources: TranscriptSource[], plans: readonly Prop
       if (!text && !thinking && tools.length === 0 && planIds.length === 0) continue;
       const timing = source.entryId ? timings.get(source.entryId) : undefined;
       result.push({
-        id: randomUUID(),
+        ...identity(),
         role: "assistant",
         ...(typeof message.model === "string" ? { model: message.model } : {}),
         ...(typeof message.provider === "string" ? { provider: message.provider } : {}),
@@ -205,6 +223,7 @@ function transcriptFromSources(sources: TranscriptSource[], plans: readonly Prop
       for (const entry of result) {
         const tool = entry.tools.find((item) => item.id === message.toolCallId);
         if (!tool) continue;
+        if (owned) tool.resultRecorded = true;
         tool.status = toolResultIsError(message.toolName || tool.name, message, message.isError) ? "error" : "done";
         tool.activity = activityFromExecution(
           message.toolName || tool.name,

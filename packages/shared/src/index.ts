@@ -1057,6 +1057,8 @@ export interface ToolActivity {
   recommendedActions?: RecommendedActions;
   /** show_visual 的内联 HTML/CSS/SVG 可视化演示片段。 */
   visual?: VisualDemo;
+  /** 本次发给子代理的原始 task / message；body 单独存放本次调用返回的文本。 */
+  agentPrompt?: string;
   /** task 子代理类型 */
   agent?: SubagentKind;
   /** 常驻子代理的 id 和路径，供界面把卡片关联到 agent 列表。 */
@@ -1082,6 +1084,8 @@ export interface ToolTrace {
 
 /** 持久化会话恢复出的历史消息,结构与渲染层 UiMessage 对齐。 */
 export interface TranscriptTool {
+  /** Present on owned trace reads: a call without a toolResult is not a result. */
+  resultRecorded?: boolean;
   id: string;
   name: string;
   status: "done" | "error";
@@ -1089,6 +1093,8 @@ export interface TranscriptTool {
 }
 
 export interface TranscriptMessage {
+  /** Original SDK message timestamp, when supplied on an owned trace read. */
+  sourceTimestamp?: number;
   /** Sender of an attributed subagent input: "user" or the sending agent's absolute path. */
   inputSender?: string;
   id: string;
@@ -1230,9 +1236,9 @@ export type AgentStreamEvent =
 
 /** 子代理会话的实时事件；形状与主对话一致，只是用 agentId 代替 conversationId。 */
 export type AgentRuntimeStreamEvent =
-  | { type: "user_message"; text: string; inputSender?: string }
-  | { type: "assistant_start"; model?: string; provider?: string }
-  | { type: "assistant_update" | "assistant_end"; model?: string; provider?: string }
+  | { type: "user_message"; text: string; inputSender?: string; sourceTimestamp?: number }
+  | { type: "assistant_start"; model?: string; provider?: string; sourceTimestamp?: number }
+  | { type: "assistant_update" | "assistant_end"; model?: string; provider?: string; sourceTimestamp?: number }
   | { type: "text_delta"; delta: string }
   | { type: "thinking_delta"; delta: string }
   | { type: "tool_start"; toolCallId: string; toolName: string; activity: ToolActivity }
@@ -3283,7 +3289,7 @@ export interface VelaApi extends McpApi, PluginApi, HooksApi {
   getTraceUsage(conversationId: string): Promise<TraceSnapshot>;
   getTraceDetails(conversationId: string, nodeId: string): Promise<TraceDetails | null>;
   /** 读取某个常驻子代理自己的消息历史(用于打开右侧 Agent Pane 时回填)。 */
-  getAgentMessages(conversationId: string, agentId: string): Promise<TranscriptMessage[]>;
+  getAgentMessages(conversationId: string, agentId: string, scope?: "owned"): Promise<TranscriptMessage[]>;
   /** 暂停、继续或取消单个子代理；取消会连带它派出的子代理。 */
   controlAgent(conversationId: string, agentId: string, action: AgentControlAction): Promise<void>;
   /** 用户直接给某个子代理发消息；排在它当前回合之后处理，并静默告知主代理。 */

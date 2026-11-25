@@ -425,8 +425,8 @@ if (!process.versions.electron) {
             `${currentCase}: generic lower tool retains its directory`);
           await update({ tools: [tool("web_search", "web", { command: "real-time tool activity" })] });
           await expectActivity(label.other);
-          assert.equal((await lowerDetail('.tool-card-head .tool-card-name')).text, "web_search",
-            `${currentCase}: lower web tool retains its tool name`);
+          assert.equal((await lowerDetail('.web-call-head .web-call-subject')).text, "real-time tool activity",
+            `${currentCase}: lower web search retains its full query`);
 
           await update({ tools: [tool("mcp__fixture__lookup", "mcp", { mcp: { server: "fixture", tool: "lookup" }, command: "project" })] });
           await expectActivity(label.other);

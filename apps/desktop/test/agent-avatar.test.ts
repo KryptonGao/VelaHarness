@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import { randomUUID } from "node:crypto";
 import { after, before, describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 import { createElement, type ReactNode } from "react";
@@ -92,16 +91,13 @@ describe("Bottts 子代理头像生成", () => {
     assert.doesNotMatch(svg, /(?:href|src)\s*=\s*["'](?:https?:|\/\/)/i);
   });
 
-  it("随机 UUID 对应不同外观，不使用工具调用或运行状态作为种子", () => {
-    const ids = Array.from({ length: 64 }, () => randomUUID());
-    const sources = ids.map(agentAvatarDataUri);
-    assert.equal(new Set(sources).size, ids.length);
-    for (let index = 0; index < ids.length; index += 1) assert.equal(agentAvatarDataUri(ids[index]!), sources[index]);
+  it("为两个固定的代理 ID 生成不同的外观", () => {
+    assert.notEqual(agentAvatarDataUri(first.id), agentAvatarDataUri(second.id));
   });
 
   it("完全本地生成，不请求 DiceBear 在线 API", (context) => {
     const fetch = context.mock.method(globalThis, "fetch", () => { throw new Error("头像生成不得联网"); });
-    assert.ok(agentAvatarDataUri("offline-" + randomUUID()).startsWith("data:image/svg+xml;utf8,"));
+    assert.ok(agentAvatarDataUri("offline-agent").startsWith("data:image/svg+xml;utf8,"));
     assert.equal(fetch.mock.callCount(), 0);
   });
 

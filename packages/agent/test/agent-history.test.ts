@@ -93,7 +93,7 @@ describe("子代理历史恢复", () => {
           finish = "tool_calls";
         } else if (!isChild && body.tools?.length && !calls.some((call: { function: { name: string } }) => call.function.name === "spawn_agent")) {
           delta = { role: "assistant", tool_calls: [
-            { index: 0, id: "spawn-history", type: "function", function: { name: "spawn_agent", arguments: JSON.stringify({ agent: "explore", name: "sdk-history", task: "读取 fixture.txt，汇报文件内容", fork: "none" }) } },
+            { index: 0, id: "spawn-history", type: "function", function: { name: "spawn_agent", arguments: JSON.stringify({ agent: "explore", name: "sdk-history", task: "读取 fixture.txt，汇报文件内容", fork: "all" }) } },
           ] };
           finish = "tool_calls";
         } else {
@@ -159,7 +159,13 @@ describe("子代理历史恢复", () => {
       assert.ok(stored.conversations.find((item: { id: string }) => item.id === id).agents[0].sessionFile);
       const restarted = new AgentRuntime({ cwd: dir, agentDir: dir }); runtimes.push(restarted);
       await restarted.switchConversation(id);
-      const restored = restarted.getAgentMessages(id, child.id);
+      assert.ok(restarted.getAgentMessages(id, child.id).some(m => m.text === "执行本地子代理测试"), "SDK really forked the root input");
+      const restored = restarted.getAgentMessages(id, child.id, "owned");
+      assert.ok(!restored.some(m => m.text === "执行本地子代理测试"));
+      assert.deepEqual(restarted.getAgentMessages(id, id, "owned"), []);
+      assert.ok(restored.some(m => m.tools.some(t => t.resultRecorded === true)));
+      const requests = restarted.getTrace(id).agentRequests ?? [];
+      assert.ok(requests.some(r => r.agentId === child.id && restored.some(m => m.sourceTimestamp === r.startedAt)));
       assert.deepEqual(restored.filter(message => message.role === "user").map(message => message.inputSender), ["/root", "user"]);
       assert.ok(restored.some((message) => message.thinking === "先读取持久化测试文件"), JSON.stringify(restored));
       assert.ok(restored.some((message) => message.tools.some((tool) => tool.activity.body?.includes("持久化工具输出"))));
@@ -209,6 +215,8 @@ describe("子代理历史恢复", () => {
       assert.deepEqual(runtime.getAgents(root.getSessionId()).map((item) => item.status), ["completed", "aborted"]);
       // 没存模型的旧记录从子会话文件补回实际用过的模型；没有会话文件的补不了。
       assert.deepEqual(runtime.getAgents(root.getSessionId()).map((item) => item.model), [{ provider: "openai", modelId: "gpt-5" }, null]);
+      // Untagged old files remain available to chat, but are not proof of ownership for trace.
+      assert.deepEqual(runtime.getAgentMessages(root.getSessionId(), "child", "owned"), []);
       const transcript = runtime.getAgentMessages(root.getSessionId(), "child");
       assert.equal(transcript[0]?.text, "查 package.json");
       assert.equal(transcript[1]?.thinking, "先读取文件");

@@ -306,7 +306,10 @@ export class AgentControl {
               text: `已把消息发给 ${info.path}；它会在当前回合结束后处理，结论仍会回到你这里。`,
             },
           ],
-          details: { agentId: info.id, path: info.path, kind: info.kind, status: info.status },
+          details: {
+            agentId: info.id, path: info.path, kind: info.kind, status: info.status,
+            model: info.model, thinkingLevel: info.effectiveThinkingLevel ?? info.thinkingLevel,
+          },
         };
       },
     });
@@ -330,6 +333,8 @@ export class AgentControl {
             path: result.agent.path,
             kind: result.agent.kind,
             status: result.status,
+            model: result.agent.model,
+            thinkingLevel: result.agent.effectiveThinkingLevel ?? result.agent.thinkingLevel,
             steps: result.agent.steps,
             mutated: result.agent.mutated,
             finalText: result.agent.finalText ?? "",

@@ -268,10 +268,11 @@ export class SessionHost {
       this.runtime.killBackgroundShell(parseConversationId(rawConversation, "对话"), parseId(rawShell, "后台任务")));
     ipcMain.handle(IpcChannel.sessionBackgroundShellClear, (_event, rawConversation: unknown) =>
       this.runtime.clearFinishedBackgroundShells(parseConversationId(rawConversation, "对话")));
-    ipcMain.handle(IpcChannel.sessionAgentMessages, (_event, rawConversation: unknown, rawAgent: unknown) => {
+    ipcMain.handle(IpcChannel.sessionAgentMessages, (_event, rawConversation: unknown, rawAgent: unknown, scope: unknown) => {
       return this.runtime.getAgentMessages(
         parseConversationId(rawConversation, "对话"),
         parseId(rawAgent, "Agent"),
+        scope === "owned" ? scope : undefined,
       );
     });
     ipcMain.handle(IpcChannel.getCatalog, () => this.runtime.getCatalog());

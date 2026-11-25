@@ -17,7 +17,6 @@ export interface BrowserStep {
 }
 
 const MAX_STEPS = 3;
-const MAX_TARGET = 36;
 
 const screenshotPattern = /!\[Browser screenshot\]\((data:image\/(?:png|jpeg|webp|gif);base64,[A-Za-z0-9+/=]+)\)/g;
 
@@ -28,7 +27,7 @@ export function splitBrowserBody(body: string | undefined): { screenshots: strin
   return { screenshots, output: text.replace(screenshotPattern, "").trim() };
 }
 
-/** 网址缩成 host + path:去掉协议、www 和末尾斜杠;解析不了就原样截断。 */
+/** 网址缩成 host + path:去掉协议、www 和末尾斜杠;解析不了时仅去掉 HTTP 协议和末尾斜杠。 */
 export function shortenUrl(raw: string): string {
   const value = raw.trim();
   if (!value) return "";
@@ -36,14 +35,10 @@ export function shortenUrl(raw: string): string {
     const url = new URL(value);
     if (url.protocol === "file:") return decodeURIComponent(url.pathname.split("/").filter(Boolean).pop() ?? url.pathname);
     const path = `${url.pathname}${url.search}`.replace(/\/$/, "");
-    return truncate(`${url.host.replace(/^www\./, "")}${path}`);
+    return `${url.host.replace(/^www\./, "")}${path}`;
   } catch {
-    return truncate(value.replace(/^https?:\/\//, "").replace(/\/$/, ""));
+    return value.replace(/^https?:\/\//, "").replace(/\/$/, "");
   }
-}
-
-function truncate(value: string): string {
-  return value.length > MAX_TARGET ? `${value.slice(0, MAX_TARGET - 1)}…` : value;
 }
 
 /** 抓第一个引号里的参数:'x'、"x"、`x`。 */
@@ -65,7 +60,7 @@ export function summarizeBrowserCode(code: string | undefined): BrowserStep[] {
   add(new RegExp(String.raw`\.(?:goto|navigate|open|newTab)${quoted}`), "open", (match) => shortenUrl(match[1] ?? ""));
   add(/\.(?:goto|navigate|reload|back|forward)\s*\(/, "open");
   add(/\.screenshot\s*\(/, "screenshot");
-  add(new RegExp(String.raw`\.click${quoted}`), "click", (match) => truncate(match[1] ?? ""));
+  add(new RegExp(String.raw`\.click${quoted}`), "click", (match) => match[1] ?? "");
   add(/\.(?:click|dblclick|hover)\s*\(/, "click");
   add(/\.(?:fill|type|press|selectOption|check|uncheck)\s*\(/, "input");
   add(/\.snapshot\s*\(/, "snapshot");

@@ -482,8 +482,8 @@ const api: VelaApi = {
   cancelHandoff: (requestId: string) => ipcRenderer.invoke(IpcChannel.sessionHandoffCancel, requestId) as Promise<void>,
   distillMemory: (request) => ipcRenderer.invoke(IpcChannel.sessionMemoryDistill, request) as Promise<MemoryDistillDraft>,
   cancelMemoryDistill: (requestId: string) => ipcRenderer.invoke(IpcChannel.sessionMemoryDistillCancel, requestId) as Promise<void>,
-  getAgentMessages: (conversationId: string, agentId: string) =>
-    ipcRenderer.invoke(IpcChannel.sessionAgentMessages, conversationId, agentId) as Promise<TranscriptMessage[]>,
+  getAgentMessages: (conversationId: string, agentId: string, scope?: "owned") =>
+    ipcRenderer.invoke(IpcChannel.sessionAgentMessages, conversationId, agentId, scope) as Promise<TranscriptMessage[]>,
   controlAgent: (conversationId: string, agentId: string, action: AgentControlAction) =>
     ipcRenderer.invoke(IpcChannel.sessionAgentControl, conversationId, agentId, action) as Promise<void>,
   sendAgentMessage: (conversationId: string, agentId: string, text: string) =>
