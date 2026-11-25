@@ -49,9 +49,20 @@ it('runs selected stages in order with durable attempts and actual evidence; no 
   assert.equal(result.stages![0]!.attempts[0]!.evidence[0]!.id, 'reply-inspect'); assert.equal(result.stages![1]!.attempts.length, 0);
   f.service.delete(f.recipe.id); assert.equal(f.service.list().runs[0]!.recipeSnapshot.stages!.length, 3);
 });
+it('a failing workflow finalizer still releases the in-process effect', async t => {
+  const f = await fixture(t);
+  f.host.finishWorkflow = () => {
+    assert.equal(f.service.hasRunningWork(), true);
+    throw new Error('finalizer failed');
+  };
+  const run = await f.start();
+  await assert.rejects(f.service.waitForRun(run.id), /finalizer failed/);
+  assert.equal(f.service.hasRunningWork(), false);
+});
 it('approval gates dispatch, rejection stops later stages, and repeated approval is idempotent', async t => {
   const f = await fixture(t, [stage('inspect'), stage('gate', { approvalRequired: true }), stage('later')]);
   const run = await f.start(); await until(f.service, r => r.stages![1]!.status === 'waiting_for_approval');
+  assert.equal(f.service.hasRunningWork(), true, 'a live approval gate is not queued work');
   assert.deepEqual(f.submissions.map(s => s?.id), ['inspect']); f.service.approveStage(run.id, 'gate', false); f.service.approveStage(run.id, 'gate', false);
   const result = await f.service.waitForRun(run.id); assert.equal(result.status, 'stopped'); assert.equal(result.stages![1]!.approval?.approved, false); assert.equal(f.submissions.length, 1);
   const g = await fixture(t, [stage('gate', { approvalRequired: true }), stage('later')]); const other = await g.start(); await until(g.service, r => r.status === 'waiting_for_user');
@@ -77,7 +88,12 @@ it('safe retry limits and resource changes stop dispatch without clearing the fa
   const run = await f.start(); await f.service.waitForRun(run.id); await f.service.retryStage(run.id, 'flaky', randomUUID()); await f.service.waitForRun(run.id);
   await assert.rejects(f.service.retryStage(run.id, 'flaky', randomUUID()), /只读/); assert.equal(f.submissions.length, 2);
   const g = await fixture(t, [stage('flaky', { retryLimit: 1 })]); g.result(async () => ({ status: 'failed', error: 'Confirmed', retrySafe: true })); const other = await g.start(); await g.service.waitForRun(other.id);
-  g.host.resolveExecution = async () => { throw new Error('Model removed'); }; await assert.rejects(g.service.retryStage(other.id, 'flaky', randomUUID()), /Model removed/); assert.equal(g.service.list().runs[0]!.status, 'failed'); assert.equal(g.submissions.length, 1);
+  g.host.resolveExecution = async () => { throw new Error('Model removed'); };
+  assert.equal(g.service.hasRunningWork(), false);
+  const retry = g.service.retryStage(other.id, 'flaky', randomUUID());
+  assert.equal(g.service.hasRunningWork(), true, 'retry validation precedes the new attempt record');
+  await assert.rejects(retry, /Model removed/);
+  assert.equal(g.service.hasRunningWork(), false); assert.equal(g.service.list().runs[0]!.status, 'failed'); assert.equal(g.submissions.length, 1);
 });
 it('shutdown/restart interrupt approval gates and attempts without replay or reopening approval', async t => {
   const f = await fixture(t, [stage('gate', { approvalRequired: true })]); const run = await f.start(); await until(f.service, r => r.status === 'waiting_for_user');

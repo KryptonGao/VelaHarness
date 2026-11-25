@@ -6,6 +6,7 @@ import { describe, it, type TestContext } from "node:test";
 import type { StreamFn } from "@earendil-works/pi-agent-core";
 import { createAssistantMessageEventStream, type AssistantMessage, type Context, type ToolCall } from "@earendil-works/pi-ai";
 import type { AgentSession } from "@earendil-works/pi-coding-agent";
+import type { AgentControl } from "../src/agent-control.ts";
 import { AgentRuntime } from "../src/runtime.ts";
 import type { TraceRecorder } from "../src/trace.ts";
 import { BackgroundShellManager } from "../../workspace/src/background-shells.ts";
@@ -33,8 +34,9 @@ async function fixture(t: TestContext) {
   const info = await runtime.createRunConversation({ cwd, sandboxMode: "full", model: { provider: "idle-local", id: "idle-model" } });
   const id = info.conversationId;
   const internals = runtime as unknown as {
-    conversations: Map<string, { session: AgentSession }>;
+    conversations: Map<string, { session: AgentSession; control: AgentControl }>;
     trace(conversationId: string): TraceRecorder;
+    createChildSession(...args: unknown[]): Promise<AgentSession>;
     queueRootNotice(entry: unknown, notice: { wake: boolean; payload: { customType: string; content: string; display: boolean } }): void;
     deliverRootNotices(entry: unknown, items: unknown[]): Promise<void>;
   };
@@ -107,6 +109,39 @@ describe("createRunConversation", () => {
   });
 });
 
+describe("hasRunningWork", () => {
+  it("sees turns in an unselected conversation from drive start through completion", async t => {
+    const f = await fixture(t);
+    assert.equal(f.runtime.activeConversationId, null);
+    assert.equal(f.runtime.hasRunningWork(), false);
+    f.script(["Done."]);
+    const turn = f.runtime.prompt(f.id, "hello");
+    assert.equal(f.runtime.hasRunningWork(), true);
+    await turn;
+    assert.equal(f.runtime.hasRunningWork(), false);
+  });
+
+  it("sees child session setup before its first turn; a failed child isn't work", async t => {
+    const f = await fixture(t);
+    t.mock.method(f.internals, "createChildSession", async () => { throw new Error("child setup failed"); });
+    const child = f.entry.control.spawn(f.id, { kind: "explore", task: "look" });
+    assert.equal(child.status, "idle");
+    assert.equal(f.runtime.hasRunningWork(), true);
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(f.entry.control.list().find(agent => agent.id === child.id)?.status, "failed");
+    assert.equal(f.runtime.hasRunningWork(), false);
+  });
+
+  it("counts SideChat preparation even with no selected conversation; errors release it", async t => {
+    const f = await fixture(t);
+    const request = f.runtime.sideChat({ requestId: "side", conversationId: null, locale: "en",
+      model: { provider: "unknown", id: "missing" }, messages: [{ role: "user", text: "Hello" }] }, () => {});
+    assert.equal(f.runtime.hasRunningWork(), true);
+    await assert.rejects(request);
+    assert.equal(f.runtime.hasRunningWork(), false);
+  });
+});
+
 describe("waitForIdle", () => {
   it("returns right after the turn when nothing else is running", async (t) => {
     const f = await fixture(t);
@@ -165,12 +200,15 @@ describe("waitForIdle", () => {
     const held = new Promise<void>(resolve => { releaseDelivery = resolve; });
     f.internals.deliverRootNotices = async () => { await held; };
     f.internals.queueRootNotice(f.entry, { wake: false, payload: { customType: "vela_test", content: "note", display: false } });
+    assert.equal(f.runtime.hasRunningWork(), false, "a notice queued for later isn't running");
     let idle = false;
     const waiting = f.runtime.waitForIdle(f.id).then(() => { idle = true; });
     await sleep(1500);
     assert.equal(idle, false, "queued / in-flight notice must keep the conversation busy");
+    assert.equal(f.runtime.hasRunningWork(), true, "delivery is now in flight");
     releaseDelivery();
     await waiting;
+    assert.equal(f.runtime.hasRunningWork(), false);
     assert.equal(idle, true);
   });
 

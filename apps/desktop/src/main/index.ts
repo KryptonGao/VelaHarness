@@ -16,6 +16,8 @@ import type { BrowserWindowConstructorOptions } from "electron";
 import { createLogger, IpcChannel, isAgentBusy, isAppLocale, localizeZh, raceEnabledStorageKey, type ResidentSettings } from "@vela/shared";
 import { existsSync, readFileSync, statSync, watch as fsWatch, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
+import { createRequire } from "node:module";
+import { hasRunningWork } from "./running-work";
 import { fileURLToPath } from "node:url";
 import { ConversationExportHost } from "./conversation-export-host";
 import { getApplicationLocale, setApplicationLocale, setDiagnosticsMenuActions, setMenuAccelerators, setUpdateMenuAction } from "./menu";
@@ -766,6 +768,24 @@ app.whenReady().then(async () => {
   });
   ipcMain.on(IpcChannel.appSetShortcuts, (_event, accelerators: unknown) => setMenuAccelerators(accelerators));
   setApplicationLocale(defaultDesktopLocale);
+  if (process.platform === "darwin") {
+    try {
+      const install = createRequire(import.meta.url)("./hold-to-quit.node") as (
+        hint: () => [string, string, boolean], quit: () => void,
+      ) => () => void;
+      const dispose = install(() => {
+        const busy = hasRunningWork({ runtimeHost, taskScheduler, taskRecipes, raceHost, residentSupervisor });
+        const locale = getApplicationLocale();
+        return [busy ? localizeZh(locale, "退出会中断正在运行的任务", "Quitting will interrupt running tasks")
+          : localizeZh(locale, "退出 Vela", "Quit Vela"),
+          localizeZh(locale, "按住 ⌘Q 1.5 秒退出，松开取消。", "Hold ⌘Q for 1.5 seconds to quit. Release to cancel."), busy];
+      }, () => app.quit());
+      app.once("before-quit", dispose);
+    } catch (error) {
+      // Fail closed: the explicit Quit menu item still works, even if the addon cannot load.
+      log.error("hold-to-quit unavailable", error);
+    }
+  }
 
   log.info("app started", systemInfo());
   setDiagnosticsMenuActions({

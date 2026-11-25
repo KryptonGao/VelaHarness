@@ -72,6 +72,30 @@ it('deduplicates simultaneous and repeated requests across restart; rejects reus
   await assert.rejects(f.service.start({ ...request, draft: { ...request.draft, additionalInstructions: 'different' } }), /不同内容/);
   const restored = new TaskRecipeService(f.file, f.host); restored.init(); assert.equal((await restored.start(request)).id, runs[0].id); assert.deepEqual(f.counts(), { creates: 1, submits: 1 });
 });
+it('hasRunningWork counts startup before a run record, execution and cancellation cleanup, but not previews or history', async t => {
+  const f = await fixture(t);
+  const preview = f.service.preview(f.draft);
+  assert.equal(f.service.hasRunningWork(), false);
+  const request = { requestId: randomUUID(), draft: f.draft, fingerprint: (await preview).fingerprint };
+  let release!: () => void;
+  const gate = new Promise<void>(done => { release = done; });
+  f.onSubmit(async () => { await gate; return { status: 'stopped' }; });
+  try {
+    const start = f.service.start(request);
+    assert.equal(f.service.list().runs.length, 0);
+    assert.equal(f.service.hasRunningWork(), true);
+    const run = await start;
+    f.service.waiting(run.conversationId, 'approval', true);
+    assert.equal(f.service.hasRunningWork(), true);
+    f.service.stopConversation(run.conversationId);
+    assert.equal(f.service.list().runs[0].status, 'stopped');
+    assert.equal(f.service.hasRunningWork(), true);
+  } finally { release(); await f.service.drain(); }
+  assert.equal(f.service.hasRunningWork(), false);
+  const replay = f.service.start(request);
+  assert.equal(f.service.hasRunningWork(), false);
+  await replay;
+});
 it('preserves reserved conversation ID and never resubmits after creation failure', async t => {
   const f = await fixture(t); f.onCreate(async () => { throw new Error('creation failure'); }); const run = await f.start();
   assert.equal(run.status, 'failed'); assert.ok(run.conversationId); assert.equal(run.sendIntentAt, null); assert.equal(f.counts().submits, 0);

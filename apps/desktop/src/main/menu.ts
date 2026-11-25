@@ -111,7 +111,9 @@ export function installApplicationMenu(): void {
               { role: "hideOthers", label: text("隐藏其他", "Hide Others") },
               { role: "unhide", label: text("全部显示", "Show All") },
               { type: "separator" },
-              { role: "quit", label: text(`退出 ${name}`, `Quit ${name}`) },
+              // The app-local hold monitor owns ⌘Q. A quit role would reinstall
+              // the immediate accelerator whenever locale or shortcuts change.
+              { label: text(`退出 ${name}`, `Quit ${name}`), click: () => app.quit() },
             ],
           } satisfies MenuItemConstructorOptions,
         ]

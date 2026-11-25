@@ -118,12 +118,31 @@ describe("side chat", () => {
       model, request, memory: [], memoryEnabled: false, onDelta: () => undefined,
     });
     await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(service.hasRunningWork(), true);
     service.cancel(request.requestId);
     release();
     const result = await running;
     assert.equal(result.aborted, true);
+    assert.equal(service.hasRunningWork(), false);
     assert.equal(result.text, "部分");
     assert.equal(result.memoryEnabled, false);
+  });
+
+  it("tracks overlapping requests during preparation and does not stream if cancelled there", async () => {
+    const service = new SideChatService();
+    const context: { signal?: AbortSignal } = {};
+    const input = { runtime: fakeRuntime([], context), model, request, memory: [], memoryEnabled: false, onDelta: () => {} };
+    let release!: () => void;
+    const gate = new Promise<void>(resolve => { release = resolve; });
+    const preparing = service.runPrepared(request, async () => { await gate; return input; });
+    assert.equal(service.hasRunningWork(), true);
+    await service.run({ ...input, request: { ...request, requestId: "other" }, runtime: fakeRuntime([]) });
+    assert.equal(service.hasRunningWork(), true, "the first request is still preparing");
+    service.cancel(request.requestId);
+    release();
+    assert.equal((await preparing).aborted, true);
+    assert.equal(context.signal, undefined, "cancelled before streamSimple");
+    assert.equal(service.hasRunningWork(), false);
   });
 
   it("passes the chosen reasoning effort, clamped to what the model supports", async () => {

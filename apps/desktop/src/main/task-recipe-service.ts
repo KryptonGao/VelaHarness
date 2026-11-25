@@ -41,7 +41,6 @@ export class TaskRecipeService {
   private loaded = false;
   private stopped = false;
   private readonly pending = new Map<string, Promise<RecipeRun>>();
-  private readonly effects = new Set<Promise<void>>();
   private readonly effectsByRun = new Map<string, Promise<void>>();
   private readonly projects: ProjectRecipeLibrary;
   private readonly teams: TeamRecipeLibraries;
@@ -245,8 +244,8 @@ export class TaskRecipeService {
         const current = this.store.runs.find(r => r.id === run.id)!;
         if (activeStatuses.includes(current.status)) Object.assign(current, { stages: this.interruptStages(current.stages), status: 'interrupted', finishedAt: Date.now(), error: this.error });
         this.emit();
-      }).finally(() => { this.runtime.finishWorkflow?.(this.run(run.id)); this.effects.delete(effect); this.effectsByRun.delete(run.id); });
-      this.effects.add(effect); this.effectsByRun.set(run.id, effect);
+      });
+      this.trackEffect(run.id, effect);
     } catch (error) {
       // Reserved ID remains visible even when creation/binding outcomes cannot be confirmed.
       try { this.patch(run.id, { status: created && !checking ? 'interrupted' : 'failed', error: error instanceof Error ? error.message : String(error), finishedAt: Date.now() }); }
@@ -386,9 +385,8 @@ export class TaskRecipeService {
         .catch(error => {
           this.error = `阶段重试结果无法保存：${String(error)}`; const record = this.store.runs.find(r => r.id === id)!;
           Object.assign(record, { stages: this.interruptStages(record.stages), status: 'interrupted', finishedAt: Date.now(), error: this.error }); this.emit();
-        })
-        .finally(() => { this.runtime.finishWorkflow?.(this.run(id)); this.effects.delete(effect); this.effectsByRun.delete(id); });
-      this.effects.add(effect); this.effectsByRun.set(id, effect); return this.run(id);
+        });
+      this.trackEffect(id, effect); return this.run(id);
     } catch (e) { this.runtime.finishWorkflow?.(run); throw e; }
     finally { this.retrying.delete(id); }
   }
@@ -412,7 +410,17 @@ export class TaskRecipeService {
       for (const run of next.runs) if (activeStatuses.includes(run.status)) Object.assign(run, { stages: this.interruptStages(run.stages), status: 'interrupted', finishedAt: Date.now(), error: '应用退出导致初始回合中断；不自动重发' });
     });
   }
-  async drain(): Promise<void> { await Promise.allSettled(this.effects); }
+  /** Live claims/retries, stage execution (including approval gates), and actual worktree cleanup. */
+  hasRunningWork(): boolean {
+    return this.pending.size > 0 || this.retrying.size > 0 || this.effectsByRun.size > 0 || this.cleaningWorkspaces.size > 0;
+  }
+  private trackEffect(id: string, effect: Promise<void>): void {
+    this.effectsByRun.set(id, effect.finally(() => {
+      try { this.runtime.finishWorkflow?.(this.run(id)); }
+      finally { this.effectsByRun.delete(id); }
+    }));
+  }
+  async drain(): Promise<void> { await Promise.allSettled(this.effectsByRun.values()); }
   async waitForRun(id: string): Promise<RecipeRun> { await this.effectsByRun.get(id); return this.run(id); }
   validateSnapshot(raw: unknown): TaskRecipe { return this.parseSnapshot(raw); }
   async cleanupWorktree(id: string): Promise<void> {

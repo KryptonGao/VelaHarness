@@ -131,14 +131,21 @@ it("fails before external effects when the claim cannot be persisted", async t =
   await assert.rejects(f.scheduler.runNow(task.id));
   assert.equal(calls, 0); assert.equal(f.scheduler.list().runs.length, 0);
 });
-it("shutdown marks active runs interrupted and later completion cannot overwrite that status", async t => {
-  let release!: () => void;
+it("hasRunningWork ignores future slots and interrupted history, but counts a claimed executor until it settles", async t => {
+  let release!: () => void, started!: () => void;
   const gate = new Promise<void>(resolve => { release = resolve; });
-  const f = await fixture(t, async (_task, link) => { link("closing-chat"); await gate; });
-  const task = await f.scheduler.create(f.input()); f.scheduler.start(); await f.scheduler.runNow(task.id);
-  await new Promise(resolve => setTimeout(resolve, 10));
-  f.scheduler.stop(); assert.equal(f.scheduler.list().runs[0].status, "interrupted");
-  release(); await f.scheduler.drain();
+  const executing = new Promise<void>(resolve => { started = resolve; });
+  const f = await fixture(t, async (_task, link) => { link("closing-chat"); started(); await gate; });
+  const task = await f.scheduler.create(f.input()); f.scheduler.start();
+  assert.equal(f.scheduler.hasRunningWork(), false);
+  try {
+    const claim = f.scheduler.runNow(task.id);
+    assert.equal(f.scheduler.hasRunningWork(), true);
+    await claim; await executing;
+    f.scheduler.stop(); assert.equal(f.scheduler.list().runs[0].status, "interrupted");
+    assert.equal(f.scheduler.hasRunningWork(), true);
+  } finally { release(); await f.scheduler.drain(); }
+  assert.equal(f.scheduler.hasRunningWork(), false);
   assert.equal(f.scheduler.list().runs[0].status, "interrupted");
   assert.equal(f.scheduler.list().runs[0].conversationId, "closing-chat");
 });

@@ -84,7 +84,11 @@ it('independent worktree previews exact target/SHA, excludes dirty files, dedupl
   assert.equal(again.id, run.id); assert.equal(run.expandedPrompt, preview.expandedPrompt); assert.equal(await readFile(join(run.workspace, 'tracked.txt'), 'utf8'), 'committed'); await assert.rejects(readFile(join(run.workspace, 'untracked.txt')));
   assert.deepEqual(f.counts(), { creates: 1, submits: 1, worktreeCreates: 1 });
   await writeFile(join(run.workspace, 'tracked.txt'), 'new change'); await assert.rejects(f.service.cleanupWorktree(run.id)); assert.equal(f.service.list().runs[0]!.worktreeRemovedAt, undefined);
+  assert.equal(f.service.hasRunningWork(), false, 'retaining a worktree or failing its removal is not live work');
+  const remove = f.host.removeWorktree;
+  f.host.removeWorktree = async run => { assert.equal(f.service.hasRunningWork(), true); await remove(run); };
   execFileSync('git', ['-C', run.workspace, 'restore', 'tracked.txt']); await f.service.cleanupWorktree(run.id); assert.ok(f.service.list().runs[0]!.worktreeRemovedAt); assert.equal(f.git('rev-parse', 'vela/recipe-test'), sha);
+  assert.equal(f.service.hasRunningWork(), false);
 });
 it('worktree path parameters are validated against the starting commit rather than dirty source files', async t => {
   const f = await fixture(t); await f.initGit(); await writeFile(join(f.workspace, 'only-dirty'), 'not committed');

@@ -71,6 +71,7 @@ const suites = {
     { name: "pr-inbox-electron-smoke", runner: "node" },
     { name: "pr-review-response-electron-smoke", runner: "node" },
     { name: "notification-sounds-electron-smoke", runner: "electron" },
+    { name: "hold-to-quit-electron-smoke", runner: "electron" },
     { name: "conversation-workbench-electron-smoke", runner: "electron" },
     { name: "settings-electron-smoke", runner: "electron" },
     { name: "preferences-defaults-electron-smoke", runner: "electron" },

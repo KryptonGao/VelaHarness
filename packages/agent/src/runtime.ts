@@ -13,7 +13,7 @@ import { McpSessionBridge, isMcpTool, type McpPermission } from "./mcp-session";
 import { createScheduledTaskTools, scheduledTaskInstructions, scheduledTaskTimeContext } from "./scheduled-task-tools";
 import { RecipeGenerator, parseRecipeGenerateInput } from './recipe-generator';
 import type { RaceTokens, RecipeExecution, RecipeRun, RecipeStageSubmission, RecipeSubmitResult, RecipeStageEvidence, RecipeUseDraft, ScheduledTaskInput, BackgroundShellEvents, BackgroundShellExit, BackgroundShellItem, BackgroundShellOutput, ToolFactoryContext, SandboxMode, ScheduledTaskService } from "@vela/shared";
-import type { McpCatalog, McpCatalogInput, McpServerInput, McpServerTarget, McpEnabledInput, McpProjectTrustInput, McpToolReadOnlyInput, McpStatusEvent, MemoryLoadReport, SideChatEvent, SideChatResult } from "@vela/shared";
+import type { McpCatalog, McpCatalogInput, McpServerInput, McpServerTarget, McpEnabledInput, McpProjectTrustInput, McpToolReadOnlyInput, McpStatusEvent, MemoryLoadReport, SideChatEvent, SideChatRequest, SideChatResult } from "@vela/shared";
 import { memoryLoadReport, modelLanguageName, visualToolName, type AppLocale } from "@vela/shared";
 import { browserAnnotationInstructions, browserUseInstructions, createBrowserAnnotationTools, createBrowserTools, type BrowserAnnotationService, type BrowserReplService, type BrowserReplPermission } from "./browser-use";
 import { TurnCheckpoints, changedPaths, sharedDirectory, type TurnCheckpoint } from "./turn-checkpoints";
@@ -606,6 +606,15 @@ export class AgentRuntime {
 
   get activeConversationId(): string | null {
     return this.activeId;
+  }
+
+  /** Live turns across all conversations, including hidden ones. Unlike waitForIdle, queued input and notices don't count. */
+  hasRunningWork(): boolean {
+    if (this.sideChats.hasRunningWork() || this.rootDeliveries.size > 0) return true;
+    for (const entry of this.conversations.values()) {
+      if (entry.driving || entry.session?.isStreaming || entry.session?.isCompacting || entry.control?.hasRunningChildren()) return true;
+    }
+    return false;
   }
 
   getSnapshot(conversationId?: string): SessionSnapshot {
@@ -2327,6 +2336,10 @@ export class AgentRuntime {
    */
   async sideChat(raw: unknown, onEvent: (event: SideChatEvent) => void): Promise<SideChatResult> {
     const request = parseSideChatRequest(raw);
+    return this.sideChats.runPrepared(request, () => this.prepareSideChat(request, onEvent));
+  }
+
+  private async prepareSideChat(request: SideChatRequest, onEvent: (event: SideChatEvent) => void) {
     const entry = request.conversationId ? this.conversations.get(request.conversationId) ?? null : null;
     const directory = await this.readyDirectory();
     const intended = entry?.snapshot.modelProvider && entry.snapshot.modelId
@@ -2343,14 +2356,9 @@ export class AgentRuntime {
         : { cwd: this.currentCwd, hasWorkspace: false }).map((target) => this.memory.load(target)))
       : [];
     onEvent({ requestId: request.requestId, type: "memory", memory: memory.map(memoryLoadReport), memoryEnabled, model: `${model.provider}/${model.id}` });
-    return this.sideChats.run({
-      runtime: directory.runtime,
-      model,
-      request,
-      memory,
-      memoryEnabled,
-      onDelta: (text) => onEvent({ requestId: request.requestId, type: "delta", text }),
-    });
+    return { runtime: directory.runtime, model, memory, memoryEnabled,
+      onDelta: (text: string) => onEvent({ requestId: request.requestId, type: "delta", text }),
+    };
   }
 
   cancelSideChat(requestId: unknown): void {

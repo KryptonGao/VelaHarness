@@ -184,6 +184,7 @@ it("queues an event behind the user turn, only delivers the wake's own reply, th
   f.supervisor.updateSettings({ limits: { maxWakesPerDay: 1, dailyProactiveRuns: 0 } });
   f.hold(true);
   await f.supervisor.submit({ text: "first user" });
+  assert.equal(f.supervisor.hasRunningWork(), true);
   f.supervisor.onInboxEvent("failure", "Build failed", "No artifact");
   f.tick(residentWakeWindowMs);
   assert.deepEqual(f.calls.prompts.map(call => call.text), ["first user"]);
@@ -193,6 +194,7 @@ it("queues an event behind the user turn, only delivers the wake's own reply, th
   await f.supervisor.submit({ text: "next user" });
   assert.equal(f.calls.prompts.length, 2);
   assert.equal(f.supervisor.getStatus().wakeCards[0]?.state, "running");
+  assert.equal(f.supervisor.hasRunningWork(), true);
   f.hold(false);
   f.gates.get("resident-1")!.resolve();
   await f.settle();
@@ -200,6 +202,7 @@ it("queues an event behind the user turn, only delivers the wake's own reply, th
   assert.equal(f.reports.length, 1);
   assert.equal(f.reports[0]?.text, "Task verified.");
   assert.equal(f.supervisor.getStatus().wakeCards[0]?.state, "replied");
+  assert.equal(f.supervisor.hasRunningWork(), false);
   const reopened = f.make();
   t.after(() => reopened.dispose());
   reopened.init();
@@ -272,8 +275,10 @@ it("pausing keeps queued tasks queued until resumed", async t => {
   await f.settle();
   assert.equal(f.jobs.length, 1);
   assert.equal(f.supervisor.getStatus().queuedTasks, 1);
+  assert.equal(f.supervisor.hasRunningWork(), false, "queued tasks and task history aren't running");
   f.supervisor.resume();
   assert.equal(f.jobs.length, 2);
+  assert.equal(f.supervisor.hasRunningWork(), true);
 });
 
 it("rejects tasks for unregistered workspaces and a full queue", async t => {

@@ -1,6 +1,9 @@
 import { hooksJa } from "./hooks";
 import { workspaceOverviewJa } from "./workspace-overview";
 const messages: Record<string, string> = {
+  "退出 Vela": "Vela を終了",
+  "退出会中断正在运行的任务": "終了すると実行中のタスクが中断されます",
+  "按住 ⌘Q 1.5 秒退出，松开取消。": "⌘Q を1.5秒押し続けると終了します。離すとキャンセルします。",
   "标准": "標準",
   "快速": "高速",
   "超快": "超高速",

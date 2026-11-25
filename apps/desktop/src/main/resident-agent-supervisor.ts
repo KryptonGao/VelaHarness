@@ -239,6 +239,11 @@ export class ResidentAgentSupervisor implements ResidentToolHost {
     return { ...task, timedOut: run?.timedOut === true || task.status === "timed_out", cancelled: run?.cancelled === true || task.status === "cancelled" };
   }
 
+  /** A started background task or a claimed resident turn; not queued follow-ups, wake timers or Inbox history. */
+  hasRunningWork(): boolean {
+    return this.residentTurnActive || this.ledger.some(task => task.status === "running");
+  }
+
   hasActiveRuleTask(ruleId: string): boolean {
     return this.ledger.some(task => task.ruleId === ruleId && isResidentTaskActive(task.status));
   }

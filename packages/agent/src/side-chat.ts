@@ -133,16 +133,34 @@ export interface SideChatRunInput {
   onDelta: (text: string) => void;
 }
 
+type SideChatContext = Omit<SideChatRunInput, "request">;
+
 /** 每个请求一次流式调用；不落盘、不缓存，可按 requestId 中途停止。 */
 export class SideChatService {
   private readonly controllers = new Map<string, AbortController>();
 
-  async run({ runtime, model, request, memory, memoryEnabled, onDelta }: SideChatRunInput): Promise<SideChatResult> {
+  hasRunningWork(): boolean { return this.controllers.size > 0; }
+
+  run(input: SideChatRunInput): Promise<SideChatResult> {
+    return this.runPrepared(input.request, () => input);
+  }
+
+  /** Account for the whole request, including model selection and loading workspace memory before streaming. */
+  async runPrepared(request: SideChatRequest, prepare: () => SideChatContext | Promise<SideChatContext>): Promise<SideChatResult> {
     if (this.controllers.has(request.requestId)) throw new Error("侧边聊天请求不正确");
-    // 侧边聊天没有 SubAgent，Ultra 等同于模型的最高强度。
-    const thinkingLevel = modelThinkingLevel(model, request.thinkingLevel ?? "off");
     const controller = new AbortController();
     this.controllers.set(request.requestId, controller);
+    try {
+      const context = await prepare();
+      return await this.stream({ ...context, request }, controller.signal);
+    } finally {
+      this.controllers.delete(request.requestId);
+    }
+  }
+
+  private async stream({ runtime, model, request, memory, memoryEnabled, onDelta }: SideChatRunInput, signal: AbortSignal): Promise<SideChatResult> {
+    // 侧边聊天没有 SubAgent，Ultra 等同于模型的最高强度。
+    const thinkingLevel = modelThinkingLevel(model, request.thinkingLevel ?? "off");
     const result = (text: string, aborted: boolean): SideChatResult => ({
       requestId: request.requestId,
       text,
@@ -152,6 +170,7 @@ export class SideChatService {
       memoryEnabled,
       aborted,
     });
+    if (signal.aborted) return result("", true);
     let text = "";
     try {
       const stream = runtime.streamSimple(model, {
@@ -159,7 +178,7 @@ export class SideChatService {
         messages: toModelMessages(model, sideChatHistory(request.messages)),
       }, {
         ...(request.codexSpeed && { onPayload: (body: unknown) => codexSpeedPayload(body, model, request.codexSpeed) }),
-        signal: controller.signal,
+        signal,
         ...(thinkingLevel !== "off" ? { reasoning: thinkingLevel } : {}),
         sessionId: request.requestId,
         headers: openCodeSessionHeaders(model, request.requestId),
@@ -171,16 +190,14 @@ export class SideChatService {
         } else if (event.type === "done") {
           return result(textOf(event.message) || text, false);
         } else if (event.type === "error") {
-          if (controller.signal.aborted) return result(text, true);
+          if (signal.aborted) return result(text, true);
           throw new Error(event.error.errorMessage || "侧边聊天回复失败");
         }
       }
-      return result(text, controller.signal.aborted);
+      return result(text, signal.aborted);
     } catch (error) {
-      if (controller.signal.aborted) return result(text, true);
+      if (signal.aborted) return result(text, true);
       throw error;
-    } finally {
-      this.controllers.delete(request.requestId);
     }
   }
 

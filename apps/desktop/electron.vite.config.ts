@@ -1,4 +1,6 @@
-import { readFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { mkdtempSync, readFileSync, realpathSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import react from "@vitejs/plugin-react";
@@ -26,6 +28,21 @@ const workspaceAlias = {
 export default defineConfig({
   main: {
     plugins: [{
+      name: "vela-mac-hold-to-quit",
+      buildStart() { if (process.platform === "darwin") this.addWatchFile(resolve(root, "native/hold-to-quit.m")); },
+      generateBundle() {
+        if (process.platform !== "darwin") return;
+        // Only the stable C Node-API is needed; Node distributions include these headers.
+        const includes = resolve(dirname(realpathSync(process.execPath)), "../include/node");
+        const temp = mkdtempSync(resolve(tmpdir(), "vela-native-build-"));
+        const binary = resolve(temp, "hold-to-quit.node");
+        try {
+          execFileSync("xcrun", ["clang", "-fobjc-arc", "-fblocks", "-O2", "-mmacosx-version-min=12.0", "-bundle", "-undefined", "dynamic_lookup",
+            "-I", includes, "-framework", "AppKit", "-framework", "QuartzCore", resolve(root, "native/hold-to-quit.m"), "-o", binary], { stdio: "inherit" });
+          this.emitFile({ type: "asset", fileName: "hold-to-quit.node", source: readFileSync(binary) });
+        } finally { rmSync(temp, { recursive: true, force: true }); }
+      },
+    }, {
       name: "vela-builtin-browser-skill",
       generateBundle() {
         this.emitFile({ type: "asset", fileName: "skills/browser-use/SKILL.md",

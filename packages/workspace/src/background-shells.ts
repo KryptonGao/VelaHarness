@@ -109,6 +109,12 @@ export class BackgroundShellManager implements BackgroundShellEvents {
     return snapshot(shell);
   }
 
+  /** Check the manager directly: a shell can outlive its owning conversation. */
+  hasRunningWork(): boolean {
+    for (const shell of this.shells.values()) if (shell.status === "running") return true;
+    return false;
+  }
+
   list(conversationId: string): BackgroundShellInfo[] {
     return this.forConversation(conversationId).map(snapshot);
   }

@@ -1,6 +1,9 @@
 import { hooksKo } from "./hooks";
 import { workspaceOverviewKo } from "./workspace-overview";
 const messages: Record<string, string> = {
+  "退出 Vela": "Vela 종료",
+  "退出会中断正在运行的任务": "종료하면 실행 중인 작업이 중단됩니다",
+  "按住 ⌘Q 1.5 秒退出，松开取消。": "⌘Q를 1.5초 동안 누르면 종료합니다. 놓으면 취소합니다.",
   "标准": "표준",
   "快速": "고속",
   "超快": "초고속",

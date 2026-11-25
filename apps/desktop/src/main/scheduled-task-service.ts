@@ -101,6 +101,8 @@ export class ScheduledTaskScheduler {
       }
     });
   }
+  // stop() marks records interrupted before their executors actually settle.
+  hasRunningWork(): boolean { return this.running.size > 0; }
   async drain(): Promise<void> { await Promise.allSettled(this.running.values()); }
 
   /** One poll handles at most one overdue occurrence per task, including after wake/restart. */

@@ -191,6 +191,7 @@ describe("agent 树", () => {
     const restored = new AgentControl({ conversationId: "root-id", host: restoredHost, restoredAgents: stored });
     restored.registerRoot(new FakeSession().asSession());
     assert.equal(restoredHost.requests.length, 0);
+    assert.equal(restored.hasRunningChildren(), false);
     assert.equal(restored.list().find((item) => item.id === info.id)?.finalText, "做完了");
     await restored.followup("root-id", info.id, "继续检查", undefined);
     assert.equal(restoredHost.requests[0]?.sessionFile, "/tmp/child-history.jsonl");
@@ -528,6 +529,7 @@ describe("单个子代理的暂停、继续与取消", () => {
     const agent = control.spawn("root-id", { kind: "general", task: "慢任务", name: "slow" });
     await waitFor(() => info(control, agent.id).status === "running", "开始运行");
     assert.notEqual(info(control, agent.id).runningSince, null);
+    assert.equal(control.hasRunningChildren(), true);
 
     control.pause(agent.id);
     assert.equal(info(control, agent.id).status, "running");
@@ -536,6 +538,7 @@ describe("单个子代理的暂停、继续与取消", () => {
     openGate();
     await waitFor(() => info(control, agent.id).status === "paused", "停在工具调用前");
     const paused = info(control, agent.id);
+    assert.equal(control.hasRunningChildren(), true, "the paused child still owns a live turn");
     assert.equal(paused.pauseRequested, false);
     assert.equal(paused.runningSince, null);
     const frozen = paused.activeMs;
@@ -545,6 +548,7 @@ describe("单个子代理的暂停、继续与取消", () => {
     control.resume(agent.id);
     await waitFor(() => info(control, agent.id).status === "completed", "继续后完成");
     assert.equal(info(control, agent.id).runningSince, null);
+    assert.equal(control.hasRunningChildren(), false);
     assert.equal(host.rootMessages.at(-1)?.status, "completed");
   });
 

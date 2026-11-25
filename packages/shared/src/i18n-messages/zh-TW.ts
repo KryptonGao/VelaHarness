@@ -1,6 +1,9 @@
 import { hooksZhTW } from "./hooks";
 import { workspaceOverviewZhTW } from "./workspace-overview";
 const messages: Record<string, string> = {
+  "退出 Vela": "結束 Vela",
+  "退出会中断正在运行的任务": "結束 Vela 會中斷執行中的任務",
+  "按住 ⌘Q 1.5 秒退出，松开取消。": "按住 ⌘Q 1.5 秒結束，放開即可取消。",
   "标准": "標準",
   "快速": "快速",
   "超快": "超快",

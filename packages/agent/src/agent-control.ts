@@ -208,6 +208,14 @@ export class AgentControl {
     return cloneAgent(info);
   }
 
+  /** Actual child turns (including paused ones) or session creation, not historical nodes or tasks awaiting a slot. */
+  hasRunningChildren(): boolean {
+    for (const agent of this.agents.values()) {
+      if (agent.info.kind !== "root" && (agent.running || (agent.processing && !agent.session))) return true;
+    }
+    return false;
+  }
+
   /** 当前整棵树的快照；界面增量更新和测试都用它。 */
   list(): AgentInfo[] {
     return this.snapshot();

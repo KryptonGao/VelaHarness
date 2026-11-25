@@ -122,14 +122,19 @@ describe("BackgroundShellManager", () => {
 
   it("keeps conversations apart and kills a conversation's commands silently", async () => {
     const { manager, cwd, exits } = await setup();
+    assert.equal(manager.hasRunningWork(), false);
     const { id } = manager.start({ conversationId: "c1", command: "sleep 30", cwd });
-    manager.start({ conversationId: "c2", command: "sleep 30", cwd });
+    const other = manager.start({ conversationId: "c2", command: "sleep 30", cwd });
+    assert.equal(manager.hasRunningWork(), true);
     await assert.rejects(() => manager.read("c2", id), /没有这个后台命令/);
     manager.killConversation("c1");
     await until(() => exits.length === 1, "exit event");
     assert.equal(exits[0]!.conversationId, "c1");
     assert.equal(exits[0]!.notify, false);
     assert.equal(manager.list("c2")[0]!.status, "running");
+    assert.equal(manager.hasRunningWork(), true);
+    await manager.kill("c2", other.id);
+    assert.equal(manager.hasRunningWork(), false, "both exit records remain, but neither shell is alive");
   });
 
   it("limits running commands per conversation", async () => {
