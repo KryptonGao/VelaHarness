@@ -2,6 +2,7 @@ import {
   hasForbiddenStructure,
   isPlainObject,
   isForbiddenKey,
+  isUiAppIconName,
   isUiId,
   isUiName,
   uiAppFenceInfo,
@@ -363,7 +364,7 @@ interface AppPart {
   fence: Fence;
   rawLines: string[];
   rawBytes: number;
-  header: { appId: string; title: string | null; height: number } | null;
+  header: Pick<UiAppBlock, "appId" | "title" | "height" | "icon"> | null;
   body: string[];
   status: UiAppBlock["status"];
   reason: UiAppBlock["reason"];
@@ -480,7 +481,7 @@ export class UiStreamParser {
         let appSegment = cachedApp?.version === version ? cachedApp.segment : undefined;
         if (!appSegment) {
           const block: UiAppBlock = {
-            appId: part.header.appId, title: part.header.title, height: part.header.height,
+            ...part.header,
             source: part.body.join("\n"), status: part.status, reason: part.reason, revision: part.revision,
           };
           appSegment = { type: "app", key: `app-${part.header.appId}`, app: block, raw: part.rawLines.join("\n"), closed: part.closed };
@@ -606,6 +607,7 @@ export class UiStreamParser {
       title: typeof value.title === "string" && value.title.length <= 200 ? value.title : null,
       height,
     };
+    if (isUiAppIconName(value.icon)) part.header.icon = value.icon;
     if (value.version !== 1) { part.status = "invalid"; part.reason = "unsupported_version"; }
     part.revision += 1;
   }

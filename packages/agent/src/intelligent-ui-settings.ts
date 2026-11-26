@@ -6,8 +6,7 @@ import { defaultUiPreference, isUiPreference, type IntelligentUiState, type UiPr
 /** Profile 内持久化的 Intelligent UI 设置：偏好模式与「沙盒微应用」开关；不保存任何交互数据。 */
 export class IntelligentUiSettings {
   preference: UiPreference = defaultUiPreference;
-  /** 沙盒微应用默认关闭；只有用户明确打开，模型才会被告知可以使用 vela-app。 */
-  microApps = false;
+  microApps = true;
   private readonly path: string;
 
   constructor(private readonly agentDir: string) {
@@ -16,9 +15,11 @@ export class IntelligentUiSettings {
       const value = JSON.parse(readFileSync(this.path, "utf8"));
       // 损坏或未知的值回到默认，而不是静默打开更激进的模式。
       if (isUiPreference(value?.preference)) this.preference = value.preference;
-      if (value?.microApps === true) this.microApps = true;
-    } catch {
-      // 没有设置文件时沿用默认值。
+      this.microApps = value !== null && typeof value === "object" && !Array.isArray(value)
+        && (value.microApps === undefined || value.microApps === true);
+    } catch (error) {
+      // New profiles use the default; unreadable or corrupt settings must not start code.
+      this.microApps = (error as NodeJS.ErrnoException).code === "ENOENT";
     }
   }
 

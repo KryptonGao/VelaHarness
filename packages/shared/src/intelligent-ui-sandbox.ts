@@ -3,7 +3,7 @@ import { uiAppHeightRange } from "./intelligent-ui";
 /**
  * 沙盒微应用（IUI-14）的纯逻辑：沙盒文档、消息桥校验和 capability 发放。
  *
- * 微应用是「默认关闭、明确标识」的另一条通道，与声明式 vela-ui 完全隔离：
+ * 微应用是「默认开启、明确标识」的另一条通道，与声明式 vela-ui 完全隔离：
  * - 代码只在 `sandbox="allow-scripts"`（没有 allow-same-origin）的 iframe 里运行，origin 是不透明的，
  *   拿不到 Electron、Node、父页面的 DOM、存储或 cookie；
  * - 文档自带严格 CSP：不能联网、不能嵌套框架、不能加载外部资源；

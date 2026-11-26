@@ -1,4 +1,4 @@
-import type { InteractionMode, UiPreference } from "@vela/shared";
+import { uiAppIconNames, type InteractionMode, type UiPreference } from "@vela/shared";
 
 /**
  * Intelligent UI 的能力说明：只在允许的偏好与模式下注入系统提示。
@@ -86,9 +86,10 @@ ${example}
 `;
 
 const microAppSyntax = `
-### Sandboxed micro apps (enabled by the user; use sparingly)
-Use only when a declarative UI cannot do the job (small games, canvases, complex simulations); if vela-ui works, do not use vela-app. Fence \`\`\`vela-app: the first line is {"op":"app","id":"<unique id>","version":1,"title":"…","height":320}, followed by an HTML fragment (it may contain inline <style> and <script>, single file, at most 64KB).
-- The app runs in a sandbox with no network, files, external resources, or any Vela permissions, and only executes after the user clicks "Run"; do not use fetch/XHR/WebSocket or import external resources, do not use localStorage/cookies, and do not write <iframe>, <form>, or external links.
+### Sandboxed micro apps (use sparingly)
+Use only when a declarative UI cannot do the job (small games, canvases, complex simulations); if vela-ui works, do not use vela-app. Fence \`\`\`vela-app: the first line is {"op":"app","id":"<unique id>","version":1,"title":"…","height":320,"icon":"chart-bar"}, followed by an HTML fragment (it may contain inline <style> and <script>, single file, at most 64KB).
+- The optional icon field accepts only these built-in names: ${uiAppIconNames.join(", ")}. Omit it for the default micro-app icon. Never use URLs, HTML, SVG markup, or emoji for this field.
+- The app starts automatically once the reply is complete. Do not tell the user to click Run. It runs in a sandbox with no network, files, external resources, or any Vela permissions; do not use fetch/XHR/WebSocket or import external resources, do not use localStorage/cookies, and do not write <iframe>, <form>, or external links.
 - To hand a result to you: window.vela.submit(text) (the user sees it and it is sent only after they confirm); to copy: window.vela.copy(text). Beyond that it cannot do anything.
 - First explain in text what it does; the body must also give a conclusion that can be understood without running the app.
 `;
@@ -104,7 +105,7 @@ export function intelligentUiInstructions(preference: UiPreference, mode: Intera
   if (preference === "text_only") return textOnlyNote;
   // 范围限定紧跟标题，避免「不要输出 HTML」被理解成也不能写 HTML 文件。
   const body = options.scopeNote ? syntax.replace(/^(## [^\n]*\n\n)/, `$1${options.scopeNote}\n\n`) : syntax;
-  return `${body}${options.microApps ? microAppSyntax : ""}\n${preference === "visual_first" ? visualNote : autoNote}`;
+  return `${body}${options.microApps !== false ? microAppSyntax : ""}\n${preference === "visual_first" ? visualNote : autoNote}`;
 }
 
 export const intelligentUiExample = example;

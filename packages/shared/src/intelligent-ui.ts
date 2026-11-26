@@ -21,7 +21,7 @@ export function isUiPreference(value: unknown): value is UiPreference {
   return value === "auto" || value === "text_only" || value === "visual_first";
 }
 
-/** 设置页与主进程之间传递的 Intelligent UI 设置。microApps 默认关闭（IUI-14）。 */
+/** 设置页与主进程之间传递的 Intelligent UI 设置。microApps 默认开启（IUI-14）。 */
 export interface IntelligentUiState {
   preference: UiPreference;
   microApps: boolean;
@@ -344,13 +344,25 @@ export function uiArtifactKey(ref: UiArtifactRef): string {
 
 export type UiAppStatus = "receiving" | "ready" | "incomplete" | "invalid" | "disposed";
 
+/** 模型可从既有界面图标中选择的子集；缺省图标由渲染层决定。 */
+export const uiAppIconNames = [
+  "book", "chart-bar", "clock", "code", "compass", "cube", "flask", "gauge", "image", "list", "ruler", "sliders",
+] as const;
+export type UiAppIconName = typeof uiAppIconNames[number];
+
+export function isUiAppIconName(value: unknown): value is UiAppIconName {
+  return uiAppIconNames.some(name => name === value);
+}
+
 /** 一个 `vela-app` 围栏解析出的微应用：首行是 JSON 头，其余是 HTML 正文。 */
 export interface UiAppBlock {
   appId: string;
   title: string | null;
+  /** 已校验的内置图标名；缺省或不识别时留空。 */
+  icon?: UiAppIconName;
   /** 容器初始高度（像素）。 */
   height: number;
-  /** HTML 正文（不含头）。只在用户点击「运行」后才会放进沙盒。 */
+  /** HTML 正文（不含头）。仅当微应用已启用且回复完整后才会放进沙盒。 */
   source: string;
   status: UiAppStatus;
   reason: "unsupported_version" | "limit_bytes" | null;

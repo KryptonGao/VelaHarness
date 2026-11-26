@@ -47,6 +47,7 @@ import { CheckpointTimelineDialog } from "./components/CheckpointTimelineDialog"
 import { FilePreviewProvider, type PreviewFileDescriptor } from "./components/preview/FilePreviewContext";
 import type { StartTabAction } from "./components/StartView";
 import { WorkbenchPanel, type WorkbenchTab } from "./components/WorkbenchPanel";
+import { MicroAppWorkbenchContext, useMicroAppTabs } from "./components/intelligent-ui/MicroAppWorkbench";
 import { WorkbenchChatView } from "./components/WorkbenchChatView";
 import { SideChatPanel } from "./components/SideChatPanel";
 import { BrowserViewHost } from "./components/browser/BrowserViewHost";
@@ -286,6 +287,11 @@ export function App() {
   const [visibleWorkbenchTabIds, setVisibleWorkbenchTabIds] = useState<string[]>([]);
   const [workbenchCollapsed, setWorkbenchCollapsed] = useState(false);
   useEffect(() => { setWorkbenchCollapsed(false); }, [activeWorkbenchTabId]);
+  const activateMicroApp = useCallback((id: string) => {
+    setWorkbenchCollapsed(false);
+    focusWorkbenchTab(id);
+  }, [focusWorkbenchTab]);
+  const { tabs: microAppTabs, actions: microAppWorkbench } = useMicroAppTabs(activateMicroApp);
   const [startTabState, setStartTabState] = useState<{ id: string }[]>([]);
   const [detailTabs, setDetailTabs] = useState<{ id: string; conversationId: string; view: ConversationDetail }[]>([]);
   const [chatTabState, setChatTabState] = useState<{ id: string; conversationId: string }[]>([]);
@@ -698,10 +704,11 @@ export function App() {
     ...terminalTabs,
     ...chatTabs,
     ...conversationDetailTabs,
+    ...microAppTabs,
     ...sideChatTabs,
     ...browser.tabs.map((tab): WorkbenchTab => ({ ...tab, kind: "browser", label: tr("浏览器", "Browser") })),
     ...startTabItems,
-  ], [fileTabs, planTab, changeTab, reviewTab, acceptanceTab, raceTab, backgroundTab, agentTabs, filesTab, terminalTabs, chatTabs, conversationDetailTabs, sideChatTabs, browser.tabs, startTabItems]);
+  ], [fileTabs, planTab, changeTab, reviewTab, acceptanceTab, raceTab, backgroundTab, agentTabs, filesTab, terminalTabs, chatTabs, conversationDetailTabs, microAppTabs, sideChatTabs, browser.tabs, startTabItems]);
   const workbenchTabs = useMemo(() => {
     const tabIdSet = new Set(unorderedTabs.map((tab) => tab.id));
     return [
@@ -822,6 +829,8 @@ export function App() {
       setDetailTabs(current => current.filter(item => item.id !== tab.id));
     } else if (tab.kind === "chat") {
       setChatTabState(current => current.filter(candidate => candidate.id !== tab.id));
+    } else if (tab.kind === "micro-app") {
+      microAppWorkbench.close(tab.id);
     } else if (tab.kind === "side-chat") {
       setSideChatTabState(current => current.filter(candidate => candidate.id !== tab.id));
     } else if (tab.kind === "browser") {
@@ -831,7 +840,7 @@ export function App() {
     } else if (tab.kind === "start") {
       setStartTabState((current) => current.filter((candidate) => candidate.id !== tab.id));
     }
-  }, [workbenchTabs, dispatchPlanDocument, workspaceKey, changesState, conversationKey, dismissTurnReview, dismissAcceptance, browser.close]);
+  }, [workbenchTabs, dispatchPlanDocument, workspaceKey, changesState, conversationKey, dismissTurnReview, dismissAcceptance, browser.close, microAppWorkbench]);
 
   const workbenchOpen = workbenchTabs.length > 0;
   const workbenchVisible = workbenchOpen && !workbenchCollapsed;
@@ -1182,6 +1191,7 @@ export function App() {
                   onCloseAllFileTabs={onCloseAllFileTabs}
                 >
                   <Presence present={!settingsOpen && !scheduledTasksOpen && !recipesOpen && !prInboxOpen && !agentInboxOpen && overviewWorkspace === null} keepMounted={scheduledTasksOpen || recipesOpen || prInboxOpen || agentInboxOpen || overviewWorkspace !== null} className={`main-stage-pane${fullscreen && workbenchView === "chat" ? " showing-pinned-chat" : ""}`}>
+                    <MicroAppWorkbenchContext.Provider value={microAppWorkbench}>
                     <PlanDocumentProvider
                       plans={session.state?.session.planRevisions ?? []}
                       draft={session.planDraft}
@@ -1346,6 +1356,7 @@ export function App() {
                         onOpenChanges={openAllChanges}
                       /> : null}
                     </PlanDocumentProvider>
+                    </MicroAppWorkbenchContext.Provider>
                     {!fullscreen && <PanelLayoutActions platform={platform} workbenchOpen={workbenchVisible}
                       onToggleWorkbench={toggleWorkbench}
                       contextOpen={contextSidebarOpen} onToggleContext={!floatingInfo && !conversationEmpty ? toggleInfo : undefined} />}

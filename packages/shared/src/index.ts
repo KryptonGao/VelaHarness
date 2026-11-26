@@ -3350,7 +3350,7 @@ export interface VelaApi extends McpApi, PluginApi, HooksApi {
   /** Intelligent UI 偏好：决定模型是否被告知可以生成交互界面。 */
   getIntelligentUi(): Promise<IntelligentUiState>;
   setIntelligentUi(preference: UiPreference): Promise<IntelligentUiState>;
-  /** 沙盒微应用开关（默认关闭，IUI-14）。 */
+  /** 沙盒微应用开关（默认开启，IUI-14）。 */
   setIntelligentUiMicroApps(enabled: boolean): Promise<IntelligentUiState>;
   /** 同步「运行视图」开关:开启后要求模型提交待办清单。偏好存在渲染层,这里只镜像给运行时。 */
   setRunView(enabled: boolean): Promise<void>;

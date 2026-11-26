@@ -1,4 +1,8 @@
-import { memo, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ContextType } from "react";
+import { createPortal } from "react-dom";
+import { Icon } from "../icons";
+import { MicroAppIcon } from "./MicroAppIcon";
+import { MicroAppWorkbenchContext } from "./MicroAppWorkbench";
 import {
   buildSandboxDocument,
   parseSandboxMessage,
@@ -11,7 +15,7 @@ import {
 } from "@vela/shared";
 import { createLogger } from "../../logger";
 import { uiCopy } from "./copy";
-import { stopApp, tryStartApp, useRunningAppCount } from "./running-apps";
+import { stopApp, tryStartApp, useAppSlot } from "./running-apps";
 import { uiMetrics } from "./ui-metrics-instance";
 import { useMicroAppsEnabled } from "./ui-settings-store";
 import { useUiHost } from "./UiRuntime";
@@ -20,23 +24,63 @@ const log = createLogger("intelligent-ui:app");
 
 interface PendingRequest { id: number; capability: UiSandboxCapability; text: string; token: string }
 
-/** 在聊天里运行的沙盒微应用（IUI-14）。默认不运行：用户必须先在设置里打开，再点「运行」。 */
-export const MicroAppView = memo(function MicroAppView({ app, raw, messageId, streaming }: {
-  app: UiAppBlock; raw: string; messageId: string; streaming: boolean;
-}) {
+interface MicroAppProps { app: UiAppBlock; raw: string; messageId: string; streaming: boolean }
+
+export const MicroAppView = memo(function MicroAppView(props: MicroAppProps) {
+  const workbench = useContext(MicroAppWorkbenchContext);
+  const host = useUiHost();
+  if (!workbench || !host.conversationId) return <MicroAppSandbox {...props} />;
+  return <DockableMicroApp key={JSON.stringify([host.conversationId, host.stableMessageId(props.messageId) ?? props.messageId, props.app.appId])}
+    {...props} workbench={workbench} />;
+});
+
+function DockableMicroApp({ workbench, ...props }: MicroAppProps & { workbench: NonNullable<ContextType<typeof MicroAppWorkbenchContext>> }) {
+  const id = `micro-app:${useId()}`;
+  const home = useRef<HTMLDivElement>(null);
+  const [surface] = useState(() => document.createElement("div"));
+  const [docked, setDocked] = useState(false);
+  useLayoutEffect(() => {
+    home.current!.appendChild(surface);
+    return () => { surface.remove(); workbench.close(id); };
+  }, [surface, workbench, id]);
+  // Changing a React portal's target (or using appendChild) reloads an iframe. Keep the
+  // portal target and atomically move its DOM subtree so game state and requests survive.
+  const dock = useCallback((panel: HTMLDivElement) => {
+    if (!surface.isConnected) return () => {};
+    panel.moveBefore(surface, null);
+    setDocked(true);
+    return () => {
+      if (surface.isConnected && home.current?.isConnected) home.current.moveBefore(surface, null);
+      setDocked(false);
+    };
+  }, [surface]);
+  const label = props.app.title || uiCopy.appDefaultTitle();
+  const open = () => workbench.open({ kind: "micro-app", id, app: props.app, label, dock });
+  return <>
+    <div ref={home} />
+    {docked && <button type="button" className="iui-tool iui-docked-link" title={uiCopy.appShowInWorkbench()} onClick={open}>
+      <MicroAppIcon app={props.app} />{label}<Icon name="panel-right" size={14} />
+      <span className="iui-sr-only">{uiCopy.appShowInWorkbench()}</span>
+    </button>}
+    {createPortal(<MicroAppSandbox {...props} openInWorkbench={docked ? undefined : open} />, surface)}
+  </>;
+}
+
+/** 在聊天里运行的沙盒微应用（IUI-14）。回复完整且设置允许时自动启动。 */
+function MicroAppSandbox({ app, raw, messageId, streaming, openInWorkbench }: MicroAppProps & { openInWorkbench?: () => void }) {
   const host = useUiHost();
   const enabled = useMicroAppsEnabled();
-  const runningCount = useRunningAppCount();
   const instance = useId();
   const stable = host.stableMessageId(messageId) ?? messageId;
   // capability 令牌按这个键限定范围：同一个应用的令牌不能被别的应用兑换。
   const appKey = useMemo(() => `${host.conversationId ?? "-"}/${stable}/${app.appId}/${instance}`, [host.conversationId, stable, app.appId, instance]);
   const metricsKey = `app:${host.conversationId ?? "-"}/${stable}/${app.appId}`;
 
-  const [running, setRunning] = useState(false);
-  const [height, setHeight] = useState<number>(app.height);
+  const canRun = enabled && app.status === "ready" && !streaming;
+  const slot = useAppSlot(appKey);
   const [stopped, setStopped] = useState<SandboxStopReason | null>(null);
-  const [limitHit, setLimitHit] = useState(false);
+  const running = canRun && !stopped && slot === "running";
+  const [height, setHeight] = useState<number>(app.height);
   const [request, setRequest] = useState<PendingRequest | null>(null);
   const [showCode, setShowCode] = useState(false);
   const frame = useRef<HTMLIFrameElement | null>(null);
@@ -52,10 +96,8 @@ export const MicroAppView = memo(function MicroAppView({ app, raw, messageId, st
   }, []);
 
   const stop = useCallback((reason: SandboxStopReason) => {
-    setRunning(false);
-    setStopped(reason);
+    setStopped(reason === "disposed" ? null : reason);
     setRequest(null);
-    stopApp(appKey);
     void api?.uiSandboxRevoke(appKey).catch(() => undefined);
     uiMetrics.appStop(metricsKey, reason);
   }, [api, appKey, metricsKey]);
@@ -112,19 +154,20 @@ export const MicroAppView = memo(function MicroAppView({ app, raw, messageId, st
     void window.vela?.uiSandboxRevoke(appKey).catch(() => undefined);
   }, [appKey]);
 
-  // 用户在设置里关闭微应用后，正在运行的立即停止。
+  // A freed slot wakes waiting apps, but never restarts a manually or forcibly stopped app.
   useEffect(() => {
-    if (!enabled && running) stop("disposed");
-  }, [enabled, running, stop]);
-
-  const run = () => {
-    setStopped(null);
-    setLimitHit(false);
-    if (!tryStartApp(appKey)) { setLimitHit(true); return; }
-    setHeight(app.height);
-    setRunning(true);
-    uiMetrics.appRun(metricsKey);
-  };
+    if (!canRun || stopped) {
+      if (slot === "running") {
+        if (!stopped) stop("disposed");
+        stopApp(appKey);
+      }
+      return;
+    }
+    if (slot === "available" && tryStartApp(appKey)) {
+      setHeight(app.height);
+      uiMetrics.appRun(metricsKey);
+    }
+  }, [canRun, slot, stopped, stop, appKey, app.height, metricsKey]);
 
   const decide = async (allow: boolean) => {
     const current = requestRef.current;
@@ -149,7 +192,6 @@ export const MicroAppView = memo(function MicroAppView({ app, raw, messageId, st
 
   const title = app.title || uiCopy.appDefaultTitle();
   const label = uiCopy.appRegion(title);
-  const canRun = app.status === "ready" && !streaming;
 
   // 微应用从未进入沙盒：关闭、未完成或不合法时只显示原因和原始文本。
   let blockedReason: string | null = null;
@@ -163,7 +205,7 @@ export const MicroAppView = memo(function MicroAppView({ app, raw, messageId, st
   return <div className="iui-frame iui-app" role="group" aria-label={label}>
     <div className="iui-app-head">
       <span className="iui-badge iui-badge-app">{uiCopy.appBadge()}</span>
-      <span className="iui-title iui-app-title">{title}</span>
+      <MicroAppIcon app={app} /><span className="iui-title iui-app-title">{title}</span>
     </div>
     {running ? <>
       <iframe ref={frame} className="iui-app-frame" title={label} sandbox={uiSandboxAttribute} srcDoc={doc}
@@ -179,27 +221,26 @@ export const MicroAppView = memo(function MicroAppView({ app, raw, messageId, st
           <button type="button" className="iui-button iui-button-secondary" onClick={() => void decide(false)}>{uiCopy.deny()}</button>
         </div>
       </div> : null}
-      <div className="iui-toolbar iui-toolbar-visible">
-        <button type="button" className="iui-tool" onClick={() => stop("stopped")}>{uiCopy.appStop()}</button>
-      </div>
     </> : <>
       {blockedReason ? <div className={`iui-notice${app.status === "invalid" ? " iui-notice-error" : ""}`} role="status">
         <strong>{app.status === "invalid" ? "⚠ " : ""}{blockedReason}</strong>
         {!enabled && app.status !== "invalid" ? <div className="iui-description">{uiCopy.appDisabledHint()}</div> : null}
       </div> : app.status === "receiving" || streaming
         ? <div className="iui-skeleton" role="status"><span className="iui-sr-only">{uiCopy.building()}</span></div>
-        : <div className="iui-notice" role="status">
-          <div className="iui-description">{uiCopy.appWarning()}</div>
-        </div>}
-      {stopped && stopped !== "stopped" && stopped !== "disposed" ? <div className="iui-notice iui-notice-warning" role="alert">{"⚠ "}{uiCopy.appStopReason(stopped)}</div> : null}
-      {limitHit || (!running && runningCount >= uiSandboxLimits.maxRunning && canRun && enabled)
+        : null}
+      {stopped && stopped !== "stopped" ? <div className="iui-notice iui-notice-warning" role="alert">{"⚠ "}{uiCopy.appStopReason(stopped)}</div> : null}
+      {canRun && slot === "full"
         ? <div className="iui-description" role="status">{uiCopy.appLimit(uiSandboxLimits.maxRunning)}</div> : null}
-      <div className="iui-toolbar iui-toolbar-visible">
-        {canRun && enabled ? <button type="button" className="iui-button iui-button-primary" onClick={run}>{stopped ? uiCopy.appRunAgain() : uiCopy.appRun()}</button> : null}
-        <button type="button" className="iui-tool" aria-expanded={showCode} aria-controls={codeId} onClick={() => setShowCode(value => !value)}>
-          {showCode ? uiCopy.hideSource() : uiCopy.viewSource()}</button>
-      </div>
     </>}
-    {showCode && !running ? <pre className="iui-source-view" id={codeId} tabIndex={0}><code>{raw || " "}</code></pre> : null}
+    <div className="iui-toolbar iui-toolbar-visible">
+      {canRun && openInWorkbench ? <button type="button" className="iui-tool iui-open-in-workbench" onClick={openInWorkbench}>
+        <Icon name="panel-right" size={14} />{uiCopy.appOpenInWorkbench()}</button> : null}
+      {running ? <button type="button" className="iui-tool" onClick={() => stop("stopped")}>{uiCopy.appStop()}</button>
+        : canRun && stopped ? <button type="button" className="iui-button iui-button-primary" disabled={slot === "full"}
+          onClick={() => setStopped(null)}>{uiCopy.appRunAgain()}</button> : null}
+      <button type="button" className="iui-tool" aria-expanded={showCode} aria-controls={codeId} onClick={() => setShowCode(value => !value)}>
+        {showCode ? uiCopy.hideSource() : uiCopy.viewSource()}</button>
+    </div>
+    {showCode ? <pre className="iui-source-view" id={codeId} tabIndex={0}><code>{raw || " "}</code></pre> : null}
   </div>;
-});
+}

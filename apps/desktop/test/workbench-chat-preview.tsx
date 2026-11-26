@@ -5,6 +5,7 @@ import type { AgentStreamEvent, AppState, AskUserQuestionEvent, ImageAttachment,
 import { defaultContextLimitSettings, defaultTaskBudgetSettings, emptyConflictsState } from "@vela/shared";
 import { App } from "../src/renderer/App";
 import "../src/renderer/styles.css";
+import "../src/renderer/components/intelligent-ui/intelligent-ui.css";
 
 const params = new URLSearchParams(location.search);
 for (const [key, value] of Object.entries({ "vela.onboarding.complete": "true", "vela.locale": params.get("locale") ?? "zh-CN",
@@ -26,6 +27,7 @@ messages.set(active, [
   { id: "u-main", role: "user", text: "继续完善工作面板，保留这里的任务上下文。", thinking: "", tools: [], timestamp: 1 },
   { id: "a-main", role: "assistant", text: "主聊天的上下文会保留。你可以在右侧面板开启独立对话，同时查看文件、终端和浏览器。", thinking: "", tools: [], timestamp: 2 },
 ]);
+if (params.has("microApp")) messages.get(active)![1].text = ["```vela-app", '{"op":"app","id":"timer","title":"计时器","version":1,"icon":"clock"}', '<input id="note" value="initial">', "```"].join("\n");
 const state = (id = active): AppState => structuredClone({ activeConversationId: id, session: sessions.get(id)!, agents: [],
   conversations: [...sessions.values()].map(session => ({ id: session.id!, title: session.title, status: session.status, cwd,
     hasWorkspace: true, messageCount: messages.get(session.id!)?.length ?? 0, createdAt: 1, updatedAt: 2, archivedAt: null })),
@@ -70,7 +72,9 @@ window.vela = {
     id, name, reasoning: true, contextWindow: 100000, available: true, custom: false, thinkingLevels: modelThinkingLevels(id) })) }),
   getAgentSettings: async () => ({ provider: "fixture", modelId: "one", thinkingLevel: "medium", newConversationSelection: "default", instructions: "" }),
   getContextLimit: async () => defaultContextLimitSettings, getTaskBudget: async () => defaultTaskBudgetSettings,
-  getIntelligentUi: async () => ({ preference: "auto", microApps: false }),
+  getIntelligentUi: async () => ({ preference: "auto", microApps: params.has("microApp") }),
+  uiSandboxIssue: async () => ({ ok: true, token: "fixture" }),
+  uiSandboxRevoke: async () => {},
   estimateTaskCost: async () => null,
   listSkills: async () => ({ skills: [] }), listOpenTargets: async () => [],
   createConversation: async (_cwd, options) => {

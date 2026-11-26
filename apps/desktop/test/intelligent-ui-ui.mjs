@@ -147,7 +147,7 @@ if (!process.versions.electron) {
     });
     writeFileSync(join(temporary, "fixtures.json"), JSON.stringify({ billSplit, compare, hostile, charts, sources, rich, probeApp, talkApp }));
     writeFileSync(join(temporary, "index.html"), '<!doctype html><html data-scheme="light"><head><meta charset="utf-8"><script>' +
-      "window.vela = { getIntelligentUi: async () => ({ preference: 'auto', microApps: window.__microApps === true }), " +
+      "window.vela = { getIntelligentUi: async () => ({ preference: 'auto', microApps: window.__microApps !== false }), " +
       "uiSandboxIssue: (key, capability, size) => Promise.resolve(window.__broker.issue(key, capability, size)), " +
       "uiSandboxRedeem: (token, key, capability, size) => Promise.resolve({ ok: window.__broker.redeem(token, key, capability, size).ok }), " +
       "uiSandboxRevoke: key => Promise.resolve(window.__broker.revoke(key)) };" +
@@ -452,7 +452,7 @@ if (!process.versions.electron) {
       await evaluate("window.setInspector(false)"); await frame();
       assert.equal(await evaluate("document.querySelector('.iui-inspector')"), null);
 
-      // 15. Sandboxed micro-apps: off by default, isolated when on, every side effect needs the user.
+      // 15. Sandboxed micro-apps: auto-start complete apps only; host actions still need confirmation.
       const appFence = lines => "```vela-app\n" + lines.join("\n") + "\n```";
       const frames = () => win.webContents.mainFrame.frames;
       const inFrame = (index, code) => Promise.race([frames()[index].executeJavaScript(code), new Promise((_, reject) => setTimeout(() => reject(new Error(`frame check timed out: ${code}`)), 8000))]);
@@ -466,6 +466,16 @@ if (!process.versions.electron) {
         throw new Error(`Timed out in frame: ${code}`);
       };
       const mainUrl = win.webContents.getURL();
+      const sample = appFence([appHeader, '<p>ready</p>']);
+      await render(sample.slice(0, -3));
+      assert.equal(await evaluate("document.querySelector('iframe')"), null, "incomplete code never runs");
+      await render(sample.replace('"version":1', '"version":2'));
+      assert.equal(await evaluate("document.querySelector('iframe')"), null, "unsupported code never runs");
+      await render(sample, { streaming: true });
+      assert.equal(await evaluate("document.querySelector('iframe')"), null, "a closed fence waits for the reply to finish");
+      await render(sample);
+      await until("document.querySelector('iframe.iui-app-frame')");
+      await evaluate("window.setMicroApps(false)"); await frame();
       await render(appFence(fixtures.probeApp));
       assert.equal(await evaluate("document.querySelector('iframe')"), null, "no iframe while micro-apps are off");
       assert.match(await evaluate("document.querySelector('.iui-app .iui-notice').textContent"), /微应用已关闭/);
@@ -473,9 +483,7 @@ if (!process.versions.electron) {
       await clickText(".iui-app .iui-tool", "查看原始文本");
       assert.equal(await evaluate("document.querySelector('.iui-app .iui-source-view').textContent.includes('fetch(')"), true, "the code is viewable as text");
       await evaluate("window.setMicroApps(true)"); await frame();
-      assert.equal(await evaluate("document.querySelector('iframe')"), null, "turning the switch on never runs anything by itself");
-      assert.match(await evaluate("document.querySelector('.iui-app .iui-description').textContent"), /隔离的沙盒/);
-      await clickText(".iui-app .iui-button", "运行");
+      // Turning the switch back on launches the ready app without a second confirmation.
       await until("document.querySelector('iframe.iui-app-frame')");
       assert.equal(await evaluate("document.querySelector('iframe').getAttribute('sandbox')"), "allow-scripts");
       assert.equal(await evaluate(`document.querySelector('iframe').srcdoc.includes("default-src 'none'")`), true);
@@ -497,10 +505,14 @@ if (!process.versions.electron) {
       await clickText(".iui-app .iui-tool", "停止");
       assert.equal(await evaluate("document.querySelector('iframe')"), null, "stopping removes the frame");
 
+      await render(appFence(fixtures.probeApp));
+      assert.equal(await evaluate("document.querySelector('iframe')"), null, "a stopped app stays stopped on rerender");
+      await clickText(".iui-app .iui-button", "重新运行");
+      await until("document.querySelector('iframe.iui-app-frame')");
+
       // Capability requests: the user sees the exact text first; denial, rate limits and forged messages do nothing.
       const submittedBefore = await evaluate("window.submitted.length");
       await render(appFence(fixtures.talkApp));
-      await clickText(".iui-app .iui-button", "运行");
       await until("document.querySelector('iframe.iui-app-frame')");
       await waitFrame(0, "typeof window.__ask === 'function'");
       await inFrame(0, "window.__ask('submit', 'hello agent')");
@@ -540,19 +552,18 @@ if (!process.versions.electron) {
       // 同时最多运行两个；失去响应的应用会被看门狗停掉，页面本身不受影响。
       const three = ["a", "b", "c"].map(id => appFence([appHeader.replace('"probe"', `"${id}"`), `<p>app ${id}</p>`])).join("\n\n");
       await render(three);
-      const runButtons = "Array.from(document.querySelectorAll('.iui-app .iui-button-primary'))";
-      await evaluate(`${runButtons}[0].click()`); await evaluate(`${runButtons}[0].click()`);
       await until("document.querySelectorAll('iframe').length === 2");
-      await evaluate(`${runButtons}[0].click()`); await frame();
       assert.equal(await evaluate("document.querySelectorAll('iframe').length"), 2, "a third app can't start");
       assert.match(await evaluate("document.body.textContent"), /最多同时运行 2 个微应用/);
+      await clickText(".iui-app .iui-tool", "停止");
+      await until("document.querySelectorAll('iframe').length === 2 && document.querySelectorAll('.iui-app')[2].querySelector('iframe')");
+      assert.equal(await evaluate("document.querySelector('.iui-app iframe')?.closest('.iui-app') === document.querySelector('.iui-app')"), false, "the stopped app does not reclaim the slot");
       await render("```text\nplain\n```");
       assert.equal(await evaluate("window.__broker.outstanding"), 0);
 
       // 16. A micro-app stuck in a busy loop must not freeze Vela, and the watchdog stops it.
       const busy = appFence([appHeader.replace('"probe"', '"busy"'), "<p>busy</p><script>setTimeout(() => { for (;;) {} }, 400)</script>"]);
       await render(busy);
-      await clickText(".iui-app .iui-button", "运行");
       await until("document.querySelector('iframe.iui-app-frame')");
       const responsive = async () => Promise.race([evaluate("1 + 1"), new Promise(done => setTimeout(() => done("frozen"), 4000))]);
       await new Promise(done => setTimeout(done, 1200));

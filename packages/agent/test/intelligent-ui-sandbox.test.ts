@@ -8,6 +8,7 @@ import {
   mayContainUi,
   parseSandboxMessage,
   parseUiMessage,
+  uiAppIconNames,
   uiLimits,
   uiSandboxAttribute,
   uiSandboxCsp,
@@ -27,14 +28,32 @@ function apps(segments: UiSegment[]): UiAppBlock[] {
 }
 
 describe("vela-app fence parsing", () => {
-  const message = `Here it is.\n\n${appFence([header, "<canvas id=c></canvas>", "<script>draw()</script>"])}\n\nEnjoy.`;
+  const headerWithIcon = (icon: unknown) => JSON.stringify({ ...JSON.parse(header), icon });
+  const message = `Here it is.\n\n${appFence([headerWithIcon("cube"), "<canvas id=c></canvas>", "<script>draw()</script>"])}\n\nEnjoy.`;
 
   it("keeps Markdown, the app and Markdown in order with the header split from the HTML", () => {
     const segments = parseUiMessage(message, { now });
     assert.deepEqual(segments.map(segment => segment.type), ["markdown", "app", "markdown"]);
     const [app] = apps(segments);
-    assert.deepEqual([app.appId, app.title, app.height, app.status], ["snake", "Snake", 300, "ready"]);
+    assert.deepEqual([app.appId, app.title, app.height, app.status, app.icon], ["snake", "Snake", 300, "ready", "cube"]);
     assert.equal(app.source, "<canvas id=c></canvas>\n<script>draw()</script>");
+  });
+
+  it("preserves each built-in icon name in the app metadata only", () => {
+    for (const icon of uiAppIconNames) {
+      const [app] = apps(parseUiMessage(appFence([headerWithIcon(icon), "<p>x</p>"]), { now }));
+      assert.equal(app.icon, icon);
+      assert.equal(app.source, "<p>x</p>");
+    }
+  });
+
+  it("omits missing or invalid icon metadata without blocking the app", () => {
+    for (const icon of [undefined, null, "", "Chart-bar", " chart-bar", "visual", "github", "🧪", "https://example.com/icon.svg", "data:image/svg+xml,abc", "<svg></svg>", "<img>", "constructor", "__proto__", 1, true, ["cube"], { name: "cube" }]) {
+      const [app] = apps(parseUiMessage(appFence([headerWithIcon(icon), "<p>x</p>"]), { now }));
+      assert.equal(app.status, "ready", JSON.stringify(icon));
+      assert.equal(Object.hasOwn(app, "icon"), false, JSON.stringify(icon));
+      assert.equal(app.source, "<p>x</p>");
+    }
   });
 
   it("gives identical results for every two-way split", () => {
@@ -59,12 +78,15 @@ describe("vela-app fence parsing", () => {
 
   it("reports the app as receiving while it streams and incomplete if it is cut off", () => {
     const parser = new UiStreamParser({ now });
-    parser.feed(`${"```"}vela-app\n${header}\n<p>half`);
-    assert.equal(apps(parser.segments())[0].status, "receiving");
+    parser.feed(`${"```"}vela-app\n${headerWithIcon("flask")}\n<p>half`);
+    const [receiving] = apps(parser.segments());
+    assert.equal(receiving.status, "receiving");
+    assert.equal(receiving.icon, "flask");
     parser.feed("\n");
     parser.finish();
     const [app] = apps(parser.segments());
     assert.equal(app.status, "incomplete");
+    assert.equal(app.icon, "flask");
     assert.equal(app.source, "<p>half");
   });
 

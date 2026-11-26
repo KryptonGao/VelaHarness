@@ -39,7 +39,11 @@ import { collapseWorkbenchLayout, dropWorkbenchTab, emptyWorkbenchLayout, mergeW
   selectWorkbenchTab, workbenchDropTarget, workbenchFits, workbenchGeometry, workbenchPaneOrder, workbenchRatioBounds, WORKBENCH_GAP, WORKBENCH_HEADER_HEIGHT,
   type WorkbenchDivider, type WorkbenchDropEdge, type WorkbenchLayout, type WorkbenchRect } from "./workbench-layout";
 
+import { MicroAppPanel, type MicroAppTab } from "./intelligent-ui/MicroAppWorkbench";
+import { MicroAppIcon } from "./intelligent-ui/MicroAppIcon";
+
 export type WorkbenchTab =
+  | MicroAppTab
   | { id: string; kind: "conversation-detail"; label: string; title?: string; view: ConversationDetail }
   | { id: string; kind: "chat"; label: string; title?: string; conversationId: string }
   | { id: string; kind: "side-chat"; label: string; title?: string }
@@ -130,6 +134,7 @@ function TabIcon({ tab }: { tab: WorkbenchTab }) {
   if (tab.kind === "plan") return <Icon name="plan" size={12} />;
   if (tab.kind === "start") return <Icon name="plus" size={12} />;
   if (tab.kind === "files") return <Icon name="folder" size={12} />;
+  if (tab.kind === "micro-app") return <MicroAppIcon app={tab.app} size={12} />;
   if (tab.kind === "browser") return <BrowserTabIcon controller={tab.controller} />;
   if (tab.kind === "chat") return <Icon name="chat" size={12} />;
   if (tab.kind === "side-chat") return <Icon name="sparkles" size={12} />;
@@ -430,6 +435,7 @@ function WorkbenchPanelContent(props: WorkbenchPanelProps & { closing: boolean; 
   function renderTab(tab: WorkbenchTab, visible: boolean): ReactNode {
     switch (tab.kind) {
       case "conversation-detail": return props.renderConversationDetail?.(tab.view);
+      case "micro-app": return <MicroAppPanel dock={tab.dock} />;
       case "chat": return props.renderChat?.(tab, visible && !collapsed);
       case "side-chat": return props.renderSideChat?.(tab, visible && !collapsed);
       case "browser": return <BrowserPanel controller={tab.controller} tabId={tab.id} operating={props.browserOperating}

@@ -54,8 +54,10 @@ Agent 回答里可以嵌入原生交互界面：计算器、对比表、分步�
 
 声明式界面做不到的场景（小游戏、画布、复杂模拟）可以用 `vela-app` 围栏：第一行是 JSON 头 `{"op":"app","id","version":1,"title","height"}`，其余是一段单文件 HTML（可含内联样式和脚本，≤ 64 KiB）。这是与 `vela-ui` 完全隔离的另一条通道，**P0/P1 的声明式界面仍然不执行任何脚本**。
 
-- **默认关闭**：设置 → 对话显示 →「微应用（高级）」里要明确打开，并有风险提示。关闭时微应用只显示说明和原文。
-- **每次运行需要点击「运行」**；同时最多运行 2 个，滚出视野、切换会话、关闭设置都会停止并收回令牌。
+- **Optional icon:** add `"icon":"chart-bar"` to the version 1 JSON header to choose a built-in Vela icon. Accepted names: `book`, `chart-bar`, `clock`, `code`, `compass`, `cube`, `flask`, `gauge`, `image`, `list`, `ruler`, `sliders`. Names are case-sensitive. URLs, HTML, SVG markup, and other values are not accepted. A missing or unrecognized value uses the default micro-app window glyph without affecting whether the app can run.
+- **On by default:** a complete, valid micro-app starts in the sandbox when the reply finishes. Turn off **Micro-apps (advanced)** in Display settings to show the source without running it. Saved off settings are respected.
+- **Open in workbench:** the chat card can move its live sandbox into a right-hand tab labeled with the app's icon and title. Opening it again focuses the same tab. Closing the tab returns the running app to its chat card without restarting it or losing pending confirmations.
+- At most two apps run at once. Stopping one frees a slot for a waiting app. Unmounting an app or disabling the setting stops it and revokes its tokens.
 - **隔离**：渲染在 `<iframe sandbox="allow-scripts" srcdoc=…>` 里，没有 `allow-same-origin`，origin 是不透明的，访问不到 Electron、Node、父页面的 DOM、`localStorage`、cookie。文档自带严格 CSP（`default-src 'none'`，`connect-src 'none'`，不允许框架、对象、worker、表单提交），并在应用代码运行前移除 WebRTC 构造函数。Main 的 `will-frame-navigate` 守卫（`ui-sandbox-guard.ts`）只放行 `about:srcdoc` 子框架，任何导航请求都被拒绝。
 - **消息桥与 capability**：应用只有 `window.vela.submit(text)` 和 `window.vela.copy(text)` 两个能力，通过 `postMessage` 向父页面申请。Main 发放**一次性、限定应用/能力/文本大小、60 秒过期、可撤销**的令牌，每个应用最多 3 个未用令牌、每分钟 6 次申请；令牌只在 Main 与渲染层之间流转，iframe 拿不到。**每次申请都要用户在界面里确认**（显示将发送或复制的文字）；确认后才兑换令牌，再走 Agent 的普通发送路径，所以仍受原有权限与审批约束。
 - **资源限制**：5 秒内必须报告 ready；之后心跳静默超过 5 秒、累计错误超过 5 次、运行超过 10 分钟都会被停止并说明原因。
@@ -103,8 +105,10 @@ Agent 回答里可以嵌入原生交互界面：计算器、对比表、分步�
 | `apps/desktop/src/renderer/components/intelligent-ui/` | `AssistantMarkdown`（替换助手正文的 Markdown）、`UiRuntime`（状态与动作）、`components`（各组件）、`ui-state-store`（快照存储）、`IntelligentUiSetting`（设置项）。 |
 | `apps/desktop/src/main/intelligent-ui-export.ts` | 导出时把界面块转成文字。 |
 | `packages/shared/src/intelligent-ui-{source,data,sandbox,metrics}.ts` | 数据源解析与状态、图表数据与表格、沙盒文档/消息桥/capability broker、本地指标。 |
-| `apps/desktop/src/renderer/components/intelligent-ui/` 新增 | `charts`、`diagrams`、`rich-views`（图表、SVG 图解、时间轴/行程/差异）、`image-export`、`MicroApp`、`running-apps`、`UiInspector`、`ui-metrics-instance`、`ui-settings-store`、`shared-views`。 |
+| `apps/desktop/src/renderer/components/intelligent-ui/` 新增 | `charts`、`diagrams`、`rich-views`（图表、SVG 图解、时间轴/行程/差异）、`image-export`、`MicroApp`、`MicroAppIcon`、`running-apps`、`UiInspector`、`ui-metrics-instance`、`ui-settings-store`、`shared-views`。 |
 | `apps/desktop/src/main/ui-sandbox-host.ts`、`ui-sandbox-guard.ts` | 微应用 capability 的发放/兑换/撤销 IPC，以及子框架导航守卫。 |
+
+For desktop cards and tabs, import `MicroAppIcon` from `apps/desktop/src/renderer/components/intelligent-ui/MicroAppIcon.tsx` and use `<MicroAppIcon app={app} size={16} />` with the parsed `UiAppBlock`. The size is optional (default: 14 px), and the icon follows the Unified icons setting. Keep the app title as the accessible label; the icon is decorative.
 
 ## 验证
 
@@ -116,7 +120,7 @@ pnpm --filter @vela/desktop test:ui               # 含 intelligent-ui-ui：真�
 ## 已知限制与未实现
 
 - **保存用户模板**（`IUI-12` 中「可选」的一项）没有实现；也没有跨会话复用的界面库。
-- 沙盒隔离已在真实 Electron 中验证：iframe 运行在独立进程，死循环不会卡住聊天页，且无网络、存储、cookie 和父页面访问。但它仍是模型写的代码：可能占用 CPU 直到被看门狗停止，也可能显示误导性内容，所以默认关闭并带风险提示。上线前建议再做一次独立的安全审查。
+- Electron tests verify that the sandboxed iframe runs in a separate process, cannot freeze the chat with a busy loop, and has no network, storage, cookie, or parent-page access. As noted in Settings, model-generated code can still use CPU until the watchdog stops it or display misleading content. An independent security review is recommended before release.
 - 图片、地图等外部媒体没有 Provider，`media` 只显示占位；行程视图没有地图，只有模型给坐标时才有一个示意图。
 - 数据源只能引用当前会话的工具调用，且按回复位置截取；收件箱和 Resident 里没有工具记录，数据源显示找不到工具结果。
 - 子代理面板里的回复仍按普通 Markdown 显示，不渲染界面。

@@ -63,6 +63,39 @@ if (!process.versions.electron) {
     };
     const chatOption = ".workbench-tabpanel:not(.is-inactive) .start-options:not(.start-conversation-options) > .start-option:first-child";
     try {
+      await win.loadFile(join(temporary, "index.html"), { query: { microApp: "1" } });
+      await until("document.querySelector('.main-chat-view iframe.iui-app-frame')");
+      const appDocument = () => win.webContents.mainFrame.frames.find(frame => frame.url === 'about:srcdoc');
+      const deadline = Date.now() + 5000;
+      while (Date.now() < deadline && !(await appDocument()?.executeJavaScript("!!document.querySelector('#note')"))) {
+        await new Promise(resolve => setTimeout(resolve, 25));
+      }
+      const appFrame = appDocument();
+      assert.ok(appFrame, 'the sandboxed app document loaded');
+      await appFrame.executeJavaScript("document.querySelector('#note').value = 'kept'");
+      await click('.iui-open-in-workbench');
+      await until("document.querySelector('.workbench-tab[data-kind=\"micro-app\"][aria-selected=true] [data-icon=clock]') && document.querySelector('.iui-workbench-panel iframe')");
+      assert.equal(await evaluate("document.querySelector('.workbench-tab[data-kind=\"micro-app\"]').textContent"), '计时器');
+      assert.equal(await evaluate("document.querySelector('.iui-workbench-panel iframe').getAttribute('sandbox')"), 'allow-scripts');
+      await newTab();
+      await click('.iui-docked-link');
+      await until("document.querySelector('.workbench-tab[data-kind=\"micro-app\"][aria-selected=true]')");
+      assert.equal(await evaluate("document.querySelectorAll('.workbench-tab[data-kind=\"micro-app\"]').length"), 1);
+      assert.equal(await evaluate("document.querySelectorAll('iframe.iui-app-frame').length"), 1);
+      assert.equal(await appFrame.executeJavaScript("document.querySelector('#note').value"), 'kept');
+      await capture('micro-app-workbench');
+      await appFrame.executeJavaScript("void (window.copyResult = window.vela.copy('copy request').catch(e => e.message))");
+      await until("document.querySelector('.iui-workbench-panel [role=alertdialog]')?.textContent.includes('copy request')");
+      await click('.iui-workbench-panel [role=alertdialog] .iui-button-secondary');
+      assert.equal(await appFrame.executeJavaScript('window.copyResult'), 'denied');
+      await click('.workbench-tab-close[aria-label="关闭 计时器"]');
+      await until("document.querySelector('.main-chat-view iframe.iui-app-frame') && !document.querySelector('.iui-docked-link')");
+      assert.equal(await appFrame.executeJavaScript("document.querySelector('#note').value"), 'kept');
+      await click('.iui-open-in-workbench');
+      await until("document.querySelector('.iui-workbench-panel iframe')");
+      await evaluate("chatFixture.changeMain()");
+      await until("!document.querySelector('.workbench-tab[data-kind=\"micro-app\"]') && !document.querySelector('iframe.iui-app-frame')");
+      console.log('PASS live micro-app dock, tab icon, reuse, undock and conversation cleanup');
       await win.loadFile(join(temporary, "index.html"));
       await until("document.querySelector('.chat-active-title')?.textContent === '主聊天'");
       // Exercise the rail layout with a loaded guest; a blank tab doesn't cover the float.

@@ -298,6 +298,11 @@ h3.iui-heading { font-size: calc(16px * var(--ui-scale)); } h4.iui-heading { fon
 /* ---------- 沙盒微应用（IUI-14） ---------- */
 .iui-app-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
 .iui-app-title { margin: 0; }
+.iui-open-in-workbench, .iui-docked-link { display: inline-flex; align-items: center; gap: 6px; }
+.iui-workbench-panel { flex: 1; min-height: 0; overflow: auto; }
+.iui-workbench-panel > div { height: 100%; }
+.iui-workbench-panel .iui-app { min-height: 100%; margin: 0; display: flex; flex-direction: column; border: 0; border-radius: 0; box-shadow: none; }
+.iui-workbench-panel .iui-app-frame { flex: 1 0 auto; }
 .iui-app-frame { display: block; width: 100%; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--bg-elevated); color-scheme: normal; }
 
 /* ---------- 开发检查器与指标（IUI-13） ---------- */

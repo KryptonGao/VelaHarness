@@ -4,6 +4,7 @@ import { after, before, describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { uiAppIconNames, type UiAppIconName } from "@vela/shared";
 import { createServer, type ViteDevServer } from "vite";
 
 const rendererDir = fileURLToPath(new URL("../src/renderer/", import.meta.url));
@@ -46,6 +47,7 @@ let registry: typeof import("../src/renderer/components/icons/registry.generated
 let icons: typeof import("../src/renderer/components/icons/index.ts");
 let classic: typeof import("../src/renderer/components/icons/classic-glyphs.ts");
 let preference: typeof import("../src/renderer/hooks/useUnifiedIcons.ts");
+let microApp: typeof import("../src/renderer/components/intelligent-ui/MicroAppIcon.tsx");
 
 before(async () => {
   server = await createServer({
@@ -59,6 +61,7 @@ before(async () => {
   icons = await server.ssrLoadModule("/src/renderer/components/icons/index.ts");
   classic = await server.ssrLoadModule("/src/renderer/components/icons/classic-glyphs.ts");
   preference = await server.ssrLoadModule("/src/renderer/hooks/useUnifiedIcons.ts");
+  microApp = await server.ssrLoadModule("/src/renderer/components/intelligent-ui/MicroAppIcon.tsx");
 });
 
 after(async () => { await server?.close(); });
@@ -141,6 +144,31 @@ describe("interface icons", () => {
     for (const [name, glyph] of Object.entries(classic.classicGlyphs)) {
       assert.ok(glyph.line.length > 0, `${name} has no classic glyph`);
       assert.doesNotMatch(glyph.line, /#[0-9a-f]{3,8}\b|rgb\(|hsl\(/i, `${name} classic glyph hard-codes a colour`);
+    }
+  });
+
+  it("renders each allowed micro-app icon through both icon sets", () => {
+    for (const unified of [false, true]) {
+      preference.setUnifiedIcons(unified);
+      try {
+        for (const icon of uiAppIconNames) {
+          const html = renderToStaticMarkup(createElement(microApp.MicroAppIcon, { app: { icon }, size: 16 }));
+          assert.match(html, /width="16" height="16"/);
+          assert.match(html, /aria-hidden="true"/);
+          assert.ok(html.includes(`data-icon="${icon}"`), icon);
+          assert.ok(html.includes((unified ? registry.iconRegistry[icon] : classic.classicGlyphs[icon]).line), icon);
+        }
+      } finally {
+        preference.setUnifiedIcons(false);
+      }
+    }
+  });
+
+  it("uses the default micro-app glyph for missing or unchecked icon metadata", () => {
+    const fallback = renderToStaticMarkup(createElement(icons.Icon, { name: "visual" }));
+    assert.match(fallback, /width="14"/);
+    for (const app of [{}, ...["visual", "github", "__proto__", "https://example.com/icon.svg", "<svg></svg>"].map(icon => ({ icon: icon as UiAppIconName }))]) {
+      assert.equal(renderToStaticMarkup(createElement(microApp.MicroAppIcon, { app })), fallback);
     }
   });
 

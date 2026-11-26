@@ -46,7 +46,7 @@ export function IntelligentUiSetting() {
   </>;
 }
 
-/** 沙盒微应用（IUI-14）：默认关闭，打开前先看风险说明。 */
+/** 沙盒微应用（IUI-14）：设置只影响微应用，不改变声明式界面偏好。 */
 function MicroAppsSetting() {
   const enabled = useMicroAppsEnabled();
   const [failed, setFailed] = useState(false);

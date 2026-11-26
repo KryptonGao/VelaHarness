@@ -3,7 +3,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
-import { parseUiMessage, type InteractionMode, type UiPreference } from "@vela/shared";
+import { parseUiMessage, uiAppIconNames, type InteractionMode, type UiPreference } from "@vela/shared";
 import { IntelligentUiSettings } from "../src/intelligent-ui-settings.ts";
 import { intelligentUiExample, intelligentUiInstructions } from "../src/intelligent-ui-prompt.ts";
 import { fenced } from "./fixtures/intelligent-ui.ts";
@@ -32,10 +32,11 @@ describe("intelligentUiInstructions", () => {
     assert.ok(auto?.includes("### Format") && visual?.includes("### Format"));
   });
 
-  it("describes micro-apps only when the user turned them on", () => {
-    const off = intelligentUiInstructions("auto", "agent") ?? "";
+  it("describes automatic launch by default and omits micro-app syntax when disabled", () => {
+    const off = intelligentUiInstructions("auto", "agent", { microApps: false }) ?? "";
     assert.doesNotMatch(off, /```vela-app/);
-    const on = intelligentUiInstructions("auto", "agent", { microApps: true }) ?? "";
+    const on = intelligentUiInstructions("auto", "agent") ?? "";
+    assert.match(on, /starts automatically/);
     assert.match(on, /vela-app/);
     assert.match(on, /Sandboxed micro apps/);
     // 偏好为仅文字时，即使开关打开也不允许任何界面或微应用。
@@ -43,6 +44,18 @@ describe("intelligentUiInstructions", () => {
     assert.match(textOnly, /vela-app/);
     assert.match(textOnly, /Do not output/);
     assert.doesNotMatch(textOnly, /"op":"begin"/);
+  });
+
+  it("documents only the shared built-in icon names and shows a valid micro-app header", () => {
+    const text = intelligentUiInstructions("auto", "agent") ?? "";
+    assert.ok(text.includes(`The optional icon field accepts only these built-in names: ${uiAppIconNames.join(", ")}.`));
+    assert.match(text, /Omit it for the default micro-app icon\. Never use URLs, HTML, SVG markup, or emoji/);
+    const header = text.match(/\{"op":"app",[^\n}]+\}/)?.[0];
+    assert.ok(header);
+    const [segment] = parseUiMessage(`\`\`\`vela-app\n${header.replace("<unique id>", "chart-demo")}\n<p>Chart</p>\n\`\`\``);
+    assert.ok(segment?.type === "app");
+    assert.equal(segment.app.status, "ready");
+    assert.equal(segment.app.icon, "chart-bar");
   });
 
   it("ships an example that the real parser accepts as a ready artifact", () => {
@@ -66,27 +79,34 @@ describe("IntelligentUiSettings", () => {
       assert.equal(settings.preference, "auto");
       settings.setPreference("text_only");
       assert.equal(new IntelligentUiSettings(dir).preference, "text_only");
-      assert.deepEqual(JSON.parse(readFileSync(join(dir, "intelligent-ui-settings.json"), "utf8")), { preference: "text_only", microApps: false });
+      assert.deepEqual(JSON.parse(readFileSync(join(dir, "intelligent-ui-settings.json"), "utf8")), { preference: "text_only", microApps: true });
     });
   });
 
-  it("keeps micro-apps off by default and persists the switch without touching the preference", () => {
+  it("enables micro-apps by default and persists both switch positions without touching the preference", () => {
     withDir(dir => {
       const settings = new IntelligentUiSettings(dir);
-      assert.equal(settings.microApps, false);
+      assert.equal(settings.microApps, true);
       settings.setPreference("visual_first");
-      settings.setMicroApps(true);
+      settings.setMicroApps(false);
       const restored = new IntelligentUiSettings(dir);
-      assert.deepEqual(restored.state, { preference: "visual_first", microApps: true });
-      restored.setMicroApps(false);
-      assert.deepEqual(new IntelligentUiSettings(dir).state, { preference: "visual_first", microApps: false });
+      assert.deepEqual(restored.state, { preference: "visual_first", microApps: false });
+      restored.setMicroApps(true);
+      assert.deepEqual(new IntelligentUiSettings(dir).state, { preference: "visual_first", microApps: true });
       assert.throws(() => settings.setMicroApps("yes" as unknown as boolean));
     });
   });
 
-  it("only treats a literal true as enabling micro-apps", () => {
+  it("uses the default for legacy profiles without a switch", () => {
     withDir(dir => {
-      for (const stored of ['{"microApps":"true"}', '{"microApps":1}', '{"microApps":null}', "[]"]) {
+      writeFileSync(join(dir, "intelligent-ui-settings.json"), '{"preference":"visual_first"}');
+      assert.deepEqual(new IntelligentUiSettings(dir).state, { preference: "visual_first", microApps: true });
+    });
+  });
+
+  it("does not run micro-apps when saved settings are malformed", () => {
+    withDir(dir => {
+      for (const stored of ['{"microApps":"true"}', '{"microApps":1}', '{"microApps":null}', "[]", "not json"]) {
         writeFileSync(join(dir, "intelligent-ui-settings.json"), stored);
         assert.equal(new IntelligentUiSettings(dir).microApps, false, stored);
       }

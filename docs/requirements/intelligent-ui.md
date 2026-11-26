@@ -77,7 +77,7 @@
 | P1 | `IUI-10`—`IUI-13` | 图表/可交互 SVG、可信异步数据绑定、导出/复用、UI 可观测性 | 已实现（`IUI-12` 的用户模板未做） |
 | P2 | `IUI-14`—`IUI-16` | 隔离运行的微型应用、更丰富的空间/媒体 UI、跨工具协作 | 已实现 |
 
-P0 完成前不应为了“像 ChatGPT”先上自由代码执行。P1/P2 不应作为 P0 的隐式依赖：沙盒微应用是独立通道（`vela-app`），默认关闭，声明式界面仍不执行任何脚本。
+P0 must not depend on free-form code execution. Sandboxed micro-apps use a separate, default-on channel (`vela-app`); declarative interfaces never execute scripts.
 
 ## 4. P0：UI 生成与选择
 
@@ -242,8 +242,9 @@ P0 不需要复制 ChatGPT 组件名、CSS 或 DIL 语法；组件必须绑定 V
 
 ### IUI-14 自定义微型应用
 
-部分任务（游戏、复杂模拟、画布工具）用声明式组件不够。P2 可提供**单独、默认关闭且明确标识的沙盒应用容器**：
+For games, complex simulations, and canvas tools that need more than declarative components, provide a separate, clearly labeled sandbox that is enabled by default:
 
+- The optional `icon` field in the `vela-app` header must accept only an explicit subset of built-in Vela icon names, never a URL or markup. Missing or unrecognized names must show the default micro-app icon without preventing an otherwise valid app from running.
 - 模型生成代码必须在隔离 iframe/独立 origin 的沙盒运行，禁用 Node、Electron、Main 进程能力。
 - 严格 CSP，默认禁止联网、文件系统、任意外部脚本和非授权资源；沙盒只经校验过的 `postMessage` 消息桥申请有限能力。
 - 权限由 Main 发放一次性、有范围、可撤销的 capability；所有副作用仍走原有 ToolPolicy / 用户审批。
@@ -338,7 +339,7 @@ UI Artifact 状态建议：
 - [x] 数据源只能指向会话里真实发生的工具调用；找不到、失败、被截断、过期、加载中、为空都有各自的状态，不显示成已更新。组件不发起任何网络请求；刷新通过确认后发给 Agent 的消息完成。
 - [x] 「复制文字」「按当前设置继续」生成可追溯的聊天消息，导出里保留来源与状态。
 - [x] 本地指标只含计数和耗时，不含界面内容或输入值，不上传；检查器能看到 AST、事件时间线、状态、数据源和拒绝原因。
-- [x] 微应用默认关闭；打开后每次运行需点击；iframe 无 `allow-same-origin`，CSP 禁止联网；无法访问 Electron/Node/父页面/存储；`will-frame-navigate` 拦截子框架导航；真实 Electron 里死循环不会卡住聊天页；看门狗按就绪、心跳、错误次数和运行时长停止它。
+- [x] Micro-apps are enabled by default and start when the reply is complete. The iframe has no `allow-same-origin`; CSP blocks networking; Electron, Node, the parent page, and storage are inaccessible. `will-frame-navigate` blocks subframe navigation. A busy loop must not freeze the chat in Electron, and the watchdog stops apps on readiness, heartbeat, error-count, or runtime limits.
 - [x] 微应用只能申请 `agent.submit` / `clipboard.write`：令牌一次性、限定应用/能力/大小、60 秒过期、可撤销、有频率与数量上限，且每次都需要用户确认。
 - [x] 时间轴、行程、差异视图可用且可访问；行程不会把只有名称的地点当成真实坐标。
 - [x] `request_tool` / `refresh_source` / `submit_to_agent` 都只产生一条用户确认过的消息，由 Agent Runtime 决定能否执行；界面不伪造工具运行记录。
@@ -393,7 +394,7 @@ P1/P2 的行为描述见 [../intelligent-ui.md](../features/intelligent-ui.md)�
 - **图表可拖动** 只对直接引用 number 状态的点生效，拖动只改本地状态。图表颜色只用主题 token；保存 PNG 时把计算后的样式内联进 SVG 再用 canvas 光栅化。
 - **`media`** 只是占位：没有图片/地图 Provider，不显示虚构内容。**`itinerary`** 没有地图，只有模型明确给出坐标时才有标注为「坐标由模型给出」的示意图。
 - **本地指标** 只持久化聚合计数（`uiStorage`），事件时间线只在内存里。只有本次运行里流式生成的界面计入结局统计。检查器在开发版默认开启，正式版需在设置里手动打开。
-- **沙盒微应用**：`vela-app` 围栏 + `sandbox="allow-scripts"` 的 iframe，不使用独立 origin 的自定义协议。令牌由 Main（`ui-sandbox-host.ts`）发放，只在 Main 与渲染层之间流转。开关保存在 `intelligent-ui-settings.json` 的 `microApps` 字段，默认 `false`。已用真实 Electron 验证 iframe 是独立进程、无网络/存储/cookie/父页面访问；上线前仍建议安排独立的安全审查（`第 10 章` 第 8 条）。
+- **Sandboxed micro-apps:** a `vela-app` fence renders in a `sandbox="allow-scripts"` iframe, without a custom origin protocol. Tokens issued by Main (`ui-sandbox-host.ts`) stay between Main and the renderer. The `microApps` setting in `intelligent-ui-settings.json` defaults to `true`. Electron tests cover process isolation and lack of network, storage, cookie, and parent-page access. An independent security review is still recommended before release (section 10, item 8).
 - **工作流协作**：`request_tool` 与 `refresh_source` 只是请 Agent 去做，确认后以普通消息发出；没有新增 Main 侧的工具执行通道，所以 ToolPolicy、审批和 Trace 的记录边界不变。
 - **导出**：微应用不导出，只写占位说明；图表写成数据表；数据源写来源与状态。
 - **未实现**：保存用户模板（`IUI-12`）；外部图片/地图 Provider；子代理面板中渲染界面。
