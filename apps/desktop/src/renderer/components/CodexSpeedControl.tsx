@@ -63,6 +63,7 @@ export function CodexSpeedControl({ speed, tiers, disabled, onChange, subagent =
   return (
     <>
       <button type="button" className={`codex-speed-button${subagent ? " subagent-speed-button" : ""}${speed !== "standard" ? " is-active" : ""}`}
+        data-speed={subagent ? speed : undefined}
         title={`${label} · ${tierLabel(speed)}`} aria-label={`${label} · ${tierLabel(speed)}`}
         aria-pressed={menuRequired ? undefined : speed !== "standard"} disabled={disabled || saving}
         popoverTarget={menuRequired ? id : undefined}

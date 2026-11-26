@@ -812,7 +812,8 @@
 .subagent-speed-note { display: grid; gap: 3px; margin: 4px 8px; padding-bottom: 6px; border-bottom: 1px solid var(--border-subtle); }
 .codex-speed-button:hover, .codex-speed-menu button:hover { background: var(--bg-hover); }
 .codex-speed-button.is-active { color: var(--accent-blue); }
-.subagent-speed-button.is-active { color: var(--text-primary); background: var(--bg-hover); }
+.subagent-speed-button[data-speed="priority"] { color: light-dark(#438bbb, #93c5fd); }
+.subagent-speed-button[data-speed="ultrafast"] { color: light-dark(#2563eb, #4f8cff); }
 .codex-speed-glyph { position: relative; display: inline-flex; flex-shrink: 0; }
 .codex-speed-glyph.is-double { width: 18px; }
 .codex-speed-glyph .speed-outline { position: absolute; right: 0; }
