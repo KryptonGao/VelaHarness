@@ -19,9 +19,10 @@ import type { Appearance, PreferencesApi } from "../hooks/usePreferences";
 import type { ProjectApi } from "../hooks/useProject";
 import { darkThemes, defaultDarkTheme, defaultLightTheme, isCustomThemeId, lightThemes, type ColorScheme, type DarkTheme, type LightTheme, type SelectedThemeId, type ThemeId } from "../themes";
 import { localizeError } from "../locale";
+import { useStartPageStyle } from "../hooks/useStartPageStyle";
 import { settingsCopy } from "./settings-copy";
 import { onboardingCopy, type OnboardingCopy } from "./onboarding-copy";
-import { AssistSection, BackgroundStep, InteractiveUiStep, LayoutStep, PersonalizeStep } from "./OnboardingExtraSteps";
+import { BackgroundStep, DisplayStep, InteractiveUiStep, LayoutStep, PersonalizeStep } from "./OnboardingExtraSteps";
 import { uiCopy } from "./intelligent-ui/copy";
 import { FeatureScreen, HelloScreen, LanguageScreen, NewsScreen, TourScreen, Brand } from "./OnboardingIntro";
 import { ObDefs, ObPanel, ObSail, ObSea, obColor } from "./onboarding-art";
@@ -101,6 +102,8 @@ export function OnboardingView({ preferences, models, project, mode = "full", in
   const settings = settingsCopy(locale);
   const settingsCopyAgent = settings.agent;
   const appearanceCopy = settings.appearance;
+  const startPageStyle = useStartPageStyle();
+  const startPageLabels = { atelier: appearanceCopy.startPageStyleAtelier, deck: appearanceCopy.startPageStyleDeck, classic: appearanceCopy.startPageStyleClassic, minimal: appearanceCopy.startPageStyleMinimal };
   const rootRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: designWidth, height: designHeight });
   const [notes, setNotes] = useState<ReleaseNotes | null>(null);
@@ -564,27 +567,7 @@ export function OnboardingView({ preferences, models, project, mode = "full", in
       case "step-2":
         return (
           <SetupFrame {...frame(2, copy.toolTitle, copy.toolHint)}>
-            <div className="ob-two" role="radiogroup" aria-label={appearanceCopy.toolDisplay} style={{ marginTop: 20 }}>
-              <Opt className="pick" selected={preferences.toolDisplay === "card"} onClick={() => preferences.setToolDisplay("card")}>
-                <b>{appearanceCopy.toolCard}</b><span>{copy.toolCardHint}</span>
-                <span className="ob-pv" aria-hidden="true">
-                  <span className="c"><span>{copy.readFile}</span><em>callback.ts</em></span>
-                  <span className="c"><span>{copy.editFile}</span><em>redirect.ts +2 −1</em></span>
-                  <span className="c"><span>{copy.runCommand}</span><em>pnpm test</em></span>
-                  <span className="c faded"><span>{copy.readFile}</span><em>guards.ts</em></span>
-                </span>
-              </Opt>
-              <Opt className="pick" selected={preferences.toolDisplay === "compact"} onClick={() => preferences.setToolDisplay("compact")}>
-                <b>{appearanceCopy.toolCompact}</b><span>{copy.toolCompactHint}</span>
-                <span className="ob-pv" aria-hidden="true">
-                  <span className="l"><u />{copy.toolCompactRead}<em>callback.ts, guards.ts +1</em></span>
-                  <span className="l"><u className="coral" />{copy.toolCompactEdit}<em>+9 −2</em></span>
-                  <span className="l"><u className="green" />{copy.toolCompactRun}<em>pnpm test</em></span>
-                  <span className="l faded">{copy.moreTools} ›</span>
-                </span>
-              </Opt>
-            </div>
-            <AssistSection copy={copy} settings={settings} preferences={preferences} />
+            <DisplayStep copy={copy} settings={settings} preferences={preferences} />
           </SetupFrame>
         );
       case "step-3":
@@ -749,7 +732,7 @@ export function OnboardingView({ preferences, models, project, mode = "full", in
       case "step-9":
         return (
           <SetupFrame {...frame(9, copy.backgroundTitle, copy.backgroundHint, true)}>
-            <BackgroundStep copy={copy} settings={settings} resident={resident} onResident={setResident} update={updateState} onUpdate={setUpdateState} />
+            <BackgroundStep copy={copy} settings={settings} preferences={preferences} resident={resident} onResident={setResident} update={updateState} onUpdate={setUpdateState} />
           </SetupFrame>
         );
       case "done":
@@ -771,7 +754,7 @@ export function OnboardingView({ preferences, models, project, mode = "full", in
                 <SummaryRow label={copy.summaryProvider} value={selectedProvider?.name ?? "—"} />
                 <SummaryRow label={copy.summaryTheme} value={`${appearanceCopy[preferences.appearance]} · ${themeSummary}`} />
                 <SummaryRow label={copy.summaryModel} value={selectedModel ? `${selectedModel.name} · ${levelLabels[normalizedThinking]}` : "—"} />
-                <SummaryRow label={copy.summaryTools} value={preferences.toolDisplay === "card" ? appearanceCopy.toolCard : appearanceCopy.toolCompact} />
+                <SummaryRow label={settings.appearance.startPageStyle} value={startPageLabels[startPageStyle]} />
                 <SummaryRow label={copy.summaryPermissions} value={settings.permissions.smart} />
                 <SummaryRow label={copy.summaryLayout} value={preferences.infoLayout === "sidebar" ? copy.infoSidebar : preferences.infoLayout === "cards" ? appearanceCopy.infoLayoutCards : copy.infoFloating} />
                 <SummaryRow label={copy.summaryMemory} value={memoryEnabled === null ? "—" : memoryEnabled ? copy.on : copy.off} />

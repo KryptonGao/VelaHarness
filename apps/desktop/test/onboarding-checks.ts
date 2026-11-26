@@ -79,7 +79,8 @@ export async function runOnboardingChecks() {
       await press(forward()); await reach("feat-compact");
       await press(forward()); await reach("news");
       assert(document.querySelector(".ob-scr.on")!.textContent!.includes(releaseNotesFile.version), "news should show the release version");
-      assert(all(".ob-news-new .ob-strip").length === 4 && all(".ob-news-imp li").length === 4, "news should show four highlights and four improvements");
+      const english = releaseNotesFile.locales.en;
+      assert(all(".ob-news-new .ob-strip").length === Math.min(4, english.highlights.length) && all(".ob-news-imp li").length === english.improvements.length, "news should show the release highlights (at most four) and every improvement");
     });
 
     await check("news opens the release page and continues into setup", async () => {
@@ -94,7 +95,7 @@ export async function runOnboardingChecks() {
       assert(all<HTMLButtonElement>(".ob-route button", document).every((item) => item.disabled), "nothing before step 1 is reachable");
     });
 
-    await check("appearance and tool display choices are applied immediately", async () => {
+    await check("appearance choices and the chat display toggles are applied immediately", async () => {
       await press(byText(".ob-opts .ob-opt", "Dark")); assert(byText(".ob-opts .ob-opt", "Dark").getAttribute("aria-checked") === "true", "dark appearance not selected");
       const dots = all<HTMLButtonElement>(".ob-dots button");
       assert(dots.length >= 6, "theme dots missing");
@@ -103,29 +104,35 @@ export async function runOnboardingChecks() {
       assert(root.dataset.scheme === "light" && root.dataset.theme === "daylight", "choosing a dark app theme must not recolour onboarding");
       await press(byText(".ob-opts .ob-opt", "System"));
       await next("step-2");
-      await press(all<HTMLButtonElement>(".ob-opt")[1]!);
-      assert(all(".ob-opt")[1]!.getAttribute("aria-checked") === "true", "compact tool display not selected");
-      assert(all(".ob-opt")[0]!.getAttribute("aria-checked") === "false", "card tool display still selected");
-      const assist = all<HTMLElement>("[role=switch]");
-      assert(assist.length === 2 && assist.every((item) => item.getAttribute("aria-checked") === "false"), "thinking summary and input prediction should start off");
-      await press(assist[0]!); await press(assist[1]!);
-      await until(() => all<HTMLElement>("[role=switch]").every((item) => item.getAttribute("aria-checked") === "true"), "thinking summary and input prediction switched on");
+      assert(all('[role="radiogroup"]').length === 0, "tool display is no longer a setting and must not be offered");
+      const toggles = () => all<HTMLElement>("[role=switch]");
+      assert(toggles().length === 4, "run view, recommended actions, thinking summary and input prediction expected");
+      assert(toggles().map((item) => item.getAttribute("aria-checked")).join() === "true,true,false,false", "run view and recommended actions start on; thinking summary and input prediction start off");
+      await press(toggles()[0]!);
+      await until(() => toggles()[0]!.getAttribute("aria-checked") === "false", "run view switched off");
+      await press(toggles()[2]!); await press(toggles()[3]!);
+      await until(() => toggles().slice(2).every((item) => item.getAttribute("aria-checked") === "true"), "thinking summary and input prediction switched on");
     });
 
-    await check("info panel offers sidebar, floating and cards, and navigation offers classic and categories, each with a diagram", async () => {
+    await check("info panel offers sidebar, floating and cards with a diagram, and the start page can be chosen", async () => {
       await next("step-3");
       const cards = () => all<HTMLButtonElement>(".ob-opt.pick");
-      assert(cards().length === 5 && cards().every((item) => item.querySelector(".ob-lay")), "five layout cards with diagrams expected");
-      assert(cards()[0]!.getAttribute("aria-checked") === "true", "sidebar should be the default");
+      assert(cards().length === 3 && cards().every((item) => item.querySelector(".ob-lay")), "three layout cards with diagrams expected");
+      assert(!document.querySelector(".ob-lay.nav"), "navigation layout is no longer a setting and must not be offered");
+      assert(cards()[1]!.getAttribute("aria-checked") === "true", "floating should be the default");
       await press(byText(".ob-opt.pick", "Info cards"));
-      assert(byText(".ob-opt.pick", "Info cards").getAttribute("aria-checked") === "true" && cards()[0]!.getAttribute("aria-checked") === "false", "info cards not selected");
+      assert(byText(".ob-opt.pick", "Info cards").getAttribute("aria-checked") === "true" && cards()[1]!.getAttribute("aria-checked") === "false", "info cards not selected");
+      await press(cards()[0]!);
+      assert(cards()[0]!.getAttribute("aria-checked") === "true" && byText(".ob-opt.pick", "Info cards").getAttribute("aria-checked") === "false", "sidebar not selected");
       await press(cards()[1]!);
-      assert(cards()[1]!.getAttribute("aria-checked") === "true" && byText(".ob-opt.pick", "Info cards").getAttribute("aria-checked") === "false", "floating not selected");
-      // The navigation preference loads before the preview clears storage, so exercise both choices.
-      await press(cards()[3]!);
-      assert(cards()[3]!.getAttribute("aria-checked") === "true" && cards()[4]!.getAttribute("aria-checked") === "false", "classic navigation not selected");
-      await press(byText(".ob-opt.pick", "Categories"));
-      assert(byText(".ob-opt.pick", "Categories").getAttribute("aria-checked") === "true" && cards()[3]!.getAttribute("aria-checked") === "false", "categories navigation not selected");
+      assert(cards()[1]!.getAttribute("aria-checked") === "true" && cards()[0]!.getAttribute("aria-checked") === "false", "floating not selected");
+      const styles = () => all<HTMLButtonElement>(".ob-seg button");
+      assert(styles().map((item) => item.textContent).join("|") === "Atelier|Command Deck|Classic|Minimal", "four start page styles expected");
+      // The start page store loads before the preview clears storage, so exercise both ends instead of assuming the default.
+      await press(styles()[0]!);
+      assert(styles()[0]!.getAttribute("aria-checked") === "true" && styles()[3]!.getAttribute("aria-checked") === "false", "Atelier start page not selected");
+      await press(styles()[3]!);
+      assert(styles()[3]!.getAttribute("aria-checked") === "true" && styles()[0]!.getAttribute("aria-checked") === "false", "Minimal start page not selected");
     });
 
     await check("the interactive interface step offers only the response preference and saves it", async () => {
@@ -185,14 +192,14 @@ export async function runOnboardingChecks() {
       await until(() => calls("resident.updateSettings").some((call: any) => call.arg.mode === "proactive"), "mode saved");
       assert(fixture.state.resident.mode === "proactive", "resident mode not applied");
       const switches = () => all<HTMLElement>("[role=switch]");
-      assert(switches().length === 4 && switches().every((item) => !item.hasAttribute("disabled")), "toggles should be usable while resident is on");
+      assert(switches().length === 7 && switches().every((item) => !item.hasAttribute("disabled")), "menu bar, login, three notification options, sound and auto update should be usable while resident is on");
       await press(byText(".ob-seg button", "Disabled"));
       await until(() => fixture.state.resident.mode === "disabled", "disabled applied");
-      await until(() => switches().slice(0, 3).every((item) => item.hasAttribute("disabled")), "resident toggles disabled");
-      assert(!switches()[3]!.hasAttribute("disabled"), "auto update must stay usable");
+      await until(() => switches().slice(0, 2).every((item) => item.hasAttribute("disabled")), "resident toggles disabled");
+      assert(switches().slice(2).every((item) => !item.hasAttribute("disabled")), "auto update, notifications and sound must stay usable");
       await press(byText(".ob-seg button", "Standby"));
       await until(() => fixture.state.resident.mode === "standby", "standby applied");
-      await press(switches()[3]!);
+      await press(switches()[2]!);
       await until(() => calls("updates.setAutoUpdate").length === 1, "auto update saved");
       assert(calls("updates.setAutoUpdate")[0].arg === false && fixture.state.update.autoUpdate === false, "auto update should be off");
       assert(!!node(".ob-note").textContent!.includes("Smart approval"), "default permission note missing");
@@ -203,7 +210,7 @@ export async function runOnboardingChecks() {
       const rows = Object.fromEntries(all(".ob-summary-row").map((row) => [row.children[0]!.textContent, row.children[1]!.textContent]));
       assert(rows["Language"] === "English", `language row ${rows["Language"]}`);
       assert(rows["Info panel"] === "Floating panel", `layout row ${rows["Info panel"]}`);
-      assert(rows["Tool calls"] === "Compact", `tools row ${rows["Tool calls"]}`);
+      assert(rows["Start page style"] === "Minimal", `start page row ${rows["Start page style"]}`);
       assert(rows["Provider"] === "Demo AI" && String(rows["Default model"]).startsWith("Demo Fast"), "provider/model rows wrong");
       assert(rows["Permissions"] === "Smart approval", `permissions row ${rows["Permissions"]}`);
       assert(rows["Memory"] === "Off" && rows["Resident Agent"] === "Standby" && rows["Automatic updates"] === "Off", `background rows ${JSON.stringify(rows)}`);

@@ -6,7 +6,6 @@ import { Opt } from "./onboarding-ui";
  * 小图的样式在 onboarding.css 的 `.ob-lay` 一节。
  */
 export type InfoLayoutKind = "sidebar" | "floating" | "cards";
-export type NavLayoutKind = "classic" | "rail";
 
 export function InfoPreview({ kind, chat, info }: { kind: InfoLayoutKind; chat: string; info: string }) {
   return (
@@ -15,16 +14,6 @@ export function InfoPreview({ kind, chat, info }: { kind: InfoLayoutKind; chat: 
       {kind === "cards"
         ? <><i className="k k1" /><i className="k k2" /><i className="k k3" /></>
         : <span className="c">{info}</span>}
-    </span>
-  );
-}
-
-export function NavPreview({ kind, chat }: { kind: NavLayoutKind; chat: string }) {
-  return (
-    <span className={`ob-lay nav ${kind}`} aria-hidden="true">
-      {kind === "rail" ? <span className="rail"><i /><i /><i /><i /></span> : null}
-      <span className="side"><i /><i /><i /></span>
-      <span className="b">{chat}</span>
     </span>
   );
 }

@@ -2,19 +2,24 @@ import { isUiPreference, residentModes, type ResidentMode, type ResidentSettings
 import { useEffect, useState } from "react";
 import type { InfoLayout, PreferencesApi } from "../hooks/usePreferences";
 import { tr } from "../locale";
-import { setNavLayout, useNavLayout, type NavLayout } from "../hooks/useNavLayout";
+import { setStartPageStyle, startPageStyles, useStartPageStyle } from "../hooks/useStartPageStyle";
 import { uiCopy } from "./intelligent-ui/copy";
 import { publishIntelligentUiState } from "./intelligent-ui/ui-settings-store";
 import { modeDescription, modeLabel } from "./resident-agent-model";
 import type { OnboardingCopy } from "./onboarding-copy";
-import { InfoPreview, LayoutOption, NavPreview, type InfoLayoutKind } from "./OnboardingLayouts";
+import { InfoPreview, LayoutOption, type InfoLayoutKind } from "./OnboardingLayouts";
 import { Label, Note, Seg, ToggleRow } from "./onboarding-ui";
 import type { SettingsCopy } from "./settings-copy";
 
-/** 第 2 步：思考总结与输入预测。两者都会额外调用模型，默认关闭，这里只是让新用户知道有这个选项。 */
-export function AssistSection({ copy, settings, preferences }: { copy: OnboardingCopy; settings: SettingsCopy; preferences: PreferencesApi }) {
+/** 第 2 步：运行过程里显示什么，以及思考总结与输入预测。后两者会额外调用模型，默认关闭，这里只是让新用户知道有这个选项。 */
+export function DisplayStep({ copy, settings, preferences }: { copy: OnboardingCopy; settings: SettingsCopy; preferences: PreferencesApi }) {
   return (
     <>
+      <Label title={copy.runGroup} style={{ marginTop: 20 }} />
+      <div className="ob-sheet tilt-r">
+        <ToggleRow title={settings.appearance.runView} hint={copy.runViewHint} checked={preferences.runView} onChange={preferences.setRunView} />
+        <ToggleRow title={settings.appearance.recommendedActions} hint={copy.recommendedActionsHint} checked={preferences.recommendedActions} onChange={preferences.setRecommendedActions} />
+      </div>
       <Label title={copy.assistGroup} style={{ marginTop: 22 }} />
       <div className="ob-sheet tilt-l">
         <ToggleRow title={settings.appearance.thinkingSummary} hint={copy.thinkingSummaryHint} checked={preferences.thinkingSummary} onChange={preferences.setThinkingSummary} />
@@ -24,19 +29,17 @@ export function AssistSection({ copy, settings, preferences }: { copy: Onboardin
   );
 }
 
-/** 第 3 步：信息栏位置（边栏、悬浮或卡片）与导航布局。 */
+/** 第 3 步：信息栏位置（边栏、悬浮或卡片）与新对话起始页。 */
 export function LayoutStep({ copy, settings, preferences }: { copy: OnboardingCopy; settings: SettingsCopy; preferences: PreferencesApi }) {
-  const navLayout = useNavLayout();
   const look = settings.appearance;
+  const startPageStyle = useStartPageStyle();
   const infoOptions: { id: InfoLayout & InfoLayoutKind; title: string; hint: string }[] = [
     { id: "sidebar", title: copy.infoSidebar, hint: copy.infoSidebarHint },
     { id: "floating", title: copy.infoFloating, hint: copy.infoFloatingHint },
     { id: "cards", title: look.infoLayoutCards, hint: copy.infoCardsHint },
   ];
-  const navOptions: { id: NavLayout; title: string; hint: string }[] = [
-    { id: "classic", title: look.navLayoutClassic, hint: copy.navClassicHint },
-    { id: "rail", title: look.navLayoutRail, hint: copy.navRailHint },
-  ];
+  const startLabels = { atelier: look.startPageStyleAtelier, deck: look.startPageStyleDeck, classic: look.startPageStyleClassic, minimal: look.startPageStyleMinimal };
+  const startHints = { atelier: look.startPageStyleAtelierHint, deck: look.startPageStyleDeckHint, classic: look.startPageStyleClassicHint, minimal: look.startPageStyleMinimalHint };
   return (
     <>
       <div className="ob-three" role="radiogroup" aria-label={copy.layoutGroup} style={{ marginTop: 20 }}>
@@ -46,14 +49,9 @@ export function LayoutStep({ copy, settings, preferences }: { copy: OnboardingCo
           </LayoutOption>
         ))}
       </div>
-      <Label title={copy.navGroup} style={{ marginTop: 22 }} />
-      <div className="ob-two" role="radiogroup" aria-label={copy.navGroup}>
-        {navOptions.map((option) => (
-          <LayoutOption key={option.id} selected={navLayout === option.id} title={option.title} hint={option.hint} onPick={() => setNavLayout(option.id)}>
-            <NavPreview kind={option.id} chat={copy.layoutChat} />
-          </LayoutOption>
-        ))}
-      </div>
+      <Label title={look.startPageStyle} style={{ marginTop: 22 }} />
+      <Seg label={look.startPageStyle} value={startPageStyle} options={startPageStyles.map((id) => ({ id, label: startLabels[id] }))} onChange={setStartPageStyle} />
+      <p className="ob-hint">{startHints[startPageStyle]}</p>
     </>
   );
 }
@@ -169,10 +167,11 @@ export function PersonalizeStep({ copy, settings, instructions, onInstructions, 
   );
 }
 
-/** 第 9 步：常驻 Agent、通知、自动更新。每一项改动都立即交给主进程保存。 */
-export function BackgroundStep({ copy, settings, resident, onResident, update, onUpdate }: {
+/** 第 9 步：常驻 Agent、通知与提示音、自动更新。每一项改动都立即交给主进程保存。 */
+export function BackgroundStep({ copy, settings, preferences, resident, onResident, update, onUpdate }: {
   copy: OnboardingCopy;
   settings: SettingsCopy;
+  preferences: PreferencesApi;
   resident: ResidentSettings | null;
   onResident: (value: ResidentSettings) => void;
   update: UpdateState | null;
@@ -218,22 +217,42 @@ export function BackgroundStep({ copy, settings, resident, onResident, update, o
                 checked={resident.launchAtLogin} disabled={mode === "disabled"}
                 onChange={(next) => void patchResident({ launchAtLogin: next })}
               />
+            </div>
+          </>
+        ) : <p className="ob-hint">{residentApi ? "…" : copy.residentUnavailable}</p>}
+        <Label title={copy.updatesTitle} style={{ marginTop: 22 }} />
+        {updatesApi && update ? (
+          <div className="ob-sheet tilt-r"><ToggleRow title={settings.updates.autoTitle} hint={settings.updates.autoHint} checked={update.autoUpdate} onChange={(next) => void setAutoUpdate(next)} /></div>
+        ) : <p className="ob-hint">{updatesApi ? "…" : copy.updatesUnavailable}</p>}
+      </div>
+      <div>
+        <Label title={settings.pages.notifications.label} />
+        <div className="ob-sheet tilt-r">
+          {residentApi && resident ? (
+            <>
               <ToggleRow
                 title={tr("系统通知", "System notifications")}
                 hint={tr("离开对应对话时，接收审批请求和其他待处理事项的提醒。", "Get alerts for approvals and other items that need attention when you’re away from their conversation.")}
                 checked={resident.notifications.enabled}
                 onChange={(next) => void patchResident({ notifications: { enabled: next } })}
               />
-            </div>
-          </>
-        ) : <p className="ob-hint">{residentApi ? "…" : copy.residentUnavailable}</p>}
-      </div>
-      <div>
-        <Label title={copy.updatesTitle} />
-        {updatesApi && update ? (
-          <div className="ob-sheet tilt-r"><ToggleRow title={settings.updates.autoTitle} hint={settings.updates.autoHint} checked={update.autoUpdate} onChange={(next) => void setAutoUpdate(next)} /></div>
-        ) : <p className="ob-hint">{updatesApi ? "…" : copy.updatesUnavailable}</p>}
-        <Note tone="sun" style={{ marginTop: 30 }}>{copy.permissionsNote}</Note>
+              <ToggleRow
+                title={tr("任务完成时也提醒", "Also notify when tasks finish")}
+                hint={tr("只影响普通任务结果，不影响 Resident 的事件回复。", "Applies to regular task results, not Resident event replies.")}
+                checked={resident.notifications.notifyResults} disabled={!resident.notifications.enabled}
+                onChange={(next) => void patchResident({ notifications: { notifyResults: next } })}
+              />
+              <ToggleRow
+                title={tr("隐藏通知内容", "Hide notification previews")}
+                hint={tr("通知里不显示命令、路径和回答，只提示有事项。", "Notifications won't show commands, paths or answers.")}
+                checked={resident.notifications.hidePreview} disabled={!resident.notifications.enabled}
+                onChange={(next) => void patchResident({ notifications: { hidePreview: next } })}
+              />
+            </>
+          ) : null}
+          <ToggleRow title={settings.appearance.soundEffects} hint={copy.soundEffectsHint} checked={preferences.soundEffects} onChange={preferences.setSoundEffects} />
+        </div>
+        <Note tone="sun" style={{ marginTop: 18 }}>{copy.permissionsNote}</Note>
         {error ? <p className="ob-hint error" role="alert">{error}</p> : null}
       </div>
     </div>

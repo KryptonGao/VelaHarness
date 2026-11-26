@@ -271,13 +271,6 @@
 .ob-mock .input { margin-top: auto; height: 66px; border-radius: 16px; background: var(--m-input); border: 2px solid var(--m-edge); position: relative; }
 .ob-mock .input i { position: absolute; right: 10px; bottom: 10px; width: 24px; height: 24px; border-radius: 50%; background: var(--m-accent); transition: background .25s; }
 
-.ob-pv { display: flex; flex-direction: column; gap: 8px; background: var(--ob-sheet); border-radius: 12px; padding: 12px; height: 176px; font-size: calc(12.5px * var(--ui-scale)); font-weight: 600; color: var(--ob-ink); }
-.ob-pv .c { border: 2px solid rgba(19, 27, 69, .16); border-radius: 9px; padding: 6px 10px; display: flex; justify-content: space-between; gap: 8px; }
-.ob-pv .c.faded, .ob-pv .l.faded { opacity: .4; }
-.ob-pv .l { display: flex; gap: 8px; align-items: center; padding: 3px 2px; }
-.ob-pv u { width: 11px; height: 11px; border-radius: 3px; background: var(--ob-cobalt); text-decoration: none; flex: none; }
-.ob-pv u.coral { background: var(--ob-coral); } .ob-pv u.green { background: var(--ob-green); }
-.ob-pv em { font-style: normal; font-weight: 500; opacity: .6; font-family: ui-monospace, Menlo, monospace; font-size: calc(12px * var(--code-scale)); overflow: hidden; animation: vela-overflow-fade auto linear both; animation-timeline: scroll(self inline); white-space: nowrap; }
 
 .ob-lay { background: var(--ob-sheet); border-radius: 12px; height: 128px; padding: 9px; display: grid; grid-template-columns: 30px 1fr 84px; gap: 8px; position: relative; font-size: calc(12px * var(--ui-scale)); font-weight: 700; }
 .ob-lay > span { border-radius: 8px; padding: 7px 8px; opacity: 1 !important; font-size: calc(12px * var(--ui-scale)) !important; font-weight: 700 !important; margin: 0 !important; }
@@ -299,13 +292,6 @@
 .ob-lay.info.cards { grid-template-columns: 22px 1fr; }
 .ob-lay.info .k { position: absolute; right: 12px; width: 58px; height: 17px; border-radius: 5px; background: var(--ob-sky); box-shadow: 2px 3px 0 rgba(19, 27, 69, .22); }
 .ob-lay.info .k1 { top: 9px; } .ob-lay.info .k2 { top: 31px; transform: rotate(1.5deg); } .ob-lay.info .k3 { top: 53px; }
-.ob-lay.nav { height: 84px; padding: 8px; gap: 6px; grid-template-columns: 92px 1fr; }
-.ob-lay.nav.rail { grid-template-columns: 22px 70px 1fr; }
-.ob-lay.nav .rail { display: flex; flex-direction: column; align-items: center; gap: 7px; background: rgba(19, 27, 69, .85); padding: 9px 0; }
-.ob-lay.nav .rail i { width: 9px; height: 9px; border-radius: 50%; background: var(--ob-cream); }
-.ob-lay.nav .side { display: flex; flex-direction: column; gap: 7px; background: var(--ob-sky); padding: 10px 9px; }
-.ob-lay.nav .side i { display: block; height: 7px; border-radius: 4px; background: rgba(19, 27, 69, .4); }
-.ob-lay.nav .side i:nth-child(2) { width: 70%; }
 
 .sk h4 { display: flex; justify-content: space-between; font-size: calc(16px * var(--ui-scale)); font-weight: 700; margin-bottom: 4px; }
 .sk h4 button { font-size: calc(12.5px * var(--ui-scale)); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; opacity: .7; }
