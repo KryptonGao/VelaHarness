@@ -191,7 +191,11 @@ if (!process.versions.electron) {
     const fadePixels = async () => (await win.webContents.capturePage(fadeRect)).toBitmap();
     const baseline = await fadePixels();
     assert.ok(baseline.length > 0, 'Expected a painted card stack');
-    for (const [trigger, menu] of [['.model-pill', '.model-popover, .combined-model-popover'], ['.usage-ring-button', '.usage-popover']]) {
+    for (const [trigger, menu] of [
+      ['.model-pill', '.model-popover, .combined-model-popover'],
+      ['.usage-ring-button', '.usage-popover'],
+      ['.mode-combined', '.mode-popover'],
+    ]) {
       const click = () => evaluate(`document.querySelector('.chat-dock-wrapper ${trigger}').click(); true`);
       await click();
       await until(`(() => {
@@ -203,7 +207,7 @@ if (!process.versions.electron) {
       await click();
       await until(`!document.querySelector('${menu}')`, `Dismiss ${menu}`);
     }
-    console.log('PASS Model and plan usage popovers preserve the painted card fade');
+    console.log('PASS Model, plan usage and mode popovers preserve the painted card fade');
     await evaluate(`window.__infoRoot.parentElement.querySelector('.chat-dock-wrapper').style.setProperty('--composer-overhang', '48px'); true`);
     await until(`(() => { const b = ${stackBounds}; return b.overlaps && b.bottom <= b.dockTop; })()`, "输入框实际压到卡片时才预留底部空间");
     await evaluate(`window.__infoRoot.parentElement.querySelector('.chat-dock-wrapper').style.removeProperty('--composer-overhang'); true`);
