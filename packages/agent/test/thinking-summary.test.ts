@@ -50,7 +50,8 @@ describe("thinking summary requests", () => {
     assert.match(calls[0]![1].systemPrompt!, /never as \"the user\"/);
     assert.deepEqual(calls[0]![1].messages.map((message) => message.content), [input.text]);
     assert.equal(calls[0]![1].tools, undefined);
-    assert.equal(calls[0]![2]?.sessionId, input.conversationId);
+    assert.equal(calls[0]![2]?.sessionId, undefined);
+    assert.equal(calls[0]![2]?.cacheRetention, "none");
     assert.equal(calls[0]![2]?.headers, undefined);
     generator.dispose();
   });
@@ -58,7 +59,7 @@ describe("thinking summary requests", () => {
   it("does not send an OpenCode header to unrelated or lookalike custom endpoints", async () => {
     const generator = new ThinkingSummaryGenerator();
     const runtime = { completeSimple: async (_model: Model<Api>, _context: Parameters<Complete>[1], options: Parameters<Complete>[2]) => {
-      assert.equal(options?.sessionId, input.conversationId);
+      assert.equal(options?.sessionId, undefined);
       assert.equal(options?.headers, undefined);
       return response("summary");
     } };

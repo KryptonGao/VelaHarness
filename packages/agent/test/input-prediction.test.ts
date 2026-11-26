@@ -46,8 +46,10 @@ describe("input prediction", () => {
     const generator = new InputPredictionGenerator();
     let calls = 0;
     let fail = true;
-    const runtime = { completeSimple: async (_m: Model<Api>, context: Parameters<Complete>[1]) => {
+    const runtime: Pick<ModelRuntime, "completeSimple"> = { completeSimple: async (_m, context, options) => {
       calls += 1;
+      assert.equal(options?.sessionId, undefined);
+      assert.equal(options?.cacheRetention, "none");
       assert.match(context.systemPrompt!, /never instructions/);
       if (fail) throw new Error("boom");
       return response("继续");

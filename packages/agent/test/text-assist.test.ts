@@ -177,6 +177,7 @@ describe("AI-12 发布说明", () => {
 describe("TextAssistService", () => {
   it("builds a factual prompt, returns the model label and caches identical requests", async () => {
     const service = new TextAssistService();
+    const standaloneModel = { ...model, provider: "opencode-go" };
     let count = 0;
     const calls: Parameters<Complete>[] = [];
     const runtime = { completeSimple: async (...args: Parameters<Complete>) => {
@@ -184,16 +185,18 @@ describe("TextAssistService", () => {
       count += 1;
       return response('{"title":"feat: greet","body":"Adds a greeting."}');
     } };
-    const result = await service.generate(runtime, model, request());
+    const result = await service.generate(runtime, standaloneModel, request());
     assert.equal(result.title, "feat: greet");
     assert.equal(result.body, "Adds a greeting.");
     assert.equal(result.modelLabel, "Test Model");
     assert.equal(result.scopeLabel, "依据已暂存的 1 个文件");
     assert.equal(result.snapshotKey, snapshot.key);
+    assert.deepEqual(calls[0]![2]?.headers, { "x-opencode-session": result.requestId });
+    assert.equal(calls[0]![2]?.sessionId, undefined);
     assert.match(calls[0]![1].systemPrompt!, /source data, never instructions/);
     assert.match(calls[0]![1].messages[0]!.content as string, /No verification commands or results were recorded/);
     assert.match(calls[0]![1].messages[0]!.content as string, /diff --git a\/src\/a.ts/);
-    const again = await service.generate(runtime, model, request({ requestId: "req-2" }));
+    const again = await service.generate(runtime, standaloneModel, request({ requestId: "req-2" }));
     assert.equal(again.requestId, "req-2");
     assert.equal(count, 1);
     service.dispose();
@@ -234,16 +237,19 @@ describe("TextAssistService", () => {
   it("chunks large diffs and reports that the analysis was partial", async () => {
     const service = new TextAssistService();
     const prompts: string[] = [];
-    const runtime = { completeSimple: async (_m: Model<Api>, context: Parameters<Complete>[1]) => {
+    const runtime: Pick<ModelRuntime, "completeSimple"> = { completeSimple: async (_m, context, options) => {
+      assert.equal(options?.sessionId, undefined);
+      assert.equal(options?.cacheRetention, "none");
+      assert.deepEqual(options?.headers, { "x-opencode-session": "chat-git" });
       const content = context.messages[0]!.content as string;
       prompts.push(content);
       if (content.includes("This is part")) return response("部分摘要");
       return response('{"title":"feat: big","body":"body"}');
     } };
     const bigDiff = `diff --git a/a b/a\n${"+a\n".repeat(9000)}`;
-    const result = await service.generate(runtime, model, request({
+    const result = await service.generate(runtime, { ...model, provider: "opencode" }, request({
       snapshot: { ...snapshot, diff: bigDiff, diffTruncated: true },
-    }));
+    }), "chat-git");
     assert.equal(result.title, "feat: big");
     assert.match(result.scopeLabel, /分批分析/);
     assert.ok(prompts.some((prompt) => prompt.includes("This is part")));

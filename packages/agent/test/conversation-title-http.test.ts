@@ -105,7 +105,7 @@ describe("conversation title HTTP session routing", () => {
     assert.equal(requests[0]!.temperature, 0.2);
     assert.equal("temperature" in requests[1]!, false);
     assert.match(String(requests[1]!.instructions), /return only the title/);
-    assert.equal(requests[1]!.prompt_cache_key, "chat-codex");
+    assert.equal("prompt_cache_key" in requests[1]!, false);
   });
 
   it("reproduces MissingSessionID and sends the conversation header through the real OpenCode SDK path", async (t) => {

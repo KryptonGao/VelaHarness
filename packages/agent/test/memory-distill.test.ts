@@ -172,7 +172,9 @@ describe("MemoryDistiller", () => {
     let capturedContent = "";
     const usages: string[] = [];
     const runtime: Pick<ModelRuntime, "completeSimple"> = {
-      completeSimple: async (_m, context) => {
+      completeSimple: async (_m, context, options) => {
+        assert.equal(options?.sessionId, undefined);
+        assert.equal(options?.cacheRetention, "none");
         capturedSystem = context.systemPrompt ?? "";
         const raw = context.messages[0]!.content;
         capturedContent = typeof raw === "string" ? raw : JSON.stringify(raw);

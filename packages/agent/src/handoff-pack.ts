@@ -21,7 +21,7 @@ import {
   type TranscriptMessage,
   type TranscriptTool,
 } from "@vela/shared";
-import { openCodeSessionHeaders } from "./provider-headers";
+import { auxiliaryRequestOptions } from "./provider-headers";
 
 const timeoutMs = 90_000;
 const maxTranscriptChars = 24_000;
@@ -381,8 +381,7 @@ export class HandoffPackGenerator {
           maxTokens: 4096,
           reasoning: "minimal",
           signal: controller.signal,
-          sessionId: input.conversationId,
-          headers: openCodeSessionHeaders(model, input.conversationId),
+          ...auxiliaryRequestOptions(model, input.conversationId),
         }),
         aborted,
       ]);

@@ -1,7 +1,7 @@
 import type { Api, AssistantMessage, Model } from "@earendil-works/pi-ai";
 import type { ModelRuntime } from "@earendil-works/pi-coding-agent";
 import { isAppLocale, modelLanguageName, type InputPredictionInput, type TraceUsage, type TranscriptMessage } from "@vela/shared";
-import { openCodeSessionHeaders } from "./provider-headers";
+import { auxiliaryRequestOptions } from "./provider-headers";
 import type { ThinkingSummaryRequest } from "./thinking-summary";
 
 /** 只带最近几条消息，预测下一句不需要完整历史。 */
@@ -146,8 +146,7 @@ export class InputPredictionGenerator {
           maxTokens: 1024,
           reasoning: "minimal",
           signal: controller.signal,
-          sessionId: input.conversationId,
-          headers: openCodeSessionHeaders(model, input.conversationId),
+          ...auxiliaryRequestOptions(model, input.conversationId),
         }),
         aborted,
       ]);

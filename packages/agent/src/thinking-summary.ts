@@ -2,7 +2,7 @@ import type { Api, AssistantMessage, Model } from "@earendil-works/pi-ai";
 import type { ModelRuntime } from "@earendil-works/pi-coding-agent";
 import { isAppLocale, modelLanguageName, type ThinkingSummaryInput, type TraceUsage } from "@vela/shared";
 import { createHash } from "node:crypto";
-import { openCodeSessionHeaders } from "./provider-headers";
+import { auxiliaryRequestOptions } from "./provider-headers";
 
 const maxThinkingLength = 100_000;
 const cacheLimit = 100;
@@ -121,8 +121,7 @@ export class ThinkingSummaryGenerator {
           maxTokens: 2048,
           reasoning: "minimal",
           signal: controller.signal,
-          sessionId: input.conversationId,
-          headers: openCodeSessionHeaders(model, input.conversationId),
+          ...auxiliaryRequestOptions(model, input.conversationId),
         }),
         aborted,
       ]);

@@ -20,7 +20,7 @@ function capture(...titles: string[]) {
 }
 
 describe("conversation title requests", () => {
-  it("only sends the first message, clamps it, and asks for a bare title with the chat session id", async () => {
+  it("requests a bare title from the bounded first message outside the chat session", async () => {
     const { calls, runtime } = capture("  第一个标题  ");
     const text = `${"a".repeat(4200)}\n第二行`;
     assert.equal(await requestConversationTitle(runtime, model, { conversationId: "chat-a", text }), "第一个标题");
@@ -32,7 +32,8 @@ describe("conversation title requests", () => {
     assert.equal(calls[0]![2]?.maxTokens, 2048);
     // Codex 会拒绝 temperature；独立标题请求沿用提供方默认采样参数。
     assert.equal(calls[0]![2]?.temperature, undefined);
-    assert.equal(calls[0]![2]?.sessionId, "chat-a");
+    assert.equal(calls[0]![2]?.sessionId, undefined);
+    assert.equal(calls[0]![2]?.cacheRetention, "none");
     assert.equal(calls[0]![2]?.headers, undefined);
     // 标题请求不用显式关闭推理：Anthropic 适配器会把 truthy 的 "off" 当作用户要思考，
     // 必思考模型也会忽略这个开关，真正兜底的是上面的预算。
@@ -105,5 +106,6 @@ describe("conversation title requests", () => {
     }
     assert.equal(calls[2]![2]?.headers, undefined);
     assert.equal(calls[3]![2]?.headers, undefined);
+    for (const [, , options] of calls) assert.equal(options?.sessionId, undefined);
   });
 });

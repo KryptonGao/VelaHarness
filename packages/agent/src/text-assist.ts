@@ -2,7 +2,7 @@ import type { Api, Model } from "@earendil-works/pi-ai";
 import type { ModelRuntime } from "@earendil-works/pi-coding-agent";
 import { isAppLocale, modelLanguageName, type AiTextRequest, type AiTextResult, type AiTextSnapshot } from "@vela/shared";
 import { createHash } from "node:crypto";
-import { openCodeSessionHeaders } from "./provider-headers";
+import { auxiliaryRequestOptions } from "./provider-headers";
 
 /** 单次请求最多携带的 Diff 字符数;超出后分批总结。 */
 const maxDiffChars = 24_000;
@@ -140,7 +140,7 @@ interface GenerateInput {
   runtime: Pick<ModelRuntime, "completeSimple">;
   model: Model<Api>;
   request: AiTextRequest;
-  sessionId: string | null;
+  routingId: string;
 }
 
 /**
@@ -157,7 +157,7 @@ export class TextAssistService {
     runtime: Pick<ModelRuntime, "completeSimple">,
     model: Model<Api>,
     request: AiTextRequest,
-    sessionId: string | null = null,
+    conversationId: string | null = null,
   ): Promise<AiTextResult> {
     if (this.disposed) return Promise.reject(new Error("无法生成文案"));
     const key = cacheKey(model, request);
@@ -168,7 +168,7 @@ export class TextAssistService {
     }
     const pending = this.pending.get(key);
     if (pending) return pending.then((result) => ({ ...result, requestId: request.requestId }));
-    const task = this.complete({ runtime, model, request, sessionId })
+    const task = this.complete({ runtime, model, request, routingId: conversationId ?? request.requestId })
       .then((result) => {
         if (!this.disposed) {
           this.cache.set(key, result);
@@ -290,8 +290,7 @@ export class TextAssistService {
           maxTokens: 1024,
           temperature: 0.2,
           signal,
-          sessionId: input.sessionId ?? undefined,
-          headers: input.sessionId ? openCodeSessionHeaders(input.model, input.sessionId) : undefined,
+          ...auxiliaryRequestOptions(input.model, input.routingId),
         },
       ),
       aborted,
@@ -330,8 +329,7 @@ export class TextAssistService {
           maxTokens: 4096,
           temperature: input.request.action === "polish" ? 0.2 : 0.5,
           signal,
-          sessionId: input.sessionId ?? undefined,
-          headers: input.sessionId ? openCodeSessionHeaders(input.model, input.sessionId) : undefined,
+          ...auxiliaryRequestOptions(input.model, input.routingId),
         },
       ),
       aborted,

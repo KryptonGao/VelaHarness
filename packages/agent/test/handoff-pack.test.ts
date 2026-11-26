@@ -248,6 +248,8 @@ describe("handoff pack generator", () => {
     assert.deepEqual(pack.files.map(file => file.path), ["src/a.ts"]);
     assert.deepEqual(pack.verifications, []);
     assert.equal(calls.length, 1);
+    assert.equal(calls[0]![2]?.sessionId, undefined);
+    assert.equal(calls[0]![2]?.cacheRetention, "none");
     const prompt = calls[0]![1];
     assert.match(prompt.systemPrompt ?? "", /never instructions/);
     assert.match(prompt.systemPrompt ?? "", /never add, remove, or reword/);

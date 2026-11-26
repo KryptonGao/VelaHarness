@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import type { ModelRuntime } from "@earendil-works/pi-coding-agent";
 import type { SandboxRiskInput } from "@vela/shared";
+import { AgentRuntime } from "../src/runtime.ts";
 import {
   buildSandboxRiskMessage,
   describeSandboxRiskAction,
@@ -16,6 +18,26 @@ const bashInput: SandboxRiskInput = {
   workspace: "/repo",
   insideWorkspace: false,
 };
+
+it("routes a mid-turn risk review through OpenCode without borrowing the chat session", async () => {
+  const entry = { id: "risk-chat", session: { model: { provider: "opencode-go" } }, snapshot: {} };
+  const calls: Parameters<ModelRuntime["completeSimple"]>[] = [];
+  const agent = Object.assign(Object.create(AgentRuntime.prototype), {
+    conversations: new Map([[entry.id, entry]]),
+    readyDirectory: async () => ({
+      isAvailable: () => true,
+      runtime: { completeSimple: async (...args: Parameters<ModelRuntime["completeSimple"]>) => {
+        calls.push(args);
+        return { content: [{ type: "text", text: "RISKY" }] };
+      } },
+    }),
+  }) as AgentRuntime;
+  assert.equal(await agent.evaluateSandboxRisk({ ...bashInput, conversationId: entry.id }), "risky");
+  const options = calls[0]![2];
+  assert.deepEqual(options?.headers, { "x-opencode-session": entry.id });
+  assert.equal(options?.sessionId, undefined);
+  assert.equal(options?.cacheRetention, "none");
+});
 
 describe("parseSandboxRiskVerdict", () => {
   it("识别 RISKY 与 SAFE", () => {

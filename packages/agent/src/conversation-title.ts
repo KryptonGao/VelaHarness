@@ -1,6 +1,6 @@
 import type { Api, Model } from "@earendil-works/pi-ai";
 import type { ModelRuntime } from "@earendil-works/pi-coding-agent";
-import { openCodeSessionHeaders } from "./provider-headers";
+import { auxiliaryRequestOptions } from "./provider-headers";
 import { conversationTitleMaxLength } from "@vela/shared";
 
 export function normalizeManualConversationTitle(value: unknown): string {
@@ -50,10 +50,6 @@ function normalizeGeneratedTitle(text: string): string {
   return clipTitle(withoutWrapping, maxGeneratedTitleLength);
 }
 
-/**
- * 生成对话标题的一次性请求。独立调用不会走 AgentSession 的请求头补全，
- * 所以要显式带上会话 id；OpenCode 接口还需要 x-opencode-session 才能路由。
- */
 export async function requestConversationTitle(
   runtime: Pick<ModelRuntime, "completeSimple">,
   model: Model<Api>,
@@ -72,8 +68,7 @@ export async function requestConversationTitle(
       {
         maxTokens,
         // Codex 等接口不接受 temperature，使用提供方默认值以保持兼容。
-        sessionId: input.conversationId,
-        headers: openCodeSessionHeaders(model, input.conversationId),
+        ...auxiliaryRequestOptions(model, input.conversationId),
       },
     );
     const generated = normalizeGeneratedTitle(

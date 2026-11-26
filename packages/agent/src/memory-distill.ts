@@ -16,7 +16,7 @@ import {
   type TranscriptTool,
 } from "@vela/shared";
 import type { MemoryService } from "./memory";
-import { openCodeSessionHeaders } from "./provider-headers";
+import { auxiliaryRequestOptions } from "./provider-headers";
 
 const timeoutMs = 90_000;
 const maxTranscriptChars = 28_000;
@@ -310,8 +310,7 @@ export class MemoryDistiller {
           maxTokens: 2048,
           reasoning: "minimal",
           signal: controller.signal,
-          sessionId: input.conversationId,
-          headers: openCodeSessionHeaders(model, input.conversationId),
+          ...auxiliaryRequestOptions(model, input.conversationId),
         }),
         aborted,
       ]);

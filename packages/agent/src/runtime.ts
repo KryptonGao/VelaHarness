@@ -139,7 +139,7 @@ import { createResidentTools, residentInstructions, type ResidentToolHost } from
 import { createMemoryContextExtension, memoryTargetsFor } from "./memory-context";
 import { workspaceFoldersInstructions } from "./workspace-folders";
 import { createMemoryTools, memoryDisabledInstructions, memoryInstructions, memoryReadOnlyInstructions, type MemoryWritePermission } from "./memory-tools";
-import { openCodeSessionHeaders } from "./provider-headers";
+import { auxiliaryRequestOptions } from "./provider-headers";
 import {
   createModeExtension,
   createModeTools,
@@ -1895,8 +1895,7 @@ export class AgentRuntime {
           maxTokens: sandboxRiskMaxTokens,
           temperature: 0,
           signal: riskSignal,
-          sessionId: entry.id,
-          headers: openCodeSessionHeaders(model, entry.id),
+          ...auxiliaryRequestOptions(model, entry.id),
         },
       );
       return parseSandboxRiskVerdict(
