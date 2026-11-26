@@ -14,7 +14,7 @@ import { ActivityIndicator } from "./ActivityIndicator";
 import { AgentAvatar } from "./AgentAvatar";
 import { AgentComposer } from "./AgentComposer";
 import {
-  AgentControls, AgentModelTag, AgentRunStats, AgentStatusMark, agentKindLabel, agentStateText, findAgentInfo, useAgentClock,
+  AgentControls, AgentModelTag, AgentRunStats, AgentStatusMark, agentKindLabel, findAgentInfo, useAgentClock,
 } from "./AgentPanel";
 import { Markdown } from "./Markdown";
 import { AssistantMarkdown } from "./intelligent-ui/AssistantMarkdown";
@@ -33,6 +33,7 @@ interface AgentPaneProps {
   agent: AgentInfo;
   agents: readonly AgentInfo[];
   messages?: UiMessage[];
+  changeSummary?: ReactNode;
   messageStore?: MessageStore;
   conversationId?: string | null;
   toolDisplay?: ToolDisplay;
@@ -78,7 +79,7 @@ export const AgentPane = memo(function AgentPane(props: AgentPaneProps) {
 }, agentPaneEqual);
 
 function VisibleAgentPane({
-  agent, agents, messages: providedMessages, messageStore, conversationId = null,
+  agent, agents, messages: providedMessages, changeSummary, messageStore, conversationId = null,
   toolDisplay, toolFold = "message", onSwitch, ensureMessages, onControl, onSend, follow,
 }: AgentPaneProps & { follow: MutableRefObject<AgentFollow> }) {
   const storedMessages = useMessages(messageStore, conversationId, agent.id);
@@ -202,7 +203,6 @@ function VisibleAgentPane({
           <AgentBreadcrumb agent={agent} agents={agents} onSwitch={onSwitch} />
           <span className="agent-kind">{agentKindLabel(agent.kind)}</span>
           <AgentModelTag model={agent.model} thinkingLevel={agent.effectiveThinkingLevel ?? agent.thinkingLevel} />
-          <span className={`agent-state is-${agent.status}`}>{agentStateText(agent)}</span>
         </div>
         <div className="agent-pane-actions">
           <AgentRunStats agent={agent} now={now} />
@@ -273,7 +273,7 @@ function VisibleAgentPane({
       >
         <JumpOrb activity={jumpActivity} commandKey={runningBash?.id} running={showJumpToLatest} />
       </button>
-      <AgentComposer key={agentId} ref={dockRef} agent={agent} onSend={onSend} />
+      <AgentComposer key={agentId} ref={dockRef} agent={agent} onSend={onSend} changeSummary={changeSummary} />
     </section>
   );
 }

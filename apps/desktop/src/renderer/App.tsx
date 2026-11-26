@@ -1244,7 +1244,7 @@ export function App() {
                           onOpenWebLink={openConversationLink}
                           onOpenChanges={openAllChanges}
                           onReviewTurn={onReviewTurn}
-                          liveReviewId={turnReview?.live ? turnReview.turnId : undefined}
+                          liveReviewId={turnReview?.live && !turnReview.subagent ? turnReview.turnId : undefined}
                           onRefreshReview={refreshTurnReview}
                           onOpenAcceptance={onOpenAcceptance}
                           planDraft={session.planDraft}
@@ -1291,6 +1291,9 @@ export function App() {
                         toolDisplay={preferences.toolDisplay}
                         toolFold={preferences.toolFold}
                         ensureAgentMessages={session.ensureAgentMessages}
+                        showChangeSummary={preferences.showChangeSummary}
+                        onReviewTurn={onReviewTurn}
+                        onRefreshReview={refreshTurnReview}
                         onControlAgent={session.controlAgent}
                         onSendAgentMessage={session.sendAgentMessage}
                         onOpenAgent={openAgentPane}

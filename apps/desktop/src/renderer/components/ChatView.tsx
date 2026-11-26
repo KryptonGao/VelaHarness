@@ -79,6 +79,7 @@ import {
   shouldShowJumpToLatest,
 } from "./chat-scroll";
 import { outcomeByFinalMessage, type AcceptanceRequest } from "./acceptance";
+import { ChangeSummaryPill } from "./composer/ChangeSummaryPill";
 import { createLiveChangesSelector, summarizeTurnChanges, type TurnChanges, type TurnReviewRequest } from "./turn-changes";
 import { chatLaneDefaultMaxWidth, planChatLane, planInfoCardLane } from "../chat-lane";
 import { ConversationViewTabs, conversationPanelId, conversationTabId } from "./ConversationViewTabs";
@@ -1290,12 +1291,7 @@ export function ChatView({
       <Composer
         conflictBanner={<ConflictBanner conversationId={state?.activeConversationId} turnStartedAt={session?.turnStartedAt} />}
         changeSummary={showChangeSummary && liveReview && onReviewTurn ? (
-          <button type="button" className="composer-change-summary" title={tr("变更审查", "Change review")}
-            onClick={() => onReviewTurn(liveReview)}>
-            <span>{trf("{0} 个文件已更改", liveReview.changes.files.length === 1 ? "{0} file changed" : "{0} files changed", liveReview.changes.files.length)}</span>
-            <span className="turn-changes-added">+{liveReview.changes.added}</span>
-            <span className="turn-changes-removed">−{liveReview.changes.removed}</span>
-          </button>
+          <ChangeSummaryPill changes={liveReview.changes} onReview={() => onReviewTurn(liveReview)} />
         ) : null}
         embedded={embedded}
         floatingChat={floatingChat}

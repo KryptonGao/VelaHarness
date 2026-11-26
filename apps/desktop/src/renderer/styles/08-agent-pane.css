@@ -1,6 +1,7 @@
 /* ---------- 右侧 Agent Pane ---------- */
 
 .agent-pane {
+  --agent-header-height: 34px;
   position: relative;
   flex: 1;
   width: 100%;
@@ -12,15 +13,18 @@
   background: none;
 }
 .agent-pane-header {
-  flex: none;
-  height: 34px;
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 4;
+  height: var(--agent-header-height);
   padding: 0 16px;
+  pointer-events: none;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  border-bottom: 1px solid var(--border-subtle);
 }
+.agent-pane-header > * { pointer-events: auto; }
 .agent-pane-header button { -webkit-app-region: no-drag; }
 .agent-pane-title {
   display: flex;
@@ -57,7 +61,9 @@
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 12px 16px var(--composer-clearance, 28px);
+  z-index: 0;
+  padding: calc(var(--agent-header-height) + 12px) 16px var(--composer-clearance, 28px);
+  scroll-padding-top: calc(var(--agent-header-height) + var(--titlebar-tail));
   display: flex;
   flex-direction: column;
 }

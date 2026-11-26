@@ -27,6 +27,8 @@ if (!process.versions.electron) {
         import { ToolCard } from './apps/desktop/src/renderer/components/ToolCard';
         import { infoCardDefinitions } from './apps/desktop/src/renderer/components/info-cards/InfoCardContents';
         import { AppLocaleProvider, setActiveLocale } from './apps/desktop/src/renderer/locale';
+        import { useTurnReview } from './apps/desktop/src/renderer/hooks/useTurnReview';
+        import { createMessageStore, messageScope } from './apps/desktop/src/renderer/hooks/message-store';
         const root = createRoot(document.getElementById('root'));
         const noop = () => {};
         const firstId = ${JSON.stringify(firstId)};
@@ -36,7 +38,7 @@ if (!process.versions.electron) {
           {id: secondId, path: '/root/research', name: 'research', kind: 'explore', status: 'paused'},
         ].map((agent, index) => ({
           ...agent, parentId: 'root', depth: 1, task: '检查头像与运行状态', steps: [], mutated: false,
-          finalText: '检查完成', error: null,
+          finalText: Array(24).fill('检查完成').join('\\n\\n'), error: null,
           usage: {input: 1, output: 1, cacheRead: 0, cacheWrite: 0, total: 2},
           activeMs: 1000, runningSince: agent.status === 'running' ? Date.now() : null,
           pauseRequested: false, createdAt: index + 1, updatedAt: index + 1,
@@ -56,7 +58,19 @@ if (!process.versions.electron) {
               activity: {agentId: agent.id, agentPrompt, body, ...(name === 'send_message' && {thinkingLevel: 'low'})}}} />)}
           </AgentWorkspaceProvider></AppLocaleProvider>));
         };
-        function Fixture({display}) {
+        const chat = 'avatar-fixture', store = createMessageStore();
+        const fileEdit = (id, path, diff, status = 'done') => ({id, name: 'edit', status, activity: {path, diff}});
+        const reply = (id, tools) => ({id, role: 'assistant', text: '', thinking: '', tools});
+        const owned = reply('owned', [fileEdit('a', '/repo/child.ts', '-1 old\\n+1 new')]);
+        const inherited = {...reply('fork', [fileEdit('root', 'parent.ts', '+1 parent')]), historical: true};
+        const second = reply('second', [fileEdit('b', 'child.ts', '+2 more'), fileEdit('fail', 'failed.ts', '+1 bad', 'error')]);
+        window.diffStep = step => {
+          store.publish(messageScope(chat, firstId), [inherited, owned, second,
+            ...(step >= 2 ? [reply('c', [fileEdit('c', 'next.ts', '+1 another')])] : []),
+            ...(step >= 3 ? [{id: 'u2', role: 'user', text: 'next turn', thinking: '', tools: []}] : [])]);
+          store.flush();
+        };
+        function Fixture({display, diff = false}) {
           const [agents, setAgents] = useState(initial);
           const [activeId, setActiveId] = useState(firstId);
           const changeStatus = (id, status) => setAgents(previous => previous.map(agent => agent.id === id
@@ -68,6 +82,10 @@ if (!process.versions.electron) {
             changeStatus(id, action === 'pause' ? 'paused' : action === 'resume' ? 'running' : 'aborted');
           };
           const tabs = agents.map(agent => ({id: agent.id, kind: 'agent', label: agent.name, title: agent.path, agent}));
+          const review = useTurnReview('/repo', chat);
+          const [showSummary, setShowSummary] = useState(true);
+          window.setSummary = setShowSummary;
+          if (review.review) tabs.push({id: review.tabId, kind: 'turn-review', label: '审查', review: review.review});
           const Body = infoCardDefinitions.agents.Body;
           return <AppLocaleProvider locale="zh-CN">
             <AgentWorkspaceProvider agents={agents} activeAgentId={activeId} openAgent={setActiveId} closeAgent={noop}>
@@ -75,18 +93,27 @@ if (!process.versions.electron) {
                 {tools.map(tool => <ToolCard key={tool.id} tool={tool} compact={display === 'compact'} />)}
               </section>
               <section id="info"><Body ctx={{agents, onOpenAgent: setActiveId}} /></section>
-              <section id="pane" style={{height: 300, display: 'flex'}}><WorkbenchPanel
+              <section id="pane" className={display === 'compact' ? 'borderless-interface' : ''} style={{height: 300, display: 'flex'}}> <WorkbenchPanel
                 tabs={tabs} activeTabId={activeId} contextOpen={false} leftOpen={false}
                 resize={{widths: {left: 220, right: 260, workbench: 640}, workbenchDocked: false, startResize: noop, reset: noop, nudge: noop}}
-                project={{}} busy={false} execution={null} onRevise={noop} onExecutePlan={noop}
+                project={{workspace: {current: '/repo'}}} busy={false} execution={null} onRevise={noop} onExecutePlan={noop}
                 initialDiffPath={null} initialDiffPathRequestKey={0} onShowDiff={noop}
-                agents={agents} getAgentMessages={() => []} conversationId="avatar-fixture"
+                agents={agents} conversationId={chat} messageStore={diff ? store : undefined}
+                showChangeSummary={showSummary} onRefreshReview={review.refresh}
+                onReviewTurn={diff ? request => { review.open(request); setActiveId(review.tabId); } : undefined}
                 ensureAgentMessages={noop} onControlAgent={onControl} onOpenAgent={setActiveId}
                 onNewTab={noop} onStartAction={noop} gitAvailable={false}
                 onActivateTab={tab => setActiveId(tab.id)} onCloseTab={noop} /></section>
             </AgentWorkspaceProvider>
           </AppLocaleProvider>;
         }
+        window.renderDiff = () => {
+          setActiveLocale('zh-CN');
+          window.vela = {getAgentMessages: async (conversation, agent, scope) =>
+            conversation === chat && agent === firstId && scope === 'owned' ? [owned, ...(window.finalSaved ? [reply('final', [fileEdit('final', 'final.ts', '+1 saved')])] : [])] : []};
+          window.diffStep(1);
+          flushSync(() => root.render(<Fixture key="diff" display="compact" diff />));
+        };
         let revision = 0;
         window.renderCase = (scheme, display) => {
           setActiveLocale('zh-CN');
@@ -136,7 +163,7 @@ if (!process.versions.electron) {
         if (await evaluate(code)) return;
         await new Promise(done => setTimeout(done, 20));
       }
-      throw new Error(`超时 (${currentCase}): ${code}`);
+      throw new Error(`超时 (${currentCase}): ${code}\n${await evaluate('document.body.innerText.slice(-1600)')}`);
     };
     const imagesReady = "document.querySelectorAll('img.agent-avatar').length >= 5 && [...document.querySelectorAll('img.agent-avatar')].every(img => img.complete && img.naturalWidth > 0 && img.naturalHeight > 0)";
     const menu = "#pane button[aria-haspopup='listbox']";
@@ -156,6 +183,29 @@ if (!process.versions.electron) {
           currentCase = `${scheme}/${display}`;
           await evaluate(`window.renderCase(${JSON.stringify(scheme)}, ${JSON.stringify(display)})`);
           await until(imagesReady);
+          const header = await evaluate(`(() => {
+            const header = document.querySelector('#pane .agent-pane-header');
+            const scroll = document.querySelector('#pane .agent-pane-scroll');
+            const stream = scroll.querySelector('.agent-stream');
+            const menuButton = header.querySelector('button[aria-haspopup="listbox"]');
+            const rect = menuButton.getBoundingClientRect();
+            scroll.scrollTop = 0;
+            const bounds = header.getBoundingClientRect();
+            const firstClear = stream.getBoundingClientRect().top >= bounds.bottom;
+            scroll.scrollTop = bounds.height;
+            const streamTop = stream.getBoundingClientRect().top;
+            return {
+              firstClear, underHeader: bounds.top <= streamTop && streamTop < bounds.bottom,
+              fixed: header.getBoundingClientRect().top === bounds.top,
+              border: getComputedStyle(header).borderBottomWidth,
+              fade: getComputedStyle(header, '::before').backgroundImage,
+              menuClickable: menuButton.contains(document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2)),
+            };
+          })()`);
+          assert.ok(header.firstClear && header.underHeader && header.fixed, `${currentCase}: 消息从悬浮栏下方开始，滚动时经过栏后`);
+          assert.equal(header.border, '0px');
+          assert.match(header.fade, /linear-gradient/);
+          assert.ok(header.menuClickable, `${currentCase}: 渐隐层不遮挡代理列表按钮`);
           const before = await snapshot();
           assert.equal(before.tools.length, 2, `${currentCase}: 两张工具卡都有头像`);
           assert.equal(before.info.length, 2, `${currentCase}: 信息卡中运行与暂停代理都保留头像`);
@@ -214,12 +264,13 @@ if (!process.versions.electron) {
 
           for (const status of ["idle", "paused", "completed", "failed", "aborted", "running"]) {
             await evaluate(`window.setAgentStatus(${JSON.stringify(secondId)}, ${JSON.stringify(status)})`);
-            await until(`document.querySelector('#pane .agent-state.is-${status}') && document.querySelector('#info .info-card-chip.is-${status}')`);
+            await until(`document.querySelector('#info .info-card-chip.is-${status}')`);
+            assert.equal(await evaluate("document.querySelectorAll('#pane .agent-pane-title .agent-state').length"), 0, `${currentCase}/${status}: 顶栏不重复显示状态文字`);
             const updated = await snapshot();
             assert.equal(updated.pane[0].src, sources[1], `${currentCase}/${status}: 状态更新不改变头像`);
             assert.deepEqual(updated.tabs.map(img => img.src), sources, `${currentCase}/${status}: 标签头像不跟随状态变化`);
             const marker = status === "running" ? ".tool-activity-loader" : `.agent-status-dot.is-${status}`;
-            assert.ok(await evaluate(`Boolean(document.querySelector('#pane .agent-pane-title ${marker}'))`), `${currentCase}/${status}: 状态标记仍可见`);
+            assert.ok(await evaluate(`document.querySelector('#pane .agent-pane-title ${marker}')?.getAttribute('aria-label')`), `${currentCase}/${status}: 顶栏保留带无障碍名称的状态标记`);
             assert.ok(await evaluate(`Boolean(document.querySelectorAll('.workbench-tab')[1].querySelector(${JSON.stringify(marker)}))`), `${currentCase}/${status}: 标签状态标记仍可见`);
           }
           await until(imagesReady);
@@ -235,6 +286,26 @@ if (!process.versions.electron) {
         assert.deepEqual(rows, [['High', 'Prompt', 'Create\n  with indentation'], ['Low', 'Prompt', 'Follow-up message'], ['High', 'Result', 'Archived result']], currentCase);
         assert.doesNotMatch(await evaluate('document.body.innerText'), /Spawn receipt|Send receipt|Wait for agent|检查完成/);
       }
+      currentCase = '子代理 diff 胶囊';
+      await evaluate('window.renderDiff()');
+      const badge = '.agent-pane .chat-dock-wrapper > .composer-change-summary';
+      await until(`document.querySelector('${badge}')?.textContent === '1 个文件已更改+2−1'`);
+      await evaluate('window.setSummary(false)');
+      await until(`!document.querySelector('${badge}')`);
+      await evaluate('window.setSummary(true)');
+      await until(`document.querySelector('${badge}')`);
+      await click(badge);
+      await until("document.querySelector('.turn-review-view')?.textContent.includes('child.ts') && !document.querySelector('.agent-pane')");
+      assert.doesNotMatch(await evaluate("document.querySelector('.turn-review-view').textContent"), /parent\.ts|failed\.ts/);
+      await evaluate('window.diffStep(2)');
+      await until("document.querySelectorAll('.turn-review-file').length === 2 && document.querySelector('.turn-review-view').textContent.includes('next.ts')");
+      await evaluate(`window.finalSaved = true; window.setAgentStatus(${JSON.stringify(firstId)}, 'completed')`);
+      await until("document.querySelectorAll('.turn-review-file').length === 3 && document.querySelector('.turn-review-view').textContent.includes('final.ts')");
+      await evaluate('window.diffStep(3)');
+      await evaluate(`window.setAgentStatus(${JSON.stringify(firstId)}, 'running')`);
+      await evaluate("document.querySelectorAll('.workbench-tab')[0].click()");
+      await until(`document.querySelector('.agent-pane') && !document.querySelector('${badge}')`);
+      console.log('子代理 diff：归属隔离、行数去重、显示开关、实时审查和新回合清空通过。');
       assert.deepEqual(external, [], "头像加载不依赖任何外部网络请求");
       assert.deepEqual(errors, [], "组件加载与交互不产生控制台错误");
       console.log("Bottts 头像 UI：浅/深色 × 紧凑/卡片；图片加载、跨界面同图、六种状态、暂停/继续、roster 与工作面板标签切换全部通过。");

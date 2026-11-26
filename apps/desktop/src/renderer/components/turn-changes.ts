@@ -23,6 +23,8 @@ export interface TurnChanges {
 export interface TurnReviewRequest {
   /** Live reviews use the stable turn ID until the final assistant message is known. */
   live?: boolean;
+  /** A saved tool call identifies the same child turn across stream and history message IDs. */
+  subagent?: { agentId: string; toolId: string };
   turnId: string;
   changes: TurnChanges;
 }
@@ -43,8 +45,8 @@ function diffLines(diff: string): { added: number; removed: number } {
   return { added, removed };
 }
 
-function isCompletedFileEdit(tool: ToolTrace): boolean {
-  return tool.status === "done" && (tool.name === "edit" || tool.name === "write");
+export function isCompletedFileEdit(tool: ToolTrace & { resultRecorded?: boolean }): boolean {
+  return tool.resultRecorded !== false && tool.status === "done" && (tool.name === "edit" || tool.name === "write");
 }
 
 export function summarizeTurnChanges(tools: ToolTrace[], workspaceRoot: string | null): TurnChanges | null {
@@ -77,7 +79,7 @@ export function createLiveChangesSelector() {
   let previous: ToolTrace[] = [];
   let root: string | null = null;
   let changes: TurnChanges | null = null;
-  return (assistants: UiMessage[], workspaceRoot: string | null) => {
+  return (assistants: readonly Pick<UiMessage, "tools">[], workspaceRoot: string | null) => {
     const edits = assistants.flatMap(message => message.tools.filter(isCompletedFileEdit));
     if (root !== workspaceRoot || edits.length !== previous.length || edits.some((edit, i) => edit !== previous[i])) {
       previous = edits;

@@ -1,5 +1,5 @@
 import { isAgentBusy, type AgentInfo } from "@vela/shared";
-import { forwardRef, useRef, useState } from "react";
+import { forwardRef, useRef, useState, type ReactNode } from "react";
 import { localizeError, tr } from "../locale";
 import { ComposerActions } from "./Composer";
 import { serializeEditor, setEditorText } from "./composer/skill-editor";
@@ -10,8 +10,9 @@ import { serializeEditor, setEditorText } from "./composer/skill-editor";
  */
 export const AgentComposer = forwardRef<HTMLDivElement, {
   agent: AgentInfo;
+  changeSummary?: ReactNode;
   onSend: (agentId: string, text: string) => Promise<void>;
-}>(function AgentComposer({ agent, onSend }, ref) {
+}>(function AgentComposer({ agent, changeSummary, onSend }, ref) {
   const inputRef = useRef<HTMLDivElement>(null);
   const submitting = useRef(false);
   const [value, setValue] = useState("");
@@ -104,6 +105,7 @@ export const AgentComposer = forwardRef<HTMLDivElement, {
 
   return (
     <div className="chat-dock-wrapper" ref={ref}>
+      {changeSummary}
       <form
         className="floating-input-card layout-capsule"
         onSubmit={(event) => { event.preventDefault(); void submit(); }}

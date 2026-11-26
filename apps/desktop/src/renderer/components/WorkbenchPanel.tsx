@@ -1,4 +1,4 @@
-import type { AgentControlAction, AgentInfo, BackgroundShellItem, ExecutionPlan, PlanExecutionContextStrategy, Race } from "@vela/shared";
+import { isAgentBusy, type AgentControlAction, type AgentInfo, type BackgroundShellItem, type ExecutionPlan, type PlanExecutionContextStrategy, type Race } from "@vela/shared";
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { createPortal, flushSync } from "react-dom";
 import type { ProjectApi } from "../hooks/useProject";
@@ -10,6 +10,7 @@ import { useMotionPresence } from "../hooks/useMotionPresence";
 import { WorkbenchTabPanel } from "./MotionPresence";
 import { tr, trf } from "../locale";
 import { AgentPane } from "./AgentPane";
+import { SubagentTurnChanges } from "./SubagentTurnChanges";
 import { AgentStatusMark } from "./AgentPanel";
 import { AgentAvatar } from "./AgentAvatar";
 import { WorkspaceChangesView } from "./WorkspaceChangesView";
@@ -82,6 +83,9 @@ interface WorkbenchPanelProps {
   initialDiffPath: string | null;
   initialDiffPathRequestKey: number;
   onShowDiff: (path: string) => void;
+  showChangeSummary?: boolean;
+  onReviewTurn?: (request: TurnReviewRequest) => void;
+  onRefreshReview?: (liveId: string, request: TurnReviewRequest) => void;
   onAcceptanceDiff?: (request: AcceptanceRequest, path: string, diffToolId?: string) => void;
   races?: readonly Race[];
   backgroundShells?: readonly BackgroundShellItem[];
@@ -419,6 +423,10 @@ function WorkbenchPanelContent(props: WorkbenchPanelProps & { closing: boolean; 
     handle.addEventListener("pointermove", move); handle.addEventListener("pointerup", stop); handle.addEventListener("pointercancel", stop); handle.addEventListener("lostpointercapture", stop);
     window.addEventListener("pointerup", stop, true); window.addEventListener("pointercancel", stop, true); window.addEventListener("blur", stop);
   }
+  function agentChangesProps(agent: AgentInfo) {
+    return { agent, conversationId: props.conversationId ?? null, workspaceRoot: project.workspace?.current ?? null,
+      messageStore: props.messageStore, providedMessages: props.getAgentMessages?.(agent.id) };
+  }
   function renderTab(tab: WorkbenchTab, visible: boolean): ReactNode {
     switch (tab.kind) {
       case "conversation-detail": return props.renderConversationDetail?.(tab.view);
@@ -436,7 +444,14 @@ function WorkbenchPanelContent(props: WorkbenchPanelProps & { closing: boolean; 
       case "plan": return <PlanDocumentPane busy={props.busy} execution={props.execution} onRevise={props.onRevise} onExecutePlan={props.onExecutePlan} visible={visible} />;
       case "changes": return <WorkspaceChangesView project={project} messageStore={props.messageStore} conversationId={props.conversationId} streaming={props.streaming}
         initialPath={props.initialDiffPath} initialPathRequestKey={props.initialDiffPathRequestKey} visible={visible} onClose={() => closeTab(tab)} />;
-      case "turn-review": return <TurnReviewView key={tab.review.turnId} review={tab.review} target={tab.target} visible={visible} onClose={() => closeTab(tab)} />;
+      case "turn-review": {
+        const source = tab.review.live && tab.review.subagent;
+        const agent = source && props.agents.find(item => item.id === source.agentId);
+        return <>
+          {agent && source && props.onRefreshReview && <SubagentTurnChanges {...agentChangesProps(agent)} toolId={source.toolId} onRefresh={props.onRefreshReview} />}
+          <TurnReviewView key={tab.review.turnId} review={tab.review} target={tab.target} visible={visible} onClose={() => closeTab(tab)} />
+        </>;
+      }
       case "acceptance": return <AcceptancePanel key={tab.acceptance.turnId} request={tab.acceptance} onOpenDiff={(path, diffToolId) => props.onAcceptanceDiff?.(tab.acceptance, path, diffToolId)} />;
       case "race": return <RacePanel races={props.races ?? []} onOpenConversation={props.onOpenConversation ?? (() => {})} onOpenAcceptance={props.onOpenAcceptance ?? (() => {})} />;
       case "background": return <BackgroundTasksPanel conversationId={props.conversationId ?? null} shells={props.backgroundShells ?? []} />;
@@ -446,6 +461,8 @@ function WorkbenchPanelContent(props: WorkbenchPanelProps & { closing: boolean; 
       case "terminal": return <TerminalView sessionId={tab.sessionId} visible={visible && !collapsed} />;
       case "agent": return <AgentPane agent={tab.agent} agents={props.agents} messages={props.getAgentMessages?.(tab.agent.id)} messageStore={props.messageStore}
         conversationId={props.conversationId} toolDisplay={props.toolDisplay} toolFold={props.toolFold} visible={visible} ensureMessages={props.ensureAgentMessages} onControl={props.onControlAgent}
+        changeSummary={visible && !collapsed && props.showChangeSummary !== false && isAgentBusy(tab.agent.status) && props.onReviewTurn
+          ? <SubagentTurnChanges {...agentChangesProps(tab.agent)} onOpen={props.onReviewTurn} /> : null}
         onSend={props.onSendAgentMessage}
         onSwitch={agentId => { const next = tabs.find(t => t.kind === "agent" && t.agent.id === agentId); if (next) activateTab(next); else props.onOpenAgent(agentId); }} />;
     }

@@ -99,7 +99,8 @@
   mask-image: linear-gradient(to bottom, transparent, #000 calc(var(--sidebar-title-overlap) + 8px));
 }
 
-.borderless-interface {
+.borderless-interface,
+.agent-pane {
   --titlebar-tail: 14px;
   --titlebar-fade: linear-gradient(to bottom, var(--bg-chat),
     color-mix(in srgb, var(--bg-chat) 94%, transparent) 38%,
@@ -108,6 +109,7 @@
 
 /* Paint the fade behind the title and its controls. The underlying scrollports
  * stay interactive, and menus and modal surfaces have no opacity mask. */
+.agent-pane-header::before,
 .borderless-interface :is(.main-chat-header, .settings-header, .sidebar-right-header, .floating-chat-header)::before,
 .borderless-interface .workbench-group::before {
   content: "";
