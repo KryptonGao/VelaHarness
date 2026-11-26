@@ -1,134 +1,134 @@
 {
-  "version": "1.3.1",
+  "version": "1.3.2",
   "locales": {
     "en": {
-      "summary": "Inspect what subagents did, track Codex usage, preview workspace HTML, and get notifications only for conversations you are not looking at.",
+      "summary": "Queue messages while a run is active, customize subagents, set a global prompt, import Chrome sign-ins into the built-in browser, and run micro-apps in the workbench.",
       "highlights": [
         {
-          "title": "Subagent traces",
-          "body": "Open a subagent to see its tool activity. Subagent responses can optionally use the faster Codex speed, and the model pool lists a description for each model."
+          "title": "Message queue",
+          "body": "While a run is active, messages join a queue, and each one can be promoted with Send now without losing its text, images or order."
         },
         {
-          "title": "Codex usage",
-          "body": "Usage now includes your local Codex desktop activity with provider filters and tiered pricing. Hover the activity heatmap to see daily tokens."
+          "title": "Custom subagents",
+          "body": "Create your own subagent profiles and pick a practical or artistic naming style. Subagents show short names and their own output speed."
         },
         {
-          "title": "Workspace HTML preview",
-          "body": "Preview a workspace HTML file in the workbench, with its local scripts, styles and images."
+          "title": "Chrome sign-ins",
+          "body": "Import cookies and LocalStorage from a Chrome session or a Playwright storageState file into the built-in browser."
         },
         {
-          "title": "Smarter notifications",
-          "body": "Alerts are silenced only for conversations the focused window actually shows. A new Notifications page in settings holds the options."
+          "title": "Micro-apps in the workbench",
+          "body": "Sandboxed micro-apps run automatically and open in workbench tabs. A global prompt in settings applies to your desktop chats."
         }
       ],
       "improvements": [
-        "Chat input uses the capsule composer everywhere, sidebar and history controls sit in the titlebar, and settings groups are separated by simple dividers.",
-        "Turn summaries show the files changed in that turn. Workbench tabs sort more sensibly and keep composer drafts. Holding Command-Q is now required to quit, and Race is an opt-in experimental feature.",
-        "Background requests such as titles no longer disturb chat sessions, prompts stay cache-friendly, side chats pick their model and thinking level correctly, and generated titles stay short."
+        "A built-in Vela skill answers questions about the app itself, and Markdown frontmatter appears as a key/value card in file previews.",
+        "Onboarding follows the current settings, and workbench panes share the same floating header.",
+        "Reopening a conversation restores the last model you sent with, and you can type while a new chat is still initializing."
       ]
     },
     "zh-CN": {
-      "summary": "查看子代理的执行过程，统计 Codex 用量，预览工作区 HTML，并且只在你没有查看的对话里收到通知。",
+      "summary": "运行中可排队发送消息，自定义子代理，设置全局提示词，把 Chrome 登录状态导入内置浏览器，并在工作台中运行微应用。",
       "highlights": [
         {
-          "title": "子代理过程",
-          "body": "可展开子代理查看其工具活动。子代理可选择使用更快的 Codex 速度，模型池也为每个模型提供了说明。"
+          "title": "消息队列",
+          "body": "运行期间发送的消息会进入队列，可对单条消息点「立即发送」，文字、图片和顺序都不会丢失。"
         },
         {
-          "title": "Codex 用量",
-          "body": "用量统计现已包含本机 Codex 桌面端的使用情况，支持按服务商筛选和阶梯计价。悬停活动热力图可查看每日 token。"
+          "title": "自定义子代理",
+          "body": "可创建自己的子代理配置，并选择实干类或艺术类命名风格。子代理会显示简短名称和各自的输出速度。"
         },
         {
-          "title": "工作区 HTML 预览",
-          "body": "可在工作台中预览工作区里的 HTML 文件，并加载其本地脚本、样式和图片。"
+          "title": "Chrome 登录状态",
+          "body": "可把 Chrome 会话或 Playwright storageState 文件中的 Cookie 和 LocalStorage 导入内置浏览器。"
         },
         {
-          "title": "更精准的通知",
-          "body": "只有当前聚焦窗口正在显示的对话才会静音提醒。设置中新增「通知」页面，集中管理相关选项。"
+          "title": "工作台微应用",
+          "body": "沙箱微应用会自动运行，并在工作台标签页中打开。设置里的全局提示词会作用于桌面端对话。"
         }
       ],
       "improvements": [
-        "聊天输入统一为胶囊输入框，侧边栏和历史控件移到标题栏，设置分组改用简洁的分隔线。",
-        "回合摘要会显示该回合改动的文件。工作台标签页排序更合理并保留输入框草稿。退出时需按住 Command-Q，Race 改为可选的实验功能。",
-        "生成标题等后台请求不再干扰聊天会话，提示词更利于缓存，侧边对话能正确选择模型和思考强度，生成的标题保持简短。"
+        "内置 Vela 技能可回答关于应用本身的问题，文件预览会把 Markdown 的 frontmatter 显示为键值卡片。",
+        "新手引导与当前设置保持一致，工作台各面板共用同一种悬浮标题栏。",
+        "重新打开对话时会恢复上次发送所用的模型，新对话初始化期间也可以输入。"
       ]
     },
     "zh-TW": {
-      "summary": "查看子代理的執行過程，統計 Codex 用量，預覽工作區 HTML，並且只在你沒有查看的對話中收到通知。",
+      "summary": "執行中可排隊傳送訊息，自訂子代理，設定全域提示詞，把 Chrome 登入狀態匯入內建瀏覽器，並在工作台中執行微應用。",
       "highlights": [
         {
-          "title": "子代理過程",
-          "body": "可展開子代理查看其工具活動。子代理可選擇使用更快的 Codex 速度，模型池也為每個模型提供了說明。"
+          "title": "訊息佇列",
+          "body": "執行期間傳送的訊息會進入佇列，可對單則訊息按「立即傳送」，文字、圖片與順序都不會遺失。"
         },
         {
-          "title": "Codex 用量",
-          "body": "用量統計現已包含本機 Codex 桌面版的使用情況，支援依服務商篩選與階梯計價。將游標移到活動熱度圖上可查看每日 token。"
+          "title": "自訂子代理",
+          "body": "可建立自己的子代理設定，並選擇實幹類或藝術類命名風格。子代理會顯示簡短名稱與各自的輸出速度。"
         },
         {
-          "title": "工作區 HTML 預覽",
-          "body": "可在工作台中預覽工作區裡的 HTML 檔案，並載入其本機指令碼、樣式與圖片。"
+          "title": "Chrome 登入狀態",
+          "body": "可把 Chrome 工作階段或 Playwright storageState 檔案中的 Cookie 與 LocalStorage 匯入內建瀏覽器。"
         },
         {
-          "title": "更精準的通知",
-          "body": "只有目前聚焦視窗正在顯示的對話才會靜音提醒。設定中新增「通知」頁面，集中管理相關選項。"
+          "title": "工作台微應用",
+          "body": "沙箱微應用會自動執行，並在工作台分頁中開啟。設定中的全域提示詞會作用於桌面版對話。"
         }
       ],
       "improvements": [
-        "聊天輸入統一為膠囊輸入框，側邊欄與歷史控制項移到標題列，設定群組改用簡潔的分隔線。",
-        "回合摘要會顯示該回合變更的檔案。工作台分頁排序更合理並保留輸入框草稿。結束時需按住 Command-Q，Race 改為可選的實驗功能。",
-        "產生標題等背景請求不再干擾聊天工作階段，提示詞更利於快取，側邊對話能正確選擇模型與思考強度，產生的標題保持簡短。"
+        "內建 Vela 技能可回答關於應用本身的問題，檔案預覽會把 Markdown 的 frontmatter 顯示為鍵值卡片。",
+        "新手引導與目前設定保持一致，工作台各面板共用同一種浮動標題列。",
+        "重新開啟對話時會還原上次傳送所用的模型，新對話初始化期間也可以輸入。"
       ]
     },
     "ja": {
-      "summary": "サブエージェントの実行内容を確認し、Codex の使用量を追跡し、ワークスペースの HTML をプレビューできます。通知は表示していない会話に限って届きます。",
+      "summary": "実行中にメッセージをキューに入れ、サブエージェントをカスタマイズし、グローバルプロンプトを設定し、Chrome のサインイン情報を内蔵ブラウザーに取り込み、ワークベンチでマイクロアプリを実行できます。",
       "highlights": [
         {
-          "title": "サブエージェントのトレース",
-          "body": "サブエージェントを開くと、ツールの動作を確認できます。サブエージェントでは、より高速な Codex の速度を任意で使え、モデルプールには各モデルの説明が表示されます。"
+          "title": "メッセージキュー",
+          "body": "実行中に送ったメッセージはキューに入り、1 件ずつ「今すぐ送信」に切り替えられます。テキスト、画像、順序は失われません。"
         },
         {
-          "title": "Codex の使用量",
-          "body": "使用量にこの Mac の Codex デスクトップの利用状況が加わり、プロバイダーでの絞り込みや段階料金に対応します。アクティビティのヒートマップにカーソルを合わせると日別のトークンを確認できます。"
+          "title": "カスタムサブエージェント",
+          "body": "独自のサブエージェントプロファイルを作成し、実務型またはアート型の命名スタイルを選べます。サブエージェントには短い名前と個別の出力速度が表示されます。"
         },
         {
-          "title": "ワークスペース HTML のプレビュー",
-          "body": "ワークスペース内の HTML ファイルを、ローカルのスクリプト、スタイル、画像ごとワークベンチでプレビューできます。"
+          "title": "Chrome のサインイン情報",
+          "body": "Chrome セッションまたは Playwright の storageState ファイルから、Cookie と LocalStorage を内蔵ブラウザーに取り込めます。"
         },
         {
-          "title": "より的確な通知",
-          "body": "フォーカス中のウィンドウが実際に表示している会話に限り通知を止めます。設定に「通知」ページが加わり、オプションをまとめて管理できます。"
+          "title": "ワークベンチのマイクロアプリ",
+          "body": "サンドボックス内のマイクロアプリは自動で実行され、ワークベンチのタブで開きます。設定のグローバルプロンプトはデスクトップのチャットに適用されます。"
         }
       ],
       "improvements": [
-        "チャット入力はどこでもカプセル型に統一され、サイドバーと履歴のコントロールはタイトルバーに移り、設定のグループはシンプルな区切り線で分けられます。",
-        "ターンの要約にそのターンで変更したファイルを表示します。ワークベンチのタブの並び順が自然になり、入力欄の下書きも保持されます。終了には Command-Q の長押しが必要になり、Race はオプトインの実験機能になりました。",
-        "タイトル生成などのバックグラウンド要求がチャットセッションに影響しなくなり、プロンプトはキャッシュしやすくなり、サイドチャットでモデルと思考レベルを正しく選べ、生成されるタイトルは短く保たれます。"
+        "組み込みの Vela スキルがアプリ自体に関する質問に答え、ファイルプレビューでは Markdown の frontmatter がキーと値のカードで表示されます。",
+        "オンボーディングが現在の設定に合わせて更新され、ワークベンチの各ペインで同じフローティングヘッダーを使います。",
+        "会話を開き直すと最後に送信したモデルが復元され、新しいチャットの初期化中も入力できます。"
       ]
     },
     "ko": {
-      "summary": "서브에이전트가 한 작업을 확인하고, Codex 사용량을 추적하고, 작업 공간의 HTML을 미리 볼 수 있습니다. 알림은 보고 있지 않은 대화에만 옵니다.",
+      "summary": "실행 중 메시지를 대기열에 넣고, 서브에이전트를 사용자 지정하고, 전역 프롬프트를 설정하고, Chrome 로그인 정보를 내장 브라우저로 가져오고, 워크벤치에서 마이크로 앱을 실행할 수 있습니다.",
       "highlights": [
         {
-          "title": "서브에이전트 추적",
-          "body": "서브에이전트를 열어 도구 활동을 확인할 수 있습니다. 서브에이전트는 더 빠른 Codex 속도를 선택적으로 사용할 수 있고, 모델 풀에는 모델마다 설명이 표시됩니다."
+          "title": "메시지 대기열",
+          "body": "실행 중에 보낸 메시지는 대기열에 들어가며, 메시지마다 '지금 보내기'로 바꿀 수 있습니다. 텍스트, 이미지, 순서는 그대로 유지됩니다."
         },
         {
-          "title": "Codex 사용량",
-          "body": "사용량에 이 Mac의 Codex 데스크톱 활동이 포함되며, 제공업체별 필터와 단계별 요금을 지원합니다. 활동 히트맵에 마우스를 올리면 일별 토큰을 볼 수 있습니다."
+          "title": "사용자 지정 서브에이전트",
+          "body": "나만의 서브에이전트 프로필을 만들고 실무형 또는 예술형 이름 스타일을 고를 수 있습니다. 서브에이전트에는 짧은 이름과 개별 출력 속도가 표시됩니다."
         },
         {
-          "title": "작업 공간 HTML 미리보기",
-          "body": "작업 공간의 HTML 파일을 로컬 스크립트, 스타일, 이미지와 함께 워크벤치에서 미리 볼 수 있습니다."
+          "title": "Chrome 로그인 정보",
+          "body": "Chrome 세션 또는 Playwright storageState 파일의 쿠키와 LocalStorage를 내장 브라우저로 가져올 수 있습니다."
         },
         {
-          "title": "더 정확한 알림",
-          "body": "포커스된 창이 실제로 표시하는 대화에 대해서만 알림을 끕니다. 설정에 '알림' 페이지가 추가되어 관련 옵션을 한곳에서 관리할 수 있습니다."
+          "title": "워크벤치의 마이크로 앱",
+          "body": "샌드박스 마이크로 앱이 자동으로 실행되고 워크벤치 탭에서 열립니다. 설정의 전역 프롬프트는 데스크톱 대화에 적용됩니다."
         }
       ],
       "improvements": [
-        "채팅 입력이 어디서나 캡슐형으로 통일되고, 사이드바와 기록 컨트롤이 제목 표시줄로 이동했으며, 설정 그룹은 단순한 구분선으로 나뉩니다.",
-        "턴 요약에 해당 턴에서 변경된 파일이 표시됩니다. 워크벤치 탭 정렬이 더 자연스러워지고 입력창 초안이 유지됩니다. 종료하려면 Command-Q를 길게 눌러야 하며, Race는 선택형 실험 기능이 되었습니다.",
-        "제목 생성 같은 백그라운드 요청이 채팅 세션을 방해하지 않고, 프롬프트가 캐시에 유리해지며, 사이드 채팅에서 모델과 사고 수준을 올바르게 선택하고, 생성되는 제목은 짧게 유지됩니다."
+        "내장 Vela 스킬이 앱 자체에 대한 질문에 답하고, 파일 미리보기에서는 Markdown frontmatter가 키-값 카드로 표시됩니다.",
+        "온보딩이 현재 설정에 맞게 바뀌었고, 워크벤치의 각 창이 같은 플로팅 헤더를 사용합니다.",
+        "대화를 다시 열면 마지막으로 보낸 모델이 복원되고, 새 채팅이 초기화되는 동안에도 입력할 수 있습니다."
       ]
     }
   }
