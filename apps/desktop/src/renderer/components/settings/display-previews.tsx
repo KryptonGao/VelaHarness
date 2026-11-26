@@ -409,7 +409,6 @@ function ComposerMock({ enabled }: { enabled: boolean }) {
             <span className="dp-placeholder">{tr("随心输入", "Ask anything or describe a task")}</span>
           </>
         )}
-        {enabled ? <kbd className="dp-kbd">Tab</kbd> : null}
       </div>
       <span className="dp-send">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

@@ -1057,7 +1057,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
       <div
         id={promptId}
         ref={inputRef}
-        className={`input-textarea rich-input${suggestion ? " with-prediction" : ""}`}
+        className="input-textarea rich-input"
         data-placeholder={placeholder}
         aria-placeholder={suggestion ? undefined : placeholder}
         data-empty={!prompt}
@@ -1126,10 +1126,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
         }}
       />
       {suggestion ? (
-        <>
-          <span className="composer-prediction-hint" aria-hidden="true" title={tr("Tab 或 Enter 填入输入框，再按 Enter 发送", "Tab or Enter to fill the input, then Enter to send")}>Tab</span>
-          <span className="visually-hidden" id={`${promptId}-suggestion`} role="status">{tr("建议的消息：", "Suggested message: ")}{suggestion}{tr("。按 Tab 或 Enter 填入输入框。", ". Press Tab or Enter to fill the input.")}</span>
-        </>
+        <span className="visually-hidden" id={`${promptId}-suggestion`} role="status">{tr("建议的消息：", "Suggested message: ")}{suggestion}{tr("。按 Tab 或 Enter 填入输入框。", ". Press Tab or Enter to fill the input.")}</span>
       ) : null}
     </div>
   );

@@ -166,15 +166,6 @@
   color: var(--text-primary);
   animation: dp-ghost-type 1300ms 300ms linear both, dp-ghost-accept 260ms 3000ms ease both;
 }
-.dp-kbd {
-  margin-left: auto;
-  padding: 0 6px;
-  border: 1px solid var(--border-subtle);
-  border-radius: 5px;
-  color: var(--text-muted);
-  font: calc(11px * var(--ui-scale))/18px inherit;
-  animation: dp-kbd 2200ms 1700ms ease both;
-}
 .dp-send {
   width: 28px;
   height: 28px;
@@ -212,7 +203,6 @@
 @keyframes dp-fade-end { to { opacity: 0; } }
 @keyframes dp-ghost-type { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
 @keyframes dp-ghost-accept { from { color: var(--text-muted); } }
-@keyframes dp-kbd { 0%, 70% { opacity: 1; } 78% { transform: translateY(1px) scale(0.94); background: var(--bg-hover); } 88%, 100% { opacity: 0; } }
 
 /* 汇总行需要在线条折叠后才出现;「.dp-lines-out」兜底的终态是隐藏。 */
 .dp-lines-out { max-height: 0; opacity: 0; }
@@ -221,8 +211,7 @@
   .dp-stage *,
   .dp-stage-inner { animation: none !important; }
   .dp-fade-out,
-  .dp-swap-out,
-  .dp-kbd { display: none; }
+  .dp-swap-out { display: none; }
 }
 
 /* 常驻预览:固定高度,悬停选项时内容变化也不会推动下方的设置项。 */
@@ -259,13 +248,12 @@
 @keyframes dp-quick { from { opacity: 0.5; } }
 @media (max-height: 760px) { .dp-live { position: static; } }
 
-/* 静止模式:一律显示终态,与「减少动效」一致,但保留输入预测的 Tab 提示。 */
+/* 静止模式:一律显示终态,与「减少动效」一致。 */
 .dp-still *,
 .dp-still.dp-live-inner { animation: none !important; }
 .dp-still .dp-fade-out,
 .dp-still .dp-swap-out { display: none; }
 .dp-still .dp-ghost { color: var(--text-muted); }
-.dp-still .dp-kbd { display: inline-block; opacity: 1; }
 
 /* 选项旁的小动画:与文字同行排在右侧,窄屏时落到文字下方。 */
 .settings-block.has-aside {

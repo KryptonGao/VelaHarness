@@ -50,8 +50,6 @@
 .composer-capsule-main > .composer-chip-anchor { flex: none; }
 .composer-capsule-main .composer-entry { flex: 1 1 auto; align-self: stretch; justify-content: center; }
 .composer-capsule-main .input-textarea { min-height: 36px; padding: 7px 4px; }
-.composer-capsule-main .composer-prediction-hint { height: 36px; }
-.composer-capsule-main .composer-prediction-hint::before { inset: 9px -5px 9px -5px; }
 .composer-capsule-main .attach-btn {
   width: 32px;
   height: 32px;
