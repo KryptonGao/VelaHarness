@@ -1,7 +1,8 @@
-import type { ToolActivity, ToolTrace } from "@vela/shared";
+import type { AgentInfo, ToolActivity, ToolTrace } from "@vela/shared";
 import { isAgentToolName } from "@vela/shared";
 import type { ReactNode } from "react";
 import { tr, trf } from "../locale";
+import { agentNameFromReference } from "../agent-roster";
 import { AgentAvatar } from "./AgentAvatar";
 import { AgentTypeLabel, findAgentInfo, useAgentRoster } from "./AgentPanel";
 import { FileTypeIcon } from "./FileTypeIcon";
@@ -142,7 +143,9 @@ export function BrowserHeadlineSteps({ steps }: { steps: readonly BrowserStep[] 
   </span>;
 }
 
-export function taskTitle(activity: ToolActivity): string {
+export function agentToolTitle(agent: AgentInfo | null, activity: ToolActivity): string {
+  const name = agent?.name || agentNameFromReference(activity.agentPath ?? activity.agentId);
+  if (name) return name;
   const line = (activity.agentPrompt ?? activity.body)?.match(/[^\s].*/)?.[0]?.slice(0, 500).trim();
   return line || tr("子代理", "Subagent");
 }
@@ -179,7 +182,7 @@ export function ToolHeadlineDetails({ tool }: { tool: ToolTrace }) {
     const live = findAgentInfo(roster, activity.agentId, activity.agentPath);
     return <>
       <AgentTypeLabel className="tool-compact-action" kind={live?.kind ?? activity.agent} profile={live?.customProfile ?? activity.customProfile} />
-      <span className="agent-compact-name overflow-fade-text">{live?.path ?? activity.agentPath ?? activity.agentId ?? taskTitle(activity)}</span>
+      <span className="agent-compact-name overflow-fade-text">{agentToolTitle(live, activity)}</span>
     </>;
   }
   if (kind === "browser") return <BrowserHeadlineSteps steps={summarizeBrowserCode(activity.command)} />;

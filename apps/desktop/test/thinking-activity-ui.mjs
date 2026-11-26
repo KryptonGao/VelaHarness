@@ -435,10 +435,10 @@ if (!process.versions.electron) {
           assert.equal((await lowerDetail('.tool-card-head .tool-mcp-source')).text, "fixture",
             `${currentCase}: lower MCP card retains its server`);
 
-          await update({ tools: [tool("spawn_agent", "agent", { agent: "general", agentId: "activity-agent", agentPath: "/root/activity-agent", body: "Verify headline presentation" })] });
+          await update({ tools: [tool("spawn_agent", "agent", { agent: "general", agentId: "activity-agent", agentPath: "/root/review/activity-agent", body: "Verify headline presentation" })] });
           await expectActivity(label.other);
-          assert.equal((await lowerDetail('.agent-compact-name')).text, "/root/activity-agent",
-            `${currentCase}: lower agent row retains its path`);
+          assert.equal((await lowerDetail('.agent-compact-name')).text, "activity-agent",
+            `${currentCase}: lower agent row shows only the agent name`);
           const avatar = await evaluate(`[
             document.querySelector(${JSON.stringify(headline)})?.querySelector('.agent-avatar')?.getAttribute('src'),
             document.querySelector(${JSON.stringify(body)})?.querySelector('.agent-avatar')?.getAttribute('src')

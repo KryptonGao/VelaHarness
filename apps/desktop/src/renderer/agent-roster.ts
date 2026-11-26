@@ -31,11 +31,16 @@ export function reconcileAgents(previous: readonly AgentInfo[] | undefined, next
   return changed ? merged : (previous as AgentInfo[]);
 }
 
+/** Legacy tool records and message senders may only have a tree path. */
+export function agentNameFromReference(reference?: string): string | undefined {
+  return reference?.split("/").filter(Boolean).at(-1);
+}
+
 /** 从一条已渲染的工具记录还原已结束子代理的快照。 */
 function agentFromTool(tool: ToolTrace, agentId: string): AgentInfo {
   const activity = tool.activity;
   const path = activity?.agentPath ?? tool.name;
-  const name = path.split("/").filter(Boolean).pop() ?? path;
+  const name = agentNameFromReference(path) ?? tool.name;
   return {
     id: agentId,
     parentId: null,

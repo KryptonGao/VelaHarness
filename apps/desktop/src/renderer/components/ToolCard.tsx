@@ -54,7 +54,7 @@ import { fileManagerName } from "../platform";
 import { cardToolGroup } from "./tool-groups";
 import { toolNameIcon } from "./tool-name-icon";
 
-import { AgentHeadlineIcon, BashSubject, BrowserHeadlineSteps, KindIcon, subjectOf, subjectIsCode, taskTitle, todoFocus, toolKind, type ToolKind } from "./ToolHeadline";
+import { AgentHeadlineIcon, BashSubject, BrowserHeadlineSteps, KindIcon, subjectOf, subjectIsCode, agentToolTitle, todoFocus, toolKind, type ToolKind } from "./ToolHeadline";
 import { Icon } from "./icons";
 
 const kindLabels: Record<ToolKind, string> = {
@@ -225,7 +225,7 @@ function AgentToolCard({ tool, compact = false }: { tool: ToolTrace; compact?: b
   const roster = useAgentRoster();
   const activity = tool.activity ?? {};
   const live = findAgentInfo(roster, activity.agentId, activity.agentPath);
-  const title = live?.path ?? activity.agentPath ?? activity.agentId ?? taskTitle(activity);
+  const title = agentToolTitle(live, activity);
   const profile = live?.customProfile ?? activity.customProfile;
   const targetId = live?.id ?? activity.agentId ?? null;
   const avatarId = profile?.icon ?? targetId ?? activity.agentPath;
@@ -235,7 +235,7 @@ function AgentToolCard({ tool, compact = false }: { tool: ToolTrace; compact?: b
   };
   const toggle = (): void => setOpen((value) => !value);
   const summaryLabel = open ? tr("收起", "Collapse") : tr("展开", "Expand");
-  const titleText = live ? `${live.path} · ${agentStatusLabel(live.status)}` : title;
+  const titleText = live ? `${title} · ${agentStatusLabel(live.status)}` : title;
   const summary = <AgentCallDetails tool={tool} agent={live} />;
 
   // 紧凑模式是一行：点名称去右侧 Pane，点其他任何地方开合概况。

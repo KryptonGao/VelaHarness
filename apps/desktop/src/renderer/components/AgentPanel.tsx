@@ -123,11 +123,15 @@ export function AgentRunStats({ agent, now }: { agent: AgentInfo; now: number })
       <span className="agent-run-stat" title={detail}>
         {usage.total > 0 ? `${formatTokenCount(usage.total)} tok` : "— tok"}
       </span>
-      <span className="agent-run-stat" title={tr("累计运行时间（不含暂停）", "Active run time (excludes paused time)")}>
-        {formatElapsed(agentElapsedMs(agent, now))}
-      </span>
+      <AgentElapsed agent={agent} now={now} />
     </span>
   );
+}
+
+export function AgentElapsed({ agent, now }: { agent: AgentInfo; now: number }) {
+  return <span className="agent-run-stat" title={tr("累计运行时间（不含暂停）", "Active run time (excludes paused time)")}>
+    {formatElapsed(agentElapsedMs(agent, now))}
+  </span>;
 }
 
 /** 暂停 / 继续 / 取消；只在当前状态下可行的操作才出现。 */
@@ -189,14 +193,14 @@ export function AgentTypeLabel({ kind, profile, className }: {
   </span>;
 }
 
-/** 子代理实际使用的模型；旧记录没存模型时不显示。 */
-export function AgentModelTag({ model, thinkingLevel }: { model: ModelRef | null | undefined; thinkingLevel?: AgentInfo["thinkingLevel"] }) {
+export function AgentModelTag({ model, thinkingLevel, showMissing = false }: {
+  model: ModelRef | null | undefined; thinkingLevel?: AgentInfo["thinkingLevel"]; showMissing?: boolean;
+}) {
   const catalog = useContext(ThinkingModelCatalogContext);
-  if (!model) return null;
-  // 显示模型列表里的名称(如 GPT-6.1 Sol)，目录里找不到时才退回 id；悬停仍给完整的 provider/id。
-  const name = catalog.find((item) => item.provider === model.provider && item.id === model.modelId)?.name ?? model.modelId;
-  const effort = thinkingLevel && thinkingLabel(thinkingLevel);
-  const fullId = `${model.provider}/${model.modelId}`;
+  if (!model && !showMissing) return null;
+  const name = model ? catalog.find(item => item.provider === model.provider && item.id === model.modelId)?.name ?? model.modelId : "—";
+  const effort = thinkingLevel ? thinkingLabel(thinkingLevel) : showMissing ? "—" : undefined;
+  const fullId = model ? `${model.provider}/${model.modelId}` : "—";
   const title = effort
     ? trf("模型与思考强度：{0} · {1}", "Model & reasoning effort: {0} · {1}", fullId, effort)
     : `${tr("模型", "Model")}: ${fullId}`;

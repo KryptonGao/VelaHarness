@@ -34,7 +34,8 @@ if (!process.versions.electron) {
         const firstId = ${JSON.stringify(firstId)};
         const secondId = ${JSON.stringify(secondId)};
         const initial = [
-          {id: firstId, path: '/root/review', name: 'review', kind: 'general', status: 'running'},
+          {id: firstId, path: '/root/review', name: 'review', kind: 'general', status: 'running',
+            model: {provider: 'test', modelId: 'Test model'}, effectiveThinkingLevel: 'high', outputSpeed: 48},
           {id: secondId, path: '/root/research', name: 'research', kind: 'explore', status: 'paused'},
         ].map((agent, index) => ({
           ...agent, parentId: 'root', depth: 1, task: '检查头像与运行状态', steps: [], mutated: false,
@@ -81,7 +82,7 @@ if (!process.versions.electron) {
             window.lastAgentControl = {id, action};
             changeStatus(id, action === 'pause' ? 'paused' : action === 'resume' ? 'running' : 'aborted');
           };
-          const tabs = agents.map(agent => ({id: agent.id, kind: 'agent', label: agent.name, title: agent.path, agent}));
+          const tabs = agents.map(agent => ({id: agent.id, kind: 'agent', label: agent.name, title: agent.name, agent}));
           const review = useTurnReview('/repo', chat);
           const [showSummary, setShowSummary] = useState(true);
           window.setSummary = setShowSummary;
@@ -206,6 +207,27 @@ if (!process.versions.electron) {
           assert.equal(header.border, '0px');
           assert.match(header.fade, /linear-gradient/);
           assert.ok(header.menuClickable, `${currentCase}: 渐隐层不遮挡代理列表按钮`);
+          const nameSelector = display === "compact" ? ".agent-compact-name" : ".tool-card-name";
+          assert.deepEqual(await evaluate(`[...document.querySelectorAll('#tools ${nameSelector}')].map(el => el.textContent)`), ["review", "research"]);
+          const metric = '#pane .agent-header-metric';
+          const value = `document.querySelector('${metric}').innerText.trim()`;
+          assert.doesNotMatch(await evaluate("document.querySelector('#pane .agent-pane-header').innerText"), /review|research/);
+          // Freeze rotation on focus, then step through a full cycle without moving the roster.
+          await evaluate(`document.querySelector('${metric}').focus()`);
+          const rosterX = await evaluate(`document.querySelector(${JSON.stringify(menu)}).getBoundingClientRect().right`);
+          const fixedLabels = `['.agent-model-name','.agent-model-effort','.agent-kind'].map(s => document.querySelector('#pane .agent-pane-title ' + s).innerText.trim())`;
+          for (const expected of ['2 tok', '48 tok/s']) {
+            assert.deepEqual(await evaluate(fixedLabels), ['Test model', '· 高', '执行']);
+            assert.equal(await evaluate(value), expected);
+            assert.equal(await evaluate(`document.querySelector(${JSON.stringify(menu)}).getBoundingClientRect().right`), rosterX);
+            await click(metric);
+          }
+          assert.equal(await evaluate(value), '2 tok');
+          await evaluate(`document.querySelector('${metric}').blur()`);
+          if (scheme === 'light' && display === 'compact' && !await evaluate("matchMedia('(prefers-reduced-motion: reduce)').matches")) {
+            await until(`${value} === '48 tok/s'`);
+            assert.deepEqual(await evaluate(fixedLabels), ['Test model', '· 高', '执行']);
+          }
           const before = await snapshot();
           assert.equal(before.tools.length, 2, `${currentCase}: 两张工具卡都有头像`);
           assert.equal(before.info.length, 2, `${currentCase}: 信息卡中运行与暂停代理都保留头像`);
@@ -229,19 +251,20 @@ if (!process.versions.electron) {
             assert.equal(img.alt, "");
             assert.equal(img.hidden, "true");
           }
-          assert.ok(await evaluate("Boolean(document.querySelector('#tools .tool-activity-loader') && document.querySelector('#pane .agent-pane-title .tool-activity-loader'))"), `${currentCase}: 运行状态独立于头像`);
+          assert.ok(await evaluate("Boolean(document.querySelector('#tools .tool-activity-loader'))"), `${currentCase}: 工具卡仍显示运行状态`);
           assert.ok(await evaluate("Boolean(document.querySelector('#tools .agent-status-dot.is-paused') && document.querySelector('#info .info-card-chip.is-paused'))"), `${currentCase}: 暂停状态独立于头像`);
 
-          // 真正点击暂停与继续控件，头像不跟随运行状态消失或变化。
-          await click('#pane .agent-pane-actions button[aria-label="暂停（在下一次调用工具前生效）"]');
-          await until("document.querySelector('#pane .agent-pane-title .agent-status-dot.is-paused')");
+          assert.equal(await evaluate("document.querySelectorAll('#pane .agent-pane-header .agent-control-btn').length"), 0);
+          await click(menu);
+          const activeRow = '#pane .agent-roster-row.is-active';
+          await click(`${activeRow} button[aria-label^="暂停"]`);
+          await until(`document.querySelector('${activeRow} button[aria-label="继续"]')`);
           assert.deepEqual(await evaluate("window.lastAgentControl"), { id: firstId, action: "pause" });
           assert.equal((await snapshot()).pane[0].src, sources[0]);
-          await click('#pane .agent-pane-actions button[aria-label="继续"]');
-          await until("document.querySelector('#pane .agent-pane-title .tool-activity-loader')");
+          await click(`${activeRow} button[aria-label="继续"]`);
+          await until(`document.querySelector('${activeRow} button[aria-label^="暂停"]')`);
           assert.deepEqual(await evaluate("window.lastAgentControl"), { id: firstId, action: "resume" });
 
-          await click(menu);
           await until("document.querySelectorAll('.agent-roster-menu-item img.agent-avatar').length === 2");
           await until(imagesReady);
           assert.deepEqual(await evaluate("[...document.querySelectorAll('.agent-roster-menu-item img.agent-avatar')].map(img => img.src)"), sources, `${currentCase}: roster 同图`);
@@ -249,6 +272,10 @@ if (!process.versions.electron) {
           await evaluate("document.querySelectorAll('.agent-roster-menu-item')[1].click()");
           await until(`window.activeAgentId === ${JSON.stringify(secondId)} && !document.querySelector('.agent-roster-menu') && document.querySelectorAll('#pane .agent-pane-title img.agent-avatar').length === 1`);
           assert.equal((await snapshot()).pane[0].src, sources[1], `${currentCase}: roster 切换面板使用所选身份`);
+          assert.deepEqual(await evaluate(fixedLabels), ['—', '· —', '查阅']);
+          assert.equal(await evaluate(value), '2 tok');
+          await click(metric);
+          assert.equal(await evaluate(value), '— tok/s', `${currentCase}: 不复用上一子代理的速度`);
           await click(menu);
           await until("document.querySelector('.agent-roster-menu')");
           await click(menu);
@@ -270,7 +297,7 @@ if (!process.versions.electron) {
             assert.equal(updated.pane[0].src, sources[1], `${currentCase}/${status}: 状态更新不改变头像`);
             assert.deepEqual(updated.tabs.map(img => img.src), sources, `${currentCase}/${status}: 标签头像不跟随状态变化`);
             const marker = status === "running" ? ".tool-activity-loader" : `.agent-status-dot.is-${status}`;
-            assert.ok(await evaluate(`document.querySelector('#pane .agent-pane-title ${marker}')?.getAttribute('aria-label')`), `${currentCase}/${status}: 顶栏保留带无障碍名称的状态标记`);
+            assert.ok(await evaluate("!document.querySelector('#pane .agent-pane-header :is(.tool-activity-loader,.agent-status-dot,.agent-pane-name)')"), `${currentCase}/${status}: 顶栏不显示状态标记或名称`);
             assert.ok(await evaluate(`Boolean(document.querySelectorAll('.workbench-tab')[1].querySelector(${JSON.stringify(marker)}))`), `${currentCase}/${status}: 标签状态标记仍可见`);
           }
           await until(imagesReady);

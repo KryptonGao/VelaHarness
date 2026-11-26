@@ -1044,6 +1044,8 @@ export interface AgentInfo {
   error: string | null;
   /** 累计 token；root 不统计。 */
   usage: AgentUsage;
+  /** Output tokens/s for this agent's last measured assistant response, excluding time to first output. */
+  outputSpeed?: number;
   /** 已结束的运行片段累计耗时（毫秒）。 */
   activeMs: number;
   /** 当前运行片段的开始时间；不在运行（含暂停、排队）时为 null。 */

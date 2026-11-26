@@ -3,18 +3,20 @@ import { webChatMessages } from "./web-chat-messages";
 import { VisualToolCard } from "./VisualToolCard";
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type MutableRefObject, type ReactNode } from "react";
 import { AgentRosterMenu } from "./AgentRosterMenu";
+import { AgentHeaderMetric } from "./AgentHeaderMetric";
 import { useEntryArrival } from "../hooks/useEntryArrival";
 import type { ToolDisplay, ToolFold } from "../hooks/usePreferences";
 import { useFrameTask } from "../hooks/useFrameTask";
 import { emptyMessages, type MessageStore } from "../hooks/message-store";
 import { useMessages } from "../hooks/useMessages";
 import type { UiMessage } from "../hooks/useSession";
-import { tr, trf, useAppLocale } from "../locale";
+import { tr, useAppLocale } from "../locale";
+import { agentNameFromReference } from "../agent-roster";
 import { ActivityIndicator } from "./ActivityIndicator";
 import { AgentAvatar } from "./AgentAvatar";
 import { AgentComposer } from "./AgentComposer";
 import {
-  AgentControls, AgentModelTag, AgentRunStats, AgentStatusMark, AgentTypeLabel, agentKindLabel, findAgentInfo, useAgentClock,
+  AgentElapsed, AgentModelTag, AgentTypeLabel, agentKindLabel, findAgentInfo, useAgentClock,
 } from "./AgentPanel";
 import { Markdown } from "./Markdown";
 import { AssistantMarkdown } from "./intelligent-ui/AssistantMarkdown";
@@ -194,19 +196,19 @@ function VisibleAgentPane({
       ref={arrivalRef}
       className="agent-pane"
       data-tool-display={toolDisplay ?? "card"}
-      aria-label={`${tr("子代理", "Subagent")} ${agent.path}`}
+      aria-label={`${tr("子代理", "Subagent")} ${agent.name}`}
     >
       <header className="agent-pane-header">
         <div className="agent-pane-title">
           <AgentAvatar agentId={agent.id} icon={agent.customProfile?.icon} />
-          <AgentStatusMark status={agent.status} />
-          <AgentBreadcrumb agent={agent} agents={agents} onSwitch={onSwitch} />
+          <AgentModelTag model={agent.model} thinkingLevel={agent.effectiveThinkingLevel ?? agent.thinkingLevel} showMissing />
           <AgentTypeLabel className="agent-kind" kind={agent.kind} profile={agent.customProfile} />
-          <AgentModelTag model={agent.model} thinkingLevel={agent.effectiveThinkingLevel ?? agent.thinkingLevel} />
         </div>
         <div className="agent-pane-actions">
-          <AgentRunStats agent={agent} now={now} />
-          <AgentControls agent={agent} onControl={onControl} />
+          <span className="agent-run-stats">
+            <AgentHeaderMetric key={agent.id} agent={agent} />
+            <AgentElapsed agent={agent} now={now} />
+          </span>
           <AgentRosterMenu agents={agents} activeId={agentId} onSelect={onSwitch} onControl={onControl} />
         </div>
       </header>
@@ -278,57 +280,6 @@ function VisibleAgentPane({
   );
 }
 
-/** 面包屑按树路径逐段展示，点任意祖先可直接切过去。 */
-function AgentBreadcrumb({
-  agent,
-  agents,
-  onSwitch,
-}: {
-  agent: AgentInfo;
-  agents: readonly AgentInfo[];
-  onSwitch: (agentId: string) => void;
-}) {
-  const parts = agent.path.split("/").filter(Boolean);
-  const nodes: ReactNode[] = [];
-  let accumulated = "";
-  parts.forEach((part, index) => {
-    accumulated += `/${part}`;
-    const target = index === 0
-      ? null
-      : agents.find((item) => item.kind !== "root" && item.path === accumulated) ?? null;
-    nodes.push(
-      <span className="agent-breadcrumb-sep" key={`sep-${accumulated}`} aria-hidden="true">
-        /
-      </span>,
-    );
-    nodes.push(
-      target ? (
-        <button
-          key={accumulated}
-          className="agent-breadcrumb-segment is-link"
-          type="button"
-          title={trf("切换到 {0}", "Switch to {0}", accumulated)}
-          onClick={() => onSwitch(target.id)}
-        >
-          <span className="overflow-fade-text">{part}</span>
-        </button>
-      ) : (
-        <span
-          key={accumulated}
-          className={`agent-breadcrumb-segment overflow-fade-text${index === parts.length - 1 ? " is-current" : ""}`}
-        >
-          {part}
-        </span>
-      ),
-    );
-  });
-  return (
-    <nav className="agent-breadcrumb" aria-label={tr("agent 路径", "Agent path")}>
-      {nodes}
-    </nav>
-  );
-}
-
 const AgentStreamMessage = memo(function AgentStreamMessage({
   message,
   senderAgent,
@@ -345,7 +296,8 @@ const AgentStreamMessage = memo(function AgentStreamMessage({
   useAppLocale();
   if (message.role === "user") {
     const sender = message.inputSender;
-    const label = sender === "/root" ? agentKindLabel("root") : sender === "user" ? tr("用户", "User") : sender;
+    const label = sender === "/root" ? agentKindLabel("root") : sender === "user" ? tr("用户", "User")
+      : senderAgent?.name ?? agentNameFromReference(sender);
     const roleIcon = sender === "/root" ? "sparkles" : sender === "user" ? "user" : undefined;
     return (
       <article className="agent-stream-message is-user" data-arrival-key={message.id}>

@@ -38,24 +38,21 @@
   gap: 8px;
   flex: none;
 }
-.agent-breadcrumb {
-  display: flex;
-  align-items: baseline;
+.agent-header-metric {
+  display: grid;
   min-width: 0;
-  overflow: hidden;
-  font-family: var(--font-mono);
-  font-size: calc(13px * var(--code-scale));
+  padding: 2px 0;
+  border-radius: var(--radius-xs);
+  color: inherit;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+  cursor: pointer;
 }
-.agent-breadcrumb-sep { color: var(--text-muted); }
-.agent-breadcrumb-segment {
-  max-width: 150px;
-  overflow: hidden;
-  white-space: nowrap;
-  color: var(--text-muted);
-}
-.agent-breadcrumb-segment.is-current { color: var(--text-primary); font-weight: 600; }
-.agent-breadcrumb-segment.is-link { cursor: pointer; color: var(--text-secondary); }
-.agent-breadcrumb-segment.is-link:hover { color: var(--accent-blue); }
+.agent-header-metric:hover { background: var(--bg-hover); }
+/* Stack the values in one cell to keep the badge stable as the selection changes. */
+.agent-header-metric > span { grid-area: 1 / 1; min-width: 0; }
+.agent-header-metric > [aria-hidden="true"] { visibility: hidden; }
 .agent-pane-scroll {
   flex: 1;
   min-height: 0;
@@ -201,7 +198,7 @@
 }
 .agent-control-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
 .agent-control-btn.is-danger:hover { color: var(--danger); }
-.agent-roster-menu-path {
+.agent-roster-menu-name {
   min-width: 0;
   flex: 1;
   overflow: hidden;

@@ -92,8 +92,9 @@ describe("子代理历史恢复", () => {
           ] };
           finish = "tool_calls";
         } else if (!isChild && body.tools?.length && !calls.some((call: { function: { name: string } }) => call.function.name === "spawn_agent")) {
+          assert.match(JSON.stringify(body.messages), /choose a real scientist, artist, or other notable figure whose work fits the delegated task/);
           delta = { role: "assistant", tool_calls: [
-            { index: 0, id: "spawn-history", type: "function", function: { name: "spawn_agent", arguments: JSON.stringify({ agent: "explore", name: "sdk-history", task: "读取 fixture.txt，汇报文件内容", fork: "all" }) } },
+            { index: 0, id: "spawn-history", type: "function", function: { name: "spawn_agent", arguments: JSON.stringify({ agent: "explore", name: "Herodotus", task: "读取 fixture.txt，汇报文件内容", fork: "all" }) } },
           ] };
           finish = "tool_calls";
         } else {
@@ -125,6 +126,7 @@ describe("子代理历史恢复", () => {
       assert.ok(id);
       const events: RuntimeEvent[] = [];
       runtime.subscribe(event => events.push(event));
+      await runtime.saveAgentSettings({ ...await runtime.getAgentSettings(), subagentNamingStyle: "artistic" });
       await runtime.prompt(id, "执行本地子代理测试");
       for (let i = 0; i < 300 && !runtime.getAgents(id).some((item) => item.kind !== "root" && item.status === "completed"); i++) {
         await new Promise((resolve) => setTimeout(resolve, 10));
@@ -132,6 +134,8 @@ describe("子代理历史恢复", () => {
       assert.deepEqual(failures, []);
       const child = runtime.getAgents(id).find((item) => item.kind !== "root");
       assert.equal(child?.status, "completed"); assert.ok(child);
+      assert.equal(child.name, "Herodotus"); // The model's choice is used verbatim, not picked from a host list.
+      assert.equal(child.path, `/root/${child.name}`);
       // Identical input text from two senders must retain distinct attribution.
       const input = "读取 fixture.txt，汇报文件内容";
       runtime.sendAgentMessage(id, child.id, input);
@@ -159,6 +163,7 @@ describe("子代理历史恢复", () => {
       assert.ok(stored.conversations.find((item: { id: string }) => item.id === id).agents[0].sessionFile);
       const restarted = new AgentRuntime({ cwd: dir, agentDir: dir }); runtimes.push(restarted);
       await restarted.switchConversation(id);
+      assert.equal(restarted.getAgents(id).find(a => a.id === child.id)?.name, child.name);
       assert.ok(restarted.getAgentMessages(id, child.id).some(m => m.text === "执行本地子代理测试"), "SDK really forked the root input");
       const restored = restarted.getAgentMessages(id, child.id, "owned");
       assert.ok(!restored.some(m => m.text === "执行本地子代理测试"));

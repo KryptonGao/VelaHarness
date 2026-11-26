@@ -674,6 +674,30 @@ describe("单个子代理的暂停、继续与取消", () => {
     assert.throws(() => control.cancel("missing"), /不存在/);
   });
 
+  it("measures the child's output speed from its first delta, not the queue or tool runtime", async (t) => {
+    let now = 0;
+    t.mock.method(performance, "now", () => now);
+    const { control, host } = createControl();
+    host.sessionFactory = () => {
+      const session = new FakeSession();
+      session.responder = async () => {
+        session.emit({ type: "message_start", message: assistantText("") } as AgentSessionEvent);
+        now = 8000;
+        session.emit({ type: "message_update", assistantMessageEvent: { type: "thinking_delta", delta: "…" } } as AgentSessionEvent);
+        now += 500;
+        session.emit({ type: "message_end", message: { role: "assistant", usage: { output: 20 } } } as AgentSessionEvent);
+        return "done";
+      };
+      return session;
+    };
+    const child = control.spawn("root-id", { kind: "general", task: "measure", name: "sample" });
+    await waitFor(() => info(control, child.id).status === "completed", "child completed");
+    assert.equal(info(control, child.id).outputSpeed, 40);
+    assert.equal(info(control, "root-id").outputSpeed, undefined);
+    const restored = new AgentControl({ host, conversationId: "root-id", restoredAgents: control.storedAgents() });
+    assert.equal(info(restored, child.id).outputSpeed, 40);
+  });
+
   it("按会话统计累计 token，并只计运行耗时", async () => {
     const { control, host } = createControl();
     host.sessionFactory = () => {

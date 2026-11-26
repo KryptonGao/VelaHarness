@@ -296,7 +296,7 @@ section.compact-diff-card                    ← 1px --border-subtle,10px 圆角
 div.tool-compact-item.tool-kind-other.agent-compact[.open]
 ├─ div.tool-compact-line.agent-compact-line          ← 点击除名称外的任何地方开合概况
 │  ├─ button.agent-compact-toggle.is-lead            ← 子代理图标 + 种类词(查阅 / 执行 / 子代理),flex: none
-│  ├─ button.agent-compact-name                      ← 路径,mono 14px --text-primary;点击在右侧 Pane 打开;无目标时 disabled
+│  ├─ button.agent-compact-name                      ← Short agent name, mono 14px --text-primary; opens the right pane, disabled without a target
 │  ├─ button.agent-compact-toggle.is-tail            ← flex: 1;箭头紧跟名称,剩余空间仍属开合区域
 │  │   └─ svg.tool-compact-chevron + 状态标记        ← 运行中点阵 / .agent-status-dot.is-<status>(8px 圆点)
 │  └─ span.tool-duration

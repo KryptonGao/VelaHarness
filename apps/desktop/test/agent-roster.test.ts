@@ -83,6 +83,13 @@ describe("indexAgentHistory", () => {
     assert.equal(restored.get("a")?.finalText, "first");
   });
 
+  it("restores a nested agent's short name without changing its identity or path", () => {
+    const restored = indexAgentHistory([{ tools: [{ id: "t1", name: "spawn_agent", status: "done",
+      activity: { agentId: "child-id", agentPath: "/root/review/tests" } }] }]);
+    assert.equal(restored.get("child-id")?.name, "tests");
+    assert.equal(restored.get("child-id")?.path, "/root/review/tests");
+  });
+
   it("maps tool status and ignores tools without an agent id", () => {
     const restored = indexAgentHistory([
       { tools: [tool("t1", "a", "running"), tool("t2", "b", "error"), { id: "t3", name: "bash", status: "done" }] },

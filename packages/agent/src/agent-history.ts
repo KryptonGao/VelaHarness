@@ -60,6 +60,7 @@ export function normalizeStoredAgents(value: unknown): StoredAgent[] {
       finalText: typeof record.finalText === "string" ? unwrapAgentReport(record.finalText) : null,
       error: typeof record.error === "string" ? record.error : null,
       usage: normalizeUsage(record.usage),
+      outputSpeed: Math.max(0, finiteNumber(record.outputSpeed)) || undefined,
       activeMs: finiteNumber(record.activeMs),
       // 进程退出时的运行片段不再续计。
       runningSince: null,

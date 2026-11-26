@@ -131,6 +131,7 @@ interface ManagedAgent {
   unsubscribe: (() => void) | null;
   queue: AgentTask[];
   pendingInputSender?: string;
+  firstOutputAt?: number;
   processing: boolean;
   running: boolean;
   aborted: boolean;
@@ -856,8 +857,21 @@ export class AgentControl {
       agentId: agent.info.id,
       event,
     });
+    if (event.type === "message_start" && event.message.role === "assistant") delete agent.firstOutputAt;
+    if (event.type === "message_update" && agent.firstOutputAt === undefined) {
+      const update = event.assistantMessageEvent;
+      if ((update.type === "text_delta" || update.type === "thinking_delta" || update.type === "toolcall_delta") && update.delta) {
+        agent.firstOutputAt = performance.now();
+      }
+    }
     if (event.type === "message_end" && event.message.role === "assistant") {
-      if (this.refreshUsage(agent)) {
+      const elapsed = agent.firstOutputAt === undefined ? 0 : performance.now() - agent.firstOutputAt;
+      delete agent.firstOutputAt;
+      const output = event.message.usage?.output ?? 0;
+      // As in the main chat, discard near-instant/buffered samples rather than showing a spurious rate.
+      const measured = elapsed >= 200 && Number.isFinite(output) && output > 0;
+      if (measured) agent.info.outputSpeed = output * 1000 / elapsed;
+      if (this.refreshUsage(agent) || measured) {
         agent.info.updatedAt = Date.now();
         this.emit();
       }

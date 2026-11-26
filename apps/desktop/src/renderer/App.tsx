@@ -653,7 +653,7 @@ export function App() {
       id: scopedTabId("agent", conversationKey, agent.id),
       kind: "agent",
       label: agent.name,
-      title: agent.path,
+      title: agent.name,
       agent,
     }));
   }, [allAgents, openedAgentsByConversation, conversationKey]);

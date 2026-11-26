@@ -1134,6 +1134,7 @@ export function sanitizeAgents(value: unknown): AgentInfo[] {
       finalText: typeof record.finalText === "string" ? record.finalText : null,
       error: typeof record.error === "string" ? record.error : null,
       usage: sanitizeUsage(record.usage),
+      outputSpeed: finiteOr0(record.outputSpeed) || undefined,
       activeMs: finiteOr0(record.activeMs),
       runningSince: typeof record.runningSince === "number" && Number.isFinite(record.runningSince) ? record.runningSince : null,
       pauseRequested: record.pauseRequested === true,

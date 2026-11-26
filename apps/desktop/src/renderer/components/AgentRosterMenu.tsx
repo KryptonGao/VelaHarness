@@ -31,7 +31,7 @@ export function AgentRosterMenu({ agents, activeId, onSelect, onSelectRoot, onCo
   if (!items.length && !onSelectRoot) return null;
   const selected = items.find((item) => item.id === activeId);
   const rootLabel = tr("主代理", "Main agent");
-  const label = onSelectRoot ? selected?.path ?? rootLabel : tr("子代理面板", "Subagents panel");
+  const label = onSelectRoot ? selected?.name ?? rootLabel : tr("子代理面板", "Subagents panel");
   const active = items.filter((item) => isAgentBusy(item.status)).length;
   const totalTokens = items.reduce((sum, item) => sum + item.usage.total, 0);
   const close = () => { setOpen(false); trigger.current?.focus(); };
@@ -78,11 +78,11 @@ export function AgentRosterMenu({ agents, activeId, onSelect, onSelectRoot, onCo
           {items.map((item) => (
             <div key={item.id} className={`agent-roster-row${item.id === activeId ? " is-active" : ""}`}
               style={{ paddingLeft: 10 + Math.max(0, item.depth - 1) * 14 }}>
-              <button className="agent-roster-menu-item" type="button" role="option" title={item.path}
+              <button className="agent-roster-menu-item" type="button" role="option" title={item.name}
                 aria-selected={item.id === activeId} onClick={() => { close(); onSelect(item.id); }}>
                 <AgentAvatar agentId={item.id} icon={item.customProfile?.icon} />
                 <AgentStatusMark status={item.status} />
-                <span className="agent-roster-menu-path">{item.path}</span>
+                <span className="agent-roster-menu-name">{item.name}</span>
                 <AgentTypeLabel className="agent-roster-menu-meta" kind={item.kind} profile={item.customProfile} />
                 <AgentModelTag model={item.model} thinkingLevel={item.effectiveThinkingLevel ?? item.thinkingLevel} />
               </button>
