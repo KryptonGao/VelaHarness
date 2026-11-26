@@ -13,14 +13,14 @@ interface SettingsBlockProps {
   /** 与文字同行、排在右侧的装饰内容(如选项预览动画);窄屏时落到文字下方。 */
   aside?: ReactNode;
   /**
-   * 放在 SettingsGroup 卡片里时的排版:inline 把控件放在文字右侧(开关、分段按钮、下拉框),
+   * 设置项在 SettingsGroup 里的排版:inline 把控件放在文字右侧(开关、分段按钮、下拉框),
    * stacked(默认)让控件独占文字下方整行(主题卡片、文本框、列表)。
    */
   layout?: "inline" | "stacked";
   children: ReactNode;
 }
 
-/** 一组设置项:可选的小标题 + 一张圆角卡片,卡片里每个 SettingsBlock 是一行。 */
+/** 一组设置项：标题可选，各行之间用横线分隔。 */
 export function SettingsGroup({ title, children }: { title?: string; children: ReactNode }) {
   return (
     <section className="settings-group">

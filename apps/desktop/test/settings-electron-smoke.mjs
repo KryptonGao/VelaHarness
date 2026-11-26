@@ -92,6 +92,12 @@ try {
   assert.ok(geo.inView, "permissions block visible");
   assert.equal(geo.view, 0); assert.equal(geo.doc, 0); assert.equal(geo.body, 0);
   console.log("PASS search jumps and scrolls only the content pane");
+  const dividers = await ev(`(() => {
+    const list = document.querySelector('.settings-group-title + .settings-card');
+    const widths = el => { const s = getComputedStyle(el); return [s.borderTopWidth, s.borderRightWidth, s.borderBottomWidth, s.borderLeftWidth]; };
+    return [widths(list), widths(list.children[0]), widths(list.children[1])];
+  })()`);
+  assert.deepEqual(dividers, [["1px", "0px", "0px", "0px"], ["0px", "0px", "0px", "0px"], ["1px", "0px", "0px", "0px"]], "single dividers below the heading and between settings, without an outer frame");
 
   // scrollbars only show while scrolling
   const thumb = selector => ev(`getComputedStyle(document.querySelector('${selector}'), '::-webkit-scrollbar-thumb').backgroundColor`);

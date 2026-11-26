@@ -172,19 +172,14 @@
 .settings-block-text,
 .settings-block-body { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 
-/* ---------- 卡片分组:一组设置项 = 一张圆角卡片,每个设置项是其中一行 ---------- */
+/* 设置分组不加外框，只在标题下方和相邻行之间画分割线。 */
 .settings-group { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
-.settings-group-title { margin: 0 2px; font-size: calc(15px * var(--ui-scale)); font-weight: 650; }
-.settings-card {
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  overflow: clip;
-  min-width: 0;
-}
+.settings-group-title { margin: 0; font-size: calc(15px * var(--ui-scale)); font-weight: 650; }
+.settings-card { min-width: 0; }
+.settings-group-title + .settings-card,
 .settings-card > * + * { border-top: 1px solid var(--border-subtle); }
 .settings-card > .settings-block,
-.settings-card > .settings-collapsible { padding: 14px 18px; gap: 10px; }
+.settings-card > .settings-collapsible { padding: 14px 0; gap: 10px; }
 .settings-card > .settings-block .settings-block-text { gap: 3px; }
 .settings-card > .settings-block h3 { font-size: calc(15px * var(--ui-scale)); font-weight: 560; line-height: 1.35; }
 .settings-card > .settings-block .settings-hint,
@@ -390,7 +385,7 @@ button.settings-select-trigger:hover:not(:disabled) { background-color: var(--se
 .theme-group-label { font-size: calc(15px * var(--ui-scale)); font-weight: 600; color: var(--text-muted); }
 /* 最多三行,超出部分在容器内滚动并上下渐隐;内边距给选中描边和焦点环留位置,负外边距抵掉它。 */
 .theme-grid-frame { margin: -6px; }
-.thinking-scroll-shell.theme-grid-scroll { --scroll-fade-background: var(--bg-elevated); }
+.thinking-scroll-shell.theme-grid-scroll { --scroll-fade-background: var(--bg-chat); }
 .theme-grid-scroll > .thinking-scroll-viewport { max-height: calc(var(--theme-grid-max-height, 9999px) + 12px); scrollbar-gutter: auto; }
 .theme-grid-scroll .thinking-scroll-viewport .thinking-text { padding: 6px; color: inherit; font-size: inherit; line-height: inherit; }
 .theme-grid {
@@ -1055,13 +1050,13 @@ button.settings-radio:hover:not(:disabled) { background: var(--bg-hover); }
 
 /* 可自定义的快捷键 */
 .settings-shortcuts-toolbar { display: flex; justify-content: flex-end; margin-bottom: 4px; }
-/* 快捷键页的卡片排版:每行是卡片里的一行,与其他设置页一致 */
+/* 快捷键行与其他设置项使用相同的左右对齐方式 */
 .settings-shortcuts-intro { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: -10px; }
 .settings-shortcuts-intro .settings-hint { margin: 0; }
 .settings-shortcuts-intro .settings-shortcut-reset-all { flex-shrink: 0; }
-.settings-card > .settings-shortcut-row { padding: 12px 18px; }
+.settings-card > .settings-shortcut-row { padding: 12px 0; }
 .settings-card > .settings-shortcut-row > .settings-shortcut { padding: 0; }
-.settings-card > .settings-shortcut { padding: 14px 18px; }
+.settings-card > .settings-shortcut { padding: 14px 0; }
 .settings-card .settings-shortcut-error { margin: 6px 0 0; }
 .settings-shortcut-reset-all {
   font: inherit; font-size: calc(13px * var(--ui-scale)); color: var(--text-secondary);
@@ -1139,10 +1134,7 @@ button.settings-radio:hover:not(:disabled) { background: var(--bg-hover); }
 .settings-menu-desc { color: var(--text-secondary); font-size: calc(13px * var(--ui-scale)); line-height: 1.4; }
 .settings-menu-check { display: grid; place-items: center; flex-shrink: 0; color: var(--text-primary); }
 
-/*
- * 其余页面里的卡片式容器(提供商、集成、MCP 服务器、Skill 列表、最近使用……)原来是一整块灰底,
- * 与新的设置卡片不一致:统一成白底加一圈细描边。描边用 inset 阴影画,不改变盒子尺寸。
- */
+/* 提供商、集成等独立卡片保留底色和内描边。 */
 .settings-content :is(
   .integration-card,
   .settings-provider,

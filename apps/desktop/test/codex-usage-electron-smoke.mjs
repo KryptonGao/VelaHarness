@@ -73,7 +73,7 @@ async function runSmoke() {
   await until(() => run(`Boolean(${warning})`), "incomplete metering warning");
   assert.equal(await run(`${warning} === document.querySelector('.settings-usage').lastElementChild
     && ${toggle}.closest('.settings-group') === ${warning}.previousElementSibling`), true);
-  assert.equal(await run(`getComputedStyle(${warning}).borderRadius === getComputedStyle(${toggle}.closest('.settings-card')).borderRadius`), true);
+  assert.equal(await run(`getComputedStyle(${warning}).borderRadius`), await run(`getComputedStyle(${warning}).getPropertyValue('--radius-lg').trim()`));
   assert.equal(await run(`${warning}.querySelector('button').textContent`), "Ignore");
   await run(`${warning}.querySelector('button').click()`);
   await until(() => run(`!${warning}`), "dismissed warning");
