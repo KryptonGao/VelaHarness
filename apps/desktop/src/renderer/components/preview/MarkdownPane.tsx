@@ -18,6 +18,7 @@ import {
   headingIdsByLine,
   headingSlug,
 } from "./markdown-path";
+import { splitFrontmatter, type FrontmatterEntry } from "./markdown-frontmatter";
 import { highlightSnippet, languageForFence, type ThemedToken } from "./highlighter";
 import { tr } from "../../locale";
 import { useFilePreview } from "./FilePreviewContext";
@@ -72,7 +73,8 @@ export function MarkdownPane({
 }) {
   const preview = useFilePreview();
   const scrollRef = useRef<HTMLDivElement>(null);
-  const headingIds = useMemo(() => headingIdsByLine(text), [text]);
+  const { entries: frontmatter, body } = useMemo(() => splitFrontmatter(text), [text]);
+  const headingIds = useMemo(() => headingIdsByLine(body), [body]);
   const scrollKey = `${documentPath}::markdown`;
   const context = useMemo<PreviewMarkdownContextValue>(
     () => ({ documentPath, headingIds, revision }),
@@ -93,18 +95,42 @@ export function MarkdownPane({
         className="preview-markdown-scroll"
         onScroll={(event) => preview?.setTabScroll(scrollKey, event.currentTarget.scrollTop)}
       >
+        {frontmatter.length > 0 ? <FrontmatterCard entries={frontmatter} /> : null}
         <div className="md-content">
           <ReactMarkdown
             remarkPlugins={remarkPlugins}
             urlTransform={previewUrlTransform}
             components={previewComponents}
           >
-            {text}
+            {body}
           </ReactMarkdown>
         </div>
         {truncated ? <p className="preview-markdown-note">{tr("文件超过 1 MB，仅显示开头部分。", "File exceeds 1 MB. Showing the beginning only.")}</p> : null}
       </div>
     </PreviewMarkdownContext.Provider>
+  );
+}
+
+function FrontmatterCard({ entries }: { entries: FrontmatterEntry[] }) {
+  return (
+    <dl className="md-frontmatter">
+      {entries.map((entry) => (
+        <div className="md-frontmatter-row" key={entry.key}>
+          <dt>{entry.key}</dt>
+          <dd>
+            {Array.isArray(entry.value) ? (
+              <span className="md-frontmatter-tags">
+                {entry.value.map((item, index) => (
+                  <code key={`${item}-${index}`}>{item}</code>
+                ))}
+              </span>
+            ) : (
+              entry.value
+            )}
+          </dd>
+        </div>
+      ))}
+    </dl>
   );
 }
 
