@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  browserResultJsonParts,
   completeResultJson,
   humanizeMcpNames,
   isMcpDiscoveryTool,
@@ -37,6 +38,22 @@ describe("tool result model: safe JSON views", () => {
     const deep = completeResultJson("[".repeat(20) + "0" + "]".repeat(20));
     assert.ok(deep);
     assert.equal(deep.truncated, true);
+  });
+
+  it("separates newline-joined browser writes without splitting nested values or escaped strings", () => {
+    const snapshot = { text: '[r1] button {"label"}\n[r2] link ] \\', title: "Usage" };
+    const writes = [snapshot, [{ message: "diagnostic" }], null, false];
+    const bodies = writes.map(value => JSON.stringify(value, null, 2));
+    const parts = browserResultJsonParts(bodies.join("\r\n\r\n"));
+    assert.deepEqual(parts?.map(part => part.body), bodies);
+    assert.deepEqual(plain(parts?.map(part => part.value)), writes);
+    assert.deepEqual(plain(browserResultJsonParts('```json\n[1,2]\n```')?.map(part => part.value)), [[1, 2]]);
+  });
+
+  it("falls back to the whole browser output for mixed logs, incomplete or oversized sequences", () => {
+    for (const body of ['{}\nordinary log\n[]', '{}\n[]\n{"cut":', '{}\n[]\n"cut\\', '{}[]', '{}\n'.repeat(101), ' '.repeat(80_000) + '{}\n[]']) {
+      assert.equal(browserResultJsonParts(body), undefined);
+    }
   });
 
   it("uses tables only for matching small scalar object schemas", () => {

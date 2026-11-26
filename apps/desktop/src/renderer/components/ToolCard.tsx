@@ -10,7 +10,7 @@ import { AgentCallDetails } from "./AgentCallDetails";
 import { Markdown } from "./Markdown";
 import { McpToolDetails } from "./McpToolDetails";
 import { ToolResultDetails } from "./ToolResultDetails";
-import { completeResultJson, isMcpDiscoveryTool, needsRawResultFallback, splitMcpQuery } from "./tool-result-model";
+import { browserResultJsonParts, isMcpDiscoveryTool, needsRawResultFallback, splitMcpQuery } from "./tool-result-model";
 import { ScrollFade } from "./ScrollFade";
 import {
   AgentStatusMark,
@@ -465,6 +465,24 @@ function BrowserSnapshotView({ snapshot }: { snapshot: NonNullable<ReturnType<ty
   );
 }
 
+function BrowserOutput({ output, tool }: { output: string; tool: ToolTrace }) {
+  const activity = tool.activity;
+  const presentation = activity?.presentation;
+  const parts = useMemo(() => {
+    if (tool.status === "error") return undefined;
+    if (presentation?.kind === "json") return [{ body: output, presentation }];
+    return browserResultJsonParts(output)?.map(({ body, ...result }) => ({
+      body, presentation: { kind: "json", version: 1, source: "result", ...result } as const,
+    }));
+  }, [output, presentation, tool.status]);
+  if (!parts) return <pre className="browser-call-text">{output || tr("执行失败", "Execution failed")}</pre>;
+  return <>{parts.map(({ body, presentation }, index) => {
+    const snapshot = parsePageSnapshot(presentation.value);
+    return snapshot ? <BrowserSnapshotView key={index} snapshot={snapshot} />
+      : <ToolResultDetails key={index} activity={{ ...activity, body: body || undefined, presentation }} status={tool.status} toolName={tool.name} />;
+  })}</>;
+}
+
 /**
  * Browser REPL 专属样式:不再显示一行 `browser_repl`,而是把代码归纳成「打开 → 截图」这样的动作芯片,
  * 展开后是 REPL 代码、文字输出和带地址栏的截图缩略图。
@@ -477,10 +495,6 @@ function BrowserReplCard({ tool, compact = false }: { tool: ToolTrace; compact?:
   const failed = tool.status === "error";
   const steps = useMemo(() => summarizeBrowserCode(activity.command), [activity.command]);
   const { screenshots, output } = useMemo(() => splitBrowserBody(activity.body), [activity.body]);
-  const structuredOutput = useMemo(() => activity.presentation?.kind === "json"
-    ? { value: activity.presentation.value, truncated: activity.presentation.truncated }
-    : completeResultJson(output), [activity.presentation, output]);
-  const snapshot = useMemo(() => parsePageSnapshot(structuredOutput?.value), [structuredOutput]);
   const url = useMemo(() => lastBrowserUrl(activity.command), [activity.command]);
   const preview = firstCodeLine(activity.command);
 
@@ -516,10 +530,10 @@ function BrowserReplCard({ tool, compact = false }: { tool: ToolTrace; compact?:
                 <pre className="browser-call-code"><span className="browser-call-prompt" aria-hidden="true">›</span>{activity.command}</pre>
               </ScrollFade>
             ) : null}
-            {output || structuredOutput ? (
+            {output || activity.presentation?.kind === "json" ? (
               <div className={`browser-call-output${failed ? " failed" : ""}`}>
-                <ScrollFade className="tool-details-scroll" ariaLabel={tr("浏览器输出，可在区域内滚动", "Browser output, scrollable")}>
-                  {snapshot && !failed ? <BrowserSnapshotView snapshot={snapshot} /> : structuredOutput && !failed ? <ToolResultDetails activity={{ ...activity, body: output || undefined, presentation: activity.presentation?.kind === "json" ? activity.presentation : { version: 1, source: "result", kind: "json", ...structuredOutput } }} status={tool.status} toolName={tool.name} /> : <ToolMarkdown text={output || tr("执行失败", "Execution failed")} className="browser-call-text" />}
+                <ScrollFade className="tool-details-scroll" contentClassName="browser-output-parts" ariaLabel={tr("浏览器输出，可在区域内滚动", "Browser output, scrollable")}>
+                  <BrowserOutput output={output} tool={tool} />
                 </ScrollFade>
               </div>
             ) : running ? (

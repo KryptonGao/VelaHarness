@@ -57,6 +57,34 @@ export function completeResultJson(text: string): { value: JsonValue; truncated:
   try { return boundToolJson(JSON.parse(source)); } catch { return undefined; }
 }
 
+/** Browser REPL bodies join separate writes with newlines. Only split at the top level,
+ * and only promote the sequence when every write parses; keep mixed logs intact. */
+export function browserResultJsonParts(text: string) {
+  if (!text || text.length > 80_000) return undefined;
+  const single = completeResultJson(text);
+  if (single) return [{ body: text, ...single }];
+
+  const parts: { body: string; value: JsonValue; truncated: boolean }[] = [];
+  let start = 0, depth = 0, quoted = false;
+  for (let i = 0; i <= text.length; i++) {
+    const ch = text[i];
+    if (i === text.length || (ch === "\n" && depth === 0 && !quoted)) {
+      const body = text.slice(start, i).trim();
+      start = i + 1;
+      if (!body) continue;
+      const parsed = completeResultJson(body);
+      if (!parsed || parts.length >= 100) return undefined;
+      parts.push({ body, ...parsed });
+    } else if (quoted) {
+      if (ch === "\\" && i + 1 < text.length) i++;
+      else if (ch === '"') quoted = false;
+    } else if (ch === '"') quoted = true;
+    else if (ch === "{" || ch === "[") depth++;
+    else if (ch === "}" || ch === "]") depth--;
+  }
+  return parts.length > 1 ? parts : undefined;
+}
+
 export function resultText(value: unknown): string | undefined {
   return typeof value === "string" ? value : undefined;
 }

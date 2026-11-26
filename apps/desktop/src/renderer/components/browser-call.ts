@@ -18,13 +18,14 @@ export interface BrowserStep {
 
 const MAX_STEPS = 3;
 
-const screenshotPattern = /!\[Browser screenshot\]\((data:image\/(?:png|jpeg|webp|gif);base64,[A-Za-z0-9+/=]+)\)/g;
+// Strip the attachment separator, not whitespace from the REPL output itself.
+const screenshotPattern = /(?:\n\n)?!\[Browser screenshot\]\((data:image\/(?:png|jpeg|webp|gif);base64,[A-Za-z0-9+/=]+)\)/g;
 
 /** 把截图图片从 Markdown 输出里抽出来,剩下的就是文字输出。 */
 export function splitBrowserBody(body: string | undefined): { screenshots: string[]; output: string } {
   const text = body ?? "";
   const screenshots = [...text.matchAll(screenshotPattern)].map((match) => match[1]!);
-  return { screenshots, output: text.replace(screenshotPattern, "").trim() };
+  return { screenshots, output: text.replace(screenshotPattern, "") };
 }
 
 /** 网址缩成 host + path:去掉协议、www 和末尾斜杠;解析不了时仅去掉 HTTP 协议和末尾斜杠。 */

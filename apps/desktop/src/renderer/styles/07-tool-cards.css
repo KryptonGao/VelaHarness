@@ -125,8 +125,15 @@
   font-size: calc(13px * var(--ui-scale));
   color: var(--text-secondary);
 }
-.browser-call-output.failed, .browser-call-output.failed .tool-markdown { color: var(--danger); }
-.browser-call-text { margin: 0; }
+.browser-call-output.failed { color: var(--danger); }
+.browser-call-text {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: calc(13px * var(--code-scale));
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.browser-output-parts > * + * { margin-top: 8px; }
 .browser-snapshot { display: flex; flex-direction: column; gap: 6px; }
 .browser-snapshot-head { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .browser-snapshot-head strong { font-weight: 600; color: var(--text-primary); overflow-wrap: anywhere; }

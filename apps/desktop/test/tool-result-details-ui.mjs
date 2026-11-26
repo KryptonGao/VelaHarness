@@ -11,6 +11,7 @@ import { fileURLToPath } from "node:url";
 const here = dirname(fileURLToPath(import.meta.url));
 const require = createRequire(resolve(here, "../package.json"));
 const image = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jQGQAAAAASUVORK5CYII=";
+const rawBrowser = '  Browser fixture output\n\t**literal**  log\n{"partial":  \n';
 const rawShell = "shell bg-ui-1 (exited with code 1): node apps/desktop/test-center/server.mjs --run ui:stream-performance\n\n(no new output)";
 const longPath = "/workspace/" + "long-project-segment/".repeat(18) + "memory.md";
 const timestamp = Date.UTC(2026, 0, 2, 12, 30);
@@ -77,7 +78,11 @@ const fixtures = {
   "mcp-structured": [tool("mcp__fixture__nested", presentation("json", { value: { nested: { items: [{ name: "Structured MCP row", value: null }] } } }), undefined, "done", { mcp: { server: "fixture", tool: "nested" } })],
   "mcp-search": [tool("mcp__fixture__search", undefined, JSON.stringify({ results: [{ title: "UI search result", url: "https://example.test/result", highlight: "A **search** snippet", type: "page" }] }), "done", { mcp: { server: "fixture", tool: "search" } })],
   "browser-json": [tool("browser_repl", undefined, JSON.stringify({ browserValue: null, browserList: [{ name: "Browser JSON row" }] }), "done", { command: "nodeRepl.write({ browserValue: null })" })],
-  "browser-shot": [tool("browser_repl", undefined, `Browser fixture output\n\n![Browser screenshot](data:image/png;base64,${image})`, "done", { command: "await tab.screenshot()" })],
+  "browser-snapshot-console": [tool("browser_repl", undefined, [
+    { text: "[tab:1] button 模型与思考强度\n[tab:2] button 额度已用 25%", title: "Usage limit ring", url: "https://example.test/usage" },
+    { collectedAt: timestamp, cursor: 0, entries: [] },
+  ].map(value => JSON.stringify(value, null, 2)).join("\n"), "done", { command: "nodeRepl.write(await tab.snapshot());\nnodeRepl.write(await tab.console({limit:5}));" })],
+  "browser-shot": [tool("browser_repl", undefined, `${rawBrowser}\n\n![Browser screenshot](data:image/png;base64,${image})`, "done", { command: "await tab.screenshot()" })],
   "browser-reset": [tool("browser_repl_reset", presentation("notice", { code: "browser-reset" }), "Browser REPL context reset; pages retained.")],
   diff: [tool("edit", undefined, undefined, "done", { path: "fixture.ts", diff: "-1 const oldValue = 1;\n+1 const newValue = 2;" })],
   checklist: [tool("update_todos", undefined, "Fixture checklist", "done", { plan: [{ text: "Completed fixture step", status: "completed" }, { text: "定位起始页问好文案及其多语言配置", status: "in_progress" }, { text: "Pending fixture step", status: "pending" }] })],
@@ -369,8 +374,17 @@ if (!process.versions.electron) {
         await openCase("browser-json", display);
         assert.match(await visibleText(), /browserValue/);
         assert.ok(await evaluate("!!document.querySelector('.browser-call-output .tool-result-json')"));
+        await openCase("browser-snapshot-console", display, "light", 360);
+        assert.equal(await evaluate("document.querySelector('.browser-snapshot-head strong')?.textContent"), "Usage limit ring");
+        assert.deepEqual(await evaluate("[...document.querySelectorAll('.browser-snapshot-name')].map(el => el.textContent)"), ["模型与思考强度", "额度已用 25%"]);
+        assert.match(await evaluate("document.querySelector('.browser-snapshot + .tool-result-json')?.innerText"), /entries/);
+        await assertFits(`${display}: snapshot and console from separate writes`);
         await openCase("browser-shot", display);
-        assert.match(await visibleText(), /Browser fixture output/);
+        assert.equal(await evaluate("document.querySelector('.browser-call-text').textContent"), rawBrowser);
+        assert.equal(await evaluate("getComputedStyle(document.querySelector('.browser-call-text')).whiteSpace"), "pre-wrap");
+        assert.equal(await evaluate("getComputedStyle(document.querySelector('.browser-call-text')).fontFamily"),
+          await evaluate("getComputedStyle(document.querySelector('.browser-call-code')).fontFamily"));
+        assert.match(await evaluate("getComputedStyle(document.querySelector('.browser-call-text')).fontFamily"), /monospace/);
         await until("document.querySelector('.browser-call-shot img')?.complete && document.querySelector('.browser-call-shot img')?.naturalWidth === 1");
         assert.equal(await evaluate("document.querySelector('.browser-call-shot img').getAttribute('alt')"), "浏览器截图");
         await evaluate("document.querySelector('.browser-call-shot').click()");
