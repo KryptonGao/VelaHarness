@@ -86,6 +86,7 @@ export interface ComposerProps {
   floatingChat?: boolean;
   /** 还没有任何消息的新对话：草稿共用一份，下次新建对话时恢复。 */
   newChat?: boolean;
+  openingChat?: number | null;
   sandboxMode?: import("@vela/shared").SandboxMode;
   disabled: boolean;
   streaming: boolean;
@@ -161,6 +162,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
   embedded = false,
   floatingChat = false,
   newChat = false,
+  openingChat = null,
   sandboxMode,
   disabled,
   streaming,
@@ -211,7 +213,8 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
   const compact = floatingChat && !optionsOpen;
   const [recipes, setRecipes] = useState<TaskRecipe[] | null>(null);
   const [recipesError, setRecipesError] = useState<string | null>(null);
-  const recipeRun = useRecipeRun();
+  const currentRecipeRun = useRecipeRun();
+  const recipeRun = openingChat === null ? currentRecipeRun : null;
   const recipeActive = !!recipeRun?.stages && ["starting", "running", "waiting_for_user"].includes(recipeRun.status);
   const draftKey = composerDraftKey(conversationId, embedded, newChat);
   const draftKeyRef = useRef<string | null>(null);
@@ -319,6 +322,14 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
     setSlash(null);
   }, [draftKey, value]);
   useLayoutEffect(() => () => { draftKeyRef.current = null; }, []);
+  useLayoutEffect(() => {
+    const root = inputRef.current;
+    if (openingChat === null || !root) return;
+    root.focus({ preventScroll: true });
+    const selection = window.getSelection();
+    selection?.selectAllChildren(root);
+    selection?.collapseToEnd();
+  }, [openingChat]);
 
   // 任务交接包等外部预填：只在目标对话的输入框里取走，并把光标放到末尾方便补一句指令。
   useComposerSeed(recipeActions?.conversationId ?? null, text => setText(text));
@@ -810,7 +821,8 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
   }
 
   async function submit(): Promise<void> {
-    if (submitting.current) return;
+    // A draft can accept keystrokes before it has a conversation to run commands or send to.
+    if (openingChat !== null || submitting.current) return;
     const root = inputRef.current;
     const typed = (root ? serializeEditor(root).trim() : prompt) || (hasReplyText ? "" : suggestion);
     const cards = replies;
@@ -1054,7 +1066,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
     </MotionList>
   );
 
-  const editable = !(recipeActive || disabled && !streaming);
+  const editable = !recipeActive && (openingChat !== null || !disabled || streaming);
   const placeholder = streaming && !recipeActive
     ? tr("Enter 加入队列", "Enter adds to the queue")
     : suggestion || placeholderFor(mode);
@@ -1180,7 +1192,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
       modelId={modelId}
       thinkingLevel={thinkingLevel}
       thinkingLevels={thinkingLevels}
-      disabled={streaming || recipeActive}
+      disabled={openingChat !== null || streaming || recipeActive}
       catalog={models.catalog}
       catalogError={models.catalogError}
       actionError={models.actionError}

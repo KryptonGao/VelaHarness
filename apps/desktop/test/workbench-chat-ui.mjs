@@ -69,6 +69,27 @@ if (!process.versions.electron) {
     try {
       await win.loadFile(join(temporary, 'index.html'));
       await until("document.querySelector('.chat-active-title')?.textContent === '主聊天'");
+      // Hold the create IPC with the previous chat still active underneath the draft.
+      await input('#prompt', 'old chat draft');
+      await evaluate(`chatFixture.deferCreate = true; window.dispatchEvent(new KeyboardEvent('keydown', {code:'KeyN', key:'n', metaKey:true, bubbles:true}))`);
+      await until("chatFixture.calls.some(c => c.name === 'create') && document.activeElement?.id === 'prompt'");
+      assert.equal(await evaluate("document.querySelector('#prompt').textContent"), '');
+      await win.webContents.insertText('typed during startup');
+      const enterDraft = () => evaluate("document.querySelector('#prompt').dispatchEvent(new KeyboardEvent('keydown', {key:'Enter', bubbles:true, cancelable:true}))");
+      const sendDraft = "document.querySelector('#prompt').closest('form').querySelector('button[type=submit]')";
+      assert.equal(await evaluate(`${sendDraft}.disabled`), true);
+      await enterDraft();
+      assert.equal(await evaluate("chatFixture.calls.some(c => c.name === 'prompt')"), false);
+      await evaluate('chatFixture.releaseCreate()');
+      await until(`!${sendDraft}.disabled`);
+      assert.equal(await evaluate("document.activeElement?.textContent"), 'typed during startup');
+      await enterDraft();
+      await until("chatFixture.calls.some(c => c.name === 'prompt' && c.id === 'panel-1' && c.text === 'typed during startup')");
+      await evaluate("window.vela.switchConversation('main-chat')");
+      await until("document.querySelector('#prompt').textContent === 'old chat draft'");
+      console.log('PASS new-chat draft focus, early typing, submit guard and conversation isolation');
+      await win.loadFile(join(temporary, 'index.html'));
+      await until("document.querySelector('.chat-active-title')?.textContent === '主聊天'");
       const publishAgents = (conversationId, entries) => evaluate(`chatFixture.emit({type: 'agents', conversationId: ${JSON.stringify(conversationId)}, agents: ${JSON.stringify(entries.map(([name, status]) => ({ id: name, path: '/root/' + name, name, kind: 'general', status, task: name + ' task', updatedAt: Date.now() })))} })`);
       await publishAgents('main-chat', [['review', 'running'], ['research', 'completed']]);
       await click('.chat-agents-button');

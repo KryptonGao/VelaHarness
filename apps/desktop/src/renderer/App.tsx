@@ -278,11 +278,20 @@ export function App() {
   const [tabOrder, setTabOrder] = useState<string[]>([]);
   const [activeWorkbenchTabId, setActiveWorkbenchTabId] = useState<string | null>(null);
   const [workbenchView, setWorkbenchView] = useState<"split" | "panel" | "chat">("split");
+  const newChatRequest = useRef(0);
+  const [openingChat, setOpeningChat] = useState<number | null>(null);
+  const openNewChat = (cwd?: string) => showHomeThen(() => {
+    const request = ++newChatRequest.current;
+    setOpeningChat(request);
+    setWorkbenchView(view => view === "split" ? view : "chat");
+    void session.newChat(cwd).finally(() => setOpeningChat(current => current === request ? null : current));
+  });
   const focusWorkbenchTab = useCallback((id: string) => {
     setActiveWorkbenchTabId(id);
     setWorkbenchView(view => view === "chat" ? "panel" : view);
   }, []);
   const openMainConversation = useCallback((id: string) => {
+    setOpeningChat(null);
     setWorkbenchView(view => view === "split" ? view : "chat");
     void session.switchTo(id);
   }, [session.switchTo]);
@@ -541,13 +550,13 @@ export function App() {
   }, [focusWorkbenchTab]);
   // 三个 context 的 value 保持引用稳定，避免 App 每次渲染都让所有消费者跟着重渲染。
   const recipeActions = useMemo((): ContextType<typeof RecipeActionsContext> => ({
-    conversationId: session.activeConversationId,
+    conversationId: openingChat === null ? session.activeConversationId : null,
     open: openRecipes,
     useRecipe: recipe => { setRecipeToUse(recipe); openRecipes(); },
     fromMessage: seed => { setRecipeSeed(seed); openRecipes(); },
     createHandoff: (conversationId, options) => setHandoff({ conversationId, ...(options?.factsOnly ? { factsOnly: true } : {}) }),
     distillMemory: (conversationId, options) => setMemoryDistill({ conversationId, ...(options?.upToTurn !== undefined ? { upToTurn: options.upToTurn } : {}) }),
-  }), [session.activeConversationId, openRecipes]);
+  }), [openingChat, session.activeConversationId, openRecipes]);
   const conflictContext = useMemo((): ConflictContextValue => ({
     state: conflicts.state,
     dismissedTurns: dismissedConflictTurns,
@@ -1064,7 +1073,7 @@ export function App() {
   };
   menuActionHandler.current = (action) => {
     switch (action) {
-      case "new-chat": showHomeThen(() => { if (workbenchView !== "split") setWorkbenchView("chat"); void session.newChat(); }); break;
+      case "new-chat": openNewChat(); break;
       case "new-tab": showHomeThen(openStartTab); break;
       case "toggle-settings": toggleSettings(); break;
       case "toggle-sidebar": toggleLeft(); break;
@@ -1184,10 +1193,7 @@ export function App() {
                 settingsOpen={settingsOpen}
                 settingsLabel={tr("设置", "Settings")}
                 onOpenSettings={toggleSettings}
-                onNewChat={(cwd) => leaveRecipes(() => {
-                  if (workbenchView !== "split") setWorkbenchView("chat");
-                  setWorkspaceTarget(null); setPrInboxOpen(false); setAgentInboxOpen(false); setScheduledTasksOpen(false); setSettingsOpen(false); void session.newChat(cwd);
-                })}
+                onNewChat={openNewChat}
                 workspaces={project.workspace?.recents}
                 onEditWorkspace={setEditingWorkspace}
                 onSwitchConversation={(id) => leaveRecipes(() => {
@@ -1223,8 +1229,9 @@ export function App() {
                         <SessionChatView visible={chatsVisible}
                           onOpenAgentDirectory={openAgentDirectory} agentDirectoryActive={visibleWorkbenchTabIds.includes(directoryTabId)}
                           messageStore={session.messageStore}
-                          state={session.state}
-                          sendError={session.sendError}
+                          openingChat={openingChat}
+                          state={openingChat === null ? session.state : null}
+                          sendError={openingChat === null ? session.sendError : null}
                           platform={platform}
                           floatingChat={floatingChat}
                           conversationWorkbenchTabs={preferences.conversationWorkbenchTabs}
@@ -1388,7 +1395,7 @@ export function App() {
                     conversations={session.conversations} workspaces={project.workspace?.recents ?? []}
                     waitingConversationIds={session.waitingConversationIds}
                     onOpenConversation={id => { setWorkspaceTarget(null); openMainConversation(id); }}
-                    onNewChat={cwd => leaveRecipes(() => { setWorkspaceTarget(null); void session.newChat(cwd); })}
+                    onNewChat={openNewChat}
                     onEditWorkspace={setEditingWorkspace} onOpenScheduledTasks={openScheduledTasks} /> : null}
                 </Presence>
                 <Presence present={prInboxOpen} keepMounted className="main-stage-pane page-stage">

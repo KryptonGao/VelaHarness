@@ -222,6 +222,8 @@ function TurnProgressHeader({ startedAt, quota }: { startedAt: number; quota: st
 export interface ChatViewProps {
   /** 工作面板内复用消息与输入框，省去窗口级操作。 */
   embedded?: boolean;
+  /** The user opened a new chat; its draft is available before the create IPC returns. */
+  openingChat?: number | null;
   visible?: boolean;
   floatingChat?: boolean;
   conversationWorkbenchTabs?: boolean;
@@ -292,6 +294,7 @@ export interface ChatViewProps {
 
 export function ChatView({
   embedded = false,
+  openingChat = null,
   visible = false,
   floatingChat = false,
   conversationWorkbenchTabs = false,
@@ -1319,7 +1322,8 @@ export function ChatView({
         floatingChat={floatingChat}
         sandboxMode={session?.sandboxMode}
         ref={dockRef}
-        disabled={session?.status !== "ready" && session?.status !== "streaming"}
+        openingChat={openingChat}
+        disabled={composerDisabled}
         streaming={Boolean(streaming)}
         instructions={state?.session.pendingInstructions ?? []}
         newChat={!embedded && messages.length === 0 && (state?.context.turnCount ?? 0) === 0}
