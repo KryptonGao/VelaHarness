@@ -59,6 +59,7 @@ const suites = {
     { name: "usage-heatmap-ui", runner: "node" },
   ],
   smoke: [
+    { name: "codex-usage-electron-smoke", runner: "electron" },
     { name: "pi-sdk-electron-smoke", runner: "node" },
     { name: "vela-profile-electron-smoke", runner: "node" },
     { name: "browser-electron-smoke", runner: "electron" },
