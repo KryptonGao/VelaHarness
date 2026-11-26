@@ -38,6 +38,13 @@ test("copy exists for every group and page in both locales", () => {
       assert.ok(copy.pages[id].description, `${locale} description ${id}`);
     }
   }
+  for (const locale of ["zh-CN", "en", "zh-TW", "ja", "ko"] as const) {
+    const naming = settingsCopy(locale).subagentNamingStyle;
+    assert.ok(naming.title, `${locale} naming title`);
+    assert.ok(naming.hint, `${locale} naming hint`);
+    assert.match(naming.artisticExample, /Curie/);
+    assert.match(naming.artisticExample, /Turing/);
+  }
 });
 
 test("search entries are unique, reference real pages and resolve to non-empty titles", () => {
@@ -87,6 +94,8 @@ test("search finds settings across languages through keywords", () => {
   assert.equal(searchSettings("个性化", en)[0]?.entry.id, "global-prompt");
   assert.equal(searchSettings("实验性功能 赛马", zh)[0]?.entry.id, "race");
   assert.equal(searchSettings("experimental /race", en)[0]?.entry.id, "race");
+  assert.equal(searchSettings("命名风格", en)[0]?.entry.id, "subagent-naming-style");
+  assert.equal(searchSettings("naming style", resolveSettingsEntries(settingsCopy("zh-CN")))[0]?.entry.id, "subagent-naming-style");
   for (const locale of ["zh-CN", "en", "zh-TW", "ja", "ko"] as const) {
     const copy = settingsCopy(locale);
     const entries = resolveSettingsEntries(copy);

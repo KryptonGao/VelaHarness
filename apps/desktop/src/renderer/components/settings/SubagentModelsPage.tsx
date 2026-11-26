@@ -80,11 +80,13 @@ export function SubagentModelsPage({
     };
   }, [text.loadError]);
 
-  const persist = useCallback((subagentModels: SubagentModelRef[]) => {
+  const persist = useCallback((patch: Partial<AgentSettings>, includeNamingStyle = false) => {
     const api = window.vela;
     const base = target.current;
     if (!api || !base) return;
-    const next = { ...base, subagentModels };
+    const next = { ...base, ...patch };
+    const request = { ...next };
+    if (!includeNamingStyle) delete request.subagentNamingStyle;
     target.current = next;
     setSettings(next);
     setStatus("saving");
@@ -92,7 +94,7 @@ export function SubagentModelsPage({
     pending.current += 1;
     chain.current = chain.current.then(async () => {
       try {
-        const saved = await api.saveAgentSettings(next);
+        const saved = await api.saveAgentSettings(request);
         confirmed.current = saved;
         if (pending.current === 1) {
           target.current = saved;
@@ -129,11 +131,11 @@ export function SubagentModelsPage({
     const additions = models.filter((model) => !currentKeys.has(modelKey(model.provider, model.id)));
     const room = maxSubagentModels - current.length;
     if (room <= 0 || additions.length === 0) return;
-    persist([...current, ...additions.slice(0, room).map((model) => ({ provider: model.provider, modelId: model.id }))]);
+    persist({ subagentModels: [...current, ...additions.slice(0, room).map((model) => ({ provider: model.provider, modelId: model.id }))] });
   };
   const remove = (ref: ModelRef) => {
     const current = target.current?.subagentModels ?? [];
-    persist(current.filter((item) => item.provider !== ref.provider || item.modelId !== ref.modelId));
+    persist({ subagentModels: current.filter((item) => item.provider !== ref.provider || item.modelId !== ref.modelId) });
   };
   return (
     <section className="settings-section">
@@ -145,6 +147,27 @@ export function SubagentModelsPage({
 
       <CustomSubagentsBlock copy={copy} catalog={catalog} models={availableModels} agents={agents} profiles={profiles} onProfilesChange={setProfiles} />
       <SettingsGroup>
+        <SettingsBlock id="subagent-naming-style" title={copy.subagentNamingStyle.title} hint={copy.subagentNamingStyle.hint}>
+          <div className="settings-stack" role="radiogroup" aria-label={copy.subagentNamingStyle.title}>
+            {([
+              ["practical", copy.subagentNamingStyle.practical, copy.subagentNamingStyle.practicalExample],
+              ["artistic", copy.subagentNamingStyle.artistic, copy.subagentNamingStyle.artisticExample],
+            ] as const).map(([id, label, example]) => (
+              <button
+                key={id}
+                type="button"
+                role="radio"
+                aria-checked={(settings?.subagentNamingStyle ?? "practical") === id}
+                className={`settings-radio${(settings?.subagentNamingStyle ?? "practical") === id ? " active" : ""}`}
+                disabled={!settings}
+                onClick={() => persist({ subagentNamingStyle: id }, true)}
+              >
+                <span className="settings-radio-title">{label}</span>
+                <span className="settings-radio-hint">{example}</span>
+              </button>
+            ))}
+          </div>
+        </SettingsBlock>
         <SettingsBlock id="subagent-models" title={text.title} hint={text.hint}>
           <div className="subagent-pools">
             <div className="subagent-pool" role="group" aria-label={text.available}>
@@ -190,7 +213,7 @@ export function SubagentModelsPage({
             <div className="subagent-pool" role="group" aria-label={text.allowed}>
               <header className="subagent-pool-head">
                 <h4>{text.allowed}<span className="subagent-pool-count">{pool.length}</span></h4>
-                <button type="button" className="subagent-pool-action" disabled={!settings || pool.length === 0} onClick={() => persist([])}>
+                <button type="button" className="subagent-pool-action" disabled={!settings || pool.length === 0} onClick={() => persist({ subagentModels: [] })}>
                   {text.clear}
                 </button>
               </header>
@@ -235,7 +258,7 @@ export function SubagentModelsPage({
         onClose={() => setEditingKey(null)}
         onSave={(levels, description) => {
           const current = target.current?.subagentModels ?? [];
-          persist(current.map(item => {
+          persist({ subagentModels: current.map(item => {
             if (item.provider !== editing.ref.provider || item.modelId !== editing.ref.modelId) return item;
             const next = { ...item };
             if (levels) next.thinkingLevels = levels;
@@ -243,7 +266,7 @@ export function SubagentModelsPage({
             if (description?.trim()) next.description = description;
             else delete next.description;
             return next;
-          }));
+          }) });
           setEditingKey(null);
         }}
       />}

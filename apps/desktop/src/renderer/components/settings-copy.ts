@@ -48,6 +48,14 @@ const zh = {
     nameConflict: "这个名称已被使用，请换一个名称。",
     limit: "最多可创建 32 个自定义子代理。",
   },
+  subagentNamingStyle: {
+    title: "子代理命名风格",
+    hint: "两种风格都使用英文命名。只对新建子代理生效，已有名称不变。",
+    practical: "实干类",
+    practicalExample: "例如：backend、reviewer",
+    artistic: "艺术类",
+    artisticExample: "模型按任务选人物名，如化学用 Curie、算法用 Turing",
+  },
   subagentModels: {
     title: "子代理可用模型",
     hint: "未指定固定模型时，主代理可从右侧模型池中选择。模型池为空时，子代理沿用主代理的模型。",
@@ -1143,6 +1151,14 @@ const en: typeof zh = {
     promptPlaceholder: "Describe the role, how it should work, and any rules to follow.",
     nameConflict: "This name is already in use. Choose another name.",
     limit: "You can create up to 32 custom subagents.",
+  },
+  subagentNamingStyle: {
+    title: "Subagent naming style",
+    hint: "Both styles use English names. Only new subagents are affected; existing names stay the same.",
+    practical: "Practical",
+    practicalExample: "Examples: backend, reviewer",
+    artistic: "Artistic",
+    artisticExample: "The model picks a namesake for the task, such as Curie for chemistry or Turing for algorithms.",
   },
   subagentModels: {
     title: "Models available to subagents",

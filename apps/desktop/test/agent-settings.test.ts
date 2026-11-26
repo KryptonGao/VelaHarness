@@ -20,6 +20,21 @@ describe("parseAgentSettings (IPC boundary)", () => {
     assert.equal("subagentModels" in parseAgentSettings(base), false);
   });
 
+  it("validates and persists naming style, preserving the selection on unrelated saves", async t => {
+    const dir = await mkdtemp(join(tmpdir(), "vela-agent-naming-"));
+    t.after(() => rm(dir, { recursive: true, force: true }));
+    const directory = await ModelDirectory.open(dir);
+    for (const bad of ["other", null, 1]) {
+      assert.throws(() => parseAgentSettings({ ...base, subagentNamingStyle: bad }), /命名风格/);
+    }
+    assert.ok(!("subagentNamingStyle" in parseAgentSettings(base)));
+    for (const style of ["artistic", "practical"]) {
+      await directory.saveSettings(parseAgentSettings({ ...base, subagentNamingStyle: style }));
+      await directory.saveSettings(parseAgentSettings({ ...base, instructions: "Be brief" }));
+      assert.equal((await ModelDirectory.open(dir)).getSettings().subagentNamingStyle, style);
+    }
+  });
+
   it("rejects malformed or oversized pools", () => {
     for (const bad of ["x", [null], [{ provider: "a" }], [{ provider: "", modelId: "m" }], Array.from({ length: 33 }, (_, i) => ({ provider: "p", modelId: `m${i}` }))]) {
       assert.throws(() => parseAgentSettings({ ...base, subagentModels: bad }), /子代理模型池不正确|模型不正确/);

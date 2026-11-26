@@ -170,6 +170,8 @@ export async function runOnboardingChecks() {
       await next("step-8");
       const saved = calls("saveAgentSettings").at(-1)?.arg;
       assert(saved?.provider === "demo" && saved.modelId === "demo-fast" && saved.thinkingLevel === "high", `unexpected saved settings ${JSON.stringify(saved)}`);
+      assert(!("subagentNamingStyle" in saved), "model setup should omit the cached naming style");
+      assert(fixture.state.agent.subagentNamingStyle === "artistic", "model setup must preserve the stored naming style");
     });
 
     await check("personalize toggles memory immediately and saves instructions on continue, keeping the model", async () => {
@@ -183,6 +185,8 @@ export async function runOnboardingChecks() {
       await next("step-9");
       const saved = calls("saveAgentSettings").at(-1)?.arg;
       assert(saved?.instructions === "Answer in concise English." && saved.provider === "demo" && saved.modelId === "demo-fast", `instructions not saved with the model ${JSON.stringify(saved)}`);
+      assert(!("subagentNamingStyle" in saved), "personalization should omit the cached naming style");
+      assert(fixture.state.agent.subagentNamingStyle === "artistic", "personalization must preserve the stored naming style");
     });
 
     await check("background step applies resident mode, notifications and auto update immediately", async () => {

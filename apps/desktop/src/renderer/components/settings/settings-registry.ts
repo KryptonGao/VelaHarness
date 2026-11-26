@@ -98,6 +98,7 @@ export const settingsEntries: readonly SettingsEntry[] = [
   { id: "approval-records", page: "approvals", title: (c) => c.approvalRecords.title, hint: (c) => c.approvalRecords.hint, keywords: { zh: ["审批", "批准", "始终允许", "永远拒绝", "记录", "权限", "规则", "撤销"], en: ["approval", "approve", "always allow", "always deny", "records", "permission", "rules", "revoke", "remembered"] } },
 
   { id: "custom-subagents", page: "subagents", title: c => c.customSubagents.title, hint: c => c.customSubagents.hint, keywords: { zh: ["自定义子代理", "权限", "角色", "系统提示词", "图标"], en: ["custom subagents", "profiles", "roles", "permissions", "system prompt", "icon", "general", "explore"] } },
+  { id: "subagent-naming-style", page: "subagents", title: c => c.subagentNamingStyle.title, hint: c => c.subagentNamingStyle.hint, keywords: { zh: ["子代理命名", "命名风格", "名称风格", "实干类", "艺术类", "Curie", "Turing"], en: ["subagent naming", "naming style", "name style", "practical", "artistic", "Curie", "Turing", "new subagents"] } },
   { id: "subagent-models", page: "subagents", title: (c) => c.subagentModels.title, hint: (c) => c.subagentModels.hint, keywords: { zh: ["子代理", "子agent", "模型池", "模型", "SubAgent", "派生", "允许的模型"], en: ["subagent", "sub-agent", "model pool", "models", "spawn", "allowed models", "delegate"] } },
 
   { id: "run-view", page: "display", title: (c) => c.appearance.runView, hint: (c) => c.appearance.runViewHint, keywords: { zh: ["运行视图", "待办", "待办清单", "Todo", "状态条", "步骤"], en: ["run view", "todo", "todo list", "status", "progress", "steps"] } },

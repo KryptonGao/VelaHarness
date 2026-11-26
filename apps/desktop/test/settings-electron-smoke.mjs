@@ -54,6 +54,18 @@ try {
   assert.equal(profile.permission, "general");
   assert.ok(profile.icon);
   console.log("PASS custom subagent created through desktop settings and read back over IPC");
+  const namingStyle = '[data-setting-id="subagent-naming-style"]';
+  await until(() => ev("!!document.querySelector('" + namingStyle + " [role=radio]')"), "subagent naming style");
+  const namingText = await ev("document.querySelector('" + namingStyle + "').textContent");
+  assert.match(namingText, /Practical/);
+  assert.match(namingText, /Artistic/);
+  assert.match(namingText, /Curie/);
+  assert.match(namingText, /Turing/);
+  assert.match(namingText, /new subagents/);
+  await ev("document.querySelector('" + namingStyle + " [role=radio]:nth-child(2)').click()");
+  await until(() => ev("window.vela.getAgentSettings().then(s => s.subagentNamingStyle === 'artistic')"), "artistic naming style saved");
+  assert.equal((await ev("window.vela.getAgentSettings()")).customSubagents[0].name, "Smoke reviewer");
+  console.log("PASS subagent naming style saves through the real Electron IPC settings path");
   await ev("[...document.querySelectorAll('.settings-nav-item')].find(n => n.textContent === 'Notifications').click()");
   const completionSwitch = "document.querySelector('[data-setting-id=system-notifications] [aria-label=\"Also notify when tasks finish\"]')";
   await until(() => ev("!!" + completionSwitch), "notification settings");

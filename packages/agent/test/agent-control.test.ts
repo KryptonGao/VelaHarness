@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { AgentMessage } from "@earendil-works/pi-agent-core";
 import type { AgentSession, AgentSessionEvent } from "@earendil-works/pi-coding-agent";
-import type { CustomSubagentProfile, ModelRef, SubagentModelRef, SubagentLimits } from "@vela/shared";
+import type { CustomSubagentProfile, ModelRef, SubagentModelRef, SubagentLimits, SubagentNamingStyle } from "@vela/shared";
 import {
   AgentControl,
   maxConcurrentAgents,
@@ -11,6 +11,7 @@ import {
   type AgentRootMessage,
   type AgentSessionRequest,
 } from "../src/agent-control.ts";
+import { artisticAgentName } from "../src/subagent-naming.ts";
 
 /** 只实现控制面用到的会话表面：prompt / subscribe / abort / dispose / messages / errorMessage。 */
 class FakeSession {
@@ -170,6 +171,42 @@ describe("fork 选择", () => {
     assert.deepEqual(selectForkMessages(dangling, "all"), [dangling[0]]);
     const resolved = [userMessage("改文件"), assistantCall("call-1"), toolResult("call-1")];
     assert.equal(selectForkMessages(resolved, "all").length, 3);
+  });
+});
+
+describe("subagent naming", () => {
+  it("preserves the chosen English spelling without inventing a missing or invalid namesake", () => {
+    assert.equal(artisticAgentName(" Grace Hopper "), "Grace-Hopper");
+    for (const input of [undefined, "", "图灵", "图灵-Turing", "Ada/Lovelace", "123"]) {
+      assert.throws(() => artisticAgentName(input), /choose a real person whose work fits the task/);
+    }
+  });
+
+  it("uses module and role names in practical mode and distinct namesakes across branches in artistic mode", () => {
+    let style: SubagentNamingStyle = "practical";
+    const control = new AgentControl({ conversationId: "root-id", host: new FakeHost(), namingStyle: () => style });
+    control.registerRoot(new FakeSession().asSession());
+    const spawn = (parent: string, name?: string) => control.spawn(parent, { kind: "general", name, task: "Check the module" });
+    const module = spawn("root-id", "Payment API");
+    assert.equal(module.name, "payment-api");
+    assert.equal(spawn("root-id", "支付 模块").name, "implementation");
+    assert.equal(spawn("root-id", "模块-123").name, "implementation-2");
+    assert.equal(control.spawn("root-id", { kind: "explore", task: "查模块", name: "查阅" }).name, "research");
+    assert.equal(spawn(module.id).name, "implementation");
+    style = "artistic";
+    const before = control.list().length;
+    assert.throws(() => spawn("root-id"), /spawn_agent.name/);
+    assert.equal(control.list().length, before);
+    const artist = spawn("root-id", "Dijkstra");
+    const nested = spawn(module.id, "dijkstra");
+    assert.equal(artist.name, "Dijkstra");
+    assert.equal(nested.name, "dijkstra-2");
+    assert.equal(artist.path, `/root/${artist.name}`);
+    assert.equal(nested.path, `${module.path}/${nested.name}`);
+    style = "practical";
+    assert.equal(spawn("root-id", "test-review").name, "test-review");
+    assert.equal(control.list().find(a => a.id === artist.id)?.name, artist.name);
+    assert.equal(control.list().find(a => a.id === module.id)?.path, module.path);
   });
 });
 

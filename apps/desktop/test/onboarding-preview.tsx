@@ -4,7 +4,7 @@
  */
 import React, { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { parseReleaseNotesFile, selectReleaseNotes, type ReleaseNotes, type VelaApi } from "@vela/shared";
+import { parseReleaseNotesFile, selectReleaseNotes, type AgentSettings, type ReleaseNotes, type VelaApi } from "@vela/shared";
 import releaseNotesFile from "../release-notes.json";
 import { WhatsNewCard } from "../src/renderer/components/WhatsNewCard";
 import { OnboardingView } from "../src/renderer/components/OnboardingView";
@@ -34,7 +34,7 @@ const notesFile = parseReleaseNotesFile(releaseNotesFile)!;
 const initialState = () => ({
   notes: undefined as undefined | null,
   sandbox: "ask" as string,
-  agent: { provider: null as string | null, modelId: null as string | null, thinkingLevel: "medium", newConversationSelection: "default", instructions: "" },
+  agent: { provider: null, modelId: null, thinkingLevel: "medium", newConversationSelection: "default", instructions: "", subagentNamingStyle: "artistic" } as AgentSettings,
   ui: "auto",
   memory: true,
   resident: { mode: "standby", paused: false, showMenuBarIcon: true, launchAtLogin: false, quitWhenWindowsClosed: false,
@@ -53,7 +53,7 @@ const record = (name: string, arg?: unknown) => { state.calls.push({ name, arg }
 window.vela = {
   platform: "darwin", setLocale() {}, setRunView() {}, setRecommendedActions() {},
   getAgentSettings: async () => ({ ...state.agent }),
-  saveAgentSettings: async (value: any) => { record("saveAgentSettings", value); state.agent = { ...value }; return { ...state.agent }; },
+  saveAgentSettings: async (value: any) => { record("saveAgentSettings", value); state.agent = { ...state.agent, ...value }; return { ...state.agent }; },
   scanExternalSkills: async () => ({ skills: state.skills }),
   migrateSkills: async (ids: string[]) => { record("migrateSkills", ids); return { copied: ids, replaced: [], skipped: [] }; },
   getIntelligentUi: async () => ({ preference: state.ui, microApps: false }),

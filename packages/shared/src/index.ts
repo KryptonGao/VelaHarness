@@ -535,7 +535,15 @@ export function parseSubagentThinkingLevels(value: unknown): ThinkingLevel[] | u
 /** 子代理模型池最多放这么多个模型。 */
 export const maxSubagentModels = 32;
 
-/** 新建对话使用的模型、思考强度和额外指令。不影响已经打开的对话。 */
+export type SubagentNamingStyle = "practical" | "artistic";
+
+export function parseSubagentNamingStyle(value: unknown, strict = true): SubagentNamingStyle | undefined {
+  if (value === "practical" || value === "artistic") return value;
+  if (value === undefined || !strict) return undefined;
+  throw new Error("子代理命名风格不正确");
+}
+
+/** Conversation defaults and preferences for newly spawned subagents. */
 export interface AgentSettings {
   provider: string | null;
   modelId: string | null;
@@ -547,6 +555,8 @@ export interface AgentSettings {
    * 保存时缺省表示保持原值。
    */
   subagentModels?: SubagentModelRef[];
+  /** Omit on save to preserve the current style. Existing agents are never renamed. */
+  subagentNamingStyle?: SubagentNamingStyle;
   /** User-defined profiles, edited independently through saveCustomSubagents. */
   customSubagents?: CustomSubagentProfile[];
 }

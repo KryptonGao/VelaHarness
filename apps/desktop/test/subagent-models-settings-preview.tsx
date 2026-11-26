@@ -38,6 +38,7 @@ const catalog: ModelCatalog = {
 
 let settings: AgentSettings = {
   provider: null, modelId: null, thinkingLevel: "medium", newConversationSelection: "default", instructions: "",
+  subagentNamingStyle: "practical",
   subagentModels: params.has("stale")
     ? [{ provider: "anthropic", modelId: "claude-haiku", description: "Keep this note when removing other entries" }, { provider: "google", modelId: "gemini-pro" }]
     : params.has("empty") ? [] : [{ provider: "anthropic", modelId: "claude-haiku", description: "Existing model note" }],
@@ -50,7 +51,7 @@ const api: Record<string, unknown> = {
   saveAgentSettings: async (next: AgentSettings) => {
     writes.push(next);
     await delay(250);
-    settings = { ...next, customSubagents: settings.customSubagents, subagentModels: next.subagentModels?.map(ref => ({
+    settings = { ...next, subagentNamingStyle: next.subagentNamingStyle ?? settings.subagentNamingStyle, customSubagents: settings.customSubagents, subagentModels: next.subagentModels?.map(ref => ({
       ...ref,
       ...(ref.description === undefined ? {} : { description: ref.description.trim() || undefined }),
     })) };

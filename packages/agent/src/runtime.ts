@@ -3355,6 +3355,7 @@ export class AgentRuntime {
           return { maxSubagents: budget.subagentsEnabled ? budget.maxSubagents : 0, allowNested: budget.allowNestedSubagents };
         },
         modelPool: () => this.subagentModelOptions(),
+        namingStyle: () => directory.selection.subagentNamingStyle,
         customSubagents: () => directory.selection.customSubagents,
         host: {
           createChildSession: (input) => this.createChildSession(entry, input),
@@ -4284,12 +4285,15 @@ export class AgentRuntime {
     return ((pi) => { pi.on("before_agent_start", (event, ctx) => {
       const options = this.subagentModelOptions();
       const inherited = ctx.model;
-      const profiles = event.systemPromptOptions.selectedTools.includes(spawnAgentToolName)
-        ? this.directory?.selection.customSubagents ?? [] : [];
+      const canSpawn = event.systemPromptOptions.selectedTools.includes(spawnAgentToolName);
+      const profiles = canSpawn ? this.directory?.selection.customSubagents ?? [] : [];
       const messages = [
         subagentModelsPrompt(options),
         customSubagentsPrompt(callerKind === "explore" ? profiles.filter(profile => profile.permission === "explore") : profiles),
       ];
+      if (canSpawn) messages.push(this.directory?.selection.subagentNamingStyle === "artistic"
+        ? "Artistic subagent naming is enabled: choose a real scientist, artist, or other notable figure whose work fits the delegated task. Set spawn_agent.name to their short English name regardless of the conversation language (e.g. Turing for algorithms). Use the returned id or path for follow-ups."
+        : "Practical subagent naming is enabled: set spawn_agent.name to a short English module or role name for the task, such as database or test-review, regardless of the conversation language.");
       if (inherited) {
         const levels = options.find(ref => ref.provider === inherited.provider && ref.modelId === inherited.id)?.thinkingLevels
           ?? thinkingLevelsFor(inherited);

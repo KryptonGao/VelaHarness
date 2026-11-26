@@ -7,8 +7,9 @@ import {
   type AgentSessionEvent,
   type ToolDefinition,
 } from "@earendil-works/pi-coding-agent";
-import { emptyAgentUsage, isAgentBusy, thinkingLevels, type CustomSubagentProfile, type ThinkingLevel, type SubagentModelRef, type AgentInfo, type AgentStatus, type AgentUsage, type ModelRef, type SubagentKind, type SubagentLimits } from "@vela/shared";
+import { emptyAgentUsage, isAgentBusy, thinkingLevels, type CustomSubagentProfile, type ThinkingLevel, type SubagentModelRef, type AgentInfo, type AgentStatus, type AgentUsage, type ModelRef, type SubagentKind, type SubagentLimits, type SubagentNamingStyle } from "@vela/shared";
 import { thinkingLevelsFor } from "./thinking-level";
+import { artisticAgentName } from "./subagent-naming";
 import { randomUUID } from "node:crypto";
 import { Type } from "typebox";
 import { normalizeStoredAgents, storedAgentInfo, type StoredAgent } from "./agent-history";
@@ -99,6 +100,7 @@ export interface AgentControlOptions {
   limits?: () => SubagentLimits;
   /** 每次派生前读取：允许模型自选的、当前可用的子代理模型池；缺省或为空时不开放选择。 */
   modelPool?: () => SubagentModelRef[];
+  namingStyle?: () => SubagentNamingStyle;
   customSubagents?: () => readonly CustomSubagentProfile[];
 }
 
@@ -155,7 +157,6 @@ interface ManagedAgent {
 export class AgentControl {
   private readonly agents = new Map<string, ManagedAgent>();
   private readonly semaphore = new Semaphore(maxConcurrentAgents);
-  private spawnSequence = 0;
 
   constructor(private readonly options: AgentControlOptions) {
     for (const stored of normalizeStoredAgents(options.restoredAgents)) {
@@ -251,7 +252,7 @@ export class AgentControl {
       name: spawnAgentToolName,
       label: "派生子代理",
       description:
-        "Start a persistent subagent. Subagents are costly (each runs its own model loop), so use this only for large, clearly separable work, never for a few reads, one search, small edits, or re-checking your own work; prefer doing it yourself. It returns the agent id and path immediately without waiting for the result. Choose a built-in agent or a listed custom profile. name is used as the last segment of the path (such as backend); fork decides how much of the parent context is inherited: none (default), all, or the most recent N turns. When the subagent fails, you are woken automatically; a successful conclusion is only recorded and you see it on your next turn. Set notify_on_finish to true when you will end your turn and want to be woken to report its result; use followup_task when you need to wait for the result.",
+        "Start a persistent subagent. Subagents are costly (each runs its own model loop), so use this only for large, clearly separable work, never for a few reads, one search, small edits, or re-checking your own work; prefer doing it yourself. It returns the agent id and path immediately without waiting for the result. Choose a built-in agent or a listed custom profile. Use the returned id or path to address the agent; fork decides how much of the parent context is inherited: none (default), all, or the most recent N turns. When the subagent fails, you are woken automatically; a successful conclusion is only recorded and you see it on your next turn. Set notify_on_finish to true when you will end your turn and want to be woken to report its result; use followup_task when you need to wait for the result.",
       promptSnippet: "Start a persistent subagent for large, separable work only (explore, general, or a listed custom profile); returns the agent id immediately",
       parameters: Type.Object({
         agent: Type.String({
@@ -259,7 +260,7 @@ export class AgentControl {
         }),
         task: Type.String({ description: "The task to hand to the subagent, including the goal, scope, and completion criteria" }),
         name: Type.Optional(
-          Type.String({ description: "Short name for the last path segment, such as backend or database; generated automatically if omitted" }),
+          Type.String({ description: "In practical naming mode, suggest a short English module or role name, e.g. database or test-review. In artistic mode this field is required: choose the short English name of a real person whose work relates to the task, e.g. Turing for algorithms." }),
         ),
         fork: Type.Optional(
           Type.Union([Type.Literal("none"), Type.Literal("all"), Type.Number()], {
@@ -646,7 +647,6 @@ export class AgentControl {
       }
     }
     this.agents.clear();
-    this.spawnSequence = 0;
     return Promise.allSettled(closing).then(() => undefined);
   }
 
@@ -736,17 +736,15 @@ export class AgentControl {
   }
 
   private uniqueName(parent: ManagedAgent, kind: SubagentKind, raw?: string, profileName?: string): string {
-    const base = slug(raw) || slug(profileName, true) || `${kind}-${(this.spawnSequence += 1)}`;
-    const taken = new Set(
-      [...this.agents.values()]
-        .filter((agent) => agent.info.parentId === parent.info.id)
-        .map((agent) => agent.info.name),
-    );
-    if (!taken.has(base)) return base;
-    for (let index = 2; ; index += 1) {
-      const candidate = `${base}-${index}`;
-      if (!taken.has(candidate)) return candidate;
-    }
+    const agents = [...this.agents.values()];
+    const artistic = this.options.namingStyle?.() === "artistic";
+    const base = artistic ? artisticAgentName(raw)
+      : slug(raw) || slug(profileName) || (kind === "explore" ? "research" : "implementation");
+    const scope = artistic ? agents : agents.filter(agent => agent.info.parentId === parent.info.id);
+    const taken = new Set(scope.map(agent => agent.info.name.toLowerCase()));
+    let name = base;
+    for (let index = 2; taken.has(name.toLowerCase()); index++) name = `${base}-${index}`;
+    return name;
   }
 
   private enqueue(agent: ManagedAgent, task: AgentTask): void {
@@ -1159,12 +1157,9 @@ function oneLine(text: string, max: number): string {
   return clipText(line, max).text;
 }
 
-function slug(raw: string | undefined, localized = false): string {
+function slug(raw: string | undefined): string {
   if (!raw) return "";
-  const segment = raw
-    .trim()
-    .toLowerCase()
-    .replace(localized ? /[^\p{L}\p{M}\p{N}_-]+/gu : /[^a-z0-9_-]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-  return Array.from(segment).slice(0, 24).join("");
+  const segment = raw.toLowerCase().replace(/[^a-z0-9_-]+/g, "-")
+    .replace(/^-+/, "").slice(0, 24).replace(/-+$/, "");
+  return /[a-z]/.test(segment) ? segment : "";
 }

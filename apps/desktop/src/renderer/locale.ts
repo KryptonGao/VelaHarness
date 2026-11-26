@@ -60,6 +60,7 @@ const knownErrors: Record<string, string> = {
   "任务用量上限设置不正确": "Invalid task usage limit settings.",
   "任务用量上限开关必须是布尔值": "The task usage limit switch must be on or off.",
   "自定义子代理配置不正确": "Invalid custom subagent configuration.",
+  "子代理命名风格不正确": "Invalid subagent naming style.",
   "自定义子代理名称重复或已被占用": "This subagent name is already in use.",
   "自定义子代理已被其他窗口修改，请重新检查": "This subagent was changed in another window. Review the latest settings.",
   "子代理开关必须是布尔值": "The SubAgents switch must be on or off.",

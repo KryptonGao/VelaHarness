@@ -28,6 +28,7 @@ describe("new conversation selection settings", () => {
       newConversationSelection: "default",
       instructions: "",
       subagentModels: [],
+      subagentNamingStyle: "practical",
       customSubagents: [],
     });
 
@@ -53,6 +54,16 @@ describe("new conversation selection settings", () => {
     assert.equal(reopened.getSettings().newConversationSelection, "lastUsed");
     assert.equal(reopened.getSettings().thinkingLevel, "high");
     assert.equal(reopened.lastUsedThinkingLevel(), "xhigh");
+  });
+
+  it("defaults old or malformed naming styles without discarding the rest of selection.json", async () => {
+    const dir = await tempDir();
+    for (const subagentNamingStyle of [undefined, "other", null]) {
+      await writeFile(join(dir, "selection.json"), JSON.stringify({ subagentNamingStyle, instructions: "Keep this." }));
+      const settings = (await ModelDirectory.open(dir)).getSettings();
+      assert.equal(settings.subagentNamingStyle, "practical");
+      assert.equal(settings.instructions, "Keep this.");
+    }
   });
 
   it("persists speed-only changes and reads old or invalid speeds as standard", async () => {

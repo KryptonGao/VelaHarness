@@ -68,6 +68,15 @@ if (!process.versions.electron) {
     try {
       await win.loadFile(join(process.env.VELA_SUBAGENT_SETTINGS_TEMP, "index.html"), { query: { locale: "en" } });
       await until("document.querySelector('.subagent-pool-entry .subagent-pool-row')");
+      const naming = '[data-setting-id="subagent-naming-style"]';
+      await until(query(`${naming} [role=radio][aria-checked="true"]`));
+      const namingText = await evaluate(`${query(naming)}.textContent`);
+      assert.match(namingText, /Practical/);
+      assert.match(namingText, /Artistic/);
+      assert.match(namingText, /Curie/);
+      assert.match(namingText, /Turing/);
+      assert.match(namingText, /new subagents/);
+      assert.equal(await evaluate(`${query(`${naming} [role=radio][aria-checked="true"] .settings-radio-title`)}.textContent`), "Practical");
       assert.equal(await evaluate("document.querySelector('.subagent-description-input')"), null, "No textarea is spread across each model row");
 
       // Keep an unrelated save in flight while the modal draft is edited. Its response must not reset the draft.
@@ -80,6 +89,7 @@ if (!process.versions.electron) {
       assert.ok(labels.includes(await evaluate(`document.getElementById(${JSON.stringify(labelId)}).textContent`)), "Visible description label is localized");
       await typeValue("draft survives response");
       await until("window.subagentSettingsTest.getWrites().length === 1 && window.subagentSettingsTest.getSettings().subagentModels.length === 2");
+      assert.equal(await evaluate("'subagentNamingStyle' in window.subagentSettingsTest.getWrites()[0]"), false, "Model pool saves omit the cached naming style");
       assert.equal(await evaluate(`${input}.value`), "draft survives response", "An unrelated save response does not reset the open modal draft");
       await cancelSettings();
       await until("!document.querySelector('.subagent-effort-dialog')");
@@ -123,7 +133,23 @@ if (!process.versions.electron) {
       await evaluate("document.querySelector('.subagent-effort-option[aria-pressed=\"true\"]').click()");
       await saveSettings();
       await until("window.subagentSettingsTest.getSettings().subagentModels[0].thinkingLevels?.length === 2 && window.subagentSettingsTest.getSettings().subagentModels[0].description === 'Keep through effort save'");
+
+      const poolBeforeNamingChange = await evaluate("window.subagentSettingsTest.getSettings().subagentModels");
+      await click(`${naming} [role=radio]:nth-child(2)`);
+      await until("window.subagentSettingsTest.getSettings().subagentNamingStyle === 'artistic'");
+      assert.deepEqual(await evaluate("window.subagentSettingsTest.getSettings().subagentModels"), poolBeforeNamingChange, "Naming style does not alter model settings");
+      assert.equal(await evaluate("window.subagentSettingsTest.getWrites().at(-1).subagentNamingStyle"), "artistic", "Naming style saves its own field");
+      assert.equal(await evaluate(`${query(`${naming} [role=radio][aria-checked="true"] .settings-radio-title`)}.textContent`), "Artistic");
+
       await win.loadFile(join(process.env.VELA_SUBAGENT_SETTINGS_TEMP, "index.html"), { query: { locale: "zh-CN" } });
+      await until(query(`${naming} [role=radio][aria-checked="true"]`));
+      const localizedNamingText = await evaluate(`${query(naming)}.textContent`);
+      assert.match(localizedNamingText, /两种风格都使用英文命名/);
+      assert.match(localizedNamingText, /实干类/);
+      assert.match(localizedNamingText, /艺术类/);
+      assert.match(localizedNamingText, /Curie/);
+      assert.match(localizedNamingText, /Turing/);
+      assert.match(localizedNamingText, /新建/);
       await until("document.querySelector('.custom-agent-add:enabled')");
       await click(".custom-agent-add");
       const name = query(".custom-agent-identity input");

@@ -17,6 +17,12 @@ const instructionsDebounceMs = 800;
 
 type SaveStatus = "idle" | "saving" | "saved" | "error";
 
+function withoutSubagentNamingStyle(settings: AgentSettings): AgentSettings {
+  const next = { ...settings };
+  delete next.subagentNamingStyle;
+  return next;
+}
+
 export function AgentDefaultsPage({
   copy,
   catalog,
@@ -83,7 +89,7 @@ export function AgentDefaultsPage({
     pending.current += 1;
     chain.current = chain.current.then(async () => {
       try {
-        const saved = await api.saveAgentSettings(next);
+        const saved = await api.saveAgentSettings(withoutSubagentNamingStyle(next));
         confirmed.current = saved;
         if (pending.current === 1) {
           target.current = saved;

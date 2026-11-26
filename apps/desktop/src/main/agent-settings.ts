@@ -1,4 +1,4 @@
-import { maxSubagentModels, parseSubagentModelDescription, parseSubagentThinkingLevels, thinkingLevels, type AgentSettings, type SubagentModelRef, type NewConversationSelection, type ThinkingLevel } from "@vela/shared";
+import { maxSubagentModels, parseSubagentModelDescription, parseSubagentNamingStyle, parseSubagentThinkingLevels, thinkingLevels, type AgentSettings, type SubagentModelRef, type NewConversationSelection, type ThinkingLevel } from "@vela/shared";
 
 export function parseId(value: unknown, label: string): string {
   if (typeof value !== "string") throw new Error(`${label}不正确`);
@@ -43,6 +43,7 @@ export function parseAgentSettings(raw: unknown): AgentSettings {
   const instructions = typeof record.instructions === "string" ? record.instructions : "";
   if (instructions.length > 4000) throw new Error("额外指令过长");
   const subagentModels = parseSubagentModels(record.subagentModels);
+  const subagentNamingStyle = parseSubagentNamingStyle(record.subagentNamingStyle);
   return {
     provider,
     modelId,
@@ -50,6 +51,7 @@ export function parseAgentSettings(raw: unknown): AgentSettings {
     newConversationSelection: parseNewConversationSelection(record.newConversationSelection),
     instructions,
     ...(subagentModels ? { subagentModels } : {}),
+    ...(subagentNamingStyle && { subagentNamingStyle }),
   };
 }
 

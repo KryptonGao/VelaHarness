@@ -191,7 +191,8 @@ describe("runHeadless", () => {
     assert.equal(implementation.model, "fake-model");
     assert.ok(toolNames(implementation).includes("edit") && toolNames(implementation).includes("write"));
     const index = JSON.parse(await readFile(join(result.runDir, "agent", "conversations.json"), "utf8"));
-    assert.ok(index.conversations[0].agents.some((agent: { path: string }) => agent.path === "/root/代码审阅"));
+    const savedReviewer = index.conversations[0].agents.find((agent: { customProfile?: { name: string } }) => agent.customProfile?.name === reviewer.name);
+    assert.equal(savedReviewer?.path, "/root/research");
   });
 
   it("times out and leaves no background process behind", { timeout: 60_000 }, async (t) => {

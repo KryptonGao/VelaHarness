@@ -28,6 +28,8 @@ import {
   type UsageLimitWindow,
   type ModelSummary,
   type SubagentModelRef,
+  type SubagentNamingStyle,
+  parseSubagentNamingStyle,
   parseSubagentModelDescription,
   parseSubagentThinkingLevels,
   type NewConversationSelection,
@@ -54,6 +56,7 @@ export interface ModelSelection {
   instructions: string;
   /** 允许模型派生子代理时自行选择的模型池。 */
   subagentModels: SubagentModelRef[];
+  subagentNamingStyle: SubagentNamingStyle;
   customSubagents: CustomSubagentProfile[];
 }
 
@@ -128,6 +131,7 @@ export class ModelDirectory {
     newConversationSelection: "default",
     instructions: "",
     subagentModels: [],
+    subagentNamingStyle: "practical",
     customSubagents: [],
   };
 
@@ -412,6 +416,7 @@ export class ModelDirectory {
       newConversationSelection: this.selection.newConversationSelection,
       instructions: this.selection.instructions,
       subagentModels: structuredClone(this.selection.subagentModels),
+      subagentNamingStyle: this.selection.subagentNamingStyle,
       customSubagents: structuredClone(this.selection.customSubagents),
     };
   }
@@ -456,8 +461,10 @@ export class ModelDirectory {
     const subagentModels = input.subagentModels === undefined
       ? this.selection.subagentModels
       : normalizeModelRefs(input.subagentModels, true);
-    this.selection = { ...this.selection, provider, modelId, thinkingLevel, newConversationSelection, instructions, subagentModels };
-    await this.writeSelection();
+    const subagentNamingStyle = parseSubagentNamingStyle(input.subagentNamingStyle) ?? this.selection.subagentNamingStyle;
+    const next = { ...this.selection, provider, modelId, thinkingLevel, newConversationSelection, instructions, subagentModels, subagentNamingStyle };
+    await this.writeSelection(next);
+    this.selection = next;
     return this.getSettings();
   }
 
@@ -480,7 +487,7 @@ export class ModelDirectory {
       }
       profiles = parseCustomSubagents([...current.values()]);
     }
-    await this.writeSelection(profiles);
+    await this.writeSelection({ ...this.selection, customSubagents: profiles });
     this.selection.customSubagents = profiles;
     return this.getSettings();
   }
@@ -774,6 +781,7 @@ export class ModelDirectory {
           provider, modelId, thinkingLevel, newConversationSelection,
           instructions: readInstructions(record.instructions),
           subagentModels: normalizeModelRefs(record.subagentModels, false),
+          subagentNamingStyle: parseSubagentNamingStyle(record.subagentNamingStyle, false) ?? "practical",
           customSubagents: parseCustomSubagents(record.customSubagents, false),
         },
         lastUsed: readLastUsed(record.lastUsed),
@@ -783,17 +791,18 @@ export class ModelDirectory {
     }
   }
 
-  private async writeSelection(customSubagents = this.selection.customSubagents): Promise<void> {
+  private async writeSelection(selection = this.selection): Promise<void> {
     const body: Record<string, unknown> = {
-      thinkingLevel: this.selection.thinkingLevel,
-      newConversationSelection: this.selection.newConversationSelection,
-      instructions: this.selection.instructions,
+      thinkingLevel: selection.thinkingLevel,
+      newConversationSelection: selection.newConversationSelection,
+      instructions: selection.instructions,
+      subagentNamingStyle: selection.subagentNamingStyle,
     };
-    if (this.selection.subagentModels.length > 0) body.subagentModels = this.selection.subagentModels;
-    if (customSubagents.length > 0) body.customSubagents = customSubagents;
-    if (this.selection.provider && this.selection.modelId) {
-      body.provider = this.selection.provider;
-      body.modelId = this.selection.modelId;
+    if (selection.subagentModels.length > 0) body.subagentModels = selection.subagentModels;
+    if (selection.customSubagents.length > 0) body.customSubagents = selection.customSubagents;
+    if (selection.provider && selection.modelId) {
+      body.provider = selection.provider;
+      body.modelId = selection.modelId;
     }
     if (this.lastUsed.provider && this.lastUsed.modelId) {
       body.lastUsed = this.lastUsed;

@@ -79,6 +79,12 @@ const emptyCustomModel: CustomModelInput = {
   maxTokens: null,
 };
 
+function withoutSubagentNamingStyle(settings: AgentSettings): AgentSettings {
+  const next = { ...settings };
+  delete next.subagentNamingStyle;
+  return next;
+}
+
 /** 引导里的主题预览：只用这里写死的色值，不读应用当前的主题变量。 */
 const themeMock: Record<ThemeId, { side: string; chat: string; bubble: string; line: string; input: string; accent: string; edge: string }> = {
   daylight: { side: "#e6ecf5", chat: "#f4f7fb", bubble: "#dfe9fb", line: "#c3cde0", input: "#ffffff", accent: "#2563eb", edge: "#d5dded" },
@@ -434,7 +440,7 @@ export function OnboardingView({ preferences, models, project, mode = "full", in
     setSavingAgentSettings(true);
     setSaveError(null);
     try {
-      setSavedAgentSettings(await window.vela.saveAgentSettings({ ...savedAgentSettings, instructions }));
+      setSavedAgentSettings(await window.vela.saveAgentSettings(withoutSubagentNamingStyle({ ...savedAgentSettings, instructions })));
       navigate("step-9");
     } catch (error) {
       setSaveError(error instanceof Error ? localizeError(error.message) : copy.saveError);
