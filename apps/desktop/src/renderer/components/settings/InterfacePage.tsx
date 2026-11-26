@@ -9,6 +9,7 @@ import { setHomePrompts, useHomePrompts } from "../../hooks/useHomePrompts";
 import { plusUsageWindows, setUsageRingPrefs, useUsageRingPrefs, type PlusUsageWindow } from "../../hooks/useUsageRingPrefs";
 import { Segmented, SettingsBlock, SettingsGroup, SettingsSwitch } from "./primitives";
 import { SpeechSettings } from "./SpeechSettings";
+import { ChromeImportBlock } from "./ChromeImportBlock";
 import { SettingsSelect } from "./SettingsSelect";
 import { filePreviewOpenModes, setFilePreviewOpenMode, useFilePreviewOpenMode, type FilePreviewOpenMode } from "../../hooks/useFilePreviewOpenMode";
 
@@ -104,6 +105,7 @@ export function InterfacePage({
           <Segmented label={text.conversationLinkTarget} value={conversationLinkTarget}
             options={conversationLinkOptions} onChange={setConversationLinkTarget} />
         </SettingsBlock>
+        <ChromeImportBlock text={copy.chromeImport} />
         <SettingsBlock id="file-preview-open-mode" title={text.filePreviewOpenMode} hint={text.filePreviewOpenModeHint} layout="inline">
           <Segmented label={text.filePreviewOpenMode} value={filePreviewOpenMode}
             options={filePreviewOpenModes.map(id => ({ id, label: filePreviewOpenModeLabels[id] }))} onChange={setFilePreviewOpenMode} />

@@ -64,6 +64,7 @@ const suites = {
     { name: "pi-sdk-electron-smoke", runner: "node" },
     { name: "vela-profile-electron-smoke", runner: "node" },
     { name: "browser-electron-smoke", runner: "electron" },
+    { name: "browser-data-writer-electron-smoke", runner: "node" },
     { name: "browser-auth-electron-smoke", runner: "node" },
     { name: "browser-use-electron-smoke", runner: "node" },
     { name: "browser-annotation-electron-smoke", runner: "node" },

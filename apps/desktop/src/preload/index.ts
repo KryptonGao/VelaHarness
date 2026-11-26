@@ -364,6 +364,11 @@ const api: VelaApi = {
   browser: {
     command: (command) => ipcRenderer.invoke(BrowserIpc.command, command),
     annotationImages: (tabId, annotationIds) => ipcRenderer.invoke(BrowserIpc.annotationImages, tabId, annotationIds),
+    captureChrome: () => ipcRenderer.invoke(BrowserIpc.captureChrome),
+    cancelChromeCapture: () => ipcRenderer.invoke(BrowserIpc.cancelChromeCapture),
+    chooseImportFile: () => ipcRenderer.invoke(BrowserIpc.chooseImportFile),
+    importSiteData: (id, sites) => ipcRenderer.invoke(BrowserIpc.importSiteData, id, sites),
+    cancelImport: (id) => ipcRenderer.invoke(BrowserIpc.cancelImport, id),
     subscribe: (listener) => {
       const handler = (_event: IpcRendererEvent, state: BrowserWindowState) => listener(state);
       ipcRenderer.on(BrowserIpc.state, handler);

@@ -12,6 +12,27 @@ Conversation links open a Panel tab by default. Settings → Interface
 → Conversation links can select the system browser. Modified clicks
 retain native handling. Rendering a link does not open a browser.
 
+## Import Chrome site data
+
+Open **Settings → Interface → Import Chrome site data** and click **Open Chrome**.
+Vela opens the installed Google Chrome in a fresh session. Visit the sites you
+want, sign in as needed, and close all of that session's windows. Vela then
+shows the captured sites. Cancel in Vela to close the session and discard it.
+The app includes the Playwright runtime and keeps the captured snapshot in
+memory while you choose sites. If you already have a Playwright `storageState`
+export, use the file picker instead.
+
+Select **All sites**, or **Selected sites** to search and check individual
+hostnames. Click **Import sites** to apply the selection to Vela's shared
+built-in browser. Reload any open pages that need to pick up the changes.
+
+Selection uses exact hostnames. A domain cookie appears under its declared
+domain and keeps its original subdomain scope. Select the parent domain as well
+when a site needs its shared cookies. LocalStorage stays scoped to
+its scheme, host and port. Matching cookies and storage keys are overwritten.
+The result reports how many cookies and LocalStorage entries were written and
+how many records were skipped, including expired cookies and partitioned data.
+
 ## Element annotations for the Agent
 
 Annotations the user sends with a message stay available to the Agent: `browser_annotations`
@@ -214,6 +235,7 @@ and [public browser workflow](https://learn.chatgpt.com/docs/browser?surface=app
 ```sh
 pnpm --filter @vela/desktop test:browser
 pnpm --filter @vela/desktop test:browser-repl
+node --experimental-strip-types apps/desktop/test/browser-data-capture-chrome-smoke.mjs  # requires installed Google Chrome
 pnpm --filter @vela/agent test
 pnpm typecheck
 pnpm --filter @vela/desktop build

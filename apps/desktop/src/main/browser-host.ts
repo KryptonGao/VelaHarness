@@ -77,9 +77,13 @@ export class BrowserHost {
     if (this.windows.size === 1) return this.windows.keys().next().value!;
     throw new BrowserHostError('window-unavailable', 'No window is associated with this conversation');
   }
+  assertUiSender(windowId: number, sender: WebContents, mainFrame: boolean): void {
+    if (!mainFrame || sender !== this.window(windowId).embedder)
+      throw new BrowserHostError('invalid-sender', 'Browser IPC requires the local window main frame');
+  }
   async command(windowId: number, sender: WebContents, mainFrame: boolean, input: BrowserUiCommand): Promise<BrowserWindowState> {
+    this.assertUiSender(windowId, sender, mainFrame);
     const win = this.window(windowId);
-    if (sender !== win.embedder || !mainFrame) throw new BrowserHostError('invalid-sender', 'Browser IPC requires the local window main frame');
     if (!input || typeof input !== 'object' || typeof input.type !== 'string') throw new BrowserHostError('invalid-command', 'Invalid browser command');
     if (input.type === 'activate') {
       if (input.conversationId !== null && (typeof input.conversationId !== 'string' || !input.conversationId)) throw new BrowserHostError('invalid-conversation', 'Invalid conversation');
@@ -207,8 +211,8 @@ export class BrowserHost {
   }
   /** Element crops for annotations of a tab the caller's window currently owns. */
   async annotationImages(windowId: number, sender: WebContents, mainFrame: boolean, tabId: string, annotationIds: string[]): Promise<BrowserAnnotationImages> {
+    this.assertUiSender(windowId, sender, mainFrame);
     const win = this.window(windowId);
-    if (sender !== win.embedder || !mainFrame) throw new BrowserHostError('invalid-sender', 'Browser IPC requires the local window main frame');
     if (typeof tabId !== 'string' || !Array.isArray(annotationIds) || annotationIds.length > 50 || !annotationIds.every(id => typeof id === 'string' && id.length <= 100))
       throw new BrowserHostError('invalid-command', 'Invalid annotation image request');
     const tab = this.registry.get(tabId, windowId, win.conversationId, true);

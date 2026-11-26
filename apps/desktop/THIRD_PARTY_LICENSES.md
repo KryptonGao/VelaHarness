@@ -1,5 +1,13 @@
 # Third-party licenses
 
+## Playwright
+
+Vela uses Microsoft's Playwright Core to launch a separate Chrome session for
+site data import. The distribution includes the Apache License 2.0 and the
+upstream notices in `node_modules/playwright-core`.
+
+[Playwright source and license](https://github.com/microsoft/playwright)
+
 ## DiceBear / Bottts
 
 Subagent avatars are generated locally with DiceBear Core and Bottts 9.4.2.

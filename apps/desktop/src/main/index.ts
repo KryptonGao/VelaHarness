@@ -18,7 +18,7 @@ import { existsSync, readFileSync, statSync, watch as fsWatch, writeFileSync } f
 import { dirname, join, resolve } from "node:path";
 import { createRequire } from "node:module";
 import { hasRunningWork } from "./running-work";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { ConversationExportHost } from "./conversation-export-host";
 import { getApplicationLocale, setApplicationLocale, setDiagnosticsMenuActions, setMenuAccelerators, setUpdateMenuAction } from "./menu";
 import { defaultDesktopLocale } from "../desktop-locale";
@@ -73,6 +73,7 @@ import { SideChatStore } from "./side-chat-store";
 import { registerUiBrowserSecurity } from "./browser-security";
 import { configureBrowserPlatformAuthenticator, readWebAuthnAccessGroup, registerBrowserWebAuthn } from "./browser-webauthn";
 import { BrowserHost } from "./browser-host";
+import { registerBrowserDataImport } from "./browser-data-import";
 import { BrowserCdp } from "./browser-cdp";
 import { BrowserReplManager } from "./browser-repl";
 import { createBrowserAnnotationService } from "./browser-annotation-service";
@@ -103,6 +104,7 @@ app.on("second-instance", () => {
 const loginShellPathReady = primaryInstance || managedByDevServer ? ensureLoginShellPath() : Promise.resolve(null);
 
 const rootDir = dirname(fileURLToPath(import.meta.url));
+const rendererFile = join(rootDir, "../renderer/index.html");
 // 图标由构建插件输出到 out/main，正式版与 dev 路径一致。
 const appIconPath = join(rootDir, "icon.png");
 const trayIconPath = join(rootDir, "tray-template.png");
@@ -134,6 +136,7 @@ let host: SessionHost | null = null;
 /** Runtime 的所有者：退出时先停业务入口和订阅，再由它关闭 Runtime 与后台命令。 */
 let runtimeHost: RuntimeHost | null = null;
 let browserHost: BrowserHost | null = null;
+let disposeBrowserDataImport: (() => Promise<void>) | undefined;
 let browserRepl: BrowserReplManager | null = null;
 let project: ProjectHost | null = null;
 let terminals: TerminalHost | null = null;
@@ -255,7 +258,7 @@ function createWindow(): BrowserWindow {
   if (process.env.ELECTRON_RENDERER_URL) {
     void win.loadURL(process.env.ELECTRON_RENDERER_URL);
   } else {
-    void win.loadFile(join(rootDir, "../renderer/index.html"));
+    void win.loadFile(rendererFile);
   }
 
   return win;
@@ -383,6 +386,8 @@ async function start(): Promise<void> {
   await sandbox.init();
 
   browserHost = new BrowserHost((guest) => new BrowserCdp(guest), browserSession);
+  const rendererUrl = new URL(process.env.ELECTRON_RENDERER_URL ?? pathToFileURL(rendererFile).href);
+  disposeBrowserDataImport = registerBrowserDataImport(browserHost, browserSession, rendererUrl.href.split("#")[0]!);
   browserRepl = new BrowserReplManager(browserHost, join(rootDir, "browser-repl-worker.mjs"));
   browserHost.subscribe((windowId, state) => {
     const window = BrowserWindow.fromId(windowId);
@@ -907,6 +912,7 @@ app.on("before-quit", (event) => {
   // 先停业务入口和订阅，再关闭 RuntimeHost（Runtime 与后台命令），最后等调度服务收尾。
   host?.dispose();
   const closing = runtimeHost?.dispose();
+  const closingBrowserImport = disposeBrowserDataImport?.();
   runtimeHost = null;
   browserRepl?.dispose();
   browserRepl = null;
@@ -917,7 +923,7 @@ app.on("before-quit", (event) => {
   project = null;
   terminals?.dispose();
   terminals = null;
-  void Promise.allSettled([Promise.resolve(closing), taskScheduler?.drain(), taskRecipes?.drain()]).finally(() => {
+  void Promise.allSettled([closing, closingBrowserImport, taskScheduler?.drain(), taskRecipes?.drain()]).finally(() => {
     logService.dispose(); shutdownComplete = true; app.quit();
     // 开发服务器托管时 app.quit() 会卡在收尾；资源此时已全部释放，兜底强制退出，
     // 否则 electron-vite 重启 main process 时旧进程一直占着单实例锁。

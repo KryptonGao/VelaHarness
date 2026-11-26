@@ -56,10 +56,28 @@ export type BrowserUiCommand =
   | { type: 'annotate-handoff'; tabId: string; items: AnnotationHandoffItem[] }
   | { type: 'annotate-track'; tabId: string; active: boolean };
 export type BrowserAnnotationImages = Record<string, BrowserAnnotationImage | null>;
+export interface BrowserImportPreview {
+  id: string;
+  sites: string[];
+}
+export interface BrowserImportResult {
+  cookies: number;
+  localStorage: number;
+  skipped: number;
+}
 export interface BrowserPanelApi {
   command(command: BrowserUiCommand): Promise<BrowserWindowState>;
   subscribe(listener: (state: BrowserWindowState) => void): () => void;
   /** 取元素批注的截图；失败或已失效的批注为 null。 */
   annotationImages(tabId: string, annotationIds: string[]): Promise<BrowserAnnotationImages>;
+  captureChrome(): Promise<BrowserImportPreview | null>;
+  cancelChromeCapture(): Promise<void>;
+  chooseImportFile(): Promise<BrowserImportPreview | null>;
+  importSiteData(id: string, sites: string[] | null): Promise<BrowserImportResult>;
+  cancelImport(id: string): Promise<void>;
 }
-export const BrowserIpc = { command: 'browser:command', state: 'browser:state', annotationImages: 'browser:annotation-images' } as const;
+export const BrowserIpc = {
+  command: 'browser:command', state: 'browser:state', annotationImages: 'browser:annotation-images',
+  captureChrome: 'browser:capture-chrome', cancelChromeCapture: 'browser:cancel-chrome-capture',
+  chooseImportFile: 'browser:choose-import-file', importSiteData: 'browser:import-site-data', cancelImport: 'browser:cancel-import',
+} as const;

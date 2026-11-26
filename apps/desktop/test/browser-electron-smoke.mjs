@@ -1,12 +1,13 @@
 /** Run after building: node_modules/.bin/electron apps/desktop/test/browser-electron-smoke.mjs */
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { EventEmitter } from "node:events";
+import { mkdtempSync, mkdirSync, realpathSync, writeFileSync, rmSync } from "node:fs";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
-import { app, BrowserWindow, session, webContents } from "electron";
+import { app, BrowserWindow, dialog, session, webContents, WebContentsView } from "electron";
 
 const temporary = mkdtempSync(join(tmpdir(), "vela-browser-smoke-"));
 const electronData = join(temporary, "electron");
@@ -41,6 +42,164 @@ async function until(check, message) {
   while (Date.now() < deadline) { if (await check()) return; await pause(50); }
   throw new Error(`Timed out: ${message}`);
 }
+
+// The default smoke suite runs with or without system Chrome. Only browser
+// launch is substituted. The app still runs its capture, IPC and storage code.
+function syntheticChrome(snapshot) {
+  const browser = new EventEmitter();
+  const context = new EventEmitter();
+  const tabs = new Set();
+  let connected = true;
+  let reads = 0;
+  browser.isConnected = () => connected;
+  browser.newContext = async () => context;
+  browser.close = async () => {
+    if (!connected) return;
+    connected = false;
+    for (const page of tabs) await page.close();
+    context.emit("close", context);
+    browser.emit("disconnected", browser);
+  };
+  context.pages = () => [...tabs];
+  context.newPage = async () => {
+    const page = new EventEmitter();
+    page.close = async () => { if (tabs.delete(page)) page.emit("close", page); };
+    tabs.add(page);
+    context.emit("page", page);
+    return page;
+  };
+  context.storageState = async () => { reads++; return snapshot; };
+  return { browser, context, reads: () => reads };
+}
+
+async function checkSiteDataImport(win, guest, evaluate, base) {
+  const secondOrigin = base.replace("127.0.0.1", "localhost");
+  const name = "smokeImportedSite";
+  const cookie = (domain) => ({ domain, name, value: domain, path: "/", expires: -1, secure: false, httpOnly: true, sameSite: "Strict" });
+  const origin = (url) => ({ origin: url, localStorage: [{ name, value: url }] });
+  const fixture = JSON.stringify({
+    cookies: [cookie("127.0.0.1"), cookie("localhost"), { ...cookie("localhost"), expires: 1 }],
+    origins: [origin(base), origin(secondOrigin)],
+  });
+  const file = join(temporary, "site-data.json");
+  writeFileSync(file, fixture);
+  const originalChooser = dialog.showOpenDialog;
+  const other = new WebContentsView({ webPreferences: { session: guest.session, sandbox: true } }).webContents;
+  const block = '[data-setting-id="chrome-site-data"]';
+  const element = selector => `document.querySelector(${JSON.stringify(block + " " + selector)})`;
+  const cookies = () => guest.session.cookies.get({ name });
+  const storage = page => page.executeJavaScript(`localStorage.getItem(${JSON.stringify(name)})`);
+  async function waitPreview() {
+    await until(() => evaluate(`${element("input[type=radio]")}?.checked === true`), "import preview");
+  }
+  async function choose() {
+    await evaluate(`${element("button.settings-secondary")}.click()`);
+    await waitPreview();
+  }
+  async function selectSite(host) {
+    await evaluate(`document.querySelectorAll(${JSON.stringify(block + " input[type=radio]")})[1].click()`);
+    await until(() => evaluate(`!!${element("input[type=checkbox]")}`), "hostname choices");
+    assert.equal(await evaluate(`${element("button.primary-btn")}.disabled`), true);
+    await evaluate(`Array.from(document.querySelectorAll(${JSON.stringify(block + " .chrome-import-sites label")}))
+      .find(label => label.textContent.trim() === ${JSON.stringify(host)}).querySelector("input").click()`);
+  }
+  async function apply(expected) {
+    await evaluate(`${element("button.primary-btn")}.click()`);
+    await until(() => evaluate(`!!(${element("[role=status]")} || ${element("[role=alert]")})`), "import result");
+    assert.equal(await evaluate(`${element("[role=status]")}?.textContent`), expected);
+  }
+  try {
+    dialog.showOpenDialog = async owner => {
+      assert.equal(owner, win);
+      return { canceled: false, filePaths: [file] };
+    };
+    await other.loadURL("data:text/html,<title>Import fixture</title>", { baseURLForDataURL: secondOrigin + "/" });
+    await guest.executeJavaScript(`localStorage.setItem(${JSON.stringify(name)}, "previous")`);
+    const preview = await evaluate("window.vela.browser.chooseImportFile()");
+    assert.deepEqual(Object.keys(preview).sort(), ["id", "sites"]);
+    assert.ok(typeof preview.id === "string" && preview.id.length > 0);
+    assert.deepEqual(preview.sites, ["127.0.0.1", "localhost"]);
+    writeFileSync(file, fixture + "\n");
+    assert.equal(await evaluate(`window.vela.browser.importSiteData(${JSON.stringify(preview.id)}, null)
+      .then(() => false, error => error.message.includes("BROWSER_IMPORT_STALE"))`), true);
+    await evaluate(`window.vela.browser.cancelImport(${JSON.stringify(preview.id)})`);
+    writeFileSync(file, fixture);
+
+    await choose();
+    assert.deepEqual(await cookies(), []);
+    assert.equal(await storage(guest), "previous");
+    assert.equal(await storage(other), null);
+    await selectSite("127.0.0.1");
+    await apply("Import complete. Cookies (1) · LocalStorage entries (1).");
+    assert.deepEqual((await cookies()).map(item => item.domain), ["127.0.0.1"]);
+    assert.equal(await storage(guest), base);
+    assert.equal(await storage(other), null);
+
+    await choose();
+    await apply("Import complete. Cookies (2) · LocalStorage entries (2). Skipped entries (1).");
+    assert.deepEqual((await cookies()).map(item => item.domain).sort(), ["127.0.0.1", "localhost"]);
+    assert.equal(await storage(other), secondOrigin);
+    assert.equal(await guest.executeJavaScript("localStorage.getItem('loginFixture')"), "present");
+    assert.deepEqual(await win.webContents.session.cookies.get({ name }), []);
+    console.log("PASS Chrome data preview, changed-file rejection, selected/all imports, counts and browser partition");
+
+    const entry = new URL(process.env.VELA_BROWSER_SMOKE_APP_PATH ?? "../out/main/index.mjs", import.meta.url);
+    const requireApp = createRequire(entry);
+    const archive = fileURLToPath(entry).match(/^(.+\.asar)\//)?.[1];
+    if (archive) assert.ok(realpathSync(requireApp.resolve("playwright-core")).startsWith(realpathSync(archive) + "/"), "Playwright must resolve inside the packaged app");
+    const { chromium } = requireApp("playwright-core");
+    const originalLaunch = chromium.launch;
+    const captureName = "syntheticChromeFixture";
+    const captured = {
+      cookies: ["127.0.0.1", "localhost"].map(host => ({ ...cookie(host), name: captureName })),
+      origins: [base, secondOrigin].map(url => ({ origin: url, localStorage: [{ name: captureName, value: url }] })),
+    };
+    let chrome;
+    chromium.launch = async options => {
+      assert.equal(options.channel, "chrome");
+      assert.equal(options.headless, false);
+      chrome = syntheticChrome(captured);
+      return chrome.browser;
+    };
+    try {
+      async function startCapture() {
+        chrome = undefined;
+        await evaluate(`${element("button.primary-btn")}.click()`);
+        await until(() => chrome?.context.pages().length === 1, "fresh Chrome capture window");
+      }
+      await startCapture();
+      await evaluate(`${element("button.settings-secondary")}.click()`);
+      await until(() => !chrome.browser.isConnected(), "cancelled Chrome capture");
+      await until(() => evaluate(`${element("button.primary-btn")}?.disabled === false`), "import actions restored");
+      assert.equal(chrome.reads(), 0);
+      assert.equal(await evaluate(`!!${element("input[type=radio]")}`), false);
+
+      await startCapture();
+      const [first] = chrome.context.pages();
+      const second = await chrome.context.newPage();
+      await first.close();
+      assert.equal(chrome.reads(), 0);
+      await second.close();
+      await waitPreview();
+      assert.equal(chrome.reads(), 1);
+      assert.equal(chrome.browser.isConnected(), false);
+      assert.deepEqual(await guest.session.cookies.get({ name: captureName }), []);
+      await selectSite("127.0.0.1");
+      await apply("Import complete. Cookies (1) · LocalStorage entries (1).");
+      assert.deepEqual((await guest.session.cookies.get({ name: captureName })).map(item => item.domain), ["127.0.0.1"]);
+      const readCapture = `localStorage.getItem(${JSON.stringify(captureName)})`;
+      assert.equal(await guest.executeJavaScript(readCapture), base);
+      assert.equal(await other.executeJavaScript(readCapture), null);
+      console.log("PASS Chrome capture cancel, final tab close, website preview and selective import through Settings");
+    } finally {
+      chromium.launch = originalLaunch;
+    }
+  } finally {
+    dialog.showOpenDialog = originalChooser;
+    other.close();
+  }
+}
+
 const watchdog = setTimeout(() => { console.error("Browser smoke timed out"); app.exit(1); }, 60000);
 async function run() {
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
@@ -304,6 +463,7 @@ async function run() {
       await evaluate("Array.from(document.querySelectorAll('.settings-nav-item')).find(n => n.textContent === 'Interface').click()");
     };
     await openLinkSettings();
+    await checkSiteDataImport(win, linkGuest, evaluate, base);
     assert.equal(await evaluate("document.querySelector('[aria-label=\"Conversation links\"] button').getAttribute('aria-checked')"), "true");
     await evaluate("document.querySelectorAll('[aria-label=\"Conversation links\"] button')[1].click()");
     await until(() => evaluate("window.vela.uiStorage.getItem('vela.conversationLinkTarget') === 'external'"), "saved system-browser preference");
@@ -319,7 +479,7 @@ async function run() {
     await openLinkSettings();
     await until(() => evaluate("document.querySelectorAll('[aria-label=\"Conversation links\"] button')[1]?.getAttribute('aria-checked') === 'true'"), "restored link preference");
     console.log("PASS setting changes apply to existing messages and persist across renderer reload");
-    console.log("Browser Electron smoke: 10 checks passed");
+    console.log("Browser Electron smoke: 12 checks passed");
     clearTimeout(watchdog);
     server.closeAllConnections(); server.close();
     app.quit();
