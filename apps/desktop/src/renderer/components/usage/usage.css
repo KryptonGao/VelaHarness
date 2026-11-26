@@ -69,6 +69,8 @@
 .usage-share-track > span { display: block; height: 100%; border-radius: inherit; background: var(--success); }
 .usage-empty { margin: 0; padding: 28px 16px; color: var(--text-muted); text-align: center; line-height: 1.7; }
 .usage-warning { padding: 10px 12px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--warning); line-height: 1.6; }
+.usage-incomplete-warning { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 12px 0 0; border-radius: var(--radius-lg); }
+.usage-incomplete-warning button { flex-shrink: 0; }
 .usage-section > .usage-note + .usage-table-scroll { margin-top: 16px; }
 
 @container usage (max-width: 520px) {
@@ -86,6 +88,7 @@
 /* 标题与内容共用同一宽度并居中,避免标题相对内容错位 */
 .settings-content:has(> .settings-usage) > .settings-page-header { max-width: 1140px; }
 .usage-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 22px; }
+.settings-usage > .settings-group { margin-top: 28px; }
 .usage-heading h2 { font-size: calc(20px * var(--ui-scale)); font-weight: 650; margin: 0; }
 .usage-heading .usage-note { margin-top: 0; font-size: calc(13px * var(--ui-scale)); }
 .usage-heading button { flex-shrink: 0; }
@@ -162,10 +165,12 @@
 .pricing-form input::placeholder { color: var(--text-muted); }
 .pricing-model { grid-column: 1 / 4; }
 .pricing-currency { grid-column: 4 / 6; }
+.pricing-form:has(.pricing-tier) .pricing-model { grid-column: 1 / 3; }
 .pricing-number input { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 @container pricing (max-width: 560px) {
   .pricing-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .pricing-model, .pricing-currency { grid-column: 1 / -1; }
+  .pricing-model, .pricing-form:has(.pricing-tier) .pricing-model, .pricing-currency { grid-column: 1 / -1; }
+  .pricing-tier, .pricing-tier + .pricing-currency { grid-column: span 1; }
   .pricing-actions { grid-column: 1 / -1; }
 }
 .pricing-actions, .pricing-row-actions { display: flex; gap: 8px; }

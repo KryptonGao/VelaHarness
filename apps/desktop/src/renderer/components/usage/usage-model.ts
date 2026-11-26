@@ -1,5 +1,5 @@
 import { intlLocale, type AppLocale } from "@vela/shared";
-import { addCost, costOfUsage, findModelPrice, type CostByCurrency, type ModelPrice, type PricingCurrency, type TraceRequest, type TraceUsage } from "@vela/shared";
+import { addCost, addUsageByModel, hasCost, ledgerCost, pricingCurrencies, type CostByCurrency, type ModelPrice, type UsageByModel, type TraceRequest, type TraceUsage } from "@vela/shared";
 
 /** Minimal shape shared by turn requests and standalone summary requests. */
 export interface UsageRecord {
@@ -8,6 +8,11 @@ export interface UsageRecord {
   startedAt: number | null;
   completedAt: number | null;
   usage: TraceUsage | null;
+  /** Imported daily buckets represent multiple metered requests. */
+  requestCount?: number;
+  missingBreakdown?: boolean;
+  /** Undefined uses the model's registered rate, null marks an unpriceable record. */
+  priceKey?: string | null;
 }
 
 export function usageDateKey(date: Date): string {
@@ -35,9 +40,13 @@ export function collectUsageRequests(conversations: { id: string; requests: Trac
   return [...requests.values()];
 }
 
-export function filterUsageRequests<T extends UsageRecord>(requests: T[], filter: { provider: string; start: string; end: string }): T[] {
+export function filterUsageRequests<T extends UsageRecord>(requests: T[], filter: { providers: readonly string[]; start: string; end: string }): T[] {
+  const providers = new Set(filter.providers);
   return requests.filter(request => {
-    if (filter.provider && !request.model.startsWith(`${filter.provider}/`)) return false;
+    if (providers.size) {
+      const separator = request.model.indexOf("/");
+      if (separator < 1 || !providers.has(request.model.slice(0, separator))) return false;
+    }
     if (!filter.start && !filter.end) return true;
     const day = requestDate(request);
     return day !== null && (!filter.start || day >= filter.start) && (!filter.end || day <= filter.end);
@@ -56,11 +65,13 @@ export function usageCalendar(end: Date, dayCount = 365): string[] {
 }
 
 export interface UsageTotals extends TraceUsage {
+  detailed: number;
   requests: number;
   metered: number;
 }
 
 export interface ModelUsage extends UsageTotals {
+  usageByPrice: UsageByModel;
   key: string;
   model: string;
   provider: string;
@@ -71,18 +82,20 @@ export interface ProviderUsage extends UsageTotals {
 }
 
 function emptyTotals(): UsageTotals {
-  return { requests: 0, metered: 0, input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0 };
+  return { requests: 0, metered: 0, detailed: 0, input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0 };
 }
 
 function addRequest(totals: UsageTotals, request: UsageRecord) {
-  totals.requests++;
+  totals.requests += request.requestCount ?? 1;
   if (!request.usage) return;
-  totals.metered++;
+  totals.metered += request.requestCount ?? 1;
+  totals.totalTokens += request.usage.totalTokens;
+  if (request.missingBreakdown) return;
+  totals.detailed += request.requestCount ?? 1;
   totals.input += request.usage.input;
   totals.output += request.usage.output;
   totals.cacheRead += request.usage.cacheRead;
   totals.cacheWrite += request.usage.cacheWrite;
-  totals.totalTokens += request.usage.totalTokens;
 }
 
 export function usageCoverage(totals: UsageTotals): number | null {
@@ -105,6 +118,7 @@ export function summarizeUsage(requests: UsageRecord[]) {
   const providers = new Map<string, ProviderUsage>();
   const days = new Map<string, UsageTotals>();
   let undated = 0;
+  let reportedRequests = 0;
   // Snapshot updates replace requests with the same ID; never count one twice.
   for (const request of new Map(requests.map(request => [request.id, request])).values()) {
     const separator = request.model.indexOf("/");
@@ -112,7 +126,7 @@ export function summarizeUsage(requests: UsageRecord[]) {
     const model = separator > 0 ? request.model.slice(separator + 1) : request.model;
     let modelUsage = models.get(request.model);
     if (!modelUsage) {
-      modelUsage = { ...emptyTotals(), key: request.model, provider, model };
+      modelUsage = { ...emptyTotals(), key: request.model, provider, model, usageByPrice: Object.create(null) };
       models.set(request.model, modelUsage);
     }
     let providerUsage = providers.get(provider);
@@ -122,6 +136,12 @@ export function summarizeUsage(requests: UsageRecord[]) {
     }
     addRequest(totals, request);
     addRequest(modelUsage, request);
+    if (model && request.usage) {
+      reportedRequests += request.requestCount ?? 1;
+      if (!request.missingBreakdown && request.priceKey !== null) {
+        addUsageByModel(modelUsage.usageByPrice, request.priceKey ?? request.model, request.usage);
+      }
+    }
     addRequest(providerUsage, request);
     const date = requestDate(request);
     if (date) {
@@ -129,12 +149,13 @@ export function summarizeUsage(requests: UsageRecord[]) {
       addRequest(day, request);
       days.set(date, day);
     } else {
-      undated++;
+      undated += request.requestCount ?? 1;
     }
   }
   const byUsage = (a: UsageTotals, b: UsageTotals) => b.totalTokens - a.totalTokens || b.requests - a.requests;
   return {
     totals,
+    reportedRequests,
     models: [...models.values()].sort(byUsage),
     providers: [...providers.values()].sort(byUsage),
     activeDays: days.size,
@@ -143,37 +164,24 @@ export function summarizeUsage(requests: UsageRecord[]) {
   };
 }
 
-export interface ModelCost {
-  currency: PricingCurrency;
-  amount: number;
-}
-
-/** 已登记价格的模型按自己的单价算费用；没登记价格或没有计量用量时返回 null，而不是 0。 */
-export function modelCost(model: UsageTotals & { key: string }, prices: readonly ModelPrice[]): ModelCost | null {
-  const price = findModelPrice(prices, model.key);
-  if (!price || model.metered === 0) return null;
-  return { currency: price.currency, amount: costOfUsage(model, price) };
-}
-
 export interface CostSummary {
-  /** 各币种的费用合计，不做汇率换算。 */
   total: CostByCurrency;
-  byModel: Map<string, ModelCost>;
-  /** 有计量用量但还没登记价格的模型，费用没有计入合计。 */
+  byModel: Map<string, CostByCurrency>;
   unpriced: string[];
 }
 
-export function summarizeCost(models: readonly (UsageTotals & { key: string })[], prices: readonly ModelPrice[]): CostSummary {
+export function summarizeCost(models: readonly ModelUsage[], prices: readonly ModelPrice[]): CostSummary {
   let total: CostByCurrency = {};
-  const byModel = new Map<string, ModelCost>();
+  const byModel = new Map<string, CostByCurrency>();
   const unpriced: string[] = [];
   for (const model of models) {
-    const cost = modelCost(model, prices);
-    if (cost) {
-      byModel.set(model.key, cost);
-      total = addCost(total, cost.currency, cost.amount);
-    } else if (model.metered > 0) {
-      unpriced.push(model.key);
+    const result = ledgerCost(model.usageByPrice, prices);
+    unpriced.push(...result.unpriced);
+    if (!hasCost(result.cost)) continue;
+    byModel.set(model.key, result.cost);
+    for (const currency of pricingCurrencies) {
+      const amount = result.cost[currency];
+      if (amount !== undefined) total = addCost(total, currency, amount);
     }
   }
   return { total, byModel, unpriced };

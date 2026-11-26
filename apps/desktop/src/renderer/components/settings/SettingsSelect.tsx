@@ -1,5 +1,6 @@
 import { Fragment, useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
 import { createPortal } from "react-dom";
+import { trf } from "../../locale";
 import { Icon } from "../icons";
 
 export interface SelectOption {
@@ -12,14 +13,15 @@ export interface SelectOption {
   group?: string;
 }
 
-interface SettingsSelectProps {
+type SettingsSelectProps = {
   label: string;
-  value: string;
   options: readonly SelectOption[];
-  onChange: (value: string) => void;
   disabled?: boolean;
   describedBy?: string;
-}
+} & (
+  | { multiple?: false; value: string; onChange: (value: string) => void }
+  | { multiple: true; value: readonly string[]; onToggle: (value: string) => void }
+);
 
 const gap = 6;
 const viewportMargin = 12;
@@ -28,7 +30,8 @@ const viewportMargin = 12;
  * 设置页用的下拉框:触发按钮 + 浮出的选项列表。
  * 选中项在右侧画勾,鼠标悬停(或键盘移动到)的选项底色变灰;列表挂在 body 下,不会被卡片裁掉。
  */
-export function SettingsSelect({ label, value, options, onChange, disabled, describedBy }: SettingsSelectProps) {
+export function SettingsSelect(props: SettingsSelectProps) {
+  const { label, options, disabled, describedBy } = props;
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);
   const [position, setPosition] = useState<{ top: number; left: number; minWidth: number } | null>(null);
@@ -36,7 +39,12 @@ export function SettingsSelect({ label, value, options, onChange, disabled, desc
   const menuRef = useRef<HTMLDivElement>(null);
   const listId = useId();
   const optionId = (index: number) => `${listId}-${index}`;
-  const current = options.find((option) => option.value === value);
+  const isSelected = (option: SelectOption) => props.multiple
+    ? props.value.includes(option.value)
+    : option.value === props.value;
+  const valueLabel = props.multiple && props.value.length > 1
+    ? trf("已选 {0} 项", "{0} selected", props.value.length)
+    : options.find(isSelected)?.label ?? (props.multiple ? props.value[0] : "");
 
   const close = useCallback((restoreFocus: boolean) => {
     setOpen(false);
@@ -46,7 +54,7 @@ export function SettingsSelect({ label, value, options, onChange, disabled, desc
   /** 鼠标点开时不高亮任何项(已选项只打勾,不变灰);键盘打开时高亮已选项,方便从它开始移动。 */
   const openMenu = (withKeyboard: boolean) => {
     if (disabled) return;
-    const selected = options.findIndex((option) => option.value === value && !option.disabled);
+    const selected = options.findIndex((option) => isSelected(option) && !option.disabled);
     setActive(withKeyboard ? (selected >= 0 ? selected : options.findIndex((option) => !option.disabled)) : -1);
     setOpen(true);
   };
@@ -66,14 +74,13 @@ export function SettingsSelect({ label, value, options, onChange, disabled, desc
       : below;
     const left = Math.min(Math.max(viewportMargin, rect.right - width), window.innerWidth - width - viewportMargin);
     setPosition({ top, left, minWidth: rect.width });
-  }, [open]);
+  }, [open, valueLabel]);
 
   useEffect(() => {
     if (!open) {
       setPosition(null);
       return;
     }
-    menuRef.current?.focus({ preventScroll: true });
     const onPointerDown = (event: PointerEvent) => {
       const target = event.target as Node;
       if (menuRef.current?.contains(target) || triggerRef.current?.contains(target)) return;
@@ -94,11 +101,13 @@ export function SettingsSelect({ label, value, options, onChange, disabled, desc
     };
   }, [open, close]);
 
-  // 打开时把已选项滚进可视范围
+  // The menu can receive keyboard focus once it has been positioned and made visible.
+  const menuPositioned = open && position !== null;
   useEffect(() => {
-    if (!open) return;
+    if (!menuPositioned) return;
+    menuRef.current?.focus({ preventScroll: true });
     menuRef.current?.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: "nearest" });
-  }, [open, position]);
+  }, [menuPositioned]);
 
   useEffect(() => {
     if (!open || active < 0) return;
@@ -119,7 +128,13 @@ export function SettingsSelect({ label, value, options, onChange, disabled, desc
   const pick = (index: number) => {
     const option = options[index];
     if (!option || option.disabled) return;
-    if (option.value !== value) onChange(option.value);
+    if (props.multiple) {
+      props.onToggle(option.value);
+      setActive(index);
+      menuRef.current?.focus({ preventScroll: true });
+      return;
+    }
+    if (option.value !== props.value) props.onChange(option.value);
     close(true);
   };
 
@@ -160,7 +175,7 @@ export function SettingsSelect({ label, value, options, onChange, disabled, desc
         onClick={(event) => (open ? close(false) : openMenu(event.detail === 0))}
         onKeyDown={onTriggerKeyDown}
       >
-        <span className="settings-select-value">{current?.label ?? ""}</span>
+        <span className="settings-select-value">{valueLabel}</span>
       </button>
       {open ? createPortal(
         <div
@@ -169,6 +184,7 @@ export function SettingsSelect({ label, value, options, onChange, disabled, desc
           className="settings-menu"
           role="listbox"
           aria-label={label}
+          aria-multiselectable={props.multiple || undefined}
           aria-activedescendant={active >= 0 ? optionId(active) : undefined}
           tabIndex={-1}
           style={position ? { top: position.top, left: position.left, minWidth: position.minWidth } : { top: 0, left: 0, visibility: "hidden" }}
@@ -183,7 +199,7 @@ export function SettingsSelect({ label, value, options, onChange, disabled, desc
                 id={optionId(index)}
                 className="settings-menu-item"
                 role="option"
-                aria-selected={option.value === value}
+                aria-selected={isSelected(option)}
                 aria-disabled={option.disabled || undefined}
                 data-active={index === active ? "true" : undefined}
                 onPointerEnter={() => { if (!option.disabled) setActive(index); }}
@@ -193,7 +209,7 @@ export function SettingsSelect({ label, value, options, onChange, disabled, desc
                   <span className="settings-menu-label">{option.label}</span>
                   {option.description ? <span className="settings-menu-desc">{option.description}</span> : null}
                 </span>
-                {option.value === value ? <span className="settings-menu-check"><Icon name="check" size={16} /></span> : null}
+                {isSelected(option) ? <span className="settings-menu-check"><Icon name="check" size={16} /></span> : null}
               </div>
             </Fragment>
           ))}

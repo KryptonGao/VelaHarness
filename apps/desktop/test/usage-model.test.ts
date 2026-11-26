@@ -168,11 +168,14 @@ describe("settings usage history", () => {
     const day = usageDateKey(new Date(secondDay));
     const requests = [request("1"), request("2", { startedAt: secondDay }),
       request("3", { startedAt: secondDay, model: "openai-other/model-a" }),
-      request("4", { startedAt: null, completedAt: null, usage: null })];
-    assert.deepEqual(filterUsageRequests(requests, { provider: "openai", start: day, end: day }).map(item => item.id), ["2"]);
-    assert.equal(filterUsageRequests(requests, { provider: "", start: "", end: "" }).length, 4);
-    assert.equal(filterUsageRequests(requests, { provider: "", start: day, end: "" }).length, 2);
-    assert.equal(filterUsageRequests(requests, { provider: "", start: day, end: "2026-09-01" }).length, 0);
+      request("4", { startedAt: null, completedAt: null, usage: null }),
+      request("5", { startedAt: secondDay, model: "custom/org/model" }),
+      request("6", { startedAt: secondDay, model: "legacy-model" })];
+    assert.deepEqual(filterUsageRequests(requests, { providers: ["openai"], start: day, end: day }).map(item => item.id), ["2"]);
+    assert.deepEqual(filterUsageRequests(requests, { providers: ["openai", "custom"], start: day, end: day }).map(item => item.id), ["2", "5"]);
+    assert.equal(filterUsageRequests(requests, { providers: [], start: "", end: "" }).length, 6);
+    assert.equal(filterUsageRequests(requests, { providers: [], start: day, end: "" }).length, 4);
+    assert.equal(filterUsageRequests(requests, { providers: [], start: day, end: "2026-09-01" }).length, 0);
   });
 
   it("handles local midnight, completion-only timestamps, and invalid dates", () => {

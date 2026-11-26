@@ -8,8 +8,10 @@ import { tr, trf } from "../../locale";
 import { SettingsSelect } from "../settings/SettingsSelect";
 
 export interface PriceableModel {
-  /** `provider/model`，与用量记录里的模型标识一致。 */
+  /** Persisted rate key, including the tier suffix when applicable. */
   key: string;
+  modelKey: string;
+  tier?: string | null;
   /** 下拉框里的分组名（提供方）。 */
   group: string;
   label: string;
@@ -25,6 +27,21 @@ const fieldLabels: Record<PriceField, () => string> = {
   cacheWrite: () => tr("缓存写入", "Cache write"),
   cacheRead: () => tr("缓存读取", "Cache read"),
 };
+
+function tierLabel(tier: string | null | undefined): string {
+  if (tier === undefined || tier === "default") return tr("标准", "Standard");
+  if (tier === "priority") return tr("快速", "Fast");
+  if (tier === "ultrafast") return tr("超快", "Ultrafast");
+  return tier ?? tr("档位未知", "Unknown tier");
+}
+
+/** A saved Codex rate can outlive its source session or the sync opt-in. */
+function savedRateOption(key: string): PriceableModel {
+  const match = /^(.+\/.+) \[([\w./:@-]+|\?)\]$/.exec(key);
+  const modelKey = match?.[1] ?? key;
+  return { key, modelKey, tier: match?.[2] === "?" ? null : match?.[2], label: modelKey,
+    group: tr("已登记价格", "Registered prices") };
+}
 
 function formatPrice(value: number): string {
   return String(Number(value.toFixed(6)));
@@ -61,11 +78,26 @@ export function ModelPricingEditor({ candidates }: { candidates: readonly Pricea
   const [error, setError] = useState<string | null>(null);
   const id = useId();
   const editing = prices.some(price => price.model === draft.model.trim());
-  const names = new Map(candidates.map(item => [item.key, `${item.group} · ${item.label}`]));
-  const groups = new Map<string, PriceableModel[]>();
-  for (const item of candidates) groups.set(item.group, [...(groups.get(item.group) ?? []), item]);
-  // 已登记价格的模型即使所在供应商已退出登录，也要能选中，才能继续编辑。
-  const orphans = prices.filter(price => !names.has(price.model));
+  const options = new Map(candidates.map(item => [item.key, item]));
+  const savedByModel = new Map<string, ModelPrice[]>();
+  for (const price of prices) {
+    const option = options.get(price.model) ?? savedRateOption(price.model);
+    options.set(price.model, option);
+    const group = savedByModel.get(option.modelKey);
+    if (group) group.push(price);
+    else savedByModel.set(option.modelKey, [price]);
+  }
+  const ratesByModel = new Map<string, PriceableModel[]>();
+  for (const option of options.values()) {
+    const rates = ratesByModel.get(option.modelKey);
+    if (rates) rates.push(option);
+    else ratesByModel.set(option.modelKey, [option]);
+  }
+  const defaultRates = [...ratesByModel.values()].map(rates => rates.find(r => r.key === r.modelKey) ?? rates[0]);
+  const selected = options.get(draft.model);
+  const selectedRates = selected ? ratesByModel.get(selected.modelKey)! : [];
+  const showTier = selectedRates.length > 1 || (selected && selected.key !== selected.modelKey);
+  const showSavedTiers = prices.some(price => options.get(price.model)!.modelKey !== price.model);
 
   const commit = (next: readonly ModelPrice[]) => {
     try {
@@ -84,6 +116,11 @@ export function ModelPricingEditor({ candidates }: { candidates: readonly Pricea
   };
   const update = (patch: Partial<Draft>) => { setDraft(current => ({ ...current, ...patch })); setError(null); };
 
+  const selectRate = (key: string) => {
+    const saved = prices.find(price => price.model === key);
+    update(saved ? draftOf(saved) : { model: key });
+  };
+
   return <section className="usage-section model-pricing" data-setting-id="model-pricing" aria-labelledby={`${id}-title`}>
     <h2 id={`${id}-title`}>{tr("模型价格", "Model pricing")}</h2>
     <p className="usage-note">{tr("手动登记每个模型的价格（每 100 万 Token），用量统计会据此计算费用。价格只保存在本机；人民币与美元不做换算，分别汇总。没有登记价格的模型不计费用，也不会显示为 0。",
@@ -92,15 +129,18 @@ export function ModelPricingEditor({ candidates }: { candidates: readonly Pricea
       <label className="pricing-model">{tr("模型", "Model")}
         <SettingsSelect
           label={tr("模型", "Model")}
-          value={draft.model}
-          onChange={next => update({ model: next })}
+          value={selected?.modelKey ?? ""}
+          onChange={key => selectRate(defaultRates.find(rate => rate.modelKey === key)?.key ?? "")}
           options={[
             { value: "", label: tr("选择模型", "Choose a model") },
-            ...[...groups].flatMap(([group, items]) => items.map(item => ({ value: item.key, label: item.label, group }))),
-            ...orphans.map(price => ({ value: price.model, label: price.model, group: tr("已登记价格", "Registered prices") })),
+            ...defaultRates.map(rate => ({ value: rate.modelKey, label: rate.label, group: rate.group })),
           ]}
         />
       </label>
+      {showTier ? <label className="pricing-tier">{tr("响应速度", "Response speed")}
+        <SettingsSelect label={tr("响应速度", "Response speed")} value={draft.model} onChange={selectRate}
+          options={selectedRates.map(rate => ({ value: rate.key, label: tierLabel(rate.tier) }))} />
+      </label> : null}
       <label className="pricing-currency">{tr("币种", "Currency")}
         <SettingsSelect
           label={tr("币种", "Currency")}
@@ -128,20 +168,28 @@ export function ModelPricingEditor({ candidates }: { candidates: readonly Pricea
       <div className="usage-table-scroll" tabIndex={0} role="region" aria-label={tr("已登记的模型价格", "Registered model prices")}>
         <table className="usage-table pricing-table">
           <thead><tr>
-            <th scope="col">{tr("模型", "Model")}</th><th scope="col">{tr("币种", "Currency")}</th>
+            <th scope="col">{tr("模型", "Model")}</th>
+            {showSavedTiers ? <th scope="col">{tr("响应速度", "Response speed")}</th> : null}
+            <th scope="col">{tr("币种", "Currency")}</th>
             {priceFields.map(field => <th key={field} scope="col">{fieldLabels[field]()}</th>)}
             <th scope="col"><span className="sr-only">{tr("操作", "Actions")}</span></th>
           </tr></thead>
-          <tbody>{prices.map(price => <tr key={price.model}>
-            <th scope="row" className="usage-model-name" title={price.model}>{names.get(price.model) ?? price.model}</th>
-            <td>{price.currency}</td>
-            {priceFields.map(field => <td key={field}>{pricingCurrencySymbols[price.currency]}{formatPrice(price[field])}</td>)}
-            <td className="pricing-row-actions">
-              <button type="button" className="settings-secondary" onClick={() => { setDraft(draftOf(price)); setError(null); }}>{tr("编辑", "Edit")}</button>
-              <button type="button" className="settings-secondary" aria-label={trf("删除 {0} 的价格", "Delete price for {0}", price.model)}
-                onClick={() => { commit(removeModelPrice(prices, price.model)); if (draft.model.trim() === price.model) setDraft(emptyDraft); }}>{tr("删除", "Delete")}</button>
-            </td>
-          </tr>)}</tbody>
+          {[...savedByModel].map(([modelKey, rates]) => {
+            const model = options.get(modelKey) ?? options.get(rates[0].model)!;
+            return <tbody key={modelKey}>{rates.map((price, index) => <tr key={price.model}>
+              {index === 0 ? <th scope="rowgroup" rowSpan={rates.length} className="usage-model-name" title={modelKey}>
+                {model.label === modelKey ? modelKey : `${model.group} · ${model.label}`}
+              </th> : null}
+              {showSavedTiers ? <td>{tierLabel(options.get(price.model)!.tier)}</td> : null}
+              <td>{price.currency}</td>
+              {priceFields.map(field => <td key={field}>{pricingCurrencySymbols[price.currency]}{formatPrice(price[field])}</td>)}
+              <td className="pricing-row-actions">
+                <button type="button" className="settings-secondary" onClick={() => { setDraft(draftOf(price)); setError(null); }}>{tr("编辑", "Edit")}</button>
+                <button type="button" className="settings-secondary" aria-label={trf("删除 {0} 的价格", "Delete price for {0}", price.model)}
+                  onClick={() => { commit(removeModelPrice(prices, price.model)); if (draft.model.trim() === price.model) setDraft(emptyDraft); }}>{tr("删除", "Delete")}</button>
+              </td>
+            </tr>)}</tbody>;
+          })}
         </table>
       </div>}
     <p className="usage-note">{tr("单位：每 100 万 Token。费用 = 输入 × 输入价 + 输出 × 输出价 + 缓存写入 × 缓存写入价 + 缓存读取 × 缓存读取价；其中输入指未命中缓存的 Token。",

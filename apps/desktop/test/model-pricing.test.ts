@@ -4,7 +4,7 @@ import {
   costOfUsage, formatCost, parseModelPrice, parseModelPrices, removeModelPrice, serializeModelPrices, upsertModelPrice,
   type ModelPrice, type TraceRequest,
 } from "@vela/shared";
-import { latestTaskRequests, modelCost, summarizeCost, summarizeUsage } from "../src/renderer/components/usage/usage-model.ts";
+import { latestTaskRequests, summarizeCost, summarizeUsage } from "../src/renderer/components/usage/usage-model.ts";
 
 const cny: ModelPrice = { model: "openai/model-a", currency: "CNY", input: 2, output: 8, cacheWrite: 2.5, cacheRead: 0.2 };
 const usd: ModelPrice = { model: "other/model-b", currency: "USD", input: 3, output: 15, cacheWrite: 3.75, cacheRead: 0.3 };
@@ -69,7 +69,7 @@ describe("cost calculation", () => {
 
   it("never shows an unmetered or unpriced model as zero", () => {
     const [model] = summarizeUsage([request("1", { usage: null })]).models;
-    assert.equal(modelCost(model!, [cny]), null);
+    assert.equal(summarizeCost([model!], [cny]).byModel.has(model!.key), false);
     assert.equal(formatCost({}), null);
     assert.deepEqual(summarizeCost([], [cny]).total, {});
   });

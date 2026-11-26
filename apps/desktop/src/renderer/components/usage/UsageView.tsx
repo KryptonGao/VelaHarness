@@ -6,7 +6,7 @@ import { localizeError, tr, trf, activeIntlLocale, getActiveLocale } from "../..
 import { useSlidingTabIndicator } from "../useSlidingTabIndicator";
 import {
   formatHeatmapTokens, formatUsageNumber, formatUsagePercent, latestTaskAgentRequests, latestTaskRequests, summarizeCost, summarizeUsage, usageCacheHitRate,
-  usageCalendar, usageCoverage, usageInputTokens, type CostSummary, type ModelCost, type UsageTotals,
+  usageCalendar, usageCoverage, usageInputTokens, type CostSummary, type UsageTotals, type UsageRecord,
 } from "./usage-model";
 import "./usage.css";
 
@@ -18,9 +18,10 @@ function TokenValue({ value, metered }: { value: number; metered: number }) {
   </span>;
 }
 
-function ModelCostValue({ cost, metered }: { cost: ModelCost | undefined; metered: number }) {
+function ModelCostValue({ cost, metered, priceable }: { cost: CostByCurrency | undefined; metered: number; priceable?: boolean }) {
+  if (priceable === false) return <span title={tr("计价信息不完整", "Missing pricing details")}>—</span>;
   if (!cost) return <span title={metered > 0 ? tr("未登记价格", "No price registered") : undefined}>—</span>;
-  return <CostValue total={{ [cost.currency]: cost.amount }} />;
+  return <CostValue total={cost} />;
 }
 
 function UsageShare({ value, total }: { value: number; total: number }) {
@@ -43,7 +44,7 @@ function UsageOverview({ totals, activeDays, undated, settings, cost, taskCost }
     [tr("请求数", "Requests"), formatUsageNumber(totals.requests, getActiveLocale())],
     [tr("已计量", "Metered"), formatUsageNumber(totals.metered, getActiveLocale())],
     [tr("Token 总数", "Total tokens"), <TokenValue value={totals.totalTokens} metered={totals.metered} />],
-    [tr("缓存命中 Token", "Cache read tokens"), <TokenValue value={totals.cacheRead} metered={totals.metered} />],
+    [tr("缓存命中 Token", "Cache read tokens"), <TokenValue value={totals.cacheRead} metered={totals.detailed} />],
     [tr("覆盖率", "Coverage"), formatUsagePercent(usageCoverage(totals))],
     [tr("活跃天数", "Active days"), activeDays > 0 || undated === 0 ? String(activeDays) : "—"],
     [tr("预估费用", "Estimated cost"), <CostValue total={cost.total} />],
@@ -82,8 +83,11 @@ export function UsageView({ conversationId, providers }: {
   return <UsageReport requests={trace.requests} agentRequests={trace.agentRequests} summaries={trace.summaries} providers={providers} loading={loading} error={error} warning={trace.warning} />;
 }
 
-export function UsageReport({ requests, agentRequests = [], summaries = [], providers, loading = false, error = null, warning = null, settings = false, start = "", end = "" }: {
+const noImportedUsage: UsageRecord[] = [];
+
+export function UsageReport({ requests, imported = noImportedUsage, agentRequests = [], summaries = [], providers, loading = false, error = null, warning = null, settings = false, start = "", end = "" }: {
   requests: TraceRequest[];
+  imported?: UsageRecord[];
   /** 子代理的请求：与主代理请求一起计入模型、提供方和费用统计。 */
   agentRequests?: TraceAgentRequest[];
   summaries?: TraceSummaryRequest[];
@@ -95,7 +99,7 @@ export function UsageReport({ requests, agentRequests = [], summaries = [], prov
   start?: string;
   end?: string;
 }) {
-  const stats = useMemo(() => summarizeUsage([...requests, ...agentRequests]), [requests, agentRequests]);
+  const stats = useMemo(() => summarizeUsage([...requests, ...agentRequests, ...imported]), [requests, agentRequests, imported]);
   const prices = useModelPrices();
   const cost = useMemo(() => summarizeCost(stats.models, prices), [stats.models, prices]);
   // 只有单个对话的视图才有「最近一次任务」；设置页汇总了所有对话，没有这个概念。
@@ -106,15 +110,16 @@ export function UsageReport({ requests, agentRequests = [], summaries = [], prov
   }, [requests, agentRequests, prices, settings]);
   const summaryStats = useMemo(() => summarizeUsage(summaries), [summaries]);
   const providerNames = useMemo(() => new Map(providers.map(provider => [provider.id, providerDisplayName(provider)])), [providers]);
-  const providerName = (id: string) => providerNames.get(id) ?? (id || tr("未知提供方", "Unknown provider"));
+  const providerName = (id: string) => providerNames.get(id) ?? (id && id !== "?" ? id : tr("未知提供方", "Unknown provider"));
   const [tab, setTab] = useState<UsageTab>("overview");
   const [search, setSearch] = useState("");
   const tabIndicator = useSlidingTabIndicator({ activeKey: tab });
   const id = useId();
+  const notReported = tr("未上报", "Not reported");
   const models = useMemo(() => {
     const query = search.trim().toLocaleLowerCase();
-    return stats.models.filter(model => model.model.toLocaleLowerCase().includes(query));
-  }, [stats.models, search]);
+    return stats.models.filter(model => (model.model || notReported).toLocaleLowerCase().includes(query));
+  }, [stats.models, search, notReported]);
   const tabs: { key: UsageTab; label: string; value: string }[] = [
     { key: "overview", label: tr("概览", "Overview"), value: String(stats.totals.requests) },
     { key: "models", label: tr("模型", "Models"), value: String(stats.models.length) },
@@ -166,17 +171,17 @@ export function UsageReport({ requests, agentRequests = [], summaries = [], prov
                     <th scope="col">{tr("费用", "Cost")}</th>
                   </tr></thead>
                   <tbody>{models.map(model => <tr key={model.key}>
-                    <th scope="row" className="usage-model-name">{model.model || tr("未知模型", "Unknown model")}</th>
+                    <th scope="row" className="usage-model-name">{model.model || notReported}</th>
                     <td className="usage-provider-name">{providerName(model.provider)}</td>
                     <td><UsageShare value={model.totalTokens} total={stats.totals.totalTokens} /></td>
                     <td><TokenValue value={model.totalTokens} metered={model.metered} /></td>
                     <td>{model.requests.toLocaleString()}</td><td>{model.metered.toLocaleString()}</td>
-                    <td><TokenValue value={usageInputTokens(model)} metered={model.metered} /></td>
-                    <td><TokenValue value={model.output} metered={model.metered} /></td>
-                    <td><TokenValue value={model.cacheRead} metered={model.metered} /></td>
-                    <td><TokenValue value={model.cacheWrite} metered={model.metered} /></td>
+                    <td><TokenValue value={usageInputTokens(model)} metered={model.detailed} /></td>
+                    <td><TokenValue value={model.output} metered={model.detailed} /></td>
+                    <td><TokenValue value={model.cacheRead} metered={model.detailed} /></td>
+                    <td><TokenValue value={model.cacheWrite} metered={model.detailed} /></td>
                     <td>{formatUsagePercent(usageCacheHitRate(model))}</td>
-                    <td><ModelCostValue cost={cost.byModel.get(model.key)} metered={model.metered} /></td>
+                    <td><ModelCostValue cost={cost.byModel.get(model.key)} metered={model.metered} priceable={model.metered === 0 || Object.keys(model.usageByPrice).length > 0} /></td>
                   </tr>)}</tbody>
                 </table>
                 {models.length === 0 ? <p className="usage-empty">{tr("没有匹配的模型", "No matching models")}</p> : null}
@@ -207,15 +212,15 @@ export function UsageReport({ requests, agentRequests = [], summaries = [], prov
                     <th scope="col">{tr("命中率", "Cache hit rate")}</th>
                   </tr></thead>
                   <tbody>{summaryStats.models.map(model => <tr key={model.key}>
-                    <th scope="row" className="usage-model-name">{model.model || tr("未知模型", "Unknown model")}</th>
+                    <th scope="row" className="usage-model-name">{model.model || notReported}</th>
                     <td className="usage-provider-name">{providerName(model.provider)}</td>
                     <td><UsageShare value={model.totalTokens} total={summaryStats.totals.totalTokens} /></td>
                     <td><TokenValue value={model.totalTokens} metered={model.metered} /></td>
                     <td>{model.requests.toLocaleString()}</td><td>{model.metered.toLocaleString()}</td>
-                    <td><TokenValue value={usageInputTokens(model)} metered={model.metered} /></td>
-                    <td><TokenValue value={model.output} metered={model.metered} /></td>
-                    <td><TokenValue value={model.cacheRead} metered={model.metered} /></td>
-                    <td><TokenValue value={model.cacheWrite} metered={model.metered} /></td>
+                    <td><TokenValue value={usageInputTokens(model)} metered={model.detailed} /></td>
+                    <td><TokenValue value={model.output} metered={model.detailed} /></td>
+                    <td><TokenValue value={model.cacheRead} metered={model.detailed} /></td>
+                    <td><TokenValue value={model.cacheWrite} metered={model.detailed} /></td>
                     <td>{formatUsagePercent(usageCacheHitRate(model))}</td>
                   </tr>)}</tbody>
                 </table>
@@ -242,13 +247,13 @@ export function UsageReport({ requests, agentRequests = [], summaries = [], prov
               <div className="usage-summary-grid">
                 {([
                   [tr("已计量", "Metered"), stats.totals.metered],
-                  [tr("提供方上报", "Provider reported"), stats.totals.metered],
+                  [tr("提供方上报", "Provider reported"), stats.reportedRequests],
                   [tr("估算", "Estimated"), 0],
-                  [tr("未上报", "Not reported"), stats.totals.requests - stats.totals.metered],
+                  [notReported, stats.totals.requests - stats.reportedRequests],
                   [tr("不支持", "Unsupported"), "—"],
                 ] as const).map(([label, value]) => <div className="usage-summary-card" key={label}><span>{label}</span><strong>{value}</strong></div>)}
               </div>
-              <p className="usage-note">{tr("仅统计提供方上报的用量，不估算 Token。现有记录无法区分未上报与不支持，因此不支持显示为未知。", "Only provider-reported usage is counted; tokens are not estimated. Existing records cannot distinguish unsupported usage from missing reports, so unsupported is shown as unknown.")}</p>
+              <p className="usage-note">{tr("缺少模型名称或 Token 用量的请求归入「未上报」。已记录的 Token 计入总量。现有记录无法判断提供方是否支持上报。", "Requests missing a model name or token usage count as “Not reported”. Recorded tokens still count toward the total. The records do not indicate whether the provider supports usage reporting.")}</p>
               <p className="usage-note">{tr("覆盖率反映请求的用量记录完整度。进行中或未返回用量的请求仍计入请求数；Token 总数仅汇总已计量请求。缓存命中率 = 缓存命中 Token / 输入 Token。", "Coverage reflects how many requests have usage records. Running requests and requests without reported usage still count as requests; token totals only include metered requests. Cache hit rate = cache read tokens / input tokens.")}</p>
               <div className="usage-table-scroll" tabIndex={0} role="region" aria-label={tr("覆盖率明细表", "Usage coverage table")}>
                 <table className="usage-table usage-coverage-table">
@@ -257,7 +262,7 @@ export function UsageReport({ requests, agentRequests = [], summaries = [], prov
                     <th scope="col">{tr("未计量", "Unmetered")}</th><th scope="col">{tr("覆盖率", "Coverage")}</th>
                     <th scope="col">{tr("缓存命中率", "Cache hit rate")}</th></tr></thead>
                   <tbody>{stats.models.map(model => <tr key={model.key}>
-                    <th scope="row" className="usage-model-name">{model.model || tr("未知模型", "Unknown model")}</th>
+                    <th scope="row" className="usage-model-name">{model.model || notReported}</th>
                     <td className="usage-provider-name">{providerName(model.provider)}</td>
                     <td>{model.requests.toLocaleString()}</td><td>{model.metered.toLocaleString()}</td>
                     <td>{(model.requests - model.metered).toLocaleString()}</td><td>{formatUsagePercent(usageCoverage(model))}</td>
