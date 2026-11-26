@@ -69,6 +69,24 @@ describe("side chat", () => {
     assert.doesNotMatch(sideChatSystemPrompt("en", [{ ...memory("global", "x"), status: "missing", content: "" }]), /<memory/);
   });
 
+  it("uses the latest personal prompt in side chat requests alongside its role and memory", async () => {
+    const seen: { context?: Context } = {};
+    const service = new SideChatService();
+    const input = { runtime: fakeRuntime([], seen), model, memory: [memory("global", "Use pnpm.")], memoryEnabled: true, onDelta: () => {} };
+    const send = async (globalPrompt: string) => {
+      await service.run({ ...input, request, globalPrompt });
+      return seen.context!.systemPrompt!;
+    };
+    const original = await send("");
+    const added = await send("Give compact examples.");
+    assert.match(added, /no tools/);
+    assert.match(added, /Use pnpm\./);
+    assert.match(added, /User preferences/);
+    assert.equal(added.split("Give compact examples.").length - 1, 1);
+    assert.equal(await send("Use diagrams."), added.replace("Give compact examples.", "Use diagrams."));
+    assert.equal(await send(" \n "), original);
+  });
+
   it("keeps the newest history within budget and never starts with an assistant reply", () => {
     const long = "a".repeat(150_000);
     const history = sideChatHistory([

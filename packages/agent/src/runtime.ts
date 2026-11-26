@@ -135,7 +135,7 @@ import { ModelPriceStore } from "./model-price-store";
 import { TaskCostHistoryStore } from "./task-cost-history";
 import { IntelligentUiSettings } from "./intelligent-ui-settings";
 import { intelligentUiInstructions } from "./intelligent-ui-prompt";
-import { browserVisualCheckNote, checksVisualWork, defaultSystemPromptProfile, intelligentUiScopeNote, usesVelaPrompt, velaHeadlessPreamble, velaPreamble, rulesForProfile, type RuleKind, type SystemPromptProfile } from "./system-prompt";
+import { browserVisualCheckNote, checksVisualWork, defaultSystemPromptProfile, globalPromptSection, intelligentUiScopeNote, usesVelaPrompt, velaHeadlessPreamble, velaPreamble, rulesForProfile, type RuleKind, type SystemPromptProfile } from "./system-prompt";
 import { createResidentTools, residentInstructions, type ResidentToolHost } from "./resident-tools";
 import { createMemoryContextExtension, memoryTargetsFor } from "./memory-context";
 import { workspaceFoldersInstructions } from "./workspace-folders";
@@ -284,6 +284,8 @@ export interface AgentRuntimeOptions {
   onRecipeStop?: (conversationId: string) => void;
   /** 系统提示档位；默认 v2，可用 VELA_SYSTEM_PROMPT=v1 切回 Pi 原有基础段。 */
   systemPromptProfile?: SystemPromptProfile;
+  /** User-authored desktop preferences, read when each chat turn starts. */
+  globalPrompt?: () => string;
   /** 当前界面语言；每轮读取，用作提示里「用户语言不明时」的默认写作语言。 */
   locale?: () => AppLocale;
   /** 模型配置与运行数据分离：配置（登录、模型定义、默认选择）读自 configDir，缓存写进 cacheDir。缺省保持桌面行为。 */
@@ -2379,7 +2381,7 @@ export class AgentRuntime {
         : { cwd: this.currentCwd, hasWorkspace: false }).map((target) => this.memory.load(target)))
       : [];
     onEvent({ requestId: request.requestId, type: "memory", memory: memory.map(memoryLoadReport), memoryEnabled, model: `${model.provider}/${model.id}` });
-    return { runtime: directory.runtime, model, memory, memoryEnabled,
+    return { runtime: directory.runtime, model, memory, memoryEnabled, globalPrompt: this.globalPrompt,
       onDelta: (text: string) => onEvent({ requestId: request.requestId, type: "delta", text }),
     };
   }
@@ -3298,6 +3300,7 @@ export class AgentRuntime {
             authorizeCall: call => this.tools.authorize(call, entry),
           }),
         }, { name: "vela-task-budget", hidden: true, factory: createTaskBudgetExtension(() => entry.budget?.exhausted === true) },
+        { name: "vela-global-prompt", hidden: true, factory: this.globalPromptExtension() },
         { name: "vela-hooks", hidden: true, factory: this.hooksExtension(entry) },
         { name: "vela-memory", hidden: true, factory: this.memoryExtension(entry, null) }, {
           name: "vela-intelligent-ui",
@@ -4312,6 +4315,7 @@ export class AgentRuntime {
       ...this.contextFilesOverride(entry),
       extensionFactories: [
         ...(input.kind === "explore" ? [{ name: "vela-explore", hidden: true, factory: createExploreGuardExtension() }] : []),
+        { name: "vela-global-prompt", hidden: true, factory: this.globalPromptExtension() },
         { name: "vela-task-budget", hidden: true, factory: createTaskBudgetExtension(() => entry.budget?.exhausted === true) },
         { name: "vela-subagent-models", hidden: true, factory: this.subagentModelsExtension(input.kind) },
         ...(input.beforeToolCall ? [{ name: "vela-agent-pause", hidden: true, factory: createAgentPauseExtension(input.beforeToolCall) }] : []),
@@ -4550,6 +4554,19 @@ export class AgentRuntime {
 
   private get promptProfile(): SystemPromptProfile {
     return this.options.systemPromptProfile ?? defaultSystemPromptProfile;
+  }
+
+  private get globalPrompt(): string | undefined {
+    return this.options.hostProfile === "headless" ? undefined : this.options.globalPrompt?.();
+  }
+
+  private globalPromptExtension(): ExtensionFactory {
+    return pi => {
+      pi.on("before_agent_start", event => {
+        const section = globalPromptSection(this.globalPrompt);
+        if (section) event.systemPromptOptions.sections.vela_global_prompt = section;
+      });
+    };
   }
 
   /**

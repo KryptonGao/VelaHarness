@@ -9,6 +9,7 @@ import { clampChoice, groupAvailable, levelsFor, modelValue, parseModelValue } f
 import { Segmented, SettingsBlock, SettingsGroup } from "./primitives";
 import { SettingsSelect } from "./SettingsSelect";
 import { ContextLimitBlock } from "./ContextLimitBlock";
+import { GlobalPromptBlock } from "./GlobalPromptBlock";
 import { TaskBudgetBlock } from "./TaskBudgetBlock";
 
 /** 停止输入这么久后自动保存额外指令;失焦时立即保存。 */
@@ -242,6 +243,8 @@ export function AgentDefaultsPage({
         />
         {promptError && <span role="alert" className="settings-error">{localizeError(promptError)}</span>}
       </SettingsBlock>
+
+      <GlobalPromptBlock text={text} />
 
       <SettingsBlock id="instructions" title={text.instructions} hint={text.instructionsHint}>
         <textarea

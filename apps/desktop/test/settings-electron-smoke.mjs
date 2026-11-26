@@ -140,7 +140,12 @@ try {
 
   // autosave
   await ev("document.querySelector('.settings-content').scrollTop = 0");
-  await ev(`(() => { const t = document.querySelector('textarea[aria-label="Extra instructions"]'); const set = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set; set.call(t, 'Prefer concise answers.'); t.dispatchEvent(new Event('input', {bubbles:true})); })()`);
+  const setTextarea = (selector, value) => ev(`(() => {
+    const field = document.querySelector(${JSON.stringify(selector)});
+    Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set.call(field, ${JSON.stringify(value)});
+    field.dispatchEvent(new Event('input', { bubbles: true }));
+  })()`);
+  await setTextarea('textarea[aria-label="Extra instructions"]', "Prefer concise answers.");
   await pause(1500);
   assert.equal((await ev("window.vela.getAgentSettings()")).instructions, "Prefer concise answers.");
   assert.match(await ev("document.querySelector('.settings-autosave').textContent"), /Saved/);
@@ -152,6 +157,21 @@ try {
   await until(async () => (await ev("window.vela.getAgentSettings()")).thinkingLevel === "high", "thinking saved");
   console.log("PASS thinking level saves immediately");
 
+  const globalField = '[data-setting-id="global-prompt"] textarea[aria-label="Global prompt"]';
+  const globalFieldValue = () => ev(`document.querySelector(${JSON.stringify(globalField)})?.value`);
+  const storedGlobalPrompt = () => ev("window.vela.uiStorage.getItem('vela.globalPrompt')");
+  const prompt = "Use metric units.\nExplain unfamiliar abbreviations.";
+  assert.equal(await globalFieldValue(), "", "global prompt starts empty");
+  await setTextarea(globalField, prompt);
+  await until(async () => (await storedGlobalPrompt()) === prompt, "global prompt saved");
+  const invalidPromptError = await ev(`(() => {
+    try { window.vela.uiStorage.setItem('vela.globalPrompt', 'x'.repeat(16001)); }
+    catch (error) { return error.message; }
+    return '';
+  })()`);
+  assert.match(invalidPromptError, /Invalid global prompt/);
+  assert.equal(await storedGlobalPrompt(), prompt, "invalid IPC write preserves the saved global prompt");
+
   // remembered page
   await ev("document.querySelector('.nav-history-buttons button:first-child').click()");
   await until(() => ev("!document.querySelector('.settings-view')"), "back leaves settings");
@@ -160,6 +180,11 @@ try {
   assert.equal(await ev("document.querySelector('.settings-nav-item.active').textContent"), "Defaults & permissions");
   assert.equal(await ev("window.vela.uiStorage.getItem('vela.settingsPage')"), '"defaults"');
   console.log("PASS remembers last page");
+  await until(async () => (await globalFieldValue()) === prompt, "reopened global prompt");
+  await setTextarea(globalField, "");
+  await until(async () => (await storedGlobalPrompt()) === null, "global prompt cleared");
+  assert.equal((await ev("window.vela.getAgentSettings()")).instructions, "Prefer concise answers.");
+  console.log("PASS global prompt persists across Settings visits and clears independently of extra instructions");
   assert.deepEqual(errors, []);
   console.log("ALL OK");
   clearTimeout(watchdog); app.quit();

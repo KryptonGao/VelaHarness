@@ -17,6 +17,7 @@ import { memoryContextBlock } from "./memory-context";
 import { codexSpeedPayload } from "./codex-speed";
 import { openCodeSessionHeaders } from "./provider-headers";
 import { modelThinkingLevel } from "./thinking-level";
+import { globalPromptSection } from "./system-prompt";
 
 const maxMessages = 400;
 const maxMessageChars = 100_000;
@@ -77,7 +78,7 @@ export function parseSideChatRequest(raw: unknown): SideChatRequest {
 }
 
 /** 侧边聊天的系统提示：说明没有工具、回复语言，并在末尾附上记忆。 */
-export function sideChatSystemPrompt(locale: AppLocale, memory: readonly MemorySourceLoad[]): string {
+export function sideChatSystemPrompt(locale: AppLocale, memory: readonly MemorySourceLoad[], globalPrompt?: string): string {
   const lines = [
     "You are Vela, chatting with the user in a side chat next to their main coding session.",
     "This side chat has no tools: you cannot read or edit files, run commands, browse the web, or see the main conversation. Answer from your own knowledge and what the user writes here.",
@@ -85,8 +86,7 @@ export function sideChatSystemPrompt(locale: AppLocale, memory: readonly MemoryS
     "You cannot save memories here. If the user asks you to remember something, tell them to ask in the main chat or edit it in Settings → Memory.",
     `Reply in the language the user writes in; when unclear, use ${modelLanguageName(locale)}. Use Markdown when it helps; keep answers focused.`,
   ];
-  const block = memoryContextBlock(memory);
-  return block ? `${lines.join("\n")}\n\n${block}` : lines.join("\n");
+  return [lines.join("\n"), globalPromptSection(globalPrompt), memoryContextBlock(memory)].filter(Boolean).join("\n\n");
 }
 
 /** 从最新往回取，直到字符预算用完；最后一条用户消息始终保留，开头的助手消息丢掉。 */
@@ -130,6 +130,7 @@ export interface SideChatRunInput {
   request: SideChatRequest;
   memory: readonly MemorySourceLoad[];
   memoryEnabled: boolean;
+  globalPrompt?: string;
   onDelta: (text: string) => void;
 }
 
@@ -158,7 +159,7 @@ export class SideChatService {
     }
   }
 
-  private async stream({ runtime, model, request, memory, memoryEnabled, onDelta }: SideChatRunInput, signal: AbortSignal): Promise<SideChatResult> {
+  private async stream({ runtime, model, request, memory, memoryEnabled, globalPrompt, onDelta }: SideChatRunInput, signal: AbortSignal): Promise<SideChatResult> {
     // 侧边聊天没有 SubAgent，Ultra 等同于模型的最高强度。
     const thinkingLevel = modelThinkingLevel(model, request.thinkingLevel ?? "off");
     const result = (text: string, aborted: boolean): SideChatResult => ({
@@ -174,7 +175,7 @@ export class SideChatService {
     let text = "";
     try {
       const stream = runtime.streamSimple(model, {
-        systemPrompt: sideChatSystemPrompt(request.locale, memory),
+        systemPrompt: sideChatSystemPrompt(request.locale, memory, globalPrompt),
         messages: toModelMessages(model, sideChatHistory(request.messages)),
       }, {
         ...(request.codexSpeed && { onPayload: (body: unknown) => codexSpeedPayload(body, model, request.codexSpeed) }),

@@ -67,7 +67,7 @@ import { TerminalHost } from "./terminal-host";
 import { configureVelaProfile, noWorkspaceCwd, prepareVelaHome } from "./vela-home";
 import { registerDevelopmentIpc } from "./development-host";
 import { UiStorage } from "./ui-storage";
-import { readPromptPreference } from "../system-prompt-preference";
+import { globalPromptPreferenceKey, parseGlobalPrompt, readPromptPreference } from "../system-prompt-preference";
 import { SideChatHost } from "./side-chat-host";
 import { SideChatStore } from "./side-chat-store";
 import { registerUiBrowserSecurity } from "./browser-security";
@@ -310,6 +310,9 @@ async function start(): Promise<void> {
   await prepareVelaHome(home, app.getPath("userData"));
 
   const uiStorage = new UiStorage(join(home, "ui-state.json"));
+  let globalPrompt = "";
+  try { globalPrompt = parseGlobalPrompt(uiStorage.getItem(globalPromptPreferenceKey)); }
+  catch (error) { log.warn("Could not read global prompt preference", error); }
   let usageScan: Promise<CodexUsageReport> | undefined;
   let usageWorker: Electron.UtilityProcess | undefined;
   ipcMain.handle(IpcChannel.codexAppUsage, () => {
@@ -347,7 +350,9 @@ async function start(): Promise<void> {
   });
   ipcMain.on(IpcChannel.appUiStorageSet, (event, key: unknown, value: unknown) => {
     try {
+      const nextPrompt = key === globalPromptPreferenceKey ? parseGlobalPrompt(value) : undefined;
       uiStorage.setItem(key, value);
+      if (nextPrompt !== undefined) globalPrompt = nextPrompt;
       if (key === codexUsageEnabledKey && value !== "true") stopUsageScan();
       event.returnValue = {};
     } catch (error) {
@@ -459,6 +464,7 @@ async function start(): Promise<void> {
     builtinSkillPaths: [join(rootDir, "skills", "vela")],
     onRecipeStop: id => taskRecipes?.stopConversation(id),
     systemPromptProfile,
+    globalPrompt: () => globalPrompt,
     // 激活会话变化时让工作区跟随,保证输入区与仓库卡片显示的目录即会话目录。
     onActiveCwd: (cwd, hasWorkspace, repository) => void project?.syncConversationWorkspace(cwd, hasWorkspace, repository ?? null),
   });

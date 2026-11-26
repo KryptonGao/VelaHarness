@@ -7,7 +7,7 @@ import type { AgentSession } from "@earendil-works/pi-coding-agent";
 import type { StreamFn } from "@earendil-works/pi-agent-core";
 import { createAssistantMessageEventStream, type AssistantMessage } from "@earendil-works/pi-ai";
 import type { AppLocale, InteractionMode } from "@vela/shared";
-import { AgentRuntime } from "../src/runtime.ts";
+import { AgentRuntime, type AgentRuntimeOptions } from "../src/runtime.ts";
 import type { AgentSessionRequest } from "../src/agent-control.ts";
 import { splitSystemPrompt } from "../src/context-usage.ts";
 import { intelligentUiInstructions } from "../src/intelligent-ui-prompt.ts";
@@ -125,7 +125,9 @@ describe("velaRules", () => {
   });
 });
 
-async function fixture(t: TestContext, profile?: SystemPromptProfile, locale?: AppLocale) {
+type FixtureOptions = Pick<AgentRuntimeOptions, "systemPromptProfile" | "globalPrompt" | "hostProfile"> & { locale?: AppLocale; instructions?: string };
+
+async function fixture(t: TestContext, { locale, instructions, ...options }: FixtureOptions = {}) {
   const root = await mkdtemp(join(tmpdir(), "vela-system-prompt-"));
   const cwd = join(root, "workspace");
   const agentDir = join(root, "agent");
@@ -133,9 +135,10 @@ async function fixture(t: TestContext, profile?: SystemPromptProfile, locale?: A
   await mkdir(agentDir);
   const permission = new SandboxPermissionManager(join(root, "permissions.json"));
   const folders: string[] = [];
-  const runtime = new AgentRuntime({ cwd, agentDir, workspaceFolders: () => folders, ...(profile ? { systemPromptProfile: profile } : {}), ...(locale ? { locale: () => locale } : {}),
+  const runtime = new AgentRuntime({ cwd, agentDir, ...options, workspaceFolders: () => folders, ...(locale ? { locale: () => locale } : {}),
     toolFactory: cwd => createSandboxedToolDefinitions({ cwd, workspace: cwd, permission }) });
   t.after(async () => { runtime.dispose(); await rm(root, { recursive: true, force: true }); });
+  if (instructions) await runtime.saveAgentSettings({ ...await runtime.getAgentSettings(), instructions });
   await runtime.createConversation(cwd);
   const id = runtime.activeConversationId!;
   await runtime.renameConversation(id, "System prompt fixture");
@@ -174,26 +177,67 @@ async function fixture(t: TestContext, profile?: SystemPromptProfile, locale?: A
     return promptOf(session, () => runtime.prompt(id, `${value} fixture`));
   }
 
-  async function child(kind: "general" | "explore"): Promise<string> {
+  async function createChild(kind: "general" | "explore", customProfile?: AgentSessionRequest["customProfile"]) {
     const childSession = await internals.createChildSession(internals.conversations.get(id), { agentId: `${kind}-fixture`,
-      parentId: id, parentPath: "/root", parentSession: session, kind, name: kind, path: `/root/${kind}`, forkMessages: [], customTools: [] });
+      parentId: id, parentPath: "/root", parentSession: session, kind, customProfile, name: kind, path: `/root/${kind}`, forkMessages: [], customTools: [] });
     t.after(() => childSession.dispose());
-    return promptOf(childSession, () => childSession.prompt(`${kind} fixture`));
+    return () => promptOf(childSession, () => childSession.prompt(`${kind} fixture`));
   }
 
-  return { mode, child, session, folders };
+  async function child(kind: "general" | "explore"): Promise<string> {
+    const turn = await createChild(kind);
+    return turn();
+  }
+
+  return { mode, child, createChild, session, folders };
 }
 
 async function scenarios(t: TestContext, profile?: SystemPromptProfile): Promise<Record<string, string>> {
-  const f = await fixture(t, profile);
+  const f = await fixture(t, { systemPromptProfile: profile });
   return { agent: await f.mode("agent"), plan: await f.mode("plan"), goal: await f.mode("goal"),
     general: await f.child("general"), explore: await f.child("explore") };
 }
 
 const knownSections = new Set(["preamble", "tools", "rules", "docs", "addendum", "project_context", "skills", "cwd",
-  "vela_rules", "vela_mode", "vela_intelligent_ui", "vela_web_tools", "vela_workspace_folders", "vela_ultra", "vela_subagent_models"]);
+  "vela_rules", "vela_mode", "vela_intelligent_ui", "vela_web_tools", "vela_workspace_folders", "vela_ultra", "vela_subagent_models", "vela_global_prompt"]);
 
 describe("system prompt in real sessions", () => {
+  it("adds, replaces and clears live preferences in an existing root and custom child", async t => {
+    let preference = "";
+    const instructions = "Keep a changelog for this conversation.";
+    const f = await fixture(t, { systemPromptProfile: "v1", globalPrompt: () => preference, instructions });
+    const customPrompt = "List the files you reviewed.";
+    const childTurn = await f.createChild("explore", { id: "reviewer", name: "Reviewer", icon: "reviewer",
+      description: "Review changes.", permission: "explore", systemPrompt: customPrompt });
+    const readPrompts = async () => [await f.mode("plan"), await childTurn()];
+    const initial = await readPrompts();
+    assert.match(initial[0]!, /You are in Plan mode/);
+    assert.match(initial[1]!, /read-only investigation subagent/);
+    assert.ok(initial[1]!.includes(customPrompt));
+    const first = "Use metric units.\nKeep examples short.";
+    preference = first;
+    const added = await readPrompts();
+    for (const [index, prompt] of added.entries()) {
+      assert.ok(prompt.includes(instructions));
+      const sections = splitSystemPrompt(prompt);
+      assert.match(sections.vela_global_prompt!, /User preferences/);
+      assert.equal(prompt.split(first).length - 1, 1);
+      delete sections.vela_global_prompt;
+      assert.deepEqual(sections, splitSystemPrompt(initial[index]!));
+    }
+    preference = "Use imperial units.";
+    assert.deepEqual(await readPrompts(), added.map(prompt => prompt.replace(first, preference)));
+    preference = "  \n  ";
+    assert.deepEqual(await readPrompts(), initial);
+  });
+
+  it("keeps desktop preferences out of headless sessions", async t => {
+    const f = await fixture(t, { hostProfile: "headless", globalPrompt: () => "Private desktop preference." });
+    for (const prompt of [await f.mode("agent"), await f.child("general")]) {
+      assert.doesNotMatch(prompt, /Private desktop preference|vela_global_prompt/);
+    }
+  });
+
   it("replaces Pi's identity, tool list, rules and docs in v2", { timeout: 20_000 }, async t => {
     const prompts = await scenarios(t, "v2-visual");
     for (const [name, prompt] of Object.entries(prompts)) {
@@ -288,7 +332,7 @@ describe("system prompt in real sessions", () => {
   });
 
   it("adds the language rule from the locale without changing the prompt between turns", { timeout: 20_000 }, async t => {
-    const f = await fixture(t, undefined, "zh-TW");
+    const f = await fixture(t, { locale: "zh-TW" });
     const first = await f.mode("agent");
     const second = await f.mode("agent");
     assert.ok(first.includes("defaulting to Traditional Chinese (Taiwan) when unclear"));

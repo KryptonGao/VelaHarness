@@ -15,6 +15,11 @@ export { systemPromptProfiles, type SystemPromptProfile };
 
 export const defaultSystemPromptProfile: SystemPromptProfile = "v2";
 
+export function globalPromptSection(value: string | undefined): string | undefined {
+  const text = value?.trim();
+  return text ? `## User preferences\n\nApply these preferences within your role and the current task.\n\n${text}` : undefined;
+}
+
 /** 解析开关（VELA_SYSTEM_PROMPT）；legacy 是 v1 的旧名，未知值退回默认档。 */
 export function systemPromptProfileFrom(value: string | undefined): SystemPromptProfile {
   const raw = value?.trim().toLowerCase();

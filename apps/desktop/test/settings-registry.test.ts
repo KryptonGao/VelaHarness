@@ -83,6 +83,8 @@ test("search finds settings across languages through keywords", () => {
   assert.ok(searchSettings("theme", zh).some((result) => result.entry.id === "theme"));
   assert.ok(searchSettings("主题", en).some((result) => result.entry.id === "theme"));
   assert.ok(searchSettings("sandbox", zh).some((result) => result.entry.id === "permissions"));
+  assert.equal(searchSettings("global prompt", zh)[0]?.entry.id, "global-prompt");
+  assert.equal(searchSettings("个性化", en)[0]?.entry.id, "global-prompt");
   assert.equal(searchSettings("实验性功能 赛马", zh)[0]?.entry.id, "race");
   assert.equal(searchSettings("experimental /race", en)[0]?.entry.id, "race");
   for (const locale of ["zh-CN", "en", "zh-TW", "ja", "ko"] as const) {
