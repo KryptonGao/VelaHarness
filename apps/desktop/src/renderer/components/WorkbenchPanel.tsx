@@ -10,6 +10,7 @@ import { useMotionPresence } from "../hooks/useMotionPresence";
 import { WorkbenchTabPanel } from "./MotionPresence";
 import { tr, trf } from "../locale";
 import { AgentPane } from "./AgentPane";
+import { AgentDirectory } from "./AgentDirectory";
 import { SubagentTurnChanges } from "./SubagentTurnChanges";
 import { AgentStatusMark } from "./AgentPanel";
 import { AgentAvatar } from "./AgentAvatar";
@@ -54,6 +55,7 @@ export type WorkbenchTab =
   | { id: string; kind: "acceptance"; label: string; title?: string; acceptance: AcceptanceRequest }
   | { id: string; kind: "race"; label: string; title?: string }
   | { id: string; kind: "background"; label: string; title?: string }
+  | { id: string; kind: "agent-directory"; label: string; title?: string }
   | { id: string; kind: "agent"; label: string; title: string; agent: AgentInfo }
   | { id: string; kind: "start"; label: string; title?: string }
   | { id: string; kind: "files"; label: string; title?: string }
@@ -105,6 +107,7 @@ interface WorkbenchPanelProps {
   onControlAgent: (agentId: string, action: AgentControlAction) => void;
   onSendAgentMessage: (agentId: string, text: string) => Promise<void>;
   onOpenAgent: (agentId: string) => void;
+  onOpenAgentDirectory?: () => void;
   onNewTab: () => void;
   onStartAction: (tab: WorkbenchTab, action: StartTabAction) => void;
   onStartBrowse: (tab: WorkbenchTab, url: string) => void;
@@ -137,6 +140,7 @@ function TabIcon({ tab }: { tab: WorkbenchTab }) {
   if (tab.kind === "micro-app") return <MicroAppIcon app={tab.app} size={12} />;
   if (tab.kind === "browser") return <BrowserTabIcon controller={tab.controller} />;
   if (tab.kind === "chat") return <Icon name="chat" size={12} />;
+  if (tab.kind === "agent-directory") return <Icon name="subagent" size={14} />;
   if (tab.kind === "side-chat") return <Icon name="sparkles" size={12} />;
   return <><AgentAvatar agentId={tab.agent.id} icon={tab.agent.customProfile?.icon} size={18} /><AgentStatusMark status={tab.agent.status} /></>;
 }
@@ -465,7 +469,8 @@ function WorkbenchPanelContent(props: WorkbenchPanelProps & { closing: boolean; 
       case "start": return <StartView gitAvailable={props.gitAvailable} conversationWorkbenchTabs={props.conversationWorkbenchTabs} emptyConversation={props.emptyConversation}
         onAction={action => props.onStartAction(tab, action)} onBrowse={url => props.onStartBrowse(tab, url)} pending={props.pendingStartTabIds?.includes(tab.id)} error={props.startErrors?.[tab.id]} />;
       case "terminal": return <TerminalView sessionId={tab.sessionId} visible={visible && !collapsed} />;
-      case "agent": return <AgentPane agent={tab.agent} agents={props.agents} messages={props.getAgentMessages?.(tab.agent.id)} messageStore={props.messageStore}
+      case "agent-directory": return <AgentDirectory agents={props.agents} onSelect={props.onOpenAgent} />;
+      case "agent": return <AgentPane onBackToDirectory={props.onOpenAgentDirectory} agent={tab.agent} agents={props.agents} messages={props.getAgentMessages?.(tab.agent.id)} messageStore={props.messageStore}
         conversationId={props.conversationId} toolDisplay={props.toolDisplay} toolFold={props.toolFold} visible={visible} ensureMessages={props.ensureAgentMessages} onControl={props.onControlAgent}
         changeSummary={visible && !collapsed && props.showChangeSummary !== false && isAgentBusy(tab.agent.status) && props.onReviewTurn
           ? <SubagentTurnChanges {...agentChangesProps(tab.agent)} onOpen={props.onReviewTurn} /> : null}

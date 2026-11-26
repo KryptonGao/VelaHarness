@@ -268,6 +268,8 @@ export function App() {
     initialPath: string | null;
     requestKey: number;
   }>>({});
+  const [openDirectories, setOpenDirectories] = useState<readonly string[]>([]);
+  const directoryTabId = scopedTabId("agent-directory", conversationKey);
   const [openedAgentsByConversation, setOpenedAgentsByConversation] = useState<Record<string, string[]>>({});
   const [planDocuments, setPlanDocuments] = useState<Record<string, PlanDocumentState>>({});
   const planDocument = planDocuments[conversationKey] ?? emptyPlanDocumentState;
@@ -393,7 +395,14 @@ export function App() {
     [dispatchPlanDocument],
   );
 
+  const openAgentDirectory = useCallback(() => {
+    setOpenDirectories(current => current.includes(conversationKey) ? current : [...current, conversationKey]);
+    setWorkbenchCollapsed(false);
+    focusWorkbenchTab(directoryTabId);
+  }, [conversationKey, directoryTabId, focusWorkbenchTab]);
+
   const openAgentPane = useCallback((agentId: string) => {
+    setWorkbenchCollapsed(false);
     setOpenedAgentsByConversation((current) => ({
       ...current,
       [conversationKey]: [...new Set([...(current[conversationKey] ?? []), agentId])],
@@ -616,8 +625,9 @@ export function App() {
     else if (action === "side-chat") openSideChatTab();
     else if (action === "terminal") openTerminalTab();
     else if (action === "background") openBackgroundTab();
+    else if (action === "agent-directory") openAgentDirectory();
     else openFilesTab();
-  }, [openChanges, openSideChatTab, openTerminalTab, openFilesTab, openBackgroundTab, workspaceKey, preferences.conversationWorkbenchTabs, conversationKey, conversationEmpty, detailTabs, focusWorkbenchTab]);
+  }, [openChanges, openSideChatTab, openTerminalTab, openFilesTab, openBackgroundTab, openAgentDirectory, workspaceKey, preferences.conversationWorkbenchTabs, conversationKey, conversationEmpty, detailTabs, focusWorkbenchTab]);
 
   const handleStartBrowse = useCallback((tab: WorkbenchTab, url: string) => {
     setStartTabState((current) => current.filter((candidate) => candidate.id !== tab.id));
@@ -699,6 +709,7 @@ export function App() {
     ...(acceptanceTab ? [acceptanceTab] : []),
     ...(raceTab ? [raceTab] : []),
     ...(backgroundTab ? [backgroundTab] : []),
+    ...(openDirectories.includes(conversationKey) ? [{ id: directoryTabId, kind: "agent-directory" as const, label: tr("子代理目录", "Subagent directory") }] : []),
     ...agentTabs,
     ...(filesTab ? [filesTab] : []),
     ...terminalTabs,
@@ -708,7 +719,7 @@ export function App() {
     ...sideChatTabs,
     ...browser.tabs.map((tab): WorkbenchTab => ({ ...tab, kind: "browser", label: tr("浏览器", "Browser") })),
     ...startTabItems,
-  ], [fileTabs, planTab, changeTab, reviewTab, acceptanceTab, raceTab, backgroundTab, agentTabs, filesTab, terminalTabs, chatTabs, conversationDetailTabs, microAppTabs, sideChatTabs, browser.tabs, startTabItems]);
+  ], [fileTabs, planTab, changeTab, reviewTab, acceptanceTab, raceTab, backgroundTab, agentTabs, openDirectories, conversationKey, directoryTabId, preferences.locale, filesTab, terminalTabs, chatTabs, conversationDetailTabs, microAppTabs, sideChatTabs, browser.tabs, startTabItems]);
   const workbenchTabs = useMemo(() => {
     const tabIdSet = new Set(unorderedTabs.map((tab) => tab.id));
     return [
@@ -818,6 +829,8 @@ export function App() {
       setBackgroundTabOpen(false);
     } else if (tab.kind === "turn-review") {
       dismissTurnReview();
+    } else if (tab.kind === "agent-directory") {
+      setOpenDirectories(current => current.filter(key => key !== conversationKey));
     } else if (tab.kind === "agent") {
       setOpenedAgentsByConversation((current) => ({
         ...current,
@@ -1208,6 +1221,7 @@ export function App() {
                         closeAgent={closeActiveAgent}
                       >
                         <SessionChatView visible={chatsVisible}
+                          onOpenAgentDirectory={openAgentDirectory} agentDirectoryActive={visibleWorkbenchTabIds.includes(directoryTabId)}
                           messageStore={session.messageStore}
                           state={session.state}
                           sendError={session.sendError}
@@ -1309,6 +1323,7 @@ export function App() {
                         onControlAgent={session.controlAgent}
                         onSendAgentMessage={session.sendAgentMessage}
                         onOpenAgent={openAgentPane}
+                        onOpenAgentDirectory={openAgentDirectory}
                         onNewTab={openStartTab}
                         onStartAction={handleStartAction}
                         onStartBrowse={handleStartBrowse}
@@ -1322,7 +1337,6 @@ export function App() {
                         renderChat={(tab, visible) => <WorkbenchChatView key={tab.conversationId} visible={chatsVisible && visible}
                           conversationId={tab.conversationId} preferences={preferences} project={project}
                           onRenameConversation={openRenameConversation}
-                          onOpenConversation={openMainConversation}
                           onNewTab={openStartTab} onShowDiff={openChanges} onOpenWebLink={openConversationLink} />}
                         renderSideChat={(tab, visible) => {
                           const state = sideChatTabState.find(item => item.id === tab.id);

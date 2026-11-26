@@ -44,6 +44,7 @@ interface AgentPaneProps {
   /** 隐藏时卸载内容与订阅，外壳保留滚动位置。 */
   visible?: boolean;
   onSwitch: (agentId: string) => void;
+  onBackToDirectory?: () => void;
   /** 首次展示某个 agent 时回填历史消息。 */
   ensureMessages: (agentId: string) => void;
   /** 暂停、继续或取消某个子代理。 */
@@ -82,7 +83,7 @@ export const AgentPane = memo(function AgentPane(props: AgentPaneProps) {
 
 function VisibleAgentPane({
   agent, agents, messages: providedMessages, changeSummary, messageStore, conversationId = null,
-  toolDisplay, toolFold = "message", onSwitch, ensureMessages, onControl, onSend, follow,
+  toolDisplay, toolFold = "message", onSwitch, onBackToDirectory, ensureMessages, onControl, onSend, follow,
 }: AgentPaneProps & { follow: MutableRefObject<AgentFollow> }) {
   const storedMessages = useMessages(messageStore, conversationId, agent.id);
   const messages = webChatMessages(useNamedThinkingMessages(messageStore ? storedMessages : providedMessages ?? emptyMessages));
@@ -200,6 +201,10 @@ function VisibleAgentPane({
     >
       <header className="agent-pane-header">
         <div className="agent-pane-title">
+          {onBackToDirectory && <button type="button" className="view-icon-btn agent-directory-back" onClick={onBackToDirectory}
+            title={tr("返回子代理目录", "Back to subagent directory")} aria-label={tr("返回子代理目录", "Back to subagent directory")}>
+            <Icon name="arrow-left" size={16} />
+          </button>}
           <AgentAvatar agentId={agent.id} icon={agent.customProfile?.icon} />
           <AgentModelTag model={agent.model} thinkingLevel={agent.effectiveThinkingLevel ?? agent.thinkingLevel} showMissing />
           <AgentTypeLabel className="agent-kind" kind={agent.kind} profile={agent.customProfile} />

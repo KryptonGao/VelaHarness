@@ -85,6 +85,18 @@ export function indexAgentHistory(messages: readonly { tools: readonly ToolTrace
   return restored;
 }
 
+/** Keep waiting and paused agents with unfinished runs, and preserve each row's actual status. */
+export function groupAgentDirectory(agents: readonly AgentInfo[]) {
+  const running: AgentInfo[] = [], completed: AgentInfo[] = [];
+  for (const agent of agents) {
+    if (agent.kind === "root") continue;
+    const finished = agent.status === "completed" || agent.status === "failed" || agent.status === "aborted";
+    (finished ? completed : running).push(agent);
+  }
+  const recentFirst = (a: AgentInfo, b: AgentInfo) => b.updatedAt - a.updatedAt || b.createdAt - a.createdAt;
+  return { running: running.sort(recentFirst), completed: completed.sort(recentFirst) };
+}
+
 /** 实时的子代理优先，历史里还原出来的补在后面。 */
 export function mergeAgentRoster(live: readonly AgentInfo[], restored: ReadonlyMap<string, AgentInfo>): AgentInfo[] {
   const byId = new Map<string, AgentInfo>();

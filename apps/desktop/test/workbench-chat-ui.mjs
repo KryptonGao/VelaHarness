@@ -14,7 +14,10 @@ if (!process.versions.electron) {
   const temporary = mkdtempSync(join(tmpdir(), "vela-workbench-chat-"));
   try {
     const { build } = await import("esbuild");
-    await build({ plugins: [providerIconsPlugin], entryPoints: [join(here, "workbench-chat-preview.tsx")], bundle: true, platform: "browser", format: "iife", jsx: "automatic",
+    const embeddedChatFixture = { name: 'embedded-chat-fixture', setup(build) {
+      build.onResolve({ filter: /^\.\/StartView$/ }, () => ({ path: join(here, 'workbench-chat-start-fixture.tsx') }));
+    } };
+    await build({ plugins: [providerIconsPlugin, embeddedChatFixture], entryPoints: [join(here, "workbench-chat-preview.tsx")], bundle: true, platform: "browser", format: "iife", jsx: "automatic",
       outfile: join(temporary, "ui.js"), loader: { ".svg": "dataurl", ".png": "dataurl", ".woff2": "dataurl", ".ttf": "dataurl" },
       define: { "process.env.NODE_ENV": '"development"' }, logLevel: "error" });
     writeFileSync(join(temporary, "index.html"), '<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="ui.css"></head><body><div id="root"></div><script src="ui.js"></script></body></html>');
@@ -61,8 +64,47 @@ if (!process.versions.electron) {
       await evaluate("window.dispatchEvent(new KeyboardEvent('keydown', {code:'KeyT', key:'t', metaKey:true, bubbles:true}))");
       await until("document.querySelector('.workbench-tabpanel:not(.is-inactive) .start-view')");
     };
-    const chatOption = ".workbench-tabpanel:not(.is-inactive) .start-options:not(.start-conversation-options) > .start-option:first-child";
+    const directoryOption = ".workbench-tabpanel:not(.is-inactive) .start-options:not(.start-conversation-options) > .start-option:first-child";
+    const chatOption = ".workbench-tabpanel:not(.is-inactive) [data-fixture-create-chat]";
     try {
+      await win.loadFile(join(temporary, 'index.html'));
+      await until("document.querySelector('.chat-active-title')?.textContent === '主聊天'");
+      const publishAgents = (conversationId, entries) => evaluate(`chatFixture.emit({type: 'agents', conversationId: ${JSON.stringify(conversationId)}, agents: ${JSON.stringify(entries.map(([name, status]) => ({ id: name, path: '/root/' + name, name, kind: 'general', status, task: name + ' task', updatedAt: Date.now() })))} })`);
+      await publishAgents('main-chat', [['review', 'running'], ['research', 'completed']]);
+      await click('.chat-agents-button');
+      const visiblePanel = '.workbench-tabpanel:not(.is-inactive)';
+      const runningRow = `${visiblePanel} .agent-directory-group[aria-label="运行中"] .agent-directory-row`;
+      const completedRow = `${visiblePanel} .agent-directory-group[aria-label="已完成"] .agent-directory-row`;
+      await until(`document.querySelector('${completedRow}')?.innerText.includes('research')`);
+      await click(runningRow);
+      await until(`document.querySelector('${visiblePanel} .agent-pane')?.ariaLabel.endsWith('review')`);
+      await publishAgents('main-chat', [['review', 'failed'], ['research', 'completed']]);
+      await click(`${visiblePanel} .agent-directory-back`);
+      await until(`document.querySelectorAll('${completedRow}').length === 2 && !document.querySelector('${runningRow}')`);
+      assert.equal(await evaluate(`document.querySelector('${visiblePanel} .agent-state.is-failed').textContent`), '失败');
+      assert.equal(await evaluate("document.querySelectorAll('.workbench-tab[data-kind=agent-directory]').length"), 1);
+      await capture('subagent-directory');
+      await newTab();
+      assert.deepEqual(await evaluate(`Array.from(document.querySelectorAll('${visiblePanel} .start-options'), group =>
+        Array.from(group.querySelectorAll('.start-option-title'), el => el.textContent))`), [
+        ['轨迹', '使用统计', '上下文', '上限设置'], ['子代理目录', '聊天', '变更', '终端', '后台任务', '文件预览'],
+      ]);
+      await click(directoryOption);
+      await until(`document.querySelectorAll('${completedRow}').length === 2 && !document.querySelector('.start-view')`);
+      assert.equal(await evaluate("document.querySelectorAll('.workbench-tab[data-kind=agent-directory]').length"), 1);
+      assert.equal(await evaluate("chatFixture.calls.some(c => c.name === 'create')"), false);
+      await newTab(); await click(chatOption);
+      await until("document.querySelector('.panel-chat-view')");
+      await publishAgents('panel-1', [['nested', 'paused']]);
+      await click('.panel-chat-view .chat-agents-button');
+      await click(runningRow);
+      await until(`document.querySelector('${visiblePanel} .agent-pane')?.ariaLabel.endsWith('nested')`);
+      await click(`${visiblePanel} .agent-directory-back`);
+      assert.equal(await evaluate(`document.querySelector('${runningRow} strong').textContent`), 'nested');
+      assert.equal(await evaluate('chatFixture.active()'), 'main-chat');
+      await evaluate('chatFixture.changeMain()');
+      await until("!document.querySelector('.workbench-tab[data-kind=agent-directory]') && !document.querySelector('.workbench-tab[data-kind=agent]')");
+      console.log('PASS subagent directory groups, live updates, round-trip navigation and conversation isolation');
       await win.loadFile(join(temporary, "index.html"), { query: { microApp: "1" } });
       await until("document.querySelector('.main-chat-view iframe.iui-app-frame')");
       const appDocument = () => win.webContents.mainFrame.frames.find(frame => frame.url === 'about:srcdoc');
@@ -644,10 +686,10 @@ if (!process.versions.electron) {
       await until("!document.querySelector('.workbench-panel')");
       await evaluate("new Promise(done => setTimeout(done, 220))");
       assert.equal(await evaluate("document.querySelector('.workbench-panel') === null"), true);
-      for (const [locale, label] of [["en", "New chat"], ["zh-TW", "新對話"], ["ja", "新しいチャット"], ["ko", "새 채팅"]]) {
+      for (const [locale, label] of [["en", "Subagent directory"], ["zh-TW", "子代理目錄"], ["ja", "サブエージェント一覧"], ["ko", "하위 에이전트 목록"]]) {
         await win.loadFile(join(temporary, "index.html"), { query: { locale } });
         await until("document.querySelector('.main-chat-view')"); await newTab();
-        assert.equal(await evaluate(`document.querySelector(${JSON.stringify(chatOption + ' .start-option-title')}).textContent`), label);
+        assert.equal(await evaluate(`document.querySelector(${JSON.stringify(directoryOption + ' .start-option-title')}).textContent`), label);
       }
       // The default combined picker shares the panel's choices and keeps both pages within the narrow pane.
       await evaluate("localStorage.removeItem('vela.combinedModelPicker')");

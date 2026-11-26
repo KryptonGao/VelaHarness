@@ -5,7 +5,7 @@ import { Icon } from "./icons";
 import { conversationDetailKeys, conversationDetails, isEmptyConversationView, type ConversationDetail } from "./conversation-detail";
 
 /** 起始页入口;宿主据此打开对应标签页。 */
-export type StartTabAction = "chat" | "side-chat" | "changes" | "terminal" | "files" | "background" | ConversationDetail;
+export type StartTabAction = "chat" | "side-chat" | "changes" | "terminal" | "files" | "background" | "agent-directory" | ConversationDetail;
 
 function StartOption({
   icon,
@@ -99,9 +99,9 @@ export function StartView({
         </fieldset>}
         <fieldset className="start-options" disabled={pending} aria-busy={pending}>
           <StartOption
-            icon={<Icon name="chat" size={18} />}
-            title={tr("新对话", "New chat")}
-            onSelect={() => onAction("chat")}
+            icon={<Icon name="subagent" size={18} />}
+            title={tr("子代理目录", "Subagent directory")}
+            onSelect={() => onAction("agent-directory")}
           />
           <StartOption
             icon={<Icon name="sparkles" size={18} />}

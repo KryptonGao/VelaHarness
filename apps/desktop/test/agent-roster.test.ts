@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { emptyAgentUsage, type AgentInfo, type ToolTrace } from "@vela/shared";
-import { indexAgentHistory, mergeAgentRoster, reconcileAgents } from "../src/renderer/agent-roster.ts";
+import { groupAgentDirectory, indexAgentHistory, mergeAgentRoster, reconcileAgents } from "../src/renderer/agent-roster.ts";
 
 function agent(id: string, overrides: Partial<AgentInfo> = {}): AgentInfo {
   return {
@@ -104,6 +104,19 @@ describe("indexAgentHistory", () => {
     const started = performance.now();
     assert.equal(indexAgentHistory(messages).size, 50);
     assert.ok(performance.now() - started < 500);
+  });
+});
+
+describe("groupAgentDirectory", () => {
+  it("groups every non-root status by lifecycle, most recent first, including restored history", () => {
+    const live = [agent("root", { kind: "root" }), agent("run"), agent("wait", { status: "idle", updatedAt: 3 }),
+      agent("pause", { status: "paused", updatedAt: 2 }), agent("stopped", { status: "aborted" }),
+      agent("failed", { status: "failed", updatedAt: 4 })];
+    const roster = mergeAgentRoster(live, indexAgentHistory([{ tools: [tool("t1", "past"), tool("t2", "run")] }]));
+    const groups = groupAgentDirectory([live[0]!, ...roster]);
+    assert.deepEqual(groups.running.map(a => a.id), ["wait", "pause", "run"]);
+    assert.deepEqual(groups.completed.map(a => a.id), ["failed", "stopped", "past"]);
+    assert.deepEqual(groupAgentDirectory([]), { running: [], completed: [] });
   });
 });
 

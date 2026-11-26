@@ -227,6 +227,8 @@ export interface ChatViewProps {
   conversationWorkbenchTabs?: boolean;
   onOpenWorkspaceOverview?: (workspace: string) => void;
   onOpenVersionControl?: (workspace: string) => void;
+  onOpenAgentDirectory?: () => void;
+  agentDirectoryActive?: boolean;
   messages: UiMessage[];
   messageStore?: MessageStore;
   state: AppState | null;
@@ -295,6 +297,8 @@ export function ChatView({
   conversationWorkbenchTabs = false,
   onOpenWorkspaceOverview,
   onOpenVersionControl,
+  onOpenAgentDirectory,
+  agentDirectoryActive = false,
   messages: sourceMessages,
   messageStore,
   state,
@@ -796,15 +800,9 @@ export function ChatView({
       ? (environmentCollapsed ? tr("展开信息卡片", "Show info cards") : tr("收起信息卡片", "Hide info cards"))
       : (environmentCollapsed ? tr("展开环境卡片", "Expand environment card") : tr("折叠环境卡片", "Collapse environment card"))
     : rightCollapsed ? tr("展开右侧面板", "Expand right panel") : tr("收起右侧面板", "Collapse right panel");
-  const { agents: roster, activeAgentId, openAgent } = useAgentWorkspace();
+  const { agents: roster } = useAgentWorkspace();
   const subagents = useMemo(() => roster.filter((agent) => agent.kind !== "root"), [roster]);
   const runningSubagents = subagents.filter((agent) => agent.status === "running").length;
-  const openMostRelevantAgent = (): void => {
-    const target = [...subagents].sort(
-      (a, b) => Number(b.status === "running") - Number(a.status === "running") || b.updatedAt - a.updatedAt,
-    )[0];
-    if (target) openAgent(target.id);
-  };
   const previousTurns = useRef<MessageTurn[]>([]);
   const turns = useMemo(() => groupMessagesIntoTurns(messages, previousTurns.current), [messages]);
   useLayoutEffect(() => { previousTurns.current = turns; }, [turns]);
@@ -1013,13 +1011,13 @@ export function ChatView({
             </button> : <span className="chat-project-context" title={projectPath}>{projectLabel}</span>
           ) : null}
           {!embedded ? <OpenInAppButton path={project.workspace?.current ?? null} /> : null}
-          {subagents.length > 0 ? (
+          {subagents.length > 0 && onOpenAgentDirectory ? (
             <button
-              className={`chat-agents-button${activeAgentId ? " active" : ""}`}
+              className={`chat-agents-button${agentDirectoryActive ? " active" : ""}`}
               type="button"
-              title={tr("查看子代理运行", "View subagent runs")}
-              aria-label={tr("查看子代理运行", "View subagent runs")}
-              onClick={openMostRelevantAgent}
+              title={tr("子代理目录", "Subagent directory")}
+              aria-label={tr("子代理目录", "Subagent directory")}
+              onClick={onOpenAgentDirectory}
             >
               <Icon name="stack" size={14} />
               <span>

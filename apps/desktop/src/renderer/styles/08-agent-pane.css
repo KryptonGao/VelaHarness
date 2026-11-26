@@ -1,3 +1,25 @@
+/* ---------- Subagent conversation directory ---------- */
+.agent-directory { flex: 1; min-width: 0; min-height: 0; overflow: auto; }
+.agent-directory-inner { max-width: var(--chat-lane-max, 760px); margin-inline: auto; padding: 22px clamp(12px, 4%, 28px) 32px; }
+.agent-directory h2 { margin: 0 0 24px; font-size: calc(20px * var(--ui-scale)); color: var(--text-primary); }
+.agent-directory-group + .agent-directory-group { margin-top: 24px; }
+.agent-directory-group h3 { display: flex; align-items: baseline; gap: 8px; margin: 0; padding: 0 4px 7px; border-bottom: 1px solid var(--border-subtle); font-size: calc(13px * var(--ui-scale)); color: var(--text-secondary); }
+.agent-directory-group h3 span, .agent-directory-row time, .agent-directory-row .agent-state { font-size: calc(12px * var(--ui-scale)); font-weight: 400; font-variant-numeric: tabular-nums; }
+.agent-directory-group h3 span, .agent-directory-row time { color: var(--text-muted); }
+.agent-directory-group ul { list-style: none; padding: 0; margin: 3px 0 0; }
+.agent-directory-group p { margin: 0; padding: 14px 4px; color: var(--text-muted); font-size: calc(13px * var(--ui-scale)); }
+.agent-directory-row { display: flex; align-items: center; width: 100%; min-height: 60px; padding: 8px; gap: 10px; border-radius: var(--radius-md); text-align: start; cursor: pointer; color: var(--text-muted); }
+.agent-directory-row:hover { background: var(--bg-surface-subtle); }
+.agent-directory-row:active { background: var(--bg-hover); }
+.agent-directory-row:focus-visible { outline-offset: -2px; }
+.agent-directory-avatar { display: grid; place-items: center; flex: none; width: 40px; height: 40px; background: var(--bg-surface-subtle); border-radius: 12px; }
+.agent-directory-body { flex: 1; min-width: 0; display: grid; gap: 4px; }
+.agent-directory-line { min-width: 0; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.agent-directory-line strong { color: var(--text-primary); font-size: calc(14px * var(--ui-scale)); font-weight: 600; }
+.agent-directory-line time { flex: none; white-space: nowrap; }
+.agent-directory-preview { font-size: calc(13px * var(--ui-scale)); color: var(--text-secondary); }
+.agent-directory-row > svg { flex: none; }
+
 /* ---------- 右侧 Agent Pane ---------- */
 
 .agent-pane {
