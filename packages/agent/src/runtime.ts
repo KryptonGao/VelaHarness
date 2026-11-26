@@ -111,7 +111,7 @@ import { clipTitle, normalizeManualConversationTitle, requestConversationTitle }
 import { parseAiTextRequest, TextAssistService } from "./text-assist";
 import { ConversationStore } from "./conversation-store";
 import { lastAssistantModel, legacyAgentTranscript, recoverLegacyAgents, storedAgentInfo, type StoredAgent } from "./agent-history";
-import { createPersistedSession } from "./session-persistence";
+import { createPersistedSession, lastSentModel, sentModelEntryType } from "./session-persistence";
 import { copyTurnTimings, readTurnTimings, turnTimingEntryType } from "./turn-timing";
 import {
   createGoalValidation,
@@ -1283,7 +1283,7 @@ export class AgentRuntime {
       await this.ready();
       const entry = this.conversations.get(id);
       if (!entry) throw new Error("对话不存在或已结束");
-      if (!entry.session) await this.startInternal(entry);
+      await this.prepareConversationForDisplay(entry);
       this.activeId = entry.id;
       this.notifyActiveCwd(entry.snapshot.cwd, entry.hasWorkspace, entry.worktree);
       this.emitStatus(entry);
@@ -1317,7 +1317,7 @@ export class AgentRuntime {
           .filter((other) => other.archivedAt === null)
           .sort((a, b) => b.updatedAt - a.updatedAt)[0] ?? null;
         if (fallback) {
-          if (!fallback.session) await this.startInternal(fallback);
+          await this.prepareConversationForDisplay(fallback);
           this.activeId = fallback.id;
           this.touchEntry(fallback);
           this.notifyActiveCwd(fallback.snapshot.cwd, fallback.hasWorkspace, fallback.worktree);
@@ -1855,7 +1855,7 @@ export class AgentRuntime {
         .sort((a, b) => b.updatedAt - a.updatedAt);
       if (existing.length > 0) {
         const entry = existing[0];
-        if (!entry.session) await this.startInternal(entry);
+        await this.prepareConversationForDisplay(entry);
         this.activeId = entry.id;
         this.notifyActiveCwd(cwd, entry.hasWorkspace, entry.worktree);
         this.emitStatus(entry);
@@ -3250,13 +3250,17 @@ export class AgentRuntime {
     this.patchEntry(entry, { status: "starting", error: null });
     try {
       const directory = await this.readyDirectory();
+      const cwd = entry.snapshot.cwd;
+      const sessionManager = entry.sessionManager
+        ?? (entry.sessionFile
+          ? SessionManager.open(entry.sessionFile, this.sessionDir(), cwd)
+          : createPersistedSession(cwd, this.sessionDir()));
       const recipeModel = entry.recipeExecution ? directory.runtime.getModel(entry.recipeExecution.model.provider, entry.recipeExecution.model.id) : undefined;
       const { model: chosen, thinkingLevel, codexSpeed }: ConversationSelection = selection ?? (entry.recipeExecution ? {
         // History remains readable when its original model/account is unavailable.
         model: recipeModel && directory.isAvailable(recipeModel) ? recipeModel : undefined,
         thinkingLevel: entry.recipeExecution.thinkingLevel,
-      } : await this.newChatSelection(directory));
-      const cwd = entry.snapshot.cwd;
+      } : await this.chatSelection(directory, sessionManager));
       // 模型在这里就已确定,不必等技能 / MCP / 资源加载完才显示;modelReady 仍待会话就绪后再置真。
       if (chosen) {
         this.patchEntry(entry, {
@@ -3269,11 +3273,6 @@ export class AgentRuntime {
           thinkingLevels: levelsFor(chosen),
         });
       }
-      // 新对话:登记时已建或此处新建;恢复的对话:按文件打开以接续历史。
-      const sessionManager = entry.sessionManager
-        ?? (entry.sessionFile
-          ? SessionManager.open(entry.sessionFile, this.sessionDir(), cwd)
-          : createPersistedSession(cwd, this.sessionDir()));
       const settingsManager = SettingsManager.inMemory({ defaultTools: this.tools.registered() });
       const instructions = entry.instructions.trim();
       await this.skills.load();
@@ -3451,7 +3450,7 @@ export class AgentRuntime {
   }
 
   /**
-   * 新对话(以及懒启动的会话)使用哪个模型和思考强度:
+   * 新对话使用哪个模型和思考强度:
    * 「设置默认」取设置页的默认选择,「上次使用」取最近一次在对话中用过的选择,
    * 上次使用的模型不可用时回退到设置默认。
    */
@@ -3473,8 +3472,34 @@ export class AgentRuntime {
     };
   }
 
-  private async newChatSelection(directory: ModelDirectory): Promise<ConversationSelection> {
+  private availableSentModel(directory: ModelDirectory, history: SessionManager): Model<Api> | undefined {
+    const sent = lastSentModel(history);
+    const model = sent && directory.runtime.getModel(sent.provider, sent.modelId);
+    return model && directory.isAvailable(model) ? model : undefined;
+  }
+
+  private async prepareConversationForDisplay(entry: Conversation): Promise<void> {
+    if (!entry.session) {
+      await this.startInternal(entry);
+      return;
+    }
+    // Navigation must not change a running turn or an explicitly managed execution.
+    if (this.activeId === entry.id || entry.driving || entry.session.isStreaming || entry.recipeExecution ||
+        entry.backgroundExecution || entry.scheduledTaskConversation || this.isResident(entry.id)) return;
+    const directory = await this.readyDirectory();
+    const previous = this.availableSentModel(directory, entry.session.sessionManager);
+    const current = entry.session.model;
+    if (previous && (previous.provider !== current?.provider || previous.id !== current.id)) {
+      await this.applyModel(previous, clampToModel(previous, entry.snapshot.thinkingLevel), entry.id);
+    }
+  }
+
+  private async chatSelection(directory: ModelDirectory, history?: SessionManager): Promise<ConversationSelection> {
     const selection = this.conversationSelection(directory);
+    const previous = history && this.availableSentModel(directory, history);
+    if (previous && (previous.provider !== selection.model?.provider || previous.id !== selection.model.id)) {
+      return { model: previous, thinkingLevel: clampToModel(previous, directory.selection.thinkingLevel) };
+    }
     const { model, codexSpeed } = selection;
     if (!model || !codexSpeed || codexSpeed === "standard") return selection;
     // 账号支持的档位可能已变化。无法确认时仍用原模型，以标准速度启动。
@@ -3492,7 +3517,7 @@ export class AgentRuntime {
   private async applySavedModel(): Promise<void> {
     const directory = this.directory;
     if (!directory) return;
-    const { model: chosen, thinkingLevel, codexSpeed } = await this.newChatSelection(directory);
+    const { model: chosen, thinkingLevel, codexSpeed } = await this.chatSelection(directory);
     if (!chosen) {
       const active = this.activeConversation();
       if (active) this.syncFromSession(active);
@@ -3602,6 +3627,12 @@ export class AgentRuntime {
       return;
     }
     if (event.type === "message_end") {
+      if (event.message.role === "user") {
+        // Pi appends this user message immediately after notifying listeners. Store the
+        // selected account/model with the send, even if no assistant response arrives.
+        const session = this.conversations.get(conversationId)?.session;
+        if (session?.model) session.sessionManager.appendCustomEntry(sentModelEntryType, { provider: session.model.provider, modelId: session.model.id });
+      }
       if (event.message.role === "assistant") {
         this.emit({ type: "assistant_end", conversationId, ...this.assistantMetadata(conversationId, "end", event.message) });
         const entry = this.conversations.get(conversationId);

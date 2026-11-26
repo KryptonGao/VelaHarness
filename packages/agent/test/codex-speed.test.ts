@@ -145,6 +145,29 @@ test("last-used chats inherit the Codex tier in both the snapshot and the outgoi
   assert.equal((await runtime.createConversation(cwd)).codexSpeed, undefined);
 });
 
+test("re-entering a chat restores its last send, not an unsent picker change or another chat's model", async t => {
+  const { runtime, cwd, provider, model, bodies, openRuntime } = await setupCodex(t);
+  const other = (await runtime.getCatalog()).models.find(item => item.provider === provider && item.available && item.id !== model)!;
+  await runtime.saveAgentSettings({ ...await runtime.getAgentSettings(), provider, modelId: other.id });
+  const first = (await runtime.createConversation(cwd)).id!;
+  await runtime.renameConversation(first, "First");
+  await runtime.selectModel(provider, model, first);
+  await runtime.prompt(first, "First send");
+  await runtime.selectModel(provider, other.id, first); // Not sent.
+  const second = (await runtime.createConversation(cwd)).id!;
+  await runtime.renameConversation(second, "Second");
+  await runtime.prompt(second, "Other chat");
+  assert.equal((await runtime.switchConversation(first)).modelId, model);
+  await runtime.dispose();
+
+  const restored = openRuntime();
+  assert.equal((await restored.switchConversation(second)).modelId, other.id);
+  assert.equal((await restored.switchConversation(first)).modelId, model);
+  await restored.prompt(first, "After restart");
+  assert.equal(requestFor(bodies, "After restart").model, model);
+  assert.equal((await restored.createConversation(cwd)).modelId, other.id);
+});
+
 test("main and side chats send the selected Codex tier through Pi's real Responses transport", async t => {
   const { runtime, cwd, provider, model, bodies, lookups } = await setupCodex(t);
   const { conversationId } = await runtime.createRunConversation({ cwd, sandboxMode: "full", model: { provider, id: model } });

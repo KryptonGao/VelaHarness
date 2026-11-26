@@ -7,7 +7,8 @@ import { join } from "node:path";
 import { describe, it, type TestContext } from "node:test";
 import { AgentRuntime } from "../src/runtime.ts";
 import { ConversationStore, type StoredConversation } from "../src/conversation-store.ts";
-import type { SessionManager } from "@earendil-works/pi-coding-agent";
+import { SessionManager } from "@earendil-works/pi-coding-agent";
+import { lastSentModel, sentModelEntryType } from "../src/session-persistence.ts";
 
 async function fixture(t: TestContext) {
   const root = await mkdtemp(join(tmpdir(), "vela-conversation-persist-"));
@@ -24,6 +25,50 @@ function stored(id = "chat-a"): StoredConversation {
 }
 
 describe("conversation persistence", () => {
+  it("resolves models on the selected branch for legacy, routed and interrupted sends", () => {
+    const manager = SessionManager.inMemory();
+    const send = () => manager.appendMessage({ role: "user", content: "hello", timestamp: 1 });
+    const reply = (provider: string) => manager.appendMessage({ role: "assistant", provider, model: "shared", content: [], timestamp: 2 } as never);
+    manager.appendModelChange("default", "shared");
+    assert.equal(lastSentModel(manager), undefined, "an empty chat still uses new-chat settings");
+    send();
+    const legacy = reply("legacy");
+    manager.appendModelChange("other", "shared");
+    assert.deepEqual(lastSentModel(manager), { provider: "legacy", modelId: "shared" });
+    send(); // Interrupted before the first assistant token, with no send marker in old files.
+    assert.deepEqual(lastSentModel(manager), { provider: "other", modelId: "shared" });
+    const selected = { provider: "account", modelId: "router" };
+    manager.appendCustomEntry(sentModelEntryType, selected);
+    send();
+    reply("physical");
+    assert.deepEqual(lastSentModel(manager), selected);
+    manager.branch(legacy);
+    assert.deepEqual(lastSentModel(manager), { provider: "legacy", modelId: "shared" });
+  });
+
+  it("uses the configured new-chat fallback when a historical model is unavailable", async t => {
+    const { root } = await fixture(t);
+    const options = { cwd: root, agentDir: root, modelDirectory: { configDir: root, refreshCatalogOnStart: false } };
+    const runtime = new AgentRuntime(options);
+    t.after(() => runtime.dispose());
+    const model = { providerName: "Fixture", modelName: "Shared", modelId: "shared", api: "openai-completions" as const,
+      baseUrl: "http://127.0.0.1:1/v1", apiKey: "fixture", reasoning: false, contextWindow: null, maxTokens: null };
+    await runtime.registerModel({ ...model, providerId: "test-default" });
+    await runtime.registerModel({ ...model, providerId: "test-last" });
+    await runtime.saveAgentSettings({ ...await runtime.getAgentSettings(), provider: "test-default", modelId: "shared", newConversationSelection: "lastUsed" });
+    const id = (await runtime.createConversation(root)).id!;
+    const manager = (runtime as unknown as { conversations: Map<string, { sessionManager: SessionManager }> }).conversations.get(id)!.sessionManager;
+    manager.appendMessage({ role: "user", content: "hello", timestamp: 1 });
+    manager.appendMessage({ role: "assistant", provider: "removed-account", model: "shared", content: [], timestamp: 2 } as never);
+    await runtime.selectModel("test-last", "shared", id);
+    await runtime.dispose();
+    const restored = new AgentRuntime(options);
+    t.after(() => restored.dispose());
+    const chat = await restored.switchConversation(id);
+    assert.equal(chat.modelReady, true);
+    assert.equal(chat.modelProvider, "test-last");
+  });
+
   it("keeps workspace association distinct for the same cwd through updates, switching and restart", async t => {
     const { root, file } = await fixture(t);
     const notifications: Array<[string, boolean]> = [];

@@ -1,5 +1,41 @@
 import { SessionManager } from "@earendil-works/pi-coding-agent";
+import type { ModelRef } from "@vela/shared";
 import { existsSync, writeFileSync, openSync, fsyncSync, closeSync } from "node:fs";
+
+export const sentModelEntryType = "vela_sent_model";
+
+/** Read only the active branch, ignoring picker changes made after the last send. */
+export function lastSentModel(manager: SessionManager): ModelRef | undefined {
+  const branch = manager.getBranch();
+  let response: ModelRef | undefined;
+  let sawUser = false;
+  for (let i = branch.length - 1; i >= 0; i--) {
+    const entry = branch[i];
+    if (entry.type === "message") {
+      const message = entry.message;
+      if (message.role === "assistant" && message.provider && message.model) {
+        response ??= { provider: message.provider, modelId: message.model };
+        if (sawUser) return response;
+      }
+      if (message.role === "user" && !sawUser) {
+        sawUser = true;
+        const marker = branch[i - 1];
+        if (marker?.type === "custom" && marker.customType === sentModelEntryType) {
+          const ref = marker.data as Partial<ModelRef> | null;
+          if (typeof ref?.provider === "string" && ref.provider && typeof ref.modelId === "string" && ref.modelId) {
+            return { provider: ref.provider, modelId: ref.modelId };
+          }
+        }
+        // Older chats have no send marker. Prefer the reply over later unsent changes.
+        if (response) return response;
+      }
+    } else if (sawUser && entry.type === "model_change") {
+      // A send interrupted before its reply still has Pi's selected model.
+      return { provider: entry.provider, modelId: entry.modelId };
+    }
+  }
+  return response;
+}
 
 /**
  * 新建一个立即落盘的持久会话。
