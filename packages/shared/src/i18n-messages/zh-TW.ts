@@ -2435,6 +2435,7 @@ const messages: Record<string, string> = {
   "展开文件树": "展開檔案樹",
   "文件树": "檔案樹",
   "Markdown 显示方式": "Markdown 顯示方式",
+  "HTML 显示方式": "HTML 顯示方式",
   "源码": "源碼",
   "查看该文件的 Git 差异": "查看該檔案的 Git 差異",
   "复制文件内容": "複製檔案內容",

@@ -11,7 +11,7 @@ import {
   WorkspaceManager,
   createWorktree, removeWorktree,
 } from "@vela/workspace";
-import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, nativeTheme, Notification, powerMonitor, powerSaveBlocker, session, shell, Tray, utilityProcess, webContents } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, nativeTheme, Notification, powerMonitor, powerSaveBlocker, protocol, session, shell, Tray, utilityProcess, webContents } from "electron";
 import type { BrowserWindowConstructorOptions } from "electron";
 import { codexUsageEnabledKey, type CodexUsageReport, createLogger, IpcChannel, isAgentBusy, isAppLocale, localizeZh, raceEnabledStorageKey, type ResidentSettings } from "@vela/shared";
 import { existsSync, readFileSync, statSync, watch as fsWatch, writeFileSync } from "node:fs";
@@ -30,6 +30,7 @@ import { StorageHost } from "./storage-host";
 import { createUpdateService, UpdateHost } from "./update-host";
 import { ReleaseNotesHost } from "./release-notes-host";
 import { allowSubframeNavigation } from "./ui-sandbox-guard";
+import { previewPrivileges, previewScheme } from "./html-preview";
 import { UiSandboxHost } from "./ui-sandbox-host";
 import { registerOpenTargetIpc } from "./open-targets";
 import { ProjectHost } from "./project-host";
@@ -77,6 +78,9 @@ import { BrowserReplManager } from "./browser-repl";
 import { createBrowserAnnotationService } from "./browser-annotation-service";
 import { BrowserIpc, type BrowserUiCommand } from "../../../../packages/shared/src/browser";
 import { UI_BROWSER_PARTITION } from "../browser-policy";
+
+// Normal app entry runs before ready; some standalone test hosts import main after ready.
+if (!app.isReady()) protocol.registerSchemesAsPrivileged([{ scheme: previewScheme, privileges: previewPrivileges }]);
 
 const home = configureVelaProfile(app);
 // 日志最先就绪:之后的启动失败、崩溃都能落盘到 <home>/logs。
@@ -240,9 +244,10 @@ function createWindow(): BrowserWindow {
     event.preventDefault();
   });
 
-  // 微应用 iframe（IUI-14）只能停留在 about:srcdoc；任何跳转到网络或文件的尝试都直接拦截。
+  // Only the host renderer can start a workspace preview; inline micro-apps stay on srcdoc.
   win.webContents.on("will-frame-navigate", (event) => {
     if (allowSubframeNavigation(event.url, event.isMainFrame)) return;
+    if (event.initiator === win.webContents.mainFrame && project?.htmlPreview.isDocumentUrl(event.url)) return;
     event.preventDefault();
     log.warn("blocked subframe navigation");
   });
@@ -727,6 +732,7 @@ async function start(): Promise<void> {
     fallbackCwd,
   });
   project.register();
+  protocol.handle(previewScheme, request => project!.htmlPreview.serve(request));
   host = new SessionHost(runtime, {
     currentWorkspace: () => workspaceManager.getState().current,
     onAgentMutation: () => project?.notifyAgentMutation(),

@@ -267,6 +267,14 @@
   background: var(--bg-elevated);
 }
 
+.preview-html-frame {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  color-scheme: light;
+  background: Canvas;
+}
+
 .preview-code-pane {
   flex: 1;
   min-width: 0;

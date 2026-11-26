@@ -72,6 +72,7 @@ function sameFileContent(current: WorkspaceFileContent | null, next: WorkspaceFi
     current.absolutePath === next.absolutePath &&
     current.kind === next.kind &&
     current.content === next.content &&
+    current.htmlPreviewUrl === next.htmlPreviewUrl &&
     current.size === next.size &&
     current.truncated === next.truncated
   );

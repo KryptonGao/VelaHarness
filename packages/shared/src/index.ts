@@ -2479,6 +2479,8 @@ export interface WorkspaceFileContent {
   path: string;
   absolutePath: string;
   kind: WorkspaceFileContentKind;
+  /** Sandboxed document URL, only for previewable HTML inside a registered workspace folder. */
+  htmlPreviewUrl?: string;
   /** text 为文件内容;image 为 data URL;其余为 null */
   content: string | null;
   size: number;

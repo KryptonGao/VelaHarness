@@ -22,14 +22,15 @@ export function FilePreviewView({
 }) {
   const preview = useFilePreview();
   const [explorerOpen, setExplorerOpen] = useState(true);
-  const [markdownMode, setMarkdownMode] = useState<"preview" | "source">("preview");
+  const [viewMode, setViewMode] = useState<"preview" | "source">("preview");
+  const [htmlReload, setHtmlReload] = useState(0);
   const [copied, setCopied] = useState(false);
   const tab = preview?.activeTab ?? null;
   const content = preview?.activeContent ?? null;
   const git = project.git;
 
   useEffect(() => {
-    if (tab?.jumpLine != null) setMarkdownMode("source");
+    if (tab?.jumpLine != null) setViewMode("source");
   }, [tab?.id, tab?.jumpLine]);
 
   useEffect(() => {
@@ -52,7 +53,9 @@ export function FilePreviewView({
   const canShowDiff = Boolean(git?.repo) && changedPaths.has(tab.id);
   const crumbs = [...(absoluteTab ? [] : [rootName]), ...(tab.dir ? tab.dir.split("/") : [])];
   const markdownBody = isMarkdownPath(tab.id) && content?.kind === "text" && Boolean(content.content);
-  const showRendered = markdownBody && markdownMode === "preview" && tab.jumpLine == null;
+  const htmlUrl = content?.htmlPreviewUrl;
+  const canRender = markdownBody || Boolean(htmlUrl);
+  const showRendered = canRender && viewMode === "preview" && tab.jumpLine == null;
 
   return (
     <div className="panel-file-preview-view">
@@ -65,13 +68,14 @@ export function FilePreviewView({
           ariaLabel={tr("文件路径", "File path")}
         />
         <div className="preview-actions-group">
-          {markdownBody ? (
-            <div className="preview-view-toggle" role="group" aria-label={tr("Markdown 显示方式", "Markdown view mode")}>
+          {canRender ? (
+            <div className="preview-view-toggle" role="group"
+              aria-label={htmlUrl ? tr("HTML 显示方式", "HTML view mode") : tr("Markdown 显示方式", "Markdown view mode")}>
               <button
                 type="button"
                 aria-pressed={showRendered}
                 className={showRendered ? "active" : ""}
-                onClick={() => setMarkdownMode("preview")}
+                onClick={() => setViewMode("preview")}
               >
                 {tr("预览", "Preview")}
               </button>
@@ -79,7 +83,7 @@ export function FilePreviewView({
                 type="button"
                 aria-pressed={!showRendered}
                 className={showRendered ? "" : "active"}
-                onClick={() => setMarkdownMode("source")}
+                onClick={() => setViewMode("source")}
               >
                 {tr("源码", "Source")}
               </button>
@@ -102,7 +106,10 @@ export function FilePreviewView({
             className="icon-btn-ghost"
             title={tr("重新读取", "Reload")}
             aria-label={tr("重新读取", "Reload")}
-            onClick={preview.reloadActive}
+            onClick={() => {
+              if (htmlUrl) setHtmlReload(value => value + 1);
+              preview.reloadActive();
+            }}
           >
             <Icon name="refresh" size={14} />
           </button>
@@ -146,7 +153,10 @@ export function FilePreviewView({
       </div>
 
       <div className={`preview-main-split${explorerOpen ? "" : " explorer-hidden"}`}>
-        {showRendered && content?.content ? (
+        {showRendered && htmlUrl ? (
+          <iframe key={`${htmlUrl}:${htmlReload}`} className="preview-html-frame" title={`${tr("文件预览", "File preview")}: ${tab.name}`}
+            sandbox="allow-scripts" referrerPolicy="no-referrer" src={htmlUrl} />
+        ) : showRendered && content?.content ? (
           <MarkdownPane
             text={content.content}
             documentPath={tab.id}

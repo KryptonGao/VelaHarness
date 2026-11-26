@@ -70,6 +70,7 @@ import {
 } from "@vela/workspace";
 import { BrowserWindow, dialog, ipcMain, shell } from "electron";
 import { getApplicationLocale } from "./menu";
+import { WorkspaceHtmlPreview } from "./html-preview";
 import { createLogger, localizeZh } from "@vela/shared";
 
 const log = createLogger("project");
@@ -102,6 +103,7 @@ export interface ProjectHostOptions {
  * 工作区变化时统一编排:重挂 git → 刷新环境 → 重建 Agent 会话 → 推送事件。
  */
 export class ProjectHost {
+  htmlPreview = new WorkspaceHtmlPreview();
   private switchChain: Promise<void> = Promise.resolve();
   private mutationTimer: NodeJS.Timeout | null = null;
 
@@ -113,6 +115,7 @@ export class ProjectHost {
       this.broadcast(IpcChannel.sandboxApprovalEvent, event satisfies SandboxApprovalEvent);
     });
     this.options.workspaceManager.subscribe((workspace) => {
+      this.htmlPreview = new WorkspaceHtmlPreview(); // revoke URLs from the previous workspace
       this.switchChain = this.switchChain.then(() => this.onWorkspaceChanged(workspace));
     });
   }
@@ -838,8 +841,15 @@ export class ProjectHost {
       shell.showItemInFolder(absolutePath);
     });
 
-    ipcMain.handle(IpcChannel.workspaceFileRead, async (_event, rawPath: unknown) => {
-      return this.options.files.read(this.workspaceRoots(), parseFlexiblePath(rawPath));
+    ipcMain.handle(IpcChannel.workspaceFileRead, async (event, rawPath: unknown) => {
+      const preview = this.htmlPreview;
+      const { current, folders } = this.options.workspaceManager.getState();
+      const file = await this.options.files.read(this.workspaceRoots(), parseFlexiblePath(rawPath));
+      if (current && file.kind === "text" && event.senderFrame === event.sender.mainFrame) {
+        const url = await preview.documentUrl(file.absolutePath, [current, ...folders], file.size);
+        if (url) file.htmlPreviewUrl = url;
+      }
+      return file;
     });
     ipcMain.handle(IpcChannel.workspaceFileList, () => {
       return this.options.files.listFiles(this.workspaceRoots());
