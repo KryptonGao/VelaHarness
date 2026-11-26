@@ -15,7 +15,10 @@ import {
 } from "@vela/shared";
 
 const SECTION_NAME = /^[a-z][a-z0-9_-]*$/;
-const RULE_SECTIONS = new Set(["rules", "project_context", "addendum"]);
+const RULE_SECTIONS = new Set([
+  "rules", "project_context", "addendum", "vela_rules", "vela_mode", "vela_intelligent_ui",
+  "vela_web_tools", "vela_workspace_folders", "vela_ultra", "vela_subagent_models",
+]);
 
 export function emptyContextSegments(): ContextSegments {
   return { system: 0, tools: 0, rules: 0, skills: 0, conversation: 0 };

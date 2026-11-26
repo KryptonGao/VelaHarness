@@ -233,9 +233,7 @@ export function createModeExtension(
         state.visualDemo === true,
         event.systemPromptOptions.selectedTools,
       );
-      if (!extra) return;
-      const current = event.systemPromptOptions.appendSystemPrompt.trim();
-      event.systemPromptOptions.appendSystemPrompt = current ? `${current}\n\n${extra}` : extra;
+      if (extra) event.systemPromptOptions.sections.vela_mode = extra;
     });
 
     pi.on("tool_call", async (event) => {

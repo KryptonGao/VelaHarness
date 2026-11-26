@@ -80,7 +80,7 @@ it("定时任务失败与只读权限仍保持原有拒绝语义", async () => {
   assert.equal(mutations, 1);
 });
 
-it("time context in the system prompt is stable within a day so it never invalidates the prompt cache", () => {
+it("the clock text is stable within a local day and changes at midnight", () => {
   const morning = scheduledTaskTimeContext(new Date(2026, 10, 21, 0, 0, 1, 1));
   const night = scheduledTaskTimeContext(new Date(2026, 10, 21, 23, 59, 59, 999));
   assert.equal(morning, night);

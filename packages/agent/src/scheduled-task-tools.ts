@@ -1,4 +1,4 @@
-import { defineTool, type ToolDefinition } from "@earendil-works/pi-coding-agent";
+import { defineTool, type ExtensionFactory, type ToolDefinition } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 import { thinkingLevels, type ScheduledTaskService } from "@vela/shared";
 
@@ -10,10 +10,7 @@ Each run creates a new conversation in the workspace bound to the current conver
 When the user specifies execution permissions, a model, or a reasoning effort, save them as sandboxMode, model (provider/id), and thinkingLevel respectively; when unspecified or null, the app settings apply. Never raise execution permissions on your own.
 Query the real task ID before modifying or deleting. Create a task only when the user asks for a persistent scheduled task; an ordinary "we could do this later" is not authorization.`;
 
-/**
- * 系统提示里的时间上下文只精确到日期。它位于提示词前缀，每轮变化会让整段提示缓存失效，
- * 所以不能带时分秒；精确时间由 list_scheduled_tasks 的结果（进入历史，之后不再变化）提供。
- */
+/** The clock message changes only with the local date or zone; list_scheduled_tasks supplies exact time. */
 export function scheduledTaskTimeContext(now: Date = new Date()): string {
   const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const pad = (value: number) => String(value).padStart(2, "0");
@@ -21,6 +18,20 @@ export function scheduledTaskTimeContext(now: Date = new Date()): string {
   const weekday = now.toLocaleDateString("en-US", { weekday: "long" });
   return `Task time context: today is ${date} (${weekday}); local time zone: ${timeZone}`;
 }
+
+export const scheduledTaskClockType = "vela-scheduled-tasks-clock";
+
+export const scheduledTaskClockExtension: ExtensionFactory = pi => {
+  pi.on("before_agent_start", (_event, ctx) => {
+    const content = scheduledTaskTimeContext();
+    // Consult effective history, not a process-local last date: restore, branch and compaction can change it.
+    const last = ctx.sessionManager.buildSessionProjection().messages.findLast(
+      msg => msg.role === "custom" && msg.customType === scheduledTaskClockType,
+    );
+    if (last?.role === "custom" && last.content === content) return;
+    return { message: { customType: scheduledTaskClockType, content, display: false } };
+  });
+};
 
 const schedule = Type.Union([
   Type.Object({ kind: Type.Literal("once"), at: Type.String() }),

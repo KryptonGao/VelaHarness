@@ -1,4 +1,5 @@
 import { toolResultIsError } from "./tool-activity";
+import { scheduledTaskClockType } from "./scheduled-task-tools";
 import type { AgentMessage } from "@earendil-works/pi-agent-core";
 import {
   defineTool,
@@ -1076,7 +1077,8 @@ export function selectForkMessages(
   fork: ContextFork,
 ): AgentMessage[] {
   if (fork === "none") return [];
-  const forkable = messages.filter((message) => forkableRoles.has(message.role));
+  const forkable = messages.filter((message) => forkableRoles.has(message.role) &&
+    !(message.role === "custom" && message.customType === scheduledTaskClockType));
   const sliced = typeof fork === "number" ? sliceLastTurns(forkable, fork) : forkable;
   return trimUnresolvedTail(sliced);
 }

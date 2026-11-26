@@ -6,7 +6,7 @@
 
 ## 时间与执行
 
-系统提示里的时间上下文只含当天日期与时区，不含时分秒：它位于提示词前缀，每轮变化会让整段提示缓存失效。需要精确的当前时间（例如「十分钟后提醒我」）时，模型先调用 `list_scheduled_tasks`，其结果带 `now`（ISO 8601），并随历史保留。
+The local date and time zone arrive as a hidden conversation message, not in the system prompt. A run appends the clock only if the current branch has no retained clock or the date or zone has changed. For requests such as “remind me in ten minutes,” the agent calls `list_scheduled_tasks` for the exact time (`now`, ISO 8601).
 
 - 一次性：包含时区的 ISO 8601 时间。UI 的日期输入使用本机时区。
 - 每日：HH:mm 与 IANA 时区，例如 `22:00`、`Asia/Taipei`。

@@ -10,7 +10,7 @@ import { compactionTokensForLimit, effectiveContextWindow, estimateTaskCost, par
 import type { BuiltInPlugin, IntelligentUiState, PluginCatalog, PluginTarget, PluginStatusEvent, UiPreference } from "@vela/shared";
 import { redactMcpDisplay, mcpConfiguredSecrets, preserveTraceModels } from "./mcp-redaction";
 import { McpSessionBridge, isMcpTool, type McpPermission } from "./mcp-session";
-import { createScheduledTaskTools, scheduledTaskInstructions, scheduledTaskTimeContext } from "./scheduled-task-tools";
+import { createScheduledTaskTools, scheduledTaskClockExtension, scheduledTaskInstructions } from "./scheduled-task-tools";
 import { RecipeGenerator, parseRecipeGenerateInput } from './recipe-generator';
 import type { RaceTokens, RecipeExecution, RecipeRun, RecipeStageSubmission, RecipeSubmitResult, RecipeStageEvidence, RecipeUseDraft, ScheduledTaskInput, BackgroundShellEvents, BackgroundShellExit, BackgroundShellItem, BackgroundShellOutput, ToolFactoryContext, SandboxMode, ScheduledTaskService } from "@vela/shared";
 import type { McpCatalog, McpCatalogInput, McpServerInput, McpServerTarget, McpEnabledInput, McpProjectTrustInput, McpToolReadOnlyInput, McpStatusEvent, MemoryLoadReport, SideChatEvent, SideChatRequest, SideChatResult } from "@vela/shared";
@@ -3283,9 +3283,7 @@ export class AgentRuntime {
             if (this.options.hostProfile === "headless") return;
             const extra = intelligentUiInstructions(this.intelligentUiSettings.preference, entry.snapshot.mode, { microApps: this.intelligentUiSettings.microApps,
               scopeNote: checksVisualWork(this.promptProfile) ? intelligentUiScopeNote : undefined });
-            if (!extra) return;
-            const current = event.systemPromptOptions.appendSystemPrompt.trim();
-            event.systemPromptOptions.appendSystemPrompt = current ? `${current}\n\n${extra}` : extra;
+            if (extra) event.systemPromptOptions.sections.vela_intelligent_ui = extra;
           }); }) as ExtensionFactory,
         }, {
           name: "vela-web-tools",
@@ -3297,27 +3295,21 @@ export class AgentRuntime {
           factory: ((pi) => { pi.on("before_agent_start", event => {
             // 附加文件夹随时可改,每轮重新读取,下一轮立即生效。
             const extra = workspaceFoldersInstructions(cwd, this.options.workspaceFolders?.(cwd) ?? []);
-            if (!extra) return;
-            const current = event.systemPromptOptions.appendSystemPrompt.trim();
-            event.systemPromptOptions.appendSystemPrompt = current ? `${current}\n\n${extra}` : extra;
+            if (extra) event.systemPromptOptions.sections.vela_workspace_folders = extra;
           }); }) as ExtensionFactory,
         }, {
           name: "vela-ultra",
           hidden: true,
           factory: ((pi) => { pi.on("before_agent_start", event => {
             // Ultra 可随时切换，每轮读取，下一轮立即生效。
-            if (!entry.ultra) return;
-            const current = event.systemPromptOptions.appendSystemPrompt.trim();
-            event.systemPromptOptions.appendSystemPrompt = current ? `${current}\n\n${ultraInstructions}` : ultraInstructions;
+            if (entry.ultra) event.systemPromptOptions.sections.vela_ultra = ultraInstructions;
           }); }) as ExtensionFactory,
         }, {
           name: "vela-subagent-models",
           hidden: true,
           factory: this.subagentModelsExtension(),
         }, ...(this.options.scheduledTasks ? [{ name: "vela-scheduled-tasks-clock", hidden: true,
-          factory: ((pi) => { pi.on("before_agent_start", event => {
-            event.systemPromptOptions.appendSystemPrompt += `\n\n${scheduledTaskTimeContext()}`;
-          }); }) as ExtensionFactory,
+          factory: scheduledTaskClockExtension,
         }] : []), ...mcp.factories()],
         appendSystemPromptOverride: (base) => this.isResident(entry.id)
           ? [...base, ...(instructions ? [instructions] : []), residentInstructions]
@@ -4240,7 +4232,7 @@ export class AgentRuntime {
         messages.push(`When spawn_agent inherits your model, its allowed reasoning_effort values are: ${levels.join(", ") || "none available"}.`);
       }
       const extra = messages.filter(Boolean).join("\n");
-      if (extra) event.systemPromptOptions.appendSystemPrompt += `\n\n${extra}`;
+      if (extra) event.systemPromptOptions.sections.vela_subagent_models = extra;
     }); }) as ExtensionFactory;
   }
 
@@ -4542,17 +4534,15 @@ export class AgentRuntime {
   }
 
   /**
-   * 主会话的工作规则按当前模式、工具与模型每轮生成，放在 addendum 最前面。
+   * 主会话的工作规则按当前模式、工具与模型每轮生成，独立于模式说明。
    * 模式切换不会重载资源，所以不能写进 appendSystemPromptOverride。
    */
   private rulesExtension(kind: () => RuleKind): { name: string; hidden: true; factory: ExtensionFactory }[] {
     if (!usesVelaPrompt(this.promptProfile)) return [];
     const visualCheck = checksVisualWork(this.promptProfile);
     return [{ name: "vela-rules", hidden: true, factory: ((pi) => { pi.on("before_agent_start", (event, ctx) => {
-      const rules = rulesForProfile(this.promptProfile, { kind: kind(), tools: event.systemPromptOptions.selectedTools,
+      event.systemPromptOptions.sections.vela_rules = rulesForProfile(this.promptProfile, { kind: kind(), tools: event.systemPromptOptions.selectedTools,
         imageInput: ctx.model?.input.includes("image") ?? false, visualCheck, language: this.writingLanguage() });
-      const current = event.systemPromptOptions.appendSystemPrompt.trim();
-      event.systemPromptOptions.appendSystemPrompt = current ? `${rules}\n\n${current}` : rules;
     }); }) as ExtensionFactory }];
   }
 
@@ -4576,9 +4566,7 @@ export class AgentRuntime {
   /** 每轮读取当前状态，设置切换后下一轮立即生效。 */
   private webToolsExtension(active: () => boolean): ExtensionFactory {
     return ((pi) => { pi.on("before_agent_start", event => {
-      if (!active()) return;
-      const current = event.systemPromptOptions.appendSystemPrompt.trim();
-      event.systemPromptOptions.appendSystemPrompt = current ? `${current}\n\n${webToolsInstructions}` : webToolsInstructions;
+      if (active()) event.systemPromptOptions.sections.vela_web_tools = webToolsInstructions;
     }); }) as ExtensionFactory;
   }
 

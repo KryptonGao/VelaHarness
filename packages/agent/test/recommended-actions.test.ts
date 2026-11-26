@@ -51,13 +51,14 @@ describe("推荐操作工具", () => {
     assert.doesNotMatch(modeSystemPrompt("plan", false, false, true), new RegExp(recommendedActionsToolName));
   });
 
-  it("模式扩展按状态把提示词追加到系统提示", async () => {
+  it("模式扩展按状态写入独立命名段，不改原有 addendum", async () => {
     const run = async (state: ModeState) => {
       const handlers = new Map<string, (event: unknown) => Promise<unknown>>();
       createModeExtension(() => state)({ on: (name: string, fn: (event: unknown) => Promise<unknown>) => handlers.set(name, fn) } as never);
-      const event = { systemPromptOptions: { appendSystemPrompt: "" } };
+      const event = { systemPromptOptions: { appendSystemPrompt: "loader notes", sections: {} as Record<string, string> } };
       await handlers.get("before_agent_start")!(event);
-      return event.systemPromptOptions.appendSystemPrompt;
+      assert.equal(event.systemPromptOptions.appendSystemPrompt, "loader notes");
+      return event.systemPromptOptions.sections.vela_mode ?? "";
     };
     assert.match(await run({ mode: "agent", hasExecutionPlan: false, recommendedActions: true }), new RegExp(recommendedActionsToolName));
     assert.doesNotMatch(await run({ mode: "agent", hasExecutionPlan: false }), new RegExp(recommendedActionsToolName));

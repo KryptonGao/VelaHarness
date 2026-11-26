@@ -132,7 +132,8 @@ async function fixture(t: TestContext, profile?: SystemPromptProfile, locale?: A
   await mkdir(cwd);
   await mkdir(agentDir);
   const permission = new SandboxPermissionManager(join(root, "permissions.json"));
-  const runtime = new AgentRuntime({ cwd, agentDir, ...(profile ? { systemPromptProfile: profile } : {}), ...(locale ? { locale: () => locale } : {}),
+  const folders: string[] = [];
+  const runtime = new AgentRuntime({ cwd, agentDir, workspaceFolders: () => folders, ...(profile ? { systemPromptProfile: profile } : {}), ...(locale ? { locale: () => locale } : {}),
     toolFactory: cwd => createSandboxedToolDefinitions({ cwd, workspace: cwd, permission }) });
   t.after(async () => { runtime.dispose(); await rm(root, { recursive: true, force: true }); });
   await runtime.createConversation(cwd);
@@ -180,7 +181,7 @@ async function fixture(t: TestContext, profile?: SystemPromptProfile, locale?: A
     return promptOf(childSession, () => childSession.prompt(`${kind} fixture`));
   }
 
-  return { mode, child };
+  return { mode, child, session, folders };
 }
 
 async function scenarios(t: TestContext, profile?: SystemPromptProfile): Promise<Record<string, string>> {
@@ -189,7 +190,8 @@ async function scenarios(t: TestContext, profile?: SystemPromptProfile): Promise
     general: await f.child("general"), explore: await f.child("explore") };
 }
 
-const knownSections = new Set(["preamble", "tools", "rules", "docs", "addendum", "project_context", "skills", "cwd"]);
+const knownSections = new Set(["preamble", "tools", "rules", "docs", "addendum", "project_context", "skills", "cwd",
+  "vela_rules", "vela_mode", "vela_intelligent_ui", "vela_web_tools", "vela_workspace_folders", "vela_ultra", "vela_subagent_models"]);
 
 describe("system prompt in real sessions", () => {
   it("replaces Pi's identity, tool list, rules and docs in v2", { timeout: 20_000 }, async t => {
@@ -202,7 +204,14 @@ describe("system prompt in real sessions", () => {
       assert.deepEqual(Object.keys(sections).filter(section => !knownSections.has(section)), [], `${name} has no unknown sections`);
       assert.equal(sections.tools, undefined, name);
       assert.equal(sections.docs, undefined, name);
-      assert.ok(sections.addendum?.startsWith("<addendum>\nWorking rules"), `${name} opens the addendum with the rules`);
+      if (name === "explore" || name === "general") {
+        assert.ok(sections.addendum?.startsWith("<addendum>\nWorking rules"), `${name} retains its fixed loader rules`);
+      } else {
+        assert.ok(sections.vela_rules?.startsWith("<vela_rules>\nWorking rules"), name);
+        assert.ok(sections.vela_mode, name);
+        assert.doesNotMatch(sections.addendum ?? "", /Working rules/);
+      }
+      assert.ok(sections.vela_subagent_models?.includes("When spawn_agent inherits your model"), name);
     }
     for (const name of ["agent", "goal", "general"]) assert.ok(prompts[name]!.includes(verify), name);
     assert.equal(prompts.goal!.includes(runCheck), false, "Goal checks stay with record_goal_validation");
@@ -221,11 +230,31 @@ describe("system prompt in real sessions", () => {
     assert.ok(prompts.explore!.indexOf("Working rules") < prompts.explore!.indexOf("read-only investigation subagent"));
   });
 
+  it("patches only the workspace section when folders change", async t => {
+    const { session, mode, folders } = await fixture(t);
+    await mode("agent");
+    const nextPatches = async () => {
+      const start = session.messages.length;
+      await mode("agent");
+      return session.messages.slice(start).flatMap(m => m.role === "system" && m.sections ? [m.sections] : []);
+    };
+    folders.push("/extra");
+    const added = await nextPatches();
+    assert.equal(added.length, 1);
+    assert.deepEqual(Object.keys(added[0]!), ["vela_workspace_folders"]);
+    assert.match(added[0]!.vela_workspace_folders!, /\/extra/);
+    assert.deepEqual(await nextPatches(), []);
+    folders.pop();
+    assert.deepEqual(await nextPatches(), [{ vela_workspace_folders: null }]);
+  });
+
   it("uses the adapted Codex prompt across mode switches and child sessions", { timeout: 20_000 }, async t => {
     const prompts = await scenarios(t, "codex");
     for (const [kind, prompt] of Object.entries(prompts)) {
       assert.ok(prompt.startsWith(velaPreamble), kind);
-      assert.ok(splitSystemPrompt(prompt).addendum?.includes("## Ambition vs. precision"), kind);
+      const sections = splitSystemPrompt(prompt);
+      const rules = kind === "explore" || kind === "general" ? sections.addendum : sections.vela_rules;
+      assert.ok(rules?.includes("## Ambition vs. precision"), kind);
       assert.doesNotMatch(prompt, /Codex CLI|apply_patch|sandbox_permissions|Working rules/, kind);
       assert.equal(prompt.includes("Use edit for targeted changes"), ["agent", "goal", "general"].includes(kind), kind);
     }

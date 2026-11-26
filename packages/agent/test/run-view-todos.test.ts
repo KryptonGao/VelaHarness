@@ -105,7 +105,7 @@ type Handler = (event: any) => unknown;
 function extensionHandlers(state: ModeState) {
   const handlers = new Map<string, Handler>();
   createModeExtension(() => state)({ on: (name: string, handler: Handler) => handlers.set(name, handler) } as never);
-  const startTurn = () => handlers.get("before_agent_start")!({ systemPromptOptions: { appendSystemPrompt: "" } });
+  const startTurn = () => handlers.get("before_agent_start")!({ systemPromptOptions: { sections: {} } });
   const call = (toolName: string, input: unknown = {}) => handlers.get("tool_call")!({ toolName, input }) as Promise<{ block: true; reason: string } | undefined>;
   return { startTurn, call };
 }

@@ -4,9 +4,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { it, type TestContext } from "node:test";
 import type { AgentSession } from "@earendil-works/pi-coding-agent";
-import { createAssistantMessageEventStream, type AssistantMessage, type ToolCall } from "@earendil-works/pi-ai";
+import { createAssistantMessageEventStream, resolveTranscript, type AssistantMessage, type ToolCall, type TranscriptContext } from "@earendil-works/pi-ai";
 import { AgentRuntime } from "../src/runtime.ts";
-import { createScheduledTaskTools, scheduledTaskToolNames } from "../src/scheduled-task-tools.ts";
+import { createScheduledTaskTools, scheduledTaskClockType, scheduledTaskTimeContext, scheduledTaskToolNames } from "../src/scheduled-task-tools.ts";
+import { selectForkMessages } from "../src/agent-control.ts";
 import { ScheduledTaskScheduler } from "../../../apps/desktop/src/main/scheduled-task-service.ts";
 import { createSandboxedToolDefinitions } from "../../workspace/src/sandbox-tools.ts";
 import { SandboxPermissionManager } from "../../workspace/src/sandbox-permission-manager.ts";
@@ -18,20 +19,27 @@ async function fixture(t: TestContext) {
   const scheduler = new ScheduledTaskScheduler(join(root, "tasks.json"), (task, link) => runtime.runScheduledTask(task.workspace, task.prompt, link, task)); scheduler.init();
   const permission = new SandboxPermissionManager(join(root, "settings.json"));
   permission.subscribe(event => { if (event.type === "request") permission.reply(event.request.id, false); });
-  runtime = new AgentRuntime({ cwd, agentDir: root, scheduledTasks: scheduler,
+  const createRuntime = () => new AgentRuntime({ cwd, agentDir: root, scheduledTasks: scheduler,
     toolFactory: (cwd, context) => createSandboxedToolDefinitions({ cwd, workspace: cwd, permission, ...context }) });
+  runtime = createRuntime();
   t.after(async () => { scheduler.stop(); await runtime.dispose(); await scheduler.drain(); await rm(root, { recursive: true, force: true }); });
   await runtime.createConversation(cwd);
   await runtime.addModel({ providerId: "task-fixture", providerName: "Task fixture", modelId: "fixture", modelName: "Fixture", api: "openai-completions",
     baseUrl: "http://127.0.0.1:1/v1", apiKey: "synthetic-test-key", reasoning: false, contextWindow: 32768, maxTokens: 4096 });
   await runtime.saveAgentSettings({ ...await runtime.getAgentSettings(), provider: "task-fixture", modelId: "fixture", thinkingLevel: "off" });
-  const chats = (runtime as unknown as { conversations: Map<string, { session: AgentSession }> }).conversations;
-  return { runtime, scheduler, permission, cwd, other, root, session: (id: string) => chats.get(id)!.session };
+  const session = (id: string) => (runtime as unknown as { conversations: Map<string, { session: AgentSession }> }).conversations.get(id)!.session;
+  const restore = async (id: string) => {
+    await runtime.dispose();
+    runtime = createRuntime();
+    await runtime.switchConversation(id);
+    return session(id);
+  };
+  return { get runtime() { return runtime; }, scheduler, permission, cwd, other, root, session, restore };
 }
-function scripted(session: AgentSession, replies: Array<string | ToolCall[]>, observe?: (prompt: string) => void) {
+function scripted(session: AgentSession, replies: Array<string | ToolCall[]>, observe?: (context: TranscriptContext) => void) {
   let index = 0;
   session.agent.streamFunction = (model, context) => {
-    observe?.(JSON.stringify(context));
+    observe?.(context);
     const reply = replies[index++]; assert.notEqual(reply, undefined, "No real model request may escape the fixture");
     const message: AssistantMessage = { role: "assistant", api: model.api, provider: model.provider, model: model.id,
       content: typeof reply === "string" ? [{ type: "text", text: reply }] : reply,
@@ -51,7 +59,7 @@ it("natural-language chat reaches the real Pi tool registry and creates a persis
   for (const name of scheduledTaskToolNames) assert.ok(f.session(id).getAllTools().some(tool => tool.name === name));
   const check = scripted(f.session(id), [[{ type: "toolCall", id: "create-task", name: "create_scheduled_task", arguments: {
     title: "复习英语", prompt: "提醒我复习英语", sandboxMode: "ask", model: { provider: "task-fixture", id: "fixture" }, thinkingLevel: "off", schedule: { kind: "daily", time: "22:00", timezone: "Asia/Taipei" },
-  } }], "已创建任务"], value => { prompt = value; });
+  } }], "已创建任务"], value => { prompt = JSON.stringify(value); });
   await f.runtime.prompt(id, "每天晚上 10 点提醒我复习英语"); check();
   assert.equal(f.scheduler.list().tasks.length, 1);
   assert.equal(f.scheduler.list().tasks[0].workspace, f.cwd);
@@ -60,7 +68,6 @@ it("natural-language chat reaches the real Pi tool registry and creates a persis
   assert.equal(f.scheduler.list().tasks[0].thinkingLevel, "off");
   assert.deepEqual(f.scheduler.list().tasks[0].model, { provider: "task-fixture", id: "fixture" });
   assert.match(prompt, /Task time context/); assert.match(prompt, /Scheduled Tasks/);
-  assert.doesNotMatch(prompt, /Task time context: \d{4}-\d{2}-\d{2}T\d{2}:\d{2}/, "exact timestamps in the prompt break the prompt cache every turn");
   const toolResult = f.session(id).messages.find(message => message.role === "toolResult" && message.toolCallId === "create-task");
   assert.ok(toolResult?.role === "toolResult" && !toolResult.isError);
   await f.runtime.setMode(id, "plan");
@@ -72,6 +79,66 @@ it("natural-language chat reaches the real Pi tool registry and creates a persis
   } }], "Plan report"]);
   await f.runtime.prompt(id, "查看任务"); blocked(); assert.equal(f.scheduler.list().tasks.length, 1);
 });
+it("appends the clock only when needed without changing either model's history prefix", async t => {
+  const f = await fixture(t);
+  const id = f.runtime.activeConversationId!;
+  const session = f.session(id);
+  const before = new Date(2026, 10, 21, 23, 59), after = new Date(2026, 10, 22, 0, 1);
+  t.mock.timers.enable({ apis: ["Date"], now: before });
+  const requests: TranscriptContext[] = [];
+  const check = scripted(session, ["one", "two", "three", "four"], ctx => requests.push(structuredClone(ctx)));
+  await session.prompt("first");
+  await session.prompt("same day");
+  t.mock.timers.setTime(after.getTime());
+  await session.prompt("next day");
+  await session.prompt("still next day");
+  check();
+
+  for (const mid of [false, true]) {
+    const history = requests.map(req => resolveTranscript(req, mid).messages);
+    for (const [i, messages] of history.entries()) {
+      const previous = history[i - 1] ?? [];
+      assert.deepEqual(messages.slice(0, previous.length), previous);
+      const tail = messages.slice(previous.length);
+      const clock = tail.filter(m => m.role === "user" && JSON.stringify(m.content).includes("Task time context:"));
+      assert.equal(clock.length, i % 2 === 0 ? 1 : 0);
+      if (clock.length) {
+        assert.equal(tail.at(-1), clock[0]);
+        assert.ok(JSON.stringify(clock[0].content).includes(scheduledTaskTimeContext(i === 0 ? before : after)));
+      }
+      assert.doesNotMatch(JSON.stringify(messages.filter(m => m.role === "system")), /Task time context:/);
+      if (i > 0) assert.ok(!tail.some(m => m.role === "system"));
+    }
+  }
+  const clocks = session.messages.filter(m => m.role === "custom" && m.customType === scheduledTaskClockType);
+  assert.equal(clocks.length, 2);
+  assert.ok(clocks.every(m => m.role === "custom" && !m.display));
+  assert.ok(!selectForkMessages(session.messages, "all").some(m => clocks.includes(m)));
+});
+
+it("reuses a retained clock on restore, but reintroduces one after it is compacted away", async t => {
+  const f = await fixture(t);
+  const id = f.runtime.activeConversationId!;
+  t.mock.timers.enable({ apis: ["Date"], now: new Date(2026, 10, 21, 12) });
+  let session = f.session(id);
+  const turn = async () => {
+    const start = session.messages.length;
+    const check = scripted(session, ["done"]);
+    await session.prompt("continue");
+    check();
+    return session.messages.slice(start).filter(m => m.role === "custom" && m.customType === scheduledTaskClockType).length;
+  };
+  assert.equal(await turn(), 1);
+  const clock = session.sessionManager.getBranch().find(e => e.type === "custom_message" && e.customType === scheduledTaskClockType)!;
+  session.sessionManager.appendCompaction("Keep the clock", clock.id, 50);
+  session = await f.restore(id);
+  assert.equal(await turn(), 0);
+  session.sessionManager.appendCompaction("No retained messages", null, 50);
+  session = await f.restore(id);
+  assert.equal(await turn(), 1);
+  assert.equal(await turn(), 0);
+});
+
 it("background execution creates a separate persisted chat in its workspace without changing the selection", async t => {
   const f = await fixture(t); const active = f.runtime.activeConversationId!;
   const actualPrompt = f.runtime.prompt.bind(f.runtime);

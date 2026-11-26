@@ -71,9 +71,9 @@ describe("show_visual 工具", () => {
       createModeExtension(() => state)({
         on: (name: string, fn: (event: unknown) => Promise<unknown>) => handlers.set(name, fn),
       } as never);
-      const event = { systemPromptOptions: { appendSystemPrompt: "" } };
+      const event = { systemPromptOptions: { sections: {} as Record<string, string> } };
       await handlers.get("before_agent_start")!(event);
-      return event.systemPromptOptions.appendSystemPrompt;
+      return event.systemPromptOptions.sections.vela_mode ?? "";
     };
     assert.match(await run({ mode: "plan", hasExecutionPlan: false, visualDemo: true }), new RegExp(visualToolName));
     assert.doesNotMatch(await run({ mode: "plan", hasExecutionPlan: false, visualDemo: false }), new RegExp(visualToolName));
