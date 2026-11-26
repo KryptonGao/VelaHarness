@@ -473,6 +473,7 @@ const api: VelaApi = {
   deleteCheckpoints: (conversationId, turnIndex) => ipcRenderer.invoke(IpcChannel.sessionDeleteCheckpoints, conversationId, turnIndex),
   getTrace: (conversationId) => ipcRenderer.invoke(IpcChannel.sessionTrace, conversationId),
   getTraceUsage: (conversationId) => ipcRenderer.invoke(IpcChannel.sessionUsage, conversationId),
+  getCodexAppUsage: () => ipcRenderer.invoke(IpcChannel.codexAppUsage),
   getTraceDetails: (conversationId, nodeId) => ipcRenderer.invoke(IpcChannel.sessionTraceDetails, conversationId, nodeId),
   getMessages: (conversationId: string) =>
     ipcRenderer.invoke(IpcChannel.sessionMessages, conversationId) as Promise<TranscriptMessage[]>,

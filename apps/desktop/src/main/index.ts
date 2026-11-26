@@ -11,9 +11,9 @@ import {
   WorkspaceManager,
   createWorktree, removeWorktree,
 } from "@vela/workspace";
-import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, nativeTheme, Notification, powerMonitor, powerSaveBlocker, session, shell, Tray, webContents } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, nativeTheme, Notification, powerMonitor, powerSaveBlocker, session, shell, Tray, utilityProcess, webContents } from "electron";
 import type { BrowserWindowConstructorOptions } from "electron";
-import { createLogger, IpcChannel, isAgentBusy, isAppLocale, localizeZh, raceEnabledStorageKey, type ResidentSettings } from "@vela/shared";
+import { codexUsageEnabledKey, type CodexUsageReport, createLogger, IpcChannel, isAgentBusy, isAppLocale, localizeZh, raceEnabledStorageKey, type ResidentSettings } from "@vela/shared";
 import { existsSync, readFileSync, statSync, watch as fsWatch, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { createRequire } from "node:module";
@@ -305,6 +305,33 @@ async function start(): Promise<void> {
   await prepareVelaHome(home, app.getPath("userData"));
 
   const uiStorage = new UiStorage(join(home, "ui-state.json"));
+  let usageScan: Promise<CodexUsageReport> | undefined;
+  let usageWorker: Electron.UtilityProcess | undefined;
+  ipcMain.handle(IpcChannel.codexAppUsage, () => {
+    if (uiStorage.getItem(codexUsageEnabledKey) !== "true") return { buckets: [], incompleteFiles: 0 };
+    if (!usageScan) {
+      const codexHome = process.env.CODEX_HOME?.trim() || join(app.getPath("home"), ".codex");
+      const worker = utilityProcess.fork(join(rootDir, "codex-usage-worker.mjs"),
+        [codexHome, join(home, "codex-usage-v1.sqlite")], { serviceName: "Vela Codex usage", stdio: "ignore" });
+      usageWorker = worker;
+      usageScan = new Promise<CodexUsageReport>((resolve, reject) => {
+        worker.once("message", (report: CodexUsageReport) => {
+          resolve(report);
+          worker.kill();
+        });
+        worker.once("exit", () => reject(new Error("Codex usage scan exited without a report")));
+      }).finally(() => {
+        if (usageWorker === worker) { usageWorker = undefined; usageScan = undefined; }
+      });
+    }
+    return usageScan;
+  });
+  const stopUsageScan = () => {
+    usageWorker?.kill();
+    usageWorker = undefined;
+    usageScan = undefined;
+  };
+  app.once("will-quit", stopUsageScan);
   ipcMain.on(IpcChannel.appUiStorageGet, (event, key: unknown) => {
     try {
       event.returnValue = { value: uiStorage.getItem(key) };
@@ -316,6 +343,7 @@ async function start(): Promise<void> {
   ipcMain.on(IpcChannel.appUiStorageSet, (event, key: unknown, value: unknown) => {
     try {
       uiStorage.setItem(key, value);
+      if (key === codexUsageEnabledKey && value !== "true") stopUsageScan();
       event.returnValue = {};
     } catch (error) {
       log.error("UI storage write failed", error);

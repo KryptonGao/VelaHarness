@@ -10,6 +10,8 @@ import type { SpeechApi } from "./speech";
 export * from "./handoff";
 export * from "./task-budget";
 export * from "./model-pricing";
+export * from "./codex-usage";
+import type { CodexUsageReport } from "./codex-usage";
 export * from "./task-cost";
 export * from "./context-limit";
 
@@ -105,6 +107,7 @@ export const IpcChannel = {
   sessionMemoryDistillCancel: "session:memory-distill-cancel",
   sessionTrace: "session:trace",
   sessionUsage: "session:usage",
+  codexAppUsage: "usage:codex-app",
   sessionTraceDetails: "session:trace-details",
   sessionExport: "session:export",
   sessionSetMode: "session:set-mode",
@@ -3305,6 +3308,7 @@ export interface VelaApi extends McpApi, PluginApi, HooksApi {
   getTrace(conversationId: string): Promise<TraceSnapshot>;
   /** 只含模型请求与用量（nodes 恒为空）；不会载入完整轨迹。 */
   getTraceUsage(conversationId: string): Promise<TraceSnapshot>;
+  getCodexAppUsage(): Promise<CodexUsageReport>;
   getTraceDetails(conversationId: string, nodeId: string): Promise<TraceDetails | null>;
   /** 读取某个常驻子代理自己的消息历史(用于打开右侧 Agent Pane 时回填)。 */
   getAgentMessages(conversationId: string, agentId: string, scope?: "owned"): Promise<TranscriptMessage[]>;

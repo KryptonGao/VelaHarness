@@ -59,7 +59,11 @@ export default defineConfig({
     resolve: { alias: workspaceAlias },
     build: {
       rollupOptions: {
-        input: { index: resolve(root, "src/main/index.ts"), "browser-repl-worker": resolve(root, "src/main/browser-repl-worker.ts") },
+        input: {
+          index: resolve(root, "src/main/index.ts"),
+          "browser-repl-worker": resolve(root, "src/main/browser-repl-worker.ts"),
+          "codex-usage-worker": resolve(root, "src/main/codex-usage-worker.ts"),
+        },
         output: { format: "es", entryFileNames: "[name].mjs" },
       },
       externalizeDeps: {
