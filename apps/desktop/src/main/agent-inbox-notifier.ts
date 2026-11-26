@@ -22,9 +22,7 @@ export interface InboxNotification {
 export interface AgentInboxNotifierOptions {
   settings: () => ResidentSettings;
   locale: () => AppLocale;
-  /** 应用窗口正在前台：徽标和页面已经可见，不再弹系统通知。 */
-  appFocused: () => boolean;
-  residentVisible?: () => boolean;
+  conversationVisible: (conversationId: string) => boolean;
   show: (notification: InboxNotification) => void;
   now?: () => number;
   /** 测试里替换成可控的定时器。 */
@@ -84,7 +82,7 @@ export class AgentInboxNotifier {
       : item.type === "message" || item.type === "suggestion" || (item.type === "result" && settings.notifications.notifyResults);
     if (!wanted) return;
     if (isQuietNow(settings.notifications.quietHours, new Date(this.now()))) return;
-    if (item.type === "message" ? this.options.residentVisible?.() : this.options.appFocused()) return;
+    if (item.conversationId && this.options.conversationVisible(item.conversationId)) return;
     const now = this.now();
     while (this.shownAt.length && now - this.shownAt[0]! >= notificationBurst.windowMs) this.shownAt.shift();
     if (this.shownAt.length >= notificationBurst.max) {

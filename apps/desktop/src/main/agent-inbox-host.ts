@@ -1,4 +1,4 @@
-import { BrowserWindow, ipcMain, type IpcMainInvokeEvent } from "electron";
+import { BrowserWindow, ipcMain, type IpcMainInvokeEvent, type WebContents } from "electron";
 import {
   AgentInboxIpc,
   agentInboxDecisions,
@@ -19,7 +19,7 @@ const log = createLogger("agent-inbox");
 
 const channels = [
   AgentInboxIpc.list, AgentInboxIpc.get, AgentInboxIpc.decide, AgentInboxIpc.markRead, AgentInboxIpc.archive,
-  AgentInboxIpc.content, AgentInboxIpc.submit, AgentInboxIpc.takeNavigation,
+  AgentInboxIpc.content, AgentInboxIpc.submit, AgentInboxIpc.takeNavigation, AgentInboxIpc.visibleConversation,
 ];
 
 /** 读取与续写对话的入口。目标永远由已存储的事项决定，渲染层不能指定任意对话。 */
@@ -37,6 +37,7 @@ const acceptWindowMs = 150;
  */
 export class AgentInboxHost {
   private unsubscribe: (() => void) | null = null;
+  private readonly visibleChats = new WeakMap<WebContents, Map<string, string>>();
   private pendingNavigation: AgentInboxNavigation | null = null;
   constructor(private readonly service: AgentInboxService, private readonly runtime?: AgentInboxHostRuntime) {}
 
@@ -50,6 +51,15 @@ export class AgentInboxHost {
     }
     // 已经送到的请求不再暂存，否则之后刷新页面会重放一次过期的跳转。
     this.pendingNavigation = delivered ? null : target;
+  }
+
+  isConversationVisible(conversationId: string): boolean {
+    const window = BrowserWindow.getFocusedWindow();
+    if (!window || window.isDestroyed() || !window.isVisible()) return false;
+    const contents = window.webContents;
+    if (contents.isDestroyed() || contents.isLoadingMainFrame()) return false;
+    const views = this.visibleChats.get(contents);
+    return !!views && [...views.values()].includes(conversationId);
   }
 
   getContent(id: string): AgentInboxContent | null {
@@ -74,6 +84,25 @@ export class AgentInboxHost {
 
   register(): void {
     const service = this.service;
+    ipcMain.handle(AgentInboxIpc.visibleConversation, (event, viewId: unknown, conversationId: unknown) => {
+      assertMainFrame(event);
+      if (typeof viewId !== "string" || !viewId || viewId.length > 200 ||
+          (conversationId !== null && (typeof conversationId !== "string" || !conversationId || conversationId.length > 200))) {
+        throw new Error("Invalid conversation view");
+      }
+      const contents = event.sender;
+      let views = this.visibleChats.get(contents);
+      if (conversationId === null) {
+        views?.delete(viewId);
+        return;
+      }
+      if (!views) {
+        views = new Map();
+        this.visibleChats.set(contents, views);
+        contents.once("did-navigate", () => this.visibleChats.delete(contents));
+      }
+      views.set(viewId, conversationId);
+    });
     ipcMain.handle(AgentInboxIpc.list, (event, raw: unknown) => { assertMainFrame(event); return service.list(parseQuery(raw)); });
     ipcMain.handle(AgentInboxIpc.get, (event, raw: unknown) => { assertMainFrame(event); return service.get(parseId(raw)); });
     ipcMain.handle(AgentInboxIpc.decide, (event, raw: unknown) => { assertMainFrame(event); return service.decide(parseDecision(raw)); });

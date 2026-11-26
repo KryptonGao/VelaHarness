@@ -9,13 +9,14 @@ import { AgentInboxIpc, type AgentInboxChange } from "@vela/shared";
 const handlers = new Map<string, (...args: any[]) => any>();
 const sent: Array<{ channel: string; payload: unknown }> = [];
 let loading = false;
-const windows = [{ isDestroyed: () => false, webContents: { isDestroyed: () => false, isLoading: () => loading, send: (channel: string, payload: unknown) => sent.push({ channel, payload }) } }];
+let focusedWindow: (typeof windows)[number] | null = null;
+const windows = [{ isVisible: () => true, isDestroyed: () => false, webContents: Object.assign(new EventEmitter(), { isLoadingMainFrame: () => loading, isDestroyed: () => false, isLoading: () => loading, send: (channel: string, payload: unknown) => sent.push({ channel, payload }) }) }];
 mock.module("electron", { namedExports: {
   ipcMain: {
     handle: (name: string, fn: (...args: any[]) => any) => handlers.set(name, fn),
     removeHandler: (name: string) => handlers.delete(name),
   },
-  BrowserWindow: { fromWebContents: () => ({}), getAllWindows: () => windows },
+  BrowserWindow: { fromWebContents: () => ({}), getAllWindows: () => windows, getFocusedWindow: () => focusedWindow },
 } });
 const { AgentInboxHost } = await import("../src/main/agent-inbox-host.ts");
 const { AgentInboxService } = await import("../src/main/agent-inbox-service.ts");
@@ -48,6 +49,31 @@ it("only the app window main frame may call Agent Inbox, before any service work
     assert.throws(() => f.invoke(channel, foreign, {}), /应用窗口/, channel);
   }
   assert.deepEqual(f.calls, []);
+});
+
+it("silences only chat panes in the focused window and forgets them on navigation", async t => {
+  const f = await fixture(t);
+  const window = windows[0]!;
+  const sender = Object.assign(window.webContents, { mainFrame: {} });
+  const event = { sender, senderFrame: sender.mainFrame };
+  const report = (view: string, id: string | null) => f.invoke(AgentInboxIpc.visibleConversation, event, view, id);
+  t.after(() => { focusedWindow = null; });
+  report("main", "A");
+  report("split", "B");
+  assert.equal(f.host.isConversationVisible("A"), false);
+  focusedWindow = window;
+  assert.equal(f.host.isConversationVisible("A"), true);
+  assert.equal(f.host.isConversationVisible("B"), true);
+  assert.equal(f.host.isConversationVisible("C"), false);
+  report("main", "C");
+  report("split", null);
+  assert.equal(f.host.isConversationVisible("A"), false);
+  assert.equal(f.host.isConversationVisible("B"), false);
+  assert.equal(f.host.isConversationVisible("C"), true);
+  assert.throws(() => f.invoke(AgentInboxIpc.visibleConversation, { sender, senderFrame: {} }, "main", "D"));
+  assert.throws(() => f.invoke(AgentInboxIpc.visibleConversation, event, "main", 7));
+  sender.emit("did-navigate");
+  assert.equal(f.host.isConversationVisible("C"), false);
 });
 
 it("rejects malformed arguments without reaching the host or the service", async t => {
@@ -103,7 +129,7 @@ it("lists, reads, archives and broadcasts changes to every live window", async t
 
 it("dispose removes every handler and stops broadcasting", async t => {
   const f = await fixture(t);
-  assert.equal(handlers.size, 8);
+  assert.equal(handlers.size, 9);
   f.host.dispose();
   assert.equal(handlers.size, 0);
   sent.length = 0;

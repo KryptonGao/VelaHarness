@@ -5,7 +5,7 @@ import { AgentInboxNotifier, notificationBurst, type InboxNotification } from ".
 
 function item(id: string, patch: Partial<AgentInboxItem> = {}): AgentInboxItem {
   return {
-    id, schemaVersion: 1, type: "question", origin: "question", status: "pending", readState: "unread", priority: "high",
+    id, conversationId: "chat", schemaVersion: 1, type: "question", origin: "question", status: "pending", readState: "unread", priority: "high",
     title: "构建任务", summary: "要继续吗？", sourceEventId: id, revision: 1, createdAt: 0, updatedAt: 0, actions: [],
     detail: { kind: "question", toolCallId: "t", question: "要继续吗？", options: [], allowFreeText: true }, decisions: {},
     ...patch,
@@ -14,19 +14,17 @@ function item(id: string, patch: Partial<AgentInboxItem> = {}): AgentInboxItem {
 
 function setup(patch: (settings: ResidentSettings) => ResidentSettings = settings => settings) {
   let now = new Date(2026, 9, 10, 12, 0).getTime();
-  let focused = false;
-  let residentVisible = false;
+  const visible = new Set<string>();
   let settings = patch(structuredClone(defaultResidentSettings));
   const shown: InboxNotification[] = [];
   const timers: Array<{ work: () => void; ms: number; cancelled: boolean }> = [];
   const notifier = new AgentInboxNotifier({
-    settings: () => settings, locale: () => "zh-CN", appFocused: () => focused, residentVisible: () => residentVisible, show: n => shown.push(n), now: () => now,
+    settings: () => settings, locale: () => "zh-CN", conversationVisible: id => visible.has(id), show: n => shown.push(n), now: () => now,
     schedule: (work, ms) => { const timer = { work, ms, cancelled: false }; timers.push(timer); return { cancel: () => { timer.cancelled = true; } }; },
   });
   return {
     notifier, shown, timers,
-    setFocused: (value: boolean) => { focused = value; },
-    showResident: () => { residentVisible = true; },
+    showChats: (...ids: string[]) => { visible.clear(); for (const id of ids) visible.add(id); },
     setSettings: (next: ResidentSettings) => { settings = next; },
     advance: (ms: number) => { now += ms; },
     at: (hour: number, minute = 0) => { now = new Date(2026, 9, 10, hour, minute).getTime(); },
@@ -64,13 +62,13 @@ it("ignores read items, plain results and resolved items by default", () => {
 
 it("notifies wake replies once away from Resident even in a focused window, without notifying the raw task result", () => {
   const s = setup(settings => ({ ...settings, notifications: { ...settings.notifications, notifyResults: true } }));
-  const message = (id: string) => item(id, { type: "message", origin: "resident", status: "resolved", summary: "ready", detail: { kind: "text", text: "ready" } });
+  const message = (id: string) => item(id, { type: "message", conversationId: "resident", origin: "resident", status: "resolved", summary: "ready", detail: { kind: "text", text: "ready" } });
   s.notifier.onChange({ upserts: [item("raw", { type: "result", origin: "resident", taskId: "t", status: "resolved" })] });
   assert.equal(s.shown.length, 0);
-  s.setFocused(true);
+  s.showChats("chat");
   s.notifier.onChange({ upserts: [message("wake"), message("wake")] });
   assert.equal(s.shown[0]?.title, "Resident Agent 消息");
-  s.showResident();
+  s.showChats("resident");
   s.notifier.onChange({ upserts: [message("visible")] });
   assert.equal(s.shown.length, 1);
 });
@@ -81,7 +79,7 @@ it("announces proactive suggestions even though they are not pending", () => {
   assert.equal(s.shown[0]?.title, "Agent 的建议");
 });
 
-it("respects the master switch, quiet hours and a focused window but still marks the item seen", () => {
+it("respects the master switch, quiet hours and a visible conversation but still marks the item seen", () => {
   const off = setup(settings => ({ ...settings, notifications: { ...settings.notifications, enabled: false } }));
   off.notifier.onChange({ upserts: [item("a")] });
   assert.equal(off.shown.length, 0);
@@ -96,9 +94,23 @@ it("respects the master switch, quiet hours and a focused window but still marks
   assert.equal(quiet.shown.length, 1);
 
   const focused = setup();
-  focused.setFocused(true);
+  focused.showChats("chat");
   focused.notifier.onChange({ upserts: [item("a")] });
   assert.equal(focused.shown.length, 0);
+});
+
+it("delivers approvals and opted-in results for other conversations while the app is focused", () => {
+  const s = setup(settings => ({ ...settings, notifications: { ...settings.notifications, notifyResults: true } }));
+  const result = { type: "result", status: "resolved" } as const;
+  s.showChats("main", "split");
+  s.notifier.onChange({ upserts: [
+    item("visible-result", { ...result, conversationId: "main" }),
+    item("visible-approval", { type: "approval", conversationId: "split" }),
+    item("other-result", { ...result, conversationId: "elsewhere" }),
+    item("other-approval", { type: "approval", conversationId: "elsewhere" }),
+    item("unscoped", { type: "approval", conversationId: undefined }),
+  ] });
+  assert.deepEqual(s.shown.map(note => note.itemId), ["other-result", "other-approval", "unscoped"]);
 });
 
 it("hides the preview but keeps the item reference", () => {
@@ -140,7 +152,7 @@ it("dispose cancels the pending summary", () => {
 
 it("a failing sink never throws into the inbox pipeline", () => {
   const notifier = new AgentInboxNotifier({
-    settings: () => structuredClone(defaultResidentSettings), locale: () => "en", appFocused: () => false,
+    settings: () => structuredClone(defaultResidentSettings), locale: () => "en", conversationVisible: () => false,
     show: () => { throw new Error("no display"); },
   });
   assert.doesNotThrow(() => notifier.onChange({ upserts: [item("a")] }));

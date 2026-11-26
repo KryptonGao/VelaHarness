@@ -110,7 +110,7 @@ interface WorkbenchPanelProps {
   borderless?: boolean;
   emptyConversation?: boolean;
   renderConversationDetail?: (view: ConversationDetail) => ReactNode;
-  renderChat?: (tab: Extract<WorkbenchTab, { kind: "chat" }>) => ReactNode;
+  renderChat?: (tab: Extract<WorkbenchTab, { kind: "chat" }>, visible: boolean) => ReactNode;
   renderSideChat?: (tab: Extract<WorkbenchTab, { kind: "side-chat" }>, visible: boolean) => ReactNode;
   gitAvailable: boolean;
   onActivateTab: (tab: WorkbenchTab) => void;
@@ -430,7 +430,7 @@ function WorkbenchPanelContent(props: WorkbenchPanelProps & { closing: boolean; 
   function renderTab(tab: WorkbenchTab, visible: boolean): ReactNode {
     switch (tab.kind) {
       case "conversation-detail": return props.renderConversationDetail?.(tab.view);
-      case "chat": return props.renderChat?.(tab);
+      case "chat": return props.renderChat?.(tab, visible && !collapsed);
       case "side-chat": return props.renderSideChat?.(tab, visible && !collapsed);
       case "browser": return <BrowserPanel controller={tab.controller} tabId={tab.id} operating={props.browserOperating}
         onAbort={() => { if (props.conversationId) void window.vela?.abort(props.conversationId); }} />;

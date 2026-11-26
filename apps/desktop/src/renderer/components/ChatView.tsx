@@ -222,6 +222,7 @@ function TurnProgressHeader({ startedAt, quota }: { startedAt: number; quota: st
 export interface ChatViewProps {
   /** 工作面板内复用消息与输入框，省去窗口级操作。 */
   embedded?: boolean;
+  visible?: boolean;
   floatingChat?: boolean;
   conversationWorkbenchTabs?: boolean;
   onOpenWorkspaceOverview?: (workspace: string) => void;
@@ -287,6 +288,7 @@ export interface ChatViewProps {
 
 export function ChatView({
   embedded = false,
+  visible = false,
   floatingChat = false,
   conversationWorkbenchTabs = false,
   onOpenWorkspaceOverview,
@@ -420,6 +422,14 @@ export function ChatView({
   const [floatExpanded, setFloatExpanded] = useState(streaming);
   useLayoutEffect(() => { setFloatExpanded(streaming); }, [activeConversationId, floatingChat, streaming]);
   const [floatHidden, setFloatHidden] = useState(false);
+  const visibleConversation = visible && view === "chat" && !imageView && (!floatingChat || (floatExpanded && !floatHidden))
+    ? activeConversationId : null;
+  useLayoutEffect(() => {
+    const inbox = window.vela?.agentInbox;
+    if (!inbox || !visibleConversation) return;
+    void inbox.setVisibleConversation(tabIdPrefix, visibleConversation).catch(() => {});
+    return () => { void inbox.setVisibleConversation(tabIdPrefix, null).catch(() => {}); };
+  }, [tabIdPrefix, visibleConversation]);
   const { chatRef, headerEvents, resizeHandle, resizeEvents } = useFloatingChatDrag(floatingChat && !floatHidden, setFloatExpanded);
   const restoreFloatRef = useRef<HTMLButtonElement>(null);
   const focusAfterFloatToggle = useRef(false);

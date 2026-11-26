@@ -668,8 +668,8 @@ async function start(): Promise<void> {
     agentInboxNotifier = new AgentInboxNotifier({
       settings: () => supervisor.getSettings(),
       locale: getApplicationLocale,
-      residentVisible: () => residentHost?.isPageVisible() ?? false,
-      appFocused: () => BrowserWindow.getAllWindows().some(window => !window.isDestroyed() && window.isFocused() && window.isVisible()),
+      conversationVisible: id => Boolean(agentInboxHost?.isConversationVisible(id)
+        || (supervisor.isResidentConversation(id) && residentHost?.isPageVisible())),
       show: note => {
         if (!Notification.isSupported()) return;
         const notification = new Notification({ title: note.title, body: note.body });

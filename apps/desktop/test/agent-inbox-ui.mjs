@@ -531,7 +531,8 @@ if (!process.versions.electron) {
 
       // Settings
       await clickText(".resident-tabs button", "Settings");
-      await until("!!document.querySelector('.resident-settings')");
+      await until("!!document.querySelector('.resident-settings [aria-label=\"Hide notification previews\"]')");
+      await until(lastVisibility + ' === false');
       await clickText(".resident-row", "Hide notification previews");
       await until("window.residentFixture.calls.some(call => call.method === 'updateSettings' && call.patch.notifications?.hidePreview === true)");
       await clickText(".resident-row", "Quiet hours");

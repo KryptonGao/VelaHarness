@@ -5,6 +5,7 @@ import { Icon, type IconName } from "../icons";
 const pageIcons = {
   appearance: "sun",
   interface: "sidebar",
+  notifications: "bell",
   shortcuts: "keyboard",
   updates: "info",
   defaults: "sliders",

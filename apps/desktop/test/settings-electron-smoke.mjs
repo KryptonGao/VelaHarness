@@ -36,9 +36,16 @@ try {
   const development = await ev("Boolean(window.vela.development)");
   assert.deepEqual(labels, ["General", "Agent", "Models & extensions", "Data & workspace", ...(development ? ["Development"] : [])]);
   const items = await ev("[...document.querySelectorAll('.settings-nav-item')].map(n => n.textContent)");
-  assert.equal(items.length, development ? 19 : 18);
+  assert.equal(items.length, development ? 22 : 21);
   assert.ok(items.includes("Hooks"));
-  console.log("PASS grouped nav keeps all 18 pages including Hooks (plus developer tools in dev builds)");
+  assert.ok(items.includes("Notifications"));
+  await ev("[...document.querySelectorAll('.settings-nav-item')].find(n => n.textContent === 'Notifications').click()");
+  const completionSwitch = "document.querySelector('[data-setting-id=system-notifications] [aria-label=\"Also notify when tasks finish\"]')";
+  await until(() => ev("!!" + completionSwitch), "notification settings");
+  assert.equal(await ev(completionSwitch + ".getAttribute('aria-checked')"), "false");
+  await ev(completionSwitch + ".click()");
+  await until(() => ev("window.vela.resident.getSettings().then(s => s.notifications.notifyResults)"), "saved completion preference");
+  console.log("PASS global notification settings save the shared completion preference");
   // the update page talks to the real main-process service over IPC
   await ev("[...document.querySelectorAll('.settings-nav-item')].find(n => n.textContent === 'About & updates').click()");
   await until(() => ev("!!document.querySelector('.update-card')"), "updates page");

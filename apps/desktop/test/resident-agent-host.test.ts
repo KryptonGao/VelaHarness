@@ -106,6 +106,9 @@ it("suppresses away delivery only for a visible Resident page in a focused windo
   visible = false;
   assert.equal(f.host.isPageVisible(), false);
   visible = true;
+  sender.emit("did-navigate");
+  assert.equal(f.host.isPageVisible(), false);
+  f.invoke(ResidentIpc.pageVisible, f.event, true);
   f.invoke(ResidentIpc.pageVisible, f.event, false);
   assert.equal(f.host.isPageVisible(), false);
   f.host.dispose();

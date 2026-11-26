@@ -12,8 +12,9 @@ import { SessionChatView } from "./SessionChatView";
 import { Icon } from "./icons";
 
 /** 每个标签拥有独立会话与输入状态；隐藏标签时保持挂载以继续接收消息。 */
-export function WorkbenchChatView({ conversationId, preferences, project, onRenameConversation, onOpenConversation, onNewTab, onShowDiff, onOpenWebLink }: {
+export function WorkbenchChatView({ conversationId, visible, preferences, project, onRenameConversation, onOpenConversation, onNewTab, onShowDiff, onOpenWebLink }: {
   conversationId: string;
+  visible: boolean;
   preferences: PreferencesApi;
   project: ProjectApi;
   onRenameConversation: (id: string) => void;
@@ -42,7 +43,7 @@ export function WorkbenchChatView({ conversationId, preferences, project, onRena
           activePlanId={planId} selectedRevisionId={planId} openPlan={setPlanId} closePlan={closePlan} selectRevision={setPlanId}>
           <div className="panel-chat-container">
             <div className="panel-chat-conversation" hidden={Boolean(planId)}>
-              <SessionChatView embedded
+              <SessionChatView embedded visible={visible && !planId}
                 messageStore={session.messageStore} state={session.state} sendError={session.sendError}
                 platform={window.vela?.platform ?? "darwin"} project={scopedProject}
                 rightCollapsed onToggleRight={() => {}}

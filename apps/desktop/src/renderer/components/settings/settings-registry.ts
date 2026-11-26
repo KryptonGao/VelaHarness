@@ -2,7 +2,7 @@ import type { SettingsCopy } from "../settings-copy";
 import { uiCopy } from "../intelligent-ui/copy";
 
 export type SettingsPageId =
-  | "appearance" | "interface" | "shortcuts" | "updates"
+  | "appearance" | "interface" | "notifications" | "shortcuts" | "updates"
   | "defaults" | "approvals" | "subagents" | "display" | "skills"
   | "models" | "integrations" | "mcp" | "hooks" | "web" | "memory"
   | "workspace" | "archived" | "usage" | "storage" | "logs"
@@ -17,7 +17,7 @@ export interface SettingsGroup {
 
 /** 导航顺序:先按使用意图分组,同组内由常用到少用。 */
 export const settingsGroups: readonly SettingsGroup[] = [
-  { id: "general", pages: ["appearance", "interface", "shortcuts", "updates"] },
+  { id: "general", pages: ["appearance", "interface", "notifications", "shortcuts", "updates"] },
   { id: "agent", pages: ["defaults", "approvals", "subagents", "display", "skills"] },
   { id: "extensions", pages: ["models", "integrations", "mcp", "hooks", "web", "memory"] },
   { id: "data", pages: ["workspace", "archived", "usage", "storage", "logs"] },
@@ -57,6 +57,8 @@ export const settingsEntries: readonly SettingsEntry[] = [
   { id: "code-font-size", page: "appearance", title: (c) => c.appearance.codeFontSize, hint: (c) => c.appearance.codeFontSizeHint, keywords: { zh: ["字号", "代码字号", "字体大小", "等宽", "diff", "命令", "终端"], en: ["font size", "code", "monospace", "diff", "terminal", "command"] } },
 
   { id: "language", page: "interface", title: (c) => c.appearance.language, keywords: { zh: ["语言", "中文", "英文"], en: ["language", "locale", "english", "chinese", "i18n"] } },
+  { id: "system-notifications", page: "notifications", title: c => c.pages.notifications.label, hint: c => c.pages.notifications.description,
+    keywords: { zh: ["系统通知", "任务完成", "审批", "提问", "静默时段", "隐藏内容"], en: ["system notifications", "task completion", "approval", "question", "quiet hours", "preview"] } },
   { id: "sound-effects", page: "interface", title: (c) => c.appearance.soundEffects, hint: (c) => c.appearance.soundEffectsHint, keywords: { zh: ["音效", "提示音", "声音", "通知"], en: ["sound", "audio", "notification", "chime"] } },
   { id: "info-layout", page: "interface", title: (c) => c.appearance.infoLayout, hint: (c) => c.appearance.infoLayoutHint, keywords: { zh: ["信息布局", "边栏", "悬浮", "环境卡片", "上下文圆环"], en: ["layout", "floating", "sidebar", "info", "context ring"] } },
   { id: "conversation-link-target", page: "interface", title: (c) => c.appearance.conversationLinkTarget, hint: (c) => c.appearance.conversationLinkHint, keywords: { zh: ["链接", "浏览器", "内置浏览器", "系统浏览器"], en: ["link", "browser", "url", "external", "embedded"] } },

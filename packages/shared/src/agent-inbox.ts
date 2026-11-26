@@ -146,6 +146,7 @@ export type AgentInboxNavigation =
 export type AgentInboxSubmitResult = { ok: true } | { ok: false; message: string };
 
 export interface AgentInboxApi {
+  setVisibleConversation(viewId: string, conversationId: string | null): Promise<void>;
   list(query?: AgentInboxListQuery): Promise<AgentInboxListResult>;
   get(id: string): Promise<AgentInboxItem | null>;
   /** 读取事项关联的完整回复，用于渲染 Intelligent UI；不可用时为 null。 */
@@ -162,6 +163,7 @@ export interface AgentInboxApi {
 }
 
 export const AgentInboxIpc = {
+  visibleConversation: "agent-inbox:visible-conversation",
   list: "agent-inbox:list",
   get: "agent-inbox:get",
   decide: "agent-inbox:decide",

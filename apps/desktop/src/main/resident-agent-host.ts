@@ -22,11 +22,11 @@ const channels = [
  */
 export class ResidentAgentHost {
   private readonly offs: Array<() => void> = [];
-  private readonly visiblePages = new WeakSet<WebContents>();
+  private readonly visiblePages = new WeakMap<WebContents, boolean>();
 
   isPageVisible(): boolean {
     return BrowserWindow.getAllWindows().some(window => !window.isDestroyed() && window.isFocused() && window.isVisible()
-      && !window.webContents.isDestroyed() && !window.webContents.isLoadingMainFrame() && this.visiblePages.has(window.webContents));
+      && !window.webContents.isDestroyed() && !window.webContents.isLoadingMainFrame() && this.visiblePages.get(window.webContents));
   }
 
   constructor(private readonly supervisor: ResidentAgentSupervisor, private readonly rules: ProactiveRuleService) {}
@@ -52,8 +52,11 @@ export class ResidentAgentHost {
     ipcMain.handle(ResidentIpc.pageVisible, (event, visible: unknown) => {
       assertMainFrame(event);
       if (typeof visible !== "boolean") throw new Error("页面状态不正确");
-      if (visible) this.visiblePages.add(event.sender);
-      else this.visiblePages.delete(event.sender);
+      const contents = event.sender;
+      if (!this.visiblePages.has(contents)) {
+        contents.once("did-navigate", () => this.visiblePages.delete(contents));
+      }
+      this.visiblePages.set(contents, visible);
     });
     ipcMain.handle(ResidentIpc.rulesList, event => { assertMainFrame(event); return rules.list(); });
     ipcMain.handle(ResidentIpc.rulesSave, (event, raw: unknown, rawId: unknown) => {

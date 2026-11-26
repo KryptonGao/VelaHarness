@@ -50,6 +50,7 @@ const zh = {
   pages: {
     appearance: { label: "外观", description: "主题、配色和文件图标。" },
     interface: { label: "界面", description: "语言、布局、侧边栏、输入框和提示音。" },
+    notifications: { label: "通知", description: "离开对应对话时，接收审批请求和其他待处理事项的提醒。" },
     shortcuts: { label: "快捷键", description: "当前可用的快捷键。" },
     updates: { label: "关于与更新", description: "当前版本、检查更新和自动更新。" },
     subagents: { label: "子代理模型", description: "选择允许子代理使用的模型，由主代理在派生时自行挑选。" },
@@ -1091,6 +1092,7 @@ const en: typeof zh = {
   pages: {
     appearance: { label: "Appearance", description: "Theme, palette and file icons." },
     interface: { label: "Interface", description: "Language, layout, sidebar, composer and sounds." },
+    notifications: { label: "Notifications", description: "Get alerts for approvals and other items that need attention when you’re away from their conversation." },
     shortcuts: { label: "Shortcuts", description: "The keyboard shortcuts that work today." },
     updates: { label: "About & updates", description: "Current version, update checks and automatic updates." },
     subagents: { label: "Subagent models", description: "Choose the models subagents may use; the main agent picks among them when it spawns one." },

@@ -220,8 +220,8 @@ export function BackgroundStep({ copy, settings, resident, onResident, update, o
               />
               <ToggleRow
                 title={tr("系统通知", "System notifications")}
-                hint={tr("有事项需要你处理时提醒；应用在前台时不打扰。", "Alerts you when something needs attention. Stays quiet while the app is in front.")}
-                checked={resident.notifications.enabled} disabled={mode === "disabled"}
+                hint={tr("离开对应对话时，接收审批请求和其他待处理事项的提醒。", "Get alerts for approvals and other items that need attention when you’re away from their conversation.")}
+                checked={resident.notifications.enabled}
                 onChange={(next) => void patchResident({ notifications: { enabled: next } })}
               />
             </div>

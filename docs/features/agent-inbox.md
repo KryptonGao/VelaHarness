@@ -17,7 +17,7 @@
 | `result` | 对话回合完成（包括任务配方的各阶段回合）、定时任务完成、Resident 后台任务完成 | 否 |
 | `system` | 被策略跳过的定时任务执行 | 否 |
 | `suggestion` | 主动规则触发的分析结果 | 否 |
-| `message` | An event-driven Resident reply when the Resident page is not in the foreground | No; unread only |
+| `message` | An event-driven Resident reply when the Resident chat is not visible in the focused window | No; unread only |
 
 **徽标只统计 `status === "pending"` 的事项**，等于「需要处理」视图的数量。每个对话回合结束都会产生一条事项，包括用户正在查看的对话，因为用户可能正停留在别的页面；用户主动停止的回合不记录。定时任务的对话由执行记录单独汇报，不会再产生第二条。子代理只汇报失败：完成的子代理会唤醒主代理，结果由主代理的回合汇报。
 
@@ -111,7 +111,7 @@ Task records remain in Inbox, including rule suggestions and their reasons. A ba
 
 Non-rule Resident task completions, new failure items, and approval expiry can wake Resident. Events arriving within about 20 seconds are combined; if Resident is busy, the batch waits. The daily wake budget defaults to 30, is independent of the proactive-rule budget, and resets at local midnight. Set it to 0 to disable automatic wakes. Skipped wakes are explained on the Resident page; pending batches are not replayed on restart.
 
-Host events appear as event cards, not user messages. Task result text is untrusted data, not instructions or approval. When Resident returns `NO_REPLY`, the event and its reply are hidden and no notification is sent; the wake still counts against the daily budget. If a visible event reply arrives while the Resident page is not in the foreground, Inbox gets one unread `message`. System notifications respect the notification switch, quiet hours, hidden previews, and burst limits. The original Resident task result does not send a second notification. Replies to user messages do not create a `message` or a wake notification. Rule-result routing and reminders are deferred to P5.
+Host events appear as event cards, not user messages. Task result text is untrusted data, not instructions or approval. When Resident returns `NO_REPLY`, the event and its reply are hidden and no notification is sent; the wake still counts against the daily budget. If a visible event reply arrives while the Resident chat is not visible in the focused window, Inbox gets one unread `message`. System notifications respect the notification switch, quiet hours, hidden previews, and burst limits. The original Resident task result does not send a second notification. Replies to user messages do not create a `message` or a wake notification. Rule-result routing and reminders are deferred to P5.
 
 ## Intelligent UI 嵌入
 
@@ -125,7 +125,7 @@ Intelligent UI 复用现有的 `vela-ui` 协议、`UiStreamParser`、`AssistantM
 
 - **关闭窗口**：默认应用继续在后台运行（macOS），设置里可改为关闭所有窗口时退出。退出后后台任务、通知和主动规则全部停止，Vela 不会宣称自己仍在线。
 - **菜单栏**：可选的状态图标显示待处理数量，菜单有状态、打开 Inbox、打开 Resident、一键暂停/恢复、退出。
-- **系统通知**：每个事项最多提醒一次；应用在前台、关闭通知或处于静默时段时不弹（事项和徽标不受影响）；默认只提醒待处理的审批、提问、失败、待检查计划和主动建议，任务完成需要手动开启；一分钟内超过 3 条会合并成一条汇总；可隐藏通知内容。点击通知打开对应事项。启动时已存在的事项不会再提醒。
+- **System notifications** appear for new approvals, questions, failures, plans awaiting review, and suggestions. A focused window silences alerts for conversations it actually displays, including split chat panes. Enable completion alerts, hide previews, or set quiet hours in Settings → Notifications or Resident Agent settings. Clicking an alert opens the Inbox item. Existing items are skipped on startup, and bursts above three alerts per minute are grouped.
 - **登录启动**：设置里开启后（仅安装版）开机在后台启动，不开窗口。
 - **模型与推理强度**：Resident 设置里可以为常驻对话和它的后台任务（用户提交、委派、规则触发）单独选择模型和推理强度，默认「沿用应用设置」即新对话的选择。只列出已可用的模型，强度跟随所选模型支持的档位；不会改动应用的默认模型或「上次使用」。空闲的常驻对话改完立即换上，正在回复的从下一条消息开始；已选模型不可用时如实报错，不会悄悄换成别的模型。
 - **睡眠与电池**：系统休眠时状态显示「系统休眠中」，规则不会触发；电池供电时默认暂停主动规则。任务本身不会因此被取消，也不会在唤醒后重放。

@@ -278,6 +278,7 @@ const api: VelaApi = {
     },
   },
   agentInbox: {
+    setVisibleConversation: (viewId, conversationId) => ipcRenderer.invoke(AgentInboxIpc.visibleConversation, viewId, conversationId),
     list: query => ipcRenderer.invoke(AgentInboxIpc.list, query),
     get: id => ipcRenderer.invoke(AgentInboxIpc.get, id),
     getContent: id => ipcRenderer.invoke(AgentInboxIpc.content, id),

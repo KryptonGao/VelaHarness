@@ -2,14 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { residentLimits, thinkingLevels, type ModelCatalog, type ResidentAgentApi, type ResidentSettings, type ResidentSettingsPatch } from "@vela/shared";
 import { tr } from "../locale";
 import { thinkingLabel } from "./ModelControls";
-import { formatMinute, parseMinute } from "./resident-agent-model";
-
-function Toggle({ label, hint, checked, disabled, onChange }: { label: string; hint?: string; checked: boolean; disabled?: boolean; onChange: (value: boolean) => void }) {
-  return <label className="resident-row">
-    <span className="resident-row-text"><span>{label}</span>{hint ? <small>{hint}</small> : null}</span>
-    <input type="checkbox" role="switch" checked={checked} disabled={disabled} onChange={event => onChange(event.target.checked)} />
-  </label>;
-}
+import { NotificationSettings, ResidentToggle as Toggle } from "./NotificationSettings";
 
 function NumberRow({ label, hint, value, min, max, unit, disabled, onCommit }: {
   label: string; hint?: string; value: number; min: number; max: number; unit?: string; disabled?: boolean; onCommit: (value: number) => void;
@@ -88,8 +81,7 @@ export function ResidentSettingsPanel({ api, settings, onSettings, catalog = nul
       catch (reason) { setError(reason instanceof Error ? reason.message : String(reason)); }
     });
   };
-  const { notifications: notify, limits } = settings;
-  const quiet = notify.quietHours;
+  const { limits } = settings;
   return <div className="resident-settings">
     {error ? <p className="agent-inbox-notice" role="alert">{error}</p> : null}
 
@@ -111,20 +103,7 @@ export function ResidentSettingsPanel({ api, settings, onSettings, catalog = nul
 
     <fieldset>
       <legend>{tr("通知", "Notifications")}</legend>
-      <Toggle label={tr("系统通知", "System notifications")} hint={tr("需要处理的事项在应用处于后台时提醒；离开 Resident 页面时也接收事件回复。", "Get alerts for items needing attention while the app is in the background, and for event replies when you're away from the Resident page.")}
-        checked={notify.enabled} onChange={value => update({ notifications: { enabled: value } })} />
-      <Toggle label={tr("隐藏通知内容", "Hide notification previews")} hint={tr("通知里不显示命令、路径和回答，只提示有事项。", "Notifications won't show commands, paths or answers.")}
-        checked={notify.hidePreview} disabled={!notify.enabled} onChange={value => update({ notifications: { hidePreview: value } })} />
-      <Toggle label={tr("任务完成时也提醒", "Also notify when tasks finish")} hint={tr("只影响普通任务结果，不影响 Resident 的事件回复。", "Applies to regular task results, not Resident event replies.")}
-        checked={notify.notifyResults} disabled={!notify.enabled} onChange={value => update({ notifications: { notifyResults: value } })} />
-      <Toggle label={tr("静默时段", "Quiet hours")} hint={tr("这段时间不弹通知，事项仍会进入收件箱。", "No notifications in this window. Items still land in the Inbox.")}
-        checked={quiet.enabled} disabled={!notify.enabled} onChange={value => update({ notifications: { quietHours: { enabled: value } } })} />
-      {quiet.enabled && notify.enabled ? <div className="resident-row resident-quiet">
-        <label><span>{tr("开始", "From")}</span>
-          <input type="time" value={formatMinute(quiet.startMinute)} onChange={event => { const minute = parseMinute(event.target.value); if (minute !== null) update({ notifications: { quietHours: { startMinute: minute } } }); }} /></label>
-        <label><span>{tr("结束", "To")}</span>
-          <input type="time" value={formatMinute(quiet.endMinute)} onChange={event => { const minute = parseMinute(event.target.value); if (minute !== null) update({ notifications: { quietHours: { endMinute: minute } } }); }} /></label>
-      </div> : null}
+      <NotificationSettings api={api} layout="resident" />
     </fieldset>
 
     <fieldset>

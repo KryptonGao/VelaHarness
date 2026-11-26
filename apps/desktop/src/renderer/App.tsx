@@ -837,6 +837,7 @@ export function App() {
   const workbenchVisible = workbenchOpen && !workbenchCollapsed;
   const fullscreen = workbenchView !== "split" && workbenchVisible && !pageOpen && overviewWorkspace === null;
   const splitControls = borderlessInterface && !fullscreen && (workbenchVisible || contextSidebarOpen);
+  const chatsVisible = onboardingComplete && !pageOpen && overviewWorkspace === null;
   const floatingChat = fullscreen && workbenchView === "panel";
   useEffect(() => {
     if (!workbenchOpen || workbenchCollapsed) setWorkbenchView("split");
@@ -1196,7 +1197,7 @@ export function App() {
                         openAgent={openAgentPane}
                         closeAgent={closeActiveAgent}
                       >
-                        <SessionChatView
+                        <SessionChatView visible={chatsVisible}
                           messageStore={session.messageStore}
                           state={session.state}
                           sendError={session.sendError}
@@ -1290,10 +1291,10 @@ export function App() {
                         conversationId={session.activeConversationId}
                         toolDisplay={preferences.toolDisplay}
                         toolFold={preferences.toolFold}
-                        ensureAgentMessages={session.ensureAgentMessages}
                         showChangeSummary={preferences.showChangeSummary}
                         onReviewTurn={onReviewTurn}
                         onRefreshReview={refreshTurnReview}
+                        ensureAgentMessages={session.ensureAgentMessages}
                         onControlAgent={session.controlAgent}
                         onSendAgentMessage={session.sendAgentMessage}
                         onOpenAgent={openAgentPane}
@@ -1307,7 +1308,7 @@ export function App() {
                         renderConversationDetail={view => <ConversationDetailView view={view} state={session.state} agents={allAgents} messageStore={session.messageStore}
                           providers={models.catalog?.providers ?? []} onAbort={session.abort}
                           pendingInteraction={pendingConversationInteraction} onConversation={focusMainChat} />}
-                        renderChat={tab => <WorkbenchChatView key={tab.conversationId}
+                        renderChat={(tab, visible) => <WorkbenchChatView key={tab.conversationId} visible={chatsVisible && visible}
                           conversationId={tab.conversationId} preferences={preferences} project={project}
                           onRenameConversation={openRenameConversation}
                           onOpenConversation={openMainConversation}

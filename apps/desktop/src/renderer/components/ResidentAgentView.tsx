@@ -309,10 +309,10 @@ export function ResidentAgentView({ active, api, status, settings, rules, messag
   useEffect(() => { if (conversationId) ensureTranscript(conversationId); }, [conversationId, ensureTranscript]);
   // AgentInboxPage stays mounted behind other app pages, so mounting alone isn't visibility.
   useEffect(() => {
-    if (!active || !api) return;
+    if (!active || !api || tab !== "chat") return;
     void api.setPageVisible(true).catch(() => {});
     return () => { void api.setPageVisible(false).catch(() => {}); };
-  }, [active, api]);
+  }, [active, api, tab]);
 
   if (!api) return <p className="agent-inbox-empty">{tr("当前环境不支持 Resident Agent。", "Resident Agent isn't available here.")}</p>;
   if (!status || !settings) return <p className="agent-inbox-empty" role="status">{error ?? tr("正在读取…", "Loading…")}</p>;
@@ -380,7 +380,7 @@ export function ResidentAgentView({ active, api, status, settings, rules, messag
       {tab === "chat" ? <Chat api={api} status={status} settings={settings} messageStore={messageStore} notice={notice} setNotice={setNotice} /> : null}
       {tab === "tasks" ? <Tasks api={api} status={status} onOpenConversation={onOpenConversation} /> : null}
       {tab === "rules" ? <ProactiveRulesPanel api={api} status={status} settings={settings} rules={rules} /> : null}
-      {tab === "settings" ? <ResidentSettingsPanel api={api} settings={settings} onSettings={onSettings} catalog={catalog} catalogError={catalogError} /> : null}
+      {active && tab === "settings" ? <ResidentSettingsPanel api={api} settings={settings} onSettings={onSettings} catalog={catalog} catalogError={catalogError} /> : null}
     </div>
   </section>;
 }

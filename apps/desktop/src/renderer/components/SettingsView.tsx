@@ -28,6 +28,8 @@ import { LogsPage } from "./settings/LogsPage";
 import { StoragePage } from "./settings/StoragePage";
 import { SubagentModelsPage } from "./settings/SubagentModelsPage";
 import { ModelsPage } from "./settings/ModelsPage";
+import { NotificationSettings } from "./NotificationSettings";
+import { SettingsGroup } from "./settings/primitives";
 import { SettingsNav } from "./settings/SettingsNav";
 import { ShortcutsPage } from "./settings/ShortcutsPage";
 import { SkillsPage } from "./settings/SkillsPage";
@@ -157,6 +159,11 @@ export function SettingsView({
               <h2>{pageMeta.label}</h2>
             </header>
           )}
+          {page === "notifications" && <section className="settings-section" data-setting-id="system-notifications">
+            <SettingsGroup>
+              <NotificationSettings api={window.vela?.resident} layout="settings" />
+            </SettingsGroup>
+          </section>}
           {page === "integrations" ? <IntegrationsSection locale={locale} workspacePath={workspacePath} conversationId={conversationDetached ? null : conversationId} /> : null}
           {page === "mcp" ? <McpSettingsSection locale={locale} workspacePath={workspacePath} conversationId={conversationId} detached={conversationDetached} /> : null}
           {page === "hooks" ? <HooksSettingsSection locale={locale} workspacePath={workspacePath} /> : null}
