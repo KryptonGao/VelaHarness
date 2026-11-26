@@ -21,7 +21,7 @@ type SkillFilter = "all" | "enabled" | "disabled";
 type SkillsView = "manage" | "market";
 type MarketplaceEntry = MarketplaceSkillEntry;
 
-const originOrder: SkillItem["origin"][] = ["user", "project", "agents"];
+const originOrder: SkillItem["origin"][] = ["user", "project", "agents", "builtin"];
 
 export function SkillsPage({ copy, workspacePath }: { copy: SettingsCopy; workspacePath: string | null }) {
   const text = copy.agent;

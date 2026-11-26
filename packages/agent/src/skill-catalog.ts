@@ -4,11 +4,13 @@ import { homedir } from "node:os";
 import { join, resolve, sep } from "node:path";
 import { readDisabledSkills } from "./skill-management";
 
-export async function loadSkillCatalog(options: { cwd: string; agentDir: string }): Promise<SkillCatalog> {
+export async function loadSkillCatalog(options: { cwd: string; agentDir: string; builtinSkillPaths?: readonly string[] }): Promise<SkillCatalog> {
   const skillsDir = join(options.agentDir, "skills");
+  const builtinRoots = (options.builtinSkillPaths ?? []).map((path) => resolve(path));
   const loader = new DefaultResourceLoader({
     cwd: options.cwd,
     agentDir: options.agentDir,
+    additionalSkillPaths: builtinRoots,
     settingsManager: SettingsManager.inMemory(),
     noExtensions: true,
     noPromptTemplates: true,
@@ -20,17 +22,17 @@ export async function loadSkillCatalog(options: { cwd: string; agentDir: string 
   const disabled = await readDisabledSkills(options.agentDir);
   return {
     skillsDir,
-    skills: loaded.skills.map((skill) => summarize(skill, disabled, skillsDir)),
+    skills: loaded.skills.map((skill) => summarize(skill, disabled, skillsDir, builtinRoots)),
     diagnostics: loaded.diagnostics.map(summarizeDiagnostic),
   };
 }
 
-function summarize(skill: Skill, disabled: Set<string>, skillsDir: string): SkillSummary {
+function summarize(skill: Skill, disabled: Set<string>, skillsDir: string, builtinRoots: readonly string[]): SkillSummary {
   return {
     name: skill.name,
     description: skill.description,
     location: skill.filePath,
-    origin: originOf(skill),
+    origin: builtinRoots.some((root) => isUnder(resolve(skill.filePath), root)) ? "builtin" : originOf(skill),
     disableModelInvocation: skill.disableModelInvocation,
     enabled: !disabled.has(skill.name),
     canDelete: canDelete(skill.filePath, skillsDir),

@@ -46,6 +46,7 @@ export function skillTitle(name: string): string {
 export function skillOriginLabel(origin: SkillOrigin): string {
   if (origin === "project") return tr("项目", "Project");
   if (origin === "agents") return "~/.agents";
+  if (origin === "builtin") return tr("内置", "Built-in");
   return tr("个人", "Personal");
 }
 

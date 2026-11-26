@@ -365,7 +365,7 @@ export const thinkingLevelLabel: Record<ThinkingLevel, string> = {
   ultra: "Ultra",
 };
 
-export const skillOrigins = ["user", "project", "agents"] as const;
+export const skillOrigins = ["user", "project", "agents", "builtin"] as const;
 
 export type SkillOrigin = (typeof skillOrigins)[number];
 

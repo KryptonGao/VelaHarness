@@ -249,6 +249,8 @@ export interface AgentRuntimeOptions {
   cwd: string;
   /** Vela 自己的模型目录，不读取本机 Pi 配置。 */
   agentDir: string;
+  /** 随应用发布的内置 Skill 目录（每个目录含 SKILL.md）；与用户 Skill 一起加载，可停用但不能删除。 */
+  builtinSkillPaths?: readonly string[];
   /** Optional desktop host for persistent Browser Panel JavaScript contexts. */
   browserRepl?: BrowserReplService;
   /** 浏览器批注：与 browserRepl 同时提供才生效。 */
@@ -555,7 +557,7 @@ export class AgentRuntime {
     this.taskCostHistory = new TaskCostHistoryStore(options.agentDir);
     this.contextLimitSettings = new ContextLimitSettingsStore(options.agentDir);
     this.checkpointSettings = new CheckpointSettingsStore(options.agentDir);
-    this.skills = new SkillLibrary(options.agentDir);
+    this.skills = new SkillLibrary(options.agentDir, options.builtinSkillPaths);
     this.tools = new ToolLoadout({
       scheduledTasks: Boolean(options.scheduledTasks),
       browser: Boolean(options.browserRepl),
@@ -3271,6 +3273,7 @@ export class AgentRuntime {
         cwd,
         agentDir: this.options.agentDir,
         settingsManager,
+        additionalSkillPaths: this.skills.builtinPaths,
         skillsOverride: (base) => this.skills.withoutDisabled(base),
         ...this.preambleOverride(),
         ...this.contextFilesOverride(entry),

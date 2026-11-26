@@ -20,7 +20,13 @@ export class SkillLibrary {
   /** 每次停用、启用或删除 Skill 时递增，用于让已打开的会话在下次发言前刷新 Skill。 */
   private currentRevision = 0;
 
-  constructor(private readonly agentDir: string) {}
+  /** `builtinSkillPaths`：随应用发布的 Skill 目录；只读，可停用但不能删除。 */
+  constructor(private readonly agentDir: string, private readonly builtinSkillPaths: readonly string[] = []) {}
+
+  /** 会话资源加载器要额外扫描的内置 Skill 目录。 */
+  get builtinPaths(): string[] {
+    return [...this.builtinSkillPaths];
+  }
 
   get revision(): number {
     return this.currentRevision;
@@ -33,7 +39,7 @@ export class SkillLibrary {
 
   /** 按当前工作区扫描用户 Skill、项目 Skill 和 ~/.agents/skills。 */
   list(cwd: string): Promise<SkillCatalog> {
-    return loadSkillCatalog({ cwd, agentDir: this.agentDir });
+    return loadSkillCatalog({ cwd, agentDir: this.agentDir, builtinSkillPaths: this.builtinSkillPaths });
   }
 
   async setEnabled(cwd: string, name: string, enabled: boolean): Promise<SkillCatalog> {

@@ -455,6 +455,8 @@ async function start(): Promise<void> {
     workspaceFolders: cwd => workspaceManager.foldersOf(cwd),
     isWorkspaceCwd: (cwd) => (cwd !== fallbackCwd && cwd !== legacyFallbackCwd) || workspaceManager.getState().recents.some(recent => recent.path === cwd),
     agentDir: home,
+    // 构建时由 electron.vite.config.ts 复制到 out/main/skills；用户 Skill 目录里不放这份。
+    builtinSkillPaths: [join(rootDir, "skills", "vela")],
     onRecipeStop: id => taskRecipes?.stopConversation(id),
     systemPromptProfile,
     // 激活会话变化时让工作区跟随,保证输入区与仓库卡片显示的目录即会话目录。

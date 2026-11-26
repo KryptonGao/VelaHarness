@@ -164,3 +164,40 @@ describe("skill management", () => {
     }
   });
 });
+
+describe("built-in skills", () => {
+  it("lists skills from built-in paths as built-in and not deletable", async () => {
+    const root = await mkdtemp(join(tmpdir(), "vela-skill-builtin-"));
+    try {
+      const agentDir = join(root, ".vela");
+      const builtin = join(root, "bundle", "skills", "vela");
+      await writeSkill(builtin, "vela", "app guide");
+      await writeSkill(join(agentDir, "skills", "mine"), "mine");
+
+      const catalog = await loadSkillCatalog({ cwd: root, agentDir, builtinSkillPaths: [builtin] });
+      const vela = catalog.skills.find((skill) => skill.name === "vela");
+      assert.equal(vela?.origin, "builtin");
+      assert.equal(vela?.canDelete, false);
+      assert.equal(vela?.enabled, true);
+      assert.equal(catalog.skills.find((skill) => skill.name === "mine")?.origin, "user");
+
+      await setSkillEnabled(agentDir, "vela", false);
+      const after = await loadSkillCatalog({ cwd: root, agentDir, builtinSkillPaths: [builtin] });
+      assert.equal(after.skills.find((skill) => skill.name === "vela")?.enabled, false);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("ships a valid vela skill that covers changing interface colors", async () => {
+    const dir = join(import.meta.dirname, "..", "skills", "vela");
+    const catalog = await loadSkillCatalog({ cwd: dir, agentDir: await mkdtemp(join(tmpdir(), "vela-skill-ship-")), builtinSkillPaths: [dir] });
+    // ~/.agents 里的其他 Skill 也会被扫描，只检查内置 Skill 自己的诊断。
+    assert.deepEqual(catalog.diagnostics.filter((item) => item.path?.startsWith(dir)), []);
+    const vela = catalog.skills.find((skill) => skill.name === "vela");
+    assert.equal(vela?.origin, "builtin");
+    assert.equal(vela?.disableModelInvocation, false);
+    const text = await readFile(join(dir, "SKILL.md"), "utf8");
+    for (const needle of ["Settings → Appearance", "Color mode", "Accent", "⌘,"]) assert.ok(text.includes(needle), needle);
+  });
+});
