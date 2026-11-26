@@ -6,6 +6,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { createServer, type ViteDevServer } from "vite";
 import type { AgentInfo, ToolTrace } from "@vela/shared";
 import { agentAvatarDataUri } from "../src/renderer/components/agent-avatar.ts";
+import { indexAgentHistory } from "../src/renderer/agent-roster.ts";
 
 let server: ViteDevServer;
 let avatar: typeof import("../src/renderer/components/AgentAvatar.tsx");
@@ -132,6 +133,25 @@ describe("子代理头像跨界面一致性", () => {
     }
     assert.deepEqual(imageSources(paneHtml()), [agentAvatarDataUri(first.id)]);
     assert.deepEqual(imageSources(infoHtml()), roster.map((agent) => agentAvatarDataUri(agent.id)));
+  });
+
+  it("uses the saved custom name and avatar for live agents and restored tool cards", () => {
+    const customProfile = { name: "Code reviewer", icon: "review-bot" };
+    const agent = { ...first, customProfile };
+    const call = tool(agent);
+    call.activity.customProfile = customProfile;
+    const restored = indexAgentHistory([{ tools: [call] }]).get(agent.id)!;
+    assert.deepEqual(restored.customProfile, customProfile);
+    const sources = [agentAvatarDataUri(customProfile.icon)];
+    for (const agents of [[agent], [restored], []]) {
+      for (const compact of [false, true]) {
+        const html = workspace(createElement(cards.ToolCard, { tool: call, compact }), agents);
+        assert.deepEqual(imageSources(html), sources);
+        assert.match(html, />Code reviewer<\/span>/);
+      }
+    }
+    assert.deepEqual(imageSources(paneHtml(restored, [restored])), sources);
+    assert.deepEqual(imageSources(infoHtml([agent])), sources);
   });
 
   it("状态、任务和名称更新不更换头像，完成/暂停/失败标记仍独立显示", () => {

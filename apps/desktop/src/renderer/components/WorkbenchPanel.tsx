@@ -138,7 +138,7 @@ function TabIcon({ tab }: { tab: WorkbenchTab }) {
   if (tab.kind === "browser") return <BrowserTabIcon controller={tab.controller} />;
   if (tab.kind === "chat") return <Icon name="chat" size={12} />;
   if (tab.kind === "side-chat") return <Icon name="sparkles" size={12} />;
-  return <><AgentAvatar agentId={tab.agent.id} size={18} /><AgentStatusMark status={tab.agent.status} /></>;
+  return <><AgentAvatar agentId={tab.agent.id} icon={tab.agent.customProfile?.icon} size={18} /><AgentStatusMark status={tab.agent.status} /></>;
 }
 export function WorkbenchPanel(props: WorkbenchPanelProps) {
   const [pendingClose, setPendingClose] = useState<{ tabId: string; complete: () => void } | null>(null);

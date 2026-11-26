@@ -465,6 +465,10 @@
 }
 .agent-compact .tool-compact-icon { width: 18px; height: 18px; }
 .tool-card.is-task .tool-card-icon:has(.agent-avatar) { background: none; }
+.agent-profile-name {
+  width: auto;
+  max-width: 12ch;
+}
 .agent-kind {
   flex: none;
   padding: 0 5px;

@@ -515,6 +515,8 @@ const api: VelaApi = {
   getAgentSettings: () => ipcRenderer.invoke(IpcChannel.getAgentSettings) as Promise<AgentSettings>,
   saveAgentSettings: (settings: AgentSettings) =>
     ipcRenderer.invoke(IpcChannel.saveAgentSettings, settings) as Promise<AgentSettings>,
+  saveCustomSubagents: (profiles, previous) =>
+    ipcRenderer.invoke(IpcChannel.saveCustomSubagents, profiles, previous) as Promise<AgentSettings>,
   getIntelligentUi: () => ipcRenderer.invoke(IpcChannel.getIntelligentUi) as Promise<IntelligentUiState>,
   setIntelligentUi: (preference: UiPreference) =>
     ipcRenderer.invoke(IpcChannel.setIntelligentUi, preference) as Promise<IntelligentUiState>,

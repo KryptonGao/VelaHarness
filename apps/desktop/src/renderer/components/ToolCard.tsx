@@ -14,7 +14,7 @@ import { browserResultJsonParts, isMcpDiscoveryTool, needsRawResultFallback, spl
 import { ScrollFade } from "./ScrollFade";
 import {
   AgentStatusMark,
-  agentKindLabel,
+  AgentTypeLabel,
   agentStatusLabel,
   findAgentInfo,
   useAgentRoster,
@@ -226,9 +226,9 @@ function AgentToolCard({ tool, compact = false }: { tool: ToolTrace; compact?: b
   const activity = tool.activity ?? {};
   const live = findAgentInfo(roster, activity.agentId, activity.agentPath);
   const title = live?.path ?? activity.agentPath ?? activity.agentId ?? taskTitle(activity);
-  const label = agentKindLabel(live?.kind ?? activity.agent);
+  const profile = live?.customProfile ?? activity.customProfile;
   const targetId = live?.id ?? activity.agentId ?? null;
-  const avatarId = targetId ?? activity.agentPath;
+  const avatarId = profile?.icon ?? targetId ?? activity.agentPath;
   const canOpen = Boolean(targetId);
   const openInPane = (): void => {
     if (targetId) openAgent(targetId);
@@ -262,7 +262,7 @@ function AgentToolCard({ tool, compact = false }: { tool: ToolTrace; compact?: b
             <span className="tool-compact-icon" aria-hidden="true">
               <AgentHeadlineIcon avatarId={avatarId} name={tool.name} />
             </span>
-            <span className="tool-compact-action">{label}</span>
+            <AgentTypeLabel className="tool-compact-action" kind={live?.kind ?? activity.agent} profile={profile} />
           </button>
           <button
             className="agent-compact-name"
@@ -312,7 +312,7 @@ function AgentToolCard({ tool, compact = false }: { tool: ToolTrace; compact?: b
           <span className="tool-card-icon" aria-hidden="true">
             {avatarId ? <AgentAvatar agentId={avatarId} size={22} /> : toolNameIcon(tool.name) ?? <Icon name="tool" size={14} />}
           </span>
-          <span className="tool-kind-label">{label}</span>
+          <AgentTypeLabel className="tool-kind-label" kind={live?.kind ?? activity.agent} profile={profile} />
           <span className="tool-card-main">
             <span className="tool-card-name grow">{title}</span>
           </span>

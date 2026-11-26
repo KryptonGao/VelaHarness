@@ -3,7 +3,7 @@ import { isAgentToolName } from "@vela/shared";
 import type { ReactNode } from "react";
 import { tr, trf } from "../locale";
 import { AgentAvatar } from "./AgentAvatar";
-import { agentKindLabel, findAgentInfo, useAgentRoster } from "./AgentPanel";
+import { AgentTypeLabel, findAgentInfo, useAgentRoster } from "./AgentPanel";
 import { FileTypeIcon } from "./FileTypeIcon";
 import { bashIntentDisplay } from "./bash-intent-label";
 import { summarizeBrowserCode, type BrowserStep } from "./browser-call";
@@ -158,7 +158,7 @@ export function ToolHeadlineIcon({ tool }: { tool: ToolTrace }) {
   if (activity.mcp || isMcpDiscoveryTool(tool.name)) return <Icon name="mcp" size={14} />;
   if (isAgentToolName(tool.name)) {
     const live = findAgentInfo(roster, activity.agentId, activity.agentPath);
-    return <AgentHeadlineIcon name={tool.name} avatarId={live?.id ?? activity.agentId ?? activity.agentPath} />;
+    return <AgentHeadlineIcon name={tool.name} avatarId={live?.customProfile?.icon ?? activity.customProfile?.icon ?? live?.id ?? activity.agentId ?? activity.agentPath} />;
   }
   if (toolKind(tool.name) === "browser") return <Icon name="globe" size={14} />;
   if (tool.name === "web_fetch") return <Icon name="web-fetch" size={14} />;
@@ -178,7 +178,7 @@ export function ToolHeadlineDetails({ tool }: { tool: ToolTrace }) {
   if (isAgentToolName(tool.name)) {
     const live = findAgentInfo(roster, activity.agentId, activity.agentPath);
     return <>
-      <span className="tool-compact-action">{agentKindLabel(live?.kind ?? activity.agent)}</span>
+      <AgentTypeLabel className="tool-compact-action" kind={live?.kind ?? activity.agent} profile={live?.customProfile ?? activity.customProfile} />
       <span className="agent-compact-name overflow-fade-text">{live?.path ?? activity.agentPath ?? activity.agentId ?? taskTitle(activity)}</span>
     </>;
   }

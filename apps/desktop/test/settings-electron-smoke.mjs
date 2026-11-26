@@ -39,6 +39,21 @@ try {
   assert.equal(items.length, development ? 22 : 21);
   assert.ok(items.includes("Hooks"));
   assert.ok(items.includes("Notifications"));
+  await ev("[...document.querySelectorAll('.settings-nav-item')].find(n => n.textContent === 'Subagents').click()");
+  await until(() => ev("!!document.querySelector('.custom-agent-add:enabled')"), "subagent settings loaded");
+  await ev("document.querySelector('.custom-agent-add').click()");
+  await ev(`(() => {
+    const field = document.querySelector('.custom-agent-identity input');
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(field, 'Smoke reviewer');
+    field.dispatchEvent(new Event('input', { bubbles: true }));
+  })()`);
+  await ev("document.querySelector('.custom-agent-editor button[type=submit]').click()");
+  await until(() => ev("document.querySelector('.custom-agent-list strong')?.textContent === 'Smoke reviewer'"), "custom profile saved");
+  const [profile] = (await ev("window.vela.getAgentSettings()")).customSubagents;
+  assert.equal(profile.name, "Smoke reviewer");
+  assert.equal(profile.permission, "general");
+  assert.ok(profile.icon);
+  console.log("PASS custom subagent created through desktop settings and read back over IPC");
   await ev("[...document.querySelectorAll('.settings-nav-item')].find(n => n.textContent === 'Notifications').click()");
   const completionSwitch = "document.querySelector('[data-setting-id=system-notifications] [aria-label=\"Also notify when tasks finish\"]')";
   await until(() => ev("!!" + completionSwitch), "notification settings");

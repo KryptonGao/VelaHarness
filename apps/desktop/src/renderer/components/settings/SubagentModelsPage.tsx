@@ -1,4 +1,4 @@
-import { maxSubagentModelDescriptionLength, maxSubagentModels, type AgentSettings, type ModelCatalog, type ModelRef, type ModelSummary, type SubagentModelRef, type ThinkingLevel } from "@vela/shared";
+import { maxSubagentModelDescriptionLength, maxSubagentModels, type AgentInfo, type AgentSettings, type CustomSubagentProfile, type ModelCatalog, type ModelRef, type ModelSummary, type SubagentModelRef, type ThinkingLevel } from "@vela/shared";
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { modelKey } from "../../hooks/usePreferences";
 import { localizeError, tr, trf } from "../../locale";
@@ -6,6 +6,7 @@ import { Icon } from "../icons";
 import { thinkingLabel } from "../ModelControls";
 import type { SettingsCopy } from "../settings-copy";
 import { SettingsBlock, SettingsGroup } from "./primitives";
+import { CustomSubagentsBlock } from "./CustomSubagentsBlock";
 
 type SaveStatus = "idle" | "saving" | "saved" | "error";
 
@@ -36,13 +37,16 @@ export function SubagentModelsPage({
   copy,
   catalog,
   hiddenModels,
+  agents = [],
 }: {
   copy: SettingsCopy;
   catalog: ModelCatalog | null;
   hiddenModels: readonly string[];
+  agents?: readonly AgentInfo[];
 }) {
   const text = copy.subagentModels;
   const [settings, setSettings] = useState<AgentSettings | null>(null);
+  const [profiles, setProfiles] = useState<CustomSubagentProfile[] | null>(null);
   const [status, setStatus] = useState<SaveStatus>("idle");
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
@@ -63,6 +67,7 @@ export function SubagentModelsPage({
         target.current = loaded;
         confirmed.current = loaded;
         setSettings(loaded);
+        setProfiles(loaded.customSubagents ?? []);
       },
       (caught: unknown) => {
         if (!active) return;
@@ -108,6 +113,7 @@ export function SubagentModelsPage({
   }, [text.loadError]);
 
   const pool = settings?.subagentModels ?? [];
+  const availableModels = useMemo(() => availableForPool(catalog, hiddenModels, [], ""), [catalog, hiddenModels]);
   const left = useMemo(() => availableForPool(catalog, hiddenModels, pool, query), [catalog, hiddenModels, pool, query]);
   const right = useMemo<PoolEntry[]>(() => pool.map((ref) => ({
     ref,
@@ -137,6 +143,7 @@ export function SubagentModelsPage({
         {error ? <span className="settings-error">{localizeError(error)}</span> : null}
       </div>
 
+      <CustomSubagentsBlock copy={copy} catalog={catalog} models={availableModels} agents={agents} profiles={profiles} onProfilesChange={setProfiles} />
       <SettingsGroup>
         <SettingsBlock id="subagent-models" title={text.title} hint={text.hint}>
           <div className="subagent-pools">

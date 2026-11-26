@@ -79,6 +79,7 @@ describe("model directory with separate config and cache", () => {
     await assert.rejects(directory.select("iso-local", "iso-model"), ModelConfigReadOnlyError);
     await assert.rejects(directory.setThinkingLevel("low", model), ModelConfigReadOnlyError);
     await assert.rejects(directory.saveSettings({ ...directory.getSettings(), thinkingLevel: "low" }), ModelConfigReadOnlyError);
+    await assert.rejects(directory.saveCustomSubagents([]), ModelConfigReadOnlyError);
     await assert.rejects(directory.addCustom({ providerId: "x", modelId: "y", baseUrl: "http://127.0.0.1:2/v1", api: "openai-completions", apiKey: "k", reasoning: false }), ModelConfigReadOnlyError);
     await assert.rejects(directory.removeCustom("iso-local", "iso-model"), ModelConfigReadOnlyError);
     await assert.rejects(directory.logout("iso-local"), ModelConfigReadOnlyError);

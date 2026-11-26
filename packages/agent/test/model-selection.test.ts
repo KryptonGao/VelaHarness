@@ -28,6 +28,7 @@ describe("new conversation selection settings", () => {
       newConversationSelection: "default",
       instructions: "",
       subagentModels: [],
+      customSubagents: [],
     });
 
     await directory.saveSettings({
@@ -188,6 +189,62 @@ describe("subagent model pool settings", () => {
     const directory = await ModelDirectory.open(await tempDir());
     await directory.saveSettings({ ...base, subagentModels: [{ provider: "ghost", modelId: "missing" }] });
     assert.deepEqual(directory.availableSubagentModels(), []);
+  });
+});
+
+describe("custom subagent profiles", () => {
+  const reader = {
+    id: "reader", name: "代码审阅", icon: "seed-1", permission: "explore", description: "Review changes", systemPrompt: "Report risks.",
+    model: { provider: "local", modelId: "careful", thinkingLevel: "high" },
+  };
+  const writer = {
+    id: "writer", name: "Writer", icon: "seed-2", permission: "general", description: "", systemPrompt: "",
+  };
+
+  it("round-trips fixed and inherited models and preserves profiles across a stale defaults save", async () => {
+    const dir = await tempDir();
+    const directory = await ModelDirectory.open(dir);
+    const stale = directory.getSettings();
+    const saved = await directory.saveCustomSubagents([reader, writer], []);
+    assert.deepEqual(saved.customSubagents, [reader, writer]);
+    saved.customSubagents![0].systemPrompt = "Changed by caller";
+    await directory.saveSettings({ ...stale, instructions: "Use concise sentences" });
+    const reopened = await ModelDirectory.open(dir);
+    assert.deepEqual(reopened.getSettings().customSubagents, [reader, writer]);
+    assert.equal(reopened.getSettings().instructions, "Use concise sentences");
+    await reopened.saveCustomSubagents([]);
+    assert.equal("customSubagents" in JSON.parse(await readFile(join(dir, "selection.json"), "utf8")), false);
+  });
+
+  it("rejects invalid profiles atomically and recovers valid neighbors when reading damaged disk settings", async () => {
+    const dir = await tempDir();
+    const directory = await ModelDirectory.open(dir);
+    await directory.saveCustomSubagents([reader]);
+    const invalid = [
+      { ...reader, id: "dupe" }, { ...writer, name: "ROOT" }, { ...writer, name: "General" },
+      { ...writer, permission: "full" }, { ...writer, model: { ...reader.model, thinkingLevel: "turbo" } },
+      { ...writer, icon: "" }, { ...writer, name: "line\nbreak" }, { ...writer, systemPrompt: "a".repeat(16_001) },
+    ];
+    for (const item of invalid) await assert.rejects(directory.saveCustomSubagents([reader, item]));
+    assert.deepEqual(directory.getSettings().customSubagents, [reader]);
+    await writeFile(join(dir, "selection.json"), JSON.stringify({ thinkingLevel: "low", customSubagents: [reader, ...invalid, writer] }));
+    const reopened = await ModelDirectory.open(dir);
+    assert.equal(reopened.getSettings().thinkingLevel, "low");
+    assert.deepEqual(reopened.getSettings().customSubagents, [reader, writer]);
+  });
+
+  it("merges independent edits and rejects overwriting another edit or recreating a deleted profile", async () => {
+    const directory = await ModelDirectory.open(await tempDir());
+    await directory.saveCustomSubagents([reader, writer]);
+    const renamed = { ...reader, name: "Reviewer" };
+    const revised = { ...writer, description: "Write a draft" };
+    await directory.saveCustomSubagents([renamed, writer], [reader, writer]);
+    await directory.saveCustomSubagents([reader, revised], [reader, writer]);
+    assert.deepEqual(directory.getSettings().customSubagents, [renamed, revised]);
+    await assert.rejects(directory.saveCustomSubagents([reader], [reader, writer]), /其他窗口/);
+    await directory.saveCustomSubagents([revised], [renamed, revised]);
+    await assert.rejects(directory.saveCustomSubagents([reader, revised], [renamed, revised]), /其他窗口/);
+    assert.deepEqual(directory.getSettings().customSubagents, [revised]);
   });
 });
 

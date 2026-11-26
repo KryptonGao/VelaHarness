@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { AgentMessage } from "@earendil-works/pi-agent-core";
 import type { AgentSession, AgentSessionEvent } from "@earendil-works/pi-coding-agent";
-import type { ModelRef, SubagentModelRef, SubagentLimits } from "@vela/shared";
+import type { CustomSubagentProfile, ModelRef, SubagentModelRef, SubagentLimits } from "@vela/shared";
 import {
   AgentControl,
   maxConcurrentAgents,
@@ -724,5 +724,48 @@ describe("子代理模型池", () => {
     assert.throws(() => control.spawn("root-id", { kind: "explore", task: "x", model: "anthropic/claude-haiku" }), /没有开放/);
     current = pool;
     assert.deepEqual(control.spawn("root-id", { kind: "explore", task: "x", model: "anthropic/claude-haiku" }).model, pool[0]);
+  });
+});
+
+describe("custom subagent profiles", () => {
+  it("applies current profiles to new agents and restores each existing agent's original permissions, prompt and model", async t => {
+    const scout: CustomSubagentProfile = {
+      id: "scout", name: "Code Scout", icon: "scout-avatar", description: "Investigate a code path.",
+      permission: "explore", systemPrompt: "Quote relevant file paths.",
+      model: { provider: "fixture", modelId: "fixed", thinkingLevel: "high" },
+    };
+    const builder: CustomSubagentProfile = {
+      id: "builder", name: "Builder", icon: "builder-avatar", description: "",
+      permission: "general", systemPrompt: "Implement the requested change.",
+    };
+    let profiles = [scout, builder];
+    const host = new FakeHost();
+    const control = new AgentControl({ conversationId: "root-id", host, customSubagents: () => profiles });
+    control.registerRoot(new FakeSession().asSession());
+    t.after(() => control.dispose());
+    const child = control.spawn("root-id", {
+      kind: "code scout", task: "Investigate", model: "unauthorized/override", thinkingLevel: "low",
+    });
+    const writer = control.spawn("root-id", { kind: builder.name, task: "Implement" });
+    assert.equal(child.kind, "explore");
+    assert.equal(child.path, "/root/code-scout");
+    assert.deepEqual(child.customProfile, { name: scout.name, icon: scout.icon });
+    assert.deepEqual(child.model, { provider: "fixture", modelId: "fixed" });
+    assert.equal(child.thinkingLevel, "high");
+    assert.throws(() => control.spawn(child.id, { kind: builder.name, task: "Write" }), /只能创建 explore/);
+    assert.throws(() => control.send(child.id, writer.id, "Write"), /只能和 explore/);
+    await waitFor(() => control.list().filter(info => info.kind !== "root").every(info => info.status === "completed"), "completion");
+    assert.deepEqual(host.requests.find(request => request.agentId === child.id)?.customProfile, scout);
+    const stored = control.storedAgents();
+    profiles = [];
+    assert.throws(() => control.spawn("root-id", { kind: scout.name, task: "Again" }), /Unknown subagent/);
+    const resumedHost = new FakeHost();
+    const resumed = new AgentControl({ conversationId: "root-id", host: resumedHost, restoredAgents: stored });
+    resumed.registerRoot(new FakeSession().asSession());
+    t.after(() => resumed.dispose());
+    assert.throws(() => resumed.spawn(child.id, { kind: "general", task: "Write" }), /只能创建 explore/);
+    await resumed.followup("root-id", child.id, "Continue", undefined);
+    assert.deepEqual(resumedHost.requests[0]?.customProfile, scout);
+    assert.deepEqual(resumed.list().find(info => info.id === child.id)?.customProfile, { name: scout.name, icon: scout.icon });
   });
 });

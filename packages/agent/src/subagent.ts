@@ -1,6 +1,6 @@
 import type { AgentMessage } from "@earendil-works/pi-agent-core";
 import { isToolCallEventType, type ExtensionFactory } from "@earendil-works/pi-coding-agent";
-import { agentToolNames, type AgentKind, type SubagentKind, type SubagentModelRef, type ThinkingLevel, type ToolStep } from "@vela/shared";
+import { agentToolNames, type AgentKind, type CustomSubagentProfile, type SubagentKind, type SubagentModelRef, type ThinkingLevel, type ToolStep } from "@vela/shared";
 import { isPlanSafeCommand } from "./plan-command";
 
 /** agent 树工具名；root 与子代理共享同一组 API。 */
@@ -21,6 +21,25 @@ You cannot see the parent conversation, and you must not ask the user questions.
 
 export function agentKindPrompt(kind: SubagentKind): string {
   return kind === "explore" ? explorePrompt : generalPrompt;
+}
+
+export function findCustomSubagent(name: unknown, profiles: readonly CustomSubagentProfile[]): CustomSubagentProfile | undefined {
+  if (typeof name !== "string") return undefined;
+  const key = name.trim().toLowerCase();
+  return profiles.find(profile => profile.name.toLowerCase() === key);
+}
+
+export function customSubagentsPrompt(profiles: readonly CustomSubagentProfile[]): string | null {
+  if (!profiles.length) return null;
+  return [
+    "Custom subagents available for spawn_agent. Choose a profile suited to the task by passing its name as agent. Descriptions summarize roles. A fixed model and reasoning effort are applied automatically, so omit both overrides for those profiles.",
+    ...profiles.map(profile => JSON.stringify({
+      name: profile.name,
+      permission: profile.permission,
+      description: profile.description,
+      ...(profile.model && { model: `${profile.model.provider}/${profile.model.modelId}`, reasoning_effort: profile.model.thinkingLevel }),
+    })),
+  ].join("\n");
 }
 
 /** explore 只拿只读工具；general 与主代理一致。agent 工具两组都有，方便子代理继续分派。 */

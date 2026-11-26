@@ -1,4 +1,4 @@
-import { parseOutcomeSubmission, parseRecommendedActions, parseVisualDemo, recommendedActionsToolName, visualToolName, type ModelRef, type SubagentKind, type ToolActivity, type ToolPlanItem, type ToolStep } from "@vela/shared";
+import { parseCustomSubagentIdentity, parseOutcomeSubmission, parseRecommendedActions, parseVisualDemo, recommendedActionsToolName, visualToolName, type ModelRef, type SubagentKind, type ToolActivity, type ToolPlanItem, type ToolStep } from "@vela/shared";
 import { isThinkingLevel } from "./thinking-level";
 import { followupTaskToolName, sendMessageToolName, spawnAgentToolName } from "./subagent";
 import { presentationFromCall, presentationFromExecution } from "./tool-presentation";
@@ -162,6 +162,7 @@ function agentExecutionActivity(
   const agentId = readString(details, "agentId");
   const path = readString(details, "path");
   const kind = readString(details, "kind");
+  const customProfile = parseCustomSubagentIdentity((details as { customProfile?: unknown } | undefined)?.customProfile);
   const model = readModel(details);
   const effort = readString(details, "thinkingLevel");
   const steps = readSteps(details);
@@ -170,6 +171,7 @@ function agentExecutionActivity(
   return {
     ...agentCallActivity(toolName, args),
     ...(kind === "explore" || kind === "general" ? { agent: kind } : {}),
+    ...(customProfile && { customProfile }),
     ...(agentId ? { agentId } : {}),
     ...(path ? { agentPath: path } : {}),
     ...(model ? { model } : {}),

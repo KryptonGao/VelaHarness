@@ -19,7 +19,7 @@ import type {
   ToolTrace,
   TranscriptMessage,
 } from "@vela/shared";
-import { agentStatuses, emptyAgentUsage, parseOutcomeSubmission, parseRecommendedActions, parseToolPresentation, parseVisualDemo } from "@vela/shared";
+import { agentStatuses, emptyAgentUsage, parseCustomSubagentIdentity, parseOutcomeSubmission, parseRecommendedActions, parseToolPresentation, parseVisualDemo, thinkingLevels } from "@vela/shared";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createMessageStore, emptyMessages, messageScope, type MessageStore } from "./message-store";
 import { uiStateStore } from "../components/intelligent-ui/ui-state-instance";
@@ -1019,8 +1019,11 @@ function sanitizeActivity(value: ToolActivity | undefined): ToolActivity {
     recommendedActions: parseRecommendedActions(value?.recommendedActions) ?? undefined,
     visual: parseVisualDemo(value?.visual) ?? undefined,
     agent: value?.agent === "explore" || value?.agent === "general" ? value.agent : undefined,
+    customProfile: parseCustomSubagentIdentity(value?.customProfile),
+    agentPrompt: typeof value?.agentPrompt === "string" ? value.agentPrompt : undefined,
     agentId: typeof value?.agentId === "string" ? value.agentId : undefined,
     model: sanitizeModelRef(value?.model) ?? undefined,
+    thinkingLevel: thinkingLevels.find(level => level === value?.thinkingLevel),
     agentPath: typeof value?.agentPath === "string" ? value.agentPath : undefined,
     steps,
     mcp: typeof value?.mcp?.server === "string" && value.mcp.server.trim() &&
@@ -1122,6 +1125,7 @@ export function sanitizeAgents(value: unknown): AgentInfo[] {
       path,
       name: typeof record.name === "string" ? record.name : "",
       kind,
+      customProfile: parseCustomSubagentIdentity(record.customProfile),
       status,
       depth: typeof record.depth === "number" ? record.depth : 0,
       task: typeof record.task === "string" ? record.task : "",
@@ -1134,6 +1138,8 @@ export function sanitizeAgents(value: unknown): AgentInfo[] {
       runningSince: typeof record.runningSince === "number" && Number.isFinite(record.runningSince) ? record.runningSince : null,
       pauseRequested: record.pauseRequested === true,
       model: sanitizeModelRef(record.model),
+      thinkingLevel: thinkingLevels.find(level => level === record.thinkingLevel),
+      effectiveThinkingLevel: thinkingLevels.find(level => level === record.effectiveThinkingLevel),
       createdAt: typeof record.createdAt === "number" ? record.createdAt : 0,
       updatedAt: typeof record.updatedAt === "number" ? record.updatedAt : 0,
     });
@@ -1190,8 +1196,12 @@ function mergeActivity(current: ToolActivity | undefined, patch: ToolActivity): 
     recommendedActions: patch.recommendedActions ?? base.recommendedActions,
     visual: patch.visual ?? base.visual,
     agent: patch.agent ?? base.agent,
+    customProfile: patch.customProfile ?? base.customProfile,
+    agentPrompt: patch.agentPrompt ?? base.agentPrompt,
     agentId: patch.agentId ?? base.agentId,
     agentPath: patch.agentPath ?? base.agentPath,
+    model: patch.model ?? base.model,
+    thinkingLevel: patch.thinkingLevel ?? base.thinkingLevel,
     steps: patch.steps ?? base.steps,
     mcp: patch.mcp ?? base.mcp,
     mutated: patch.mutated ?? base.mutated,

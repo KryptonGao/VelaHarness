@@ -42,6 +42,7 @@ function agentFromTool(tool: ToolTrace, agentId: string): AgentInfo {
     path,
     name,
     kind: activity?.agent ?? "general",
+    customProfile: activity?.customProfile,
     status: tool.status === "running" ? "running" : tool.status === "error" ? "failed" : "completed",
     depth: 1,
     task: "",
@@ -54,6 +55,7 @@ function agentFromTool(tool: ToolTrace, agentId: string): AgentInfo {
     runningSince: null,
     pauseRequested: false,
     model: activity?.model ?? null,
+    thinkingLevel: activity?.thinkingLevel,
     createdAt: 0,
     updatedAt: 0,
   };

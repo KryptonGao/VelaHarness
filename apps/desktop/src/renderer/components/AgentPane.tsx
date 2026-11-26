@@ -14,7 +14,7 @@ import { ActivityIndicator } from "./ActivityIndicator";
 import { AgentAvatar } from "./AgentAvatar";
 import { AgentComposer } from "./AgentComposer";
 import {
-  AgentControls, AgentModelTag, AgentRunStats, AgentStatusMark, agentKindLabel, findAgentInfo, useAgentClock,
+  AgentControls, AgentModelTag, AgentRunStats, AgentStatusMark, AgentTypeLabel, agentKindLabel, findAgentInfo, useAgentClock,
 } from "./AgentPanel";
 import { Markdown } from "./Markdown";
 import { AssistantMarkdown } from "./intelligent-ui/AssistantMarkdown";
@@ -198,10 +198,10 @@ function VisibleAgentPane({
     >
       <header className="agent-pane-header">
         <div className="agent-pane-title">
-          <AgentAvatar agentId={agent.id} />
+          <AgentAvatar agentId={agent.id} icon={agent.customProfile?.icon} />
           <AgentStatusMark status={agent.status} />
           <AgentBreadcrumb agent={agent} agents={agents} onSwitch={onSwitch} />
-          <span className="agent-kind">{agentKindLabel(agent.kind)}</span>
+          <AgentTypeLabel className="agent-kind" kind={agent.kind} profile={agent.customProfile} />
           <AgentModelTag model={agent.model} thinkingLevel={agent.effectiveThinkingLevel ?? agent.thinkingLevel} />
         </div>
         <div className="agent-pane-actions">
@@ -244,7 +244,7 @@ function VisibleAgentPane({
               <AgentStreamMessage
                 key={`${agentId}:${block.id}`}
                 message={block.messages[0]!}
-                senderAgentId={findAgentInfo(agents, undefined, block.messages[0]!.inputSender)?.id}
+                senderAgent={findAgentInfo(agents, undefined, block.messages[0]!.inputSender)}
                 streaming={streaming && lastMessageId !== null && (memberIdsOf.get(block.messages[0]!.id)?.includes(lastMessageId) ?? block.messages[0]!.id === lastMessageId)}
                 toolDisplay={toolDisplay}
                 toolFold={toolFold}
@@ -331,13 +331,13 @@ function AgentBreadcrumb({
 
 const AgentStreamMessage = memo(function AgentStreamMessage({
   message,
-  senderAgentId,
+  senderAgent,
   streaming,
   toolDisplay,
   toolFold,
 }: {
   message: UiMessage;
-  senderAgentId?: string;
+  senderAgent: AgentInfo | null;
   streaming: boolean;
   toolDisplay?: ToolDisplay;
   toolFold?: ToolFold;
@@ -352,8 +352,8 @@ const AgentStreamMessage = memo(function AgentStreamMessage({
         <div className="agent-stream-user">
           {label && (
             <div className="agent-input-sender">
-              {senderAgentId && !roleIcon
-                ? <AgentAvatar agentId={senderAgentId} size={20} />
+              {senderAgent && !roleIcon
+                ? <AgentAvatar agentId={senderAgent.id} icon={senderAgent.customProfile?.icon} size={20} />
                 : <Icon name={roleIcon ?? "subagent"} size={16} />}
               <span>{label}</span>
             </div>

@@ -40,6 +40,7 @@ import type { AgentMessage } from "@earendil-works/pi-agent-core";
 import {
   type AgentInfo,
   type SubagentKind,
+  type CustomSubagentProfile,
   type AgentRuntimeStreamEvent,
   type AgentSettings,
   type AskUserQuestionEvent,
@@ -109,7 +110,7 @@ import {
 import { clipTitle, normalizeManualConversationTitle, requestConversationTitle } from "./conversation-title";
 import { parseAiTextRequest, TextAssistService } from "./text-assist";
 import { ConversationStore } from "./conversation-store";
-import { lastAssistantModel, legacyAgentTranscript, recoverLegacyAgents, type StoredAgent } from "./agent-history";
+import { lastAssistantModel, legacyAgentTranscript, recoverLegacyAgents, storedAgentInfo, type StoredAgent } from "./agent-history";
 import { createPersistedSession } from "./session-persistence";
 import { copyTurnTimings, readTurnTimings, turnTimingEntryType } from "./turn-timing";
 import {
@@ -200,6 +201,8 @@ import {
   agentKindPrompt,
   createAgentPauseExtension,
   createExploreGuardExtension,
+  customSubagentsPrompt,
+  findCustomSubagent,
   spawnAgentToolName,
   subagentModelsPrompt,
   type SubagentModelOption,
@@ -2074,6 +2077,10 @@ export class AgentRuntime {
     });
   }
 
+  saveCustomSubagents(profiles: unknown, previous?: unknown): Promise<AgentSettings> {
+    return this.exclusive(async () => (await this.readyDirectory()).saveCustomSubagents(profiles, previous));
+  }
+
   addModel(input: CustomModelInput): Promise<SessionSnapshot> {
     return this.exclusive(async () => {
       const directory = await this.readyDirectory();
@@ -2545,7 +2552,7 @@ export class AgentRuntime {
 
   getAgents(conversationId: string | null): AgentInfo[] {
     const entry = conversationId ? this.conversations.get(conversationId) : null;
-    return entry?.control?.list() ?? entry?.storedAgents.map(({ sessionFile: _file, ...agent }) => agent) ?? [];
+    return entry?.control?.list() ?? entry?.storedAgents.map(storedAgentInfo) ?? [];
   }
 
   getBackgroundShells(conversationId: string | null): BackgroundShellItem[] {
@@ -3197,7 +3204,7 @@ export class AgentRuntime {
       unsubscribe: null,
       createdAt: Date.now(),
       updatedAt: Date.now(),
-      instructions: options.instructions ?? this.directory?.getSettings().instructions ?? "",
+      instructions: options.instructions ?? this.directory?.selection.instructions ?? "",
       skillsRevision: this.skills.revision,
       stopRequested: false,
       pendingInstructions: [],
@@ -3346,6 +3353,7 @@ export class AgentRuntime {
           return { maxSubagents: budget.subagentsEnabled ? budget.maxSubagents : 0, allowNested: budget.allowNestedSubagents };
         },
         modelPool: () => this.subagentModelOptions(),
+        customSubagents: () => directory.selection.customSubagents,
         host: {
           createChildSession: (input) => this.createChildSession(entry, input),
           disposeChildSession: (session) => this.closeSession(session),
@@ -3642,7 +3650,7 @@ export class AgentRuntime {
         goalBeforeTool && goalBeforeTool.validation?.workRevision === goalBeforeTool.workRevision,
       );
       if (
-        entry && goalBeforeTool && goalBeforeTool.status !== "complete" && (isPotentialGoalMutation(event.toolName, event.args) || (entry.session && this.mcpBridges.get(entry.session)?.isMutation(event.toolName))) &&
+        entry && goalBeforeTool && goalBeforeTool.status !== "complete" && (isPotentialGoalMutation(event.toolName, event.args, this.directory?.selection.customSubagents) || (entry.session && this.mcpBridges.get(entry.session)?.isMutation(event.toolName))) &&
         (event.toolName !== "bash" || hasFreshValidation)
       ) {
         this.advanceGoalWorkRevision(entry);
@@ -4238,11 +4246,16 @@ export class AgentRuntime {
   }
 
   /** Advertise current choices for both explicitly selected and inherited models. */
-  private subagentModelsExtension(): ExtensionFactory {
+  private subagentModelsExtension(callerKind?: SubagentKind): ExtensionFactory {
     return ((pi) => { pi.on("before_agent_start", (event, ctx) => {
       const options = this.subagentModelOptions();
       const inherited = ctx.model;
-      const messages = [subagentModelsPrompt(options)];
+      const profiles = event.systemPromptOptions.selectedTools.includes(spawnAgentToolName)
+        ? this.directory?.selection.customSubagents ?? [] : [];
+      const messages = [
+        subagentModelsPrompt(options),
+        customSubagentsPrompt(callerKind === "explore" ? profiles.filter(profile => profile.permission === "explore") : profiles),
+      ];
       if (inherited) {
         const levels = options.find(ref => ref.provider === inherited.provider && ref.modelId === inherited.id)?.thinkingLevels
           ?? thinkingLevelsFor(inherited);
@@ -4253,26 +4266,34 @@ export class AgentRuntime {
     }); }) as ExtensionFactory;
   }
 
+  private childModelSelection(directory: ModelDirectory, input: AgentSessionRequest): { model: Model<Api>; level: ThinkingLevel } {
+    const fixed = input.customProfile?.model;
+    if (fixed) {
+      const model = directory.requireAvailable(fixed.provider, fixed.modelId);
+      if (!thinkingLevelsFor(model).includes(fixed.thinkingLevel)) {
+        throw new Error(`The configured model ${fixed.provider}/${fixed.modelId} no longer supports reasoning effort ${fixed.thinkingLevel}.`);
+      }
+      return { model, level: fixed.thinkingLevel };
+    }
+    const parentModel = input.parentSession.model;
+    if (!parentModel || !directory.isAvailable(parentModel)) throw new Error("先选择一个已登录或已配置密钥的模型");
+    const pool = directory.availableSubagentModels();
+    const requested = input.model;
+    const chosen = requested && pool.find(({ model }) => model.provider === requested.provider && model.id === requested.modelId);
+    const model = chosen?.model ?? parentModel;
+    const allowed = chosen ?? pool.find(item => item.model.provider === model.provider && item.model.id === model.id);
+    const level = closestSubagentLevel(model, input.thinkingLevel ?? input.parentSession.thinkingLevel, allowed?.thinkingLevels ?? thinkingLevelsFor(model));
+    return { model, level };
+  }
+
   /**
-   * 为 agent 树创建子会话：独立 Pi 会话、独立上下文，继承父会话的模型、思考强度、
-   * 沙箱工具和指令；explore 追加只读守卫并只保留只读工具。
+   * 为 agent 树创建子会话：独立 Pi 会话、独立上下文，继承沙箱工具和指令；
+   * explore 追加只读守卫并只保留只读工具。
    */
   private async createChildSession(entry: Conversation, input: AgentSessionRequest): Promise<AgentSession> {
     if (entry.budget?.exhausted) throw new Error("任务用量已到上限，不能再创建子代理。");
     const directory = await this.readyDirectory();
-    const parentSession = input.parentSession;
-    const parentModel = parentSession.model;
-    if (!parentModel || !directory.isAvailable(parentModel)) {
-      throw new Error("先选择一个已登录或已配置密钥的模型");
-    }
-    // 子代理用派生时选的模型；它已不在模型池里或不可用了（比如用户后来改了设置）就退回父代理的模型。
-    const pool = directory.availableSubagentModels();
-    const chosen = input.model
-      ? pool.find(({ model }) => model.provider === input.model!.provider && model.id === input.model!.modelId)
-      : undefined;
-    const model = chosen?.model ?? parentModel;
-    const allowed = chosen ?? pool.find(item => item.model.provider === model.provider && item.model.id === model.id);
-    const level = closestSubagentLevel(model, input.thinkingLevel ?? parentSession.thinkingLevel, allowed?.thinkingLevels ?? thinkingLevelsFor(model));
+    const { model, level } = this.childModelSelection(directory, input);
     const childThinking = modelThinkingLevel(model, level);
     const cwd = entry.snapshot.cwd;
     const childNativeTools = () => this.tools.child(input.kind);
@@ -4292,7 +4313,7 @@ export class AgentRuntime {
       extensionFactories: [
         ...(input.kind === "explore" ? [{ name: "vela-explore", hidden: true, factory: createExploreGuardExtension() }] : []),
         { name: "vela-task-budget", hidden: true, factory: createTaskBudgetExtension(() => entry.budget?.exhausted === true) },
-        { name: "vela-subagent-models", hidden: true, factory: this.subagentModelsExtension() },
+        { name: "vela-subagent-models", hidden: true, factory: this.subagentModelsExtension(input.kind) },
         ...(input.beforeToolCall ? [{ name: "vela-agent-pause", hidden: true, factory: createAgentPauseExtension(input.beforeToolCall) }] : []),
         { name: "vela-hooks", hidden: true, factory: this.hooksExtension(entry, input.agentId, input.kind) },
         { name: "vela-memory", hidden: true, factory: this.memoryExtension(entry, input.agentId) },
@@ -4306,6 +4327,7 @@ export class AgentRuntime {
         ...base,
         ...(instructions ? [instructions] : []),
         agentKindPrompt(input.kind),
+        ...(input.customProfile?.systemPrompt ? [input.customProfile.systemPrompt] : []),
         ...(isUltra(level) ? [ultraInstructions] : []),
         ...(workspaceFoldersInstructions(cwd, this.options.workspaceFolders?.(cwd) ?? []) ?? []),
         ...(this.options.browserRepl && input.kind === "general" ? [this.browserInstructions()] : []),
@@ -5348,11 +5370,12 @@ function cloneGoal(goal: ConversationGoal | null): ConversationGoal | null {
   return { ...goal, validation };
 }
 
-function isPotentialGoalMutation(toolName: string, args: unknown): boolean {
+function isPotentialGoalMutation(toolName: string, args: unknown, profiles: readonly CustomSubagentProfile[] = []): boolean {
   if (toolName === "browser_repl" || toolName === "bash" || toolName === "edit" || toolName === "write") return true;
   if (toolName !== spawnAgentToolName) return false;
   if (!args || typeof args !== "object") return true;
-  return (args as { agent?: unknown }).agent !== "explore";
+  const agent = (args as { agent?: unknown }).agent;
+  return (findCustomSubagent(agent, profiles)?.permission ?? agent) !== "explore";
 }
 
 /** 等待投递给主代理的一条通知；wake 为假时只记录进上下文，不单独触发回合。 */

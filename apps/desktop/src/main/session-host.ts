@@ -332,6 +332,8 @@ export class SessionHost {
     ipcMain.handle(IpcChannel.saveAgentSettings, async (_event, raw: unknown) => {
       return this.runtime.saveAgentSettings(parseAgentSettings(raw));
     });
+    ipcMain.handle(IpcChannel.saveCustomSubagents, (_event, profiles: unknown, previous?: unknown) =>
+      this.runtime.saveCustomSubagents(profiles, previous));
     ipcMain.handle(IpcChannel.getIntelligentUi, () => this.runtime.getIntelligentUiSettings());
     ipcMain.handle(IpcChannel.setIntelligentUi, (_event, raw: unknown) => {
       if (!isUiPreference(raw)) throw new Error("Intelligent UI 偏好不正确");

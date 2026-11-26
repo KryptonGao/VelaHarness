@@ -7,13 +7,14 @@ import {
   type AgentSessionEvent,
   type ToolDefinition,
 } from "@earendil-works/pi-coding-agent";
-import { emptyAgentUsage, isAgentBusy, thinkingLevels, type ThinkingLevel, type SubagentModelRef, type AgentInfo, type AgentStatus, type AgentUsage, type ModelRef, type SubagentKind, type SubagentLimits } from "@vela/shared";
+import { emptyAgentUsage, isAgentBusy, thinkingLevels, type CustomSubagentProfile, type ThinkingLevel, type SubagentModelRef, type AgentInfo, type AgentStatus, type AgentUsage, type ModelRef, type SubagentKind, type SubagentLimits } from "@vela/shared";
 import { thinkingLevelsFor } from "./thinking-level";
 import { randomUUID } from "node:crypto";
 import { Type } from "typebox";
-import { normalizeStoredAgents, type StoredAgent } from "./agent-history";
+import { normalizeStoredAgents, storedAgentInfo, type StoredAgent } from "./agent-history";
 import {
   clipText,
+  findCustomSubagent,
   followupTaskToolName,
   formatAgentReport,
   lastAssistantText,
@@ -45,6 +46,7 @@ export interface AgentSessionRequest {
   parentPath: string;
   parentSession: AgentSession;
   kind: SubagentKind;
+  customProfile?: CustomSubagentProfile;
   name: string;
   path: string;
   forkMessages: AgentMessage[];
@@ -97,6 +99,7 @@ export interface AgentControlOptions {
   limits?: () => SubagentLimits;
   /** 每次派生前读取：允许模型自选的、当前可用的子代理模型池；缺省或为空时不开放选择。 */
   modelPool?: () => SubagentModelRef[];
+  customSubagents?: () => readonly CustomSubagentProfile[];
 }
 
 interface AgentTaskOutcome {
@@ -119,6 +122,7 @@ interface AgentTask {
 
 interface ManagedAgent {
   info: AgentInfo;
+  customProfile?: CustomSubagentProfile;
   session: AgentSession | null;
   /** 会话创建中/已创建的 Promise；子代理可以在父会话就绪前入队等待。 */
   sessionPromise: Promise<AgentSession> | null;
@@ -155,9 +159,9 @@ export class AgentControl {
 
   constructor(private readonly options: AgentControlOptions) {
     for (const stored of normalizeStoredAgents(options.restoredAgents)) {
-      const { sessionFile, ...info } = stored;
+      const info = storedAgentInfo(stored);
       this.agents.set(info.id, {
-        info, sessionFile, session: null, sessionPromise: null, unsubscribe: null,
+        info, customProfile: stored.profileDefinition, sessionFile: stored.sessionFile, session: null, sessionPromise: null, unsubscribe: null,
         queue: [], processing: false, running: false, aborted: false,
         disposed: false, paused: false, slot: false, resumeWaiters: [], generation: 0, fork: "none", notify: false,
       });
@@ -224,7 +228,7 @@ export class AgentControl {
 
   storedAgents(): StoredAgent[] {
     return [...this.agents.values()].filter((agent) => agent.info.kind !== "root")
-      .map((agent) => ({ ...cloneAgent(agent.info), sessionFile: agent.sessionFile }));
+      .map((agent) => ({ ...cloneAgent(agent.info), ...(agent.customProfile && { profileDefinition: agent.customProfile }), sessionFile: agent.sessionFile }));
   }
 
   /** 按 agentId 取会话，用于读取该子代理自己的消息历史。root 也可取。 */
@@ -247,11 +251,11 @@ export class AgentControl {
       name: spawnAgentToolName,
       label: "派生子代理",
       description:
-        "Start a persistent subagent. Subagents are costly (each runs its own model loop), so use this only for large, clearly separable work, never for a few reads, one search, small edits, or re-checking your own work; prefer doing it yourself. It returns the agent id and path immediately without waiting for the result. agent is explore (read-only) or general (can modify files). name is used as the last segment of the path (such as backend); fork decides how much of the parent context is inherited: none (default), all, or the most recent N turns. When the subagent fails, you are woken automatically; a successful conclusion is only recorded and you see it on your next turn. Set notify_on_finish to true when you will end your turn and want to be woken to report its result; use followup_task when you need to wait for the result.",
-      promptSnippet: "Start a persistent subagent for large, separable work only (explore = read-only / general = can modify files); costly, so prefer doing it yourself; returns the agent id immediately",
+        "Start a persistent subagent. Subagents are costly (each runs its own model loop), so use this only for large, clearly separable work, never for a few reads, one search, small edits, or re-checking your own work; prefer doing it yourself. It returns the agent id and path immediately without waiting for the result. Choose a built-in agent or a listed custom profile. name is used as the last segment of the path (such as backend); fork decides how much of the parent context is inherited: none (default), all, or the most recent N turns. When the subagent fails, you are woken automatically; a successful conclusion is only recorded and you see it on your next turn. Set notify_on_finish to true when you will end your turn and want to be woken to report its result; use followup_task when you need to wait for the result.",
+      promptSnippet: "Start a persistent subagent for large, separable work only (explore, general, or a listed custom profile); returns the agent id immediately",
       parameters: Type.Object({
-        agent: Type.Union([Type.Literal("explore"), Type.Literal("general")], {
-          description: "explore reads only; general can modify files and run commands",
+        agent: Type.String({
+          description: "explore (read-only), general (can modify files and run commands), or the name of a listed custom subagent",
         }),
         task: Type.String({ description: "The task to hand to the subagent, including the goal, scope, and completion criteria" }),
         name: Type.Optional(
@@ -288,6 +292,7 @@ export class AgentControl {
             agentId: info.id,
             path: info.path,
             kind: info.kind,
+            ...(info.customProfile && { customProfile: info.customProfile }),
             status: info.status,
             model: info.model ?? null,
             thinkingLevel: info.thinkingLevel,
@@ -317,6 +322,7 @@ export class AgentControl {
           ],
           details: {
             agentId: info.id, path: info.path, kind: info.kind, status: info.status,
+            ...(info.customProfile && { customProfile: info.customProfile }),
             model: info.model, thinkingLevel: info.effectiveThinkingLevel ?? info.thinkingLevel,
           },
         };
@@ -341,6 +347,7 @@ export class AgentControl {
             agentId: result.agent.id,
             path: result.agent.path,
             kind: result.agent.kind,
+            ...(result.agent.customProfile && { customProfile: result.agent.customProfile }),
             status: result.status,
             model: result.agent.model,
             thinkingLevel: result.agent.effectiveThinkingLevel ?? result.agent.thinkingLevel,
@@ -358,10 +365,16 @@ export class AgentControl {
   /** 创建一个子代理节点并立刻返回；会话创建和首个任务在后台完成。 */
   spawn(
     callerId: string,
-    input: { kind: SubagentKind; task: string; name?: string; fork?: ContextFork; notify?: boolean; model?: string; thinkingLevel?: ThinkingLevel },
+    input: { kind: string; task: string; name?: string; fork?: ContextFork; notify?: boolean; model?: string; thinkingLevel?: ThinkingLevel },
   ): AgentInfo {
     const caller = this.requireAgent(callerId);
-    const kind = input.kind;
+    const profiles = this.options.customSubagents?.() ?? [];
+    const profile = findCustomSubagent(input.kind, profiles);
+    const kind = profile?.permission ?? input.kind;
+    if (kind !== "explore" && kind !== "general") {
+      const names = ["explore", "general", ...profiles.map(item => item.name)];
+      throw new Error(`Unknown subagent ${JSON.stringify(input.kind)}. Available agents: ${names.join(", ")}.`);
+    }
     if (caller.info.kind === "explore" && kind !== "explore") {
       throw new Error("查阅子代理只能创建 explore 子代理。");
     }
@@ -381,16 +394,10 @@ export class AgentControl {
     }
     const task = input.task.trim();
     if (!task) throw new Error("任务不能为空。");
-    const pool = this.options.modelPool?.() ?? [];
-    const choice = this.resolveModel(input.model, pool);
-    const parentModel = caller.session?.model;
-    const effective = choice ?? pool.find(ref => ref.provider === parentModel?.provider && ref.modelId === parentModel.id);
-    const levels = effective?.thinkingLevels ?? (parentModel && !choice ? thinkingLevelsFor(parentModel) : undefined);
-    if (levels?.length === 0 || (input.thinkingLevel !== undefined && !levels?.includes(input.thinkingLevel))) {
-      throw new Error(`Invalid reasoning_effort for this model. Allowed levels: ${levels?.join(", ") || "none"}.`);
-    }
+    const choice = profile?.model ?? this.resolveModel(input.model, input.thinkingLevel, caller);
+    const thinkingLevel = profile?.model?.thinkingLevel ?? input.thinkingLevel;
     const model = choice ? { provider: choice.provider, modelId: choice.modelId } : null;
-    const name = this.uniqueName(caller, kind, input.name);
+    const name = this.uniqueName(caller, kind, input.name, profile?.name);
     const path = `${caller.info.path}/${name}`;
     const now = Date.now();
     const info: AgentInfo = {
@@ -399,6 +406,7 @@ export class AgentControl {
       path,
       name,
       kind,
+      ...(profile && { customProfile: { name: profile.name, icon: profile.icon } }),
       status: "idle",
       depth,
       task: oneLine(task, 160),
@@ -411,12 +419,13 @@ export class AgentControl {
       runningSince: null,
       pauseRequested: false,
       model,
-      ...(input.thinkingLevel && { thinkingLevel: input.thinkingLevel }),
+      ...(thinkingLevel && { thinkingLevel }),
       createdAt: now,
       updatedAt: now,
     };
     const agent: ManagedAgent = {
       info,
+      ...(profile && { customProfile: structuredClone(profile) }),
       session: null,
       sessionPromise: null,
       unsubscribe: null,
@@ -443,7 +452,19 @@ export class AgentControl {
    * 把工具参数里的 provider/modelId 对到模型池。没写就沿用父代理（null）；
    * 池为空或写的不在池里就报错，并列出可选项，让模型自己改正。
    */
-  private resolveModel(raw: string | undefined, pool: SubagentModelRef[]): SubagentModelRef | null {
+  private resolveModel(raw: string | undefined, thinkingLevel: ThinkingLevel | undefined, caller: ManagedAgent): SubagentModelRef | null {
+    const pool = this.options.modelPool?.() ?? [];
+    const choice = this.poolModel(raw, pool);
+    const parentModel = caller.session?.model;
+    const effective = choice ?? pool.find(ref => ref.provider === parentModel?.provider && ref.modelId === parentModel.id);
+    const levels = effective?.thinkingLevels ?? (parentModel && !choice ? thinkingLevelsFor(parentModel) : undefined);
+    if (levels?.length === 0 || (thinkingLevel !== undefined && !levels?.includes(thinkingLevel))) {
+      throw new Error(`Invalid reasoning_effort for this model. Allowed levels: ${levels?.join(", ") || "none"}.`);
+    }
+    return choice;
+  }
+
+  private poolModel(raw: string | undefined, pool: SubagentModelRef[]): SubagentModelRef | null {
     const text = raw?.trim();
     if (!text) return null;
     if (pool.length === 0) throw new Error("没有开放子代理模型选择，请省略 model 参数，子代理会使用你自己的模型。");
@@ -714,8 +735,8 @@ export class AgentControl {
     return count;
   }
 
-  private uniqueName(parent: ManagedAgent, kind: SubagentKind, raw: string | undefined): string {
-    const base = slug(raw) || `${kind}-${(this.spawnSequence += 1)}`;
+  private uniqueName(parent: ManagedAgent, kind: SubagentKind, raw?: string, profileName?: string): string {
+    const base = slug(raw) || slug(profileName, true) || `${kind}-${(this.spawnSequence += 1)}`;
     const taken = new Set(
       [...this.agents.values()]
         .filter((agent) => agent.info.parentId === parent.info.id)
@@ -785,6 +806,9 @@ export class AgentControl {
 
   /** 创建子会话前先等父会话就绪，支持子代理再派子代理时晚于父代理启动。 */
   private async createChildSessionFor(agent: ManagedAgent): Promise<AgentSession> {
+    if (agent.info.customProfile && !agent.customProfile) {
+      throw new Error("The original custom subagent configuration is missing from this conversation’s history.");
+    }
     const parent = agent.info.parentId ? this.agents.get(agent.info.parentId) ?? null : null;
     if (!parent) throw new Error("父代理不存在，无法创建子代理。");
     const parentSession = await this.ensureSession(parent);
@@ -795,6 +819,7 @@ export class AgentControl {
       parentPath: parent.info.path,
       parentSession,
       kind: agent.info.kind as SubagentKind,
+      customProfile: agent.customProfile,
       name: agent.info.name,
       path: agent.info.path,
       forkMessages: selectForkMessages(parentSession.messages, agent.fork),
@@ -1120,7 +1145,7 @@ function stoppedOutcome(): AgentTaskOutcome {
 
 function spawnText(info: AgentInfo, fork: ContextFork): string {
   return [
-    `已启动子代理 ${info.path}（${info.kind}，fork=${String(fork)}${info.model ? `，model=${info.model.provider}/${info.model.modelId}` : ""}）。`,
+    `已启动子代理 ${info.path}（${info.customProfile?.name ?? info.kind}，fork=${String(fork)}${info.model ? `，model=${info.model.provider}/${info.model.modelId}` : ""}）。`,
     "它在后台独立执行；失败会唤醒你，成功的结论只记入上下文（传 notify_on_finish 才会唤醒）。需要等结果时用 followup_task，补充要求用 send_message。",
   ].join("\n");
 }
@@ -1134,12 +1159,12 @@ function oneLine(text: string, max: number): string {
   return clipText(line, max).text;
 }
 
-function slug(raw: string | undefined): string {
+function slug(raw: string | undefined, localized = false): string {
   if (!raw) return "";
-  return raw
+  const segment = raw
     .trim()
     .toLowerCase()
-    .replace(/[^a-z0-9_-]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 24);
+    .replace(localized ? /[^\p{L}\p{M}\p{N}_-]+/gu : /[^a-z0-9_-]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return Array.from(segment).slice(0, 24).join("");
 }

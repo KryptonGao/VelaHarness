@@ -223,7 +223,7 @@ function AgentsBody({ ctx }: { ctx: InfoCardContext }) {
     <div className="info-card-rows">
       {subagentsOf(ctx).map((agent) => (
         <button key={agent.id} type="button" className="info-card-row" title={agent.task || agent.path} onClick={() => ctx.onOpenAgent(agent.id)}>
-          <AgentAvatar agentId={agent.id} />
+          <AgentAvatar agentId={agent.id} icon={agent.customProfile?.icon} />
           <span className="info-card-row-main">{agent.name}</span>
           {isAgentBusy(agent.status) ? <span className="info-card-spin" aria-hidden="true" /> : null}
           <span className={`info-card-chip is-${agent.status}`}>{tr(...agentStatusLabels[agent.status])}</span>

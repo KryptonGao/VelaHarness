@@ -1,4 +1,4 @@
-import type { ConversationSummary } from "@vela/shared";
+import type { AgentInfo, ConversationSummary } from "@vela/shared";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { useModels } from "../hooks/useModels";
 import type { PreferencesApi } from "../hooks/usePreferences";
@@ -55,6 +55,7 @@ interface SettingsViewProps {
   models: ModelsApi;
   project: ProjectApi;
   conversations: ConversationSummary[];
+  agents?: readonly AgentInfo[];
   conversationId?: string | null;
   onUnarchiveConversation: (id: string) => void;
   /** 重新播放引导里的介绍（不改动任何设置）。 */
@@ -72,6 +73,7 @@ export function SettingsView({
   models,
   project,
   conversations,
+  agents,
   conversationId,
   onUnarchiveConversation,
   onReplayIntro,
@@ -185,7 +187,7 @@ export function SettingsView({
           </div>
           {page === "approvals" ? <ApprovalRecordsPage copy={copy} workspacePath={workspacePath} /> : null}
           <div hidden={page !== "subagents"}>
-            <SubagentModelsPage copy={copy} catalog={models.catalog} hiddenModels={preferences.hiddenModels} />
+            <SubagentModelsPage copy={copy} catalog={models.catalog} hiddenModels={preferences.hiddenModels} agents={agents} />
           </div>
           <div hidden={page !== "display"}>
             <ConversationDisplayPage copy={copy} preferences={preferences} catalog={models.catalog} />

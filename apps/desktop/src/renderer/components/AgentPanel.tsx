@@ -179,6 +179,16 @@ export function agentKindLabel(kind: AgentInfo["kind"] | SubagentKind | undefine
   return tr("子代理", "Subagent");
 }
 
+export function AgentTypeLabel({ kind, profile, className }: {
+  kind: AgentInfo["kind"] | undefined;
+  profile?: AgentInfo["customProfile"];
+  className: string;
+}) {
+  return <span className={profile ? `${className} agent-profile-name` : className} title={profile?.name}>
+    {profile ? <span className="overflow-fade-text">{profile.name}</span> : agentKindLabel(kind)}
+  </span>;
+}
+
 /** 子代理实际使用的模型；旧记录没存模型时不显示。 */
 export function AgentModelTag({ model, thinkingLevel }: { model: ModelRef | null | undefined; thinkingLevel?: AgentInfo["thinkingLevel"] }) {
   const catalog = useContext(ThinkingModelCatalogContext);

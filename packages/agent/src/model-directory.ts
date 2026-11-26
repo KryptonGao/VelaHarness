@@ -14,6 +14,8 @@ import {
   type AuthPromptRequest,
   type AuthSource,
   type AgentSettings,
+  type CustomSubagentProfile,
+  parseCustomSubagents,
   type CustomModelApi,
   type CustomModelInput,
   type ModelAuthEvent,
@@ -40,6 +42,7 @@ import { constants } from "node:fs";
 import { clampThinkingLevelFor, thinkingLevelsFor } from "./thinking-level";
 import { chmod, copyFile, link, mkdir, readFile, rename, unlink, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import { isDeepStrictEqual } from "node:util";
 
 const defaultThinkingLevel: ThinkingLevel = "medium";
 
@@ -51,6 +54,7 @@ export interface ModelSelection {
   instructions: string;
   /** 允许模型派生子代理时自行选择的模型池。 */
   subagentModels: SubagentModelRef[];
+  customSubagents: CustomSubagentProfile[];
 }
 
 /** 上一次在对话中使用过的模型、思考强度与速度。 */
@@ -124,6 +128,7 @@ export class ModelDirectory {
     newConversationSelection: "default",
     instructions: "",
     subagentModels: [],
+    customSubagents: [],
   };
 
   private lastUsed: LastUsedSelection = {
@@ -407,6 +412,7 @@ export class ModelDirectory {
       newConversationSelection: this.selection.newConversationSelection,
       instructions: this.selection.instructions,
       subagentModels: structuredClone(this.selection.subagentModels),
+      customSubagents: structuredClone(this.selection.customSubagents),
     };
   }
 
@@ -450,8 +456,32 @@ export class ModelDirectory {
     const subagentModels = input.subagentModels === undefined
       ? this.selection.subagentModels
       : normalizeModelRefs(input.subagentModels, true);
-    this.selection = { provider, modelId, thinkingLevel, newConversationSelection, instructions, subagentModels };
+    this.selection = { ...this.selection, provider, modelId, thinkingLevel, newConversationSelection, instructions, subagentModels };
     await this.writeSelection();
+    return this.getSettings();
+  }
+
+  async saveCustomSubagents(input: unknown, previous?: unknown): Promise<AgentSettings> {
+    this.assertWritable();
+    let profiles = parseCustomSubagents(input);
+    if (previous !== undefined) {
+      const base = new Map(parseCustomSubagents(previous).map(profile => [profile.id, profile]));
+      const updates = new Map(profiles.map(profile => [profile.id, profile]));
+      const current = new Map(this.selection.customSubagents.map(profile => [profile.id, profile]));
+      for (const id of new Set([...base.keys(), ...updates.keys()])) {
+        const before = base.get(id);
+        const after = updates.get(id);
+        if (isDeepStrictEqual(before, after) || isDeepStrictEqual(current.get(id), after)) continue;
+        if (!isDeepStrictEqual(current.get(id), before)) {
+          throw new Error("自定义子代理已被其他窗口修改，请重新检查");
+        }
+        if (after) current.set(id, after);
+        else current.delete(id);
+      }
+      profiles = parseCustomSubagents([...current.values()]);
+    }
+    await this.writeSelection(profiles);
+    this.selection.customSubagents = profiles;
     return this.getSettings();
   }
 
@@ -744,6 +774,7 @@ export class ModelDirectory {
           provider, modelId, thinkingLevel, newConversationSelection,
           instructions: readInstructions(record.instructions),
           subagentModels: normalizeModelRefs(record.subagentModels, false),
+          customSubagents: parseCustomSubagents(record.customSubagents, false),
         },
         lastUsed: readLastUsed(record.lastUsed),
       };
@@ -752,13 +783,14 @@ export class ModelDirectory {
     }
   }
 
-  private async writeSelection(): Promise<void> {
+  private async writeSelection(customSubagents = this.selection.customSubagents): Promise<void> {
     const body: Record<string, unknown> = {
       thinkingLevel: this.selection.thinkingLevel,
       newConversationSelection: this.selection.newConversationSelection,
       instructions: this.selection.instructions,
     };
     if (this.selection.subagentModels.length > 0) body.subagentModels = this.selection.subagentModels;
+    if (customSubagents.length > 0) body.customSubagents = customSubagents;
     if (this.selection.provider && this.selection.modelId) {
       body.provider = this.selection.provider;
       body.modelId = this.selection.modelId;

@@ -50,6 +50,7 @@ const suites = {
     { name: "intelligent-ui-ui", runner: "node" },
     { name: "agent-inbox-ui", runner: "node" },
     { name: "agent-avatar-ui", runner: "node" },
+    { name: "subagent-models-settings-ui", runner: "node" },
     { name: "trace-agent-ui", runner: "electron" },
     { name: "task-budget-ui", runner: "node" },
     { name: "nav-rail-ui", runner: "node" },

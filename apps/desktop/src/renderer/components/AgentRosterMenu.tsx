@@ -4,7 +4,7 @@ import { useDismissable } from "../hooks/useDismissable";
 import { tr, trf } from "../locale";
 import { AgentAvatar } from "./AgentAvatar";
 import {
-  AgentControls, AgentModelTag, AgentRunStats, AgentStatusMark, agentKindLabel, agentStateText, formatTokenCount, useAgentClock,
+  AgentControls, AgentModelTag, AgentRunStats, AgentStatusMark, AgentTypeLabel, agentStateText, formatTokenCount, useAgentClock,
 } from "./AgentPanel";
 import { Icon } from "./icons";
 
@@ -46,7 +46,7 @@ export function AgentRosterMenu({ agents, activeId, onSelect, onSelectRoot, onCo
         onClick={() => setOpen((value) => !value)}
       >
         {onSelectRoot ? <>
-          {selected ? <AgentAvatar agentId={selected.id} /> : <Icon name="sparkles" size={14} />}
+          {selected ? <AgentAvatar agentId={selected.id} icon={selected.customProfile?.icon} /> : <Icon name="sparkles" size={14} />}
           <span className="overflow-fade-text">{label}</span>
           {items.length > 0 && <Icon name="chevron-down" size={12} />}
         </> : <Icon name="branch" size={14} />}
@@ -80,10 +80,10 @@ export function AgentRosterMenu({ agents, activeId, onSelect, onSelectRoot, onCo
               style={{ paddingLeft: 10 + Math.max(0, item.depth - 1) * 14 }}>
               <button className="agent-roster-menu-item" type="button" role="option" title={item.path}
                 aria-selected={item.id === activeId} onClick={() => { close(); onSelect(item.id); }}>
-                <AgentAvatar agentId={item.id} />
+                <AgentAvatar agentId={item.id} icon={item.customProfile?.icon} />
                 <AgentStatusMark status={item.status} />
                 <span className="agent-roster-menu-path">{item.path}</span>
-                <span className="agent-roster-menu-meta">{agentKindLabel(item.kind)}</span>
+                <AgentTypeLabel className="agent-roster-menu-meta" kind={item.kind} profile={item.customProfile} />
                 <AgentModelTag model={item.model} thinkingLevel={item.effectiveThinkingLevel ?? item.thinkingLevel} />
               </button>
               <div className="agent-roster-row-detail">

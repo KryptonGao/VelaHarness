@@ -68,6 +68,8 @@ export * from "./visual-demo";
 import type { VisualDemo } from "./visual-demo";
 export * from "./custom-commands";
 import type { CustomCommandCatalog } from "./custom-commands";
+export * from "./custom-subagents";
+import type { CustomSubagentIdentity, CustomSubagentProfile } from "./custom-subagents";
 import type { UpdatesApi } from "./updates";
 import type { ReleaseNotesApi } from "./release-notes";
 import type { TraceSnapshot, TraceDetails, TraceUpdate } from "./trace";
@@ -269,6 +271,7 @@ export const IpcChannel = {
   workspaceSearch: "workspace:code-search",
   getAgentSettings: "agent:get-settings",
   saveAgentSettings: "agent:save-settings",
+  saveCustomSubagents: "agent:save-custom-subagents",
   getIntelligentUi: "intelligent-ui:get",
   setIntelligentUi: "intelligent-ui:set",
   setIntelligentUiMicroApps: "intelligent-ui:set-micro-apps",
@@ -544,6 +547,8 @@ export interface AgentSettings {
    * 保存时缺省表示保持原值。
    */
   subagentModels?: SubagentModelRef[];
+  /** User-defined profiles, edited independently through saveCustomSubagents. */
+  customSubagents?: CustomSubagentProfile[];
 }
 
 export const customModelApis = [
@@ -1013,6 +1018,7 @@ export interface AgentInfo {
   /** 路径最后一段的展示名。 */
   name: string;
   kind: AgentKind;
+  customProfile?: CustomSubagentIdentity;
   status: AgentStatus;
   /** root 为 0，子代理逐层 +1。 */
   depth: number;
@@ -1083,6 +1089,7 @@ export interface ToolActivity {
   agentPrompt?: string;
   /** task 子代理类型 */
   agent?: SubagentKind;
+  customProfile?: CustomSubagentIdentity;
   /** 常驻子代理的 id 和路径，供界面把卡片关联到 agent 列表。 */
   agentId?: string;
   agentPath?: string;
@@ -3347,6 +3354,7 @@ export interface VelaApi extends McpApi, PluginApi, HooksApi {
   removeModel(provider: string, id: string): Promise<AppState>;
   getAgentSettings(): Promise<AgentSettings>;
   saveAgentSettings(settings: AgentSettings): Promise<AgentSettings>;
+  saveCustomSubagents(profiles: CustomSubagentProfile[], previous?: CustomSubagentProfile[]): Promise<AgentSettings>;
   /** Intelligent UI 偏好：决定模型是否被告知可以生成交互界面。 */
   getIntelligentUi(): Promise<IntelligentUiState>;
   setIntelligentUi(preference: UiPreference): Promise<IntelligentUiState>;

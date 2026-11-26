@@ -3,12 +3,13 @@
  * (optionally with ?locale=<id>, ?appearance=dark, ?empty=1 for no models, ?stale=1 for a pool entry that is no longer available).
  * Nothing here touches real settings.
  */
-import type { AgentSettings, ModelCatalog, ModelSummary } from "@vela/shared";
+import type { AgentSettings, CustomSubagentProfile, ModelCatalog, ModelSummary } from "@vela/shared";
 import React from "react";
 import { createRoot } from "react-dom/client";
 import { settingsCopy } from "../src/renderer/components/settings-copy";
 import { SubagentModelsPage } from "../src/renderer/components/settings/SubagentModelsPage";
 import { usePreferences } from "../src/renderer/hooks/usePreferences";
+import { setActiveLocale } from "../src/renderer/locale";
 import "../src/renderer/styles.css";
 
 const params = new URLSearchParams(location.search);
@@ -49,10 +50,15 @@ const api: Record<string, unknown> = {
   saveAgentSettings: async (next: AgentSettings) => {
     writes.push(next);
     await delay(250);
-    settings = { ...next, subagentModels: next.subagentModels?.map(ref => ({
+    settings = { ...next, customSubagents: settings.customSubagents, subagentModels: next.subagentModels?.map(ref => ({
       ...ref,
       ...(ref.description === undefined ? {} : { description: ref.description.trim() || undefined }),
     })) };
+    return settings;
+  },
+  saveCustomSubagents: async (profiles: CustomSubagentProfile[]) => {
+    await delay(100);
+    settings = { ...settings, customSubagents: structuredClone(profiles) };
     return settings;
   },
 };
@@ -65,6 +71,7 @@ const api: Record<string, unknown> = {
 
 function Harness() {
   const prefs = usePreferences();
+  setActiveLocale(prefs.locale);
   const copy = settingsCopy(prefs.locale);
   return (
     <main className="settings-view" style={{ height: "100vh", background: "var(--bg-chat)" }}>

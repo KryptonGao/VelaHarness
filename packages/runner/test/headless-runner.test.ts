@@ -145,6 +145,55 @@ describe("runHeadless", () => {
     assert.equal(agents.find(agent => agent.task === "Check inherited effort")?.effectiveThinkingLevel, "low");
   });
 
+  it("runs custom subagents with their own prompts, permissions, model and effort", { timeout: 60_000 }, async t => {
+    const f = await fixture(t, ({ index }) => index === 0 ? { toolCalls: [
+      { name: "spawn_agent", arguments: { agent: "代码审阅", task: "Review the changes" } },
+      { name: "spawn_agent", arguments: { agent: "Implementer", task: "Implement the change" } },
+    ] } : "Done.");
+    const modelsPath = join(f.configDir, "models.json");
+    const models = JSON.parse(await readFile(modelsPath, "utf8"));
+    const catalog = models.providers["fake-local"].models;
+    catalog.push({ ...catalog[0], id: "review-model", name: "Review model", reasoning: true });
+    await writeFile(modelsPath, JSON.stringify(models));
+    const selectionPath = join(f.configDir, "selection.json");
+    const settings = JSON.parse(await readFile(selectionPath, "utf8"));
+    const reviewer = {
+      id: "ea581253-127c-4215-9bc5-32a5bf09c2a5", name: "代码审阅", icon: "review-bot",
+      permission: "explore", description: "Review changes for compatibility.", systemPrompt: "Cite the changed lines in each finding.",
+      model: { provider: "fake-local", modelId: "review-model", thinkingLevel: "high" },
+    };
+    const implementer = {
+      id: "62d9dc83-5ea7-4f3c-898e-cd2b93e4c92a", name: "Implementer", icon: "implementation-bot",
+      permission: "general", description: "Implement scoped changes.", systemPrompt: "Summarize the files you modified.",
+    };
+    await writeFile(selectionPath, JSON.stringify({ ...settings, customSubagents: [reviewer, implementer] }));
+
+    const result = await f.run();
+    assert.equal(result.status, "completed", JSON.stringify(result.error));
+    assert.deepEqual(result.subagentFailures, []);
+    const parent = JSON.stringify(f.model.requests[0]?.body);
+    assert.ok(parent.includes(reviewer.description) && parent.includes(implementer.description));
+    assert.ok(!parent.includes(reviewer.systemPrompt) && !parent.includes(implementer.systemPrompt));
+    const childRequest = (prompt: string) => {
+      const child = f.model.requests.find(({ body }) => body.messages.some(message =>
+        (message.role === "system" || message.role === "developer") && JSON.stringify(message.content).includes(prompt)));
+      assert.ok(child, `Expected a child system prompt containing "${prompt}"`);
+      return child.body;
+    };
+    const review = childRequest(reviewer.systemPrompt);
+    const implementation = childRequest(implementer.systemPrompt);
+    const toolNames = (body: FakeRequest["body"]) =>
+      (body.tools as { function: { name: string } }[]).map(tool => tool.function.name);
+    assert.equal(review.model, "review-model");
+    assert.equal(review.reasoning_effort, "high");
+    assert.ok(toolNames(review).includes("read"));
+    assert.ok(!toolNames(review).includes("write") && !toolNames(review).includes("edit"));
+    assert.equal(implementation.model, "fake-model");
+    assert.ok(toolNames(implementation).includes("edit") && toolNames(implementation).includes("write"));
+    const index = JSON.parse(await readFile(join(result.runDir, "agent", "conversations.json"), "utf8"));
+    assert.ok(index.conversations[0].agents.some((agent: { path: string }) => agent.path === "/root/代码审阅"));
+  });
+
   it("times out and leaves no background process behind", { timeout: 60_000 }, async (t) => {
     const token = `29.${process.pid}${Date.now() % 100000}`;
     const f = await fixture(t, ({ index }) => index === 0 ? bash(`sleep ${token}`, { run_in_background: true }) : "Started; waiting.");

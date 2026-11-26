@@ -1280,3 +1280,42 @@ button.settings-radio:hover:not(:disabled) { background: var(--bg-hover); }
 .subagent-effort-option > svg { color: var(--accent-blue); }
 .subagent-effort-dialog .subagent-effort-option:focus-visible { outline-offset: -3px; }
 .subagent-effort-dialog .workspace-settings-actions { justify-content: flex-end; }
+
+/* Custom subagents share the model settings page and use the conversation avatars. */
+.custom-subagents { container-type: inline-size; }
+.custom-subagents-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.custom-agent-add { display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.custom-agent-list { list-style: none; margin: 2px 0 0; padding: 0; }
+.custom-agent-list li { display: flex; align-items: center; gap: 10px; padding: 12px 0; border-top: 1px solid var(--border-subtle); }
+.custom-agent-summary { display: grid; gap: 3px; flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.custom-agent-summary strong { font-size: calc(15px * var(--ui-scale)); font-weight: 600; }
+.custom-agent-summary p, .custom-agent-summary small { color: var(--text-secondary); line-height: 1.4; }
+.custom-agent-summary p { margin: 0; font-size: calc(14px * var(--ui-scale)); }
+.custom-agent-summary small { color: var(--text-muted); font-size: calc(12px * var(--ui-scale)); }
+.custom-subagents fieldset { min-width: 0; border: 0; margin: 0; padding: 0; }
+.custom-agent-delete { min-width: 28px; min-height: 28px; display: grid; place-items: center; padding: 4px; border-radius: var(--radius-md); background: transparent; color: var(--text-muted); }
+.custom-agent-delete:hover, .custom-agent-delete.is-armed { background: var(--bg-hover); color: var(--danger); }
+.custom-agent-editor { display: grid; gap: 16px; padding: 16px; background: var(--bg-surface-subtle); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); }
+.custom-agent-editor > fieldset { display: grid; gap: 14px; }
+.custom-agent-editor .field, .custom-agent-field { display: grid; min-width: 0; align-content: start; gap: 6px; font-size: calc(13px * var(--ui-scale)); color: var(--text-secondary); }
+.custom-agent-editor :is(input, textarea) { min-width: 0; color: var(--text-primary); font-size: calc(14px * var(--ui-scale)); }
+.custom-agent-editor .settings-textarea { min-height: 98px; }
+.custom-agent-identity { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: center; }
+.custom-agent-avatar { display: grid; place-items: center; width: 58px; height: 58px; border-radius: var(--radius-md); background: var(--bg-elevated); border: 1px solid var(--border-subtle); }
+.custom-agent-icon-picker, .custom-agent-icon-options, .custom-agent-pager, .custom-agent-actions { display: flex; align-items: center; gap: 4px; }
+.custom-agent-icon-picker { gap: 8px; flex-wrap: wrap; }
+.custom-agent-pager .settings-secondary { width: 30px; height: 30px; display: grid; place-items: center; padding: 0; color: var(--text-secondary); }
+.custom-agent-pager .settings-secondary:hover:not(:disabled) { color: var(--text-primary); background: var(--settings-pressed); }
+.custom-agent-pager .settings-secondary:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 2px; }
+.custom-agent-pager .settings-secondary:disabled { color: var(--text-muted); opacity: .32; }
+.custom-agent-icon-options { flex-wrap: wrap; }
+.custom-agent-icon { display: grid; place-items: center; width: 38px; height: 38px; padding: 2px; background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); }
+.custom-agent-icon:hover { border-color: var(--border-strong); }
+.custom-agent-icon[aria-pressed="true"] { border-color: var(--accent-blue); box-shadow: inset 0 0 0 1px var(--accent-blue); }
+.custom-agent-controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); gap: 12px; }
+.custom-agent-actions { justify-content: flex-end; gap: 8px; }
+.custom-agent-error { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+@container (max-width: 370px) {
+  .custom-subagents-head { flex-wrap: wrap; gap: 8px; }
+  .custom-agent-editor { padding: 12px; }
+}

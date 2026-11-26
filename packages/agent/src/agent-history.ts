@@ -1,9 +1,14 @@
 import type { AgentMessage } from "@earendil-works/pi-agent-core";
-import { agentStatuses, emptyAgentUsage, thinkingLevels, type ThinkingLevel, type AgentInfo, type AgentUsage, type ModelRef, type TranscriptMessage } from "@vela/shared";
+import { agentStatuses, emptyAgentUsage, parseCustomSubagentIdentity, parseCustomSubagentProfile, thinkingLevels, type CustomSubagentProfile, type ThinkingLevel, type AgentInfo, type AgentUsage, type ModelRef, type TranscriptMessage } from "@vela/shared";
 
 /** 子代理索引；完整消息保存在独立的 Pi JSONL 会话里。 */
 export interface StoredAgent extends AgentInfo {
   sessionFile: string | null;
+  profileDefinition?: CustomSubagentProfile;
+}
+
+export function storedAgentInfo({ sessionFile: _file, profileDefinition: _definition, ...info }: StoredAgent): AgentInfo {
+  return info;
 }
 
 function modelRef(value: unknown): ModelRef | null {
@@ -21,6 +26,13 @@ export function normalizeStoredAgents(value: unknown): StoredAgent[] {
     if (!record || typeof record.id !== "string" || !record.id || seen.has(record.id)
       || typeof record.path !== "string" || !record.path.startsWith("/root/")
       || (record.kind !== "explore" && record.kind !== "general")) continue;
+    let profileDefinition: CustomSubagentProfile | undefined;
+    if (record.profileDefinition !== undefined) {
+      try { profileDefinition = parseCustomSubagentProfile(record.profileDefinition); }
+      catch { continue; }
+      if (profileDefinition.permission !== record.kind) continue;
+    }
+    const customProfile = parseCustomSubagentIdentity(profileDefinition ?? record.customProfile);
     seen.add(record.id);
     const status = agentStatuses.includes(record.status as AgentInfo["status"])
       ? record.status as AgentInfo["status"] : "aborted";
@@ -31,6 +43,8 @@ export function normalizeStoredAgents(value: unknown): StoredAgent[] {
       path: record.path,
       name: typeof record.name === "string" ? record.name : record.path.split("/").at(-1) ?? "agent",
       kind: record.kind,
+      ...(customProfile && { customProfile }),
+      ...(profileDefinition && { profileDefinition }),
       // 进程退出后原来的任务不会自动续跑，不能继续显示运行中。
       status: status === "running" || status === "idle" || status === "paused" ? "aborted" : status,
       depth: record.path.split("/").filter(Boolean).length - 1,

@@ -296,4 +296,20 @@ describe("子代理列表校验", () => {
       activity: { agentId: "a1", model: { provider: "openai", modelId: "gpt-5" } } });
     assert.deepEqual(event?.type === "tool_start" ? event.activity.model : null, { provider: "openai", modelId: "gpt-5" });
   });
+  it("retains custom identity and reasoning effort through IPC and stream updates", () => {
+    const identity = { name: "Reviewer", icon: "review-bot" };
+    const [agent] = sanitizeAgents([{ ...base, customProfile: { ...identity, privateField: "omit" }, effectiveThinkingLevel: "high" }]);
+    assert.deepEqual(agent?.customProfile, identity);
+    assert.equal(agent?.effectiveThinkingLevel, "high");
+    const messages = reduce([
+      { type: "tool_start", toolName: "spawn_agent", toolCallId: "custom", activity: {
+        customProfile: identity, thinkingLevel: "low", model: { provider: "local", modelId: "reviewer" },
+      } },
+      { type: "tool_output", toolCallId: "custom", activity: { body: "Started" } },
+    ]);
+    const activity = messages.at(-1)?.tools[0]?.activity;
+    assert.deepEqual(activity?.customProfile, identity);
+    assert.equal(activity?.thinkingLevel, "low");
+    assert.equal(activity?.model?.modelId, "reviewer");
+  });
 });

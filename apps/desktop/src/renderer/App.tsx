@@ -1410,6 +1410,7 @@ export function App() {
                 </Presence>
                 <Presence present={settingsVisible} className="main-stage-pane page-stage settings-stage">
                   <SettingsView
+                    agents={allAgents}
                     sidebarResize={pageResize}
                     onShowNavigation={railMode ? showLeft : undefined}
                     onPreviewSound={sounds.preview}

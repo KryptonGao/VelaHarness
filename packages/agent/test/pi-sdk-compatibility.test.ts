@@ -237,6 +237,18 @@ describe("released Pi SDK compatibility", () => {
     assert.deepEqual(restored.getActiveToolNames(), ["read", "bash", "memory_read"]);
   });
 
+  it("reports unavailable fixed models and efforts before a custom child makes a request", async t => {
+    const f = await fixture(t);
+    const input: AgentSessionRequest = { agentId: "custom-scout", parentId: f.id, parentPath: "/root", parentSession: f.session,
+      kind: "explore", name: "scout", path: "/root/scout", forkMessages: [], customTools: [] };
+    const profile = { id: "scout", name: "Scout", icon: "scout", permission: "explore" as const, description: "", systemPrompt: "" };
+    await assert.rejects(f.child({ ...input, customProfile: { ...profile,
+      model: { provider: "compat-local", modelId: "removed-model", thinkingLevel: "off" } } }), /找不到这个模型/);
+    await assert.rejects(f.child({ ...input, customProfile: { ...profile,
+      model: { provider: "compat-local", modelId: "compat-model", thinkingLevel: "high" } } }), /no longer supports reasoning effort high/);
+    assert.equal(f.requests.length, 0);
+  });
+
   it("reopens synthetic legacy API-key and Codex OAuth credentials without changing the selected provider", async t => {
     const root = await mkdtemp(join(tmpdir(), "vela-pi-auth-"));
     t.after(() => rm(root, { recursive: true, force: true }));
