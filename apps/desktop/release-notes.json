@@ -1,134 +1,134 @@
 {
-  "version": "1.3.0",
+  "version": "1.3.1",
   "locales": {
     "en": {
-      "summary": "Work in a borderless window with translucent sidebars, and connect multiple accounts per provider, including ChatGPT sign-in.",
+      "summary": "Inspect what subagents did, track Codex usage, preview workspace HTML, and get notifications only for conversations you are not looking at.",
       "highlights": [
         {
-          "title": "Borderless layout",
-          "body": "Switch to a borderless window with translucent sidebars, and set how transparent the glass is when the window is not focused."
+          "title": "Subagent traces",
+          "body": "Open a subagent to see its tool activity. Subagent responses can optionally use the faster Codex speed, and the model pool lists a description for each model."
         },
         {
-          "title": "Multiple accounts and ChatGPT sign-in",
-          "body": "Add several accounts for one provider and sign in with ChatGPT to use Codex. The Codex logo shows your remaining quota."
+          "title": "Codex usage",
+          "body": "Usage now includes your local Codex desktop activity with provider filters and tiered pricing. Hover the activity heatmap to see daily tokens."
         },
         {
-          "title": "Codex speed and reasoning levels",
-          "body": "Choose Codex response speed and define the reasoning levels each custom model offers. Open sessions pick up changes right away."
+          "title": "Workspace HTML preview",
+          "body": "Preview a workspace HTML file in the workbench, with its local scripts, styles and images."
         },
         {
-          "title": "File preview comments",
-          "body": "Add line comments to a file preview and send them to the chat as context."
+          "title": "Smarter notifications",
+          "body": "Alerts are silenced only for conversations the focused window actually shows. A new Notifications page in settings holds the options."
         }
       ],
       "improvements": [
-        "The category pages share one resizable navigation column. Conversation details open in workbench tabs, and Git opens directly from a workspace.",
-        "Vela can prevent idle sleep while agents are running. The chat model picker is simpler, and model length fields show token units.",
-        "Classic diff controls fit narrow panes, tab indicators stay in place when tabs resize, and syntax grammars that fail to load are retried."
+        "Chat input uses the capsule composer everywhere, sidebar and history controls sit in the titlebar, and settings groups are separated by simple dividers.",
+        "Turn summaries show the files changed in that turn. Workbench tabs sort more sensibly and keep composer drafts. Holding Command-Q is now required to quit, and Race is an opt-in experimental feature.",
+        "Background requests such as titles no longer disturb chat sessions, prompts stay cache-friendly, side chats pick their model and thinking level correctly, and generated titles stay short."
       ]
     },
     "zh-CN": {
-      "summary": "使用带半透明侧边栏的无边框窗口，并为同一服务商连接多个账号，包括 ChatGPT 登录。",
+      "summary": "查看子代理的执行过程，统计 Codex 用量，预览工作区 HTML，并且只在你没有查看的对话里收到通知。",
       "highlights": [
         {
-          "title": "无边框布局",
-          "body": "切换到带半透明侧边栏的无边框窗口，并可设置窗口失焦时玻璃效果的透明度。"
+          "title": "子代理过程",
+          "body": "可展开子代理查看其工具活动。子代理可选择使用更快的 Codex 速度，模型池也为每个模型提供了说明。"
         },
         {
-          "title": "多账号与 ChatGPT 登录",
-          "body": "可为同一服务商添加多个账号，并通过 ChatGPT 登录使用 Codex。Codex 标志会显示剩余额度。"
+          "title": "Codex 用量",
+          "body": "用量统计现已包含本机 Codex 桌面端的使用情况，支持按服务商筛选和阶梯计价。悬停活动热力图可查看每日 token。"
         },
         {
-          "title": "Codex 速度与推理强度",
-          "body": "可选择 Codex 的响应速度，并为每个自定义模型设定可用的推理强度。已打开的对话会立即同步更改。"
+          "title": "工作区 HTML 预览",
+          "body": "可在工作台中预览工作区里的 HTML 文件，并加载其本地脚本、样式和图片。"
         },
         {
-          "title": "文件预览评论",
-          "body": "可在文件预览中添加行评论，并作为上下文发送到聊天。"
+          "title": "更精准的通知",
+          "body": "只有当前聚焦窗口正在显示的对话才会静音提醒。设置中新增「通知」页面，集中管理相关选项。"
         }
       ],
       "improvements": [
-        "各分类页面共用一栏可调整宽度的导航。对话详情可在工作台标签页中打开，也可直接从工作区打开 Git。",
-        "智能体运行期间，Vela 可阻止系统空闲休眠。聊天模型选择器更简洁，模型长度字段会显示 token 单位。",
-        "经典差异视图的控件适配窄面板，标签页尺寸变化时指示条保持位置，语法高亮加载失败时会自动重试。"
+        "聊天输入统一为胶囊输入框，侧边栏和历史控件移到标题栏，设置分组改用简洁的分隔线。",
+        "回合摘要会显示该回合改动的文件。工作台标签页排序更合理并保留输入框草稿。退出时需按住 Command-Q，Race 改为可选的实验功能。",
+        "生成标题等后台请求不再干扰聊天会话，提示词更利于缓存，侧边对话能正确选择模型和思考强度，生成的标题保持简短。"
       ]
     },
     "zh-TW": {
-      "summary": "使用帶半透明側邊欄的無邊框視窗，並為同一服務商連接多個帳號，包括 ChatGPT 登入。",
+      "summary": "查看子代理的執行過程，統計 Codex 用量，預覽工作區 HTML，並且只在你沒有查看的對話中收到通知。",
       "highlights": [
         {
-          "title": "無邊框版面",
-          "body": "切換到帶半透明側邊欄的無邊框視窗，並可設定視窗失焦時玻璃效果的透明度。"
+          "title": "子代理過程",
+          "body": "可展開子代理查看其工具活動。子代理可選擇使用更快的 Codex 速度，模型池也為每個模型提供了說明。"
         },
         {
-          "title": "多帳號與 ChatGPT 登入",
-          "body": "可為同一服務商新增多個帳號，並透過 ChatGPT 登入使用 Codex。Codex 標誌會顯示剩餘額度。"
+          "title": "Codex 用量",
+          "body": "用量統計現已包含本機 Codex 桌面版的使用情況，支援依服務商篩選與階梯計價。將游標移到活動熱度圖上可查看每日 token。"
         },
         {
-          "title": "Codex 速度與推理強度",
-          "body": "可選擇 Codex 的回應速度，並為每個自訂模型設定可用的推理強度。已開啟的對話會立即同步變更。"
+          "title": "工作區 HTML 預覽",
+          "body": "可在工作台中預覽工作區裡的 HTML 檔案，並載入其本機指令碼、樣式與圖片。"
         },
         {
-          "title": "檔案預覽評論",
-          "body": "可在檔案預覽中新增行評論，並作為上下文傳送到聊天。"
+          "title": "更精準的通知",
+          "body": "只有目前聚焦視窗正在顯示的對話才會靜音提醒。設定中新增「通知」頁面，集中管理相關選項。"
         }
       ],
       "improvements": [
-        "各分類頁面共用一欄可調整寬度的導覽。對話詳情可在工作台分頁中開啟，也可直接從工作區開啟 Git。",
-        "代理執行期間，Vela 可防止系統閒置休眠。聊天模型選擇器更簡潔，模型長度欄位會顯示 token 單位。",
-        "經典差異檢視的控制項適應窄面板，分頁尺寸變化時指示條保持位置，語法高亮載入失敗時會自動重試。"
+        "聊天輸入統一為膠囊輸入框，側邊欄與歷史控制項移到標題列，設定群組改用簡潔的分隔線。",
+        "回合摘要會顯示該回合變更的檔案。工作台分頁排序更合理並保留輸入框草稿。結束時需按住 Command-Q，Race 改為可選的實驗功能。",
+        "產生標題等背景請求不再干擾聊天工作階段，提示詞更利於快取，側邊對話能正確選擇模型與思考強度，產生的標題保持簡短。"
       ]
     },
     "ja": {
-      "summary": "半透明のサイドバーを備えたボーダーレスウィンドウで作業できます。プロバイダーごとに複数のアカウントを接続でき、ChatGPT でのサインインにも対応します。",
+      "summary": "サブエージェントの実行内容を確認し、Codex の使用量を追跡し、ワークスペースの HTML をプレビューできます。通知は表示していない会話に限って届きます。",
       "highlights": [
         {
-          "title": "ボーダーレスレイアウト",
-          "body": "半透明のサイドバーを備えたボーダーレスウィンドウに切り替えられます。ウィンドウが非アクティブのときのガラスの透明度も設定できます。"
+          "title": "サブエージェントのトレース",
+          "body": "サブエージェントを開くと、ツールの動作を確認できます。サブエージェントでは、より高速な Codex の速度を任意で使え、モデルプールには各モデルの説明が表示されます。"
         },
         {
-          "title": "複数アカウントと ChatGPT サインイン",
-          "body": "1 つのプロバイダーに複数のアカウントを追加でき、ChatGPT でサインインして Codex を使えます。Codex のロゴに残りの利用枠が表示されます。"
+          "title": "Codex の使用量",
+          "body": "使用量にこの Mac の Codex デスクトップの利用状況が加わり、プロバイダーでの絞り込みや段階料金に対応します。アクティビティのヒートマップにカーソルを合わせると日別のトークンを確認できます。"
         },
         {
-          "title": "Codex の速度と推論強度",
-          "body": "Codex の応答速度を選び、カスタムモデルごとに使える推論強度を設定できます。開いているセッションにはすぐ反映されます。"
+          "title": "ワークスペース HTML のプレビュー",
+          "body": "ワークスペース内の HTML ファイルを、ローカルのスクリプト、スタイル、画像ごとワークベンチでプレビューできます。"
         },
         {
-          "title": "ファイルプレビューのコメント",
-          "body": "ファイルプレビューの行にコメントを付け、コンテキストとしてチャットに送れます。"
+          "title": "より的確な通知",
+          "body": "フォーカス中のウィンドウが実際に表示している会話に限り通知を止めます。設定に「通知」ページが加わり、オプションをまとめて管理できます。"
         }
       ],
       "improvements": [
-        "カテゴリページで幅を変更できるナビゲーションを共有します。会話の詳細はワークベンチのタブで開け、ワークスペースから直接 Git も開けます。",
-        "エージェントの実行中は、アイドルスリープを防止できます。チャットのモデルピッカーを簡素化し、モデルの長さ欄にトークンの単位を表示します。",
-        "従来の差分表示のコントロールを狭いペインに収め、タブのサイズが変わってもインジケーターの位置を保ちます。構文グラマーの読み込みに失敗した場合は再試行します。"
+        "チャット入力はどこでもカプセル型に統一され、サイドバーと履歴のコントロールはタイトルバーに移り、設定のグループはシンプルな区切り線で分けられます。",
+        "ターンの要約にそのターンで変更したファイルを表示します。ワークベンチのタブの並び順が自然になり、入力欄の下書きも保持されます。終了には Command-Q の長押しが必要になり、Race はオプトインの実験機能になりました。",
+        "タイトル生成などのバックグラウンド要求がチャットセッションに影響しなくなり、プロンプトはキャッシュしやすくなり、サイドチャットでモデルと思考レベルを正しく選べ、生成されるタイトルは短く保たれます。"
       ]
     },
     "ko": {
-      "summary": "반투명 사이드바가 있는 테두리 없는 창에서 작업하고, 제공업체마다 여러 계정을 연결할 수 있습니다. ChatGPT 로그인도 지원합니다.",
+      "summary": "서브에이전트가 한 작업을 확인하고, Codex 사용량을 추적하고, 작업 공간의 HTML을 미리 볼 수 있습니다. 알림은 보고 있지 않은 대화에만 옵니다.",
       "highlights": [
         {
-          "title": "테두리 없는 레이아웃",
-          "body": "반투명 사이드바가 있는 테두리 없는 창으로 전환할 수 있습니다. 창이 비활성일 때 유리 효과의 투명도도 설정할 수 있습니다."
+          "title": "서브에이전트 추적",
+          "body": "서브에이전트를 열어 도구 활동을 확인할 수 있습니다. 서브에이전트는 더 빠른 Codex 속도를 선택적으로 사용할 수 있고, 모델 풀에는 모델마다 설명이 표시됩니다."
         },
         {
-          "title": "여러 계정과 ChatGPT 로그인",
-          "body": "한 제공업체에 계정을 여러 개 추가하고 ChatGPT로 로그인해 Codex를 사용할 수 있습니다. Codex 로고에 남은 한도가 표시됩니다."
+          "title": "Codex 사용량",
+          "body": "사용량에 이 Mac의 Codex 데스크톱 활동이 포함되며, 제공업체별 필터와 단계별 요금을 지원합니다. 활동 히트맵에 마우스를 올리면 일별 토큰을 볼 수 있습니다."
         },
         {
-          "title": "Codex 속도와 추론 강도",
-          "body": "Codex 응답 속도를 고르고 사용자 지정 모델마다 사용할 추론 강도를 정할 수 있습니다. 열려 있는 세션에는 바로 반영됩니다."
+          "title": "작업 공간 HTML 미리보기",
+          "body": "작업 공간의 HTML 파일을 로컬 스크립트, 스타일, 이미지와 함께 워크벤치에서 미리 볼 수 있습니다."
         },
         {
-          "title": "파일 미리보기 댓글",
-          "body": "파일 미리보기의 줄에 댓글을 달고 컨텍스트로 채팅에 보낼 수 있습니다."
+          "title": "더 정확한 알림",
+          "body": "포커스된 창이 실제로 표시하는 대화에 대해서만 알림을 끕니다. 설정에 '알림' 페이지가 추가되어 관련 옵션을 한곳에서 관리할 수 있습니다."
         }
       ],
       "improvements": [
-        "카테고리 페이지가 너비를 조절할 수 있는 탐색 영역을 공유합니다. 대화 상세 정보는 워크벤치 탭에서 열 수 있고, 작업 공간에서 바로 Git을 열 수도 있습니다.",
-        "에이전트가 실행되는 동안 유휴 절전을 막을 수 있습니다. 채팅 모델 선택기가 더 간결해졌고, 모델 길이 필드에 토큰 단위가 표시됩니다.",
-        "기본 diff 컨트롤이 좁은 창에 맞게 표시되고, 탭 크기가 바뀌어도 표시선 위치가 유지됩니다. 구문 문법 로드에 실패하면 다시 시도합니다."
+        "채팅 입력이 어디서나 캡슐형으로 통일되고, 사이드바와 기록 컨트롤이 제목 표시줄로 이동했으며, 설정 그룹은 단순한 구분선으로 나뉩니다.",
+        "턴 요약에 해당 턴에서 변경된 파일이 표시됩니다. 워크벤치 탭 정렬이 더 자연스러워지고 입력창 초안이 유지됩니다. 종료하려면 Command-Q를 길게 눌러야 하며, Race는 선택형 실험 기능이 되었습니다.",
+        "제목 생성 같은 백그라운드 요청이 채팅 세션을 방해하지 않고, 프롬프트가 캐시에 유리해지며, 사이드 채팅에서 모델과 사고 수준을 올바르게 선택하고, 생성되는 제목은 짧게 유지됩니다."
       ]
     }
   }

@@ -1,25 +1,26 @@
-# Vela 1.3.0
+# Vela 1.3.1
 
-Work in a borderless window with translucent sidebars, and connect more than one account per provider, including ChatGPT sign-in. This release also adds Codex response speed controls and custom reasoning levels, line comments on file previews, and shared navigation across the category pages.
+Inspect what subagents did, track Codex usage alongside your other providers, preview workspace HTML in the workbench, and get notifications only for conversations you are not looking at. This release also streamlines the composer and settings, and fixes several background-request and prompt issues.
 
 ## New
 
-- **Borderless layout.** Switch to a borderless desktop layout with translucent sidebars. Choose how transparent the glass is when the window is not focused.
-- **Multiple provider accounts and ChatGPT sign-in.** Add several accounts for one provider and sign in with ChatGPT to use Codex models. The Codex logo shows your remaining quota, and you can choose which Plus window it follows.
-- **Codex response speed.** Choose how fast Codex models respond. A new Codex prompt is adapted to Vela's modes.
-- **Custom reasoning levels.** Define the reasoning levels each custom model offers, in settings and during onboarding. Open sessions pick up the change right away.
-- **File preview comments.** Add line comments to a file preview and send them to the chat as context.
-- **Details in workbench tabs.** Open conversation details in a workbench tab, or open Git directly from a workspace.
-- **Keep awake.** Vela can prevent idle sleep while agents are running.
+- **Subagent traces.** Open a subagent to see its tool activity. Subagents can optionally use the faster Codex speed, Vela remembers your Codex speed choice, and the subagent model pool shows a description for each model.
+- **Codex usage.** Usage now includes your local Codex desktop activity, indexed in a background worker, with provider filters and tiered pricing. Hover the activity heatmap to see the tokens used on each day.
+- **Workspace HTML preview.** Preview a workspace HTML file in the workbench together with its local scripts, styles and images.
+- **Notification settings.** A new Notifications page in settings holds the system notification options, including completion alerts, hidden previews and quiet hours. The Resident settings share the same options.
+- **Turn summaries.** The file change summary shows only what changed in the current turn, and the subagent header floats above the conversation.
+- **Hold to quit.** On macOS, hold Command-Q to quit so an accidental press no longer closes the app.
 
 ## Improved
 
-- The category pages share one resizable navigation column, so its width stays the same as you move between them.
-- The chat model picker is simpler, and model length fields show their token units.
-- The model settings list fades at the scroll edges. Sliding tab indicators stay in place when a tab changes size.
-- Classic diff controls fit narrow panes. Syntax grammars that fail to load are retried.
-- The file change summary above the composer has refined styling, and the borderless sidebars stay in sync with their opacity while collapsing.
-- The unified icons setting is translated in every supported language, and the desktop preference defaults are refreshed.
+- System alerts are silenced only for conversations the focused window actually shows, including split chat panes and workbench chats, instead of whenever the app is in front.
+- Chat input uses the capsule composer everywhere. Sidebar and history controls sit in the window titlebar, and settings groups are separated by simple dividers. The Tab key badge on input predictions is gone.
+- Workbench tabs sort more sensibly and keep composer drafts. Version control opens from the borderless chat header, and the borderless navigation rail matches the adjacent list.
+- Race is now an opt-in experimental feature.
+- Clipped desktop text fades out instead of ending in an ellipsis, floating info cards animate together with the chat column, and compact tool output has more space above it.
+- Auxiliary requests, such as title generation, no longer disturb chat sessions. Prompt sections stay stable so task dates are added only when they change.
+- Side chats pick their model and thinking level correctly, generated conversation titles stay short, and intelligent UI charts have better proportions and labels.
+- Agents are guided to report progress at meaningful milestones.
 
 ## Upgrade
 
@@ -31,16 +32,17 @@ The macOS build uses an ad-hoc signature and is distributed without notarization
 
 | File | Purpose |
 | --- | --- |
-| `Vela-1.3.0-arm64.dmg` | macOS Apple Silicon installer |
-| `Vela-1.3.0-arm64.zip` | macOS Apple Silicon application bundle used by the in-app updater |
+| `Vela-1.3.1-arm64.dmg` | macOS Apple Silicon installer |
+| `Vela-1.3.1-arm64.zip` | macOS Apple Silicon application bundle used by the in-app updater |
 | `SHA256SUMS.txt` | SHA-256 checksums for both downloads |
 | `SHA256SUMS.txt.sig` | Ed25519 signature the updater uses to verify the checksums |
 
-Both packages contain Vela 1.3.0.
+Both packages contain Vela 1.3.1.
 
 ## Validation
 
-- The production build completed for macOS Apple Silicon. All five package and bundle version fields match 1.3.0, and the built release notes match the source in all five languages.
-- The DMG mounted successfully. Its app and the app extracted from the ZIP passed strict code-signature verification. Both bundles report version 1.3.0 and the identifier `com.vela.desktop`.
+- The production build completed for macOS Apple Silicon. All five package and bundle version fields match 1.3.1, and the built release notes match the source in all five languages.
+- The DMG mounted successfully. Its app and the app extracted from the ZIP passed strict code-signature verification. Both bundles report version 1.3.1 and the identifier `com.vela.desktop`.
 - The ZIP contains a single top-level `Vela.app` with an arm64 executable.
 - Both package checksums match the signed manifest. The updater's signature verifier accepted the manifest using the bundled public key.
+- The automated test suites, smoke tests, and update tests were not run for this release.
