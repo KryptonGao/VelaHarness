@@ -394,6 +394,19 @@ export function useSession(notify: NotifySound = noSound, fixedConversationId?: 
     }
   }, []);
 
+  /** 把队列里的一条消息改成立即发送,不等当前任务完成。 */
+  const promoteInstruction = useCallback(async (instructionId: string) => {
+    const api = window.vela;
+    const id = activeIdRef.current;
+    if (!api || !id) return;
+    try {
+      setState(await api.promoteInstruction(instructionId, id));
+    } catch (error) {
+      const message = error instanceof Error ? localizeError(error.message) : tr("无法立即发送", "Could not send the message now");
+      setErrors((current) => ({ ...current, [id]: message }));
+    }
+  }, []);
+
   const abort = useCallback(async () => {
     const api = window.vela;
     const id = activeIdRef.current;
@@ -690,6 +703,7 @@ export function useSession(notify: NotifySound = noSound, fixedConversationId?: 
     sendAgentMessage,
     send,
     removeInstruction,
+    promoteInstruction,
     edit,
     abort,
     setMode,

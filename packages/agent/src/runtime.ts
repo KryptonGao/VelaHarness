@@ -1604,21 +1604,36 @@ export class AgentRuntime {
     if (!entry?.session) throw new Error("对话不存在或已结束");
     if (!entry.pendingInstructions.some((item) => item.id === instructionId)) return;
     entry.pendingInstructions = entry.pendingInstructions.filter((item) => item.id !== instructionId);
+    await this.rebuildInstructionQueues(entry, entry.session);
+  }
+
+  /** 把一条还在排队的指令改成立即调整:原地换投递方式,保留文本和图片。 */
+  async promoteInstruction(conversationId: string, instructionId: string): Promise<void> {
+    const entry = this.conversations.get(conversationId);
+    if (!entry?.session) throw new Error("对话不存在或已结束");
+    const target = entry.pendingInstructions.find((item) => item.id === instructionId);
+    // 已被模型消费或本来就是调整的指令不处理。
+    if (!target || target.mode !== "queue") return;
+    target.mode = "steer";
+    await this.rebuildInstructionQueues(entry, entry.session);
+  }
+
+  private async rebuildInstructionQueues(entry: Conversation, session: AgentSession): Promise<void> {
     entry.rebuildingInstructions = true;
     try {
       // Pi 队列没有单条删除接口,清空后按原顺序回放剩余指令;
       // 文本保留原始输入,技能命令和模板会重新展开。
-      entry.session.clearQueue();
+      session.clearQueue();
       const remaining = [...entry.pendingInstructions];
       for (const item of remaining) item.queued = false;
       for (const item of remaining) {
-        await this.queueInstruction(entry, entry.session, item);
+        await this.queueInstruction(entry, session, item);
       }
     } finally {
       entry.rebuildingInstructions = false;
     }
     // 重建期间如果有指令被消费,这里用队列现状补一次对账。
-    this.reconcileInstructions(entry.id, entry.session.getSteeringMessages(), entry.session.getFollowUpMessages());
+    this.reconcileInstructions(entry.id, session.getSteeringMessages(), session.getFollowUpMessages());
     this.syncPendingInstructions(entry);
   }
 

@@ -54,7 +54,7 @@ export function WorkbenchChatView({ conversationId, visible, preferences, projec
                 summaryModel={preferences.thinkingSummaryModel} locale={preferences.locale}
                 recommendedActionsEnabled={preferences.recommendedActions} predictionEnabled={preferences.inputPrediction} predictionModel={preferences.inputPredictionModel}
                 hiddenModels={preferences.hiddenModels}
-                models={models} onSend={session.send} onRemoveInstruction={session.removeInstruction}
+                models={models} onSend={session.send} onRemoveInstruction={session.removeInstruction} onPromoteInstruction={session.promoteInstruction}
                 onEdit={session.edit} onAbort={session.abort} onMode={session.setMode}
                 question={session.question} getQuestion={session.getQuestion}
                 onReplyQuestion={(id, answer) => session.replyQuestion(id, answer)}

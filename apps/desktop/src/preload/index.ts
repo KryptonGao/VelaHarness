@@ -439,6 +439,8 @@ const api: VelaApi = {
     } satisfies PromptInput) as Promise<AppState>,
   removeInstruction: (instructionId: string, conversationId?: string) =>
     ipcRenderer.invoke(IpcChannel.sessionRemoveInstruction, instructionId, conversationId ?? null) as Promise<AppState>,
+  promoteInstruction: (instructionId: string, conversationId?: string) =>
+    ipcRenderer.invoke(IpcChannel.sessionPromoteInstruction, instructionId, conversationId ?? null) as Promise<AppState>,
   abort: (conversationId) =>
     ipcRenderer.invoke(IpcChannel.abort, conversationId ?? null) as Promise<AppState>,
   setInteractionMode: (mode: InteractionMode, conversationId) =>

@@ -106,6 +106,7 @@ function Fixture() {
           if (deliverAs) flushSync(() => setInstructions((current) => [...current, { id: `i-${current.length}`, mode: deliverAs, text, createdAt: Date.now() }]));
           else setStreaming(true);
         }} onAbort={async () => setStreaming(false)}
+        onPromoteInstruction={async (id) => flushSync(() => setInstructions((current) => current.map((item) => item.id === id ? { ...item, mode: "steer" } : item)))}
         onRemoveInstruction={async (id) => flushSync(() => setInstructions((current) => current.filter((item) => item.id !== id)))}
         onMode={() => {}} getQuestion={() => null} onReplyQuestion={() => {}} onBranch={() => {}}
         showNewTab={false} onNewTab={() => {}} onOpenChanges={() => {}} />

@@ -53,7 +53,6 @@ import {
   skillAttr,
   type EditorSlash,
 } from "./composer/skill-editor";
-import { modKeyLabel } from "../platform";
 import { slashMenuItems, type SlashMenuItem } from "./composer/slash-picker";
 import {
   buildReviewPrompt,
@@ -90,9 +89,7 @@ export interface ComposerProps {
   sandboxMode?: import("@vela/shared").SandboxMode;
   disabled: boolean;
   streaming: boolean;
-  /** 用于把快捷键提示里的修饰键适配成当前平台。 */
-  platform: string;
-  /** 已提交、等待执行的排队/调整指令。 */
+  /** 已提交、等待执行的队列消息。 */
   instructions: RuntimeInstruction[];
   /** 工作区、执行环境和分支仅在当前聊天第一轮开始前显示。 */
   showSetupControls: boolean;
@@ -132,6 +129,8 @@ export interface ComposerProps {
   onSend: (text: string, images?: ImageAttachment[], deliverAs?: RuntimeInstructionMode) => Promise<void | boolean>;
   /** 撤销一条还没被模型消费的排队/调整指令。 */
   onRemoveInstruction: (instructionId: string) => Promise<void>;
+  /** 把队列里的一条消息改成立即发送,不等当前任务完成。 */
+  onPromoteInstruction?: (instructionId: string) => Promise<void>;
   onAbort: () => Promise<void>;
   onMode: (mode: InteractionMode) => void;
   /** 递增时打开多模型竞速弹窗（供星航指挥舱的 Race 按钮联动）。 */
@@ -165,7 +164,6 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
   sandboxMode,
   disabled,
   streaming,
-  platform,
   instructions,
   showSetupControls,
   model,
@@ -194,6 +192,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
   onSettleReplies,
   onSend,
   onRemoveInstruction,
+  onPromoteInstruction,
   onAbort,
   onMode,
   raceOpenRequest,
@@ -548,7 +547,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
   async function executeBuiltinCommand(
     id: SlashCommandId,
     rawArgs: string,
-    options: { steerIntent?: boolean; typedDraft?: string; onConsume?: () => void } = {},
+    options: { typedDraft?: string; onConsume?: () => void } = {},
   ): Promise<boolean> {
     if (id === "model") {
       if (!canChangeModel) {
@@ -659,7 +658,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
         showCommandNotice(tr("当前无法发起代码审查", "Cannot run code review right now"), "error");
         return false;
       }
-      await dispatchPrompt(buildReviewPrompt(rawArgs), Boolean(options.steerIntent), options.typedDraft ?? "");
+      await dispatchPrompt(buildReviewPrompt(rawArgs), options.typedDraft ?? "");
       return true;
     }
 
@@ -735,7 +734,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
     const trailing = serializeEditor(root).trim();
     const draftToRestore = `/${customCommand.name}${trailing ? ` ${trailing}` : ""}`;
     const expanded = expandCustomCommand(customCommand.content, trailing);
-    void dispatchPrompt(expanded, false, draftToRestore);
+    void dispatchPrompt(expanded, draftToRestore);
   }
 
   function selectSlashItem(item: SlashMenuItem, intent: "select" | "complete" = "select"): void {
@@ -766,7 +765,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
     recipeActions?.useRecipe?.(item.recipe);
   }
 
-  async function dispatchPrompt(outbound: string, steerIntent: boolean, draftRestoreText: string): Promise<void> {
+  async function dispatchPrompt(outbound: string, draftRestoreText: string): Promise<void> {
     if (submitting.current || draftKeyRef.current !== draftKey) return;
     const cards = replies;
     // 取回元素截图需要一点时间；这段时间内不重复提交。发出之后运行中的追加指令仍可继续提交。
@@ -797,10 +796,8 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
     }
     if (!prepared) return;
     const { text, images, sent } = prepared;
-    // 运行中按追加指令投递:Enter 排队,⌘/Ctrl+Enter 调整当前任务。
-    const deliverAs: RuntimeInstructionMode | undefined = streaming
-      ? (steerIntent ? "steer" : "queue")
-      : undefined;
+    // 运行中发送一律先进队列;要不等本步结束直接发出去,在队列里对那条消息点「立即发送」。
+    const deliverAs: RuntimeInstructionMode | undefined = streaming ? "queue" : undefined;
     let kept = true;
     try {
       kept = (await onSend(text, images.length > 0 ? images : undefined, deliverAs)) !== false;
@@ -812,7 +809,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
     if (!kept) composerDrafts.restoreIfEmpty(draftKey, { text: draftRestoreText, attachments });
   }
 
-  async function submit(steerIntent = false): Promise<void> {
+  async function submit(): Promise<void> {
     if (submitting.current) return;
     const root = inputRef.current;
     const typed = (root ? serializeEditor(root).trim() : prompt) || (hasReplyText ? "" : suggestion);
@@ -825,7 +822,6 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
     if (invocation) {
       if (isBuiltinSlashCommand(invocation.name)) {
         await executeBuiltinCommand(invocation.name, invocation.args, {
-          steerIntent,
           typedDraft: typed,
           onConsume: () => {
             if (invocation.name === "race" && invocation.args) {
@@ -852,14 +848,14 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
         const matchedCustom = (availableCustom ?? []).find((command) => command.name === invocation.name);
         if (matchedCustom) {
           const expanded = expandCustomCommand(matchedCustom.content, invocation.args);
-          await dispatchPrompt(expanded, steerIntent, typed);
+          await dispatchPrompt(expanded, typed);
           return;
         }
       }
     }
 
     if (disabled || recipeActive || !modelReady) return;
-    await dispatchPrompt(typed, steerIntent, typed);
+    await dispatchPrompt(typed, typed);
   }
 
   // 压缩完成的提示和轻提示几秒后自行收起；状态卡片和报错保留到用户关闭。
@@ -889,7 +885,6 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
   }
 
   const showError = sendError ? localizeError(sendError) : project.error ? localizeError(project.error) : null;
-  const modifier = modKeyLabel(platform);
   const sendHint = disabled
     ? tr("会话还没有准备好", "Chat is not ready yet")
     : !modelReady
@@ -899,9 +894,8 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
       : !prompt && !hasReplyText
         ? tr("输入内容后发送", "Enter a message to send")
         : streaming
-          ? tr("排队发送 (Enter)", "Queue (Enter)")
+          ? tr("加入队列，当前任务完成后发送 (Enter)", "Add to queue, sent when the current task finishes (Enter)")
           : tr("发送 (Enter)", "Send (Enter)");
-  const steerHint = trf("调整当前任务 ({0}Enter)", "Steer current task ({0}Enter)", modifier);
 
   const approvalSlots = (
   <RecipeStageDock run={recipeRun} />
@@ -991,14 +985,30 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
     </PopoverPresence>
   );
 
+  // 已提交的指令按去向分成两类,每行自己写明状态:排队的等任务结束,调整的在下一步并入。
   const instructionRow = (
-    <MotionList className="instruction-row" items={instructions} keyOf={(entry) => entry.id} horizontal>
+    <MotionList className="instruction-row" items={instructions} keyOf={(entry) => entry.id}>
       {(entry) => (
-        <div className={`instruction-chip instruction-${entry.mode}`}>
-          <span className="instruction-badge">
-            {entry.mode === "queue" ? tr("排队", "Queued") : tr("调整", "Steering")}
-          </span>
-          <span className="instruction-text" title={entry.text}>{entry.text}</span>
+        <div className={`instruction-item instruction-${entry.mode}`}>
+          <Icon className="instruction-icon" name={entry.mode === "queue" ? "clock" : "arrow-right"} size={14} />
+          <div className="instruction-body">
+            <span className="instruction-status">
+              {entry.mode === "queue"
+                ? tr("排队中 · 当前任务完成后发送", "Queued · sent when the current task finishes")
+                : tr("即将发送 · 不等当前任务完成", "Sending next · without waiting for the task to finish")}
+            </span>
+            <span className="instruction-text" title={entry.text}>{entry.text}</span>
+          </div>
+          {entry.mode === "queue" && onPromoteInstruction ? (
+            <button
+              type="button"
+              className="instruction-promote"
+              title={tr("不等当前任务完成，立即发给模型", "Send to the model now, without waiting for the task to finish")}
+              onClick={() => void onPromoteInstruction(entry.id)}
+            >
+              {tr("立即发送", "Send now")}
+            </button>
+          ) : null}
           <button
             type="button"
             className="instruction-remove"
@@ -1046,7 +1056,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
 
   const editable = !(recipeActive || disabled && !streaming);
   const placeholder = streaming && !recipeActive
-    ? trf("Enter 排队 · {0}Enter 调整当前任务", "Enter queues · {0}Enter steers the current task", modifier)
+    ? tr("Enter 加入队列", "Enter adds to the queue")
     : suggestion || placeholderFor(mode);
   const entry = (
     <div className="composer-entry">
@@ -1121,7 +1131,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
           if (event.key === "Enter") {
             event.preventDefault();
             if (event.shiftKey) document.execCommand("insertLineBreak");
-            else void submit(event.metaKey || event.ctrlKey);
+            else void submit();
           }
         }}
       />
@@ -1195,9 +1205,9 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
     title={tr("输入选项", "Composer options")} aria-label={tr("输入选项", "Composer options")}
     aria-expanded={optionsOpen} aria-controls={`${instanceId}-options`} onClick={() => setOptionsOpen(open => !open)}><Icon name="sliders" size={14} /></button>;
   const actions = (
-    <ComposerActions streaming={streaming} sendHint={sendHint} steerHint={steerHint}
+    <ComposerActions streaming={streaming} sendHint={sendHint}
       canQueue={Boolean(prompt) || hasReplyText} disabled={disabled || recipeActive || !modelReady || (!prompt && !hasReplyText && !suggestion)}
-      onSteer={() => void submit(true)} onAbort={onAbort}
+      onAbort={onAbort}
       dictation={speech.configured ? (
         <DictationButton
           status={dictation.status}
@@ -1335,22 +1345,19 @@ function attachmentKey(entry: FileAttachmentPayload): string {
   return id;
 }
 
-export function ComposerActions({ streaming, sendHint, steerHint, canQueue, disabled, onSteer, onAbort, dictation }: {
-  streaming: boolean; sendHint: string; steerHint: string; canQueue: boolean; disabled: boolean;
-  onSteer: () => void; onAbort: () => Promise<void>;
+export function ComposerActions({ streaming, sendHint, canQueue, disabled, onAbort, dictation }: {
+  streaming: boolean; sendHint: string; canQueue: boolean; disabled: boolean;
+  onAbort: () => Promise<void>;
   /** 语音输入按钮，显示在发送按钮左边；没有配置密钥时不传。 */
   dictation?: ReactNode;
 }) {
-  const steerButton = streaming && canQueue
-    ? <button className="composer-steer-btn" type="button" title={steerHint}
-        aria-label={steerHint} disabled={disabled} onClick={onSteer}><Icon name="sliders" size={14} /></button>
-    : null;
-  return <span className={`composer-action-slot${streaming ? " is-streaming" : ""}${steerButton ? " has-instruction" : ""}`}>
+  // 运行中只有一个发送键:有内容时它和停止键并排(提交即排队),没有内容时只剩停止键。
+  const hasInstruction = streaming && canQueue;
+  return <span className={`composer-action-slot${streaming ? " is-streaming" : ""}${hasInstruction ? " has-instruction" : ""}`}>
     {dictation}
-    {steerButton}
     <span className="composer-action-stack">
       <button className="send-action-blue-btn send" type="submit" title={sendHint}
-        aria-label={streaming ? tr("排队发送", "Queue") : tr("发送", "Send")} disabled={disabled}
+        aria-label={streaming ? tr("加入队列", "Add to queue") : tr("发送", "Send")} disabled={disabled}
         inert={streaming && !canQueue} aria-hidden={streaming && !canQueue} tabIndex={streaming && !canQueue ? -1 : undefined}>
         <Icon name="arrow-up" size={16} />
       </button>

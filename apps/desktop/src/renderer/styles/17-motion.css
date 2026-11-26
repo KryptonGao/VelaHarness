@@ -832,20 +832,6 @@ html[data-thinking-fade="false"][data-thinking-pop="false"] .fade-thinking .md-f
 .composer-action-slot.is-streaming:not(.has-instruction) > .composer-action-stack > .send { opacity: 0; transform: scale(0.86); pointer-events: none; }
 .composer-action-slot.is-streaming > .composer-action-stack > .stop { opacity: 1; transform: scale(1); pointer-events: auto; }
 .composer-action-slot.is-streaming.has-instruction > .composer-action-stack > .stop { grid-column: 2; }
-.composer-steer-btn {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  color: var(--text-secondary);
-  background: transparent;
-  border: 1px solid var(--border-subtle);
-  animation: content-swap-in 120ms var(--motion-ease-enter);
-  transition: background-color 100ms ease, color 100ms ease, opacity 120ms ease;
-}
-.composer-steer-btn:hover:not(:disabled) { background: var(--bg-hover); color: var(--text-primary); }
-.composer-steer-btn:disabled { opacity: 0.45; cursor: default; }
 .composer-dictation-btn {
   width: 28px;
   height: 28px;
@@ -902,6 +888,6 @@ html[data-thinking-fade="false"][data-thinking-pop="false"] .fade-thinking .md-f
 @media (prefers-reduced-motion: reduce) {
   .content-swap-current, .content-swap-outgoing, .motion-list-item, .motion-list-body,
   .tool-card, .tool-run, .tool-compact-item, .tool-compact-group, .diff-content-enter,
-  .composer-action-stack > .send-action-blue-btn, .composer-steer-btn, .subchat-item::before, .approval-btn { transform: none !important; }
+  .composer-action-stack > .send-action-blue-btn, .subchat-item::before, .approval-btn { transform: none !important; }
 }
 

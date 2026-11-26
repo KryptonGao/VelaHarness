@@ -259,6 +259,8 @@ export interface ChatViewProps {
   onSend: (text: string, images?: import("@vela/shared").ImageAttachment[], deliverAs?: import("@vela/shared").RuntimeInstructionMode) => Promise<void | boolean>;
   /** 撤销一条还没被模型消费的排队/调整指令。 */
   onRemoveInstruction: (instructionId: string) => Promise<void>;
+  /** 把队列里的一条消息改成立即发送,不等当前任务完成。 */
+  onPromoteInstruction?: (instructionId: string) => Promise<void>;
   onEdit?: (turnIndex: number, text: string, images?: import("@vela/shared").ImageAttachment[]) => Promise<void>;
   onAbort: () => Promise<void>;
   onMode: (mode: InteractionMode) => void | Promise<void>;
@@ -318,6 +320,7 @@ export function ChatView({
   recommendedActionsEnabled = true,
   onSend,
   onRemoveInstruction,
+  onPromoteInstruction,
   onEdit,
   onAbort,
   onMode,
@@ -1309,7 +1312,6 @@ export function ChatView({
         ref={dockRef}
         disabled={session?.status !== "ready" && session?.status !== "streaming"}
         streaming={Boolean(streaming)}
-        platform={platform}
         instructions={state?.session.pendingInstructions ?? []}
         newChat={!embedded && messages.length === 0 && (state?.context.turnCount ?? 0) === 0}
         showSetupControls={!embedded && messages.length === 0 && !streaming && (state?.context.turnCount ?? 0) === 0}
@@ -1343,6 +1345,7 @@ export function ChatView({
           replyStore.settleSend(replyKey, sent, kept);
         }}
         onRemoveInstruction={onRemoveInstruction}
+        onPromoteInstruction={onPromoteInstruction}
         onAbort={onAbort}
         onMode={changeMode}
         raceOpenRequest={raceOpenRequest}

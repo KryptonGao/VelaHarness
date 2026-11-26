@@ -94,8 +94,8 @@ export const AgentComposer = forwardRef<HTMLDivElement, {
     </div>
   );
   const actions = (
-    <ComposerActions streaming={false} sendHint={sendHint} steerHint=""
-      canQueue={false} disabled={!canSend} onSteer={() => undefined} onAbort={async () => undefined} />
+    <ComposerActions streaming={false} sendHint={sendHint}
+      canQueue={false} disabled={!canSend} onAbort={async () => undefined} />
   );
   const status = error ? (
     <div className="composer-status-bar">

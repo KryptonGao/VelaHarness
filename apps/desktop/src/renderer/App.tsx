@@ -1230,6 +1230,7 @@ export function App() {
                           hiddenModels={preferences.hiddenModels}
                           onSend={session.send}
                           onRemoveInstruction={session.removeInstruction}
+                          onPromoteInstruction={session.promoteInstruction}
                           onEdit={session.edit}
                           onAbort={session.abort}
                           onMode={session.setMode}

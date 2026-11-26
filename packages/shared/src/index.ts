@@ -115,6 +115,7 @@ export const IpcChannel = {
   sessionResumeGoal: "session:resume-goal",
   sessionCompact: "session:compact",
   sessionRemoveInstruction: "session:instruction-remove",
+  sessionPromoteInstruction: "session:instruction-promote",
   event: "session:event",
   getCatalog: "models:get-catalog",
   refreshCatalog: "models:refresh-catalog",
@@ -3260,6 +3261,8 @@ export interface VelaApi extends McpApi, PluginApi, HooksApi {
   prompt(text: string, images?: ImageAttachment[], conversationId?: string, deliverAs?: RuntimeInstructionMode): Promise<AppState>;
   /** 撤销一条尚未被模型消费的运行中指令。 */
   removeInstruction(instructionId: string, conversationId?: string): Promise<AppState>;
+  /** Turn a queued instruction into an immediate steer, keeping its text and images. */
+  promoteInstruction(instructionId: string, conversationId?: string): Promise<AppState>;
   abort(conversationId?: string): Promise<AppState>;
   setInteractionMode(mode: InteractionMode, conversationId?: string): Promise<AppState>;
   /** 批准当前 Plan revision，并开始执行；strategy 决定复用规划上下文还是开新的执行上下文。 */

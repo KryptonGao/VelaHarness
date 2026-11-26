@@ -37,32 +37,41 @@
 }
 .attach-menu-row:hover { background: var(--bg-card-blue); color: var(--text-primary); }
 .attachment-row { display: flex; flex-wrap: wrap; gap: 8px; }
-.instruction-row { display: flex; flex-wrap: wrap; gap: 8px; }
-.instruction-chip {
+.instruction-row { display: flex; flex-direction: column; gap: 4px; max-height: 168px; overflow-y: auto; }
+/* 一条已提交的指令:左边是去向(图标 + 状态说明),下面是原文,右边是可做的动作。 */
+.instruction-item {
   display: flex;
   align-items: center;
   gap: 8px;
-  max-width: min(100%, 540px);
-  padding: 4px 6px 4px 4px;
+  padding: 6px 6px 6px 10px;
   border-radius: var(--radius-md);
   background: var(--bg-surface-subtle);
-  font-size: calc(15px * var(--ui-scale));
   color: var(--text-secondary);
 }
-.instruction-badge {
+.instruction-icon { flex: none; color: var(--text-muted); }
+.instruction-steer .instruction-icon, .instruction-steer .instruction-status { color: var(--accent-blue); }
+.instruction-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.instruction-status { font-size: calc(12px * var(--ui-scale)); line-height: 16px; color: var(--text-muted); }
+.instruction-text {
+  font-size: calc(15px * var(--ui-scale));
+  color: var(--text-primary);
+  overflow: hidden;
+  white-space: nowrap;
+  min-width: 0;
+  animation: vela-overflow-fade auto linear both;
+  animation-timeline: scroll(self inline);
+}
+.instruction-promote {
   flex: none;
-  padding: 1px 7px;
+  height: 24px;
+  padding: 0 10px;
   border-radius: var(--radius-pill);
   font-size: calc(12px * var(--ui-scale));
-  line-height: 18px;
-  background: var(--bg-hover);
-  color: var(--text-muted);
-}
-.instruction-chip.instruction-steer .instruction-badge {
-  background: color-mix(in srgb, var(--accent-blue) 14%, transparent);
   color: var(--accent-blue);
+  background: color-mix(in srgb, var(--accent-blue) 12%, transparent);
+  transition: background-color 100ms ease;
 }
-.instruction-text { overflow: hidden; animation: vela-overflow-fade auto linear both; animation-timeline: scroll(self inline); white-space: nowrap; min-width: 0; }
+.instruction-promote:hover { background: color-mix(in srgb, var(--accent-blue) 22%, transparent); }
 .instruction-remove {
   flex: none;
   width: 20px;

@@ -95,7 +95,7 @@ export async function runBatch2MotionChecks(setReducedMotion: (value: boolean) =
       inputValue("short");
       assert(Math.abs(input.getBoundingClientRect().height - small) < 1, "textarea failed to shrink");
     });
-    await check("composer queues and steers while streaming, then stop restores send", async () => {
+    await check("composer queues while streaming, promotes one queued message, then stop restores send", async () => {
       inputValue(""); await wait(20);
       assert(Number(getComputedStyle(node(".composer-action-slot .stop")).opacity) === 0, "inactive disabled stop is visible");
       fixture.streaming(true);
@@ -105,19 +105,27 @@ export async function runBatch2MotionChecks(setReducedMotion: (value: boolean) =
 
       inputValue("完成后补充使用说明"); await wait(30);
       assert(!send.inert && !send.disabled, "queue send stayed inert while streaming with text");
-      assert(send.getAttribute("aria-label") === "排队发送", "queue send is not labelled");
+      assert(send.getAttribute("aria-label") === "加入队列", "queue send is not labelled");
+      assert(!document.querySelector(".composer-steer-btn"), "streaming composer still has a second send button");
       const textarea = node<HTMLDivElement>(".input-textarea");
       textarea.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true })); await wait(30);
-      assert(node(".instruction-chip.instruction-queue .instruction-badge").textContent === "排队", "queue chip missing");
-      assert(node(".instruction-chip.instruction-queue .instruction-text").textContent === "完成后补充使用说明", "queue chip text changed");
+      assert(node(".instruction-item.instruction-queue .instruction-status").textContent === "排队中 · 当前任务完成后发送", "queue item status missing");
+      assert(node(".instruction-item.instruction-queue .instruction-text").textContent === "完成后补充使用说明", "queue item text changed");
       assert(textarea.textContent === "", "queue submit kept the draft");
 
-      inputValue("只修登录问题"); await wait(20);
-      assert(!node<HTMLButtonElement>(".composer-steer-btn").disabled, "steer button disabled while streaming with text");
+      // 运行中发送一律入队:⌘/Ctrl+Enter 不再有直发语义。
+      inputValue("再补一条"); await wait(20);
       textarea.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", metaKey: true, bubbles: true, cancelable: true })); await wait(30);
-      assert(node(".instruction-chip.instruction-steer .instruction-badge").textContent === "调整", "steer chip missing");
-      node<HTMLButtonElement>(".instruction-chip.instruction-steer .instruction-remove").click(); await wait(220);
-      assert(!document.querySelector(".instruction-chip.instruction-steer"), "steer chip did not unmount after removal");
+      assert(document.querySelectorAll(".instruction-item.instruction-queue").length === 2 && !document.querySelector(".instruction-item.instruction-steer"), "modified Enter bypassed the queue");
+
+      // 队列里的每条消息可以单独「立即发送」,点后原地变成即将发送;已在发送的不再带这个按钮。
+      node<HTMLButtonElement>(".instruction-item.instruction-queue .instruction-promote").click(); await wait(60);
+      assert(node(".instruction-item.instruction-steer .instruction-status").textContent === "即将发送 · 不等当前任务完成", "promoted item status missing");
+      assert(document.querySelectorAll(".instruction-item.instruction-queue").length === 1, "promoting removed the wrong number of queued items");
+      assert(document.querySelectorAll(".instruction-promote").length === 1, "sending items still offer Send now");
+      node<HTMLButtonElement>(".instruction-item.instruction-steer .instruction-remove").click(); await wait(220);
+      node<HTMLButtonElement>(".instruction-item.instruction-queue .instruction-remove").click(); await wait(220);
+      assert(!document.querySelector(".instruction-item"), "instructions did not unmount after removal");
 
       inputValue(""); await wait(30);
       assert(send.inert && send.disabled, "queue send stayed interactive with empty input");

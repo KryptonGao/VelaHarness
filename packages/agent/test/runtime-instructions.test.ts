@@ -248,6 +248,24 @@ describe("runtime instructions", () => {
     assert.deepEqual(pendingTexts(entry), ["先看构建", "最后写说明"]);
   });
 
+  it("promotes a queued instruction to steer in place, keeping order and text", async t => {
+    const { runtime, id, entry, session } = await fixture(t);
+    entry.driving = true;
+    session.isStreaming = true;
+    await runtime.prompt(id, "先看构建", undefined, "steer");
+    await runtime.prompt(id, "最后写说明", undefined, "queue");
+    const target = runtime.getSnapshot().pendingInstructions.find(instruction => instruction.text === "最后写说明")!;
+
+    await runtime.promoteInstruction(id, target.id);
+    assert.deepEqual(runtime.getSnapshot().pendingInstructions.map(({ text, mode }) => [text, mode]), [["先看构建", "steer"], ["最后写说明", "steer"]]);
+    assert.deepEqual([...session.getSteeringMessages()], ["先看构建", "最后写说明"]);
+    assert.deepEqual([...session.getFollowUpMessages()], []);
+    // 已经是调整的指令和不存在的 id 都不改变任何状态。
+    await runtime.promoteInstruction(id, target.id);
+    await runtime.promoteInstruction(id, "missing");
+    assert.deepEqual([...session.getSteeringMessages()], ["先看构建", "最后写说明"]);
+  });
+
   it("aborts every pending instruction with the existing stop path", async t => {
     const { runtime, id, entry, session, events } = await fixture(t);
     entry.driving = true;

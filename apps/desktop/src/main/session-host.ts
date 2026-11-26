@@ -154,6 +154,16 @@ export class SessionHost {
       }
       return this.currentState();
     });
+    ipcMain.handle(IpcChannel.sessionPromoteInstruction, async (_event, rawInstruction: unknown, rawId: unknown) => {
+      const conversationId = resolveConversationId(this.runtime.activeConversationId, rawId);
+      try {
+        await this.runtime.promoteInstruction(conversationId, parseId(rawInstruction, "指令"));
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "无法立即发送";
+        this.broadcast({ type: "error", conversationId, message });
+      }
+      return this.currentState();
+    });
     ipcMain.handle(IpcChannel.sessionCreate, async (_event, rawCwd: unknown, rawOptions: unknown) => {
       if (rawOptions !== undefined && (!rawOptions || typeof rawOptions !== "object" ||
         ("activate" in rawOptions && typeof rawOptions.activate !== "boolean"))) throw new Error("新建对话参数不正确");
