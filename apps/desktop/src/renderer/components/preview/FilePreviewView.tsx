@@ -7,6 +7,7 @@ import { useFilePreview, isAbsolutePathLike } from "./FilePreviewContext";
 import { MarkdownPane } from "./MarkdownPane";
 import { isMarkdownPath } from "./markdown-path";
 import { PreviewBreadcrumbs } from "./PreviewBreadcrumbs";
+import { PreviewHeader } from "./PreviewHeader";
 import { Icon } from "../icons";
 
 export function FilePreviewView({
@@ -59,7 +60,7 @@ export function FilePreviewView({
 
   return (
     <div className="panel-file-preview-view">
-      <div className="preview-subbar">
+      <PreviewHeader>
         <PreviewBreadcrumbs
           crumbs={crumbs}
           current={tab.name}
@@ -150,7 +151,7 @@ export function FilePreviewView({
             <Icon name="panel-right" size={14} />
           </button>
         </div>
-      </div>
+      </PreviewHeader>
 
       <div className={`preview-main-split${explorerOpen ? "" : " explorer-hidden"}`}>
         {showRendered && htmlUrl ? (

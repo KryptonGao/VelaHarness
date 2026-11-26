@@ -60,7 +60,9 @@ if (!process.versions.electron) {
     await until(`!!document.querySelector(${JSON.stringify(selector)})`);
     await evaluate(`document.querySelector(${JSON.stringify(selector)}).click()`);
     await until(`document.querySelector(${JSON.stringify(target + ' .preview-crumb.current')})?.textContent === ${JSON.stringify(path.split("/").pop())}`);
-    await until(`document.querySelector(${JSON.stringify(target)})?.textContent.includes(${JSON.stringify(`Contents of ${path}`)})`);
+    if (!/\.(png|dat)$/.test(path)) {
+      await until(`document.querySelector(${JSON.stringify(target)})?.textContent.includes(${JSON.stringify(`Contents of ${path}`)})`);
+    }
   };
   const newFilesTab = async () => {
     await evaluate("window.dispatchEvent(new KeyboardEvent('keydown', {key:'t', code:'KeyT', metaKey:true, bubbles:true}))");
@@ -72,6 +74,117 @@ if (!process.versions.electron) {
     await evaluate(`Array.from(document.querySelectorAll('.workbench-tab')).find(n => n.querySelector('.workbench-tab-label')?.textContent === ${JSON.stringify(label)}).click()`);
     await until(`document.querySelector('.workbench-tab[aria-selected="true"] .workbench-tab-label')?.textContent === ${JSON.stringify(label)}`);
   };
+  const preview = `${visible} .panel-file-preview-view`;
+  const subbar = `${preview} .preview-subbar`;
+  const selector = suffix => `${preview} ${suffix}`;
+  const clickControl = async suffix => {
+    const target = selector(suffix);
+    const point = await evaluate(`(() => {
+      const node = document.querySelector(${JSON.stringify(target)});
+      const r = node.getBoundingClientRect();
+      const x = Math.round(r.left + r.width / 2), y = Math.round(r.top + r.height / 2);
+      return { x, y, hit: node.contains(document.elementFromPoint(x, y)) };
+    })()`);
+    assert.ok(point.hit, `Expected ${suffix} to receive pointer input`);
+    const { x, y } = point;
+    for (const type of ["mouseDown", "mouseUp"]) win.webContents.sendInputEvent({ type, x, y, button: "left", clickCount: 1 });
+  };
+  const wheelThroughHeader = async (scrollport, fromRight = false) => {
+    const point = await evaluate(`(() => {
+      const h = document.querySelector('${subbar}').getBoundingClientRect();
+      const x = Math.round(${fromRight ? "h.right - 8" : "h.left + 40"}), y = Math.round(h.top + 3);
+      const body = document.querySelector('${selector(scrollport)}');
+      const target = document.elementFromPoint(x, y);
+      return { x, y, hit: body.contains(target), hitClass: target?.className };
+    })()`);
+    assert.ok(point.hit, `Empty header space must hit ${scrollport} (hit ${point.hitClass})`);
+    const { x, y } = point;
+    win.webContents.sendInputEvent({ type: "mouseMove", x, y });
+    win.webContents.sendInputEvent({ type: "mouseWheel", x, y, deltaX: 0, deltaY: -180 });
+    await until(`document.querySelector('${selector(scrollport)}').scrollTop > 100`);
+    // Electron ends a wheel sequence after a short idle period, before a new target.
+    await new Promise(done => setTimeout(done, 250));
+  };
+  async function checkFloatingPreview(theme, borderless, full = false) {
+    await win.loadFile(join(temporary, "index.html"), { query: { theme, borderless: String(borderless) } });
+    await until(`document.querySelector('.chat-active-title')?.textContent === '主聊天' &&
+      document.documentElement.dataset.scheme === '${theme}' &&
+      document.querySelector('.vela-window').classList.contains('borderless-interface') === ${borderless}`);
+    await newFilesTab();
+    await until("document.querySelector('.workbench-panel').getAnimations().length === 0");
+    const tree = '.explorer-body';
+    if (full) {
+      await until(`document.querySelector('${selector(tree)} .explorer-tree-item.file')`);
+      assert.ok(await evaluate(`document.querySelector('${selector(tree)} .explorer-tree-item').getBoundingClientRect().top >=
+        document.querySelector('${selector('.explorer-search-row')}').getBoundingClientRect().bottom`));
+      await wheelThroughHeader(tree, true);
+      await evaluate(`document.querySelector('${selector(tree)}').scrollTop = 0`);
+    }
+    await openFile("fourth.txt");
+    const firstLine = selector('.code-row[data-line="1"]');
+    const code = selector('.code-scroll');
+    const headerInfo = () => evaluate(`(() => {
+      const h = document.querySelector('${subbar}');
+      const box = h.getBoundingClientRect();
+      const paint = getComputedStyle(h, '::before');
+      const body = document.querySelector('${code}');
+      return { top: box.top, height: box.height, fadeHeight: parseFloat(paint.height),
+        paint: paint.backgroundImage, pointer: paint.pointerEvents,
+        surface: getComputedStyle(body.closest('.preview-main-split')).backgroundColor,
+        bodyTop: body.getBoundingClientRect().top, lineTop: document.querySelector('${firstLine}').getBoundingClientRect().top };
+    })()`);
+    await until(`document.querySelector('.workbench-panel').getAnimations().length === 0 &&
+      document.querySelector('${selector('.preview-code-pane')}').getAnimations().length === 0`);
+    const start = await headerInfo();
+    assert.equal(start.bodyTop, start.top, "Code scrollport must extend under the bar");
+    assert.equal(start.fadeHeight, start.height + 14);
+    assert.equal(start.pointer, "none");
+    assert.match(start.paint, /^linear-gradient\(.*(?:transparent|rgba\(0, 0, 0, 0\))\)$/);
+    assert.ok(start.paint.startsWith(`linear-gradient(${start.surface},`), "The fade must start with the preview surface color");
+    assert.ok(start.lineTop >= start.top + start.fadeHeight - 1, "First line must clear the gradient");
+    await wheelThroughHeader('.code-scroll');
+    const scrolled = await headerInfo();
+    assert.equal(scrolled.top, start.top);
+    assert.ok(scrolled.lineTop < start.top, "Content scrolls underneath the stationary bar");
+    await clickControl('.preview-actions-group [aria-label="文件树"]');
+    await until(`!document.querySelector('${selector(tree)}')`);
+    await clickControl('.preview-actions-group [aria-label="文件树"]');
+    await until(`document.querySelector('${selector(tree)} .explorer-tree-item')`);
+    if (full) {
+      await wheelThroughHeader(tree, true);
+      assert.ok(await evaluate(`document.querySelector('${code}').scrollTop > 100`), "Tree wheel must not reset source scroll");
+      await until(`document.querySelector('${selector('.explorer-search-input')}').getBoundingClientRect().top >=
+        document.querySelector('${subbar}').getBoundingClientRect().bottom`);
+      await openFile("guide.md");
+      const markdown = selector('.preview-markdown-scroll');
+      assert.ok(await evaluate(`document.querySelector('${markdown} h1').getBoundingClientRect().top >=
+        document.querySelector('${subbar}').getBoundingClientRect().bottom + 14`));
+      await wheelThroughHeader('.preview-markdown-scroll');
+      await evaluate(`document.querySelector('${markdown}').scrollTop = 0`);
+      await clickControl('.preview-markdown-scroll a[href="#md-target"]');
+      await until(`(() => {
+        const top = document.querySelector('${markdown} #md-target').getBoundingClientRect().top;
+        const edge = document.querySelector('${subbar}').getBoundingClientRect().bottom + 14;
+        return top >= edge && top <= edge + 20;
+      })()`);
+      // Let the browser deliver the anchor's scroll event before unmounting the pane.
+      await evaluate("new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done)))");
+      await clickControl('.preview-view-toggle button:last-child');
+      await until(`document.querySelector('${firstLine}')`);
+      await clickControl('.preview-view-toggle button:first-child');
+      await until(`document.querySelector('${markdown}')?.scrollTop > 100`);
+      await openFile("image.png");
+      await until(`document.querySelector('${selector('.preview-image-button img')}')?.naturalWidth > 0`);
+      await clickControl('.preview-image-button');
+      await until(`document.querySelector('.image-viewer[role="dialog"]')`);
+      await evaluate("document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))");
+      await until("!document.querySelector('.image-viewer[role=dialog]')");
+      await openFile("unreadable.dat");
+      await clickControl('.code-notice-action');
+      await until(`fileOpenFixture.externalOpens.includes('/projects/VelaHarness/unreadable.dat')`);
+    }
+    console.log(`PASS floating file preview: ${theme}, ${borderless ? "borderless" : "framed"}${full ? ", tree, Markdown, image and unreadable states" : ""}`);
+  }
   async function checkCodeComments() {
     const file = "apps/desktop/src/renderer/components/example.ts";
     await openFile(file);
@@ -122,10 +235,23 @@ if (!process.versions.electron) {
     assert.ok(await evaluate("document.querySelector('.code-comment-badge .file-type-icon')?.naturalWidth > 0"));
     assert.equal(await evaluate("document.querySelector('.rich-input').textContent"), "Keep this draft.");
     await capture("draft.png");
-    const badgeCenter = await evaluate(`(() => {
-      const r = document.querySelector('.code-comment-badge').getBoundingClientRect();
-      return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) };
+    // The new quote can move the composer and scroll the lane while its size settles.
+    await until(`(() => {
+      const badge = document.querySelector('.code-comment-badge');
+      const r = badge.getBoundingClientRect();
+      return badge.contains(document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2));
     })()`);
+    win.webContents.sendInputEvent({ type: "mouseMove", x: 5, y: 400 });
+    const badgeCenter = await evaluate(`new Promise(done => {
+      let last;
+      const next = () => {
+        const r = document.querySelector('.code-comment-badge').getBoundingClientRect();
+        const point = { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) };
+        if (last?.x === point.x && last.y === point.y) done(point);
+        else { last = point; requestAnimationFrame(next); }
+      };
+      requestAnimationFrame(next);
+    })`);
     win.webContents.sendInputEvent({ type: "mouseMove", ...badgeCenter });
     await until(`document.querySelector('.button-tooltip.is-path:popover-open')?.textContent === ${JSON.stringify("/projects/VelaHarness/" + file)}`);
     assert.ok(await evaluate("document.querySelector('.button-tooltip.is-path').scrollWidth <= document.querySelector('.button-tooltip.is-path').clientWidth"));
@@ -157,6 +283,9 @@ if (!process.versions.electron) {
     console.log("PASS file comments quote only the file and line range, preserve drafts and send once with the selected chat");
   }
   try {
+    for (const theme of ["light", "dark"]) {
+      for (const borderless of [false, true]) await checkFloatingPreview(theme, borderless, theme === "dark" && borderless);
+    }
     await win.loadFile(join(temporary, "index.html"));
     await until("document.querySelector('.chat-active-title')?.textContent === '主聊天'");
     await newFilesTab();
@@ -201,7 +330,13 @@ if (!process.versions.electron) {
     await evaluate(`document.querySelector('${visible} .explorer-result.code').click()`);
     await until("document.querySelector('.workbench-tab[aria-selected=\"true\"] .workbench-tab-label')?.textContent === 'fourth.txt'");
     assert.deepEqual(await labels(), ["third.txt", "first.txt", "fourth.txt"]);
-    await until(`!!document.querySelector('${visible} .code-row.active[data-line="3"]')`);
+    await until(`!!document.querySelector('${visible} .code-row.active[data-line="120"]')`);
+    assert.ok(await evaluate(`(() => {
+      const row = document.querySelector('${selector('.code-row.active')}').getBoundingClientRect();
+      const header = document.querySelector('${subbar}').getBoundingClientRect();
+      const body = document.querySelector('${selector('.code-scroll')}').getBoundingClientRect();
+      return row.top >= header.bottom + 14 && row.bottom < body.bottom;
+    })()`), "A deep code jump leaves its row visible under the fade");
     console.log("PASS code-search navigation activates an existing file and highlights the requested line");
 
     await evaluate(`${codeButton}.click()`);
@@ -235,6 +370,15 @@ if (!process.versions.electron) {
     await openFile("fourth.txt");
     assert.equal(await evaluate("document.querySelectorAll('.workbench-group').length"), 2);
     assert.equal(await evaluate("Array.from(document.querySelectorAll('.workbench-tab')).find(n => n.textContent === 'fourth.txt').closest('[data-workbench-pane]').dataset.workbenchPane"), oldPane);
+    const narrowPreview = `${visible}[data-workbench-content-pane="${oldPane}"] .panel-file-preview-view`;
+    await until(`(() => {
+      const preview = document.querySelector('${narrowPreview}');
+      const bar = preview.querySelector('.preview-subbar');
+      const line = preview.querySelector('.code-row[data-line="1"]');
+      return preview.clientWidth <= 440 && bar.offsetHeight > 38 &&
+        parseFloat(getComputedStyle(bar, '::before').height) === bar.offsetHeight + 14 &&
+        line.getBoundingClientRect().top >= bar.getBoundingClientRect().bottom + 13;
+    })()`);
     await evaluate("fileOpenFixture.setMode('new-tab')");
     await openFile("third.txt");
     assert.equal(await evaluate("document.querySelectorAll('.workbench-group').length"), 2);

@@ -100,16 +100,16 @@
 }
 
 .borderless-interface,
-.agent-pane {
-  --titlebar-tail: 14px;
-  --titlebar-fade: linear-gradient(to bottom, var(--bg-chat),
-    color-mix(in srgb, var(--bg-chat) 94%, transparent) 38%,
-    color-mix(in srgb, var(--bg-chat) 64%, transparent) 72%, transparent);
+.pane-info-header {
+  --titlebar-color: var(--pane-info-surface, var(--bg-chat));
+  --titlebar-fade: linear-gradient(to bottom, var(--titlebar-color),
+    color-mix(in srgb, var(--titlebar-color) 94%, transparent) 38%,
+    color-mix(in srgb, var(--titlebar-color) 64%, transparent) 72%, transparent);
 }
 
-/* Paint the fade behind the title and its controls. The underlying scrollports
- * stay interactive, and menus and modal surfaces have no opacity mask. */
-.agent-pane-header::before,
+/* Pane info bars use the same scroll edge in either window style. Paint it
+ * behind the controls, not as a mask on their menus or the scrolling content. */
+.pane-info-header::before,
 .borderless-interface :is(.main-chat-header, .settings-header, .sidebar-right-header, .floating-chat-header)::before,
 .borderless-interface .workbench-group::before {
   content: "";
@@ -125,13 +125,17 @@
 .borderless-interface .workbench-group .workbench-tabbar { background: transparent; backdrop-filter: none; }
 .borderless-interface [data-floating-chat="collapsed"] .floating-chat-header::before { content: none; }
 
-.borderless-interface .main-stage-pane > .main-chat-view { --chat-header-overlap: var(--header-height); }
-.borderless-interface .showing-pinned-chat > .main-chat-view { --chat-header-overlap: 42px; }
-.borderless-interface .main-stage-pane > .main-chat-view:not([data-floating-chat]) > .chat-conversation-pane:not([data-home]) {
+/* The window title and the workbench's inner chat title share one scrollport
+ * treatment. Only the inner title includes its optional row of view tabs. */
+:is(
+  .borderless-interface .main-stage-pane > .main-chat-view:not([data-floating-chat]),
+  :is(.panel-chat-view, .showing-pinned-chat > .main-chat-view):has(> .chat-transcript-title-fade)
+) > .chat-conversation-pane:not([data-home]) {
+  --chat-header-overlap: var(--chat-transcript-header-height, var(--chat-inner-title-height, var(--header-height)));
   & > .chat-scroll-area {
     margin-top: calc(-1 * var(--chat-header-overlap));
     padding-top: calc(var(--chat-header-overlap) + 20px);
-    scroll-padding-top: var(--chat-header-overlap);
+    scroll-padding-top: calc(var(--chat-header-overlap) + var(--titlebar-tail));
   }
   /* Let open composer menus cross the header without lifting the transcript over its buttons. */
   &:has(.dock-popover, .skill-menu-anchor, .sheet-backdrop) {
@@ -220,10 +224,9 @@
 /* Tab headers float over the whole pane rect. Editors, webviews and terminals
  * keep their toolbars below it; scroll-first tabs carry the inset inside. */
 .borderless-interface .workbench-canvas > .workbench-tabpanel { padding-top: var(--header-height); }
-.borderless-interface .workbench-tabpanel > :is(.start-view, .bg-tasks, .tb-tab, .race-panel) {
+.borderless-interface .workbench-tabpanel > :is(.start-view, .tb-tab, .race-panel) {
   margin-top: calc(-1 * var(--header-height));
   padding-top: calc(var(--header-height) + var(--tab-body-padding, 0px));
   scroll-padding-top: var(--header-height);
 }
 .borderless-interface .workbench-tabpanel > .start-view { --tab-body-padding: 40px; }
-.borderless-interface .workbench-tabpanel > .bg-tasks { --tab-body-padding: 12px; height: auto; flex: 1; }

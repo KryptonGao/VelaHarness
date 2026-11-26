@@ -254,7 +254,7 @@
 .showing-pinned-chat > .main-chat-view::after { top: 0; }
 .nav-rail-layout.workbench-fullscreen .showing-pinned-chat > .main-chat-view { mask-position: 0 0, 0 bottom, 0 0; }
 .workbench-fullscreen .showing-pinned-chat > .main-chat-view > .main-chat-header {
-  flex: 0 0 42px;
+  flex: 0 0 var(--chat-inner-title-height);
   padding-left: 20px;
 }
 .workbench-fullscreen .workbench-panel::before,
@@ -612,11 +612,37 @@
 .panel-chat-conversation[hidden] { display: none; }
 .panel-chat-view { min-height: 0; --paper-left-radius: 0px; --paper-right-radius: 0px; }
 .panel-chat-view::before, .panel-chat-view::after { display: none; }
-.panel-chat-view .main-chat-header { height: 42px; min-height: 42px; padding: 0 16px; -webkit-app-region: no-drag; }
+.panel-chat-view .main-chat-header { height: var(--chat-inner-title-height); min-height: var(--chat-inner-title-height); padding: 0 16px; -webkit-app-region: no-drag; }
 .platform-darwin.left-collapsed .panel-chat-view .main-chat-header { padding-left: 16px; }
 .left-collapsed:not(.platform-darwin) .panel-chat-view .main-chat-header { padding-left: 16px; }
 .panel-chat-view .conversation-view-tabs { padding-inline: 12px; }
 .panel-chat-view .conversation-view-tabs.chat-view-tabs { padding-inline: 6px; }
+
+:is(.panel-chat-view, .showing-pinned-chat > .main-chat-view) { --chat-inner-title-height: 42px; }
+.chat-transcript-title-fade { display: none; }
+:is(.panel-chat-view, .showing-pinned-chat > .main-chat-view):has(> .chat-transcript-title-fade) {
+  --chat-transcript-header-height: var(--chat-inner-title-height);
+  &:has(> .conversation-view-tabs) {
+    --chat-transcript-header-height: calc(var(--chat-inner-title-height) + var(--chat-view-tabs-height));
+  }
+  & > .conversation-view-tabs { border-bottom: 0; }
+  /* Paint behind the title and the optional sub-tabs, above the transcript only. */
+  & > .chat-transcript-title-fade {
+    display: block;
+    position: absolute;
+    inset: 0 0 auto;
+    height: var(--chat-transcript-header-height);
+    z-index: 2;
+    pointer-events: none;
+  }
+  & > .main-chat-header {
+    pointer-events: none;
+    -webkit-app-region: no-drag;
+    &::before { content: none; } /* Replace the window-title fade in this inner header. */
+    & :is(.chat-active-title, .chat-header-actions) { pointer-events: auto; }
+  }
+}
+
 .panel-chat-plan-toolbar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; font-size: calc(13px * var(--ui-scale)); }
 @container chat (max-width: 520px) {
   .panel-chat-view .model-controls { flex: 1; }

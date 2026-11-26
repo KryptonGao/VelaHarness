@@ -199,7 +199,7 @@ function VisibleAgentPane({
       data-tool-display={toolDisplay ?? "card"}
       aria-label={`${tr("子代理", "Subagent")} ${agent.name}`}
     >
-      <header className="agent-pane-header">
+      <header className="agent-pane-header pane-info-header">
         <div className="agent-pane-title">
           {onBackToDirectory && <button type="button" className="view-icon-btn agent-directory-back" onClick={onBackToDirectory}
             title={tr("返回子代理目录", "Back to subagent directory")} aria-label={tr("返回子代理目录", "Back to subagent directory")}>

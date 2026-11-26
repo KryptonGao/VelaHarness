@@ -1,7 +1,16 @@
-.bg-tasks { display: flex; flex-direction: column; gap: 14px; height: 100%; padding: 12px 14px 18px; overflow-y: auto; font-size: calc(13px * var(--ui-scale)); }
-.bg-tasks-bar { display: flex; align-items: center; gap: 8px; min-height: 28px; }
+.bg-tasks {
+  --task-bar-height: 40px;
+  display: flex; flex: 1; flex-direction: column; gap: 14px; min-height: 0;
+  padding: 0 14px 18px; overflow-y: auto; font-size: calc(13px * var(--ui-scale));
+  scroll-padding-top: calc(var(--task-bar-height) + var(--titlebar-tail));
+}
+.bg-tasks-bar {
+  position: sticky; top: 0; z-index: 1; pointer-events: none;
+  display: flex; flex: none; align-items: center; gap: 8px; min-height: var(--task-bar-height);
+  margin-inline: -14px; padding: 12px 14px 0;
+}
 .bg-tasks-title { flex: 1; font-weight: 560; }
-.bg-tasks-clear { display: grid; place-items: center; width: 26px; height: 26px; border-radius: var(--radius-sm); color: var(--text-muted); }
+.bg-tasks-clear { pointer-events: auto; display: grid; place-items: center; width: 26px; height: 26px; border-radius: var(--radius-sm); color: var(--text-muted); }
 .bg-tasks-clear:hover:not(:disabled) { background: var(--bg-hover); color: var(--text-primary); }
 .bg-tasks-clear:disabled { opacity: 0.4; cursor: default; }
 .bg-tasks-empty { margin: 0; color: var(--text-muted); }

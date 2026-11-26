@@ -34,6 +34,7 @@
   --sidebar-right-width: 340px;
   --workbench-width: 640px;
   --header-height: 52px;
+  --titlebar-tail: 14px;
   /*
    * 左右侧栏和整条顶栏共用同一套毛玻璃配方;内圆角是内容纸面顶角与玻璃壳之间的过渡半径,
    * 玻璃壳绕进这个圆角,顶栏与侧栏、内容区交界处才不会有硬直角。

@@ -3,6 +3,7 @@ import { tr } from "../../locale";
 import { ExplorerPane } from "./ExplorerPane";
 import { useFilePreview } from "./FilePreviewContext";
 import { PreviewBreadcrumbs } from "./PreviewBreadcrumbs";
+import { PreviewHeader } from "./PreviewHeader";
 
 /** The Files entry shows the tree until the first selected file takes over this tab. */
 export function FileBrowserView() {
@@ -17,9 +18,9 @@ export function FileBrowserView() {
 
   return (
     <div className="panel-file-preview-view">
-      <div className="preview-subbar">
+      <PreviewHeader>
         <PreviewBreadcrumbs crumbs={[rootName]} current={tr("文件", "Files")} />
-      </div>
+      </PreviewHeader>
       <div className="preview-main-split">
         <div className="file-browser-empty" />
         <ExplorerPane />

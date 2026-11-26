@@ -136,13 +136,13 @@ export function BackgroundTasksPanel({ conversationId, shells }: BackgroundTasks
 
   return (
     <div className="bg-tasks">
-      <div className="bg-tasks-bar">
+      <header className="bg-tasks-bar pane-info-header">
         <span className="bg-tasks-title">{tr("后台任务", "Background tasks")}</span>
         <button type="button" className="bg-tasks-clear" disabled={finished.length === 0} title={tr("清除已结束的任务", "Clear finished tasks")}
           aria-label={tr("清除已结束的任务", "Clear finished tasks")} onClick={clear}>
           <Icon name="trash" size={14} />
         </button>
-      </div>
+      </header>
       {shells.length === 0 ? <p className="bg-tasks-empty">{tr("暂无后台任务", "No background tasks")}</p> : null}
       {running.length > 0 ? (
         <Section title={tr("运行中", "Running")} count={running.length}>

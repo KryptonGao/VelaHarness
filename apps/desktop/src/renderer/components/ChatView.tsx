@@ -970,6 +970,8 @@ export function ChatView({
     {floatingChat && floatHidden && <button ref={restoreFloatRef} type="button" className="floating-chat-restore"
       aria-label={floatShowLabel} title={floatShowLabel} onClick={toggleFloatHidden}><Icon name="chat" size={20} /></button>}
     <main ref={chatRef} hidden={floatingChat && floatHidden} className={`main-chat-view${embedded ? " panel-chat-view" : ""}`} data-floating-chat={floatingChat ? (floatExpanded ? "expanded" : "collapsed") : undefined} data-tool-display={toolDisplay} tabIndex={-1}>
+      {!floatingChat && view === "chat" && !emptyConversation ?
+        <div className="chat-transcript-title-fade pane-info-header" aria-hidden="true" /> : null}
       {floatingChat && <div className="floating-chat-resize" role="separator" aria-orientation="horizontal" tabIndex={0}
         aria-label={tr("调整聊天浮窗高度", "Resize floating chat height")} aria-controls={`${tabIdPrefix}-messages`}
         ref={resizeHandle} {...resizeEvents} />}
@@ -1099,7 +1101,16 @@ export function ChatView({
       ) : null}
       <PlanLiveContext.Provider value={planLive}>
       <ConversationLinkContext.Provider value={onOpenWebLink ?? null}>
-      <div className="chat-scroll-area" id={`${tabIdPrefix}-messages`} inert={floatingChat && !floatExpanded} ref={scrollerRef}>
+      <div className="chat-scroll-area" id={`${tabIdPrefix}-messages`} inert={floatingChat && !floatExpanded} ref={scrollerRef}
+        onFocusCapture={({ currentTarget: scroller, target }) => {
+          if (!(target instanceof Element) || target === scroller || !target.matches(":focus-visible")) return;
+          const style = getComputedStyle(scroller);
+          if (!style.getPropertyValue("--chat-transcript-header-height")) return;
+          // Native focus scrolling can leave a fully in-viewport target behind the floating title.
+          const visibleTop = scroller.getBoundingClientRect().top + parseFloat(style.scrollPaddingTop);
+          const covered = visibleTop - target.getBoundingClientRect().top;
+          if (covered > 0) scroller.scrollTop -= covered;
+        }}>
         <div
           className="chat-message-surface"
           key={messageSurfaceKey}

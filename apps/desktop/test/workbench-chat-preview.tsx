@@ -5,12 +5,18 @@ import type { AgentStreamEvent, AppState, AskUserQuestionEvent, ImageAttachment,
 import { defaultContextLimitSettings, defaultTaskBudgetSettings, emptyConflictsState } from "@vela/shared";
 import { App } from "../src/renderer/App";
 import "../src/renderer/styles.css";
+import "../src/renderer/info-cards.css";
 import "../src/renderer/components/intelligent-ui/intelligent-ui.css";
 
 const params = new URLSearchParams(location.search);
 for (const [key, value] of Object.entries({ "vela.onboarding.complete": "true", "vela.locale": params.get("locale") ?? "zh-CN",
   "vela.leftCollapsed": "true", "vela.thinkingSummary": "false", "vela.appearance": params.get("theme") ?? "light",
-  "vela.infoLayout": "sidebar", "vela.soundEffects": "false" })) localStorage.setItem(key, value);
+  "vela.infoLayout": params.has("titlebar") ? "cards" : "sidebar", "vela.soundEffects": "false" })) localStorage.setItem(key, value);
+if (params.has("titlebar")) {
+  localStorage.setItem("vela.conversationWorkbenchTabs", String(params.get("titlebar") !== "ordinary-classic"));
+  localStorage.setItem("vela.borderlessInterface", String(params.get("titlebar") === "borderless"));
+  localStorage.setItem("vela.environmentCollapsed", "true");
+}
 const cwd = "/projects/VelaHarness";
 const events = new Set<(event: AgentStreamEvent) => void>();
 const questions = new Set<(event: AskUserQuestionEvent) => void>();
@@ -36,6 +42,14 @@ const state = (id = active): AppState => structuredClone({ activeConversationId:
 });
 const emit = (event: AgentStreamEvent) => { for (const listener of events) listener(event); };
 const broadcast = () => emit({ type: "state", state: state() });
+const titlebarHistory = (id: string): TranscriptMessage[] => [
+  { id: `first-${id}`, role: "user", text: "First transcript message", thinking: "", tools: [] },
+  { id: `reply-${id}`, role: "assistant", thinking: "", tools: [], text: [
+    "[Before](https://example.test/before)", "[Focus target](https://example.test/target)",
+    ...Array.from({ length: 36 }, (_, i) => `Transcript paragraph ${i + 1}`),
+  ].join("\n\n") },
+];
+if (params.has("titlebar")) messages.set(active, titlebarHistory(active));
 const calls: { name: string; id?: string; text?: string; images?: ImageAttachment[]; options?: unknown }[] = [];
 const conflictListeners = new Set<() => void>();
 let conflictState = emptyConflictsState;
@@ -46,6 +60,7 @@ const fixture = {
     for (const listener of conflictListeners) listener();
   },
   calls, active: () => active, state,
+  loadTitlebarHistory(id: string) { messages.set(id, titlebarHistory(id)); broadcast(); },
   failCreate: false, deferCreate: false, releaseCreate: () => {},
   emit,
   finish(id: string) {

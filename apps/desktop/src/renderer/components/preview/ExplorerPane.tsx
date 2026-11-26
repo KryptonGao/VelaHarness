@@ -2,6 +2,7 @@ import type { WorkspaceSearchResult } from "@vela/shared";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { FileTypeIcon } from "../FileTypeIcon";
 import { useFilePreview } from "./FilePreviewContext";
+import { usePreviewInset } from "./PreviewHeader";
 import { ancestorsOf, buildFileTree, filterFilePaths, type FileTreeNode } from "./tree";
 import { localizeError, tr } from "../../locale";
 import { Icon } from "../icons";
@@ -16,6 +17,7 @@ export function ExplorerPane() {
   const [result, setResult] = useState<WorkspaceSearchResult | null>(null);
   const [searching, setSearching] = useState(false);
   const searchError = useRef<string | null>(null);
+  const searchRef = usePreviewInset("--preview-search-height");
 
   const activePath = preview?.activeTab?.id ?? null;
   const files = preview?.fileList?.files ?? null;
@@ -78,7 +80,7 @@ export function ExplorerPane() {
 
   return (
     <div className="preview-explorer-pane">
-      <div className="explorer-search-row">
+      <div className="explorer-search-row" ref={searchRef}>
         <label className="explorer-search-field">
           <Icon name="search" size={14} />
           <input

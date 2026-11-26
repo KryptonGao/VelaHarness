@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { flushSync } from "react-dom";
+import type { BackgroundShellItem } from "@vela/shared";
 import { AppLocaleProvider, setActiveLocale, type AppLocale } from "../src/renderer/locale";
 import { WorkbenchPanel, type WorkbenchTab } from "../src/renderer/components/WorkbenchPanel";
 import { ContextPanel } from "../src/renderer/components/ContextPanel";
@@ -25,6 +26,7 @@ fixture.rejectTerminalClose = () => rejectTerminalClose();
   createTerminal: async ({ id }: { id: string }) => ({ id, shell: "/bin/zsh", cwd: "/workspace" }),
   onTerminalEvent: () => () => {}, writeTerminal: () => {}, resizeTerminal: () => {},
   closeTerminal: (id: string) => fixture.terminalCloses.push(id),
+  clearFinishedBackgroundShells: async () => fixture.clearShells(),
   getTerminalCloseStatus: (id: string) => {
     fixture.terminalCloseChecks.push(id);
     return new Promise<"idle" | "busy" | "unavailable">((resolve, reject) => { resolveTerminalClose = resolve; rejectTerminalClose = () => reject(new Error("Process inspection unavailable")); });
@@ -55,6 +57,9 @@ function Fixture() {
   const [tabs, setTabs] = useState<WorkbenchTab[]>(["A", "B", "C", "D"].map(id => ({ id, kind: "chat", label: id, conversationId: id })));
   const [active, setActive] = useState<string | null>("A"), [visible, setVisible] = useState<string[]>([]), [scope, setScope] = useState(0), [collapsed, setCollapsed] = useState(false);
   const [split, setSplit] = useState(true), [fullscreen, setFullscreen] = useState(false);
+  const [borderless, setBorderless] = useState(false);
+  const [shells, setShells] = useState<BackgroundShellItem[]>([]);
+  fixture.clearShells = () => setShells([]);
   fixture.setFullscreen = (value: boolean) => flushSync(() => setFullscreen(value));
   const [contextEnabled, setContextEnabled] = useState(false), [contextCollapsed, setContextCollapsed] = useState(false);
   const [locale, setLocale] = useState<AppLocale>("zh-CN");
@@ -65,9 +70,13 @@ function Fixture() {
   fixture.setContext = (open: boolean) => flushSync(() => { setContextEnabled(true); setContextCollapsed(!open); });
   const seq = useRef(0);
   fixture.visible = visible;
-  fixture.reset = (kind = "chat") => flushSync(() => {
-    setScope(n => n + 1); setCollapsed(false);
+  fixture.reset = (kind = "chat", borderless = false) => flushSync(() => {
+    setScope(n => n + 1); setCollapsed(false); setBorderless(borderless);
+    if (kind === "background") setShells(Array.from({ length: 36 }, (_, i) => ({
+      id: `task-${i}`, command: `task ${i}`, status: "exited", exitCode: 0, startedAt: i, endedAt: i + 1,
+    })));
     const next: WorkbenchTab[] = kind === "browser" ? [...browserTabs.map(tab => ({ ...tab, kind: "browser" as const, label: tab.id })), { id: "A", kind: "chat", label: "A", conversationId: "A" }]
+      : kind === "background" ? [{ id: "background", kind: "background", label: "后台任务" }]
       : kind === "terminal" || kind === "terminal-only" ? [{ id: "terminal-1", kind: "terminal", sessionId: "session-1", label: "Terminal" }, ...(kind === "terminal" ? [{ id: "A", kind: "chat" as const, label: "A", conversationId: "A" }] : [])]
       : ["A", "B", "C", "D"].map(id => ({ id, kind: "chat", label: id, conversationId: id }));
     setTabs(next); setActive(next[0].id);
@@ -84,11 +93,12 @@ function Fixture() {
     setTabs(current => current.some(t => t.id === tab.id) ? current : [...current, tab]); setActive(tab.id);
   }} onCloseFileTab={path => setTabs(current => current.filter(t => t.id !== `file:${path}`))}>
     <Controls /><BrowserViewHost tabs={browserTabs} activeTabId={active} visibleTabIds={visible} visible={!collapsed} hosted command={command} />
-    <div className={`vela-window ${fullscreen ? "workbench-fullscreen" : ""} ${rail ? "nav-rail-layout platform-darwin" : "left-collapsed"}`} style={{ height: "100vh", display: "flex", background: rail ? "linear-gradient(135deg, #b7c7db, #dfc9b5)" : undefined, "--context-panel-overlay-width": "min(var(--sidebar-right-width), calc(100vw - 24px))" } as React.CSSProperties}>
+    <div className={`vela-window ${borderless ? "borderless-interface" : ""} ${fullscreen ? "workbench-fullscreen" : ""} ${rail ? "nav-rail-layout platform-darwin" : "left-collapsed"}`} style={{ height: "100vh", display: "flex", background: rail ? "linear-gradient(135deg, #b7c7db, #dfc9b5)" : undefined, "--context-panel-overlay-width": "min(var(--sidebar-right-width), calc(100vw - 24px))" } as React.CSSProperties}>
       {rail && <div style={{ width: 306, flex: "none" }} />}
       <div className={rail ? "main-stage" : undefined} style={{ display: "flex", flex: 1, minWidth: 0 }}><div className="main-stage-pane" style={{ display: "flex", flex: 1, minWidth: 0 }}>
       <main className="main-chat-view" style={{ flex: 1, minWidth: 0 }}><header className="main-chat-header"><h2>主对话</h2></header></main>
-      <WorkbenchPanel splitEnabled={split} fullscreen={fullscreen} tabs={tabs}
+      <WorkbenchPanel splitEnabled={split} fullscreen={fullscreen} tabs={tabs} borderless={borderless}
+        conversationId="fixture" backgroundShells={shells}
         onTabOrderChange={order => setTabs(current => order.map(id => current.find(tab => tab.id === id)!))} layoutKey={String(scope)} activeTabId={active} onVisibleTabsChange={setVisible} collapsed={collapsed}
         contextOpen={contextOpen} leftOpen={rail} resize={resize} project={{ git: null, openFile: noop } as any} busy={false} execution={null} onRevise={noop} onExecutePlan={noop}
         initialDiffPath={null} initialDiffPathRequestKey={0} onShowDiff={noop} agents={[]} ensureAgentMessages={noop} onControlAgent={noop} onOpenAgent={noop}

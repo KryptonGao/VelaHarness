@@ -120,6 +120,32 @@ if (!process.versions.electron) {
     try {
       await win.loadFile(join(temporary, "index.html")); await until("document.querySelectorAll('.workbench-tab').length===4"); await pause();
       await setPanelWidth(1000);
+      for (const [borderless, scheme] of [[false, 'light'], [true, 'dark']]) {
+        await js(`document.documentElement.dataset.scheme = '${scheme}'; splitFixture.reset('background', ${borderless})`);
+        await until("document.querySelectorAll('.bg-task').length === 36 && !document.querySelector('.workbench-tabpanel').getAnimations().length");
+        const bar = await js(`(() => {
+          const list = document.querySelector('.bg-tasks'), header = list.querySelector('.bg-tasks-bar');
+          const section = list.querySelector('.bg-section'), clear = header.querySelector('button');
+          const h = header.getBoundingClientRect(), first = section.getBoundingClientRect().top;
+          list.scrollTop = first - h.top - h.height / 2;
+          const top = section.getBoundingClientRect().top, b = clear.getBoundingClientRect();
+          const hit = document.elementFromPoint(h.left + h.width / 2, top + 1);
+          const fade = getComputedStyle(header, '::before');
+          return { firstClear: first >= h.bottom, under: top >= h.top && top < h.bottom,
+            pinned: header.getBoundingClientRect().top === h.top && h.top === document.querySelector('.workbench-tabbar').getBoundingClientRect().bottom,
+            gradient: fade.backgroundImage, inertFade: fade.pointerEvents === 'none' && list.contains(hit) && !header.contains(hit),
+            clearHit: clear.contains(document.elementFromPoint(b.x + b.width / 2, b.y + b.height / 2)) };
+        })()`);
+        assert.ok(bar.firstClear && bar.under && bar.pinned, 'Task rows start clear and scroll beneath the pinned bar');
+        assert.match(bar.gradient, /linear-gradient/);
+        assert.ok(bar.inertFade && bar.clearHit, 'The fade passes through input except on the clear button');
+        await js("document.querySelectorAll('.bg-task-toggle')[15].scrollIntoView({ block: 'start', behavior: 'instant' })");
+        assert.ok(await js("document.querySelectorAll('.bg-task-toggle')[15].getBoundingClientRect().top >= document.querySelector('.bg-tasks-bar').getBoundingClientRect().bottom"));
+        await click('.bg-tasks-clear');
+        await until("document.querySelector('.bg-tasks-empty') && document.querySelector('.bg-tasks-clear').disabled");
+      }
+      console.log('PASS background task header scrolling, hit testing, focus clearance and empty state in both layouts');
+      await js("delete document.documentElement.dataset.scheme"); await reset();
       await checkLayoutControls(1);
       assert.equal(await count(), 1);
       assert.equal(await js("document.querySelectorAll('.layout-switch,.layout-button,.count-badge').length"), 0);

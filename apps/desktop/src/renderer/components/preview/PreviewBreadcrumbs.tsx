@@ -52,6 +52,7 @@ export function PreviewBreadcrumbs({
       let measuredMax = nav.scrollWidth - nav.clientWidth;
       const updateFade = () => {
         const max = nav.scrollWidth - nav.clientWidth;
+        nav.dataset.scrollable = max > 1 ? "true" : "false";
         nav.dataset.fadeStart = max > 1 && nav.scrollLeft > 1 ? "true" : "false";
         nav.dataset.fadeEnd = max > 1 && nav.scrollLeft < max - 1 ? "true" : "false";
         // Resizing can clamp scrollLeft before ResizeObserver runs. Preserve
@@ -84,6 +85,7 @@ export function PreviewBreadcrumbs({
         observer?.disconnect();
         nav.removeEventListener("scroll", updateFade);
         nav.removeEventListener("wheel", onWheel);
+        delete nav.dataset.scrollable;
         delete nav.dataset.fadeStart;
         delete nav.dataset.fadeEnd;
       };

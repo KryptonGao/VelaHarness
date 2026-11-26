@@ -821,6 +821,173 @@ if (!process.versions.electron) {
       await click(".workbench-tab-close");
       await until("!document.querySelector('.workbench-panel') && !document.querySelector('.workbench-fullscreen') && document.querySelector('.main-chat-view').clientWidth > 0");
       console.log("PASS workbench fullscreen, pinned chat, numbered shortcuts, draft retention, split restoration and last-tab close");
+      const frame = () => evaluate("new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done)))");
+      const titleSelectors = scope => ({
+        scroller: JSON.stringify(`${scope} .chat-scroll-area`),
+        header: JSON.stringify(`${scope} > .main-chat-header`),
+        fade: JSON.stringify(`${scope} > .chat-transcript-title-fade.pane-info-header`),
+      });
+      const checkTitleLayout = async (scope, label, hasTabs) => {
+        const { scroller, header, fade } = titleSelectors(scope);
+        await until(`document.querySelector(${JSON.stringify(scope + ' .agent-reply-prose a')})`);
+        await until("[...document.querySelectorAll('.app-screen-main, .workbench-panel, .workbench-tabpanel:not(.is-inactive)')].every(el => el.getAnimations().length === 0)");
+        await evaluate(`document.querySelector(${scroller}).scrollTop = 0`);
+        await frame();
+        const layout = await evaluate(`(() => {
+          const scroll = document.querySelector(${scroller}), header = document.querySelector(${header});
+          const tabs = header.parentElement.querySelector(':scope > .conversation-view-tabs');
+          const first = scroll.querySelector('.user-msg-container').getBoundingClientRect();
+          const shade = document.querySelector(${fade});
+          return { top: header.getBoundingClientRect().top, bottom: (tabs ?? header).getBoundingClientRect().bottom,
+            scrollTop: scroll.getBoundingClientRect().top, first: first.top, hasTabs: Boolean(tabs),
+            divider: tabs ? getComputedStyle(tabs).borderBottomWidth : null,
+            indicator: tabs?.querySelector('.tab-indicator').getBoundingClientRect().width,
+            scrollPaddingTop: parseFloat(getComputedStyle(scroll).scrollPaddingTop),
+            legacyFade: getComputedStyle(header, '::before').content,
+            tail: parseFloat(getComputedStyle(shade, '::before').height) - shade.offsetHeight };
+        })()`);
+        assert.ok(Math.abs(layout.top - layout.scrollTop) <= 1 && layout.first >= layout.bottom + layout.tail - 1 && layout.tail > 0,
+          `${label}: viewport and first message should straddle the fixed heading (${JSON.stringify(layout)})`);
+        assert.equal(layout.hasTabs, hasTabs, `${label}: correct inner heading structure`);
+        if (hasTabs) {
+          assert.equal(layout.divider, '0px', `${label}: the floating tabs have no full-width divider`);
+          assert.ok(layout.indicator > 0, `${label}: the selection underline remains visible`);
+        }
+        assert.ok(Math.abs(layout.scrollPaddingTop - (layout.bottom - layout.top + layout.tail)) <= 1,
+          `${label}: scroll padding includes the title, optional tabs, and fade tail (${JSON.stringify(layout)})`);
+        assert.equal(layout.legacyFade, 'none', `${label}: the shared fade must not stack with the window-title fade`);
+        return layout;
+      };
+      const checkInnerTitle = async (scope, mode, hasTabs) => {
+        const query = suffix => JSON.stringify(`${scope} ${suffix}`);
+        const { scroller, header, fade } = titleSelectors(scope);
+        const label = `${mode}: ${scope}`;
+        const layout = await checkTitleLayout(scope, label, hasTabs);
+        const actions = `${scope} .chat-actions-anchor > button`;
+        assert.ok(await hitCenter(actions), `${label}: title action accepts pointer hits`);
+        assert.ok(await hitCenter(`${scope} .chat-title-rename`), `${label}: rename is above the fade`);
+
+        const point = await evaluate(`(() => {
+          const r = document.querySelector(${header}).getBoundingClientRect();
+          return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + 4) };
+        })()`);
+        assert.ok(await evaluate(`document.querySelector(${scroller}).contains(document.elementFromPoint(${point.x}, ${point.y}))`),
+          `${label}: unoccupied heading area passes pointer hits to the transcript`);
+        await evaluate(`document.querySelector(${scroller}).addEventListener('scrollend', event => { event.target.dataset.wheelSettled = 'true'; }, { once: true })`);
+        win.webContents.sendInputEvent({ type: 'mouseWheel', ...point, deltaX: 0, deltaY: -120, canScroll: true });
+        await until(`(() => { const scroll = document.querySelector(${scroller}); return scroll.scrollTop > 0 && scroll.dataset.wheelSettled; })()`);
+        assert.equal(await evaluate(`document.querySelector(${header}).getBoundingClientRect().top`), layout.top, label);
+
+        // Paint a solid probe behind the title. The captured Electron pixels must be
+        // closer to paper at the top, partially blended in the middle, and untouched below.
+        const reply = query('.agent-reply-prose');
+        const probe = await evaluate(`(() => {
+          const scroll = document.querySelector(${scroller}), reply = document.querySelector(${reply});
+          reply.style.backgroundColor = 'rgb(240, 32, 120)';
+          const top = scroll.getBoundingClientRect().top;
+          scroll.scrollTop += reply.getBoundingClientRect().top - top + 12;
+          const r = reply.getBoundingClientRect();
+          return { x: Math.round(r.left + r.width * .7), y: Math.round(top) };
+        })()`);
+        const sample = async () => {
+          const height = Math.ceil(layout.bottom - probe.y + layout.tail + 8);
+          const pixels = (await win.webContents.capturePage({ x: probe.x, y: probe.y, width: 1, height })).toBitmap({ scaleFactor: 1 });
+          // The outer workbench tab strip has its own tail in borderless mode.
+          const rows = [Math.ceil(layout.tail + 4), Math.round((layout.bottom - probe.y) * .65), height - 2];
+          return rows.map(y => pixels.subarray(y * 4, y * 4 + 3));
+        };
+        await frame();
+        const withFade = await sample();
+        await evaluate(`document.querySelector(${fade}).style.visibility = 'hidden'`);
+        await frame();
+        const noFade = await sample();
+        await evaluate(`document.querySelector(${fade}).style.removeProperty('visibility'); document.querySelector(${reply}).style.removeProperty('background-color')`);
+        const [near, middle, far] = withFade.map((pixel, i) => [0, 1, 2].reduce((n, c) => n + Math.abs(pixel[c] - noFade[i][c]), 0));
+        assert.ok(near > middle + 10 && middle > far + 10 && far < 5,
+          `${label}: pixel fade ${[near, middle, far]}, with ${withFade.map(p => [...p].join('/'))}, without ${noFade.map(p => [...p].join('/'))}`);
+
+        await evaluate(`document.querySelector(${JSON.stringify(actions)}).focus({ preventScroll: true })`);
+        const key = keyCode => {
+          win.webContents.sendInputEvent({ type: 'keyDown', keyCode });
+          win.webContents.sendInputEvent({ type: 'keyUp', keyCode });
+        };
+        key('Down');
+        const menuItem = `${scope} .chat-actions-menu [role=menuitem]:first-child`;
+        await until(`document.activeElement.matches(${JSON.stringify(menuItem)})`);
+        await until(`document.querySelector(${JSON.stringify(menuItem)})?.getAnimations().length === 0`);
+        assert.ok(await hitCenter(menuItem), `${label}: menu is above tabs and transcript`);
+        key('Escape');
+        await until(`document.activeElement.matches(${JSON.stringify(actions)})`);
+
+        const before = query('a[href="https://example.test/before"]');
+        const target = query('a[href="https://example.test/target"]');
+        await evaluate(`(() => {
+          const scroll = document.querySelector(${scroller}), target = document.querySelector(${target});
+          scroll.scrollTop += target.getBoundingClientRect().top - ${layout.top + 10};
+          document.querySelector(${before}).focus({ preventScroll: true });
+        })()`);
+        key('Tab');
+        await until(`document.activeElement === document.querySelector(${target})`);
+        assert.ok(await evaluate(`document.activeElement.getBoundingClientRect().top >= ${layout.bottom + layout.tail - 1}`),
+          `${label}: Tab brings transcript focus below the opaque and fading area`);
+        assert.ok(await hitCenter(`${scope} .rich-input`), `${label}: composer stays accessible`);
+      };
+      for (const mode of ['ordinary', 'borderless', 'ordinary-classic']) {
+        win.setContentSize(1440, 900);
+        await win.loadFile(join(temporary, 'index.html'), { query: { titlebar: mode } });
+        const main = '.main-stage-pane > .main-chat-view';
+        await until(`document.querySelector(${JSON.stringify(main + ' .agent-reply-prose a')})`);
+        assert.equal(await evaluate("Boolean(document.querySelector('.vela-window.borderless-interface'))"), mode === 'borderless');
+        const mainLayout = await evaluate(`(() => {
+          const chat = document.querySelector(${JSON.stringify(main)});
+          const heading = chat.querySelector(':scope > .main-chat-header');
+          return {
+            overlap: heading.getBoundingClientRect().bottom - chat.querySelector('.chat-scroll-area').getBoundingClientRect().top,
+            windowFade: getComputedStyle(heading, '::before').content !== 'none',
+            innerFade: getComputedStyle(chat.querySelector(':scope > .chat-transcript-title-fade')).display !== 'none',
+            divider: chat.querySelector(':scope > .conversation-view-tabs') ? getComputedStyle(chat.querySelector(':scope > .conversation-view-tabs')).borderBottomWidth : null,
+          };
+        })()`);
+        assert.equal(mainLayout.overlap > 1, mode === 'borderless', 'main window keeps its existing layout');
+        assert.equal(mainLayout.windowFade, mode === 'borderless', 'main window keeps its existing title fade');
+        assert.equal(mainLayout.innerFade, false, 'the inner fade does not paint in the main window');
+        if (mode === 'ordinary-classic') assert.equal(mainLayout.divider, '1px', 'the regular main tab row retains its divider');
+        await newTab();
+        await click(chatOption);
+        await until(`document.querySelector(${JSON.stringify(panel + ' .rich-input')})`);
+        assert.equal(await evaluate(`document.querySelector(${JSON.stringify(panel + ' .chat-transcript-title-fade')})`), null,
+          'empty chats do not run under the title');
+        await evaluate("chatFixture.loadTitlebarHistory('panel-1')");
+        await checkInnerTitle(panel, mode, true);
+        await click(`${panel} [data-tab-key="trace"]`);
+        await until(`document.querySelector(${JSON.stringify(panel + ' .trace-view')})`);
+        assert.equal(await evaluate(`document.querySelector(${JSON.stringify(panel + ' .chat-transcript-title-fade')})`), null,
+          'trace retains its own layout');
+        assert.equal(await evaluate(`getComputedStyle(document.querySelector(${JSON.stringify(panel + ' > .conversation-view-tabs')})).borderBottomWidth`), '1px',
+          'the detail tab row retains its divider');
+        await click(`${panel} [data-tab-key="chat"]`);
+
+        await click('.workbench-fullscreen-button');
+        await until("document.querySelector('[data-floating-chat] .rich-input')");
+        assert.equal(await evaluate("document.querySelector('[data-floating-chat] .chat-transcript-title-fade')"), null);
+        await click('.workbench-pinned-chat');
+        await checkInnerTitle(pinned, mode, mode === 'ordinary-classic');
+        if (mode === 'ordinary-classic') {
+          // The App couples borderless mode to workbench-level conversation tabs.
+          // Force only the CSS class to exercise the cascade with inner tabs still present.
+          await evaluate("document.querySelector('.vela-window').classList.add('borderless-interface')");
+          await checkTitleLayout(pinned, 'borderless pinned chat with inner tabs (forced CSS)', true);
+          await evaluate("document.querySelector('.vela-window').classList.remove('borderless-interface')");
+          console.log('PASS borderless pinned chat with inner tabs (forced CSS): full heading overlap and tail clearance');
+        }
+        await click(`${pinned} .chat-header-actions button[aria-label="展开信息卡片"]`);
+        const card = `${pinned} .info-card-stack:not([data-concealed]) .info-card-title`;
+        await until(`document.querySelector(${JSON.stringify(card)})`);
+        await until(`parseFloat(getComputedStyle(document.querySelector(${JSON.stringify(card)})).getPropertyValue('--info-drawer-open')) >= .99`);
+        assert.ok(await evaluate(`document.querySelector(${JSON.stringify(card)}).getBoundingClientRect().top > document.querySelector(${JSON.stringify(pinned + ' .main-chat-header')}).getBoundingClientRect().bottom`));
+        assert.ok(await hitCenter(card), `${mode}: pinned info cards stay interactive below the title`);
+        console.log(`PASS ${mode} workbench and pinned-chat title fade, scroll, menus, keyboard focus and information cards`);
+      }
       assert.equal(errors.length, 0, errors.join("\n"));
       console.log("PASS chat creation, isolated streams/controls, shared rewind history, retained drafts, keyboard tabs, failure/retry and close races");
       win.destroy(); app.exit(0);

@@ -6,6 +6,10 @@
 }
 
 .panel-file-preview-view {
+  --pane-info-surface: var(--bg-elevated);
+  --preview-header-height: 38px;
+  --preview-clearance: calc(var(--preview-header-height) + var(--titlebar-tail));
+  position: relative;
   flex: 1;
   min-height: 0;
   display: flex;
@@ -84,14 +88,21 @@
 }
 
 .preview-subbar {
-  flex: none;
-  height: 38px;
-  padding: 0 12px 0 16px;
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 4;
+  min-height: 38px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 6px;
-  border-bottom: 1px solid var(--border-subtle);
+  pointer-events: none;
+}
+/* Let the workbench's existing narrow-pane rule override the default spacing. */
+:where(.preview-subbar) { padding: 0 12px 0 16px; }
+.preview-subbar :is(.preview-crumb, .preview-breadcrumbs-text[data-scrollable="true"], button) {
+  pointer-events: auto;
+  -webkit-app-region: no-drag;
 }
 .preview-breadcrumbs-text {
   display: flex;
@@ -265,11 +276,15 @@
   display: flex;
   overflow: hidden;
   background: var(--bg-elevated);
+  /* Keep body stacking contexts (e.g. the sticky code gutter) under the toolbar. */
+  isolation: isolate;
 }
 
 .preview-html-frame {
   flex: 1;
   min-width: 0;
+  /* The guest owns its viewport and scrolling; don't draw over its first pixels. */
+  margin-top: var(--preview-clearance);
   border: 0;
   color-scheme: light;
   background: Canvas;
@@ -284,8 +299,10 @@
 }
 .code-scroll {
   flex: 1;
+  min-height: 0;
   overflow: auto;
-  padding: 8px 0 14px;
+  padding: calc(var(--preview-header-height) + max(8px, var(--titlebar-tail))) 0 14px;
+  scroll-padding-top: var(--preview-clearance);
   font-family: var(--font-mono);
   font-size: calc(14px * var(--code-scale));
   line-height: 1.65;
@@ -367,6 +384,8 @@
 }
 .preview-image-wrap {
   flex: 1;
+  min-height: 0;
+  margin-top: var(--preview-clearance);
   display: grid;
   place-items: center;
   padding: 18px;
@@ -401,6 +420,10 @@
   min-height: 0;
   overflow: auto;
   padding: 16px 18px 28px;
+}
+.panel-file-preview-view .preview-markdown-scroll {
+  padding-top: calc(var(--preview-header-height) + max(16px, var(--titlebar-tail)));
+  scroll-padding-top: var(--preview-clearance);
 }
 .md-frontmatter {
   display: grid;
@@ -499,6 +522,34 @@
   flex-direction: column;
   gap: 8px;
   padding: 10px 10px 8px;
+}
+/* Keep search fixed, but let the tree scroll through the unoccupied toolbar area. */
+.panel-file-preview-view .preview-explorer-pane {
+  position: relative;
+}
+.panel-file-preview-view .explorer-search-row {
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 1;
+  padding-top: calc(var(--preview-header-height) + 10px);
+  background: var(--bg-chat);
+  pointer-events: none;
+}
+.panel-file-preview-view .explorer-search-row::after {
+  content: "";
+  position: absolute;
+  inset: 100% 0 auto;
+  height: var(--titlebar-tail);
+  background: linear-gradient(to bottom, var(--bg-chat), transparent);
+  pointer-events: none;
+}
+.panel-file-preview-view .explorer-search-row :is(label, button) {
+  pointer-events: auto;
+}
+.panel-file-preview-view .explorer-body {
+  padding-top: calc(var(--preview-search-height, var(--preview-header-height)) + max(4px, var(--titlebar-tail)));
+  scroll-padding-top: calc(var(--preview-search-height, var(--preview-header-height)) + var(--titlebar-tail));
+  border-top: 0;
 }
 .explorer-search-field {
   position: relative;

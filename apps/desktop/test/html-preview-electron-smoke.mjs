@@ -19,7 +19,7 @@ writeFileSync(join(home, "ui-state.json"), JSON.stringify({ "vela.onboarding.com
 const write = (file, text) => writeFileSync(join(root, file), text);
 write("Demo page.HTM", `<!doctype html><link rel="stylesheet" href="assets/main.css?v=1">
   <button>Click me</button><img src="/assets/icon.svg"><script type="module" src="./assets/main.mjs"></script>`);
-write("assets/main.css", '@import "./theme/colors.css";');
+write("assets/main.css", '@import "./theme/colors.css"; body { min-height: 220vh; }');
 write("assets/theme/colors.css", "button { color: rgb(12, 34, 56); }");
 write("assets/main.mjs", `import {label} from './label.js'; document.querySelector('button').onclick = e => e.target.textContent = label;`);
 write("assets/label.js", `export const label = 'Clicked';`);
@@ -49,7 +49,44 @@ app.whenReady().then(async () => {
   const frame = await until(previewFrame, "HTML document");
   await until(() => frame.executeJavaScript(`document.querySelector('button')?.onclick && document.images[0].naturalWidth`), "module imports and image");
   assert.equal(await frame.executeJavaScript(`getComputedStyle(document.querySelector('button')).color`), 'rgb(12, 34, 56)');
-  assert.equal(await frame.executeJavaScript(`document.querySelector('button').click(); document.querySelector('button').textContent`), "Clicked");
+  await until(() => js(`!document.querySelector('.workbench-clip.is-animating') &&
+    !document.querySelector('.workbench-panel').getAnimations().length`), 'workbench opening');
+  const guest = await js(`(() => {
+    const iframe = document.querySelector('${frameSelector}');
+    const frame = iframe.getBoundingClientRect();
+    const bar = iframe.closest('.panel-file-preview-view').querySelector('.preview-subbar');
+    const fadeBottom = bar.getBoundingClientRect().top + parseFloat(getComputedStyle(bar, '::before').height);
+    // The workbench resize handle intentionally covers the outermost left edge.
+    const probes = [0.25, 0.5, 0.75].map(at => {
+      const hit = document.elementFromPoint(frame.left + frame.width * at, frame.top + 2);
+      return { frameHit: hit === iframe, target: hit ? [hit.localName, hit.getAttribute('class')].filter(Boolean).join('.') : 'none' };
+    });
+    return { left: frame.left, top: frame.top, fadeBottom, probes,
+      sandbox: iframe.getAttribute('sandbox'), referrerPolicy: iframe.referrerPolicy };
+  })()`);
+  assert.ok(guest.top >= guest.fadeBottom - 1, 'The fade must end before the guest viewport');
+  assert.ok(guest.probes.every(probe => probe.frameHit),
+    `The frame, not the host header, owns its top edge (hits: ${guest.probes.map(probe => probe.target).join(', ')})`);
+  assert.equal(guest.sandbox, 'allow-scripts');
+  assert.equal(guest.referrerPolicy, 'no-referrer');
+  const button = await frame.executeJavaScript(`(() => {
+    const r = document.querySelector('button').getBoundingClientRect();
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+  })()`);
+  const point = { x: guest.left + button.x, y: guest.top + button.y };
+  assert.ok(await js(`document.elementFromPoint(${point.x}, ${point.y}).matches('${frameSelector}')`));
+  // Dispatch through Chromium's hit-test path, including the sandboxed child frame.
+  const input = win.webContents.debugger;
+  input.attach();
+  try {
+    for (const type of ['mousePressed', 'mouseReleased']) {
+      await input.sendCommand('Input.dispatchMouseEvent', { type, ...point, button: 'left', clickCount: 1 });
+    }
+    await until(() => frame.executeJavaScript(`document.querySelector('button').textContent === 'Clicked'`), 'real input on the first guest row');
+    await input.sendCommand('Input.dispatchMouseEvent', { type: 'mouseWheel', ...point, deltaX: 0, deltaY: 180 });
+    await until(() => frame.executeJavaScript('window.scrollY > 100'), 'independent guest scrolling');
+  } finally { input.detach(); }
+  assert.equal(await js(`document.querySelector('${frameSelector}').getBoundingClientRect().top`), guest.top);
   assert.equal(await frame.executeJavaScript(`typeof window.vela`), "undefined");
   assert.equal(await js(`document.querySelector('${frameSelector}').contentDocument === null`), true);
   await click('.preview-view-toggle button:last-child');
@@ -63,7 +100,7 @@ app.whenReady().then(async () => {
     const updated = previewFrame();
     return updated && await updated.executeJavaScript(`document.querySelector('button') && getComputedStyle(document.querySelector('button')).color === 'rgb(98, 76, 54)'`).catch(() => false);
   }, "reloaded CSS");
-  console.log("PASS workspace HTML preview: imported CSS, module scripts, image, click, isolation, source toggle and reload");
+  console.log("PASS workspace HTML preview: imported CSS, module scripts, image, real guest click/wheel, isolation, source toggle and reload");
   app.quit();
 }).catch(error => { console.error(error); app.exit(1); });
 app.on("will-quit", () => rmSync(temp, { recursive: true, force: true }));
