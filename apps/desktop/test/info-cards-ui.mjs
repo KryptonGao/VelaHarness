@@ -147,7 +147,7 @@ if (!process.versions.electron) {
     }
   };
   try {
-    await win.loadURL(`${process.env.VELA_INFO_CARDS_URL}?reset=1`);
+    await win.loadURL(`${process.env.VELA_INFO_CARDS_URL}?reset=1&quota`);
     await until("!!document.querySelector('.info-card-stack .info-card')", "全 App 内存 IPC fixture 挂载");
     await evaluate("window.__infoRoot = document.querySelector('.info-card-stack'); true");
     await settled(false);
@@ -183,6 +183,27 @@ if (!process.versions.electron) {
     const beside = await evaluate(stackBounds);
     assert.ok(beside.scrollable && beside.inShadow && !beside.overlaps, `输入框只进入阴影留白：${JSON.stringify(beside)}`);
     assert.ok(beside.paneBottom - beside.bottom <= 16, `并排时卡片应使用面板全高：${JSON.stringify(beside)}`);
+    // Compare the painted fade, not hit testing: the opaque dock backing ignores pointer events.
+    const fadeRect = await evaluate(`(() => {
+      const card = window.__infoRoot.querySelector('.info-card').getBoundingClientRect();
+      return { x: Math.ceil(card.left), y: Math.floor(${beside.bottom}) - 30, width: Math.floor(card.width), height: 30 };
+    })()`);
+    const fadePixels = async () => (await win.webContents.capturePage(fadeRect)).toBitmap();
+    const baseline = await fadePixels();
+    assert.ok(baseline.length > 0, 'Expected a painted card stack');
+    for (const [trigger, menu] of [['.model-pill', '.model-popover, .combined-model-popover'], ['.usage-ring-button', '.usage-popover']]) {
+      const click = () => evaluate(`document.querySelector('.chat-dock-wrapper ${trigger}').click(); true`);
+      await click();
+      await until(`(() => {
+        const el = document.querySelector('${menu}'); if (!el) return false;
+        const r = el.getBoundingClientRect();
+        return el.contains(document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2));
+      })()`, `Visible and interactive ${menu}`);
+      assert.ok(baseline.equals(await fadePixels()), `${menu} must not cover the info card fade`);
+      await click();
+      await until(`!document.querySelector('${menu}')`, `Dismiss ${menu}`);
+    }
+    console.log('PASS Model and plan usage popovers preserve the painted card fade');
     await evaluate(`window.__infoRoot.parentElement.querySelector('.chat-dock-wrapper').style.setProperty('--composer-overhang', '48px'); true`);
     await until(`(() => { const b = ${stackBounds}; return b.overlaps && b.bottom <= b.dockTop; })()`, "输入框实际压到卡片时才预留底部空间");
     await evaluate(`window.__infoRoot.parentElement.querySelector('.chat-dock-wrapper').style.removeProperty('--composer-overhang'); true`);

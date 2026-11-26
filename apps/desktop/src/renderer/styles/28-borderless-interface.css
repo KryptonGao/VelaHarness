@@ -137,7 +137,13 @@
   &:has(.dock-popover, .skill-menu-anchor, .sheet-backdrop) {
     z-index: auto;
     & > .chat-scroll-area { z-index: 1; }
-    & > .chat-dock-wrapper { z-index: 5; }
+    & > .chat-dock-wrapper {
+      /* Keep the full-width backing above messages but below the floating info cards.
+       * Only the dock controls and their menus need to cross the header. */
+      isolation: auto;
+      &::after { z-index: 1; }
+      & > * { z-index: 5; }
+    }
   }
 }
 .borderless-interface .sidebar-right-scroll {

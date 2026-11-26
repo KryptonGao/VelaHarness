@@ -24,7 +24,7 @@ const state: AppState = {
   conversations: [],
   session: {
     id: "fixture", title: planFixture ? "Plan 展示与右侧面板" : "悬浮信息布局", status: "ready", cwd: "/workspace/VelaHarness",
-    model: "Preview model", modelProvider: "preview", modelId: "preview", modelReady: true,
+    model: "Preview model", modelProvider: params.has("quota") ? "openai-codex" : "preview", modelId: "preview", modelReady: true,
     thinkingLevel: "medium", thinkingLevels: ["off", "medium"], tools: ["read", "edit", "write", "bash", "grep", "web_search", "web_fetch", "update_todos"], mode: planFixture ? "plan" : "agent",
     proposedPlan: planFixture ? plans[1]! : null, planRevisions: planFixture ? plans : [], executionPlan: null, error: null,
     goal: { id: "goal-1", objective: "把右侧栏做成可自由排序的卡片模式", status: "active", note: null, workRevision: 1, validation: null, updatedAt: 1 },
@@ -73,6 +73,8 @@ window.vela = {
   ],
   listOpenTargets: async () => [],
   getCatalog: async () => ({ models: [], providers: [] }),
+  getUsageLimits: async (provider: string) => params.has("quota") ? { provider, plan: "plus", fetchedAt: Date.now(),
+    windows: [{ windowMinutes: 300, usedPercent: 25, resetsAt: null }] } : null,
   getAgentSettings: async () => ({ provider: null, modelId: null, thinkingLevel: "medium", newConversationSelection: "default", instructions: "" }),
   listSkills: async () => ({ skillsDir: "/workspace/skills", skills: [], diagnostics: [] }),
   getWorkspaceState: async () => ({ current: "/workspace/VelaHarness", folders: [], recents: [{ path: "/workspace/VelaHarness", name: "VelaHarness" }] }),
