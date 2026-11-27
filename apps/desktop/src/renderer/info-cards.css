@@ -3,13 +3,14 @@
 .info-card-stack {
   position: absolute;
   z-index: 5;
-  top: 8px;
+  --info-stack-extension: 0px;
+  top: calc(8px - var(--info-stack-extension));
   right: -12px;
   width: min(348px, calc(100% + 24px));
-  max-height: max(100px, calc(100% - var(--info-stack-clearance, 0px) - 16px));
+  max-height: calc(var(--info-stack-extension) + max(100px, 100% - var(--info-stack-clearance, 0px) - 16px));
   /* 滚动容器会裁掉卡片阴影，用内边距把阴影留在容器里：左右各 24px、底部 30px 容得下 --shadow-dock 的扩散。
      卡片本身仍是 312px 宽、距右缘 6px，横向多出的 18px 由 right 和 width 抵消。 */
-  padding: 4px 24px 30px;
+  padding: calc(4px + var(--info-stack-extension)) 24px 30px;
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -21,6 +22,44 @@
   mask-image: linear-gradient(to bottom, #000 calc(100% - 30px), transparent);
   /* 卡片之间的空隙把点击交还给对话。 */
   pointer-events: none;
+}
+/* The retreating split reveals the cards; it doesn't carry them along its edge.
+ * Anchor at the closed layout's edge, and clip paint and hits at the live divider. */
+.main-chat-view:has(> [data-workbench-motion]) { overflow-x: clip; }
+/* The covered stack is painted in place but remains inert. */
+[data-workbench-motion="cover"] > .info-card-stack {
+  transform: none;
+  opacity: 1;
+  visibility: visible;
+  transition: none;
+}
+/* Resolve 100cqw at the pane, against its live parent, before descendants inherit
+ * the number. Their own chat container stays full width to keep the cards still. */
+@property --info-split-progress {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
+}
+.chat-conversation-pane[data-workbench-motion]:has(> .info-card-stack) {
+  width: var(--info-pane-width);
+  container: chat / inline-size;
+  transition: none;
+  --info-split-progress: clamp(0, (var(--info-pane-width) - 100cqw) / var(--info-panel-width), 1);
+  --chat-lane-shrink: calc((1 - var(--info-split-progress)) * var(--info-lane-shrink, 0px) + var(--info-split-progress) * var(--info-split-shrink));
+  --chat-lane-shift: calc((1 - var(--info-split-progress)) * var(--info-lane-shift, 0px) + var(--info-split-progress) * var(--info-split-shift));
+}
+@media (prefers-reduced-motion: reduce) {
+  /* The global 0.01ms duration can still paint one intermediate inherited drawer value. */
+  .chat-conversation-pane:has(> .info-card-stack) :is(.chat-scroll-area, .chat-message-surface, .chat-message-surface > *, .chat-dock-wrapper, .floating-input-card, .info-card-stack) {
+    transition-property: none;
+  }
+}
+/* Scroll under the same titlebar as the transcript. Move the inset inside the
+ * scrollport so neither the first card nor the bottom fade changes position. */
+.borderless-interface .info-card-stack {
+  --info-stack-extension: calc(var(--chat-header-overlap) + 8px);
+  scroll-padding-top: calc(var(--chat-header-overlap) + var(--titlebar-tail));
+  z-index: 2; /* Above the dock backing, below the title even with a composer menu open. */
 }
 .info-card-stack::-webkit-scrollbar { display: none; }
 .info-card-stack.is-empty { width: auto; }

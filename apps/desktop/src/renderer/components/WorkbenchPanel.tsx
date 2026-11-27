@@ -70,6 +70,7 @@ interface WorkbenchPanelProps {
   /** Controls splitting and cross-pane moves, not sorting inside a strip. */
   splitEnabled?: boolean;
   onVisibleTabsChange?: (ids: string[]) => void;
+  onExitChange?: (exiting: boolean) => void;
   collapsed?: boolean;
   fullscreen?: boolean;
   showingChat?: boolean;
@@ -252,8 +253,11 @@ function WorkbenchPanelContent(props: WorkbenchPanelProps & { closing: boolean; 
     return () => observer.disconnect();
   }, [collapsed]);
   useLayoutEffect(() => {
-    if (exiting && panelRef.current) panelRef.current.style.setProperty("--workbench-exit-width", `${panelRef.current.getBoundingClientRect().width}px`);
-  }, [exiting]);
+    if (!exiting || !panelRef.current) return;
+    panelRef.current.style.setProperty("--workbench-exit-width", `${panelRef.current.getBoundingClientRect().width}px`);
+    props.onExitChange?.(true);
+    return () => props.onExitChange?.(false);
+  }, [exiting, props.onExitChange]);
   const visibleIds = layout.panes.filter(p => !layout.maximized || p.id === layout.maximized).map(p => p.selected);
   const visibleKey = !showingChat && !collapsed && !closing ? visibleIds.join("\0") : "";
   useLayoutEffect(() => { onVisibleTabsChange?.(visibleKey ? visibleKey.split("\0") : []); }, [visibleKey, onVisibleTabsChange]);

@@ -110,11 +110,11 @@ if (!process.versions.electron) {
     await evaluate("new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve(true))))");
   };
   // 在渲染帧中取样,不靠任意睡眠碰运气读取某一个中间帧。
-  const capture = async action => {
+  const capture = async (action, sample = metricsCode) => {
     await evaluate(`window.__infoCapture = new Promise(resolve => {
       const frames = [], start = performance.now();
       const tick = () => {
-        frames.push({ ...${metricsCode}, time: performance.now() - start });
+        frames.push({ ...${sample}, time: performance.now() - start });
         if (performance.now() - start < 550) requestAnimationFrame(tick); else resolve(frames);
       };
       requestAnimationFrame(tick);
@@ -176,13 +176,53 @@ if (!process.versions.electron) {
       const dock = pane.querySelector('.chat-dock-wrapper');
       const composer = dock.querySelector('.floating-input-card').getBoundingClientRect();
       const stack = root.getBoundingClientRect(), card = root.querySelector('.info-card').getBoundingClientRect();
-      return { inShadow: composer.right > stack.left, overlaps: composer.right > card.left,
+      const divider = pane.closest('.main-chat-view').getBoundingClientRect().right;
+      const hit = x => root.contains(document.elementFromPoint(x, card.top + 24));
+      const message = pane.querySelector('.user-msg-container').getBoundingClientRect();
+      return { left: card.left, right: card.right, divider,
+        messageWidth: message.width, messageCenter: message.left + message.width / 2, composerCenter: composer.left + composer.width / 2,
+        replyWidth: pane.querySelector('.assistant-block').getBoundingClientRect().width, composerWidth: composer.width,
+        coveredHit: divider < card.right - 2 && hit(Math.max(card.left + 1, divider + 1)),
+        exposedHit: divider > card.left + 2 && hit(card.left + 1),
+        inShadow: composer.right > stack.left, overlaps: composer.right > card.left,
         scrollable: root.scrollHeight > root.clientHeight, bottom: stack.bottom,
         paneBottom: pane.getBoundingClientRect().bottom, dockTop: dock.getBoundingClientRect().top };
     })()`;
     const beside = await evaluate(stackBounds);
     assert.ok(beside.scrollable && beside.inShadow && !beside.overlaps, `输入框只进入阴影留白：${JSON.stringify(beside)}`);
     assert.ok(beside.paneBottom - beside.bottom <= 16, `并排时卡片应使用面板全高：${JSON.stringify(beside)}`);
+    // Scroll a real card behind the title. Sampling the change between black and white
+    // at its inside edge measures how much card is visible, independent of theme.
+    const probe = await evaluate(`(() => {
+      const root = window.__infoRoot, header = root.closest('main').querySelector('.main-chat-header');
+      const title = header.getBoundingClientRect(), first = root.querySelector('.info-card');
+      const height = Math.ceil(parseFloat(getComputedStyle(header, '::before').height)) + 8;
+      const card = [...root.querySelectorAll('.info-card')].find(el => el.offsetHeight > height + 24);
+      const firstGap = first.getBoundingClientRect().top - title.bottom;
+      root.scrollTop += card.getBoundingClientRect().top - title.top + 12;
+      card.dataset.fadeProbe = '';
+      return { firstGap, rect: { x: Math.ceil(card.getBoundingClientRect().left) + 6,
+        y: Math.round(title.top), width: 1, height } };
+    })()`);
+    assert.equal(probe.firstGap, 12, 'First card keeps its inset below the title');
+    const checkTitleFade = async () => {
+      const sample = async color => {
+        await evaluate(`document.querySelector('[data-fade-probe]').style.backgroundColor = '${color}';
+          new Promise(done => requestAnimationFrame(() => requestAnimationFrame(() => done(true))))`);
+        const pixels = (await win.webContents.capturePage(probe.rect)).toBitmap({ scaleFactor: 1 });
+        return [5, Math.round(probe.rect.height * .65), probe.rect.height - 2].map(y => pixels[y * 4]);
+      };
+      const dark = await sample('black'), light = await sample('white');
+      const [top, middle, below] = light.map((v, i) => v - dark[i]);
+      assert.ok(top < 15 && middle > top + 20 && middle < below - 20 && below > 245,
+        `Card fades continuously beneath the title: ${[top, middle, below]}`);
+      assert.ok(await evaluate(`(() => {
+        const button = document.querySelector('.main-chat-header button[aria-label*="信息卡片"]');
+        const r = button.getBoundingClientRect();
+        return button.contains(document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2));
+      })()`), 'Scrolled cards must not intercept titlebar controls');
+    };
+    await checkTitleFade();
     // Compare the painted fade, not hit testing: the opaque dock backing ignores pointer events.
     const fadeRect = await evaluate(`(() => {
       const card = window.__infoRoot.querySelector('.info-card').getBoundingClientRect();
@@ -203,18 +243,91 @@ if (!process.versions.electron) {
         const r = el.getBoundingClientRect();
         return el.contains(document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2));
       })()`, `Visible and interactive ${menu}`);
+      await checkTitleFade();
       assert.ok(baseline.equals(await fadePixels()), `${menu} must not cover the info card fade`);
       await click();
       await until(`!document.querySelector('${menu}')`, `Dismiss ${menu}`);
     }
-    console.log('PASS Model, plan usage and mode popovers preserve the painted card fade');
+    await evaluate(`document.querySelector('[data-fade-probe]').style.removeProperty('background-color');
+      window.__infoRoot.scrollTop = 0; true`);
+    console.log('PASS Scrolled cards share the title fade; composer menus preserve both card fades');
     await evaluate(`window.__infoRoot.parentElement.querySelector('.chat-dock-wrapper').style.setProperty('--composer-overhang', '48px'); true`);
     await until(`(() => { const b = ${stackBounds}; return b.overlaps && b.bottom <= b.dockTop; })()`, "输入框实际压到卡片时才预留底部空间");
     await evaluate(`window.__infoRoot.parentElement.querySelector('.chat-dock-wrapper').style.removeProperty('--composer-overhang'); true`);
     await until(`(() => { const b = ${stackBounds}; return !b.overlaps && b.bottom === ${beside.bottom}; })()`, "输入框不再重叠时恢复卡片高度");
 
+    const assertLaneMotion = (frames, full, split) => {
+      const progress = f => (full.divider - f.divider) / (full.divider - split.divider);
+      assert.ok(frames.filter(f => progress(f) > 0.05 && progress(f) < 0.95).length >= 2, 'Exercise intermediate panel widths');
+      for (const key of ['messageWidth', 'replyWidth', 'composerWidth', 'messageCenter', 'composerCenter']) {
+        assert.ok(Math.abs(full[key] - split[key]) > 2, `Exercise a visible change in ${key}`);
+        for (const frame of frames) {
+          const expected = full[key] + progress(frame) * (split[key] - full[key]);
+          assert.ok(Math.abs(frame[key] - expected) < 1, `${key}: expected ${expected} at ${frame.divider}, got ${frame[key]}`);
+        }
+      }
+    };
+    const panelToggle = '.panel-layout-actions > button';
+    for (const close of [panelToggle, '.workbench-tab-close']) {
+      const opening = await capture(() => evaluate(`document.querySelector('${panelToggle}').click()`),
+        `({ ...${stackBounds}, opacity: Number(getComputedStyle(window.__infoRoot).opacity), visibility: getComputedStyle(window.__infoRoot).visibility })`);
+      const partial = opening.filter(f => f.divider < beside.right - 1 && f.divider > beside.left + 1);
+      assert.ok(partial.length >= 2, 'The advancing divider must cross the stationary card');
+      const pushed = opening.find(f => f.divider > beside.left + 1 && (Math.abs(f.left - beside.left) > 0.5 || f.opacity !== 1 || f.visibility !== 'visible' || f.coveredHit));
+      assert.ok(!pushed, `Opening moved a visible card from ${beside.left}: ${JSON.stringify(pushed)}`);
+      await settled(true);
+      const split = await evaluate(stackBounds);
+      assertLaneMotion(opening, beside, split);
+      if (close === panelToggle) {
+        const toggle = () => evaluate(`document.querySelector('${panelToggle}').click()`);
+        const reversed = await capture(async () => {
+          await toggle();
+          await until(`(${stackBounds}).divider > ${(split.divider + beside.divider) / 2} && !!document.querySelector('.workbench-panel.is-closing')`, 'Reverse a moving panel');
+          await toggle();
+        }, stackBounds);
+        assertLaneMotion(reversed, beside, split);
+        await settled(true);
+      }
+      const frames = await capture(() => evaluate(`document.querySelector('${close}').click()`),
+        `({ ...${stackBounds}, closing: !!document.querySelector('.workbench-panel.is-closing'), opacity: Number(getComputedStyle(window.__infoRoot).opacity) })`);
+      const closing = frames.filter(f => f.closing);
+      assert.ok(closing.some(f => f.divider <= beside.left), `${close}: start behind the workbench`);
+      assert.ok(closing.some(f => f.divider > beside.left && f.divider < beside.right && f.exposedHit), `${close}: reveal a slice of the card: ${JSON.stringify(closing.map(({ divider, left, exposedHit, opacity }) => [divider, left, exposedHit, opacity]))}`);
+      const moved = frames.slice(frames.indexOf(closing[0])).find(f => f.opacity !== 1 || Math.abs(f.left - beside.left) > 0.5 || Math.abs(f.right - beside.right) > 0.5 || f.coveredHit);
+      assert.ok(!moved, `${close}: cards must stay at rest behind the moving divider: ${JSON.stringify(moved)}`);
+      assertLaneMotion(frames, beside, split);
+      const shifted = closing.find(f => !f.overlaps && f.bottom !== beside.bottom);
+      assert.ok(!shifted, `Closing the workbench moved the bottom fade despite no overlap: ${JSON.stringify(shifted)}`);
+      await settled(false);
+    }
+    console.log('PASS Opening and reopening cover stationary cards; folding or closing the last tab uncovers them');
+
+    await resize(1550, 680);
+    const previousWidth = await evaluate(`document.documentElement.style.getPropertyValue('--workbench-width')`);
+    await evaluate(`document.documentElement.style.setProperty('--workbench-width', '320px')`);
+    const room = await capture(() => evaluate(`document.querySelector('${panelToggle}').click()`));
+    assert.ok(room.every(f => !f.concealed && !f.inert && f.opacity === 1), 'Keep cards alongside the workbench when both fit');
+    assert.ok(room[0].paneWidth - room.at(-1).paneWidth > 300, 'Exercise a real split and not just the closed layout');
+    await capture(() => evaluate(`document.querySelector('.workbench-tab-close').click()`));
+    await evaluate(`document.documentElement.style.setProperty('--workbench-width', ${JSON.stringify(previousWidth)})`);
+    await resize(wide, 680);
+    await settled(false);
+
+    const checkNoReveal = async label => {
+      await evaluate(`document.querySelector('${panelToggle}').click()`);
+      await until(`!!document.querySelector('.workbench-tab-close')`, 'Workbench opened');
+      const frames = await capture(() => evaluate(`document.querySelector('.workbench-tab-close').click()`));
+      assert.ok(frames.every(f => f.concealed && f.inert && f.opacity === 0), `${label}: keep the cards hidden throughout the close`);
+    };
+    const toggleCards = () => evaluate(`document.querySelector('.main-chat-header button[aria-label*="信息卡片"]').click()`);
+    await toggleCards();
+    await settled(true);
+    await checkNoReveal('Manually hidden');
+    await toggleCards();
+    await settled(false);
     await resize(narrow);
     await settled(true);
+    await checkNoReveal('Too narrow even without the workbench');
     assert.ok((await metrics()).textWidth < (await metrics()).threshold);
     await resize(wide);
     await settled(false);
@@ -273,13 +386,9 @@ if (!process.versions.electron) {
       window.__stateCard.querySelector('.info-card-title').click(); true`);
     await until("window.__stateCard.hasAttribute('data-collapsed')", "卡片内部折叠状态");
     await evaluate("window.__cardState = localStorage.getItem('vela.infoCards'); true");
-    const toggle = () => evaluate(`(() => {
-      const button = document.querySelector('.main-chat-header button[aria-label*="信息卡片"]');
-      if (!button) throw new Error('缺少信息卡片切换按钮'); button.click(); return true;
-    })()`);
-    await checkToggle(toggle, true, "手动向右退出");
+    await checkToggle(toggleCards, true, "手动向右退出");
     assert.equal((await metrics()).inert, true);
-    await checkToggle(toggle, false, "手动从右进入");
+    await checkToggle(toggleCards, false, "手动从右进入");
     assert.equal(await evaluate("window.__stateCard === window.__infoRoot.querySelector('.info-card') && window.__stateCard.hasAttribute('data-collapsed')"), true);
     assert.equal(await evaluate("localStorage.getItem('vela.infoCards') === window.__cardState"), true);
     console.log("PASS 手动按钮折叠/展开双向动画并保留卡片内部状态");
@@ -302,6 +411,14 @@ if (!process.versions.electron) {
     assert.equal(reducedShown.opacity, 1);
     assert.equal(reducedShown.inert, false);
     assert.ok(reducedShown.transition.split(",").every(value => parseFloat(value) <= 0.00001));
+    const instantOpen = await capture(() => evaluate(`document.querySelector('${panelToggle}').click()`), stackBounds);
+    const instantClose = await capture(() => evaluate(`document.querySelector('.workbench-tab-close').click()`), stackBounds);
+    for (const key of ['messageWidth', 'replyWidth', 'composerWidth']) {
+      const from = instantOpen.at(-1)[key], to = instantClose.at(-1)[key];
+      assert.ok(Math.abs(from - to) > 2);
+      const intermediate = [...instantOpen, ...instantClose].find(f => Math.min(Math.abs(f[key] - from), Math.abs(f[key] - to)) >= 1);
+      assert.ok(!intermediate, `Reduced motion: unexpected ${key} ${intermediate?.[key]} between ${from} and ${to}`);
+    }
     await win.webContents.debugger.sendCommand("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "no-preference" }] });
     win.webContents.debugger.detach();
     console.log("PASS prefers-reduced-motion 无位移、无可见 transition, 显隐与交互状态正确");

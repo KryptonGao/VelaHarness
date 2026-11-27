@@ -297,6 +297,7 @@ export function App() {
   }, [session.switchTo]);
   const [visibleWorkbenchTabIds, setVisibleWorkbenchTabIds] = useState<string[]>([]);
   const [workbenchCollapsed, setWorkbenchCollapsed] = useState(false);
+  const [workbenchExiting, setWorkbenchExiting] = useState(false);
   useEffect(() => { setWorkbenchCollapsed(false); }, [activeWorkbenchTabId]);
   const activateMicroApp = useCallback((id: string) => {
     setWorkbenchCollapsed(false);
@@ -1242,6 +1243,7 @@ export function App() {
                           onToggleRight={toggleInfo}
                           floatingInfo={floatingInfo && !floatingChat}
                           infoCards={infoCards}
+                          workbenchPhase={workbenchExiting ? "closing" : workbenchVisible && !fullscreen ? "open" : undefined}
                           onResumeGoal={resumeGoal}
                           environmentCollapsed={environmentCollapsed}
                           changesActive={activeWorkbenchTab?.kind === "changes"}
@@ -1295,6 +1297,7 @@ export function App() {
                         onToggleFullscreen={() => setWorkbenchView(fullscreen ? "split" : "panel")}
                         splitEnabled={preferences.workbenchSplit}
                         onVisibleTabsChange={setVisibleWorkbenchTabIds}
+                        onExitChange={setWorkbenchExiting}
                         browserOperating={browser.state.operating.includes(conversationKey)}
                         tabs={workbenchTabs}
                         onTabOrderChange={setTabOrder}

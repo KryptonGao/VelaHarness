@@ -306,28 +306,38 @@ export function InfoCardStack(props: InfoCardStackProps) {
   useLayoutEffect(() => {
     const root = rootRef.current;
     const pane = root?.parentElement;
-    if (!root || !pane) return;
-    let frame = 0;
+    const list = listRef.current;
+    if (!root || !pane || !list) return;
+    let frame = 0, sliding = false;
     const measure = () => {
+      frame = 0;
       const composer = pane.querySelector<HTMLElement>(".floating-input-card");
-      // 与对话列避让使用同一条卡片实体边缘，不把阴影内边距或进出场位移算作重叠。
-      const cardLeft = pane.getBoundingClientRect().left + root.offsetLeft + parseFloat(getComputedStyle(root).paddingLeft);
-      const overlaps = composer && composer.getBoundingClientRect().right > cardLeft;
-      root.style.setProperty("--info-stack-clearance", overlaps ? "var(--composer-clearance)" : "0px");
+      // Compare both painted edges in this frame; the list excludes the stack's shadow padding.
+      const overlaps = composer && composer.getBoundingClientRect().right > list.getBoundingClientRect().left;
+      const clearance = overlaps ? "var(--composer-clearance)" : "0px";
+      if (root.style.getPropertyValue("--info-stack-clearance") !== clearance) root.style.setProperty("--info-stack-clearance", clearance);
+      if (sliding) schedule();
     };
-    const schedule = () => { cancelAnimationFrame(frame); frame = requestAnimationFrame(measure); };
+    const schedule = () => { if (!frame) frame = requestAnimationFrame(measure); };
     measure();
     // 对话区尺寸变化后 ChatView 才会更新对话列的位移，所以晚一帧再量。
     const observer = new ResizeObserver(schedule);
     observer.observe(pane);
     const composer = pane.querySelector<HTMLElement>(".floating-input-card");
     if (composer) observer.observe(composer);
-    // 仅有水平位移时，输入框尺寸不变，不会触发 ResizeObserver。
-    const onSlideEnd = (event: TransitionEvent) => {
-      if (event.target === pane && event.propertyName === "--info-drawer-open") schedule();
+    // Translation alone doesn't notify ResizeObserver. Track only the active drawer transition.
+    const onSlide = (event: TransitionEvent) => {
+      if (event.target !== pane || event.propertyName !== "--info-drawer-open") return;
+      sliding = event.type === "transitionrun";
+      schedule();
     };
-    pane.addEventListener("transitionend", onSlideEnd);
-    return () => { cancelAnimationFrame(frame); observer.disconnect(); pane.removeEventListener("transitionend", onSlideEnd); };
+    const events = ["transitionrun", "transitionend", "transitioncancel"] as const;
+    for (const type of events) pane.addEventListener(type, onSlide);
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+      for (const type of events) pane.removeEventListener(type, onSlide);
+    };
   }, [present]);
 
   if (!present) return null;

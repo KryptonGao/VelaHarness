@@ -150,6 +150,9 @@
     }
   }
 }
+/* In pinned chat the fade is a separate sibling, not the title's own backing.
+ * Keep it at title level when an open composer menu un-stacks the pane. */
+.borderless-interface .showing-pinned-chat > .main-chat-view > .chat-transcript-title-fade { z-index: 3; }
 .borderless-interface .sidebar-right-scroll {
   margin-top: calc(-1 * var(--header-height));
   padding-top: calc(var(--header-height) + 6px);

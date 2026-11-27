@@ -240,6 +240,7 @@ export interface ChatViewProps {
   floatingInfo?: boolean;
   /** 悬浮信息布局下，用可排序的信息卡片栈代替单张环境卡片。 */
   infoCards?: boolean;
+  workbenchPhase?: "open" | "closing";
   onResumeGoal?: () => void;
   environmentCollapsed?: boolean;
   changesActive?: boolean;
@@ -312,6 +313,7 @@ export function ChatView({
   onToggleRight,
   floatingInfo = false,
   infoCards = false,
+  workbenchPhase,
   onResumeGoal,
   environmentCollapsed = false,
   changesActive = false,
@@ -721,6 +723,18 @@ export function ChatView({
     const pane = scrollerRef.current?.parentElement;
     if (!floatingInfo || !pane) return;
 
+    const stage = infoCards && !environmentCollapsed ? pane.closest<HTMLElement>(".main-stage-pane") : null;
+    const chat = pane.parentElement;
+    const canvas = workbenchPhase && stage?.querySelector<HTMLElement>(":scope > .workbench-clip > .workbench-panel > .workbench-canvas");
+    let moving = !!canvas && !!pane.querySelector(workbenchPhase === "closing"
+      ? ":scope > .info-card-stack[data-concealed]" : ":scope > .info-card-stack:not([data-concealed])");
+    let measuredStage = 0, measuredPanel = 0;
+    const endMotion = () => {
+      moving = false;
+      pane.removeAttribute("data-workbench-motion");
+      for (const key of ["pane-width", "panel-width", "split-shrink", "split-shift"]) pane.style.removeProperty(`--info-${key}`);
+    };
+
     // 消息面会在工作区/会话切换时按 key 重建,每次测量都重新取一遍实时元素。
     const measure = () => {
       const surface = pane.querySelector<HTMLElement>(".chat-message-surface");
@@ -746,17 +760,40 @@ export function ChatView({
         cardLeft: paneLeft + card.offsetLeft + (isStack ? paddingLeft : 0),
         laneLimitLeft: paneLeft,
       };
-      return isStack
+      const plan = isStack
         ? planInfoCardLane({ ...input, cardWidth: card.clientWidth - paddingLeft - paddingRight })
         : { ...planChatLane(input), concealed: false };
+      return { ...plan, laneWidth, center: surfaceBox.left + surfaceBox.width / 2 };
     };
 
+    // Probe both resting layouts (including their responsive gutters) before paint.
+    // Keep the cards on the full-width pane. CSS interpolates the chat lane in those
+    // coordinates using the actual divider, so reversing doesn't start a second clock.
     const apply = () => {
+      if (moving && stage && canvas && chat) {
+        const stageWidth = stage.getBoundingClientRect().width, panelWidth = canvas.getBoundingClientRect().width;
+        const splitWidth = stageWidth - panelWidth;
+        if (panelWidth <= 0 || splitWidth <= 0 || (workbenchPhase === "open" && chat.getBoundingClientRect().width <= splitWidth)) endMotion();
+        else if (stageWidth !== measuredStage || panelWidth !== measuredPanel) {
+          measuredStage = stageWidth; measuredPanel = panelWidth;
+          pane.dataset.workbenchMotion = workbenchPhase === "open" ? "cover" : "reveal";
+          pane.style.setProperty("--info-pane-width", `${splitWidth}px`);
+          const split = measure();
+          pane.style.setProperty("--info-pane-width", `${stageWidth}px`);
+          const full = measure();
+          if (!split?.concealed || !full || full.concealed) endMotion();
+          else {
+            pane.style.setProperty("--info-panel-width", `${panelWidth}px`);
+            pane.style.setProperty("--info-split-shrink", `${full.laneWidth - split.laneWidth}px`);
+            pane.style.setProperty("--info-split-shift", `${full.center - split.center}px`);
+          }
+        }
+      }
       const plan = measure();
       if (!plan) return;
       const scroller = scrollerRef.current;
       if (scroller) pane.style.setProperty("--chat-scrollbar-width", `${scroller.offsetWidth - scroller.clientWidth}px`);
-      setInfoCardsConcealed(plan.concealed);
+      setInfoCardsConcealed((moving && workbenchPhase === "open") || plan.concealed);
       // 只写完全展开时的几何。自动收起时沿用上一次目标，CSS 会随抽屉进度平滑归零。
       if (!plan.concealed) {
         pane.style.setProperty("--info-lane-shift", `${plan.shift}px`);
@@ -769,6 +806,11 @@ export function ChatView({
     const observeCard = () => {
       observer.disconnect();
       observer.observe(pane);
+      if (moving && stage && chat && canvas) {
+        observer.observe(stage);
+        observer.observe(chat);
+        observer.observe(canvas);
+      }
       const card = pane.querySelector<HTMLElement>(".floating-environment, .info-card-stack");
       if (card) observer.observe(card);
       else {
@@ -784,11 +826,12 @@ export function ChatView({
     return () => {
       children.disconnect();
       observer.disconnect();
+      endMotion();
       pane.style.removeProperty("--chat-scrollbar-width");
       pane.style.removeProperty("--info-lane-shift");
       pane.style.removeProperty("--info-lane-shrink");
     };
-  }, [floatingInfo, infoCards, messageSurfaceKey]);
+  }, [floatingInfo, infoCards, messageSurfaceKey, workbenchPhase, environmentCollapsed]);
 
   const enterTrack = useRef<EnterTrack | null>(null);
   enterTrack.current = trackEnteredMessages(
