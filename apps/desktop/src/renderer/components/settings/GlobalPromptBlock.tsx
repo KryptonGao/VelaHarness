@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { globalPromptPreferenceKey, maxGlobalPromptLength } from "../../../system-prompt-preference";
 import { uiStorage } from "../../ui-storage";
+import { showToast } from "../../toast";
 import type { SettingsCopy } from "../settings-copy";
 import { SettingsBlock } from "./primitives";
 
@@ -13,7 +14,7 @@ export function GlobalPromptBlock({ text }: { text: SettingsCopy["agent"] }) {
     try { return uiStorage.getItem(globalPromptPreferenceKey) ?? ""; }
     catch { return null; }
   });
-  const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">(failedDraft === null ? "idle" : "error");
+  const [saveFailed, setSaveFailed] = useState(failedDraft !== null);
   const pending = useRef<string | null>(failedDraft);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -27,12 +28,13 @@ export function GlobalPromptBlock({ text }: { text: SettingsCopy["agent"] }) {
       else uiStorage.removeItem(globalPromptPreferenceKey);
       pending.current = null;
       failedDraft = null;
-      setStatus("saved");
+      setSaveFailed(false);
+      showToast(text.saved, { icon: "check" });
     } catch {
       failedDraft = draft;
-      setStatus("error");
+      setSaveFailed(true);
     }
-  }, []);
+  }, [text.saved]);
   useEffect(() => save, [save]);
 
   return (
@@ -48,16 +50,16 @@ export function GlobalPromptBlock({ text }: { text: SettingsCopy["agent"] }) {
           const draft = event.target.value;
           pending.current = draft;
           setValue(draft);
-          setStatus("saving");
+          setSaveFailed(false);
           if (timer.current !== null) clearTimeout(timer.current);
           timer.current = setTimeout(save, 800);
         }}
         onBlur={save}
       />
-      {value === null || status === "error" ? (
+      {value === null || saveFailed ? (
         <p className="settings-error" role="alert">{value === null ? text.loadError : text.globalPromptSaveError}</p>
       ) : (
-        <p className="settings-note" role="status">{status === "saving" ? text.saving : status === "saved" ? text.saved : text.autosaveNote}</p>
+        <p className="settings-note">{text.autosaveNote}</p>
       )}
     </SettingsBlock>
   );

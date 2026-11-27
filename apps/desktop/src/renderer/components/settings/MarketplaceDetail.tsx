@@ -5,7 +5,8 @@ import {
   type MarketplaceSkillEntry,
   type SkillCatalog,
 } from "@vela/shared";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { showToast } from "../../toast";
 import type { SettingsCopy } from "../settings-copy";
 import { MarketplaceIcon } from "./MarketplaceIcon";
 import { Icon } from "../icons";
@@ -66,12 +67,10 @@ export function MarketplaceAction({ copy, entry, skill, busy, installing, confir
 export function MarketplaceDetail({
   copy,
   entry,
-  error,
   installs,
   onBack,
   ...action
-}: MarketplaceActionProps & { error: string | null; installs: number | null; onBack: () => void }) {
-  const [copied, setCopied] = useState(false);
+}: MarketplaceActionProps & { installs: number | null; onBack: () => void }) {
   const name = copy.skillsMarketNames[entry.id] ?? entry.skill;
   const description = copy.skillsMarketDescriptions[entry.id] ?? entry.description ?? "";
   const command = marketplaceSkillCommand(entry);
@@ -85,16 +84,10 @@ export function MarketplaceDetail({
     return () => window.removeEventListener("keydown", onKey);
   }, [onBack]);
 
-  useEffect(() => {
-    if (!copied) return;
-    const timer = window.setTimeout(() => setCopied(false), 1500);
-    return () => window.clearTimeout(timer);
-  }, [copied]);
-
   async function copyCommand(): Promise<void> {
     try {
       await navigator.clipboard.writeText(command);
-      setCopied(true);
+      showToast(copy.skillCopied);
     } catch {
       // 剪贴板不可用时命令仍可手动选中复制。
     }
@@ -111,7 +104,6 @@ export function MarketplaceDetail({
         <h2>{name}</h2>
         <MarketplaceAction copy={copy} entry={entry} {...action} />
       </header>
-      {error ? <p className="settings-error">{error}</p> : null}
       <section>
         <h3 className="skills-group-head">{copy.skillsMarketDetailIntro}</h3>
         <p className="skill-detail-text">{description}</p>
@@ -176,10 +168,10 @@ export function MarketplaceDetail({
                 className="skills-icon-btn"
                 type="button"
                 aria-label={copy.skillsMarketCopyCommand}
-                title={copied ? copy.skillCopied : copy.skillsMarketCopyCommand}
+                title={copy.skillsMarketCopyCommand}
                 onClick={() => void copyCommand()}
               >
-                {copied ? <Icon name="check" size={14} /> : <Icon name="copy" size={14} />}
+                <Icon name="copy" size={14} />
               </button>
             </dd>
           </div>

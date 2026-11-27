@@ -8,6 +8,7 @@ import {
 } from "@vela/shared";
 import { useEffect, useMemo, useState } from "react";
 import { localizeError } from "../../locale";
+import { showToast } from "../../toast";
 import { SheetPresence } from "../Presence";
 import { SkillMigrationDialog } from "../SkillMigrationDialog";
 import type { SettingsCopy } from "../settings-copy";
@@ -27,20 +28,16 @@ export function SkillsPage({ copy, workspacePath }: { copy: SettingsCopy; worksp
   const text = copy.agent;
   const [catalog, setCatalog] = useState<SkillCatalog | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
   const [pending, setPending] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [migrationOpen, setMigrationOpen] = useState(false);
-  const [migrationNotice, setMigrationNotice] = useState<string | null>(null);
-  const [migrationError, setMigrationError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<SkillFilter>("all");
   const [detailLocation, setDetailLocation] = useState<string | null>(null);
   const [view, setViewState] = useState<SkillsView>("manage");
   const [marketDetail, setMarketDetail] = useState<string | null>(null);
   const [installing, setInstalling] = useState<string | null>(null);
-  const [installError, setInstallError] = useState<string | null>(null);
   // 先用内置目录立刻有内容，进入市场后再换成云端目录与安装次数。
   const [listing, setListing] = useState<MarketplaceListing>(() => ({ skills: [...marketplaceSkills], source: "builtin", installs: null }));
 
@@ -83,17 +80,22 @@ export function SkillsPage({ copy, workspacePath }: { copy: SettingsCopy; worksp
     try {
       await window.vela?.openSkillsDirectory();
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : text.skillsLoadError);
+      showSkillError(caught);
     }
+  }
+
+  function showSkillError(caught: unknown): void {
+    showToast(caught instanceof Error ? localizeError(caught.message) : text.skillsLoadError, { kind: "error" });
   }
 
   function finishMigration(result: SkillMigrationResult): void {
     const count = result.copied.length + result.replaced.length;
     setMigrationOpen(false);
-    setMigrationNotice(count > 0 ? text.migrateDone(count) : text.migrateNone);
-    setMigrationError(result.skipped.length > 0
-      ? result.skipped.map((item) => `${item.name}: ${item.message ?? text.migrateSkip[item.reason]}`).join(" ")
-      : null);
+    const summary = count > 0 ? text.migrateDone(count) : text.migrateNone;
+    if (result.skipped.length > 0) {
+      const skipped = result.skipped.map((item) => `${item.name}: ${item.message ?? text.migrateSkip[item.reason]}`).join(" ");
+      showToast(`${summary} ${skipped}`, { kind: "error" });
+    } else showToast(summary);
     setRefreshKey((current) => current + 1);
   }
 
@@ -101,12 +103,11 @@ export function SkillsPage({ copy, workspacePath }: { copy: SettingsCopy; worksp
     const api = window.vela;
     if (!api || pending) return;
     setPending(skill.name);
-    setActionError(null);
     setConfirmingDelete(null);
     try {
       setCatalog(await api.setSkillEnabled(skill.name, !skill.enabled));
     } catch (caught) {
-      setActionError(caught instanceof Error ? caught.message : text.skillsLoadError);
+      showSkillError(caught);
     } finally {
       setPending(null);
     }
@@ -117,16 +118,14 @@ export function SkillsPage({ copy, workspacePath }: { copy: SettingsCopy; worksp
     if (!api || pending) return;
     if (confirmingDelete !== skill.name) {
       setConfirmingDelete(skill.name);
-      setActionError(null);
       return;
     }
     setPending(skill.name);
-    setActionError(null);
     try {
       setCatalog(await api.deleteSkill(skill.name, skill.location));
       setConfirmingDelete(null);
     } catch (caught) {
-      setActionError(caught instanceof Error ? caught.message : text.skillsLoadError);
+      showSkillError(caught);
     } finally {
       setPending(null);
     }
@@ -142,11 +141,10 @@ export function SkillsPage({ copy, workspacePath }: { copy: SettingsCopy; worksp
     const api = window.vela;
     if (!api || installing) return;
     setInstalling(entry.id);
-    setInstallError(null);
     try {
       setCatalog(await api.installMarketplaceSkill(entry.id));
     } catch (caught) {
-      setInstallError(caught instanceof Error ? caught.message : text.skillsLoadError);
+      showSkillError(caught);
     } finally {
       setInstalling(null);
     }
@@ -194,7 +192,6 @@ export function SkillsPage({ copy, workspacePath }: { copy: SettingsCopy; worksp
             busy={installing !== null || pending !== null}
             installing={installing}
             confirmingUninstall={confirmingDelete}
-            error={installError ?? (actionError ? localizeError(actionError) : null)}
             onBack={() => {
               setMarketDetail(null);
               setConfirmingDelete(null);
@@ -211,7 +208,6 @@ export function SkillsPage({ copy, workspacePath }: { copy: SettingsCopy; worksp
             busy={installing !== null || pending !== null}
             installing={installing}
             confirmingUninstall={confirmingDelete}
-            error={installError ?? actionError}
             onOpen={(entry) => setMarketDetail(entry.id)}
             onInstall={(entry) => void installSkill(entry)}
             onUninstall={(skill) => void deleteSkill(skill)}
@@ -245,7 +241,6 @@ export function SkillsPage({ copy, workspacePath }: { copy: SettingsCopy; worksp
       </div>
       <div className="skills-actions">
         {catalog ? <span className="skills-dir" title={catalog.skillsDir}>{catalog.skillsDir}</span> : <span className="skills-dir" />}
-        {migrationNotice ? <span className="settings-saved">{migrationNotice}</span> : null}
         <button
           className="skills-icon-btn"
           type="button"
@@ -262,16 +257,11 @@ export function SkillsPage({ copy, workspacePath }: { copy: SettingsCopy; worksp
         <button
           className="primary-btn skills-action-btn"
           type="button"
-          onClick={() => {
-            setMigrationNotice(null);
-            setMigrationError(null);
-            setMigrationOpen(true);
-          }}
+          onClick={() => setMigrationOpen(true)}
         >
           {text.migrate}
         </button>
       </div>
-      {migrationError ? <p className="settings-error">{migrationError}</p> : null}
       <SheetPresence present={migrationOpen}>
         <SkillMigrationDialog copy={text} onClose={() => setMigrationOpen(false)} onDone={finishMigration} />
       </SheetPresence>
@@ -320,7 +310,6 @@ export function SkillsPage({ copy, workspacePath }: { copy: SettingsCopy; worksp
           </section>
         );
       })}
-      {actionError ? <p className="settings-error">{localizeError(actionError)}</p> : null}
       {catalog && skills.some((skill) => !skill.canDelete) ? (
         <p className="settings-note">{text.skillDeleteNote}</p>
       ) : null}
@@ -342,7 +331,6 @@ function SkillsMarketplace({
   busy,
   installing,
   confirmingUninstall,
-  error,
   onOpen,
   onInstall,
   onUninstall,
@@ -354,7 +342,6 @@ function SkillsMarketplace({
   busy: boolean;
   installing: string | null;
   confirmingUninstall: string | null;
-  error: string | null;
   onOpen: (entry: MarketplaceEntry) => void;
   onInstall: (entry: MarketplaceEntry) => void;
   onUninstall: (skill: SkillItem) => void;
@@ -425,7 +412,6 @@ function SkillsMarketplace({
           </section>
         );
       })}
-      {error ? <p className="settings-error">{localizeError(error)}</p> : null}
     </>
   );
 }
@@ -485,8 +471,6 @@ function SkillRow({
 }
 
 function SkillDetailDialog({ skill, copy, onClose }: { skill: SkillItem; copy: SettingsCopy["agent"]; onClose: () => void }) {
-  const [copied, setCopied] = useState(false);
-
   useEffect(() => {
     function onKey(event: KeyboardEvent): void {
       if (event.key === "Escape") onClose();
@@ -495,16 +479,10 @@ function SkillDetailDialog({ skill, copy, onClose }: { skill: SkillItem; copy: S
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  useEffect(() => {
-    if (!copied) return;
-    const timer = window.setTimeout(() => setCopied(false), 1500);
-    return () => window.clearTimeout(timer);
-  }, [copied]);
-
   async function copyPath(): Promise<void> {
     try {
       await navigator.clipboard.writeText(skill.location);
-      setCopied(true);
+      showToast(copy.skillCopied);
     } catch {
       // 剪贴板不可用时路径仍可手动选中复制。
     }
@@ -547,11 +525,10 @@ function SkillDetailDialog({ skill, copy, onClose }: { skill: SkillItem; copy: S
             <h3>{copy.skillDetailPath}</h3>
             <div className="skill-detail-path">
               <code>{skill.location}</code>
-              <button className="skills-icon-btn" type="button" aria-label={copy.skillCopyPath} title={copied ? copy.skillCopied : copy.skillCopyPath} onClick={() => void copyPath()}>
+              <button className="skills-icon-btn" type="button" aria-label={copy.skillCopyPath} title={copy.skillCopyPath} onClick={() => void copyPath()}>
                 <Icon name="copy" size={14} />
               </button>
             </div>
-            {copied ? <span className="settings-saved">{copy.skillCopied}</span> : null}
           </section>
         </div>
       </div>

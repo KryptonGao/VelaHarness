@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { type ContextLimitSettings } from "@vela/shared";
+import { parseContextLimitSettings, type ContextLimitSettings } from "@vela/shared";
+import { showToast } from "../../toast";
 import type { SettingsCopy } from "../settings-copy";
 import { ContextLimitControl } from "./ContextLimitControl";
 import { SettingsBlock } from "./primitives";
@@ -29,7 +30,10 @@ export function ContextLimitBlock({ copy }: { copy: SettingsCopy }) {
         disabled={saved === null}
         onCommit={async (limitTokens) => {
           const api = window.vela;
-          if (api) setSaved(await api.setContextLimit({ limitTokens }));
+          if (!api) return;
+          const validated = parseContextLimitSettings({ limitTokens });
+          try { setSaved(await api.setContextLimit(validated)); }
+          catch (caught) { showToast(caught instanceof Error ? caught.message : String(caught), { kind: "error" }); }
         }}
       />
       {loadError ? <p className="settings-error">{loadError}</p> : null}

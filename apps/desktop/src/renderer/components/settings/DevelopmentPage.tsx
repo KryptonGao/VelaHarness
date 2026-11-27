@@ -8,6 +8,7 @@ import {
 } from "@vela/shared";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { localizeError } from "../../locale";
+import { showToast } from "../../toast";
 import type { SettingsCopy } from "../settings-copy";
 import { SettingsBlock, SettingsGroup } from "./primitives";
 
@@ -43,18 +44,16 @@ export function DevelopmentPage({ copy, development, onRestartOnboarding }: {
   const [confirming, setConfirming] = useState<string | null>(null);
   const [info, setInfo] = useState<DevToolsInfo | null>(null);
   const [busy, setBusy] = useState<Busy>(null);
-  const [notice, setNotice] = useState<string | null>(null);
   const [restartNeeded, setRestartNeeded] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [copied, setCopied] = useState<"copied" | "failed" | null>(null);
+  const [historyError, setHistoryError] = useState<string | null>(null);
   const key = selected.join(",");
   const current = preview?.key === key ? preview.value : null;
   const stale = preview !== null && !current;
   const blocked = current?.categories.some(item => item.error) ?? false;
 
   const refreshBatches = useCallback(async () => {
-    try { setBatches(await development.listProductionSyncBatches()); }
-    catch (cause) { setError(describeError(cause, text.retry)); }
+    try { setBatches(await development.listProductionSyncBatches()); setHistoryError(null); }
+    catch (cause) { setHistoryError(describeError(cause, text.retry)); }
   }, [development, text.retry]);
   useEffect(() => { void refreshBatches(); }, [refreshBatches]);
   useEffect(() => {
@@ -65,9 +64,9 @@ export function DevelopmentPage({ copy, development, onRestartOnboarding }: {
 
   async function run(next: Exclude<Busy, null>, action: () => Promise<void>): Promise<void> {
     if (busy) return;
-    setBusy(next); setNotice(null); setError(null);
+    setBusy(next);
     try { await action(); }
-    catch (cause) { setError(describeError(cause, text.retry)); }
+    catch (cause) { showToast(describeError(cause, text.retry), { kind: "error" }); }
     finally { setBusy(null); }
   }
   const toggle = (category: ProductionSyncCategory, on: boolean) =>
@@ -114,7 +113,7 @@ export function DevelopmentPage({ copy, development, onRestartOnboarding }: {
           onClick={() => void run("sync", async () => {
             const result = await development.runProductionSync(selected);
             setPreview(null);
-            setNotice(text.result(result.total));
+            showToast(text.result(result.total));
             if (result.restartRequired) setRestartNeeded(true);
             await refreshBatches();
           })}
@@ -125,17 +124,16 @@ export function DevelopmentPage({ copy, development, onRestartOnboarding }: {
         {current.needsCredentials > 0 ? ` ${text.credentials(current.needsCredentials)}` : ""}
       </p> : null}
       {stale ? <p className="settings-note">{text.previewStale}</p> : null}
-      {notice ? <p className="settings-saved" role="status">{notice}</p> : null}
       {restartNeeded ? <div className="settings-actions">
         <span className="settings-note">{text.restartNeeded}</span>
         <button className="settings-secondary" type="button" disabled={busy !== null} onClick={() => void run("restart", () => development.restartMain())}>
           {busy === "restart" ? text.restarting : text.restartMain}
         </button>
       </div> : null}
-      {error ? <p className="settings-error" role="alert">{error}</p> : null}
     </SettingsBlock>
 
     <SettingsBlock id="dev-sync-history" title={text.historyTitle} hint={text.historyHint}>
+      {historyError ? <p className="settings-error" role="alert">{historyError}</p> : null}
       {batches.length === 0 ? <p className="settings-note">{text.historyEmpty}</p> : <ul className="dev-sync-batches">
         {batches.map(batch => <li key={batch.id} className="dev-sync-batch">
           <div className="dev-sync-batch-main">
@@ -155,7 +153,7 @@ export function DevelopmentPage({ copy, development, onRestartOnboarding }: {
                 onClick={() => void run(`rollback:${batch.id}`, async () => {
                   const result = await development.rollbackProductionSync(batch.id);
                   setConfirming(null);
-                  setNotice(text.rollbackResult(result.reverted, result.kept));
+                  showToast(text.rollbackResult(result.reverted, result.kept));
                   if (result.restartRequired) setRestartNeeded(true);
                   await refreshBatches();
                 })}
@@ -206,14 +204,12 @@ export function DevelopmentPage({ copy, development, onRestartOnboarding }: {
             className="settings-secondary"
             type="button"
             onClick={() => {
-              setCopied(null);
-              navigator.clipboard.writeText(formatDevToolsInfo(info)).then(
-                () => setCopied("copied"),
-                () => setCopied("failed"),
+              void navigator.clipboard.writeText(formatDevToolsInfo(info)).then(
+                () => showToast(text.copied),
+                () => showToast(text.copyFailed, { kind: "error" }),
               );
             }}
           >{text.copy}</button>
-          {copied ? <span className={copied === "copied" ? "settings-saved" : "settings-error"} role="status">{copied === "copied" ? text.copied : text.copyFailed}</span> : null}
         </div>
       </> : <p className="settings-note">{text.infoLoading}</p>}
     </SettingsBlock>

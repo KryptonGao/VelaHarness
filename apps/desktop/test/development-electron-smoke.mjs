@@ -37,6 +37,7 @@ try {
   const click = selector => ev(`document.querySelector(${JSON.stringify(selector)}).click()`);
   const clickButton = text => ev(`[...document.querySelectorAll('button')].find(b => b.textContent.trim() === ${JSON.stringify(text)}).click()`);
   const page = () => ev("document.querySelector('.settings-content')?.innerText ?? ''");
+  const hasToast = message => ev(`[...document.querySelectorAll('.window-toast-message[role=status]')].some(node => node.textContent.includes(${JSON.stringify(message)}))`);
   await until(() => ev("!!document.querySelector('.sidebar-user-pill')"), "renderer");
   await click(".sidebar-user-pill");
   await until(() => ev("!!document.querySelector('.settings-nav-item')"), "settings");
@@ -59,7 +60,8 @@ try {
   assert.equal(existsSync(join(velaData, "MEMORY.md")), false, "preview writes nothing");
   assert.equal(existsSync(join(velaData, "production-sync")), false);
   await clickButton("Sync 2 items");
-  await until(async () => /Imported 2 items/.test(await page()), "sync result");
+  await until(() => hasToast("Imported 2 items"), "sync result toast");
+  assert.doesNotMatch(await page(), /Imported 2 items/);
   assert.equal(existsSync(join(velaData, "MEMORY.md")), true);
   assert.equal(existsSync(join(velaData, "skills", "alpha", "SKILL.md")), true);
   await until(() => ev("document.querySelectorAll('.dev-sync-batch').length === 1"), "history row");
@@ -72,7 +74,8 @@ try {
   await clickButton("Undo");
   await until(async () => /removes the imported conversations/.test(await page()), "undo warning");
   await clickButton("Confirm undo");
-  await until(async () => /Undid 2 items/.test(await page()), "undo result");
+  await until(() => hasToast("Undid 2 items"), "undo result toast");
+  assert.doesNotMatch(await page(), /Undid 2 items/);
   assert.equal(existsSync(join(velaData, "MEMORY.md")), false);
   assert.equal(existsSync(join(velaData, "skills", "alpha")), false);
   await until(() => ev("document.querySelectorAll('.dev-sync-batch').length === 0"), "history cleared");

@@ -7,6 +7,7 @@ import type {
 } from "@vela/shared";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import type { AppLocale } from "../hooks/usePreferences";
+import { showToast } from "../toast";
 import { settingsCopy, type SettingsCopy } from "./settings-copy";
 import { SettingsSelect } from "./settings/SettingsSelect";
 import {
@@ -534,7 +535,7 @@ function McpSettingsContent({
   const [catalog, setCatalog] = useState<McpCatalog | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [importProgress, setImportProgress] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [loginPending, setLoginPending] = useState<string | null>(null);
   const [editor, setEditor] = useState<{
@@ -609,20 +610,24 @@ function McpSettingsContent({
   async function act(
     key: string,
     action: () => Promise<McpCatalog>,
+    outcome?: (error?: string) => void,
   ): Promise<boolean> {
     if (actionLock.current) return false;
     actionLock.current = true;
     setBusy(key);
-    setError(null);
-    setNotice(null);
     try {
       const next = await action();
       if (!alive.current) return false;
       apply(next);
-      setNotice(text.saved);
+      if (outcome) outcome();
+      else showToast(text.saved);
       return true;
     } catch (caught) {
-      if (alive.current) setError(errorText(caught, text));
+      if (alive.current) {
+        const message = errorText(caught, text);
+        if (outcome) outcome(message);
+        else showToast(message, { kind: "error" });
+      }
       return false;
     } finally {
       actionLock.current = false;
@@ -640,12 +645,10 @@ function McpSettingsContent({
   async function login(server: McpServerSnapshot): Promise<void> {
     if (!api || loginPending) return;
     setLoginPending(keyOf(server));
-    setError(null);
-    setNotice(null);
     try {
       apply(await api.loginMcpServer(authTarget(server)));
     } catch (caught) {
-      if (alive.current) setError(errorText(caught, text));
+      if (alive.current) showToast(errorText(caught, text), { kind: "error" });
     } finally {
       if (alive.current) setLoginPending(null);
     }
@@ -672,16 +675,19 @@ function McpSettingsContent({
         setImportSelection((current) =>
           current.filter((name) => name !== entry.name),
         );
-        setNotice(text.importProgress(done, selected.length));
+        setImportProgress(text.importProgress(done, selected.length));
       }
       if (alive.current) {
         setPreview(null);
         setImportJson("");
       }
       return next;
+    }, (error) => {
+      setImportProgress(null);
+      const summary = text.importProgress(done, selected.length);
+      if (error) showToast(done ? `${summary}. ${error}` : error, { kind: "error" });
+      else showToast(summary);
     });
-    if (alive.current && done)
-      setNotice(text.importProgress(done, selected.length));
   }
 
   if (!api?.getMcpCatalog)
@@ -730,7 +736,7 @@ function McpSettingsContent({
         </p>
       ) : null}
       <div role="status" aria-live="polite">
-        {notice ? <p className="settings-saved">{notice}</p> : null}
+        {importProgress ? <p className="settings-note">{importProgress}</p> : null}
         {catalog?.pendingApply ? (
           <p className="settings-note">{text.pendingApply}</p>
         ) : null}
@@ -803,7 +809,7 @@ function McpSettingsContent({
                     server.trusted &&
                     server.authStatus !== "required" &&
                     server.authStatus !== "authenticating"
-                      ? "settings-saved"
+                      ? "mcp-connected"
                       : "settings-note"
                   }
                 >

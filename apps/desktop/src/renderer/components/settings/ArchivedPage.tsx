@@ -21,7 +21,6 @@ export function ArchivedPage({
 }) {
   const text = copy.archived;
   const [query, setQuery] = useState("");
-  const [notice, setNotice] = useState<string | null>(null);
 
   const archived = useMemo(
     () =>
@@ -42,11 +41,6 @@ export function ArchivedPage({
     () => new Intl.DateTimeFormat(intlLocale(locale), { dateStyle: "medium" }),
     [locale],
   );
-
-  function unarchive(conversation: ConversationSummary): void {
-    setNotice(`${displayConversationTitle(conversation.title)} · ${text.unarchived}`);
-    onUnarchive(conversation.id);
-  }
 
   return (
     <section className="settings-section">
@@ -73,14 +67,13 @@ export function ArchivedPage({
               <button
                 className="settings-secondary"
                 type="button"
-                onClick={() => unarchive(conversation)}
+                onClick={() => onUnarchive(conversation.id)}
               >
                 {text.unarchive}
               </button>
             </div>
           ))}
         </div>
-        {notice ? <p className="settings-saved">{notice}</p> : null}
       </SettingsBlock>
 </SettingsGroup>
     </section>

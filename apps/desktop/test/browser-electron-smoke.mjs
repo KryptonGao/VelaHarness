@@ -104,9 +104,11 @@ async function checkSiteDataImport(win, guest, evaluate, base) {
       .find(label => label.textContent.trim() === ${JSON.stringify(host)}).querySelector("input").click()`);
   }
   async function apply(expected) {
+    const message = `[...document.querySelectorAll('.window-toast-message[role=status]')].find(node => node.textContent === ${JSON.stringify(expected)})`;
     await evaluate(`${element("button.primary-btn")}.click()`);
-    await until(() => evaluate(`!!(${element("[role=status]")} || ${element("[role=alert]")})`), "import result");
-    assert.equal(await evaluate(`${element("[role=status]")}?.textContent`), expected);
+    await until(() => evaluate(`!!(${message})`), "import result toast");
+    assert.equal(await evaluate(`!!(${element("[role=status]")} || ${element("[role=alert]")})`), false);
+    await evaluate(`(${message}).closest('.window-toast').querySelector('.window-toast-close').click()`);
   }
   try {
     dialog.showOpenDialog = async owner => {

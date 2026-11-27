@@ -3,6 +3,7 @@ import { useRef, useState } from "react";
 import type { useModels } from "../../hooks/useModels";
 import type { PreferencesApi } from "../../hooks/usePreferences";
 import { localizeError } from "../../locale";
+import { showToast } from "../../toast";
 import type { SettingsCopy } from "../settings-copy";
 import { AddProviderPicker } from "./AddProviderPicker";
 import { CustomProviderForm } from "./CustomProviderForm";
@@ -24,7 +25,6 @@ export function ModelsPage({ copy, models, preferences }: { copy: SettingsCopy; 
   const [drafting, setDrafting] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
   const [picked, setPicked] = useState<ReadonlySet<string>>(new Set());
-  const [refreshNote, setRefreshNote] = useState<{ tone: "ok" | "error"; message: string } | null>(null);
 
   const listed = listedProviders(providers, picked);
   const activeId = drafting ? null : resolveSelection(listed, selected);
@@ -32,13 +32,12 @@ export function ModelsPage({ copy, models, preferences }: { copy: SettingsCopy; 
   const groups = groupListed(listed);
 
   async function refreshModels(): Promise<void> {
-    setRefreshNote(null);
     const result = await models.refreshFromPi();
     if (!result) return;
-    if (result.offline) setRefreshNote({ tone: "error", message: text.refreshOffline });
+    if (result.offline) showToast(text.refreshOffline, { kind: "error" });
     else if (result.errors.length > 0) {
-      setRefreshNote({ tone: "error", message: `${text.refreshPartial}${result.errors.map((item) => `${item.provider}: ${item.message}`).join("; ")}` });
-    } else setRefreshNote({ tone: "ok", message: text.refreshDone });
+      showToast(`${text.refreshPartial}${result.errors.map((item) => `${item.provider}: ${item.message}`).join("; ")}`, { kind: "error" });
+    } else showToast(text.refreshDone);
   }
 
   function select(providerId: string): void {
@@ -128,9 +127,6 @@ export function ModelsPage({ copy, models, preferences }: { copy: SettingsCopy; 
         </button>
       </div>
 
-      {refreshNote ? (
-        <p className={refreshNote.tone === "error" ? "settings-error" : "settings-note"} role="status">{refreshNote.message}</p>
-      ) : null}
       {models.catalogError ? <p className="settings-error">{localizeError(models.catalogError)}</p> : null}
       {models.actionError ? <p className="settings-error">{localizeError(models.actionError)}</p> : null}
       {catalog?.error ? <p className="settings-error">{catalog.error}</p> : null}

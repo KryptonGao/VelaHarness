@@ -7,6 +7,7 @@
 import { memoryFileMaxBytes, type MemoryCatalog, type MemoryCatalogEntry, type MemoryDocument, type MemoryFailure, type MemoryScope } from "@vela/shared";
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import type { AppLocale } from "../hooks/usePreferences";
+import { showToast } from "../toast";
 import { settingsCopy } from "./settings-copy";
 import { SettingsSelect } from "./settings/SettingsSelect";
 import {
@@ -49,10 +50,8 @@ export function MemorySettingsSection({ locale, conversationId }: MemorySettings
   const [draft, setDraft] = useState("");
   const [editorLoading, setEditorLoading] = useState(false);
   const [editorError, setEditorError] = useState<MemoryFailure | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [toggleBusy, setToggleBusy] = useState(false);
-  const [toggleError, setToggleError] = useState<string | null>(null);
   const [confirmRemove, setConfirmRemove] = useState(false);
   const alive = useRef(true);
   const catalogSequence = useRef(0);
@@ -100,17 +99,16 @@ export function MemorySettingsSection({ locale, conversationId }: MemorySettings
   async function toggleMemory(): Promise<void> {
     if (!api || !catalog || toggleBusy || loading) return;
     setToggleBusy(true);
-    setToggleError(null);
     try {
       const result = await api.setEnabled({ enabled: !catalog.enabled });
       if (!alive.current) return;
       if (!result.ok) {
-        setToggleError(memoryErrorText(result.error, copy));
+        showToast(memoryErrorText(result.error, copy), { kind: "error" });
         return;
       }
       setCatalog((current) => current ? { ...current, enabled: result.value.enabled } : current);
     } catch (error) {
-      if (alive.current) setToggleError(memoryUnexpectedError(error, copy));
+      if (alive.current) showToast(memoryUnexpectedError(error, copy), { kind: "error" });
     } finally {
       if (alive.current) setToggleBusy(false);
     }
@@ -140,7 +138,6 @@ export function MemorySettingsSection({ locale, conversationId }: MemorySettings
 
   const loadDocument = useCallback(async (next: MemoryTargetState, options?: { discardDraft?: boolean }): Promise<void> => {
     setEditorError(null);
-    setNotice(null);
     setConfirmRemove(false);
     if (!api) return;
     const request = ++editorSequence.current;
@@ -205,7 +202,6 @@ export function MemorySettingsSection({ locale, conversationId }: MemorySettings
     }
     setBusy(true);
     setEditorError(null);
-    setNotice(null);
     try {
       const result = await api.save({
         scope: target.scope,
@@ -214,16 +210,17 @@ export function MemorySettingsSection({ locale, conversationId }: MemorySettings
         expectedRevision: document.revision,
       });
       if (!result.ok) {
-        setEditorError(result.error);
+        if (result.error.code === "conflict" || result.error.code === "content-too-large") setEditorError(result.error);
+        else showToast(memoryErrorText(result.error, copy), { kind: "error" });
         return;
       }
       clearMemoryDraft(memoryDraftKey(result.value.scope, result.value.workspace));
       setDocument(result.value);
       setDraft(result.value.content);
-      setNotice(copy.saved);
+      showToast(copy.saved);
       void refreshCatalog();
     } catch (error) {
-      setEditorError({ code: "io-error", message: memoryUnexpectedError(error, copy), path: null });
+      showToast(memoryUnexpectedError(error, copy), { kind: "error" });
     } finally {
       setBusy(false);
     }
@@ -233,7 +230,6 @@ export function MemorySettingsSection({ locale, conversationId }: MemorySettings
     if (!api || !target || !document || !documentMatchesTarget || busy) return;
     setBusy(true);
     setEditorError(null);
-    setNotice(null);
     setConfirmRemove(false);
     try {
       const result = await api.remove({
@@ -242,15 +238,16 @@ export function MemorySettingsSection({ locale, conversationId }: MemorySettings
         expectedRevision: document.revision,
       });
       if (!result.ok) {
-        setEditorError(result.error);
+        if (result.error.code === "conflict") setEditorError(result.error);
+        else showToast(memoryErrorText(result.error, copy), { kind: "error" });
         return;
       }
       clearMemoryDraft(memoryDraftKey(document.scope, document.workspace));
       await loadDocument(target, { discardDraft: true });
-      setNotice(copy.removed);
+      showToast(copy.removed);
       void refreshCatalog();
     } catch (error) {
-      setEditorError({ code: "io-error", message: memoryUnexpectedError(error, copy), path: null });
+      showToast(memoryUnexpectedError(error, copy), { kind: "error" });
     } finally {
       setBusy(false);
     }
@@ -261,14 +258,13 @@ export function MemorySettingsSection({ locale, conversationId }: MemorySettings
     clearMemoryDraft(memoryDraftKey(document.scope, document.workspace));
     setDraft(document.content);
     setEditorError(null);
-    setNotice(null);
     setConfirmRemove(false);
   }
 
   async function reveal(): Promise<void> {
     const open = window.vela?.openInTarget;
     if (!document || !open) {
-      setNotice(copy.revealError);
+      showToast(copy.revealError, { kind: "error" });
       return;
     }
     const candidates = [memoryParentDirectory(document.path)];
@@ -281,7 +277,7 @@ export function MemorySettingsSection({ locale, conversationId }: MemorySettings
         // 尝试下一个候选目录。
       }
     }
-    setNotice(copy.revealError);
+    showToast(copy.revealError, { kind: "error" });
   }
 
   function openEntry(entry: MemoryCatalogEntry): void {
@@ -456,7 +452,6 @@ export function MemorySettingsSection({ locale, conversationId }: MemorySettings
           </div>
         </div>
         <p className="settings-hint" id="memory-enabled-hint">{copy.enabledHint}</p>
-        {toggleError ? <p className="settings-error" role="alert">{toggleError}</p> : null}
       </div>
       <div className="memory-tabs" role="tablist" aria-label={copy.title} ref={tabsRef} onKeyDown={onTabsKeyDown}>
         {memoryViewOrder.map((id) => (
@@ -477,9 +472,6 @@ export function MemorySettingsSection({ locale, conversationId }: MemorySettings
         ))}
       </div>
       {catalogError ? <p className="settings-error" role="alert">{catalogError}</p> : null}
-      <div role="status" aria-live="polite">
-        {notice ? <p className="settings-saved">{notice}</p> : null}
-      </div>
       <div className="settings-actions">
         <button className="settings-secondary" type="button" disabled={busy || loading || toggleBusy} onClick={() => void refreshCatalog()}>
           {loading ? copy.loading : copy.refresh}

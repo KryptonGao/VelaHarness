@@ -2,6 +2,7 @@ import { logLevels, type LogLevel, type LogSettings } from "@vela/shared";
 import { useEffect, useState } from "react";
 import { applyRendererLogLevel } from "../../logger";
 import { localizeError } from "../../locale";
+import { showToast } from "../../toast";
 import type { SettingsCopy } from "../settings-copy";
 import { SettingsBlock, SettingsGroup } from "./primitives";
 import { SettingsSelect } from "./SettingsSelect";
@@ -12,22 +13,23 @@ export function LogsPage({ copy }: { copy: SettingsCopy }) {
   const [settings, setSettings] = useState<LogSettings | null>(null);
   const [includeTrace, setIncludeTrace] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   useEffect(() => {
     let active = true;
-    void api?.getSettings().then(next => { if (active) setSettings(next); }).catch(() => { if (active) setError(text.failed); });
+    void api?.getSettings().then(next => {
+      if (active) { setSettings(next); setLoadError(null); }
+    }).catch(() => { if (active) setLoadError(text.failed); });
     return () => { active = false; };
   }, [api, text.failed]);
   async function run(action: () => Promise<void>): Promise<void> {
     if (busy) return;
-    setBusy(true); setNotice(null); setError(null);
+    setBusy(true);
     try { await action(); }
     catch (error) {
       const message = error instanceof Error
         ? error.message.replace(/^Error invoking remote method '[^']+':\s*(?:Error:\s*)?/i, "")
         : text.failed;
-      setError(localizeError(message));
+      showToast(localizeError(message), { kind: "error" });
     }
     finally { setBusy(false); }
   }
@@ -60,14 +62,13 @@ export function LogsPage({ copy }: { copy: SettingsCopy }) {
       <div className="settings-actions">
         <button className="primary-btn" type="button" disabled={busy} onClick={() => void run(async () => {
           const result = await api.export({ includeTrace });
-          if (result) setNotice(text.exported(result.path));
+          if (result) showToast(text.exported(result.path));
         })}>
           {busy ? text.exporting : text.export}
         </button>
       </div>
-      {notice ? <p className="settings-saved" role="status">{notice}</p> : null}
     </SettingsBlock>
     </SettingsGroup>
-    {error ? <p className="settings-error" role="alert">{error}</p> : null}
+    {loadError ? <p className="settings-error" role="alert">{loadError}</p> : null}
   </section>;
 }

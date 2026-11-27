@@ -1,4 +1,5 @@
 import type { TaskBudgetSettings } from "@vela/shared";
+import { showToast } from "../../toast";
 import { useEffect, useState } from "react";
 import type { SettingsCopy } from "../settings-copy";
 import { SettingsBlock } from "./primitives";
@@ -28,7 +29,9 @@ export function TaskBudgetBlock({ copy }: { copy: SettingsCopy }) {
         value={saved}
         onCommit={async (next) => {
           const api = window.vela;
-          if (api) setSaved(await api.setTaskBudget(next));
+          if (!api) return;
+          try { setSaved(await api.setTaskBudget(next)); }
+          catch (caught) { showToast(caught instanceof Error ? caught.message : String(caught), { kind: "error" }); }
         }}
       />
       {loadError ? <p className="settings-error">{loadError}</p> : null}

@@ -5,6 +5,7 @@ import {
 } from "@vela/shared";
 import { saveModelPrices, useModelPrices } from "../../model-prices";
 import { tr, trf } from "../../locale";
+import { showToast } from "../../toast";
 import { SettingsSelect } from "../settings/SettingsSelect";
 
 export interface PriceableModel {
@@ -105,7 +106,7 @@ export function ModelPricingEditor({ candidates }: { candidates: readonly Pricea
       setError(null);
       return true;
     } catch {
-      setError(tr("价格保存失败，请重试。", "Could not save prices. Try again."));
+      showToast(tr("价格保存失败，请重试。", "Could not save prices. Try again."), { kind: "error" });
       return false;
     }
   };
@@ -186,7 +187,7 @@ export function ModelPricingEditor({ candidates }: { candidates: readonly Pricea
               <td className="pricing-row-actions">
                 <button type="button" className="settings-secondary" onClick={() => { setDraft(draftOf(price)); setError(null); }}>{tr("编辑", "Edit")}</button>
                 <button type="button" className="settings-secondary" aria-label={trf("删除 {0} 的价格", "Delete price for {0}", price.model)}
-                  onClick={() => { commit(removeModelPrice(prices, price.model)); if (draft.model.trim() === price.model) setDraft(emptyDraft); }}>{tr("删除", "Delete")}</button>
+                  onClick={() => { if (commit(removeModelPrice(prices, price.model)) && draft.model.trim() === price.model) setDraft(emptyDraft); }}>{tr("删除", "Delete")}</button>
               </td>
             </tr>)}</tbody>;
           })}

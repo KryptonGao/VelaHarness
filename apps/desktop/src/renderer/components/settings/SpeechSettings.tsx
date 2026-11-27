@@ -6,6 +6,7 @@ import { useState } from "react";
 import type { SpeechVoice } from "@vela/shared";
 import { speechErrorText, setSpeechApiKey, setSpeechVoice, useSpeechState, useSpeechVoice } from "../../hooks/useSpeech";
 import { tr } from "../../locale";
+import { showToast } from "../../toast";
 import { Segmented, SettingsBlock } from "./primitives";
 import "../../web-tools.css";
 
@@ -22,10 +23,11 @@ export function SpeechSettings() {
     setError(null);
     try {
       const result = await setSpeechApiKey(value);
-      if (!result.ok) setError(result.code === "invalid" ? tr("密钥格式不正确", "That key doesn't look right") : speechErrorText(result.code));
-      else setKey("");
+      if (result.ok) setKey("");
+      else if (result.code === "invalid") setError(tr("密钥格式不正确", "That key doesn't look right"));
+      else showToast(speechErrorText(result.code), { kind: "error" });
     } catch {
-      setError(speechErrorText("failed"));
+      showToast(speechErrorText("failed"), { kind: "error" });
     } finally {
       setBusy(false);
     }

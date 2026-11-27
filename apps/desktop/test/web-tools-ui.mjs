@@ -66,6 +66,8 @@ if (!process.versions.electron) {
       import React from 'react';
       import { createRoot } from 'react-dom/client';
       import { WebToolsSettingsSection } from './apps/desktop/src/renderer/components/WebToolsSettingsSection';
+      import { getToasts } from './apps/desktop/src/renderer/toast';
+      window.getToasts = getToasts;
       const root = createRoot(document.getElementById('root'));
       window.renderWeb = (locale) => root.render(<WebToolsSettingsSection locale={locale} />);
       window.unmountWeb = () => root.render(null);
@@ -165,7 +167,8 @@ if (!process.versions.electron) {
       // 保存密钥：只发送一次，输入框清空，界面不回显密钥。
       await setValue("document.querySelector('.web-tools-key-row input')", "sk-ui-secret");
       await click("Save key");
-      await until("document.querySelector('.web-tools-provider').textContent.includes('Key saved')");
+      await until("getToasts().length === 1 && getToasts()[0].message === 'Key saved'");
+      assert.ok(!await evaluate("document.querySelector('.web-tools-provider').textContent.includes('Key saved')"));
       assert.deepEqual(await evaluate("fixture.calls.find(call => call.method === 'setApiKey').input"), { providerId: "deepseek", apiKey: "sk-ui-secret" });
       assert.equal(await evaluate("document.querySelector('.web-tools-key-row input').value"), "");
       assert.ok(!(await evaluate("document.body.innerText + document.body.innerHTML")).includes("sk-ui-secret"));
@@ -185,18 +188,19 @@ if (!process.versions.electron) {
 
       // 测试按钮：成功与失败。
       await evaluate("Array.from(document.querySelectorAll('.web-tools-tests button')).find(node => node.textContent === 'Test search').click()");
-      await until("document.querySelector('.web-tools-tests').textContent.includes('Search worked: 5 results in 120 ms')");
+      await until("getToasts().length === 2 && getToasts().at(-1).message === 'Search worked: 5 results in 120 ms' && getToasts().at(-1).kind !== 'error'");
       await evaluate("fixture.testResult = { ok: false, code: 'auth', message: 'HTTP 401' }");
       await evaluate("Array.from(document.querySelectorAll('.web-tools-tests button')).find(node => node.textContent === 'Test fetch').click()");
-      await until("document.querySelector('.web-tools-tests').textContent.includes('rejected the key')");
+      await until("getToasts().length === 3 && getToasts().at(-1).kind === 'error' && getToasts().at(-1).message.includes('rejected the key')");
+      assert.equal(await evaluate("!!document.querySelector('.web-tools-tests [role=status]')"), false);
       await evaluate("fixture.testResult = null");
       console.log("PASS test buttons report success and mapped failures");
 
       // 保存失败时回滚显示并给出错误。
       await evaluate("fixture.failSave = { code: 'storage', message: 'disk' }");
       await evaluate("document.querySelector('[role=switch]').click()");
-      await until("!!document.querySelector('.web-tools-settings [role=alert]')");
-      assert.ok((await evaluate("document.querySelector('.web-tools-settings [role=alert]').textContent")).includes("encrypted storage"));
+      await until("getToasts().length === 4 && getToasts().at(-1).kind === 'error' && getToasts().at(-1).message.includes('encrypted storage')");
+      assert.equal(await evaluate("!!document.querySelector('.web-tools-settings [role=alert]')"), false);
       assert.equal(await evaluate("document.querySelector('[role=switch]').getAttribute('aria-checked')"), "true");
       await evaluate("fixture.failSave = null");
       console.log("PASS a failed save keeps the real state and shows the error");

@@ -1,7 +1,6 @@
 import type { ExecutionEnvironmentKind, SelectableEnvironmentKind } from "@vela/shared";
 import { useState } from "react";
 import type { ProjectApi } from "../../hooks/useProject";
-import { localizeError } from "../../locale";
 import type { SettingsCopy } from "../settings-copy";
 import { SettingsBlock, SettingsGroup } from "./primitives";
 
@@ -114,7 +113,6 @@ export function WorkspacePage({ copy, project }: { copy: SettingsCopy; project: 
           })}
         </div>
       </SettingsBlock>
-      {project.error ? <p className="settings-error">{localizeError(project.error)}</p> : null}
 </SettingsGroup>
     </section>
   );

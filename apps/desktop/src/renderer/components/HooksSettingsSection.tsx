@@ -1,6 +1,7 @@
 import { emptyHooksConfig, hookEvents, hookMatches, parseHooksConfig, type HookEvent, type HookScope, type HooksCatalog, type HooksConfig, type HooksRunResult } from "@vela/shared";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type { AppLocale } from "../hooks/usePreferences";
+import { showToast } from "../toast";
 import { hooksCopy } from "./hooks-copy";
 import { Field, Segmented, SettingsBlock, SettingsGroup, SettingsSwitch } from "./settings/primitives";
 import { SettingsSelect } from "./settings/SettingsSelect";
@@ -20,9 +21,7 @@ export function HooksSettingsSection({ locale, workspacePath }: { locale: AppLoc
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [testing, setTesting] = useState(false);
-  const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
-  const [testNotice, setTestNotice] = useState("");
+  const [loadError, setLoadError] = useState("");
   const [testResult, setTestResult] = useState<HooksRunResult | null>(null);
   const [confirm, setConfirm] = useState<"trust" | "test" | "discard" | null>(null);
   const [event, setEvent] = useState<HookEvent>("PreToolUse");
@@ -42,7 +41,7 @@ export function HooksSettingsSection({ locale, workspacePath }: { locale: AppLoc
   function updateDraft(text: string): void {
     setDraft(text);
     drafts.set(key, { text, digest: revision });
-    setConfirm(null); setNotice(""); setTestNotice(""); setError(""); setTestResult(null);
+    setConfirm(null); setTestResult(null);
   }
   function setConfig(config: HooksConfig): void { updateDraft(pretty(config)); }
   function accept(result: HooksCatalog, discard = false): void {
@@ -56,16 +55,16 @@ export function HooksSettingsSection({ locale, workspacePath }: { locale: AppLoc
   async function reload(discard = false): Promise<void> {
     if (!api || !workspacePath) { setLoading(false); return; }
     const request = ++generation.current;
-    setLoading(true); setError(""); setConfirm(null); setTestResult(null);
+    setLoading(true); setLoadError(""); setConfirm(null); setTestResult(null);
     try {
       const result = await api.getHooksCatalog({ cwd: workspacePath });
       if (alive.current && generation.current === request) accept(result, discard);
-    } catch { if (alive.current && generation.current === request) setError(copy.conflict); }
+    } catch { if (alive.current && generation.current === request) setLoadError(copy.conflict); }
     finally { if (alive.current && generation.current === request) setLoading(false); }
   }
   useEffect(() => {
     alive.current = true;
-    setCatalog(null); setConfirm(null); setNotice(""); setTestNotice(""); setTestResult(null); setBusy(false); setTesting(false);
+    setCatalog(null); setConfirm(null); setTestResult(null); setBusy(false); setTesting(false);
     void reload();
     return () => { alive.current = false; generation.current++; };
   }, [workspacePath, scope]);
@@ -83,12 +82,13 @@ export function HooksSettingsSection({ locale, workspacePath }: { locale: AppLoc
   async function perform(action: "save" | "trust" | "revoke" | "test"): Promise<void> {
     if (!api || !workspacePath || !document || busy) return;
     const request = generation.current;
-    setBusy(true); setTesting(action === "test"); setError(""); setNotice(""); setTestNotice(""); setTestResult(null); setConfirm(null);
+    setBusy(true); setTesting(action === "test"); setTestResult(null); setConfirm(null);
     try {
       if (action === "test") {
         const result = await api.testHooks({ cwd: workspacePath, scope, digest: document.digest, event, toolName });
         if (alive.current && generation.current === request) {
-          setTestNotice(result.allowed ? copy.testPassed : copy.testDenied);
+          if (result.allowed) showToast(copy.testPassed);
+          else showToast(copy.testDenied, { kind: "error" });
           setTestResult(result);
         }
       } else {
@@ -97,9 +97,9 @@ export function HooksSettingsSection({ locale, workspacePath }: { locale: AppLoc
           : await api.setHooksTrust({ cwd: workspacePath, scope, digest: document.digest, trusted: action === "trust" });
         if (!alive.current || generation.current !== request) return;
         accept(result, action === "save");
-        if (action === "save") setNotice(copy.saved);
+        if (action === "save") showToast(copy.saved);
       }
-    } catch { if (alive.current && generation.current === request) setError(copy.conflict); }
+    } catch { if (alive.current && generation.current === request) showToast(copy.conflict, { kind: "error" }); }
     finally { if (alive.current && generation.current === request) { setBusy(false); setTesting(false); } }
   }
   async function revokeRunningTest(): Promise<void> {
@@ -108,7 +108,7 @@ export function HooksSettingsSection({ locale, workspacePath }: { locale: AppLoc
     try {
       const result = await api.setHooksTrust({ cwd: workspacePath, scope, digest: document.digest, trusted: false });
       if (alive.current && generation.current === request) accept(result);
-    } catch { if (alive.current && generation.current === request) setError(copy.conflict); }
+    } catch { if (alive.current && generation.current === request) showToast(copy.conflict, { kind: "error" }); }
   }
   function add(): void {
     const config = parsed.config ?? emptyHooksConfig();
@@ -158,11 +158,11 @@ export function HooksSettingsSection({ locale, workspacePath }: { locale: AppLoc
           <textarea className="settings-textarea hooks-config" aria-label={copy.config} spellCheck={false} value={draft} disabled={busy} aria-describedby={parsed.error ? errorId : undefined} aria-invalid={!!parsed.error} onChange={e => updateDraft(e.target.value)} />
           {parsed.error ? <p id={errorId} className="settings-error" role="alert">{copy.invalid}{parsed.error}</p> : null}
         </SettingsBlock>
-        <SettingsBlock title={copy.save} hint={dirty ? copy.dirty : notice || undefined} layout="inline">
+        <SettingsBlock title={copy.save} hint={dirty ? copy.dirty : undefined} layout="inline">
           <button type="button" className="settings-secondary" disabled={!dirty || busy || !!parsed.error} onClick={() => void perform("save")}>{copy.save}</button>
         </SettingsBlock>
-        {error ? <p className="settings-error hooks-message" role="alert">{error}</p> : null}
       </> : null}
+      {loadError ? <p className="settings-error hooks-message" role="alert">{loadError}</p> : null}
     </SettingsGroup>
 
     <SettingsGroup title={copy.authorization}>
@@ -187,7 +187,6 @@ export function HooksSettingsSection({ locale, workspacePath }: { locale: AppLoc
         <div className="settings-actions"><button type="button" className="settings-secondary" disabled={!hasTestMatch || !/^[a-zA-Z0-9_.:/-]{1,256}$/.test(toolName)} onClick={() => void perform("test")}>{copy.runTest}</button><button type="button" className="settings-secondary" onClick={() => setConfirm(null)}>{copy.cancel}</button></div>
       </div> : null}
       {testing ? <div className="hooks-confirm"><button type="button" className="settings-secondary settings-danger" onClick={() => void revokeRunningTest()}>{copy.stopTest}</button></div> : null}
-      {testNotice ? <p className="settings-hint hooks-message" role="status">{testNotice}</p> : null}
       {testResult && (testResult.reason || testResult.additionalContext) ? <details className="hooks-confirm"><summary>{copy.output}</summary><pre>{JSON.stringify({ reason: testResult.reason, additionalContext: testResult.additionalContext }, null, 2)}</pre></details> : null}
     </SettingsGroup>
 

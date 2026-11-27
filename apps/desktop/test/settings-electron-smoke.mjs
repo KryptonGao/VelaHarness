@@ -32,6 +32,23 @@ try {
   await ev("document.querySelector('.sidebar-user-pill').click()");
   await until(() => ev("!!document.querySelector('.settings-nav-item')"), "settings");
   assert.equal(await ev("document.querySelector('.settings-header button')"), null, "settings header has no Done button");
+  // Observe the write itself: checking only after the IPC resolves misses a one-frame Saving label.
+  await ev(`(() => {
+    window.inlineSavingFlashed = false;
+    const content = document.querySelector('.settings-content');
+    new MutationObserver(() => {
+      if ([...content.querySelectorAll('.settings-autosave, [data-setting-id="global-prompt"] .settings-note')]
+        .some(node => node.textContent.trim() === 'Saving')) window.inlineSavingFlashed = true;
+    }).observe(content, { childList: true, characterData: true, subtree: true });
+  })()`);
+  const savedToasts = "[...document.querySelectorAll('.window-toast-stack:popover-open .window-toast-message[role=status]')].filter(node => node.textContent === 'Saved')";
+  const checkSavedToast = async () => {
+    await until(() => ev(`${savedToasts}.length === 1`), 'one save confirmation in the window toast stack');
+    assert.equal(await ev('window.inlineSavingFlashed'), false, 'autosave does not flash an inline Saving label');
+    assert.equal(await ev("[...document.querySelectorAll('.settings-content [role=status]')].some(node => node.textContent.trim() === 'Saved')"), false);
+    await ev(`${savedToasts}[0].closest('.window-toast').querySelector('.window-toast-close').click()`);
+    await until(() => ev(`!${savedToasts}.length`), 'save confirmation dismissed');
+  };
   const labels = await ev("[...document.querySelectorAll('.settings-nav-group-label')].map(n => n.textContent)");
   const development = await ev("Boolean(window.vela.development)");
   assert.deepEqual(labels, ["General", "Agent", "Models & extensions", "Data & workspace", ...(development ? ["Development"] : [])]);
@@ -65,7 +82,8 @@ try {
   await ev("document.querySelector('" + namingStyle + " [role=radio]:nth-child(2)').click()");
   await until(() => ev("window.vela.getAgentSettings().then(s => s.subagentNamingStyle === 'artistic')"), "artistic naming style saved");
   assert.equal((await ev("window.vela.getAgentSettings()")).customSubagents[0].name, "Smoke reviewer");
-  console.log("PASS subagent naming style saves through the real Electron IPC settings path");
+  await checkSavedToast();
+  console.log("PASS subagent naming style saves and shows a window toast");
   await ev("[...document.querySelectorAll('.settings-nav-item')].find(n => n.textContent === 'Notifications').click()");
   const completionSwitch = "document.querySelector('[data-setting-id=system-notifications] [aria-label=\"Also notify when tasks finish\"]')";
   await until(() => ev("!!" + completionSwitch), "notification settings");
@@ -86,7 +104,8 @@ try {
   await ev("[...document.querySelectorAll('[data-setting-id=\"checkpoint-storage\"] button')].find(n => n.textContent === 'Clean up').click()");
   await until(() => ev("[...document.querySelectorAll('[data-setting-id=\"checkpoint-storage\"] button')].some(n => n.textContent === 'Confirm cleanup')"), "cleanup confirmation");
   await ev("[...document.querySelectorAll('[data-setting-id=\"checkpoint-storage\"] button')].find(n => n.textContent === 'Confirm cleanup').click()");
-  await until(() => ev("document.querySelector('[data-setting-id=\"checkpoint-storage\"] .settings-saved')?.textContent === 'Nothing to clean up.'"), "cleanup result");
+  await until(() => ev("[...document.querySelectorAll('.window-toast-message[role=status]')].some(node => node.textContent === 'Nothing to clean up.')"), "cleanup toast");
+  assert.equal(await ev("document.querySelector('[data-setting-id=\"checkpoint-storage\"] .settings-saved')"), null);
   console.log("PASS storage page shows checkpoint usage and cleans after confirmation");
 
   // Hooks: the production renderer/preload/main/runtime chain, including an actual native command.
@@ -160,13 +179,14 @@ try {
   await setTextarea('textarea[aria-label="Extra instructions"]', "Prefer concise answers.");
   await pause(1500);
   assert.equal((await ev("window.vela.getAgentSettings()")).instructions, "Prefer concise answers.");
-  assert.match(await ev("document.querySelector('.settings-autosave').textContent"), /Saved/);
+  await checkSavedToast();
   console.log("PASS instructions auto-save after typing stops");
   // 思考强度档位多时是下拉框(点开后在 body 下的列表里选),少时是单选按钮组
   await ev(`(() => { const g = document.querySelector('[aria-label="Default thinking level"]'); if (g.getAttribute('role') === 'combobox') g.click(); else [...g.querySelectorAll('[role=radio]')].find(b => b.textContent === 'High').click(); })()`);
   await pause(200);
   await ev(`(() => { const o = [...document.querySelectorAll('.settings-menu [role=option]')].find(b => b.textContent.trim() === 'High'); if (o) o.click(); })()`);
   await until(async () => (await ev("window.vela.getAgentSettings()")).thinkingLevel === "high", "thinking saved");
+  await checkSavedToast();
   console.log("PASS thinking level saves immediately");
 
   const globalField = '[data-setting-id="global-prompt"] textarea[aria-label="Global prompt"]';
@@ -176,6 +196,7 @@ try {
   assert.equal(await globalFieldValue(), "", "global prompt starts empty");
   await setTextarea(globalField, prompt);
   await until(async () => (await storedGlobalPrompt()) === prompt, "global prompt saved");
+  await checkSavedToast();
   const invalidPromptError = await ev(`(() => {
     try { window.vela.uiStorage.setItem('vela.globalPrompt', 'x'.repeat(16001)); }
     catch (error) { return error.message; }
@@ -193,6 +214,7 @@ try {
   assert.equal(await ev("window.vela.uiStorage.getItem('vela.settingsPage')"), '"defaults"');
   console.log("PASS remembers last page");
   await until(async () => (await globalFieldValue()) === prompt, "reopened global prompt");
+  assert.equal(await ev(`${savedToasts}.length`), 0, 'opening saved settings must not replay feedback');
   await setTextarea(globalField, "");
   await until(async () => (await storedGlobalPrompt()) === null, "global prompt cleared");
   assert.equal((await ev("window.vela.getAgentSettings()")).instructions, "Prefer concise answers.");

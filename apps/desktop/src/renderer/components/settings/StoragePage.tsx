@@ -6,6 +6,7 @@ import {
 import { useCallback, useEffect, useState } from "react";
 import { fillTemplate } from "../../hooks/useUpdates";
 import { localizeError } from "../../locale";
+import { showToast } from "../../toast";
 import "../../storage.css";
 import type { SettingsCopy } from "../settings-copy";
 import { SettingsBlock, SettingsGroup, SettingsSwitch } from "./primitives";
@@ -28,24 +29,23 @@ export function StoragePage({ copy }: { copy: SettingsCopy }) {
   const [disk, setDisk] = useState<StorageDisk | null>(null);
   const [pending, setPending] = useState<Pending | null>(null);
   const [overviewBusy, setOverviewBusy] = useState(false);
-  const [overviewNotice, setOverviewNotice] = useState<string | null>(null);
   const [usage, setUsage] = useState<CheckpointStorageUsage | null>(null);
   const [settings, setSettings] = useState<CheckpointSettings | null>(null);
   const [confirming, setConfirming] = useState<"clean" | "delete" | false>(false);
   const [busy, setBusy] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const failure = useCallback((reason: unknown) => {
+  const [overviewError, setOverviewError] = useState<string | null>(null);
+  const [checkpointLoadError, setCheckpointLoadError] = useState<string | null>(null);
+  const failureMessage = useCallback((reason: unknown) => {
     const message = reason instanceof Error
       ? reason.message.replace(/^Error invoking remote method '[^']+':\s*(?:Error:\s*)?/i, "")
       : text.failed;
-    setError(localizeError(message));
+    return localizeError(message);
   }, [text.failed]);
   const loadOverview = useCallback(async () => {
     if (!storage) return;
-    try { setOverview(await storage.getOverview()); }
-    catch (reason) { failure(reason); }
-  }, [storage, failure]);
+    try { setOverview(await storage.getOverview()); setOverviewError(null); }
+    catch (reason) { setOverviewError(failureMessage(reason)); }
+  }, [storage, failureMessage]);
   useEffect(() => { void loadOverview(); }, [loadOverview]);
   // 磁盘容量读取很快，先显示出来，分类明细统计完再补上。
   useEffect(() => {
@@ -55,49 +55,50 @@ export function StoragePage({ copy }: { copy: SettingsCopy }) {
   }, [storage]);
   useEffect(() => {
     let active = true;
-    void api?.getCheckpointStorage?.().then(next => { if (active) setUsage(next); }).catch(reason => { if (active) failure(reason); });
-    void api?.getCheckpointSettings().then(next => { if (active) setSettings(next); }).catch(reason => { if (active) failure(reason); });
+    setCheckpointLoadError(null);
+    void api?.getCheckpointStorage?.().then(next => { if (active) setUsage(next); }).catch(reason => { if (active) setCheckpointLoadError(failureMessage(reason)); });
+    void api?.getCheckpointSettings().then(next => { if (active) setSettings(next); }).catch(reason => { if (active) setCheckpointLoadError(failureMessage(reason)); });
     return () => { active = false; };
-  }, [api, failure]);
+  }, [api, failureMessage]);
   if (!api?.getCheckpointStorage) return <section className="settings-section"><p className="settings-note">{text.unavailable}</p></section>;
 
   async function clean(removeAll: boolean): Promise<void> {
     if (busy) return;
-    setBusy(true); setConfirming(false); setNotice(null); setError(null);
+    setBusy(true); setConfirming(false);
     try {
       const result = await (removeAll ? api!.deleteCheckpointStorage() : api!.cleanCheckpointStorage());
       setUsage(result.usage);
       void loadOverview();
-      setNotice(result.freedBytes > 0 || result.removedPoints > 0
+      showToast(result.freedBytes > 0 || result.removedPoints > 0
         ? fillTemplate(removeAll ? text.deleted : text.cleaned, formatBytes(result.freedBytes), result.removedPoints)
         : removeAll ? text.nothingToDelete : text.nothingToClean);
-    } catch (reason) { failure(reason); }
+    } catch (reason) { showToast(failureMessage(reason), { kind: "error" }); }
     finally { setBusy(false); }
   }
 
   async function runOverview(action: () => Promise<StorageCleanResult>): Promise<void> {
     if (overviewBusy || !storage) return;
-    setOverviewBusy(true); setPending(null); setOverviewNotice(null); setError(null);
+    setOverviewBusy(true); setPending(null);
     try {
       const result = await action();
       setOverview(result.overview);
-      setOverviewNotice(result.removedFiles === 0 && result.skipped === 0 ? text.nothingToClean
+      setOverviewError(null);
+      showToast(result.removedFiles === 0 && result.skipped === 0 ? text.nothingToClean
         : result.removedFiles === 0 ? fillTemplate(text.skippedOnly, result.skipped)
         : result.skipped > 0 ? fillTemplate(text.freedSkipped, formatBytes(result.freedBytes), result.removedFiles, result.skipped)
         : fillTemplate(text.freed, formatBytes(result.freedBytes), result.removedFiles));
-    } catch (reason) { failure(reason); }
+    } catch (reason) { showToast(failureMessage(reason), { kind: "error" }); }
     finally { setOverviewBusy(false); }
   }
 
   async function reveal(category: StorageOverview["categories"][number]["id"]): Promise<void> {
-    try { await storage!.reveal(category); } catch (reason) { failure(reason); }
+    try { await storage!.reveal(category); } catch (reason) { showToast(failureMessage(reason), { kind: "error" }); }
   }
 
   async function toggle(enabled: boolean): Promise<void> {
     if (busy) return;
-    setError(null);
     try { setSettings(await api!.setCheckpointSettings({ enabled })); }
-    catch (reason) { failure(reason); }
+    catch (reason) { showToast(failureMessage(reason), { kind: "error" }); }
   }
 
   const categories = overview ? [...overview.categories].sort((a, b) => b.bytes - a.bytes) : [];
@@ -119,7 +120,7 @@ export function StoragePage({ copy }: { copy: SettingsCopy }) {
         </div> : null}
         <div className="storage-total">
           <strong>{overview ? fillTemplate(text.total, formatBytes(overview.totalBytes)) : text.calculatingVela}</strong>
-          <button className="settings-secondary" type="button" disabled={overviewBusy || !overview} onClick={() => { setOverviewNotice(null); void loadOverview(); }}>{text.refresh}</button>
+          <button className="settings-secondary" type="button" disabled={overviewBusy || !overview} onClick={() => void loadOverview()}>{text.refresh}</button>
         </div>
         {overview && overview.totalBytes > 0 ? <div className="storage-bar" role="img" aria-label={text.overviewTitle}>
           {shown.map(category => <span key={category.id} className={`storage-seg storage-c-${category.id}`} style={{ flexGrow: category.bytes }} title={`${text.categories[category.id].label} · ${formatBytes(category.bytes)}`} />)}
@@ -146,14 +147,14 @@ export function StoragePage({ copy }: { copy: SettingsCopy }) {
                   <button className="primary-btn" type="button" disabled={overviewBusy} onClick={() => void runOverview(() => storage.clean(pending.category))}>{text.confirm}</button>
                   <button className="settings-secondary" type="button" disabled={overviewBusy} onClick={() => setPending(null)}>{text.cancel}</button>
                 </> : isCleanableStorageCategory(id) ? <>
-                  <button className="settings-secondary" type="button" disabled={overviewBusy || category.bytes === 0} aria-label={`${text.clean} ${label}`} onClick={() => { setOverviewNotice(null); setPending({ kind: "clean", category: id }); }}>{text.clean}</button>
+                  <button className="settings-secondary" type="button" disabled={overviewBusy || category.bytes === 0} aria-label={`${text.clean} ${label}`} onClick={() => setPending({ kind: "clean", category: id })}>{text.clean}</button>
                 </> : category.id === "checkpoints" ? <span className="storage-row-note">{text.manageBelow}</span>
                   : <button className="settings-secondary" type="button" aria-label={`${text.reveal} ${label}`} onClick={() => void reveal(category.id)}>{text.reveal}</button>}
               </div>
             </li>;
           })}
         </ul>
-        {overviewNotice ? <p className="settings-saved" role="status">{overviewNotice}</p> : null}
+        {overviewError ? <p className="settings-error" role="alert">{overviewError}</p> : null}
       </SettingsBlock>
       <SettingsBlock id="storage-conversations" title={text.conversationsTitle} hint={text.conversationsHint}>
         {overview && overview.conversations.length === 0 ? <p className="settings-note">{text.noConversations}</p> : null}
@@ -173,7 +174,7 @@ export function StoragePage({ copy }: { copy: SettingsCopy }) {
                   <button className="primary-btn" type="button" disabled={overviewBusy} onClick={() => void runOverview(() => storage.deleteTrace(item.id))}>{text.confirm}</button>
                   <button className="settings-secondary" type="button" disabled={overviewBusy} onClick={() => setPending(null)}>{text.cancel}</button>
                 </> : item.traceInUse ? <span className="storage-row-note">{text.inUse}</span>
-                  : <button className="settings-secondary" type="button" disabled={overviewBusy || item.traceBytes === 0} onClick={() => { setOverviewNotice(null); setPending({ kind: "trace", id: item.id }); }}>{text.deleteTrace}</button>}
+                  : <button className="settings-secondary" type="button" disabled={overviewBusy || item.traceBytes === 0} onClick={() => setPending({ kind: "trace", id: item.id })}>{text.deleteTrace}</button>}
               </div>
             </li>;
           })}
@@ -203,17 +204,16 @@ export function StoragePage({ copy }: { copy: SettingsCopy }) {
           </button>
           <button className="settings-secondary" type="button" disabled={busy} onClick={() => setConfirming(false)}>{text.cancel}</button>
         </> : <>
-          <button className="settings-secondary" type="button" disabled={busy || !usage} onClick={() => { setNotice(null); setConfirming("clean"); }}>
+          <button className="settings-secondary" type="button" disabled={busy || !usage} onClick={() => setConfirming("clean")}>
             {busy ? text.cleaning : text.clean}
           </button>
-          <button className="settings-secondary" type="button" disabled={busy || !usage || usage.points === 0} onClick={() => { setNotice(null); setConfirming("delete"); }}>
+          <button className="settings-secondary" type="button" disabled={busy || !usage || usage.points === 0} onClick={() => setConfirming("delete")}>
             {text.deleteAll}
           </button>
         </>}
       </div>
-      {notice ? <p className="settings-saved" role="status">{notice}</p> : null}
+      {checkpointLoadError ? <p className="settings-error" role="alert">{checkpointLoadError}</p> : null}
     </SettingsBlock>
     </SettingsGroup>
-    {error ? <p className="settings-error" role="alert">{error}</p> : null}
   </section>;
 }

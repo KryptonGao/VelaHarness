@@ -1,11 +1,12 @@
 /**
  * 设置页「网页工具」：开关、搜索与抓取各自使用的提供商、提供商密钥和自定义接口。
- * 与「模型与账号」完全分开；密钥只写入，保存后界面只显示「已保存」。
+ * 与「模型与账号」完全分开；密钥只写入，不回显密钥内容。
  */
 import type { WebAuthType, WebCapability, WebProvider, WebProviderView, WebToolsConfig, WebToolsResult, WebToolsState } from "@vela/shared";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { AppLocale } from "../hooks/usePreferences";
 import { localizeError } from "../locale";
+import { showToast } from "../toast";
 import { settingsCopy, type SettingsCopy } from "./settings-copy";
 import { Field, SettingsBlock, SettingsSwitch } from "./settings/primitives";
 import { SettingsSelect } from "./settings/SettingsSelect";
@@ -44,7 +45,7 @@ export function WebToolsSettingsSection({ locale }: { locale: AppLocale }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [keys, setKeys] = useState<Record<string, string>>({});
-  const [tests, setTests] = useState<Record<string, { pending: boolean; text: string | null; failed: boolean }>>({});
+  const [pendingTests, setPendingTests] = useState<Record<string, boolean>>({});
   const [draft, setDraft] = useState<ProviderDraft | null>(null);
   const [draftError, setDraftError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState<string | null>(null);
@@ -74,15 +75,15 @@ export function WebToolsSettingsSection({ locale }: { locale: AppLocale }) {
   async function run(action: () => Promise<WebToolsResult<WebToolsState>>): Promise<boolean> {
     if (busy) return false;
     setBusy(true);
-    setError(null);
     try {
       const result = await action();
       if (!alive.current) return false;
-      if (!result.ok) { setError(failureText(result, copy)); return false; }
+      if (!result.ok) { showToast(failureText(result, copy), { kind: "error" }); return false; }
       setState(result.value);
+      setError(null);
       return true;
     } catch (caught) {
-      if (alive.current) setError(localizeError(caught instanceof Error ? caught.message : String(caught)));
+      if (alive.current) showToast(caught instanceof Error ? caught.message : String(caught), { kind: "error" });
       return false;
     } finally {
       if (alive.current) setBusy(false);
@@ -92,7 +93,8 @@ export function WebToolsSettingsSection({ locale }: { locale: AppLocale }) {
   async function runTest(provider: WebProviderView, capability: WebCapability): Promise<void> {
     if (!api) return;
     const key = `${provider.id}:${capability}`;
-    setTests(current => ({ ...current, [key]: { pending: true, text: null, failed: false } }));
+    if (pendingTests[key]) return;
+    setPendingTests(current => ({ ...current, [key]: true }));
     let text: string;
     let failed = false;
     try {
@@ -109,7 +111,11 @@ export function WebToolsSettingsSection({ locale }: { locale: AppLocale }) {
       failed = true;
       text = localizeError(caught instanceof Error ? caught.message : String(caught));
     }
-    if (alive.current) setTests(current => ({ ...current, [key]: { pending: false, text, failed } }));
+    if (alive.current) {
+      setPendingTests(current => ({ ...current, [key]: false }));
+      if (failed) showToast(text, { kind: "error" });
+      else showToast(text);
+    }
   }
 
   async function saveKey(provider: WebProviderView): Promise<void> {
@@ -117,6 +123,7 @@ export function WebToolsSettingsSection({ locale }: { locale: AppLocale }) {
     if (!api || !value) return;
     if (await run(() => api.setApiKey({ providerId: provider.id, apiKey: value }))) {
       setKeys(current => ({ ...current, [provider.id]: "" }));
+      showToast(copy.keySaved, { icon: "check" });
     }
   }
 
@@ -166,7 +173,7 @@ export function WebToolsSettingsSection({ locale }: { locale: AppLocale }) {
       <SettingsBlock id="web-tools-enabled" title={copy.enabledLabel} hint={copy.hint}>
         <div className="web-tools-toggle-row">
           <span className="settings-note" role="status">
-            {loading ? copy.loading : busy ? copy.saving : state?.enabled ? copy.enabledStatus : copy.disabledStatus}
+            {loading ? copy.loading : state?.enabled ? copy.enabledStatus : copy.disabledStatus}
           </span>
           <SettingsSwitch
             checked={state?.enabled ?? false}
@@ -220,7 +227,7 @@ export function WebToolsSettingsSection({ locale }: { locale: AppLocale }) {
                 </div>
                 <div className="settings-provider-meta">
                   <span>{[provider.search ? copy.supportsSearch : null, provider.fetch ? copy.supportsFetch : null].filter(Boolean).join(" · ")}</span>
-                  <span className={provider.hasKey ? "settings-status connected" : undefined}>{provider.hasKey ? copy.keySaved : copy.keyMissing}</span>
+                  {!provider.hasKey && <span>{copy.keyMissing}</span>}
                 </div>
                 {provider.id === "deepseek" ? <p className="settings-hint">{copy.deepseekNote}</p> : null}
                 <form
@@ -248,20 +255,17 @@ export function WebToolsSettingsSection({ locale }: { locale: AppLocale }) {
                 </form>
                 <div className="settings-actions web-tools-tests">
                   {(["search", "fetch"] as const).filter(capability => provider[capability]).map(capability => {
-                    const result = tests[`${provider.id}:${capability}`];
+                    const pending = pendingTests[`${provider.id}:${capability}`];
                     return (
                       <span className="web-tools-test" key={capability}>
                         <button
                           className="settings-secondary"
                           type="button"
-                          disabled={busy || result?.pending || !provider.hasKey}
+                          disabled={busy || pending || !provider.hasKey}
                           onClick={() => void runTest(provider, capability)}
                         >
-                          {result?.pending ? copy.testing : capability === "search" ? copy.testSearch : copy.testFetch}
+                          {pending ? copy.testing : capability === "search" ? copy.testSearch : copy.testFetch}
                         </button>
-                        {result?.text ? (
-                          <span className={result.failed ? "settings-error" : "settings-saved"} role="status">{result.text}</span>
-                        ) : null}
                       </span>
                     );
                   })}

@@ -19,6 +19,7 @@ import type { Appearance, PreferencesApi } from "../hooks/usePreferences";
 import type { ProjectApi } from "../hooks/useProject";
 import { darkThemes, defaultDarkTheme, defaultLightTheme, isCustomThemeId, lightThemes, type ColorScheme, type DarkTheme, type LightTheme, type SelectedThemeId, type ThemeId } from "../themes";
 import { localizeError } from "../locale";
+import { showToast } from "../toast";
 import { useStartPageStyle } from "../hooks/useStartPageStyle";
 import { settingsCopy } from "./settings-copy";
 import { onboardingCopy, type OnboardingCopy } from "./onboarding-copy";
@@ -126,7 +127,6 @@ export function OnboardingView({ preferences, models, project, mode = "full", in
   const [selectedSkills, setSelectedSkills] = useState<Set<string>>(() => new Set());
   const [skillsBusy, setSkillsBusy] = useState(false);
   const [scanAttempt, setScanAttempt] = useState(0);
-  const [skillsNotice, setSkillsNotice] = useState<string | null>(null);
   const [providerQuery, setProviderQuery] = useState("");
   const [providerId, setProviderId] = useState("");
   const [providerError, setProviderError] = useState<string | null>(null);
@@ -242,7 +242,6 @@ export function OnboardingView({ preferences, models, project, mode = "full", in
     let active = true;
     setScan(null);
     setScanError(null);
-    setSkillsNotice(null);
     void api.scanExternalSkills().then(
       (next) => {
         if (!active) return;
@@ -368,10 +367,10 @@ export function OnboardingView({ preferences, models, project, mode = "full", in
       const result: SkillMigrationResult = await window.vela.migrateSkills(chosenSkills.map((skill) => skill.id));
       const migrated = result.copied.length + result.replaced.length;
       const suffix = result.skipped.length ? ` ${copy.migrationPartial}` : "";
-      setSkillsNotice(`${copy.migrationDone(migrated)}${suffix}`);
+      showToast(`${copy.migrationDone(migrated)}${suffix}`);
       navigate("step-6");
     } catch (error) {
-      setScanError(error instanceof Error ? error.message : copy.migrationError);
+      showToast(error instanceof Error ? error.message : copy.migrationError, { kind: "error" });
     } finally {
       setSkillsBusy(false);
     }
@@ -586,7 +585,6 @@ export function OnboardingView({ preferences, models, project, mode = "full", in
             <Label title={copy.foundSkills} style={{ justifyContent: "space-between", alignItems: "center" }}>
               {scan ? <span className="ob-count">{copy.selectedSkills(chosenSkills.length)}</span> : null}
             </Label>
-            {skillsNotice ? <p className="ob-hint">{skillsNotice}</p> : null}
             {!scan && !scanError ? <p className="ob-hint">{settingsCopyAgent.migrateLoading}…</p> : null}
             {scan?.skills.length === 0 ? <p className="ob-hint">{copy.skillsEmpty}</p> : null}
             {scan?.skills.length ? (
@@ -684,7 +682,6 @@ export function OnboardingView({ preferences, models, project, mode = "full", in
             {models.login.error ? <p className="ob-hint error">{localizeError(models.login.error)}</p> : null}
             {models.actionError ? <p className="ob-hint error">{localizeError(models.actionError)}</p> : null}
             {!selectedProvider && models.catalog ? <p className="ob-hint">{copy.providerSelectHint}</p> : null}
-            {skillsNotice ? <p className="ob-hint">{skillsNotice}</p> : null}
             {models.catalog ? (
               <p className="ob-hint">
                 <button type="button" className="ob-link dark" onClick={() => { setCustomProviderMode((open) => !open); setProviderError(null); }}>

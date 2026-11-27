@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { ResidentAgentApi, ResidentNotificationSettings, ResidentSettingsPatch } from "@vela/shared";
 import { SettingsBlock, SettingsSwitch } from "./settings/primitives";
 import { tr } from "../locale";
+import { showToast } from "../toast";
 import { formatMinute, parseMinute } from "./resident-agent-model";
 
 interface ToggleProps {
@@ -28,22 +29,21 @@ function SettingsToggleRow({ label, hint, ...control }: ToggleProps) {
 export function NotificationSettings({ api, layout }: { api?: ResidentAgentApi; layout: "settings" | "resident" }) {
   const Toggle = layout === "settings" ? SettingsToggleRow : ResidentToggle;
   const [notify, setNotify] = useState<ResidentNotificationSettings | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   useEffect(() => {
     if (!api) return;
     let live = true;
-    void api.getSettings().then(settings => { if (live) setNotify(settings.notifications); },
-      reason => { if (live) setError(String(reason)); });
+    void api.getSettings().then(settings => { if (live) { setNotify(settings.notifications); setLoadError(null); } },
+      reason => { if (live) setLoadError(String(reason)); });
     return () => { live = false; };
   }, [api]);
 
   if (!api) return <p role="status">{tr("Vela API 不可用", "Vela API unavailable")}</p>;
-  if (!notify) return <p role="status">{error ?? tr("正在读取…", "Loading…")}</p>;
+  if (!notify) return <p role="status">{loadError ?? tr("正在读取…", "Loading…")}</p>;
   const update = async (patch: ResidentSettingsPatch) => {
     try {
       setNotify((await api.updateSettings(patch)).notifications);
-      setError(null);
-    } catch (reason) { setError(String(reason)); }
+    } catch (reason) { showToast(String(reason), { kind: "error" }); }
   };
   const quiet = notify.quietHours;
   const timeFields = quiet.enabled && notify.enabled && (["startMinute", "endMinute"] as const).map(key => {
@@ -58,7 +58,7 @@ export function NotificationSettings({ api, layout }: { api?: ResidentAgentApi; 
       : <label key={key}><span>{label}</span>{input}</label>;
   });
   return <>
-    {error && <p className="agent-inbox-notice" role="alert">{error}</p>}
+    {loadError && <p className="agent-inbox-notice" role="alert">{loadError}</p>}
     <Toggle label={tr("系统通知", "System notifications")} hint={tr("离开对应对话时，接收审批请求和其他待处理事项的提醒。", "Get alerts for approvals and other items that need attention when you’re away from their conversation.")}
       checked={notify.enabled} onChange={value => update({ notifications: { enabled: value } })} />
     <Toggle label={tr("隐藏通知内容", "Hide notification previews")} hint={tr("通知里不显示命令、路径和回答，只提示有事项。", "Notifications won't show commands, paths or answers.")}

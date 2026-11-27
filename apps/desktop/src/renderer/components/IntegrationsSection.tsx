@@ -2,6 +2,7 @@ import { localizeCopy } from "@vela/shared";
 import { useEffect, useRef, useState } from "react";
 import type { PluginCatalog, PluginSnapshot } from "@vela/shared";
 import type { AppLocale } from "../hooks/usePreferences";
+import { showToast } from "../toast";
 import { Icon } from "./icons";
 
 
@@ -84,14 +85,18 @@ export function IntegrationsSection({ locale, workspacePath, conversationId }: {
     if (!api || !catalog) return;
     const revision = context.current;
     const sequence = ++action.current;
-    setBusy(plugin.id); setError(false);
+    setBusy(plugin.id);
     if (!disconnect) setCatalog({ ...catalog, plugins: catalog.plugins.map(item => item.id === plugin.id ? { ...item, status: "connecting", error: undefined } : item) });
     try {
       const next = await (disconnect ? api.disconnectPlugin : api.connectPlugin)({ cwd: catalog.cwd, conversationId, id: plugin.id });
       catalogCache.set(workspacePath ?? "", next);
       if (revision === context.current && sequence === action.current) { request.current++; setCatalog(next); }
-    } catch { if (revision === context.current && sequence === action.current) setError(true); }
-    finally { if (revision === context.current && sequence === action.current) setBusy(null); }
+    } catch {
+      if (revision === context.current && sequence === action.current) {
+        setCatalog(current => current && { ...current, plugins: current.plugins.map(item => item.id === plugin.id && item.status === "connecting" ? plugin : item) });
+        showToast(text.failed, { kind: "error" });
+      }
+    } finally { if (revision === context.current && sequence === action.current) setBusy(null); }
   }
 
   const needle = query.trim().toLowerCase();

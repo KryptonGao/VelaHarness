@@ -4,6 +4,7 @@ import { uiStorage } from "../../ui-storage";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ProjectApi } from "../../hooks/useProject";
 import { localizeError } from "../../locale";
+import { showToast } from "../../toast";
 import type { SettingsCopy } from "../settings-copy";
 import { clampChoice, groupAvailable, levelsFor, modelValue, parseModelValue } from "./model-helpers";
 import { Segmented, SettingsBlock, SettingsGroup } from "./primitives";
@@ -14,8 +15,6 @@ import { TaskBudgetBlock } from "./TaskBudgetBlock";
 
 /** 停止输入这么久后自动保存额外指令;失焦时立即保存。 */
 const instructionsDebounceMs = 800;
-
-type SaveStatus = "idle" | "saving" | "saved" | "error";
 
 function withoutSubagentNamingStyle(settings: AgentSettings): AgentSettings {
   const next = { ...settings };
@@ -41,7 +40,6 @@ export function AgentDefaultsPage({
     try { setPromptProfile(readPromptPreference(uiStorage) ?? "auto"); }
     catch (caught) { setPromptError(caught instanceof Error ? caught.message : text.loadError); }
   }, [text.loadError]);
-  const [status, setStatus] = useState<SaveStatus>("idle");
   const [error, setError] = useState<string | null>(null);
   // 最近一次发起的目标值(含尚未落盘的乐观修改)与最近一次落盘确认的值。
   const target = useRef<AgentSettings | null>(null);
@@ -67,7 +65,6 @@ export function AgentDefaultsPage({
       },
       (caught: unknown) => {
         if (!active) return;
-        setStatus("error");
         setError(caught instanceof Error ? caught.message : text.loadError);
       },
     );
@@ -84,7 +81,6 @@ export function AgentDefaultsPage({
     const next = { ...base, ...patch };
     target.current = next;
     setSettings(next);
-    setStatus("saving");
     setError(null);
     pending.current += 1;
     chain.current = chain.current.then(async () => {
@@ -94,9 +90,10 @@ export function AgentDefaultsPage({
         if (pending.current === 1) {
           target.current = saved;
           setSettings(saved);
+          showToast(text.saved, { icon: "check" });
         }
-        setStatus("saved");
       } catch (caught) {
+        if (pending.current > 1) return;
         const back = confirmed.current;
         target.current = back;
         setSettings(back);
@@ -104,13 +101,12 @@ export function AgentDefaultsPage({
           setInstructions(back.instructions);
           instructionsRef.current = back.instructions;
         }
-        setStatus("error");
         setError(caught instanceof Error ? caught.message : text.loadError);
       } finally {
         pending.current -= 1;
       }
     });
-  }, [text.loadError]);
+  }, [text.loadError, text.saved]);
 
   const flushInstructions = useCallback(() => {
     if (timer.current) {
@@ -151,11 +147,7 @@ export function AgentDefaultsPage({
 
   return (
     <section className="settings-section">
-      <div className="settings-autosave" role="status" aria-live="polite">
-        {status === "saving" ? <span>{text.saving}</span> : null}
-        {status === "saved" ? <span className="settings-saved">{text.saved}</span> : null}
-        {error ? <span className="settings-error">{localizeError(error)}</span> : null}
-      </div>
+      {error && <div className="settings-autosave settings-error" role="alert">{localizeError(error)}</div>}
 
       <SettingsGroup title={copy.sections.model}>
       <SettingsBlock id="default-model" title={text.model} hint={text.modelHint} layout="inline">
@@ -243,7 +235,7 @@ export function AgentDefaultsPage({
               else uiStorage.removeItem(promptPreferenceKey);
               setPromptProfile(profile ?? "auto");
               setPromptError(null);
-              setStatus("saved");
+              showToast(text.saved, { icon: "check" });
             } catch (caught) { setPromptError(caught instanceof Error ? caught.message : text.loadError); }
           }}
         />
@@ -289,7 +281,6 @@ export function AgentDefaultsPage({
           ))}
         </div>
         <p className="settings-note">{permissions.note}</p>
-        {project.error ? <p className="settings-error">{localizeError(project.error)}</p> : null}
       </SettingsBlock>
 
       </SettingsGroup>

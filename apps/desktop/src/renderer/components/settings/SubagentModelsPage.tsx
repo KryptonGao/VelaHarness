@@ -2,13 +2,12 @@ import { maxSubagentModelDescriptionLength, maxSubagentModels, type AgentInfo, t
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { modelKey } from "../../hooks/usePreferences";
 import { localizeError, tr, trf } from "../../locale";
+import { showToast } from "../../toast";
 import { Icon } from "../icons";
 import { thinkingLabel } from "../ModelControls";
 import type { SettingsCopy } from "../settings-copy";
 import { SettingsBlock, SettingsGroup } from "./primitives";
 import { CustomSubagentsBlock } from "./CustomSubagentsBlock";
-
-type SaveStatus = "idle" | "saving" | "saved" | "error";
 
 interface PoolEntry {
   ref: SubagentModelRef;
@@ -47,7 +46,6 @@ export function SubagentModelsPage({
   const text = copy.subagentModels;
   const [settings, setSettings] = useState<AgentSettings | null>(null);
   const [profiles, setProfiles] = useState<CustomSubagentProfile[] | null>(null);
-  const [status, setStatus] = useState<SaveStatus>("idle");
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [editingKey, setEditingKey] = useState<string | null>(null);
@@ -71,7 +69,6 @@ export function SubagentModelsPage({
       },
       (caught: unknown) => {
         if (!active) return;
-        setStatus("error");
         setError(caught instanceof Error ? caught.message : text.loadError);
       },
     );
@@ -89,7 +86,6 @@ export function SubagentModelsPage({
     if (!includeNamingStyle) delete request.subagentNamingStyle;
     target.current = next;
     setSettings(next);
-    setStatus("saving");
     setError(null);
     pending.current += 1;
     chain.current = chain.current.then(async () => {
@@ -99,20 +95,19 @@ export function SubagentModelsPage({
         if (pending.current === 1) {
           target.current = saved;
           setSettings(saved);
-          setStatus("saved");
+          showToast(copy.agent.saved, { icon: "check" });
         }
       } catch (caught) {
         if (pending.current > 1) return;
         const back = confirmed.current;
         target.current = back;
         setSettings(back);
-        setStatus("error");
         setError(caught instanceof Error ? caught.message : text.loadError);
       } finally {
         pending.current -= 1;
       }
     });
-  }, [text.loadError]);
+  }, [text.loadError, copy.agent.saved]);
 
   const pool = settings?.subagentModels ?? [];
   const availableModels = useMemo(() => availableForPool(catalog, hiddenModels, [], ""), [catalog, hiddenModels]);
@@ -139,11 +134,7 @@ export function SubagentModelsPage({
   };
   return (
     <section className="settings-section">
-      <div className="settings-autosave" role="status" aria-live="polite">
-        {status === "saving" ? <span>{copy.agent.saving}</span> : null}
-        {status === "saved" ? <span className="settings-saved">{copy.agent.saved}</span> : null}
-        {error ? <span className="settings-error">{localizeError(error)}</span> : null}
-      </div>
+      {error && <div className="settings-autosave settings-error" role="alert">{localizeError(error)}</div>}
 
       <CustomSubagentsBlock copy={copy} catalog={catalog} models={availableModels} agents={agents} profiles={profiles} onProfilesChange={setProfiles} />
       <SettingsGroup>

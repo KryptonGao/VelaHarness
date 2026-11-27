@@ -1,6 +1,7 @@
-import type { BrowserImportPreview, BrowserImportResult } from "@vela/shared";
+import type { BrowserImportPreview } from "@vela/shared";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { fillTemplate } from "../../hooks/useUpdates";
+import { showToast } from "../../toast";
 import type { SettingsCopy } from "../settings-copy";
 import { SettingsBlock } from "./primitives";
 
@@ -30,10 +31,7 @@ export function ChromeImportBlock({ text }: { text: SettingsCopy["chromeImport"]
   const [siteLimit, setSiteLimit] = useState(sitePageSize);
   const [phase, setPhase] = useState<Phase>("idle");
   const busy = phase !== "idle";
-  const [result, setResult] = useState<BrowserImportResult | null>(null);
-  const [error, setError] = useState<ImportError | null>(null);
-
-  const stopChrome = useCallback(() => {
+  const stopChrome = useCallback((errorMessage?: string) => {
     const capture = activeCapture.current;
     if (!api || !capture || capture.cancelled) return;
     capture.cancelled = true;
@@ -42,7 +40,7 @@ export function ChromeImportBlock({ text }: { text: SettingsCopy["chromeImport"]
       if (mounted.current && activeCapture.current === capture) {
         capture.cancelled = false;
         setPhase("chrome");
-        setError("chromeError");
+        if (errorMessage) showToast(errorMessage, { kind: "error" });
       }
     });
   }, [api]);
@@ -61,8 +59,6 @@ export function ChromeImportBlock({ text }: { text: SettingsCopy["chromeImport"]
     const capture = source === "chrome" ? { cancelled: false } : null;
     activeCapture.current = capture;
     setPhase(source);
-    setResult(null);
-    setError(null);
     try {
       const next = await (source === "chrome" ? api.captureChrome() : api.chooseImportFile());
       if (!next) return;
@@ -71,14 +67,13 @@ export function ChromeImportBlock({ text }: { text: SettingsCopy["chromeImport"]
         return;
       }
       pendingId.current = next.id;
-      setError(null);
       setPreview(next);
       setMode("all");
       setSelected(new Set());
       setFilter("");
       setSiteLimit(sitePageSize);
     } catch (cause) {
-      if (mounted.current && !capture?.cancelled) setError(describeError(cause, source === "chrome" ? "chromeError" : "fileError"));
+      if (mounted.current && !capture?.cancelled) showToast(text[describeError(cause, source === "chrome" ? "chromeError" : "fileError")], { kind: "error" });
     } finally {
       activeCapture.current = null;
       if (mounted.current) setPhase("idle");
@@ -97,10 +92,13 @@ export function ChromeImportBlock({ text }: { text: SettingsCopy["chromeImport"]
     setPhase("importing");
     try {
       const imported = await api.importSiteData(preview.id, mode === "all" ? null : [...selected]);
-      if (mounted.current) setResult(imported);
+      if (mounted.current) {
+        const summary = fillTemplate(text.result, imported.cookies, imported.localStorage);
+        showToast(imported.skipped > 0 ? `${summary} ${fillTemplate(text.skipped, imported.skipped)}` : summary);
+      }
     } catch (cause) {
       void api.cancelImport(preview.id).catch(() => {});
-      if (mounted.current) setError(describeError(cause, "importError"));
+      if (mounted.current) showToast(text[describeError(cause, "importError")], { kind: "error" });
     } finally {
       if (mounted.current) {
         setPreview(null);
@@ -155,7 +153,7 @@ export function ChromeImportBlock({ text }: { text: SettingsCopy["chromeImport"]
     </> : phase === "chrome" || phase === "stopping" ? <>
       <p className="settings-note" role="status">{phase === "stopping" ? text.stopping : text.waiting}</p>
       <div className="settings-actions"><button type="button" className="settings-secondary" disabled={phase === "stopping"}
-        onClick={stopChrome}>{text.cancel}</button></div>
+        onClick={() => stopChrome(text.chromeError)}>{text.cancel}</button></div>
     </> : <>
       <div className="settings-actions">
         <button type="button" className="primary-btn" disabled={!api?.captureChrome || busy}
@@ -164,10 +162,5 @@ export function ChromeImportBlock({ text }: { text: SettingsCopy["chromeImport"]
           onClick={() => void choose("file")}>{phase === "file" ? text.reading : text.choose}</button>
       </div>
     </>}
-    {result && <p className={result.skipped ? "settings-note" : "settings-saved"} role="status">
-      {fillTemplate(text.result, result.cookies, result.localStorage)}
-      {result.skipped > 0 && <> {fillTemplate(text.skipped, result.skipped)}</>}
-    </p>}
-    {error && <p className="settings-error" role="alert">{text[error]}</p>}
   </SettingsBlock>;
 }

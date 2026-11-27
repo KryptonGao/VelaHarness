@@ -22,6 +22,8 @@ if (!process.versions.electron) {
       import React from 'react';
       import { createRoot } from 'react-dom/client';
       import { McpSettingsSection } from './apps/desktop/src/renderer/components/McpSettingsSection';
+      import { getToasts } from './apps/desktop/src/renderer/toast';
+      window.getToasts = getToasts;
       import { ToolCard } from './apps/desktop/src/renderer/components/ToolCard';
       import { AppLocaleProvider, setActiveLocale } from './apps/desktop/src/renderer/locale';
       import { toUiMessage } from './apps/desktop/src/renderer/hooks/useSession';
@@ -157,8 +159,9 @@ if (!process.versions.electron) {
       await evaluate("fixture.failSave=true");
       await click("Save server", "document.querySelector('.mcp-form')");
       await until(
-        "document.querySelector('section > [role=alert]')?.textContent==='Save failed'",
+        "getToasts().length === 1 && getToasts()[0].message === 'Save failed' && getToasts()[0].kind === 'error'",
       );
+      assert.equal(await evaluate("!!document.querySelector('section > [role=alert]')"), false);
       assert.equal(
         await evaluate(
           "document.querySelector('.mcp-form input:not(:disabled)').value",
@@ -169,7 +172,7 @@ if (!process.versions.electron) {
         "fixture.failSave=false;fixture.calls=fixture.calls.filter(c=>c.method!=='save')",
       );
       await click("Save server", "document.querySelector('.mcp-form')");
-      await until("!document.querySelector('.mcp-form')");
+      await until("!document.querySelector('.mcp-form') && getToasts().length === 2 && getToasts()[1].message === 'Saved'");
       const save = await evaluate(
         "fixture.calls.find(call=>call.method==='save')",
       );

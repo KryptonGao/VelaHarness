@@ -128,6 +128,8 @@ if (!process.versions.electron) {
       import React from 'react';
       import { createRoot } from 'react-dom/client';
       import { MemorySettingsSection } from './apps/desktop/src/renderer/components/MemorySettingsSection';
+      import { getToasts } from './apps/desktop/src/renderer/toast';
+      window.getToasts = getToasts;
       const root = createRoot(document.getElementById('root'));
       window.renderMemory = (locale) => root.render(<MemorySettingsSection locale={locale} conversationId="chat-a" />);
       window.unmountMemory = () => root.render(null);
@@ -221,7 +223,8 @@ if (!process.versions.electron) {
       await until("document.querySelectorAll('.memory-entry').length === 3");
       assert.equal(await evaluate("document.querySelector('[role=switch]').getAttribute('aria-checked')"), "false");
       await evaluate("fixture.failToggle = true; document.querySelector('[role=switch]').click()");
-      await until("!!document.querySelector('.memory-toggle-block [role=alert]')");
+      await until("getToasts().length === 1 && getToasts()[0].kind === 'error'");
+      assert.equal(await evaluate("!!document.querySelector('.memory-toggle-block [role=alert]')"), false);
       assert.equal(await evaluate("document.querySelector('[role=switch]').getAttribute('aria-checked')"), "false");
       await evaluate("fixture.failToggle = false");
       console.log("PASS toggle preserves files, blocks duplicate submission, restores on reopen and reports failure");
@@ -263,7 +266,8 @@ if (!process.versions.electron) {
       await click("Clear content");
       assert.equal(await evaluate("document.querySelector('.memory-editor-input').value"), "");
       await click("Save");
-      await until("document.querySelector('.settings-saved')?.textContent === 'Saved.'");
+      await until("getToasts().filter(toast => toast.message === 'Saved.' && toast.kind !== 'error').length === 2");
+      assert.equal(await evaluate("!!document.querySelector('.settings-saved')"), false);
       const cleared = await evaluate("fixture.calls.filter(call => call.method === 'save').at(-1)");
       assert.equal(cleared.input.content, "");
       console.log("PASS clearing content saves an empty document");

@@ -2,6 +2,7 @@ import { customModelApis, maxProviderNoteLength, type AuthMethodType, type Custo
 import { useState } from "react";
 import type { useModels } from "../../hooks/useModels";
 import type { PreferencesApi } from "../../hooks/usePreferences";
+import { showToast } from "../../toast";
 import type { SettingsCopy } from "../settings-copy";
 import { ProviderLoginButton } from "../ProviderLoginButton";
 import { ScrollFade } from "../ScrollFade";
@@ -164,14 +165,12 @@ function CustomConnection({ text, provider, providerModels, models }: { text: Mo
   const [apiKey, setApiKey] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
   const customs = providerModels.filter((model) => model.custom);
   const dirty = baseUrl.trim() !== endpoint.baseUrl || api !== endpoint.api || apiKey.trim() !== "";
 
   async function save(): Promise<void> {
     setSaving(true);
     setError(null);
-    setSaved(false);
     for (const [index, model] of customs.entries()) {
       const message = await models.register({
         providerId: provider.id,
@@ -192,7 +191,7 @@ function CustomConnection({ text, provider, providerModels, models }: { text: Mo
       }
     }
     setApiKey("");
-    setSaved(true);
+    showToast(text.saved);
     setSaving(false);
   }
 
@@ -205,30 +204,25 @@ function CustomConnection({ text, provider, providerModels, models }: { text: Mo
           value={baseUrl}
           placeholder={text.baseUrlPlaceholder}
           spellCheck={false}
-          onChange={(event) => { setBaseUrl(event.target.value); setSaved(false); }}
+          onChange={(event) => setBaseUrl(event.target.value)}
         />
       </label>
-      <ApiSelect copy={text} value={api} onChange={(next) => { setApi(next); setSaved(false); }} />
-      <KeyField copy={text} value={apiKey} placeholder={text.apiKeySavedPlaceholder} onChange={(next) => { setApiKey(next); setSaved(false); }} />
+      <ApiSelect copy={text} value={api} onChange={setApi} />
+      <KeyField copy={text} value={apiKey} placeholder={text.apiKeySavedPlaceholder} onChange={setApiKey} />
       {error ? <p className="settings-error">{error}</p> : null}
-      {dirty || saved ? (
+      {dirty ? (
         <div className="models-form-actions">
-          {saved && !dirty ? <span className="settings-saved">{text.saved}</span> : null}
-          {dirty ? (
-            <>
-              <button
-                type="button"
-                className="models-btn"
-                disabled={saving}
-                onClick={() => { setBaseUrl(endpoint.baseUrl); setApi(endpoint.api); setApiKey(""); setError(null); }}
-              >
-                {text.cancel}
-              </button>
-              <button type="button" className="models-btn primary" disabled={saving || !baseUrl.trim() || customs.length === 0} onClick={() => void save()}>
-                {saving ? text.saving : text.save}
-              </button>
-            </>
-          ) : null}
+          <button
+            type="button"
+            className="models-btn"
+            disabled={saving}
+            onClick={() => { setBaseUrl(endpoint.baseUrl); setApi(endpoint.api); setApiKey(""); setError(null); }}
+          >
+            {text.cancel}
+          </button>
+          <button type="button" className="models-btn primary" disabled={saving || !baseUrl.trim() || customs.length === 0} onClick={() => void save()}>
+            {saving ? text.saving : text.save}
+          </button>
         </div>
       ) : null}
     </div>

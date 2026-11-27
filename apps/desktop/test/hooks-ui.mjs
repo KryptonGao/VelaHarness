@@ -16,6 +16,8 @@ if (!process.versions.electron) {
     await build({ stdin: { contents: `
       import React from 'react'; import { createRoot } from 'react-dom/client';
       import { HooksSettingsSection } from './apps/desktop/src/renderer/components/HooksSettingsSection';
+      import { getToasts } from './apps/desktop/src/renderer/toast';
+      window.getToasts = getToasts;
       window.fixture={calls:[],listener:null,fail:false,revision:1,holdTest:false,resolveTest:null};
       const f=window.fixture; const doc=scope=>({scope,path:'/workspace/'+scope+'/hooks.json',config:{version:1,hooks:[]},digest:'a'.repeat(64),trusted:false});
       f.catalog={cwd:'/workspace',documents:[doc('global'),doc('project')],history:[]};
@@ -61,7 +63,8 @@ if (!process.versions.electron) {
     assert.equal(await evaluate("fixture.calls.find(c=>c.method==='trust').input.digest===fixture.catalog.documents[1].digest"), true);
     await click("Test run"); await until("document.querySelector('.hooks-confirm')");
     assert.equal(await evaluate("fixture.calls.filter(c=>c.method==='test').length"), 0);
-    await click("Run commands now"); await until("document.body.textContent.includes('Test run passed')");
+    await click("Run commands now"); await until("getToasts().filter(toast => toast.message.includes('Test run passed') && toast.kind !== 'error').length === 1");
+    assert.equal(await evaluate("document.body.textContent.includes('Test run passed')"), false);
     assert.equal(await evaluate("fixture.calls.find(c=>c.method==='test').input.toolName"), "write");
     assert.equal(await evaluate("document.querySelector('.hooks-confirm pre').textContent.includes('verified-check') && !document.querySelector('.hooks-confirm img')"), true, "test output is visible as escaped text, not HTML");
     const saved = await evaluate("document.querySelector('textarea').value");
@@ -70,7 +73,7 @@ if (!process.versions.electron) {
     await click("Global"); await until("document.querySelector('textarea') && !document.querySelector('textarea').value.includes('invalid')");
     await click("Project"); await until("document.querySelector('textarea')?.value==='{invalid'");
     await fill(saved.replace('10000', '11000'));
-    await evaluate("fixture.fail=true"); await click("Save configuration"); await until("document.body.textContent.includes('Your draft was kept')");
+    await evaluate("fixture.fail=true"); await click("Save configuration"); await until("getToasts().filter(toast => toast.kind === 'error' && toast.message.includes('Your draft was kept')).length === 1");
     assert.ok((await evaluate("document.querySelector('textarea').value")).includes("11000"));
     await click("Reload"); await until("document.body.textContent.includes('Discard draft and reload')"); await click("Discard draft and reload");
     await until("document.querySelector('textarea')?.value.includes('10000')");

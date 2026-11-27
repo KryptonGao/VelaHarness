@@ -1,6 +1,7 @@
 import { customSubagentLimits, subagentKinds, type AgentInfo, type CustomSubagentProfile, type ModelCatalog, type ModelSummary } from "@vela/shared";
 import { useMemo, useRef, useState } from "react";
 import { localizeError, tr, trf } from "../../locale";
+import { showToast } from "../../toast";
 import { AgentAvatar } from "../AgentAvatar";
 import { ConfirmDeleteButton } from "../ConfirmDeleteButton";
 import { Icon } from "../icons";
@@ -114,11 +115,18 @@ export function CustomSubagentsBlock({ copy, profiles, onProfilesChange, catalog
       onProfilesChange(saved.customSubagents ?? []);
       closeEditor();
     } catch (caught) {
-      setError(caught instanceof Error ? localizeError(caught.message) : String(caught));
+      const message = caught instanceof Error ? localizeError(caught.message) : String(caught);
       try {
-        const latest = await window.vela.getAgentSettings();
-        onProfilesChange(latest.customSubagents ?? []);
-      } catch { /* Keep the draft and the original save error if the host is offline. */ }
+        const settings = await window.vela.getAgentSettings();
+        const nextProfiles = settings.customSubagents ?? [];
+        onProfilesChange(nextProfiles);
+        const latestProfile = nextProfiles.find(item => item.id === profile?.id);
+        if (draft?.existing && JSON.stringify(original) !== JSON.stringify(latestProfile)) {
+          setError(message);
+          return;
+        }
+      } catch { /* Keep the draft if the host is offline. */ }
+      showToast(message, { kind: "error" });
     } finally {
       setBusy(false);
     }

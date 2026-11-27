@@ -1,5 +1,6 @@
 import type { ExternalSkillCandidate, ExternalSkillScan, ExternalSkillSource, SkillMigrationResult } from "@vela/shared";
 import { useEffect, useState } from "react";
+import { showToast } from "../toast";
 import type { SettingsCopy } from "./settings-copy";
 
 type AgentCopy = SettingsCopy["agent"];
@@ -82,12 +83,11 @@ export function SkillMigrationDialog({ copy, onClose, onDone }: SkillMigrationDi
     const api = window.vela;
     if (!api || !scan || chosen.length === 0) return;
     setBusy(true);
-    setError(null);
     try {
       const ids = scan.skills.map((skill) => skill.id).filter((id) => selected.has(id));
       onDone(await api.migrateSkills(ids));
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : copy.migrateLoadError);
+      showToast(caught instanceof Error ? caught.message : copy.migrateLoadError, { kind: "error" });
       setBusy(false);
     }
   }
