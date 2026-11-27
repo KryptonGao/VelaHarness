@@ -110,10 +110,23 @@ if (!process.versions.electron) {
         }
         window.renderDiff = () => {
           setActiveLocale('zh-CN');
-          window.vela = {getAgentMessages: async (conversation, agent, scope) =>
-            conversation === chat && agent === firstId && scope === 'owned' ? [owned, ...(window.finalSaved ? [reply('final', [fileEdit('final', 'final.ts', '+1 saved')])] : [])] : []};
+          window.vela = {getAgentMessages: async (conversation, agent, scope) => {
+            if (conversation !== chat || scope !== 'owned') return [];
+            if (agent === firstId) return [owned, ...(window.finalSaved ? [reply('final', [fileEdit('final', 'final.ts', '+1 saved')])] : [])];
+            if (agent === 'writer') return [reply('w', [{...fileEdit('w', 'new.ts', '+1 new'), name: 'write'}])];
+            if (agent === 'cleaner') return [reply('d', [fileEdit('d', 'old.ts', '-1 obsolete')])];
+            return [];
+          }};
           window.diffStep(1);
           flushSync(() => root.render(<Fixture key="diff" display="compact" diff />));
+        };
+        window.renderAgentCard = () => {
+          const Body = infoCardDefinitions.agents.Body;
+          const agents = [...initial, ...['writer', 'cleaner'].map(name =>
+            ({...initial[0], id: name, name, path: '/root/' + name, status: 'completed'}))];
+          flushSync(() => root.render(<section id="info" style={{width: 300}}><Body ctx={{
+            agents, state: {activeConversationId: chat}, messageStore: store, onOpenAgent: noop,
+          }} /></section>));
         };
         let revision = 0;
         window.renderCase = (scheme, display) => {
@@ -333,6 +346,13 @@ if (!process.versions.electron) {
       await evaluate("document.querySelectorAll('.workbench-tab')[0].click()");
       await until(`document.querySelector('.agent-pane') && !document.querySelector('${badge}')`);
       console.log('子代理 diff：归属隔离、行数去重、显示开关、实时审查和新回合清空通过。');
+      currentCase = '子代理信息卡 Diff 行数';
+      await evaluate('window.finalSaved = false; window.diffStep(1); window.renderAgentCard()');
+      const cardCounts = `[...document.querySelectorAll('#info .info-card-row')].map(row => row.querySelector('.info-card-agent-diff')?.textContent ?? null)`;
+      await until(`JSON.stringify(${cardCounts}) === '${JSON.stringify(['+2−1', null, '+1', '−1'])}'`);
+      await evaluate('window.diffStep(3)');
+      await until(`(${cardCounts})[0] === '+3−1'`);
+      assert.deepEqual(await evaluate(cardCounts), ['+3−1', null, '+1', '−1'], '卡片按子代理累计跨回合变更');
       assert.deepEqual(external, [], "头像加载不依赖任何外部网络请求");
       assert.deepEqual(errors, [], "组件加载与交互不产生控制台错误");
       console.log("Bottts 头像 UI：浅/深色 × 紧凑/卡片；图片加载、跨界面同图、六种状态、暂停/继续、roster 与工作面板标签切换全部通过。");

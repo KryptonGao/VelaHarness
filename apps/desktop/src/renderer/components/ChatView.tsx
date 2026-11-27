@@ -1089,7 +1089,7 @@ export function ChatView({
       {activeHomeStyle === "classic" ? <VelaMark /> : null}
       {activeHomeStyle === "atelier" ? <AtelierBackdrop /> : null}
       {floatingInfo && infoCards && !emptyConversation ? (
-        <InfoCardStack concealed={environmentCollapsed || infoCardsConcealed} state={state} project={project} messages={messages} planDraft={planDraft}
+        <InfoCardStack concealed={environmentCollapsed || infoCardsConcealed} state={state} project={project} messages={messages} messageStore={messageStore} planDraft={planDraft}
           backgroundShells={backgroundShells} onOpenBackgroundTasks={onOpenBackgroundTasks} changesActive={changesActive} onOpenChanges={onOpenChanges} onOpenPlan={onOpenPlan}
           onResumeGoal={onResumeGoal} onOpenFile={openOutputFile} />
       ) : null}

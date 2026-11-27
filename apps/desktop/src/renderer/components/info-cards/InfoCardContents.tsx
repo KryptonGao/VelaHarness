@@ -1,9 +1,12 @@
-import { useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { isAgentBusy, type AgentInfo, type AgentStatus, type AppState, type BackgroundShellItem } from "@vela/shared";
 import type { ProjectApi } from "../../hooks/useProject";
 import { useDismissable } from "../../hooks/useDismissable";
 import { useSecondClock } from "../../hooks/useSecondClock";
 import type { UiMessage } from "../../hooks/useSession";
+import type { MessageStore } from "../../hooks/message-store";
+import { useMessages } from "../../hooks/useMessages";
+import { useOwnedAgentMessages } from "../../hooks/useSubagentTrace";
 import { planReferenceModel, type PlanDraft } from "../../plan-draft";
 import { fileManagerName } from "../../platform";
 import { localizeError, tr, trf } from "../../locale";
@@ -15,15 +18,17 @@ import { formatElapsed } from "../AgentPanel";
 import { PopoverPresence } from "../MotionPresence";
 import { RepoCardPopover } from "../RepoCardPopover";
 import { planStatusLabel } from "../PlanPanel";
+import { createLiveChangesSelector } from "../turn-changes";
 import type { InfoCardId } from "./info-cards-layout";
 import type { OutputFile } from "./info-cards-data";
 import { Icon, snapIconSize } from "../icons";
 
-/** 信息卡片需要的全部输入；由 ChatView 提供，卡片自己不订阅会话。 */
+/** Inputs for the right-hand information cards. */
 export interface InfoCardContext {
   state: AppState | null;
   project: ProjectApi;
   messages: readonly UiMessage[];
+  messageStore?: MessageStore;
   /** 本对话 write 工具写出的文件，由栈按 messages 缓存。 */
   outputs: readonly OutputFile[];
   planDraft: PlanDraft | null;
@@ -218,14 +223,30 @@ function ChangesBody({ ctx }: { ctx: InfoCardContext }) {
 
 // ---------- 子代理 ----------
 
+function AgentDiffStats({ agent, conversationId, messageStore }: {
+  agent: AgentInfo; conversationId: string | null; messageStore?: MessageStore;
+}) {
+  const stream = useMessages(messageStore, conversationId, agent.id);
+  const { messages } = useOwnedAgentMessages(conversationId, agent, stream);
+  const selectChanges = useMemo(createLiveChangesSelector, []);
+  const changes = useMemo(() => selectChanges(messages, null), [selectChanges, messages]);
+  if (!changes || (!changes.added && !changes.removed)) return null;
+  return (
+    <span className="info-card-agent-diff">
+      {changes.added > 0 && <span className="info-card-added" aria-label={trf("新增 {0} 行", "{0} lines added", changes.added)}>+{changes.added.toLocaleString("en-US")}</span>}
+      {changes.removed > 0 && <span className="info-card-deleted" aria-label={trf("删除 {0} 行", "{0} lines removed", changes.removed)}>−{changes.removed.toLocaleString("en-US")}</span>}
+    </span>
+  );
+}
+
 function AgentsBody({ ctx }: { ctx: InfoCardContext }) {
   return (
-    <div className="info-card-rows">
+    <div className="info-card-agent-rows">
       {subagentsOf(ctx).map((agent) => (
         <button key={agent.id} type="button" className="info-card-row" title={agent.task || agent.name} onClick={() => ctx.onOpenAgent(agent.id)}>
           <AgentAvatar agentId={agent.id} icon={agent.customProfile?.icon} />
           <span className="info-card-row-main">{agent.name}</span>
-          {isAgentBusy(agent.status) ? <span className="info-card-spin" aria-hidden="true" /> : null}
+          <AgentDiffStats agent={agent} conversationId={ctx.state?.activeConversationId ?? null} messageStore={ctx.messageStore} />
           <span className={`info-card-chip is-${agent.status}`}>{tr(...agentStatusLabels[agent.status])}</span>
         </button>
       ))}

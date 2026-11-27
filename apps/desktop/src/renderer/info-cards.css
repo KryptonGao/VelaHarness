@@ -117,6 +117,11 @@ button.info-card-row:hover:not(:disabled), .info-card-row.is-active { background
 .info-card-stat-link:hover, .info-card-stat-link.is-active { background: var(--bg-hover); }
 .info-card-added { color: var(--diff-stat-add-fg, var(--success)); font-variant-numeric: tabular-nums; font-size: calc(12px * var(--ui-scale)); }
 .info-card-deleted { color: var(--diff-stat-del-fg, var(--danger)); font-variant-numeric: tabular-nums; font-size: calc(12px * var(--ui-scale)); }
+.info-card-agent-rows { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; row-gap: 2px; }
+.info-card-agent-rows > .info-card-row { display: grid; grid-template-columns: subgrid; grid-column: 1 / -1; column-gap: 0; }
+.info-card-agent-rows .info-card-row-main { margin-inline-start: 9px; }
+.info-card-agent-diff { display: inline-flex; gap: 4px; justify-self: end; margin-inline-start: 9px; white-space: nowrap; }
+.info-card-agent-rows .info-card-chip { grid-column: 4; justify-self: end; margin-inline-start: 9px; }
 .info-card-pill { padding: 3px 11px; border-radius: var(--radius-sm); background: var(--bg-hover); font-size: calc(12.5px * var(--ui-scale)); font-weight: 520; }
 .info-card-pill:hover { background: color-mix(in srgb, var(--accent-blue) 12%, var(--bg-hover)); }
 .info-card-more { align-self: flex-start; margin-top: 4px; font-size: calc(12px * var(--ui-scale)); color: var(--text-muted); }
@@ -129,11 +134,6 @@ button.info-card-row:hover:not(:disabled), .info-card-row.is-active { background
 .info-card-shell { display: flex; align-items: center; gap: 2px; }
 .info-card-shell > .info-card-row { flex: 1; width: auto; margin-right: 0; min-width: 0; }
 .info-card-shell > .info-card-icon-btn { flex: none; color: var(--text-primary); }
-.info-card-spin {
-  width: 12px; height: 12px; flex: none; margin: 0 1.5px; border-radius: 50%;
-  border: 2px solid var(--accent-border); border-top-color: var(--accent-blue); animation: info-card-spin 800ms linear infinite;
-}
-@keyframes info-card-spin { to { transform: rotate(360deg); } }
 
 .info-card-mini { display: inline-flex; width: 56px; height: 5px; overflow: hidden; border-radius: 3px; background: var(--bg-hover); }
 .info-card-mini i { display: block; height: 100%; border-radius: 3px; background: var(--accent-blue); }
