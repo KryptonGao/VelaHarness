@@ -92,15 +92,13 @@ app.whenReady().then(async () => {
   await click('.preview-view-toggle button:last-child');
   await visible('.preview-code-pane .code-rows');
   assert.ok(await js(`document.querySelector('.code-rows').textContent.includes('assets/main.mjs')`));
-  await click('.preview-view-toggle button:first-child');
-  await until(previewFrame, "back to preview");
   write("assets/theme/colors.css", "button { color: rgb(98, 76, 54); }");
-  await click('.preview-actions-group button[aria-label="Reload"]');
+  await click('.preview-view-toggle button:first-child');
   await until(async () => {
     const updated = previewFrame();
     return updated && await updated.executeJavaScript(`document.querySelector('button') && getComputedStyle(document.querySelector('button')).color === 'rgb(98, 76, 54)'`).catch(() => false);
-  }, "reloaded CSS");
-  console.log("PASS workspace HTML preview: imported CSS, module scripts, image, real guest click/wheel, isolation, source toggle and reload");
+  }, "updated CSS when returning to preview");
+  console.log("PASS workspace HTML preview: imported CSS, module scripts, image, real guest click/wheel, isolation and source toggle with updated assets");
   app.quit();
 }).catch(error => { console.error(error); app.exit(1); });
 app.on("will-quit", () => rmSync(temp, { recursive: true, force: true }));

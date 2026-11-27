@@ -24,8 +24,6 @@ export function FilePreviewView({
   const preview = useFilePreview();
   const [explorerOpen, setExplorerOpen] = useState(true);
   const [viewMode, setViewMode] = useState<"preview" | "source">("preview");
-  const [htmlReload, setHtmlReload] = useState(0);
-  const [copied, setCopied] = useState(false);
   const tab = preview?.activeTab ?? null;
   const content = preview?.activeContent ?? null;
   const git = project.git;
@@ -33,12 +31,6 @@ export function FilePreviewView({
   useEffect(() => {
     if (tab?.jumpLine != null) setViewMode("source");
   }, [tab?.id, tab?.jumpLine]);
-
-  useEffect(() => {
-    if (!copied) return;
-    const timer = window.setTimeout(() => setCopied(false), 1500);
-    return () => window.clearTimeout(timer);
-  }, [copied]);
 
   const changedPaths = useMemo(
     () => new Set((git?.files ?? []).map((file) => file.path)),
@@ -50,7 +42,6 @@ export function FilePreviewView({
   const rootName = git?.repo?.name ?? basename(preview.fileList?.root) ?? tr("工作区", "Workspace");
   // 工作区外的标签 id 是绝对路径,面包屑不再挂工作区根名。
   const absoluteTab = isAbsolutePathLike(tab.id);
-  const canCopy = content?.kind === "text" && Boolean(content.content);
   const canShowDiff = Boolean(git?.repo) && changedPaths.has(tab.id);
   const crumbs = [...(absoluteTab ? [] : [rootName]), ...(tab.dir ? tab.dir.split("/") : [])];
   const markdownBody = isMarkdownPath(tab.id) && content?.kind === "text" && Boolean(content.content);
@@ -101,32 +92,7 @@ export function FilePreviewView({
               {tr("差异", "Diff")}
             </button>
           ) : null}
-          <span className="preview-actions-sep" aria-hidden="true" />
-          <button
-            type="button"
-            className="icon-btn-ghost"
-            title={tr("重新读取", "Reload")}
-            aria-label={tr("重新读取", "Reload")}
-            onClick={() => {
-              if (htmlUrl) setHtmlReload(value => value + 1);
-              preview.reloadActive();
-            }}
-          >
-            <Icon name="refresh" size={14} />
-          </button>
-          <button
-            type="button"
-            className="icon-btn-ghost"
-            title={copied ? tr("已复制", "Copied") : tr("复制文件内容", "Copy file contents")}
-            aria-label={copied ? tr("已复制", "Copied") : tr("复制文件内容", "Copy file contents")}
-            disabled={!canCopy}
-            onClick={() => {
-              if (!content?.content) return;
-              void navigator.clipboard.writeText(content.content).then(() => setCopied(true));
-            }}
-          >
-            {copied ? <Icon name="check" size={14} /> : <Icon name="copy" size={14} />}
-          </button>
+          {canRender || canShowDiff ? <span className="preview-actions-sep" aria-hidden="true" /> : null}
           <button
             type="button"
             className="icon-btn-ghost"
@@ -155,7 +121,7 @@ export function FilePreviewView({
 
       <div className={`preview-main-split${explorerOpen ? "" : " explorer-hidden"}`}>
         {showRendered && htmlUrl ? (
-          <iframe key={`${htmlUrl}:${htmlReload}`} className="preview-html-frame" title={`${tr("文件预览", "File preview")}: ${tab.name}`}
+          <iframe key={htmlUrl} className="preview-html-frame" title={`${tr("文件预览", "File preview")}: ${tab.name}`}
             sandbox="allow-scripts" referrerPolicy="no-referrer" src={htmlUrl} />
         ) : showRendered && content?.content ? (
           <MarkdownPane

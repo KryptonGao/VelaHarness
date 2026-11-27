@@ -47,7 +47,6 @@ export interface FilePreviewContextValue {
   setTabScroll(id: string, scrollTop: number): void;
   getTabScroll(id: string): number;
   ensureFileList(): void;
-  reloadActive(): void;
   searchCode(query: string): Promise<WorkspaceSearchResult>;
   /** 把聊天里的内联文本解析成工作区文件路径;不唯一或不存在时返回 null。 */
   resolveFilePath(text: string): string | null;
@@ -238,12 +237,6 @@ export function FilePreviewProvider({
     refreshFileList();
   }, [refreshFileList]);
 
-  const reloadActive = useCallback(() => {
-    contentCache.current.clear();
-    setRevision((value) => value + 1);
-    refreshFileList();
-  }, [refreshFileList]);
-
   const searchCode = useCallback((query: string) => {
     const api = window.vela;
     if (!api) return Promise.reject(new Error("Vela API 不可用"));
@@ -384,7 +377,6 @@ export function FilePreviewProvider({
       setTabScroll,
       getTabScroll,
       ensureFileList,
-      reloadActive,
       searchCode,
       resolveFilePath,
     }),
@@ -405,7 +397,6 @@ export function FilePreviewProvider({
       setTabScroll,
       getTabScroll,
       ensureFileList,
-      reloadActive,
       searchCode,
       resolveFilePath,
     ],

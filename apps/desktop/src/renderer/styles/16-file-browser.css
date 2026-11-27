@@ -211,9 +211,6 @@
   margin: 0 2px;
   background: var(--border-subtle);
 }
-.preview-actions-sep:first-child {
-  margin-left: 0;
-}
 .preview-actions-group .preview-view-toggle,
 .preview-actions-group .preview-action-pill {
   margin-right: 2px;

@@ -151,6 +151,16 @@ if (!process.versions.electron) {
     await clickControl('.preview-actions-group [aria-label="文件树"]');
     await until(`document.querySelector('${selector(tree)} .explorer-tree-item')`);
     if (full) {
+      const toolbar = await evaluate(`(() => {
+        const bar = document.querySelector('${subbar}');
+        const actions = bar.querySelector('.preview-actions-group');
+        const crumbs = bar.querySelector('.preview-breadcrumbs-text');
+        return { buttons: [...actions.querySelectorAll('button')].map(button => button.getAttribute('aria-label')),
+          freeSpace: actions.firstElementChild.getBoundingClientRect().left - crumbs.getBoundingClientRect().right,
+          gap: parseFloat(getComputedStyle(bar).columnGap) };
+      })()`);
+      assert.deepEqual(toolbar.buttons, ['用默认应用打开', '文件树']);
+      assert.ok(Math.abs(toolbar.freeSpace - toolbar.gap) <= 1, 'Breadcrumbs fill the space up to the first action');
       await wheelThroughHeader(tree, true);
       assert.ok(await evaluate(`document.querySelector('${code}').scrollTop > 100`), "Tree wheel must not reset source scroll");
       await until(`document.querySelector('${selector('.explorer-search-input')}').getBoundingClientRect().top >=
