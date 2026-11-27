@@ -542,8 +542,8 @@ export function ChatView({
     if (!scroller || !dock || !root || view !== "chat") return;
     const height = dock.getBoundingClientRect().height;
     if (height > 0) {
-      const clearance = `${Math.ceil(height + 36)}px`;
-      if (root.style.getPropertyValue("--composer-clearance") !== clearance) root.style.setProperty("--composer-clearance", clearance);
+      const dockHeight = `${Math.ceil(height)}px`;
+      if (root.style.getPropertyValue("--composer-dock-height") !== dockHeight) root.style.setProperty("--composer-dock-height", dockHeight);
     }
     if (followRef.current.pinned) scrollFollowToEnd(scroller, followRef.current);
     syncJumpToLatest();
@@ -688,7 +688,7 @@ export function ChatView({
       scroller.removeEventListener("touchstart", onTouchStart);
       scroller.removeEventListener("touchmove", onTouchMove);
       scroller.removeEventListener("pointerdown", cancelJumpLock);
-      root.style.removeProperty("--composer-clearance");
+      root.style.removeProperty("--composer-dock-height");
     };
   }, [scheduleLayout, syncJumpToLatest]);
 

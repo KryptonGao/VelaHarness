@@ -50,6 +50,10 @@ const titlebarHistory = (id: string): TranscriptMessage[] => [
   ].join("\n\n") },
 ];
 if (params.has("titlebar")) messages.set(active, titlebarHistory(active));
+if (params.has("liveChanges")) {
+  Object.assign(sessions.get(active)!, { status: "streaming", turnStartedAt: Date.now() });
+  messages.get(active)![1].tools.push({ id: "edit", name: "edit", status: "done", activity: { path: "chat.ts", diff: "+1 updated" } });
+}
 const calls: { name: string; id?: string; text?: string; images?: ImageAttachment[]; options?: unknown }[] = [];
 const conflictListeners = new Set<() => void>();
 let conflictState = emptyConflictsState;

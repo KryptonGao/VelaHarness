@@ -67,6 +67,28 @@ if (!process.versions.electron) {
     const directoryOption = ".workbench-tabpanel:not(.is-inactive) .start-options:not(.start-conversation-options) > .start-option:first-child";
     const chatOption = ".workbench-tabpanel:not(.is-inactive) [data-fixture-create-chat]";
     try {
+      await win.loadFile(join(temporary, 'index.html'), { query: { liveChanges: '1' } });
+      await until("document.querySelector('.run-status') && document.querySelector('.composer-change-summary')");
+      const compactRunGap = `Math.abs(document.querySelector('.composer-change-summary').getBoundingClientRect().top - document.querySelector('.run-status').getBoundingClientRect().bottom - 8) <= 1`;
+      await until(compactRunGap);
+      assert.equal(await evaluate("document.querySelector('.chat-scroll-area').scrollTop"), 0);
+      await evaluate("document.querySelector('.assistant-live-turn').style.minHeight = '1200px'");
+      await until(`document.querySelector('.chat-scroll-area').scrollTop > 0 && (${compactRunGap})`);
+      const dockHeight = await evaluate("document.querySelector('.chat-dock-wrapper').offsetHeight");
+      await input('#prompt', 'a long draft '.repeat(90));
+      await until(`document.querySelector('.chat-dock-wrapper').offsetHeight > ${dockHeight} && (${compactRunGap})`);
+      console.log('PASS live change summary spacing: short transcript, scrolling transcript and growing composer');
+      await input('#prompt', '');
+      await newTab();
+      await click('.workbench-fullscreen-button');
+      await until("document.querySelector('[data-floating-chat=expanded] .composer-change-summary')");
+      assert.ok(await evaluate(`(() => {
+        const dock = document.querySelector('[data-floating-chat] .chat-dock-wrapper');
+        const pill = dock.querySelector('.composer-change-summary'), form = dock.querySelector('form');
+        return getComputedStyle(dock).borderTopWidth === '0px' && getComputedStyle(form).borderTopWidth === '1px'
+          && pill.getBoundingClientRect().bottom < form.getBoundingClientRect().top;
+      })()`), 'Floating chat change summary sits above the composer divider');
+      await capture('fullscreen-change-summary');
       await win.loadFile(join(temporary, 'index.html'));
       await until("document.querySelector('.chat-active-title')?.textContent === '主聊天'");
       // Hold the create IPC with the previous chat still active underneath the draft.

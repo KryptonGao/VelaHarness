@@ -887,7 +887,6 @@
   position: relative;
   flex: none;
   padding: 0;
-  border-top: 1px solid var(--border-subtle);
   --composer-overhang: 0px;
 }
 [data-floating-chat] .chat-dock-wrapper::after { display: none; }
@@ -901,6 +900,7 @@
   background: transparent;
   box-shadow: none;
   border: 0;
+  border-top: 1px solid var(--border-subtle);
   border-radius: 0 0 20px 20px;
 }
 [data-floating-chat] .composer-capsule { border: 0; padding: 0; background: none; box-shadow: none; }

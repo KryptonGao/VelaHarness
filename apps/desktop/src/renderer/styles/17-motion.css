@@ -241,6 +241,8 @@
 .chat-conversation-pane {
   flex: 1; min-height: 0; display: flex; flex-direction: column; position: relative; z-index: 1;
   --chat-lane-max: 760px;
+  --composer-dock-height: 184px;
+  --composer-clearance: calc(var(--composer-dock-height) + 36px);
   --info-drawer-open: 0;
   --chat-lane-shift: calc(var(--info-lane-shift, 0px) * var(--info-drawer-open));
   --chat-lane-shrink: calc(var(--info-lane-shrink, 0px) * var(--info-drawer-open));

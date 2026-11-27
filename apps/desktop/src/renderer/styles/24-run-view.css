@@ -9,6 +9,12 @@
   width: calc(min(100%, var(--chat-lane-max, 760px)) - var(--chat-lane-shrink, 0px));
   margin-right: calc(var(--chat-lane-shift, 0px) * 2);
 }
+/* Keep the live checklist and status together just above the change summary,
+   even when the transcript is too short to scroll. Floating chats have an in-flow composer. */
+.main-chat-view:not([data-floating-chat]) > .chat-conversation-pane:has(> .chat-dock-wrapper > .composer-change-summary) > .chat-scroll-area:has(.chat-message-surface > .run-dock:last-child > .run-status) {
+  padding-bottom: calc(var(--composer-dock-height) + 8px);
+  & .chat-message-surface > .run-dock:last-child { margin-top: auto; }
+}
 .run-dock .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .run-todo {
   position: relative;
