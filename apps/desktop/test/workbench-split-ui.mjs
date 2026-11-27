@@ -120,6 +120,39 @@ if (!process.versions.electron) {
     try {
       await win.loadFile(join(temporary, "index.html")); await until("document.querySelectorAll('.workbench-tab').length===4"); await pause();
       await setPanelWidth(1000);
+      await js('splitFixture.setFullscreen(true)');
+      for (const kind of ['background', 'chat']) { // One tab, then four.
+        await js(`splitFixture.reset('${kind}', true)`);
+        await until(`(() => {
+          const bar = document.querySelector('.workbench-fullscreen .workbench-tabbar');
+          const last = bar.querySelector('.workbench-tab:last-child').getBoundingClientRect();
+          const add = bar.querySelector('.workbench-new-tab').getBoundingClientRect();
+          return Math.abs(add.left - last.right - parseFloat(getComputedStyle(bar).columnGap)) < 1;
+        })()`);
+      }
+      for (const fullscreen of [true, false]) {
+        await js(`splitFixture.setFullscreen(${fullscreen}); splitFixture.reset('chat', true)`);
+        await until("document.querySelectorAll('.workbench-tab-close').length === 4 && !document.querySelector('.workbench-tab:last-child').getAnimations().length");
+        const point = await js(`(() => { const r = document.querySelectorAll('.workbench-tab-close')[1].getBoundingClientRect();
+          return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) }; })()`);
+        win.webContents.sendInputEvent({ type: 'mouseMove', ...point }); await pause();
+        const frames = await js(`(async () => {
+          const bar = document.querySelector('.workbench-tabbar'), last = bar.querySelector('.workbench-tab:last-child');
+          const add = bar.querySelector('.workbench-new-tab'), gap = parseFloat(getComputedStyle(bar).columnGap);
+          const before = last.getBoundingClientRect().right, frames = [];
+          bar.querySelectorAll('.workbench-tab-close')[1].click();
+          do {
+            await new Promise(requestAnimationFrame);
+            const right = last.getBoundingClientRect().right;
+            frames.push({ shift: before - right, error: add.getBoundingClientRect().left - right - gap });
+          } while (bar.querySelector('.workbench-tab-outgoing') && frames.length < 120);
+          return frames;
+        })()`);
+        const distance = frames.at(-1).shift;
+        assert.ok(frames.some(f => f.shift > 1 && f.shift < distance - 1), 'Sample the tab while it is moving');
+        assert.ok(frames.every(f => Math.abs(f.error) <= 1), `New tab must track each frame (fullscreen=${fullscreen}): ${JSON.stringify(frames)}`);
+      }
+      console.log('PASS New tab follows the last tab throughout close in split view and fullscreen');
       for (const [borderless, scheme] of [[false, 'light'], [true, 'dark']]) {
         await js(`document.documentElement.dataset.scheme = '${scheme}'; splitFixture.reset('background', ${borderless})`);
         await until("document.querySelectorAll('.bg-task').length === 36 && !document.querySelector('.workbench-tabpanel').getAnimations().length");

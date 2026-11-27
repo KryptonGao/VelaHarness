@@ -67,11 +67,19 @@
   z-index: 3;
   -webkit-app-region: drag;
 }
+/* The lane reserves the available space. Only the animated tab boxes separate the first tab from New tab. */
+.workbench-tab-lane {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: inherit;
+}
 .workbench-tablist {
   position: relative; /* Stable offset parent for tab sorting and close controls. */
   --tab-max-width: 220px;
   --tab-gap: 4px;
-  flex: 1;
+  flex: 0 1 max-content;
   min-width: 0;
   display: flex;
   align-items: center;
@@ -81,11 +89,6 @@
   scrollbar-width: none;
 }
 .workbench-tablist::-webkit-scrollbar { display: none; }
-/* Keep New tab next to the last tab and the panel controls at the window edge. */
-.borderless-interface .main-stage[data-split-controls] .workbench-tablist {
-  max-width: calc(var(--workbench-tab-count) * (var(--tab-max-width) + var(--tab-gap)) - var(--tab-gap));
-}
-.borderless-interface .main-stage[data-split-controls] .workbench-new-tab { margin-right: auto; }
 /*
  * 标签页等宽:宽度由 WorkbenchPanel 按数量算好、写成内联 width(夹在 72–220px),
  * 标签变多就一起变窄;收到 72px 下限就不再缩,剩下的交给 .workbench-tablist 横向滚动 ——

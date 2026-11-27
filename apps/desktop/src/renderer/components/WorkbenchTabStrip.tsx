@@ -53,6 +53,7 @@ export function WorkbenchTabStrip({ tabs, allTabs, replacement, splitEnabled, dr
 }) {
   const { entries, finishExit, reduced } = useTabEntries(tabs, allTabs, replacement);
   const listRef = useRef<HTMLElement>(null), barRef = useRef<HTMLDivElement>(null);
+  const laneRef = useRef<HTMLDivElement>(null), addRef = useRef<HTMLButtonElement>(null);
   const buttons = useRef(new Map<string, HTMLButtonElement>());
   const hovered = useRef(false), previousCount = useRef(tabs.length);
   const [tabWidth, setTabWidth] = useState(0), [pinned, setPinned] = useState<number | null>(null);
@@ -61,10 +62,12 @@ export function WorkbenchTabStrip({ tabs, allTabs, replacement, splitEnabled, dr
   const menuId = useId(), menuRef = useRef<HTMLDivElement>(null), menuButton = useRef<HTMLButtonElement>(null);
   const measure = useCallback((count: number, pin: number | null) => {
     if (pin !== null) return pin;
-    const list = listRef.current;
-    if (!list || !count) return 0;
+    const list = listRef.current, lane = laneRef.current, add = addRef.current;
+    if (!list || !lane || !add || !count) return 0;
+    // The list hugs its animated tabs; measure capacity from the stable lane instead.
+    const available = lane.getBoundingClientRect().width - add.offsetWidth - parseFloat(getComputedStyle(lane).columnGap);
     // 向下取整:窗格宽度常是小数像素,四舍五入会让最后一个标签多出零点几像素、被误判为裁切。
-    return Math.max(72, Math.min(220, Math.floor((list.getBoundingClientRect().width - (parseFloat(getComputedStyle(list).columnGap) || 0) * (count - 1)) / count)));
+    return Math.max(72, Math.min(220, Math.floor((available - (parseFloat(getComputedStyle(list).columnGap) || 0) * (count - 1)) / count)));
   }, []);
   useLayoutEffect(() => { setTabWidth(measure(tabs.length, pinned)); }, [tabs.length, pinned, measure]);
   useEffect(() => {
@@ -106,7 +109,7 @@ export function WorkbenchTabStrip({ tabs, allTabs, replacement, splitEnabled, dr
     };
     list.addEventListener("scroll", schedule, { passive: true }); list.addEventListener("wheel", onWheel, { passive: false });
     const observer = new ResizeObserver(() => { reveal(); schedule(); setTabWidth(measure(tabs.length, pinned)); });
-    observer.observe(list); observer.observe(bar); buttons.current.forEach(b => observer.observe(b));
+    observer.observe(laneRef.current!); observer.observe(list); observer.observe(bar); buttons.current.forEach(b => observer.observe(b));
     return () => { observer.disconnect(); cancelAnimationFrame(frame); list.removeEventListener("scroll", schedule); list.removeEventListener("wheel", onWheel); };
   }, [tabs, selected, pinned, measure]);
   useEffect(() => {
@@ -166,8 +169,9 @@ export function WorkbenchTabStrip({ tabs, allTabs, replacement, splitEnabled, dr
         <Icon name="chevron-right" size={12} />
       </button>
     </>}
+    <div className="workbench-tab-lane" ref={laneRef}>
     <nav className="workbench-tablist" role="tablist" ref={listRef} aria-label={tr("工作面板标签", "Workbench tabs")}
-      style={{ "--workbench-tab-count": entries.length, "--tab-exit": `${exitMs}ms` } as CSSProperties}>
+      style={{ "--tab-exit": `${exitMs}ms` } as CSSProperties}>
       {entries.map(({ item: tab, present, entering }) => <button key={tab.id} ref={node => { if (node) buttons.current.set(tab.id, node); else buttons.current.delete(tab.id); }}
         id={present ? tabButtonId(tab) : undefined} className={present ? "workbench-tab" : "workbench-tab-outgoing"} data-entering={present && entering && !reduced || undefined}
         data-kind={tab.kind} type="button" role={present ? "tab" : undefined} draggable={false} data-dragging={tab.id === draggingId || undefined}
@@ -194,7 +198,8 @@ export function WorkbenchTabStrip({ tabs, allTabs, replacement, splitEnabled, dr
         style={{ left: p.left, top: p.top }} aria-label={trf("关闭 {0}", "Close {0}", tab.label)} title={tr("关闭标签", "Close tab")}
         onClick={() => onClose(tab)}><Icon name="close" size={12} /></button>;
     })}</div>
-    <button className="workbench-new-tab" type="button" aria-label={tr("新建标签页", "New tab")} title={tr("新建标签页", "New tab")} onClick={onNewTab}><Icon name="plus" size={14} /></button>
+    <button ref={addRef} className="workbench-new-tab" type="button" aria-label={tr("新建标签页", "New tab")} title={tr("新建标签页", "New tab")} onClick={onNewTab}><Icon name="plus" size={14} /></button>
+    </div>
     {split && <button className="workbench-group-action is-secondary" type="button" aria-label={maximized ? tr("还原窗口", "Restore pane") : tr("放大窗口", "Maximize pane")}
       title={maximized ? tr("还原窗口", "Restore pane") : tr("放大窗口", "Maximize pane")} aria-pressed={maximized} onClick={onMaximize}>
       <Icon name={maximized ? "minimize" : "maximize"} size={14} /></button>}
