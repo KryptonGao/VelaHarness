@@ -409,13 +409,23 @@ function useHarnessTelemetry(enabled: boolean, cwd: string | null, conversationI
   return { skillCount, mcpCount };
 }
 
-function periodGreetingPrefix(hour: number): [string, string] {
+function periodGreeting(hour: number, forDeck = false): string {
   const period = dayPeriod(hour);
-  if (period === "morning") return ["早上好", "Good morning"];
-  if (period === "noon") return ["中午好", "Good afternoon"];
-  if (period === "afternoon") return ["下午好", "Good afternoon"];
-  if (period === "evening") return ["晚上好", "Good evening"];
-  return ["夜深了", "Late night"];
+  if (period === "morning") return forDeck
+    ? tr("早上好，准备推进哪一项？", "Good morning. What are we shipping?")
+    : tr("早上好，", "Good morning.");
+  if (period === "noon") return forDeck
+    ? tr("中午好，准备推进哪一项？", "Good afternoon. What are we shipping?")
+    : tr("中午好，", "Good afternoon.");
+  if (period === "afternoon") return forDeck
+    ? tr("下午好，准备推进哪一项？", "Good afternoon. What are we shipping?")
+    : tr("下午好，", "Good afternoon.");
+  if (period === "evening") return forDeck
+    ? tr("晚上好，准备推进哪一项？", "Good evening. What are we shipping?")
+    : tr("晚上好，", "Good evening.");
+  return forDeck
+    ? tr("夜深了，准备推进哪一项？", "Late night. What are we shipping?")
+    : tr("夜深了，", "Late night.");
 }
 
 /* ============================================================================
@@ -501,13 +511,11 @@ export function NewChatAtelierHeader({
   const filesCount = project.git?.files.length ?? 0;
   const added = project.git?.addedLines ?? 0;
   const deleted = project.git?.deletedLines ?? 0;
-  const [periodZh, periodEn] = periodGreetingPrefix(now.getHours());
-
   const headline = mode === "plan"
-    ? { lead: tr("先定脉络，", "Shape the plan,"), em: tr("再落一笔", "then build"), tail: tr("。", ".") }
+    ? { lead: tr("先定脉络，", "Shape the plan,"), em: tr("再落一笔。", "then build.") }
     : mode === "goal"
-      ? { lead: tr("立好目标，", "Set the target,"), em: tr("持续推进", "ship steadily"), tail: tr("。", ".") }
-      : { lead: tr(`${periodZh}，`, `${periodEn}.`), prefix: tr("从", "Where shall we "), em: tr("哪里落笔", "begin"), tail: tr("？", "?") };
+      ? { lead: tr("立好目标，", "Set the target,"), em: tr("持续推进。", "ship steadily.") }
+      : { lead: periodGreeting(now.getHours()), prefix: tr("从", "Where shall we "), em: tr("哪里落笔？", "begin?") };
 
   return (
     <div className="empty-state is-home is-atelier" data-mode={mode}>
@@ -559,7 +567,7 @@ export function NewChatAtelierHeader({
       <div className="atelier-hero-row">
         <h1 className="atelier-greeting">
           {headline.lead}<br />
-          {headline.prefix}<em>{headline.em}</em>{headline.tail}
+          {headline.prefix}<em>{headline.em}</em>
         </h1>
         <AtelierModeRail mode={mode} disabled={modeDisabled} onMode={onMode} />
       </div>
@@ -954,13 +962,11 @@ export function NewChatDeckHeader({
   const kind = repoKindOf(project);
   const branch = project.git?.branch ?? null;
   const filesCount = project.git?.files.length ?? 0;
-  const [periodZh, periodEn] = periodGreetingPrefix(now.getHours());
-
   const title = mode === "plan"
     ? tr("先拆解方案，再开始改动。", "Map the plan before changing code.")
     : mode === "goal"
       ? tr("设定目标，交给 Vela 持续推进。", "Set the goal. Vela drives it forward.")
-      : tr(`${periodZh}，准备推进哪一项？`, `${periodEn}. What are we shipping?`);
+      : periodGreeting(now.getHours(), true);
 
   return (
     <div className="empty-state is-home is-deck" data-mode={mode}>

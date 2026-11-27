@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { thinkingLevels, thinkingLevelLabel, type ModelCatalog, type SandboxMode, type ThinkingLevel, type ScheduledTask, type ScheduledTaskInput, type ScheduledTasksState, type TaskSchedule } from "@vela/shared";
-import { tr } from "../locale";
+import { tr, trf } from "../locale";
 import { cleanErrorMessage } from "../hooks/useProject";
 import { useAutoHideScrollbarsWithin } from "../hooks/useAutoHideScrollbar";
 import "../scheduled-tasks.css";
@@ -70,7 +70,7 @@ export function ScheduledTasksPage({ workspace, workspaces, onOpenConversation, 
         const saved = await action(() => editor === "new" ? api.create(input) : api.update(editor!.id, { ...input, status: editor!.status === "paused" ? "paused" : "active" }));
         if (saved) setEditor(null);
       }} />}
-    <div className="scheduled-tasks-filter"><span className="scheduled-tasks-count">{tr(`${tasks.length} 个任务`, tasks.length === 1 ? "1 task" : `${tasks.length} tasks`)}</span></div>
+    <div className="scheduled-tasks-filter"><span className="scheduled-tasks-count">{trf("{0} 个任务", tasks.length === 1 ? "{0} task" : "{0} tasks", tasks.length)}</span></div>
     {loading && <p role="status">{tr("加载中…", "Loading…")}</p>}
     {!loading && tasks.length === 0 && <div className="scheduled-tasks-empty"><strong>{tr("暂无定时任务", "No scheduled tasks yet")}</strong><span>{tr("创建一个提醒或周期任务，或在对话中输入：每天晚上 10 点提醒我复习英语。", "Create a reminder or recurring task, or ask in chat: remind me to study English every day at 10 pm.")}</span></div>}
     <div className="scheduled-tasks-list">{tasks.map(task => {

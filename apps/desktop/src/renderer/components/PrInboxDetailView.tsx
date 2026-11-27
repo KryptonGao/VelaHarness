@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { PrInboxDetail, PrInboxItem, PrTarget, PrReviewComment } from '@vela/shared';
-import { tr } from '../locale';
+import { tr, trf } from '../locale';
 import { showToast } from '../toast';
 import { DiffPane } from './DiffPane';
 import { PrCheckStatus, PrStateBadge } from './PrInboxPage';
@@ -31,7 +31,7 @@ function PrCheckList({ checks }: { checks: PrInboxDetail['checks'] }) {
   const row = (check: PrInboxDetail['checks'][number], i: number) => <div className="pr-inbox-check-row" key={`${check.name}:${i}`}><PrCheckStatus state={check.state} compact/><span title={check.description ?? undefined}>{check.name}</span></div>;
   return <>
     {attention.map(row)}
-    {passing.length > 0 && (attention.length ? <details className="pr-inbox-check-passing"><summary>{tr(`${passing.length} 项通过的检查`, `${passing.length} passing checks`)}</summary>{passing.map(row)}</details> : passing.map(row))}
+    {passing.length > 0 && (attention.length ? <details className="pr-inbox-check-passing"><summary>{trf("{0} 项通过的检查", passing.length === 1 ? "{0} passing check" : "{0} passing checks", passing.length)}</summary>{passing.map(row)}</details> : passing.map(row))}
   </>;
 }
 function fileStatusLabel(value: string): string {
