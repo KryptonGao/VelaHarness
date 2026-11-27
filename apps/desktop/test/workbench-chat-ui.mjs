@@ -67,6 +67,51 @@ if (!process.versions.electron) {
     const directoryOption = ".workbench-tabpanel:not(.is-inactive) .start-options:not(.start-conversation-options) > .start-option:first-child";
     const chatOption = ".workbench-tabpanel:not(.is-inactive) [data-fixture-create-chat]";
     try {
+      await win.loadFile(join(temporary, 'index.html'));
+      await until("document.querySelector('.chat-active-title')?.textContent === '主聊天'");
+      // A failed branch is one action, not a persistent composer error. Even identical failures stack independently.
+      await evaluate(`window.vela.branchConversation = async () => { throw new Error("Error invoking remote method 'session:branch': Error: 回复进行中，不能分支到新聊天"); };
+        document.querySelector('#prompt').focus()`);
+      const branchAction = '.main-chat-view .reply-action[aria-label="分支到新聊天"]';
+      await click(branchAction); await click(branchAction);
+      await until("document.querySelectorAll('.window-toast-message[role=alert]').length === 2");
+      assert.equal(await evaluate(`document.activeElement.id`), 'prompt');
+      assert.equal(await evaluate(`Array.from(document.querySelectorAll('.window-toast-message')).every(el => el.textContent === '回复进行中，不能分支到新聊天')`), true);
+      assert.equal(await evaluate(`(() => {const [a,b] = [...document.querySelectorAll('.window-toast')].map(el => el.getBoundingClientRect());
+        return Math.abs((a.left+a.right)/2 - innerWidth/2) < 1 && a.top >= 40 && a.top < 80 && b.top >= a.bottom + 6 && !document.querySelector('.composer-status-notice');})()`), true);
+      await until("getComputedStyle(document.querySelector('.window-toast')).opacity === '1'");
+      assert.equal(await evaluate(`(async () => {
+        const toast = document.querySelector('.window-toast');
+        toast.querySelector('.window-toast-close').click();
+        if (matchMedia('(prefers-reduced-motion: reduce)').matches) return true;
+        while (toast.isConnected) {
+          const opacity = Number(getComputedStyle(toast).opacity);
+          if (opacity > 0 && opacity < 1) return toast.inert && document.querySelectorAll('.window-toast').length === 2;
+          await new Promise(requestAnimationFrame);
+        }
+        return false;
+      })()`), true, 'Toast must fade in place before releasing its stack slot');
+      await until("document.querySelectorAll('.window-toast').length === 1");
+      await capture('window-toast-error');
+      await click('.window-toast-close');
+      // Make consecutive archive shortcuts operate on different conversations; undo must keep the original ID.
+      await evaluate(`window.vela.archiveConversation = async id => { chatFixture.calls.push({name:'archive', id}); chatFixture.changeMain(); return chatFixture.state(); };
+        window.vela.unarchiveConversation = async id => { chatFixture.calls.push({name:'unarchive', id}); return chatFixture.state(); }; void 0;`);
+      const archive = () => evaluate("window.dispatchEvent(new KeyboardEvent('keydown', {code:'KeyA',key:'a',metaKey:true,shiftKey:true,bubbles:true}))");
+      await archive(); await until("document.querySelector('.window-toast-action')"); await archive();
+      await until("document.querySelectorAll('.window-toast-action[data-primary]').length === 2");
+      await capture('window-toast-archive');
+      await click('.window-toast-action[data-primary]');
+      await until("chatFixture.calls.some(c => c.name === 'unarchive' && c.id === 'main-chat') && document.querySelectorAll('.window-toast-action[data-primary]').length === 1");
+      await click('.window-toast-action:not([data-primary])');
+      await until("document.querySelector('.settings-view [data-setting-id=archived]')?.checkVisibility()");
+      // Native modals make body content inert. Keep the remaining confirmation visible and interactive across open/close.
+      await evaluate("window.toastDialog = document.body.appendChild(document.createElement('dialog')); toastDialog.showModal()");
+      await until("!!toastDialog.querySelector('.window-toast-stack:popover-open')");
+      await evaluate("toastDialog.close(); toastDialog.remove()");
+      await until("!!document.querySelector('body > .window-toast-stack:popover-open')");
+      await until("!document.querySelector('.window-toast')");
+      console.log('PASS centered stacked errors, focus, close, archive actions, settings navigation, modal handoff and automatic dismissal');
       await win.loadFile(join(temporary, 'index.html'), { query: { liveChanges: '1' } });
       await until("document.querySelector('.run-status') && document.querySelector('.composer-change-summary')");
       const compactRunGap = `Math.abs(document.querySelector('.composer-change-summary').getBoundingClientRect().top - document.querySelector('.run-status').getBoundingClientRect().bottom - 8) <= 1`;
@@ -701,7 +746,7 @@ if (!process.versions.electron) {
       assert.equal(await evaluate("document.querySelectorAll('.workbench-tab[aria-selected=true]').length"), 1);
       // 创建失败可重试，关闭待创建标签不会在请求完成后重新出现。
       await newTab(); await evaluate("chatFixture.failCreate = true"); await click(chatOption);
-      await until("document.querySelector('.start-error')?.textContent === '新建对话失败'");
+      await until("[...document.querySelectorAll('.window-toast-message[role=alert]')].some(el => el.textContent === '新建对话失败')");
       assert.equal(await evaluate(`document.querySelector(${JSON.stringify(chatOption)}).disabled`), false);
       await evaluate("chatFixture.failCreate = false; chatFixture.deferCreate = true"); await click(chatOption);
       await until("document.querySelector('.start-options[aria-busy=true]')");

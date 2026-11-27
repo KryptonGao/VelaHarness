@@ -2,10 +2,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { dictationLimits } from "@vela/shared";
 import { encodeWav, toPcm16 } from "../dictation-audio";
 import { tr } from "../locale";
+import { showToast } from "../toast";
+
 import { createLogger } from "../logger";
 import { speechErrorText } from "./useSpeech";
 
 const log = createLogger("dictation");
+const reportError = (message: string) => showToast(message, { kind: "error" });
 
 export type DictationStatus = "idle" | "starting" | "recording" | "transcribing";
 
@@ -37,7 +40,6 @@ function microphoneErrorText(error: unknown): string {
  */
 export function useDictation(onText: (text: string) => void) {
   const [status, setStatus] = useState<DictationStatus>("idle");
-  const [error, setError] = useState<string | null>(null);
   const recording = useRef<Recording | null>(null);
   const statusRef = useRef<DictationStatus>("idle");
   // 每次开始/取消都换一个编号，过期的异步结果据此丢弃。
@@ -75,20 +77,20 @@ export function useDictation(onText: (text: string) => void) {
     const pcm = toPcm16(finished.chunks, finished.context.sampleRate);
     if (elapsed < minDurationMs || pcm.length === 0) {
       update("idle");
-      setError(tr("录音太短", "That was too short"));
+      reportError(tr("录音太短", "That was too short"));
       return;
     }
     const speech = window.vela?.speech;
-    if (!speech) { update("idle"); setError(speechErrorText("failed")); return; }
+    if (!speech) { update("idle"); reportError(speechErrorText("failed")); return; }
     update("transcribing");
     try {
       const result = await speech.transcribe({ audio: encodeWav(pcm) });
       if (mine !== attempt.current) return;
-      if (!result.ok) setError(dictationErrorText(result.code));
+      if (!result.ok) reportError(dictationErrorText(result.code));
       else onTextRef.current(result.value.text);
     } catch (caught) {
       log.warn("dictation failed", caught);
-      if (mine === attempt.current) setError(speechErrorText("failed"));
+      if (mine === attempt.current) reportError(speechErrorText("failed"));
     } finally {
       if (mine === attempt.current) update("idle");
     }
@@ -96,10 +98,9 @@ export function useDictation(onText: (text: string) => void) {
 
   const start = useCallback(async () => {
     if (statusRef.current !== "idle") return;
-    if (!navigator.mediaDevices?.getUserMedia) { setError(tr("无法打开麦克风", "Can't open the microphone")); return; }
+    if (!navigator.mediaDevices?.getUserMedia) { reportError(tr("无法打开麦克风", "Can't open the microphone")); return; }
     attempt.current += 1;
     const mine = attempt.current;
-    setError(null);
     update("starting");
     let stream: MediaStream | null = null;
     try {
@@ -125,21 +126,14 @@ export function useDictation(onText: (text: string) => void) {
     } catch (caught) {
       log.warn("failed to start dictation", caught);
       if (stream) for (const track of stream.getTracks()) track.stop();
-      if (mine === attempt.current) { update("idle"); setError(microphoneErrorText(caught)); }
+      if (mine === attempt.current) { update("idle"); reportError(microphoneErrorText(caught)); }
     }
   }, [stop, update]);
-
-  // 失败提示几秒后自动消失。
-  useEffect(() => {
-    if (!error) return;
-    const timer = window.setTimeout(() => setError(null), 4000);
-    return () => window.clearTimeout(timer);
-  }, [error]);
 
   // 卸载（切换会话、关闭面板）时放掉麦克风。
   useEffect(() => () => { attempt.current += 1; release(); }, [release]);
 
-  return { status, error, start, stop, cancel };
+  return { status, start, stop, cancel };
 }
 
 function dictationErrorText(code: Parameters<typeof speechErrorText>[0]): string {

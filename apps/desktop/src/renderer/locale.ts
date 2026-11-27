@@ -295,11 +295,11 @@ function localizeErrorFor(locale: AppLocale, cleaned: string): string {
 }
 
 export function localizeError(message: string): string {
-  if (activeLocale === "zh-CN") return message;
   const cleaned = message
     .replace(/^Error invoking remote method '[^']+':\s*/i, "")
     .replace(/^Error:\s*/i, "")
     .trim();
+  if (activeLocale === "zh-CN") return cleaned;
   if (activeLocale !== "en") return localizeErrorFor(activeLocale, cleaned);
   const exact = knownErrors[cleaned];
   if (exact) return exact;

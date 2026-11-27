@@ -22,6 +22,8 @@ import { ScreenPresence } from "./components/MotionPresence";
 import { Presence } from "./components/Presence";
 import { SettingsView } from "./components/SettingsView";
 import { UpdateNotice } from "./components/UpdateNotice";
+import { ToastHost } from "./components/ToastHost";
+import { showToast } from "./toast";
 import { WhatsNewCard } from "./components/WhatsNewCard";
 import { restoreScreen, type OnboardingScreen } from "./components/onboarding-flow";
 import { TaskRecipesPage, type RecipeMessageSeed } from "./components/TaskRecipesPage";
@@ -82,7 +84,7 @@ import {
   type PlanDocumentAction,
   type PlanDocumentState,
 } from "./plan-draft";
-import { AppLocaleProvider, localizeError, setActiveLocale, tr, trf } from "./locale";
+import { AppLocaleProvider, setActiveLocale, tr, trf } from "./locale";
 import { createLogger } from "./logger";
 
 const log = createLogger("app");
@@ -244,6 +246,7 @@ export function App() {
   const borderlessInterface = preferences.conversationWorkbenchTabs && preferences.borderlessInterface;
   const resize = useSidebarResize(!leftCollapsed, contextSidebarOpen, floatingInfo || (borderlessInterface && !contextSidebarOpen));
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
   // In rail layout each category supplies the sidebar next to the icon rail.
   const railMode = useNavLayout() === "rail";
   const pageOpen = settingsOpen || scheduledTasksOpen || recipesOpen || prInboxOpen || agentInboxOpen;
@@ -313,7 +316,6 @@ export function App() {
    */
   const [sideChatTabState, setSideChatTabState] = useState<{ id: string; workspace: string; inbox: SideChatInboxItem[] }[]>([]);
   const [pendingChatTabs, setPendingChatTabs] = useState<string[]>([]);
-  const [startErrors, setStartErrors] = useState<Record<string, string>>({});
   const chatRequests = useRef(new Set<string>());
   const cancelledChatTabs = useRef(new Set<string>());
   const startTabsRef = useRef(startTabState);
@@ -613,7 +615,6 @@ export function App() {
       if (!api || chatRequests.current.has(tab.id)) return;
       chatRequests.current.add(tab.id);
       setPendingChatTabs(current => [...current, tab.id]);
-      setStartErrors(current => ({ ...current, [tab.id]: "" }));
       void api.createConversation(workspaceKey || undefined, { activate: false }).then(next => {
         const id = next.activeConversationId;
         if (!id) throw new Error(tr("新建对话失败", "Failed to create chat"));
@@ -622,7 +623,8 @@ export function App() {
         setChatTabState(current => [...current, { id: tab.id, conversationId: id }]);
         setStartTabState(current => current.filter(item => item.id !== tab.id));
       }).catch((error: unknown) => {
-        setStartErrors(current => ({ ...current, [tab.id]: error instanceof Error ? localizeError(error.message) : tr("新建对话失败", "Failed to create chat") }));
+        if (!cancelledChatTabs.current.has(tab.id) && chatWorkspaceRef.current === workspaceKey)
+          showToast(error instanceof Error ? error.message : tr("新建对话失败", "Failed to create chat"), { kind: "error" });
       }).finally(() => {
         chatRequests.current.delete(tab.id);
         cancelledChatTabs.current.delete(tab.id);
@@ -900,7 +902,7 @@ export function App() {
       const action = actionForEvent(event, shortcutBindingsRef.current, platform, inField);
       if (!action) return;
       event.preventDefault();
-      // 归档不可逆,按住不放不能连续归档。
+      // 按住快捷键不能连续归档。
       if (event.repeat && action === "archive-chat") return;
       menuActionHandler.current(action);
     };
@@ -962,6 +964,16 @@ export function App() {
     setSettingsOpen(false); setWorkspaceTarget(null);
     setPrInboxOpen(false); setAgentInboxOpen(false); setScheduledTasksOpen(true);
   });
+  const archiveChat = async (id: string) => {
+    if (!await session.archive(id)) return;
+    showToast(tr("已归档的聊天", "Chat archived"), { icon: "archive", actions: [
+      { label: tr("查看", "View"), run: () => leaveRecipes(() => {
+        setWorkspaceTarget(null); setPrInboxOpen(false); setAgentInboxOpen(false); setScheduledTasksOpen(false);
+        setShowArchived(true); setSettingsOpen(true);
+      }) },
+      { label: tr("撤销", "Undo"), primary: true, run: () => { void session.unarchive(id); } },
+    ] });
+  };
   const toggleSettings = () => leaveRecipes(() => { setWorkspaceTarget(null); setPrInboxOpen(false); setAgentInboxOpen(false); setScheduledTasksOpen(false); setSettingsOpen((open) => !open); });
   const goHome = () => leaveRecipes(() => { setWorkspaceTarget(null); setPrInboxOpen(false); setAgentInboxOpen(false); setScheduledTasksOpen(false); setSettingsOpen(false); });
   const showWorkspacePage = (cwd: string, page: WorkspacePage) => {
@@ -1090,7 +1102,7 @@ export function App() {
       case "open-files": showHomeThen(openFilesTab); break;
       case "open-browser": showHomeThen(() => openBrowserTab()); break;
       case "open-changes": showHomeThen(() => openChanges()); break;
-      case "archive-chat": if (navCategory === "home" && session.activeConversationId) void session.archive(session.activeConversationId); break;
+      case "archive-chat": if (navCategory === "home" && session.activeConversationId) void archiveChat(session.activeConversationId); break;
       case "side-chat": showHomeThen(() => openSideChatTab()); break;
       case "next-tab": cycleWorkbenchTab(1); break;
       case "prev-tab": cycleWorkbenchTab(-1); break;
@@ -1200,7 +1212,7 @@ export function App() {
                 onSwitchConversation={(id) => leaveRecipes(() => {
                   setWorkspaceTarget(null); setPrInboxOpen(false); setAgentInboxOpen(false); setScheduledTasksOpen(false); setSettingsOpen(false); openMainConversation(id);
                 })}
-                onArchiveConversation={(id) => void session.archive(id)}
+                onArchiveConversation={archiveChat}
                 onRenameConversation={openRenameConversation}
               />
               <div className="main-stage" ref={borderlessInterface && platform === "darwin" ? materialRef : undefined} data-split-controls={splitControls || undefined}>
@@ -1338,7 +1350,6 @@ export function App() {
                         onStartAction={handleStartAction}
                         onStartBrowse={handleStartBrowse}
                         pendingStartTabIds={pendingChatTabs}
-                        startErrors={startErrors}
                         conversationWorkbenchTabs={preferences.conversationWorkbenchTabs && !!conversationKey}
                         emptyConversation={conversationEmpty}
                         renderConversationDetail={view => <ConversationDetailView view={view} state={session.state} agents={allAgents} messageStore={session.messageStore}
@@ -1444,6 +1455,8 @@ export function App() {
                     models={models}
                     conversations={session.conversations}
                     conversationId={session.activeConversationId}
+                    showArchived={showArchived}
+                    onArchivedShown={() => setShowArchived(false)}
                     onUnarchiveConversation={(id) => void session.unarchive(id)}
                     onReplayIntro={() => setIntroReplay(true)}
                     onRestartOnboarding={() => {
@@ -1510,6 +1523,7 @@ export function App() {
           onClose={() => setMemoryDistill(null)}
         /> : null}
         {conflictsOpen ? <ConflictDialog onClose={() => setConflictsOpen(false)} /> : null}
+        <ToastHost />
         {onboardingComplete ? <UpdateNotice locale={preferences.locale} /> : null}
         {introReplay ? (
           <div className="ob-replay" role="dialog" aria-modal="true">

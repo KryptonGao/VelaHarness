@@ -39,7 +39,7 @@
 .layout-capsule > .composer-status-bar { padding: 0 12px 6px; contain: inline-size; }
 .composer-capsule > :first-child:is(.instruction-row, .attachment-row) { padding-top: 4px; }
 /* 浮在正文上的文字只给自身垫底，不遮掉整行。 */
-.layout-capsule > .composer-status-bar :is(.composer-chip-anchor, .composer-status-notice) { background-color: var(--bg-chat); }
+.layout-capsule > .composer-status-bar .composer-chip-anchor { background-color: var(--bg-chat); }
 .composer-capsule-main {
   display: flex;
   align-items: flex-end;

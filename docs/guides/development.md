@@ -31,6 +31,10 @@ All prompt profiles follow the same mode rules. In Run View, Agent and Goal use 
 
 「开发工具」还提供打开 Renderer DevTools、重新加载窗口、重启 main process，并显示版本、commit hash、Electron / Chromium / Node / V8 版本，可一键复制后贴进 issue。重启 main process 在 `pnpm dev`（`electron-vite --watch`）下会触发重新构建并重启，不能直接 relaunch，否则开发服务器会随子进程一起退出。正式版复制的历史会独立保存在开发版资料目录，正式版仍可同时运行。
 
+## Desktop action feedback
+
+Use `showToast(message)` from `apps/desktop/src/renderer/toast.ts` for one-off confirmations and `showToast(message, { kind: "error" })` for one-off failures. Emit once when the action finishes, not when a view renders or a saved conversation reopens. The window-level host stacks compact, dismissible notifications below the title bar; add actions only when they apply to that particular result. Keep field validation, progress, and ongoing problems with their controls.
+
 ## 界面设置与会话记录
 
 可在「设置 → 对话显示 → 思考总结」开启自动总结（默认关闭）。「思考总结模型」默认跟随当前对话，也可选择独立模型（包括在「模型与账号」中配置的自定义模型），选择会在重启后保留。新完成的思考会生成摘要，语言跟随界面设置；历史思考可点击「总结」手动生成。模型更改仅对新生成的总结生效，已有总结会保留。每段总结会额外调用模型，不写入聊天上下文。

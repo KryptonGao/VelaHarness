@@ -95,6 +95,7 @@ import { UserMessageFrame } from "./UserMessageFrame";
 import { TurnNav } from "./TurnNav";
 import { TURN_NAV_MIN_TURNS, buildTurnNavItems, findActiveTurnIndex } from "./turn-nav";
 import { ImageViewer, type ImageViewerRequest } from "./ImageViewer";
+import { showToast } from "../toast";
 import { localizeError, tr, trf, activeIntlLocale } from "../locale";
 import { ProviderErrorCard } from "./ProviderErrorCard";
 import { parseProviderError } from "./provider-error";
@@ -1386,7 +1387,6 @@ export function ChatView({
         conversationId={state?.activeConversationId ?? null}
         models={models}
         mode={mode}
-        sendError={providerError && (!floatingChat || floatExpanded) ? null : sendError}
         usage={state?.context ?? null}
         contextPopover={floatingChat || floatingInfo}
         project={project}
@@ -2096,24 +2096,17 @@ function ReplyActions({
   const [copied, setCopied] = useState(false);
   const speech = useSpeechState();
   const playback = useSpeechPlayback();
-  const [speechError, setSpeechError] = useState<string | null>(null);
   const speaking = speechId !== null && playback?.id === speechId ? playback : null;
   // 这条回复被卸载（切换对话、重新生成）时不再继续朗读。
   const playbackIdRef = useRef<string | null>(null);
   playbackIdRef.current = playback?.id ?? null;
   useEffect(() => () => { if (speechId !== null && speechId === playbackIdRef.current) stopSpeaking(); }, [speechId]);
-  useEffect(() => {
-    if (!speechError) return;
-    const timer = window.setTimeout(() => setSpeechError(null), 4000);
-    return () => window.clearTimeout(timer);
-  }, [speechError]);
   const toggleSpeech = () => {
     if (speechId === null) return;
     if (speaking) { stopSpeaking(); return; }
-    setSpeechError(null);
-    void speakReply(speechId, text).then(error => { if (error) setSpeechError(error); });
+    void speakReply(speechId, text).then(error => { if (error) showToast(error, { kind: "error" }); });
   };
-  const speechIcon = speechError ? "warning" : speaking?.status === "loading" ? "clock" : speaking ? "stop-square" : "speaker";
+  const speechIcon = speaking?.status === "loading" ? "clock" : speaking ? "stop-square" : "speaker";
   const time = formatReplyTime(timestamp);
   const copy = () => {
     void navigator.clipboard.writeText(text).then(
@@ -2142,7 +2135,7 @@ function ReplyActions({
           className="reply-action"
           type="button"
           data-speaking={speaking ? "true" : undefined}
-          title={speechError ?? (speaking ? tr("停止朗读", "Stop reading") : tr("朗读最终回复", "Read the final reply aloud"))}
+          title={speaking ? tr("停止朗读", "Stop reading") : tr("朗读最终回复", "Read the final reply aloud")}
           aria-label={speaking ? tr("停止朗读", "Stop reading") : tr("朗读", "Read aloud")}
           aria-pressed={speaking ? true : undefined}
           onClick={toggleSpeech}

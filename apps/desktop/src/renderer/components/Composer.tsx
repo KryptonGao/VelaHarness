@@ -75,6 +75,7 @@ import { elementNumber, hasReplyText as anyReplyText, isElementReply, replyCardT
 import { collectAnnotationImages, planAnnotationImages } from "./annotation-images";
 import { useAnnotationTracking } from "../browser/reply-store";
 import { localizeError, tr, useAppLocale, trf } from "../locale";
+import { showToast } from "../toast";
 import { useInputPrediction } from "../hooks/useInputPrediction";
 import { Icon } from "./icons";
 import { FileTypeIcon } from "./FileTypeIcon";
@@ -113,7 +114,6 @@ export interface ComposerProps {
   conversationId?: string | null;
   models: ReturnType<typeof useModels>;
   mode: InteractionMode;
-  sendError: string | null;
   /** 会话统计条数据，来自主进程的 Context 用量快照。 */
   usage: ContextUsage | null;
   contextPopover?: boolean;
@@ -138,22 +138,14 @@ export interface ComposerProps {
   raceOpenRequest?: number;
 }
 
-/** 输入框上方命令卡片的内容：`/status` 的条目、`/compact` 的进度与结果，或斜线命令提示。 */
+/** Only requested status details and in-progress work stay anchored to the composer. */
 type CommandCard =
   | { kind: "status"; items: StatusItem[] }
-  | { kind: "compact"; phase: "busy" | "done" | "error"; before: number | null; error?: string }
-  | { kind: "notice"; title: string; message?: string; items?: StatusItem[]; tone: "info" | "error" };
+  | { kind: "compact" };
 
-function commandCardView(card: CommandCard, usage: ContextUsage | null): { title: string; message?: string; items: StatusItem[]; busy: boolean; tone: "info" | "error" } {
-  if (card.kind === "status") return { title: tr("状态", "Status"), items: card.items, busy: false, tone: "info" };
-  if (card.kind === "notice") return { title: card.title, message: card.message, items: card.items ?? [], busy: false, tone: card.tone };
-  if (card.phase === "busy") return { title: tr("正在压缩上下文…", "Compacting context…"), message: tr("把较早的对话总结成摘要，完成后可以继续发送。", "Summarizing earlier turns. You can keep chatting once it finishes."), items: [], busy: true, tone: "info" };
-  if (card.phase === "error") return { title: tr("无法压缩上下文", "Could not compact the context"), message: card.error, items: [], busy: false, tone: "error" };
-  const after = usage?.tokens ?? null;
-  const items = card.before !== null && after !== null && after < card.before
-    ? [{ label: tr("上下文", "Context"), value: `${formatTokens(card.before)} → ${formatTokens(after)}` }]
-    : [];
-  return { title: tr("上下文已压缩", "Context compacted"), items, busy: false, tone: "info" };
+function commandCardView(card: CommandCard): { title: string; message?: string; items: StatusItem[]; busy: boolean } {
+  if (card.kind === "status") return { title: tr("状态", "Status"), items: card.items, busy: false };
+  return { title: tr("正在压缩上下文…", "Compacting context…"), message: tr("把较早的对话总结成摘要，完成后可以继续发送。", "Summarizing earlier turns. You can keep chatting once it finishes."), items: [], busy: true };
 }
 
 export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Composer({
@@ -183,7 +175,6 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
   conversationId = null,
   models,
   mode,
-  sendError,
   usage,
   contextPopover = false,
   project,
@@ -235,7 +226,6 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
   const cardToken = useRef(0);
   const usageRef = useRef(usage);
   usageRef.current = usage;
-  const [attachNotice, setAttachNotice] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef<HTMLDivElement>(null);
   const iconsRef = useRef<HTMLSpanElement>(null);
@@ -311,7 +301,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
   useLayoutEffect(() => {
     const switched = draftKeyRef.current !== draftKey;
     draftKeyRef.current = draftKey;
-    if (switched) { setAttachNotice(null); setSlash(null); }
+    if (switched) setSlash(null);
     const root = inputRef.current;
     if (!root) return;
     const current = serializeEditor(root);
@@ -443,7 +433,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
     const notes: string[] = [];
     if (overflow > 0) notes.push(trf("已忽略 {0} 个文件：最多附加 {1} 个", "Ignored {0} files: up to {1} attachments", overflow, maxAttachments));
     if (failed > 0) notes.push(trf("{0} 个文件无法读取", "{0} files could not be read", failed));
-    if (notes.length > 0 && draftKeyRef.current === draftKey) setAttachNotice(notes.join("；"));
+    if (notes.length > 0 && draftKeyRef.current === draftKey) showToast(notes.join("；"), { kind: "error" });
   }
 
   async function handleDrop(event: React.DragEvent): Promise<void> {
@@ -549,9 +539,9 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
     setDismissedKey(null);
   }
 
-  function showCommandNotice(title: string, tone: "info" | "error", message?: string, items?: StatusItem[]): void {
-    cardToken.current += 1;
-    setCommandCard({ kind: "notice", title, tone, message, items });
+  function showCommandNotice(title: string, kind: "info" | "error", message?: string): void {
+    closeCommandCard();
+    showToast(message ? `${title} · ${message}` : title, { kind });
   }
 
   /** 执行内置命令；返回 true 表示命令被接受，false 表示参数或状态校验未通过。 */
@@ -595,7 +585,8 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
       }
       options.onConsume?.();
       try {
-        await models.setThinking(parsed.level);
+        const failure = await models.setThinking(parsed.level);
+        if (failure) throw new Error(failure);
         showCommandNotice(
           tr("思考强度已切换", "Reasoning effort updated"),
           "info",
@@ -698,15 +689,16 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
     options.onConsume?.();
     const token_ = ++cardToken.current;
     const before = usageRef.current?.tokens ?? null;
-    setCommandCard({ kind: "compact", phase: "busy", before });
+    setCommandCard({ kind: "compact" });
     void api.compactConversation(conversationId ?? undefined)
       .catch((caught: unknown) => ({ error: caught instanceof Error ? caught.message : tr("无法压缩上下文", "Could not compact the context") }))
       // 用户中途关掉卡片，或又开了别的命令卡片，就不再回写结果。
       .then((result) => {
         if (cardToken.current !== token_) return;
-        setCommandCard(result.error
-          ? { kind: "compact", phase: "error", before, error: localizeError(result.error) }
-          : { kind: "compact", phase: "done", before });
+        const after = usageRef.current?.tokens;
+        if (result.error) showCommandNotice(tr("无法压缩上下文", "Could not compact the context"), "error", localizeError(result.error));
+        else showCommandNotice(tr("上下文已压缩", "Context compacted"), "info",
+          before != null && after != null && after < before ? `${formatTokens(before)} → ${formatTokens(after)}` : undefined);
       });
     return true;
   }
@@ -870,33 +862,14 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
     await dispatchPrompt(typed, typed);
   }
 
-  // 压缩完成的提示和轻提示几秒后自行收起；状态卡片和报错保留到用户关闭。
-  useEffect(() => {
-    if (commandCard?.kind === "compact" && commandCard.phase === "done") {
-      const timer = window.setTimeout(() => closeCommandCard(), 8_000);
-      return () => window.clearTimeout(timer);
-    }
-    if (commandCard?.kind === "notice" && commandCard.tone === "info") {
-      const timer = window.setTimeout(() => closeCommandCard(), 4_000);
-      return () => window.clearTimeout(timer);
-    }
-  }, [commandCard]);
-
   // 换了对话就不再显示上一个对话的命令结果。
   useEffect(() => { closeCommandCard(); }, [conversationId]);
-
-  useEffect(() => {
-    if (!attachNotice) return;
-    const timer = window.setTimeout(() => setAttachNotice(null), 6_000);
-    return () => window.clearTimeout(timer);
-  }, [attachNotice]);
 
   function closeCommandCard(): void {
     cardToken.current += 1;
     setCommandCard(null);
   }
 
-  const showError = sendError ? localizeError(sendError) : project.error ? localizeError(project.error) : null;
   const sendHint = disabled
     ? tr("会话还没有准备好", "Chat is not ready yet")
     : !modelReady
@@ -918,30 +891,7 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
     <EnvironmentChip project={project} />
     <BranchChip project={project} />
   </>;
-  const statusBar = (
-    <>
-      {(setupChips && !floatingChat) || showError || attachNotice || dictation.error ? (
-        <div className="composer-status-bar">
-          {!floatingChat && setupChips}
-          {showError ? (
-            <span className="composer-status-notice" role="alert" title={showError}>
-              {showError}
-            </span>
-          ) : null}
-          {attachNotice ? (
-            <span className="composer-status-notice" role="status" title={attachNotice}>
-              {attachNotice}
-            </span>
-          ) : null}
-          {dictation.error ? (
-            <span className="composer-status-notice" role="alert" title={dictation.error}>
-              {dictation.error}
-            </span>
-          ) : null}
-        </div>
-      ) : null}
-    </>
-  );
+  const statusBar = setupChips && !floatingChat ? <div className="composer-status-bar">{setupChips}</div> : null;
 
   const skillMenu = (
     <PopoverPresence present={menuOpen}>
@@ -967,13 +917,13 @@ export const Composer = forwardRef<HTMLDivElement, ComposerProps>(function Compo
 
   // 关闭时保留最后一帧内容，让退出动画不会闪出空卡片。
   const lastCard = useRef<ReturnType<typeof commandCardView> | null>(null);
-  const liveCard = commandCard ? commandCardView(commandCard, usage) : null;
+  const liveCard = commandCard ? commandCardView(commandCard) : null;
   if (liveCard) lastCard.current = liveCard;
   const card = liveCard ?? lastCard.current;
   const statusPanel = (
     <PopoverPresence present={Boolean(liveCard) && !menuOpen}>
       <div className="skill-menu-anchor">
-        <section className={`status-card${card?.tone === "error" ? " error" : ""}`} role={card?.tone === "error" ? "alert" : "status"} aria-label={card?.title}>
+        <section className="status-card" role="status" aria-label={card?.title}>
           <header className="status-card-head">
             {card?.busy ? <span className="status-card-spinner" aria-hidden="true" /> : null}
             <span className="status-card-title">{card?.title}</span>

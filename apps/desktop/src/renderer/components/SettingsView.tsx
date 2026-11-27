@@ -57,6 +57,8 @@ interface SettingsViewProps {
   conversations: ConversationSummary[];
   agents?: readonly AgentInfo[];
   conversationId?: string | null;
+  showArchived?: boolean;
+  onArchivedShown?: () => void;
   onUnarchiveConversation: (id: string) => void;
   /** 重新播放引导里的介绍（不改动任何设置）。 */
   onReplayIntro?: () => void;
@@ -75,6 +77,8 @@ export function SettingsView({
   conversations,
   agents,
   conversationId,
+  showArchived,
+  onArchivedShown,
   onUnarchiveConversation,
   onReplayIntro,
   onRestartOnboarding,
@@ -92,6 +96,12 @@ export function SettingsView({
   const [jump, setJump] = useState<SettingsJumpTarget | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!showArchived) return;
+    setJump(null); setQuery(""); setStoredPage("archived");
+    if (contentRef.current) contentRef.current.scrollTop = 0;
+    onArchivedShown?.();
+  }, [showArchived, onArchivedShown, setStoredPage]);
   const workspacePath = project.environment?.path ?? project.workspace?.current ?? null;
   // 对话目录缺失时工作区无法跟随它切换，此时 MCP/集成按工作区管理，不绑定该对话，否则主进程会拒绝请求。
   const activeConversation = conversationId ? conversations.find((item) => item.id === conversationId) : undefined;

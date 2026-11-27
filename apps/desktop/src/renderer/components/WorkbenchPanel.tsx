@@ -113,7 +113,6 @@ interface WorkbenchPanelProps {
   onStartAction: (tab: WorkbenchTab, action: StartTabAction) => void;
   onStartBrowse: (tab: WorkbenchTab, url: string) => void;
   pendingStartTabIds?: readonly string[];
-  startErrors?: Record<string, string>;
   conversationWorkbenchTabs?: boolean;
   borderless?: boolean;
   emptyConversation?: boolean;
@@ -471,7 +470,7 @@ function WorkbenchPanelContent(props: WorkbenchPanelProps & { closing: boolean; 
       case "background": return <BackgroundTasksPanel conversationId={props.conversationId ?? null} shells={props.backgroundShells ?? []} />;
       case "files": return <FileBrowserView />;
       case "start": return <StartView gitAvailable={props.gitAvailable} conversationWorkbenchTabs={props.conversationWorkbenchTabs} emptyConversation={props.emptyConversation}
-        onAction={action => props.onStartAction(tab, action)} onBrowse={url => props.onStartBrowse(tab, url)} pending={props.pendingStartTabIds?.includes(tab.id)} error={props.startErrors?.[tab.id]} />;
+        onAction={action => props.onStartAction(tab, action)} onBrowse={url => props.onStartBrowse(tab, url)} pending={props.pendingStartTabIds?.includes(tab.id)} />;
       case "terminal": return <TerminalView sessionId={tab.sessionId} visible={visible && !collapsed} />;
       case "agent-directory": return <AgentDirectory agents={props.agents} onSelect={props.onOpenAgent} />;
       case "agent": return <AgentPane onBackToDirectory={props.onOpenAgentDirectory} agent={tab.agent} agents={props.agents} messages={props.getAgentMessages?.(tab.agent.id)} messageStore={props.messageStore}

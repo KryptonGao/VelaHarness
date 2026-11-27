@@ -27,6 +27,8 @@ import { applyPlanDraft, type PlanDraft } from "../plan-draft";
 import { reconcileAgents } from "../agent-roster";
 import { noteToolStart } from "../components/tool-running-clock";
 import { localizeError, tr } from "../locale";
+import { showToast } from "../toast";
+import { parseProviderError } from "../components/provider-error";
 import { didCompleteTask, noSound, streamNotificationSound, type NotifySound } from "../notification-sounds";
 
 const emptyShells: BackgroundShellItem[] = [];
@@ -95,7 +97,12 @@ export function useSession(notify: NotifySound = noSound, fixedConversationId?: 
   const [messageStore] = useState(createMessageStore);
   // Only restored history is needed by App to reconstruct legacy agent tabs.
   const [agentHistory, setAgentHistory] = useState<MessageBuckets>({});
+  // Only structured provider diagnostics belong to a conversation. Action failures are events, not saved UI state.
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const reportSendError = useCallback((id: string, message: string, announce = true) => {
+    if (parseProviderError(message)) setErrors(current => ({ ...current, [id]: message }));
+    else if (announce) showToast(message, { kind: "error" });
+  }, []);
   /** conversationId -> 该对话当前待回答的问题(同一对话一次只有一个)。 */
   const [questions, setQuestions] = useState<Record<string, AskUserQuestionRequest>>({});
   /** conversationId -> 该对话的常驻 agent 树快照。 */
@@ -272,7 +279,8 @@ export function useSession(notify: NotifySound = noSound, fixedConversationId?: 
       }
       if (event.type === "error") {
         completionBlockedRef.current[event.conversationId] = true;
-        setErrors((current) => ({ ...current, [event.conversationId]: event.message }));
+        // The main subscription receives all events; a workbench viewing the same chat must not announce it twice.
+        reportSendError(event.conversationId, event.message, !fixedConversationId);
         setBuckets((current) => appendAssistantError(current, event.conversationId, event.message));
         messageStore.flush();
         return;
@@ -333,7 +341,7 @@ export function useSession(notify: NotifySound = noSound, fixedConversationId?: 
       unsubscribeQuestions();
       messageStore.flush();
     };
-  }, [applyAgentEvent, fixedConversationId, loadTranscript, messageStore, setBuckets, setState]);
+  }, [applyAgentEvent, fixedConversationId, loadTranscript, messageStore, reportSendError, setBuckets, setState]);
 
   /**
    * 返回 false 表示这条消息没有留下(没进对话、也没进排队),输入框据此把文字和附件放回去。
@@ -353,7 +361,7 @@ export function useSession(notify: NotifySound = noSound, fixedConversationId?: 
         setState(await api.prompt(text, images, id, deliverAs));
       } catch (error) {
         const message = error instanceof Error ? localizeError(error.message) : tr("发送失败", "Failed to send message");
-        setErrors((current) => ({ ...current, [id]: message }));
+        reportSendError(id, message);
         return false;
       }
       return true;
@@ -375,11 +383,11 @@ export function useSession(notify: NotifySound = noSound, fixedConversationId?: 
     } catch (error) {
       const message = error instanceof Error ? localizeError(error.message) : tr("发送失败", "Failed to send message");
       completionBlockedRef.current[id] = true;
-      setErrors((current) => ({ ...current, [id]: message }));
+      reportSendError(id, message);
       setBuckets((current) => appendAssistantError(current, id, message));
       return true;
     }
-  }, [shareMessages]);
+  }, [reportSendError, shareMessages]);
 
   /** 撤销一条尚未被模型消费的排队/调整指令。 */
   const removeInstruction = useCallback(async (instructionId: string) => {
@@ -390,7 +398,7 @@ export function useSession(notify: NotifySound = noSound, fixedConversationId?: 
       setState(await api.removeInstruction(instructionId, id));
     } catch (error) {
       const message = error instanceof Error ? localizeError(error.message) : tr("无法撤销指令", "Could not remove the instruction");
-      setErrors((current) => ({ ...current, [id]: message }));
+      showToast(message, { kind: "error" });
     }
   }, []);
 
@@ -403,7 +411,7 @@ export function useSession(notify: NotifySound = noSound, fixedConversationId?: 
       setState(await api.promoteInstruction(instructionId, id));
     } catch (error) {
       const message = error instanceof Error ? localizeError(error.message) : tr("无法立即发送", "Could not send the message now");
-      setErrors((current) => ({ ...current, [id]: message }));
+      showToast(message, { kind: "error" });
     }
   }, []);
 
@@ -430,7 +438,7 @@ export function useSession(notify: NotifySound = noSound, fixedConversationId?: 
     } catch (error) {
       if (seq !== modeSeqRef.current) return;
       const message = error instanceof Error ? error.message : "无法切换模式";
-      setErrors((current) => ({ ...current, [id]: message }));
+      showToast(message, { kind: "error" });
     }
   }, [setState]);
 
@@ -443,7 +451,7 @@ export function useSession(notify: NotifySound = noSound, fixedConversationId?: 
       setState(await api.executePlan(id, strategy));
     } catch (error) {
       const message = error instanceof Error ? error.message : "无法执行计划";
-      setErrors((current) => ({ ...current, [id]: message }));
+      showToast(message, { kind: "error" });
     }
   }, []);
 
@@ -456,7 +464,7 @@ export function useSession(notify: NotifySound = noSound, fixedConversationId?: 
       setState(await api.resumeGoal(id));
     } catch (error) {
       const message = error instanceof Error ? error.message : "无法继续目标";
-      setErrors((current) => ({ ...current, [id]: message }));
+      showToast(message, { kind: "error" });
     }
   }, []);
 
@@ -469,9 +477,7 @@ export function useSession(notify: NotifySound = noSound, fixedConversationId?: 
       setState(next);
       return next.activeConversationId ?? null;
     } catch (error) {
-      const id = activeIdRef.current;
-      const message = error instanceof Error ? error.message : "新建对话失败";
-      if (id) setErrors((current) => ({ ...current, [id]: message }));
+      showToast(error instanceof Error ? error.message : "新建对话失败", { kind: "error" });
       return null;
     }
   }, []);
@@ -497,13 +503,15 @@ export function useSession(notify: NotifySound = noSound, fixedConversationId?: 
 
   const archive = useCallback(async (id: string) => {
     const api = window.vela;
-    if (!api) return;
+    if (!api) return false;
     try {
       const next = await api.archiveConversation(id);
       setState(next);
       if (next.activeConversationId) void loadTranscript(next.activeConversationId);
-    } catch {
-      // 对话可能已失效,列表刷新后自然消失。
+      return true;
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : "操作失败", { kind: "error" });
+      return false;
     }
   }, [loadTranscript]);
 
@@ -512,8 +520,9 @@ export function useSession(notify: NotifySound = noSound, fixedConversationId?: 
     if (!api) return;
     try {
       setState(await api.unarchiveConversation(id));
-    } catch {
-      // 对话可能已失效,列表刷新后自然消失。
+      showToast(tr("对话已恢复到侧边栏", "Chat restored to the sidebar"), { icon: "check" });
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : "操作失败", { kind: "error" });
     }
   }, []);
 
@@ -533,14 +542,13 @@ export function useSession(notify: NotifySound = noSound, fixedConversationId?: 
   const branch = useCallback(async (turnIndex: number) => {
     const id = activeIdRef.current;
     if (!window.vela || !id) return;
-    setErrors((current) => ({ ...current, [id]: "" }));
     try {
       await forkCheckpoint(turnIndex);
     } catch (error) {
       const message = error instanceof Error
         ? localizeError(error.message)
         : tr("无法分支到新聊天", "Could not branch to a new chat");
-      setErrors((current) => ({ ...current, [id]: message }));
+      showToast(message, { kind: "error" });
     }
   }, [forkCheckpoint]);
 
@@ -606,10 +614,10 @@ export function useSession(notify: NotifySound = noSound, fixedConversationId?: 
     void api.prompt(text, images, id).then(setState, error => {
       const message = error instanceof Error ? localizeError(error.message) : tr("发送失败", "Failed to send message");
       completionBlockedRef.current[id] = true;
-      setErrors(current => ({ ...current, [id]: message }));
+      reportSendError(id, message);
       setBuckets(current => appendAssistantError(current, id, message));
     });
-  }, [applyRewind, shareMessages]);
+  }, [applyRewind, reportSendError, shareMessages]);
 
   const sendError = activeConversationId ? errors[activeConversationId] || null : null;
   /** 按工具调用 id 找到对应的问题请求,消息流里的提问卡片用它判断是否可交互。 */

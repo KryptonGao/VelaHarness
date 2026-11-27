@@ -1,6 +1,7 @@
 import { isAgentBusy, type AgentInfo } from "@vela/shared";
 import { forwardRef, useRef, useState, type ReactNode } from "react";
-import { localizeError, tr } from "../locale";
+import { tr } from "../locale";
+import { showToast } from "../toast";
 import { ComposerActions } from "./Composer";
 import { serializeEditor, setEditorText } from "./composer/skill-editor";
 
@@ -16,7 +17,6 @@ export const AgentComposer = forwardRef<HTMLDivElement, {
   const inputRef = useRef<HTMLDivElement>(null);
   const submitting = useRef(false);
   const [value, setValue] = useState("");
-  const [error, setError] = useState<string | null>(null);
   const busy = isAgentBusy(agent.status);
   // 没有保存完整会话的历史子代理重建后是空上下文，不接收消息。
   const unavailable = agent.historyIncomplete === true;
@@ -36,12 +36,11 @@ export const AgentComposer = forwardRef<HTMLDivElement, {
     submitting.current = true;
     root.replaceChildren();
     setValue("");
-    setError(null);
     try {
       await onSend(agent.id, text);
     } catch (caught) {
       // 没发出去就把草稿放回去，用户已经开始写新内容就不覆盖。
-      setError(localizeError(caught instanceof Error ? caught.message : tr("发送失败", "Failed to send")));
+      showToast(caught instanceof Error ? caught.message : tr("发送失败", "Failed to send"), { kind: "error" });
       if (!serializeEditor(root).trim()) { setEditorText(root, text); setValue(text); }
     } finally {
       submitting.current = false;
@@ -97,11 +96,6 @@ export const AgentComposer = forwardRef<HTMLDivElement, {
     <ComposerActions streaming={false} sendHint={sendHint}
       canQueue={false} disabled={!canSend} onAbort={async () => undefined} />
   );
-  const status = error ? (
-    <div className="composer-status-bar">
-      <span className="composer-status-notice" role="alert" title={error}>{error}</span>
-    </div>
-  ) : null;
 
   return (
     <div className="chat-dock-wrapper" ref={ref}>
@@ -110,7 +104,6 @@ export const AgentComposer = forwardRef<HTMLDivElement, {
         className="floating-input-card layout-capsule"
         onSubmit={(event) => { event.preventDefault(); void submit(); }}
       >
-        {status}
         <div className="composer-capsule">
           <div className="composer-capsule-main">
             {entry}

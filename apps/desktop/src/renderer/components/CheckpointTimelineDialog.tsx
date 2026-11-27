@@ -1,6 +1,7 @@
 import type { CheckpointRestorePreview, CheckpointTimeline } from "@vela/shared";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { localizeError, tr, trf, activeIntlLocale } from "../locale";
+import { showToast } from "../toast";
 import "../checkpoints.css";
 import { Icon } from "./icons";
 
@@ -38,7 +39,6 @@ export function CheckpointTimelineDialog({ conversationId, busy, initialTurn, on
   const [confirming, setConfirming] = useState<Pending>(null);
   const [working, setWorking] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
   const headingId = useId();
   const detailId = useId();
 
@@ -70,7 +70,6 @@ export function CheckpointTimelineDialog({ conversationId, busy, initialTurn, on
   useEffect(() => {
     setConfirming(null);
     setRestoreFiles(false);
-    setNotice(null);
   }, [selected]);
 
   // 选中项随加载或键盘移动滚动到可见区域，并把焦点留在列表里。
@@ -111,7 +110,7 @@ export function CheckpointTimelineDialog({ conversationId, busy, initialTurn, on
       await action();
       onClose();
     } catch (reason) {
-      setError(reason instanceof Error ? localizeError(reason.message) : tr("操作失败，请重试", "Something went wrong. Try again."));
+      showToast(reason instanceof Error ? reason.message : tr("操作失败，请重试", "Something went wrong. Try again."), { kind: "error" });
       setConfirming(null);
       void load();
     } finally {
@@ -126,16 +125,15 @@ export function CheckpointTimelineDialog({ conversationId, busy, initialTurn, on
     workingRef.current = true;
     setWorking(true);
     setError(null);
-    setNotice(null);
     try {
       const result = await window.vela!.deleteCheckpoints(conversationId, turnIndex);
       setConfirming(null);
-      setNotice(result.removedPoints > 0
+      showToast(result.removedPoints > 0
         ? trf("已删除 {0} 条检查点记录。", result.removedPoints === 1 ? "Deleted {0} checkpoint record." : "Deleted {0} checkpoint records.", result.removedPoints)
         : tr("没有可删除的检查点记录。", "No checkpoint records to delete."));
       await load();
     } catch (reason) {
-      setError(reason instanceof Error ? localizeError(reason.message) : tr("操作失败，请重试", "Something went wrong. Try again."));
+      showToast(reason instanceof Error ? reason.message : tr("操作失败，请重试", "Something went wrong. Try again."), { kind: "error" });
       setConfirming(null);
     } finally {
       workingRef.current = false;
@@ -311,7 +309,6 @@ export function CheckpointTimelineDialog({ conversationId, busy, initialTurn, on
                 ) : null}
 
                 {busy ? <p className="checkpoint-note">{tr("回复进行中，完成后才能回退或分叉。", "Wait for the reply to finish before restoring or forking.")}</p> : null}
-                {notice ? <p className="checkpoint-note" role="status">{notice}</p> : null}
                 {error ? <p className="checkpoint-error" role="alert">{error}</p> : null}
               </section>
             ) : null}

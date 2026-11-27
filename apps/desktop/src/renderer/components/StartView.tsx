@@ -46,7 +46,6 @@ export function StartView({
   onAction,
   onBrowse,
   pending = false,
-  error = null,
 }: {
   gitAvailable: boolean;
   conversationWorkbenchTabs?: boolean;
@@ -55,7 +54,6 @@ export function StartView({
   /** 地址栏回车:宿主把当前起始标签换成打开该网址的浏览器标签。 */
   onBrowse: (url: string) => void;
   pending?: boolean;
-  error?: string | null;
 }) {
   const [address, setAddress] = useState("");
   const [invalid, setInvalid] = useState(false);
@@ -86,7 +84,6 @@ export function StartView({
           />
         </form>
         {invalid ? <p className="start-error" role="alert">{tr("请输入有效的 HTTP 或 HTTPS 网址", "Enter a valid HTTP or HTTPS address")}</p> : null}
-        {error ? <p className="start-error" role="alert">{error}</p> : null}
         {conversationWorkbenchTabs && <fieldset className="start-options start-conversation-options" disabled={pending}
           aria-label={tr("会话视图", "Conversation view")}>
           {conversationDetailKeys.map(key => {

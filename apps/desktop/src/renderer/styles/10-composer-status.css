@@ -21,17 +21,6 @@
   transition: background var(--transition-smooth), color var(--transition-smooth);
 }
 .composer-chip span:nth-of-type(1) { overflow: hidden; animation: vela-overflow-fade auto linear both; animation-timeline: scroll(self inline); }
-.composer-status-notice {
-  margin-left: auto;
-  font-size: calc(15px * var(--ui-scale));
-  color: var(--danger);
-  white-space: nowrap;
-  overflow: hidden;
-  animation: vela-overflow-fade auto linear both;
-  animation-timeline: scroll(self inline);
-  max-width: 45%;
-}
-.composer-status-notice[role="status"] { color: var(--text-muted); }
 .composer-popover {
   top: calc(100% + 8px);
   bottom: auto;
