@@ -19,6 +19,35 @@ export const WORKBENCH_HEADER_HEIGHT = 52;
 export const WORKBENCH_MIN_PANE_WIDTH = 240;
 export const WORKBENCH_MIN_PANE_HEIGHT = WORKBENCH_HEADER_HEIGHT + 148;
 export const emptyWorkbenchLayout = (): WorkbenchLayout => ({ root: null, panes: [], focused: null, maximized: null, sequence: 0 });
+/** Check the complete split tree before using disk data for recursive geometry or DOM ids. */
+export function isWorkbenchLayout(value: unknown): value is WorkbenchLayout {
+  const record = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
+  if (!record(value) || !Array.isArray(value.panes) || value.panes.length > WORKBENCH_MAX_PANES ||
+      typeof value.sequence !== "number" || !Number.isSafeInteger(value.sequence) || value.sequence < 0) return false;
+  const sequence = value.sequence;
+  const validId = (id: unknown, prefix: string): id is string => typeof id === "string" && id.startsWith(prefix) &&
+    /^[1-9]\d*$/.test(id.slice(prefix.length)) && Number(id.slice(prefix.length)) <= sequence;
+  const paneIds = new Set<string>(), tabs = new Set<string>();
+  for (const pane of value.panes) {
+    if (!record(pane) || !validId(pane.id, "pane-") || paneIds.has(pane.id) || !Array.isArray(pane.tabs) ||
+        typeof pane.selected !== "string" || !pane.tabs.includes(pane.selected)) return false;
+    paneIds.add(pane.id);
+    for (const id of pane.tabs) { if (typeof id !== "string" || !id || tabs.has(id)) return false; tabs.add(id); }
+  }
+  if (!paneIds.size) return value.root === null && value.focused === null && value.maximized === null;
+  if (typeof value.focused !== "string" || !paneIds.has(value.focused) ||
+      (value.maximized !== null && (typeof value.maximized !== "string" || !paneIds.has(value.maximized)))) return false;
+  const splits = new Set<string>();
+  function visit(node: unknown): boolean {
+    if (!record(node)) return false;
+    if ("pane" in node) return typeof node.pane === "string" && paneIds.delete(node.pane);
+    if (!validId(node.id, "split-") || splits.has(node.id) || splits.size >= WORKBENCH_MAX_PANES - 1 ||
+        (node.axis !== "x" && node.axis !== "y") || typeof node.ratio !== "number" || !(node.ratio >= .25 && node.ratio <= .75)) return false;
+    splits.add(node.id);
+    return visit(node.a) && visit(node.b);
+  }
+  return visit(value.root) && paneIds.size === 0;
+}
 export function workbenchPaneOrder(node: WorkbenchLayoutNode | null): string[] {
   return !node ? [] : "pane" in node ? [node.pane] : [...workbenchPaneOrder(node.a), ...workbenchPaneOrder(node.b)];
 }

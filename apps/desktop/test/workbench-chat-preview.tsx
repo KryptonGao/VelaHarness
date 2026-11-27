@@ -9,6 +9,11 @@ import "../src/renderer/info-cards.css";
 import "../src/renderer/components/intelligent-ui/intelligent-ui.css";
 
 const params = new URLSearchParams(location.search);
+// A fresh navigation starts an independent fixture with new in-memory conversations.
+// A real reload keeps the saved layout for persistence tests.
+if ((performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming)?.type === "navigate") {
+  for (const key of Object.keys(localStorage)) if (key.startsWith("vela.workbench.") || key === "vela.filePreviewTabsByWorkspace") localStorage.removeItem(key);
+}
 for (const [key, value] of Object.entries({ "vela.onboarding.complete": "true", "vela.locale": params.get("locale") ?? "zh-CN",
   "vela.leftCollapsed": "true", "vela.thinkingSummary": "false", "vela.appearance": params.get("theme") ?? "light",
   "vela.infoLayout": params.has("titlebar") ? "cards" : "sidebar", "vela.soundEffects": "false" })) localStorage.setItem(key, value);

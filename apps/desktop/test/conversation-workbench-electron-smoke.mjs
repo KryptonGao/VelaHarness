@@ -187,6 +187,19 @@ async function run() {
   await until(el(pane + ".trace-view"));
   console.log("PASS four workbench pages, duplicate selection, main conversation remains visible");
 
+  // Sort away from creation order, leave a non-last tab active, then reload the production renderer.
+  const strip = `[...document.querySelectorAll('.workbench-tab')].map(t => t.textContent.trim())`;
+  await click(el('.workbench-fullscreen-button'));
+  await until(el('.workbench-restore'));
+  const beforeSort = await js(strip);
+  await js(`${el('.workbench-tab[aria-selected=true]')}.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', shiftKey: true, bubbles: true }))`);
+  await until(`JSON.stringify(${strip}) !== ${JSON.stringify(JSON.stringify(beforeSort))}`);
+  const sorted = await js(strip);
+  const restored = `${el('.workbench-restore')} && ${el('.workbench-tab[aria-selected=true]')}?.textContent.trim() === '轨迹'
+    && JSON.stringify(${strip}) === ${JSON.stringify(JSON.stringify(sorted))}`;
+  await setUiStateAndReload({});
+  await until(restored);
+
   await js(`window.vela.createConversation(${JSON.stringify(first)})`);
   await until("!document.querySelector('.workbench-tab')");
   await openStart();
@@ -197,7 +210,17 @@ async function run() {
   await until(el(pane + ".tb-tab"));
   assert.equal(await js("document.querySelectorAll('.workbench-tab').length"), 1);
   await js(`window.vela.switchConversation(${JSON.stringify(conversations[0].id)})`);
-  await until("document.querySelectorAll('.workbench-tab').length === 4");
+  await until(restored);
+  await click(el('.workbench-pinned-chat'));
+  await setUiStateAndReload({});
+  await until(el('.showing-pinned-chat'));
+  await click(el('.workbench-restore'));
+  await click(el('.workbench-collapse'));
+  await setUiStateAndReload({});
+  await until(el('.workbench-panel.is-collapsed'));
+  await click(el('.workbench-expand'));
+  await until(`JSON.stringify(${strip}) === ${JSON.stringify(JSON.stringify(sorted))}`);
+  console.log("PASS fullscreen, pinned chat, folded panel, active tab and sorted order survive a renderer restart and conversation round trip");
   console.log("PASS tabs follow the conversation and limit settings work before the first message");
 
   await click(el('.sidebar-activity-trigger[aria-pressed="true"]'));

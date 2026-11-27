@@ -23,7 +23,9 @@
 
 ## 状态与内容
 
-分屏布局按工作区保存在当前渲染进程内，收起面板不会丢失；应用重启不恢复分屏布局。工作区或会话变化导致标签消失时，对应的空窗口会收拢。标签本身的持久化沿用各功能已有机制。
+The workbench remembers its fullscreen or split view, pinned Chat selection, folded state, tab order, focused tab, and pane layout (including divider ratios and maximized pane) for each workspace and conversation. Switching away, closing the window, or restarting Vela does not reset the arrangement. Restoring a file tab reopens its path, not a cached copy of its contents.
+
+Live browser pages, terminal processes, micro-app instances and transient review panels are not relaunched from layout data. Unavailable tabs are skipped; empty panes collapse without disturbing the remaining tabs.
 
 标签内容保持在同一 DOM 父节点下，用稳定标签 ID 作为 React key，移动仅改变矩形位置，不重新挂载聊天、终端或文件预览。文件窗口使用各自的内容读取与滚动状态，共享工作区文件树和版本刷新；浏览器 guest 则继续由独立宿主持有，多个可见窗口可以同时显示各自的网页。网页的登录状态、安全策略和 Browser Use 行为见[浏览器文档](./browser.md)。
 

@@ -6,6 +6,7 @@ import type { SidebarResize } from "../hooks/useSidebarResize";
 import type { ToolDisplay, ToolFold } from "../hooks/usePreferences";
 import type { MessageStore } from "../hooks/message-store";
 import type { UiMessage } from "../hooks/useSession";
+import { useWorkbenchEntry } from "../hooks/useWorkbenchState";
 import { useMotionPresence } from "../hooks/useMotionPresence";
 import { WorkbenchTabPanel } from "./MotionPresence";
 import { tr, trf } from "../locale";
@@ -36,7 +37,7 @@ import { conversationDetails, type ConversationDetail } from "./conversation-det
 import { WorkbenchTabStrip } from "./WorkbenchTabStrip";
 import { startWorkbenchTabSort } from "./workbench-tab-sort";
 import { Icon } from "./icons";
-import { collapseWorkbenchLayout, dropWorkbenchTab, emptyWorkbenchLayout, mergeWorkbenchPane, reconcileWorkbenchLayout, reorderWorkbenchStrip, replaceWorkbenchTab, resizeWorkbenchDivider,
+import { collapseWorkbenchLayout, dropWorkbenchTab, emptyWorkbenchLayout, isWorkbenchLayout, mergeWorkbenchPane, reconcileWorkbenchLayout, reorderWorkbenchStrip, replaceWorkbenchTab, resizeWorkbenchDivider,
   selectWorkbenchTab, workbenchDropTarget, workbenchFits, workbenchGeometry, workbenchPaneOrder, workbenchRatioBounds, WORKBENCH_GAP, WORKBENCH_HEADER_HEIGHT,
   type WorkbenchDivider, type WorkbenchDropEdge, type WorkbenchLayout, type WorkbenchRect } from "./workbench-layout";
 
@@ -66,6 +67,8 @@ interface WorkbenchPanelProps {
   tabs: WorkbenchTab[];
   tabReplacement?: { from: string; to: string } | null;
   layoutKey?: string;
+  rememberLayout?: boolean;
+  layoutReady?: boolean;
   onTabOrderChange?: (order: string[]) => void;
   /** Controls splitting and cross-pane moves, not sorting inside a strip. */
   splitEnabled?: boolean;
@@ -159,6 +162,7 @@ export function WorkbenchPanel(props: WorkbenchPanelProps) {
   return <div className="workbench-clip"><WorkbenchPanelContent {...(presence.closing ? frozen.current : props)} closing={presence.closing} finishExit={presence.finishExit}
     onLastTabClose={(tab, complete) => setPendingClose({ tabId: tab.id, complete })} /></div>;
 }
+const initialLayout = emptyWorkbenchLayout();
 const rectStyle = (r: WorkbenchRect): CSSProperties => ({ left: r.x, top: r.y, width: r.width, height: r.height });
 function WorkbenchPanelContent(props: WorkbenchPanelProps & { closing: boolean; finishExit: () => void; onLastTabClose: (tab: WorkbenchTab, complete: () => void) => void }) {
   const { tabs, activeTabId, collapsed = false, contextOpen, leftOpen, resize, closing, finishExit, onLastTabClose,
@@ -169,9 +173,8 @@ function WorkbenchPanelContent(props: WorkbenchPanelProps & { closing: boolean; 
   const preview = useFilePreview();
   const panelRef = useRef<HTMLElement>(null), canvasRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 640, height: 700 });
-  const [layouts, setLayouts] = useState<Record<string, WorkbenchLayout>>({});
   const scope = props.layoutKey ?? "workbench";
-  const stored = layouts[scope] ?? emptyWorkbenchLayout();
+  const [stored, setStored] = useWorkbenchEntry("vela.workbench.layouts", scope, initialLayout, isWorkbenchLayout, !!props.rememberLayout);
   const splitEnabled = !!props.splitEnabled && !fullscreen;
   const lastReplacement = useRef(props.tabReplacement);
   const replacement = props.tabReplacement;
@@ -187,18 +190,17 @@ function WorkbenchPanelContent(props: WorkbenchPanelProps & { closing: boolean; 
   const layout = fullscreen ? collapseWorkbenchLayout(savedLayout) : savedLayout;
   const layoutRef = useRef(savedLayout); layoutRef.current = savedLayout;
   const mutate = useCallback((change: (current: WorkbenchLayout) => WorkbenchLayout) => {
-    setLayouts(current => {
-      const before = layoutRef.current, next = change(before);
-      layoutRef.current = next;
-      return next === before && current[scope] === next ? current : { ...current, [scope]: next };
-    });
-  }, [scope]);
+    const next = change(layoutRef.current);
+    layoutRef.current = next;
+    setStored(next);
+  }, [setStored]);
   useLayoutEffect(() => {
     lastReplacement.current = replacement;
     // Browser Host 可能先给出待激活 ID，再异步投影该标签；真正出现后才能消费这次激活。
+    if (props.layoutReady === false || closing) return;
     if (!activeTabId || tabs.some(tab => tab.id === activeTabId)) activeRef.current = { scope, id: activeTabId };
-    if (layouts[scope] !== savedLayout) setLayouts(current => ({ ...current, [scope]: savedLayout }));
-  }, [scope, activeTabId, savedLayout, layouts, tabs, replacement]);
+    if (stored !== savedLayout) setStored(savedLayout);
+  }, [scope, activeTabId, savedLayout, stored, setStored, tabs, replacement, props.layoutReady, closing]);
   const [drag, setDrag] = useState<{ key: string; placing: boolean } | null>(null);
   const dragRef = useRef(drag); dragRef.current = drag;
   const [drop, setDrop] = useState<{ pane: string; edge: WorkbenchDropEdge; rect: WorkbenchRect; index?: number; marker?: WorkbenchRect } | null>(null);
@@ -519,7 +521,7 @@ function WorkbenchPanelContent(props: WorkbenchPanelProps & { closing: boolean; 
             onToggleFullscreen={topRow && rightEdge && props.onToggleFullscreen ? toggleFullscreen : undefined}
             tabButtonId={tabButtonId} tabPanelId={tabPanelId} renderLabel={tab => <><TabIcon tab={tab} />{tab.kind === "browser" ? <BrowserTabLabel controller={tab.controller} /> : <span className="workbench-tab-label">{tab.label}</span>}</>}
             onActivate={activateTab} onClose={closeTab} onNewTab={() => { focusPane(paneId); props.onNewTab(); }}
-            onMaximize={() => mutate(current => ({ ...current, focused: paneId, maximized: current.maximized === paneId ? null : paneId }))}
+            onMaximize={() => { focusPane(paneId); mutate(current => ({ ...current, focused: paneId, maximized: current.maximized === paneId ? null : paneId })); }}
             onMerge={() => { const next = mergeWorkbenchPane(layoutRef.current, paneId); mutate(() => next); const tab = tabs.find(t => t.id === next.panes.find(p => p.id === next.focused)?.selected); if (tab) props.onActivateTab(tab); }}
             onEqualize={() => mutate(current => geometry.dividers.reduce((result, divider) => resizeWorkbenchDivider(result, divider.id, 0.5, dividerBounds(divider)), current))}
             onPlace={() => { mutate(current => ({ ...current, maximized: null, focused: paneId })); setDrag({ key: pane.selected, placing: true }); setAnnouncement(tr("选择落点，Esc 取消", "Choose a drop location; Esc to cancel")); }}

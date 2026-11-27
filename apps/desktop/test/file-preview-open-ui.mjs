@@ -50,7 +50,7 @@ if (!process.versions.electron) {
     throw new Error(`Timed out: ${code}\n${errors.join("\n")}`);
   };
   const visible = '.workbench-tabpanel:not(.is-inactive)';
-  const labels = () => evaluate("Array.from(document.querySelectorAll('.workbench-tab-label')).map(n => n.textContent)");
+  const labels = () => evaluate("Array.from(document.querySelectorAll('.workbench-tab .workbench-tab-label')).map(n => n.textContent)");
   const openFile = async path => {
     const pane = await evaluate("document.querySelector('.workbench-group.is-focused').dataset.workbenchPane");
     const target = `${visible}[data-workbench-content-pane="${pane}"]`;

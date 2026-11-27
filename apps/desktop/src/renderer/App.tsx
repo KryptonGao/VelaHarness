@@ -9,7 +9,7 @@ import { type AgentInboxNavigation, type MenuAction, type ReleaseNotes, type Tas
 import { AgentWorkspaceProvider } from "./components/AgentPanel";
 import { SessionChatView } from "./components/SessionChatView";
 import { ConversationDetailView } from "./components/ConversationDetailView";
-import { conversationDetails, isConversationDetail, isEmptyConversationView, type ConversationDetail } from "./components/conversation-detail";
+import { conversationDetails, isConversationDetail, isEmptyConversationView } from "./components/conversation-detail";
 import { ContextPanel } from "./components/ContextPanel";
 import { PanelLayoutActions } from "./components/PanelLayoutActions";
 import { useMessagesEmpty } from "./hooks/useMessages";
@@ -47,6 +47,7 @@ import { WorkspaceSettingsDialog } from "./components/WorkspaceSettingsDialog";
 import { conversationWorkspace, findWorkspace, folderName } from "./components/workspace-names";
 import { CheckpointTimelineDialog } from "./components/CheckpointTimelineDialog";
 import { FilePreviewProvider, type PreviewFileDescriptor } from "./components/preview/FilePreviewContext";
+import { usePersistedFileTabs } from "./components/preview/file-tab-persistence";
 import type { StartTabAction } from "./components/StartView";
 import { WorkbenchPanel, type WorkbenchTab } from "./components/WorkbenchPanel";
 import { MicroAppWorkbenchContext, useMicroAppTabs } from "./components/intelligent-ui/MicroAppWorkbench";
@@ -60,6 +61,7 @@ import { BrowserPanelLinkContext } from "./components/ConversationLinkContext";
 import { routeConversationLink } from "./browser/conversation-link-policy";
 import { useModels } from "./hooks/useModels";
 import { usePreferences } from "./hooks/usePreferences";
+import { emptyConversationTabs, emptyPresentation, emptyWorkspaceTabs, isConversationTabs, isPresentation, isWorkspaceTabs, useWorkbenchEntry, useWorkbenchField } from "./hooks/useWorkbenchState";
 import { useFilePreviewOpenMode } from "./hooks/useFilePreviewOpenMode";
 import { useNotificationSounds } from "./hooks/useNotificationSounds";
 import { isBoolean, isBooleanRecord, readStoredState, useStoredState } from "./hooks/useStoredState";
@@ -79,10 +81,8 @@ import type { AcceptanceRequest } from "./components/acceptance";
 import { useTurnReview } from "./hooks/useTurnReview";
 import type { TurnReviewRequest } from "./components/turn-changes";
 import {
-  emptyPlanDocumentState,
   planDocumentReducer,
   type PlanDocumentAction,
-  type PlanDocumentState,
 } from "./plan-draft";
 import { AppLocaleProvider, setActiveLocale, tr, trf } from "./locale";
 import { createLogger } from "./logger";
@@ -264,57 +264,59 @@ export function App() {
   const { review: turnReview, tabId: turnReviewTabId, open: showTurnReview, refresh: refreshTurnReview, close: dismissTurnReview } = useTurnReview(workspaceKey, conversationKey);
   const { acceptance, tabId: acceptanceTabId, open: showAcceptance, close: dismissAcceptance } = useAcceptance(workspaceKey, conversationKey);
   const [reviewTargets, setReviewTargets] = useState<Record<string, { path: string; requestKey: number; diffToolId?: string }>>({});
-  const [fileTabsByWorkspace, setFileTabsByWorkspace] = useState<Record<string, PreviewFileDescriptor[]>>({});
-  const fileWorkspaceRef = useRef<string | null>(null);
-  const [changesByWorkspace, setChangesByWorkspace] = useState<Record<string, {
-    open: boolean;
-    initialPath: string | null;
-    requestKey: number;
-  }>>({});
-  const [openDirectories, setOpenDirectories] = useState<readonly string[]>([]);
+  const [fileTabsByWorkspace, updateFileTabs] = usePersistedFileTabs();
+  const [workspaceTabs, setWorkspaceTabs] = useWorkbenchEntry("vela.workbench.workspaceTabs", workspaceKey, emptyWorkspaceTabs, isWorkspaceTabs);
+  const [conversationTabs, setConversationTabs] = useWorkbenchEntry("vela.workbench.conversationTabs", conversationKey, emptyConversationTabs, isConversationTabs);
+  const { starts: startTabState, chats: chatTabState, files: filesTabOpen, race: raceTabOpen, background: backgroundTabOpen } = workspaceTabs;
+  const { details: detailTabs, plan: planDocument } = conversationTabs;
+  const setStartTabState = useWorkbenchField(setWorkspaceTabs, "starts"), setChatTabState = useWorkbenchField(setWorkspaceTabs, "chats");
+  const setFilesTabOpen = useWorkbenchField(setWorkspaceTabs, "files"), setRaceTabOpen = useWorkbenchField(setWorkspaceTabs, "race");
+  const setBackgroundTabOpen = useWorkbenchField(setWorkspaceTabs, "background"), setChangesOpen = useWorkbenchField(setWorkspaceTabs, "changes");
+  const setSideChat = useWorkbenchField(setWorkspaceTabs, "sideChat"), setDetailTabs = useWorkbenchField(setConversationTabs, "details");
+  const setDirectoryOpen = useWorkbenchField(setConversationTabs, "directory"), setOpenedAgents = useWorkbenchField(setConversationTabs, "agents");
+  const setPlanDocument = useWorkbenchField(setConversationTabs, "plan");
+  const [diffRequests, setDiffRequests] = useState<Record<string, { initialPath: string | null; requestKey: number }>>({});
   const directoryTabId = scopedTabId("agent-directory", conversationKey);
-  const [openedAgentsByConversation, setOpenedAgentsByConversation] = useState<Record<string, string[]>>({});
-  const [planDocuments, setPlanDocuments] = useState<Record<string, PlanDocumentState>>({});
-  const planDocument = planDocuments[conversationKey] ?? emptyPlanDocumentState;
   const filePreviewOpenMode = useFilePreviewOpenMode();
   const [fileTabReplacement, setFileTabReplacement] = useState<{ from: string; to: string } | null>(null);
-  const [tabOrder, setTabOrder] = useState<string[]>([]);
-  const [activeWorkbenchTabId, setActiveWorkbenchTabId] = useState<string | null>(null);
-  const [workbenchView, setWorkbenchView] = useState<"split" | "panel" | "chat">("split");
+  const workbenchScope = JSON.stringify([workspaceKey, conversationKey]);
+  const [presentation, setPresentation] = useWorkbenchEntry("vela.workbench.presentation", workbenchScope, emptyPresentation, isPresentation);
+  const { order: tabOrder, active: activeWorkbenchTabId, collapsed: workbenchCollapsed } = presentation;
+  const setTabOrder = useWorkbenchField(setPresentation, "order"), setActiveWorkbenchTabId = useWorkbenchField(setPresentation, "active");
+  const setWorkbenchCollapsed = useWorkbenchField(setPresentation, "collapsed"), setWorkbenchView = useWorkbenchField(setPresentation, "view");
+  // A previously unseen conversation inherits the window mode. Returning to one with a saved view never changes it.
+  const defaultFullscreen = useRef(false);
+  const chatDestination = useRef<string | null>(null);
   const newChatRequest = useRef(0);
   const [openingChat, setOpeningChat] = useState<number | null>(null);
   const openNewChat = (cwd?: string) => showHomeThen(() => {
     const request = ++newChatRequest.current;
     setOpeningChat(request);
-    setWorkbenchView(view => view === "split" ? view : "chat");
-    void session.newChat(cwd).finally(() => setOpeningChat(current => current === request ? null : current));
+    void session.newChat(cwd).then(id => { if (newChatRequest.current === request) chatDestination.current = id ?? null; })
+      .finally(() => setOpeningChat(current => current === request ? null : current));
   });
+  const storedView = presentation.view ?? (defaultFullscreen.current ? (chatDestination.current === conversationKey ? "chat" : "panel") : "split");
+  const workbenchView = openingChat !== null && storedView !== "split" ? "chat" : storedView;
   const focusWorkbenchTab = useCallback((id: string) => {
     setActiveWorkbenchTabId(id);
-    setWorkbenchView(view => view === "chat" ? "panel" : view);
-  }, []);
+    setWorkbenchCollapsed(false);
+    setWorkbenchView(view => (view ?? (defaultFullscreen.current ? "panel" : "split")) === "split" ? "split" : "panel");
+  }, [setActiveWorkbenchTabId, setWorkbenchCollapsed, setWorkbenchView]);
   const openMainConversation = useCallback((id: string) => {
     setOpeningChat(null);
-    setWorkbenchView(view => view === "split" ? view : "chat");
+    chatDestination.current = id;
+    if (id === conversationKey && storedView !== "split") setWorkbenchView("chat");
     void session.switchTo(id);
-  }, [session.switchTo]);
+  }, [session.switchTo, conversationKey, storedView, setWorkbenchView]);
   const [visibleWorkbenchTabIds, setVisibleWorkbenchTabIds] = useState<string[]>([]);
-  const [workbenchCollapsed, setWorkbenchCollapsed] = useState(false);
   const [workbenchExiting, setWorkbenchExiting] = useState(false);
-  useEffect(() => { setWorkbenchCollapsed(false); }, [activeWorkbenchTabId]);
-  const activateMicroApp = useCallback((id: string) => {
-    setWorkbenchCollapsed(false);
-    focusWorkbenchTab(id);
-  }, [focusWorkbenchTab]);
-  const { tabs: microAppTabs, actions: microAppWorkbench } = useMicroAppTabs(activateMicroApp);
-  const [startTabState, setStartTabState] = useState<{ id: string }[]>([]);
-  const [detailTabs, setDetailTabs] = useState<{ id: string; conversationId: string; view: ConversationDetail }[]>([]);
-  const [chatTabState, setChatTabState] = useState<{ id: string; conversationId: string }[]>([]);
+  const { tabs: microAppTabs, actions: microAppWorkbench } = useMicroAppTabs(focusWorkbenchTab);
   /**
    * 侧边聊天按项目（工作区目录）保存：每个项目一个标签，里面是这个项目的聊天列表；
    * 同一项目的所有对话共用，切到别的项目只显示那个项目的标签。记忆跟随当前主对话。
    */
-  const [sideChatTabState, setSideChatTabState] = useState<{ id: string; workspace: string; inbox: SideChatInboxItem[] }[]>([]);
+  // Persist tab identity only, never queued quotes or draft text.
+  const [sideChatInbox, setSideChatInbox] = useState<Record<string, SideChatInboxItem[]>>({});
   const [pendingChatTabs, setPendingChatTabs] = useState<string[]>([]);
   const chatRequests = useRef(new Set<string>());
   const cancelledChatTabs = useRef(new Set<string>());
@@ -325,6 +327,7 @@ export function App() {
   const browser = useBrowserTabs(session.activeConversationId);
   const pendingBrowserTab = useRef<string | null>(null);
   const previousBrowserConversation = useRef(session.activeConversationId);
+  const lastLiveTab = useRef<string | null>(null);
   const browserFocusNonce = useRef<number | null>(null);
   useEffect(() => {
     const focus = browser.state.focusRequest;
@@ -332,7 +335,6 @@ export function App() {
     browserFocusNonce.current = focus.nonce;
     if (!browser.tabs.some(tab => tab.id === focus.tabId)) return;
     setSettingsOpen(false);
-    setWorkbenchCollapsed(false);
     focusWorkbenchTab(focus.tabId);
   }, [browser.state.focusRequest, browser.tabs, focusWorkbenchTab]);
   // 点输入框上方的元素批注卡片：展开面板并切到对应的浏览器标签页，页面里的标记随后闪烁。
@@ -343,22 +345,17 @@ export function App() {
     replyFocusNonce.current = replyFocus.nonce;
     if (!browser.allTabs.some(tab => tab.id === replyFocus.tabId)) return;
     setSettingsOpen(false);
-    setWorkbenchCollapsed(false);
     focusWorkbenchTab(replyFocus.tabId);
     browser.select(replyFocus.tabId);
   }, [replyFocus, browser.allTabs, browser.select, focusWorkbenchTab]);
-  // 终端与文件浏览标签不按工作区拆开存:工作区状态加载前(地址为空)创建的标签
-  // 不能因为工作区地址随后确定而消失;真正切换工作区时再统一关闭。
+  // Terminal sessions are live processes, not restorable tab descriptors.
   const [terminalTabState, setTerminalTabState] = useState<{ id: string; sessionId: string; label: string }[]>([]);
-  const [filesTabOpen, setFilesTabOpen] = useState(false);
   const { raceEnabled } = preferences;
   const raceState = useRaces(raceEnabled);
   const conflicts = useConflicts();
   const [dismissedConflictTurns, setDismissedConflictTurns] = useState(() => new Map<string, number>());
   const [conflictsOpen, setConflictsOpen] = useState(false);
-  const [raceTabOpen, setRaceTabOpen] = useState(false);
-  useEffect(() => { if (!raceEnabled) setRaceTabOpen(false); }, [raceEnabled]);
-  const [backgroundTabOpen, setBackgroundTabOpen] = useState(false);
+  useEffect(() => { if (!raceEnabled) setRaceTabOpen(false); }, [raceEnabled, setRaceTabOpen]);
   const lastKnownWorkspace = useRef("");
   const tabSeq = useRef(0);
   const lastOpenedPlanFocusNonce = useRef<number | null>(null);
@@ -384,11 +381,8 @@ export function App() {
   const replyQuestion = useCallback((id: string, answer: string | null) => session.replyQuestion(id, answer), [session.replyQuestion]);
   const branchTurn = useCallback((index: number) => { void session.branch(index); }, [session.branch]);
   const dispatchPlanDocument = useCallback((action: PlanDocumentAction) => {
-    setPlanDocuments((current) => ({
-      ...current,
-      [conversationKey]: planDocumentReducer(current[conversationKey] ?? emptyPlanDocumentState, action),
-    }));
-  }, [conversationKey]);
+    setPlanDocument(current => planDocumentReducer(current, action));
+  }, [setPlanDocument]);
 
   const restoredAgents = useMemo(() => indexAgentHistory(session.agentHistory), [session.agentHistory]);
   const allAgents = useMemo(
@@ -408,28 +402,18 @@ export function App() {
   );
 
   const openAgentDirectory = useCallback(() => {
-    setOpenDirectories(current => current.includes(conversationKey) ? current : [...current, conversationKey]);
-    setWorkbenchCollapsed(false);
+    setDirectoryOpen(true);
     focusWorkbenchTab(directoryTabId);
   }, [conversationKey, directoryTabId, focusWorkbenchTab]);
 
   const openAgentPane = useCallback((agentId: string) => {
-    setWorkbenchCollapsed(false);
-    setOpenedAgentsByConversation((current) => ({
-      ...current,
-      [conversationKey]: [...new Set([...(current[conversationKey] ?? []), agentId])],
-    }));
+    setOpenedAgents(current => current.includes(agentId) ? current : [...current, agentId]);
     focusWorkbenchTab(scopedTabId("agent", conversationKey, agentId));
   }, [conversationKey, focusWorkbenchTab]);
 
   const openChanges = useCallback((path?: string) => {
-    setChangesByWorkspace((current) => {
-      const existing = current[workspaceKey] ?? { open: false, initialPath: null, requestKey: 0 };
-      return {
-        ...current,
-        [workspaceKey]: { open: true, initialPath: path ?? null, requestKey: existing.requestKey + 1 },
-      };
-    });
+    setChangesOpen(true);
+    setDiffRequests(current => ({ ...current, [workspaceKey]: { initialPath: path ?? null, requestKey: (current[workspaceKey]?.requestKey ?? 0) + 1 } }));
     focusWorkbenchTab(scopedTabId("changes", workspaceKey));
   }, [workspaceKey, focusWorkbenchTab]);
 
@@ -450,14 +434,11 @@ export function App() {
   }, [showTurnReview, turnReviewTabId, focusWorkbenchTab]);
 
   const onOpenFile = useCallback((file: PreviewFileDescriptor, replacedId?: string) => {
-    fileWorkspaceRef.current = workspaceKey;
-    setFileTabsByWorkspace((current) => {
-      const files = current[workspaceKey] ?? [];
-      const index = files.findIndex((item) => item.id === file.id);
-      if (index < 0) return { ...current, [workspaceKey]: replacedId && files.some(item => item.id === replacedId)
+    updateFileTabs(workspaceKey, files => {
+      if (files.some(item => item.id === file.id)) return files;
+      return replacedId && files.some(item => item.id === replacedId)
         ? files.map(item => item.id === replacedId ? file : item)
-        : [...files, file] };
-      return { ...current, [workspaceKey]: files.map((item, itemIndex) => itemIndex === index ? file : item) };
+        : [...files, file];
     });
     const id = fileTabId(workspaceKey, file.id);
     const newFile = !(fileTabsByWorkspace[workspaceKey] ?? []).some(item => item.id === file.id);
@@ -469,38 +450,27 @@ export function App() {
     }
     setTabOrder((current) => current.includes(id) ? current
       : from && current.includes(from) ? current.map(item => item === from ? id : item) : [...current, id]);
-    setWorkbenchCollapsed(false);
     focusWorkbenchTab(id);
-  }, [workspaceKey, fileTabsByWorkspace, filesTabOpen, activeWorkbenchTabId, focusWorkbenchTab]);
+  }, [workspaceKey, updateFileTabs, fileTabsByWorkspace, filesTabOpen, activeWorkbenchTabId, focusWorkbenchTab]);
 
   const onCloseFileTab = useCallback((fileId: string) => {
-    const owner = fileWorkspaceRef.current ?? workspaceKey;
-    const id = fileTabId(owner, fileId);
-    setFileTabsByWorkspace((current) => ({
-      ...current,
-      [owner]: (current[owner] ?? []).filter((file) => file.id !== fileId),
-    }));
+    const id = fileTabId(workspaceKey, fileId);
+    updateFileTabs(workspaceKey, files => files.filter(file => file.id !== fileId));
     setActiveWorkbenchTabId((current) => current === id ? null : current);
-  }, [workspaceKey]);
+  }, [workspaceKey, updateFileTabs, setActiveWorkbenchTabId]);
 
   const onCloseAllFileTabs = useCallback((fileIds: string[]) => {
-    const owner = fileWorkspaceRef.current ?? workspaceKey;
     const ids = new Set(fileIds);
-    setFileTabsByWorkspace((current) => ({
-      ...current,
-      [owner]: (current[owner] ?? []).filter((file) => fileIds.length > 0 && !ids.has(file.id)),
-    }));
+    updateFileTabs(workspaceKey, files => files.filter(file => !ids.has(file.id)));
     setActiveWorkbenchTabId((current) => {
       if (!current) return current;
-      return fileIds.some((fileId) => current === fileTabId(owner, fileId)) ? null : current;
+      return fileIds.some((fileId) => current === fileTabId(workspaceKey, fileId)) ? null : current;
     });
-    fileWorkspaceRef.current = null;
-  }, [workspaceKey]);
+  }, [workspaceKey, updateFileTabs, setActiveWorkbenchTabId]);
 
   /** 新建起始标签页;⌘T 和标签栏的 + 都走这里。 */
   const openStartTab = useCallback(() => {
-    tabSeq.current += 1;
-    const id = `start:${tabSeq.current}`;
+    const id = `start:${crypto.randomUUID()}`;
     setStartTabState((current) => current.some((tab) => tab.id === id) ? current : [...current, { id }]);
     focusWorkbenchTab(id);
   }, [focusWorkbenchTab]);
@@ -521,21 +491,16 @@ export function App() {
    * 正在某段聊天里就加进那段聊天，否则新开一段。
    */
   const openSideChatTab = useCallback((quote?: string, draft?: string) => {
-    const workspace = workspaceKey;
-    const item: SideChatInboxItem[] = quote ? [{ id: crypto.randomUUID(), quote, ...(draft ? { draft } : {}) }] : [];
-    const existing = sideChatTabState.find((tab) => tab.workspace === workspace);
-    if (existing) {
-      if (item.length > 0) setSideChatTabState((current) => current.map((tab) => tab.id === existing.id ? { ...tab, inbox: [...tab.inbox, ...item] } : tab));
-      focusWorkbenchTab(existing.id);
-      return;
+    const id = workspaceTabs.sideChat ?? `side-chat:${crypto.randomUUID()}`;
+    if (quote) {
+      const item = { id: crypto.randomUUID(), quote, ...(draft ? { draft } : {}) };
+      setSideChatInbox(current => ({ ...current, [id]: [...(current[id] ?? []), item] }));
     }
-    tabSeq.current += 1;
-    const id = `side-chat:${tabSeq.current}`;
-    setSideChatTabState((current) => [...current, { id, workspace, inbox: item }]);
+    setSideChat(id);
     focusWorkbenchTab(id);
-  }, [sideChatTabState, workspaceKey, focusWorkbenchTab]);
+  }, [workspaceTabs.sideChat, setSideChat, focusWorkbenchTab]);
   const consumeSideChatInbox = useCallback((tabId: string, count: number) => {
-    setSideChatTabState((current) => current.map((tab) => tab.id === tabId ? { ...tab, inbox: tab.inbox.slice(count) } : tab));
+    setSideChatInbox(current => ({ ...current, [tabId]: current[tabId]?.slice(count) ?? [] }));
   }, []);
 
   const openFilesTab = useCallback(() => {
@@ -592,7 +557,6 @@ export function App() {
       setActiveWorkbenchTabId(current => current === id ? null : current);
       log.error("could not open browser tab", error);
     });
-    setWorkbenchCollapsed(false);
     focusWorkbenchTab(id);
   }, [browser.open, focusWorkbenchTab]);
 
@@ -604,8 +568,8 @@ export function App() {
   const handleStartAction = useCallback((tab: WorkbenchTab, action: StartTabAction) => {
     if (isConversationDetail(action)) {
       if (!preferences.conversationWorkbenchTabs || !conversationKey || isEmptyConversationView(action, conversationEmpty)) return;
-      const existing = detailTabs.find(item => item.conversationId === conversationKey && item.view === action);
-      if (!existing) setDetailTabs(current => [...current, { id: tab.id, conversationId: conversationKey, view: action }]);
+      const existing = detailTabs.find(item => item.view === action);
+      if (!existing) setDetailTabs(current => [...current, { id: tab.id, view: action }]);
       setStartTabState(current => current.filter(item => item.id !== tab.id));
       focusWorkbenchTab(existing?.id ?? tab.id);
       return;
@@ -653,13 +617,10 @@ export function App() {
     title: file.path,
     path: file.id,
   })), [fileTabsByWorkspace, workspaceKey]);
-  const changesState = useMemo(
-    () => changesByWorkspace[workspaceKey] ?? { open: false, initialPath: null, requestKey: 0 },
-    [changesByWorkspace, workspaceKey],
-  );
-  const changeTab = useMemo<WorkbenchTab | null>(() => changesState.open
+  const changesState = diffRequests[workspaceKey];
+  const changeTab = useMemo<WorkbenchTab | null>(() => workspaceTabs.changes
     ? { id: scopedTabId("changes", workspaceKey), kind: "changes", label: tr("变更", "Changes") }
-    : null, [changesState.open, workspaceKey]);
+    : null, [workspaceTabs.changes, workspaceKey]);
   const planTab = useMemo<WorkbenchTab | null>(() => planDocument.activePlanId
     ? { id: scopedTabId("plan", conversationKey), kind: "plan", label: tr("计划", "Plan") }
     : null, [planDocument.activePlanId, conversationKey]);
@@ -670,7 +631,7 @@ export function App() {
     ? { id: acceptanceTabId, kind: "acceptance", label: tr("验收", "Acceptance"), acceptance }
     : null, [acceptance, acceptanceTabId, preferences.locale]);
   const agentTabs = useMemo<WorkbenchTab[]>(() => {
-    const openedAgentIds = new Set(openedAgentsByConversation[conversationKey] ?? []);
+    const openedAgentIds = new Set(conversationTabs.agents);
     return allAgents.filter((agent) => openedAgentIds.has(agent.id)).map((agent) => ({
       id: scopedTabId("agent", conversationKey, agent.id),
       kind: "agent",
@@ -678,7 +639,7 @@ export function App() {
       title: agent.name,
       agent,
     }));
-  }, [allAgents, openedAgentsByConversation, conversationKey]);
+  }, [allAgents, conversationTabs.agents, conversationKey]);
   const terminalTabs = useMemo<WorkbenchTab[]>(() => terminalTabState.map((tab) => ({
     id: tab.id,
     kind: "terminal",
@@ -704,13 +665,10 @@ export function App() {
     kind: "chat",
     label: session.conversations.find(item => item.id === tab.conversationId)?.title ? displayConversationTitle(session.conversations.find(item => item.id === tab.conversationId)?.title) : tr("聊天", "Chat"),
   })), [chatTabState, session.conversations, preferences.locale]);
-  const sideChatTabs = useMemo<WorkbenchTab[]>(() => sideChatTabState.filter((tab) => tab.workspace === workspaceKey).map((tab) => ({
-    id: tab.id,
-    kind: "side-chat",
-    label: tr("侧边聊天", "Side chat"),
-  })), [sideChatTabState, workspaceKey, preferences.locale]);
+  const sideChatTabs = useMemo<WorkbenchTab[]>(() => workspaceTabs.sideChat
+    ? [{ id: workspaceTabs.sideChat, kind: "side-chat", label: tr("侧边聊天", "Side chat") }] : [], [workspaceTabs.sideChat, preferences.locale]);
   const conversationDetailTabs = useMemo<WorkbenchTab[]>(() => preferences.conversationWorkbenchTabs
-    ? detailTabs.filter(tab => tab.conversationId === conversationKey && !isEmptyConversationView(tab.view, conversationEmpty))
+    ? detailTabs.filter(tab => !isEmptyConversationView(tab.view, conversationEmpty))
       .map(tab => ({ id: tab.id, kind: "conversation-detail", view: tab.view, label: conversationDetails[tab.view].label() }))
     : [], [detailTabs, conversationKey, conversationEmpty, preferences.conversationWorkbenchTabs, preferences.locale]);
   const unorderedTabs = useMemo<WorkbenchTab[]>(() => [
@@ -721,7 +679,7 @@ export function App() {
     ...(acceptanceTab ? [acceptanceTab] : []),
     ...(raceTab ? [raceTab] : []),
     ...(backgroundTab ? [backgroundTab] : []),
-    ...(openDirectories.includes(conversationKey) ? [{ id: directoryTabId, kind: "agent-directory" as const, label: tr("子代理目录", "Subagent directory") }] : []),
+    ...(conversationTabs.directory ? [{ id: directoryTabId, kind: "agent-directory" as const, label: tr("子代理目录", "Subagent directory") }] : []),
     ...agentTabs,
     ...(filesTab ? [filesTab] : []),
     ...terminalTabs,
@@ -731,7 +689,7 @@ export function App() {
     ...sideChatTabs,
     ...browser.tabs.map((tab): WorkbenchTab => ({ ...tab, kind: "browser", label: tr("浏览器", "Browser") })),
     ...startTabItems,
-  ], [fileTabs, planTab, changeTab, reviewTab, acceptanceTab, raceTab, backgroundTab, agentTabs, openDirectories, conversationKey, directoryTabId, preferences.locale, filesTab, terminalTabs, chatTabs, conversationDetailTabs, microAppTabs, sideChatTabs, browser.tabs, startTabItems]);
+  ], [fileTabs, planTab, changeTab, reviewTab, acceptanceTab, raceTab, backgroundTab, agentTabs, conversationTabs.directory, conversationKey, directoryTabId, preferences.locale, filesTab, terminalTabs, chatTabs, conversationDetailTabs, microAppTabs, sideChatTabs, browser.tabs, startTabItems]);
   const workbenchTabs = useMemo(() => {
     const tabIdSet = new Set(unorderedTabs.map((tab) => tab.id));
     return [
@@ -749,7 +707,12 @@ export function App() {
     setWorkbenchCollapsed(value => !value);
   }, [workbenchTabs.length, openStartTab]);
 
+  // The workspace, browser host and transcript arrive independently. Their initial empty
+  // projections aren't tab closes; don't use them to prune a restored order, pane or selection.
+  const workbenchReady = !!session.state && !!project.workspace && browser.ready && !(conversationEmpty &&
+    (detailTabs.length > 0 || conversationTabs.agents.length > 0) && (session.state.context.messageCount ?? 0) > 0);
   useEffect(() => {
+    if (!workbenchReady) return;
     const liveIds = new Set(unorderedTabs.map((tab) => tab.id));
     setTabOrder((current) => {
       const retained = current.filter((id) => liveIds.has(id));
@@ -762,7 +725,7 @@ export function App() {
         next.length === current.length && next.every((id, index) => current[index] === id);
       return unchanged ? current : next;
     });
-  }, [unorderedTabs]);
+  }, [unorderedTabs, setTabOrder, workbenchReady]);
 
   useEffect(() => {
     const changedConversation = previousBrowserConversation.current !== session.activeConversationId;
@@ -770,56 +733,43 @@ export function App() {
     if (changedConversation) pendingBrowserTab.current = null;
     const selected = browser.state.selected[conversationKey];
     if (selected && browser.tabs.some(tab => tab.id === selected) &&
-      (changedConversation || activeWorkbenchTab?.kind === "browser") && !pendingBrowserTab.current) {
+      (!activeWorkbenchTabId || (!changedConversation && activeWorkbenchTab?.kind === "browser")) && !pendingBrowserTab.current) {
       setActiveWorkbenchTabId(selected);
     }
   }, [session.activeConversationId, conversationKey, browser.state.selected, browser.tabs, activeWorkbenchTab?.kind]);
 
   useEffect(() => {
+    if (!workbenchReady) return;
     if (pendingBrowserTab.current) {
       if (!workbenchTabs.some(tab => tab.id === pendingBrowserTab.current)) return;
       pendingBrowserTab.current = null;
     }
-    if (activeWorkbenchTabId && workbenchTabs.some((tab) => tab.id === activeWorkbenchTabId)) return;
-    const selected = browser.state.selected[conversationKey];
-    setActiveWorkbenchTabId(workbenchTabs.some(tab => tab.id === selected) ? selected : workbenchTabs.at(-1)?.id ?? null);
-  }, [activeWorkbenchTabId, workbenchTabs, browser.state.selected, conversationKey]);
+    if (activeWorkbenchTabId && workbenchTabs.some(tab => tab.id === activeWorkbenchTabId)) {
+      lastLiveTab.current = activeWorkbenchTabId;
+      return;
+    }
+    // A newly visited conversation can share workspace tabs with the previous one. Keep
+    // that selection if still available, but never let it override this scope's saved tab.
+    const fallback = [browser.state.selected[conversationKey], lastLiveTab.current].find(id => workbenchTabs.some(tab => tab.id === id));
+    setActiveWorkbenchTabId(fallback ?? workbenchTabs.at(-1)?.id ?? null);
+  }, [activeWorkbenchTabId, workbenchTabs, browser.state.selected, conversationKey, workbenchReady, setActiveWorkbenchTabId]);
 
-  // 真正切换工作区后旧目录的终端已失效,连同文件浏览与聊天标签一起关闭;
-  // 启动时 "" → 工作区地址只是状态尚未到位,保留已有标签。
+  // A workspace switch invalidates the old PTYs. Do not recreate shells from a saved layout.
   useEffect(() => {
     const previous = lastKnownWorkspace.current;
     lastKnownWorkspace.current = workspaceKey;
     if (!previous || previous === workspaceKey) return;
     setTerminalTabState([]);
-    setChatTabState([]);
-    setFilesTabOpen(false);
-  }, [workspaceKey]);
-
-  // 启动瞬间打开的文件/变更标签会先落在 "" 作用域;工作区地址确定后归到真实 key,
-  // 否则标签会因为工作区 key 变化而消失。
-  useEffect(() => {
-    if (!workspaceKey) return;
-    const adopt = <T,>(record: Record<string, T>): Record<string, T> => {
-      if (!("" in record)) return record;
-      const { "": pending, ...rest } = record;
-      return { ...rest, [workspaceKey]: pending };
-    };
-    setFileTabsByWorkspace(adopt);
-    setChangesByWorkspace(adopt);
   }, [workspaceKey]);
 
   const openAllChanges = useCallback(() => openChanges(), [openChanges]);
 
   const closeActiveAgent = useCallback(() => {
     if (activeWorkbenchTab?.kind === "agent") {
-      setOpenedAgentsByConversation((current) => ({
-        ...current,
-        [conversationKey]: (current[conversationKey] ?? []).filter((id) => id !== activeWorkbenchTab.agent.id),
-      }));
+      setOpenedAgents(current => current.filter(id => id !== activeWorkbenchTab.agent.id));
       setActiveWorkbenchTabId(null);
     }
-  }, [activeWorkbenchTab, conversationKey]);
+  }, [activeWorkbenchTab, setOpenedAgents, setActiveWorkbenchTabId]);
 
   const closeWorkbenchTab = useCallback((tab: WorkbenchTab) => {
     const index = workbenchTabs.findIndex((candidate) => candidate.id === tab.id);
@@ -829,10 +779,7 @@ export function App() {
     if (tab.kind === "plan") {
       dispatchPlanDocument({ type: "close" });
     } else if (tab.kind === "changes") {
-      setChangesByWorkspace((current) => ({
-        ...current,
-        [workspaceKey]: { ...changesState, open: false },
-      }));
+      setChangesOpen(false);
     } else if (tab.kind === "acceptance") {
       dismissAcceptance();
     } else if (tab.kind === "race") {
@@ -842,12 +789,9 @@ export function App() {
     } else if (tab.kind === "turn-review") {
       dismissTurnReview();
     } else if (tab.kind === "agent-directory") {
-      setOpenDirectories(current => current.filter(key => key !== conversationKey));
+      setDirectoryOpen(false);
     } else if (tab.kind === "agent") {
-      setOpenedAgentsByConversation((current) => ({
-        ...current,
-        [conversationKey]: (current[conversationKey] ?? []).filter((id) => id !== tab.agent.id),
-      }));
+      setOpenedAgents(current => current.filter(id => id !== tab.agent.id));
     } else if (tab.kind === "terminal") {
       setTerminalTabState((current) => current.filter((candidate) => candidate.id !== tab.id));
     } else if (tab.kind === "conversation-detail") {
@@ -857,7 +801,8 @@ export function App() {
     } else if (tab.kind === "micro-app") {
       microAppWorkbench.close(tab.id);
     } else if (tab.kind === "side-chat") {
-      setSideChatTabState(current => current.filter(candidate => candidate.id !== tab.id));
+      setSideChat(null);
+      setSideChatInbox(current => { const next = { ...current }; delete next[tab.id]; return next; });
     } else if (tab.kind === "browser") {
       browser.close(tab.id);
     } else if (tab.kind === "files") {
@@ -873,9 +818,12 @@ export function App() {
   const splitControls = borderlessInterface && !fullscreen && (workbenchVisible || contextSidebarOpen);
   const chatsVisible = onboardingComplete && !pageOpen && overviewWorkspace === null;
   const floatingChat = fullscreen && workbenchView === "panel";
+  // Hide an empty/folded panel without writing a synthetic exit-fullscreen action.
   useEffect(() => {
-    if (!workbenchOpen || workbenchCollapsed) setWorkbenchView("split");
-  }, [workbenchOpen, workbenchCollapsed]);
+    if (!workbenchReady || !workbenchOpen) return;
+    defaultFullscreen.current = storedView !== "split";
+    if (presentation.view === null && openingChat === null) setWorkbenchView(storedView);
+  }, [workbenchReady, workbenchOpen, storedView, presentation.view, openingChat, setWorkbenchView]);
   const previousWorkbenchOpen = useRef(false);
   useEffect(() => {
     // Only the opening edge folds the card; a manual expansion stays open.
@@ -995,7 +943,7 @@ export function App() {
   });
   const openWorkspaceVersionControl = (cwd: string) => openWorkspaceOverview(cwd, "versionControl");
   const focusMainChat = () => {
-    setWorkbenchView(current => current === "split" ? current : "chat");
+    if (storedView !== "split") setWorkbenchView("chat");
     requestAnimationFrame(() => document.querySelector<HTMLElement>(".main-stage-pane > .main-chat-view")?.focus());
   };
   const pendingConversationInteraction = Boolean(session.question || (project.approval &&
@@ -1217,6 +1165,8 @@ export function App() {
               />
               <div className="main-stage" ref={borderlessInterface && platform === "darwin" ? materialRef : undefined} data-split-controls={splitControls || undefined}>
                 <FilePreviewProvider
+                  workspaceKey={workspaceKey}
+                  workspaceTabs={fileTabsByWorkspace[workspaceKey]}
                   onOpenFile={onOpenFile}
                   replaceTabId={filePreviewOpenMode === "current-tab" && activeWorkbenchTab?.kind === "file" ? activeWorkbenchTab.path : null}
                   onCloseFileTab={onCloseFileTab}
@@ -1302,7 +1252,9 @@ export function App() {
                       </AgentWorkspaceProvider>
                       <WorkbenchPanel
                         borderless={borderlessInterface}
-                        layoutKey={workspaceKey}
+                        layoutKey={workbenchScope}
+                        rememberLayout
+                        layoutReady={workbenchReady}
                         fullscreen={fullscreen}
                         showingChat={fullscreen && workbenchView === "chat"}
                         onShowChat={() => setWorkbenchView("chat")}
@@ -1325,8 +1277,8 @@ export function App() {
                         execution={session.state?.session.executionPlan ?? null}
                         onRevise={() => void session.setMode("plan")}
                         onExecutePlan={(strategy) => void session.executePlan(strategy)}
-                        initialDiffPath={changesState.initialPath}
-                        initialDiffPathRequestKey={changesState.requestKey}
+                        initialDiffPath={changesState?.initialPath ?? null}
+                        initialDiffPathRequestKey={changesState?.requestKey ?? 0}
                         onShowDiff={openChanges}
                         onAcceptanceDiff={onAcceptanceDiff}
                         races={workspaceRaces}
@@ -1360,15 +1312,14 @@ export function App() {
                           onRenameConversation={openRenameConversation}
                           onNewTab={openStartTab} onShowDiff={openChanges} onOpenWebLink={openConversationLink} />}
                         renderSideChat={(tab, visible) => {
-                          const state = sideChatTabState.find(item => item.id === tab.id);
-                          return state ? <SideChatPanel key={tab.id}
-                          workspace={state.workspace} visible={visible} inbox={state.inbox}
+                          return <SideChatPanel key={tab.id}
+                          workspace={workspaceKey} visible={visible} inbox={sideChatInbox[tab.id] ?? []}
                           onInboxConsumed={count => consumeSideChatInbox(tab.id, count)}
                           conversationId={session.activeConversationId} locale={preferences.locale}
                           models={models} hiddenModels={preferences.hiddenModels}
                           defaultChoice={session.state?.session.modelProvider && session.state.session.modelId
                             ? { provider: session.state.session.modelProvider, id: session.state.session.modelId, thinkingLevel: session.state.session.thinkingLevel }
-                            : null} /> : null;
+                            : null} />;
                         }}
                         gitAvailable={Boolean(project.git?.repo)}
                         onActivateTab={(tab) => {

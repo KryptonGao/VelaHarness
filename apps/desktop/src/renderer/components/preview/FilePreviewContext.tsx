@@ -11,6 +11,9 @@ import {
   type ReactNode,
 } from "react";
 
+import type { PreviewFileDescriptor } from "./file-tab-persistence";
+export type { PreviewFileDescriptor } from "./file-tab-persistence";
+
 export interface PreviewTab {
   /** 规范化路径(工作区内为相对路径,工作区外为绝对路径),作为标签唯一标识 */
   id: string;
@@ -18,14 +21,6 @@ export interface PreviewTab {
   dir: string;
   /** 请求跳转的行号(代码搜索/引用跳转),消费后置回 null */
   jumpLine: number | null;
-}
-
-/** 宿主工作面板使用的文件标签身份；path 与规范化后的 id 一致。 */
-export interface PreviewFileDescriptor {
-  id: string;
-  path: string;
-  name: string;
-  dir: string;
 }
 
 export interface FilePreviewContextValue {
@@ -52,7 +47,20 @@ export interface FilePreviewContextValue {
   resolveFilePath(text: string): string | null;
 }
 
-const FilePreviewContext = createContext<FilePreviewContextValue | null>(null);
+function createScope() {
+  return {
+    mounted: false,
+    blocked: false,
+    generation: 0,
+    fileListRequested: false,
+    tabs: [] as PreviewTab[],
+    contentCache: new Map<string, WorkspaceFileContent>(),
+    scrollPositions: new Map<string, number>(),
+  };
+}
+
+type PreviewScope = ReturnType<typeof createScope>;
+const FilePreviewContext = createContext<(FilePreviewContextValue & { scope: PreviewScope }) | null>(null);
 
 export function useFilePreview(): FilePreviewContextValue | null {
   return useContext(FilePreviewContext);
@@ -107,23 +115,31 @@ export function normalizeTabPath(
  */
 export function FilePreviewProvider({
   children,
+  workspaceKey,
+  workspaceTabs,
   onOpenFile,
   onCloseFileTab,
   onCloseAllFileTabs,
   replaceTabId = null,
 }: {
   children: ReactNode;
+  /** The host's current workspace and its open descriptors. Hydration is silent. */
+  workspaceKey?: string;
+  workspaceTabs?: readonly PreviewFileDescriptor[];
   /** 文件打开或重新激活时通知宿主，并提供规范化路径身份。 */
   onOpenFile?: (file: PreviewFileDescriptor, replacedId?: string) => void;
   /** Only an active file preview may be replaced; existing targets are always activated. */
   replaceTabId?: string | null;
   /** 关闭单个文件标签时同步通知宿主。 */
   onCloseFileTab?: (id: string) => void;
-  /** 关闭预览或工作区切换清空文件标签时同步通知宿主。 */
+  /** Only explicit close-all actions notify the host, not workspace transitions. */
   onCloseAllFileTabs?: (ids: string[]) => void;
 }) {
-  const [tabs, setTabs] = useState<PreviewTab[]>([]);
-  const [activeTabId, setActiveTabId] = useState<string | null>(null);
+  const [standaloneRevision, setStandaloneRevision] = useState(0);
+  const scope = useMemo(createScope, [workspaceKey, standaloneRevision]);
+  const [projection, setProjection] = useState({ scope, files: workspaceTabs });
+  const [tabs, setTabs] = useState<PreviewTab[]>(() => (workspaceTabs ?? []).map(({ id, name, dir }) => ({ id, name, dir, jumpLine: null })));
+  const [activeTabId, setActiveTabId] = useState<string | null>(() => workspaceTabs?.at(-1)?.id ?? null);
   const [revision, setRevision] = useState(0);
   const [fileList, setFileList] = useState<WorkspaceFileList | null>(null);
   const [contentLoading, setContentLoading] = useState(false);
@@ -131,28 +147,52 @@ export function FilePreviewProvider({
   const [activeContent, setActiveContent] = useState<WorkspaceFileContent | null>(null);
   /** activeContent 归属的标签;与 activeTabId 不同时对外不可见,避免切换标签闪出上一个文件。 */
   const [contentTabId, setContentTabId] = useState<string | null>(null);
-
-  const contentCache = useRef(new Map<string, WorkspaceFileContent>());
   const contentTabIdRef = useRef<string | null>(contentTabId);
   contentTabIdRef.current = contentTabId;
-  const scrollPositions = useRef(new Map<string, number>());
-  const fileListRequested = useRef(false);
-  const tabsRef = useRef(tabs);
-  tabsRef.current = tabs;
-  const onOpenFileRef = useRef(onOpenFile);
-  onOpenFileRef.current = onOpenFile;
+
+  // Reconcile before children render, without remounting the rest of the workbench.
+  if (projection.scope !== scope || projection.files !== workspaceTabs) {
+    const switched = projection.scope !== scope;
+    const next = (workspaceTabs ?? []).map(({ id, name, dir }) => ({
+      id, name, dir, jumpLine: scope.tabs.find(tab => tab.id === id)?.jumpLine ?? null,
+    }));
+    setProjection({ scope, files: workspaceTabs });
+    setTabs(next);
+    setActiveTabId(active => !switched && next.some(tab => tab.id === active) ? active : next.at(-1)?.id ?? null);
+    if (switched) {
+      setFileList(null);
+      setContentTabId(null);
+      setActiveContent(null);
+      setContentError(null);
+      setContentLoading(false);
+    }
+  }
+
   const replaceTabIdRef = useRef(replaceTabId);
-  replaceTabIdRef.current = replaceTabId;
-  const onCloseFileTabRef = useRef(onCloseFileTab);
-  onCloseFileTabRef.current = onCloseFileTab;
-  const onCloseAllFileTabsRef = useRef(onCloseAllFileTabs);
-  onCloseAllFileTabsRef.current = onCloseAllFileTabs;
+  useLayoutEffect(() => {
+    for (const tab of scope.tabs) {
+      if (tabs.some(live => live.id === tab.id)) continue;
+      scope.contentCache.delete(tab.id);
+      scope.scrollPositions.delete(tab.id);
+    }
+    scope.tabs = tabs;
+    replaceTabIdRef.current = replaceTabId;
+  }, [scope, tabs, replaceTabId]);
+  useLayoutEffect(() => {
+    scope.mounted = true;
+    return () => {
+      scope.mounted = false;
+      scope.fileListRequested = false;
+      scope.generation += 1;
+    };
+  }, [scope]);
 
   const openFile = useCallback(
     (path: string, options?: { line?: number }) => {
-      if (!path) return;
-      const normalized = normalizeTabPath(path, fileList?.root ?? null);
-      const current = tabsRef.current;
+      if (!path || !scope.mounted || scope.blocked) return;
+      const normalized = normalizeTabPath(path, fileList?.root ?? (workspaceKey || null));
+      if (!normalized.id) return;
+      const current = scope.tabs;
       const existing = current.find((tab) => tab.id === normalized.id);
       const replacedId = !existing && current.some(tab => tab.id === replaceTabIdRef.current)
         ? replaceTabIdRef.current! : undefined;
@@ -161,87 +201,93 @@ export function FilePreviewProvider({
         ? options?.line != null && existing.jumpLine !== options.line
           ? current.map(tab => tab.id === normalized.id ? nextTab : tab) : current
         : replacedId ? current.map(tab => tab.id === replacedId ? nextTab : tab) : [...current, nextTab];
-      tabsRef.current = next;
+      scope.tabs = next;
       setTabs(next);
       if (replacedId) {
-        contentCache.current.delete(replacedId);
-        scrollPositions.current.delete(replacedId);
+        scope.contentCache.delete(replacedId);
+        scope.scrollPositions.delete(replacedId);
         replaceTabIdRef.current = normalized.id;
       }
       setActiveTabId(normalized.id);
       setContentError(null);
-      onOpenFileRef.current?.({
+      onOpenFile?.({
         id: normalized.id,
         path: normalized.id,
         name: normalized.name,
         dir: normalized.dir,
       }, replacedId);
     },
-    [fileList],
+    [fileList, workspaceKey, scope, onOpenFile],
   );
 
   const closeTab = useCallback((id: string) => {
-    if (!tabsRef.current.some((tab) => tab.id === id)) return;
-    onCloseFileTabRef.current?.(id);
-    setTabs((current) => {
-      const index = current.findIndex((tab) => tab.id === id);
-      if (index < 0) return current;
-      const next = current.filter((tab) => tab.id !== id);
-      contentCache.current.delete(id);
-      scrollPositions.current.delete(id);
-      setActiveTabId((active) => {
-        if (active !== id) return active;
-        const neighbor = next[Math.min(index, next.length - 1)];
-        return neighbor?.id ?? null;
-      });
-      return next;
-    });
-  }, []);
+    const index = scope.tabs.findIndex(tab => tab.id === id);
+    if (index < 0) return;
+    const next = scope.tabs.filter(tab => tab.id !== id);
+    scope.tabs = next;
+    scope.contentCache.delete(id);
+    scope.scrollPositions.delete(id);
+    // A workbench exit animation can complete after switching workspaces.
+    // Still notify its original host callback, but do not change the new scope's view.
+    if (scope.mounted) {
+      setTabs(next);
+      setActiveTabId(active => active === id ? next[Math.min(index, next.length - 1)]?.id ?? null : active);
+    }
+    onCloseFileTab?.(id);
+  }, [scope, onCloseFileTab]);
 
   const setActiveTab = useCallback((id: string) => {
-    setActiveTabId(id);
-  }, []);
+    if (scope.mounted && !scope.blocked && scope.tabs.some(tab => tab.id === id)) setActiveTabId(id);
+  }, [scope]);
 
   const closePreview = useCallback(() => {
-    const ids = tabsRef.current.map((tab) => tab.id);
-    onCloseAllFileTabsRef.current?.(ids);
-    setTabs([]);
-    setActiveTabId(null);
-    contentCache.current.clear();
-    scrollPositions.current.clear();
-  }, []);
+    const ids = scope.tabs.map(tab => tab.id);
+    if (!ids.length) return;
+    scope.tabs = [];
+    scope.contentCache.clear();
+    scope.scrollPositions.clear();
+    if (scope.mounted) {
+      setTabs([]);
+      setActiveTabId(null);
+    }
+    onCloseAllFileTabs?.(ids);
+  }, [scope, onCloseAllFileTabs]);
 
   const consumeJump = useCallback((id?: string) => {
-    setTabs((current) =>
-      current.map((tab) => (tab.jumpLine != null && (id === undefined || tab.id === id) ? { ...tab, jumpLine: null } : tab)),
-    );
-  }, []);
+    if (!scope.mounted || !scope.tabs.some(tab => tab.jumpLine != null && (id === undefined || tab.id === id))) return;
+    scope.tabs = scope.tabs.map(tab => tab.jumpLine != null && (id === undefined || tab.id === id) ? { ...tab, jumpLine: null } : tab);
+    setTabs(scope.tabs);
+  }, [scope]);
 
   const setTabScroll = useCallback((id: string, scrollTop: number) => {
-    scrollPositions.current.set(id, scrollTop);
-  }, []);
+    scope.scrollPositions.set(id, scrollTop);
+  }, [scope]);
 
-  const getTabScroll = useCallback((id: string) => scrollPositions.current.get(id) ?? 0, []);
+  const getTabScroll = useCallback((id: string) => scope.scrollPositions.get(id) ?? 0, [scope]);
 
   const refreshFileList = useCallback(() => {
-    if (!window.vela) return;
-    window.vela
-      .listWorkspaceFiles()
-      .then(setFileList)
-      .catch(() => undefined);
-  }, []);
+    if (!window.vela || !scope.mounted || scope.blocked) return;
+    const generation = scope.generation;
+    window.vela.listWorkspaceFiles().then(list => {
+      if (scope.mounted && scope.generation === generation) setFileList(list);
+    }).catch(() => undefined);
+  }, [scope]);
 
   const ensureFileList = useCallback(() => {
-    if (fileListRequested.current || !window.vela) return;
-    fileListRequested.current = true;
+    if (scope.fileListRequested || !scope.mounted || scope.blocked || !window.vela) return;
+    scope.fileListRequested = true;
     refreshFileList();
-  }, [refreshFileList]);
+  }, [scope, refreshFileList]);
 
   const searchCode = useCallback((query: string) => {
     const api = window.vela;
-    if (!api) return Promise.reject(new Error("Vela API 不可用"));
-    return api.searchWorkspaceCode(query);
-  }, []);
+    if (!api || !scope.mounted || scope.blocked) return Promise.reject(new Error("Vela API 不可用"));
+    const generation = scope.generation;
+    return api.searchWorkspaceCode(query).then(result => {
+      if (!scope.mounted || scope.generation !== generation) return { query, matches: [], truncated: false };
+      return result;
+    });
+  }, [scope]);
 
   // 激活标签内容:命中缓存时在绘制前同步换上,切换回读过的标签不会闪一帧「读取中」。
   useLayoutEffect(() => {
@@ -252,72 +298,86 @@ export function FilePreviewProvider({
       setContentLoading(false);
       return;
     }
-    const cached = contentCache.current.get(activeTabId);
+    const cached = scope.contentCache.get(activeTabId);
     if (!cached) return;
     setActiveContent(cached);
     setContentTabId(activeTabId);
     setContentError(null);
     setContentLoading(false);
-  }, [activeTabId, revision]);
+  }, [activeTabId, revision, scope]);
 
   // 缓存未命中时经 IPC 读取。重读(git 变更、手动刷新)期间保留旧内容继续显示,读完原地替换,
   // 避免预览整块换成「读取中」导致滚动位置被浏览器夹回顶部。
   useEffect(() => {
     const api = window.vela;
-    if (!api || !activeTabId) return;
-    if (contentCache.current.has(activeTabId)) return;
+    if (!api || !activeTabId || !scope.mounted || scope.blocked || scope.contentCache.has(activeTabId)) return;
+    const generation = scope.generation;
     let active = true;
+    const live = () => active && scope.mounted && scope.generation === generation && scope.tabs.some(tab => tab.id === activeTabId);
     setContentLoading(true);
     setContentError(null);
     api
       .readWorkspaceFile(activeTabId)
       .then((content) => {
-        if (!active) return;
-        contentCache.current.set(activeTabId, content);
+        if (!live()) return;
+        scope.contentCache.set(activeTabId, content);
         // 内容没变就沿用旧对象,React 直接跳过重渲染,预览不会因为无关的 git 事件闪动。
         setActiveContent((current) => (sameFileContent(current, content) ? current : content));
         setContentTabId(activeTabId);
       })
       .catch((error) => {
-        if (!active) return;
+        if (!live()) return;
         setContentError(error instanceof Error ? error.message : "读取失败");
         // 同一标签重读失败保留旧内容;新标签失败清掉内容归属,让错误信息显示出来。
         setActiveContent((current) => (contentTabIdRef.current === activeTabId ? current : null));
         setContentTabId(activeTabId);
       })
       .finally(() => {
-        if (active) setContentLoading(false);
+        if (live()) setContentLoading(false);
       });
     return () => {
       active = false;
     };
-  }, [activeTabId, revision]);
+  }, [activeTabId, revision, scope]);
 
-  // 事件订阅:git 变更重读打开中的文件;切换工作区时清空预览。
-  useEffect(() => {
+  useLayoutEffect(() => {
     const api = window.vela;
     if (!api) return;
     const offGit = api.onGitEvent(() => {
-      if (tabsRef.current.length === 0) return;
-      contentCache.current.clear();
-      setRevision((value) => value + 1);
+      if (!scope.mounted || scope.blocked || !scope.tabs.length) return;
+      scope.contentCache.clear();
+      setRevision(value => value + 1);
       refreshFileList();
     });
-    const offWorkspace = api.onWorkspaceEvent(() => {
-      const ids = tabsRef.current.map((tab) => tab.id);
-      onCloseAllFileTabsRef.current?.(ids);
-      contentCache.current.clear();
-      scrollPositions.current.clear();
-      fileListRequested.current = false;
+    const offWorkspace = api.onWorkspaceEvent(event => {
+      if (!scope.mounted) return;
+      if (workspaceKey === undefined) {
+        scope.blocked = true;
+        scope.generation += 1;
+        setStandaloneRevision(value => value + 1);
+        return;
+      }
+      // IPC switches roots before React commits the new workspace prop. Ignore late
+      // results and do not start any more requests against the outgoing scope.
+      const blocked = (event.workspace.current ?? "") !== workspaceKey;
+      if (scope.blocked === blocked) return;
+      scope.blocked = blocked;
+      scope.generation += 1;
+      scope.contentCache.clear();
+      scope.scrollPositions.clear();
+      scope.fileListRequested = false;
       setFileList(null);
-      setTabs([]);
-      setActiveTabId(null);
+      setActiveContent(null);
+      setContentTabId(null);
+      setContentError(null);
+      setContentLoading(false);
+      setRevision(value => value + 1);
     });
     return () => {
       offGit();
       offWorkspace();
     };
-  }, [refreshFileList]);
+  }, [refreshFileList, scope, workspaceKey]);
 
   const fileSet = useMemo(() => (fileList ? new Set(fileList.files) : null), [fileList]);
 
@@ -358,8 +418,9 @@ export function FilePreviewProvider({
   const visibleLoading =
     activeTabId != null && visibleContent == null && (contentTabId !== activeTabId || contentLoading);
 
-  const value = useMemo<FilePreviewContextValue>(
+  const value = useMemo(
     () => ({
+      scope,
       open: tabs.length > 0,
       tabs,
       activeTab: tabs.find((tab) => tab.id === activeTabId) ?? null,
@@ -381,6 +442,7 @@ export function FilePreviewProvider({
       resolveFilePath,
     }),
     [
+      scope,
       tabs,
       activeTabId,
       visibleContent,
@@ -407,30 +469,38 @@ export function FilePreviewProvider({
 
 /** 每个文件标签独立读取与滚动；共享文件树、路径解析及宿主标签管理。 */
 export function FilePreviewScope({ path, visible, children }: { path: string; visible: boolean; children: ReactNode }) {
-  const parent = useFilePreview();
-  const [cached, setCached] = useState<{ revision: number; content: WorkspaceFileContent } | null>(null);
+  const parent = useContext(FilePreviewContext);
+  const scope = parent?.scope;
+  const activeTab = parent?.tabs.find(tab => tab.id === path) ?? null;
+  const [cached, setCached] = useState<{ scope: PreviewScope; generation: number; path: string; revision: number; content: WorkspaceFileContent } | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const shared = parent?.activeTab?.id === path;
-  const sharedContent = shared ? parent.activeContent : null;
+  const [failed, setFailed] = useState<{ scope: PreviewScope; generation: number; path: string; message: string } | null>(null);
+  const sharedContent = parent?.activeTab?.id === path ? parent.activeContent : null;
   const revision = parent?.revision ?? 0;
+  const generation = scope?.generation;
+  const current = cached?.scope === scope && cached?.generation === generation && cached?.path === path ? cached : null;
+  const error = failed?.scope === scope && failed?.generation === generation && failed?.path === path ? failed.message : null;
+  const open = activeTab !== null;
   useEffect(() => {
-    if (!visible || !parent || cached?.revision === revision || !window.vela) return;
-    let live = true;
-    setLoading(true); setError(null);
+    if (!visible || !open || !scope?.mounted || scope.blocked || current?.revision === revision || !window.vela) return;
+    const observedGeneration = scope.generation;
+    let active = true;
+    const live = () => active && scope.mounted && scope.generation === observedGeneration;
+    setLoading(true); setFailed(null);
     void window.vela.readWorkspaceFile(path).then(content => {
-      if (live) setCached(current => ({ revision, content: sameFileContent(current?.content ?? null, content) ? current!.content : content }));
+      if (live()) setCached({ scope, generation: observedGeneration, path, revision,
+        content: sameFileContent(current?.content ?? null, content) ? current!.content : content });
     }).catch(reason => {
-      if (live) setError(reason instanceof Error ? reason.message : "读取失败");
-    }).finally(() => { if (live) setLoading(false); });
-    return () => { live = false; };
-  }, [path, visible, revision, cached?.revision, !!parent]);
+      if (live()) setFailed({ scope, generation: observedGeneration, path, message: reason instanceof Error ? reason.message : "读取失败" });
+    }).finally(() => { if (live()) setLoading(false); });
+    return () => { active = false; };
+  }, [path, visible, revision, current, scope, open, generation]);
   if (!parent) return null;
-  const value: FilePreviewContextValue = {
-    ...parent, activeTab: parent.tabs.find(tab => tab.id === path) ?? null,
-    activeContent: cached?.content ?? sharedContent ?? null,
-    contentLoading: loading || (!cached && !sharedContent && !error),
-    contentError: error,
+  const value = {
+    ...parent, activeTab,
+    activeContent: open ? current?.content ?? sharedContent : null,
+    contentLoading: open && (loading || (!current && !sharedContent && !error)),
+    contentError: open ? error : null,
     consumeJump: () => parent.consumeJump(path),
   };
   return <FilePreviewContext.Provider value={value}>{children}</FilePreviewContext.Provider>;

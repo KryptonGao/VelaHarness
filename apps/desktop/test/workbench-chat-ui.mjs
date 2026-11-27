@@ -861,6 +861,12 @@ if (!process.versions.electron) {
       await evaluate("document.querySelector('.workbench-split-handle').dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }))");
       const groups = () => evaluate("({tabs: Array.from(document.querySelectorAll('.workbench-group'), g => [g.dataset.workbenchPane, g.querySelector('.workbench-tab').id]), ratio: document.querySelector('.workbench-split-handle').ariaValueNow})");
       const splitGroups = await groups();
+      // Reload rather than starting a fresh fixture: verify real pane membership and a non-default divider.
+      const savedPanes = `Array.from(document.querySelectorAll('.workbench-group'), g => [g.dataset.workbenchPane, ...Array.from(g.querySelectorAll('.workbench-tab'), t => t.id.split('-tab-').at(-1))])`;
+      const savedGroups = await evaluate(savedPanes);
+      await evaluate('location.reload()');
+      await until(`document.querySelector('.workbench-split-handle')?.ariaValueNow === ${JSON.stringify(splitGroups.ratio)} && JSON.stringify(${savedPanes}) === ${JSON.stringify(JSON.stringify(savedGroups))}`);
+      const reloadedGroups = await groups();
       await click(".workbench-fullscreen-button");
       await until("document.querySelectorAll('.workbench-group').length === 1 && document.querySelectorAll('.workbench-tab').length === 2");
       win.setSize(900, 900);
@@ -887,7 +893,7 @@ if (!process.versions.electron) {
       await capture("fullscreen-chat-long-table");
       await click(".workbench-restore");
       await until("document.querySelectorAll('.workbench-group').length === 2");
-      assert.deepEqual(await groups(), splitGroups);
+      assert.deepEqual(await groups(), reloadedGroups);
       await click(".workbench-fullscreen-button");
       await until(`document.querySelector('${expandedFloat} table')?.rows.length >= 48`);
       await checkSettingsResize();

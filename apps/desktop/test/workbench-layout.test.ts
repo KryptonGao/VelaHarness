@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { dropWorkbenchTab, emptyWorkbenchLayout, mergeWorkbenchPane, reconcileWorkbenchLayout, replaceWorkbenchTab, resizeWorkbenchDivider,
+import { dropWorkbenchTab, emptyWorkbenchLayout, isWorkbenchLayout, mergeWorkbenchPane, reconcileWorkbenchLayout, replaceWorkbenchTab, resizeWorkbenchDivider,
   selectWorkbenchTab, workbenchDropTarget, workbenchFits, workbenchGeometry, workbenchPaneOrder, workbenchRatioBounds, reorderWorkbenchTab, reorderWorkbenchStrip,
   WORKBENCH_MIN_PANE_HEIGHT, WORKBENCH_MIN_PANE_WIDTH, type WorkbenchLayout } from "../src/renderer/components/workbench-layout.ts";
 const initial = () => reconcileWorkbenchLayout(emptyWorkbenchLayout(), ["browser", "code", "terminal", "agent"]);
@@ -11,6 +11,15 @@ function assertInvariant(s: WorkbenchLayout, expected = ["agent", "browser", "co
   assert.ok(s.panes.length <= 4); assert.deepEqual(new Set(workbenchPaneOrder(s.root)), new Set(s.panes.map(p => p.id)));
   s.panes.forEach(p => { assert.ok(p.tabs.length); assert.ok(p.tabs.includes(p.selected)); });
 }
+test("restore a valid saved layout but reject corrupt pane references, selections, ratios and IDs", () => {
+  const valid = dropWorkbenchTab(initial(), "code", "pane-1", "right");
+  assert.ok(isWorkbenchLayout(JSON.parse(JSON.stringify(valid))));
+  assert.ok(isWorkbenchLayout(emptyWorkbenchLayout()));
+  for (const broken of [null, [], { ...valid, sequence: 1 }, { ...valid, focused: "missing" },
+    { ...valid, maximized: "missing" }, { ...valid, root: { ...valid.root, ratio: 2 } },
+    { ...valid, root: { ...valid.root, b: { pane: "pane-1" } } }, { ...valid, panes: valid.panes.map(p => ({ ...p, selected: "missing" })) },
+    { ...valid, panes: valid.panes.map(p => ({ ...p, tabs: [...p.tabs, "same-tab"] })) }]) assert.equal(isWorkbenchLayout(broken), false);
+});
 test("file replacement preserves its exact tab position and split pane", () => {
   let s = dropWorkbenchTab(initial(), "code", "pane-1", "right");
   s = { ...s, maximized: owner(s, "code") };

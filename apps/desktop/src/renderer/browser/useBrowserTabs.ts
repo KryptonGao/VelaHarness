@@ -11,6 +11,7 @@ const empty: BrowserWindowState = { tabs: [], selected: {}, activeConversationId
 export function useBrowserTabs(conversationId: string | null = null) {
   const api: BrowserPanelApi | undefined = window.vela?.browser;
   const [state, setState] = useState(empty);
+  const [ready, setReady] = useState(!api);
   const [allTabs, setTabs] = useState<RendererBrowserTab[]>([]);
   const controllers = useRef(new Map<string, BrowserController>());
   const latest = useRef(empty);
@@ -40,6 +41,7 @@ export function useBrowserTabs(conversationId: string | null = null) {
       if (!live) return;
       latest.current = next;
       setState(next);
+      setReady(true);
       setTabs(next.tabs.map(tab => {
         let controller = controllers.current.get(tab.id);
         if (!controller) { controller = new BrowserController({ tabId: tab.id, command }); controllers.current.set(tab.id, controller); }
@@ -51,7 +53,7 @@ export function useBrowserTabs(conversationId: string | null = null) {
       reconcile();
     };
     const unsubscribe = api.subscribe(next => { received = true; project(next); });
-    void api.command({ type: "state" }).then(next => { if (!received) project(next); }).catch((error: unknown) => log.error("browser state request failed", error));
+    void api.command({ type: "state" }).then(next => { if (!received) project(next); }).catch((error: unknown) => { if (live) setReady(true); log.error("browser state request failed", error); });
     return () => { live = false; unsubscribe(); };
   }, [api, command, reconcile]);
   // Commands share the IPC channel: activation is sent before subsequent user opens.
@@ -67,5 +69,5 @@ export function useBrowserTabs(conversationId: string | null = null) {
     else setTabs(current => current.filter(tab => tab.id !== id));
   }, [api, command]);
   const select = useCallback((id: string) => command({ type: "select", tabId: id }), [command]);
-  return { tabs: allTabs.filter(tab => tab.conversationId === conversationId), allTabs, open, close, select, command, state, hosted: !!api };
+  return { tabs: allTabs.filter(tab => tab.conversationId === conversationId), allTabs, open, close, select, command, state, ready, hosted: !!api };
 }
