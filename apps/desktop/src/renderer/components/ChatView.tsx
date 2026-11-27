@@ -4,6 +4,7 @@ import { LazyMount } from "./LazyMount";
 import { VersionControlView } from "./version-control/VersionControlView";
 import { webChatMessages } from "./web-chat-messages";
 import { isAgentBusy, visualToolName, type AppState, type AskUserQuestionRequest, type InteractionMode, type ToolTrace } from "@vela/shared";
+import { createPortal } from "react-dom";
 import { Fragment, memo, startTransition, useCallback, useContext, useEffect, useEffectEvent, useId, useLayoutEffect, useMemo, useOptimistic, useRef, useState, type ReactNode } from "react";
 import { useAgentWorkspace } from "./AgentPanel";
 import { modKeyLabel } from "../platform";
@@ -227,6 +228,9 @@ export interface ChatViewProps {
   openingChat?: number | null;
   visible?: boolean;
   floatingChat?: boolean;
+  showHeaderTitle?: boolean;
+  /** Fullscreen workbench: render the header actions in this tab-bar slot instead of a header row. */
+  actionsHost?: HTMLElement | null;
   conversationWorkbenchTabs?: boolean;
   onOpenWorkspaceOverview?: (workspace: string) => void;
   onOpenVersionControl?: (workspace: string) => void;
@@ -299,6 +303,8 @@ export function ChatView({
   openingChat = null,
   visible = false,
   floatingChat = false,
+  showHeaderTitle = true,
+  actionsHost = null,
   conversationWorkbenchTabs = false,
   onOpenWorkspaceOverview,
   onOpenVersionControl,
@@ -1003,13 +1009,80 @@ export function ChatView({
     <span className="chat-project-name">{projectPath?.split(/[\\/]/).filter(Boolean).pop()}</span>
     {project.git?.branch ? <span className="chat-project-branch">{project.git.branch}</span> : null}
   </>;
+  const headerActions = (
+  <div className="chat-header-actions">
+    {!embedded && hasWorkspace && projectPath && onOpenVersionControl ? (
+      <button type="button" className="view-icon-btn" title={tr("版本控制", "Version Control")}
+        aria-label={`${tr("版本控制", "Version Control")} · ${projectPath}`} onClick={() => onOpenVersionControl(projectPath)}>
+        <Icon name="branch" size={16} />
+      </button>
+    ) : null}
+    {!embedded && !actionsHost && projectPath ? (onOpenWorkspaceOverview ?
+      <button type="button" className="chat-project-context chat-project-link" title={overviewLabel} aria-label={overviewLabel}
+        onClick={() => onOpenWorkspaceOverview(projectPath)}>
+        <Icon name="folder" size={14} />{projectLabel}
+      </button> : <span className="chat-project-context" title={projectPath}>{projectLabel}</span>
+    ) : null}
+    {!embedded ? <OpenInAppButton path={project.workspace?.current ?? null} /> : null}
+    {subagents.length > 0 && onOpenAgentDirectory ? (
+      <button
+        className={`chat-agents-button${agentDirectoryActive ? " active" : ""}`}
+        type="button"
+        title={tr("子代理目录", "Subagent directory")}
+        aria-label={tr("子代理目录", "Subagent directory")}
+        onClick={onOpenAgentDirectory}
+      >
+        <Icon name="stack" size={14} />
+        <span>
+          {runningSubagents > 0
+            ? trf("{0} 运行中", "{0} running", runningSubagents)
+            : trf("{0} 个子代理", "{0} subagents", subagents.length)}
+        </span>
+      </button>
+    ) : null}
+    {showNewTab ? (
+      <button
+        className="view-icon-btn"
+        type="button"
+        title={`${tr("新建标签页", "New tab")} (${mod}T)`}
+        aria-label={tr("新建标签页", "New tab")}
+        onClick={onNewTab}
+      >
+        <Icon name="plus" size={16} />
+      </button>
+    ) : null}
+    {onOpenCheckpoints && state?.activeConversationId && messages.some(message => message.role === "user") ? (
+      <button
+        className="view-icon-btn"
+        type="button"
+        title={tr("检查点与回滚", "Checkpoints")}
+        aria-label={tr("检查点与回滚", "Checkpoints")}
+        aria-haspopup="dialog"
+        onClick={() => onOpenCheckpoints()}
+      >
+        <Icon name="history" size={16} />
+      </button>
+    ) : null}
+    <ChatActionsMenu key={state?.activeConversationId ?? "empty"} messages={messages} streaming={Boolean(streaming)} />
+    {!embedded && !emptyConversation && floatingInfo ? <button
+      className="icon-btn-ghost"
+      type="button"
+      title={`${rightLabel} (${mod}J)`}
+      aria-label={rightLabel}
+      aria-pressed={!rightCollapsed}
+      onClick={onToggleRight}
+    >
+      {infoCards ? <Icon name="cards" size={14} /> : <Icon name="list" size={14} />}
+    </button> : null}
+  </div>
+  );
   return (
     <QuestionContext.Provider value={question}>
     <ThinkingSummaryContext.Provider value={thinkingSummaries ?? null}>
     {floatingChat && floatHidden && <button ref={restoreFloatRef} type="button" className="floating-chat-restore"
       aria-label={floatShowLabel} title={floatShowLabel} onClick={toggleFloatHidden}><Icon name="chat" size={20} /></button>}
-    <main ref={chatRef} hidden={floatingChat && floatHidden} className={`main-chat-view${embedded ? " panel-chat-view" : ""}`} data-floating-chat={floatingChat ? (floatExpanded ? "expanded" : "collapsed") : undefined} data-tool-display={toolDisplay} tabIndex={-1}>
-      {!floatingChat && view === "chat" && !emptyConversation ?
+    <main ref={chatRef} hidden={floatingChat && floatHidden} className={`main-chat-view${embedded ? " panel-chat-view" : ""}`} data-actions-hosted={!floatingChat && actionsHost ? "" : undefined} data-floating-chat={floatingChat ? (floatExpanded ? "expanded" : "collapsed") : undefined} data-tool-display={toolDisplay} tabIndex={-1}>
+      {!floatingChat && !actionsHost && view === "chat" && !emptyConversation ?
         <div className="chat-transcript-title-fade pane-info-header" aria-hidden="true" /> : null}
       {floatingChat && <div className="floating-chat-resize" role="separator" aria-orientation="horizontal" tabIndex={0}
         aria-label={tr("调整聊天浮窗高度", "Resize floating chat height")} aria-controls={`${tabIdPrefix}-messages`}
@@ -1026,8 +1099,8 @@ export function ChatView({
           <button type="button" className="view-icon-btn floating-chat-hide" aria-label={floatHideLabel} title={floatHideLabel}
             onClick={toggleFloatHidden}><Icon name="minus" size={14} /></button>
         </header>
-      ) : <header className="main-chat-header">
-        <div className="chat-title-group">
+      ) : actionsHost ? createPortal(headerActions, actionsHost) : <header className="main-chat-header">
+        {showHeaderTitle && <div className="chat-title-group">
           {state?.activeConversationId && onRenameConversation ? (
             <button
               className="chat-active-title chat-title-rename"
@@ -1037,72 +1110,8 @@ export function ChatView({
               onClick={() => onRenameConversation(state.activeConversationId!)}
             ><span>{title}</span><Icon name="edit" size={14} /></button>
           ) : <span className="chat-active-title overflow-fade-text" title={title}>{title}</span>}
-        </div>
-        <div className="chat-header-actions">
-          {!embedded && hasWorkspace && projectPath && onOpenVersionControl ? (
-            <button type="button" className="view-icon-btn" title={tr("版本控制", "Version Control")}
-              aria-label={`${tr("版本控制", "Version Control")} · ${projectPath}`} onClick={() => onOpenVersionControl(projectPath)}>
-              <Icon name="branch" size={16} />
-            </button>
-          ) : null}
-          {!embedded && projectPath ? (onOpenWorkspaceOverview ?
-            <button type="button" className="chat-project-context chat-project-link" title={overviewLabel} aria-label={overviewLabel}
-              onClick={() => onOpenWorkspaceOverview(projectPath)}>
-              <Icon name="folder" size={14} />{projectLabel}
-            </button> : <span className="chat-project-context" title={projectPath}>{projectLabel}</span>
-          ) : null}
-          {!embedded ? <OpenInAppButton path={project.workspace?.current ?? null} /> : null}
-          {subagents.length > 0 && onOpenAgentDirectory ? (
-            <button
-              className={`chat-agents-button${agentDirectoryActive ? " active" : ""}`}
-              type="button"
-              title={tr("子代理目录", "Subagent directory")}
-              aria-label={tr("子代理目录", "Subagent directory")}
-              onClick={onOpenAgentDirectory}
-            >
-              <Icon name="stack" size={14} />
-              <span>
-                {runningSubagents > 0
-                  ? trf("{0} 运行中", "{0} running", runningSubagents)
-                  : trf("{0} 个子代理", "{0} subagents", subagents.length)}
-              </span>
-            </button>
-          ) : null}
-          {showNewTab ? (
-            <button
-              className="view-icon-btn"
-              type="button"
-              title={`${tr("新建标签页", "New tab")} (${mod}T)`}
-              aria-label={tr("新建标签页", "New tab")}
-              onClick={onNewTab}
-            >
-              <Icon name="plus" size={16} />
-            </button>
-          ) : null}
-          {onOpenCheckpoints && state?.activeConversationId && messages.some(message => message.role === "user") ? (
-            <button
-              className="view-icon-btn"
-              type="button"
-              title={tr("检查点与回滚", "Checkpoints")}
-              aria-label={tr("检查点与回滚", "Checkpoints")}
-              aria-haspopup="dialog"
-              onClick={() => onOpenCheckpoints()}
-            >
-              <Icon name="history" size={16} />
-            </button>
-          ) : null}
-          <ChatActionsMenu key={state?.activeConversationId ?? "empty"} messages={messages} streaming={Boolean(streaming)} />
-          {!embedded && !emptyConversation && floatingInfo ? <button
-            className="icon-btn-ghost"
-            type="button"
-            title={`${rightLabel} (${mod}J)`}
-            aria-label={rightLabel}
-            aria-pressed={!rightCollapsed}
-            onClick={onToggleRight}
-          >
-            {infoCards ? <Icon name="cards" size={14} /> : <Icon name="list" size={14} />}
-          </button> : null}
-        </div>
+        </div>}
+        {headerActions}
       </header>}
 
       {showViewTabs && <ConversationViewTabs idPrefix={tabIdPrefix} view={view} showVersionControl={hasWorkspace && !embedded} emptyConversation={emptyConversation} onChange={setView} />}

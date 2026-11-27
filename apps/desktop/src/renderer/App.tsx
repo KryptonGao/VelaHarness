@@ -4,6 +4,7 @@ import { WorkspaceOverviewPage } from "./components/WorkspaceOverviewPage";
 import { AgentInboxPage } from "./components/AgentInboxPage";
 import { useAgentInbox } from "./hooks/useAgentInbox";
 import { uiStorage } from "./ui-storage";
+import { withViewTransition } from "./view-transition";
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState, type ContextType } from "react";
 import { type AgentInboxNavigation, type MenuAction, type ReleaseNotes, type TaskRecipe } from "@vela/shared";
 import { AgentWorkspaceProvider } from "./components/AgentPanel";
@@ -167,6 +168,7 @@ export function App() {
   /** 对话经验提炼到项目记忆：Diff 预览确认后追加写入项目 MEMORY.md。 */
   const [memoryDistill, setMemoryDistill] = useState<{ conversationId: string; upToTurn?: number } | null>(null);
   const [composerSeed, setComposerSeed] = useState<ComposerSeed | null>(null);
+  const [chatActionsHost, setChatActionsHost] = useState<HTMLElement | null>(null);
   const consumeComposerSeed = useCallback((id: string) => setComposerSeed(current => current?.id === id ? null : current), []);
   const offerComposerSeed = useCallback((conversationId: string, text: string) =>
     setComposerSeed({ id: crypto.randomUUID(), conversationId, text }), []);
@@ -289,6 +291,7 @@ export function App() {
   const chatDestination = useRef<string | null>(null);
   const newChatRequest = useRef(0);
   const [openingChat, setOpeningChat] = useState<number | null>(null);
+  const mainChatState = openingChat === null ? session.state : null;
   const openNewChat = (cwd?: string) => showHomeThen(() => {
     const request = ++newChatRequest.current;
     setOpeningChat(request);
@@ -1193,7 +1196,9 @@ export function App() {
                           onOpenAgentDirectory={openAgentDirectory} agentDirectoryActive={visibleWorkbenchTabIds.includes(directoryTabId)}
                           messageStore={session.messageStore}
                           openingChat={openingChat}
-                          state={openingChat === null ? session.state : null}
+                          state={mainChatState}
+                          showHeaderTitle={!fullscreen}
+                          actionsHost={fullscreen && workbenchView === "chat" ? chatActionsHost : null}
                           sendError={openingChat === null ? session.sendError : null}
                           platform={platform}
                           floatingChat={floatingChat}
@@ -1257,8 +1262,11 @@ export function App() {
                         layoutReady={workbenchReady}
                         fullscreen={fullscreen}
                         showingChat={fullscreen && workbenchView === "chat"}
+                        pinnedChatTitle={displayConversationTitle(mainChatState?.session.title)}
+                        chatActionsRef={setChatActionsHost}
+                        onRenamePinnedChat={mainChatState?.activeConversationId ? () => openRenameConversation(mainChatState.activeConversationId!) : undefined}
                         onShowChat={() => setWorkbenchView("chat")}
-                        onToggleFullscreen={() => setWorkbenchView(fullscreen ? "split" : "panel")}
+                        onToggleFullscreen={() => withViewTransition("workbench-layout", () => setWorkbenchView(fullscreen ? "split" : "panel"))}
                         splitEnabled={preferences.workbenchSplit}
                         onVisibleTabsChange={setVisibleWorkbenchTabIds}
                         onExitChange={setWorkbenchExiting}

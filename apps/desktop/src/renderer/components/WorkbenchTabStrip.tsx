@@ -40,9 +40,10 @@ function useTabEntries(tabs: WorkbenchTab[], allTabs: WorkbenchTab[], replacemen
 }
 
 export function WorkbenchTabStrip({ tabs, allTabs, replacement, splitEnabled, draggingId, selected, split, maximized, renderLabel, tabButtonId, tabPanelId,
-  fullscreen, showingChat, onShowChat, onToggleFullscreen, onActivate, onClose, onNewTab, onMerge, onMaximize, onPlace, onEqualize, onSplit, onReorder, onTabPointerDown,
+  fullscreen, showingChat, pinnedChatTitle = tr("新对话", "New chat"), onRenamePinnedChat, chatActionsRef, onShowChat, onToggleFullscreen, onActivate, onClose, onNewTab, onMerge, onMaximize, onPlace, onEqualize, onSplit, onReorder, onTabPointerDown,
 }: {
   tabs: WorkbenchTab[]; allTabs: WorkbenchTab[]; replacement?: { from: string; to: string } | null; splitEnabled: boolean; draggingId: string | null; selected: string; split: boolean; maximized: boolean;
+  pinnedChatTitle?: string; onRenamePinnedChat?: () => void; chatActionsRef?: (node: HTMLElement | null) => void;
   fullscreen: boolean; showingChat: boolean; onShowChat?: () => void; onToggleFullscreen?: () => void;
   renderLabel: (tab: WorkbenchTab) => ReactNode; tabButtonId: (tab: WorkbenchTab) => string; tabPanelId: (tab: WorkbenchTab) => string;
   onActivate: (tab: WorkbenchTab) => void; onClose: (tab: WorkbenchTab) => void; onNewTab: () => void;
@@ -75,8 +76,8 @@ export function WorkbenchTabStrip({ tabs, allTabs, replacement, splitEnabled, dr
     if (hovered.current && tabs.length > before) setPinned(measure(tabs.length, null));
   }, [tabs.length, measure]);
   useLayoutEffect(() => {
-    const list = listRef.current, bar = barRef.current;
-    if (!list || !bar) return;
+    const list = listRef.current, bar = barRef.current, lane = laneRef.current;
+    if (!list || !bar || !lane) return;
     const reveal = () => {
       const button = buttons.current.get(selected); if (!button || list.hasAttribute("data-sorting")) return;
       const left = button.offsetLeft, right = left + button.offsetWidth;
@@ -98,6 +99,7 @@ export function WorkbenchTabStrip({ tabs, allTabs, replacement, splitEnabled, dr
     reveal(); update();
     let frame = 0;
     const schedule = () => { if (!frame) frame = requestAnimationFrame(() => { frame = 0; update(); }); };
+    // Listen on the lane, not the list: the close buttons live in a sibling layer above the tabs and would swallow trackpad swipes.
     const onWheel = (event: WheelEvent) => {
       if (event.ctrlKey || event.metaKey) return;
       const max = list.scrollWidth - list.clientWidth;
@@ -107,10 +109,10 @@ export function WorkbenchTabStrip({ tabs, allTabs, replacement, splitEnabled, dr
       if (next === list.scrollLeft) return;
       event.preventDefault(); list.scrollLeft = next;
     };
-    list.addEventListener("scroll", schedule, { passive: true }); list.addEventListener("wheel", onWheel, { passive: false });
+    list.addEventListener("scroll", schedule, { passive: true }); lane.addEventListener("wheel", onWheel, { passive: false });
     const observer = new ResizeObserver(() => { reveal(); schedule(); setTabWidth(measure(tabs.length, pinned)); });
     observer.observe(laneRef.current!); observer.observe(list); observer.observe(bar); buttons.current.forEach(b => observer.observe(b));
-    return () => { observer.disconnect(); cancelAnimationFrame(frame); list.removeEventListener("scroll", schedule); list.removeEventListener("wheel", onWheel); };
+    return () => { observer.disconnect(); cancelAnimationFrame(frame); list.removeEventListener("scroll", schedule); lane.removeEventListener("wheel", onWheel); };
   }, [tabs, selected, pinned, measure]);
   useEffect(() => {
     if (!menu) return;
@@ -162,9 +164,14 @@ export function WorkbenchTabStrip({ tabs, allTabs, replacement, splitEnabled, dr
     onPointerEnter={event => { if (event.pointerType !== "touch") { hovered.current = true; setPinned(current => current ?? tabWidth); } }}
     onPointerLeave={() => { hovered.current = false; setPinned(null); }}>
     {fullscreen && <>
-      <button ref={chatButton} className="workbench-pinned-chat" type="button" aria-pressed={showingChat} onClick={onShowChat}>
-        {tr("聊天", "Chat")}
-      </button>
+      <div className="workbench-pinned-chat-group">
+        <button ref={chatButton} className="workbench-pinned-chat" type="button" aria-pressed={showingChat} title={pinnedChatTitle} onClick={onShowChat}>
+          <span className="overflow-fade-text">{pinnedChatTitle}</span>
+        </button>
+        {onRenamePinnedChat && <button type="button" className="workbench-group-action workbench-pinned-rename"
+          title={tr("重命名对话", "Rename chat")} data-tooltip aria-label={`${tr("重命名对话", "Rename chat")} “${pinnedChatTitle}”`}
+          onClick={onRenamePinnedChat}><Icon name="edit" size={14} /></button>}
+      </div>
       <button type="button" className="workbench-group-action workbench-restore" title={restoreLabel} aria-label={restoreLabel} onClick={onToggleFullscreen}>
         <Icon name="chevron-right" size={12} />
       </button>
@@ -213,6 +220,7 @@ export function WorkbenchTabStrip({ tabs, allTabs, replacement, splitEnabled, dr
       title={tr("关闭窗口，保留标签", "Close pane and keep tabs")} onClick={onMerge}><Icon name="close" size={12} /></button>}
     {!fullscreen && onToggleFullscreen && <button className="workbench-group-action workbench-fullscreen-button" type="button"
       title={fullscreenLabel} aria-label={fullscreenLabel} onClick={onToggleFullscreen}><Icon name="maximize" size={14} /></button>}
+    {fullscreen && showingChat && chatActionsRef && <div className="workbench-chat-actions" ref={chatActionsRef} />}
     {splitEnabled && menu && createPortal(<div ref={menuRef} id={menuId} className="workbench-pane-menu" role="menu" style={menu}>
       <button type="button" role="menuitem" onClick={() => { setMenu(null); onPlace(); }}>{tr("移动当前标签", "Move current tab")}</button>
       {split && <><button type="button" role="menuitem" onClick={() => { setMenu(null); onMaximize(); }}>{maximized ? tr("还原窗口", "Restore pane") : tr("放大窗口", "Maximize pane")}</button>

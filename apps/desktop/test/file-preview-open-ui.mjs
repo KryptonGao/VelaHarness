@@ -131,6 +131,8 @@ if (!process.versions.electron) {
       return { top: box.top, height: box.height, fadeHeight: parseFloat(paint.height),
         paint: paint.backgroundImage, pointer: paint.pointerEvents,
         surface: getComputedStyle(body.closest('.preview-main-split')).backgroundColor,
+        gutter: getComputedStyle(body.querySelector('.code-row-gutter')).backgroundColor,
+        explorer: getComputedStyle(document.querySelector('${selector('.preview-explorer-pane')}')).backgroundColor,
         bodyTop: body.getBoundingClientRect().top, lineTop: document.querySelector('${firstLine}').getBoundingClientRect().top };
     })()`);
     await until(`document.querySelector('.workbench-panel').getAnimations().length === 0 &&
@@ -140,8 +142,19 @@ if (!process.versions.electron) {
     assert.equal(start.fadeHeight, start.height + 14);
     assert.equal(start.pointer, "none");
     assert.match(start.paint, /^linear-gradient\(.*(?:transparent|rgba\(0, 0, 0, 0\))\)$/);
+    assert.equal(start.gutter, start.surface, "Line numbers must blend into the file surface");
+    if (theme === "dark") assert.equal(start.surface, start.explorer, "Dark file and tree surfaces must match");
     assert.ok(start.paint.startsWith(`linear-gradient(${start.surface},`), "The fade must start with the preview surface color");
     assert.ok(start.lineTop >= start.top + start.fadeHeight - 1, "First line must clear the gradient");
+    if (theme === "dark") {
+      await clickControl('.code-row[data-line="1"] .code-row-gutter');
+      await until(`document.querySelector('${firstLine}').classList.contains('active') && !getSelection().isCollapsed`);
+      assert.ok(await evaluate(`(() => {
+        const row = document.querySelector('${firstLine}');
+        return getComputedStyle(row).backgroundColor === getComputedStyle(row.nextElementSibling).backgroundColor;
+      })()`), "Selecting text must not darken the rest of its line");
+      await evaluate("getSelection().removeAllRanges()");
+    }
     await wheelThroughHeader('.code-scroll');
     const scrolled = await headerInfo();
     assert.equal(scrolled.top, start.top);

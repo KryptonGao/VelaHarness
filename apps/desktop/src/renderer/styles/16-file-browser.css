@@ -17,6 +17,10 @@
   overflow: hidden;
 }
 
+[data-scheme="dark"] .panel-file-preview-view {
+  --pane-info-surface: var(--bg-chat);
+}
+
 .preview-tabs-bar {
   flex: none;
   height: 38px;
@@ -272,7 +276,7 @@
   min-height: 0;
   display: flex;
   overflow: hidden;
-  background: var(--bg-elevated);
+  background: var(--pane-info-surface);
   /* Keep body stacking contexts (e.g. the sticky code gutter) under the toolbar. */
   isolation: isolate;
 }
@@ -320,7 +324,7 @@
   padding: 0 10px 0 6px;
   text-align: right;
   color: var(--text-dim);
-  background: var(--bg-elevated);
+  background: var(--pane-info-surface);
   user-select: none;
   font-variant-numeric: tabular-nums;
 }
@@ -330,6 +334,9 @@
 }
 .code-row.active {
   background: var(--bg-code);
+}
+[data-scheme="dark"] .code-row[data-active-source="selection"] {
+  background: transparent;
 }
 .code-row-content {
   flex: 1;

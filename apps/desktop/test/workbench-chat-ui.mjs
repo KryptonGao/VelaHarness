@@ -50,7 +50,10 @@ if (!process.versions.electron) {
     };
     const click = async selector => {
       await until(`document.querySelector(${JSON.stringify(selector)})`);
-      return evaluate(`document.querySelector(${JSON.stringify(selector)}).click()`);
+      const result = await evaluate(`document.querySelector(${JSON.stringify(selector)}).click()`);
+      // Fullscreen <-> split runs a view transition during which the page is not hit-testable.
+      await until("!document.documentElement.hasAttribute('data-view-transition')");
+      return result;
     };
     const input = (selector, value) => evaluate(`(() => { const el = document.querySelector(${JSON.stringify(selector)}); if (el.isContentEditable) el.textContent = ${JSON.stringify(value)}; else Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set.call(el, ${JSON.stringify(value)}); el.dispatchEvent(new Event('input', {bubbles:true})); })()`);
     const capture = async name => {
@@ -237,7 +240,21 @@ if (!process.versions.electron) {
         address.dispatchEvent(new Event('input', { bubbles: true })); })()`);
       await evaluate("document.querySelector('.start-address-form').requestSubmit()");
       await until("document.querySelector('.browser-page-title')?.textContent === 'Browser fixture'");
-      await click('.workbench-fullscreen-button');
+      const morph = await evaluate(`(async () => {
+        const original = document.startViewTransition.bind(document); let transition;
+        document.startViewTransition = callback => (transition = original(callback));
+        document.querySelector('.workbench-fullscreen-button').click();
+        await transition.ready;
+        const groups = document.getAnimations().map(animation => animation.effect?.pseudoElement).filter(name => name?.startsWith('::view-transition-group'));
+        document.startViewTransition = original;
+        const guestsHidden = [...document.querySelectorAll('.browser-guest-frame')].every(frame => getComputedStyle(frame).visibility === 'hidden');
+        await transition.finished;
+        return { groups, guestsHidden, cleared: !document.documentElement.hasAttribute('data-view-transition') };
+      })()`);
+      assert.ok(morph.groups.includes('::view-transition-group(workbench-panel)'), `Panel must morph into fullscreen: ${JSON.stringify(morph)}`);
+      assert.ok(morph.groups.includes('::view-transition-group(workbench-chat)'), `Main chat must morph with the panel: ${JSON.stringify(morph)}`);
+      assert.ok(morph.guestsHidden, 'Native webview layers must stay hidden while the morph plays instead of covering it');
+      assert.ok(morph.cleared, 'Transition names must be removed once the animation ends');
       await until("document.querySelector('.nav-rail-layout.workbench-fullscreen [data-floating-chat] .rich-input')");
       const hitCenter = selector => evaluate(`(() => { const el = document.querySelector(${JSON.stringify(selector)});
         const { x, y, width, height } = el.getBoundingClientRect();
@@ -890,10 +907,19 @@ if (!process.versions.electron) {
           viewportBottom: innerHeight, scrollable: scroll.scrollHeight > scroll.clientHeight };
       })()`);
       assert.ok(composerLayout.composerBottom <= composerLayout.viewportBottom && composerLayout.scrollable, JSON.stringify(composerLayout));
+      const pinnedTitle = "document.querySelector('.workbench-pinned-chat')?.textContent";
+      await until(`${pinnedTitle} === '长表格'`);
+      assert.equal(await evaluate(`document.querySelector('${pinned} .chat-title-group')`), null);
+      await click('.workbench-pinned-rename');
+      await until("document.activeElement.matches('.rename-conversation-dialog input') && document.activeElement.value === '长表格'");
+      await win.webContents.insertText('统一深色模式预览区背景');
+      await click('.rename-conversation-save');
+      await until(`${pinnedTitle} === '统一深色模式预览区背景' && !document.querySelector('.rename-conversation-dialog')`);
       await capture("fullscreen-chat-long-table");
       await click(".workbench-restore");
       await until("document.querySelectorAll('.workbench-group').length === 2");
       assert.deepEqual(await groups(), reloadedGroups);
+      await until("document.querySelector('.main-stage-pane > .main-chat-view .chat-title-rename')?.textContent === '统一深色模式预览区背景' && !document.querySelector('.workbench-pinned-chat')");
       await click(".workbench-fullscreen-button");
       await until(`document.querySelector('${expandedFloat} table')?.rows.length >= 48`);
       await checkSettingsResize();
@@ -959,7 +985,8 @@ if (!process.versions.electron) {
         const layout = await checkTitleLayout(scope, label, hasTabs);
         const actions = `${scope} .chat-actions-anchor > button`;
         assert.ok(await hitCenter(actions), `${label}: title action accepts pointer hits`);
-        assert.ok(await hitCenter(`${scope} .chat-title-rename`), `${label}: rename is above the fade`);
+        const rename = scope === pinned ? '.workbench-pinned-rename' : `${scope} .chat-title-rename`;
+        assert.ok(await hitCenter(rename), `${label}: rename is above the fade`);
 
         const point = await evaluate(`(() => {
           const r = document.querySelector(${header}).getBoundingClientRect();
@@ -1065,21 +1092,25 @@ if (!process.versions.electron) {
         await until("document.querySelector('[data-floating-chat] .rich-input')");
         assert.equal(await evaluate("document.querySelector('[data-floating-chat] .chat-transcript-title-fade')"), null);
         await click('.workbench-pinned-chat');
-        await checkInnerTitle(pinned, mode, mode === 'ordinary-classic');
-        if (mode === 'ordinary-classic') {
-          // The App couples borderless mode to workbench-level conversation tabs.
-          // Force only the CSS class to exercise the cascade with inner tabs still present.
-          await evaluate("document.querySelector('.vela-window').classList.add('borderless-interface')");
-          await checkTitleLayout(pinned, 'borderless pinned chat with inner tabs (forced CSS)', true);
-          await evaluate("document.querySelector('.vela-window').classList.remove('borderless-interface')");
-          console.log('PASS borderless pinned chat with inner tabs (forced CSS): full heading overlap and tail clearance');
-        }
-        await click(`${pinned} .chat-header-actions button[aria-label="展开信息卡片"]`);
+        // Fullscreen hosts the chat actions in the tab bar: no inner heading row, no project-folder link.
+        const bar = '.workbench-tabbar .workbench-chat-actions';
+        assert.equal(await evaluate(`document.querySelector(${JSON.stringify(pinned + ' > .main-chat-header')})`), null, `${mode}: pinned chat has no heading row`);
+        assert.equal(await evaluate(`document.querySelector(${JSON.stringify(pinned + ' > .chat-transcript-title-fade')})`), null, `${mode}: pinned chat has no title fade`);
+        assert.equal(await evaluate(`document.querySelector(${JSON.stringify(bar + ' .chat-project-context')})`), null, `${mode}: the folder button is hidden in the tab bar`);
+        assert.ok(await hitCenter(`${bar} .chat-actions-anchor > button`), `${mode}: tab-bar action accepts pointer hits`);
+        await click(`${bar} .chat-actions-anchor > button`);
+        await until(`document.querySelector(${JSON.stringify(bar + ' .chat-actions-menu')})`);
+        const menuBelowBar = await evaluate(`(() => { const items = document.querySelectorAll(${JSON.stringify(bar + ' .chat-actions-menu button')}), menu = items[items.length - 1];
+          const { x, y, width, height } = menu.getBoundingClientRect();
+          return { below: y + height > document.querySelector('.workbench-tabbar').getBoundingClientRect().bottom + 1, hit: menu.contains(document.elementFromPoint(x + width / 2, y + height / 2)) }; })()`);
+        assert.deepEqual(menuBelowBar, { below: true, hit: true }, `${mode}: the actions menu escapes the tab bar and stays clickable`);
+        await evaluate("document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))");
+        await click(`${bar} .chat-header-actions button[aria-label="展开信息卡片"]`);
         const card = `${pinned} .info-card-stack:not([data-concealed]) .info-card-title`;
         await until(`document.querySelector(${JSON.stringify(card)})`);
         await until(`parseFloat(getComputedStyle(document.querySelector(${JSON.stringify(card)})).getPropertyValue('--info-drawer-open')) >= .99`);
-        assert.ok(await evaluate(`document.querySelector(${JSON.stringify(card)}).getBoundingClientRect().top > document.querySelector(${JSON.stringify(pinned + ' .main-chat-header')}).getBoundingClientRect().bottom`));
-        assert.ok(await hitCenter(card), `${mode}: pinned info cards stay interactive below the title`);
+        assert.ok(await evaluate(`document.querySelector(${JSON.stringify(card)}).getBoundingClientRect().top > document.querySelector('.workbench-tabbar').getBoundingClientRect().bottom`));
+        assert.ok(await hitCenter(card), `${mode}: pinned info cards stay interactive below the tab bar`);
         console.log(`PASS ${mode} workbench and pinned-chat title fade, scroll, menus, keyboard focus and information cards`);
       }
       assert.equal(errors.length, 0, errors.join("\n"));

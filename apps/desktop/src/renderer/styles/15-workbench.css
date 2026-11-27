@@ -279,6 +279,7 @@
 .nav-rail-layout.workbench-fullscreen .showing-pinned-chat > .main-chat-view { mask-position: 0 0, 0 bottom, 0 0; }
 .workbench-fullscreen .showing-pinned-chat > .main-chat-view > .main-chat-header {
   flex: 0 0 var(--chat-inner-title-height);
+  justify-content: flex-end;
   padding-left: 20px;
 }
 .workbench-fullscreen .workbench-panel::before,
@@ -287,19 +288,34 @@
 .workbench-fullscreen .workbench-tabbar {
   padding-left: max(16px, var(--titlebar-inset, 0px));
 }
-.workbench-pinned-chat {
-  flex: none;
-  display: inline-flex;
+/* Fullscreen: the chat header actions live in the tab bar. Their menus drop below the bar, so it must not clip downwards. */
+.vela-window.workbench-fullscreen .showing-pinned-chat > .workbench-clip { overflow: visible; position: relative; z-index: 4; }
+.vela-window.workbench-fullscreen .showing-pinned-chat > .workbench-clip > .workbench-panel,
+.vela-window.workbench-fullscreen .showing-pinned-chat .workbench-canvas { overflow: visible; }
+.workbench-fullscreen .workbench-tabbar { overflow: visible; clip-path: inset(0 0 -480px 0); }
+.workbench-chat-actions { display: flex; align-items: center; flex: none; margin-left: 4px; -webkit-app-region: no-drag; }
+.showing-pinned-chat > .main-chat-view[data-actions-hosted] { --chat-inner-title-height: 0px; }
+.workbench-pinned-chat-group {
+  display: flex;
   align-items: center;
-  gap: 4px;
-  height: 28px;
-  min-width: 80px;
-  padding: 0 8px;
-  color: var(--text-muted);
+  max-width: min(40%, 420px);
+  min-width: 0;
   border-radius: var(--radius-sm);
   -webkit-app-region: no-drag;
 }
-.workbench-pinned-chat[aria-pressed="true"] { color: var(--text-primary); background: var(--bg-surface-subtle); }
+.workbench-pinned-chat-group:has([aria-pressed="true"]) { background: var(--bg-surface-subtle); }
+.workbench-pinned-chat {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: inherit;
+  color: var(--text-muted);
+  font-size: calc(15px * var(--ui-scale));
+  font-weight: 600;
+}
+.workbench-pinned-chat[aria-pressed="true"] { color: var(--text-primary); }
 .workbench-pinned-chat:hover { color: var(--text-primary); background: var(--bg-hover); }
 .workbench-pinned-chat:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: -2px; }
 
@@ -939,3 +955,27 @@
     transition: height 220ms ease-in-out, opacity 150ms ease, overflow 0s 220ms allow-discrete;
   }
 }
+
+/* Fullscreen <-> split: the panel and the main chat morph between their two boxes.
+ * Names are only attached while the transition runs (see view-transition.ts) because
+ * they create stacking contexts that would bury resize handles under hosted webviews. */
+:root[data-view-transition="workbench-layout"] .workbench-panel { view-transition-name: workbench-panel; }
+:root[data-view-transition="workbench-layout"] .main-stage-pane > .main-chat-view:not([hidden]) { view-transition-name: workbench-chat; }
+:root[data-view-transition="workbench-layout"]::view-transition-group(*) {
+  animation-duration: 280ms;
+  animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
+}
+/* The expanding panel is painted over the chat by default and would hide its whole morph. */
+:root[data-view-transition="workbench-layout"]::view-transition-group(workbench-panel) { z-index: 1; }
+:root[data-view-transition="workbench-layout"]::view-transition-group(workbench-chat) { z-index: 2; }
+:root[data-view-transition="workbench-layout"]::view-transition-old(workbench-panel),
+:root[data-view-transition="workbench-layout"]::view-transition-new(workbench-panel),
+:root[data-view-transition="workbench-layout"]::view-transition-old(workbench-chat),
+:root[data-view-transition="workbench-layout"]::view-transition-new(workbench-chat) {
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+}
+/* Hosted webviews are native layers that cannot join the morph: the guest frame is fixed-positioned
+ * from the destination layout, so it would jump to the final box and cover the whole animation. */
+:root[data-view-transition] .browser-guest-frame { visibility: hidden !important; }

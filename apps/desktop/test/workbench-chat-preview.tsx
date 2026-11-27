@@ -131,6 +131,7 @@ window.vela = {
   },
   setThinkingLevel: async (thinkingLevel, id = active) => { calls.push({ name: "thinking", id }); sessions.get(id)!.thinkingLevel = thinkingLevel; broadcast(); return state(id); },
   switchConversation: async id => { calls.push({ name: "switch", id }); active = id; broadcast(); return state(); },
+  renameConversation: async (id, title) => { sessions.get(id)!.title = title; broadcast(); return state(); },
   rewindConversation: async (id, turnIndex) => {
     calls.push({ name: "rewind", id });
     const history = messages.get(id)!;

@@ -14,6 +14,8 @@ const maxRenderLineChars = 3000;
 
 const fontStyleMask = { italic: 1, bold: 2, underline: 4 } as const;
 
+type ActiveLineSource = "selection" | "jump";
+
 interface CodeRow {
   line: number;
   text: string;
@@ -30,7 +32,7 @@ export function CodePane({ onOpenExternal, commentConversationId, onCommentAdded
   const content = preview?.activeContent ?? null;
 
   const [highlight, setHighlight] = useState<{ tabId: string; source: string; lines: ThemedToken[][] } | null>(null);
-  const [activeLine, setActiveLine] = useState<{ tabId: string; line: number } | null>(null);
+  const [activeLine, setActiveLine] = useState<{ tabId: string; line: number; source: ActiveLineSource } | null>(null);
   const [imageView, setImageView] = useState<ImageViewerRequest | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const rowsRef = useRef<HTMLDivElement>(null);
@@ -109,7 +111,7 @@ export function CodePane({ onOpenExternal, commentConversationId, onCommentAdded
     const target = container.querySelector<HTMLElement>(`[data-line="${line}"]`);
     if (target) {
       target.scrollIntoView({ block: "center" });
-      setActiveLine({ tabId: tab.id, line });
+      setActiveLine({ tabId: tab.id, line, source: "jump" });
       preview?.consumeJump();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -134,7 +136,7 @@ export function CodePane({ onOpenExternal, commentConversationId, onCommentAdded
   }, [currentTabId]);
   const selectLine = useCallback(
     (line: number, gutter: boolean, extend: boolean) => {
-      if (currentTabId) setActiveLine({ tabId: currentTabId, line });
+      if (currentTabId) setActiveLine({ tabId: currentTabId, line, source: "selection" });
       const selection = window.getSelection();
       if (!commentConversationId || !rowsRef.current || !selection || (!gutter && !selection.isCollapsed)) return;
       if (!extend || !anchorLine.current) anchorLine.current = line;
@@ -242,7 +244,7 @@ export function CodePane({ onOpenExternal, commentConversationId, onCommentAdded
             <CodeRowView
               key={row.line}
               row={row}
-              active={activeLine?.tabId === tabId && activeLine.line === row.line}
+              active={activeLine?.tabId === tabId && activeLine.line === row.line ? activeLine.source : undefined}
               onSelect={selectLine}
             />
           ))}
@@ -271,12 +273,12 @@ const CodeRowView = memo(function CodeRowView({
   onSelect,
 }: {
   row: CodeRow;
-  active: boolean;
+  active?: ActiveLineSource;
   onSelect: (line: number, gutter: boolean, extend: boolean) => void;
 }) {
   const clipped = clipRow(row);
   return (
-    <div className={`code-row${active ? " active" : ""}`} data-line={row.line}
+    <div className={`code-row${active ? " active" : ""}`} data-line={row.line} data-active-source={active}
       onClick={event => onSelect(row.line, event.target instanceof Element && event.target.matches(".code-row-gutter"), event.shiftKey)}>
       <span className="code-row-gutter">{row.line}</span>
       <span className="code-row-content">
