@@ -57,7 +57,6 @@ export function ContextPanel({
   onOpenChanges,
 }: ContextPanelProps) {
   const [contextOpen, setContextOpen] = useState(false);
-  const [toolsOpen, setToolsOpen] = useState(false);
   const session = state?.session;
   const context = state?.context;
 
@@ -105,25 +104,6 @@ export function ContextPanel({
               {session?.cwd ?? "—"}
             </div>
           </div>
-        </PanelDisclosure>
-
-        <PanelDisclosure
-          title={tr("已启用工具", "Enabled tools")}
-          meta={String(session?.tools?.length ?? 0)}
-          open={toolsOpen}
-          onToggle={() => setToolsOpen((value) => !value)}
-        >
-          {session?.tools && session.tools.length > 0 ? (
-            <ul className="tool-chip-list">
-              {session.tools.map((tool) => (
-                <li className="tool-chip" key={tool}>
-                  {tool}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="tool-chip-empty">{tr("会话开始后显示", "Shown after the chat starts")}</p>
-          )}
         </PanelDisclosure>
       </div>
       <ContextUsageCard context={context} />

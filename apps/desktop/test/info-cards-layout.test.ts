@@ -14,31 +14,34 @@ import {
   showCard,
   stepRendered,
   toggleCollapsed,
+  infoCardIds,
   type InfoCardId,
-  type InfoCardLayout,
 } from "../src/renderer/components/info-cards/info-cards-layout.ts";
 
-const all = new Set<InfoCardId>(["env", "goal", "plan", "context", "outputs", "changes", "agents", "background", "tools"]);
+const all = new Set<InfoCardId>(infoCardIds);
 
-test("default layout hides tools and collapses context", () => {
+test("environment is opt-in and retired cards are not offered", () => {
   const layout = defaultLayout();
-  assert.deepEqual(renderedCards(layout, all), ["env", "goal", "plan", "context", "outputs", "changes", "agents", "background"]);
-  assert.deepEqual(hiddenCards(layout, all), ["tools"]);
+  assert.deepEqual(renderedCards(layout, all), ["goal", "plan", "context", "changes", "agents", "background"]);
+  assert.deepEqual(hiddenCards(layout, all), ["env"]);
   assert.deepEqual(layout.collapsed, ["context"]);
+  const restored = sanitizeLayout(showCard(layout, "env"));
+  assert.equal(renderedCards(restored, all).at(-1), "env");
+  assert.deepEqual(hiddenCards(restored, all), []);
 });
 
 test("cards without data are neither rendered nor offered for restore", () => {
-  const layout = defaultLayout();
-  const available = new Set<InfoCardId>(["env", "context", "tools"]);
-  assert.deepEqual(renderedCards(layout, available), ["env", "context"]);
-  assert.deepEqual(hiddenCards(layout, available), ["tools"]);
+  const layout = hideCard(defaultLayout(), "goal");
+  const available = new Set<InfoCardId>(["env", "context"]);
+  assert.deepEqual(renderedCards(layout, available), ["context"]);
+  assert.deepEqual(hiddenCards(layout, available), ["env"]);
 });
 
 test("reorder keeps unrendered cards in their slots", () => {
   const layout = defaultLayout();
-  const rendered = renderedCards(layout, new Set<InfoCardId>(["env", "plan", "changes"]));
-  const next = reorderRendered(layout, rendered, ["changes", "env", "plan"]);
-  assert.deepEqual(next.order, ["changes", "goal", "env", "context", "outputs", "plan", "agents", "background", "tools"]);
+  const rendered = renderedCards(layout, new Set<InfoCardId>(["env", "goal", "plan", "changes"]));
+  const next = reorderRendered(layout, rendered, ["changes", "goal", "plan"]);
+  assert.deepEqual(next.order, ["env", "changes", "goal", "context", "plan", "agents", "background"]);
 });
 
 test("reorder ignores a list that is not a permutation", () => {
@@ -50,10 +53,10 @@ test("reorder ignores a list that is not a permutation", () => {
 
 test("hide then show moves the card to the end", () => {
   let layout = hideCard(defaultLayout(), "goal");
-  assert.deepEqual(layout.hidden, ["tools", "goal"]);
+  assert.deepEqual(layout.hidden, ["env", "goal"]);
   assert.equal(hideCard(layout, "goal"), layout);
   layout = showCard(layout, "goal");
-  assert.deepEqual(layout.hidden, ["tools"]);
+  assert.deepEqual(layout.hidden, ["env"]);
   assert.equal(layout.order.at(-1), "goal");
   assert.equal(showCard(layout, "goal"), layout);
 });
@@ -68,14 +71,25 @@ test("collapse toggles without touching order", () => {
 
 test("sanitize drops unknown and duplicate ids and appends new cards", () => {
   const stored = {
-    order: ["plan", "bogus", "env", "plan", "context"],
-    hidden: ["nope", "env", "env"],
-    collapsed: ["plan", 3, "plan"],
-  } as unknown as InfoCardLayout;
+    order: ["plan", "outputs", "tools", "bogus", "env", "plan", "context"],
+    hidden: ["outputs", "tools", "nope", "env", "env"],
+    collapsed: ["plan", "outputs", "tools", 3, "plan"],
+  };
   const layout = sanitizeLayout(stored);
-  assert.deepEqual(layout.order, ["plan", "env", "context", "goal", "outputs", "changes", "agents", "background", "tools"]);
-  assert.deepEqual(layout.hidden, ["env", "tools"]);
+  assert.deepEqual(layout.order, ["plan", "env", "context", "goal", "changes", "agents", "background"]);
+  assert.deepEqual(layout.hidden, ["env"]);
   assert.deepEqual(layout.collapsed, ["plan"]);
+});
+
+test("only the untouched legacy layout adopts the new defaults", () => {
+  const previous = {
+    order: ["env", "goal", "plan", "context", "outputs", "changes", "agents", "background", "tools"],
+    hidden: ["tools"], collapsed: ["context"],
+  };
+  assert.deepEqual(sanitizeLayout(previous), defaultLayout());
+  const custom = sanitizeLayout({ ...previous, collapsed: ["env"] });
+  assert.deepEqual(custom.hidden, []);
+  assert.deepEqual(custom.collapsed, ["env"]);
 });
 
 test("step moves one place and stops at the ends", () => {
@@ -84,7 +98,7 @@ test("step moves one place and stops at the ends", () => {
   assert.deepEqual(stepRendered(rendered, "goal", 1), ["env", "plan", "goal"]);
   assert.equal(stepRendered(rendered, "env", -1), null);
   assert.equal(stepRendered(rendered, "plan", 1), null);
-  assert.equal(stepRendered(rendered, "tools", 1), null);
+  assert.equal(stepRendered(rendered, "background", 1), null);
 });
 
 test("drop index counts the boundaries above the dragged edge", () => {

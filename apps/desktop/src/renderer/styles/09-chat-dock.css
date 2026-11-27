@@ -661,25 +661,6 @@
 .context-usage-row.is-free .context-usage-value,
 .context-usage-row.is-free .context-usage-share { color: var(--text-muted); }
 
-.tool-chip-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 10px;
-  padding: 0;
-  list-style: none;
-}
-.tool-chip {
-  padding: 1px 0;
-  font-family: var(--font-mono);
-  font-size: calc(13px * var(--code-scale));
-  color: var(--text-muted);
-}
-.tool-chip-empty {
-  padding: 0 4px;
-  font-size: calc(15px * var(--ui-scale));
-  color: var(--text-muted);
-}
-
 .model-controls {
   display: flex;
   align-items: center;

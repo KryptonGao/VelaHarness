@@ -146,8 +146,6 @@ button.info-card-row:hover:not(:disabled), .info-card-row.is-active { background
 .info-card-row > svg { flex: none; color: var(--text-muted); }
 .info-card-row-main { flex: 1; min-width: 0; overflow: hidden; animation: vela-overflow-fade auto linear both; animation-timeline: scroll(self inline); white-space: nowrap; }
 .info-card-row-note { flex: none; max-width: 48%; overflow: hidden; animation: vela-overflow-fade auto linear both; animation-timeline: scroll(self inline); white-space: nowrap; font-size: calc(12px * var(--ui-scale)); color: var(--text-muted); }
-.info-card-file-icon { display: grid; place-items: center; width: 16px; height: 16px; flex: none; }
-.info-card-file-icon img, .info-card-file-icon svg { width: 16px; height: 16px; }
 .info-card-branch { position: relative; }
 .info-card-empty { margin: 4px 0; font-size: calc(12px * var(--ui-scale)); color: var(--text-muted); }
 .info-card-spacer { flex: 1; }
@@ -178,9 +176,6 @@ button.info-card-row:hover:not(:disabled), .info-card-row.is-active { background
 .info-card-mini i { display: block; height: 100%; border-radius: 3px; background: var(--accent-blue); }
 .info-card-mini.high i { background: var(--warning); }
 .info-card-mini.is-done i { background: var(--success); }
-
-.info-card-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
-.info-card-chips li { padding: 2px 8px; border-radius: var(--radius-xs); background: var(--bg-code); color: var(--text-secondary); font-family: var(--font-mono); font-size: calc(12px * var(--code-scale)); }
 
 /* 上下文用量沿用原组件，去掉它作为底部固定条的外观，并为信息卡片收紧行高。 */
 .info-card-context .context-usage { margin: 0; padding: 0; border-top: 0; }

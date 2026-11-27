@@ -2,7 +2,6 @@ import {
   useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState,
   type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent,
 } from "react";
-import { writtenFiles } from "./info-cards-data";
 import { useStoredState } from "../../hooks/useStoredState";
 import { tr, trf } from "../../locale";
 import { useAgentWorkspace } from "../AgentPanel";
@@ -14,9 +13,7 @@ import {
 } from "./info-cards-layout";
 import { Icon } from "../icons";
 
-export type InfoCardStackProps = Omit<InfoCardContext, "outputs" | "agents" | "onOpenAgent"> & {
-  /** 打开一个文件预览；没有预览上下文时由调用方回退到系统打开。 */
-  onOpenFile: (path: string) => void;
+export type InfoCardStackProps = Omit<InfoCardContext, "agents" | "onOpenAgent"> & {
   /** 自动避让或手动收起时保留挂载,供测量和退场动画使用。 */
   concealed?: boolean;
 };
@@ -53,14 +50,12 @@ export function InfoCardStack(props: InfoCardStackProps) {
     setStored((current) => change(sanitizeLayout(current)));
   }, [setStored]);
 
-  const cwd = props.state?.session.cwd;
-  const outputs = useMemo(() => writtenFiles(props.messages, cwd), [props.messages, cwd]);
   const ctx = useMemo<InfoCardContext>(() => ({
-    state: props.state, project: props.project, messages: props.messages, messageStore: props.messageStore, outputs, planDraft: props.planDraft,
+    state: props.state, project: props.project, messageStore: props.messageStore, planDraft: props.planDraft,
     agents: roster, backgroundShells: props.backgroundShells, onOpenBackgroundTasks: props.onOpenBackgroundTasks, changesActive: props.changesActive, onOpenChanges: props.onOpenChanges,
-    onOpenPlan: props.onOpenPlan, onResumeGoal: props.onResumeGoal, onOpenAgent: openAgent, onOpenFile: props.onOpenFile,
-  }), [props.state, props.project, props.messages, props.messageStore, outputs, props.planDraft, roster, props.backgroundShells, props.onOpenBackgroundTasks, props.changesActive,
-    props.onOpenChanges, props.onOpenPlan, props.onResumeGoal, openAgent, props.onOpenFile]);
+    onOpenPlan: props.onOpenPlan, onResumeGoal: props.onResumeGoal, onOpenAgent: openAgent,
+  }), [props.state, props.project, props.messageStore, props.planDraft, roster, props.backgroundShells, props.onOpenBackgroundTasks, props.changesActive,
+    props.onOpenChanges, props.onOpenPlan, props.onResumeGoal, openAgent]);
 
   const available = useMemo(
     () => new Set((Object.keys(infoCardDefinitions) as InfoCardId[]).filter((id) => infoCardDefinitions[id].available(ctx))),

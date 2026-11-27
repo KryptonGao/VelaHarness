@@ -355,11 +355,6 @@ export function ChatView({
 }: ChatViewProps) {
   const messages = useNamedThinkingMessages(sourceMessages);
   const thinkingGroupMode = useThinkingGroupMode();
-  const filePreview = useFilePreview();
-  const openOutputFile = useCallback((path: string) => {
-    if (filePreview) filePreview.openFile(path);
-    else void project.openFile(path);
-  }, [filePreview, project]);
   const tabIdPrefix = useId();
   const [views, setViews] = useState<Record<string, ConversationViewKey>>({});
   const [vcMounted, setVcMounted] = useState(false);
@@ -1133,9 +1128,9 @@ export function ChatView({
       {activeHomeStyle === "classic" ? <VelaMark /> : null}
       {activeHomeStyle === "atelier" ? <AtelierBackdrop /> : null}
       {floatingInfo && infoCards && !emptyConversation ? (
-        <InfoCardStack concealed={environmentCollapsed || infoCardsConcealed} state={state} project={project} messages={messages} messageStore={messageStore} planDraft={planDraft}
+        <InfoCardStack concealed={environmentCollapsed || infoCardsConcealed} state={state} project={project} messageStore={messageStore} planDraft={planDraft}
           backgroundShells={backgroundShells} onOpenBackgroundTasks={onOpenBackgroundTasks} changesActive={changesActive} onOpenChanges={onOpenChanges} onOpenPlan={onOpenPlan}
-          onResumeGoal={onResumeGoal} onOpenFile={openOutputFile} />
+          onResumeGoal={onResumeGoal} />
       ) : null}
       {floatingInfo && !infoCards && !emptyConversation ? (
         <div className="info-drawer floating-environment" data-concealed={environmentCollapsed || undefined}

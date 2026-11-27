@@ -147,10 +147,18 @@ if (!process.versions.electron) {
     }
   };
   try {
-    await win.loadURL(`${process.env.VELA_INFO_CARDS_URL}?reset=1&quota`);
+    await win.loadURL(`${process.env.VELA_INFO_CARDS_URL}?reset=1&quota&agents`);
     await until("!!document.querySelector('.info-card-stack .info-card')", "全 App 内存 IPC fixture 挂载");
     await evaluate("window.__infoRoot = document.querySelector('.info-card-stack'); true");
     await settled(false);
+    assert.equal(await evaluate(`!!window.__infoRoot.querySelector('[data-id="outputs"], [data-id="tools"], [data-id="env"]')`), false);
+    await evaluate(`window.__infoRoot.querySelector('.info-card-add').click()`);
+    assert.deepEqual(await evaluate(`Array.from(window.__infoRoot.querySelectorAll('.info-card-tray-chip'), el => el.textContent.trim())`), ['环境']);
+    await evaluate(`window.__infoRoot.querySelector('.info-card-tray-chip').click()`);
+    await until(`!!window.__infoRoot.querySelector('[data-id="env"]')`, 'Manually add Environment');
+    // Expand Context so the following scroll/fade checks still exercise an overflowing stack.
+    await evaluate(`window.__infoRoot.querySelector('[data-id="context"] .info-card-title').click()`);
+    await until(`!window.__infoRoot.querySelector('[data-entering]')`, 'Restored card is settled');
     const initial = await metrics();
     console.log(`初始卡片几何：${JSON.stringify(initial)}`);
     assert.equal(initial.inert, false);
@@ -188,6 +196,7 @@ if (!process.versions.electron) {
         scrollable: root.scrollHeight > root.clientHeight, bottom: stack.bottom,
         paneBottom: pane.getBoundingClientRect().bottom, dockTop: dock.getBoundingClientRect().top };
     })()`;
+    await until(`(${stackBounds}).scrollable`, 'Expanded cards fill the scroll area');
     const beside = await evaluate(stackBounds);
     assert.ok(beside.scrollable && beside.inShadow && !beside.overlaps, `输入框只进入阴影留白：${JSON.stringify(beside)}`);
     assert.ok(beside.paneBottom - beside.bottom <= 16, `并排时卡片应使用面板全高：${JSON.stringify(beside)}`);

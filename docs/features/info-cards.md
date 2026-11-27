@@ -6,14 +6,12 @@
 
 | 卡片 | 内容 | 何时显示 |
 | --- | --- | --- |
-| 环境 | 工作区、分支（可切换）、PR | 有项目时 |
+| Environment | Workspace, branch switcher and PR | Hidden by default; available from **Add card** |
 | 目标 | 当前目标与状态，可恢复 | 存在目标时 |
 | 计划 | 计划文档引用和待办进度 | 有计划或待办时 |
 | 上下文 | 上下文用量 | 有用量数据时（默认折叠） |
-| 产出 | 本对话里 `write` 工具写出的文件，最近的在前，最多 20 个 | 有写入时 |
 | 变更 | 工作区 git 变更统计和 PR 入口；点击统计数字区域在右侧面板打开「变更」标签页，不列出具体文件 | 有变更时 |
 | 子代理 | 子代理及运行状态 | 有子代理时 |
-| 工具 | 已启用的工具 | 默认隐藏，可从「添加卡片」找回 |
 
 没有数据的卡片不显示，也不会出现在「添加卡片」托盘里。
 
@@ -33,7 +31,7 @@
 
 ## 实现位置
 
-- `apps/desktop/src/renderer/components/info-cards/`：`info-cards-layout.ts`（纯函数布局逻辑）、`info-cards-data.ts`（产出与待办进度）、`InfoCardContents.tsx`（各卡片内容）、`InfoCardStack.tsx`（栈、拖动、托盘）。
+- `apps/desktop/src/renderer/components/info-cards/`：`info-cards-layout.ts`（纯函数布局逻辑）、`InfoCardContents.tsx`（各卡片内容）、`InfoCardStack.tsx`（栈、拖动、托盘）。
 - `apps/desktop/src/renderer/info-cards.css`：样式。
 - 偏好 `infoLayout` 取值 `"sidebar" | "floating" | "cards"`，见 `hooks/usePreferences.ts`。
 

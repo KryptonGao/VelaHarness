@@ -1,6 +1,6 @@
 /** 卡片模式右侧信息卡片的布局：顺序、用户隐藏、折叠。纯函数，便于测试。 */
 
-export const infoCardIds = ["env", "goal", "plan", "context", "outputs", "changes", "agents", "background", "tools"] as const;
+export const infoCardIds = ["env", "goal", "plan", "context", "changes", "agents", "background"] as const;
 
 export type InfoCardId = (typeof infoCardIds)[number];
 
@@ -15,7 +15,7 @@ export interface InfoCardLayout {
 
 export const defaultInfoCardLayout: Readonly<InfoCardLayout> = Object.freeze<InfoCardLayout>({
   order: [...infoCardIds],
-  hidden: ["tools"],
+  hidden: ["env"],
   collapsed: ["context"],
 });
 
@@ -27,8 +27,10 @@ export function defaultLayout(): InfoCardLayout {
   return { order: [...defaultInfoCardLayout.order], hidden: [...defaultInfoCardLayout.hidden], collapsed: [...defaultInfoCardLayout.collapsed] };
 }
 
+type StoredInfoCardLayout = Record<keyof InfoCardLayout, readonly unknown[]>;
+
 /** 存储里的值只做形状检查；内容交给 sanitizeLayout 修正。 */
-export function isStoredInfoCardLayout(value: unknown): value is InfoCardLayout {
+export function isStoredInfoCardLayout(value: unknown): value is StoredInfoCardLayout {
   if (!value || typeof value !== "object") return false;
   const layout = value as Record<string, unknown>;
   return Array.isArray(layout.order) && Array.isArray(layout.hidden) && Array.isArray(layout.collapsed);
@@ -44,15 +46,20 @@ function uniqueIds(values: readonly unknown[]): InfoCardId[] {
  * 丢掉未知和重复的 id；版本升级新增的卡片补到末尾（默认隐藏的保持隐藏），
  * 旧版本留下的卡片则直接忽略，不会让布局损坏。
  */
-export function sanitizeLayout(layout: InfoCardLayout): InfoCardLayout {
+export function sanitizeLayout(layout: StoredInfoCardLayout): InfoCardLayout {
   const order = uniqueIds(layout.order);
+  const hidden = uniqueIds(layout.hidden);
   const known = new Set(order);
   for (const id of infoCardIds) {
     if (known.has(id)) continue;
     order.push(id);
-    if (defaultInfoCardLayout.hidden.includes(id)) layout = { ...layout, hidden: [...layout.hidden, id] };
+    if (defaultInfoCardLayout.hidden.includes(id) && !hidden.includes(id)) hidden.push(id);
   }
-  return { order, hidden: uniqueIds(layout.hidden), collapsed: uniqueIds(layout.collapsed) };
+  // Even untouched defaults were persisted. Upgrade those without resetting a customized layout.
+  if (layout.order.includes("outputs") && layout.hidden.length === 1 && layout.hidden[0] === "tools"
+    && layout.collapsed.length === 1 && layout.collapsed[0] === "context"
+    && order.join() === infoCardIds.join()) return defaultLayout();
+  return { order, hidden, collapsed: uniqueIds(layout.collapsed) };
 }
 
 /** 当前要渲染的卡片：按顺序，去掉用户隐藏的和数据上不可用的。 */

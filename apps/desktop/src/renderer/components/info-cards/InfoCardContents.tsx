@@ -3,7 +3,6 @@ import { isAgentBusy, type AgentInfo, type AgentStatus, type AppState, type Back
 import type { ProjectApi } from "../../hooks/useProject";
 import { useDismissable } from "../../hooks/useDismissable";
 import { useSecondClock } from "../../hooks/useSecondClock";
-import type { UiMessage } from "../../hooks/useSession";
 import type { MessageStore } from "../../hooks/message-store";
 import { useMessages } from "../../hooks/useMessages";
 import { useOwnedAgentMessages } from "../../hooks/useSubagentTrace";
@@ -12,7 +11,6 @@ import { fileManagerName } from "../../platform";
 import { localizeError, tr, trf } from "../../locale";
 import { BranchPickerContent } from "../composer/BranchChip";
 import { ContextUsageCard, GoalCardBody, goalStatusLabel } from "../ContextPanel";
-import { FileTypeIcon } from "../FileTypeIcon";
 import { AgentAvatar } from "../AgentAvatar";
 import { formatElapsed } from "../AgentPanel";
 import { PopoverPresence } from "../MotionPresence";
@@ -20,17 +18,13 @@ import { RepoCardPopover } from "../RepoCardPopover";
 import { planStatusLabel } from "../PlanPanel";
 import { createLiveChangesSelector } from "../turn-changes";
 import type { InfoCardId } from "./info-cards-layout";
-import type { OutputFile } from "./info-cards-data";
 import { Icon, snapIconSize } from "../icons";
 
 /** Inputs for the right-hand information cards. */
 export interface InfoCardContext {
   state: AppState | null;
   project: ProjectApi;
-  messages: readonly UiMessage[];
   messageStore?: MessageStore;
-  /** 本对话 write 工具写出的文件，由栈按 messages 缓存。 */
-  outputs: readonly OutputFile[];
   planDraft: PlanDraft | null;
   agents: readonly AgentInfo[];
   backgroundShells?: readonly BackgroundShellItem[];
@@ -41,7 +35,6 @@ export interface InfoCardContext {
   onOpenPlan?: (planId: string) => void;
   onResumeGoal?: () => void;
   onOpenAgent: (agentId: string) => void;
-  onOpenFile: (path: string) => void;
 }
 
 export interface InfoCardDefinition {
@@ -171,22 +164,6 @@ function ContextSummary({ ctx }: { ctx: InfoCardContext }) {
   );
 }
 
-// ---------- 产出 ----------
-
-function OutputsBody({ ctx }: { ctx: InfoCardContext }) {
-  const files = ctx.outputs;
-  return (
-    <div className="info-card-rows">
-      {files.map((file) => (
-        <button key={file.path} type="button" className="info-card-row" title={file.path} onClick={() => ctx.onOpenFile(file.path)}>
-          <span className="info-card-file-icon"><FileTypeIcon path={file.path} /></span>
-          <span className="info-card-row-main">{file.name}</span>
-        </button>
-      ))}
-    </div>
-  );
-}
-
 // ---------- 变更 ----------
 
 function ChangesBody({ ctx }: { ctx: InfoCardContext }) {
@@ -295,16 +272,6 @@ function BackgroundBody({ ctx }: { ctx: InfoCardContext }) {
   );
 }
 
-// ---------- 已启用工具 ----------
-
-function ToolsBody({ ctx }: { ctx: InfoCardContext }) {
-  return (
-    <ul className="info-card-chips">
-      {(ctx.state?.session.tools ?? []).map((tool) => <li key={tool}>{tool}</li>)}
-    </ul>
-  );
-}
-
 export const infoCardDefinitions: Record<InfoCardId, InfoCardDefinition> = {
   env: {
     Icon: ({ size }) => <Icon name="folder" size={snapIconSize(size ?? 13)} />,
@@ -339,13 +306,6 @@ export const infoCardDefinitions: Record<InfoCardId, InfoCardDefinition> = {
     available: (ctx) => ctx.state !== null,
     summary: (ctx) => <ContextSummary ctx={ctx} />,
     Body: ContextBody,
-  },
-  outputs: {
-    Icon: ({ size }) => <Icon name="stack" size={snapIconSize(size ?? 13)} />,
-    title: () => tr("产出", "Outputs"),
-    available: (ctx) => ctx.outputs.length > 0,
-    summary: (ctx) => trf("{0} 个文件", "{0} files", ctx.outputs.length),
-    Body: OutputsBody,
   },
   changes: {
     Icon: ({ size }) => <Icon name="diff" size={snapIconSize(size ?? 13)} />,
@@ -384,12 +344,5 @@ export const infoCardDefinitions: Record<InfoCardId, InfoCardDefinition> = {
       return running > 0 ? trf("{0} 运行中", "{0} running", running) : String(shellsOf(ctx).length);
     },
     Body: BackgroundBody,
-  },
-  tools: {
-    Icon: ({ size }) => <Icon name="tool" size={snapIconSize(size ?? 13)} />,
-    title: () => tr("已启用工具", "Enabled tools"),
-    available: (ctx) => (ctx.state?.session.tools?.length ?? 0) > 0,
-    summary: (ctx) => String(ctx.state?.session.tools?.length ?? 0),
-    Body: ToolsBody,
   },
 };
