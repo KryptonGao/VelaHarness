@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import type { AppLocale, ConversationGoal, GitPushInput, GitStatusSnapshot } from "@vela/shared";
 import { tr, trf } from "../../locale";
+import { showToast } from "../../toast";
 import type { VersionControlApi } from "../../hooks/useVersionControl";
 import { AiAssist } from "./AiAssist";
 import { buildCommitSnapshot, useAiText, verificationNotesFromGoal, commitSnapshotKey } from "./ai-text";
@@ -48,7 +49,7 @@ export function CommitComposer({
   const [body, setBody] = useState("");
   const [aiStyle, setAiStyle] = useState<"plain" | "conventional">("plain");
   const [recentTitles, setRecentTitles] = useState<string[]>([]);
-  const [result, setResult] = useState<{ kind: "ok" | "fail"; sha?: string; message: string; output: string; retryPush?: boolean } | null>(null);
+  const [result, setResult] = useState<{ kind: "ok" | "fail"; output?: string; retryPush?: boolean } | null>(null);
   const [pushOpen, setPushOpen] = useState(false);
   const [stageAllOpen, setStageAllOpen] = useState(false);
   const [identityOpen, setIdentityOpen] = useState(false);
@@ -63,7 +64,6 @@ export function CommitComposer({
   const [amendTarget, setAmendTarget] = useState<{ sha: string; shortSha: string; subject: string; pushed: boolean | null } | null>(null);
   const [undoOpen, setUndoOpen] = useState(false);
   const [undoMode, setUndoMode] = useState<"keep-index" | "keep-worktree">("keep-worktree");
-  const [undoResult, setUndoResult] = useState<string | null>(null);
   const ai = useAiText();
 
   const titleRef = useRef(title);
@@ -140,22 +140,13 @@ export function CommitComposer({
 
   const canUndo = !status.detached && status.branch !== null && (status.ahead > 0 || status.upstream === null);
   const runUndo = async () => {
-    setUndoResult(null);
     const result = await api.undoCommit(undoMode);
-    if (!result) return;
-    if (result.ok) {
+    if (result?.ok) {
       setUndoOpen(false);
-      setResult({
-        kind: "ok",
-        sha: result.shortSha ?? undefined,
-        message: trf("已撤销提交 {0}：{1}", "Undid commit {0}: {1}", result.shortSha ?? "", result.subject ?? ""),
-        output: "",
-      });
+      setResult({ kind: "ok" });
       setTitle("");
       setBody("");
       clearCommitDraft(draftKey);
-    } else {
-      setUndoResult(result.message);
     }
   };
 
@@ -251,7 +242,7 @@ export function CommitComposer({
         ? splitUpstream(status.upstream, status.remotes.map((remote) => remote.name))
         : null;
       if (!target) {
-        setResult({ kind: "fail", message: tr("没有可用的远程，无法推送。", "No remote is available to push to."), output: "" });
+        showToast(tr("没有可用的远程，无法推送。", "No remote is available to push to."), { kind: "error" });
         return;
       }
       const outcome = await api.commitAndPush(input, target);
@@ -262,16 +253,11 @@ export function CommitComposer({
         setAmend(false);
         setResult({
           kind: outcome.push?.ok === false ? "fail" : "ok",
-          sha: outcome.commit.shortSha ?? undefined,
-          message: outcome.push?.ok === false
-            ? trf("提交成功，推送失败：{0}", "Committed, push failed: {0}", outcome.push.message)
-            : trf("已提交并推送 {0}", "Committed and pushed {0}", outcome.commit.shortSha ?? ""),
-          output: outcome.push?.message ?? "",
           retryPush: outcome.push?.ok === false,
         });
         onCommitted(outcome.commit.sha ?? "");
       } else if (outcome) {
-        setResult({ kind: "fail", message: outcome.commit.message || tr("提交失败", "Commit failed"), output: outcome.commit.output });
+        setResult({ kind: "fail", output: outcome.commit.output });
       }
       return;
     }
@@ -282,18 +268,11 @@ export function CommitComposer({
       setTitle("");
       setBody("");
       setAmend(false);
-      setResult({
-        kind: "ok",
-        sha: committed.shortSha ?? undefined,
-        message: committed.amendedSha
-          ? trf("已修正提交 {0}", "Amended {0}", committed.shortSha ?? "")
-          : trf("已提交 {0}", "Committed {0}", committed.shortSha ?? ""),
-        output: committed.output,
-      });
+      setResult({ kind: "ok" });
       onCommitted(committed.sha ?? "");
     } else {
       // Hook 改变文件或索引后失败,保留草稿并刷新真实状态。
-      setResult({ kind: "fail", message: committed.message || tr("提交失败", "Commit failed"), output: committed.output });
+      setResult({ kind: "fail", output: committed.output });
     }
   };
 
@@ -417,7 +396,7 @@ export function CommitComposer({
           {tr("修正最近提交（Amend）", "Amend the last commit")}
         </label>
         {canUndo ? (
-          <button type="button" className="vc-link" onClick={() => { setUndoOpen((value) => !value); setUndoResult(null); }}>
+          <button type="button" className="vc-link" onClick={() => setUndoOpen((value) => !value)}>
             {tr("撤销最近提交…", "Undo last commit…")}
           </button>
         ) : null}
@@ -456,7 +435,6 @@ export function CommitComposer({
             <input type="radio" name="vc-undo-mode" checked={undoMode === "keep-worktree"} onChange={() => setUndoMode("keep-worktree")} />
             {tr("保留在工作区（未暂存）", "Keep in the working tree (unstaged)")}
           </label>
-          {undoResult ? <div className="vc-error-banner" role="alert"><Icon name="alert" size={12} />{undoResult}</div> : null}
           <div className="vc-dialog-actions">
             <button type="button" className="vc-btn vc-btn-ghost" onClick={() => setUndoOpen(false)}>{tr("取消", "Cancel")}</button>
             <button type="button" className="vc-btn vc-btn-danger" disabled={api.busy !== null} onClick={() => void runUndo()}>
@@ -536,10 +514,10 @@ export function CommitComposer({
                     clearCommitDraft(draftKey);
                     setTitle("");
                     setBody("");
-                    setResult({ kind: "ok", sha: committed.shortSha ?? undefined, message: trf("已提交 {0}", "Committed {0}", committed.shortSha ?? ""), output: committed.output });
+                    setResult({ kind: "ok" });
                     onCommitted(committed.sha ?? "");
                   } else {
-                    setResult({ kind: "fail", message: committed.message, output: committed.output });
+                    setResult({ kind: "fail", output: committed.output });
                   }
                 })();
               }}
@@ -550,9 +528,8 @@ export function CommitComposer({
         </div>
       ) : null}
 
-      {result ? (
-        <div className={`vc-commit-result ${result.kind}`} role="status">
-          <span>{result.message}</span>
+      {result && (result.kind === "ok" || result.retryPush || result.output) ? (
+        <div className={`vc-commit-result ${result.kind}`}>
           {result.kind === "ok" ? (
             <>
               <button type="button" className="vc-link" onClick={onOpenHistory}>{tr("查看历史", "View history")}</button>
@@ -566,7 +543,7 @@ export function CommitComposer({
               onClick={() => {
                 // 只重试 Push,不重新 Commit。
                 const target = status.upstream ? splitUpstream(status.upstream, status.remotes.map((remote) => remote.name)) : null;
-                if (target) void api.push(target);
+                if (target) void api.push(target).then((pushed) => { if (pushed?.ok) setResult({ kind: "ok" }); });
                 else setPushOpen(true);
               }}
             >
@@ -600,16 +577,11 @@ export function CommitComposer({
               setBody("");
               setResult({
                 kind: outcome.push?.ok === false ? "fail" : "ok",
-                sha: outcome.commit.shortSha ?? undefined,
-                message: outcome.push?.ok === false
-                  ? trf("提交成功，推送失败：{0}", "Committed, push failed: {0}", outcome.push.message)
-                  : trf("已提交并推送 {0}", "Committed and pushed {0}", outcome.commit.shortSha ?? ""),
-                output: outcome.push?.message ?? "",
                 retryPush: outcome.push?.ok === false,
               });
               onCommitted(outcome.commit.sha ?? "");
             } else if (outcome) {
-              setResult({ kind: "fail", message: outcome.commit.message, output: outcome.commit.output });
+              setResult({ kind: "fail", output: outcome.commit.output });
             }
           })();
         }}

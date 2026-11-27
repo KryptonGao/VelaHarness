@@ -36,13 +36,11 @@ export function ConflictResolver({
   const [content, setContent] = useState("");
   const [dirty, setDirty] = useState(false);
   const [showBase, setShowBase] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
-    setMessage(null);
     const next = await api.conflictFile(path);
     setLoading(false);
     if (!next) {
@@ -75,12 +73,7 @@ export function ConflictResolver({
     if (!file) return;
     setError(null);
     const result = await api.resolveConflict(file.path, content);
-    if (!result) return;
-    if (!result.ok) {
-      setError(result.message);
-      return;
-    }
-    setMessage(result.message);
+    if (!result?.ok) return;
     setDirty(false);
     onResolved();
   };
@@ -150,7 +143,6 @@ export function ConflictResolver({
           {tr("内容里仍有冲突标记；保存后 Git 会把它当作已解决，请先确认结果。", "Conflict markers are still present. Saving marks the file resolved, so confirm the result first.")}
         </div>
       ) : null}
-      {message ? <div className="vc-inline-notice" role="status">{message}</div> : null}
       {error ? <div className="vc-error-banner" role="alert"><Icon name="alert" size={12} />{error}</div> : null}
 
       <div className="vc-dialog-actions">

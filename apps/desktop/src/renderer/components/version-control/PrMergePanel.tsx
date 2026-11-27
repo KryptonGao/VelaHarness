@@ -13,9 +13,6 @@ import type { VersionControlApi } from "../../hooks/useVersionControl";
 import { formatRelativeTime } from "./time-format";
 import { Icon } from "../icons";
 
-/** 面板内的写入结果;页面级提示仍由 useVersionControl 的 notice 承担。 */
-type PanelMessage = { ok: boolean; blocked: boolean; message: string };
-
 const prStateLabels: Record<PrState, [string, string]> = {
   open: ["开放", "Open"],
   draft: ["草稿", "Draft"],
@@ -99,10 +96,9 @@ export function PrMergePanel({
   const [deleteBranch, setDeleteBranch] = useState(false);
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
-  const [mergeMessage, setMergeMessage] = useState<PanelMessage | null>(null);
+  const [mergeBlocked, setMergeBlocked] = useState(false);
   const [closeComment, setCloseComment] = useState("");
   const [deleteBranchOnClose, setDeleteBranchOnClose] = useState(false);
-  const [closeMessage, setCloseMessage] = useState<PanelMessage | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
   const startedRef = useRef(false);
 
@@ -116,10 +112,9 @@ export function PrMergePanel({
     setDeleteBranch(false);
     setSubject("");
     setBody("");
-    setMergeMessage(null);
+    setMergeBlocked(false);
     setCloseComment("");
     setDeleteBranchOnClose(false);
-    setCloseMessage(null);
     api.refreshMergePreview(pr.number);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, pr.number]);
@@ -164,9 +159,8 @@ export function PrMergePanel({
       })
       .then((result) => {
         if (!result) return;
-        setMergeMessage({ ok: result.ok, blocked: result.blocked, message: result.message });
+        setMergeBlocked(result.blocked);
         if (result.ok && result.merged) {
-          // 成功提示由页面级 notice 展示,这里只负责刷新数据并收起面板。
           onChanged();
           onClose();
         }
@@ -178,9 +172,7 @@ export function PrMergePanel({
     void api
       .closePr({ number: pr.number, comment: closeComment.trim() || null, deleteBranch: deleteBranchOnClose })
       .then((result) => {
-        if (!result) return;
-        setCloseMessage({ ok: result.ok, blocked: false, message: result.message });
-        if (result.ok) {
+        if (result?.ok) {
           onChanged();
           onClose();
         }
@@ -425,15 +417,10 @@ export function PrMergePanel({
                       )}
                     </div>
                   ) : null}
-                  {mergeMessage ? (
-                    <div className={mergeMessage.ok ? "vc-p2-note" : "vc-p2-error"} role="status">
-                      <span>{mergeMessage.message}</span>
-                      {mergeMessage.blocked ? (
-                        <button type="button" className="vc-link" onClick={retry}>
-                          {tr("重新核对", "Re-check")}
-                        </button>
-                      ) : null}
-                    </div>
+                  {mergeBlocked ? (
+                    <button type="button" className="vc-link" onClick={retry}>
+                      {tr("重新核对", "Re-check")}
+                    </button>
                   ) : null}
                   {!preview.canMerge ? (
                     <div className="vc-p2-note">
@@ -481,11 +468,6 @@ export function PrMergePanel({
                   "Closing deletes no commits and keeps the local branch; it cannot be undone here. Reopen it on GitHub if needed.",
                 )}
               </div>
-              {closeMessage ? (
-                <div className={closeMessage.ok ? "vc-p2-note" : "vc-p2-error"} role="status">
-                  {closeMessage.message}
-                </div>
-              ) : null}
               <div className="vc-p2-foot">
                 <button
                   type="button"

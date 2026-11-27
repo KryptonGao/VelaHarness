@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { AppLocale, ConversationGoal, GitChangeScope, GitHunkAction, GitStatusSnapshot } from "@vela/shared";
 import { tr, trf } from "../../locale";
+import { showToast } from "../../toast";
 import type { ProjectApi } from "../../hooks/useProject";
 import type { VersionControlLayout } from "../../hooks/useVersionControlLayout";
 import { FileTypeIcon } from "../FileTypeIcon";
@@ -71,7 +72,6 @@ export function ChangesPage({
   const [diff, setDiff] = useState<DiffState | null>(null);
   const [confirmDiscard, setConfirmDiscard] = useState<string | null>(null);
   const [mobileDiff, setMobileDiff] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
   const [diffNonce, setDiffNonce] = useState(0);
   const diffSeq = useRef(0);
   const filesRef = useRef<HTMLDivElement>(null);
@@ -190,17 +190,11 @@ export function ChangesPage({
     api.ignoreWhitespace ? [] : hunkActionsFor(row);
 
   const applyHunkPatch = (row: ChangeGroupRow) => async (action: GitHunkAction, patch: string, count: number) => {
-    setNotice(null);
     const ok = await api.applyHunks(row.file.path, action, patch);
     if (ok) {
       const verb = action === "stage" ? tr("已暂存", "Staged") : action === "unstage" ? tr("已取消暂存", "Unstaged") : tr("已丢弃", "Discarded");
-      setNotice(trf("{0} {1} 个代码块", "{0} {1} hunk(s)", verb, count));
+      showToast(trf("{0} {1} 个代码块", "{0} {1} hunk(s)", verb, count));
     }
-  };
-
-  const controlOperation = async (action: "continue" | "abort") => {
-    const result = await api.controlOperation(action);
-    if (result?.ok) setNotice(result.message);
   };
 
   return (
@@ -215,7 +209,7 @@ export function ChangesPage({
             type="button"
             className="vc-btn vc-btn-ghost"
             disabled={api.busy !== null || api.guard?.agentRunning === true}
-            onClick={() => void controlOperation("continue")}
+            onClick={() => void api.controlOperation("continue")}
           >
             {tr("全部解决后继续", "Continue when resolved")}
           </button>
@@ -223,7 +217,7 @@ export function ChangesPage({
             type="button"
             className="vc-btn vc-btn-danger"
             disabled={api.busy !== null || api.guard?.agentRunning === true}
-            onClick={() => void controlOperation("abort")}
+            onClick={() => void api.controlOperation("abort")}
           >
             {tr("中止操作", "Abort")}
           </button>
@@ -394,9 +388,9 @@ export function ChangesPage({
                 aria-label={tr("打开文件", "Open file")}
                 onClick={() => {
                   void window.vela?.readWorkspaceFile(selected.file.path).then((content) => {
-                    if (content.kind === "missing") setNotice(tr("该文件在当前工作区不存在，未打开历史版本。", "This file does not exist in the workspace; the historical version was not opened."));
+                    if (content.kind === "missing") showToast(tr("该文件在当前工作区不存在，未打开历史版本。", "This file does not exist in the workspace; the historical version was not opened."), { kind: "error" });
                     else onOpenFile(`${status.repo?.root ?? ""}/${selected.file.path}`);
-                  }).catch(() => setNotice(tr("无法打开该文件", "Could not open this file")));
+                  }).catch(() => showToast(tr("无法打开该文件", "Could not open this file"), { kind: "error" }));
                 }}
               >
                 <Icon name="external" size={12} />
@@ -414,7 +408,6 @@ export function ChangesPage({
               ) : null}
             </div>
             {layout === "review" ? <div className="vc-review-diff-breadcrumb"><span title={selected.file.path}>{selected.file.path}</span><span>{selected.scope === "index" ? tr("索引版本", "Index version") : selected.scope === "conflict" ? tr("冲突内容", "Conflict") : tr("工作区改动", "Working tree")}</span></div> : null}
-            {notice ? <div className="vc-inline-notice" role="status">{notice}</div> : null}
             {selected.scope === "worktree" && confirmDiscard === selected.key ? (
               <DiscardConfirm row={selected} onCancel={() => setConfirmDiscard(null)} onConfirm={() => void discardRow(selected)} />
             ) : null}

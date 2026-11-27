@@ -4,7 +4,7 @@ import { useAutoHideScrollbarsWithin } from "../hooks/useAutoHideScrollbar";
 import { useWorkspaceOverview } from "../hooks/useWorkspaceOverview";
 import type { ActivityOptions } from "./conversation-activity";
 import { displayConversationTitle } from "./conversation-title";
-import { activeIntlLocale, localizeError, tr, trf } from "../locale";
+import { activeIntlLocale, tr, trf } from "../locale";
 import { findWorkspace, folderName, workspaceTitle } from "./workspace-names";
 import {
   attentionItems,
@@ -143,7 +143,6 @@ export function WorkspaceOverviewPage({
           </div>
         </header>
 
-        {versionControl?.switchFailed && project?.error ? <p className="wo-error" role="alert">{localizeError(project.error)}</p> : null}
         {data.snapshotError && !data.snapshot ? <p className="wo-error" role="alert">{tr("无法读取仓库信息", "Couldn't read repository details")}</p> : null}
 
         {attention.length > 0 ? <section className="wo-card wo-attention" aria-labelledby="wo-attention-title">

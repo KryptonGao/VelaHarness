@@ -87,19 +87,23 @@ import type {
   PullRequestInfo,
 } from "@vela/shared";
 import { tr, trf } from "../locale";
+import { showToast } from "../toast";
 import { cleanErrorMessage, type ProjectApi } from "./useProject";
 import type { DiffViewMode } from "../components/DiffPane";
 
 const graphPageSize = 100;
 
+function toastOutcome({ ok, message }: { ok: boolean; message: string }) {
+  if (ok) showToast(message);
+  else showToast(message, { kind: "error" });
+}
+
 export interface VersionControlApi {
   guard: GitGuardState | null;
   operations: GitOperationSnapshot | null;
   error: string | null;
-  notice: string | null;
   busy: string | null;
   clearError(): void;
-  clearNotice(): void;
 
   graph: GitGraphSlice | null;
   graphScope: GitGraphScope;
@@ -239,7 +243,6 @@ export function useVersionControl(project: ProjectApi, agentStreaming: boolean):
   const [guard, setGuard] = useState<GitGuardState | null>(null);
   const [operations, setOperations] = useState<GitOperationSnapshot | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const busyRef = useRef<string | null>(null);
 
@@ -302,11 +305,10 @@ export function useVersionControl(project: ProjectApi, agentStreaming: boolean):
     if (busyRef.current) return null;
     busyRef.current = id;
     setBusy(id);
-    setError(null);
     try {
       return await task();
     } catch (caught) {
-      if (mountedRef.current) setError(cleanErrorMessage(caught));
+      showToast(cleanErrorMessage(caught), { kind: "error" });
       return null;
     } finally {
       busyRef.current = null;
@@ -584,17 +586,17 @@ export function useVersionControl(project: ProjectApi, agentStreaming: boolean):
     const current = await refreshGuard();
     const streaming = agentStreaming || current?.agentRunning === true;
     if (streaming) {
-      setError(tr(
+      showToast(tr(
         "Agent 正在这个工作树执行，暂时不能改动文件或索引。",
         "The agent is running in this worktree; file and index changes are paused.",
-      ));
+      ), { kind: "error" });
       return false;
     }
     if (project.git?.operation) {
-      setError(tr(
+      showToast(tr(
         "仓库里有进行中的操作，请先处理冲突或在终端完成/中止。",
         "A Git operation is in progress. Resolve it or finish/abort it in a terminal first.",
-      ));
+      ), { kind: "error" });
       return false;
     }
     return true;
@@ -614,12 +616,14 @@ export function useVersionControl(project: ProjectApi, agentStreaming: boolean):
         if (!api) return null;
         const result = await api.commit(input);
         if (result.ok) {
-          setNotice(trf("已提交 {0}", "Committed {0}", result.shortSha ?? ""));
+          showToast(result.amendedSha
+            ? trf("已修正提交 {0}", "Amended {0}", result.shortSha ?? "")
+            : trf("已提交 {0}", "Committed {0}", result.shortSha ?? ""));
           setSelectedSha(result.sha);
           refreshGraph();
           refreshOperations();
         } else {
-          setError(result.message || tr("提交失败", "Commit failed"));
+          showToast(result.message || tr("提交失败", "Commit failed"), { kind: "error" });
           refreshOperations();
         }
         return result;
@@ -640,11 +644,11 @@ export function useVersionControl(project: ProjectApi, agentStreaming: boolean):
           refreshGraph();
         }
         if (!result.commit.ok) {
-          setError(result.commit.message || tr("提交失败", "Commit failed"));
+          showToast(result.commit.message || tr("提交失败", "Commit failed"), { kind: "error" });
         } else if (result.push && !result.push.ok) {
-          setError(trf("提交成功，但推送未完成：{0}", "Committed, but push did not finish: {0}", result.push.message));
+          showToast(trf("提交成功，但推送未完成：{0}", "Committed, but push did not finish: {0}", result.push.message), { kind: "error" });
         } else {
-          setNotice(tr("提交并推送完成", "Committed and pushed"));
+          showToast(tr("提交并推送完成", "Committed and pushed"));
         }
         refreshOperations();
         refreshPr();
@@ -660,7 +664,8 @@ export function useVersionControl(project: ProjectApi, agentStreaming: boolean):
         const api = window.vela;
         if (!api) return null;
         const result = await api.fetchRemote(remote);
-        setNotice(result.ok ? trf("已 Fetch {0}", "Fetched {0}", result.remote) : result.message);
+        if (result.ok) showToast(trf("已 Fetch {0}", "Fetched {0}", result.remote));
+        else showToast(result.message, { kind: "error" });
         refreshOperations();
         refreshGraph();
         return result;
@@ -675,7 +680,7 @@ export function useVersionControl(project: ProjectApi, agentStreaming: boolean):
       const api = window.vela;
       if (!api) return null;
       const result = await api.pullLatest();
-      setNotice(result.message);
+      toastOutcome(result);
       refreshOperations();
       refreshGraph();
       return result;
@@ -688,8 +693,8 @@ export function useVersionControl(project: ProjectApi, agentStreaming: boolean):
         const api = window.vela;
         if (!api) return null;
         const result = await api.pushBranch(target);
-        if (result.ok) setNotice(trf("已推送到 {0}/{1}", "Pushed to {0}/{1}", result.remote, result.branch));
-        else setError(result.message);
+        if (result.ok) showToast(trf("已推送到 {0}/{1}", "Pushed to {0}/{1}", result.remote, result.branch));
+        else showToast(result.message, { kind: "error" });
         refreshOperations();
         refreshGraph();
         refreshPr();
@@ -706,9 +711,11 @@ export function useVersionControl(project: ProjectApi, agentStreaming: boolean):
         if (!api) return null;
         const result = await api.createPullRequestNative(input);
         if (result.ok) {
-          setNotice(result.message || trf("已创建 PR #{0}", "Created PR #{0}", result.number ?? ""));
+          showToast(result.message || trf("已创建 PR #{0}", "Created PR #{0}", result.number ?? ""));
         } else {
-          setError(result.message || tr("创建 PR 失败", "Could not create the pull request"));
+          showToast(result.unconfirmed
+            ? tr("结果待确认：请刷新查询，确认未创建后再重试。", "Result unconfirmed: refresh to check before retrying.")
+            : result.message || tr("创建 PR 失败", "Could not create the pull request"), { kind: "error" });
         }
         refreshOperations();
         refreshPr();
@@ -731,7 +738,6 @@ export function useVersionControl(project: ProjectApi, agentStreaming: boolean):
   );
 
   const clearError = useCallback(() => setError(null), []);
-  const clearNotice = useCallback(() => setNotice(null), []);
 
   const refreshBranchList = project.refreshBranches;
 
@@ -776,13 +782,11 @@ export function useVersionControl(project: ProjectApi, agentStreaming: boolean):
         const api = window.vela;
         if (!api) return null;
         const result = await api.undoLastCommit({ mode });
+        toastOutcome(result);
         if (result.ok) {
-          setNotice(result.message);
           setSelectedSha(null);
           setDetail(null);
           refreshGraph();
-        } else {
-          setError(result.message);
         }
         refreshOperations();
         return result;
@@ -806,7 +810,7 @@ export function useVersionControl(project: ProjectApi, agentStreaming: boolean):
         return true;
       });
       if (done === true) {
-        setNotice(trf("已重命名分支 {0} → {1}", "Renamed {0} → {1}", name, nextName));
+        showToast(trf("已重命名分支 {0} → {1}", "Renamed {0} → {1}", name, nextName));
         await refreshBranchList();
         refreshGraph();
         refreshOperations();
@@ -823,8 +827,7 @@ export function useVersionControl(project: ProjectApi, agentStreaming: boolean):
         const api = window.vela;
         if (!api) return null;
         const result = await api.deleteBranch(input);
-        if (result.ok) setNotice(result.message);
-        else setError(result.message);
+        toastOutcome(result);
         await refreshBranchList();
         refreshOperations();
         return result;
@@ -843,7 +846,7 @@ export function useVersionControl(project: ProjectApi, agentStreaming: boolean):
         return true;
       });
       if (done === true) {
-        setNotice(
+        showToast(
           input.upstream
             ? trf("已设置 {0} 跟踪 {1}", "{0} now tracks {1}", input.branch, input.upstream)
             : trf("已清除 {0} 的跟踪关系", "Cleared tracking for {0}", input.branch),
@@ -874,7 +877,7 @@ export function useVersionControl(project: ProjectApi, agentStreaming: boolean):
         return task(api);
       });
       if (result) {
-        setNotice(result.message || label);
+        showToast(result.message || label);
         await refreshBranchList();
         refreshOperations();
       }
@@ -918,8 +921,7 @@ export function useVersionControl(project: ProjectApi, agentStreaming: boolean):
         const api = window.vela;
         if (!api) return null;
         const result = await api.resolveConflict({ path, content });
-        if (result.ok) setNotice(result.message);
-        else setError(result.message);
+        toastOutcome(result);
         refreshOperations();
         return result;
       });
@@ -934,8 +936,7 @@ export function useVersionControl(project: ProjectApi, agentStreaming: boolean):
         const api = window.vela;
         if (!api) return null;
         const result = await api.controlGitOperation(action);
-        if (result.ok) setNotice(result.message);
-        else setError(result.message);
+        toastOutcome(result);
         refreshGraph();
         refreshOperations();
         return result;
@@ -966,8 +967,7 @@ export function useVersionControl(project: ProjectApi, agentStreaming: boolean):
         const api = window.vela;
         if (!api) return null;
         const result = await api.createStash(input);
-        if (result.ok) setNotice(result.message);
-        else setError(result.message);
+        toastOutcome(result);
         refreshStashes();
         refreshOperations();
         return result;
@@ -983,8 +983,7 @@ export function useVersionControl(project: ProjectApi, agentStreaming: boolean):
         const api = window.vela;
         if (!api) return null;
         const outcome = await api.applyStash({ id, mode });
-        if (outcome.ok) setNotice(outcome.message);
-        else setError(outcome.message);
+        toastOutcome(outcome);
         refreshStashes();
         refreshOperations();
         return outcome;
@@ -1002,12 +1001,8 @@ export function useVersionControl(project: ProjectApi, agentStreaming: boolean):
         const api = window.vela;
         if (!api) return false;
         const result = await api.dropStash(id);
-        if (result.ok) {
-          setStashes(result.stashes);
-          setNotice(result.message);
-        } else {
-          setError(result.message);
-        }
+        toastOutcome(result);
+        if (result.ok) setStashes(result.stashes);
         refreshOperations();
         return result.ok;
       });
@@ -1042,8 +1037,7 @@ export function useVersionControl(project: ProjectApi, agentStreaming: boolean):
         const api = window.vela;
         if (!api) return null;
         const outcome = await api.createWorktree(input);
-        if (outcome.ok) setNotice(outcome.message);
-        else setError(outcome.message);
+        toastOutcome(outcome);
         refreshWorktrees();
         refreshOperations();
         return outcome;
@@ -1060,8 +1054,7 @@ export function useVersionControl(project: ProjectApi, agentStreaming: boolean):
         const api = window.vela;
         if (!api) return null;
         const outcome = await api.removeWorktree(input);
-        if (outcome.ok) setNotice(outcome.message);
-        else setError(outcome.message);
+        toastOutcome(outcome);
         refreshWorktrees();
         refreshOperations();
         return outcome;
@@ -1077,8 +1070,7 @@ export function useVersionControl(project: ProjectApi, agentStreaming: boolean):
       const api = window.vela;
       if (!api) return false;
       const result = await api.pruneWorktrees();
-      if (result.ok) setNotice(result.message);
-      else setError(result.message);
+      toastOutcome(result);
       refreshWorktrees();
       refreshOperations();
       return result.ok;
@@ -1103,8 +1095,7 @@ export function useVersionControl(project: ProjectApi, agentStreaming: boolean):
         const api = window.vela;
         if (!api) return null;
         const result = await task(api);
-        if (result.ok) setNotice(result.message);
-        else setError(result.message);
+        toastOutcome(result);
         refreshOperations();
         refreshPr();
         return result;
@@ -1145,8 +1136,7 @@ export function useVersionControl(project: ProjectApi, agentStreaming: boolean):
         const api = window.vela;
         if (!api) return null;
         const result = await api.runHistoryOp(input);
-        if (result.ok) setNotice(result.message);
-        else setError(result.message);
+        toastOutcome(result);
         setSelectedSha(null);
         setDetail(null);
         refreshGraph();
@@ -1164,8 +1154,7 @@ export function useVersionControl(project: ProjectApi, agentStreaming: boolean):
         const api = window.vela;
         if (!api) return null;
         const outcome = await api.createBranchAt(input);
-        if (outcome.ok) setNotice(outcome.message);
-        else setError(outcome.message);
+        toastOutcome(outcome);
         refreshOperations();
         return outcome;
       });
@@ -1188,8 +1177,7 @@ export function useVersionControl(project: ProjectApi, agentStreaming: boolean):
         const api = window.vela;
         if (!api) return null;
         const result = await api.runRewrite(input);
-        if (result.ok) setNotice(result.message);
-        else setError(result.message);
+        toastOutcome(result);
         setSelectedSha(null);
         setDetail(null);
         refreshGraph();
@@ -1231,8 +1219,7 @@ export function useVersionControl(project: ProjectApi, agentStreaming: boolean):
         const api = window.vela;
         if (!api) return null;
         const outcome = await api.runRecovery(input);
-        if (outcome.ok) setNotice(outcome.message);
-        else setError(outcome.message);
+        toastOutcome(outcome);
         refreshReflog();
         refreshGraph();
         refreshOperations();
@@ -1254,8 +1241,7 @@ export function useVersionControl(project: ProjectApi, agentStreaming: boolean):
         if (!api) return null;
         const input: GitPullInput = { strategy };
         const result = await api.pullWithStrategy(input);
-        if (result.ok) setNotice(result.message);
-        else setError(result.message);
+        toastOutcome(result);
         refreshOperations();
         refreshGraph();
         return result;
@@ -1280,8 +1266,7 @@ export function useVersionControl(project: ProjectApi, agentStreaming: boolean):
         const api = window.vela;
         if (!api) return null;
         const result = await api.forcePushBranch(input);
-        if (result.ok) setNotice(result.message);
-        else setError(result.message);
+        toastOutcome(result);
         refreshOperations();
         refreshGraph();
         refreshPr();
@@ -1319,8 +1304,7 @@ export function useVersionControl(project: ProjectApi, agentStreaming: boolean):
         const api = window.vela;
         if (!api) return null;
         const outcome = await api.createTag(input);
-        if (outcome.ok) setNotice(outcome.message);
-        else setError(outcome.message);
+        toastOutcome(outcome);
         refreshTags();
         refreshOperations();
         refreshGraph();
@@ -1337,8 +1321,7 @@ export function useVersionControl(project: ProjectApi, agentStreaming: boolean):
         const api = window.vela;
         if (!api) return null;
         const outcome = await api.deleteTag(name, remote ?? null);
-        if (outcome.ok) setNotice(outcome.message);
-        else setError(outcome.message);
+        toastOutcome(outcome);
         refreshTags();
         refreshOperations();
         return outcome;
@@ -1369,8 +1352,7 @@ export function useVersionControl(project: ProjectApi, agentStreaming: boolean):
         const api = window.vela;
         if (!api) return null;
         const result = await api.createRelease(input);
-        if (result.ok) setNotice(result.message);
-        else setError(result.message);
+        toastOutcome(result);
         refreshReleases();
         refreshTags();
         refreshOperations();
@@ -1419,9 +1401,8 @@ export function useVersionControl(project: ProjectApi, agentStreaming: boolean):
         const api = window.vela;
         if (!api) return null;
         const result = await task(api);
-        if (result.ok) setNotice(result.message);
-        else setError(result.message);
-        if (result.threads || result.reviews) {
+        toastOutcome(result);
+        if (result.ok && (result.threads || result.reviews)) {
           setReviewThreads((current) => ({
             ok: result.ok,
             message: result.message,
@@ -1457,8 +1438,7 @@ export function useVersionControl(project: ProjectApi, agentStreaming: boolean):
         const api = window.vela;
         if (!api) return null;
         const result = await api.resolvePullRequestThread(input);
-        if (result.ok) setNotice(result.message);
-        else setError(result.message);
+        toastOutcome(result);
         refreshReviewThreads();
         refreshOperations();
         return result;
@@ -1490,8 +1470,7 @@ export function useVersionControl(project: ProjectApi, agentStreaming: boolean):
         const api = window.vela;
         if (!api) return null;
         const result = await api.mergePullRequest(input);
-        if (result.ok) setNotice(result.message);
-        else setError(result.message);
+        toastOutcome(result);
         refreshPr();
         refreshMergePreview(input.number);
         refreshOperations();
@@ -1507,8 +1486,7 @@ export function useVersionControl(project: ProjectApi, agentStreaming: boolean):
         const api = window.vela;
         if (!api) return null;
         const result = await api.closePullRequest(input);
-        if (result.ok) setNotice(result.message);
-        else setError(result.message);
+        toastOutcome(result);
         refreshPr();
         refreshMergePreview(input.number);
         refreshOperations();
@@ -1529,10 +1507,8 @@ export function useVersionControl(project: ProjectApi, agentStreaming: boolean):
     guard: effectiveGuard,
     operations,
     error,
-    notice,
     busy,
     clearError,
-    clearNotice,
     graph,
     graphScope,
     graphLoading,

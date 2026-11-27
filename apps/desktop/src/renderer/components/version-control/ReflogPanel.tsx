@@ -353,11 +353,6 @@ export function ReflogPanel({
               </button>
             </div>
 
-            {result ? (
-              <div className={result.ok ? "vc-inline-notice" : "vc-p2-error"} role="status">
-                <Icon name="alert" size={12} /> {result.message}
-              </div>
-            ) : null}
             {result?.ok && result.conflictedPaths.length > 0 ? (
               <div className="vc-p2-warn" role="status">
                 {tr("恢复后有冲突文件，请到「改动」页处理。", "Some files conflicted; resolve them on the Changes page.")}

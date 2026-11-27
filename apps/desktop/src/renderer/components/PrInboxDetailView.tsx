@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { PrInboxDetail, PrInboxItem, PrTarget, PrReviewComment } from '@vela/shared';
 import { tr } from '../locale';
+import { showToast } from '../toast';
 import { DiffPane } from './DiffPane';
 import { PrCheckStatus, PrStateBadge } from './PrInboxPage';
 import { PrMarkdown } from './PrInboxMarkdown';
@@ -50,17 +51,15 @@ export function PrInboxDetailView({ target, identityKey, active, onBack, related
   const [commentDraft, setCommentDraft] = useState('');
   const [postedComments, setPostedComments] = useState<PrReviewComment[]>([]);
   const [commentBusy, setCommentBusy] = useState(false);
-  const [commentError, setCommentError] = useState<string | null>(null);
-  const [commentNotice, setCommentNotice] = useState<string | null>(null);
   const commentPending = useRef(false);
   const submitComment = async () => {
     if (commentPending.current || !commentDraft.trim()) return;
-    commentPending.current = true; setCommentBusy(true); setCommentError(null); setCommentNotice(null);
+    commentPending.current = true; setCommentBusy(true);
     try {
       const comment = await api.comment(target, commentDraft, { requestId: crypto.randomUUID(), identityKey });
       setPostedComments(previous => [...previous, comment]); setCommentDraft('');
-      setCommentNotice(tr('留言已发布', 'Comment posted'));
-    } catch (error) { setCommentError(message(error)); }
+      showToast(tr('留言已发布', 'Comment posted'));
+    } catch (error) { showToast(message(error), { kind: 'error' }); }
     finally { commentPending.current = false; setCommentBusy(false); }
   };
   const refresh = useCallback(async (force = false, silent = false) => {
@@ -80,7 +79,7 @@ export function PrInboxDetailView({ target, identityKey, active, onBack, related
     document.addEventListener('visibilitychange', visible);
     return () => { generation.current++; document.removeEventListener('visibilitychange', visible); if (request.current) void api.cancel(request.current).catch(() => {}); request.current = null; setLoading(false); };
   }, [active, api, refresh]);
-  const openGithub = () => { const url = detail?.item.url ?? summary?.url; if (url) void api.open(target, url).catch(e => setError(message(e))); };
+  const openGithub = () => { const url = detail?.item.url ?? summary?.url; if (url) void api.open(target, url).catch(e => showToast(message(e), { kind: 'error' })); };
   return <div className="pr-inbox-detail">
     <div className="pr-inbox-detail-toolbar"><button type="button" onClick={onBack}>← {tr('返回列表', 'Back to list')}</button>
       <div className="pr-inbox-segments" role="tablist" aria-label={tr('PR 详情', 'PR detail')} onKeyDown={e => {
@@ -111,7 +110,7 @@ export function PrInboxDetailView({ target, identityKey, active, onBack, related
           <p className="pr-inbox-meta pr-inbox-branches"><span>@{detail.item.author?.login ?? '—'}</span><code>{detail.headRepository ? `${detail.headRepository}:` : ''}{detail.headRefName}</code><span aria-hidden="true">→</span><code>{detail.baseRefName}</code>
             <span className="pr-inbox-stats"><span className="pr-inbox-added">+{detail.additions}</span><span className="pr-inbox-deleted">−{detail.deletions}</span><span>{detail.changedFiles} {tr('个文件', 'files')}</span><code title={detail.item.headSha ?? ''}>{detail.item.headSha?.slice(0, 8)}</code></span></p>
           <PrMarkdown text={detail.body || tr('没有描述', 'No description')} target={target}/>
-          <PrActivity key={detail.item.headSha} detail={detail} active={active} draft={commentDraft} onDraft={setCommentDraft} posted={postedComments} submitting={commentBusy} submitError={commentError} notice={commentNotice} onSubmit={submitComment}/>
+          <PrActivity key={detail.item.headSha} detail={detail} active={active} draft={commentDraft} onDraft={setCommentDraft} posted={postedComments} submitting={commentBusy} onSubmit={submitComment}/>
         </article><aside className="pr-inbox-checks autohide-scrollbar">
           <PrResponsePanel detail={detail} active={active} onOpenConversation={onOpenConversation} onPublished={() => void refresh(true, true)}/>
           <section className="pr-inbox-status-list">

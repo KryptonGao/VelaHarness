@@ -58,9 +58,9 @@ function ActivityCard({ event, target, threadCursor, threadBusy, onThreadMore }:
   </article>;
 }
 
-export function PrActivity({ detail, active, draft, onDraft, posted, submitting, submitError, notice, onSubmit }: {
+export function PrActivity({ detail, active, draft, onDraft, posted, submitting, onSubmit }: {
   detail: PrInboxDetail; active: boolean; draft: string; onDraft: (text: string) => void; posted: PrReviewComment[];
-  submitting: boolean; submitError: string | null; notice: string | null; onSubmit: () => Promise<void>;
+  submitting: boolean; onSubmit: () => Promise<void>;
 }) {
   const { cache, api, version } = usePrInboxCache();
   const { target, identity, syncedAt } = detail;
@@ -98,7 +98,6 @@ export function PrActivity({ detail, active, draft, onDraft, posted, submitting,
     <form className="pr-activity-composer" onSubmit={event => { event.preventDefault(); void onSubmit(); }}>
       <ActivityAvatar author={identity.login}/><div className="pr-activity-composer-content"><textarea aria-label={tr('留言内容', 'Comment body')} placeholder={tr('留言…', 'Leave a comment')} rows={2} maxLength={65_536} value={draft} disabled={submitting} onChange={e => onDraft(e.target.value)}/>
         <div className="pr-activity-composer-actions"><button type="submit" disabled={submitting || !draft.trim()}>{submitting ? tr('发布中…', 'Posting…') : tr('留言', 'Comment')}</button><span>{tr('以', 'As')} @{identity.login}</span></div>
-        {submitError && <p className="pr-activity-submit-error" role="alert">{submitError}</p>}{notice && <p className="pr-activity-submit-notice" role="status">{notice}</p>}
       </div>
     </form>
   </section>;

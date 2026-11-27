@@ -335,12 +335,6 @@ export function VersionControlView({
           <button type="button" className="vc-link" onClick={api.clearError}>{tr("关闭", "Dismiss")}</button>
         </div>
       ) : null}
-      {api.notice ? (
-        <div className="vc-notice-banner" role="status">
-          <span>{api.notice}</span>
-          <button type="button" className="vc-link" onClick={api.clearNotice}>{tr("关闭", "Dismiss")}</button>
-        </div>
-      ) : null}
 
       <div className="vc-page-tabs">
         <nav className="vc-subtabs" role="tablist" aria-label={tr("版本控制页面", "Version control pages")}

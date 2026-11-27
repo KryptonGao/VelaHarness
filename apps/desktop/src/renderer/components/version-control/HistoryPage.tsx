@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { AppLocale, GitCommitDetail, GitCommitSummary, GitRefLabel } from "@vela/shared";
 import { tr, trf } from "../../locale";
+import { showToast } from "../../toast";
 import { DiffPane } from "../DiffPane";
 import { CommitGraph, useCommitGraphGeometry } from "./CommitGraph";
 import { formatAbsoluteTime, formatRelativeTime } from "./time-format";
@@ -120,7 +121,6 @@ export function HistoryPage({
   const [searchInput, setSearchInput] = useState("");
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
   const [mobileDetail, setMobileDetail] = useState(false);
   const searchTimer = useRef<number | null>(null);
 
@@ -180,7 +180,7 @@ export function HistoryPage({
       setCopied(label);
       window.setTimeout(() => setCopied(null), 1500);
     } catch {
-      setNotice(tr("复制失败", "Could not copy"));
+      showToast(tr("复制失败", "Could not copy"), { kind: "error" });
     }
   };
 
@@ -190,12 +190,12 @@ export function HistoryPage({
     try {
       const content = await apiWindow.readWorkspaceFile(path);
       if (content.kind === "missing") {
-        setNotice(tr("该文件在当前工作区不存在，未打开历史版本。", "This file does not exist in the workspace; the historical version was not opened."));
+        showToast(tr("该文件在当前工作区不存在，未打开历史版本。", "This file does not exist in the workspace; the historical version was not opened."), { kind: "error" });
         return;
       }
       onOpenFile(`${repoRoot}/${path}`);
     } catch {
-      setNotice(tr("无法打开该文件", "Could not open this file"));
+      showToast(tr("无法打开该文件", "Could not open this file"), { kind: "error" });
     }
   };
 
@@ -334,7 +334,6 @@ export function HistoryPage({
           onSelectFile={setSelectedFile}
           fileDiff={fileDiff}
           copied={copied}
-          notice={notice}
           onCopySha={() => void copy("sha", detail.commit.sha)}
           onCopyMessage={() => void copy("message", [detail.commit.subject, detail.body].filter(Boolean).join("\n\n"))}
           onOpenFile={(path) => void openFile(path)}
@@ -359,7 +358,6 @@ function CommitDetailPane({
   onSelectFile,
   fileDiff,
   copied,
-  notice,
   onCopySha,
   onCopyMessage,
   onOpenFile,
@@ -378,7 +376,6 @@ function CommitDetailPane({
   onSelectFile(path: string): void;
   fileDiff: string;
   copied: string | null;
-  notice: string | null;
   onCopySha(): void;
   onCopyMessage(): void;
   onOpenFile(path: string): void;
@@ -443,7 +440,6 @@ function CommitDetailPane({
             {tr("以该提交为 base 比较", "Compare from this commit")}
           </button>
         </div>
-        {notice ? <div className="vc-inline-notice" role="status">{notice}</div> : null}
       </div>
 
       <div className="vc-changed-title">

@@ -71,7 +71,6 @@ export function SyncDialog({
   const [preview, setPreview] = useState<GitForcePushPreview | null>(null);
   const [previewing, setPreviewing] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
-  const [forceMessage, setForceMessage] = useState<string | null>(null);
   /** 远程引用在核对之后发生变化:必须先重新核对,才能再次强推。 */
   const [stale, setStale] = useState(false);
 
@@ -85,7 +84,6 @@ export function SyncDialog({
     setPreview(null);
     setPreviewing(false);
     setConfirmed(false);
-    setForceMessage(null);
     setStale(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
@@ -98,7 +96,7 @@ export function SyncDialog({
   const runPull = () => {
     setPullResult(null);
     void api.pullWithStrategy(strategy).then((result) => {
-      if (result) setPullResult(result);
+      if (result?.conflicted) setPullResult(result);
     });
   };
 
@@ -106,7 +104,6 @@ export function SyncDialog({
     if (!remote || !branch.trim()) return;
     setPreviewing(true);
     setConfirmed(false);
-    setForceMessage(null);
     void api.previewForcePush(remote, branch.trim()).then((next) => {
       setPreviewing(false);
       if (!next) return;
@@ -119,10 +116,8 @@ export function SyncDialog({
   const runForcePush = () => {
     if (!preview || !preview.ok || preview.fastForward || preview.stale || stale) return;
     if (!confirmed || !branch.trim()) return;
-    setForceMessage(null);
     void api.forcePush({ remote, branch: branch.trim(), expectedRemoteSha: preview.remoteSha ?? "" }).then((result) => {
       if (!result) return;
-      setForceMessage(result.message);
       if (result.stale) {
         // 远程引用在核对之后变了:必须重新核对,不能直接重试。
         setStale(true);
@@ -142,7 +137,6 @@ export function SyncDialog({
     setBranch(nextBranch);
     setPreview(null);
     setConfirmed(false);
-    setForceMessage(null);
     setStale(false);
   };
 
@@ -212,26 +206,21 @@ export function SyncDialog({
 
           {pullResult ? (
             <div className="vc-p2-section">
-              <div className={pullResult.ok ? "vc-p2-note" : "vc-p2-error"} role="status">{pullResult.message}</div>
-              {pullResult.conflicted ? (
-                <>
-                  <div className="vc-p2-label">{tr("冲突文件", "Conflicted files")}</div>
-                  <div className="vc-p2-files">
-                    {(pullResult.conflictedPaths ?? []).map((path) => (
-                      <div key={path} className="vc-p2-file">{path}</div>
-                    ))}
-                  </div>
-                  <div className="vc-p2-warn" role="status">
-                    {tr(
-                      "Merge/Rebase 仍在进行中，需要到「改动」页继续或中止这次操作。",
-                      "The merge/rebase is still in progress; continue or abort it on the Changes page.",
-                    )}
-                  </div>
-                  <div className="vc-p2-foot">
-                    <button type="button" className="vc-btn" onClick={onClose}>{tr("去处理", "Resolve")}</button>
-                  </div>
-                </>
-              ) : null}
+              <div className="vc-p2-label">{tr("冲突文件", "Conflicted files")}</div>
+              <div className="vc-p2-files">
+                {(pullResult.conflictedPaths ?? []).map((path) => (
+                  <div key={path} className="vc-p2-file">{path}</div>
+                ))}
+              </div>
+              <div className="vc-p2-warn" role="status">
+                {tr(
+                  "Merge/Rebase 仍在进行中，需要到「改动」页继续或中止这次操作。",
+                  "The merge/rebase is still in progress; continue or abort it on the Changes page.",
+                )}
+              </div>
+              <div className="vc-p2-foot">
+                <button type="button" className="vc-btn" onClick={onClose}>{tr("去处理", "Resolve")}</button>
+              </div>
             </div>
           ) : null}
         </div>
@@ -286,7 +275,6 @@ export function SyncDialog({
 
               {stale ? (
                 <div className="vc-p2-danger" role="alert">
-                  {forceMessage ?? tr("远程引用已变化。", "The remote reference changed.")}{" "}
                   {tr("请先重新核对远程引用，再决定是否强推。", "Re-check the remote reference before deciding on another force push.")}
                 </div>
               ) : null}
@@ -397,9 +385,6 @@ export function SyncDialog({
                 </div>
               ) : null}
 
-              {!stale && forceMessage ? (
-                <div className="vc-p2-error" role="alert">{forceMessage}</div>
-              ) : null}
             </>
           )}
         </div>

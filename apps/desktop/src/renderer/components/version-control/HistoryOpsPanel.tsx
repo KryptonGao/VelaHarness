@@ -512,18 +512,13 @@ export function HistoryOpsPanel({
               </>
             ) : null}
 
-            {historyResult ? (
+            {historyResult && (historyResult.conflicted || (historyResult.ok && historyResult.shortSha)) ? (
               <div className="vc-p2-section">
-                <div className="vc-p2-label">
-                  {historyResult.ok ? <Icon name="check" size={12} /> : <Icon name="alert" size={12} />}
-                  {tr("执行结果", "Result")}
-                </div>
-                <div className={historyResult.ok ? "vc-p2-note" : "vc-p2-error"} role={historyResult.ok ? "status" : "alert"}>
-                  {historyResult.message}
-                  {historyResult.ok && historyResult.shortSha
-                    ? ` · ${tr("新提交", "New commit")} ${historyResult.shortSha}`
-                    : ""}
-                </div>
+                {historyResult.ok && historyResult.shortSha ? (
+                  <div className="vc-p2-note">
+                    {tr("新提交", "New commit")} <code className="vc-sha">{historyResult.shortSha}</code>
+                  </div>
+                ) : null}
                 {historyResult.conflicted ? (
                   <>
                     <div className="vc-p2-warn" role="alert">
@@ -742,22 +737,14 @@ export function HistoryOpsPanel({
               </div>
             ) : null}
 
-            {rewriteResult ? (
+            {rewriteResult?.ok && (rewriteResult.shortHead || rewriteResult.pushedCount > 0) ? (
               <div className="vc-p2-section">
-                <div className="vc-p2-label">
-                  {rewriteResult.ok ? <Icon name="check" size={12} /> : <Icon name="alert" size={12} />}
-                  {tr("执行结果", "Result")}
-                </div>
-                <div className={rewriteResult.ok ? "vc-p2-note" : "vc-p2-error"} role={rewriteResult.ok ? "status" : "alert"}>
-                  {rewriteResult.message}
-                  {rewriteResult.ok && rewriteResult.shortHead ? (
-                    <span>
-                      {" · "}
-                      {tr("新 HEAD", "New HEAD")} <code className="vc-sha">{rewriteResult.shortHead}</code>
-                    </span>
-                  ) : null}
-                </div>
-                {rewriteResult.ok && rewriteResult.pushedCount > 0 ? (
+                {rewriteResult.shortHead ? (
+                  <div className="vc-p2-note">
+                    {tr("新 HEAD", "New HEAD")} <code className="vc-sha">{rewriteResult.shortHead}</code>
+                  </div>
+                ) : null}
+                {rewriteResult.pushedCount > 0 ? (
                   <div className="vc-p2-warn" role="alert">
                     <span>
                       <Icon name="alert" size={12} />{" "}
@@ -833,27 +820,18 @@ export function HistoryOpsPanel({
               </>
             ) : null}
 
-            {branchResult ? (
+            {branchResult?.ok && !branchResult.checkedOut ? (
               <div className="vc-p2-section">
-                <div className="vc-p2-label">
-                  {branchResult.ok ? <Icon name="check" size={12} /> : <Icon name="alert" size={12} />}
-                  {tr("执行结果", "Result")}
+                <div className="vc-p2-note" role="status">
+                  {tr(
+                    "当前分支与未提交内容保持不变",
+                    "The current branch and uncommitted changes are unchanged",
+                  )}
+                  {" · "}
+                  {branchResult.worktreeUntouched
+                    ? tr("工作区未改动", "Worktree untouched")
+                    : trf("未提交改动 {0} 处仍保留", "{0} uncommitted changes were kept", branchResult.changeCount)}
                 </div>
-                <div className={branchResult.ok ? "vc-p2-note" : "vc-p2-error"} role={branchResult.ok ? "status" : "alert"}>
-                  {branchResult.message}
-                </div>
-                {branchResult.ok && !branchResult.checkedOut ? (
-                  <div className="vc-p2-note" role="status">
-                    {tr(
-                      "当前分支与未提交内容保持不变",
-                      "The current branch and uncommitted changes are unchanged",
-                    )}
-                    {" · "}
-                    {branchResult.worktreeUntouched
-                      ? tr("工作区未改动", "Worktree untouched")
-                      : trf("未提交改动 {0} 处仍保留", "{0} uncommitted changes were kept", branchResult.changeCount)}
-                  </div>
-                ) : null}
               </div>
             ) : null}
 

@@ -29,7 +29,6 @@ export function WorktreePanel({
   const [path, setPath] = useState("");
   const [confirmRemove, setConfirmRemove] = useState<GitWorktreeInfo | null>(null);
   const [force, setForce] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (open) api.refreshWorktrees();
@@ -43,7 +42,6 @@ export function WorktreePanel({
       setPath("");
       setConfirmRemove(null);
       setForce(false);
-      setError(null);
     }
   }, [open]);
 
@@ -51,21 +49,17 @@ export function WorktreePanel({
 
   const submitCreate = async () => {
     if (!branch.trim()) return;
-    setError(null);
     const result = await api.createWorktree({
       branch: branch.trim(),
       newBranch,
       startPoint: newBranch && startPoint.trim() ? startPoint.trim() : null,
       path: path.trim() ? path.trim() : null,
     });
-    if (!result) return;
-    if (result.ok) {
+    if (result?.ok) {
       setCreating(false);
       setBranch("");
       setStartPoint("");
       setPath("");
-    } else {
-      setError(result.message);
     }
   };
 
@@ -76,7 +70,6 @@ export function WorktreePanel({
       setConfirmRemove(null);
       setForce(false);
     } else if (result) {
-      setError(result.message);
       setConfirmRemove({ ...confirmRemove, changeCount: result.changeCount });
     }
   };
@@ -129,7 +122,6 @@ export function WorktreePanel({
             value={path}
             onChange={(event) => setPath(event.target.value)}
           />
-          {error ? <div className="vc-error-banner" role="alert"><Icon name="alert" size={12} />{error}</div> : null}
           <div className="vc-dialog-actions">
             <button type="button" className="vc-btn vc-btn-ghost" onClick={() => setCreating(false)}>{tr("取消", "Cancel")}</button>
             <button type="button" className="vc-btn vc-btn-primary" disabled={!branch.trim() || api.busy !== null} onClick={() => void submitCreate()}>
@@ -178,7 +170,6 @@ export function WorktreePanel({
                   aria-label={tr("删除 worktree", "Remove worktree")}
                   onClick={() => {
                     setForce(false);
-                    setError(null);
                     setConfirmRemove(entry);
                   }}
                 >
@@ -199,7 +190,6 @@ export function WorktreePanel({
                     {trf("确认删除 {0} 个未保存文件（含 {1} 个未跟踪）", "Delete {0} unsaved files ({1} untracked)", entry.changeCount, entry.untrackedCount ?? 0)}
                   </label>
                 ) : null}
-                {error ? <div className="vc-error-banner" role="alert"><Icon name="alert" size={12} />{error}</div> : null}
                 <div className="vc-dialog-actions">
                   <button type="button" className="vc-btn vc-btn-ghost" onClick={() => setConfirmRemove(null)}>{tr("取消", "Cancel")}</button>
                   <button

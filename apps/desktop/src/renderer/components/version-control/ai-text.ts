@@ -12,14 +12,13 @@ import type {
 } from "@vela/shared";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { cleanErrorMessage } from "../../hooks/useProject";
-import { tr } from "../../locale";
+import { showToast } from "../../toast";
 
 export interface AiTextState {
   running: boolean;
   requestId: string | null;
   action: AiTextAction | null;
   result: AiTextResult | null;
-  error: string | null;
   /** 结果对应的依据已过期 */
   stale: boolean;
 }
@@ -29,7 +28,6 @@ const emptyState: AiTextState = {
   requestId: null,
   action: null,
   result: null,
-  error: null,
   stale: false,
 };
 
@@ -66,7 +64,7 @@ export function useAiText() {
       if (!api) return null;
       const requestId = nextRequestId();
       const seq = ++seqRef.current;
-      setState({ running: true, requestId, action: input.action, result: null, error: null, stale: false });
+      setState({ running: true, requestId, action: input.action, result: null, stale: false });
       const request: AiTextRequest = {
         requestId,
         kind: input.kind,
@@ -84,7 +82,6 @@ export function useAiText() {
           requestId: null,
           action: input.action,
           result,
-          error: null,
           stale: result.snapshotKey !== input.snapshot.key,
         });
         return result;
@@ -95,9 +92,9 @@ export function useAiText() {
           requestId: null,
           action: input.action,
           result: null,
-          error: cleanErrorMessage(caught),
           stale: false,
         });
+        showToast(cleanErrorMessage(caught), { kind: "error" });
         return null;
       }
     },
@@ -252,10 +249,4 @@ export function verificationNotesFromGoal(goal: ConversationGoal | null): string
     return `- ${check.command} → ${check.result === "passed" ? "通过" : "失败"}${output ? `（${output}）` : ""}`;
   });
   return lines.join("\n");
-}
-
-export function aiStatusLabel(state: AiTextState): string | null {
-  if (state.running) return tr("正在生成…", "Generating…");
-  if (state.error) return state.error;
-  return null;
 }

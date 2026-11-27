@@ -15,6 +15,7 @@ import type {
 } from "@vela/shared";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { tr } from "../locale";
+import { showToast } from "../toast";
 import { noSound, type NotifySound } from "../notification-sounds";
 import { readGitHint, readSandboxHint, writeGitHint, writeSandboxHint } from "../startup-hint";
 
@@ -54,7 +55,6 @@ export function useProject(notify: NotifySound = noSound) {
   const [pr, setPr] = useState<PullRequestInfo | null>(null);
   const [sandboxMode, setSandboxModeState] = useState<SandboxMode>(() => readSandboxHint() ?? "ask");
   const [approval, setApproval] = useState<SandboxApprovalRequest | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
   const branchRef = useRef<string | null>(null);
   const approvalRef = useRef<SandboxApprovalRequest | null>(null);
@@ -75,10 +75,9 @@ export function useProject(notify: NotifySound = noSound) {
   const guarded = useCallback(async (action: () => Promise<unknown>): Promise<boolean> => {
     try {
       await action();
-      setError(null);
       return true;
     } catch (caught) {
-      setError(cleanErrorMessage(caught));
+      showToast(cleanErrorMessage(caught), { kind: "error" });
       return false;
     }
   }, []);
@@ -273,7 +272,6 @@ export function useProject(notify: NotifySound = noSound) {
     (id: string, allowed: boolean, always?: boolean) => getApi().replyApproval(id, allowed, always),
     [],
   );
-  const clearError = useCallback(() => setError(null), []);
 
   return {
     workspace,
@@ -285,8 +283,6 @@ export function useProject(notify: NotifySound = noSound) {
     pr,
     sandboxMode,
     approval,
-    error,
-    clearError,
     openWorkspaceDialog,
     selectRecentWorkspace,
     closeWorkspace,

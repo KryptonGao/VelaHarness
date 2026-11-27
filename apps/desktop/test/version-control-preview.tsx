@@ -26,6 +26,7 @@ import type {
   WorkspaceFileContent,
 } from "@vela/shared";
 import { VersionControlView } from "../src/renderer/components/version-control/VersionControlView";
+import { ToastHost } from "../src/renderer/components/ToastHost";
 import { setVersionControlLayout } from "../src/renderer/hooks/useVersionControlLayout";
 import { installFocusModality } from "../src/renderer/focus-modality";
 import type { ProjectApi } from "../src/renderer/hooks/useProject";
@@ -632,5 +633,6 @@ const select = params.get("select") === "1";
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <Fixture page={page} select={select} />
+    <ToastHost />
   </React.StrictMode>,
 );

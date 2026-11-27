@@ -1,6 +1,7 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { PrInboxItem, PrInboxQuery, PrRelation, PrTarget } from '@vela/shared';
 import { tr, activeIntlLocale } from '../locale';
+import { showToast } from '../toast';
 import { filterInbox, loadedCount } from './pr-inbox-model';
 import { PrInboxDetailView } from './PrInboxDetailView';
 import { usePrInboxCache } from '../hooks/usePrInboxCache';
@@ -183,7 +184,7 @@ export function PrInboxPage({ active, sidebarResize, onOpenConversation }: { sid
             {list?.pages.filter(p => p.error).map(p => <p key={p.relation}>{tr(...relationLabels[p.relation])}：{p.error}</p>)}
             {list?.error?.retryAt && <p>{tr('下次可重试：', 'Retry after: ')}{new Date(list.error.retryAt).toLocaleTimeString()}</p>}
             {list?.error?.kind === 'no-gh' && <p>{tr('安装 GitHub CLI：', 'Install GitHub CLI: ')}<code>brew install gh</code> · <code>https://cli.github.com</code></p>}
-            {(list?.error?.kind === 'unauthenticated' || list?.error?.kind === 'no-gh') && <><p><code>gh auth login --hostname github.com</code></p><button type="button" onClick={() => void api.openTerminal().catch(e => setLocalError(errorText(e)))}>{tr('打开终端', 'Open terminal')}</button></>}
+            {(list?.error?.kind === 'unauthenticated' || list?.error?.kind === 'no-gh') && <><p><code>gh auth login --hostname github.com</code></p><button type="button" onClick={() => void api.openTerminal().catch(e => showToast(errorText(e), { kind: 'error' }))}>{tr('打开终端', 'Open terminal')}</button></>}
             <button type="button" disabled={loading || !!list?.error?.retryAt && Date.now() < list.error.retryAt} onClick={() => void refresh(true)}>{tr('重试读取', 'Retry')}</button>
           </div>}
           {list?.pages.some(p => p.incompleteResults) && <p className="pr-inbox-notice">{tr('搜索结果不完整或超过 1,000 条，请缩小仓库范围。', 'Results are incomplete or exceed 1,000. Narrow the repository filter.')}</p>}

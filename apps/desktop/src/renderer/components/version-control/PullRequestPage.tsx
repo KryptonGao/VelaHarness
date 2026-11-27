@@ -59,7 +59,6 @@ export function PullRequestPage({
   const [scopeLoading, setScopeLoading] = useState(false);
   const [templatePath, setTemplatePath] = useState<string | null>(null);
   const [preview, setPreview] = useState(false);
-  const [createResult, setCreateResult] = useState<string | null>(null);
   const [recentTitles, setRecentTitles] = useState<string[]>([]);
   const [aiStyle, setAiStyle] = useState<"plain" | "conventional">("plain");
   const ai = useAiText();
@@ -101,7 +100,6 @@ export function PullRequestPage({
     const draft = readPrDraft(draftKey);
     setTitle(draft?.title ?? "");
     setBody(draft?.body ?? "");
-    setCreateResult(null);
   }, [draftKey, base]);
 
   useEffect(() => {
@@ -209,7 +207,6 @@ export function PullRequestPage({
 
   const create = async (pushFirst: boolean, draft: boolean) => {
     if (!branch || !scope || scope.empty || !title.trim()) return;
-    setCreateResult(null);
     const result = await api.createPr({
       baseRepo: baseRepo || repoSlug || "",
       base,
@@ -221,15 +218,7 @@ export function PullRequestPage({
       pushFirst,
       templatePath,
     });
-    if (!result) return;
-    if (result.ok) {
-      clearPrDraft(draftKey);
-      setCreateResult(result.message);
-    } else if (result.unconfirmed) {
-      setCreateResult(tr("结果待确认：请刷新查询，确认未创建后再重试。", "Result unconfirmed: refresh to check before retrying."));
-    } else {
-      setCreateResult(result.message);
-    }
+    if (result?.ok) clearPrDraft(draftKey);
   };
 
   if (pr?.pr) {
@@ -390,7 +379,6 @@ export function PullRequestPage({
           />
         </div>
 
-        {createResult ? <div className="vc-commit-result" role="status">{createResult}</div> : null}
 
         <div className="vc-pr-actions">
           <span className="vc-pr-foot-note">

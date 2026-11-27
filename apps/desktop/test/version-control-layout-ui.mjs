@@ -280,10 +280,30 @@ if (!process.versions.electron) {
       await check("running-agent guard blocks staging without invoking project mutation", async () => {
         await evaluate(`window.vela.getGitGuard=async()=>{window.__vcGuardRequests++;return {agentRunning:true,conversationId:'guarded',reason:null}};void 0`);
         await click('.vc-group:first-child .vc-file-row .vc-file-actions button:last-child');
-        await until('!!document.querySelector(".vc-error-banner") && window.__vcGuardRequests===3');
+        await until('!!document.querySelector(\'.window-toast[data-kind="error"] [role="alert"]\') && window.__vcGuardRequests===3');
         assert.equal(await evaluate('window.__vcMutations.length'), 2);
+        assert.equal(await evaluate('document.querySelectorAll(".window-toast").length'), 1);
+        assert.equal(await evaluate('!!document.querySelector(".vc-error-banner")'), false);
         await evaluate(`window.vela.getGitGuard=async()=>({agentRunning:false,conversationId:null,reason:null});void 0`);
-        await click('.vc-error-banner .vc-link');
+        await click('.window-toast-close');
+      });
+      await check("fetch outcomes use one toast with the correct kind and no inline banner", async () => {
+        const fetchRemote = `(() => [...document.querySelectorAll('.vc-review-sync-actions > button')].find(n => n.textContent.trim() === 'Fetch').click())()`;
+        await evaluate(fetchRemote);
+        await until(`!!document.querySelector('.window-toast[data-kind="info"] [role="status"]')`);
+        assert.equal(await evaluate('document.querySelectorAll(".window-toast").length'), 1);
+        assert.equal(await evaluate('!!document.querySelector(".vc-notice-banner")'), false);
+        await click('.window-toast-close');
+        await until('!document.querySelector(".window-toast")');
+
+        await evaluate(`window.__vcFetch = window.vela.fetchRemote;
+          window.vela.fetchRemote = async () => ({ ok: false, remote: 'origin', at: null, message: 'Fixture fetch failed' }); void 0`);
+        await evaluate(fetchRemote);
+        await until(`document.querySelector('.window-toast[data-kind="error"] [role="alert"]')?.textContent === 'Fixture fetch failed'`);
+        assert.equal(await evaluate('document.querySelectorAll(".window-toast").length'), 1);
+        assert.equal(await evaluate('!!document.querySelector(".vc-error-banner, .vc-notice-banner")'), false);
+        await evaluate('window.vela.fetchRemote = window.__vcFetch; void 0');
+        await click('.window-toast-close');
       });
       await check("repository menu supports keyboard traversal, Escape and focus restoration", async () => {
         const trigger = '.vc-review-menu-anchor > button';

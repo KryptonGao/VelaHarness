@@ -73,9 +73,6 @@ export function AiAssist({
           </button>
         </span>
       ) : null}
-      {!state.running && state.error ? (
-        <span className="vc-ai-error" role="alert">{state.error}</span>
-      ) : null}
       {!state.running && state.result ? (
         <div className="vc-ai-candidate" role="status">
           <div className="vc-ai-candidate-head">

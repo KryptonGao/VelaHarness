@@ -7,6 +7,7 @@ import type {
   GitStatusSnapshot,
 } from "@vela/shared";
 import { tr, trf } from "../../locale";
+import { showToast } from "../../toast";
 import type { VersionControlApi } from "../../hooks/useVersionControl";
 import { AiAssist } from "./AiAssist";
 import { useAiText } from "./ai-text";
@@ -60,7 +61,6 @@ export function TagReleasePanel({
   const [tagMessage, setTagMessage] = useState("");
   const [pushTag, setPushTag] = useState(false);
   const [tagRemote, setTagRemote] = useState("");
-  const [tagResult, setTagResult] = useState<{ ok: boolean; message: string } | null>(null);
   const [confirmTag, setConfirmTag] = useState<string | null>(null);
 
   // ---- 发布 ----
@@ -70,7 +70,6 @@ export function TagReleasePanel({
   const [releaseTarget, setReleaseTarget] = useState("");
   const [releaseDraft, setReleaseDraft] = useState(false);
   const [releasePrerelease, setReleasePrerelease] = useState(false);
-  const [releaseResult, setReleaseResult] = useState<{ ok: boolean; message: string } | null>(null);
   const [expandedReleases, setExpandedReleases] = useState<string[]>([]);
 
   // ---- 发布说明 ----
@@ -82,7 +81,6 @@ export function TagReleasePanel({
   const [scopeFailed, setScopeFailed] = useState(false);
   const [draftTitle, setDraftTitle] = useState("");
   const [draftBody, setDraftBody] = useState("");
-  const [copyNotice, setCopyNotice] = useState<string | null>(null);
 
   const ai = useAiText();
   const aiClear = ai.clear;
@@ -133,7 +131,6 @@ export function TagReleasePanel({
     setTagMessage("");
     setPushTag(false);
     setTagRemote("");
-    setTagResult(null);
     setConfirmTag(null);
     setReleaseTagName("");
     setReleaseName("");
@@ -141,7 +138,6 @@ export function TagReleasePanel({
     setReleaseTarget("");
     setReleaseDraft(false);
     setReleasePrerelease(false);
-    setReleaseResult(null);
     setExpandedReleases([]);
     setBaseTagChoice(null);
     setTargetTag(suggestNextTag(defaultBaseRef.current));
@@ -151,7 +147,6 @@ export function TagReleasePanel({
     setScopeFailed(false);
     setDraftTitle("");
     setDraftBody("");
-    setCopyNotice(null);
     generatedScope.current = null;
     aiClear();
   }, [open, aiClear]);
@@ -188,7 +183,6 @@ export function TagReleasePanel({
   const submitTag = async () => {
     const name = tagName.trim();
     if (!name) return;
-    setTagResult(null);
     const result = await api.createTag({
       name,
       target: tagTarget.trim() || null,
@@ -197,7 +191,6 @@ export function TagReleasePanel({
       remote: pushTag ? selectedRemote || null : null,
     });
     if (!result) return;
-    setTagResult({ ok: result.ok, message: result.message });
     if (result.ok) {
       setTagName("");
       setTagMessage("");
@@ -208,8 +201,7 @@ export function TagReleasePanel({
 
   const removeTag = async (name: string, remote: string | null) => {
     setConfirmTag(null);
-    const result = await api.deleteTag(name, remote);
-    if (result) setTagResult({ ok: result.ok, message: result.message });
+    await api.deleteTag(name, remote);
     api.refreshTags();
     onChanged();
   };
@@ -217,7 +209,6 @@ export function TagReleasePanel({
   const submitRelease = async () => {
     const tag = releaseTagName.trim();
     if (!tag) return;
-    setReleaseResult(null);
     const result = await api.createRelease({
       tagName: tag,
       name: releaseName.trim() || null,
@@ -226,9 +217,7 @@ export function TagReleasePanel({
       prerelease: releasePrerelease,
       target: releaseTarget.trim() || null,
     });
-    if (!result) return;
-    setReleaseResult({ ok: result.ok, message: result.message });
-    if (result.ok) {
+    if (result?.ok) {
       setReleaseTagName("");
       setReleaseName("");
       setReleaseBody("");
@@ -294,17 +283,14 @@ export function TagReleasePanel({
     });
   };
 
-  const copyDraft = () => {
+  const copyDraft = async () => {
     const text = [draftTitle.trim(), draftBody.trim()].filter(Boolean).join("\n\n");
     if (!text) return;
-    const failed = tr("复制失败，请手动选择文本。", "Copy failed; select the text manually.");
     try {
-      void navigator.clipboard.writeText(text).then(
-        () => setCopyNotice(tr("已复制发布说明。", "Release notes copied.")),
-        () => setCopyNotice(failed),
-      );
+      await navigator.clipboard.writeText(text);
+      showToast(tr("已复制发布说明。", "Release notes copied."));
     } catch {
-      setCopyNotice(failed);
+      showToast(tr("复制失败，请手动选择文本。", "Copy failed; select the text manually."), { kind: "error" });
     }
   };
 
@@ -312,7 +298,6 @@ export function TagReleasePanel({
   const applyCandidate = (result: { title: string; body: string }) => {
     setDraftTitle(result.title);
     setDraftBody(result.body);
-    setCopyNotice(null);
     ai.dismissResult();
   };
 
@@ -424,11 +409,6 @@ export function TagReleasePanel({
                 {tr("创建标签", "Create tag")}
               </button>
             </div>
-            {tagResult ? (
-              <div className={tagResult.ok ? "vc-p2-note" : "vc-p2-error"} role={tagResult.ok ? "status" : "alert"}>
-                {tagResult.message}
-              </div>
-            ) : null}
           </div>
 
           {api.tagsLoading && api.tags.length === 0 ? (
@@ -668,11 +648,6 @@ export function TagReleasePanel({
                 "Creating a release writes to GitHub; a missing tag is created at the target commit.",
               )}
             </p>
-            {releaseResult ? (
-              <div className={releaseResult.ok ? "vc-p2-note" : "vc-p2-error"} role={releaseResult.ok ? "status" : "alert"}>
-                {releaseResult.message}
-              </div>
-            ) : null}
           </div>
         </div>
       ) : null}
@@ -868,7 +843,6 @@ export function TagReleasePanel({
                 "Manual edits are kept; creating the release still requires clicking Create release on the Releases tab.",
               )}
             </p>
-            {copyNotice ? <div className="vc-p2-note" role="status">{copyNotice}</div> : null}
           </div>
         </div>
       ) : null}

@@ -33,7 +33,6 @@ export function BranchPanel({
   const [renaming, setRenaming] = useState<{ name: string; next: string } | null>(null);
   const [deleting, setDeleting] = useState<{ detail: GitBranchDetail; force: boolean; remote: string | null } | null>(null);
   const [upstreamFor, setUpstreamFor] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
 
   const local = useMemo(
     () => branches.filter((branch) => !branch.remote),
@@ -53,7 +52,6 @@ export function BranchPanel({
       setSelected(name);
       setDetail(null);
       setDetailLoading(true);
-      setMessage(null);
       const next = await api.branchDetail(name);
       setDetailLoading(false);
       if (next) setDetail(next);
@@ -68,7 +66,6 @@ export function BranchPanel({
       setRenaming(null);
       setDeleting(null);
       setUpstreamFor(null);
-      setMessage(null);
     }
   }, [open]);
 
@@ -86,7 +83,6 @@ export function BranchPanel({
       setDeleting(null);
       setSelected(null);
       setDetail(null);
-      setMessage(result.message);
     }
   };
 
@@ -325,7 +321,6 @@ export function BranchPanel({
               </p>
             </>
           ) : null}
-          {message ? <div className="vc-inline-notice" role="status">{message}</div> : null}
           {api.error ? (
             <div className="vc-error-banner" role="alert">
               <Icon name="alert" size={12} />

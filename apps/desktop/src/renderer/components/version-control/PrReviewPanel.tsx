@@ -8,9 +8,6 @@ import { Icon } from "../icons";
 /** 线程列表筛选;全部为默认,其余按本地数据过滤。 */
 type ReviewFilter = "all" | "unresolved" | "resolved" | "outdated";
 
-/** 面板内的写入结果;页面级提示仍由 useVersionControl 的 notice 承担。 */
-type PanelMessage = { ok: boolean; message: string };
-
 /** 审阅结论状态文案;unknown 明确显示为未知,不当作批准。 */
 const reviewStateLabels: Record<PrReviewState, [string, string]> = {
   approved: ["已批准", "Approved"],
@@ -139,9 +136,7 @@ export function PrReviewPanel({
 }) {
   const [filter, setFilter] = useState<ReviewFilter>("all");
   const [commentBody, setCommentBody] = useState("");
-  const [commentResult, setCommentResult] = useState<PanelMessage | null>(null);
   const [reviewBody, setReviewBody] = useState("");
-  const [reviewResult, setReviewResult] = useState<PanelMessage | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
   const startedRef = useRef(false);
 
@@ -152,9 +147,7 @@ export function PrReviewPanel({
     setLoadFailed(false);
     setFilter("all");
     setCommentBody("");
-    setCommentResult(null);
     setReviewBody("");
-    setReviewResult(null);
     api.refreshReviewThreads(pr.number);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, pr.number]);
@@ -197,9 +190,7 @@ export function PrReviewPanel({
     const body = commentBody.trim();
     if (!body || busy) return;
     void api.commentPr({ number: pr.number, body }).then((result) => {
-      if (!result) return;
-      setCommentResult({ ok: result.ok, message: result.message });
-      if (result.ok) setCommentBody("");
+      if (result?.ok) setCommentBody("");
     });
   };
 
@@ -210,9 +201,7 @@ export function PrReviewPanel({
     void api
       .reviewPr({ number: pr.number, event, body: body || null, commitSha: headSha })
       .then((result) => {
-        if (!result) return;
-        setReviewResult({ ok: result.ok, message: result.message });
-        if (result.ok) setReviewBody("");
+        if (result?.ok) setReviewBody("");
       });
   };
 
@@ -404,11 +393,6 @@ export function PrReviewPanel({
             onChange={(event) => setCommentBody(event.target.value)}
           />
           <div className="vc-p2-foot">
-            {commentResult ? (
-              <span className={commentResult.ok ? "vc-p2-note" : "vc-p2-error"} role="status">
-                {commentResult.message}
-              </span>
-            ) : null}
             <button
               type="button"
               className="vc-btn vc-btn-primary"
@@ -440,11 +424,6 @@ export function PrReviewPanel({
             <div className="vc-p2-note">{tr("请求修改必须填写说明。", "Requesting changes requires a note.")}</div>
           ) : null}
           <div className="vc-p2-foot">
-            {reviewResult ? (
-              <span className={reviewResult.ok ? "vc-p2-note" : "vc-p2-error"} role="status">
-                {reviewResult.message}
-              </span>
-            ) : null}
             <button type="button" className="vc-btn" disabled={busy} onClick={() => submitReview("approve")}>
               {api.busy === "pr-review" ? tr("提交中…", "Submitting…") : tr("批准", "Approve")}
             </button>
