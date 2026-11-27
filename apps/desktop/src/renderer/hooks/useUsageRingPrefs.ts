@@ -49,6 +49,29 @@ export function setUsageRingPrefs(patch: Partial<UsageRingPrefs>) {
   listeners.forEach(listener => listener());
 }
 
+/** The same record also owns visible settings. Remove only hidden overrides, even when undoing later. */
+export function resetHiddenUsageRingPrefs(): (() => void) | null {
+  const saved = readStoredState<Partial<UsageRingPrefs>>(key, {}, accept);
+  const next = { ...saved };
+  const undo: Partial<UsageRingPrefs> = {};
+  if (saved.threshold !== undefined && saved.threshold !== defaultUsageRingPrefs.threshold) {
+    undo.threshold = saved.threshold;
+    delete next.threshold;
+  }
+  if (saved.showCodexLogo !== undefined && saved.showCodexLogo !== defaultUsageRingPrefs.showCodexLogo) {
+    undo.showCodexLogo = saved.showCodexLogo;
+    delete next.showCodexLogo;
+  }
+  if (!Object.keys(undo).length) return null;
+  function apply(value: Partial<UsageRingPrefs>) {
+    uiStorage.setItem(key, JSON.stringify(value));
+    current = normalizeUsageRingPrefs(value);
+    listeners.forEach(listener => listener());
+  }
+  apply(next);
+  return () => apply({ ...readStoredState<Partial<UsageRingPrefs>>(key, {}, accept), ...undo });
+}
+
 export function useUsageRingPrefs(): UsageRingPrefs {
   return useSyncExternalStore(
     listener => { listeners.add(listener); return () => { listeners.delete(listener); }; },

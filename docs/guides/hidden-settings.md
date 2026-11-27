@@ -2,6 +2,12 @@
 
 Vela 1.3.1 simplified the Appearance, Interface, and Conversation display pages. The preferences below still work even though they no longer appear in Settings or its search results. Most are only editable in `ui-state.json`; the Version Control layout also has a selector on the Version Control page. Two former composer preferences were removed entirely and are listed separately.
 
+## Reset hidden settings in Vela
+
+In **Settings → Interface → Hidden settings**, select **Reset** to restore the defaults below without restarting Vela. To reverse the reset, choose **Undo** in the notification. If nothing differs from the defaults, Vela makes no changes.
+
+The reset also clears non-default values left by the two removed composer controls. It does not clear conversations, drafts, thinking summaries, or Intelligent UI metrics. For the quota ring, it resets only `showCodexLogo` and `threshold`, not the visible enable switch or quota window.
+
 ## Edit `ui-state.json`
 
 | Profile | File |

@@ -111,7 +111,10 @@ async function run() {
     locale: "en", navLayout: '"classic"', startPageStyle: '"deck"', "font.code.size": "14",
     infoLayout: "sidebar", toolFold: "message", toolIconColor: "true", soundEffects: "true",
     conversationWorkbenchTabs: "false", borderlessInterface: "false", runView: "false",
-    glassTint: "theme", glassOpacity: "42", toolDetailHeight: "320",
+    glassTint: "theme", glassOpacity: "42", toolDetailHeight: "320", combinedModelPicker: "false",
+    versionControlLayout: '"review"', unifiedIcons: "true", "ui.inspector": "1",
+    usageRing: JSON.stringify({ enabled: false, plusWindow: "1w", threshold: 30, showCodexLogo: false, future: "keep" }),
+    "composerDrafts.keep": "draft text", "ui.metrics": "{}", "thinkingSummaries.v1": "{}",
   };
   await evaluate(entries => {
     for (const [key, value] of Object.entries(entries)) window.vela.uiStorage.setItem("vela." + key, value);
@@ -135,6 +138,32 @@ async function run() {
   await assert.rejects(startRace, /实验性功能/);
   console.log("PASS experimental Race defaults off, follows the switch immediately and persists across reloads");
   console.log("PASS saved choices and legacy preferences win over new defaults");
+
+  const reset = () => evaluate(() => document.querySelector('[data-setting-id="reset-hidden-settings"] button').click());
+  const restored = {
+    ...overrides, navLayout: '"rail"', toolFold: "none", toolIconColor: "gray", conversationWorkbenchTabs: "true",
+    borderlessInterface: "true", glassTint: "neutral", glassOpacity: "", toolDetailHeight: "240", commandDetailHeight: "240",
+    combinedModelPicker: "true", versionControlLayout: '"classic"', unifiedIcons: "false", "ui.inspector": null,
+    composerLayout: null, sendButtonIcon: null,
+    usageRing: JSON.stringify({ enabled: false, plusWindow: "1w", future: "keep" }),
+  };
+  const previous = await readPreferences(restored);
+  await reset();
+  await until(() => evaluate(() => Boolean(document.querySelector(".nav-rail-layout.borderless-interface"))), "live layout reset");
+  assert.deepEqual(await readPreferences(restored), restored);
+  assert.equal(await evaluate(() => document.documentElement.style.getPropertyValue("--glass-opacity")), "");
+  await evaluate(() => [...document.querySelectorAll(".window-toast-action")].find(button => button.textContent === "Undo").click());
+  await until(() => evaluate(() => !document.querySelector(".nav-rail-layout")), "classic layout after Undo");
+  const afterUndo = await readPreferences(restored);
+  assert.deepEqual({ ...afterUndo, usageRing: JSON.parse(afterUndo.usageRing) },
+    { ...previous, usageRing: JSON.parse(previous.usageRing) });
+  await reset();
+  await reset();
+  assert.ok(await evaluate(() => [...document.querySelectorAll(".window-toast-message")].some(node => node.textContent === "Hidden settings are already at their defaults.")));
+  window.webContents.reload();
+  await until(() => evaluate(() => Boolean(document.querySelector(".nav-rail-layout.borderless-interface"))), "persisted reset");
+  assert.deepEqual(await readPreferences(restored), restored);
+  console.log("PASS scoped reset, undo, no-op and reload preserve visible settings and unrelated UI data");
 }
 
 const watchdog = setTimeout(() => app.exit(1), 40_000);

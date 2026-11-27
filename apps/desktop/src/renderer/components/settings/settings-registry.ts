@@ -57,6 +57,7 @@ export const settingsEntries: readonly SettingsEntry[] = [
   { id: "code-font-size", page: "appearance", title: (c) => c.appearance.codeFontSize, hint: (c) => c.appearance.codeFontSizeHint, keywords: { zh: ["字号", "代码字号", "字体大小", "等宽", "diff", "命令", "终端"], en: ["font size", "code", "monospace", "diff", "terminal", "command"] } },
 
   { id: "language", page: "interface", title: (c) => c.appearance.language, keywords: { zh: ["语言", "中文", "英文"], en: ["language", "locale", "english", "chinese", "i18n"] } },
+  { id: "reset-hidden-settings", page: "interface", title: c => c.appearance.hiddenSettings, hint: c => c.appearance.hiddenSettingsHint, keywords: { zh: ["重置", "清除", "精简", "隐藏设置", "恢复默认"], en: ["reset", "clear", "hidden settings", "defaults", "legacy"] } },
   { id: "system-notifications", page: "notifications", title: c => c.pages.notifications.label, hint: c => c.pages.notifications.description,
     keywords: { zh: ["系统通知", "任务完成", "审批", "提问", "静默时段", "隐藏内容"], en: ["system notifications", "task completion", "approval", "question", "quiet hours", "preview"] } },
   { id: "sound-effects", page: "interface", title: (c) => c.appearance.soundEffects, hint: (c) => c.appearance.soundEffectsHint, keywords: { zh: ["音效", "提示音", "声音", "通知"], en: ["sound", "audio", "notification", "chime"] } },

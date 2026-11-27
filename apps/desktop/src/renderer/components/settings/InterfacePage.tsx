@@ -2,6 +2,8 @@ import { appLocaleNames, appLocales } from "@vela/shared";
 import { setSidebarItem, sidebarItemIds, useSidebarItems } from "../../hooks/useSidebarItems";
 import type { AppLocale, InfoLayout, PreferencesApi } from "../../hooks/usePreferences";
 import type { ConversationLinkTarget } from "../../browser/conversation-link-policy";
+import { useResetHiddenSettings } from "../../hooks/useResetHiddenSettings";
+import { showToast } from "../../toast";
 import { notificationSoundKinds, type NotifySound } from "../../notification-sounds";
 import type { SettingsCopy } from "../settings-copy";
 import { setStartPageStyle, startPageStyles, useStartPageStyle, type StartPageStyle } from "../../hooks/useStartPageStyle";
@@ -31,6 +33,17 @@ export function InterfacePage({
     setConversationLinkTarget,
   } = preferences;
   const text = copy.appearance;
+  const resetHiddenSettings = useResetHiddenSettings(preferences);
+  function handleResetHiddenSettings() {
+    const failed = () => showToast(copy.storage.failed, { kind: "error" });
+    try {
+      const undo = resetHiddenSettings();
+      if (!undo) return showToast(text.hiddenSettingsUnchanged);
+      showToast(text.hiddenSettingsReset, { actions: [{ label: copy.development.rollback, run: () => {
+        try { undo(); } catch { failed(); }
+      } }] });
+    } catch { failed(); }
+  }
   const filePreviewOpenMode = useFilePreviewOpenMode();
   const filePreviewOpenModeLabels: Record<FilePreviewOpenMode, string> = {
     "new-tab": text.filePreviewOpenModeNewTab,
@@ -109,6 +122,9 @@ export function InterfacePage({
         <SettingsBlock id="file-preview-open-mode" title={text.filePreviewOpenMode} hint={text.filePreviewOpenModeHint} layout="inline">
           <Segmented label={text.filePreviewOpenMode} value={filePreviewOpenMode}
             options={filePreviewOpenModes.map(id => ({ id, label: filePreviewOpenModeLabels[id] }))} onChange={setFilePreviewOpenMode} />
+        </SettingsBlock>
+        <SettingsBlock id="reset-hidden-settings" title={text.hiddenSettings} hint={text.hiddenSettingsHint} layout="inline">
+          <button type="button" className="settings-secondary" onClick={handleResetHiddenSettings}>{text.glassOpacityReset}</button>
         </SettingsBlock>
       </SettingsGroup>
       <SettingsGroup title={copy.sections.experimental}>
