@@ -1,12 +1,3 @@
-@container chat (max-width: 720px) {
-  .chat-dock-wrapper,
-  .chat-scroll-area {
-    padding-left: 16px;
-    padding-right: 16px;
-  }
-  .chat-dock-wrapper { padding-right: calc(16px + var(--chat-scrollbar-width, 0px)); }
-}
-
 .composer-change-summary {
   pointer-events: auto;
   display: inline-flex;

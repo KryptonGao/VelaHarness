@@ -79,7 +79,7 @@ if (!process.versions.electron) {
     const scroller = pane?.querySelector('.chat-scroll-area');
     if (!root || !surface || !scroller) return null;
     const style = getComputedStyle(root), paneStyle = getComputedStyle(pane);
-    const gap = parseFloat(getComputedStyle(scroller).paddingLeft);
+    const gap = surface.getBoundingClientRect().left - pane.getBoundingClientRect().left;
     const cardWidth = root.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
     const region = root.offsetLeft + parseFloat(style.paddingLeft);
     const natural = Math.min(surface.getBoundingClientRect().width, parseFloat(paneStyle.getPropertyValue('--chat-lane-max')) || 760);
@@ -286,6 +286,8 @@ if (!process.versions.electron) {
       assert.ok(!pushed, `Opening moved a visible card from ${beside.left}: ${JSON.stringify(pushed)}`);
       await settled(true);
       const split = await evaluate(stackBounds);
+      assert.ok(Math.abs(split.composerCenter - split.messageCenter) < 1, 'The split transcript and composer share a center');
+      assert.ok(Math.abs(split.composerWidth - split.replyWidth - 24) < 1, 'Replies sit 12px inside each composer edge');
       assertLaneMotion(opening, beside, split);
       if (close === panelToggle) {
         const toggle = () => evaluate(`document.querySelector('${panelToggle}').click()`);

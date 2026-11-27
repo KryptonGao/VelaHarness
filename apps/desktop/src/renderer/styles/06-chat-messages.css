@@ -1544,11 +1544,6 @@ button.compact-diff-card-name:focus-visible {
     display: none;
   }
 }
-@container chat (min-width: 561px) and (max-width: 840px) {
-  .chat-conversation-pane[data-turn-nav="true"] .chat-scroll-area {
-    padding-left: 24px;
-  }
-}
 @media (prefers-reduced-motion: reduce) {
   .turn-nav,
   .turn-nav-dot,

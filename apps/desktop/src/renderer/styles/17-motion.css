@@ -252,13 +252,10 @@
    （.dock-popover、斜线菜单与命令卡片 .skill-menu-anchor、弹窗 .sheet-backdrop）会被压住,
    所以弹层打开时把整个对话区抬到顶栏与选项卡之上。平时不抬,大 Logo 仍压在选项卡下面。 */
 .chat-conversation-pane:has(:is(.dock-popover, .skill-menu-anchor, .sheet-backdrop)) { z-index: 5; }
-/* 离开底部后浮在输入框上方,点击回到最新输出并恢复跟随。
-   水平位置跟输入框共用一条车道:悬浮信息卡片打开时整列会左移(--chat-lane-shift)、
-   滚动条占位也会把输入框推左一点(--chat-scrollbar-width),圆球同样让开这两段距离,
-   才能始终停在输入框正上方的中央。 */
+/* Keep the jump button centered over the composer as the info cards shift the lane. */
 .chat-jump-latest {
   position: absolute;
-  left: calc(50% - var(--chat-lane-shift, 0px) - var(--chat-scrollbar-width, 0px) / 2);
+  left: calc(50% - var(--chat-lane-shift, 0px));
   bottom: calc(var(--composer-clearance, 120px) - 24px); z-index: 3;
   display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; padding: 0;
   color: var(--text-primary); cursor: pointer;

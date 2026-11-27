@@ -751,7 +751,7 @@ export function ChatView({
       const input = {
         laneLeft: surfaceBox.left + (surfaceBox.width - laneWidth) / 2,
         laneWidth,
-        minGap: Number.parseFloat(getComputedStyle(scroller).paddingLeft),
+        minGap: surfaceBox.left - paneLeft,
         // offsetLeft 不受进出场 transform 影响;阴影内边距不计入卡片实体。
         cardLeft: paneLeft + card.offsetLeft + (isStack ? paddingLeft : 0),
         laneLimitLeft: paneLeft,
@@ -787,8 +787,6 @@ export function ChatView({
       }
       const plan = measure();
       if (!plan) return;
-      const scroller = scrollerRef.current;
-      if (scroller) pane.style.setProperty("--chat-scrollbar-width", `${scroller.offsetWidth - scroller.clientWidth}px`);
       setInfoCardsConcealed((moving && workbenchPhase === "open") || plan.concealed);
       // 只写完全展开时的几何。自动收起时沿用上一次目标，CSS 会随抽屉进度平滑归零。
       if (!plan.concealed) {
@@ -823,7 +821,6 @@ export function ChatView({
       children.disconnect();
       observer.disconnect();
       endMotion();
-      pane.style.removeProperty("--chat-scrollbar-width");
       pane.style.removeProperty("--info-lane-shift");
       pane.style.removeProperty("--info-lane-shrink");
     };

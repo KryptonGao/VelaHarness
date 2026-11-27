@@ -115,9 +115,10 @@ code,
   user-select: text;
 }
 
+:root { --scrollbar-size: 5px; }
 ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: var(--scrollbar-size);
+  height: var(--scrollbar-size);
 }
 ::-webkit-scrollbar-thumb {
   background: var(--scrollbar-thumb);

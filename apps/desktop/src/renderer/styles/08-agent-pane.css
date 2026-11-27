@@ -471,21 +471,31 @@
 }
 @keyframes tool-spin { to { transform: rotate(360deg); } }
 
+.chat-conversation-pane, .agent-pane {
+  --composer-edge-gap: 20px;
+  --reply-inset: 12px;
+  --chat-lane-gutter: calc(var(--composer-edge-gap) + var(--reply-inset));
+}
+/* Mirror the scrollbar gutter so replies stay centered under the input. */
+:where(.main-chat-view:not([data-floating-chat])) > .chat-conversation-pane:not([data-home]) > .chat-scroll-area,
+.agent-pane > .agent-pane-scroll {
+  scrollbar-gutter: stable both-edges;
+  padding-inline: calc(var(--chat-lane-gutter) - var(--scrollbar-size));
+}
+
 .chat-dock-wrapper {
   position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
-  padding: 0 24px 18px;
-  /* 与滚动区扣除滚动条后的可用宽度一致,输入框才能和正文列对齐。 */
-  padding-right: calc(24px + var(--chat-scrollbar-width, 0px));
+  padding: 0 var(--chat-lane-gutter) 18px;
   display: flex;
   flex-direction: column;
   align-items: center;
   pointer-events: none;
   isolation: isolate;
   anchor-scope: --input-surface;
-  --composer-overhang: 12px;
+  --composer-overhang: var(--reply-inset);
   --composer-width: calc(min(100%, var(--chat-lane-max, 760px)) - var(--chat-lane-shrink, 0px) + 2 * var(--composer-overhang));
 }
 
@@ -502,5 +512,4 @@
 .floating-input-card:not(.layout-capsule), .composer-capsule { anchor-name: --input-surface; }
 .chat-conversation-pane[data-home] .chat-dock-wrapper { --composer-overhang: 0px; }
 
-/* 子代理面板的输入框沿用主对话的 dock。 */
-.agent-pane > .chat-dock-wrapper { padding: 0 16px 14px; }
+.agent-pane > .chat-dock-wrapper { padding-bottom: var(--composer-edge-gap); }
