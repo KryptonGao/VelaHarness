@@ -1,28 +1,29 @@
-# Vela 1.3.2
+# Vela 1.3.3
 
-Queue messages while a run is active and promote them one at a time, tailor subagents with custom profiles and naming styles, set a personalized global prompt, bring your Chrome sign-ins into the built-in browser, and run micro-apps right in the workbench. This release also refreshes onboarding, unifies workbench headers, and fixes several chat and model issues.
+See the result of every action in window toasts, pick up your workbench tabs and layout where you left off, keep the chat title and actions pinned in the fullscreen workbench, and reset hidden settings in one click. This release also simplifies chat information cards and file previews, and fixes several layout and localization issues.
 
 ## New
 
-- **Message queue.** While a run is active, sending adds the message to a queue. Each queued message shows its state and can be promoted individually with **Send now**, keeping its text, images and order. The composer keeps a single send button.
-- **Custom subagent profiles.** Configure your own subagent profiles, and choose a practical (`backend`, `reviewer`) or artistic (Curie for chemistry, Turing for algorithms) naming style. Subagents show short names and their own output speed, and a conversation-scoped subagent directory lists them in the workbench.
-- **Global prompt.** Add a personalized prompt in settings that applies to your desktop chats.
-- **Chrome site data import.** Open the sites you need in a fresh Chrome session, or choose a Playwright `storageState` JSON file, and import the cookies and LocalStorage into the built-in browser. All its tabs share them.
-- **Micro-apps in the workbench.** Sandboxed micro-apps run automatically and open in workbench tabs.
-- **Built-in Vela skill.** A built-in `vela` skill answers questions about the app itself, such as where settings live and how to change colors, fonts, language and update behavior. Built-in skills appear in Settings → Skills and can be disabled but not deleted.
-- **Markdown frontmatter.** File previews render Markdown frontmatter as a key/value card.
+- **Action feedback in window toasts.** Chat actions, Git, pull request and workspace actions, settings and onboarding changes, and agent inbox, resident and recipe actions now report their result in a window toast. Archiving a conversation offers an **Undo**.
+- **Workbench restored across sessions.** Reopening a conversation brings back its workbench tabs and layout.
+- **Animated workbench tabs.** Tabs open, close and reorder with motion without shifting a tab strip that already fits, and the new tab button stays beside the last tab.
+- **Fullscreen workbench header.** The chat title and actions stay pinned in the fullscreen workbench, with a view transition when entering and leaving it.
+- **Reset hidden settings.** Interface settings can reset the hidden desktop settings to their defaults.
+- **Per-agent diff line counts.** The subagent card shows the lines each agent added and removed.
 
 ## Improved
 
-- Onboarding follows the current settings: it drops the choices Settings no longer offers, covers run view, recommended actions, thinking summary, input prediction and the new chat start page, and mirrors the Notifications page with task sounds.
-- Floating headers look the same across workbench panes, and floating info cards stay visible while dock menus are open.
-- Subagent speed tiers are told apart by icon color.
-- Browser REPL calls show each result separately and keep the raw output.
+- Chat information cards are simpler, and the Environment card is hidden by default.
+- File preview toolbars show fewer actions.
+- The main and subagent chat composers share the same margins, and the live run status and change summaries stay aligned with the composer.
+- Floating info cards stay stationary while the workbench opens and closes.
+- Tool summary hover emphasis applies to individual text segments, and numerals in bold Markdown replies use a lighter weight.
+- Hidden desktop settings and their defaults are documented.
 
 ## Fixed
 
-- Reopening a conversation restores the last model you sent with.
-- You can type while a new chat is still initializing.
+- Desktop greetings, counts and validation messages follow the interface language.
+- The new tab button no longer drifts away from the last workbench tab.
 
 ## Upgrade
 
@@ -34,17 +35,17 @@ The macOS build uses an ad-hoc signature and is distributed without notarization
 
 | File | Purpose |
 | --- | --- |
-| `Vela-1.3.2-arm64.dmg` | macOS Apple Silicon installer |
-| `Vela-1.3.2-arm64.zip` | macOS Apple Silicon application bundle used by the in-app updater |
+| `Vela-1.3.3-arm64.dmg` | macOS Apple Silicon installer |
+| `Vela-1.3.3-arm64.zip` | macOS Apple Silicon application bundle used by the in-app updater |
 | `SHA256SUMS.txt` | SHA-256 checksums for both downloads |
 | `SHA256SUMS.txt.sig` | Ed25519 signature the updater uses to verify the checksums |
 
-Both packages contain Vela 1.3.2.
+Both packages contain Vela 1.3.3.
 
 ## Validation
 
-- The production build completed for macOS Apple Silicon. All five package and bundle version fields match 1.3.2, and the built release notes match the source in all five languages.
-- The DMG mounted successfully. Its app and the app extracted from the ZIP passed strict code-signature verification. Both bundles report version 1.3.2 and the identifier `com.vela.desktop`.
+- The production build completed for macOS Apple Silicon. All five package and bundle version fields match 1.3.3, and the in-app release notes carry version 1.3.3 in all five languages.
+- The app was ad-hoc re-signed and both packages were rebuilt from it. The app extracted from the ZIP and the app inside the mounted DMG passed strict code-signature verification. Both bundles report version 1.3.3 and the identifier `com.vela.desktop`.
 - The ZIP contains a single top-level `Vela.app` with an arm64 executable.
 - Both package checksums match the signed manifest. The updater's signature verifier accepted the manifest using the bundled public key.
 - The automated test suites, smoke tests, and update tests were not run for this release.

@@ -1,134 +1,134 @@
 {
-  "version": "1.3.2",
+  "version": "1.3.3",
   "locales": {
     "en": {
-      "summary": "Queue messages while a run is active, customize subagents, set a global prompt, import Chrome sign-ins into the built-in browser, and run micro-apps in the workbench.",
+      "summary": "See every action's result in window toasts, resume your workbench tabs and layout, keep the chat title pinned in the fullscreen workbench, and reset hidden settings in one click.",
       "highlights": [
         {
-          "title": "Message queue",
-          "body": "While a run is active, messages join a queue, and each one can be promoted with Send now without losing its text, images or order."
+          "title": "Action toasts",
+          "body": "Chat, Git, pull request, workspace, settings and agent actions report their result in a window toast, and archiving offers Undo."
         },
         {
-          "title": "Custom subagents",
-          "body": "Create your own subagent profiles and pick a practical or artistic naming style. Subagents show short names and their own output speed."
+          "title": "Workbench restored",
+          "body": "Reopening a conversation brings back its workbench tabs and layout, and tabs now open and close with motion."
         },
         {
-          "title": "Chrome sign-ins",
-          "body": "Import cookies and LocalStorage from a Chrome session or a Playwright storageState file into the built-in browser."
+          "title": "Fullscreen workbench",
+          "body": "The chat title and actions stay pinned in the fullscreen workbench, with a smooth view transition."
         },
         {
-          "title": "Micro-apps in the workbench",
-          "body": "Sandboxed micro-apps run automatically and open in workbench tabs. A global prompt in settings applies to your desktop chats."
+          "title": "Reset hidden settings",
+          "body": "Interface settings can reset the hidden desktop settings to their defaults. Subagent cards show per-agent diff line counts."
         }
       ],
       "improvements": [
-        "A built-in Vela skill answers questions about the app itself, and Markdown frontmatter appears as a key/value card in file previews.",
-        "Onboarding follows the current settings, and workbench panes share the same floating header.",
-        "Reopening a conversation restores the last model you sent with, and you can type while a new chat is still initializing."
+        "Chat information cards and file preview toolbars are simpler, and the Environment card is hidden by default.",
+        "The main and subagent composers share the same margins, and live run status and change summaries stay aligned with them.",
+        "Greetings, counts and validation messages follow the interface language."
       ]
     },
     "zh-CN": {
-      "summary": "运行中可排队发送消息，自定义子代理，设置全局提示词，把 Chrome 登录状态导入内置浏览器，并在工作台中运行微应用。",
+      "summary": "每个操作的结果都会以窗口 Toast 提示，恢复工作台标签页与布局，全屏工作台中固定显示对话标题，并可一键重置隐藏设置。",
       "highlights": [
         {
-          "title": "消息队列",
-          "body": "运行期间发送的消息会进入队列，可对单条消息点「立即发送」，文字、图片和顺序都不会丢失。"
+          "title": "操作 Toast",
+          "body": "对话、Git、拉取请求、工作区、设置和代理等操作都会以窗口 Toast 反馈结果，归档对话时可撤销。"
         },
         {
-          "title": "自定义子代理",
-          "body": "可创建自己的子代理配置，并选择实干类或艺术类命名风格。子代理会显示简短名称和各自的输出速度。"
+          "title": "恢复工作台",
+          "body": "重新打开对话时会恢复其工作台标签页与布局，标签页的打开和关闭也带有动画。"
         },
         {
-          "title": "Chrome 登录状态",
-          "body": "可把 Chrome 会话或 Playwright storageState 文件中的 Cookie 和 LocalStorage 导入内置浏览器。"
+          "title": "全屏工作台",
+          "body": "全屏工作台中会固定显示对话标题和操作，进出时带有平滑的视图过渡。"
         },
         {
-          "title": "工作台微应用",
-          "body": "沙箱微应用会自动运行，并在工作台标签页中打开。设置里的全局提示词会作用于桌面端对话。"
+          "title": "重置隐藏设置",
+          "body": "界面设置可将隐藏的桌面设置恢复为默认值。子代理卡片会显示各代理的差异行数。"
         }
       ],
       "improvements": [
-        "内置 Vela 技能可回答关于应用本身的问题，文件预览会把 Markdown 的 frontmatter 显示为键值卡片。",
-        "新手引导与当前设置保持一致，工作台各面板共用同一种悬浮标题栏。",
-        "重新打开对话时会恢复上次发送所用的模型，新对话初始化期间也可以输入。"
+        "对话信息卡片和文件预览工具栏更简洁，「环境」卡片默认隐藏。",
+        "主对话与子代理对话的输入框边距一致，实时运行状态和更改摘要与输入框保持对齐。",
+        "问候语、数量和校验消息会跟随界面语言。"
       ]
     },
     "zh-TW": {
-      "summary": "執行中可排隊傳送訊息，自訂子代理，設定全域提示詞，把 Chrome 登入狀態匯入內建瀏覽器，並在工作台中執行微應用。",
+      "summary": "每個操作的結果都會以視窗 Toast 提示，還原工作台分頁與版面，全螢幕工作台中固定顯示對話標題，並可一鍵重設隱藏設定。",
       "highlights": [
         {
-          "title": "訊息佇列",
-          "body": "執行期間傳送的訊息會進入佇列，可對單則訊息按「立即傳送」，文字、圖片與順序都不會遺失。"
+          "title": "操作 Toast",
+          "body": "對話、Git、拉取請求、工作區、設定與代理等操作都會以視窗 Toast 回報結果，封存對話時可復原。"
         },
         {
-          "title": "自訂子代理",
-          "body": "可建立自己的子代理設定，並選擇實幹類或藝術類命名風格。子代理會顯示簡短名稱與各自的輸出速度。"
+          "title": "還原工作台",
+          "body": "重新開啟對話時會還原其工作台分頁與版面，分頁的開啟與關閉也帶有動畫。"
         },
         {
-          "title": "Chrome 登入狀態",
-          "body": "可把 Chrome 工作階段或 Playwright storageState 檔案中的 Cookie 與 LocalStorage 匯入內建瀏覽器。"
+          "title": "全螢幕工作台",
+          "body": "全螢幕工作台中會固定顯示對話標題與操作，進出時帶有流暢的檢視轉場。"
         },
         {
-          "title": "工作台微應用",
-          "body": "沙箱微應用會自動執行，並在工作台分頁中開啟。設定中的全域提示詞會作用於桌面版對話。"
+          "title": "重設隱藏設定",
+          "body": "介面設定可將隱藏的桌面設定還原為預設值。子代理卡片會顯示各代理的差異行數。"
         }
       ],
       "improvements": [
-        "內建 Vela 技能可回答關於應用本身的問題，檔案預覽會把 Markdown 的 frontmatter 顯示為鍵值卡片。",
-        "新手引導與目前設定保持一致，工作台各面板共用同一種浮動標題列。",
-        "重新開啟對話時會還原上次傳送所用的模型，新對話初始化期間也可以輸入。"
+        "對話資訊卡片與檔案預覽工具列更簡潔，「環境」卡片預設隱藏。",
+        "主對話與子代理對話的輸入框邊距一致，即時執行狀態與變更摘要與輸入框保持對齊。",
+        "問候語、數量與驗證訊息會跟隨介面語言。"
       ]
     },
     "ja": {
-      "summary": "実行中にメッセージをキューに入れ、サブエージェントをカスタマイズし、グローバルプロンプトを設定し、Chrome のサインイン情報を内蔵ブラウザーに取り込み、ワークベンチでマイクロアプリを実行できます。",
+      "summary": "すべての操作の結果をウィンドウトーストで確認でき、ワークベンチのタブとレイアウトを復元し、全画面ワークベンチでもチャットのタイトルを固定表示し、非表示設定をワンクリックでリセットできます。",
       "highlights": [
         {
-          "title": "メッセージキュー",
-          "body": "実行中に送ったメッセージはキューに入り、1 件ずつ「今すぐ送信」に切り替えられます。テキスト、画像、順序は失われません。"
+          "title": "操作トースト",
+          "body": "チャット、Git、プルリクエスト、ワークスペース、設定、エージェントの操作結果をウィンドウトーストで通知し、アーカイブは元に戻せます。"
         },
         {
-          "title": "カスタムサブエージェント",
-          "body": "独自のサブエージェントプロファイルを作成し、実務型またはアート型の命名スタイルを選べます。サブエージェントには短い名前と個別の出力速度が表示されます。"
+          "title": "ワークベンチの復元",
+          "body": "会話を開き直すとワークベンチのタブとレイアウトが復元され、タブの開閉にはアニメーションが付きます。"
         },
         {
-          "title": "Chrome のサインイン情報",
-          "body": "Chrome セッションまたは Playwright の storageState ファイルから、Cookie と LocalStorage を内蔵ブラウザーに取り込めます。"
+          "title": "全画面ワークベンチ",
+          "body": "全画面ワークベンチでもチャットのタイトルと操作が固定表示され、出入りはスムーズなビュー遷移になります。"
         },
         {
-          "title": "ワークベンチのマイクロアプリ",
-          "body": "サンドボックス内のマイクロアプリは自動で実行され、ワークベンチのタブで開きます。設定のグローバルプロンプトはデスクトップのチャットに適用されます。"
+          "title": "非表示設定のリセット",
+          "body": "インターフェース設定で非表示のデスクトップ設定を既定値に戻せます。サブエージェントのカードにはエージェントごとの差分行数が表示されます。"
         }
       ],
       "improvements": [
-        "組み込みの Vela スキルがアプリ自体に関する質問に答え、ファイルプレビューでは Markdown の frontmatter がキーと値のカードで表示されます。",
-        "オンボーディングが現在の設定に合わせて更新され、ワークベンチの各ペインで同じフローティングヘッダーを使います。",
-        "会話を開き直すと最後に送信したモデルが復元され、新しいチャットの初期化中も入力できます。"
+        "チャットの情報カードとファイルプレビューのツールバーがシンプルになり、「環境」カードは既定で非表示になります。",
+        "メインとサブエージェントのコンポーザーの余白が揃い、実行状況と変更サマリーもコンポーザーに揃います。",
+        "あいさつ、件数、検証メッセージがインターフェース言語に従います。"
       ]
     },
     "ko": {
-      "summary": "실행 중 메시지를 대기열에 넣고, 서브에이전트를 사용자 지정하고, 전역 프롬프트를 설정하고, Chrome 로그인 정보를 내장 브라우저로 가져오고, 워크벤치에서 마이크로 앱을 실행할 수 있습니다.",
+      "summary": "모든 작업 결과를 창 토스트로 확인하고, 워크벤치 탭과 레이아웃을 복원하고, 전체 화면 워크벤치에서도 채팅 제목을 고정하며, 숨겨진 설정을 한 번에 초기화할 수 있습니다.",
       "highlights": [
         {
-          "title": "메시지 대기열",
-          "body": "실행 중에 보낸 메시지는 대기열에 들어가며, 메시지마다 '지금 보내기'로 바꿀 수 있습니다. 텍스트, 이미지, 순서는 그대로 유지됩니다."
+          "title": "작업 토스트",
+          "body": "채팅, Git, 풀 리퀘스트, 워크스페이스, 설정, 에이전트 작업 결과를 창 토스트로 알려 주며, 보관 처리는 실행 취소할 수 있습니다."
         },
         {
-          "title": "사용자 지정 서브에이전트",
-          "body": "나만의 서브에이전트 프로필을 만들고 실무형 또는 예술형 이름 스타일을 고를 수 있습니다. 서브에이전트에는 짧은 이름과 개별 출력 속도가 표시됩니다."
+          "title": "워크벤치 복원",
+          "body": "대화를 다시 열면 워크벤치 탭과 레이아웃이 복원되고, 탭이 열리고 닫힐 때 애니메이션이 적용됩니다."
         },
         {
-          "title": "Chrome 로그인 정보",
-          "body": "Chrome 세션 또는 Playwright storageState 파일의 쿠키와 LocalStorage를 내장 브라우저로 가져올 수 있습니다."
+          "title": "전체 화면 워크벤치",
+          "body": "전체 화면 워크벤치에서도 채팅 제목과 작업이 고정되며, 드나들 때 부드러운 뷰 전환이 적용됩니다."
         },
         {
-          "title": "워크벤치의 마이크로 앱",
-          "body": "샌드박스 마이크로 앱이 자동으로 실행되고 워크벤치 탭에서 열립니다. 설정의 전역 프롬프트는 데스크톱 대화에 적용됩니다."
+          "title": "숨겨진 설정 초기화",
+          "body": "인터페이스 설정에서 숨겨진 데스크톱 설정을 기본값으로 되돌릴 수 있습니다. 서브에이전트 카드에는 에이전트별 diff 줄 수가 표시됩니다."
         }
       ],
       "improvements": [
-        "내장 Vela 스킬이 앱 자체에 대한 질문에 답하고, 파일 미리보기에서는 Markdown frontmatter가 키-값 카드로 표시됩니다.",
-        "온보딩이 현재 설정에 맞게 바뀌었고, 워크벤치의 각 창이 같은 플로팅 헤더를 사용합니다.",
-        "대화를 다시 열면 마지막으로 보낸 모델이 복원되고, 새 채팅이 초기화되는 동안에도 입력할 수 있습니다."
+        "채팅 정보 카드와 파일 미리보기 도구 모음이 더 간결해지고, '환경' 카드는 기본으로 숨겨집니다.",
+        "메인과 서브에이전트 입력창의 여백이 같아지고, 실시간 실행 상태와 변경 요약도 입력창에 맞춰 정렬됩니다.",
+        "인사말, 개수, 검증 메시지가 인터페이스 언어를 따릅니다."
       ]
     }
   }
