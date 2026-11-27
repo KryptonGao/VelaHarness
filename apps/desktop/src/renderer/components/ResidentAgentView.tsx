@@ -15,6 +15,7 @@ import {
   type ResidentWakeEvent,
 } from "@vela/shared";
 import { activeIntlLocale, tr, trf } from "../locale";
+import { showToast } from "../toast";
 import type { MessageStore } from "../hooks/message-store";
 import { useMessages } from "../hooks/useMessages";
 import type { UiMessage } from "../hooks/useSession";
@@ -84,19 +85,13 @@ const ResidentMessage = memo(function ResidentMessage({ message, streaming, edit
 
 /** 与主对话回复下方的操作行一致：左侧复制，右侧时间；Resident 没有分支和检查点。 */
 function ResidentReplyActions({ text, timestamp }: { text: string; timestamp: number | null }) {
-  const [copied, setCopied] = useState(false);
-  useEffect(() => {
-    if (!copied) return;
-    const timer = window.setTimeout(() => setCopied(false), 1400);
-    return () => window.clearTimeout(timer);
-  }, [copied]);
   const date = timestamp === null ? null : new Date(timestamp);
   const valid = date && Number.isFinite(date.getTime()) ? date : null;
-  const label = copied ? tr("已复制", "Copied") : tr("复制回复", "Copy reply");
+  const label = tr("复制回复", "Copy reply");
   return <div className="reply-actions">
     <button className="reply-action" type="button" title={label} aria-label={label}
-      onClick={() => { void navigator.clipboard.writeText(text).then(() => setCopied(true), () => setCopied(false)); }}>
-      {copied ? <Icon name="check" size={14} /> : <Icon name="copy" size={14} />}
+      onClick={() => { void navigator.clipboard.writeText(text).then(() => showToast(tr("已复制", "Copied")), () => undefined); }}>
+      <Icon name="copy" size={14} />
     </button>
     {valid ? <time className="reply-time" dateTime={valid.toISOString()} title={valid.toLocaleString(activeIntlLocale())}>{formatTime(valid.getTime())}</time> : null}
   </div>;
@@ -146,13 +141,11 @@ function visibleChatRows(messages: readonly UiMessage[], cards: readonly Residen
   return rows;
 }
 
-function Chat({ api, status, settings, messageStore, notice, setNotice }: {
+function Chat({ api, status, settings, messageStore }: {
   api: ResidentAgentApi;
   status: ResidentStatus;
   settings: ResidentSettings | null;
   messageStore: MessageStore;
-  notice: string | null;
-  setNotice: (text: string | null) => void;
 }) {
   const messages = useMessages(messageStore, status.conversationId);
   const rows = useMemo(() => visibleChatRows(messages, status.wakeCards), [messages, status.wakeCards]);
@@ -169,17 +162,18 @@ function Chat({ api, status, settings, messageStore, notice, setNotice }: {
     return ordinals;
   }, [messages]);
 
-  const submit = async (value: string): Promise<boolean> => {
-    setNotice(null);
-    try {
-      const result = await api.submit({ text: value });
-      if (result.ok) return true;
-      setNotice(result.message ?? submitFailure[result.reason]());
-    } catch (error) {
-      setNotice(error instanceof Error ? error.message : String(error));
+  const submit = useCallback(async (value: string) => {
+    const result = await api.submit({ text: value });
+    if (!result.ok) throw new Error(result.message ?? submitFailure[result.reason]());
+  }, [api]);
+
+  const submitWithToast = useCallback(async (value: string): Promise<boolean> => {
+    try { await submit(value); return true; }
+    catch (error) {
+      showToast(error instanceof Error ? error.message : String(error), { kind: "error" });
+      return false;
     }
-    return false;
-  };
+  }, [submit]);
 
   const uiHost = useMemo<UiHost>(() => ({
     conversationId: status.conversationId,
@@ -187,9 +181,9 @@ function Chat({ api, status, settings, messageStore, notice, setNotice }: {
     canSubmit: status.conversationId !== null && !blocked,
     agentBusy: status.residentBusy,
     // 界面只是把用户的选择当作一条普通消息发给 Resident，不携带任何权限。
-    submit: async value => { await submit(value); },
+    submit: async value => { await submitWithToast(value); },
     openLink: () => false,
-  }), [status.conversationId, status.residentBusy, uiOrdinals, blocked]); // eslint-disable-line react-hooks/exhaustive-deps
+  }), [status.conversationId, status.residentBusy, uiOrdinals, blocked, submitWithToast]);
 
   useEffect(() => {
     const list = listRef.current;
@@ -209,17 +203,11 @@ function Chat({ api, status, settings, messageStore, notice, setNotice }: {
     return () => observer.disconnect();
   }, []);
 
-  const submitRef = useRef(submit);
-  submitRef.current = submit;
-  const resend = useCallback(async (value: string) => {
-    if (!(await submitRef.current(value))) throw new Error(tr("发送失败，请查看上方提示。", "Couldn't send. See the notice above."));
-  }, []);
-
   const send = async () => {
     const value = text.trim();
     if (!value || sending || blocked) return;
     setSending(true);
-    const ok = await submit(value);
+    const ok = await submitWithToast(value);
     setSending(false);
     if (ok) { setText(""); stick.current = true; }
   };
@@ -232,11 +220,10 @@ function Chat({ api, status, settings, messageStore, notice, setNotice }: {
         ? <p className="agent-inbox-empty">{tr("还没有对话。告诉它你想让后台处理什么，比如「检查一下 api 项目最近的失败测试」。", "No conversation yet. Tell it what to handle in the background, e.g. “check the failing tests in the api project”.")}</p>
         : <UiHostProvider value={uiHost}>
           {rows.map(({ message, card }) => card ? <ResidentEventCard key={message.id} card={card} />
-            : <ResidentMessage key={message.id} message={message} streaming={status.residentBusy && message === messages[lastIndex]} editDisabled={status.residentBusy || Boolean(blocked)} onResend={resend} />)}
+            : <ResidentMessage key={message.id} message={message} streaming={status.residentBusy && message === messages[lastIndex]} editDisabled={status.residentBusy || Boolean(blocked)} onResend={submit} />)}
         </UiHostProvider>}
     </div>
     <div className="resident-composer-dock" ref={dockRef}>
-      {notice ? <p className="agent-inbox-notice" role="alert">{notice}</p> : null}
       {blocked ? <p className="agent-inbox-muted resident-blocked" role="status">{submitFailure[blocked]()}</p> : null}
       <form className="resident-composer" onSubmit={event => { event.preventDefault(); void send(); }}>
         <label className="agent-inbox-sr" htmlFor="resident-input">{tr("给 Resident Agent 的消息", "Message for Resident Agent")}</label>
@@ -254,15 +241,15 @@ function Chat({ api, status, settings, messageStore, notice, setNotice }: {
 
 function Tasks({ api, status, onOpenConversation }: { api: ResidentAgentApi; status: ResidentStatus; onOpenConversation: (id: string) => void }) {
   const [busy, setBusy] = useState<string | null>(null);
-  const [failure, setFailure] = useState<string | null>(null);
   const tasks = useMemo(() => [...status.tasks].sort((a, b) => b.createdAt - a.createdAt).slice(0, residentLimits.maxTasksShown), [status.tasks]);
   const cancel = async (id: string) => {
-    setBusy(id); setFailure(null);
-    try { await api.cancelTask(id); } catch (error) { setFailure(error instanceof Error ? error.message : String(error)); } finally { setBusy(null); }
+    setBusy(id);
+    try { await api.cancelTask(id); }
+    catch (error) { showToast(error instanceof Error ? error.message : String(error), { kind: "error" }); }
+    finally { setBusy(null); }
   };
   if (!tasks.length) return <p className="agent-inbox-empty">{tr("还没有后台任务。", "No background tasks yet.")}</p>;
   return <div className="resident-tasks">
-    {failure ? <p className="agent-inbox-notice" role="alert">{failure}</p> : null}
     <ul aria-label={tr("后台任务", "Background tasks")}>
       {tasks.map(task => <li key={task.id} className="resident-task" data-status={task.status}>
         <div className="resident-task-main">
@@ -303,7 +290,6 @@ export function ResidentAgentView({ active, api, status, settings, rules, messag
 }) {
   const [tab, setTab] = useState<Tab>(initialTab);
   const slider = useSlidingTabIndicator({ activeKey: tab });
-  const [notice, setNotice] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const conversationId = status?.conversationId ?? null;
   useEffect(() => { if (conversationId) ensureTranscript(conversationId); }, [conversationId, ensureTranscript]);
@@ -319,15 +305,15 @@ export function ResidentAgentView({ active, api, status, settings, rules, messag
 
   const changeMode = async (mode: ResidentMode) => {
     if (mode === settings.mode || pending) return;
-    setPending(true); setNotice(null);
+    setPending(true);
     try { onSettings(await api.updateSettings({ mode })); }
-    catch (reason) { setNotice(reason instanceof Error ? reason.message : String(reason)); }
+    catch (reason) { showToast(reason instanceof Error ? reason.message : String(reason), { kind: "error" }); }
     finally { setPending(false); }
   };
   const togglePause = async () => {
-    setPending(true); setNotice(null);
+    setPending(true);
     try { await (status.paused ? api.resume() : api.pause()); onSettings(await api.getSettings()); }
-    catch (reason) { setNotice(reason instanceof Error ? reason.message : String(reason)); }
+    catch (reason) { showToast(reason instanceof Error ? reason.message : String(reason), { kind: "error" }); }
     finally { setPending(false); }
   };
 
@@ -377,7 +363,7 @@ export function ResidentAgentView({ active, api, status, settings, rules, messag
       {slider.indicator}
     </nav>
     <div className="resident-panel autohide-scrollbar" role="tabpanel" id={`resident-panel-${tab}`} aria-labelledby={`resident-tab-${tab}`}>
-      {tab === "chat" ? <Chat api={api} status={status} settings={settings} messageStore={messageStore} notice={notice} setNotice={setNotice} /> : null}
+      {tab === "chat" ? <Chat api={api} status={status} settings={settings} messageStore={messageStore} /> : null}
       {tab === "tasks" ? <Tasks api={api} status={status} onOpenConversation={onOpenConversation} /> : null}
       {tab === "rules" ? <ProactiveRulesPanel api={api} status={status} settings={settings} rules={rules} /> : null}
       {active && tab === "settings" ? <ResidentSettingsPanel api={api} settings={settings} onSettings={onSettings} catalog={catalog} catalogError={catalogError} /> : null}

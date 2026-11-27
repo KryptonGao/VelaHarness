@@ -10,6 +10,7 @@ import {
   type ResidentStatus,
 } from "@vela/shared";
 import { activeIntlLocale, tr, trf } from "../locale";
+import { showToast } from "../toast";
 import { ruleStatus, triggerFilterHint, triggerLabel } from "./resident-agent-model";
 
 const baseName = (path: string) => path.split("/").filter(Boolean).pop() ?? path;
@@ -93,19 +94,18 @@ export function ProactiveRulesPanel({ api, status, settings, rules }: {
     try {
       const result = await api.rules.save(editing.draft, editing.id ?? undefined);
       if (result.ok) setEditing(null); else setError(result.error);
-    } catch (reason) { setError(reason instanceof Error ? reason.message : String(reason)); }
+    } catch (reason) { showToast(reason instanceof Error ? reason.message : String(reason), { kind: "error" }); }
     finally { setSaving(false); }
   };
   const toggle = async (rule: ProactiveRule) => {
-    setError(null);
     try {
       const result = await api.rules.save({ ...toInput(rule), enabled: !rule.enabled }, rule.id);
-      if (!result.ok) setError(result.error);
-    } catch (reason) { setError(reason instanceof Error ? reason.message : String(reason)); }
+      if (!result.ok) showToast(result.error, { kind: "error" });
+    } catch (reason) { showToast(reason instanceof Error ? reason.message : String(reason), { kind: "error" }); }
   };
   const remove = async (rule: ProactiveRule) => {
-    setError(null);
-    try { await api.rules.remove(rule.id); } catch (reason) { setError(reason instanceof Error ? reason.message : String(reason)); }
+    try { await api.rules.remove(rule.id); }
+    catch (reason) { showToast(reason instanceof Error ? reason.message : String(reason), { kind: "error" }); }
   };
 
   return <div className="resident-rules">
@@ -114,7 +114,6 @@ export function ProactiveRulesPanel({ api, status, settings, rules }: {
       "Rules only work in Proactive mode. Each trigger calls the model and costs money. A burst of events becomes one run, bounded by cooldown, daily limits, battery and concurrency.")}</p>
     {!active ? <p className="agent-inbox-muted" role="status">{settings.paused ? tr("后台自动任务已暂停，规则不会触发。", "Background tasks are paused, so rules won't trigger.") : tr("当前不是主动模式，规则不会触发。", "Proactive mode is off, so rules won't trigger.")}</p> : null}
     {rules?.error ? <p className="agent-inbox-notice" role="alert">{rules.error}</p> : null}
-    {error && !editing ? <p className="agent-inbox-notice" role="alert">{error}</p> : null}
     {editing
       ? <RuleForm draft={editing.draft} workspaces={status.workspaces} saving={saving} error={error}
         onChange={draft => setEditing({ ...editing, draft })} onSave={() => void save()} onCancel={() => { setEditing(null); setError(null); }} />

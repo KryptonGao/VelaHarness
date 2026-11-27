@@ -2,6 +2,7 @@ import { useContext, useEffect, useState } from 'react';
 import { canRetryRecipeStage, type RecipeRun } from '@vela/shared';
 import { RecipeActionsContext } from './recipe-actions-context';
 import { tr } from '../locale';
+import { showToast } from '../toast';
 import { RecipeRunProgress, RecipeRunOutcome } from './RecipeWorkflow';
 
 export function useRecipeRun(): RecipeRun | null {
@@ -27,13 +28,13 @@ export function RecipeChatCard() {
 }
 
 export function RecipeStageDock({ run }: { run: RecipeRun | null }) {
-  const [busy, setBusy] = useState(false); const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
   const stage = run?.stages?.find(s => ['waiting_for_approval', 'running', 'failed'].includes(s.status));
   if (!run || !stage || !['running', 'waiting_for_user', 'failed'].includes(run.status)) return null;
   const definition = run.recipeSnapshot.stages!.find(s => s.id === stage.stageId)!;
-  const action = async (fn: () => Promise<unknown>) => { setBusy(true); setError(''); try { await fn(); } catch (e) { setError((e as Error).message); } finally { setBusy(false); } };
+  const action = async (fn: () => Promise<unknown>) => { setBusy(true); try { await fn(); } catch (e) { showToast(e instanceof Error ? e.message : String(e), { kind: 'error' }); } finally { setBusy(false); } };
   return <aside className="recipe-stage-dock" aria-label={tr('当前配方阶段', 'Current recipe stage')}><div role="status"><strong>{definition.name}</strong> · {stage.status === 'waiting_for_approval' ? tr('等待阶段审批', 'Waiting for stage approval') : stage.status === 'failed' ? tr('阶段失败，请检查记录', 'Stage failed; inspect the record') : tr('阶段执行中，自由输入已暂停', 'Stage running; free input paused')}</div>
     <div className="scheduled-task-actions">{stage.status === 'waiting_for_approval' && <><button type="button" disabled={busy} onClick={() => void action(() => window.vela!.taskRecipes!.approveStage(run.id, stage.stageId, true))}>{tr('批准阶段', 'Approve stage')}</button><button type="button" disabled={busy} onClick={() => void action(() => window.vela!.taskRecipes!.approveStage(run.id, stage.stageId, false))}>{tr('拒绝并停止', 'Reject and stop')}</button></>}
       {canRetryRecipeStage(run, stage.stageId) && run.trigger !== 'scheduled' && <button type="button" disabled={busy} onClick={() => void action(() => window.vela!.taskRecipes!.retryStage(run.id, stage.stageId, crypto.randomUUID()))}>{tr('重试此只读阶段', 'Retry this read-only stage')}</button>}
-      {run.status !== 'failed' && <button type="button" disabled={busy} onClick={() => void action(() => window.vela!.abort(run.conversationId))}>{tr('停止配方任务', 'Stop recipe run')}</button>}</div>{error && <p role="alert" className="recipe-errors">{error}</p>}</aside>;
+      {run.status !== 'failed' && <button type="button" disabled={busy} onClick={() => void action(() => window.vela!.abort(run.conversationId))}>{tr('停止配方任务', 'Stop recipe run')}</button>}</div></aside>;
 }

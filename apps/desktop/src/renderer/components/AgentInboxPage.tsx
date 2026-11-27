@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import type { AgentInboxDecideFailure, AgentInboxDecision, AgentInboxItem, AgentInboxItemType, AgentInboxNavigation, ModelCatalog } from "@vela/shared";
 import { activeIntlLocale, tr, trf } from "../locale";
+import { showToast } from "../toast";
 import { useAgentInbox } from "../hooks/useAgentInbox";
 import { useResidentAgent } from "../hooks/useResidentAgent";
 import { useAutoHideScrollbarsWithin } from "../hooks/useAutoHideScrollbar";
@@ -152,10 +153,9 @@ function Row({ item, selected, busy, onSelect, onDecide }: {
   </div>;
 }
 
-function Detail({ item, busy, notice, onDecide, onArchive, onBack, onOpenConversation, onOpenResident }: {
+function Detail({ item, busy, onDecide, onArchive, onBack, onOpenConversation, onOpenResident }: {
   item: AgentInboxItem;
   busy: boolean;
-  notice: string | null;
   onDecide: (item: AgentInboxItem, decision: AgentInboxDecision, answer?: string) => void;
   onArchive: (item: AgentInboxItem) => void;
   onBack: () => void;
@@ -178,8 +178,7 @@ function Detail({ item, busy, notice, onDecide, onArchive, onBack, onOpenConvers
       {item.reason ? <><dt>{tr("触发原因", "Why it ran")}</dt><dd>{item.reason}</dd></> : null}
       <dt>{tr("时间", "Time")}</dt><dd>{new Date(item.createdAt).toLocaleString(activeIntlLocale())}</dd>
     </dl>
-    {notice ? <p className="agent-inbox-notice" role="alert">{notice}</p> : null}
-    {item.status === "invalidated" && !notice ? <p className="agent-inbox-notice" role="status">{failureText("invalidated")}</p> : null}
+    {item.status === "invalidated" ? <p className="agent-inbox-notice" role="status">{failureText("invalidated")}</p> : null}
     {item.status === "expired" ? <p className="agent-inbox-notice" role="status">{tr("审批超过 5 分钟没有回复，已自动拒绝；需要重新触发。", "No reply within 5 minutes, so it was denied automatically. It has to be triggered again.")}</p> : null}
 
     {detail.kind === "approval" ? (
@@ -229,7 +228,6 @@ export function AgentInboxPage({ active, sidebarResize, onOpenConversation, mess
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [notice, setNotice] = useState<{ id: string; text: string } | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const pageRef = useRef<HTMLElement>(null);
   useAutoHideScrollbarsWithin(pageRef);
@@ -269,12 +267,19 @@ export function AgentInboxPage({ active, sidebarResize, onOpenConversation, mess
   useEffect(() => { if (active && selected && selected.readState === "unread") void store?.markRead(selected); }, [active, selected?.id, selected?.readState, store]);
   const decide = async (item: AgentInboxItem, decision: AgentInboxDecision, answer?: string) => {
     if (!store || busyId) return;
-    setBusyId(item.id); setNotice(null);
+    setBusyId(item.id);
     try {
       const result = await store.decide(item, decision, answer);
-      if (!result.ok) { setSelectedId(item.id); setNotice({ id: item.id, text: failureText(result.reason) }); }
+      if (!result.ok) {
+        setSelectedId(item.id);
+        const message = result.reason === "invalidated" && result.item?.status === "invalidated"
+          ? tr("无法处理此请求。", "Couldn't act on this request.")
+          : failureText(result.reason);
+        showToast(message, { kind: "error" });
+      }
     } catch (error) {
-      setSelectedId(item.id); setNotice({ id: item.id, text: error instanceof Error ? error.message : String(error) });
+      setSelectedId(item.id);
+      showToast(error instanceof Error ? error.message : String(error), { kind: "error" });
     } finally { setBusyId(null); }
   };
   const archive = (item: AgentInboxItem) => { void store?.archive(item, item.readState !== "archived"); };
@@ -343,7 +348,7 @@ export function AgentInboxPage({ active, sidebarResize, onOpenConversation, mess
       </div>
       <div className="agent-inbox-detail-pane autohide-scrollbar">
         {selected
-          ? <Detail key={selected.id} item={selected} busy={busyId === selected.id} notice={notice?.id === selected.id ? notice.text : null}
+          ? <Detail key={selected.id} item={selected} busy={busyId === selected.id}
             onDecide={decide} onArchive={archive} onBack={() => setSelectedId(null)} onOpenConversation={onOpenConversation} onOpenResident={openResident} />
           : <p className="agent-inbox-empty">{tr("选择一个事项查看详情。", "Select an item to see its details.")}</p>}
       </div>

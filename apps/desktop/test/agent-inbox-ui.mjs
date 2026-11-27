@@ -78,7 +78,7 @@ const mockScript = String.raw`
     const derive = () => { status.state = settings.paused ? "paused" : settings.mode === "disabled" ? "offline" : status.runningTasks ? "working" : "ready"; status.mode = settings.mode; status.paused = settings.paused; status.revision += 1; };
     const emitStatus = () => { derive(); for (const listener of statusListeners) listener(clone(status)); };
     const emitRules = () => { for (const listener of ruleListeners) listener(clone({ rules, error: null })); };
-    window.residentFixture = { calls: [], rules: () => rules, setStatus(patch) { Object.assign(status, patch); emitStatus(); } };
+    window.residentFixture = { calls: [], submitResult: null, rules: () => rules, setStatus(patch) { Object.assign(status, patch); emitStatus(); } };
     const call = (method, args) => window.residentFixture.calls.push({ method, ...args });
     return {
       getStatus: async () => { derive(); return clone(status); },
@@ -100,6 +100,7 @@ const mockScript = String.raw`
       resume: async () => { call("resume", {}); settings.paused = false; emitStatus(); return clone(status); },
       submit: async (input) => {
         call("submit", { input });
+        if (window.residentFixture.submitResult) return window.residentFixture.submitResult;
         if (settings.mode === "disabled") return { ok: false, reason: "disabled" };
         return input.workspace ? { ok: true, target: "task", taskId: "t9" } : { ok: true, target: "resident" };
       },
@@ -134,6 +135,7 @@ if (!process.versions.electron) {
       import React from 'react';
       import { createRoot } from 'react-dom/client';
       import { AgentInboxPage } from './apps/desktop/src/renderer/components/AgentInboxPage';
+      import { ToastHost } from './apps/desktop/src/renderer/components/ToastHost';
       import { residentWakeMarker } from './packages/shared/src/resident-agent';
       import { setActiveLocale } from './apps/desktop/src/renderer/locale';
       import { createMessageStore, messageScope } from './apps/desktop/src/renderer/hooks/message-store';
@@ -150,13 +152,13 @@ if (!process.versions.electron) {
       let nonce = 0;
       const ensureTranscript = (id) => { window.transcripts.push(id); };
       const handled = (value) => { window.handled.push(value); if (navigation?.nonce === value) { navigation = null; window.renderInbox(currentLocale); } };
-      window.renderInbox = (locale) => { currentLocale = locale; setActiveLocale(locale); root.render(<AgentInboxPage key={locale} active={active} onOpenConversation={(id) => window.opened.push(id)}
+      window.renderInbox = (locale) => { currentLocale = locale; setActiveLocale(locale); root.render(<><AgentInboxPage key={locale} active={active} onOpenConversation={(id) => window.opened.push(id)}
         messageStore={window.messageStore} ensureTranscript={ensureTranscript} navigation={navigation} onNavigationHandled={handled}
         catalog={{ providers: [], error: null, models: [
           { provider: 'anthropic', providerName: 'Anthropic', id: 'big', name: 'Big', reasoning: true, contextWindow: 200000, available: true, custom: false, thinkingLevels: ['off', 'low', 'high'] },
           { provider: 'anthropic', providerName: 'Anthropic', id: 'small', name: 'Small', reasoning: false, contextWindow: 200000, available: true, custom: false, thinkingLevels: ['off'] },
           { provider: 'other', providerName: 'Other', id: 'locked', name: 'Locked', reasoning: true, contextWindow: 1000, available: false, custom: false, thinkingLevels: ['off', 'low'] },
-        ] }} catalogError={null} />); };
+        ] }} catalogError={null} /><ToastHost /></>); };
       window.navigate = (target) => { nonce += 1; navigation = { target, nonce }; window.renderInbox(currentLocale); };
       window.setInboxActive = (value) => { active = value; window.renderInbox(currentLocale); };
       window.renderInbox('en');
@@ -212,6 +214,13 @@ if (!process.versions.electron) {
         throw new Error("Timed out: " + code);
       };
       const text = (selector) => evaluate(`document.querySelector(${JSON.stringify(selector)})?.textContent ?? null`);
+      const expectToast = async (kind, message) => {
+        const selector = JSON.stringify(`.window-toast[data-kind=${kind}]`);
+        const find = `Array.from(document.querySelectorAll(${selector})).filter(node => node.querySelector('.window-toast-message').textContent.includes(${JSON.stringify(message)}))`;
+        await until(`${find}.length > 0`);
+        assert.equal(await evaluate(`${find}.length`), 1, 'one toast per action outcome');
+        await evaluate(`${find}[0].querySelector('.window-toast-close').click()`);
+      };
       const clickText = (selector, label) => evaluate(`Array.from(document.querySelectorAll(${JSON.stringify(selector)})).find(node => node.textContent.includes(${JSON.stringify(label)})).click()`);
       const rows = () => evaluate("Array.from(document.querySelectorAll('.agent-inbox-row')).map(node => node.querySelector('strong').textContent)");
       const navCount = (label) => evaluate(`Array.from(document.querySelectorAll('.agent-inbox-nav button')).find(node => node.textContent.startsWith(${JSON.stringify(label)})).querySelector('.agent-inbox-count').textContent`);
@@ -262,8 +271,8 @@ if (!process.versions.electron) {
       await clickText(".agent-inbox-row", "Conversation failed");
       await until("!!document.querySelector('.agent-inbox-actions .agent-inbox-primary')");
       await evaluate("document.querySelector('.agent-inbox-primary').click()");
-      await until("!!document.querySelector('.agent-inbox-notice[role=alert]')");
-      assert.match(await text(".agent-inbox-notice[role=alert]"), /changed|latest state/);
+      await expectToast('error', 'Showing the latest state.');
+      assert.equal(await text('.agent-inbox-detail .agent-inbox-notice[role=alert]'), null);
       await evaluate("fixture.forceResult = null");
       await evaluate("document.querySelector('.agent-inbox-primary').click()");
       await until("document.querySelector('.agent-inbox-summary').textContent === 'All caught up'");
@@ -390,14 +399,15 @@ if (!process.versions.electron) {
       await until("fixture.calls.some(call => call.method === 'submit')");
       const sent = await evaluate("fixture.calls.find(call => call.method === 'submit')");
       assert.deepEqual({ id: sent.id, text: sent.text }, { id: "ui1", text: "Use plan A" }, "the target is the item, never a renderer-chosen conversation");
-      await until("!!document.querySelector('.agent-inbox-notice[role=status]')");
+      await expectToast('info', 'Sent to the Agent.');
+      assert.equal(await text('.agent-inbox-content .agent-inbox-notice'), null);
       assert.equal(await evaluate("fixture.calls.some(call => call.method === 'decide' && call.request.itemId === 'delegate1')"), false, "an Intelligent UI action never approves a request");
       assert.equal(await text(".agent-inbox-summary"), "2 need your attention", "the earlier archived request and the delegate request are both still pending");
       await evaluate("fixture.submitResult = { ok: false, message: 'The conversation is gone' }");
       await clickText(".iui-button", "Go with plan A");
       await evaluate("document.querySelector('.iui-confirm .iui-button-primary').click()");
-      await until("!!document.querySelector('.agent-inbox-notice[role=alert]')");
-      assert.match(await text(".agent-inbox-notice[role=alert]"), /conversation is gone/);
+      await expectToast('error', 'The conversation is gone');
+      assert.equal(await text('.agent-inbox-content .agent-inbox-notice'), null);
       console.log("PASS Intelligent UI in an item submits to the item's source, never approves");
       await capture("iui-content");
 
@@ -454,7 +464,14 @@ if (!process.versions.electron) {
       await until("window.residentFixture.calls.some(call => call.method === 'submit')");
       assert.deepEqual(await evaluate("window.residentFixture.calls.find(call => call.method === 'submit').input"), { text: "Run the api tests" });
       await until("document.querySelector('#resident-input').value === ''");
-      console.log("PASS the Resident chat renders Intelligent UI and sends plain chat messages without a target dropdown");
+      await evaluate("residentFixture.submitResult = { ok: false, reason: 'failed', message: 'Resident send fixture failure' }");
+      await setField('#resident-input', 'Keep this draft on failure');
+      await evaluate("document.querySelector('.resident-composer button[type=submit]').click()");
+      await expectToast('error', 'Resident send fixture failure');
+      assert.equal(await evaluate("document.querySelector('#resident-input').value"), 'Keep this draft on failure');
+      assert.equal(await text('.resident-composer-dock .agent-inbox-notice'), null);
+      await evaluate('residentFixture.submitResult = null');
+      console.log("PASS the Resident chat sends to Resident only and retains the draft after a failed send");
 
       // Event groups render only trusted Host markers, and NO_REPLY hides the entire turn.
       await evaluate(`(() => {

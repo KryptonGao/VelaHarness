@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { residentLimits, thinkingLevels, type ModelCatalog, type ResidentAgentApi, type ResidentSettings, type ResidentSettingsPatch } from "@vela/shared";
 import { tr } from "../locale";
+import { showToast } from "../toast";
 import { thinkingLabel } from "./ModelControls";
 import { NotificationSettings, ResidentToggle as Toggle } from "./NotificationSettings";
 
@@ -71,20 +72,16 @@ function ModelFields({ settings, catalog, catalogError, onChange }: {
 export function ResidentSettingsPanel({ api, settings, onSettings, catalog = null, catalogError = null }: {
   api: ResidentAgentApi; settings: ResidentSettings; onSettings: (settings: ResidentSettings) => void; catalog?: ModelCatalog | null; catalogError?: string | null;
 }) {
-  const [error, setError] = useState<string | null>(null);
   const queue = useRef<Promise<unknown>>(Promise.resolve());
   const update = (patch: ResidentSettingsPatch) => {
-    setError(null);
     // 串行提交：快速连续修改不会因为乱序返回而回退。
     queue.current = queue.current.then(async () => {
       try { onSettings(await api.updateSettings(patch)); }
-      catch (reason) { setError(reason instanceof Error ? reason.message : String(reason)); }
+      catch (reason) { showToast(reason instanceof Error ? reason.message : String(reason), { kind: "error" }); }
     });
   };
   const { limits } = settings;
   return <div className="resident-settings">
-    {error ? <p className="agent-inbox-notice" role="alert">{error}</p> : null}
-
     <fieldset>
       <legend>{tr("模型与推理强度", "Model and reasoning effort")}</legend>
       <ModelFields settings={settings} catalog={catalog} catalogError={catalogError} onChange={update} />

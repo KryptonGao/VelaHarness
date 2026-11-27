@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { AgentInboxContent as Content, AgentInboxItem } from "@vela/shared";
 import { tr } from "../locale";
+import { showToast } from "../toast";
 import { AssistantMarkdown } from "./intelligent-ui/AssistantMarkdown";
 import { UiHostProvider, type UiHost } from "./intelligent-ui/UiRuntime";
 import { stableUiMessageId } from "./intelligent-ui/ui-state-store";
@@ -17,11 +18,9 @@ export function AgentInboxContent({ item, fallback }: { item: AgentInboxItem; fa
   const ref = item.type === "message" ? undefined : item.contentRef;
   const key = ref ? `${item.id}:${ref.conversationId}:${ref.uiOrdinal}:${ref.fingerprint}` : null;
   const [loaded, setLoaded] = useState<Loaded | null>(null);
-  const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
   const api = window.vela?.agentInbox;
 
   useEffect(() => {
-    setNotice(null);
     if (!key || !api) return;
     let live = true;
     api.getContent(item.id).then(
@@ -38,12 +37,12 @@ export function AgentInboxContent({ item, fallback }: { item: AgentInboxItem; fa
     canSubmit: Boolean(item.conversationId),
     agentBusy: false,
     submit: async text => {
-      setNotice(null);
       try {
         const result = await api.submitToSource(item.id, text);
-        setNotice(result.ok ? { ok: true, text: tr("已发送给 Agent。", "Sent to the Agent.") } : { ok: false, text: result.message });
+        if (result.ok) showToast(tr("已发送给 Agent。", "Sent to the Agent."));
+        else showToast(result.message, { kind: "error" });
       } catch (error) {
-        setNotice({ ok: false, text: error instanceof Error ? error.message : String(error) });
+        showToast(error instanceof Error ? error.message : String(error), { kind: "error" });
       }
     },
     openLink: () => false,
@@ -61,6 +60,5 @@ export function AgentInboxContent({ item, fallback }: { item: AgentInboxItem; fa
     <UiHostProvider value={host}>
       <div className="agent-reply-prose"><AssistantMarkdown messageId={`inbox:${item.id}`} text={content.text} /></div>
     </UiHostProvider>
-    {notice ? <p className="agent-inbox-notice" role={notice.ok ? "status" : "alert"}>{notice.text}</p> : null}
   </div>;
 }

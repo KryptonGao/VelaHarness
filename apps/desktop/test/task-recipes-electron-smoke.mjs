@@ -20,8 +20,12 @@ writeFileSync(join(temporary, 'vela/workspaces.json'), JSON.stringify({ current:
 let requests = 0;
 const server = createServer(async (req, res) => {
   let raw = ''; for await (const data of req) raw += data; const input = JSON.parse(raw); requests++;
-  const last = JSON.stringify(input.messages.findLast(m => m.role === 'user')?.content ?? '');
-  if (typeof last === 'string' && last.includes('Current stage: P2 inspect') && last.includes('· attempt 1')) { res.writeHead(503, { 'content-type': 'application/json' }); res.end(JSON.stringify({ error: { message: 'P2 confirmed synthetic provider failure' } })); return; }
+  const messageText = ({ content }) => typeof content === 'string' ? content : (content ?? []).filter(part => part.type === 'text').map(part => part.text).join('\n');
+  // The runtime may append its task clock as a user message. Match the current stage, not an older turn.
+  const last = input.messages.findLast(message => message.role === 'user' && !messageText(message).trimStart().startsWith('Task time context:'));
+  if (last && /Current stage: P2 inspect \[[^\]\n]+\] · attempt 1(?:\r?\n|$)/.test(messageText(last))) {
+    res.writeHead(503, { 'content-type': 'application/json' }); res.end(JSON.stringify({ error: { message: 'P2 confirmed synthetic provider failure' } })); return;
+  }
   const plan = JSON.stringify(input.messages).includes('Smoke plan');
   const generation = input.messages.some(message => message.role === 'system' && message.content.includes('reusable task recipe'));
   if (generation) { assert.equal(input.messages.filter(message => message.role === 'user').length, 1); assert.equal(input.messages.find(message => message.role === 'user').content, 'P1 original source only'); assert.equal(input.tools, undefined); }
@@ -33,12 +37,12 @@ const server = createServer(async (req, res) => {
   res.write(`data: ${JSON.stringify({ id: 'fixture', object: 'chat.completion.chunk', model: input.model, choices: [{ index: 0, delta: {}, finish_reason: 'stop' }], usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 } })}\n\ndata: [DONE]\n\n`); res.end();
 }); await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 const port = server.address().port;
-writeFileSync(join(temporary, 'vela/ui-state.json'), JSON.stringify({ 'vela.onboarding.complete': 'true', 'vela.leftCollapsed': 'false' }));
+writeFileSync(join(temporary, 'vela/ui-state.json'), JSON.stringify({ 'vela.onboarding.complete': 'true', 'vela.leftCollapsed': 'false', 'vela.locale': 'zh-CN' }));
 writeFileSync(join(temporary, 'vela/models.json'), JSON.stringify({ providers: { 'recipe-smoke': { name: 'Recipe smoke', api: 'openai-completions', baseUrl: `http://127.0.0.1:${port}/v1`, apiKey: 'synthetic-test-key', models: [{ id: 'fixture', name: 'Fixture', reasoning: false, contextWindow: 32768, maxTokens: 4096 }] } } }));
 writeFileSync(join(temporary, 'vela/selection.json'), JSON.stringify({ provider: 'recipe-smoke', modelId: 'fixture', thinkingLevel: 'off', newConversationSelection: 'default' }));
 copyFileSync(join(here, 'task-recipes-smoke-entry.mjs'), entry);
 try {
-  for (const phase of (process.argv.includes('--slash-recipes') ? ['slash-recipes'] : process.argv.includes('--model-filter') ? ['model-filter'] : ['create', 'p1', 'p2', 'restore'])) {
+  for (const phase of (process.argv.includes('--slash-recipes') ? ['slash-recipes'] : process.argv.includes('--model-filter') ? ['model-filter'] : process.argv.includes('--p1') ? ['p1'] : ['create', 'p1', 'p2', 'restore'])) {
     const before = requests;
     const env = { ...process.env, PI_OFFLINE: '1', VELA_USER_DATA: join(temporary, 'vela'), VELA_CWD: join(temporary, 'workspace'), VELA_RECIPE_SMOKE_ROOT: root, VELA_RECIPE_SMOKE_TEMP: temporary, VELA_RECIPE_SMOKE_PHASE: phase };
     delete env.ELECTRON_RUN_AS_NODE;

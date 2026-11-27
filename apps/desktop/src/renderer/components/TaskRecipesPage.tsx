@@ -3,6 +3,7 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState, type ReactNod
 import type { ModelCatalog, RecipeParameter, RecipePreview, RecipeRun, RecipeUseDraft, RecipeValue, TaskRecipe, TaskRecipeInput, TaskRecipesState } from '@vela/shared';
 import { parseRecipeInput, recipeDefaults, validateRecipe, validateRecipeValues } from '@vela/shared';
 import { tr } from '../locale';
+import { showToast } from '../toast';
 import { useAutoHideScrollbarsWithin } from '../hooks/useAutoHideScrollbar';
 import '../task-recipes.css';
 import { RecipeGeneratePanel, RecipeSchedulePanel } from './RecipeEnhancements';
@@ -22,6 +23,8 @@ export interface TaskRecipesPageProps {
 const matchedValues = (recipe: TaskRecipeInput, values: Record<string, RecipeValue>) => ({ ...recipeDefaults(recipe), ...Object.fromEntries(Object.entries(values).filter(([id]) => recipe.parameters.some(p => p.id === id))) });
 const blankRecipe = (): TaskRecipeInput => ({ name: '', description: '', tags: [], defaultMode: 'agent', parameters: [], objectiveTemplate: '', workflowTemplate: '', deliverableTemplate: '' });
 const api = () => window.vela?.taskRecipes;
+const errorMessage = (error: unknown) => error instanceof Error ? error.message : String(error);
+const showActionError = (error: unknown) => showToast(errorMessage(error), { kind: 'error' });
 const status = (run: RecipeRun) => ({ starting: tr('正在启动', 'Starting'), running: tr('运行中', 'Running'), waiting_for_user: tr('等待响应', 'Waiting for user'), responded: tr('回复已生成', 'Reply generated'), failed: tr('失败', 'Failed'), stopped: tr('已停止', 'Stopped'), interrupted: tr('已中断', 'Interrupted') })[run.status];
 const date = (time: number | null) => time ? new Date(time).toLocaleString() : tr('尚未使用', 'Not used yet');
 const originIcons = { builtin: "clipboard", user: "user", project: "folder", team: "subagent" } as const;
@@ -32,18 +35,18 @@ export function TaskRecipesPage(props: TaskRecipesPageProps) {
   const pageRef = useRef<HTMLElement>(null);
   useAutoHideScrollbarsWithin(pageRef);
   const [state, setState] = useState<TaskRecipesState>({ recipes: [], runs: [], error: null });
-  const [loading, setLoading] = useState(true); const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true); const [loadError, setLoadError] = useState<string | null>(null);
   const [search, setSearch] = useState(''); const [origin, setOrigin] = useState('all');
   const [editor, setEditor] = useState<Editor | null>(null); const [using, setUsing] = useState<{ recipe: TaskRecipe; run?: RecipeRun } | null>(null);
   const [pending, setPending] = useState(false); const [deleting, setDeleting] = useState<TaskRecipe | null>(null);
   const [leave, setLeave] = useState<(() => void) | null>(null); const [fields, setFields] = useState<Record<string, string>>({});
   const [history, setHistory] = useState<string | null>(null); const [page, setPage] = useState(0);
-  const [generating, setGenerating] = useState(false); const [imports, setImports] = useState<TaskRecipeInput[]>([]); const [notice, setNotice] = useState('');
+  const [generating, setGenerating] = useState(false); const [imports, setImports] = useState<TaskRecipeInput[]>([]);
   const [dismissedProjectErrors, setDismissedProjectErrors] = useState<ReadonlySet<string>>(() => new Set());
   const editorRef = useRef(editor); editorRef.current = editor;
   const refresh = useCallback(async () => {
-    if (!api()) { setError(tr('请在桌面应用中打开任务配方。', 'Task Recipes requires the desktop app.')); setLoading(false); return; }
-    try { setState(await api()!.list(props.locale)); setError(null); } catch (e) { setError(String((e as Error).message)); }
+    if (!api()) { setLoadError(tr('请在桌面应用中打开任务配方。', 'Task Recipes requires the desktop app.')); setLoading(false); return; }
+    try { setState(await api()!.list(props.locale)); setLoadError(null); } catch (e) { setLoadError(errorMessage(e)); }
     finally { setLoading(false); }
   }, [props.locale, props.workspace, props.workspaces]);
   useEffect(() => { void refresh(); return api()?.subscribe(() => { void refresh(); }); }, [refresh]);
@@ -60,20 +63,20 @@ export function TaskRecipesPage(props: TaskRecipesPageProps) {
   }, [props.seed, props.onConsumeSeed]);
   useEffect(() => {
     if (!props.selectedRecipe) return;
-    guard(() => { setEditor(null); setUsing({ recipe: props.selectedRecipe! }); setError(null); props.onConsumeSelection?.(); });
+    guard(() => { setEditor(null); setUsing({ recipe: props.selectedRecipe! }); props.onConsumeSelection?.(); });
   }, [props.selectedRecipe, props.onConsumeSelection, guard]);
   const edit = (recipe?: TaskRecipe, copy = false) => guard(() => {
     const input = recipe ? parseRecipeInput(recipe) : blankRecipe();
     if (copy) input.name = `${input.name} ${tr('副本', 'copy')}`.slice(0, 80);
-    setEditor({ recipe: input, original: JSON.stringify(input), ...(recipe && !copy ? { id: recipe.id, revision: recipe.revision, projectWorkspace: recipe.projectWorkspace, teamWorkspace: recipe.teamWorkspace, teamFingerprint: recipe.teamFingerprint } : {}) }); setUsing(null); setGenerating(false); setFields({}); setError(null);
+    setEditor({ recipe: input, original: JSON.stringify(input), ...(recipe && !copy ? { id: recipe.id, revision: recipe.revision, projectWorkspace: recipe.projectWorkspace, teamWorkspace: recipe.teamWorkspace, teamFingerprint: recipe.teamFingerprint } : {}) }); setUsing(null); setGenerating(false); setFields({});
   });
   const save = async (): Promise<boolean> => {
     const current = editorRef.current; if (!current || !api()) return false;
     const errors = validateRecipe(current.recipe); setFields(errors);
     if (Object.keys(errors).length) { requestAnimationFrame(() => document.querySelector<HTMLElement>('.recipe-editor [aria-invalid=true]')?.focus()); return false; }
     setPending(true);
-    try { if (current.teamWorkspace) await api()!.saveTeam(current.recipe, current.teamWorkspace, current.id, current.revision, current.teamFingerprint); else await api()!.save(current.recipe, current.id, current.revision, current.projectWorkspace); setEditor(null); setGenerating(false); setError(null); await refresh(); return true; }
-    catch (e) { setError((e as Error).message); return false; } finally { setPending(false); }
+    try { if (current.teamWorkspace) await api()!.saveTeam(current.recipe, current.teamWorkspace, current.id, current.revision, current.teamFingerprint); else await api()!.save(current.recipe, current.id, current.revision, current.projectWorkspace); setEditor(null); setGenerating(false); await refresh(); return true; }
+    catch (e) { showActionError(e); return false; } finally { setPending(false); }
   };
   const recipes = useMemo(() => state.recipes.filter(r => (origin === 'all' || r.origin === origin) && `${r.name} ${r.description} ${r.tags.join(' ')}`.toLocaleLowerCase().includes(search.toLocaleLowerCase())).sort((a, b) => {
     const latest = (id: string) => Math.max(0, ...state.runs.filter(r => r.recipeId === id).map(r => r.startedAt));
@@ -81,7 +84,7 @@ export function TaskRecipesPage(props: TaskRecipesPageProps) {
   }), [state, origin, search]);
   const origins = useMemo(() => [{ id: 'all', icon: 'list' as const, label: tr('全部', 'All'), count: state.recipes.length }, ...(['builtin', 'user', 'project', 'team'] as const).map(id => ({ id, icon: originIcons[id], label: originLabel(id), count: state.recipes.filter(r => r.origin === id).length })).filter(o => o.count > 0 || o.id === origin)], [state.recipes, origin]);
   const runs = state.runs.filter(r => history === '*' || r.recipeId === history).sort((a, b) => b.startedAt - a.startedAt);
-  const choose = (recipe: TaskRecipe, run?: RecipeRun) => guard(() => { setEditor(null); setUsing({ recipe, run }); setError(null); });
+  const choose = (recipe: TaskRecipe, run?: RecipeRun) => guard(() => { setEditor(null); setUsing({ recipe, run }); });
   return <section className="page-view scheduled-tasks-page-shell recipe-page-shell" ref={pageRef}>
     <header className="page-header scheduled-tasks-page-toolbar main-chat-header">
       <span className="page-topbar-title">{editor ? (editor.recipe.name || tr('创建配方', 'Create recipe')) : using?.recipe.name || origins.find(item => item.id === origin)?.label}</span>
@@ -96,17 +99,16 @@ export function TaskRecipesPage(props: TaskRecipesPageProps) {
     <div className="page-content scheduled-tasks-page-scroll autohide-scrollbar"><div className={`scheduled-tasks-page recipe-page${editor ? ' is-editing' : ''}`}>
       {!editor && <div className="scheduled-tasks-header recipe-page-heading"><div><h1>{tr('任务配方', 'Task Recipes')}</h1><p className="scheduled-tasks-note">{tr('把常用任务保存为配方，下次填写参数即可开始。', 'Save repeatable tasks. Fill in the parameters and start again anytime.')}</p></div>
         <div className="scheduled-task-actions"><button type="button" className="recipe-primary" disabled={pending || !!state.error} onClick={() => edit()}><Icon name="plus" size={14} />{tr('创建配方', 'Create recipe')}</button>
-          <button type="button" disabled={pending || !!state.error} onClick={() => guard(() => { void api()!.importFile().then(result => { if (result) { setImports(result); setEditor(null); setUsing(null); } }).catch(e => setError((e as Error).message)); })}>{tr('导入配方', 'Import recipes')}</button>
+          <button type="button" disabled={pending || !!state.error} onClick={() => guard(() => { void api()!.importFile().then(result => { if (result) { setImports(result); setEditor(null); setUsing(null); } }).catch(showActionError); })}>{tr('导入配方', 'Import recipes')}</button>
           <button type="button" className="recipe-icon-button" aria-label={tr('刷新', 'Refresh')} title={tr('刷新', 'Refresh')} onClick={() => void refresh()}><Icon name="refresh" size={14} /></button></div></div>}
-      {(error || state.error) && <div className="recipe-banner" data-tone="bad" role="alert"><Icon name="alert" size={14} /><p>{error || state.error}</p><button type="button" onClick={() => void refresh()}>{tr('重试读取', 'Retry loading')}</button></div>}
-      {notice && <p role="status" className="recipe-banner" data-tone="ok">{notice}</p>}
+      {(loadError || state.error) && <div className="recipe-banner" data-tone="bad" role="alert"><Icon name="alert" size={14} /><p>{loadError || state.error}</p><button type="button" onClick={() => void refresh()}>{tr('重试读取', 'Retry loading')}</button></div>}
       {Object.entries(state.projectErrors ?? {}).filter(([path, message]) => !dismissedProjectErrors.has(`${path}\0${message}`)).map(([path, message]) => <div key={path} className="recipe-banner" data-tone="warn" role="alert"><Icon name="alert" size={14} /><p><strong>{tr('项目配方读取失败', 'Could not read project recipes')}</strong><code>{path}</code><span>{message}</span></p><button type="button" onClick={() => setDismissedProjectErrors(prev => new Set(prev).add(`${path}\0${message}`))}>{tr('知晓', 'Got it')}</button></div>)}
       {!editor && !using && <RecipeTeamPanel state={state} workspaces={props.workspaces} />}
       {editor && <RecipeEditor editor={editor} fields={fields} pending={pending || generating} onChange={recipe => { setEditor({ ...editor, recipe }); setFields(validateRecipe(recipe)); }} onSave={save} onClose={() => guard(() => setEditor(null))} tools={<>
         <div className="recipe-editor-toolbar"><label>{tr('保存位置', 'Save to')}<select disabled={!!editor.id || pending || generating} value={editor.teamWorkspace ? `team:${editor.teamWorkspace}` : editor.projectWorkspace ?? ''} onChange={e => setEditor({ ...editor, projectWorkspace: e.target.value.startsWith('team:') ? undefined : e.target.value || undefined, teamWorkspace: e.target.value.startsWith('team:') ? e.target.value.slice(5) : undefined, teamFingerprint: undefined, original: '' })}><option value="">{tr('个人配方库', 'Personal library')}</option>{state.teams?.filter(t => t.permission === 'write' || t.workspace === editor.teamWorkspace).map(t => <option key={`team:${t.workspace}`} value={`team:${t.workspace}`}>{tr('团队', 'Team')}: {t.workspace}</option>)}{[...new Set([...props.workspaces, ...(editor.projectWorkspace ? [editor.projectWorkspace] : [])])].map(path => <option key={path} value={path}>{tr('项目', 'Project')}: {path}</option>)}</select></label>
         <button type="button" disabled={pending} onClick={() => setGenerating(true)}><Icon name="sparkles" size={14} />{tr('AI 整理配方', 'Organize with AI')}</button></div>
         {generating && <RecipeGeneratePanel text={editor.recipe.sourceReference ? editor.recipe.workflowTemplate : [editor.recipe.objectiveTemplate, editor.recipe.workflowTemplate, editor.recipe.deliverableTemplate].filter(Boolean).join('\n\n')} sourceReference={editor.recipe.sourceReference} catalog={props.catalog} locale={props.locale} onClose={() => setGenerating(false)} onGenerated={result => {
-          setEditor({ ...editor, recipe: result.recipe }); setFields({}); setGenerating(false); setNotice(`${tr('已整理为草稿，保存后生效。模型', 'Draft generated; save to keep it. Model')}: ${result.model.provider}/${result.model.id}`);
+          setEditor({ ...editor, recipe: result.recipe }); setFields({}); setGenerating(false); showToast(`${tr('已整理为草稿，保存后生效。模型', 'Draft generated; save to keep it. Model')}: ${result.model.provider}/${result.model.id}`);
         }} />}
         {editor.teamWorkspace && <p className="recipe-warning">{tr('保存会写入团队模板库，正文与参数默认值对团队可见；来源聊天引用不会写入。', 'Saving publishes template text and parameter defaults to the team library. Source chat references are omitted.')}</p>}
       </>} />}
@@ -136,7 +138,7 @@ export function TaskRecipesPage(props: TaskRecipesPageProps) {
               <span className="recipe-card-tools">
                 <button type="button" className="recipe-icon-button" aria-label={tr('复制', 'Duplicate')} title={tr('复制', 'Duplicate')} disabled={!!state.error} onClick={() => edit(recipe, true)}><Icon name="copy" size={14} /></button>
                 {canWrite && <button type="button" className="recipe-icon-button" aria-label={tr('编辑', 'Edit')} title={tr('编辑', 'Edit')} disabled={!!state.error} onClick={() => edit(recipe)}><Icon name="edit" size={14} /></button>}
-                <button type="button" className="recipe-icon-button" aria-label={tr('导出', 'Export')} title={tr('导出', 'Export')} onClick={() => { void api()!.exportFile(recipe).then(saved => { if (saved) setNotice(tr('配方已导出。', 'Recipe exported.')); }).catch(e => setError((e as Error).message)); }}><Icon name="external" size={14} /></button>
+                <button type="button" className="recipe-icon-button" aria-label={tr('导出', 'Export')} title={tr('导出', 'Export')} onClick={() => { void api()!.exportFile(recipe).then(saved => { if (saved) showToast(tr('配方已导出。', 'Recipe exported.')); }).catch(showActionError); }}><Icon name="external" size={14} /></button>
                 <button type="button" className="recipe-icon-button recipe-tool-count" aria-label={tr('使用记录', 'Usage history')} title={tr('使用记录', 'Usage history')} aria-pressed={history === recipe.id} onClick={() => { setHistory(history === recipe.id ? null : recipe.id); setPage(0); }}><Icon name="history" size={14} />{runCount > 0 && <span>{runCount}</span>}</button>
                 {canWrite && <button type="button" className="recipe-icon-button recipe-danger-icon" aria-label={tr('删除', 'Delete')} title={tr('删除', 'Delete')} disabled={!!state.error} onClick={() => setDeleting(recipe)}><Icon name="trash" size={14} /></button>}</span></div>
             <details><summary>{tr('查看模板', 'View template')}</summary><pre className="recipe-preview">{recipe.objectiveTemplate}{'\n\n'}{recipe.workflowTemplate}{'\n\n'}{recipe.deliverableTemplate}</pre></details>
@@ -150,11 +152,11 @@ export function TaskRecipesPage(props: TaskRecipesPageProps) {
     </div></div>
     </PageColumns>
     {deleting && <RecipeDialog title={tr('删除配方', 'Delete recipe')} onDismiss={pending ? undefined : () => setDeleting(null)}><p>{tr('删除', 'Delete')}「{deleting.name}」？{tr('已有对话、使用记录和运行中的快照会保留。', 'Existing chats, records, and running snapshots are retained.')}</p>
-      <div className="recipe-dialog-actions"><button type="button" autoFocus disabled={pending} onClick={() => setDeleting(null)}>{tr('取消', 'Cancel')}</button><button type="button" className="recipe-danger" disabled={pending} onClick={async () => { setPending(true); try { await api()!.delete(deleting.id, deleting.teamFingerprint); setDeleting(null); } catch (e) { setError((e as Error).message); } finally { setPending(false); } }}>{tr('删除', 'Delete')}</button></div></RecipeDialog>}
+      <div className="recipe-dialog-actions"><button type="button" autoFocus disabled={pending} onClick={() => setDeleting(null)}>{tr('取消', 'Cancel')}</button><button type="button" className="recipe-danger" disabled={pending} onClick={async () => { setPending(true); try { await api()!.delete(deleting.id, deleting.teamFingerprint); setDeleting(null); } catch (e) { showActionError(e); } finally { setPending(false); } }}>{tr('删除', 'Delete')}</button></div></RecipeDialog>}
     {leave && <RecipeDialog title={tr('尚未保存', 'Unsaved changes')} onDismiss={pending ? undefined : () => setLeave(null)}><p>{tr('配方有未保存的修改。离开前要保存吗？', 'This recipe has unsaved changes. Save before leaving?')}</p><div className="recipe-dialog-actions">
       <button type="button" className="recipe-discard" disabled={pending} onClick={() => { const action = leave; setLeave(null); setEditor(null); action(); }}>{tr('放弃修改', 'Discard changes')}</button>
       <button type="button" autoFocus disabled={pending} onClick={() => setLeave(null)}>{tr('继续编辑', 'Keep editing')}</button>
-      <button type="button" className="recipe-primary" disabled={pending} onClick={async () => { if (await save()) { const action = leave; setLeave(null); action(); } }}>{pending ? tr('保存中…', 'Saving…') : tr('保存并离开', 'Save and leave')}</button></div>{error && <p role="alert" className="recipe-errors">{error}</p>}</RecipeDialog>}
+      <button type="button" className="recipe-primary" disabled={pending} onClick={async () => { if (await save()) { const action = leave; setLeave(null); action(); } }}>{pending ? tr('保存中…', 'Saving…') : tr('保存并离开', 'Save and leave')}</button></div></RecipeDialog>}
   </section>;
 }
 function RecipeDialog({ title, children, onDismiss }: { title: string; children: ReactNode; onDismiss?: () => void }) {
@@ -171,13 +173,13 @@ function RecipeDialog({ title, children, onDismiss }: { title: string; children:
 }
 function RecipeRunCard({ run, onOpen, onReuse }: { run: RecipeRun; onOpen: (id: string) => void; onReuse: () => void }) {
   const [exists, setExists] = useState(true);
-  const [cleanup, setCleanup] = useState(false); const [cleanupBusy, setCleanupBusy] = useState(false); const [cleanupError, setCleanupError] = useState('');
+  const [cleanup, setCleanup] = useState(false); const [cleanupBusy, setCleanupBusy] = useState(false);
   useEffect(() => { let active = true; void window.vela?.getState().then(state => { if (active) setExists(state.conversations.some(c => c.id === run.conversationId)); }); return () => { active = false; }; }, [run.conversationId]);
   return <article className="scheduled-task-card"><h3>{run.recipeSnapshot.name} · r{run.recipeSnapshot.revision}</h3><p>{date(run.startedAt)} · {run.mode} · {status(run)}{run.planPending ? ` · ${tr('方案待审阅', 'Plan awaiting review')}` : ''}</p>
     <p className="scheduled-task-path">{run.workspace}</p>{run.finishedAt && <p>{tr('结束时间', 'Finished')}: {date(run.finishedAt)}</p>}{run.error && <p className="recipe-errors">{run.error}</p>}
     {run.worktree && <div className="recipe-worktree-record"><p>{tr('独立 worktree', 'Independent worktree')}: {run.worktree.branch} · {run.worktree.startSha}</p><p className="scheduled-task-path">{run.worktree.path}</p>
-      {run.worktreeRemovedAt ? <p>{tr('worktree 已清理，分支保留。', 'Worktree removed; branch retained.')}</p> : run.finishedAt && <><button type="button" disabled={cleanupBusy} onClick={() => setCleanup(true)}>{tr('清理 worktree', 'Remove worktree')}</button>{cleanup && <div className="scheduled-task-actions"><span>{tr('仅删除此 worktree 目录，保留分支与记录；有未提交改动时拒绝。', 'Remove this worktree directory; keep its branch and history. Uncommitted changes block removal.')}</span><button type="button" disabled={cleanupBusy} onClick={async () => { setCleanupBusy(true); setCleanupError(''); try { await api()!.cleanupWorktree(run.id); setCleanup(false); } catch (e) { setCleanupError((e as Error).message); } finally { setCleanupBusy(false); } }}>{tr('确认清理', 'Confirm removal')}</button><button type="button" disabled={cleanupBusy} onClick={() => setCleanup(false)}>{tr('取消', 'Cancel')}</button></div>}</>}
-      {cleanupError && <p role="alert" className="recipe-errors">{cleanupError}</p>}</div>}
+      {run.worktreeRemovedAt ? <p>{tr('worktree 已清理，分支保留。', 'Worktree removed; branch retained.')}</p> : run.finishedAt && <><button type="button" disabled={cleanupBusy} onClick={() => setCleanup(true)}>{tr('清理 worktree', 'Remove worktree')}</button>{cleanup && <div className="scheduled-task-actions"><span>{tr('仅删除此 worktree 目录，保留分支与记录；有未提交改动时拒绝。', 'Remove this worktree directory; keep its branch and history. Uncommitted changes block removal.')}</span><button type="button" disabled={cleanupBusy} onClick={async () => { setCleanupBusy(true); try { await api()!.cleanupWorktree(run.id); setCleanup(false); } catch (e) { showActionError(e); } finally { setCleanupBusy(false); } }}>{tr('确认清理', 'Confirm removal')}</button><button type="button" disabled={cleanupBusy} onClick={() => setCleanup(false)}>{tr('取消', 'Cancel')}</button></div>}</>}
+    </div>}
     <RecipeRunProgress run={run} /><RecipeRunOutcome run={run} />
     <p className="scheduled-tasks-note">{tr('此状态记录配方执行，后续自由聊天不改写记录。', 'This status covers recipe execution; later chat turns do not rewrite it.')}</p>
     <div className="scheduled-task-actions">{exists ? <button type="button" onClick={() => onOpen(run.conversationId)}>{tr('打开对话', 'Open chat')}</button> : <span>{tr('关联对话已删除', 'Linked chat deleted')}</span>}<button type="button" onClick={onReuse}>{tr('再次使用', 'Use again')}</button></div>
@@ -257,7 +259,7 @@ function RecipeUse({ recipe: initial, run, latest, workspace, workspaces, catalo
   const [scheduleBusy, setScheduleBusy] = useState(false);
   const [preview, setPreview] = useState<RecipePreview | null>(null); const [busy, setBusy] = useState(false); const [previewBusy, setPreviewBusy] = useState(true);
   const [failedRun, setFailedRun] = useState<RecipeRun | null>(null);
-  const [error, setError] = useState<string | null>(null); const [changed, setChanged] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null); const [changed, setChanged] = useState(false);
   const previewDraft = useRef<RecipeUseDraft | null>(null);
   const previousFingerprint = useRef(''); const version = useRef(0); const mounted = useRef(true);
   const request = useRef<{ requestId: string; draft: RecipeUseDraft; fingerprint: string } | null>(null);
@@ -271,8 +273,8 @@ function RecipeUse({ recipe: initial, run, latest, workspace, workspaces, catalo
       if (checking || !api()) return; checking = true;
       try { const result = await api()!.preview(draft); if (!active || current !== version.current) return;
         if (previousFingerprint.current && result.fingerprint !== previousFingerprint.current) setChanged(true);
-        previousFingerprint.current = result.fingerprint; previewDraft.current = draft; setPreview(result); setError(null);
-      } catch (e) { if (active) { setError((e as Error).message); setPreview(null); } }
+        previousFingerprint.current = result.fingerprint; previewDraft.current = draft; setPreview(result); setPreviewError(null);
+      } catch (e) { if (active) { setPreviewError(errorMessage(e)); setPreview(null); } }
       finally { checking = false; if (active) setPreviewBusy(false); }
     };
     void check(); const timer = setInterval(() => { void check(); }, 2000); return () => { active = false; clearInterval(timer); };
@@ -289,15 +291,27 @@ function RecipeUse({ recipe: initial, run, latest, workspace, workspaces, catalo
   };
   const start = async () => {
     if (busy || previewDraft.current !== draft || !preview?.fingerprint || Object.keys(errors).length || !api()) return;
-    setBusy(true); setError(null);
+    setBusy(true);
     try {
       request.current ??= { requestId: crypto.randomUUID(), draft, fingerprint: preview.fingerprint };
       const result = await api()!.start(request.current);
       if (!mounted.current) return;
-      if (result.status === 'failed' || result.status === 'interrupted') { setError(result.error ?? tr('启动失败，请查看使用记录。', 'Start failed. Check the run record.')); const state = await window.vela!.getState(); if (state.conversations.some(c => c.id === result.conversationId)) setFailedRun(result); }
-      else onStarted(result.conversationId);
-    } catch (e) { if (mounted.current) { setError((e as Error).message); const updated = await api()!.preview(draft); previewDraft.current = draft; setPreview(updated); setChanged(true); request.current = null; } }
-    finally { if (mounted.current) setBusy(false); }
+      if (result.status === 'failed' || result.status === 'interrupted') {
+        showActionError(result.error ?? tr('启动失败，请查看使用记录。', 'Start failed. Check the run record.'));
+        const state = await window.vela!.getState().catch(() => null);
+        if (mounted.current && state?.conversations.some(c => c.id === result.conversationId)) setFailedRun(result);
+      } else onStarted(result.conversationId);
+    } catch (e) {
+      if (!mounted.current) return;
+      showActionError(e);
+      request.current = null;
+      try {
+        const updated = await api()!.preview(draft);
+        if (mounted.current) { previewDraft.current = draft; setPreview(updated); setPreviewError(null); setChanged(true); }
+      } catch (reason) {
+        if (mounted.current) { setPreviewError(errorMessage(reason)); setPreview(null); }
+      }
+    } finally { if (mounted.current) setBusy(false); }
   };
   return <form className="recipe-use scheduled-task-form" onSubmit={e => { e.preventDefault(); void start(); }}><div className="scheduled-task-title"><h2>{recipe.name} · r{recipe.revision}</h2><button type="button" disabled={busy || scheduleBusy} onClick={onClose}>{tr('关闭', 'Close')}</button></div><p>{recipe.description}</p>
     {latest && (latest.revision !== recipe.revision || latest.locale !== recipe.locale) && <p role="status">{tr('配方有新版本；当前仍使用固定快照。', 'A newer recipe is available; this snapshot is fixed.')} <button type="button" disabled={busy} onClick={() => { setRecipe(latest); setValues(matchedValues(latest, values)); }}>{tr('载入新版', 'Load latest')}</button></p>}
@@ -312,7 +326,7 @@ function RecipeUse({ recipe: initial, run, latest, workspace, workspaces, catalo
         {p.type === 'boolean' ? <div className="recipe-path"><button type="button" role="switch" aria-label={p.label} aria-checked={values[p.id] === true} aria-invalid={!!errors[`values.${p.id}`]} onClick={() => setValues({ ...values, [p.id]: values[p.id] !== true })}>{values[p.id] === undefined || values[p.id] === '' ? tr('未提供（点击设置）', 'Unset (click to set)') : values[p.id] ? tr('是', 'Yes') : tr('否', 'No')}</button>{!p.required && <button type="button" onClick={() => { const next = { ...values }; delete next[p.id]; setValues(next); }}>{tr('清空', 'Clear')}</button>}</div>
         : p.type === 'select' ? <select aria-invalid={!!errors[`values.${p.id}`]} value={String(values[p.id] ?? '')} onChange={e => setValues({ ...values, [p.id]: e.target.value })}><option value="">{tr('请选择', 'Choose')}</option>{p.options?.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select>
         : p.type === 'multiline' ? <textarea rows={3} maxLength={10000} aria-invalid={!!errors[`values.${p.id}`]} value={String(values[p.id] ?? '')} onChange={e => setValues({ ...values, [p.id]: e.target.value })} />
-        : <div className="recipe-path"><input maxLength={500} aria-invalid={!!errors[`values.${p.id}`]} value={String(values[p.id] ?? '')} onChange={e => setValues({ ...values, [p.id]: e.target.value })} />{p.type === 'path' && <button type="button" disabled={!cwd} onClick={async () => { try { const path = await api()!.pickPath(cwd, p.pathKind ?? 'any'); if (path !== null) setValues({ ...values, [p.id]: path }); } catch (e) { setError((e as Error).message); } }}>{tr('选择…', 'Browse…')}</button>}</div>}
+        : <div className="recipe-path"><input maxLength={500} aria-invalid={!!errors[`values.${p.id}`]} value={String(values[p.id] ?? '')} onChange={e => setValues({ ...values, [p.id]: e.target.value })} />{p.type === 'path' && <button type="button" disabled={!cwd} onClick={async () => { try { const path = await api()!.pickPath(cwd, p.pathKind ?? 'any'); if (path !== null) setValues({ ...values, [p.id]: path }); } catch (e) { showActionError(e); } }}>{tr('选择…', 'Browse…')}</button>}</div>}
         {errors[`values.${p.id}`] && <span className="recipe-errors" role="alert">{errors[`values.${p.id}`]}</span>}</label>)}
       <div className="recipe-columns"><label>{tr('模式', 'Mode')}<select value={mode} onChange={e => setMode(e.target.value as 'agent' | 'plan')}><option value="agent">Agent</option><option value="plan">Plan</option></select></label>
         <label>{tr('模型', 'Model')}<select aria-invalid={!!errors.modelOverride} value={model ? JSON.stringify([model.provider, model.id]) : ''} onChange={e => { const pair = e.target.value ? JSON.parse(e.target.value) as [string, string] : null; setModel(pair ? { provider: pair[0], id: pair[1] } : null); setThinking(null); }}><option value="">{tr('沿用新对话设置', 'New chat default')}</option>{model && !selectedModel?.available && <option value={JSON.stringify([model.provider, model.id])} disabled>{tr('所选模型已不可用，请重新选择', 'Selected model unavailable; choose another')}</option>}{availableModels.map(m => <option key={`${m.provider}/${m.id}`} value={JSON.stringify([m.provider, m.id])}>{m.providerName} / {m.name}</option>)}</select></label>
@@ -324,7 +338,7 @@ function RecipeUse({ recipe: initial, run, latest, workspace, workspaces, catalo
       {preview?.execution && <p className="scheduled-tasks-note">{tr('本次设置', 'Resolved settings')}: {preview.execution.model.provider}/{preview.execution.model.id} · {preview.execution.thinkingLevel} · {preview.execution.sandboxMode}</p>}
       {preview?.context?.git && <p className="recipe-git">{preview.context.git.scope}<br />HEAD: {preview.context.git.head}{preview.context.git.startSha && <><br />{preview.context.git.startSha} → {preview.context.git.endSha}</>}</p>}
       <details open className="recipe-preview-panel"><summary>{tr('完整任务预览', 'Full task preview')}</summary>{previewBusy ? <p role="status">{tr('正在校验…', 'Checking…')}</p> : <pre className="recipe-preview">{preview?.expandedPrompt}</pre>}</details>
-      {(error || errors.preview || errors.values || errors.additionalInstructions || errors.thinkingLevelOverride || errors.sandboxModeOverride) && <p className="recipe-errors" role="alert">{error || errors.preview || errors.values || errors.additionalInstructions || errors.thinkingLevelOverride || errors.sandboxModeOverride}</p>}
+      {(previewError || errors.preview || errors.values || errors.additionalInstructions || errors.thinkingLevelOverride || errors.sandboxModeOverride) && <p className="recipe-errors" role="alert">{previewError || errors.preview || errors.values || errors.additionalInstructions || errors.thinkingLevelOverride || errors.sandboxModeOverride}</p>}
       {failedRun && <button type="button" onClick={() => onStarted(failedRun.conversationId)}>{tr('检查已创建的对话', 'Inspect created chat')}</button>}
       <RecipeStagePreview recipe={recipe} values={values} mode={mode} />
       {mode === 'plan' && <p className="scheduled-tasks-note">{tr('Plan 只开展规划，方案仍需通过 Plan Document 批准实施。', 'Plan only creates a proposal. Implementation requires approval in Plan Document.')}</p>}
