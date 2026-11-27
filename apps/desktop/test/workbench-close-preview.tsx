@@ -151,6 +151,58 @@ async function run() {
     close();
     assert(!panel() && controls.previewTabs === 0 && closeCalls === 5, "Reduced motion cleans up immediately");
     pass("Reduced motion closes without waiting");
+
+    await open("first.txt");
+    flushSync(() => controls.openFile("second.txt"));
+    const selected = () => document.querySelector<HTMLButtonElement>('.workbench-tab[aria-selected="true"]')!;
+    const fading = (node: Element) => node.getAnimations().some(a => a instanceof CSSTransition && a.transitionProperty === "opacity");
+    assert(!fading(selected()), "Reduced motion skips tab arrival");
+    close();
+    assert(!document.querySelector(".workbench-tab-outgoing"), "Reduced motion removes a single tab immediately");
+    flushSync(() => { media.matches = false; media.dispatchEvent(new Event("change")); });
+    flushSync(() => controls.openFile("first.txt"));
+    const incoming = selected();
+    const arrivalOffset = new DOMMatrixReadOnly(getComputedStyle(incoming).transform);
+    assert(fading(incoming) && arrivalOffset.m41 < 0 && arrivalOffset.m42 === 0, "A new tab slides in from the left while fading in");
+    await wait(260);
+    assert(getComputedStyle(incoming).transform === "none", "The tab settles at its layout position");
+    const departing = document.querySelector<HTMLButtonElement>(".workbench-tab")!;
+    close();
+    assert(departing.inert && departing.disabled && !departing.id && fading(departing), "Closed tab fades without remaining actionable");
+    assert(document.querySelectorAll(".workbench-tab-close").length === 1 && !fading(incoming), "Surviving tab keeps its close control and does not replay arrival");
+    flushSync(() => controls.openFile("second.txt"));
+    await wait(260);
+    assert(selected() === departing && !departing.inert && !departing.disabled && !document.querySelector(".workbench-tab-outgoing"), "Quick reopen cancels removal without duplicating the tab");
+    close();
+    await wait(260);
+    assert(!document.querySelector(".workbench-tab-outgoing") && document.querySelectorAll('.workbench-tablist [role="tab"]').length === 1, "Completed exit leaves no extra tab");
+    pass("Tab arrival, close and rapid reopen preserve the live controls and respect reduced motion");
+    // A 400px strip can fit five ordinary tabs, but not six at their 72px minimum.
+    const list = document.querySelector<HTMLElement>(".workbench-tablist")!;
+    list.style.flex = "0 0 400px";
+    flushSync(() => { controls.openFile("two.txt"); controls.openFile("three.txt"); });
+    await wait(280);
+    const first = list.querySelector<HTMLElement>('[role="tab"]')!;
+    assert(first.offsetWidth < 220 && first.offsetWidth > 72 && list.scrollLeft === 0, "Start with compressed tabs that still fit");
+    const firstLeft = first.getBoundingClientRect().left;
+    flushSync(() => controls.openFile("four.txt"));
+    let maxScroll = list.scrollLeft, maxShift = 0;
+    const start = performance.now();
+    let addedFifth = false;
+    do {
+      maxScroll = Math.max(maxScroll, list.scrollLeft);
+      maxShift = Math.max(maxShift, Math.abs(first.getBoundingClientRect().left - firstLeft));
+      if (!addedFifth && performance.now() - start >= 40) {
+        flushSync(() => controls.openFile("five.txt")); addedFifth = true;
+      }
+      await new Promise(requestAnimationFrame);
+    } while (performance.now() - start < 360);
+    assert(maxScroll <= 1 && maxShift <= 1, `Fitting arrivals must not pan the strip (peak scroll ${maxScroll}px, first tab shift ${maxShift}px)`);
+    flushSync(() => controls.openFile("six.txt"));
+    await wait(280);
+    assert(list.scrollLeft > 0 && selected().getBoundingClientRect().right <= list.getBoundingClientRect().right + 1,
+      "A genuinely overflowing strip still scrolls the selected tab into view");
+    pass("Rapid additions keep a fitting compressed strip anchored; a truly overflowing tab is revealed");
     results.dataset.status = "passed";
   } catch (error) {
     results.dataset.status = "failed";
