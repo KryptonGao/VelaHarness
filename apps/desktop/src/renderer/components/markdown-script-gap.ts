@@ -18,9 +18,14 @@ function gapNode(): MdNode {
   return { type: "emphasis", children: [], data: { hName: "span", hProperties: { className: ["md-script-gap"], "aria-hidden": "true" } } };
 }
 
-function splitText(node: MdNode): MdNode[] {
-  const parts = (node.value ?? "").split(boundary);
-  if (parts.length < 2) return [node];
+// Keep decimal points, grouping separators and percent signs with the digits they qualify.
+const numberRun = /(\p{Nd}+(?:[.,，．]\p{Nd}+)*[%％]?)/u;
+
+function splitText(node: MdNode, strong: boolean): MdNode[] {
+  const value = node.value ?? "";
+  const parts = value.split(boundary);
+  const markNumbers = strong && numberRun.test(value);
+  if (parts.length < 2 && !markNumbers) return [node];
   // 保留每段在源码里的起点,淡入插件靠它判断哪些文字是新追加的。
   const start = node.position?.start.offset;
   const end = node.position?.end.offset;
@@ -29,21 +34,28 @@ function splitText(node: MdNode): MdNode[] {
   const out: MdNode[] = [];
   parts.forEach((part, index) => {
     if (index > 0) out.push(gapNode());
-    const srcOffset = start === undefined ? undefined : start + Math.round(consumed * ((end ?? start + total) - start) / total);
-    out.push({ type: "text", value: part, ...(srcOffset === undefined ? {} : { data: { srcOffset } }) });
-    consumed += part.length;
+    const pieces = markNumbers ? part.split(numberRun) : [part];
+    pieces.forEach((piece, i) => {
+      if (!piece) return;
+      const srcOffset = start === undefined ? undefined : start + Math.round(consumed * ((end ?? start + total) - start) / total);
+      const text = { type: "text", value: piece, ...(srcOffset === undefined ? {} : { data: { srcOffset } }) };
+      out.push(i % 2 === 0 ? text : {
+        type: "emphasis", children: [text], data: { hName: "span", hProperties: { className: ["md-strong-number"] } },
+      });
+      consumed += piece.length;
+    });
   });
   return out;
 }
 
-function walk(node: MdNode): void {
+function walk(node: MdNode, strong = false): void {
   if (!node.children) return;
   const next: MdNode[] = [];
   for (const child of node.children) {
     if (child.type === "text") {
-      next.push(...splitText(child));
+      next.push(...splitText(child, strong));
     } else {
-      walk(child);
+      walk(child, strong || child.type === "strong");
       next.push(child);
     }
   }

@@ -5,11 +5,12 @@ import remarkParse from "remark-parse";
 import { advanceFreshCuts, completeInline, remarkFresh } from "../src/renderer/components/markdown-fresh.ts";
 import { remarkScriptGap } from "../src/renderer/components/markdown-script-gap.ts";
 
-type Node = { type: string; value?: string; children?: Node[]; data?: { hName?: string } };
+type Node = { type: string; value?: string; children?: Node[]; data?: { hName?: string; hProperties?: { className?: string[] } } };
 const show = (node: Node): string => {
   if (node.type === "text") return node.value ?? "";
   const inner = (node.children ?? []).map(show).join("");
-  if (node.data?.hName === "span") return node.data && "<f>" + inner + "</f>";
+  if (node.data?.hProperties?.className?.includes("md-strong-number")) return `<n>${inner}</n>`;
+  if (node.data?.hName === "span") return `<f>${inner}</f>`;
   return node.type === "root" ? inner : `[${inner}]`;
 };
 const render = (text: string, cuts: number[]) => {
@@ -43,6 +44,14 @@ describe("markdown fresh text", () => {
     const out = render("你好abc世界", [4]);
     assert.match(out, /<f>/);
     assert.ok(out.startsWith("[你好"));
+  });
+
+  it("isolates numbers inside strong text, including their internal punctuation, but not inline code", () => {
+    assert.equal(render("104 **中文 Agent 1,633 (12.5%) `104`**", []), "[104 [中文 Agent <n>1,633</n> (<n>12.5%</n>) []]]");
+  });
+
+  it("keeps script gaps and streamed batch boundaries around a strongly emphasized number", () => {
+    assert.equal(render("**共1,633項**", [5]), "[[共<f></f><n>1,<f>633</f></n><f></f><f>項</f>]]");
   });
 
   it("tracks growth and shrinkage", () => {

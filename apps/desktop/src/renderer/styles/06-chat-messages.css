@@ -91,6 +91,11 @@
 .md-content b {
   font-weight: 600;
 }
+/* Start from body numerals: a fine stroke gives emphasis even in faces with no medium weight. */
+.agent-reply-prose .md-strong-number {
+  font-weight: var(--font-reply-weight);
+  -webkit-text-stroke: 0.019em currentColor;
+}
 .md-content :not(pre) > code {
   font-family: var(--font-mono);
   font-size: calc(14px * var(--code-scale));
