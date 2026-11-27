@@ -53,6 +53,7 @@
  * 顶栏用同一套内边距和胶囊标签,接缝处两条水平分隔线自然对齐。
  */
 .workbench-tabbar {
+  --tab-arrival: 220ms cubic-bezier(.25, .65, .25, 1);
   position: relative;
   flex: none;
   min-width: 0;
@@ -93,8 +94,10 @@
  * 例外:指针停在标签行上时,关闭标签会锁住当前宽度(× 不会从指针下滑走),
  * 但新建标签仍会算出更窄的目标宽度;指针离开这一行后恢复自适应。
  */
-.workbench-tab {
-  flex: none;
+.workbench-tab, .workbench-tab-outgoing {
+  /* Shrink to fit even while the measured widths are transitioning. Otherwise revealing
+     a new tab scrolls to a temporary overflow, then snaps back as its neighbours shrink. */
+  flex: 0 1 auto;
   min-width: 72px;
   max-width: var(--tab-max-width);
   height: 28px;
@@ -108,12 +111,31 @@
   white-space: nowrap;
   -webkit-app-region: no-drag;
   /* 宽度变化(增减标签、锁定/解冻、拉宽面板)都走这条过渡 */
-  transition: width var(--transition-smooth), background var(--transition-smooth), color var(--transition-smooth);
+  transition: width var(--transition-smooth), background var(--transition-smooth), color var(--transition-smooth),
+    opacity var(--tab-arrival), transform var(--tab-arrival);
+}
+.workbench-tab-outgoing {
+  overflow: clip;
+  min-width: 0;
+  padding-inline: 0;
+  margin-inline-end: calc(-1 * var(--tab-gap));
+  opacity: 0;
+  transform: translateY(2px);
+  pointer-events: none;
+  transition: width var(--tab-exit) var(--motion-ease-enter), padding var(--tab-exit) var(--motion-ease-enter),
+    margin-inline-end var(--tab-exit) var(--motion-ease-enter), opacity var(--tab-exit), transform var(--tab-exit),
+    background-color var(--tab-exit), color var(--tab-exit);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .workbench-tab-close[data-entering] { transition: opacity var(--tab-arrival), transform var(--tab-arrival); }
+  @starting-style {
+    :is(.workbench-tab, .workbench-tab-close)[data-entering] { opacity: 0; transform: translateX(-20px); }
+  }
 }
 .workbench-tab[data-kind="conversation-detail"] { min-width: calc(52px + 4em); padding-inline: 8px 26px; gap: 5px; }
 .workbench-tabpanel .trace-filters { flex-wrap: wrap; }
-.workbench-tab > .tool-activity-loader { margin-left: 0; }
-.workbench-tab > .file-type-icon { width: 20px; height: 20px; }
+:is(.workbench-tab, .workbench-tab-outgoing) > .tool-activity-loader { margin-left: 0; }
+:is(.workbench-tab, .workbench-tab-outgoing) > .file-type-icon { width: 20px; height: 20px; }
 .workbench-tab:hover { background: var(--bg-hover); color: var(--text-primary); }
 /* 降低动效偏好下不做宽度动画 */
 @media (prefers-reduced-motion: reduce) {
@@ -122,8 +144,7 @@
 .workbench-tab-label { min-width: 0; overflow: hidden; animation: vela-overflow-fade auto linear both; animation-timeline: scroll(self inline); }
 .workbench-tab[aria-selected="true"] {
   color: var(--text-primary);
-  background: var(--bg-surface-subtle);
-  box-shadow: inset 0 0 0 1px var(--border-subtle);
+  background: color-mix(in srgb, var(--bg-surface-subtle) 97%, var(--text-primary));
 }
 .workbench-tab-close {
   position: absolute;

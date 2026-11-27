@@ -2,14 +2,47 @@ import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type 
 import { createPortal } from "react-dom";
 import { isShortcutRecording, useShortcutOverrides } from "../shortcuts";
 import { tr, trf } from "../locale";
+import { useReducedMotion } from "../hooks/useMotionPresence";
+import { reconcileMotionItems, type MotionEntry } from "./list-motion";
 import type { WorkbenchTab } from "./WorkbenchPanel";
 import type { WorkbenchDropEdge } from "./workbench-layout";
 import { Icon } from "./icons";
 
-export function WorkbenchTabStrip({ tabs, splitEnabled, draggingId, selected, split, maximized, renderLabel, tabButtonId, tabPanelId,
+const tabKey = (tab: WorkbenchTab) => tab.id;
+const exitMs = 140;
+
+/** Retain only the visual tab, never its panel or its keyboard/close targets. */
+function useTabEntries(tabs: WorkbenchTab[], allTabs: WorkbenchTab[], replacement?: { from: string; to: string } | null) {
+  const reduced = useReducedMotion();
+  const [frame, setFrame] = useState(() => ({ tabs, allTabs, entries: tabs.map((item): MotionEntry<WorkbenchTab> =>
+    ({ key: item.id, item, present: true, entering: true })) }));
+  if (frame.tabs !== tabs || frame.allTabs !== allTabs) {
+    // A move between panes or an in-place file replacement is not a close/open pair.
+    const previous = new Set(frame.allTabs.map(tabKey));
+    const instant = new Set(allTabs.map(tabKey).filter(key => previous.has(key)));
+    if (replacement && previous.has(replacement.from) && !instant.has(replacement.from)) {
+      instant.add(replacement.from); instant.add(replacement.to);
+    }
+    setFrame({ tabs, allTabs, entries: reconcileMotionItems(frame.entries, tabs, tabKey, instant) });
+  }
+  const exiting = JSON.stringify(frame.entries.filter(entry => !entry.present).map(entry => entry.key));
+  useLayoutEffect(() => {
+    if (exiting === "[]") return;
+    const prune = () => setFrame(current => ({ ...current, entries: current.entries.filter(entry => entry.present) }));
+    if (reduced) { prune(); return; }
+    // Also clean up when the strip is hidden and Chromium doesn't dispatch transitionend.
+    const timer = window.setTimeout(prune, exitMs + 32);
+    return () => clearTimeout(timer);
+  }, [exiting, reduced]);
+  const finishExit = (key: string) => setFrame(current => ({ ...current,
+    entries: current.entries.filter(entry => entry.present || entry.key !== key) }));
+  return { entries: frame.entries, finishExit, reduced };
+}
+
+export function WorkbenchTabStrip({ tabs, allTabs, replacement, splitEnabled, draggingId, selected, split, maximized, renderLabel, tabButtonId, tabPanelId,
   fullscreen, showingChat, onShowChat, onToggleFullscreen, onActivate, onClose, onNewTab, onMerge, onMaximize, onPlace, onEqualize, onSplit, onReorder, onTabPointerDown,
 }: {
-  tabs: WorkbenchTab[]; splitEnabled: boolean; draggingId: string | null; selected: string; split: boolean; maximized: boolean;
+  tabs: WorkbenchTab[]; allTabs: WorkbenchTab[]; replacement?: { from: string; to: string } | null; splitEnabled: boolean; draggingId: string | null; selected: string; split: boolean; maximized: boolean;
   fullscreen: boolean; showingChat: boolean; onShowChat?: () => void; onToggleFullscreen?: () => void;
   renderLabel: (tab: WorkbenchTab) => ReactNode; tabButtonId: (tab: WorkbenchTab) => string; tabPanelId: (tab: WorkbenchTab) => string;
   onActivate: (tab: WorkbenchTab) => void; onClose: (tab: WorkbenchTab) => void; onNewTab: () => void;
@@ -18,6 +51,7 @@ export function WorkbenchTabStrip({ tabs, splitEnabled, draggingId, selected, sp
   onReorder: (tab: WorkbenchTab, slot: number) => void;
   onTabPointerDown: (event: ReactPointerEvent<HTMLButtonElement>, tab: WorkbenchTab) => void;
 }) {
+  const { entries, finishExit, reduced } = useTabEntries(tabs, allTabs, replacement);
   const listRef = useRef<HTMLElement>(null), barRef = useRef<HTMLDivElement>(null);
   const buttons = useRef(new Map<string, HTMLButtonElement>());
   const hovered = useRef(false), previousCount = useRef(tabs.length);
@@ -133,11 +167,14 @@ export function WorkbenchTabStrip({ tabs, splitEnabled, draggingId, selected, sp
       </button>
     </>}
     <nav className="workbench-tablist" role="tablist" ref={listRef} aria-label={tr("工作面板标签", "Workbench tabs")}
-      style={{ "--workbench-tab-count": tabs.length } as CSSProperties}>
-      {tabs.map(tab => <button key={tab.id} ref={node => { if (node) buttons.current.set(tab.id, node); else buttons.current.delete(tab.id); }}
-        id={tabButtonId(tab)} className="workbench-tab" data-kind={tab.kind} type="button" role="tab" draggable={false} data-dragging={tab.id === draggingId || undefined}
-        aria-selected={!showingChat && tab.id === selected} aria-controls={tabPanelId(tab)} tabIndex={tab.id === selected ? 0 : -1}
-        aria-keyshortcuts="Shift+ArrowLeft Shift+ArrowRight" title={tab.title ?? tab.label} style={tabWidth ? { width: tabWidth } : undefined}
+      style={{ "--workbench-tab-count": entries.length, "--tab-exit": `${exitMs}ms` } as CSSProperties}>
+      {entries.map(({ item: tab, present, entering }) => <button key={tab.id} ref={node => { if (node) buttons.current.set(tab.id, node); else buttons.current.delete(tab.id); }}
+        id={present ? tabButtonId(tab) : undefined} className={present ? "workbench-tab" : "workbench-tab-outgoing"} data-entering={present && entering && !reduced || undefined}
+        data-kind={tab.kind} type="button" role={present ? "tab" : undefined} draggable={false} data-dragging={tab.id === draggingId || undefined}
+        inert={!present} disabled={!present} aria-hidden={!present || undefined}
+        aria-selected={present ? !showingChat && tab.id === selected : undefined} aria-controls={present ? tabPanelId(tab) : undefined} tabIndex={present && tab.id === selected ? 0 : -1}
+        aria-keyshortcuts="Shift+ArrowLeft Shift+ArrowRight" title={tab.title ?? tab.label} style={!present ? { width: 0 } : tabWidth ? { width: tabWidth } : undefined}
+        onTransitionEnd={!present ? event => { if (event.target === event.currentTarget && event.propertyName === "width") finishExit(tab.id); } : undefined}
         onClick={() => onActivate(tab)} onPointerDown={event => onTabPointerDown(event, tab)} onDragStart={event => event.preventDefault()}
         onKeyDown={event => {
           const edges: Record<string, WorkbenchDropEdge> = { ArrowLeft: "left", ArrowRight: "right", ArrowUp: "top", ArrowDown: "bottom" };
@@ -151,9 +188,9 @@ export function WorkbenchTabStrip({ tabs, splitEnabled, draggingId, selected, sp
           if (target) { event.preventDefault(); activate(target); }
         }}>{renderLabel(tab)}</button>)}
     </nav>
-    <div className="workbench-tab-close-layer">{tabs.map(tab => {
-      const p = positions[tab.id]; if (!p) return null;
-      return <button key={tab.id} type="button" className={`workbench-tab-close${p.clipped ? " is-clipped" : ""}`}
+    <div className="workbench-tab-close-layer">{entries.map(({ item: tab, present, entering }) => {
+      const p = positions[tab.id]; if (!present || !p) return null;
+      return <button key={tab.id} data-entering={entering && !reduced || undefined} type="button" className={`workbench-tab-close${p.clipped ? " is-clipped" : ""}`}
         style={{ left: p.left, top: p.top }} aria-label={trf("关闭 {0}", "Close {0}", tab.label)} title={tr("关闭标签", "Close tab")}
         onClick={() => onClose(tab)}><Icon name="close" size={12} /></button>;
     })}</div>

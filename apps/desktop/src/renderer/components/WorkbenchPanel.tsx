@@ -511,7 +511,7 @@ function WorkbenchPanelContent(props: WorkbenchPanelProps & { closing: boolean; 
         return <section key={paneId} className={`workbench-group${layout.focused === paneId ? " is-focused" : ""}`} data-workbench-pane={paneId} data-top-row={topRow}
           data-right-edge={rightEdge}
           hidden={!!layout.maximized && layout.maximized !== paneId} style={rectStyle(rect)} aria-label={trf("窗口 {0}", "Pane {0}", index + 1)}>
-          <WorkbenchTabStrip splitEnabled={splitEnabled} tabs={paneTabs} draggingId={drag && !drag.placing ? drag.key : null} selected={pane.selected} split={layout.panes.length > 1} maximized={layout.maximized === paneId}
+          <WorkbenchTabStrip key={scope} allTabs={tabs} replacement={replacement} splitEnabled={splitEnabled} tabs={paneTabs} draggingId={drag && !drag.placing ? drag.key : null} selected={pane.selected} split={layout.panes.length > 1} maximized={layout.maximized === paneId}
             fullscreen={fullscreen} showingChat={showingChat} onShowChat={props.onShowChat}
             onToggleFullscreen={topRow && rightEdge && props.onToggleFullscreen ? toggleFullscreen : undefined}
             tabButtonId={tabButtonId} tabPanelId={tabPanelId} renderLabel={tab => <><TabIcon tab={tab} />{tab.kind === "browser" ? <BrowserTabLabel controller={tab.controller} /> : <span className="workbench-tab-label">{tab.label}</span>}</>}
