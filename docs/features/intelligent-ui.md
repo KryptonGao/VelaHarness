@@ -48,7 +48,7 @@ Agent 回答里可以嵌入原生交互界面：计算器、对比表、分步�
 
 - 指标只统计次数和耗时：含界面的回复占比、首个合法节点耗时中位数、commit 成功率、降级原因、渲染错误、平均节点数与状态数、微应用运行与停止原因。**不含界面内容和用户输入的值，不上传。** 汇总计数存在渲染层 `uiStorage`；事件时间线只在内存里。
 - 只有本次运行里**流式生成**的界面计入「结局」统计（成功率、耗时）；历史恢复的界面只记事件，不夸大成功率。
-- 设置 → 对话显示 →「交互式界面」下可以查看汇总、重置，以及打开「检查器」。检查器在开发版默认开启，正式版需手动打开。每个界面下方的检查器显示已验证的 AST、事件时间线、当前状态、数据源与拒绝原因，不包含模型的思考内容。
+- Settings no longer shows the aggregate metrics panel. See [Hidden desktop settings](../guides/hidden-settings.md#intelligent-ui-diagnostics) to reset local counters or enable the inspector in an installed build. The development renderer always enables the inspector. It shows the validated AST, event timeline, current state, data sources, and rejection reasons below each interactive block, but does not show the model's reasoning.
 
 ## P2：沙盒微应用
 

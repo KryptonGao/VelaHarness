@@ -11,8 +11,8 @@ Use this skill when the question is about Vela the application, not about the us
 
 - Reply in the language the user wrote in. Use the interface names of that language; both are listed below.
 - Give a short click path first (for example "Settings → Appearance → Theme"), then one or two sentences on what to pick. Do not paste this document back.
-- Vela settings are changed in the app's Settings window; there is no config file to edit for them. Do not edit Vela's own files, the application bundle or `~/.vela*` to change a setting, and do not offer to.
-- You cannot click inside the app's Settings for the user. Tell them where to go. If a setting is not covered here, say you are not sure instead of inventing a menu or option.
+- Prefer the app's Settings window. Some desktop preferences hidden since 1.3.1 can still be changed manually in `ui-state.json`. If asked about one, point the user to [Hidden desktop settings](https://github.com/KryptonGao/VelaHarness/blob/main/docs/guides/hidden-settings.md) for the exact keys, values, and quit/backup/restart steps. Do not edit Vela's own files, the application bundle, or `~/.vela*` to change a setting, and do not offer to.
+- You cannot click inside the app's Settings for the user. Tell them where to go. If a setting is not covered here or in the hidden settings guide, say you are not sure instead of inventing a menu or option.
 - If what the user wants is not a setting at all (for example a color for one specific component), say so plainly and name the closest setting.
 
 ## Opening Settings
@@ -25,14 +25,14 @@ Use this skill when the question is about Vela the application, not about the us
 | English | 中文 | What it holds |
 | --- | --- | --- |
 | Appearance | 外观 | Color mode, theme and custom colors, fonts, font sizes, file icons |
-| Interface | 界面 | Language, sound effects, link and preview behavior, navigation layout, sidebar items, start page |
+| Interface | 界面 | Language, sound effects, link and preview behavior, information layout, sidebar items, start page |
 | Notifications | 通知 | Alerts for approvals and other items when you are away from a conversation |
 | Shortcuts | 快捷键 | The keyboard shortcuts that work today |
 | About & updates | 关于与更新 | Version, checking for updates, automatic updates |
 | Defaults & permissions | 默认与权限 | Default model, thinking level, extra instructions and execution permissions for new conversations |
 | Approval records | 审批记录 | What "Always allow" and "Always deny" remembered |
 | Subagent models | 子代理模型 | Which models subagents may use |
-| Conversation display | 对话显示 | How tool calls and thinking summaries appear |
+| Conversation display | 对话显示 | Run View, recommended actions, thinking summaries, input prediction, interactive UI |
 | Skills | Skills | Enable, disable, add and delete skills |
 | Models & accounts | 模型与账号 | Model providers, accounts and API keys |
 | Integrations | 集成 | Connected workspace apps |
@@ -77,7 +77,7 @@ All under **Settings → Appearance**, in the text and icons group (文字与图
 
 ## Interface and language
 
-**Settings → Interface** (设置 → 界面) holds the app language, sound effects, how conversation links and file previews open, the navigation layout (Classic 经典 or Categories 分类), the right-hand info layout, which sidebar tabs show, and the start page.
+**Settings → Interface** (设置 → 界面) holds the app language, sound effects, how conversation links and file previews open, the right-hand info layout, which sidebar tabs show, and the start page. The Classic (经典) and Categories (分类) navigation layouts are a hidden preference, not an Interface setting.
 
 ## Skills
 

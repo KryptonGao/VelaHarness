@@ -37,4 +37,6 @@ All prompt profiles follow the same mode rules. In Run View, Agent and Goal use 
 
 已完成的思考总结和界面设置保存在资料目录的 `ui-state.json`（安装版默认 `~/.vela`，开发版默认 `~/.vela-dev`，可用 `VELA_USER_DATA` 覆盖），退出后重开会恢复。首次读取时会迁移当前页面原有的本地存储数据。
 
+For preferences no longer shown in Settings, see [Hidden desktop settings](./hidden-settings.md) for the file format, defaults, and reset instructions.
+
 每轮回复的用时由主进程记录，随会话保存在 `sessions/*.jsonl`，重开和分支聊天后仍可查看。旧历史未记录的用时会显示「耗时未记录」。归档状态保存在 `conversations.json`，归档和取消归档会立即写盘；左右面板及工作区分组的折叠状态也随界面设置保存。

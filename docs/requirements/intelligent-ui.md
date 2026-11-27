@@ -393,7 +393,7 @@ P1/P2 的行为描述见 [../intelligent-ui.md](../features/intelligent-ui.md)�
 - **数据源由真实工具调用解析，不由工具「推送」给 UI**：`source` 操作只指名一次工具调用，数据值由 Vela 从会话里的工具结果取（`resolveUiSource`）。没有会话工具记录的场景（Agent Inbox、Resident）显示找不到工具结果，界面本身不会去抓取任何东西。「刷新」是一条确认后发给 Agent 的消息。
 - **图表可拖动** 只对直接引用 number 状态的点生效，拖动只改本地状态。图表颜色只用主题 token；保存 PNG 时把计算后的样式内联进 SVG 再用 canvas 光栅化。
 - **`media`** 只是占位：没有图片/地图 Provider，不显示虚构内容。**`itinerary`** 没有地图，只有模型明确给出坐标时才有标注为「坐标由模型给出」的示意图。
-- **本地指标** 只持久化聚合计数（`uiStorage`），事件时间线只在内存里。只有本次运行里流式生成的界面计入结局统计。检查器在开发版默认开启，正式版需在设置里手动打开。
+- **Local metrics:** `uiStorage` persists aggregate counters only; event timelines stay in memory. Only UI streamed during the current run contributes to outcome metrics. The development renderer enables the inspector automatically; installed builds use the [hidden inspector preference](../guides/hidden-settings.md#intelligent-ui-diagnostics).
 - **Sandboxed micro-apps:** a `vela-app` fence renders in a `sandbox="allow-scripts"` iframe, without a custom origin protocol. Tokens issued by Main (`ui-sandbox-host.ts`) stay between Main and the renderer. The `microApps` setting in `intelligent-ui-settings.json` defaults to `true`. Electron tests cover process isolation and lack of network, storage, cookie, and parent-page access. An independent security review is still recommended before release (section 10, item 8).
 - **工作流协作**：`request_tool` 与 `refresh_source` 只是请 Agent 去做，确认后以普通消息发出；没有新增 Main 侧的工具执行通道，所以 ToolPolicy、审批和 Trace 的记录边界不变。
 - **导出**：微应用不导出，只写占位说明；图表写成数据表；数据源写来源与状态。

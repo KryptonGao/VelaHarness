@@ -21,6 +21,7 @@
 | 文档 | 受众 | 内容 |
 | --- | --- | --- |
 | [guides/development.md](./guides/development.md) | 开发者 | 开发版与安装版的资料目录、同步正式版资料、开发工具，以及界面设置与会话记录的保存位置。 |
+| [Hidden desktop settings](./guides/hidden-settings.md) | Users | Edit `ui-state.json` to change preferences hidden from Settings, with supported values, defaults, and reset instructions. |
 | [guides/updates.md](./guides/updates.md) | 使用者与维护者 | 应用内更新：仅依赖 GitHub Release 的检查、自动下载、Ed25519 验签、退出时替换应用，以及发版签名步骤与限制。 |
 | [guides/skill-market.md](./guides/skill-market.md) | 使用者与维护者 | Skill 市场云端分发：目录与 Skill 内容的签名与验证、维护者的建置与发布流程、Cloudflare 部署设置、安装次数统计与已知限制。 |
 | [guides/model-catalog.md](./guides/model-catalog.md) | 使用者与开发者 | 模型列表的自动与手动刷新、Pi 的 4 小时检查间隔、按 Pi 版本过滤模型目录，以及升级 Pi 后的验收步骤。 |
