@@ -388,7 +388,7 @@
   cursor: pointer;
   transition: color 120ms ease;
 }
-.visual-tool-heading:hover { color: var(--text-secondary); }
+.visual-tool-heading :is(.visual-tool-label, .visual-tool-title):hover { color: var(--text-secondary); }
 .visual-tool-label { font-weight: 500; white-space: nowrap; }
 .visual-tool-title {
   color: var(--text-dim);

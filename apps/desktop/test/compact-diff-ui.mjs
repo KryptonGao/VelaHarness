@@ -430,7 +430,7 @@ if (!process.versions.electron) {
       }
       await evaluate('window.setNumberCase(null)');
       await until("document.querySelector('.tool-compact-name')?.textContent === 'stream-plain.txt'");
-      // 在真实 Chromium 中强制行级 hover，验证移出恢复及相邻行隔离。
+      // Check hover hit targets and isolation in Chromium.
       win.webContents.debugger.attach('1.3');
       const protocol = (method, params = {}) => win.webContents.debugger.sendCommand(method, params);
       await protocol('DOM.enable');
@@ -502,28 +502,54 @@ if (!process.versions.electron) {
           await until(`document.querySelectorAll(${JSON.stringify(row)}).length === ${fold === 'none' ? 3 : 1}`);
           const first = row + ':first-of-type';
           assert.deepEqual(await colors(first), [neutral, neutral], `${display}/${fold}: neutral by default`);
-          const {root} = await protocol('DOM.getDocument');
-          const {nodeId} = await protocol('DOM.querySelector', {nodeId: root.nodeId, selector: first});
-          await protocol('CSS.forcePseudoState', {nodeId, forcedPseudoClasses: ['hover']});
-          assert.deepEqual(await colors(first), [added, removed], `${display}/${fold}: colored on row hover`);
+          const hover = async (selector, rightEdge = false) => {
+            const point = await evaluate(`(() => {
+              const r = document.querySelector(${JSON.stringify(first + ' ' + selector)}).getBoundingClientRect();
+              return {x: ${rightEdge ? 'r.right - 1' : 'r.left + r.width / 2'}, y: r.top + r.height / 2};
+            })()`);
+            await protocol('Input.dispatchMouseEvent', {type: 'mouseMoved', ...point});
+          };
+          const selectors = display === 'compact'
+            ? (fold === 'none' ? ['.tool-compact-action', '.tool-compact-name', '.tool-compact-dir'] : ['.tool-compact-label', '.tool-compact-sample'])
+            : (fold === 'none' ? ['.tool-kind-label span', '.tool-card-name span', '.tool-card-dir span'] : ['.tool-kind-label span', '.tool-run-subject span']);
+          for (const selector of [...selectors, '.tool-stat-add', '.tool-stat-del']) {
+            await hover(selector);
+            assert.deepEqual(await colors(first), [added, removed], `${display}/${fold}: counts respond to ${selector}`);
+          }
+          // Neither the icon nor the empty part of a stretched card text column is summary text.
+          await hover(display === 'compact' ? '.tool-compact-icon' : '.tool-card-icon');
+          assert.deepEqual(await colors(first), [neutral, neutral], `${display}/${fold}: icon cannot activate counts`);
+          if (display === 'card') {
+            await hover(fold === 'none' ? '.tool-card-dir' : '.tool-run-subject', true);
+            assert.deepEqual(await colors(first), [neutral, neutral], `${display}/${fold}: unused flex space stays neutral`);
+          } else {
+            const {gap, tail} = await evaluate(`(() => {
+              const row = document.querySelector(${JSON.stringify(first)});
+              const {right, top, height} = row.getBoundingClientRect();
+              const gap = (row.querySelector('.tool-stat-add').getBoundingClientRect().right + row.querySelector('.tool-stat-del').getBoundingClientRect().left) / 2;
+              return {gap: {x: gap, y: top + height / 2}, tail: {x: right - 5, y: top + height / 2}};
+            })()`);
+            for (const point of [gap, tail]) {
+              await protocol('Input.dispatchMouseEvent', {type: 'mouseMoved', ...point});
+              assert.deepEqual(await colors(first), [neutral, neutral], `${display}/${fold}: gaps and trailing space stay neutral`);
+            }
+          }
+          await hover(selectors[0]);
           if (fold === 'none') {
             const allColors = await evaluate(`Array.from(document.querySelectorAll(${JSON.stringify(row)}), row => Array.from(row.querySelectorAll('.tool-stat-add, .tool-stat-del'), el => getComputedStyle(el).color))`);
             assert.deepEqual(allColors.slice(1), [[neutral, neutral], [neutral, neutral]], 'Neighboring rows must remain neutral');
           } else {
-            await protocol('CSS.forcePseudoState', {nodeId, forcedPseudoClasses: []});
-            assert.deepEqual(await colors(first), [neutral, neutral], `${display}/${fold}: neutral after leaving row`);
-            await protocol('CSS.forcePseudoState', {nodeId, forcedPseudoClasses: ['hover']});
             await evaluate(`document.querySelector(${JSON.stringify(row)}).click()`);
             const childRow = display === 'compact' ? '.tool-compact-line' : '.tool-card-head';
             await until(`document.querySelector(${JSON.stringify(childRow)})`);
             assert.deepEqual(await colors(childRow), [neutral, neutral], 'Expanded child rows must not inherit summary hover colors');
           }
-          await protocol('CSS.forcePseudoState', {nodeId, forcedPseudoClasses: []});
+          await protocol('Input.dispatchMouseEvent', {type: 'mouseMoved', x: 1, y: 1});
           if (fold === 'none') assert.deepEqual(await colors(first), [neutral, neutral], `${display}/${fold}: neutral after leaving row`);
         }
       }
       win.webContents.debugger.detach();
-      console.log("Compact diff UI: diff anchoring, scrolling, streaming syntax highlighting, edit/write numbering (compact/card, growth, interruption, execution, completion) diff palette (all themes, light/dark) and filename hover (compact, light/dark) and row-only stat hover (compact/card, grouped/ungrouped) passed");
+      console.log("Compact diff UI: diff anchoring, scrolling, streaming syntax highlighting, edit/write numbering (compact/card, growth, interruption, execution, completion) diff palette (all themes, light/dark) and filename hover (compact, light/dark) and text-only stat hover (compact/card, grouped/ungrouped) passed");
       app.exit(0);
     } catch (error) {
       console.error(error);

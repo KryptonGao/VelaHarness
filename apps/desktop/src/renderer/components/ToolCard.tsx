@@ -391,13 +391,13 @@ function GenericToolCard({ tool, compact = false }: ToolCardProps) {
           <span className="tool-card-icon" aria-hidden="true">
             {mcp || discovery ? <Icon name="mcp" size={14} /> : <GroupIcon name={tool.name} fallback={<KindIcon kind={kind} command={activity.command} skill={skillRead} />} />}
           </span>
-          <span className="tool-kind-label">{mcp || discovery ? "MCP" : skillRead ? tr("技能", "Skill") : bashIntent?.label ?? toolLabel(tool.name, kind)}</span>
+          <span className="tool-kind-label"><span className="tool-summary-text">{mcp || discovery ? "MCP" : skillRead ? tr("技能", "Skill") : bashIntent?.label ?? toolLabel(tool.name, kind)}</span></span>
           <span className="tool-card-main">
             <span className={`tool-card-name${subject.dir ? "" : " grow"}${subjectIsCode(kind, activity) ? " is-code" : ""}${planFirst ? " has-plan-icon" : ""}`}>
               {planFirst ? <PlanStatusIcon status={planFirst.status} ended={planEnded} className="plan-status-inline" /> : null}
-              {planFirst ? <span className="tool-card-name-text">{subject.name}</span> : subject.name}
+              <span className={planFirst ? "tool-summary-text tool-card-name-text" : "tool-summary-text"}>{subject.name}</span>
             </span>
-            {subject.dir ? <span className={`tool-card-dir${kind === "read" || kind === "edit" || kind === "write" ? " is-file-path" : ""}`}>{subject.dir}</span> : null}
+            {subject.dir ? <span className={`tool-card-dir${kind === "read" || kind === "edit" || kind === "write" ? " is-file-path" : ""}`}><span className="tool-summary-text">{subject.dir}</span></span> : null}
           </span>
           {mcp || discoveryServer ? <span className="tool-mcp-source" aria-label={trf("MCP 服务器：{0}", "MCP server: {0}", (mcp?.server ?? discoveryServer)!)}><span className="overflow-fade-text">{mcp?.server ?? discoveryServer}</span></span> : null}
           {stat ? (
@@ -612,9 +612,9 @@ export const ToolRunGroup = memo(function ToolRunGroup({ tools }: { tools: ToolT
         <span className="tool-card-icon" aria-hidden="true">
           {uniform ? <KindIcon kind={uniform} command={uniform === "bash" && tools.every((tool) => bashIntentDisplay(tool.activity?.command)?.kind === currentIntent?.kind) ? activity.command : undefined} /> : <Icon name="stack" size={14} />}
         </span>
-        <span className="tool-kind-label">{uniform ? toolKindLabel(uniform) : tr("工具", "Tools")}</span>
-        <span className="tool-run-count">×{tools.length}</span>
-        <span className="tool-run-subject">{subjectText}</span>
+        <span className="tool-kind-label"><span className="tool-summary-text">{uniform ? toolKindLabel(uniform) : tr("工具", "Tools")}</span></span>
+        <span className="tool-run-count"><span className="tool-summary-text">×{tools.length}</span></span>
+        <span className="tool-run-subject"><span className="tool-summary-text">{subjectText}</span></span>
         {failed > 0 ? <span className="tool-run-failed">{trf("{0} 失败", "{0} failed", failed)}</span> : null}
         {stat ? (
           <span className="tool-stat">

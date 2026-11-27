@@ -27,7 +27,8 @@ if (!process.versions.electron) {
         window.commandOrbFrames = ORB_POOLS.command.flatMap(style => Array.from({length: 600}, (_, i) => orbFrame(style, i * 0.025)));
         import { ThinkingGroupModeContext, ThinkingModelCatalogContext } from './apps/desktop/src/renderer/components/ThinkingGroupModeContext';
         import { ThinkingSummaryContext } from './apps/desktop/src/renderer/components/ThinkingSummaryContext';
-        import { AppLocaleProvider } from './apps/desktop/src/renderer/locale';
+        import { AppLocaleProvider, setActiveLocale } from './apps/desktop/src/renderer/locale';
+        setActiveLocale('zh-CN');
         window.addEventListener('error', event => console.error(event.error?.stack ?? event.message));
         const root = createRoot(document.getElementById('root'));
         let revision = 0;
@@ -41,8 +42,9 @@ if (!process.versions.electron) {
           createdRoot: [tool('write', {path: 'created.ts', diff: '+1 new'})],
           failedWrite: [{...tool('write', {path: 'failed.ts', diff: '+1 new'}), status: 'error'}],
           streaming: [tool('edit', {path: 'fixture.ts', diff: '+1 new', streaming: {added: 1, removed: 0}})],
-          browser: [tool('browser_repl', {command: 'nodeRepl.write(1)', body: '1'})],
-          agent: [tool('spawn_agent', {body: 'Agent report'})],
+          browser: [tool('browser_repl', {command: 'await tab.snapshot(); await tab.screenshot()', body: '1'})],
+          agent: [tool('spawn_agent', {agentId: 'agent', body: 'Agent report'})],
+          web: [tool('web_search', {command: 'search terms'})],
           generic: [tool('fixture_tool', {body: 'Result details'})],
         };
         tools.streaming[0].status = 'running';
@@ -319,6 +321,37 @@ if (!process.versions.electron) {
           await toggle();
           await until(`getComputedStyle(document.querySelector(${JSON.stringify(arrow)})).opacity === '0'`);
         }
+        // Move the actual pointer so the target AND its ancestors are hovered together.
+        for (const [name, left, right] of [
+          ['command', '.tool-compact-action', '.tool-compact-cmd'],
+          ['group', '.tool-compact-label', '.tool-compact-sample'],
+          ['diff', '.tool-compact-action', '.tool-compact-dir'],
+          ['browser', '.browser-call-step.is-snapshot', '.browser-call-step.is-screenshot'],
+          ['agent', '.tool-compact-action', '.agent-compact-name'],
+          ['web', '.web-call-label', '.web-call-subject'],
+          ['generic', '.tool-kind-label span', '.tool-card-name span'],
+        ]) {
+          currentCase = `${scheme}/${name}/segments`;
+          await evaluate(`window.renderCase(${JSON.stringify(name)}, ${JSON.stringify(scheme)})`);
+          const move = async selector => {
+            const point = selector ? await evaluate(`(() => {
+              const r = document.querySelector(${JSON.stringify(selector)}).getBoundingClientRect();
+              return {x: r.left + r.width / 2, y: r.top + r.height / 2};
+            })()`) : {x: 799, y: 699};
+            await protocol('Input.dispatchMouseEvent', {type: 'mouseMoved', ...point});
+          };
+          const colors = () => evaluate(`${JSON.stringify([left, right])}.map(s => getComputedStyle(document.querySelector(s)).color)`);
+          await move(null);
+          const idle = await colors();
+          for (const [index, selector] of [left, right].entries()) {
+            await move(selector);
+            const active = await colors();
+            assert.notEqual(active[index], idle[index], `${currentCase}: hovered ${selector} gains emphasis`);
+            assert.equal(active[1-index], idle[1-index], `${currentCase}: neighboring text stays neutral`);
+          }
+          await move(name === 'agent' ? '.agent-compact-toggle.is-tail' : null);
+          assert.deepEqual(await colors(), idle, `${currentCase}: no emphasis in empty space`);
+        }
         for (const display of ['compact', 'card']) {
           for (const name of ['diff', 'created', 'createdRoot', 'failedWrite']) {
             currentCase = `${scheme}/${display}/${name}`;
@@ -358,7 +391,7 @@ if (!process.versions.electron) {
               assert.equal(before.dot.opacity, '1', `${currentCase}: dot always visible`);
             }
             const { root } = await protocol('DOM.getDocument');
-            const { nodeId } = await protocol('DOM.querySelector', { nodeId: root.nodeId, selector: head });
+            const { nodeId } = await protocol('DOM.querySelector', { nodeId: root.nodeId, selector: head + ' .tool-stat-add' });
             await protocol('CSS.forcePseudoState', { nodeId, forcedPseudoClasses: ['hover'] });
             const hovered = await measure();
             assert.notEqual(hovered.add, before.add, `${currentCase}: counts gain color on hover`);

@@ -825,20 +825,16 @@
 }
 .tool-stat-add { color: var(--diff-stat-add-fg); }
 .tool-stat-del { color: var(--diff-stat-del-fg); }
-/* 只响应当前摘要行的悬停，展开分组时不连带点亮子行。 */
-:is(.tool-card-head, .tool-run-head, .tool-compact-summary, .tool-compact-line)
-  :is(.tool-stat, .tool-compact-stat) > :is(.tool-stat-add, .tool-stat-del) {
-  color: var(--text-muted);
-}
-:is(.tool-card-head, .tool-run-head, .tool-compact-summary, .tool-compact-line):hover
-  :is(.tool-stat, .tool-compact-stat) > .tool-stat-add,
-.tool-compact-detail-toggle:focus-visible .tool-stat-add {
-  color: var(--diff-stat-add-fg);
-}
-:is(.tool-card-head, .tool-run-head, .tool-compact-summary, .tool-compact-line):hover
-  :is(.tool-stat, .tool-compact-stat) > .tool-stat-del,
-.tool-compact-detail-toggle:focus-visible .tool-stat-del {
-  color: var(--diff-stat-del-fg);
+/* Only summary text activates the counts, not the surrounding flex space or trailing controls. */
+:is(.tool-stat, .tool-compact-stat) > .tool-stat-add { color: var(--summary-stat-add, var(--text-muted)); }
+:is(.tool-stat, .tool-compact-stat) > .tool-stat-del { color: var(--summary-stat-del, var(--text-muted)); }
+:is(.tool-card-head, .tool-run-head, .tool-compact-summary, .tool-compact-line):has(:is(
+  .tool-summary-text, .tool-compact-label, .tool-compact-sample, .tool-compact-action,
+  .tool-compact-name, .tool-compact-dir, .tool-stat-add, .tool-stat-del
+):hover),
+:is(.tool-card-head, .tool-run-head, .tool-compact-summary, .tool-compact-detail-toggle):focus-visible {
+  --summary-stat-add: var(--diff-stat-add-fg);
+  --summary-stat-del: var(--diff-stat-del-fg);
 }
 .tool-lines {
   color: var(--text-muted);
@@ -995,7 +991,6 @@ button.tool-compact-line:focus-visible > .tool-compact-chevron,
   font-size: calc(15px * var(--ui-scale));
   line-height: 1.55;
 }
-.tool-compact-summary:hover { color: var(--text-primary); }
 .tool-compact-summary:focus-visible {
   outline: 2px solid var(--accent-blue);
   outline-offset: -2px;
@@ -1078,7 +1073,6 @@ button.tool-compact-line:focus-visible > .tool-compact-chevron,
   color: var(--text-muted);
   transition: transform var(--transition-smooth);
 }
-.tool-compact-summary:hover .tool-compact-label { color: var(--text-primary); }
 .tool-compact-group.open > .tool-compact-summary .tool-compact-chevron { transform: rotate(90deg); }
 .tool-compact-item.open > .tool-compact-line .tool-compact-chevron { transform: rotate(90deg); }
 /* 分组内的左导轨始终保留:展开某条文件差异预览时只调整卡片自身间距,不能把整条导轨收回。 */
@@ -1106,7 +1100,6 @@ button.tool-compact-line:focus-visible > .tool-compact-chevron,
   text-align: left;
 }
 button.tool-compact-line { cursor: pointer; }
-button.tool-compact-line:hover { color: var(--text-primary); }
 button.tool-compact-line:focus-visible {
   outline: 2px solid var(--accent-blue);
   outline-offset: -2px;
@@ -1167,12 +1160,6 @@ button.tool-compact-name:hover { text-decoration: underline; text-underline-offs
 .tool-compact-path-toggle {
   flex: 0 1 auto;
   overflow: hidden;
-}
-.tool-compact-action-toggle:hover .tool-compact-action,
-.tool-compact-path-toggle:hover .tool-compact-dir,
-button.tool-compact-line:hover .tool-compact-action,
-button.tool-compact-line:hover .tool-compact-cmd {
-  color: var(--text-primary);
 }
 .tool-compact-cmd {
   flex: 0 1 auto;
