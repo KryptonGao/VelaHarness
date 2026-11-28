@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { ConversationSummary } from "@vela/shared";
-import { groupActiveConversations, searchActiveConversations, workspaceName } from "../src/renderer/components/conversation-search.ts";
+import {
+  defaultSearchScope, groupActiveConversations, scopeFilters, scopeRange, searchActiveConversations,
+  searchConversationTitles, searchProjects, searchWorkspace, workspaceName,
+} from "../src/renderer/components/conversation-search.ts";
 
 const conversations: ConversationSummary[] = [
   { id: "old", title: "修复登录", cwd: "/projects/Vela", updatedAt: 1, archivedAt: null, status: "ready" },
@@ -82,5 +85,71 @@ describe("sidebar conversation search", () => {
     assert.equal(workspaceName("/projects/Vela/"), "Vela");
     assert.equal(workspaceName("C:\\projects\\Vela\\"), "Vela");
     assert.equal(workspaceName("/"), "/");
+  });
+});
+
+describe("message search scope", () => {
+  const now = new Date(2026, 4, 20, 12, 0, 0).getTime();
+  const day = 86_400_000;
+
+  it("turns a preset into a lower time bound and 'any time' into none", () => {
+    assert.deepEqual(scopeRange(defaultSearchScope, now), {});
+    assert.deepEqual(scopeRange({ ...defaultSearchScope, datePreset: "day" }, now), { from: now - day });
+    assert.deepEqual(scopeRange({ ...defaultSearchScope, datePreset: "week" }, now), { from: now - 7 * day });
+    assert.deepEqual(scopeRange({ ...defaultSearchScope, datePreset: "quarter" }, now), { from: now - 90 * day });
+  });
+
+  it("makes a custom end date include that whole day, and ignores dates that are not complete", () => {
+    const range = scopeRange({ ...defaultSearchScope, datePreset: "custom", from: "2026-05-01", to: "2026-05-03" }, now);
+    assert.equal(range.from, new Date(2026, 4, 1).getTime());
+    assert.equal(range.to, new Date(2026, 4, 4).getTime());
+    assert.deepEqual(scopeRange({ ...defaultSearchScope, datePreset: "custom", from: "2026-05-0", to: "" }, now), {});
+    assert.deepEqual(Object.keys(scopeRange({ ...defaultSearchScope, datePreset: "custom", from: "2026-05-01", to: "" }, now)), ["from"]);
+  });
+
+  it("hands the main process only the fields it filters on", () => {
+    assert.deepEqual(scopeFilters(defaultSearchScope, now), { includeArchived: true, includeTools: true });
+    assert.deepEqual(
+      scopeFilters({ ...defaultSearchScope, workspace: "", datePreset: "day", includeTools: false }, now),
+      { workspace: "", from: now - day, includeArchived: true, includeTools: false },
+    );
+  });
+});
+
+describe("chat title search with scope", () => {
+  const chat = (id: string, patch: Partial<ConversationSummary>): ConversationSummary => ({
+    id, title: id, cwd: "/work/app", createdAt: 1, updatedAt: 100, archivedAt: null, status: "ready", messageCount: 1, ...patch,
+  });
+  const items = [
+    chat("fix login", { updatedAt: 300 }),
+    chat("fix archived", { updatedAt: 200, archivedAt: 250 }),
+    chat("fix lib", { updatedAt: 100, cwd: "/work/lib" }),
+    chat("fix loose", { updatedAt: 50, cwd: "/Applications/Vela.app", hasWorkspace: false }),
+    chat("fix draft", { updatedAt: 400, messageCount: 0 }),
+  ];
+  const ids = (list: ConversationSummary[]) => list.map(item => item.id);
+
+  it("lists only unarchived chats until something is typed, then includes archived ones", () => {
+    assert.deepEqual(ids(searchConversationTitles(items, "", "New chat", defaultSearchScope)), ["fix login", "fix lib", "fix loose"]);
+    assert.deepEqual(ids(searchConversationTitles(items, "fix", "New chat", defaultSearchScope)), ["fix login", "fix archived", "fix lib", "fix loose"]);
+    assert.deepEqual(ids(searchConversationTitles(items, "fix", "New chat", { ...defaultSearchScope, includeArchived: false })), ["fix login", "fix lib", "fix loose"]);
+  });
+
+  it("filters by project, with '' for chats that have none", () => {
+    assert.deepEqual(ids(searchConversationTitles(items, "fix", "New chat", { ...defaultSearchScope, workspace: "/work/lib" })), ["fix lib"]);
+    assert.deepEqual(ids(searchConversationTitles(items, "fix", "New chat", { ...defaultSearchScope, workspace: "" })), ["fix loose"]);
+  });
+
+  it("filters by the day the chat was last updated", () => {
+    const scope = { ...defaultSearchScope, datePreset: "day" as const };
+    // "Past 24 hours" at 299 ms before the first chat's day ends keeps only the chat updated at 300.
+    assert.deepEqual(ids(searchConversationTitles(items, "fix", "New chat", scope, 300 + 86_400_000 - 1)), ["fix login"]);
+    assert.deepEqual(ids(searchConversationTitles(items, "fix", "New chat", scope, 200 + 86_400_000 - 1)), ["fix login", "fix archived"]);
+  });
+
+  it("lists projects by recent use, with chats that have none as ''", () => {
+    assert.deepEqual(searchProjects(items), ["/work/app", "/work/lib", ""]);
+    assert.equal(searchWorkspace(items[3]!), "");
+    assert.equal(searchWorkspace({ cwd: "/wt", worktree: { repository: "/repo", baseSha: "a", branch: null } }), "/repo");
   });
 });

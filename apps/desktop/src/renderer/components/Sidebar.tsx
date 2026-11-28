@@ -1,5 +1,5 @@
 import { displayConversationTitle } from "./conversation-title";
-import { overlapsForConversation, type ConversationSummary, type WorkspaceRecent } from "@vela/shared";
+import { overlapsForConversation, type ConversationSearchHit, type ConversationSummary, type WorkspaceRecent } from "@vela/shared";
 import { useContext, useEffect, useId, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { composerDrafts } from "./composer/composer-drafts";
 import { isBoolean, isBooleanRecord, useStoredState } from "../hooks/useStoredState";
@@ -58,6 +58,7 @@ interface SidebarProps {
   onOpenWorkspaceOverview?: (cwd: string) => void;
   onOpenVersionControl?: (cwd: string) => void;
   onSwitchConversation: (id: string) => void;
+  onOpenSearchHit: (hit: ConversationSearchHit, query: string) => void;
   onArchiveConversation: (id: string) => void;
   onRenameConversation?: (id: string) => void;
 }
@@ -94,6 +95,7 @@ export function Sidebar({
   onOpenWorkspaceOverview,
   onOpenVersionControl,
   onSwitchConversation,
+  onOpenSearchHit,
   onArchiveConversation,
   onRenameConversation,
 }: SidebarProps) {
@@ -387,9 +389,10 @@ export function Sidebar({
       {searchOpen ? <ConversationSearchDialog
         id={searchId}
         conversations={allConversations}
+        workspaces={workspaces}
         activeConversationId={activeConversationId}
         onSelect={onSwitchConversation}
-        onNewChat={onNewChat}
+        onOpenHit={onOpenSearchHit}
         onClose={() => setSearchOpen(false)}
       /> : null}
     </aside>

@@ -79,9 +79,20 @@
 .conversation-search-close:hover { color: var(--text-primary); background: var(--bg-sidebar-hover); }
 .conversation-search-content { padding: 10px 8px; }
 .conversation-search-section-label { padding: 8px 12px; font-size: calc(12px * var(--ui-scale)); color: var(--text-muted); }
-.conversation-search-results { max-height: min(380px, calc(100vh - 270px)); overflow-y: auto; }
-.conversation-search-result,
-.conversation-search-new {
+.conversation-search-results { max-height: min(380px, calc(100vh - 330px)); overflow-y: auto; }
+/* Rows cut off by the list edge fade out instead of ending in a hard line. Each edge fades only while there is
+   more to scroll toward it; a list that fits has an inactive scroll timeline and no fade. */
+@property --search-fade-top { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --search-fade-bottom { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@keyframes search-fade-top { from { --search-fade-top: 0px; } to { --search-fade-top: 20px; } }
+@keyframes search-fade-bottom { from { --search-fade-bottom: 20px; } to { --search-fade-bottom: 0px; } }
+.conversation-search-results {
+  mask-image: linear-gradient(to bottom, transparent, #000 var(--search-fade-top), #000 calc(100% - var(--search-fade-bottom)), transparent);
+  animation: search-fade-top linear both, search-fade-bottom linear both;
+  animation-timeline: scroll(self block), scroll(self block);
+  animation-range: 0 20px, calc(100% - 20px) 100%;
+}
+.conversation-search-result {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -93,8 +104,7 @@
   text-align: left;
 }
 .conversation-search-result:hover,
-.conversation-search-result.selected,
-.conversation-search-new:hover { background: var(--bg-sidebar-hover); }
+.conversation-search-result.selected { background: var(--bg-sidebar-hover); }
 .conversation-search-result-title {
   flex: 1;
   min-width: 0;
@@ -120,8 +130,86 @@
   color: var(--text-muted);
   background: var(--bg-sidebar-hover);
 }
+.conversation-search-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: calc(13px * var(--ui-scale));
+}
+.conversation-search-filters select,
+.conversation-search-filters input[type="date"] {
+  max-width: 190px;
+  min-height: 28px;
+  padding: 2px 8px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  font: inherit;
+  color: var(--text-primary);
+  background: transparent;
+}
+.conversation-search-chip {
+  min-height: 28px;
+  padding: 2px 10px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  color: var(--text-muted);
+}
+.conversation-search-chip[aria-pressed="true"] {
+  border-color: var(--accent-border);
+  color: var(--text-primary);
+  background: var(--accent-tint);
+}
+.conversation-search-hit {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+}
+.conversation-search-snippet {
+  overflow: hidden;
+  white-space: nowrap;
+  animation: vela-overflow-fade auto linear both;
+  animation-timeline: scroll(self inline);
+}
+.conversation-search-snippet mark,
+::highlight(search-hit) {
+  color: inherit;
+  background: var(--accent-tint-strong);
+  border-radius: 2px;
+}
+.conversation-search-hit-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: calc(12px * var(--ui-scale));
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.conversation-search-hit-chat,
+.conversation-search-hit-project {
+  min-width: 0;
+  overflow: hidden;
+  animation: vela-overflow-fade auto linear both;
+  animation-timeline: scroll(self inline);
+}
+.conversation-search-hit-chat { flex: 1 1 0; }
+.conversation-search-hit-project { flex: 0 1 28%; }
+.conversation-search-hit-meta time { flex: none; margin-left: auto; }
+.conversation-search-more {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  font-size: calc(13px * var(--ui-scale));
+  color: var(--text-muted);
+}
+.conversation-search-more:hover { color: var(--text-primary); background: var(--bg-sidebar-hover); }
+.conversation-search-status { padding: 4px 14px; min-height: 0; font-size: calc(12px * var(--ui-scale)); color: var(--text-muted); }
+.conversation-search-status:empty { display: none; }
+.conversation-search-results[aria-busy="true"] .conversation-search-hit { opacity: 0.85; }
 .conversation-search-empty { padding: 24px 12px; color: var(--text-muted); font-size: calc(14px * var(--ui-scale)); }
-.conversation-search-new svg { flex: none; color: var(--text-muted); }
 .conversation-search-footer { padding: 10px 20px; border-top: 1px solid var(--border-subtle); color: var(--text-muted); font-size: calc(12px * var(--ui-scale)); }
 .conversation-search-dialog :focus-visible,
 .subchat-rename:focus-visible,

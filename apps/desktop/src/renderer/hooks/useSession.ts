@@ -29,6 +29,7 @@ import { noteToolStart } from "../components/tool-running-clock";
 import { localizeError, tr } from "../locale";
 import { showToast } from "../toast";
 import { parseProviderError } from "../components/provider-error";
+import { alignEntryIds } from "../components/search-jump";
 import { didCompleteTask, noSound, streamNotificationSound, type NotifySound } from "../notification-sounds";
 
 const emptyShells: BackgroundShellItem[] = [];
@@ -38,6 +39,8 @@ export interface UiMessage {
   sourceTimestamp?: number;
   assistantEnded?: boolean;
   id: string;
+  /** Session entry the message was saved as; messages created in this run get it from hydrateEntryIds. */
+  entryId?: string;
   role: "user" | "assistant";
   inputSender?: string;
   /** assistant 消息实际来源的 SDK 模型标识；未知时不以当前选择代替。 */
@@ -482,6 +485,27 @@ export function useSession(notify: NotifySound = noSound, fixedConversationId?: 
     }
   }, []);
 
+  /**
+   * Messages created in this run have no session entry id until they are read back. Search hits
+   * point at entries, so before jumping to one, give the loaded messages theirs.
+   */
+  const hydrateEntryIds = useCallback(async (id: string) => {
+    const api = window.vela;
+    const loaded = bucketsRef.current[id];
+    if (!api || !loaded?.length || loaded.some(message => message.entryId)) return;
+    try {
+      const saved = await api.getMessages(id);
+      setBuckets(current => {
+        const list = current[id];
+        if (!list) return current;
+        const aligned = alignEntryIds(list, saved);
+        return aligned === list ? current : { ...current, [id]: aligned as UiMessage[] };
+      });
+    } catch {
+      // The jump falls back to opening the chat at its latest message.
+    }
+  }, [setBuckets]);
+
   const switchTo = useCallback(async (id: string) => {
     const api = window.vela;
     if (!api) return;
@@ -722,6 +746,7 @@ export function useSession(notify: NotifySound = noSound, fixedConversationId?: 
     archive,
     rename,
     unarchive,
+    hydrateEntryIds,
     branch,
     forkCheckpoint,
     restoreCheckpoint,
@@ -752,6 +777,7 @@ export function mergeAgentHistory(live: readonly UiMessage[] | undefined, histor
 export function toUiMessage(message: TranscriptMessage): UiMessage {
   return {
     id: message.id,
+    ...(message.entryId ? { entryId: message.entryId } : {}),
     role: message.role,
     inputSender: message.inputSender,
     ...(message.role === "assistant" ? modelMetadata(message) : {}),

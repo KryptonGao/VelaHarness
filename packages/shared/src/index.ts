@@ -36,6 +36,7 @@ export * from "./agent-inbox";
 export * from "./resident-agent";
 export * from "./task-recipes";
 export * from "./race";
+export * from "./conversation-search";
 export * from "./conflict";
 export * from "./recipe-validation";
 export * from "./recipe-workflow";
@@ -1140,6 +1141,8 @@ export interface TranscriptMessage {
   /** Sender of an attributed subagent input: "user" or the sending agent's absolute path. */
   inputSender?: string;
   id: string;
+  /** Session entry the message was read from; absent for messages that were never persisted. */
+  entryId?: string;
   role: "user" | "assistant";
   /** assistant 消息实际来源的 SDK 模型标识；旧历史可能没有。 */
   model?: string;
@@ -3247,6 +3250,8 @@ export interface VelaApi extends McpApi, PluginApi, HooksApi {
   development?: DevelopmentApi;
   taskRecipes?: import("./task-recipes").TaskRecipesApi;
   races?: import("./race").RacesApi;
+  /** Full-text search over every chat: messages, tool output, archived chats. */
+  conversationSearch?: import("./conversation-search").ConversationSearchApi;
   conflicts?: import("./conflict").ConflictsApi;
   scheduledTasks?: import("./scheduled-tasks").ScheduledTasksApi;
   agentInbox?: import("./agent-inbox").AgentInboxApi;

@@ -37,6 +37,7 @@
 | --- | --- | --- |
 | [features/checkpoints.md](./features/checkpoints.md) | 使用者与开发者 | 文件检查点的存储：共享 blob 池与硬链接、stat 缓存、保留策略与总量上限、设置页的清理，以及已知限制。 |
 | [features/conversation-export.md](./features/conversation-export.md) | 使用者与开发者 | 对话导出为 Markdown / HTML：包含的内容（工具调用、文件 diff、轨迹、检查点改动）、脱敏规则、实现位置与已知限制。 |
+| [features/conversation-search.md](./features/conversation-search.md) | 使用者与开发者 | 对话全文搜索：消息、工具输出与已归档对话，按项目和日期筛选，结果流式出现并跳转到命中的消息；SQLite FTS5 trigram 索引、增量读取、独立进程与分片调度、实现位置、验证与已知限制。 |
 | [features/handoff-pack.md](./features/handoff-pack.md) | 使用者与开发者 | 任务交接包：把对话整理成目标、决策、修改文件、实际验证与未完成事项，预览编辑后填入新对话；事实与模型整理的分工、降级、实现位置与限制。 |
 | [features/outcome-acceptance.md](./features/outcome-acceptance.md) | 使用者与开发者 | 成果验收：逐项需求、修改、验证证据与待确认，agent 归属、确定性事实推导、fallback 与限制。 |
 | [features/race.md](./features/race.md) | 使用者与开发者 | 赛马：同一任务在 2–4 个独立 worktree 里用不同模型/思考强度/提示并行尝试，按耗时、token、改动、统一验证并排比较，一键 squash 采用其一；存储、恢复、限制与验证。 |

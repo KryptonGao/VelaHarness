@@ -660,6 +660,24 @@ export class AgentRuntime {
       }));
   }
 
+  /**
+   * Chats that have a session file on disk, with what the search index needs to follow them.
+   * Waits for the saved chats to be restored: the index forgets any chat missing from this list.
+   */
+  async listSearchSources(): Promise<{ id: string; file: string; cwd: string; hasWorkspace?: boolean; worktree?: ConversationWorktree; title: string; archived: boolean; updatedAt: number }[]> {
+    await this.ready();
+    return [...this.conversations.values()].flatMap(entry => entry.sessionFile ? [{
+      id: entry.id,
+      file: entry.sessionFile,
+      cwd: entry.snapshot.cwd,
+      hasWorkspace: entry.hasWorkspace,
+      ...(entry.worktree ? { worktree: entry.worktree } : {}),
+      title: entry.snapshot.title,
+      archived: entry.archivedAt !== null,
+      updatedAt: entry.updatedAt,
+    }] : []);
+  }
+
   /** 在会话操作队列内导入历史，不切换当前会话或重建已有会话。 */
   async importConversations(load: (knownIds: ReadonlySet<string>) => Promise<unknown[]>): Promise<number> {
     return this.exclusive(async () => {

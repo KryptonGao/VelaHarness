@@ -8,6 +8,8 @@ import {
   WorkspaceOverviewIpc,
   TaskRecipesIpc,
   RaceIpc,
+  ConversationSearchIpc,
+  type ConversationSearchEvent,
   ConflictIpc,
   ScheduledTasksIpc,
   AgentInboxIpc,
@@ -233,6 +235,16 @@ const api: VelaApi = {
     subscribe: listener => {
       const handler = () => listener(); ipcRenderer.on(RaceIpc.state, handler);
       return () => { ipcRenderer.removeListener(RaceIpc.state, handler); };
+    },
+  },
+  conversationSearch: {
+    sync: () => ipcRenderer.invoke(ConversationSearchIpc.sync),
+    start: (requestId, request) => ipcRenderer.invoke(ConversationSearchIpc.start, requestId, request),
+    cancel: requestId => ipcRenderer.invoke(ConversationSearchIpc.cancel, requestId),
+    subscribe: listener => {
+      const handler = (_event: IpcRendererEvent, event: ConversationSearchEvent) => listener(event);
+      ipcRenderer.on(ConversationSearchIpc.event, handler);
+      return () => { ipcRenderer.removeListener(ConversationSearchIpc.event, handler); };
     },
   },
   conflicts: {

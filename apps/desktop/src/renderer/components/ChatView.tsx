@@ -94,6 +94,7 @@ import { RecipeActionsContext } from "./recipe-actions-context";
 import { ChatActionsMenu } from "./ChatActionsMenu";
 import { UserMessageFrame } from "./UserMessageFrame";
 import { TurnNav } from "./TurnNav";
+import { useSearchJumpScroll } from "./useSearchJumpScroll";
 import { TURN_NAV_MIN_TURNS, buildTurnNavItems, findActiveTurnIndex } from "./turn-nav";
 import { ImageViewer, type ImageViewerRequest } from "./ImageViewer";
 import { showToast } from "../toast";
@@ -946,6 +947,22 @@ export function ChatView({
     timer = window.setTimeout(onSettle, reduced ? 40 : 750);
     scroller.scrollTo({ top: targetTop, behavior: reduced ? "auto" : "smooth" });
   }, [computeActiveTurn, syncJumpToLatest]);
+  const releaseForSearchJump = useCallback(() => {
+    jumpLockRef.current?.cancel();
+    followRef.current.pinned = false;
+    syncJumpToLatest();
+  }, [syncJumpToLatest]);
+  const turnIdOfMessage = useCallback((messageId: string) =>
+    turns.find(turn => turn.user?.id === messageId || turn.assistants.some(message => message.id === messageId))?.id ?? null, [turns]);
+  useSearchJumpScroll({
+    enabled: visibleConversation !== null && !floatingChat && !embedded,
+    conversationId: activeConversationId ?? null,
+    messages,
+    turnIdOf: turnIdOfMessage,
+    scrollerRef,
+    surfaceRef: messageSurfaceRef,
+    release: releaseForSearchJump,
+  });
   const changesCache = useRef(new Map<MessageTurn, { root: string | null; changes: TurnChanges | null }>());
   const turnChanges = useMemo(() => {
     const root = project.workspace?.current ?? null;

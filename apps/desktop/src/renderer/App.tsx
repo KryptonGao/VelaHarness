@@ -6,7 +6,8 @@ import { useAgentInbox } from "./hooks/useAgentInbox";
 import { uiStorage } from "./ui-storage";
 import { withViewTransition } from "./view-transition";
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState, type ContextType } from "react";
-import { type AgentInboxNavigation, type MenuAction, type ReleaseNotes, type TaskRecipe } from "@vela/shared";
+import { parseSearchQuery, type AgentInboxNavigation, type ConversationSearchHit, type MenuAction, type ReleaseNotes, type TaskRecipe } from "@vela/shared";
+import { searchJumpStore } from "./components/search-jump";
 import { AgentWorkspaceProvider } from "./components/AgentPanel";
 import { SessionChatView } from "./components/SessionChatView";
 import { ConversationDetailView } from "./components/ConversationDetailView";
@@ -925,6 +926,20 @@ export function App() {
       { label: tr("撤销", "Undo"), primary: true, run: () => { void session.unarchive(id); } },
     ] });
   };
+  /** Open the chat a search hit belongs to; the chat view scrolls to the message once it has loaded. */
+  const openSearchHit = (hit: ConversationSearchHit, query: string) => {
+    searchJumpStore.request({ conversationId: hit.conversationId, entryId: hit.entryId, toolCallId: hit.toolCallId, keywords: parseSearchQuery(query) });
+    void (async () => {
+      const known = session.conversations.find(item => item.id === hit.conversationId);
+      // A chat out of the sidebar cannot be read in place, so bring it back first.
+      if (known ? known.archivedAt !== null : hit.archived) await session.unarchive(hit.conversationId);
+      leaveRecipes(() => {
+        setWorkspaceTarget(null); setPrInboxOpen(false); setAgentInboxOpen(false); setScheduledTasksOpen(false); setSettingsOpen(false);
+        openMainConversation(hit.conversationId);
+      });
+      await session.hydrateEntryIds(hit.conversationId);
+    })();
+  };
   const toggleSettings = () => leaveRecipes(() => { setWorkspaceTarget(null); setPrInboxOpen(false); setAgentInboxOpen(false); setScheduledTasksOpen(false); setSettingsOpen((open) => !open); });
   const goHome = () => leaveRecipes(() => { setWorkspaceTarget(null); setPrInboxOpen(false); setAgentInboxOpen(false); setScheduledTasksOpen(false); setSettingsOpen(false); });
   const showWorkspacePage = (cwd: string, page: WorkspacePage) => {
@@ -1163,6 +1178,7 @@ export function App() {
                 onSwitchConversation={(id) => leaveRecipes(() => {
                   setWorkspaceTarget(null); setPrInboxOpen(false); setAgentInboxOpen(false); setScheduledTasksOpen(false); setSettingsOpen(false); openMainConversation(id);
                 })}
+                onOpenSearchHit={openSearchHit}
                 onArchiveConversation={archiveChat}
                 onRenameConversation={openRenameConversation}
               />

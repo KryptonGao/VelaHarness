@@ -20,6 +20,7 @@ import { createRequire } from "node:module";
 import { hasRunningWork } from "./running-work";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { ConversationExportHost } from "./conversation-export-host";
+import { ConversationSearchHost } from "./search-host";
 import { getApplicationLocale, setApplicationLocale, setDiagnosticsMenuActions, setMenuAccelerators, setUpdateMenuAction } from "./menu";
 import { defaultDesktopLocale } from "../desktop-locale";
 import { DEFAULT_WINDOW_SIZE } from "./window-size";
@@ -130,6 +131,7 @@ let taskScheduler: ScheduledTaskScheduler | null = null;
 let taskRecipeHost: TaskRecipeHost | null = null;
 let taskRecipes: TaskRecipeService | null = null;
 let raceHost: RaceHost | null = null;
+let conversationSearchHost: ConversationSearchHost | null = null;
 let conflictHost: ConflictHost | null = null;
 let conflicts: ConflictService | null = null;
 let host: SessionHost | null = null;
@@ -778,6 +780,23 @@ async function start(): Promise<void> {
   host.register();
   conversationExportHost = new ConversationExportHost(runtime, getApplicationLocale, key => uiStorage.getItem(key) ?? null);
   conversationExportHost.register();
+  conversationSearchHost = new ConversationSearchHost({
+    workerPath: join(rootDir, "search-worker.mjs"),
+    indexPath: join(home, "search-index.sqlite"),
+    sources: async () => (await runtime.listSearchSources())
+      .filter(source => !residentSupervisor?.isResidentConversation(source.id))
+      .map(source => ({
+        id: source.id,
+        file: source.file,
+        workspace: source.hasWorkspace === false ? "" : source.worktree?.repository ?? source.cwd,
+        title: source.title,
+        archived: source.archived,
+        updated: source.updatedAt,
+      })),
+  });
+  conversationSearchHost.register();
+  // Build the index once the app has settled, so the first search already finds older chats.
+  setTimeout(() => { void conversationSearchHost?.sync().catch(error => log.warn("search index sync failed", error)); }, 10_000).unref();
   sideChatHost = new SideChatHost(new SideChatStore(join(home, "side-chats")));
   sideChatHost.register();
   registerDevelopmentIpc(runtime, { isPackaged: app.isPackaged, home });
@@ -905,6 +924,8 @@ app.on("before-quit", (event) => {
   uiSandboxHost = null;
   try { taskRecipes?.stop(); } catch (error) { log.error("recipe shutdown write failed", error); }
   taskRecipeHost?.dispose(); taskRecipeHost = null;
+  try { conversationSearchHost?.dispose(); } catch (error) { log.error("search shutdown failed", error); }
+  conversationSearchHost = null;
   try { raceHost?.dispose(); } catch (error) { log.error("race shutdown failed", error); }
   raceHost = null;
   try { conflicts?.dispose(); } catch (error) { log.error("conflict shutdown failed", error); }

@@ -66,6 +66,7 @@ export default defineConfig({
           index: resolve(root, "src/main/index.ts"),
           "browser-repl-worker": resolve(root, "src/main/browser-repl-worker.ts"),
           "codex-usage-worker": resolve(root, "src/main/codex-usage-worker.ts"),
+          "search-worker": resolve(root, "src/main/search-worker.ts"),
         },
         output: { format: "es", entryFileNames: "[name].mjs" },
       },

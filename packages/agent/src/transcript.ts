@@ -164,6 +164,7 @@ function transcriptFromSources(sources: TranscriptSource[], plans: readonly Prop
   for (const source of sources) {
     const message = source.message;
     const identity = () => ({ id: owned && source.entryId ? source.entryId : randomUUID(),
+      ...(source.entryId ? { entryId: source.entryId } : {}),
       ...(owned && "timestamp" in message && Number.isFinite(message.timestamp) ? { sourceTimestamp: message.timestamp } : {}) });
     if (message.role === "user") {
       const parts = typeof message.content === "string"
