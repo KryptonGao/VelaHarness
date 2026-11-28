@@ -37,6 +37,7 @@ const ICONS = {
   folder: "folder",
   file: "file",
   terminal: "terminal-box",
+  "terminal-output": "square",
   branch: "git-branch",
   "pull-request": "git-pull-request",
   edit: "edit-2",
@@ -177,9 +178,16 @@ for (const file of await readdir(svgDir)) if (file.endsWith(".svg")) await rm(pa
 const registry = {};
 const missing = [];
 for (const [name, base] of Object.entries(ICONS)) {
-  const line = resolve(`${base}-line`);
+  let line = resolve(`${base}-line`);
   if (!line) { missing.push(`${base}-line`); continue; }
-  const fill = resolve(`${base}-fill`);
+  let fill = resolve(`${base}-fill`);
+  if (name === "terminal-output") {
+    // Use the MingCute terminal-sized square for both variants. Cut the same three rows out of the solid interior.
+    const frame = line.body;
+    const rows = "M7 7h2v2H7z M11 7h6v2h-6z M7 11h10v2H7z M7 15h6v2H7z M15 15h2v2h-2z";
+    line = { ...line, body: `${frame}<path fill="currentColor" d="${rows}"/>` };
+    if (fill) fill = { ...fill, body: `${frame}<path fill="currentColor" fill-rule="evenodd" d="M4.5 4.5h15v15h-15z ${rows}"/>` };
+  }
   await writeFile(path.join(svgDir, `${name}.svg`), wrap(line));
   registry[name] = { line: line.body };
   if (fill) {

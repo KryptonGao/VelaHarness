@@ -19,6 +19,13 @@ function sidebarGlyph(divider: string): ClassicGlyph {
   };
 }
 
+function terminalGlyph(content: string): ClassicGlyph {
+  return {
+    viewBox: "0 0 24 24",
+    line: `<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="${content}"/></g>`,
+  };
+}
+
 export const classicGlyphs: Record<IconName, ClassicGlyph> = {
   lightning: {
     viewBox: "0 0 24 24",
@@ -49,7 +56,8 @@ export const classicGlyphs: Record<IconName, ClassicGlyph> = {
   "chat": { viewBox: "0 0 24 24", line: "<g fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l-2 2v-10A8.5 8.5 0 0 1 10.5 3h2a8.5 8.5 0 0 1 8.5 8.5Z\"></path><path d=\"M7 9h9M7 14h6\"></path></g>" },
   "folder": { viewBox: "0 0 24 24", line: "<g fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z\"></path></g>" },
   "file": { viewBox: "0 0 24 24", line: "<g fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z\"></path><polyline points=\"14 2 14 8 20 8\"></polyline></g>" },
-  "terminal": { viewBox: "0 0 24 24", line: "<g fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3\" y=\"4\" width=\"18\" height=\"16\" rx=\"2\"></rect><polyline points=\"7 9 10 12 7 15\"></polyline><line x1=\"12\" y1=\"15\" x2=\"17\" y2=\"15\"></line></g>" },
+  "terminal-output": terminalGlyph("M7 8h.5M12 8h5M7 12h10M7 16h5M16.5 16h.5"),
+  "terminal": terminalGlyph("m7 9 3 3-3 3m5 0h5"),
   "branch": { viewBox: "0 0 24 24", line: "<g fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><line x1=\"6\" y1=\"3\" x2=\"6\" y2=\"15\"></line><circle cx=\"18\" cy=\"6\" r=\"3\"></circle><circle cx=\"6\" cy=\"18\" r=\"3\"></circle><path d=\"M18 9a9 9 0 0 1-9 9\"></path></g>" },
   "pull-request": { viewBox: "0 0 24 24", line: "<g fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"6\" cy=\"5\" r=\"3\"></circle><circle cx=\"6\" cy=\"19\" r=\"3\"></circle><circle cx=\"18\" cy=\"19\" r=\"3\"></circle><path d=\"M6 8v8M18 16V9a4 4 0 0 0-4-4h-2m2-2-2 2 2 2\"></path></g>", fill: "<g fill=\"currentColor\" stroke=\"none\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"6\" cy=\"5\" r=\"3.5\"></circle><circle cx=\"6\" cy=\"19\" r=\"3.5\"></circle><circle cx=\"18\" cy=\"19\" r=\"3.5\"></circle><path d=\"M6 8v8M18 16V9a4 4 0 0 0-4-4h-2m2-2-2 2 2 2\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.4\"></path></g>" },
   "edit": { viewBox: "0 0 24 24", line: "<g fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 20h9\"></path><path d=\"M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z\"></path></g>" },

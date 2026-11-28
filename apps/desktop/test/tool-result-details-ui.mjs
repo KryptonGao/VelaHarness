@@ -217,6 +217,7 @@ if (!process.versions.electron) {
           for (const width of [720, 360]) {
             await openCase("shell", display, scheme, width);
             await until("!!document.querySelector('.tool-shell-result.is-process-failed')");
+            assert.equal(await evaluate("document.querySelector('.tool-card-icon svg')?.dataset.icon"), "terminal-output");
             const text = await visibleText();
             assert.match(text, /读取完成/);
             assert.match(text, /进程状态/);

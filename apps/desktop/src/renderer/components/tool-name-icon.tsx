@@ -3,6 +3,7 @@ import { Icon, snapIconSize } from "./icons";
 
 /** 有专属图标的工具。图标按工具单独设计,颜色按类型共用(见 tool-groups)。 */
 export function toolNameIcon(name: string, size = 13): ReactNode | null {
+  if (name === "bash_output") return <Icon name="terminal-output" size={snapIconSize(size)} />;
   if (name === "spawn_agent") return <Icon name="subagent" size={snapIconSize(size)} />;
   if (name === "send_message") return <Icon name="send" size={snapIconSize(size)} />;
   if (name === "followup_task") return <Icon name="followup" size={snapIconSize(size)} />;
