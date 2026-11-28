@@ -29,6 +29,9 @@ try {
   win.webContents.on("console-message", e => { if (e.level === "error") errors.push(e.message); });
   const ev = code => win.webContents.executeJavaScript(code, true);
   await until(() => ev("!!document.querySelector('.sidebar-user-pill')"), "renderer");
+  // Back history needs the home conversation recorded first; startup reads are fast enough to open Settings before that.
+  await until(() => ev("!!document.querySelector('.main-stage-pane > .main-chat-view')"), "home conversation");
+  await pause(300);
   await ev("document.querySelector('.sidebar-user-pill').click()");
   await until(() => ev("!!document.querySelector('.settings-nav-item')"), "settings");
   assert.equal(await ev("document.querySelector('.settings-header button')"), null, "settings header has no Done button");

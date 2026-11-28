@@ -18,7 +18,10 @@ export function readStoredState<T>(key: string, fallback: T, accept: (value: unk
 export function useStoredState<T>(key: string, fallback: T, accept: (value: unknown) => value is T) {
   const [value, setValue] = useState<T>(() => readStoredState(key, fallback, accept));
   useEffect(() => {
-    try { uiStorage.setItem(key, JSON.stringify(value)); }
+    try {
+      const serialized = JSON.stringify(value);
+      if (uiStorage.getItem(key) !== serialized) uiStorage.setItem(key, serialized);
+    }
     catch (error) { log.error(`failed to save UI preference ${key}`, error); }
   }, [key, value]);
   return [value, setValue] as const;

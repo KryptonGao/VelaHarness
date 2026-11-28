@@ -160,15 +160,47 @@ describe("durable UI storage", () => {
     assert.equal(storage.getItem("vela.thinkingSummary"), "true");
   }));
 
-  it("preserves sequential updates made by another store instance", () => withStore((file) => {
+  it("serves reads from memory and only picks up outside edits on the next launch", () => withStore(file => {
     const first = new UiStorage(file);
-    const second = new UiStorage(file);
     first.setItem("vela.thinkingSummary", "true");
-    second.setItem("vela.thinkingSummaryStyle", "headline");
-    first.setItem("vela.locale", "en");
-    assert.equal(second.getItem("vela.thinkingSummary"), "true");
-    assert.equal(first.getItem("vela.thinkingSummaryStyle"), "headline");
-    assert.equal(second.getItem("vela.locale"), "en");
+    writeFileSync(file, JSON.stringify({ "vela.thinkingSummary": "false" }));
+    assert.equal(first.getItem("vela.thinkingSummary"), "true");
+    assert.equal(new UiStorage(file).getItem("vela.thinkingSummary"), "false");
+  }));
+
+  it("coalesces deferred writes and flushes them on demand", async () => {
+    const directory = mkdtempSync(join(tmpdir(), "vela-ui-storage-"));
+    const file = join(directory, "ui-state.json");
+    try {
+    const store = new UiStorage(file, { writeDelayMs: 20 });
+    store.setItem("vela.a", "1");
+    store.setItem("vela.b", "2");
+    store.setItem("vela.a", "3");
+    assert.equal(store.getItem("vela.a"), "3");
+    assert.throws(() => readFileSync(file, "utf8"));
+    store.flush();
+    assert.deepEqual(JSON.parse(readFileSync(file, "utf8")), { "vela.a": "3", "vela.b": "2" });
+    store.setItem("vela.c", "4");
+    await new Promise(resolve => setTimeout(resolve, 60));
+    assert.equal(new UiStorage(file).getItem("vela.c"), "4");
+    } finally { rmSync(directory, { recursive: true, force: true }); }
+  });
+
+  it("does not rewrite the file when a value is unchanged", () => withStore(file => {
+    const store = new UiStorage(file);
+    store.setItem("vela.a", "1");
+    writeFileSync(file, "sentinel");
+    store.setItem("vela.a", "1");
+    assert.equal(readFileSync(file, "utf8"), "sentinel");
+  }));
+
+  it("enforces the quota across accumulated entries and keeps earlier data", () => withStore(file => {
+    const store = new UiStorage(file);
+    store.setItem("vela.big", "x".repeat(10 * 1024 * 1024));
+    assert.throws(() => store.setItem("vela.other", "y".repeat(7 * 1024 * 1024)), /quota/);
+    assert.equal(store.getItem("vela.other"), undefined);
+    store.setItem("vela.big", "small");
+    store.setItem("vela.other", "y".repeat(7 * 1024 * 1024));
   }));
 
   it("rejects invalid IPC payloads and leaves the saved file intact", () => withStore((file) => {

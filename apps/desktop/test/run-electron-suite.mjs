@@ -80,6 +80,7 @@ const suites = {
     { name: "conversation-workbench-electron-smoke", runner: "electron" },
     { name: "html-preview-electron-smoke", runner: "electron" },
     { name: "settings-electron-smoke", runner: "electron" },
+    { name: "ui-storage-electron-smoke", runner: "electron" },
     { name: "preferences-defaults-electron-smoke", runner: "electron" },
     { name: "font-size-electron-smoke", runner: "electron" },
     { name: "thinking-blur-electron-smoke", runner: "electron" },

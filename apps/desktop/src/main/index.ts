@@ -312,7 +312,17 @@ async function start(): Promise<void> {
   const legacyFallbackCwd = resolve(app.getAppPath(), "../..");
   await prepareVelaHome(home, app.getPath("userData"));
 
-  const uiStorage = new UiStorage(join(home, "ui-state.json"));
+  // The renderer batches its writes; disk writes are coalesced again here and flushed on quit.
+  const uiStorage = new UiStorage(join(home, "ui-state.json"), {
+    writeDelayMs: 250,
+    onWriteError: error => log.error("UI storage write failed", error),
+  });
+  const flushUiStorage = () => {
+    try { uiStorage.flush(); }
+    catch (error) { log.error("UI storage flush failed", error); }
+  };
+  app.on("before-quit", flushUiStorage);
+  app.on("will-quit", flushUiStorage);
   let globalPrompt = "";
   try { globalPrompt = parseGlobalPrompt(uiStorage.getItem(globalPromptPreferenceKey)); }
   catch (error) { log.warn("Could not read global prompt preference", error); }
@@ -343,25 +353,35 @@ async function start(): Promise<void> {
     usageScan = undefined;
   };
   app.once("will-quit", stopUsageScan);
-  ipcMain.on(IpcChannel.appUiStorageGet, (event, key: unknown) => {
+  ipcMain.on(IpcChannel.appUiStorageLoad, (event) => {
     try {
-      event.returnValue = { value: uiStorage.getItem(key) };
+      event.returnValue = { entries: uiStorage.snapshot() };
     } catch (error) {
       log.error("UI storage read failed", error);
       event.returnValue = { error: String(error) };
     }
   });
-  ipcMain.on(IpcChannel.appUiStorageSet, (event, key: unknown, value: unknown) => {
-    try {
-      const nextPrompt = key === globalPromptPreferenceKey ? parseGlobalPrompt(value) : undefined;
-      uiStorage.setItem(key, value);
-      if (nextPrompt !== undefined) globalPrompt = nextPrompt;
-      if (key === codexUsageEnabledKey && value !== "true") stopUsageScan();
-      event.returnValue = {};
-    } catch (error) {
-      log.error("UI storage write failed", error);
-      event.returnValue = { error: String(error) };
+  const applyUiStorageWrites = (entries: unknown): string[] => {
+    const errors: string[] = [];
+    if (!Array.isArray(entries)) return ["Invalid UI storage batch"];
+    for (const entry of entries) {
+      try {
+        if (!Array.isArray(entry) || entry.length !== 2) throw new Error("Invalid UI storage entry");
+        const [key, value] = entry as [unknown, unknown];
+        const nextPrompt = key === globalPromptPreferenceKey ? parseGlobalPrompt(value) : undefined;
+        uiStorage.setItem(key, value);
+        if (nextPrompt !== undefined) globalPrompt = nextPrompt;
+        if (key === codexUsageEnabledKey && value !== "true") stopUsageScan();
+      } catch (error) {
+        log.error("UI storage write failed", error);
+        errors.push(String(error));
+      }
     }
+    return errors;
+  };
+  ipcMain.handle(IpcChannel.appUiStorageWrite, (_event, entries: unknown) => ({ errors: applyUiStorageWrites(entries) }));
+  ipcMain.on(IpcChannel.appUiStorageWriteSync, (event, entries: unknown) => {
+    event.returnValue = { errors: applyUiStorageWrites(entries) };
   });
 
   const workspaceManager = new WorkspaceManager(join(home, "workspaces.json"));

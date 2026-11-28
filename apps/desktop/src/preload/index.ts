@@ -1,6 +1,8 @@
 import { BrowserIpc, type BrowserWindowState } from "../../../../packages/shared/src/browser";
 import {
   IpcChannel,
+  codexUsageEnabledKey,
+  raceEnabledStorageKey,
   isMenuAction,
   PrInboxIpc,
   WorkspaceOverviewIpc,
@@ -172,6 +174,8 @@ import {
 } from "@vela/shared";
 import { contextBridge, ipcRenderer, webFrame, webUtils, type IpcRendererEvent } from "electron";
 import { isStreamEvent } from "./stream-event";
+import { createCachedUiStorage } from "./ui-storage-cache";
+import { globalPromptPreferenceKey, parseGlobalPrompt, promptPreferenceKey } from "../system-prompt-preference";
 
 const api: VelaApi = {
   workspaceOverview: {
@@ -421,9 +425,9 @@ const api: VelaApi = {
     restartMain: () => ipcRenderer.invoke(IpcChannel.appDevRestartMain),
   } : undefined,
   uiStorage: {
-    getItem: (key) => storageRequest(IpcChannel.appUiStorageGet, key).value,
-    setItem: (key, value) => { storageRequest(IpcChannel.appUiStorageSet, key, value); },
-    removeItem: (key) => { storageRequest(IpcChannel.appUiStorageSet, key, null); },
+    getItem: key => uiStorageCache.getItem(key),
+    setItem: (key, value) => uiStorageCache.setItem(key, value),
+    removeItem: key => uiStorageCache.removeItem(key),
   },
   setLocale: (locale: AppLocale) => ipcRenderer.send(IpcChannel.appSetLocale, locale),
   setAppearance: (appearance) => ipcRenderer.send(IpcChannel.appSetAppearance, appearance),
@@ -857,12 +861,24 @@ if (process.contextIsolated) {
   contextBridge.exposeInMainWorld("vela", api);
 }
 
-// A synchronous acknowledgement ensures a completed save survives an immediate quit.
-function storageRequest(channel: string, ...args: unknown[]): { value?: string | null } {
-  const result = ipcRenderer.sendSync(channel, ...args) as { value?: string | null; error?: string };
-  if (result.error) throw new Error(result.error);
-  return result;
-}
+// Reads hit memory after one startup load; writes are batched and flushed when the page unloads.
+// The main process flushes its own copy to disk on quit, so a save survives an immediate exit.
+const mainConsumedUiKeys = new Set<string>([raceEnabledStorageKey, codexUsageEnabledKey, globalPromptPreferenceKey, promptPreferenceKey]);
+const uiStorageCache = createCachedUiStorage({
+  load: () => {
+    const result = ipcRenderer.sendSync(IpcChannel.appUiStorageLoad) as { entries?: Record<string, string | null>; error?: string };
+    if (result.error || !result.entries) throw new Error(result.error ?? "UI storage unavailable");
+    return result.entries;
+  },
+  write: async entries => (await ipcRenderer.invoke(IpcChannel.appUiStorageWrite, entries) as { errors: string[] }).errors,
+  writeSync: entries => { ipcRenderer.sendSync(IpcChannel.appUiStorageWriteSync, entries); },
+  reportError: (message, error) => { console.error(message, error); },
+}, {
+  immediate: key => mainConsumedUiKeys.has(key),
+  validate: (key, value) => { if (key === globalPromptPreferenceKey) parseGlobalPrompt(value); },
+});
+window.addEventListener("pagehide", () => uiStorageCache.flushSync());
+window.addEventListener("beforeunload", () => uiStorageCache.flushSync());
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && "type" in value;
