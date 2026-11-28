@@ -2129,8 +2129,9 @@ export class AgentRuntime {
     });
   }
 
-  addProviderAccount(builtinId: string): Promise<string> {
-    return this.exclusive(async () => (await this.readyDirectory()).addProviderAccount(builtinId));
+  /** 只改模型目录,不碰任何对话,所以不排进 exclusive:否则一次未完成的登录(login 会占着队列直到授权结束)会让「添加供应商」永远等下去。 */
+  async addProviderAccount(builtinId: string): Promise<string> {
+    return (await this.readyDirectory()).addProviderAccount(builtinId);
   }
 
   setProviderNote(id: string, note: string): Promise<void> {

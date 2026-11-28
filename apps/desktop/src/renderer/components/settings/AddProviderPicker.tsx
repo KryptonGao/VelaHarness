@@ -26,7 +26,7 @@ export function AddProviderPicker({
   return (
     <div className="models-add">
       <div className="models-toolbar">
-        <button type="button" disabled={busy} className="models-back" onClick={onBack}>
+        <button type="button" className="models-back" onClick={onBack}>
           <Icon name="arrow-left" size={16} />
           {text.add}
         </button>
