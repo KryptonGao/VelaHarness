@@ -59,7 +59,7 @@ export function RenameConversationDialog({ conversation, onSave, onClose }: Rena
   return (
     <dialog
       ref={dialogRef}
-      className="rename-conversation-dialog"
+      className="modal modal-sm rename-conversation-dialog"
       aria-labelledby={headingId}
       onCancel={event => {
         event.preventDefault();
@@ -71,11 +71,14 @@ export function RenameConversationDialog({ conversation, onSave, onClose }: Rena
       }}
     >
       <form onSubmit={event => { event.preventDefault(); void save(); }}>
-        <h2 id={headingId}>{tr("重命名对话", "Rename chat")}</h2>
+        <div className="modal-head"><h2 id={headingId}>{tr("重命名对话", "Rename chat")}</h2></div>
+        <div className="modal-body">
+        <div className="modal-field">
         <label htmlFor={inputId}>{tr("对话名称", "Chat name")}</label>
         <input
           ref={inputRef}
           id={inputId}
+          className="modal-input"
           value={title}
           maxLength={conversationTitleMaxLength}
           readOnly={saving}
@@ -83,11 +86,13 @@ export function RenameConversationDialog({ conversation, onSave, onClose }: Rena
           aria-describedby={error ? `${hintId} ${errorId}` : hintId}
           onChange={event => { setTitle(event.target.value); setError(null); }}
         />
-        <p id={hintId} className="rename-conversation-hint">{tr("Enter 保存 · Esc 取消", "Enter to save · Esc to cancel")}</p>
-        {error ? <p id={errorId} className="rename-conversation-error" role="alert">{error}</p> : null}
-        <div className="rename-conversation-actions">
-          <button type="button" disabled={saving} onClick={onClose}>{tr("取消", "Cancel")}</button>
-          <button type="submit" className="rename-conversation-save" disabled={saving}>
+        </div>
+        <p id={hintId} className="modal-hint">{tr("Enter 保存 · Esc 取消", "Enter to save · Esc to cancel")}</p>
+        {error ? <p id={errorId} className="modal-error" role="alert">{error}</p> : null}
+        </div>
+        <div className="modal-foot">
+          <button type="button" className="modal-btn" disabled={saving} onClick={onClose}>{tr("取消", "Cancel")}</button>
+          <button type="submit" className="modal-btn modal-btn-primary rename-conversation-save" disabled={saving}>
             {saving ? tr("保存中…", "Saving…") : tr("保存", "Save")}
           </button>
         </div>

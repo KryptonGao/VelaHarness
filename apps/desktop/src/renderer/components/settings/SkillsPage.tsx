@@ -491,19 +491,19 @@ function SkillDetailDialog({ skill, copy, onClose }: { skill: SkillItem; copy: S
   return (
     <div className="sheet-backdrop" onMouseDown={onClose}>
       <div
-        className="sheet-card skill-detail-card"
+        className="modal sheet-card skill-detail-card"
         role="dialog"
         aria-modal="true"
         aria-labelledby="skill-detail-title"
         onMouseDown={(event) => event.stopPropagation()}
       >
-        <header className="sheet-header skill-detail-header">
+        <header className="modal-head">
           <h2 id="skill-detail-title">{skill.name}</h2>
-          <button className="skills-icon-btn" type="button" aria-label={copy.skillDetailClose} onClick={onClose}>
-            <Icon name="close" size={14} />
+          <button className="modal-close" type="button" aria-label={copy.skillDetailClose} onClick={onClose}>
+            <Icon name="close" size={18} />
           </button>
         </header>
-        <div className="skill-detail-body">
+        <div className="modal-body skill-detail-body">
           <section>
             <h3>{copy.skillDetailDescription}</h3>
             <p className="skill-detail-text">{skill.description}</p>

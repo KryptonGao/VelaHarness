@@ -41,35 +41,37 @@ export function PushDialog({
   if (!open) return null;
 
   return (
-    <div className="vc-dialog-backdrop" role="presentation" onClick={onClose}>
-      <div className="vc-dialog" role="dialog" aria-modal="true" aria-label={title} onClick={(event) => event.stopPropagation()}>
-        <h3>{title}</h3>
+    <div className="sheet-backdrop vc-dialog-backdrop" role="presentation" onClick={onClose}>
+      <div className="modal modal-sm vc-dialog" role="dialog" aria-modal="true" aria-label={title} onClick={(event) => event.stopPropagation()}>
+        <div className="modal-head"><h2>{title}</h2></div>
+        <div className="modal-body">
         {remotes.length === 0 ? (
           <div className="vc-state vc-state-error" role="alert">
             {tr("当前仓库没有配置远程。请先在终端运行 git remote add。", "No remote is configured. Run git remote add in a terminal first.")}
           </div>
         ) : (
           <>
-            <label className="vc-field">
+            <label className="modal-field">
               <span>{tr("远程", "Remote")}</span>
-              <select className="vc-select" value={remote} onChange={(event) => setRemote(event.target.value)}>
+              <select className="modal-input" value={remote} onChange={(event) => setRemote(event.target.value)}>
                 {remotes.map((name) => <option key={name} value={name}>{name}</option>)}
               </select>
             </label>
-            <label className="vc-field">
+            <label className="modal-field">
               <span>{tr("目标分支", "Target branch")}</span>
-              <input className="vc-input" value={branch} onChange={(event) => setBranch(event.target.value)} />
+              <input className="modal-input" value={branch} onChange={(event) => setBranch(event.target.value)} />
             </label>
-            <p className="vc-hint">
+            <p className="modal-hint">
               {trf("将把本地 {0} 推送到 {1}/{2}，并建立跟踪关系。", "Pushes local {0} to {1}/{2} and sets the upstream.", defaultBranch, remote, branch)}
             </p>
           </>
         )}
-        <div className="vc-dialog-actions">
-          <button type="button" className="vc-btn vc-btn-ghost" onClick={onClose}>{tr("取消", "Cancel")}</button>
+        </div>
+        <div className="modal-foot">
+          <button type="button" className="modal-btn" onClick={onClose}>{tr("取消", "Cancel")}</button>
           <button
             type="button"
-            className="vc-btn vc-btn-primary"
+            className="modal-btn modal-btn-primary"
             disabled={remotes.length === 0 || !branch.trim()}
             onClick={() => onConfirm({ remote, branch: branch.trim(), setUpstream: true })}
           >

@@ -2,6 +2,7 @@ import { conflictingConversations, overlapsForConversation, type ConversationEdi
 import { useContext, useEffect, useId, useRef, useState } from "react";
 import { localizeError, tr, trf } from "../locale";
 import { ConflictContext } from "./conflict-context";
+import { Icon } from "./icons";
 import "../conflict.css";
 
 const filesPerConversation = 8;
@@ -84,17 +85,17 @@ export function ConflictDialog({ onClose }: { onClose: () => void }) {
     };
   }, []);
   const hours = Math.round(state.windowMs / 3_600_000);
-  return <dialog ref={dialogRef} className="conflict-dialog" aria-labelledby={headingId} onCancel={event => { event.preventDefault(); onClose(); }}
+  return <dialog ref={dialogRef} className="modal modal-xl conflict-dialog" aria-labelledby={headingId} onCancel={event => { event.preventDefault(); onClose(); }}
     onClick={event => { if (event.target === dialogRef.current) onClose(); }}>
-    <header>
+    <header className="modal-head">
       <h2 id={headingId}>{tr("各对话的近期改动", "Recent edits across chats")}</h2>
-      <button type="button" aria-label={tr("关闭", "Close")} onClick={onClose}>×</button>
+      <button type="button" className="modal-close" aria-label={tr("关闭", "Close")} onClick={onClose}><Icon name="close" size={18} /></button>
     </header>
     <p className="conflict-dialog-note">
       {trf("只统计最近 {0} 小时内对话通过 edit / write 改过的文件；通过命令行（bash）或外部程序造成的改动无法归到某个对话。不同 worktree 里的同名文件不算重叠。",
         "Counts files chats edited with edit / write in the last {0} hours. Changes made through shell commands or other programs cannot be attributed to a chat. Same-named files in different worktrees do not overlap.", hours)}
     </p>
-    <div className="conflict-dialog-body">
+    <div className="modal-body conflict-dialog-body">
       {state.error ? <p className="conflict-error" role="alert">{localizeError(state.error)}</p> : null}
       {state.conversations.length === 0
         ? <p className="conflict-empty">{tr("最近没有对话改过文件。", "No chat has edited files recently.")}</p>

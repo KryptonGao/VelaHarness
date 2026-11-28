@@ -952,9 +952,8 @@ button.settings-radio:hover:not(:disabled) { background: var(--bg-hover); }
 .market-command-value code { min-width: 0; font-family: var(--font-mono); font-size: calc(12.5px * var(--code-scale)); color: var(--text-muted); overflow-wrap: anywhere; }
 .market-install.confirm { background: var(--danger-tint); color: var(--danger); }
 .market-installed { flex: none; display: inline-flex; align-items: center; gap: 4px; color: var(--text-muted); font-size: calc(13px * var(--ui-scale)); }
-.skill-detail-card { width: min(560px, 100%); }
-.skill-detail-header { padding-bottom: 12px; border-bottom: 1px solid var(--border-subtle); }
-.skill-detail-body { display: flex; flex-direction: column; gap: 18px; padding: 16px; overflow: auto; }
+.skill-detail-card { --modal-width: 560px; }
+.skill-detail-body { display: flex; flex-direction: column; gap: 18px; }
 .skill-detail-body h3 { font-size: calc(14px * var(--ui-scale)); font-weight: 650; margin-bottom: 4px; }
 .skill-detail-text { font-size: calc(15px * var(--ui-scale)); line-height: 1.6; color: var(--text-muted); user-select: text; overflow-wrap: anywhere; }
 .skill-detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
@@ -969,13 +968,11 @@ button.settings-radio:hover:not(:disabled) { background: var(--bg-hover); }
   word-break: break-all;
   user-select: text;
 }
-.skill-migration-card { width: min(640px, 100%); }
-.skill-migration-hint { padding: 0 16px 8px; }
+.skill-migration-card { --modal-width: 640px; }
 .skill-migration-list {
   flex: 1;
   min-height: 0;
   overflow: auto;
-  padding: 0 16px 8px;
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -1263,8 +1260,8 @@ button.settings-radio:hover:not(:disabled) { background: var(--bg-hover); }
 
 .subagent-pool-entry { display: flex; align-items: center; gap: 2px; }
 .subagent-pool-entry .subagent-pool-row { min-width: 0; flex: 1; }
-.subagent-description-input { display: block; width: 100%; min-height: 76px; resize: vertical; font: inherit; font-size: 12px; line-height: 1.45; }
-.subagent-effort-content .subagent-description-input { margin: 6px 0 16px; }
+.subagent-description-input { display: block; min-height: 76px; }
+.subagent-effort-content .subagent-description-input { margin: 0 0 16px; }
 .subagent-effort-button {
   display: grid;
   place-items: center;
@@ -1278,14 +1275,13 @@ button.settings-radio:hover:not(:disabled) { background: var(--bg-hover); }
 }
 .subagent-effort-button:hover:not(:disabled) { background: var(--bg-hover); color: var(--text-primary); }
 .subagent-effort-button:disabled { opacity: .45; cursor: default; }
-.subagent-effort-content { padding: 24px; }
+.subagent-effort-content { display: flex; flex: 1 1 auto; flex-direction: column; min-height: 0; }
 .subagent-effort-model { min-height: 40px; }
 .subagent-effort-model .workspace-settings-folder { font-size: calc(15px * var(--ui-scale)); color: var(--text-primary); }
 .subagent-effort-option { justify-content: space-between; }
 .subagent-effort-option:hover { background: var(--bg-sidebar-hover); }
 .subagent-effort-option > svg { color: var(--accent-blue); }
 .subagent-effort-dialog .subagent-effort-option:focus-visible { outline-offset: -3px; }
-.subagent-effort-dialog .workspace-settings-actions { justify-content: flex-end; }
 
 /* Custom subagents share the model settings page and use the conversation avatars. */
 .custom-subagents { container-type: inline-size; }

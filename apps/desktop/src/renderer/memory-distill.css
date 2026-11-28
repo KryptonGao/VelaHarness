@@ -1,19 +1,9 @@
-.memory-distill-dialog { width:min(760px, calc(100vw - 40px)); max-height:calc(100vh - 40px); margin:auto; padding:0; border:1px solid var(--border-subtle); border-radius:var(--radius-lg); color:var(--text-primary); background:var(--bg-elevated); box-shadow:0 16px 60px rgba(0,0,0,.24); overflow:hidden; flex-direction:column; }
-.memory-distill-dialog[open] { display:flex; }
-.memory-distill-dialog::backdrop { background:rgba(0,0,0,.35); }
 .memory-distill-dialog :is(button,input,textarea) { font:inherit; color:inherit; }
 .memory-distill-dialog button { cursor:pointer; border:1px solid var(--border-subtle); background:transparent; border-radius:7px; padding:6px 12px; }
 .memory-distill-dialog button:hover:not(:disabled) { background:var(--bg-hover); }
 .memory-distill-dialog button:disabled { opacity:.5; cursor:default; }
-.memory-distill-dialog button.is-primary { background:var(--accent-blue); border-color:var(--accent-blue); color:#fff; }
-.memory-distill-dialog button.is-primary:hover:not(:disabled) { background:var(--accent-blue); filter:brightness(1.06); }
 .memory-distill-dialog :is(button,input,textarea):focus-visible,
 .memory-distill-diff:focus-visible { outline:2px solid var(--accent-blue); outline-offset:2px; }
-.memory-distill-dialog > header { display:flex; align-items:center; justify-content:space-between; padding:16px 20px 8px; }
-.memory-distill-dialog > header h2 { margin:0; font-size:calc(16px * var(--ui-scale)); font-weight:600; }
-.memory-distill-dialog > header .memory-distill-close { border:0; font-size:calc(18px * var(--ui-scale)); line-height:1; padding:2px 8px; }
-.memory-distill-dialog > footer { display:flex; justify-content:flex-end; gap:8px; padding:12px 20px 16px; border-top:1px solid var(--border-subtle); }
-.memory-distill-body { overflow:auto; padding:4px 20px 14px; font-size:calc(13px * var(--ui-scale)); line-height:1.55; min-height:0; }
 .memory-distill-state { display:flex; align-items:center; gap:10px; padding:28px 20px; color:var(--text-secondary); font-size:calc(13px * var(--ui-scale)); }
 .memory-distill-state[role="alert"] { flex-direction:column; align-items:flex-start; gap:10px; color:var(--danger); }
 .memory-distill-state p { margin:0; }

@@ -1,5 +1,6 @@
 import type { ExternalSkillCandidate, ExternalSkillScan, ExternalSkillSource, SkillMigrationResult } from "@vela/shared";
 import { useEffect, useState } from "react";
+import { Icon } from "./icons";
 import { showToast } from "../toast";
 import type { SettingsCopy } from "./settings-copy";
 
@@ -97,18 +98,19 @@ export function SkillMigrationDialog({ copy, onClose, onDone }: SkillMigrationDi
   return (
     <div className="sheet-backdrop" onMouseDown={() => { if (!busy) onClose(); }}>
       <div
-        className="sheet-card skill-migration-card"
+        className="modal sheet-card skill-migration-card"
         role="dialog"
         aria-modal="true"
         aria-labelledby="skill-migration-title"
         onMouseDown={(event) => event.stopPropagation()}
       >
-        <header className="sheet-header">
+        <header className="modal-head">
           <h2 id="skill-migration-title">{copy.migrateTitle}</h2>
-          <button className="sheet-close" type="button" onClick={onClose} disabled={busy}>
-            {copy.migrateClose}
+          <button className="modal-close" type="button" aria-label={copy.migrateClose} onClick={onClose} disabled={busy}>
+            <Icon name="close" size={18} />
           </button>
         </header>
+        <div className="modal-body">
         <p className="settings-hint skill-migration-hint">{copy.migrateHint}</p>
         <div className="skill-migration-list">
           {!scan && !error ? <p className="settings-note">{copy.migrateLoading}</p> : null}
@@ -166,12 +168,13 @@ export function SkillMigrationDialog({ copy, onClose, onDone }: SkillMigrationDi
           })}
           {error ? <p className="settings-error">{error}</p> : null}
         </div>
-        <footer className="sheet-footer">
+        </div>
+        <footer className="modal-foot">
           <span className="settings-note skill-migration-count">{copy.migrateSelected(chosen.length)}</span>
-          <button className="settings-secondary" type="button" disabled={busy} onClick={onClose}>
+          <button className="modal-btn" type="button" disabled={busy} onClick={onClose}>
             {copy.migrateCancel}
           </button>
-          <button className="primary-btn" type="button" disabled={busy || chosen.length === 0} onClick={() => void confirm()}>
+          <button className="modal-btn modal-btn-primary" type="button" disabled={busy || chosen.length === 0} onClick={() => void confirm()}>
             {busy ? copy.migrating : copy.migrateConfirm}
           </button>
         </footer>

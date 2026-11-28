@@ -151,12 +151,12 @@ export function TaskRecipesPage(props: TaskRecipesPageProps) {
       </>}
     </div></div>
     </PageColumns>
-    {deleting && <RecipeDialog title={tr('删除配方', 'Delete recipe')} onDismiss={pending ? undefined : () => setDeleting(null)}><p>{tr('删除', 'Delete')}「{deleting.name}」？{tr('已有对话、使用记录和运行中的快照会保留。', 'Existing chats, records, and running snapshots are retained.')}</p>
-      <div className="recipe-dialog-actions"><button type="button" autoFocus disabled={pending} onClick={() => setDeleting(null)}>{tr('取消', 'Cancel')}</button><button type="button" className="recipe-danger" disabled={pending} onClick={async () => { setPending(true); try { await api()!.delete(deleting.id, deleting.teamFingerprint); setDeleting(null); } catch (e) { showActionError(e); } finally { setPending(false); } }}>{tr('删除', 'Delete')}</button></div></RecipeDialog>}
-    {leave && <RecipeDialog title={tr('尚未保存', 'Unsaved changes')} onDismiss={pending ? undefined : () => setLeave(null)}><p>{tr('配方有未保存的修改。离开前要保存吗？', 'This recipe has unsaved changes. Save before leaving?')}</p><div className="recipe-dialog-actions">
-      <button type="button" className="recipe-discard" disabled={pending} onClick={() => { const action = leave; setLeave(null); setEditor(null); action(); }}>{tr('放弃修改', 'Discard changes')}</button>
-      <button type="button" autoFocus disabled={pending} onClick={() => setLeave(null)}>{tr('继续编辑', 'Keep editing')}</button>
-      <button type="button" className="recipe-primary" disabled={pending} onClick={async () => { if (await save()) { const action = leave; setLeave(null); action(); } }}>{pending ? tr('保存中…', 'Saving…') : tr('保存并离开', 'Save and leave')}</button></div></RecipeDialog>}
+    {deleting && <RecipeDialog title={tr('删除配方', 'Delete recipe')} onDismiss={pending ? undefined : () => setDeleting(null)}><div className="modal-body"><p>{tr('删除', 'Delete')}「{deleting.name}」？{tr('已有对话、使用记录和运行中的快照会保留。', 'Existing chats, records, and running snapshots are retained.')}</p></div>
+      <div className="modal-foot"><button type="button" className="modal-btn" autoFocus disabled={pending} onClick={() => setDeleting(null)}>{tr('取消', 'Cancel')}</button><button type="button" className="modal-btn modal-btn-danger" disabled={pending} onClick={async () => { setPending(true); try { await api()!.delete(deleting.id, deleting.teamFingerprint); setDeleting(null); } catch (e) { showActionError(e); } finally { setPending(false); } }}>{tr('删除', 'Delete')}</button></div></RecipeDialog>}
+    {leave && <RecipeDialog title={tr('尚未保存', 'Unsaved changes')} onDismiss={pending ? undefined : () => setLeave(null)}><div className="modal-body"><p>{tr('配方有未保存的修改。离开前要保存吗？', 'This recipe has unsaved changes. Save before leaving?')}</p></div><div className="modal-foot">
+      <button type="button" className="modal-btn" disabled={pending} onClick={() => { const action = leave; setLeave(null); setEditor(null); action(); }}>{tr('放弃修改', 'Discard changes')}</button><span className="modal-spacer" />
+      <button type="button" className="modal-btn" autoFocus disabled={pending} onClick={() => setLeave(null)}>{tr('继续编辑', 'Keep editing')}</button>
+      <button type="button" className="modal-btn modal-btn-primary" disabled={pending} onClick={async () => { if (await save()) { const action = leave; setLeave(null); action(); } }}>{pending ? tr('保存中…', 'Saving…') : tr('保存并离开', 'Save and leave')}</button></div></RecipeDialog>}
   </section>;
 }
 function RecipeDialog({ title, children, onDismiss }: { title: string; children: ReactNode; onDismiss?: () => void }) {
@@ -168,8 +168,8 @@ function RecipeDialog({ title, children, onDismiss }: { title: string; children:
     dialog?.showModal();
     return () => { dialog?.close(); if (opener instanceof HTMLElement && opener.isConnected && !opener.closest('[inert]')) opener.focus(); };
   }, []);
-  return <dialog className="recipe-dialog" ref={ref} aria-labelledby={titleId} onCancel={event => { event.preventDefault(); onDismiss?.(); }} onKeyDown={event => event.stopPropagation()}>
-    <div className="recipe-dialog-heading"><h2 id={titleId}>{title}</h2><button type="button" className="recipe-dialog-close" aria-label={tr('关闭弹窗', 'Close dialog')} disabled={!onDismiss} onClick={onDismiss}><Icon name="close" size={16} /></button></div>{children}</dialog>;
+  return <dialog className="modal modal-sm recipe-dialog" ref={ref} aria-labelledby={titleId} onCancel={event => { event.preventDefault(); onDismiss?.(); }} onKeyDown={event => event.stopPropagation()}>
+    <div className="modal-head"><h2 id={titleId}>{title}</h2><button type="button" className="modal-close" aria-label={tr('关闭弹窗', 'Close dialog')} disabled={!onDismiss} onClick={onDismiss}><Icon name="close" size={18} /></button></div>{children}</dialog>;
 }
 function RecipeRunCard({ run, onOpen, onReuse }: { run: RecipeRun; onOpen: (id: string) => void; onReuse: () => void }) {
   const [exists, setExists] = useState(true);

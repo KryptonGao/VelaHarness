@@ -650,6 +650,8 @@ export function LoginDialog({
 }) {
   const [value, setValue] = useState("");
   const prompt = login.prompt;
+  const inputId = useId();
+  const formId = useId();
 
   useEffect(() => {
     setValue("");
@@ -658,19 +660,16 @@ export function LoginDialog({
     if (login.error) onDismiss();
     else void onCancel();
   });
+  const textField = prompt && prompt.prompt.type !== "select" ? prompt.prompt : null;
+  const textPrompt = textField ? prompt : null;
 
   return (
     <div className="sheet-backdrop">
-      <section ref={dialogRef} className="sheet-card login-card" role="dialog" aria-modal="true" aria-labelledby="login-sheet-title">
-        <header className="sheet-header">
+      <section ref={dialogRef} className="modal modal-sm sheet-card login-card" role="dialog" aria-modal="true" aria-labelledby="login-sheet-title">
+        <header className="modal-head">
           <h2 id="login-sheet-title">{tr("登录", "Sign in")}</h2>
-          {login.error ? (
-            <button className="sheet-close" type="button" onClick={onDismiss}>{tr("关闭", "Close")}</button>
-          ) : (
-            <button className="sheet-close" type="button" onClick={() => void onCancel()}>{tr("取消", "Cancel")}</button>
-          )}
         </header>
-        <div className="sheet-scroll login-body">
+        <div className="modal-body login-body">
           {login.notices.map((notice, index) => (
             <Notice key={`${notice.type}-${index}`} notice={notice} />
           ))}
@@ -687,27 +686,42 @@ export function LoginDialog({
               ))}
             </div>
           ) : null}
-          {prompt && prompt.prompt.type !== "select" ? (
+          {textPrompt && textField ? (
             <form
+              id={formId}
               className="login-form"
               onSubmit={(event) => {
                 event.preventDefault();
                 if (!value.trim()) return;
-                void onReply(prompt.id, value);
+                void onReply(textPrompt.id, value);
               }}
             >
-              <p>{translate(prompt.prompt.message)}</p>
+              <label htmlFor={inputId}>{translate(textField.message)}</label>
               <input
-                type={prompt.prompt.type === "secret" ? "password" : "text"}
+                id={inputId}
+                className="modal-input"
+                type={textField.type === "secret" ? "password" : "text"}
                 value={value}
-                placeholder={prompt.prompt.placeholder ? translate(prompt.prompt.placeholder) : ""}
+                placeholder={textField.placeholder ? translate(textField.placeholder) : ""}
+                autoComplete="off"
+                spellCheck={false}
+                autoFocus
                 onChange={(event) => setValue(event.target.value)}
               />
-              <button className="primary-btn" type="submit" disabled={!value.trim()}>{tr("继续", "Continue")}</button>
             </form>
           ) : null}
           {!prompt && !login.error ? <p className="menu-note">{tr("正在等待登录完成。", "Waiting for sign-in to complete…")}</p> : null}
         </div>
+        <footer className="modal-foot">
+          {login.error ? (
+            <button className="modal-btn" type="button" onClick={onDismiss}>{tr("关闭", "Close")}</button>
+          ) : (
+            <button className="modal-btn" type="button" onClick={() => void onCancel()}>{tr("取消", "Cancel")}</button>
+          )}
+          {textPrompt ? (
+            <button className="modal-btn modal-btn-primary" type="submit" form={formId} disabled={!value.trim()}>{tr("继续", "Continue")}</button>
+          ) : null}
+        </footer>
       </section>
     </div>
   );

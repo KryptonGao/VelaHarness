@@ -137,7 +137,7 @@ function TaskForm({ task, workspaces, workspace, pending, catalog, catalogError,
   const [policy, setPolicy] = useState(task?.missedPolicy ?? "run-once");
   const [recipePolicy, setRecipePolicy] = useState(task?.recipeBinding?.versionPolicy ?? 'fixed');
   const [error, setError] = useState<string | null>(null);
-  return <dialog ref={dialogRef} className="st-dialog" aria-labelledby={`${id}-heading`} onCancel={event => { event.preventDefault(); if (!pending) onCancel(); }}
+  return <dialog ref={dialogRef} className="modal st-dialog" aria-labelledby={`${id}-heading`} onCancel={event => { event.preventDefault(); if (!pending) onCancel(); }}
     onMouseDown={event => { if (event.target === event.currentTarget && !pending) onCancel(); }}>
   <form className="scheduled-task-form st-form" aria-labelledby={`${id}-heading`} onSubmit={event => {
     event.preventDefault(); setError(null);
@@ -154,11 +154,11 @@ function TaskForm({ task, workspaces, workspace, pending, catalog, catalogError,
         ...(task?.recipeBinding ? { recipeBinding: { ...task.recipeBinding, versionPolicy: recipePolicy } } : {}) });
     } catch (caught) { setError(cleanErrorMessage(caught)); }
   }}>
-    <div className="st-form-head"><h3 id={`${id}-heading`}>{task ? tr("编辑任务", "Edit task") : tr("创建任务", "Create task")}</h3>
-      <button type="button" className="st-close" aria-label={tr("关闭", "Close")} title={tr("关闭", "Close")} disabled={pending} onClick={onCancel}>
-        <Icon name="close" size={14} /></button></div>
+    <div className="modal-head is-ruled"><h2 id={`${id}-heading`}>{task ? tr("编辑任务", "Edit task") : tr("创建任务", "Create task")}</h2>
+      <button type="button" className="modal-close" aria-label={tr("关闭", "Close")} title={tr("关闭", "Close")} disabled={pending} onClick={onCancel}>
+        <Icon name="close" size={18} /></button></div>
     <fieldset disabled={pending}>
-      <div className="st-form-body">
+      <div className="modal-body st-form-body">
         <section className="st-section">
           <label>{tr("名称", "Name")}<input required maxLength={200} value={title} onChange={event => setTitle(event.target.value)} /></label>
           <label>{tr("执行内容（Prompt）", "Prompt")}<textarea readOnly={!!task?.recipeBinding} required maxLength={100000} rows={5} value={prompt} onChange={event => setPrompt(event.target.value)} /></label>
@@ -209,7 +209,7 @@ function TaskForm({ task, workspaces, workspace, pending, catalog, catalogError,
         </section>
         {error && <p role="alert" className="scheduled-tasks-error">{error}</p>}
       </div>
-      <div className="st-form-foot"><button type="button" onClick={onCancel}>{tr("取消", "Cancel")}</button><button type="submit" className="st-primary">{pending ? tr("保存中…", "Saving…") : tr("保存任务", "Save task")}</button></div>
+      <div className="modal-foot is-ruled"><button type="button" className="modal-btn" onClick={onCancel}>{tr("取消", "Cancel")}</button><button type="submit" className="modal-btn modal-btn-primary st-primary">{pending ? tr("保存中…", "Saving…") : tr("保存任务", "Save task")}</button></div>
     </fieldset>
   </form></dialog>;
 }

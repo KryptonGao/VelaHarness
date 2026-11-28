@@ -2,6 +2,7 @@ import { raceLimits, type ModelSummary, type Race, type RaceLaneConfig, type Rac
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type { useModels } from "../hooks/useModels";
 import { localizeError, tr, trf } from "../locale";
+import { Icon } from "./icons";
 import "../race.css";
 
 interface LaneDraft {
@@ -149,7 +150,7 @@ export function RaceSetupDialog({ workspace, initialPrompt, models, onClose, onS
   return (
     <dialog
       ref={dialogRef}
-      className="race-dialog"
+      className="modal modal-xl race-dialog"
       aria-labelledby={headingId}
       onCancel={event => { event.preventDefault(); if (!startingRef.current) onClose(); }}
       onKeyDown={event => {
@@ -159,11 +160,11 @@ export function RaceSetupDialog({ workspace, initialPrompt, models, onClose, onS
         if (event.key === "Enter" && (event.metaKey || event.ctrlKey) && canStart) { event.preventDefault(); void start(); }
       }}
     >
-      <header>
+      <header className="modal-head">
         <h2 id={headingId}>{tr("赛马：多路并行尝试", "Race: try several approaches in parallel")}</h2>
-        <button type="button" className="race-close" aria-label={tr("关闭", "Close")} disabled={starting} onClick={onClose}>×</button>
+        <button type="button" className="modal-close" aria-label={tr("关闭", "Close")} disabled={starting} onClick={onClose}><Icon name="close" size={18} /></button>
       </header>
-      <div className="race-dialog-body">
+      <div className="modal-body race-dialog-body">
         <p className="race-note">{tr(
           "同一个任务在各自独立的 worktree 里同时运行。结束后并排比较改动、耗时、token 与验证结果，再一键采用其中一条，其余丢弃。",
           "The same task runs in separate worktrees at the same time. When they finish, compare changes, time, tokens and verification side by side, then adopt one and discard the rest.",
@@ -177,7 +178,7 @@ export function RaceSetupDialog({ workspace, initialPrompt, models, onClose, onS
 
         <label className="race-field">
           <span>{tr("任务", "Task")}</span>
-          <textarea value={prompt} rows={4} maxLength={raceLimits.promptLength} onChange={event => setPrompt(event.target.value)} placeholder={tr("描述要完成的任务", "Describe the task to complete")} />
+          <textarea className="modal-input" value={prompt} rows={4} maxLength={raceLimits.promptLength} onChange={event => setPrompt(event.target.value)} placeholder={tr("描述要完成的任务", "Describe the task to complete")} />
         </label>
 
         <div className="race-lanes">
@@ -187,14 +188,14 @@ export function RaceSetupDialog({ workspace, initialPrompt, models, onClose, onS
               <div className="race-row">
                 <label className="race-field">
                   <span>{tr("模型", "Model")}</span>
-                  <select value={lane.model} onChange={event => patchLane(lane.id, { model: event.target.value, thinkingLevel: "" })}>
+                  <select className="modal-input" value={lane.model} onChange={event => patchLane(lane.id, { model: event.target.value, thinkingLevel: "" })}>
                     <option value="">{tr("当前默认模型", "Current default model")}</option>
                     {catalog.map(model => <option key={`${model.provider}/${model.id}`} value={`${model.provider}/${model.id}`}>{model.providerName} · {model.name}</option>)}
                   </select>
                 </label>
                 <label className="race-field">
                   <span>{tr("思考强度", "Thinking")}</span>
-                  <select value={lane.thinkingLevel} onChange={event => patchLane(lane.id, { thinkingLevel: event.target.value as ThinkingLevel | "" })}>
+                  <select className="modal-input" value={lane.thinkingLevel} onChange={event => patchLane(lane.id, { thinkingLevel: event.target.value as ThinkingLevel | "" })}>
                     <option value="">{tr("默认", "Default")}</option>
                     {levelsFor(lane).map(level => <option key={level} value={level}>{level}</option>)}
                   </select>
@@ -202,7 +203,7 @@ export function RaceSetupDialog({ workspace, initialPrompt, models, onClose, onS
               </div>
               <label className="race-field">
                 <span>{tr("附加提示（选填）", "Extra prompt (optional)")}</span>
-                <textarea value={lane.extraPrompt} rows={2} maxLength={raceLimits.extraPromptLength} onChange={event => patchLane(lane.id, { extraPrompt: event.target.value })}
+                <textarea className="modal-input" value={lane.extraPrompt} rows={2} maxLength={raceLimits.extraPromptLength} onChange={event => patchLane(lane.id, { extraPrompt: event.target.value })}
                   placeholder={tr("例如：优先保持改动最小", "For example: keep the change as small as possible")} />
               </label>
               {lanes.length > raceLimits.minLanes ? (
@@ -217,13 +218,13 @@ export function RaceSetupDialog({ workspace, initialPrompt, models, onClose, onS
 
         <label className="race-field">
           <span>{tr("统一验证指令（选填）", "Common verification command (optional)")}</span>
-          <input value={verifyCommand} maxLength={raceLimits.verifyCommandLength} onChange={event => setVerifyCommand(event.target.value)} placeholder="pnpm test" spellCheck={false} />
+          <input className="modal-input" value={verifyCommand} maxLength={raceLimits.verifyCommandLength} onChange={event => setVerifyCommand(event.target.value)} placeholder="pnpm test" spellCheck={false} />
           <em>{tr("全部赛道结束后，依序在每个赛道的 worktree 里以相同方式执行，结果才可公平比较。", "After all lanes finish, it runs in each lane's worktree one after another in the same way, so results are comparable.")}</em>
         </label>
 
         <label className="race-field">
           <span>{tr("沙箱模式", "Sandbox mode")}</span>
-          <select value={sandboxMode} onChange={event => setSandboxMode(event.target.value as SandboxMode)}>
+          <select className="modal-input" value={sandboxMode} onChange={event => setSandboxMode(event.target.value as SandboxMode)}>
             {sandboxModes.map(mode => <option key={mode} value={mode}>{sandboxLabel(mode)}</option>)}
           </select>
           {sandboxMode === "ask"
@@ -233,10 +234,10 @@ export function RaceSetupDialog({ workspace, initialPrompt, models, onClose, onS
 
         {error ? <p className="race-warning" role="alert">{localizeError(error)}</p> : null}
       </div>
-      <footer>
+      <footer className="modal-foot is-ruled">
         <span className="race-cost">{trf("将同时启动 {0} 个 agent，会消耗 {0} 份 token", "This starts {0} agents at once and uses {0} times the tokens", lanes.length)}</span>
-        <button type="button" disabled={starting} onClick={onClose}>{tr("取消", "Cancel")}</button>
-        <button type="button" className="is-primary" disabled={!canStart} onClick={() => void start()}>
+        <button type="button" className="modal-btn" disabled={starting} onClick={onClose}>{tr("取消", "Cancel")}</button>
+        <button type="button" className="modal-btn modal-btn-primary is-primary" disabled={!canStart} onClick={() => void start()}>
           {starting ? tr("正在启动…", "Starting…") : tr("开始赛马", "Start race")}
         </button>
       </footer>

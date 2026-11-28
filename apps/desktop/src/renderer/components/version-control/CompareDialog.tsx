@@ -79,13 +79,14 @@ export function CompareDialog({
   ];
 
   return (
-    <div className="vc-dialog-backdrop" role="dialog" aria-modal="true" aria-label={tr("比较差异", "Compare")}>
-      <div className="vc-dialog vc-compare-dialog">
-        <div className="vc-dialog-head">
-          <b>{tr("比较差异", "Compare")}</b>
-          <button type="button" className="vc-link" onClick={onClose}>{tr("关闭", "Close")}</button>
+    <div className="sheet-backdrop vc-dialog-backdrop" role="dialog" aria-modal="true" aria-label={tr("比较差异", "Compare")}>
+      <div className="modal vc-dialog vc-compare-dialog">
+        <div className="modal-head">
+          <h2>{tr("比较差异", "Compare")}</h2>
+          <button type="button" className="modal-close" aria-label={tr("关闭", "Close")} onClick={onClose}><Icon name="close" size={18} /></button>
         </div>
 
+        <div className="modal-body vc-compare-body">
         <div className="vc-compare-inputs">
           <label className="vc-field-label">
             {tr("基准（base）", "Base")}
@@ -204,7 +205,9 @@ export function CompareDialog({
           </div>
         ) : null}
 
-        <div className="vc-dialog-foot">
+        </div>
+
+        <div className="modal-foot is-ruled vc-dialog-foot">
           <button type="button" className="vc-icon-btn" title={tr("重新比较", "Re-compare")} aria-label={tr("重新比较", "Re-compare")} onClick={() => void run()}>
             <Icon name="refresh" size={12} />
           </button>

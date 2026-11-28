@@ -1,0 +1,141 @@
+/*
+ * 弹窗统一样式。用法与规范见 docs/guides/modals.md。
+ * 每个弹窗只写自己的内容布局；外观（圆角、阴影、遮罩、标题、按钮、输入框）一律来自这里。
+ * 宽度用 --modal-width 覆盖，不要在业务样式里重写圆角、阴影、遮罩或按钮。
+ */
+:root {
+  --modal-radius: var(--radius-xl);
+  --modal-pad: 24px;
+  --modal-shadow: 0 16px 60px rgba(0, 0, 0, 0.24);
+  --modal-scrim: rgba(0, 0, 0, 0.35);
+}
+
+/* 非 <dialog> 弹窗的遮罩层。<dialog> 用 .modal::backdrop。 */
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: var(--modal-pad);
+  background: var(--modal-scrim);
+}
+
+/* 子元素选择器都以 .modal 开头：特异性高于 .xxx-page button / .xxx-page h2 这类页面级规则，弹窗放在页面里也不会被带偏。 */
+/* 弹窗本体，既用于 <dialog class="modal">，也用于遮罩层里的 <div class="modal sheet-card">。 */
+.modal {
+  box-sizing: border-box;
+  width: min(var(--modal-width, 480px), calc(100vw - 40px));
+  max-height: calc(100vh - 40px);
+  margin: auto;
+  padding: 0;
+  /* 弹窗可能渲染在 pointer-events: none 的容器里（如 .chat-dock-wrapper），必须显式恢复。 */
+  pointer-events: auto;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--modal-radius);
+  color: var(--text-primary);
+  background: var(--bg-elevated);
+  box-shadow: var(--modal-shadow);
+  font: inherit;
+  overflow: hidden;
+}
+.modal:is(:not(dialog), dialog[open]) { display: flex; flex-direction: column; }
+.modal::backdrop { background: var(--modal-scrim); }
+.modal :focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 2px; }
+.modal > form { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
+
+/* 标题栏 */
+.modal .modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: var(--modal-pad) var(--modal-pad) 16px;
+}
+.modal .modal-head h2 { margin: 0; font-size: calc(20px * var(--ui-scale)); font-weight: 600; line-height: 1.3; }
+.modal .modal-head p { margin: 4px 0 0; font-size: calc(13px * var(--ui-scale)); font-weight: 400; line-height: 1.5; color: var(--text-muted); }
+.modal .modal-close {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.modal .modal-close:hover:not(:disabled) { background: var(--bg-sidebar-hover); color: var(--text-primary); }
+.modal .modal-close:disabled { opacity: 0.5; cursor: default; }
+
+/* 内容区：内容多时在这里滚动，标题栏和按钮栏保持可见。 */
+.modal .modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 0 var(--modal-pad);
+  font-size: calc(14px * var(--ui-scale));
+  line-height: 1.55;
+}
+.modal .modal-body:last-child { padding-bottom: var(--modal-pad); }
+.modal .modal-body:has(+ .modal-foot.is-ruled) { padding-bottom: 16px; }
+.modal .modal-body > p:not(.modal-hint, .modal-error) { margin: 0 0 12px; }
+.modal .modal-body > p:not(.modal-hint, .modal-error):last-child { margin-bottom: 0; }
+.modal .modal-body > .modal-field + .modal-field { margin-top: 16px; }
+
+/* 按钮栏；.is-ruled 给内容较长、需要分隔线的弹窗用。 */
+.modal .modal-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: var(--modal-pad);
+}
+.modal .modal-head.is-ruled { padding-bottom: 16px; border-bottom: 1px solid var(--border-subtle); }
+.modal .modal-foot.is-ruled { padding-top: 16px; padding-bottom: 16px; border-top: 1px solid var(--border-subtle); }
+.modal .modal-body + .modal-foot:not(.is-ruled),
+.modal .modal-field + .modal-foot:not(.is-ruled) { padding-top: var(--modal-pad); }
+.modal .modal-spacer { flex: 1; }
+
+/* 按钮：默认是次要按钮（取消、关闭）。 */
+.modal .modal-btn {
+  padding: 9px 16px;
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: calc(14px * var(--ui-scale));
+  font-weight: 500;
+  cursor: pointer;
+}
+.modal .modal-btn:hover:not(:disabled) { color: var(--text-primary); background: var(--bg-sidebar-hover); }
+.modal .modal-btn:disabled { opacity: 0.5; cursor: default; }
+.modal .modal-btn-primary { background: var(--accent-blue); color: var(--accent-contrast); }
+.modal .modal-btn-primary:hover:not(:disabled) { background: var(--accent-blue); color: var(--accent-contrast); filter: brightness(0.95); }
+.modal .modal-btn-danger { background: var(--danger-tint); color: var(--danger); }
+.modal .modal-btn-danger:hover:not(:disabled) { background: var(--danger-tint); color: var(--danger); filter: brightness(0.95); }
+
+/* 表单：标签 + 输入框 + 提示/错误。 */
+.modal .modal-field { display: flex; flex-direction: column; gap: 8px; font-size: calc(13px * var(--ui-scale)); color: var(--text-primary); }
+.modal .modal-label { margin: 18px 0 8px; font-size: calc(14px * var(--ui-scale)); font-weight: 600; }
+.modal .modal-input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--bg-chat);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: calc(14px * var(--ui-scale));
+}
+.modal textarea.modal-input { resize: vertical; line-height: 1.55; }
+.modal .modal-input:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 1px; }
+.modal .modal-hint { margin: 10px 2px 0; font-size: calc(13px * var(--ui-scale)); line-height: 1.45; color: var(--text-muted); }
+.modal .modal-error { margin: 10px 2px 0; font-size: calc(13px * var(--ui-scale)); color: var(--danger); }
+
+/* 宽度档位：默认 480；窄 420；宽 640；超宽 760。 */
+.modal-sm { --modal-width: 420px; }
+.modal-lg { --modal-width: 640px; }
+.modal-xl { --modal-width: 760px; }

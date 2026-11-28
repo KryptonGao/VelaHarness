@@ -157,7 +157,7 @@ export function CheckpointTimelineDialog({ conversationId, busy, initialTurn, on
   return (
     <dialog
       ref={dialogRef}
-      className="checkpoint-dialog"
+      className="modal modal-lg checkpoint-dialog"
       aria-labelledby={headingId}
       onCancel={event => {
         event.preventDefault();
@@ -166,13 +166,13 @@ export function CheckpointTimelineDialog({ conversationId, busy, initialTurn, on
       }}
       onKeyDown={event => event.stopPropagation()}
     >
-      <header className="checkpoint-header">
+      <header className="modal-head is-ruled">
         <div>
           <h2 id={headingId}>{tr("检查点与回滚", "Checkpoints")}</h2>
           <p>{tr("回到某一轮结束时的对话和文件，或从那里分叉出新对话。", "Return the chat and its files to the end of a turn, or fork a new chat from there.")}</p>
         </div>
-        <button type="button" className="checkpoint-close" aria-label={tr("关闭", "Close")} disabled={working} onClick={onClose}>
-          <Icon name="close" size={14} />
+        <button type="button" className="modal-close" aria-label={tr("关闭", "Close")} disabled={working} onClick={onClose}>
+          <Icon name="close" size={18} />
         </button>
       </header>
 

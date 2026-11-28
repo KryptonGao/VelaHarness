@@ -1,26 +1,6 @@
-.checkpoint-dialog {
-  width: min(640px, calc(100vw - 32px));
-  max-height: min(720px, calc(100vh - 40px));
-  margin: auto;
-  padding: 0;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  color: var(--text-primary);
-  background: var(--bg-elevated);
-  box-shadow: 0 16px 60px rgba(0, 0, 0, 0.24);
-  overflow: hidden;
-}
-.checkpoint-dialog[open] { display: flex; flex-direction: column; }
-.checkpoint-dialog::backdrop { background: rgba(0, 0, 0, 0.35); }
-.checkpoint-dialog :focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 2px; }
 .checkpoint-dialog button { font: inherit; cursor: pointer; }
 .checkpoint-dialog button:disabled { opacity: 0.5; cursor: default; }
 
-.checkpoint-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 20px 20px 14px; border-bottom: 1px solid var(--border-subtle); }
-.checkpoint-header h2 { margin: 0; font-size: calc(17px * var(--ui-scale)); font-weight: 600; }
-.checkpoint-header p { margin: 6px 0 0; font-size: calc(13px * var(--ui-scale)); color: var(--text-muted); line-height: 1.5; }
-.checkpoint-close { flex-shrink: 0; display: grid; place-items: center; width: 28px; height: 28px; border-radius: var(--radius-sm); color: var(--text-muted); background: none; }
-.checkpoint-close:hover:not(:disabled) { color: var(--text-primary); background: var(--bg-hover); }
 
 .checkpoint-body { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); }
 .checkpoint-empty { grid-column: 1 / -1; margin: 0; padding: 32px 20px; text-align: center; font-size: calc(13px * var(--ui-scale)); color: var(--text-muted); }

@@ -29,19 +29,6 @@
 .recipe-page .recipe-columns select, .recipe-page .recipe-columns input { width: 100%; min-width: 0; }
 .recipe-schedule > fieldset, .recipe-ai fieldset { display: grid; gap: 12px; border: 0; padding: 0; min-width: 0; }
 .recipe-page .recipe-checkbox input { width: auto; }
-.recipe-dialog { width: min(440px, calc(100vw - 40px)); max-height: calc(100vh - 48px); overflow: auto; margin: auto; padding: 24px; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); background: var(--bg-elevated); color: var(--text-primary); font: calc(13px * var(--ui-scale))/1.6 var(--font-sans); box-shadow: 0 20px 70px rgba(0,0,0,.28); }
-.recipe-dialog::backdrop { background: rgba(0,0,0,.38); backdrop-filter: blur(2px); }
-.recipe-dialog-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-.recipe-dialog-heading h2 { margin: 0; font-size: calc(19px * var(--ui-scale)); font-weight: 600; }
-.recipe-dialog > p { margin: 12px 0 24px; color: var(--text-secondary); }
-.recipe-dialog button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 34px; padding: 7px 12px; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); color: var(--text-primary); background: var(--bg-surface-subtle); font: inherit; cursor: pointer; }
-.recipe-dialog button:hover:not(:disabled) { background: var(--bg-hover); }
-.recipe-dialog button:disabled { opacity: .5; cursor: default; }
-.recipe-dialog button:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 2px; }
-.recipe-dialog .recipe-dialog-close { min-height: 28px; width: 28px; padding: 0; border: 0; color: var(--text-muted); background: transparent; }
-.recipe-dialog-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
-.recipe-dialog .recipe-discard { margin-right: auto; padding-left: 0; border-color: transparent; color: var(--text-secondary); background: transparent; }
-.recipe-dialog .recipe-danger { border-color: transparent; color: var(--accent-contrast); background: var(--danger); }
 .recipe-primary:hover:not(:disabled) { background: var(--accent-blue-hover) !important; }
 .recipe-chat-card { border: 1px solid var(--border-subtle); border-radius: 10px; background: var(--bg-surface-subtle); padding: 12px; margin: 12px 0; color: var(--text-primary); font-size: calc(13px * var(--ui-scale)); }
 .recipe-chat-card summary { cursor: pointer; }

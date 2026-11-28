@@ -3,6 +3,7 @@ import type {
   PrInboxDetail, PrPushBlocker, PrReviewResponsePlan, PrReviewResponsePublishResult, PrReviewResponseReview, PrReviewResponseRun,
 } from '@vela/shared';
 import { tr, trf } from '../locale';
+import { Icon } from './icons';
 import { usePrInboxCache } from '../hooks/usePrInboxCache';
 
 const maxThreads = 40;
@@ -23,9 +24,9 @@ function Modal({ title, busy, onClose, wide, children }: { title: string; busy: 
     dialog?.showModal();
     return () => { dialog?.close(); if (opener instanceof HTMLElement && opener.isConnected) opener.focus(); };
   }, []);
-  return <dialog ref={ref} className={`pr-response-dialog${wide ? ' is-wide' : ''}`} aria-labelledby={heading}
+  return <dialog ref={ref} className={`modal ${wide ? 'modal-xl' : 'modal-lg'} pr-response-dialog`} aria-labelledby={heading}
     onCancel={event => { event.preventDefault(); if (!busy) onClose(); }} onKeyDown={event => event.stopPropagation()}>
-    <header><h2 id={heading}>{title}</h2><button type="button" aria-label={tr('关闭', 'Close')} disabled={busy} onClick={onClose}>×</button></header>
+    <header className="modal-head"><h2 id={heading}>{title}</h2><button type="button" className="modal-close" aria-label={tr('关闭', 'Close')} disabled={busy} onClick={onClose}><Icon name="close" size={18} /></button></header>
     {children}
   </dialog>;
 }
@@ -60,7 +61,7 @@ function StartDialog({ detail, onClose, onStarted }: { detail: PrInboxDetail; on
     finally { pending.current = false; setBusy(false); }
   };
   return <Modal title={tr('让 Agent 回应审阅意见', 'Let the agent respond to review')} busy={busy} onClose={onClose}>
-    <div className="pr-response-body autohide-scrollbar">
+    <div className="modal-body pr-response-body autohide-scrollbar">
       {!plan && !error && <p role="status">{tr('正在读取审阅意见…', 'Reading review feedback…')}</p>}
       {error && <p className="pr-inbox-notice" role="alert">{error}</p>}
       {plan && <>
@@ -77,13 +78,13 @@ function StartDialog({ detail, onClose, onStarted }: { detail: PrInboxDetail; on
         {plan.reviews.length > 0 && <details className="pr-response-reviews"><summary>{trf('{0} 条要求修改的审阅摘要（仅供参考）', '{0} change-request review summaries (context only)', plan.reviews.length)}</summary>
           {plan.reviews.map(review => <p key={review.id}><strong>@{review.author ?? '—'}</strong> {review.body.slice(0, 400)}</p>)}</details>}
         {plan.checkouts.length > 0 && <label className="pr-response-field">{tr('本机检出', 'Local checkout')}
-          <select value={workspace} disabled={busy} onChange={e => setWorkspace(e.target.value)}>{plan.checkouts.map(c => <option key={c.path} value={c.path}>{c.path}</option>)}</select></label>}
+          <select className="modal-input" value={workspace} disabled={busy} onChange={e => setWorkspace(e.target.value)}>{plan.checkouts.map(c => <option key={c.path} value={c.path}>{c.path}</option>)}</select></label>}
         <label className="pr-response-field">{tr('补充要求（可选）', 'Extra instructions (optional)')}
-          <textarea rows={2} maxLength={4000} value={note} disabled={busy} onChange={e => setNote(e.target.value)}/></label>
+          <textarea className="modal-input" rows={2} maxLength={4000} value={note} disabled={busy} onChange={e => setNote(e.target.value)}/></label>
       </>}
     </div>
-    <footer><button type="button" disabled={busy} onClick={onClose}>{tr('取消', 'Cancel')}</button>
-      <button type="button" className="is-primary" disabled={busy || !plan || !picked.size || !workspace} onClick={() => void start()}>{busy ? tr('正在启动…', 'Starting…') : trf('开始处理 {0} 条意见', 'Start on {0} thread(s)', picked.size)}</button></footer>
+    <footer className="modal-foot is-ruled"><button type="button" className="modal-btn" disabled={busy} onClick={onClose}>{tr('取消', 'Cancel')}</button>
+      <button type="button" className="modal-btn modal-btn-primary is-primary" disabled={busy || !plan || !picked.size || !workspace} onClick={() => void start()}>{busy ? tr('正在启动…', 'Starting…') : trf('开始处理 {0} 条意见', 'Start on {0} thread(s)', picked.size)}</button></footer>
   </Modal>;
 }
 
@@ -121,7 +122,7 @@ function PublishDialog({ run, identityKey, onClose, onChanged }: { run: PrReview
   };
   const finished = result && result.push.state === 'pushed' && result.replies.every(r => r.state !== 'failed');
   return <Modal title={tr('检查并发布', 'Review and publish')} busy={busy} onClose={onClose} wide>
-    <div className="pr-response-body autohide-scrollbar">
+    <div className="modal-body pr-response-body autohide-scrollbar">
       {!review && !error && <p role="status">{tr('正在读取工作树…', 'Reading the worktree…')}</p>}
       {error && <p className="pr-inbox-notice" role="alert">{error}</p>}
       {review && !result && <>
@@ -136,7 +137,7 @@ function PublishDialog({ run, identityKey, onClose, onChanged }: { run: PrReview
         {review.drafts.map(draft => { const state = drafts[draft.threadId]; if (!state) return null; return <div className="pr-response-draft" key={draft.threadId}>
           <label className="pr-response-draft-head"><input type="checkbox" checked={state.selected} disabled={busy} onChange={e => setDrafts(d => ({ ...d, [draft.threadId]: { ...state, selected: e.target.checked } }))}/>
             <code>{draft.path ?? tr('整体', 'General')}{draft.line ? `:${draft.line}` : ''}</code>{!draft.commitSha && <em>{tr('没有对应提交，请自己写回复', 'No matching commit; write the reply yourself')}</em>}</label>
-          <textarea rows={3} value={state.body} disabled={busy || !state.selected} aria-label={tr('回复内容', 'Reply text')} onChange={e => setDrafts(d => ({ ...d, [draft.threadId]: { ...state, body: e.target.value } }))}/>
+          <textarea className="modal-input" rows={3} value={state.body} disabled={busy || !state.selected} aria-label={tr('回复内容', 'Reply text')} onChange={e => setDrafts(d => ({ ...d, [draft.threadId]: { ...state, body: e.target.value } }))}/>
           <label className="pr-response-resolve"><input type="checkbox" checked={state.resolve} disabled={busy || !state.selected} onChange={e => setDrafts(d => ({ ...d, [draft.threadId]: { ...state, resolve: e.target.checked } }))}/>{tr('回复后标记为已解决', 'Mark as resolved after replying')}</label>
         </div>; })}
       </>}
@@ -147,9 +148,9 @@ function PublishDialog({ run, identityKey, onClose, onChanged }: { run: PrReview
           {' · '}<code>{review?.drafts.find(d => d.threadId === r.threadId)?.path ?? r.threadId}</code>{r.message && ` — ${r.message}`}</p>)}
       </div>}
     </div>
-    <footer>{result && !finished && <button type="button" disabled={busy} onClick={load}>{tr('重新读取', 'Reload')}</button>}
-      <button type="button" disabled={busy} onClick={onClose}>{finished ? tr('完成', 'Done') : tr('关闭', 'Close')}</button>
-      {review && !result && <button type="button" className="is-primary" disabled={busy || !!blockedBy || emptyPicked || !review.commits.length}
+    <footer className="modal-foot is-ruled">{result && !finished && <button type="button" className="modal-btn" disabled={busy} onClick={load}>{tr('重新读取', 'Reload')}</button>}
+      <button type="button" className="modal-btn" disabled={busy} onClick={onClose}>{finished ? tr('完成', 'Done') : tr('关闭', 'Close')}</button>
+      {review && !result && <button type="button" className="modal-btn modal-btn-primary is-primary" disabled={busy || !!blockedBy || emptyPicked || !review.commits.length}
         onClick={() => void publish()}>{busy ? tr('正在发布…', 'Publishing…') : trf('推送 {0} 个提交并回复 {1} 条', 'Push {0} commit(s) and post {1} repl(ies)', review.commits.length, picked.length)}</button>}
     </footer>
   </Modal>;

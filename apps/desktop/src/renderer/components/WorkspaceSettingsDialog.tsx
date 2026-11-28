@@ -71,7 +71,7 @@ export function WorkspaceSettingsDialog({ workspace, onSave, onRemove, onPickFol
   return (
     <dialog
       ref={dialogRef}
-      className="workspace-settings-dialog"
+      className="modal workspace-settings-dialog"
       aria-labelledby={headingId}
       onCancel={(event) => {
         event.preventDefault();
@@ -84,12 +84,13 @@ export function WorkspaceSettingsDialog({ workspace, onSave, onRemove, onPickFol
       }}
     >
       <form onSubmit={(event) => { event.preventDefault(); void run(() => onSave({ path: workspace.path, name: effectiveName || null, folders })); }}>
-        <div className="workspace-settings-head">
+        <div className="modal-head">
           <h2 id={headingId}>{tr("编辑工作区", "Edit workspace")}</h2>
-          <button type="button" className="workspace-settings-close" aria-label={tr("关闭", "Close")} disabled={busy} onClick={onClose}>
+          <button type="button" className="modal-close" aria-label={tr("关闭", "Close")} disabled={busy} onClick={onClose}>
             <Icon name="close" size={18} />
           </button>
         </div>
+        <div className="modal-body">
         <label className="workspace-settings-name" htmlFor={nameId}>
           <Icon name="folder" size={16} />
           <input
@@ -101,7 +102,7 @@ export function WorkspaceSettingsDialog({ workspace, onSave, onRemove, onPickFol
             onChange={(event) => { setName(event.target.value); setNameTouched(true); setError(null); }}
           />
         </label>
-        <div className="workspace-settings-label">{tr("文件夹", "Folders")}</div>
+        <div className="modal-label">{tr("文件夹", "Folders")}</div>
         <div className="workspace-settings-folders">
           {folders.map((path, index) => (
             <div className="workspace-settings-row" key={path}>
@@ -136,25 +137,26 @@ export function WorkspaceSettingsDialog({ workspace, onSave, onRemove, onPickFol
             <span>{tr("添加文件夹", "Add folder")}</span>
           </button>
         </div>
-        <p className="workspace-settings-hint">
+        <p className="modal-hint">
           {tr(
             "Agent 可以读写所有文件夹；命令和相对路径以主要文件夹为准。",
             "The agent can read and write every folder; commands and relative paths use the primary folder.",
           )}
         </p>
-        {error ? <p className="workspace-settings-error" role="alert">{error}</p> : null}
-        <div className="workspace-settings-actions">
+        {error ? <p className="modal-error" role="alert">{error}</p> : null}
+        </div>
+        <div className="modal-foot">
           <button
             type="button"
-            className="workspace-settings-danger"
+            className="modal-btn modal-btn-danger workspace-settings-danger"
             disabled={busy}
             onClick={() => void run(() => onRemove(workspace.path))}
           >
             {tr("移除工作区", "Remove workspace")}
           </button>
-          <span className="workspace-settings-spacer" />
-          <button type="button" className="workspace-settings-cancel" disabled={busy} onClick={onClose}>{tr("取消", "Cancel")}</button>
-          <button type="submit" className="workspace-settings-save" disabled={busy}>
+          <span className="modal-spacer" />
+          <button type="button" className="modal-btn workspace-settings-cancel" disabled={busy} onClick={onClose}>{tr("取消", "Cancel")}</button>
+          <button type="submit" className="modal-btn modal-btn-primary workspace-settings-save" disabled={busy}>
             {busy ? tr("保存中…", "Saving…") : tr("保存", "Save")}
           </button>
         </div>

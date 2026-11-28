@@ -30,16 +30,18 @@ export function ProviderLoginButton({ providerId, builtinId, method, className, 
       {children}
     </button>
     {offerChoice && createPortal(
-      <dialog ref={dialog} className="provider-login-choice" aria-labelledby={titleId} aria-describedby={detailId}
+      <dialog ref={dialog} className="modal provider-login-choice" aria-labelledby={titleId} aria-describedby={detailId}
         onKeyDown={event => event.stopPropagation()}>
-        <header className="sheet-header">
+        <header className="modal-head">
           <h2 id={titleId}>{copy.openaiLoginTitle}</h2>
-          <button type="button" className="sheet-close" onClick={() => dialog.current?.close()}>{copy.cancel}</button>
         </header>
-        <p id={detailId}>{copy.openaiQuotaHint}</p>
-        <footer className="sheet-footer">
-          <button type="button" className="sheet-close" onClick={() => choose(providerId)}>{copy.continueChatgpt}</button>
-          <button type="button" className="primary-btn" onClick={() => choose("openai-codex")}>{copy.useCodexOauth}</button>
+        <div className="modal-body">
+          <p id={detailId}>{copy.openaiQuotaHint}</p>
+        </div>
+        <footer className="modal-foot">
+          <button type="button" className="modal-btn" onClick={() => dialog.current?.close()}>{copy.cancel}</button>
+          <button type="button" className="modal-btn" onClick={() => choose(providerId)}>{copy.continueChatgpt}</button>
+          <button type="button" className="modal-btn modal-btn-primary" onClick={() => choose("openai-codex")}>{copy.useCodexOauth}</button>
         </footer>
       </dialog>, document.body)}
   </>;

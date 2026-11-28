@@ -121,7 +121,7 @@ export function HandoffPackDialog({ conversationId, factsOnly = false, onDistill
   return (
     <dialog
       ref={dialogRef}
-      className="handoff-dialog"
+      className="modal modal-xl handoff-dialog"
       aria-labelledby={headingId}
       aria-busy={!pack && !loadError}
       onCancel={event => {
@@ -141,9 +141,9 @@ export function HandoffPackDialog({ conversationId, factsOnly = false, onDistill
         }
       }}
     >
-      <header>
+      <header className="modal-head">
         <h2 id={headingId}>{tr("任务交接包", "Task handoff pack")}</h2>
-        <button type="button" className="handoff-close" aria-label={tr("关闭", "Close")} disabled={confirming} onClick={onClose}>×</button>
+        <button type="button" className="modal-close" aria-label={tr("关闭", "Close")} disabled={confirming} onClick={onClose}><Icon name="close" size={18} /></button>
       </header>
 
       {!pack && !loadError ? (
@@ -161,7 +161,7 @@ export function HandoffPackDialog({ conversationId, factsOnly = false, onDistill
       ) : null}
 
       {pack ? (
-        <div className="handoff-body">
+        <div className="modal-body handoff-body">
           {pack.source === "facts-only" ? (
             <p className="handoff-notice" role="note">
               {tr("没有使用模型，只包含对话记录里的事实；目标和未完成事项可以在下面补充。", "No model was used, so this only contains facts from the chat record. Fill in the goal and unfinished items below.")}
@@ -178,11 +178,11 @@ export function HandoffPackDialog({ conversationId, factsOnly = false, onDistill
             <>
               <label className="handoff-field">
                 <span>{tr("目标", "Goal")}</span>
-                <textarea ref={goalRef} rows={2} value={goal} readOnly={confirming} onChange={event => setGoal(event.target.value)} />
+                <textarea className="modal-input" ref={goalRef} rows={2} value={goal} readOnly={confirming} onChange={event => setGoal(event.target.value)} />
               </label>
               <label className="handoff-field">
                 <span>{tr("已确认决策", "Confirmed decisions")}<em>{tr("每行一项", "One per line")}</em></span>
-                <textarea rows={3} value={decisions} readOnly={confirming} onChange={event => setDecisions(event.target.value)} />
+                <textarea className="modal-input" rows={3} value={decisions} readOnly={confirming} onChange={event => setDecisions(event.target.value)} />
               </label>
 
               <fieldset className="handoff-group">
@@ -228,11 +228,11 @@ export function HandoffPackDialog({ conversationId, factsOnly = false, onDistill
 
               <label className="handoff-field">
                 <span>{tr("未完成事项", "Unfinished items")}<em>{tr("每行一项", "One per line")}</em></span>
-                <textarea rows={3} value={unfinished} readOnly={confirming} onChange={event => setUnfinished(event.target.value)} />
+                <textarea className="modal-input" rows={3} value={unfinished} readOnly={confirming} onChange={event => setUnfinished(event.target.value)} />
               </label>
               <label className="handoff-field">
                 <span>{tr("补充说明", "Notes")}</span>
-                <textarea rows={2} value={notes} readOnly={confirming} onChange={event => setNotes(event.target.value)} />
+                <textarea className="modal-input" rows={2} value={notes} readOnly={confirming} onChange={event => setNotes(event.target.value)} />
               </label>
             </>
           )}
@@ -240,11 +240,11 @@ export function HandoffPackDialog({ conversationId, factsOnly = false, onDistill
         </div>
       ) : null}
 
-      <footer>
+      <footer className="modal-foot is-ruled">
         {onDistillMemory ? (
           <button
             type="button"
-            className="handoff-distill-btn"
+            className="modal-btn handoff-distill-btn"
             disabled={confirming}
             title={tr("抽取本次发现的隐含约束，经 Diff 预览后追加到项目 MEMORY.md", "Extract implicit constraints discovered in this chat and append to project MEMORY.md")}
             onClick={onDistillMemory}
@@ -253,8 +253,8 @@ export function HandoffPackDialog({ conversationId, factsOnly = false, onDistill
             <span>{tr("提炼规范到项目记忆", "Distill to project memory")}</span>
           </button>
         ) : null}
-        <button type="button" disabled={confirming} onClick={onClose}>{tr("取消", "Cancel")}</button>
-        <button type="button" className="is-primary" disabled={!pack || confirming} onClick={() => void confirm()}>
+        <button type="button" className="modal-btn" disabled={confirming} onClick={onClose}>{tr("取消", "Cancel")}</button>
+        <button type="button" className="modal-btn modal-btn-primary is-primary" disabled={!pack || confirming} onClick={() => void confirm()}>
           {confirming ? tr("创建中…", "Creating…") : tr("创建新对话并填入", "Start new chat with this")}
         </button>
       </footer>

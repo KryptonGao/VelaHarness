@@ -290,32 +290,33 @@ function EffortDialog({ model, configured, description: initialDescription, onCl
   }, []);
 
   return (
-    <dialog ref={dialogRef} className="workspace-settings-dialog subagent-effort-dialog" aria-labelledby={titleId}
+    <dialog ref={dialogRef} className="modal workspace-settings-dialog subagent-effort-dialog" aria-labelledby={titleId}
       onKeyDown={event => event.stopPropagation()}
       onCancel={event => { event.preventDefault(); onClose(); }}
       onMouseDown={event => { if (event.target === event.currentTarget) onClose(); }}>
       <div className="subagent-effort-content">
-        <header className="workspace-settings-head">
+        <header className="modal-head">
           <h2 id={titleId}>{tr("模型设置", "Model settings")}</h2>
-          <button type="button" className="workspace-settings-close" aria-label={tr("关闭", "Close")} onClick={onClose}>
+          <button type="button" className="modal-close" aria-label={tr("关闭", "Close")} onClick={onClose}>
             <Icon name="close" size={18} />
           </button>
         </header>
+        <div className="modal-body">
         <div className="workspace-settings-name subagent-effort-model">
           <Icon name="chip" size={16} />
           <span className="workspace-settings-folder" title={model.name}>{model.name}</span>
           <span className="subagent-pool-provider">{model.providerName}</span>
         </div>
-        <div className="workspace-settings-label" id={descriptionId}>{tr("模型简介（可选）", "Model description (optional)")}</div>
+        <div className="modal-label" id={descriptionId}>{tr("模型简介（可选）", "Model description (optional)")}</div>
         <textarea
-          className="settings-input subagent-description-input"
+          className="modal-input subagent-description-input"
           aria-labelledby={descriptionId}
           rows={3}
           maxLength={maxSubagentModelDescriptionLength}
           value={description}
           onChange={event => setDescription(event.target.value)}
         />
-        <div className="workspace-settings-label" id={`${titleId}-levels`}>{tr("可用推理强度", "Allowed reasoning efforts")}</div>
+        <div className="modal-label" id={`${titleId}-levels`}>{tr("可用推理强度", "Allowed reasoning efforts")}</div>
         <div className="workspace-settings-folders" role="group" aria-labelledby={`${titleId}-levels`}>
           {model.thinkingLevels.map(level => (
             <button key={level} type="button" className="workspace-settings-row subagent-effort-option"
@@ -326,9 +327,10 @@ function EffortDialog({ model, configured, description: initialDescription, onCl
             </button>
           ))}
         </div>
-        <footer className="workspace-settings-actions">
-          <button type="button" className="workspace-settings-cancel" onClick={onClose}>{tr("取消", "Cancel")}</button>
-          <button type="button" className="workspace-settings-save" disabled={!levels.length}
+        </div>
+        <footer className="modal-foot">
+          <button type="button" className="modal-btn workspace-settings-cancel" onClick={onClose}>{tr("取消", "Cancel")}</button>
+          <button type="button" className="modal-btn modal-btn-primary workspace-settings-save" disabled={!levels.length}
             onClick={() => onSave(levels.length === model.thinkingLevels.length ? undefined : levels, description)}>
             {tr("保存", "Save")}
           </button>

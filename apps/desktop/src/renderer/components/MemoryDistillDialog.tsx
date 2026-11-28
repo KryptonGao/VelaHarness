@@ -12,6 +12,7 @@ import { localizeError, tr, useAppLocale } from "../locale";
 import { DiffPane } from "./DiffPane";
 import { memoryBytes, memoryErrorText, memoryOverLimit, memoryUnexpectedError } from "./memory-settings-model";
 import { settingsCopy } from "./settings-copy";
+import { Icon } from "./icons";
 import "../memory-distill.css";
 
 export interface MemoryDistillDialogProps {
@@ -156,7 +157,7 @@ export function MemoryDistillDialog({ conversationId, upToTurn, onSaved, onClose
   return (
     <dialog
       ref={dialogRef}
-      className="memory-distill-dialog"
+      className="modal modal-xl memory-distill-dialog"
       aria-labelledby={headingId}
       aria-busy={!draft && !loadError}
       onCancel={event => {
@@ -176,9 +177,9 @@ export function MemoryDistillDialog({ conversationId, upToTurn, onSaved, onClose
         }
       }}
     >
-      <header>
+      <header className="modal-head">
         <h2 id={headingId}>{tr("提炼规范到项目记忆", "Distill conventions to project memory")}</h2>
-        <button type="button" className="memory-distill-close" aria-label={tr("关闭", "Close")} disabled={saving} onClick={onClose}>×</button>
+        <button type="button" className="modal-close" aria-label={tr("关闭", "Close")} disabled={saving} onClick={onClose}><Icon name="close" size={18} /></button>
       </header>
 
       {!draft && !loadError ? (
@@ -196,7 +197,7 @@ export function MemoryDistillDialog({ conversationId, upToTurn, onSaved, onClose
       ) : null}
 
       {draft ? (
-        <div className="memory-distill-body">
+        <div className="modal-body memory-distill-body">
           <div className="memory-distill-meta">
             <code>{draft.path}</code>
             {!exists ? <span className="memory-distill-badge">{tr("新建文件", "New file")}</span> : null}
@@ -261,9 +262,9 @@ export function MemoryDistillDialog({ conversationId, upToTurn, onSaved, onClose
         </div>
       ) : null}
 
-      <footer>
-        <button type="button" disabled={saving || reloading} onClick={onClose}>{tr("取消", "Cancel")}</button>
-        <button type="button" className="is-primary" disabled={!canSave} onClick={() => void confirm()}>
+      <footer className="modal-foot is-ruled">
+        <button type="button" className="modal-btn" disabled={saving || reloading} onClick={onClose}>{tr("取消", "Cancel")}</button>
+        <button type="button" className="modal-btn modal-btn-primary is-primary" disabled={!canSave} onClick={() => void confirm()}>
           {saving ? tr("写入中…", "Appending…") : tr("确认追加到 MEMORY.md", "Append to MEMORY.md")}
         </button>
       </footer>

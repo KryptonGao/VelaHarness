@@ -2451,30 +2451,7 @@
   margin-top: 5px;
 }
 
-/* ---------- 对话框 ---------- */
-
-.vc-dialog-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 60;
-  display: grid;
-  place-items: center;
-  background: var(--overlay);
-}
-
-.vc-dialog {
-  width: min(420px, calc(100vw - 40px));
-  padding: 16px 18px;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  background: var(--bg-elevated);
-  box-shadow: var(--shadow-popover);
-}
-
-.vc-dialog h3 {
-  margin: 0 0 10px;
-  font-size: calc(15px * var(--ui-scale));
-}
+/* ---------- 面板内的确认区（非弹窗；弹窗见 styles/29-modal.css） ---------- */
 
 .vc-field {
   display: grid;
@@ -3015,41 +2992,28 @@
 
 /* ---------- P1:比较视图 ---------- */
 
+
+
+/* 外观来自 .modal（styles/29-modal.css）；这里只补版本控制自己的层级与比较弹窗布局。 */
 .vc-dialog-backdrop {
-  position: fixed;
-  inset: 0;
   z-index: 60;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: color-mix(in srgb, #000 45%, transparent);
-  padding: 24px;
 }
 
-.vc-dialog {
+.modal.vc-compare-dialog {
+  --modal-width: 1080px;
+  max-height: min(760px, calc(100vh - 40px));
+}
+
+.vc-compare-body {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  width: min(1080px, 100%);
-  max-height: min(760px, 100%);
-  overflow: auto;
-  padding: 12px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--bg-elevated);
-  box-shadow: 0 20px 60px rgb(0 0 0 / 0.35);
 }
 
-.vc-dialog-head,
-.vc-dialog-foot {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.modal.vc-compare-dialog .modal-foot {
+  justify-content: flex-start;
 }
 
-.vc-dialog-head b {
-  flex: 1;
-}
 
 .vc-dialog-foot {
   color: var(--text-muted);
