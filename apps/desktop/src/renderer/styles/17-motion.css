@@ -581,6 +581,9 @@ html[data-thinking-fade="false"][data-thinking-pop="false"] .fade-thinking .md-f
   --info-drawer-duration: 320ms;
   transition: --info-drawer-open var(--info-drawer-duration) var(--motion-ease-enter);
 }
+.showing-pinned-chat > .main-chat-view > .chat-conversation-pane:not([data-drawer-measured]) {
+  --info-drawer-duration: 0s;
+}
 .chat-conversation-pane:has(> .info-drawer:not([data-concealed])) { --info-drawer-open: 1; }
 @starting-style {
   .chat-conversation-pane:has(> .info-drawer:not([data-concealed])) { --info-drawer-open: 0; }

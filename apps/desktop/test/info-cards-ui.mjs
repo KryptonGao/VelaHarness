@@ -434,6 +434,35 @@ if (!process.versions.electron) {
     win.webContents.debugger.detach();
     console.log("PASS prefers-reduced-motion 无位移、无可见 transition, 显隐与交互状态正确");
 
+    await evaluate(`document.querySelector('${panelToggle}').click()`);
+    await until(`!!document.querySelector('.workbench-fullscreen-button')`);
+    await evaluate(`document.querySelector('.workbench-fullscreen-button').click()`);
+    const returnToChat = async (width, concealed) => {
+      await until(`!!document.querySelector('[data-floating-chat]') && !document.documentElement.hasAttribute('data-view-transition')`);
+      await resize(width);
+      const frames = await capture(() => evaluate(`document.querySelector('.workbench-pinned-chat').click()`));
+      const pinned = frames.filter(f => f.rootWidth > 0);
+      assert.ok(pinned.length, 'Sample the restored pinned chat');
+      const wrong = pinned.find(f => f.concealed !== concealed || f.inert !== concealed || f.opacity !== Number(!concealed) ||
+        f.visibility !== (concealed ? 'hidden' : 'visible') || (!concealed && Math.abs(f.x) > .01));
+      assert.ok(!wrong, `Fullscreen tab return must show the final card layout from the first frame: ${JSON.stringify(wrong)}`);
+    };
+    const leaveChat = () => evaluate(`document.querySelector('.workbench-tab').click()`);
+    await returnToChat(1440, false);
+    await leaveChat();
+    await returnToChat(640, true);
+    await leaveChat();
+    await returnToChat(1440, false);
+    await evaluate(`window.__infoRoot = document.querySelector('.info-card-stack'); true`);
+    const collapse = await capture(() => evaluate(`document.querySelector('.workbench-chat-actions button[aria-label="收起信息卡片"]').click()`));
+    assertSlide(collapse, true, '全屏主代理手动收起');
+    await settled(true);
+    await leaveChat();
+    await returnToChat(1440, true);
+    await evaluate(`document.querySelector('.workbench-tab-close').click()`);
+    await until(`!document.querySelector('.workbench-fullscreen')`);
+    console.log('PASS Fullscreen tab returns respect the current width and manual collapse without a drawer transition');
+
     // Match the reported layout: 52px navigation rail, 6px inset and 264px sidebar.
     await evaluate(`localStorage.setItem('vela.navLayout', JSON.stringify('rail'));
       localStorage.setItem('vela.sidebar.widths', JSON.stringify({ left: 264 })); true`);

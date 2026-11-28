@@ -718,12 +718,24 @@ export function ChatView({
   const messageSurfaceKey = JSON.stringify([project.workspace?.current ?? null, state?.activeConversationId ?? null]);
   const messageSurfaceRef = useContentArrival(messageSurfaceKey, 180, 6);
 
-  const [infoCardsConcealed, setInfoCardsConcealed] = useState(true);
+  const [infoCardsConcealed, setInfoCardsConcealed] = useState<boolean | null>(null);
+  const drawerMeasured = infoCardsConcealed !== null;
+  useLayoutEffect(() => {
+    const pane = scrollerRef.current?.parentElement;
+    if (!drawerMeasured || !pane) return;
+    // Commit the pinned tab's measured resting position before enabling drawer transitions.
+    if (pane.closest(".showing-pinned-chat")) getComputedStyle(pane).getPropertyValue("--info-drawer-open");
+    pane.dataset.drawerMeasured = "";
+    return () => { delete pane.dataset.drawerMeasured; };
+  }, [drawerMeasured]);
   // 信息卡片按避让后的文字宽度决定显隐;单张环境卡片按对话列的收窄预算避让。
   // 隐藏后仍测量卡片未变换的布局位置,避免隐藏释放空间后又立即显示。
   useLayoutEffect(() => {
     const pane = scrollerRef.current?.parentElement;
-    if (!floatingInfo || !pane) return;
+    if (!floatingInfo || !pane) {
+      setInfoCardsConcealed(null);
+      return;
+    }
 
     const stage = infoCards && !environmentCollapsed ? pane.closest<HTMLElement>(".main-stage-pane") : null;
     const chat = pane.parentElement;
@@ -814,7 +826,7 @@ export function ChatView({
       const card = pane.querySelector<HTMLElement>(".floating-environment, .info-card-stack");
       if (card) observer.observe(card);
       else {
-        setInfoCardsConcealed(true);
+        setInfoCardsConcealed(null);
         pane.style.removeProperty("--info-lane-shift");
         pane.style.removeProperty("--info-lane-shrink");
       }
@@ -1134,7 +1146,7 @@ export function ChatView({
       {activeHomeStyle === "classic" ? <VelaMark /> : null}
       {activeHomeStyle === "atelier" ? <AtelierBackdrop /> : null}
       {floatingInfo && infoCards && !emptyConversation ? (
-        <InfoCardStack concealed={environmentCollapsed || infoCardsConcealed} state={state} project={project} messageStore={messageStore} planDraft={planDraft}
+        <InfoCardStack concealed={environmentCollapsed || infoCardsConcealed !== false} state={state} project={project} messageStore={messageStore} planDraft={planDraft}
           backgroundShells={backgroundShells} onOpenBackgroundTasks={onOpenBackgroundTasks} changesActive={changesActive} onOpenChanges={onOpenChanges} onOpenPlan={onOpenPlan}
           onResumeGoal={onResumeGoal} />
       ) : null}
