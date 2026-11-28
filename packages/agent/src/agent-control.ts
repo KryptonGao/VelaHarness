@@ -140,6 +140,10 @@ interface ManagedAgent {
   paused: boolean;
   /** 当前是否占着全局并发槽位；暂停期间让出，继续时重新排队抢。 */
   slot: boolean;
+  /** 正在进行中的抢槽位请求；多处同时要槽位时共用同一次 acquire，避免重复占用。 */
+  slotPending: Promise<void> | null;
+  /** 当前正阻塞在多少个 followup_task 上；大于 0 时让出并发槽位，否则后代拿不到槽位会互相等死。 */
+  waits: number;
   /** 挂在暂停点上等待继续或取消的调用。 */
   resumeWaiters: Array<() => void>;
   /** abortAll 递增；旧代际的排队任务不再执行。 */
@@ -158,6 +162,8 @@ interface ManagedAgent {
 export class AgentControl {
   private readonly agents = new Map<string, ManagedAgent>();
   private readonly semaphore = new Semaphore(maxConcurrentAgents);
+  /** 进行中的 followup_task 等待关系：caller 阻塞到 target 完成；用来在等待成环前拒绝。 */
+  private readonly waitEdges = new Set<{ caller: ManagedAgent; target: ManagedAgent }>();
 
   constructor(private readonly options: AgentControlOptions) {
     for (const stored of normalizeStoredAgents(options.restoredAgents)) {
@@ -165,7 +171,7 @@ export class AgentControl {
       this.agents.set(info.id, {
         info, customProfile: stored.profileDefinition, sessionFile: stored.sessionFile, session: null, sessionPromise: null, unsubscribe: null,
         queue: [], processing: false, running: false, aborted: false,
-        disposed: false, paused: false, slot: false, resumeWaiters: [], generation: 0, fork: "none", notify: false,
+        disposed: false, paused: false, slot: false, slotPending: null, waits: 0, resumeWaiters: [], generation: 0, fork: "none", notify: false,
       });
     }
   }
@@ -205,6 +211,8 @@ export class AgentControl {
       disposed: false,
       paused: false,
       slot: false,
+      slotPending: null,
+      waits: 0,
       resumeWaiters: [],
       generation: 0,
       fork: "none",
@@ -438,6 +446,8 @@ export class AgentControl {
       disposed: false,
       paused: false,
       slot: false,
+      slotPending: null,
+      waits: 0,
       resumeWaiters: [],
       generation: 0,
       fork: input.fork ?? "none",
@@ -544,6 +554,12 @@ export class AgentControl {
     const text = task.trim();
     if (!text) throw new Error("任务不能为空。");
     if (target.disposed) throw new Error("这个子代理已经结束。");
+    if (this.waitsOn(target, caller)) {
+      throw new Error(`不能等待 ${target.info.path}：它正在（直接或间接）等待你，互相等待会造成死锁。请改用 send_message，或等它先完成。`);
+    }
+    const edge = { caller, target };
+    this.waitEdges.add(edge);
+    this.beginWait(caller);
     let abandoned = false;
     const outcome = await new Promise<AgentTaskOutcome>((resolve) => {
       let settled = false;
@@ -567,8 +583,55 @@ export class AgentControl {
         generation: target.generation,
         consume: (value) => (abandoned ? false : finish(value)),
       });
+    }).finally(() => {
+      this.waitEdges.delete(edge);
     });
+    await this.endWait(caller);
     return { ...outcome, agent: cloneAgent(target.info) };
+  }
+
+  /** from 是否已经（直接或经由别的代理）在等 to；是的话 to 再去等 from 就成环。 */
+  private waitsOn(from: ManagedAgent, to: ManagedAgent): boolean {
+    const seen = new Set<ManagedAgent>();
+    const frontier = [from];
+    while (frontier.length > 0) {
+      const current = frontier.pop();
+      if (!current || seen.has(current)) continue;
+      seen.add(current);
+      for (const edge of this.waitEdges) {
+        if (edge.caller !== current) continue;
+        if (edge.target === to) return true;
+        frontier.push(edge.target);
+      }
+    }
+    return false;
+  }
+
+  /** 开始阻塞等待：让出并发槽位，否则它的后代（需要槽位才能跑）会和它互相等死。 */
+  private beginWait(agent: ManagedAgent): void {
+    agent.waits += 1;
+    this.releaseSlot(agent);
+  }
+
+  /** 等待结束：最后一个等待返回前重新抢回槽位，再继续这个回合。root 不占槽位。 */
+  private async endWait(agent: ManagedAgent): Promise<void> {
+    agent.waits -= 1;
+    if (agent.waits === 0 && agent.info.kind !== "root") await this.ensureSlot(agent);
+  }
+
+  private releaseSlot(agent: ManagedAgent): void {
+    if (!agent.slot) return;
+    agent.slot = false;
+    this.semaphore.release();
+  }
+
+  private ensureSlot(agent: ManagedAgent): Promise<void> {
+    if (agent.slot) return Promise.resolve();
+    agent.slotPending ??= this.semaphore.acquire().then(() => {
+      agent.slot = true;
+      agent.slotPending = null;
+    });
+    return agent.slotPending;
   }
 
   /** 停止子代理树上所有子代理；root 的停止由运行时处理。 */
@@ -772,8 +835,7 @@ export class AgentControl {
       while (agent.queue.length > 0 && !agent.disposed) {
         const task = agent.queue.shift();
         if (!task) break;
-        await this.semaphore.acquire();
-        agent.slot = true;
+        await this.ensureSlot(agent);
         try {
           if (agent.disposed || task.generation !== agent.generation) {
             task.consume?.({ status: "aborted", text: "", error: null });
@@ -784,11 +846,8 @@ export class AgentControl {
           // 被用户中止的回合没有有效结论，不再回投父代理。
           if (!consumed && outcome.status !== "aborted") this.deliverToParent(agent, outcome);
         } finally {
-          // 暂停期间槽位已经让出；只有还占着的才归还。
-          if (agent.slot) {
-            agent.slot = false;
-            this.semaphore.release();
-          }
+          // 暂停或等待期间槽位已经让出；只有还占着的才归还。
+          this.releaseSlot(agent);
         }
       }
     } finally {
@@ -1007,17 +1066,14 @@ export class AgentControl {
     agent.info.status = "paused";
     agent.info.pauseRequested = false;
     agent.info.updatedAt = Date.now();
-    if (agent.slot) {
-      agent.slot = false;
-      this.semaphore.release();
-    }
+    this.releaseSlot(agent);
     this.emit();
     while (agent.paused && !agent.aborted && !agent.disposed) {
       await new Promise<void>((resolve) => agent.resumeWaiters.push(resolve));
     }
     if (agent.aborted || agent.disposed) return false;
-    await this.semaphore.acquire();
-    agent.slot = true;
+    // 暂停期间还有并行的 followup_task 在等时，槽位由等待结束时领回。
+    if (agent.waits === 0) await this.ensureSlot(agent);
     if (agent.aborted || agent.disposed) return false;
     agent.info.status = "running";
     this.beginRun(agent);

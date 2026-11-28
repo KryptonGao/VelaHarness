@@ -486,6 +486,73 @@ describe("消息投递", () => {
     assert.ok(maxRunning <= maxConcurrentAgents);
   });
 
+  it("父代理等待 worker 时让出并发槽位，满额的父代理不会把 worker 饿死", async () => {
+    const { control, host } = createControl();
+    host.sessionFactory = (request) => {
+      const session = new FakeSession();
+      session.responder = async (text) => {
+        // worker 的结论会作为新消息回投父代理；只对初始任务派 worker，避免无限循环。
+        if (!request.name.startsWith("parent-") || !text.startsWith("父任务")) return "worker 完成";
+        const worker = control.spawn(request.agentId, { kind: "explore", task: "干活", name: "worker" });
+        const result = await control.followup(request.agentId, worker.id, "开始", undefined);
+        return `拿到：${result.text}`;
+      };
+      return session;
+    };
+    for (let index = 0; index < maxConcurrentAgents; index += 1) {
+      control.spawn("root-id", { kind: "explore", task: `父任务 ${index}`, name: `parent-${index}` });
+    }
+    await waitFor(
+      () => control.list().filter((agent) => agent.name.startsWith("parent-")).every((agent) => agent.status === "completed"),
+      "父代理全部完成而不是互相等死",
+    );
+    assert.ok(control.list().filter((agent) => agent.name === "worker").every((agent) => agent.status === "completed"));
+    // 槽位没有泄漏：再派满额加一个任务仍能全部跑完。
+    for (let index = 0; index < maxConcurrentAgents + 1; index += 1) {
+      control.spawn("root-id", { kind: "explore", task: `后续 ${index}`, name: `later-${index}` });
+    }
+    await waitFor(
+      () => control.list().filter((agent) => agent.name.startsWith("later-")).every((agent) => agent.status === "completed"),
+      "槽位归还后后续任务能跑完",
+    );
+  });
+
+  it("followup_task 成环时拒绝后到的那个等待", async () => {
+    const { control, host } = createControl();
+    let openGate: () => void = () => undefined;
+    const gate = new Promise<void>((resolve) => { openGate = resolve; });
+    let aWaiting = false;
+    let cycleError = "";
+    const ids: Record<string, string> = {};
+    host.sessionFactory = (request) => {
+      const session = new FakeSession();
+      session.responder = async () => {
+        if (request.name === "a") {
+          aWaiting = true;
+          await control.followup(request.agentId, ids.b!, "来做事", undefined);
+          return "a 完成";
+        }
+        await gate;
+        try {
+          await control.followup(request.agentId, ids.a!, "反过来等你", undefined);
+        } catch (error) {
+          cycleError = error instanceof Error ? error.message : String(error);
+        }
+        return "b 完成";
+      };
+      return session;
+    };
+    ids.b = control.spawn("root-id", { kind: "explore", task: "b", name: "b" }).id;
+    ids.a = control.spawn("root-id", { kind: "explore", task: "a", name: "a" }).id;
+    await waitFor(() => aWaiting, "a 开始等待 b");
+    openGate();
+    await waitFor(
+      () => control.list().filter((agent) => agent.kind !== "root").every((agent) => agent.status === "completed"),
+      "两个代理都完成而不是死锁",
+    );
+    assert.match(cycleError, /死锁/);
+  });
+
   it("abortAll 停止运行中的子代理并清空排队任务", async () => {
     const { control, host } = createControl();
     host.sessionFactory = () => {
