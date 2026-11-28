@@ -49,28 +49,34 @@ export class WorktreeSessions {
   async restore(path: string, worktree: ConversationWorktree): Promise<void> {
     if (!this.isManaged(path) || (await exists(path))) return;
     await mkdir(this.root, { recursive: true });
-    await runGit(worktree.repository, ["worktree", "prune"], 30_000).catch(() => undefined);
-    await gitMutate(worktree.repository, ["worktree", "add", "--detach", path, worktree.baseSha], 120_000);
+    const home = await managementRoot(worktree);
+    await runGit(home, ["worktree", "prune"], 30_000).catch(() => undefined);
+    await gitMutate(home, ["worktree", "add", "--detach", path, worktree.baseSha], 120_000);
   }
 
-  /** 为 `cwd` 所在仓库创建一个 detached worktree,基线是仓库当前的 HEAD。 */
+  /**
+   * 为 `cwd` 所在的 checkout 创建一个 detached worktree,基线是该 checkout 当前的 HEAD。
+   * cwd 可以是主检出,也可以是另一个 feature worktree:基线、交接目的地跟随它;
+   * `git worktree` 命令则统一在仓库的主检出里执行。
+   */
   async create(cwd: string): Promise<CreatedWorktree> {
-    const repository = await repositoryRoot(cwd);
-    if (!repository) throw new Error("这个工作区不是 Git 仓库，无法创建 worktree");
-    const baseSha = await headSha(repository);
+    const source = await sourceCheckout(cwd);
+    if (!source) throw new Error("这个工作区不是 Git 仓库，无法创建 worktree");
+    const baseSha = await headSha(source);
     if (!baseSha) throw new Error("仓库还没有提交，无法创建 worktree");
+    const managedFrom = (await mainCheckout(source)) ?? source;
     await mkdir(this.root, { recursive: true });
     let path = "";
     for (let attempt = 0; attempt < 8; attempt++) {
-      path = join(this.root, `${basename(repository)}-${randomBytes(3).toString("hex")}`);
+      path = join(this.root, `${basename(source)}-${randomBytes(3).toString("hex")}`);
       if (!(await exists(path))) break;
       if (attempt === 7) throw new Error("无法为 worktree 生成唯一目录");
     }
-    await gitMutate(repository, ["worktree", "add", "--detach", path, baseSha], 120_000);
-    const inner = relative(repository, resolve(cwd));
+    await gitMutate(managedFrom, ["worktree", "add", "--detach", path, baseSha], 120_000);
+    const inner = relative(source, resolve(cwd));
     const inside = inner !== "" && !inner.startsWith("..") && !isAbsolute(inner);
     const target = inside ? join(path, inner) : path;
-    return { cwd: (await exists(target)) ? target : path, path, worktree: { repository, baseSha, branch: null } };
+    return { cwd: (await exists(target)) ? target : path, path, worktree: { repository: source, managedFrom, baseSha, branch: null } };
   }
 
   /** worktree 里相对基线有哪些改动(含未跟踪文件与未归属分支的提交)。 */
@@ -99,6 +105,7 @@ export class WorktreeSessions {
    */
   async handoffToLocal(path: string, worktree: ConversationWorktree): Promise<WorktreeHandoffResult> {
     if (!(await exists(path))) return { ok: false, status: "error", message: "worktree 目录已不存在", files: 0, conflicts: [] };
+    if (!(await exists(worktree.repository))) return { ok: false, status: "error", message: "原工作区目录已不存在", files: 0, conflicts: [] };
     // 在 worktree 自己的索引里暂存全部(含未跟踪),不影响本地仓库。
     await gitMutate(path, ["add", "-A"]);
     const diff = await runGit(path, ["diff", "--cached", "--binary", "--full-index", worktree.baseSha], 120_000);
@@ -129,7 +136,7 @@ export class WorktreeSessions {
   async remove(path: string, worktree: ConversationWorktree, force = false): Promise<WorktreeRemoveResult> {
     if (!this.isManaged(path)) return { ok: false, message: "不是 Vela 管理的 worktree", changeCount: null };
     if (!(await exists(path))) {
-      await runGit(worktree.repository, ["worktree", "prune"], 30_000).catch(() => undefined);
+      await runGit(await managementRoot(worktree), ["worktree", "prune"], 30_000).catch(() => undefined);
       return { ok: true, message: "worktree 已不存在", changeCount: 0 };
     }
     const changes = await this.changes(path, worktree);
@@ -137,7 +144,7 @@ export class WorktreeSessions {
     if (!force && count !== null && count > 0) {
       return { ok: false, message: `还有 ${count} 处改动没有交接,删除会丢失它们`, changeCount: count };
     }
-    const result = await runGit(worktree.repository, ["worktree", "remove", ...(force ? ["--force"] : []), path], 60_000);
+    const result = await runGit(await managementRoot(worktree), ["worktree", "remove", ...(force ? ["--force"] : []), path], 60_000);
     if (result.code !== 0) {
       return { ok: false, message: firstLine(result.stderr) ?? "删除 worktree 失败", changeCount: count };
     }
@@ -145,15 +152,32 @@ export class WorktreeSessions {
   }
 }
 
-async function repositoryRoot(cwd: string): Promise<string | null> {
+/** cwd 所在 checkout 的根目录(主检出或任意 linked worktree);裸仓库或非仓库返回 null。 */
+async function sourceCheckout(cwd: string): Promise<string | null> {
   try {
-    // --git-common-dir 的上一级不可靠(裸仓库、自定义 gitdir),用主 worktree 路径。
+    return (await gitQuery(cwd, ["rev-parse", "--show-toplevel"])).trim() || null;
+  } catch {
+    return null;
+  }
+}
+
+/** 仓库的主检出:`git worktree list` 的第一项。--git-common-dir 的上一级不可靠(裸仓库、自定义 gitdir)。 */
+async function mainCheckout(cwd: string): Promise<string | null> {
+  try {
     const list = await gitQuery(cwd, ["worktree", "list", "--porcelain"]);
     const line = list.split("\n").find((entry) => entry.startsWith("worktree "));
     return line ? line.slice("worktree ".length).trim() || null : null;
   } catch {
     return null;
   }
+}
+
+/** 执行 worktree add/remove/prune 的目录:优先记录的主检出,它不在了就用源 checkout。 */
+async function managementRoot(worktree: ConversationWorktree): Promise<string> {
+  for (const candidate of [worktree.managedFrom, worktree.repository]) {
+    if (candidate && (await exists(candidate))) return candidate;
+  }
+  return worktree.managedFrom ?? worktree.repository;
 }
 
 async function headSha(cwd: string): Promise<string | null> {

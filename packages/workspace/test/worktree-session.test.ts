@@ -59,7 +59,7 @@ describe("WorktreeSessions", () => {
     const created = await sessions.create(repo);
 
     assert.equal(created.cwd, created.path);
-    assert.deepEqual(created.worktree, { repository: repo, baseSha: head, branch: null });
+    assert.deepEqual(created.worktree, { repository: repo, managedFrom: repo, baseSha: head, branch: null });
     assert.ok(sessions.isManaged(created.path));
     assert.equal((await git(created.path, ["rev-parse", "HEAD"])).trim(), head);
     assert.equal((await git(created.path, ["branch", "--show-current"])).trim(), "");
@@ -82,6 +82,46 @@ describe("WorktreeSessions", () => {
     const created = await sessions.create(join(repo, "src"));
     assert.equal(created.cwd, join(created.path, "src"));
     assert.equal(created.worktree.repository, repo);
+  });
+
+  it("bases a new worktree on the feature worktree it is created from, not on main", async () => {
+    const { repo, sessions } = await fixture();
+    const base = join(repo, "..");
+    const feature = join(base, "feature");
+    await git(repo, ["worktree", "add", "-b", "feature", feature]);
+    await writeFile(join(feature, "a.txt"), "feature work\n");
+    await git(feature, ["commit", "-am", "feature commit"]);
+    const featureHead = (await git(feature, ["rev-parse", "HEAD"])).trim();
+    const mainHead = (await git(repo, ["rev-parse", "HEAD"])).trim();
+    assert.notEqual(featureHead, mainHead);
+
+    const created = await sessions.create(feature);
+    assert.deepEqual(created.worktree, { repository: feature, managedFrom: repo, baseSha: featureHead, branch: null });
+    assert.equal((await git(created.path, ["rev-parse", "HEAD"])).trim(), featureHead);
+    assert.equal(await readFile(join(created.path, "a.txt"), "utf8"), "feature work\n");
+    assert.equal(await readFile(join(feature, "a.txt"), "utf8"), "feature work\n");
+
+    // 交接落回源 feature checkout,main 不受影响。
+    await writeFile(join(created.path, "new.txt"), "new\n");
+    const handoff = await sessions.handoffToLocal(created.path, created.worktree);
+    assert.equal(handoff.ok, true, handoff.message);
+    assert.equal(await readFile(join(feature, "new.txt"), "utf8"), "new\n");
+    assert.equal(await exists(join(repo, "new.txt")), false);
+
+    // 清理由主检出执行,即使源 feature worktree 已经不在。
+    await git(repo, ["worktree", "remove", "--force", feature]);
+    assert.equal((await sessions.remove(created.path, created.worktree, true)).ok, true);
+    assert.equal(await exists(created.path), false);
+  });
+
+  it("keeps working for worktrees saved before managedFrom existed", async () => {
+    const { repo, sessions } = await fixture();
+    const { path, worktree } = await sessions.create(repo);
+    const legacy = { repository: worktree.repository, baseSha: worktree.baseSha, branch: null };
+    assert.equal((await sessions.remove(path, legacy)).ok, true);
+    assert.equal(await exists(path), false);
+    await sessions.restore(path, legacy);
+    assert.equal(await exists(path), true);
   });
 
   it("refuses to create outside a git repository", async () => {

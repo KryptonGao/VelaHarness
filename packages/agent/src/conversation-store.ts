@@ -414,6 +414,7 @@ function normalizeWorktree(value: unknown): ConversationWorktree | null {
   if (typeof record.baseSha !== "string" || !record.baseSha) return null;
   return {
     repository: record.repository,
+    ...(typeof record.managedFrom === "string" && record.managedFrom ? { managedFrom: record.managedFrom } : {}),
     baseSha: record.baseSha,
     branch: typeof record.branch === "string" && record.branch ? record.branch : null,
   };

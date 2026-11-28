@@ -897,8 +897,16 @@ export interface SessionSnapshot {
  * 工作区归属仍是 repository,所以侧边栏分组和最近列表不会多出一个"新工作区"。
  */
 export interface ConversationWorktree {
-  /** 创建 worktree 时的仓库根目录,即会话所属的工作区。 */
+  /**
+   * 创建 worktree 时用户所在的源 checkout 根目录:会话所属的工作区,也是改动交接的目的地。
+   * 它可以是主检出,也可以是另一个 feature worktree;基线 baseSha 取自它的 HEAD。
+   */
   repository: string;
+  /**
+   * 执行 `git worktree add/remove/prune` 的位置,即仓库的主检出。源 checkout 被删掉后
+   * 仍然可用;旧数据没有这个字段时回退到 repository。
+   */
+  managedFrom?: string;
   /** 创建时的提交;交接改动与对比都以它为基线。 */
   baseSha: string;
   /** 默认 detached HEAD 为 null;在 worktree 里建了分支后才有值。 */
