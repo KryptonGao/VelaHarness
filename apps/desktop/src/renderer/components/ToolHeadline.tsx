@@ -22,8 +22,7 @@ export function toolKind(name: string): ToolKind {
 }
 
 export function KindIcon({ kind, command, skill = false }: { kind: ToolKind; command?: string; skill?: boolean }): ReactNode {
-  if (skill) return <Icon name="skill-read" size={14} />;
-  if (kind === "other") return <Icon name="tool" size={14} />;
+  if (skill || kind === "other") return <Icon name="tool" size={14} />;
   if (kind === "bash") {
     const intent = bashIntentDisplay(command)?.kind;
     if (intent === "list") return <Icon name="folder" size={14} />;
