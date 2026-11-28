@@ -97,7 +97,7 @@ async function run() {
   await check(`nodeRepl.write(await tab.evaluate('({cookie:document.cookie,storage:localStorage.login,user:document.querySelector("input").value,answer:appGlobal.answer})'));`, /manual-user/);
   assert.equal(await guest.executeJavaScript('document.cookie'), 'login=yes');
   assert.equal(await guest.executeJavaScript('localStorage.login'), 'yes');
-  await check(`await tab.query({role:'textbox',name:'Username'}).fill('filled');await tab.query({role:'textbox',name:'Username'}).type('-typed');await tab.query({role:'textbox',name:'Username'}).press('Enter');await tab.query({role:'combobox',name:'Choice'}).selectOption('b');await tab.query({text:'Shadow action'}).click();nodeRepl.write(await tab.evaluate('({user:document.querySelector("input").value,choice:document.querySelector("select").value,shadow:shadowClicked})'));`, /shadow: true/);
+  await check(`await tab.query({role:'textbox',name:'Username'}).fill('filled');await tab.query({role:'textbox',name:'Username'}).type('-typed');await tab.query({role:'textbox',name:'Username'}).press('Enter');await tab.query({role:'combobox',name:'Choice'}).selectOption('b');await tab.query({text:'Shadow action'}).click();nodeRepl.write(await tab.evaluate('({user:document.querySelector("input").value,choice:document.querySelector("select").value,shadow:shadowClicked})'));`, /"shadow": true/);
   if (await guest.executeJavaScript('document.querySelector("input").value') !== 'filled-typed') failures.push('CDP fill/type did not change Username');
   assert.equal(await guest.executeJavaScript('document.querySelector("select").value'), 'b');
   assert.equal(await guest.executeJavaScript('window.shadowClicked'), true);
@@ -113,9 +113,9 @@ async function run() {
   await check(`var snap=await tab.snapshot();nodeRepl.write(snap.frames);`, /localhost/);
   for (const hostname of ['127.0.0.1', 'localhost']) {
     const beforeFrameActions = observedActions.length;
-    const frameOutput = await check(`var frame=tab.frame((await tab.snapshot()).frames.find(f=>f.url.includes('${hostname}')&&f.url.endsWith('/frame')).id);await frame.query({text:'Frame action'}).click();await frame.query({role:'textbox',name:'Frame input'}).fill('frame-text');nodeRepl.write(await frame.evaluate('({clicked:window.clicked,value:document.querySelector("input").value,global:frameGlobal})'));`, /global: 73/);
-    if (!frameOutput.includes('clicked: true')) failures.push(`${hostname} iframe click did not reach button`);
-    if (!frameOutput.includes("value: 'frame-text'")) failures.push(`${hostname} iframe fill did not change input`);
+    const frameOutput = await check(`var frame=tab.frame((await tab.snapshot()).frames.find(f=>f.url.includes('${hostname}')&&f.url.endsWith('/frame')).id);await frame.query({text:'Frame action'}).click();await frame.query({role:'textbox',name:'Frame input'}).fill('frame-text');nodeRepl.write(await frame.evaluate('({clicked:window.clicked,value:document.querySelector("input").value,global:frameGlobal})'));`, /"global": 73/);
+    if (!frameOutput.includes('"clicked": true')) failures.push(`${hostname} iframe click did not reach button`);
+    if (!frameOutput.includes('"value": "frame-text"')) failures.push(`${hostname} iframe fill did not change input`);
     const frameCursor = observedActions.slice(beforeFrameActions).find(a => a.cursor.kind === 'click')?.cursor;
     assert.ok(frameCursor, `${hostname} iframe reports visible action`);
     const expected = await guest.executeJavaScript(`(() => { const frame=Array.from(document.querySelectorAll('iframe')).find(f=>new URL(f.src).hostname===${JSON.stringify(hostname)});const r=frame.getBoundingClientRect();return {left:r.left,top:r.top,right:r.right,bottom:r.bottom}; })()`);

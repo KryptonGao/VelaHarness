@@ -20,7 +20,7 @@ writeFileSync(join(clone, 'a.txt'), 'one\n'); sh(clone, 'add', '.'); sh(clone, '
 sh(clone, 'checkout', '-b', 'feature'); writeFileSync(join(clone, 'a.txt'), 'one\ntwo\n'); sh(clone, 'commit', '-am', 'feature work'); sh(clone, 'push', 'origin', 'feature'); sh(clone, 'checkout', 'main');
 sh(clone, 'remote', 'set-url', 'origin', 'https://github.com/fixture/Repo.git'); sh(clone, 'config', `url.${bare}.insteadOf`, 'https://github.com/fixture/Repo.git');
 const head = sh(clone, 'rev-parse', 'feature');
-writeFileSync(join(temp, 'vela/ui-state.json'), JSON.stringify({ 'vela.onboarding.complete': 'true', 'vela.leftCollapsed': 'false' }));
+writeFileSync(join(temp, 'vela/ui-state.json'), JSON.stringify({ 'vela.onboarding.complete': 'true', 'vela.leftCollapsed': 'false', 'vela.navLayout': '"classic"', 'vela.locale': 'zh-CN' }));
 writeFileSync(join(temp, 'vela/workspaces.json'), JSON.stringify({ current: null, recents: [{ path: clone, name: 'clone', lastUsedAt: Date.now() }] }));
 writeFileSync(join(temp, 'vela/models.json'), JSON.stringify({ providers: { fixture: { name: 'Fixture', api: 'openai-completions', baseUrl: 'http://127.0.0.1:1/v1', apiKey: 'fixture-only', models: [{ id: 'fixture', name: 'Fixture', reasoning: false, contextWindow: 32768, maxTokens: 4096 }] } } }));
 writeFileSync(join(temp, 'vela/selection.json'), JSON.stringify({ provider: 'fixture', modelId: 'fixture', thinkingLevel: 'off', newConversationSelection: 'default' }));

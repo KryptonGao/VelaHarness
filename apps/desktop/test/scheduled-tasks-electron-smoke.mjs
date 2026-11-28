@@ -12,7 +12,7 @@ const root = resolve(here, "..");
 const temporary = mkdtempSync(join(tmpdir(), "vela-tasks-electron-"));
 const entry = join(temporary, "entry.mjs");
 for (const path of ["workspace", "other", "vela"]) mkdirSync(join(temporary, path));
-writeFileSync(join(temporary, "vela/ui-state.json"), JSON.stringify({ "vela.onboarding.complete": "true", "vela.leftCollapsed": "false" }));
+writeFileSync(join(temporary, "vela/ui-state.json"), JSON.stringify({ "vela.onboarding.complete": "true", "vela.leftCollapsed": "false", "vela.navLayout": '"classic"', "vela.locale": "zh-CN", "vela.borderlessInterface": "false" }));
 writeFileSync(join(temporary, "vela/models.json"), JSON.stringify({ providers: { "task-smoke": {
   name: "Task smoke", api: "openai-completions", baseUrl: "http://127.0.0.1:1/v1", apiKey: "synthetic-test-key",
   models: [{ id: "reasoner", name: "Reasoner", reasoning: true, contextWindow: 32768, maxTokens: 4096 },

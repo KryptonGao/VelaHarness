@@ -144,8 +144,9 @@ async function run() {
     const mainPosition = resized.position;
     await evaluate("document.querySelector('.blur-main .time-spent-trigger').click()");
     await pause(240);
-    assert.equal((await state(0)).top, 0);
-    assert.equal((await state(0)).bottom, 0);
+    // Collapsing keeps the edge fades and the reading position until the next expand, so they cannot vanish mid-animation.
+    assert.equal((await state(0)).top, 1);
+    assert.equal((await state(0)).bottom, 1);
     await evaluate("document.querySelector('.blur-main .time-spent-trigger').click()");
     await pause(240);
     assert.equal((await state(0)).position, mainPosition);

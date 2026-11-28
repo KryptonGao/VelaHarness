@@ -54,7 +54,7 @@ try {
           const catalog = await window.vela.getCatalog();
           if (catalog.providers.some(provider => provider.id === 'typesafe')) throw new Error('classifier-only provider exposed');
           const openai = catalog.providers.find(provider => provider.id === 'openai');
-          if (openai.methods.some(method => method.type === 'oauth')) throw new Error('unsupported new login exposed');
+          if (!openai.methods.some(method => method.type === 'oauth')) throw new Error('ChatGPT sign-in missing: ' + JSON.stringify(openai.methods));
           return { id, model: state.session.modelId, modes };
         })()`);
         assert.ok(state.id);
