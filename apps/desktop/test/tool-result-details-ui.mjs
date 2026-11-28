@@ -33,6 +33,7 @@ const tasks = [
 }));
 const runs = [{ id: "run-1", taskId: "task-1", trigger: "scheduled", scheduledAt: timestamp, startedAt: timestamp, finishedAt: timestamp + 1000, status: "failed", error: "Deterministic run failed", conversationId: null }];
 const fixtures = {
+  question: [tool("ask_user_question", undefined, "确认推送吗？\n· 确认推送\n· 稍后再说\n用户回答：确认推送")],
   shell: [tool("bash_output", presentation("shell", { operation: "read", shell, output: "" }), rawShell)],
   "shell-output": [tool("bash_output", presentation("shell", { operation: "read", shell, output: "first log line\nsecond log line", truncated: true }), rawShell + "\nfirst log line\nsecond log line")],
   "shell-kill": [tool("bash_kill", presentation("shell", { operation: "kill", shell: { ...shell, status: "killed", exitCode: null }, killed: true }), "Stopped background shell bg-ui-1.")],
@@ -204,6 +205,20 @@ if (!process.versions.electron) {
       assert.equal(await evaluate("[...document.styleSheets].some(sheet => sheet.href?.endsWith('/ui.css'))"), true, "Load the emitted component CSS, not only the base stylesheet");
 
       for (const display of ["card", "compact"]) {
+        await evaluate(`window.renderCase('question', ${JSON.stringify(display)})`);
+        const toggle = "document.querySelector('.question-history-toggle')";
+        const panel = `document.getElementById(${toggle}.getAttribute('aria-controls'))`;
+        assert.equal(await evaluate(`${toggle}.textContent.trim()`), "询问了1个问题");
+        assert.ok(await evaluate(`${panel}.inert && ${panel}.offsetHeight === 0`));
+        await evaluate(`${toggle}.focus()`);
+        await keyboard("Enter");
+        await until(`${toggle}.getAttribute('aria-expanded') === 'true' && !${panel}.inert && ${panel}.offsetHeight > 0`);
+        assert.equal(await evaluate(`${toggle}.textContent.trim()`), "确认推送吗？");
+        assert.equal(await evaluate(`${panel}.textContent.trim()`), "确认推送");
+        await keyboard("Enter");
+        await until(`${toggle}.textContent.trim() === '询问了1个问题' && ${panel}.offsetHeight === 0`);
+        console.log(`PASS ${display}: question history toggles between summary and selected answer by keyboard`);
+
         await evaluate(`window.renderCase('failed-operations', ${JSON.stringify(display)})`);
         await wait(320);
         assert.equal(await evaluate("document.querySelectorAll('.tool-compact-error, .tool-status-mark.error').length"), 0,

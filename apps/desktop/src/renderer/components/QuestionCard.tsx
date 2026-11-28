@@ -1,8 +1,9 @@
 import { appLocales, localizeZh, type AskUserQuestionRequest, type ToolTrace } from "@vela/shared";
-import { useState } from "react";
+import { useId, useState } from "react";
 import { tr } from "../locale";
 import { useAttentionFocus } from "./attention-focus";
-import { ToolDurationLabel } from "./ToolProcessContext";
+import { ToolDurationLabel, useToolExpanded } from "./ToolProcessContext";
+import { foldRowId } from "./tool-fold-state";
 import { Icon } from "./icons";
 
 /** 工具记录里的回答行前缀是规范中文，但历史或本地化后的文本可能是任一语言，所以逐语言收集。 */
@@ -23,8 +24,7 @@ export type QuestionReplyHandler = (id: string, answer: string | null) => void |
 
 /**
  * ask_user_question 工具的消息内卡片。
- * 等待回答时显示可点选的选项、自由输入和跳过;回答后(或重启恢复的历史)转为只读,
- * 展示问题、选项与用户的答案。紧凑模式下的历史只保留问题和最终回答。
+ * 等待回答时直接显示答题控件；结束后折叠为摘要，展开可查看原问题和最终回答。
  */
 export function QuestionCard({
   tool,
@@ -43,8 +43,6 @@ export function QuestionCard({
   const lines = (tool.activity?.body ?? "").split("\n").filter((line) => line.trim().length > 0);
   const question = request?.question ?? lines[0] ?? "…";
   const optionLines = request ? [] : lines.filter((line) => line.startsWith("·"));
-  const answerLine = request ? null : lines.find((line) => answerOf(line) !== null);
-  const answerText = answerOf(answerLine ?? undefined);
   const interactive = tool.status === "running" && request !== null && !busy;
   // 等待回答时把焦点交给第一个选项（没有选项时是自定义输入）；用户正在输入时只朗读，不抢焦点。
   const card = useAttentionFocus<HTMLElement>(interactive, ".question-option, .question-custom-input");
@@ -72,28 +70,9 @@ export function QuestionCard({
     reply(text);
   }
 
-  if (compact && tool.status !== "running") {
-    const answer = answerText !== null
-      ? answerText
-      : tool.status === "error"
-        ? tr("问题没有回答", "Question was not answered")
-        : tr("没有回答", "No answer");
-
-    return (
-      <article className="question-card is-compact-history">
-        <div className="question-compact-head">
-          <span className="question-compact-icon" aria-hidden="true">
-            <Icon name="question" size={14} />
-          </span>
-          <div className="question-card-q">{question}</div>
-          <ToolDurationLabel tool={tool} />
-        </div>
-        <div className="question-compact-answer">
-          <span className="question-compact-guide" aria-hidden="true" />
-          <div className={`question-compact-answer-text${answerLine ? "" : " is-empty"}`}>{answer}</div>
-        </div>
-      </article>
-    );
+  if (tool.status !== "running") {
+    const answer = answerOf(lines.find(line => answerOf(line) !== null));
+    return <QuestionHistory tool={tool} compact={compact} question={question} answer={answer} />;
   }
 
   return (
@@ -102,7 +81,7 @@ export function QuestionCard({
       className={`question-card is-${tool.status}${interactive ? " interactive" : ""}`}
       aria-label={tr("Agent 的提问", "Question from the agent")}
     >
-      {tool.status === "running" && request ? (
+      {request ? (
         <div className="visually-hidden" role="alert">{tr("Agent 需要你回答：", "The agent needs your answer: ")}{question}</div>
       ) : null}
       <div className="question-card-head">
@@ -111,21 +90,11 @@ export function QuestionCard({
         </span>
         <span className="tool-kind-label">{tr("提问", "Question")}</span>
         <span className="question-card-state">
-          {tool.status === "running" ? (
-            busy ? (
-              tr("已选择，等待确认", "Selected, waiting for confirmation")
-            ) : request ? (
-              tr("等待你的回答", "Waiting for your answer")
-            ) : (
-              tr("等待回答", "Waiting for an answer")
-            )
-          ) : tool.status === "error" ? (
-            tr("未回答", "Unanswered")
-          ) : null}
+          {busy ? tr("已选择，等待确认", "Selected, waiting for confirmation")
+            : request ? tr("等待你的回答", "Waiting for your answer")
+            : tr("等待回答", "Waiting for an answer")}
         </span>
-        {tool.status === "running" ? (
-          <span className="tool-spinner" role="status" aria-label={tr("等待回答", "Waiting for an answer")} />
-        ) : null}
+        <span className="tool-spinner" role="status" aria-label={tr("等待回答", "Waiting for an answer")} />
       </div>
       <div className="question-card-q">{question}</div>
       {interactive && request ? (
@@ -182,19 +151,36 @@ export function QuestionCard({
           </div>
         </>
       ) : (
-        <>
-          {optionLines.map((line) => (
-            <div className="question-card-option-echo" key={line}>
-              {line}
-            </div>
-          ))}
-          {answerLine ? (
-            <div className="question-card-a">{answerText}</div>
-          ) : tool.status !== "running" ? (
-            <p className="tool-wait">{tool.status === "error" ? tr("问题没有回答", "Question was not answered") : tr("没有回答", "No answer")}</p>
-          ) : null}
-        </>
+        optionLines.map((line) => <div className="question-card-option-echo" key={line}>{line}</div>)
       )}
+    </article>
+  );
+}
+
+function QuestionHistory({ tool, compact, question, answer }: {
+  tool: ToolTrace; compact: boolean; question: string; answer: string | null;
+}) {
+  const [open, setOpen] = useToolExpanded(foldRowId(tool.id), compact);
+  const answerId = useId();
+  return (
+    <article className={`question-card question-history${compact ? " is-compact-history" : ""}${open ? " open" : ""}`}>
+      <button type="button" className="question-history-toggle" aria-expanded={open} aria-controls={answerId}
+        onClick={() => setOpen(value => !value)}>
+        <span className="question-compact-icon" aria-hidden="true"><Icon name="question" size={14} /></span>
+        <span className="question-card-q">{open ? question : tr("询问了1个问题", "Asked 1 question")}</span>
+        <Icon name="chevron-right" size={12} className="question-history-chevron" />
+        {compact && <ToolDurationLabel tool={tool} />}
+      </button>
+      <div id={answerId} className="tool-collapse" inert={!open}>
+        <div className="tool-collapse-inner">
+          <div className="question-compact-answer">
+            <span className="question-compact-guide" aria-hidden="true" />
+            <div className={`question-compact-answer-text${answer === null ? " is-empty" : ""}`}>
+              {answer ?? (tool.status === "error" ? tr("问题没有回答", "Question was not answered") : tr("没有回答", "No answer"))}
+            </div>
+          </div>
+        </div>
+      </div>
     </article>
   );
 }
