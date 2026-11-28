@@ -441,10 +441,11 @@ const gitSubcommands: Record<string, CommandCheck> = {
       ],
       valueLong: ["--contains", "--no-contains", "--merged", "--no-merged", "--points-at", "--sort", "--format"],
     },
-    // 不带这些选项时，git branch <name> 会新建分支。
+    // 只有这些选项会让 git 进入列表模式（后面的参数才是匹配模式）；不带它们时，git branch <name> 会新建分支。
+    // -v/--verbose 只影响列表输出，不会切换到列表模式，所以 `git branch -v new` 仍然是创建分支。
     (parsed) =>
       parsed.positionals.length === 0 ||
-      hasOption(parsed, "--list", "-l", "-v", "--verbose", "--contains", "--no-contains", "--merged", "--no-merged", "--points-at"),
+      hasOption(parsed, "--list", "-l", "--contains", "--no-contains", "--merged", "--no-merged", "--points-at"),
   ),
   remote: withRules(
     { allowShort: "vn", allowLong: ["--verbose", "--push", "--all"] },
