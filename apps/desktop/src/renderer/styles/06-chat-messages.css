@@ -1073,6 +1073,7 @@ button.tool-compact-line:focus-visible > .tool-compact-chevron,
   border-radius: 50%;
   background: var(--accent-blue);
 }
+.tool-file-created-dot.is-deleted { background: var(--danger); }
 .tool-compact-chevron {
   flex: none;
   color: var(--text-muted);

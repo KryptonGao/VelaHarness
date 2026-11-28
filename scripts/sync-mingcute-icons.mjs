@@ -93,6 +93,7 @@ const ICONS = {
   "web-fetch": "download-2",
   "read-file": "file-search",
   "file-plus": "file-new",
+  "file-minus": "file-minus",
   stack: "layers",
   plan: "map",
   goal: "target",

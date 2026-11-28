@@ -1,4 +1,5 @@
 import { tr, trf } from "../locale";
+import { splitPath } from "./tool-compact";
 import { describeBashCommand, type BashIntent, type BashIntentKind } from "./bash-intent";
 
 /** 一条被识别的 bash 命令在界面上的文案。 */
@@ -12,6 +13,8 @@ export interface BashIntentDisplay {
   name: string;
   /** 补充信息,如搜索范围「于 src」;没有则为空串。 */
   dir: string;
+  /** 删除:第一个文件的路径,用来显示文件类型图标。 */
+  path?: string;
 }
 
 /** 识别 bash 命令的含义并生成文案;无法归类时返回 null,调用方照常显示原命令。 */
@@ -44,6 +47,20 @@ function displayIntent(intent: BashIntent): BashIntentDisplay {
       action: tr("已读取", "Read"),
       name: rest.length > 0 ? `${first} +${rest.length}` : first,
       dir: "",
+    };
+  }
+  if (intent.kind === "delete") {
+    const [first = "", ...rest] = intent.targets;
+    const { name, dir } = splitPath(first);
+    // 和创建文件一样拆成文件名 + 目录;多个文件目录不同时不显示目录,免得误导。
+    const sameDir = intent.targets.every((target) => splitPath(target).dir === dir);
+    return {
+      kind: "delete",
+      label: tr("删除", "Delete"),
+      action: tr("已删除", "Deleted"),
+      name: rest.length > 0 ? `${name} +${rest.length}` : name,
+      dir: sameDir ? dir : "",
+      path: first,
     };
   }
   if (intent.kind === "search") {

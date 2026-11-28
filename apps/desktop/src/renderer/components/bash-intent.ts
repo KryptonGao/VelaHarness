@@ -1,9 +1,9 @@
 /** bash 命令的语义归类:模型常用 ls / cat / grep 获取信息,界面上显示成「列出目录」「读取文件」「搜索」。 */
-export type BashIntentKind = "list" | "read" | "search" | "find" | "script";
+export type BashIntentKind = "list" | "read" | "search" | "find" | "script" | "delete";
 
 export interface BashIntent {
   kind: BashIntentKind;
-  /** 目录或文件;读取多个文件时是全部文件,列目录/搜索/查找没写路径时为空(即当前目录)。 */
+  /** 目录或文件;读取/删除多个文件时是全部文件,列目录/搜索/查找没写路径时为空(即当前目录)。 */
   targets: string[];
   /** 搜索词或文件名模式;list / read 没有。 */
   query?: string;
@@ -32,6 +32,13 @@ const valueOptions: Record<string, Set<string>> = {
   grep: new Set(["-A", "-B", "-C", "-m", "-d", "--include", "--exclude", "--exclude-dir", "--max-count", "--color", "--label"]),
   rg: new Set(["-A", "-B", "-C", "-m", "-g", "--glob", "-t", "-T", "--type", "--type-not", "--max-count", "--max-depth", "-j", "--threads", "--color", "--sort", "--iglob"]),
   bat: new Set(["-r", "--line-range", "-l", "--language", "--theme", "--style", "--color"]),
+  nl: new Set([
+    "-b", "-d", "-f", "-h", "-i", "-l", "-n", "-s", "-v", "-w",
+    "--body-numbering", "--section-delimiter", "--footer-numbering", "--header-numbering", "--line-increment",
+    "--join-blank-lines", "--number-format", "--number-separator", "--starting-line-number", "--number-width",
+  ]),
+  less: new Set(["-b", "-h", "-j", "-k", "-o", "-O", "-p", "-P", "-t", "-T", "-x", "-y", "-z", "-D", "--pattern", "--tag", "--tag-file"]),
+  more: new Set(["-n", "-p"]),
 };
 valueOptions.egrep = valueOptions.grep!;
 valueOptions.fgrep = valueOptions.grep!;
@@ -135,6 +142,7 @@ function classify(tokens: string[], heredoc?: string): BashIntent | null {
     // head/tail 没有文件参数时读的是标准输入,含义不明。
     return files.length > 0 ? { kind: "read", targets: files } : null;
   }
+  if (name === "rm" || name === "unlink") return classifyDelete(name, args);
   if (name === "sed") return classifySed(args);
   if (searchCommands.has(name)) return classifySearch(name, args);
   if (name === "find") return classifyFind(args);
@@ -227,6 +235,28 @@ function extractHeredoc(text: string): { text: string; body?: string } | null {
   return null;
 }
 
+/** rm 只认明确写出文件名的删除:带 -r / -R / -d 的目录删除、通配符、未知选项都保持原样,免得把大范围删除显示得很轻。 */
+const safeRmOptions = /^-[fvIi]+$|^--(force|verbose|interactive)(=.*)?$/;
+const globChars = /[*?[\]{}]/;
+
+function classifyDelete(name: string, args: string[]): BashIntent | null {
+  const targets: string[] = [];
+  for (let index = 0; index < args.length; index++) {
+    const arg = args[index]!;
+    if (arg === "--") {
+      targets.push(...args.slice(index + 1));
+      break;
+    }
+    if (arg.startsWith("-") && arg.length > 1) {
+      if (name === "unlink" || !safeRmOptions.test(arg)) return null;
+      continue;
+    }
+    targets.push(arg);
+  }
+  if (targets.length === 0 || targets.some((target) => globChars.test(target) || target === "-")) return null;
+  return { kind: "delete", targets };
+}
+
 /** 只认 `sed -n 'A,Bp' file`:纯粹按行号读取。 */
 function classifySed(args: string[]): BashIntent | null {
   if (!args.includes("-n") || args.some((arg) => arg === "-i" || arg.startsWith("-i") || arg === "--in-place")) return null;
@@ -283,9 +313,13 @@ function classifyFind(args: string[]): BashIntent | null {
   return { kind: "find", targets: targets.slice(0, 1), ...(query ? { query } : {}) };
 }
 
-/** 去掉选项后的位置参数;head/tail 等带取值的选项会连同取值一起跳过。head -20 这种数字选项当作普通选项。 */
+/** less / more 的 `+F`、`+/pattern`、`+20` 是启动命令,不是文件。 */
+const startupCommandPagers = new Set(["less", "more"]);
+
+/** 去掉选项后的位置参数;head/tail 等带取值的选项会连同取值一起跳过。head -20 这种数字选项当作普通选项。单独的 `-` 代表标准输入,不是文件。 */
 function positionals(name: string, args: string[]): string[] {
   const withValues = valueOptions[name] ?? new Set<string>();
+  const skipsPlus = startupCommandPagers.has(name);
   const result: string[] = [];
   for (let index = 0; index < args.length; index++) {
     const arg = args[index]!;
@@ -293,6 +327,7 @@ function positionals(name: string, args: string[]): string[] {
       result.push(...args.slice(index + 1));
       break;
     }
+    if (arg === "-" || (skipsPlus && arg.length > 1 && arg.startsWith("+"))) continue;
     if (arg.startsWith("-") && arg.length > 1) {
       if (withValues.has(arg)) index++;
       continue;

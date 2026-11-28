@@ -52,7 +52,7 @@ export function compactSummaryParts(tools: ToolTrace[]): CompactSummaryPart[] {
 }
 
 /** 摘要文案用的种类:bash 里的 ls / grep 单独成「列目录」「搜索」,cat 并入「读取文件」。 */
-export type CompactLabelKind = CompactKind | "list" | "search" | "skill";
+export type CompactLabelKind = CompactKind | "list" | "search" | "skill" | "delete";
 
 export interface CompactLabelPart {
   kind: CompactLabelKind;
@@ -77,6 +77,10 @@ export function compactLabelParts(tools: ToolTrace[]): CompactLabelPart[] {
         add("bash");
       } else if (intent.kind === "list") {
         add("list");
+      } else if (intent.kind === "delete") {
+        const fresh = intent.targets.filter((target) => !seenFiles.has(`delete:${target}`));
+        for (const target of fresh) seenFiles.add(`delete:${target}`);
+        if (fresh.length > 0) add("delete", fresh.length);
       } else if (intent.kind === "read") {
         const fresh = intent.targets.filter((target) => !seenFiles.has(`read:${target}`));
         for (const target of fresh) seenFiles.add(`read:${target}`);

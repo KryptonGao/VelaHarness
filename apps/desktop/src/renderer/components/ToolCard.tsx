@@ -397,7 +397,7 @@ function GenericToolCard({ tool, compact = false }: ToolCardProps) {
               {planFirst ? <PlanStatusIcon status={planFirst.status} ended={planEnded} className="plan-status-inline" /> : null}
               <span className={planFirst ? "tool-summary-text tool-card-name-text" : "tool-summary-text"}>{subject.name}</span>
             </span>
-            {subject.dir ? <span className={`tool-card-dir${kind === "read" || kind === "edit" || kind === "write" ? " is-file-path" : ""}`}><span className="tool-summary-text">{subject.dir}</span></span> : null}
+            {subject.dir ? <span className={`tool-card-dir${kind === "read" || kind === "edit" || kind === "write" || bashIntent?.kind === "delete" ? " is-file-path" : ""}`}><span className="tool-summary-text">{subject.dir}</span></span> : null}
           </span>
           {mcp || discoveryServer ? <span className="tool-mcp-source" aria-label={trf("MCP 服务器：{0}", "MCP server: {0}", (mcp?.server ?? discoveryServer)!)}><span className="overflow-fade-text">{mcp?.server ?? discoveryServer}</span></span> : null}
           {stat ? (
@@ -409,6 +409,7 @@ function GenericToolCard({ tool, compact = false }: ToolCardProps) {
             <span className="tool-lines">{trf("{0} 行", "{0} lines", lines)}</span>
           ) : null}
           {kind === "write" && tool.status === "done" ? <span className="tool-file-created-dot" aria-hidden="true" /> : null}
+          {bashIntent?.kind === "delete" && tool.status === "done" ? <span className="tool-file-created-dot is-deleted" aria-hidden="true" /> : null}
           {compact ? null : <StatusMark status={tool.status} />}
           <Icon name="chevron-right" size={12} className="tool-chevron" />
           {compact ? <ToolDurationLabel tool={tool} /> : null}
@@ -723,6 +724,7 @@ function compactPartLabel({ kind, count }: CompactLabelPart): string {
   if (kind === "search") return trf("已搜索 {0} 次", count === 1 ? "Ran {0} search" : "Ran {0} searches", count);
   if (kind === "edit") return trf("已编辑 {0} 个文件", count === 1 ? "Edited {0} file" : "Edited {0} files", count);
   if (kind === "write") return trf("已创建 {0} 个文件", count === 1 ? "Created {0} file" : "Created {0} files", count);
+  if (kind === "delete") return trf("已删除 {0} 个文件", count === 1 ? "Deleted {0} file" : "Deleted {0} files", count);
   if (kind === "read") return trf("已读取 {0} 个文件", count === 1 ? "Read {0} file" : "Read {0} files", count);
   if (kind === "skill") return trf("已读取 {0} 个技能", count === 1 ? "Read {0} skill" : "Read {0} skills", count);
   return trf("已运行 {0} 条命令", count === 1 ? "Ran {0} command" : "Ran {0} commands", count);
@@ -792,7 +794,14 @@ export const CompactToolLine = memo(function CompactToolLine({
             </span>
           ) : null}
           {!hideAction ? <span className="tool-compact-action">{backgroundStart ? tr("已在后台运行", "Ran in background") : elapsedSeconds !== null ? trf("命令已运行 {0} 秒", "Command running for {0}s", elapsedSeconds) : bashIntent?.action ?? ranAction(toolDuration)}</span> : null}
-          <BashSubject activity={activity} />
+          {bashIntent?.kind === "delete" ? (
+            <>
+              {bashIntent.path ? <FileTypeIcon path={bashIntent.path} /> : null}
+              <span className="tool-compact-name is-static overflow-fade-text">{bashIntent.name}</span>
+              {bashIntent.dir ? <span className="tool-compact-dir is-file-path">{bashIntent.dir}</span> : null}
+            </>
+          ) : <BashSubject activity={activity} />}
+          {bashIntent?.kind === "delete" && tool.status === "done" ? <span className="tool-file-created-dot is-deleted" aria-hidden="true" /> : null}
           <Icon name="chevron-right" size={12} className="tool-compact-chevron" />
           <ToolDurationLabel tool={tool} />
           <CompactStatus running={running} />

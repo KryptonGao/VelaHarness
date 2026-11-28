@@ -27,6 +27,7 @@ export function KindIcon({ kind, command, skill = false }: { kind: ToolKind; com
     const intent = bashIntentDisplay(command)?.kind;
     if (intent === "list") return <Icon name="folder" size={14} />;
     if (intent === "read") return <Icon name="read-file" size={14} />;
+    if (intent === "delete") return <Icon name="file-minus" size={14} />;
     if (intent === "search" || intent === "find") return <Icon name="search" size={14} />;
     return <Icon name="terminal" size={14} />;
   }
